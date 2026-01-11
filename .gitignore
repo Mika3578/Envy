@@ -1,0 +1,251 @@
+# =============================================================================
+# Envy P2P Client - .gitignore
+# =============================================================================
+
+# =============================================================================
+# Visual Studio Files
+# =============================================================================
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# User-specific files (MonoDevelop/Xamarin Studio)
+*.userprefs
+
+# Build results - Standard patterns
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Build results - Envy specific patterns (e.g., "Debug x64", "Release Win32")
+[Dd]ebug */
+[Rr]elease */
+**/[Dd]ebug */
+**/[Rr]elease */
+**/Debug x64/
+**/Debug x86/
+**/Debug Win32/
+**/Release x64/
+**/Release x86/
+**/Release Win32/
+
+# Visual Studio 2015/2017/2019/2022 cache/options directory
+.vs/
+
+# Visual Studio generated files
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+ipch/
+**/ipch/
+
+# Visual C++ precompiled headers
+*.pch
+*.pdb
+*.ipch
+*.ilk
+
+# Build outputs
+*.obj
+*.o
+*.lo
+*.lib
+*.a
+*.la
+*.lai
+*.exp
+*.idb
+*.tlog
+*.lastbuildstate
+*.unsuccessfulbuild
+
+# Compiled files
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Resource intermediate files
+*.res
+
+# MSBuild Binary and Structured Log
+*.binlog
+
+# Compiled Object files
+*.slo
+
+# Browse database
+*.sdf
+*.opensdf
+Browse.VC.db
+
+# =============================================================================
+# C++ Specific
+# =============================================================================
+
+# Precompiled Headers
+*.gch
+
+# Compiled Dynamic libraries
+*.so.*
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+
+# Executables
+*.out
+*.app
+
+# =============================================================================
+# Windows-specific
+# =============================================================================
+
+# Windows thumbnail cache files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# Dump file
+*.stackdump
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# =============================================================================
+# InnoSetup Installer
+# =============================================================================
+Installer/Output/
+
+# =============================================================================
+# IDE and Editor Files
+# =============================================================================
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Notepad++
+*.npp
+
+# =============================================================================
+# Backup and Temp Files
+# =============================================================================
+*~
+*.bak
+*.backup
+*.tmp
+*.temp
+*.swp
+*.swo
+*.*~
+
+# =============================================================================
+# Output and Generated Files
+# =============================================================================
+
+# Skin packages (keep source, ignore built)
+*.envy
+
+# Torrent files (test files)
+# *.torrent
+
+# Log files
+*.log
+
+# =============================================================================
+# Dependencies and Externals (if downloaded)
+# =============================================================================
+
+# NuGet packages
+packages/
+*.nupkg
+
+# =============================================================================
+# Envy Project Specific
+# =============================================================================
+
+# Keep LibGFL binaries if they are distributed (comment out if needed in repo)
+# Services/LibGFL/Win32/
+# Services/LibGFL/x64/
+
+# Release output file (if generated)
+release
+
+# =============================================================================
+# Test and Coverage
+# =============================================================================
+TestResults/
+[Tt]est[Rr]esult*/
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+
+# =============================================================================
+# Documentation Generated
+# =============================================================================
+/docs/_site/
+/docs/.sass-cache/
+
+# =============================================================================
+# OS Generated Files
+# =============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*

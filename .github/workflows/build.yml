@@ -1,0 +1,63 @@
+# GitHub Actions workflow for building Envy
+# This workflow builds the project on push and pull requests
+
+name: Build
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  SOLUTION_FILE_PATH: Visual Studio\Envy.sln
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Release]
+        platform: [Win32, x64]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup Visual Studio Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ matrix.platform == 'Win32' && 'x86' || 'x64' }}
+        toolset: '14.3'
+
+    - name: Restore NuGet packages
+      working-directory: ${{ github.workspace }}
+      run: nuget restore "${{ env.SOLUTION_FILE_PATH }}"
+      continue-on-error: true
+
+    - name: Build Solution
+      working-directory: ${{ github.workspace }}
+      run: |
+        msbuild "${{ env.SOLUTION_FILE_PATH }}" `
+          /p:Configuration=${{ matrix.configuration }} `
+          /p:Platform=${{ matrix.platform }} `
+          /p:PlatformToolset=v143 `
+          /m `
+          /verbosity:minimal
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: Envy-${{ matrix.configuration }}-${{ matrix.platform }}
+        path: |
+          ${{ matrix.configuration }} ${{ matrix.platform }}/*.exe
+          ${{ matrix.configuration }} ${{ matrix.platform }}/*.dll
+        retention-days: 30
+        if-no-files-found: ignore

@@ -441,12 +441,6 @@
     <ClCompile Include="PongCache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="qrencode.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="QRCode.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="QueryHashGroup.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1596,6 +1590,9 @@
     <None Include="Res\favicon.ico">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="Res\Logo.png">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlbumFolder.h">
@@ -1910,9 +1907,6 @@
     <ClInclude Include="MetaList.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClCompile Include="MiniUPnP.h">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClInclude Include="MinMax.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -2780,9 +2774,6 @@
     <ClInclude Include="FileFragments\Range.hpp">
       <Filter>Header Files\File Fragments\FileFragments</Filter>
     </ClInclude>
-    <ClInclude Include="FileFragments\Ranges.hpp">
-      <Filter>Header Files\File Fragments\FileFragments</Filter>
-    </ClInclude>
     <ClInclude Include="Hashes.hpp">
       <Filter>Header Files\Hash Algorithms</Filter>
     </ClInclude>
@@ -2824,6 +2815,15 @@
     </ClInclude>
     <ClInclude Include="BitTorrentDHT\dht.c">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="qrencode.c">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="QRCode.cpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MiniUPnP.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

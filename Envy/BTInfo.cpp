@@ -1,7 +1,7 @@
 //
 // BTInfo.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) Â© 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -229,8 +229,7 @@ CBTInfo& CBTInfo::operator=(const CBTInfo& oSource)
 	if ( oSource.m_pBlockBTH )
 	{
 		m_pBlockBTH = new Hashes::BtPureHash[ m_nBlockCount ];
-		std::copy( oSource.m_pBlockBTH, oSource.m_pBlockBTH + m_nBlockCount,
-			stdext::make_checked_array_iterator( m_pBlockBTH, m_nBlockCount ) );
+		std::copy( oSource.m_pBlockBTH, oSource.m_pBlockBTH + m_nBlockCount, m_pBlockBTH );
 	}
 
 	m_nTotalUpload		= oSource.m_nTotalUpload;
@@ -1074,14 +1073,14 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 	const CBENode* pHash = pInfo->GetNode( "pieces" );
 	if ( ! pHash || ! pHash->IsType( CBENode::beString ) ) return FALSE;
 	if ( pHash->m_nValue % Hashes::Sha1Hash::byteCount ) return FALSE;
-	m_nBlockCount = (DWORD)( pHash->m_nValue / Hashes::Sha1Hash::byteCount );
+	m_nBlockCount = (DWORD)( pHash->m_nValue / Hashes::BtHash::byteCount );
 	if ( ! m_nBlockCount || m_nBlockCount > 209716 ) return FALSE;
 
 	m_pBlockBTH = new Hashes::BtPureHash[ m_nBlockCount ];
 
 	std::copy( static_cast< const Hashes::BtHash::RawStorage* >( pHash->m_pValue ),
 		static_cast< const Hashes::BtHash::RawStorage* >( pHash->m_pValue ) + m_nBlockCount,
-		stdext::make_checked_array_iterator( m_pBlockBTH, m_nBlockCount ) );
+		m_pBlockBTH );
 
 	// Hash info
 	if ( const CBENode* pSHA1 = pInfo->GetNode( "sha1" ) )
@@ -1397,7 +1396,7 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 
 	CSHA oSHA = pInfo->GetSHA1();
 	oSHA.GetHash( &m_oBTH[ 0 ] );
-	m_oBTH.validate();
+	oSHA.Finish();
 
 	if ( m_pSource.m_nLength > 0 && pInfo->m_nSize
 		 && pInfo->m_nPosition + pInfo->m_nSize < m_pSource.m_nLength )

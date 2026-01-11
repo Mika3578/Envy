@@ -1,0 +1,9 @@
+﻿version: 2
+updates:
+  # Note: Envy is a C++ project using Visual Studio
+  # GitHub Actions workflow dependencies (if added in future)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
