@@ -683,10 +683,24 @@ BOOL CDownloadTransferED2K::SendPrimaryRequest()
 		Send( pPacket );
 	}
 
-	// ToDo: Add new option "SourceExchangePeriod" (default: 10 minutes) like BitTorrent
+	// Source Exchange v2 (preferred if supported)
 	if ( tNow > m_tSourceRequest + 10 * 60 * 1000 &&							// We have not asked for at least 10 minutes
 		 m_pDownload->GetSourceCount() < Settings.Downloads.SourcesWanted &&	// We want more sources
-		 m_pClient->m_bEmule )													// Remote client is eMule compatible and we are accepting packets
+		 m_pClient->m_bEmule && m_pClient->m_bEmSupportsSourceEx2 )			// Remote client supports SourceEx2
+	{
+		// Set 'last asked for sources' time
+		m_tSourceRequest = tNow;
+		// Send ed2k v2 request for sources packet: <HASH 16><Version 1><Options 2>
+		pPacket = CEDPacket::New( ED2K_C2C_REQUESTSOURCES2, ED2K_PROTOCOL_EMULE );
+		pPacket->Write( m_pDownload->m_oED2K );
+		pPacket->WriteByte( 1 ); // Version
+		pPacket->WriteShortLE( 0 ); // Options (reserved for future use)
+		Send( pPacket );
+	}
+	// Fallback to original Source Exchange if v2 not supported
+	else if ( tNow > m_tSourceRequest + 10 * 60 * 1000 &&						// We have not asked for at least 10 minutes
+		 m_pDownload->GetSourceCount() < Settings.Downloads.SourcesWanted &&	// We want more sources
+		 m_pClient->m_bEmule )													// Remote client is eMule compatible
 	{
 		// Set 'last asked for sources' time
 		m_tSourceRequest = tNow;

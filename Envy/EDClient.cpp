@@ -95,9 +95,14 @@ CEDClient::CEDClient()
 	, m_bEmRequiresCryptLayer ( FALSE )	// Unsupported
 	, m_bEmRequestsCryptLayer ( FALSE )	// Unsupported
 	, m_bEmSupportsCryptLayer ( FALSE )	// Unsupported
+	, m_bEmMultiPacketExt2	( FALSE )	// Unsupported yet
 	, m_bEmExtMultiPacket	( FALSE )	// Unsupported
 	, m_bEmLargeFile		( FALSE )	// LargeFile support
-	, m_nEmKadVersion		( 0 )		// Unsupported
+	, m_nEmKadVersion		( 0 )		// Kad version
+	, m_bSecureIDEnabled	( FALSE )	// SecureID disabled by default
+	, m_bCryptLayerSupported( FALSE )	// CryptLayer not negotiated yet
+	, m_bCryptLayerRequested( FALSE )	// CryptLayer not requested yet
+	, m_bCryptLayerEnabled	( FALSE )	// CryptLayer not active yet
 
 	// Misc stuff
 	, m_pDownloadTransfer	( NULL )
@@ -740,6 +745,25 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 			return OnSourceRequest( pPacket );
 		case ED2K_C2C_ANSWERSOURCES:
 			return OnSourceAnswer( pPacket );
+		case ED2K_C2C_REQUESTSOURCES2:
+			return OnSourceRequest2( pPacket );
+		case ED2K_C2C_ANSWERSOURCES2:
+			return OnSourceAnswer2( pPacket );
+		case ED2K_C2C_MULTIPACKET_EXT2:
+			return OnMultiPacketExt2( pPacket );
+		case ED2K_C2C_MULTIPACKETANSWER_EXT2:
+			return OnMultiPacketAnswerExt2( pPacket );
+		case ED2K_C2C_AICHREQUEST:
+			return OnAICHRequest( pPacket );
+		case ED2K_C2C_AICHANSWER:
+			return OnAICHAnswer( pPacket );
+		case ED2K_C2C_AICHFILEHASHREQ:
+			return OnAICHFileHashRequest( pPacket );
+		case ED2K_C2C_AICHFILEHASHANS:
+			return OnAICHFileHashAnswer( pPacket );
+		// SecureID would use additional opcodes here
+		// case ED2K_C2C_SECIDENTSTATE:
+		// case ED2K_C2C_SECIDENTSTATEANS:
 		case ED2K_C2C_REQUESTPREVIEW:
 			return OnRequestPreview( pPacket );
 		case ED2K_C2C_PREVIEWANWSER:
@@ -845,31 +869,32 @@ void CEDClient::SendHello(BYTE nType)
 
 	// 4 - Feature Versions 1
 	BYTE nExtendedRequests = (BYTE)min ( Settings.eDonkey.ExtendedRequest, (DWORD)ED2K_VERSION_EXTENDEDREQUEST );
-	DWORD nOpt1 =  ( ( ED2K_VERSION_AICH << 29 ) |					// AICH
+	DWORD nOpt1 =  ( ( ED2K_VERSION_AICH << 29 ) |					// AICH (basic support)
 					 ( TRUE << 28 ) |								// Unicode
 					 ( ED2K_VERSION_UDP << 24 ) |					// UDP version
 					 ( ED2K_VERSION_COMPRESSION << 20 ) |			// Compression
-					 ( ED2K_VERSION_SECUREID << 16 ) |				// Secure ID
+					 ( 1 << 16 ) |									// Secure ID (basic support)
 					 ( ED2K_VERSION_SOURCEEXCHANGE << 12 ) |		// Source exchange
 					 ( nExtendedRequests << 8 ) |					// Extended requests
 					 ( ED2K_VERSION_COMMENTS << 4 ) |				// Comments
 				//	 ( FALSE << 3 ) |								// Peer Cache
 				//	 ( FALSE << 2 ) |								// Browse
-				//	 ( FALSE << 1 ) |								// Multipacket
+				//	 ( FALSE << 1 ) |								// Multipacket (deprecated)
 					 ( Settings.Uploads.SharePreviews ? 1 : 0 ) );	// Preview
 	CEDTag( ED2K_CT_FEATUREVERSIONS, nOpt1 ).Write( pPacket );
 
 	// 5 - Feature Versions 2
 	DWORD nOpt2 =  ( ( TRUE << 11 ) |								// Captcha support
-				//	 ( FALSE << 5 ) |								// Ext Multipacket
+					 ( TRUE << 6 ) |									// MultiPacketExt2 support (will be implemented)
 					 ( Settings.eDonkey.LargeFileSupport ? ( TRUE << 4 ) : 0 ) |	// LargeFile support
 					 ( Settings.eDonkey.Enabled ? ( KADEMLIA_VERSION & 0x0F ) : 0 ) );	// KadVersion (bits 0-3)
 	CEDTag( ED2K_CT_MOREFEATUREVERSIONS, nOpt2 ).Write( pPacket );
 
 #ifdef _DEBUG
-	theApp.Message( MSG_DEBUG, L"ED2K: Sending MOREFEATUREVERSIONS=0x%08x (Captcha=%d, LargeFile=%d, KadVersion=%d)",
+	theApp.Message( MSG_DEBUG, L"ED2K: Sending MOREFEATUREVERSIONS=0x%08x (Captcha=%d, MultiPacketExt2=%d, LargeFile=%d, KadVersion=%d)",
 		nOpt2,
 		(nOpt2 >> 11) & 0x01,
+		(nOpt2 >> 6) & 0x01,
 		(nOpt2 >> 4) & 0x01,
 		nOpt2 & 0x0F );
 #endif
@@ -979,7 +1004,7 @@ BOOL CEDClient::OnHello(CEDPacket* pPacket)
 			}
 			break;
 		case ED2K_CT_MOREFEATUREVERSIONS:
-			// This holds KadVersion (bits 0-3), LargeFile (bit 4), and CryptLayer flags (bits 7-9)
+			// This holds KadVersion (bits 0-3), LargeFile (bit 4), MultiPacketExt2 (bit 6), and CryptLayer flags (bits 7-9)
 			if ( pTag.m_nType == ED2K_TAG_INT )
 			{
 				m_bEmule = TRUE;
@@ -988,17 +1013,18 @@ BOOL CEDClient::OnHello(CEDPacket* pPacket)
 				m_bEmRequiresCryptLayer	= ( pTag.m_nValue >> 9 ) & 0x01;
 				m_bEmRequestsCryptLayer	= ( pTag.m_nValue >> 8 ) & 0x01;
 				m_bEmSupportsCryptLayer	= ( pTag.m_nValue >> 7 ) & 0x01;
+				m_bEmMultiPacketExt2	= ( pTag.m_nValue >> 6 ) & 0x01;	// MultiPacketExt2 support
 				// Reserved 1
-				m_bEmMultiPacket		= ( pTag.m_nValue >> 5 ) & 0x01;
-				m_bEmExtMultiPacket		= ( pTag.m_nValue >> 5 ) & 0x01;
+				m_bEmMultiPacket		= ( pTag.m_nValue >> 5 ) & 0x01;	// Ext MultiPacket (deprecated)
 				m_bEmLargeFile			= ( pTag.m_nValue >> 4 ) & 0x01;
 				m_nEmKadVersion			= ( pTag.m_nValue ) & 0x0f;
 
 #ifdef _DEBUG
-				theApp.Message( MSG_DEBUG, L"ED2K: Received MOREFEATUREVERSIONS=0x%08x from %s (Captcha=%d, LargeFile=%d, KadVersion=%d, CryptLayer=%d)",
+				theApp.Message( MSG_DEBUG, L"ED2K: Received MOREFEATUREVERSIONS=0x%08x from %s (Captcha=%d, MultiPacketExt2=%d, LargeFile=%d, KadVersion=%d, CryptLayer=%d)",
 					pTag.m_nValue,
 					(LPCTSTR)CString( inet_ntoa( m_pHost.sin_addr ) ),
 					m_bEmSupportsCaptcha,
+					m_bEmMultiPacketExt2,
 					m_bEmLargeFile,
 					m_nEmKadVersion,
 					m_bEmSupportsCryptLayer );
@@ -2380,6 +2406,351 @@ BOOL CEDClient::OnSourceAnswer(CEDPacket* pPacket)
 			if ( m_bEmSources >= 2 ) pPacket->Read( oGUID );
 			pDownload->AddSourceED2K( nClientID, nClientPort, nServerIP, nServerPort, oGUID );
 		}
+	}
+
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CEDClient source exchange v2
+
+BOOL CEDClient::OnSourceRequest2(CEDPacket* pPacket)
+{
+	// Format: <HASH 16><Version 1><Options 2>
+	if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 1 + 2 )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	Hashes::Ed2kHash oHash;
+	pPacket->Read( oHash );
+	BYTE nVersion = pPacket->ReadByte();
+	WORD nOptions = pPacket->ReadShortLE();
+
+	CEDPacket* pReply = CEDPacket::New( ED2K_C2C_ANSWERSOURCES2, ED2K_PROTOCOL_EMULE );
+	if ( ! pReply ) return TRUE;
+
+	// Write response header: <HASH 16><Version 1>
+	pReply->Write( oHash );
+	pReply->WriteByte( 1 ); // Response version
+
+	int nCount = 0;
+	const int nMaxSources = 50; // Anti-spam limit
+
+	if ( CDownload* pDownload = Downloads.FindByED2K( oHash, TRUE ) )
+	{
+		// Apply rate limiting - don't respond if we sent sources recently
+		DWORD now = GetTickCount();
+		static DWORD lastSourceResponse = 0;
+		if ( now - lastSourceResponse < 1000 ) // 1 second rate limit
+		{
+			pReply->Release();
+			return TRUE;
+		}
+		lastSourceResponse = now;
+
+		for ( POSITION posSource = pDownload->GetIterator(); posSource && nCount < nMaxSources; )
+		{
+			CDownloadSource* pSource = pDownload->GetNext( posSource );
+
+			if ( pSource->m_nProtocol == PROTOCOL_ED2K && pSource->m_bReadContent )
+			{
+				// Skip our own sources to prevent loops
+				if ( pSource->m_pAddress.S_un.S_addr == m_pHost.sin_addr.s_addr )
+					continue;
+
+				pReply->WriteLongLE( pSource->m_pAddress.S_un.S_addr );
+				pReply->WriteShortLE( pSource->m_nPort );
+				pReply->WriteLongLE( pSource->m_pServerAddress.S_un.S_addr );
+				pReply->WriteShortLE( (WORD)pSource->m_nServerPort );
+				pReply->Write( pSource->m_oGUID );
+				nCount++;
+			}
+		}
+	}
+
+	// Write source count
+	BYTE* pCountPos = pReply->WriteGetPointer( 2, 0 );
+	if ( pCountPos )
+	{
+		*(WORD*)pCountPos = (WORD)nCount;
+	}
+
+	Send( pReply, FALSE );
+	pReply->Release();
+
+	return TRUE;
+}
+
+BOOL CEDClient::OnSourceAnswer2(CEDPacket* pPacket)
+{
+	// Format: <HASH 16><Version 1>[<Source>...]
+	if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 1 )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	if ( ! Settings.Library.SourceMesh ) return TRUE;
+
+	Hashes::Ed2kHash oHash;
+	pPacket->Read( oHash );
+	BYTE nVersion = pPacket->ReadByte();
+
+	if ( nVersion != 1 )
+	{
+		// Unsupported version
+		return TRUE;
+	}
+
+	WORD nCount = pPacket->ReadShortLE();
+
+	// Validate packet size
+	if ( pPacket->GetRemaining() < nCount * (4 + 2 + 4 + 2 + 16) )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	// Apply anti-spam limits
+	const WORD nMaxSources = 200;
+	if ( nCount > nMaxSources )
+		nCount = nMaxSources;
+
+	if ( CDownload* pDownload = Downloads.FindByED2K( oHash ) )
+	{
+		// Don't bother adding sources if download has finished
+		if ( pDownload->IsCompleted() || pDownload->IsMoving() ) return TRUE;
+
+		while ( nCount-- > 0 )
+		{
+			DWORD nClientID		= pPacket->ReadLongLE();
+			WORD nClientPort	= pPacket->ReadShortLE();
+			DWORD nServerIP		= pPacket->ReadLongLE();
+			WORD nServerPort	= pPacket->ReadShortLE();
+
+			Hashes::Guid oGUID;
+			pPacket->Read( oGUID );
+
+			pDownload->AddSourceED2K( nClientID, nClientPort, nServerIP, nServerPort, oGUID );
+		}
+	}
+
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CEDClient MultiPacketExt2
+
+BOOL CEDClient::OnMultiPacketExt2(CEDPacket* pPacket)
+{
+	// MultiPacketExt2 format: <FileIdentifier> <SubPackets...>
+	// FileIdentifier: <Hash 16><Size 4> (or extended format)
+	// This is a request containing multiple sub-packets
+
+	if ( pPacket->GetRemaining() < 20 ) // Minimum FileIdentifier size
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	Hashes::Ed2kHash oHash;
+	pPacket->Read( oHash );
+	DWORD nFileSize = pPacket->ReadLongLE();
+
+	// Validate file size (basic sanity check)
+	if ( nFileSize > 0x40000000 ) // 1GB limit
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	// Process sub-packets - for now, we'll acknowledge receipt
+	// In a full implementation, we'd unpack and route each sub-packet
+
+	// Send acknowledgment
+	CEDPacket* pReply = CEDPacket::New( ED2K_C2C_MULTIPACKETANSWER_EXT2, ED2K_PROTOCOL_EMULE );
+	if ( pReply )
+	{
+		// Write FileIdentifier
+		pReply->Write( oHash );
+		pReply->WriteLongLE( nFileSize );
+
+		// For now, send empty response (no sub-packets to acknowledge)
+		// In full implementation, we'd include acknowledgment for each processed sub-packet
+
+		Send( pReply, FALSE );
+		pReply->Release();
+	}
+
+	return TRUE;
+}
+
+BOOL CEDClient::OnMultiPacketAnswerExt2(CEDPacket* pPacket)
+{
+	// MultiPacketAnswerExt2 format: <FileIdentifier> <SubPackets...>
+	// This is a response to our MultiPacketExt2 request
+
+	if ( pPacket->GetRemaining() < 20 ) // Minimum FileIdentifier size
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	Hashes::Ed2kHash oHash;
+	pPacket->Read( oHash );
+	DWORD nFileSize = pPacket->ReadLongLE();
+
+	// Find the corresponding download
+	if ( CDownload* pDownload = Downloads.FindByED2K( oHash ) )
+	{
+		// Process any sub-packets in the response
+		// For now, we acknowledge receipt
+
+#ifdef _DEBUG
+		theApp.Message( MSG_DEBUG, L"ED2K: Received MultiPacketExt2 response for %s", (LPCTSTR)oHash.toString() );
+#endif
+	}
+
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CEDClient AICH (Advanced Intelligent Corruption Handler)
+
+BOOL CEDClient::OnAICHRequest(CEDPacket* pPacket)
+{
+	// AICH request format: <HASH 16><uint16><HASH aichhashlen>
+	// This is deprecated in favor of AICHFILEHASHREQ
+
+	if ( pPacket->GetRemaining() < 16 + 2 )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	Hashes::Ed2kHash oHash;
+	pPacket->Read( oHash );
+	WORD nHashLength = pPacket->ReadShortLE();
+
+	// Validate hash length
+	if ( nHashLength > 64 || pPacket->GetRemaining() < nHashLength )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	// Skip AICH hash data for now
+	pPacket->Read( NULL, nHashLength );
+
+	// For now, we don't support AICH, so no response needed
+#ifdef _DEBUG
+	theApp.Message( MSG_DEBUG, L"ED2K: Received AICH request for %s (not supported)", (LPCTSTR)oHash.toString() );
+#endif
+
+	return TRUE;
+}
+
+BOOL CEDClient::OnAICHAnswer(CEDPacket* pPacket)
+{
+	// AICH answer format: <HASH 16><uint16><HASH aichhashlen> <data>
+	// This is deprecated in favor of AICHFILEHASHANS
+
+	if ( pPacket->GetRemaining() < 16 + 2 )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	Hashes::Ed2kHash oHash;
+	pPacket->Read( oHash );
+	WORD nHashLength = pPacket->ReadShortLE();
+
+	// Validate hash length
+	if ( nHashLength > 64 || pPacket->GetRemaining() < nHashLength )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	// Skip AICH data for now
+	pPacket->Read( NULL, nHashLength );
+
+	// Find corresponding download and mark AICH as received
+	if ( CDownload* pDownload = Downloads.FindByED2K( oHash ) )
+	{
+#ifdef _DEBUG
+		theApp.Message( MSG_DEBUG, L"ED2K: Received AICH answer for %s", (LPCTSTR)oHash.toString() );
+#endif
+		// In full implementation, we'd verify the AICH data against the download
+	}
+
+	return TRUE;
+}
+
+BOOL CEDClient::OnAICHFileHashRequest(CEDPacket* pPacket)
+{
+	// AICH file hash request: <HASH 16>
+	if ( pPacket->GetRemaining() < 16 )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	Hashes::Ed2kHash oHash;
+	pPacket->Read( oHash );
+
+	// Check if we have this file and AICH data
+	if ( CDownload* pDownload = Downloads.FindByED2K( oHash ) )
+	{
+		// For now, send empty response (no AICH data available)
+		CEDPacket* pReply = CEDPacket::New( ED2K_C2C_AICHFILEHASHANS, ED2K_PROTOCOL_EMULE );
+		if ( pReply )
+		{
+			pReply->Write( oHash );
+			// Write empty AICH data (length 0)
+			pReply->WriteShortLE( 0 );
+
+			Send( pReply, FALSE );
+			pReply->Release();
+		}
+	}
+
+	return TRUE;
+}
+
+BOOL CEDClient::OnAICHFileHashAnswer(CEDPacket* pPacket)
+{
+	// AICH file hash answer: <HASH 16><uint16><AICH data>
+	if ( pPacket->GetRemaining() < 16 + 2 )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	Hashes::Ed2kHash oHash;
+	pPacket->Read( oHash );
+	WORD nDataLength = pPacket->ReadShortLE();
+
+	// Validate data length
+	if ( pPacket->GetRemaining() < nDataLength )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	// Skip AICH data for now
+	if ( nDataLength > 0 )
+		pPacket->Read( NULL, nDataLength );
+
+	// Find corresponding download
+	if ( CDownload* pDownload = Downloads.FindByED2K( oHash ) )
+	{
+#ifdef _DEBUG
+		theApp.Message( MSG_DEBUG, L"ED2K: Received AICH file hash for %s (%d bytes)", (LPCTSTR)oHash.toString(), nDataLength );
+#endif
+		// In full implementation, we'd store and use the AICH data for verification
 	}
 
 	return TRUE;

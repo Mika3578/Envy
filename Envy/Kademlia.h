@@ -1,7 +1,7 @@
-//
+﻿//
 // Kademlia.h
 //
-// This file is part of Envy (getenvy.com) � 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2008 and PeerProject 2008-2010
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -73,8 +73,72 @@
 #define KADEMLIA_STORE					0x04
 #define KADEMLIA_FIND_NODE				0x0B
 
+// Kademlia constants
+#define KAD_K							20		// k-bucket size (contacts per bucket)
+#define KAD_ID_BITS						128		// ID size in bits (128 for eMule, 160 for standard Kad)
+#define KAD_BUCKET_COUNT				128		// Number of buckets (128 for 128-bit IDs)
+
 
 class CEDPacket;
+class CHostCacheHost;
+
+typedef CHostCacheHost* CHostCacheHostPtr;
+
+
+struct CKadContactInfo
+{
+	CHostCacheHostPtr pContact;
+	DWORD lastSeen;			// Last time contact was seen/validated
+	DWORD lastPinged;		// Last time contact was pinged
+	BOOL pendingPing;		// Waiting for ping response
+
+	CKadContactInfo(CHostCacheHostPtr contact)
+		: pContact(contact), lastSeen(GetTickCount()), lastPinged(0), pendingPing(FALSE) {}
+};
+
+class CKadBucket
+{
+public:
+	CKadBucket();
+	virtual ~CKadBucket();
+
+	std::vector<CKadContactInfo> m_contacts;	// k contacts per bucket (max KAD_K)
+	DWORD m_lastLookup;						// Last lookup time for this bucket
+
+	BOOL AddContact(CHostCacheHostPtr pContact);
+	void RemoveContact(CHostCacheHostPtr pContact);
+	int GetContactCount() const { return (int)m_contacts.size(); }
+	BOOL IsFull() const { return GetContactCount() >= KAD_K; }
+	void PingOldContacts();
+	void UpdateContact(CHostCacheHostPtr pContact);
+	CKadContactInfo* FindContact(CHostCacheHostPtr pContact);
+	void RemoveStaleContacts(DWORD maxAge = 30 * 60 * 1000); // 30 minutes default
+};
+
+
+class CKadRoutingTable
+{
+public:
+	CKadRoutingTable();
+	virtual ~CKadRoutingTable();
+
+	CKadBucket m_buckets[KAD_BUCKET_COUNT];	// 128 buckets for 128-bit IDs
+	Hashes::Guid m_ownKadID;					// Our node's KadID
+
+	BOOL AddContact(CHostCacheHostPtr pContact);
+	CHostCacheHostPtr FindClosest(const Hashes::Guid& target, int maxCount);
+	int GetBucketIndex(const Hashes::Guid& target) const;
+	void SplitBucket(int bucketIndex);
+	void MergeBucket(int bucketIndex);
+	void PingOldContacts();
+	void RemoveStaleContacts();
+	void UpdateContact(CHostCacheHostPtr pContact);
+	int GetTotalContactCount() const;
+
+protected:
+	BOOL ShouldSplitBucket(int bucketIndex) const;
+	BOOL ReplaceContactInBucket(CKadBucket& bucket, CHostCacheHostPtr pNewContact);
+};
 
 
 class CKademlia
@@ -86,6 +150,12 @@ public:
 
 protected:
 	CCriticalSection m_pSection;
+	CKadRoutingTable m_routingTable;			// Kademlia routing table
+
+	// XOR distance calculation functions
+	static int GetBucketIndex(const Hashes:: Guid& target);
+	static int CompareKadIDs(const Hashes:: Guid& id1, const Hashes:: Guid& id2);
+	static bool KadIDLess(const Hashes:: Guid& id1, const Hashes:: Guid& id2);
 
 	BOOL Send(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	BOOL Send(const SOCKADDR_IN* pHost, BYTE nType);
@@ -113,6 +183,11 @@ protected:
 	BOOL OnPacket_KADEMLIA_CALLBACK_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	BOOL OnPacket_KADEMLIA2_PING(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	BOOL OnPacket_KADEMLIA2_PONG(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+
+	// Maintenance operations
+	void MaintainRoutingTable();
+	void PingStaleContacts();
+	void RemoveDeadContacts();
 };
 
 extern CKademlia Kademlia;

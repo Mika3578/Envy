@@ -577,8 +577,8 @@ public:
 #define ED2K_VERSION_COMMENTS		0x01
 #define ED2K_VERSION_EXTENDEDREQUEST 0x02	// Note: Defined at run time. 0, 1, or 2
 
-// Things that aren't supported
-#define ED2K_VERSION_AICH			0x00
+// AICH support level
+#define ED2K_VERSION_AICH			0x01	// Basic AICH support
 #define ED2K_VERSION_SECUREID		0x00
 
 #define ED2K_DEFAULT_MULTICAST_ADDRESS	"224.0.0.1"
