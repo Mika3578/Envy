@@ -1,7 +1,7 @@
 //
 // Kademlia.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2008 and PeerProject 2008-2010
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -92,7 +92,10 @@ protected:
 	BOOL SendMyDetails(const SOCKADDR_IN* pHost, BYTE nType, bool bKad2);
 
 	BOOL OnPacket_KADEMLIA_BOOTSTRAP_RES(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	BOOL OnPacket_KADEMLIA2_BOOTSTRAP_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	BOOL OnPacket_KADEMLIA2_BOOTSTRAP_RES(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	BOOL OnPacket_KADEMLIA2_HELLO_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	BOOL OnPacket_KADEMLIA2_HELLO_RES(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	BOOL OnPacket_KADEMLIA2_PING(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	BOOL OnPacket_KADEMLIA2_PONG(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 };

@@ -1,7 +1,7 @@
 //
 // CtrlDownloads.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2020
+// This file is part of Envy (getenvy.com) Â© 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -1138,7 +1138,8 @@ void CDownloadsCtrl::OnPaint()
 					continue;
 				}
 
-				if ( nScroll > 0 && pDownloadsData.IsEmpty() )
+				// Ensure list has at least one item before accessing GetTail()
+				if ( pDownloadsData.IsEmpty() )
 					pDownloadsData.AddTail( CDownloadDisplayData() );
 
 				UINT nSource = 0;
@@ -1155,6 +1156,7 @@ void CDownloadsCtrl::OnPaint()
 						else
 						{
 						//	PaintSource( dc, rcItem, pDownload, pSource, bFocus && ( m_nFocus == nIndex ) );
+							// Safe to call GetTail() since we ensured list is not empty above
 							pDownloadsData.GetTail().m_pSourcesData.SetAtGrow( nSource, CSourceDisplayData( pSource ) );
 							++nSource;
 							rcItem.OffsetRect( 0, (int)Settings.Skin.RowSize );

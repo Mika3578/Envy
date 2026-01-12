@@ -1,0 +1,54 @@
+# Clang-Tidy configuration for Envy project
+# Static analysis for C++ code quality and security
+
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  cppcoreguidelines-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  security-*
+
+WarningsAsErrors: ''
+
+HeaderFilterRegex: '.*'
+
+# Disable specific checks that may conflict with legacy code
+# (can be enabled gradually during modernization)
+DisableChecks: >
+  bugprone-easily-swappable-parameters,
+  readability-magic-numbers,
+  cppcoreguidelines-avoid-magic-numbers,
+  cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  modernize-use-trailing-return-type
+
+# Format style
+FormatStyle: file
+
+# Check options
+CheckOptions:
+  - key: readability-identifier-length.MinimumLength
+    value: '2'
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: 'i;j;k;m;n;x;y;z;c'
+  - key: readability-function-cognitive-complexity.Threshold
+    value: '25'
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: 'gsl::span'
+  - key: cert-err33-c.Notes
+    value: 'Slightly relaxed for legacy code'
+  - key: modernize-use-trailing-return-type.IgnoreMacros
+    value: 'true'
+  - key: readability-function-size.LineThreshold
+    value: '500'
+  - key: readability-function-size.ParameterThreshold
+    value: '10'
+  - key: readability-function-size.StatementThreshold
+    value: '100'
+  - key: readability-function-size.NestingThreshold
+    value: '5'

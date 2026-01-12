@@ -1,7 +1,7 @@
 //
 // Kademlia.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2008 and PeerProject 2008-2012
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -71,7 +71,10 @@ BOOL CKademlia::SendMyDetails(const SOCKADDR_IN* pHost, BYTE nType, bool bKad2)
 		pPacket->Write( oGUID );
 		pPacket->WriteShortLE( htons( Network.m_pHost.sin_port ) );	// TCP
 		pPacket->WriteByte( KADEMLIA_VERSION );
-		pPacket->WriteByte( 0 );
+		pPacket->WriteByte( 1 );	// TagCount = 1 (TAG_SOURCEUPORT)
+		// Write TAG_SOURCEUPORT (0xFC) with UDP port
+		pPacket->WriteByte( 0xFC );	// TAG_SOURCEUPORT
+		pPacket->WriteShortLE( htons( Network.m_pHost.sin_port ) );	// UDP port
 		return Send( pHost, pPacket );
 	}
 	else
@@ -97,21 +100,23 @@ BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	{
 	case KADEMLIA_BOOTSTRAP_REQ:
 //		return OnPacket_KADEMLIA_BOOTSTRAP_REQ( pHost, pPacket );
-	case KADEMLIA2_BOOTSTRAP_REQ:
-//		return OnPacket_KADEMLIA2_BOOTSTRAP_REQ( pHost, pPacket );
 		break;
+	case KADEMLIA2_BOOTSTRAP_REQ:
+		return OnPacket_KADEMLIA2_BOOTSTRAP_REQ( pHost, pPacket );
 	case KADEMLIA_BOOTSTRAP_RES:
 		return OnPacket_KADEMLIA_BOOTSTRAP_RES( pHost, pPacket );
 	case KADEMLIA2_BOOTSTRAP_RES:
 		return OnPacket_KADEMLIA2_BOOTSTRAP_RES( pHost, pPacket );
 	case KADEMLIA_HELLO_REQ:
 //		return OnPacket_KADEMLIA_HELLO_REQ( pHost, pPacket );
+		break;
 	case KADEMLIA2_HELLO_REQ:
-//		return OnPacket_KADEMLIA2_HELLO_REQ( pHost, pPacket );
+		return OnPacket_KADEMLIA2_HELLO_REQ( pHost, pPacket );
 	case KADEMLIA_HELLO_RES:
 //		return OnPacket_KADEMLIA_HELLO_RES( pHost, pPacket );
+		break;
 	case KADEMLIA2_HELLO_RES:
-//		return OnPacket_KADEMLIA2_HELLO_RES( pHost, pPacket );
+		return OnPacket_KADEMLIA2_HELLO_RES( pHost, pPacket );
 	case KADEMLIA_REQ:
 //		return OnPacket_KADEMLIA_REQ( pHost, pPacket );
 	case KADEMLIA2_REQ:
@@ -247,7 +252,7 @@ BOOL CKademlia::OnPacket_KADEMLIA2_BOOTSTRAP_RES(const SOCKADDR_IN* pHost, CEDPa
 
 	pCache->m_oGUID = oGUID;
 	pCache->m_nUDPPort = htons( pHost->sin_port );
-//	pCache->m_nKADVersion = nVersion;
+	pCache->m_nKADVersion = nVersion;
 	pCache->m_sDescription = oGUID.toString();
 	pCache->m_tFailure = 0;
 	pCache->m_nFailures = 0;
@@ -266,9 +271,180 @@ BOOL CKademlia::OnPacket_KADEMLIA2_BOOTSTRAP_RES(const SOCKADDR_IN* pHost, CEDPa
 		{
 			pCache->m_oGUID = oGUID;
 			pCache->m_nUDPPort = nUDPPort;
-		//	pCache->m_nKADVersion = nVersion;
+			pCache->m_nKADVersion = nVersion;
 			pCache->m_sDescription = oGUID.toString();
 		}
+	}
+
+	HostCache.Kademlia.m_nCookie++;
+
+	return TRUE;
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA2_BOOTSTRAP_REQ(const SOCKADDR_IN* pHost, CEDPacket* /*pPacket*/)
+{
+	CEDPacket* pResponse = CEDPacket::New( KADEMLIA2_BOOTSTRAP_RES, ED2K_PROTOCOL_KAD );
+	if ( ! pResponse )
+		return FALSE;
+
+	Hashes::Guid oGUID = MyProfile.oGUID;
+
+	// Write MyKadID, MyTCPPort, MyKadVersion
+	pResponse->Write( oGUID );
+	pResponse->WriteShortLE( htons( Network.m_pHost.sin_port ) );	// TCP
+	pResponse->WriteByte( KADEMLIA_VERSION );
+
+	// Get up to 20 contacts from host cache
+	CQuickLock oLock( HostCache.Kademlia.m_pSection );
+
+	WORD nCount = 0;
+	const WORD nMaxContacts = 20;
+	for ( CHostCacheIterator i = HostCache.Kademlia.Begin(); i != HostCache.Kademlia.End() && nCount < nMaxContacts; ++i )
+	{
+		CHostCacheHostPtr pCache = *i;
+		if ( ! pCache || pCache->m_nFailures > 0 )
+			continue;
+
+		// Skip if same as sender
+		if ( pCache->m_pAddress.s_addr == pHost->sin_addr.s_addr && pCache->m_nPort == htons( pHost->sin_port ) )
+			continue;
+
+		nCount++;
+	}
+
+	// Write count
+	pResponse->WriteShortLE( nCount );
+
+	// Write contacts
+	nCount = 0;
+	for ( CHostCacheIterator i = HostCache.Kademlia.Begin(); i != HostCache.Kademlia.End() && nCount < nMaxContacts; ++i )
+	{
+		CHostCacheHostPtr pCache = *i;
+		if ( ! pCache || pCache->m_nFailures > 0 )
+			continue;
+
+		// Skip if same as sender
+		if ( pCache->m_pAddress.s_addr == pHost->sin_addr.s_addr && pCache->m_nPort == htons( pHost->sin_port ) )
+			continue;
+
+		pResponse->Write( pCache->m_oGUID );
+		pResponse->WriteLongLE( htonl( pCache->m_pAddress.s_addr ) );
+		pResponse->WriteShortLE( pCache->m_nUDPPort );
+		pResponse->WriteShortLE( pCache->m_nPort );
+		pResponse->WriteByte( pCache->m_nKADVersion );
+
+		nCount++;
+	}
+
+	return Send( pHost, pResponse );
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA2_HELLO_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	Hashes::Guid oGUID;
+	WORD nTCPPort;
+	BYTE nVersion;
+	BYTE nTagCount;
+
+	if ( pPacket->GetRemaining() < ( 16 + 2 + 1 + 1 ) )
+		return FALSE;
+
+	pPacket->Read( oGUID );
+	nTCPPort = pPacket->ReadShortLE();
+	nVersion = pPacket->ReadByte();
+	nTagCount = pPacket->ReadByte();
+
+	// Parse tags (skip for now, but we need to read them to stay aligned)
+	for ( BYTE i = 0; i < nTagCount; i++ )
+	{
+		if ( pPacket->GetRemaining() < 1 )
+			break;
+		BYTE nTagType = pPacket->ReadByte();
+		if ( nTagType == 0xFC )	// TAG_SOURCEUPORT
+		{
+			if ( pPacket->GetRemaining() < 2 )
+				break;
+			WORD nUDPPort = pPacket->ReadShortLE();
+			// Could use nUDPPort if needed
+		}
+		else
+		{
+			// Unknown tag, skip it - need to know tag format to skip properly
+			// For now, just break (simple implementation)
+			break;
+		}
+	}
+
+	// Update host cache
+	CQuickLock oLock( HostCache.Kademlia.m_pSection );
+
+	CHostCacheHostPtr pCache = HostCache.Kademlia.Add( &pHost->sin_addr, nTCPPort );
+	if ( pCache )
+	{
+		pCache->m_oGUID = oGUID;
+		pCache->m_nUDPPort = htons( pHost->sin_port );
+		pCache->m_nKADVersion = nVersion;
+		pCache->m_sDescription = oGUID.toString();
+		pCache->m_tFailure = 0;
+		pCache->m_nFailures = 0;
+		pCache->m_bCheckedLocally = TRUE;
+	}
+
+	HostCache.Kademlia.m_nCookie++;
+
+	// Reply with HELLO_RES
+	return SendMyDetails( pHost, KADEMLIA2_HELLO_RES, true );
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA2_HELLO_RES(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	Hashes::Guid oGUID;
+	WORD nTCPPort;
+	BYTE nVersion;
+	BYTE nTagCount;
+
+	if ( pPacket->GetRemaining() < ( 16 + 2 + 1 + 1 ) )
+		return FALSE;
+
+	pPacket->Read( oGUID );
+	nTCPPort = pPacket->ReadShortLE();
+	nVersion = pPacket->ReadByte();
+	nTagCount = pPacket->ReadByte();
+
+	// Parse tags (skip for now, but we need to read them to stay aligned)
+	for ( BYTE i = 0; i < nTagCount; i++ )
+	{
+		if ( pPacket->GetRemaining() < 1 )
+			break;
+		BYTE nTagType = pPacket->ReadByte();
+		if ( nTagType == 0xFC )	// TAG_SOURCEUPORT
+		{
+			if ( pPacket->GetRemaining() < 2 )
+				break;
+			WORD nUDPPort = pPacket->ReadShortLE();
+			// Could use nUDPPort if needed
+		}
+		else
+		{
+			// Unknown tag, skip it - need to know tag format to skip properly
+			// For now, just break (simple implementation)
+			break;
+		}
+	}
+
+	// Update host cache
+	CQuickLock oLock( HostCache.Kademlia.m_pSection );
+
+	CHostCacheHostPtr pCache = HostCache.Kademlia.Add( &pHost->sin_addr, nTCPPort );
+	if ( pCache )
+	{
+		pCache->m_oGUID = oGUID;
+		pCache->m_nUDPPort = htons( pHost->sin_port );
+		pCache->m_nKADVersion = nVersion;
+		pCache->m_sDescription = oGUID.toString();
+		pCache->m_tFailure = 0;
+		pCache->m_nFailures = 0;
+		pCache->m_bCheckedLocally = TRUE;
 	}
 
 	HostCache.Kademlia.m_nCookie++;

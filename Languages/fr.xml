@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <skin xmlns="http://schemas.getenvy.com/Skin.xsd" version="1.0">
 
 <!-- Envy Default French Skin File -->
@@ -1705,7 +1705,7 @@
 	<menu name="WebServices.List.Menu">
 		<item id="ID_LIBRARY_BITPRINTS_DOWNLOAD" text="_Bitprints"/>
 		<item id="ID_WEBSERVICES_MUSICBRAINZ" text="_MusicBrainz"/>
-		<item id="ID_WEBSERVICES_SHAREMONKEY" text="_ShareMonkey"/>
+		<!--item id="ID_WEBSERVICES_SHAREMONKEY" text="_ShareMonkey"-->
 	</menu>
 	<!-- PLUGIN MENUS -->
 	<menu name="ImageViewer_Context">
@@ -2719,7 +2719,7 @@
 	<tip id="ID_WINDOW_TILE_VERT" text="Arrange les fenêtres ouvertes en tuiles verticales."/>
 	<tip id="ID_WINDOW_TOOLBAR" text="Afficher ou masquer la barre d'outils."/>
 	<tip id="ID_WEBSERVICES_LIST" text="Choisir le service Web pour chercher des informations supplémentaires sur le fichier sélectionné."/>
-	<tip id="ID_WEBSERVICES_SHAREMONKEY" text="Chercher des informations sur le fichier en utilisant le service Sharemonkey."/>
+	<!--tip id="ID_WEBSERVICES_SHAREMONKEY" text="Chercher des informations sur le fichier en utilisant le service Sharemonkey."/-->
 	<!-- PLUGIN TIPS -->
 	<tip id="PluginID_ImageViewer_BestFit" text="Mettre l'image à la taille de la fenêtre."/>
 	<tip id="PluginID_ImageViewer_FullSize" text="Mettre l'image à sa taille réelle."/>

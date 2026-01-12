@@ -1,7 +1,7 @@
 //
 // Envy.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2020
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -1968,6 +1968,14 @@ void CEnvyApp::Message(WORD nType, LPCTSTR pszFormat, ...)
 	// Check if logging this type of message is enabled
 	if ( IsLogDisabled( nType ) )
 		return;
+
+	// Validate format string pointer
+	if ( pszFormat == NULL )
+	{
+		// NULL format string - log error and return
+		PrintMessage( MSG_ERROR, L"Message: NULL format string passed" );
+		return;
+	}
 
 	// Initialize variable arguments list
 	va_list pArgs;

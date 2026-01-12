@@ -1,7 +1,7 @@
 //
 // EDClient.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -27,6 +27,7 @@
 #include "Network.h"
 #include "GProfile.h"
 #include "HostCache.h"
+#include "Kademlia.h"
 
 #include "Library.h"
 #include "LibraryFolders.h"
@@ -861,7 +862,8 @@ void CEDClient::SendHello(BYTE nType)
 	// 5 - Feature Versions 2
 	DWORD nOpt2 =  ( ( TRUE << 11 ) |								// Captcha support
 				//	 ( FALSE << 5 ) |								// Ext Multipacket
-					 ( Settings.eDonkey.LargeFileSupport ? ( TRUE << 4 ) : 0 ) );	// LargeFile support
+					 ( Settings.eDonkey.LargeFileSupport ? ( TRUE << 4 ) : 0 ) |	// LargeFile support
+					 ( Settings.eDonkey.Enabled ? ( KADEMLIA_VERSION & 0x0F ) : 0 ) );	// KadVersion (bits 0-3)
 	CEDTag( ED2K_CT_MOREFEATUREVERSIONS, nOpt2 ).Write( pPacket );
 
 	// 6 - Software Version
