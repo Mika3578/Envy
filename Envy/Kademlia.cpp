@@ -119,56 +119,67 @@ BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 		return OnPacket_KADEMLIA2_HELLO_RES( pHost, pPacket );
 	case KADEMLIA_REQ:
 //		return OnPacket_KADEMLIA_REQ( pHost, pPacket );
+		break;
 	case KADEMLIA2_REQ:
-//		return OnPacket_KADEMLIA2_REQ( pHost, pPacket );
+		return OnPacket_KADEMLIA2_REQ( pHost, pPacket );
 	case KADEMLIA_RES:
 //		return OnPacket_KADEMLIA_RES( pHost, pPacket );
+		break;
 	case KADEMLIA2_RES:
-//		return OnPacket_KADEMLIA2_RES( pHost, pPacket );
+		return OnPacket_KADEMLIA2_RES( pHost, pPacket );
 	case KADEMLIA_SEARCH_REQ:
 //		return OnPacket_KADEMLIA_SEARCH_REQ( pHost, pPacket );
+		break;
 	case KADEMLIA_SEARCH_NOTES_REQ:
 //		return OnPacket_KADEMLIA_SEARCH_NOTES_REQ( pHost, pPacket );
+		break;
 	case KADEMLIA2_SEARCH_NOTES_REQ:
-//		return OnPacket_KADEMLIA2_SEARCH_NOTES_REQ( pHost, pPacket );
+		return OnPacket_KADEMLIA2_SEARCH_NOTES_REQ( pHost, pPacket );
 	case KADEMLIA2_SEARCH_KEY_REQ:
-//		return OnPacket_KADEMLIA2_SEARCH_KEY_REQ( pHost, pPacket );
+		return OnPacket_KADEMLIA2_SEARCH_KEY_REQ( pHost, pPacket );
 	case KADEMLIA2_SEARCH_SOURCE_REQ:
-//		return OnPacket_KADEMLIA2_SEARCH_SOURCE_REQ( pHost, pPacket );
+		return OnPacket_KADEMLIA2_SEARCH_SOURCE_REQ( pHost, pPacket );
 	case KADEMLIA_SEARCH_RES:
 //		return OnPacket_KADEMLIA_SEARCH_RES( pHost, pPacket );
+		break;
 	case KADEMLIA_SEARCH_NOTES_RES:
 //		return OnPacket_KADEMLIA_SEARCH_NOTES_RES( pHost, pPacket );
+		break;
 	case KADEMLIA2_SEARCH_RES:
 //		return OnPacket_KADEMLIA2_SEARCH_RES( pHost, pPacket );
+		break;
 	case KADEMLIA_PUBLISH_REQ:
 //		return OnPacket_KADEMLIA_PUBLISH_REQ( pHost, pPacket );
+		break;
 	case KADEMLIA_PUBLISH_NOTES_REQ:
 //		return OnPacket_KADEMLIA_PUBLISH_NOTES_REQ( pHost, pPacket );
+		break;
 	case KADEMLIA2_PUBLISH_KEY_REQ:
-//		return OnPacket_KADEMLIA2_PUBLISH_KEY_REQ( pHost, pPacket );
+		return OnPacket_KADEMLIA2_PUBLISH_KEY_REQ( pHost, pPacket );
 	case KADEMLIA2_PUBLISH_SOURCE_REQ:
-//		return OnPacket_KADEMLIA2_PUBLISH_SOURCE_REQ( pHost, pPacket );
+		return OnPacket_KADEMLIA2_PUBLISH_SOURCE_REQ( pHost, pPacket );
 	case KADEMLIA2_PUBLISH_NOTES_REQ:
-//		return OnPacket_KADEMLIA2_PUBLISH_NOTES_REQ( pHost, pPacket );
+		return OnPacket_KADEMLIA2_PUBLISH_NOTES_REQ( pHost, pPacket );
 	case KADEMLIA_PUBLISH_RES:
 //		return OnPacket_KADEMLIA_PUBLISH_RES( pHost, pPacket );
+		break;
 	case KADEMLIA_PUBLISH_NOTES_RES:
 //		return OnPacket_KADEMLIA_PUBLISH_NOTES_RES( pHost, pPacket );
+		break;
 	case KADEMLIA2_PUBLISH_RES:
-//		return OnPacket_KADEMLIA2_PUBLISH_RES( pHost, pPacket );
+		return OnPacket_KADEMLIA2_PUBLISH_RES( pHost, pPacket );
 	case KADEMLIA_FIREWALLED_REQ:
-//		return OnPacket_KADEMLIA_FIREWALLED_REQ( pHost, pPacket );
+		return OnPacket_KADEMLIA_FIREWALLED_REQ( pHost, pPacket );
 	case KADEMLIA_FIREWALLED_RES:
-//		return OnPacket_KADEMLIA_FIREWALLED_RES( pHost, pPacket );
+		return OnPacket_KADEMLIA_FIREWALLED_RES( pHost, pPacket );
 	case KADEMLIA_FIREWALLED_ACK_RES:
-//		return OnPacket_KADEMLIA_FIREWALLED_ACK_RES( pHost, pPacket );
+		return OnPacket_KADEMLIA_FIREWALLED_ACK_RES( pHost, pPacket );
 	case KADEMLIA_FINDBUDDY_REQ:
-//		return OnPacket_KADEMLIA_FINDBUDDY_REQ( pHost, pPacket );
+		return OnPacket_KADEMLIA_FINDBUDDY_REQ( pHost, pPacket );
 	case KADEMLIA_FINDBUDDY_RES:
-//		return OnPacket_KADEMLIA_FINDBUDDY_RES( pHost, pPacket );
+		return OnPacket_KADEMLIA_FINDBUDDY_RES( pHost, pPacket );
 	case KADEMLIA_CALLBACK_REQ:
-//		return OnPacket_KADEMLIA_CALLBACK_REQ( pHost, pPacket );
+		return OnPacket_KADEMLIA_CALLBACK_REQ( pHost, pPacket );
 		break;
 	case KADEMLIA2_PING:
 		return OnPacket_KADEMLIA2_PING( pHost, pPacket );
@@ -242,7 +253,14 @@ BOOL CKademlia::OnPacket_KADEMLIA2_BOOTSTRAP_RES(const SOCKADDR_IN* pHost, CEDPa
 	if ( pPacket->GetRemaining() < nCount * ( 16u + 4 + 2 + 2 + 1 ) )
 		return FALSE;
 
-	// ToDo: Kad Packet track check
+	// Validate contact count (reasonable bounds)
+	const WORD nMaxContacts = 50; // Limit to prevent abuse
+	if ( nCount > nMaxContacts )
+		nCount = nMaxContacts;
+
+	// Validate Kad version (minimum supported)
+	if ( nVersion < 1 )
+		return FALSE;
 
 	CQuickLock oLock( HostCache.Kademlia.m_pSection );
 
@@ -264,14 +282,23 @@ BOOL CKademlia::OnPacket_KADEMLIA2_BOOTSTRAP_RES(const SOCKADDR_IN* pHost, CEDPa
 		*(DWORD*)&pAddress = ntohl( pPacket->ReadLongLE() );
 		nUDPPort = pPacket->ReadShortLE();
 		nTCPPort = pPacket->ReadShortLE();
-		nVersion = pPacket->ReadByte();
+		BYTE nContactVersion = pPacket->ReadByte();
+
+		// Self-filtering: don't add our own contact
+		if ( pAddress.s_addr == Network.m_pHost.sin_addr.s_addr &&
+			 nTCPPort == Network.m_pHost.sin_port )
+			continue;
+
+		// Version validation: ensure minimum supported version
+		if ( nContactVersion < 1 )
+			continue;
 
 		pCache = HostCache.Kademlia.Add( &pAddress, nTCPPort );
 		if ( pCache )
 		{
 			pCache->m_oGUID = oGUID;
 			pCache->m_nUDPPort = nUDPPort;
-			pCache->m_nKADVersion = nVersion;
+			pCache->m_nKADVersion = nContactVersion;
 			pCache->m_sDescription = oGUID.toString();
 		}
 	}
@@ -339,6 +366,350 @@ BOOL CKademlia::OnPacket_KADEMLIA2_BOOTSTRAP_REQ(const SOCKADDR_IN* pHost, CEDPa
 	return Send( pHost, pResponse );
 }
 
+BOOL CKademlia::OnPacket_KADEMLIA2_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	BYTE nType;
+	Hashes::Guid oTarget, oReceiver;
+
+	if ( pPacket->GetRemaining() < (1 + 16 + 16) )
+		return FALSE;
+
+	nType = pPacket->ReadByte();
+	pPacket->Read( oTarget );
+	pPacket->Read( oReceiver );
+
+	// For now, respond with some contacts from our cache
+	CEDPacket* pResponse = CEDPacket::New( KADEMLIA2_RES, ED2K_PROTOCOL_KAD );
+	if ( ! pResponse )
+		return FALSE;
+
+	// Write target hash
+	pResponse->Write( oTarget );
+
+	// Get up to 10 contacts from host cache
+	CQuickLock oLock( HostCache.Kademlia.m_pSection );
+
+	WORD nCount = 0;
+	const WORD nMaxContacts = 10;
+	for ( CHostCacheIterator i = HostCache.Kademlia.Begin(); i != HostCache.Kademlia.End() && nCount < nMaxContacts; ++i )
+	{
+		CHostCacheHostPtr pCache = *i;
+		if ( ! pCache || pCache->m_nFailures > 0 )
+			continue;
+
+		// Skip if same as sender
+		if ( pCache->m_pAddress.s_addr == pHost->sin_addr.s_addr && pCache->m_nPort == htons( pHost->sin_port ) )
+			continue;
+
+		nCount++;
+	}
+
+	// Write count (1 byte for Kad2)
+	pResponse->WriteByte( (BYTE)nCount );
+
+	// Write contacts
+	nCount = 0;
+	for ( CHostCacheIterator i = HostCache.Kademlia.Begin(); i != HostCache.Kademlia.End() && nCount < nMaxContacts; ++i )
+	{
+		CHostCacheHostPtr pCache = *i;
+		if ( ! pCache || pCache->m_nFailures > 0 )
+			continue;
+
+		// Skip if same as sender
+		if ( pCache->m_pAddress.s_addr == pHost->sin_addr.s_addr && pCache->m_nPort == htons( pHost->sin_port ) )
+			continue;
+
+		pResponse->Write( pCache->m_oGUID );
+		pResponse->WriteLongLE( htonl( pCache->m_pAddress.s_addr ) );
+		pResponse->WriteShortLE( pCache->m_nUDPPort );
+		pResponse->WriteShortLE( pCache->m_nPort );
+		pResponse->WriteByte( pCache->m_nKADVersion );
+
+		nCount++;
+	}
+
+	return Send( pHost, pResponse );
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA2_RES(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	Hashes::Guid oTarget;
+	BYTE nCount;
+
+	if ( pPacket->GetRemaining() < (16 + 1) )
+		return FALSE;
+
+	pPacket->Read( oTarget );
+	nCount = pPacket->ReadByte();
+
+	if ( pPacket->GetRemaining() < nCount * (16 + 4 + 2 + 2 + 1) )
+		return FALSE;
+
+	// Update host cache with the contacts
+	CQuickLock oLock( HostCache.Kademlia.m_pSection );
+
+	while ( nCount-- )
+	{
+		Hashes::Guid oGUID;
+		IN_ADDR pAddress;
+		WORD nUDPPort, nTCPPort;
+		BYTE nVersion;
+
+		pPacket->Read( oGUID );
+		*(DWORD*)&pAddress = ntohl( pPacket->ReadLongLE() );
+		nUDPPort = pPacket->ReadShortLE();
+		nTCPPort = pPacket->ReadShortLE();
+		nVersion = pPacket->ReadByte();
+
+		CHostCacheHostPtr pCache = HostCache.Kademlia.Add( &pAddress, nTCPPort );
+		if ( pCache )
+		{
+			pCache->m_oGUID = oGUID;
+			pCache->m_nUDPPort = nUDPPort;
+			pCache->m_nKADVersion = nVersion;
+			pCache->m_sDescription = oGUID.toString();
+		}
+	}
+
+	HostCache.Kademlia.m_nCookie++;
+
+	return TRUE;
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA2_SEARCH_KEY_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	Hashes::Guid oKey;
+
+	if ( pPacket->GetRemaining() < 16 )
+		return FALSE;
+
+	pPacket->Read( oKey );
+
+	// For now, send an empty response (no results found)
+	CEDPacket* pResponse = CEDPacket::New( KADEMLIA2_SEARCH_RES, ED2K_PROTOCOL_KAD );
+	if ( ! pResponse )
+		return FALSE;
+
+	// Write search key
+	pResponse->Write( oKey );
+
+	// Write 0 results
+	pResponse->WriteShortLE( 0 );
+
+	return Send( pHost, pResponse );
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA2_SEARCH_SOURCE_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	Hashes::Guid oKey;
+
+	if ( pPacket->GetRemaining() < 16 )
+		return FALSE;
+
+	pPacket->Read( oKey );
+
+	// For now, send an empty response (no sources found)
+	CEDPacket* pResponse = CEDPacket::New( KADEMLIA2_SEARCH_RES, ED2K_PROTOCOL_KAD );
+	if ( ! pResponse )
+		return FALSE;
+
+	// Write search key
+	pResponse->Write( oKey );
+
+	// Write 0 results
+	pResponse->WriteShortLE( 0 );
+
+	return Send( pHost, pResponse );
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA2_SEARCH_NOTES_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	Hashes::Guid oKey;
+
+	if ( pPacket->GetRemaining() < 16 )
+		return FALSE;
+
+	pPacket->Read( oKey );
+
+	// For now, send an empty response (no notes found)
+	CEDPacket* pResponse = CEDPacket::New( KADEMLIA2_SEARCH_RES, ED2K_PROTOCOL_KAD );
+	if ( ! pResponse )
+		return FALSE;
+
+	// Write search key
+	pResponse->Write( oKey );
+
+	// Write 0 results
+	pResponse->WriteShortLE( 0 );
+
+	return Send( pHost, pResponse );
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA2_PUBLISH_KEY_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	Hashes::Guid oKey;
+
+	if ( pPacket->GetRemaining() < 16 )
+		return FALSE;
+
+	pPacket->Read( oKey );
+
+	// Skip any additional data (tags, etc.)
+	// For now, acknowledge the publish request
+	CEDPacket* pResponse = CEDPacket::New( KADEMLIA2_PUBLISH_RES, ED2K_PROTOCOL_KAD );
+	if ( ! pResponse )
+		return FALSE;
+
+	// Write published key
+	pResponse->Write( oKey );
+
+	return Send( pHost, pResponse );
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA2_PUBLISH_SOURCE_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	Hashes::Guid oKey;
+
+	if ( pPacket->GetRemaining() < 16 )
+		return FALSE;
+
+	pPacket->Read( oKey );
+
+	// Skip any additional data (tags, etc.)
+	// For now, acknowledge the publish request
+	CEDPacket* pResponse = CEDPacket::New( KADEMLIA2_PUBLISH_RES, ED2K_PROTOCOL_KAD );
+	if ( ! pResponse )
+		return FALSE;
+
+	// Write published key
+	pResponse->Write( oKey );
+
+	return Send( pHost, pResponse );
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA2_PUBLISH_NOTES_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	Hashes::Guid oKey;
+
+	if ( pPacket->GetRemaining() < 16 )
+		return FALSE;
+
+	pPacket->Read( oKey );
+
+	// Skip any additional data (tags, etc.)
+	// For now, acknowledge the publish request
+	CEDPacket* pResponse = CEDPacket::New( KADEMLIA2_PUBLISH_RES, ED2K_PROTOCOL_KAD );
+	if ( ! pResponse )
+		return FALSE;
+
+	// Write published key
+	pResponse->Write( oKey );
+
+	return Send( pHost, pResponse );
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA2_PUBLISH_RES(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	Hashes::Guid oKey;
+
+	if ( pPacket->GetRemaining() < 16 )
+		return FALSE;
+
+	pPacket->Read( oKey );
+
+	// Publish acknowledged - no further action needed for now
+	return TRUE;
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA_FIREWALLED_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	WORD nTCPPort;
+
+	if ( pPacket->GetRemaining() < 2 )
+		return FALSE;
+
+	nTCPPort = pPacket->ReadShortLE();
+
+	// Check if we're firewalled - for now, assume we're not and respond with our IP
+	CEDPacket* pResponse = CEDPacket::New( KADEMLIA_FIREWALLED_RES, ED2K_PROTOCOL_KAD );
+	if ( ! pResponse )
+		return FALSE;
+
+	// Write our IP address
+	pResponse->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+
+	return Send( pHost, pResponse );
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA_FIREWALLED_RES(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	IN_ADDR pIP;
+
+	if ( pPacket->GetRemaining() < 4 )
+		return FALSE;
+
+	pIP.s_addr = pPacket->ReadLongLE();
+
+	// Firewall status received - could update peer's firewall status
+	// For now, just acknowledge
+	return Send( pHost, KADEMLIA_FIREWALLED_ACK_RES );
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA_FIREWALLED_ACK_RES(const SOCKADDR_IN* /*pHost*/, CEDPacket* /*pPacket*/)
+{
+	// Firewall acknowledgment received - no action needed
+	return TRUE;
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA_FINDBUDDY_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	WORD nTCPPort;
+
+	if ( pPacket->GetRemaining() < 2 )
+		return FALSE;
+
+	nTCPPort = pPacket->ReadShortLE();
+
+	// For buddy finding, we'd need to find an unfirewalled peer
+	// For now, respond that we can't find a buddy (send our own info as fallback)
+	CEDPacket* pResponse = CEDPacket::New( KADEMLIA_FINDBUDDY_RES, ED2K_PROTOCOL_KAD );
+	if ( ! pResponse )
+		return FALSE;
+
+	// Write our own port (since we can't find a better buddy)
+	pResponse->WriteShortLE( htons( Network.m_pHost.sin_port ) );
+
+	return Send( pHost, pResponse );
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA_FINDBUDDY_RES(const SOCKADDR_IN* /*pHost*/, CEDPacket* pPacket)
+{
+	WORD nBuddyPort;
+
+	if ( pPacket->GetRemaining() < 2 )
+		return FALSE;
+
+	nBuddyPort = pPacket->ReadShortLE();
+
+	// Buddy information received - could store for future callbacks
+	// For now, no action needed
+	return TRUE;
+}
+
+BOOL CKademlia::OnPacket_KADEMLIA_CALLBACK_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	WORD nTCPPort;
+
+	if ( pPacket->GetRemaining() < 2 )
+		return FALSE;
+
+	nTCPPort = pPacket->ReadShortLE();
+
+	// Callback request received - this is for firewalled peers to receive connections through buddies
+	// For now, we don't handle callbacks
+	return TRUE;
+}
+
 BOOL CKademlia::OnPacket_KADEMLIA2_HELLO_REQ(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
 	Hashes::Guid oGUID;
@@ -354,12 +725,13 @@ BOOL CKademlia::OnPacket_KADEMLIA2_HELLO_REQ(const SOCKADDR_IN* pHost, CEDPacket
 	nVersion = pPacket->ReadByte();
 	nTagCount = pPacket->ReadByte();
 
-	// Parse tags (skip for now, but we need to read them to stay aligned)
+	// Parse tags - handle known tags and skip unknown ones safely
 	for ( BYTE i = 0; i < nTagCount; i++ )
 	{
 		if ( pPacket->GetRemaining() < 1 )
 			break;
 		BYTE nTagType = pPacket->ReadByte();
+
 		if ( nTagType == 0xFC )	// TAG_SOURCEUPORT
 		{
 			if ( pPacket->GetRemaining() < 2 )
@@ -367,10 +739,18 @@ BOOL CKademlia::OnPacket_KADEMLIA2_HELLO_REQ(const SOCKADDR_IN* pHost, CEDPacket
 			WORD nUDPPort = pPacket->ReadShortLE();
 			// Could use nUDPPort if needed
 		}
+		else if ( nTagType == 0x0A ) // TAG_KADMISCOPTIONS (misc options)
+		{
+			if ( pPacket->GetRemaining() < 1 )
+				break;
+			BYTE nOptions = pPacket->ReadByte();
+			// Could parse misc options if needed
+		}
 		else
 		{
-			// Unknown tag, skip it - need to know tag format to skip properly
-			// For now, just break (simple implementation)
+			// Unknown tag - try to skip safely
+			// For most Kad2 tags, if we don't know the format, we can't safely skip
+			// For now, stop parsing to avoid misaligning the packet
 			break;
 		}
 	}
@@ -411,12 +791,13 @@ BOOL CKademlia::OnPacket_KADEMLIA2_HELLO_RES(const SOCKADDR_IN* pHost, CEDPacket
 	nVersion = pPacket->ReadByte();
 	nTagCount = pPacket->ReadByte();
 
-	// Parse tags (skip for now, but we need to read them to stay aligned)
+	// Parse tags - handle known tags and skip unknown ones safely
 	for ( BYTE i = 0; i < nTagCount; i++ )
 	{
 		if ( pPacket->GetRemaining() < 1 )
 			break;
 		BYTE nTagType = pPacket->ReadByte();
+
 		if ( nTagType == 0xFC )	// TAG_SOURCEUPORT
 		{
 			if ( pPacket->GetRemaining() < 2 )
@@ -424,10 +805,18 @@ BOOL CKademlia::OnPacket_KADEMLIA2_HELLO_RES(const SOCKADDR_IN* pHost, CEDPacket
 			WORD nUDPPort = pPacket->ReadShortLE();
 			// Could use nUDPPort if needed
 		}
+		else if ( nTagType == 0x0A ) // TAG_KADMISCOPTIONS (misc options)
+		{
+			if ( pPacket->GetRemaining() < 1 )
+				break;
+			BYTE nOptions = pPacket->ReadByte();
+			// Could parse misc options if needed
+		}
 		else
 		{
-			// Unknown tag, skip it - need to know tag format to skip properly
-			// For now, just break (simple implementation)
+			// Unknown tag - try to skip safely
+			// For most Kad2 tags, if we don't know the format, we can't safely skip
+			// For now, stop parsing to avoid misaligning the packet
 			break;
 		}
 	}

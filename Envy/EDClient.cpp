@@ -866,6 +866,14 @@ void CEDClient::SendHello(BYTE nType)
 					 ( Settings.eDonkey.Enabled ? ( KADEMLIA_VERSION & 0x0F ) : 0 ) );	// KadVersion (bits 0-3)
 	CEDTag( ED2K_CT_MOREFEATUREVERSIONS, nOpt2 ).Write( pPacket );
 
+#ifdef _DEBUG
+	theApp.Message( MSG_DEBUG, L"ED2K: Sending MOREFEATUREVERSIONS=0x%08x (Captcha=%d, LargeFile=%d, KadVersion=%d)",
+		nOpt2,
+		(nOpt2 >> 11) & 0x01,
+		(nOpt2 >> 4) & 0x01,
+		nOpt2 & 0x0F );
+#endif
+
 	// 6 - Software Version
 	//	Note we're likely to corrupt the beta number, since there's only 3 bits available, but it's least important.
 	//		Note: Including this stops the remote client sending the eMuleInfo packet.
@@ -971,7 +979,7 @@ BOOL CEDClient::OnHello(CEDPacket* pPacket)
 			}
 			break;
 		case ED2K_CT_MOREFEATUREVERSIONS:
-			// This currently holds the KAD version (We aren't interested in that) and Large File support.
+			// This holds KadVersion (bits 0-3), LargeFile (bit 4), and CryptLayer flags (bits 7-9)
 			if ( pTag.m_nType == ED2K_TAG_INT )
 			{
 				m_bEmule = TRUE;
@@ -985,6 +993,16 @@ BOOL CEDClient::OnHello(CEDPacket* pPacket)
 				m_bEmExtMultiPacket		= ( pTag.m_nValue >> 5 ) & 0x01;
 				m_bEmLargeFile			= ( pTag.m_nValue >> 4 ) & 0x01;
 				m_nEmKadVersion			= ( pTag.m_nValue ) & 0x0f;
+
+#ifdef _DEBUG
+				theApp.Message( MSG_DEBUG, L"ED2K: Received MOREFEATUREVERSIONS=0x%08x from %s (Captcha=%d, LargeFile=%d, KadVersion=%d, CryptLayer=%d)",
+					pTag.m_nValue,
+					(LPCTSTR)CString( inet_ntoa( m_pHost.sin_addr ) ),
+					m_bEmSupportsCaptcha,
+					m_bEmLargeFile,
+					m_nEmKadVersion,
+					m_bEmSupportsCryptLayer );
+#endif
 			}
 			break;
 #ifdef _DEBUG
