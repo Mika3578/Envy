@@ -1,7 +1,7 @@
 //
 // EDClient.h
 //
-// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2006 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -52,12 +52,12 @@ public:
 	DWORD		m_nEmCompatible;
 	DWORD		m_nSoftwareVersion;
 
-	// Client capabilities 1
-	BOOL		m_bEmAICH;					// AICH support
+// Client capabilities 1
+	BOOL		m_bEmAICH;					// Not supported
 	BOOL		m_bEmUnicode;
 	BOOL		m_bEmUDPVersion;
 	BOOL		m_bEmDeflate;
-	BOOL		m_bEmSecureID;				// SecureID support
+	BOOL		m_bEmSecureID;				// Not supported
 	BOOL		m_bEmSources;
 	BOOL		m_bEmRequest;
 	BOOL		m_bEmComments;
@@ -72,22 +72,9 @@ public:
 	BOOL		m_bEmRequiresCryptLayer;	// Not supported
 	BOOL		m_bEmRequestsCryptLayer;	// Not supported
 	BOOL		m_bEmSupportsCryptLayer;	// Not supported
-	BOOL		m_bEmMultiPacketExt2;		// Not supported yet
 	BOOL		m_bEmExtMultiPacket;		// Not supported
 	BOOL		m_bEmLargeFile;				// Large file support
-	BOOL		m_nEmKadVersion;			// Kad version
-
-	// SecureID support (placeholder for RSA implementation)
-	CArray< BYTE > m_oPublicKey;			// RSA public key
-	CArray< BYTE > m_oPrivateKey;			// RSA private key (client-side only)
-	CArray< BYTE > m_oChallenge;			// Current challenge
-	BOOL		m_bSecureIDEnabled;		// SecureID negotiation enabled
-
-	// CryptLayer support
-	BOOL		m_bCryptLayerSupported;	// Peer supports CryptLayer
-	BOOL		m_bCryptLayerRequested;	// We requested CryptLayer
-	BOOL		m_bCryptLayerEnabled;	// CryptLayer is active
-	CArray< BYTE > m_oCryptLayerKey;	// Obfuscation key
+	BOOL		m_nEmKadVersion;			// Not supported
 
 // Other
 	CDownloadTransferED2K*	m_pDownloadTransfer;
@@ -156,14 +143,6 @@ protected:
 	BOOL	OnQueueRequest(CEDPacket* pPacket);
 	BOOL	OnSourceRequest(CEDPacket* pPacket);
 	BOOL	OnSourceAnswer(CEDPacket* pPacket);
-	BOOL	OnSourceRequest2(CEDPacket* pPacket);
-	BOOL	OnSourceAnswer2(CEDPacket* pPacket);
-	BOOL	OnMultiPacketExt2(CEDPacket* pPacket);
-	BOOL	OnMultiPacketAnswerExt2(CEDPacket* pPacket);
-	BOOL	OnAICHRequest(CEDPacket* pPacket);
-	BOOL	OnAICHAnswer(CEDPacket* pPacket);
-	BOOL	OnAICHFileHashRequest(CEDPacket* pPacket);
-	BOOL	OnAICHFileHashAnswer(CEDPacket* pPacket);
 	BOOL	OnRequestPreview(CEDPacket* pPacket);
 	BOOL	OnPreviewAnswer(CEDPacket* pPacket);
 // Chat:

@@ -1,7 +1,7 @@
 //
 // HostCache.cpp
 //
-// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -860,7 +860,7 @@ int CHostCache::Import(LPCTSTR pszFile, BOOL bFreshOnly)
 	{
 		theApp.Message( MSG_NOTICE, L"Importing Kademlia Nodes file: %s", pszFile );
 
-		nImported = ImportNodes( &pFile );
+	//	nImported = ImportNodes( &pFile );	// ToDo: Kademlia
 	}
 //	else if ( _tcsicmp( szExt, L".xml" ) == 0 || _tcsicmp( szExt, L".dat" ) == 0 ) 	// ToDo: G2/Gnutella import/export
 //	{
@@ -992,69 +992,70 @@ int CHostCache::ImportMET(CFile* pFile)
 	return nServers;
 }
 
-int CHostCache::ImportNodes(CFile* pFile)
-{
-	int nServers = 0;
-	DWORD nVersion = 0;
-
-	DWORD nCount;
-	if ( pFile->Read( &nCount, sizeof( nCount ) ) != sizeof( nCount ) )
-		return 0;
-	if ( nCount == 0 )
-	{
-		// New format
-		if ( pFile->Read( &nVersion, sizeof( nVersion ) ) != sizeof( nVersion ) )
-			return 0;
-		if ( nVersion != 1 )
-			return 0;	// Unknown format
-		if ( pFile->Read( &nCount, sizeof( nCount ) ) != sizeof( nCount ) )
-			return 0;
-	}
-	while ( nCount-- > 0 )
-	{
-		Hashes::Guid oGUID;
-		if ( pFile->Read( &oGUID[0], oGUID.byteCount ) != oGUID.byteCount )
-			break;
-		oGUID.validate();
-		IN_ADDR pAddress;
-		if ( pFile->Read( &pAddress, sizeof( pAddress ) ) != sizeof( pAddress ) )
-			break;
-		// Store IP in network byte order (as it comes from file)
-		WORD nUDPPort;
-		if ( pFile->Read( &nUDPPort, sizeof( nUDPPort ) ) != sizeof( nUDPPort ) )
-			break;
-		WORD nTCPPort;
-		if ( pFile->Read( &nTCPPort, sizeof( nTCPPort ) ) != sizeof( nTCPPort ) )
-			break;
-		BYTE nKADVersion = 0;
-		BYTE nType = 0;
-		if ( nVersion == 1 )
-		{
-			if ( pFile->Read( &nKADVersion, sizeof( nKADVersion ) ) != sizeof( nKADVersion ) )
-				break;
-		}
-		else
-		{
-			if ( pFile->Read( &nType, sizeof( nType ) ) != sizeof( nType ) )
-				break;
-		}
-		if ( nVersion == 1 || nType < 4 )
-		{
-			CQuickLock oLock( Kademlia.m_pSection );
-			CHostCacheHostPtr pCache = Kademlia.Add( &pAddress, nTCPPort );
-			if ( pCache )
-			{
-				pCache->m_oGUID = oGUID;
-				pCache->m_sDescription = oGUID.toString();
-				pCache->m_nUDPPort = nUDPPort;
-				pCache->m_nKADVersion = nKADVersion;
-				nServers++;
-			}
-		}
-	}
-
-	return nServers;
-}
+// ToDo: Kademlia
+//int CHostCache::ImportNodes(CFile* pFile)
+//{
+//	int nServers = 0;
+//	DWORD nVersion = 0;
+//
+//	DWORD nCount;
+//	if ( pFile->Read( &nCount, sizeof( nCount ) ) != sizeof( nCount ) )
+//		return 0;
+//	if ( nCount == 0 )
+//	{
+//		// New format
+//		if ( pFile->Read( &nVersion, sizeof( nVersion ) ) != sizeof( nVersion ) )
+//			return 0;
+//		if ( nVersion != 1 )
+//			return 0;	// Unknown format
+//		if ( pFile->Read( &nCount, sizeof( nCount ) ) != sizeof( nCount ) )
+//			return 0;
+//	}
+//	while ( nCount-- > 0 )
+//	{
+//		Hashes::Guid oGUID;
+//		if ( pFile->Read( &oGUID[0], oGUID.byteCount ) != oGUID.byteCount )
+//			break;
+//		oGUID.validate();
+//		IN_ADDR pAddress;
+//		if ( pFile->Read( &pAddress, sizeof( pAddress ) ) != sizeof( pAddress ) )
+//			break;
+//		pAddress.s_addr = ntohl( pAddress.s_addr );
+//		WORD nUDPPort;
+//		if ( pFile->Read( &nUDPPort, sizeof( nUDPPort ) ) != sizeof( nUDPPort ) )
+//			break;
+//		WORD nTCPPort;
+//		if ( pFile->Read( &nTCPPort, sizeof( nTCPPort ) ) != sizeof( nTCPPort ) )
+//			break;
+//		BYTE nKADVersion = 0;
+//		BYTE nType = 0;
+//		if ( nVersion == 1 )
+//		{
+//			if ( pFile->Read( &nKADVersion, sizeof( nKADVersion ) ) != sizeof( nKADVersion ) )
+//				break;
+//		}
+//		else
+//		{
+//			if ( pFile->Read( &nType, sizeof( nType ) ) != sizeof( nType ) )
+//				break;
+//		}
+//		if ( nType < 4 )
+//		{
+//			CQuickLock oLock( Kademlia.m_pSection );
+//			CHostCacheHostPtr pCache = Kademlia.Add( &pAddress, nTCPPort );
+//			if ( pCache )
+//			{
+//				pCache->m_oGUID = oGUID;
+//				pCache->m_sDescription = oGUID.toString();
+//				pCache->m_nUDPPort = nUDPPort;
+//				pCache->m_nKADVersion = nKADVersion;
+//				nServers++;
+//			}
+//		}
+//	}
+//
+//	return nServers;
+//}
 
 bool CHostCache::EnoughServers(PROTOCOLID nProtocol) const
 {

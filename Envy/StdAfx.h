@@ -23,6 +23,12 @@
 
 #pragma once
 
+// Restore deprecated C++17 features for compatibility
+// std::unary_function, std::binary_function, std::mem_fun, etc.
+#ifndef _HAS_AUTO_PTR_ETC
+#define _HAS_AUTO_PTR_ETC 1
+#endif
+
 // Uncomment for temporary workarounds:
 #define PUBLIC_RELEASE_FIX
 
@@ -264,7 +270,7 @@
 
 #include <memory>				// For std::shared_ptr
 #include <functional>			// For std::bind
-#include <iterator>
+#include <iterator>				// For stdext::make_checked_array_iterator
 //#include <new>
 //#include <queue>
 //#include <deque>
@@ -289,6 +295,7 @@ using namespace std::tr1::placeholders;
 //
 // TR1  (std::tr1::)
 //
+
 // VS2008 SP1 for tr1, VS2012 for std
 // Note: See Shareaza r8451 for some tr1 implementation
 
@@ -463,6 +470,9 @@ AFX_INLINE UINT AFXAPI HashKey(LPUNKNOWN key)
 //} GeoIPOptions;
 
 //typedef GeoIP* (*GeoIP_newFunc)(int);
+//typedef const char * (*GeoIP_country_code_by_addrFunc) (GeoIP*, const char *);
+//typedef const char * (*GeoIP_country_name_by_addrFunc) (GeoIP*, const char *);
+
 //typedef const char * (*GeoIP_country_code_by_addrFunc) (GeoIP*, const char *);
 //typedef const char * (*GeoIP_country_name_by_addrFunc) (GeoIP*, const char *);
 
@@ -915,7 +925,7 @@ public:
 	CTimeAverage()
 	{
 	}
-
+	
 	inline T operator()(T Val)
 	{
 		// Add new value
@@ -1039,15 +1049,5 @@ INT_PTR MsgBox(UINT nIDPrompt, UINT nType = MB_OK, UINT nIDHelp = 0, DWORD* pnDe
 
 #define SwitchMap(name) 	static std::map < const CString, char > name; if ( name.empty() )	// Switch on text by proxy [PPD]
 
-// Is this switch overhead better than comparable else-if sequence?  (Note static list populated at first hit only.)  [Persistent Public Domain license]
-// Usage:
-//	SwitchMap( Text )
-//	{
-//		Text[ L"text1" ] = 'A';
-//		Text[ L"text2" ] = 'b';
-//	}
-//	switch ( Text[ str ] )
-//	{
-//	case 'A':	// "text1"
-//	case 'b':	// "text2"
-//	}
+// Note: "CString" were custom "StringType"
+#

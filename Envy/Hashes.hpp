@@ -1,32 +1,11 @@
-//
+ï»¿//
 // Hashes.hpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
-// Portions copyright Shareaza 2005 and PeerProject 2008-2012
+// Hash type definitions for Envy
+// Provides typedefs for commonly used hash types
 //
-// Envy is free software. You may redistribute and/or modify it
-// under the terms of the GNU Affero General Public License
-// as published by the Free Software Foundation (fsf.org);
-// version 3 or later at your option. (AGPLv3)
-//
-// Envy is distributed in the hope that it will be useful,
-// but AS-IS WITHOUT ANY WARRANTY; without even implied warranty
-// of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU Affero General Public License 3.0 for details:
-// (http://www.gnu.org/licenses/agpl.html)
-//
-
-//! \file       Hashes.hpp
-//! \brief      General header files for Hashes.
-//!
-//! Includes headers for Hash class template. Defines all hash types as typedefs
-//! to a Hash template class. Contains some utility functions and hash ids.
 
 #pragma once
-
-#ifndef HASHES_HPP_INCLUDED
-#define HASHES_HPP_INCLUDED
-#endif
 
 #include "Hashes/Hash.hpp"
 #include "Hashes/HashDescriptors.hpp"
@@ -35,10 +14,6 @@
 #include "Hashes/ValidationPolicies.hpp"
 #include "Hashes/Compatibility.hpp"
 
-//! \brief Contains all definitions related to the Hash class template.
-//!
-//! Definition of the Hash class template and related functions, types and constants.
-//! Use ADL to find functions here.
 namespace Hashes
 {
 	//! \brief The default SHA1 hash type.
@@ -127,3 +102,9 @@ enum
 	HASH_ED2K = 4,      //!< use ED2K
 	HASH_TORRENT = 5    //!< use Bittorrent info hash
 };
+
+// Make compatibility functions available in global namespace
+using Hashes::SerializeOut;
+using Hashes::SerializeIn;
+using Hashes::transformGuid;
+using Hashes::isExtendedBtGuid;

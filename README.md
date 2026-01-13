@@ -1,4 +1,4 @@
-# Envy - Peer-to-Peer File Sharing Application
+﻿# Envy - Peer-to-Peer File Sharing Application
 
 **Version:** 4.0  
 **License:** AGPL v3.0  
@@ -116,12 +116,13 @@ ctest --config Release
 
 ### Supported Protocols
 
-| Protocol | Status | Features |
-|----------|--------|----------|
-| **BitTorrent** | ✅ Full | DHT, Magnet Links, μTP |
-| **Gnutella2** | ✅ Full | G2 Network, Hub Routing |
-| **eDonkey2000** | ✅ Full | Kad Network, File Sources |
-| **HTTP/FTP** | ✅ Basic | Direct Downloads |
+| Protocol | Status | Features | Compatibility Notes |
+|----------|--------|----------|-------------------|
+| **BitTorrent** | ⚠️ Good | DHT, Magnet Links, μTP | Missing BT v2 (BEP-52) |
+| **Gnutella2** | ✅ Full | G2 Network, Hub Routing | Fully compatible |
+| **eDonkey2000** | ⚠️ Partial | Kad Network, File Sources | Missing CryptLayer, SecureID |
+| **HTTP/FTP** | ✅ Basic | Direct Downloads | Standard implementation |
+| **Kademlia DHT** | ⚠️ Partial | Bootstrap, Contact Mgmt | XOR distance bug, limited indexing |
 
 ### Technology Stack
 
@@ -173,18 +174,23 @@ GitHub Actions workflows provide:
 
 ## 📚 Documentation
 
-- **[Architecture Documentation](ARCHITECTURE.md)** - System architecture and design
-- **[Developer Guide](DEVELOPER_GUIDE.md)** - Development practices and guidelines
-- **[Modernization Plan](MODERNIZATION_PLAN.md)** - Modernization strategy
-- **[Audit Report](AUDIT_REPORT.md)** - Code quality and security audit
-- **[Next Steps](NEXT_STEPS.md)** - Detailed action plan
-- **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Completed work
+### Core Documentation
+- **[Development Agents](AGENTS.md)** - AI agents and automated tools for development
+- **[Dev Tracker](dev-docs/DEV_TRACKER.md)** - Development progress tracker with visual status indicators
+- **[Audit Report](AUDIT_REPORT.md)** - Comprehensive ED2K/Kademlia audit, task tracking, and roadmap
+- **[P2P Compatibility Analysis](dev-docs/P2P_COMPATIBILITY.md)** - Protocol compatibility assessment and modernization roadmap
+- **[Implementation Summary](dev-docs/IMPLEMENTATION_SUMMARY.md)** - Completed features and current status
+
+### Developer Documentation (`dev-docs/`)
+- **[Architecture](dev-docs/ARCHITECTURE.md)** - System architecture and component design
+- **[Developer Guide](dev-docs/DEVELOPER_GUIDE.md)** - Development practices and contribution guidelines
+- **[Documentation Index](dev-docs/README.md)** - Overview of all developer documentation
 
 ## 🎯 Modernization Status
 
-**Phase 1: Critical Infrastructure Updates** (In Progress)
+### Phase 1: Critical Infrastructure Updates (In Progress)
 
-### ✅ Completed
+**Completed:**
 - ✅ Visual Studio 2026 (v145 toolset) migration
 - ✅ CMake build system skeleton
 - ✅ CI/CD pipeline with quality checks
@@ -193,19 +199,27 @@ GitHub Actions workflows provide:
 - ✅ Build verification scripts
 - ✅ HashLib CMake implementation (example)
 
-### 🔄 In Progress
+**In Progress:**
 - 🔄 Build verification and testing
 - 🔄 Dependency updates (SQLite, zlib, etc.)
 - 🔄 CMake component definitions
 - 🔄 Unit testing framework setup
 
-### ⏳ Pending
-- ⏳ Security hardening (TLS 1.3)
-- ⏳ Complete CMake implementation
-- ⏳ C++17 migration
-- ⏳ Runtime testing
+### Phase 2: P2P Protocol Modernization (Planned)
 
-See **[MODERNIZATION_PROGRESS.md](MODERNIZATION_PROGRESS.md)** for detailed status.
+**Critical Protocol Fixes:**
+- 🔴 Fix Kademlia XOR distance calculation bug
+- 🔴 Complete CryptLayer obfuscation implementation
+- 🔴 Implement SecureID system for ED2K
+- 🔴 Add BitTorrent v2 (BEP-52) support
+
+**Advanced Features:**
+- 🟡 Implement full Kad DHT indexing
+- 🟡 Add modern BT extensions (Fast, DHT scrape)
+- 🟡 Complete AICH hash tree functionality
+- 🟡 Cross-protocol optimization features
+
+See **[dev-docs/P2P_COMPATIBILITY.md](dev-docs/P2P_COMPATIBILITY.md)** for detailed analysis and **[dev-docs/MODERNIZATION_PROGRESS.md](dev-docs/MODERNIZATION_PROGRESS.md)** for infrastructure status.
 
 ## 🧪 Testing
 
@@ -263,6 +277,7 @@ See [AGPL-License.txt](Envy/AGPL-License.txt) for details.
 
 ---
 
-**Last Updated:** January 11, 2026  
-**Build System:** Visual Studio 2026 (v145), CMake 3.20+  
+**Last Updated:** January 13, 2026
+**Build System:** Visual Studio 2026 (v145), CMake 3.20+
 **C++ Standard:** C++17
+**P2P Compatibility:** Updated protocol analysis and modernization roadmap

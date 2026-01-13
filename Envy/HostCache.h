@@ -1,7 +1,7 @@
 //
 // HostCache.h
 //
-// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2012
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -75,7 +75,7 @@ public:
 
 	// Attributes: Kademlia
 	Hashes::Guid	m_oGUID;		// Host GUID (128 bit)
-	BYTE			m_nKADVersion;	// Kademlia version
+//	BYTE			m_nKADVersion;	// ToDo: Kademlia version
 
 	bool		ConnectTo(BOOL bAutomatic = FALSE);
 	CString		ToString(const bool bLong = true) const; // "10.0.0.1:6346 2002-04-30T08:30Z"
@@ -277,7 +277,7 @@ public:
 	int					Import(LPCTSTR pszFile, BOOL bFreshOnly = FALSE);
 	int					ImportHubList(CFile* pFile);	// Import DC++ hub list .xml.bz2 file
 	int					ImportMET(CFile* pFile);		// Import eDonkey2000 servers .met file
-	int					ImportNodes(CFile* pFile);		// Import Kademlia nodes .dat file
+	//int				ImportNodes(CFile* pFile);		// ToDo: Import Kademlia nodes .dat file
 	//int				ImportCache(CFile* pFile);		// ToDo: Support custom G2/Gnutella import/export .xml/.dat
 
 	bool				CheckMinimumServers(PROTOCOLID nProtocol);

@@ -99,6 +99,9 @@
     <BuildLog>
       <Path>$(ProjectDir)$(IntDir)$(ProjectName).log</Path>
     </BuildLog>
+    <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <CustomBuild Include="Scripts\Main.iss">
