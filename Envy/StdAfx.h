@@ -1,4 +1,4 @@
-﻿//
+//
 // StdAfx.h
 //
 // This file is part of Envy (getenvy.com) © 2016-2020
@@ -270,7 +270,7 @@
 
 #include <memory>				// For std::shared_ptr
 #include <functional>			// For std::bind
-#include <iterator>				// For stdext::make_checked_array_iterator
+#include <iterator>
 //#include <new>
 //#include <queue>
 //#include <deque>
