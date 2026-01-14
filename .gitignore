@@ -366,3 +366,59 @@ Envy.Crash.Report/
 # Developer documentation
 dev-docs/
 DEBUG_ASSERTION_GUIDE.md
+
+# Generated plugin code and folders
+Plugins/Generated/
+Plugins/gen/
+**/GeneratedPlugins/
+**/generated-plugins/
+
+# Build files in Plugins folder
+Plugins/**/[Dd]ebug*/
+Plugins/**/[Rr]elease*/
+Plugins/**/*.obj
+Plugins/**/*.exe
+Plugins/**/*.dll
+Plugins/**/*.lib
+Plugins/**/*.pdb
+Plugins/**/*.ilk
+Plugins/**/*.exp
+Plugins/**/*.manifest
+Plugins/**/*.res
+Plugins/**/*.lastbuildstate
+Plugins/**/*.tlog
+Plugins/**/*.ipdb
+Plugins/**/*.iobj
+Plugins/**/x64/
+Plugins/**/x86/
+Plugins/**/Win32/
+Plugins/**/[Bb]in/
+Plugins/**/[Oo]bj/
+
+# Generated header files in Plugins folder
+Plugins/**/*.h.bak
+Plugins/**/*.h.generated
+Plugins/**/*.gen.h
+Plugins/**/*_generated.h
+Plugins/**/*_auto.h
+Plugins/**/*.moc.h
+Plugins/**/*.ui.h
+Plugins/**/Envy.h
+# MIDL-generated COM interface headers
+Plugins/7ZipBuilder/7ZipBuilder.h
+Plugins/DocumentReader/DocumentReader.h
+Plugins/GFLImageServices/GFLImageServices.h
+Plugins/GFLLibraryBuilder/GFLLibraryBuilder.h
+Plugins/ImageViewer/ImageViewer.h
+Plugins/MediaImageServices/MediaImageServices.h
+Plugins/MediaLibraryBuilder/MediaLibraryBuilder.h
+Plugins/MediaPlayer/MediaPlayer_h.h
+Plugins/RARBuilder/RARBuilder.h
+Plugins/RatDVDPlugin/RatDVDReader.h
+Plugins/SWFPlugin/SWFPlugin.h
+Plugins/SearchExport/SearchExport.h
+Plugins/ShortURL/ShortURL.h
+Plugins/SkinScan/SkinScan.h
+Plugins/VirusTotal/VirusTotal.h
+Plugins/WindowsThumbnail/WindowsThumbnail.h
+Plugins/ZIPBuilder/ZIPBuilder.h
