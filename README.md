@@ -1,4 +1,9 @@
-﻿# Envy - Peer-to-Peer File Sharing Application
+# Envy - Peer-to-Peer File Sharing Application
+
+[![Build Status](https://github.com/Mika3578/Envy/workflows/Build%20and%20Test/badge.svg)](https://github.com/Mika3578/Envy/actions)
+[![Code Quality](https://github.com/Mika3578/Envy/workflows/Code%20Quality/badge.svg)](https://github.com/Mika3578/Envy/actions)
+[![CodeQL Security](https://github.com/Mika3578/Envy/workflows/CodeQL%20Security%20Scan/badge.svg)](https://github.com/Mika3578/Envy/actions)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 **Version:** 4.0  
 **License:** AGPL v3.0  
@@ -7,6 +12,18 @@
 ## Overview
 
 Envy is a comprehensive peer-to-peer file sharing application supporting multiple protocols including BitTorrent, Gnutella2 (G2), and eDonkey2000. Built with C++ using MFC (Microsoft Foundation Classes), it provides a feature-rich P2P client with extensive plugin support.
+
+## 📖 Project Origins
+
+Envy is a mature fork of Shareaza, originally developed as a multi-network peer-to-peer filesharing and torrent client. The project is available on SourceForge at [https://sourceforge.net/projects/getenvy/](https://sourceforge.net/projects/getenvy/), where it continues to be actively maintained and developed.
+
+**Key Features from SourceForge:**
+- Multi-protocol support: BitTorrent/DHT, G2/Gnutella², Gnutella, ED2K/eMule, DC++, HTTP/FTP
+- Highly skinnable interface with extensive customization options
+- Built-in blacklist support for content filtering
+- Cross-platform compatibility (Windows or Wine)
+
+This repository represents the modernization and continued development of the Envy P2P client, focusing on infrastructure updates, protocol enhancements, and codebase improvements while maintaining compatibility with the established P2P networks.
 
 ## 🚀 Quick Start
 
@@ -158,19 +175,50 @@ Envy/
 
 ### Automated Tools
 
-- **Code Formatting:** clang-format (`.clang-format`)
-- **Static Analysis:** CppCheck, Clang-Tidy
-- **Build Verification:** PowerShell scripts
-- **Dependency Management:** Automated update scripts
+- **Code Formatting:** clang-format with CI validation
+- **Static Analysis:** MSBuild Code Analysis, CodeQL security scanning
+- **Build Verification:** GitHub Actions with artifact collection
+- **Dependency Management:** Dependabot with automated PRs
+- **Issue Management:** Automated labeling and stale management
+- **Documentation:** AI-powered development assistance
 
 ### CI/CD Pipeline
 
-GitHub Actions workflows provide:
-- Automated builds (Debug/Release, Win32/x64)
-- Code formatting checks
-- Static analysis
-- Dependency vulnerability scanning
-- Build artifact collection
+GitHub Actions provides comprehensive automation with optimized workflows:
+
+#### Build & Test (`build.yml`)
+- **Automated builds** for all configurations (Debug/Release, Win32/x64)
+- **NuGet package restoration** and MSBuild compilation
+- **Build verification** with artifact collection
+- **Parallel job execution** for faster feedback
+
+#### Code Quality (`code-quality.yml`)
+- **Static analysis** with MSBuild Code Analysis
+- **Code formatting** checks with clang-format
+- **Documentation validation** with markdown link checking
+- **Dependency review** for security vulnerabilities
+
+#### Security Scanning (`codeql.yml`)
+- **CodeQL security analysis** for C++ vulnerabilities
+- **Automated weekly scans** on Mondays
+- **Custom query suites** for security and quality
+- **SARIF report generation** for GitHub Security tab
+
+#### Release Management (`release.yml`)
+- **Automated release builds** with version tagging
+- **Cross-platform packaging** (Win32/x64)
+- **ZIP archive creation** with metadata
+- **GitHub release publishing** with assets
+
+#### Issue Management (`stale.yml`)
+- **Automated stale issue management**
+- **Configurable close timing** and labeling
+
+#### Development Automation
+- **Dependabot** for automated dependency updates
+- **Issue templates** for bug reports and feature requests
+- **Pull request templates** with checklists
+- **AI agent documentation** for development assistance
 
 ## 📚 Documentation
 
@@ -193,11 +241,13 @@ GitHub Actions workflows provide:
 **Completed:**
 - ✅ Visual Studio 2026 (v145 toolset) migration
 - ✅ CMake build system skeleton
-- ✅ CI/CD pipeline with quality checks
-- ✅ Code formatting tools (clang-format)
-- ✅ Static analysis tools (CppCheck, Clang-Tidy)
-- ✅ Build verification scripts
+- ✅ **Complete CI/CD pipeline** with 5 specialized workflows
+- ✅ Code formatting tools (clang-format) with CI validation
+- ✅ Static analysis tools (MSBuild Code Analysis, CodeQL)
+- ✅ Build verification scripts and automation
 - ✅ HashLib CMake implementation (example)
+- ✅ GitHub configuration (dependabot, issue templates, PR templates)
+- ✅ AI agent documentation and development guidelines
 
 **In Progress:**
 - 🔄 Build verification and testing
