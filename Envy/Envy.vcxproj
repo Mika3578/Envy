@@ -395,6 +395,7 @@
     <ClCompile Include="EDPartImporter.cpp" />
     <ClCompile Include="Emoticons.cpp" />
     <ClCompile Include="FileExecutor.cpp" />
+    <ClCompile Include="FileIdentifier.cpp" />
     <ClCompile Include="Firewall.cpp" />
     <ClCompile Include="Flags.cpp" />
     <ClCompile Include="FragmentBar.cpp" />
@@ -1262,6 +1263,7 @@
     <ClInclude Include="EDPartImporter.h" />
     <ClInclude Include="Emoticons.h" />
     <ClInclude Include="FileExecutor.h" />
+    <ClInclude Include="FileIdentifier.h" />
     <ClInclude Include="Firewall.h" />
     <ClInclude Include="Flags.h" />
     <ClInclude Include="FragmentBar.h" />

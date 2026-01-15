@@ -1,7 +1,7 @@
 //
 // DownloadTransferED2K.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -29,6 +29,7 @@
 #include "EDClients.h"
 #include "EDClient.h"
 #include "EDPacket.h"
+#include "FileIdentifier.h"
 #include "Network.h"
 #include "Buffer.h"
 
@@ -379,6 +380,69 @@ BOOL CDownloadTransferED2K::OnHashsetAnswer(CEDPacket* pPacket)
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_HASHSET_ERROR, (LPCTSTR)m_sAddress );
 	else if ( m_pDownload->SetHashset( pPacket->m_pBuffer + pPacket->m_nPosition, pPacket->GetRemaining() ) )
 		return SendSecondaryRequest();
+
+	Close( TRI_FALSE );
+	return FALSE;
+}
+
+BOOL CDownloadTransferED2K::OnHashsetAnswer2(CEDPacket* pPacket)
+{
+	if ( m_nState != dtsHashset )
+		return TRUE;
+
+	// HashsetAnswer2 uses FileIdentifier format
+	CFileIdentifier oFileID;
+	if ( ! oFileID.Parse( pPacket ) )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		Close( TRI_FALSE );
+		return FALSE;
+	}
+
+	// Verify FileIdentifier matches download
+	if ( validAndUnequal( oFileID.GetHash(), m_pDownload->m_oED2K ) ||
+		 oFileID.GetSize() != m_pDownload->m_nSize )
+	{
+		return TRUE;	// FileIdentifier mismatch
+	}
+
+	// Read options byte
+	BYTE nOptions = 0;
+	if ( pPacket->GetRemaining() < 1 )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		Close( TRI_FALSE );
+		return FALSE;
+	}
+	nOptions = pPacket->ReadByte();
+
+	m_bHashset = TRUE;
+
+	// Check if hashset data is included (option bit 0)
+	if ( nOptions & 0x01 )
+	{
+		if ( pPacket->GetRemaining() < 2 )
+		{
+			theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+			Close( TRI_FALSE );
+			return FALSE;
+		}
+
+		DWORD nBlocks = pPacket->ReadShortLE();
+		bool bNullBlock = ( m_pDownload->m_nSize % ED2K_PART_SIZE == 0 && m_pDownload->m_nSize );
+		QWORD nBlocksFromSize = ( m_pDownload->m_nSize + ED2K_PART_SIZE - 1 ) / ED2K_PART_SIZE;
+
+		if ( bNullBlock )
+			nBlocksFromSize++;
+
+		if ( nBlocks == 0 )
+			nBlocks = 1;
+
+		if ( nBlocks != nBlocksFromSize )
+			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_HASHSET_ERROR, (LPCTSTR)m_sAddress );
+		else if ( m_pDownload->SetHashset( pPacket->m_pBuffer + pPacket->m_nPosition, pPacket->GetRemaining() ) )
+			return SendSecondaryRequest();
+	}
 
 	Close( TRI_FALSE );
 	return FALSE;

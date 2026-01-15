@@ -1,7 +1,7 @@
 //
 // EDClient.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2006 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -140,7 +140,10 @@ protected:
 	BOOL	OnFileRequest(CEDPacket* pPacket);
 	BOOL	OnFileStatusRequest(CEDPacket* pPacket);
 	BOOL	OnHashsetRequest(CEDPacket* pPacket);
+	BOOL	OnHashsetRequest2(CEDPacket* pPacket);
 	BOOL	OnQueueRequest(CEDPacket* pPacket);
+	BOOL	OnMultiPacketExt2(CEDPacket* pPacket);
+	BOOL	OnMultiPacketAnswerExt2(CEDPacket* pPacket);
 	BOOL	OnSourceRequest(CEDPacket* pPacket);
 	BOOL	OnSourceAnswer(CEDPacket* pPacket);
 	BOOL	OnRequestPreview(CEDPacket* pPacket);

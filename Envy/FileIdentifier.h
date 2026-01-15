@@ -1,4 +1,4 @@
-//
+﻿//
  // FileIdentifier.h
 //
 // This file is part of Envy (getenvy.com) � 2016-2020
@@ -18,11 +18,13 @@
 
 #pragma once
 
+class CEDPacket;
+
 class CFileIdentifier
 {
 public:
 	CFileIdentifier();
-	CFileIdentifier(const Hashes::Guid& oGUID, QWORD nSize);
+	CFileIdentifier(const Hashes::Ed2kHash& oHash, QWORD nSize);
 	virtual ~CFileIdentifier();
 
 	// Parse FileIdentifier from packet
@@ -31,13 +33,13 @@ public:
 	// Write FileIdentifier to packet
 	void Write(CEDPacket* pPacket) const;
 
-	// Get file hash
-	const Hashes::Guid& GetHash() const;
+	// Get file hash (ED2K/MD4)
+	const Hashes::Ed2kHash& GetHash() const;
 
 	// Get file size
 	QWORD GetSize() const;
 
 private:
-	Hashes::Guid m_oGUID;
-	QWORD m_nSize;
+Hashes::Ed2kHash m_oHash;
+QWORD m_nSize;
 };
