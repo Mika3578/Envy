@@ -204,7 +204,7 @@
 #define IDD_CONNECT_TO                  627
 #define IDD_FILTER_SAVE_AS              628
 #define IDD_FILTER_SEARCH               629
-#define IDD_SEARCHMONITOR_FILTER        637
+#define IDD_SEARCHMONITOR_FILTER        653
 #define IDD_FOLDER_PROPERTIES           630
 #define IDD_FOLDER_SCAN                 631
 #define IDD_GRAPH_ITEM                  632

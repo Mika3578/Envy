@@ -501,8 +501,11 @@ bool CSearchMonitorWnd::MatchesTextFilter(const CQuerySearch* pSearch) const
 		return false; // No search text to match
 
 	// Use case-insensitive search for better matching
-	CString strFilter = m_FilterCriteria.sTextFilter;
-	return (strSearch.MakeUpper().Find(strFilter.MakeUpper()) >= 0);
+	CString strSearchUpper = strSearch;
+	strSearchUpper.MakeUpper();
+	CString strFilterUpper = m_FilterCriteria.sTextFilter;
+	strFilterUpper.MakeUpper();
+	return (strSearchUpper.Find(strFilterUpper) >= 0);
 }
 
 bool CSearchMonitorWnd::MatchesProtocolFilter(const CQuerySearch* pSearch) const

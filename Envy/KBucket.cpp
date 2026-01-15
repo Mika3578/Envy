@@ -141,9 +141,14 @@ void KBucket::MarkRefreshed(time_t now) {
 KadRoutingTable::KadRoutingTable(const KadId& ownId) {
     memcpy(ownNodeId, ownId, KAD_ID_SIZE);
 
-    // Create buckets for each bit position (0-127 for 128-bit IDs)
-    buckets.resize(KAD_ID_SIZE);
-    for (int i = 0; i < KAD_ID_SIZE; i++) {
+    // Create buckets for each possible leading zero count
+    // For 128-bit IDs, we can have 0-127 leading zeros, plus one bucket for identical IDs
+    // Total: 128 buckets (0-127) for standard Kademlia
+    // However, for efficiency, we can use fewer buckets by grouping
+    // Using KAD_ID_SIZE * 8 = 128 buckets for full Kademlia compliance
+    const int numBuckets = KAD_ID_SIZE * 8;
+    buckets.resize(numBuckets);
+    for (int i = 0; i < numBuckets; i++) {
         buckets[i] = new KBucket(KAD_K);
     }
 }
@@ -160,21 +165,55 @@ int KadRoutingTable::GetBucketIndex(const unsigned char* nodeId) const {
     unsigned char distance[KAD_ID_SIZE];
     kad_xor_distance(distance, ownNodeId, nodeId);
 
-    // Find the highest bit set in the distance
+    // Kademlia bucket index is based on the number of leading zero bits in XOR distance
+    // Bucket 0: distance MSB = 1 (0 leading zeros)
+    // Bucket 1: distance has 1 leading zero
+    // Bucket 2: distance has 2 leading zeros
+    // etc.
+
+    // Count leading zero bits from most significant byte
+    int leadingZeros = 0;
     for (int i = 0; i < KAD_ID_SIZE; i++) {
-        if (distance[i] != 0) {
-            // Find highest bit in this byte
-            unsigned char byte = distance[i];
-            for (int bit = 7; bit >= 0; bit--) {
-                if (byte & (1 << bit)) {
-                    return (i * 8) + (7 - bit);
-                }
+        unsigned char byte = distance[i];
+
+        if (byte == 0) {
+            // Entire byte is zero, count all 8 bits
+            leadingZeros += 8;
+        } else {
+            // Find first set bit in this byte
+            // Count leading zeros in this byte
+            int bitPos = 7;
+            while (bitPos >= 0 && !(byte & (1 << bitPos))) {
+                leadingZeros++;
+                bitPos--;
             }
+            // Found first set bit, break
+            break;
         }
     }
 
-    // If we get here, the node ID is the same as ours
-    return KAD_ID_SIZE - 1; // Put in last bucket
+    // If all bits are zero, node ID is the same as ours
+    // Put in the last bucket (bucket 127 for 128-bit IDs)
+    if (leadingZeros == KAD_ID_SIZE * 8) {
+        return (KAD_ID_SIZE * 8) - 1;
+    }
+
+    // Bucket index is the number of leading zeros
+    // This correctly implements Kademlia bucket assignment:
+    // - Nodes with XOR distance having 0 leading zeros go to bucket 0
+    // - Nodes with XOR distance having 1 leading zero go to bucket 1
+    // - etc.
+    // Valid range: 0 to (KAD_ID_SIZE * 8 - 1)
+    int bucketIndex = leadingZeros;
+
+    // Safety check: clamp to valid bucket range
+    if (bucketIndex < 0) {
+        bucketIndex = 0;
+    } else if (bucketIndex >= (int)buckets.size()) {
+        bucketIndex = (int)buckets.size() - 1;
+    }
+
+    return bucketIndex;
 }
 
 void KadRoutingTable::XorDistance(KadId& result, const KadId& a, const KadId& b) {

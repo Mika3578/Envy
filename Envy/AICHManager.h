@@ -35,7 +35,42 @@ public:
 	// Verify file integrity using AICH
 	bool VerifyFile(LPCTSTR szFilename, const CAICHHash& oMasterHash);
 
+	// Store AICH data for a peer
+	bool StoreAICHData(const Hashes::Guid& oGUID, const CBuffer& oBuffer);
+
+	// Check if we have AICH data for a peer
+	bool HasAICHData(const Hashes::Guid& oGUID);
+
 private:
+	void Cleanup();
+	bool BuildHashTree(std::vector<CAICHHash>& blockHashes, CAICHHash& oMasterHash);
+
 	CMap<Hashes::Guid, Hashes::Guid&, CBuffer*, CBuffer*&> m_AICHData;
 	CCriticalSection m_pSection;
+};
+
+// AICH hash implementation
+class CAICHHash
+{
+public:
+	CAICHHash();
+	~CAICHHash();
+
+	// Initialize with data
+	bool InitFromData(const BYTE* pData, size_t nDataLen);
+
+	// Initialize from hash
+	bool InitFromHash(const BYTE* pHash);
+
+	// Get hash value
+	const BYTE* GetHash() const;
+	size_t GetHashSize() const;
+
+	// Compare hashes
+	bool operator==(const CAICHHash& other) const;
+	bool operator!=(const CAICHHash& other) const;
+
+private:
+	BYTE m_pHash[20]; // SHA-1 hash
+	bool m_bValid;
 };

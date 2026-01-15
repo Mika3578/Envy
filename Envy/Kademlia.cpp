@@ -442,6 +442,20 @@ int kad_store(const unsigned char *key, const char *value)
     return -1;
 }
 
+// Publish a keyword/file association to the DHT
+int kad_publish(const unsigned char *key, const char *value)
+{
+    if (!g_initialized || !key || !value || !g_routingTable) {
+        return -1;
+    }
+
+    // Find the KadProtocol instance and publish
+    // In a full implementation, this would be handled by the protocol layer
+    // For now, just store locally and return success
+
+    return kad_store(key, value);
+}
+
 // Find a value by key in the DHT
 int kad_find_value(const unsigned char *key, kad_callback *callback, void *closure)
 {

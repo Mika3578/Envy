@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -358,6 +358,8 @@
     <ClCompile Include="CoolInterface.cpp" />
     <ClCompile Include="CoolMenu.cpp" />
     <ClCompile Include="CrawlSession.cpp" />
+    <ClCompile Include="CryptoProvider.cpp" />
+    <ClCompile Include="RC4.cpp" />
     <ClCompile Include="Datagram.cpp" />
     <ClCompile Include="DatagramPart.cpp" />
     <ClCompile Include="Datagrams.cpp" />
