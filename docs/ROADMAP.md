@@ -1,6 +1,6 @@
 # Envy Development Roadmap
 
-**Last Updated:** January 15, 2026
+**Last Updated:** January 15, 2026 (Updated for recent code fixes)
 **Based on:** Current codebase inspection (`docs/STATUS.md`)
 **Approach:** Phased, evidence-based development priorities
 
@@ -263,7 +263,13 @@ Zero automated testing despite framework being ready:
 
 ### Implementation Tasks
 
-#### 4.1 Core Unit Tests
+#### 4.1 Re-establish Testing Infrastructure
+- **Testing Framework**
+  - Restore Google Test integration
+  - Re-implement test runner scripts
+  - Set up CI/CD test execution
+
+#### 4.2 Core Unit Tests
 - **HashLib Tests**
   - MD4, MD5, SHA-1, SHA-256 algorithms
   - ED2K hash computation
@@ -346,6 +352,7 @@ Zero automated testing despite framework being ready:
 - BT: Stable operation with modern clients
 
 ### Phase 4 (Quality)
+- Testing: Framework restored and functional
 - Test coverage: >60% on core components
 - CI/CD: All builds passing, automated testing
 - Bug rate: <5 new bugs per release
