@@ -1,4 +1,4 @@
-//
+﻿//
 // KadProtocol.h
 //
 // Kademlia protocol message definitions and packet handling
@@ -94,9 +94,9 @@ struct KadSearchResult {
 };
 #pragma pack(pop)
 
-// Publish request body
+// Publish request body (extended version for protocol messages)
 #pragma pack(push, 1)
-struct KadPublishRequest {
+struct KadProtocolPublishRequest {
     KadId targetId;               // Target ID for publishing
     unsigned char keywordCount;   // Number of keywords
     // Followed by keywords and file info...
@@ -131,6 +131,11 @@ public:
     bool SendFindNodeRequest(const unsigned char* targetId, const struct sockaddr_in& target);
     bool SendFindNodeResponse(const unsigned char* targetId, const std::list<KadNode*>& nodes,
                              const struct sockaddr_in& target);
+    bool SendPublishRequest(const unsigned char* targetId, const char* keyword,
+                           const struct sockaddr_in& target);
+    bool SendPublishResponse(const unsigned char* targetId, bool success,
+                            const struct sockaddr_in& target);
+    bool PublishKeyword(const unsigned char* targetId, const char* keyword);
 
     // Receive and process packets
     bool ReceivePacket();
@@ -142,8 +147,12 @@ public:
     static int CreateHelloResponse(unsigned char* buffer, int bufferSize,
                                   const unsigned char* targetId, unsigned short tcpPort, unsigned short udpPort);
     static int CreateFindNodeRequest(unsigned char* buffer, int bufferSize, const unsigned char* targetId);
-    static int CreateFindNodeResponse(unsigned char* buffer, int bufferSize,
-                                     const unsigned char* targetId, const std::list<KadNode*>& nodes);
+    static     int CreateFindNodeResponse(unsigned char* buffer, int bufferSize,
+                              const unsigned char* targetId, const std::list<KadNode*>& nodes);
+    int CreatePublishRequest(unsigned char* buffer, int bufferSize,
+                           const unsigned char* targetId, const char* keyword);
+    int CreatePublishResponse(unsigned char* buffer, int bufferSize,
+                            const unsigned char* targetId, bool success);
 
 private:
     int m_socketFd;               // UDP socket file descriptor
@@ -154,6 +163,8 @@ private:
     void ProcessHelloResponse(const KadPacket& packet);
     void ProcessFindNodeRequest(const KadPacket& packet);
     void ProcessFindNodeResponse(const KadPacket& packet);
+    void ProcessPublishRequest(const KadPacket& packet);
+    void ProcessPublishResponse(const KadPacket& packet);
 
     // Utility methods
     bool SendPacket(const unsigned char* data, int dataLength, const struct sockaddr_in& target);

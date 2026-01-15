@@ -43,6 +43,7 @@ extern KadId g_own_id;
 #define KAD_EVENT_SENT 4
 #define KAD_EVENT_REPLY 5
 #define KAD_EVENT_REMOVED 6
+#define KAD_EVENT_PUBLISH_DONE 7
 
 // Kademlia callback function
 typedef void (*kad_callback)(void *closure, int event,
@@ -70,6 +71,7 @@ int kad_get_nodes(struct sockaddr_in *nodes, unsigned char *node_ids, int *num);
 
 // Key-value operations
 int kad_store(const unsigned char *key, const char *value);
+int kad_publish(const unsigned char *key, const char *value);
 int kad_find_value(const unsigned char *key, kad_callback *callback, void *closure);
 
 // Bootstrap functions
@@ -138,6 +140,23 @@ private:
     bool m_bInitialized;
     int m_socketFd;
 };
+
+// Kademlia packet structures
+#pragma pack(push, 1)
+
+// PUBLISH request packet
+typedef struct {
+    unsigned char targetId[KAD_ID_SIZE];  // Target ID (file hash or keyword hash)
+    unsigned char load;                   // Load factor (not used in basic impl)
+} KadPublishRequest;
+
+// PUBLISH response packet
+typedef struct {
+    unsigned char targetId[KAD_ID_SIZE];  // Target ID echoed back
+    unsigned char load;                   // Load factor (0=success, 1=failed)
+} KadPublishResponse;
+
+#pragma pack(pop)
 
 // Global Kademlia instance
 extern CKademlia Kademlia;

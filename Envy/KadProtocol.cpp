@@ -100,6 +100,47 @@ bool KadProtocol::SendFindNodeResponse(const unsigned char* targetId, const std:
     return SendPacket(buffer, packetSize, target);
 }
 
+bool KadProtocol::SendPublishRequest(const unsigned char* targetId, const char* keyword,
+                                   const struct sockaddr_in& target) {
+    unsigned char buffer[KAD_MAX_PACKET_SIZE];
+    int packetSize = CreatePublishRequest(buffer, sizeof(buffer), targetId, keyword);
+
+    if (packetSize <= 0) return false;
+
+    return SendPacket(buffer, packetSize, target);
+}
+
+bool KadProtocol::SendPublishResponse(const unsigned char* targetId, bool success,
+                                    const struct sockaddr_in& target) {
+    unsigned char buffer[KAD_MAX_PACKET_SIZE];
+    int packetSize = CreatePublishResponse(buffer, sizeof(buffer), targetId, success);
+
+    if (packetSize <= 0) return false;
+
+    return SendPacket(buffer, packetSize, target);
+}
+
+// Public interface for publishing
+bool KadProtocol::PublishKeyword(const unsigned char* targetId, const char* keyword) {
+    if (!m_initialized || !targetId || !keyword) return false;
+
+    // Find closest nodes to the target ID
+    if (!g_routingTable) return false;
+
+    auto closestNodes = g_routingTable->FindClosestNodes(targetId, KAD_K);
+
+    // Send publish requests to closest nodes
+    bool success = false;
+    for (auto node : closestNodes) {
+        if (SendPublishRequest(targetId, keyword, node->addr)) {
+            success = true;
+            // In a real implementation, we'd wait for responses and handle retries
+        }
+    }
+
+    return success;
+}
+
 bool KadProtocol::ReceivePacket() {
     if (!m_initialized) return false;
 
@@ -146,6 +187,12 @@ void KadProtocol::ProcessPacket(const KadPacket& packet) {
         break;
     case KAD_OP_SEARCH_RES:
         ProcessFindNodeResponse(packet);
+        break;
+    case KAD_OP_PUBLISH_REQ:
+        ProcessPublishRequest(packet);
+        break;
+    case KAD_OP_PUBLISH_RES:
+        ProcessPublishResponse(packet);
         break;
     // Add other packet types as implemented
     default:
@@ -227,6 +274,41 @@ void KadProtocol::ProcessFindNodeResponse(const KadPacket& packet) {
         kad_insert_node(result->nodeId, (const struct sockaddr*)&nodeAddr, sizeof(nodeAddr));
         resultsProcessed++;
     }
+}
+
+void KadProtocol::ProcessPublishRequest(const KadPacket& packet) {
+    if (packet.bodyLength < sizeof(KadPublishRequest)) {
+        return; // Invalid packet
+    }
+
+    const KadPublishRequest* request = (const KadPublishRequest*)packet.body;
+
+    // Extract keyword from packet data
+    const char* keyword = (const char*)(packet.body + sizeof(KadPublishRequest));
+    size_t keywordLen = packet.bodyLength - sizeof(KadPublishRequest);
+
+    if (keywordLen == 0 || keywordLen > 255) {
+        return; // Invalid keyword length
+    }
+
+    // Store the keyword/file association in our local DHT
+    // In a real implementation, this would be stored persistently
+    bool success = kad_store(request->targetId, keyword);
+
+    // Send response
+    SendPublishResponse(request->targetId, success, packet.fromAddr);
+}
+
+void KadProtocol::ProcessPublishResponse(const KadPacket& packet) {
+    if (packet.bodyLength < sizeof(KadPublishResponse)) {
+        return; // Invalid packet
+    }
+
+    const KadPublishResponse* response = (const KadPublishResponse*)packet.body;
+
+    // Handle publish response - could update statistics or retry logic
+    // For now, just acknowledge receipt
+    (void)response; // Suppress unused parameter warning
 }
 
 bool KadProtocol::SendPacket(const unsigned char* data, int dataLength, const struct sockaddr_in& target) {
@@ -350,6 +432,61 @@ int KadProtocol::CreateFindNodeResponse(unsigned char* buffer, int bufferSize,
 
         i++;
     }
+
+    return sizeof(KadPacketHeader) + bodySize;
+}
+
+int KadProtocol::CreatePublishRequest(unsigned char* buffer, int bufferSize,
+                                     const unsigned char* targetId, const char* keyword) {
+    if (!keyword) return -1;
+
+    size_t keywordLen = strlen(keyword);
+    if (keywordLen > 255) return -1; // Keyword too long
+
+    int bodySize = sizeof(KadPublishRequest) + (int)keywordLen + 1; // +1 for null terminator
+
+    if (bufferSize < (int)sizeof(KadPacketHeader) + bodySize) {
+        return -1; // Buffer too small
+    }
+
+    KadPacketHeader* header = (KadPacketHeader*)buffer;
+    KadPublishRequest* request = (KadPublishRequest*)(buffer + sizeof(KadPacketHeader));
+    char* keywordData = (char*)(buffer + sizeof(KadPacketHeader) + sizeof(KadPublishRequest));
+
+    // Fill header
+    header->messageType = KAD_MSG_REQ;
+    header->operationCode = KAD_OP_PUBLISH_REQ;
+    header->bodyLength = (unsigned char)bodySize;
+
+    // Fill request body
+    memcpy(request->targetId, targetId, KAD_ID_SIZE);
+    request->load = 0; // Not used in basic implementation
+
+    // Copy keyword
+    strcpy(keywordData, keyword);
+
+    return sizeof(KadPacketHeader) + bodySize;
+}
+
+int KadProtocol::CreatePublishResponse(unsigned char* buffer, int bufferSize,
+                                      const unsigned char* targetId, bool success) {
+    int bodySize = sizeof(KadPublishResponse);
+
+    if (bufferSize < (int)sizeof(KadPacketHeader) + bodySize) {
+        return -1; // Buffer too small
+    }
+
+    KadPacketHeader* header = (KadPacketHeader*)buffer;
+    KadPublishResponse* response = (KadPublishResponse*)(buffer + sizeof(KadPacketHeader));
+
+    // Fill header
+    header->messageType = KAD_MSG_RES;
+    header->operationCode = KAD_OP_PUBLISH_RES;
+    header->bodyLength = (unsigned char)bodySize;
+
+    // Fill response body
+    memcpy(response->targetId, targetId, KAD_ID_SIZE);
+    response->load = success ? 0 : 1; // 0 = success, 1 = failed
 
     return sizeof(KadPacketHeader) + bodySize;
 }

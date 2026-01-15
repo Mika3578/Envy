@@ -108,3 +108,21 @@ using Hashes::SerializeOut;
 using Hashes::SerializeIn;
 using Hashes::transformGuid;
 using Hashes::isExtendedBtGuid;
+
+// MFC CMap HashKey specializations for Hashes::Guid
+// Required for using Guid as a key type in CMap containers
+template<> AFX_INLINE UINT AFXAPI HashKey(Hashes::Guid key)
+{
+	// Use first 4 bytes of the GUID as hash value
+	return *reinterpret_cast<const UINT*>(&key[0]);
+}
+
+template<> AFX_INLINE UINT AFXAPI HashKey(Hashes::Guid& key)
+{
+	return *reinterpret_cast<const UINT*>(&key[0]);
+}
+
+template<> AFX_INLINE UINT AFXAPI HashKey(const Hashes::Guid& key)
+{
+	return *reinterpret_cast<const UINT*>(&key[0]);
+}

@@ -1,7 +1,7 @@
-//
+﻿//
 // EDPacket.h
 //
-// This file is part of Envy (getenvy.com) � 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -303,6 +303,7 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define ED2K_C2C_MULTIPACKETANSWER_EXT2 0xB0	// <FileIdentifier> ...
 #define ED2K_C2C_HASHSETREQUEST2		0xB1	// <FileIdentifier><Options 1>
 #define ED2K_C2C_HASHSETANSWER2			0xB2	// <FileIdentifier><Options 1>[<HashSets> Options]
+#define ED2K_C2C_ANSWERCryptLayer		0xB3	// CryptLayer answer with encrypted RC4 keys
 
 // eMule Client - Client, UDP
 #define ED2K_C2C_UDP_REASKFILEPING		0x90	// <HASH 16>

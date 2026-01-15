@@ -1,4 +1,4 @@
-//
+﻿//
 // EDClient.h
 //
 // This file is part of Envy (getenvy.com) � 2016-2018
@@ -20,6 +20,9 @@
 
 #include "Transfer.h"
 #include "HostBrowser.h"
+#include "RC4.h"
+#include "CryptoProvider.h"
+#include "AICHManager.h"
 
 class CEDPacket;
 class CDownload;
@@ -51,6 +54,22 @@ public:
 	DWORD		m_nEmVersion;
 	DWORD		m_nEmCompatible;
 	DWORD		m_nSoftwareVersion;
+
+	// SecureID authentication
+	BYTE		m_nSecureIdent[6];		// SecureID challenge/response data
+	DWORD		m_nSecureIdentState;	// SecureID state (0=none, 1=challenging, 2=responding, 3=verified)
+
+	// CryptLayer support
+	BOOL		m_bCryptLayerActive;	// CryptLayer encryption is active
+	BOOL		m_bCryptLayerRequested;	// CryptLayer handshake requested
+	DWORD		m_nCryptLayerState;		// CryptLayer state (0=none, 2=negotiating, 3=active)
+	BYTE*		m_pPeerPublicKey;		// Peer's RSA public key
+	DWORD		m_nPeerKeyLen;			// Peer's public key length
+	BYTE		m_RC4SendKey[16];		// RC4 send key
+	BYTE		m_RC4RecvKey[16];		// RC4 receive key
+	CRC4		m_RC4Send;				// RC4 send context
+	CRC4		m_RC4Recv;				// RC4 receive context
+	CCryptoProvider m_Crypto;			// Crypto provider for RSA operations
 
 // Client capabilities 1
 	BOOL		m_bEmAICH;					// Not supported
@@ -130,6 +149,27 @@ protected:
 	virtual void	OnDropped();
 	virtual BOOL	OnWrite();
 	virtual BOOL	OnRead();
+
+protected:
+	// CryptLayer methods
+	void	InitCryptLayer();
+	BOOL	StartCryptLayerHandshake();
+	BOOL	ProcessCryptLayerHandshake(CEDPacket* pPacket);
+	BOOL	OnCryptLayerPublicKey(CEDPacket* pPacket);
+	BOOL	SendCryptLayerAnswer();
+	BOOL	OnCryptLayerAnswer(CEDPacket* pPacket);
+	BOOL	EncryptPacket(BYTE* pData, DWORD nLength);
+	BOOL	DecryptPacket(BYTE* pData, DWORD nLength);
+
+	// SecureID methods
+	void	GenerateSecureIdent();
+	void	GenerateSecureIdentResponse();
+	BOOL	SendSecureIdentChallenge();
+	BOOL	ProcessSecureIdentChallenge(CEDPacket* pPacket);
+	BOOL	SendSecureIdentResponse();
+	BOOL	ProcessSecureIdentResponse(CEDPacket* pPacket);
+	BOOL	VerifySecureIdentResponse(const BYTE* response) const;
+	BOOL	VerifySecureIdent() const;
 
 protected:
 	BOOL	OnPacket(CEDPacket* pPacket);
