@@ -1,4 +1,4 @@
-﻿//
+//
 // EnvyFile.h
 //
 // This file is part of Envy (getenvy.com) © 2016-2018
@@ -40,6 +40,7 @@ public:
 	Hashes::Ed2kHash	m_oED2K;	// ED2K (MD4, Base16)
 	Hashes::Md5Hash		m_oMD5;		// MD5 (Base16)
 	Hashes::BtHash		m_oBTH;		// BitTorrent Info Hash (Base32)
+	Hashes::Sha256Hash	m_oSHA256;	// SHA256 (Base32) - BitTorrent v2 support
 	CTime				m_tDate;	// Initial Time (Age)
 	CString				m_sURL;		// Host if any
 	CString				m_sPath;	// Usage:

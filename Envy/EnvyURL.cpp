@@ -777,6 +777,7 @@ BOOL CEnvyURL::ParseMagnet(LPCTSTR pszURL)
 				 StartsWith( strValue, _P( L"sha1:" ) ) ||
 				 StartsWith( strValue, _P( L"bitprint:" ) ) ||
 				 StartsWith( strValue, _P( L"btih:" ) ) ||
+				 StartsWith( strValue, _P( L"btmh:" ) ) ||		// BitTorrent v2 Merkle Hash
 				 StartsWith( strValue, _P( L"ed2k:" ) ) ||
 				 StartsWith( strValue, _P( L"md5:" ) ) ||
 				 StartsWith( strValue, _P( L"tree:tiger" ) ) )		// tree:tiger: tree:tiger/: tree:tiger/1024:
@@ -787,6 +788,7 @@ BOOL CEnvyURL::ParseMagnet(LPCTSTR pszURL)
 				if ( ! m_oMD5 ) m_oMD5.fromUrn( strValue );
 				if ( ! m_oBTH ) m_oBTH.fromUrn( strValue );
 				if ( ! m_oBTH ) m_oBTH.fromUrn< Hashes::base16Encoding >( strValue );
+				if ( ! m_oSHA256 ) m_oSHA256.fromUrn( strValue );	// BitTorrent v2 support
 			}
 			else if ( StartsWith( strValue, _P( L"http://" ) ) ||
 					  StartsWith( strValue, _P( L"https://" ) ) ||
