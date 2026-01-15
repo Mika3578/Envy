@@ -858,6 +858,7 @@
     <ClCompile Include="DlgFilePropertiesPage.cpp" />
     <ClCompile Include="DlgFilePropertiesSheet.cpp" />
     <ClCompile Include="DlgFilterSearch.cpp" />
+    <ClCompile Include="DlgSearchMonitorFilter.cpp" />
     <ClCompile Include="DlgFolderProperties.cpp" />
     <ClCompile Include="DlgFolderScan.cpp" />
     <ClCompile Include="DlgGraphItem.cpp" />
@@ -1511,6 +1512,7 @@
     <ClInclude Include="DlgFilePropertiesPage.h" />
     <ClInclude Include="DlgFilePropertiesSheet.h" />
     <ClInclude Include="DlgFilterSearch.h" />
+    <ClInclude Include="DlgSearchMonitorFilter.h" />
     <ClInclude Include="DlgFolderProperties.h" />
     <ClInclude Include="DlgFolderScan.h" />
     <ClInclude Include="DlgGraphItem.h" />

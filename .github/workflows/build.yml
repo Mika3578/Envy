@@ -25,6 +25,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Auto-Version Management
+        shell: pwsh
+        run: |
+          Write-Host "Running auto-version management..." -ForegroundColor Green
+
+          # Run auto-version script
+          .\scripts\auto-version.ps1 -UpdateFiles
+
+          # Display version information
+          if (Test-Path version.json) {
+            $versionData = Get-Content version.json | ConvertFrom-Json
+            Write-Host "Version: $($versionData.displayVersion)" -ForegroundColor Cyan
+            Write-Host "Full Version: $($versionData.fullVersion)" -ForegroundColor Cyan
+            Write-Host "Build: $($versionData.build)" -ForegroundColor Cyan
+          }
+
       - name: Setup MSBuild
         shell: pwsh
         run: |

@@ -1,4 +1,4 @@
-//{{NO_DEPENDENCIES}}
+﻿//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by Envy.rc
 //
@@ -204,6 +204,7 @@
 #define IDD_CONNECT_TO                  627
 #define IDD_FILTER_SAVE_AS              628
 #define IDD_FILTER_SEARCH               629
+#define IDD_SEARCHMONITOR_FILTER        637
 #define IDD_FOLDER_PROPERTIES           630
 #define IDD_FOLDER_SCAN                 631
 #define IDD_GRAPH_ITEM                  632
@@ -360,6 +361,16 @@
 #define IDC_FILTER_RESTRICTED           1145
 #define IDC_FILTER_SUSPECT              1146
 #define IDC_FILTER_UNSTABLE             1147
+#define IDC_FILTER_TEXT                 1148
+#define IDC_FILTER_IP                   1149
+#define IDC_FILTER_SCHEMA               1150
+#define IDC_FILTER_MIN_SIZE             1151
+#define IDC_FILTER_MAX_SIZE             1152
+#define IDC_FILTER_PROTOCOL_G2          1153
+#define IDC_FILTER_PROTOCOL_G1          1154
+#define IDC_FILTER_PROTOCOL_ED2K        1155
+#define IDC_FILTER_PROTOCOL_DC          1156
+#define IDC_FILTER_ENABLED              1157
 #define IDC_FORGET_SOURCES              1148
 #define IDC_FORGET_VERIFY               1149
 #define IDC_G1_ENABLE                   1150
@@ -1846,6 +1857,8 @@
 #define ID_NETWORK_AUTO_CLOSE           40337
 #define ID_SEARCHMONITOR_CLEAR          40338
 #define ID_SEARCHMONITOR_PAUSE          40339
+#define ID_SEARCHMONITOR_FILTER         40340
+#define ID_SEARCHMONITOR_FILTER_REMOVE  40341
 #define ID_SEARCH_SEARCH                40340
 #define ID_SEARCH_STOP                  40341
 #define ID_SEARCH_CLEAR                 40342
