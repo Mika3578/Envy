@@ -1,4 +1,4 @@
-﻿//
+//
 // EDClient.cpp
 //
 // This file is part of Envy (getenvy.com) � 2016-2018
@@ -451,6 +451,9 @@ CEDClient::CEDClient()
 	, m_bEmExtMultiPacket	( FALSE )	// Unsupported
 	, m_bEmLargeFile		( FALSE )	// LargeFile support
 	, m_nEmKadVersion		( 0 )		// Unsupported
+
+	// SecureID state
+	, m_nSecureIdentState	( 0 )		// No authentication in progress
 
 	// Misc stuff
 	, m_pDownloadTransfer	( NULL )
@@ -1139,6 +1142,12 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 		case ED2K_C2C_HASHSETANSWER2:
 			if ( m_pDownloadTransfer ) m_pDownloadTransfer->OnHashsetAnswer2( pPacket );
 			return TRUE;
+
+		// SecureID authentication
+		case ED2K_C2C_SECIDENTSTATE:
+			return ProcessSecureIdentChallenge( pPacket );
+		case ED2K_C2C_SIGNATURE:
+			return ProcessSecureIdentResponse( pPacket );
 		}
 	}
 
