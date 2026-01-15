@@ -1588,6 +1588,11 @@
 		<separator/>
 		<item id="ID_SEARCHMONITOR_PAUSE" text="Mettre en _pause l'affichage"/>
 		<item id="ID_SEARCHMONITOR_CLEAR" text="Netto_yer le tampon"/>
+		<separator/>
+		<item id="ID_SEARCHMONITOR_FILTER" text="_Filtre avancé..."/>
+		<item id="ID_SEARCHMONITOR_FILTER_REMOVE" text="_Supprimer le filtre"/>
+		<separator/>
+		<item id="ID_SECURITY_BAN" text="_Bannir l'utilisateur final"/>
 	</menu>
 	<!-- GRAPH/TRAFFIC WINDOW -->
 	<menu name="CTrafficWnd">
@@ -2629,6 +2634,8 @@
 	<tip id="ID_SEARCH_STOP" text="Stopper la réception de nouveaux résultats dans cette fenêtre."/>
 	<tip id="ID_SEARCHMONITOR_CLEAR" text="Nettoyer le tampon du moniteur de recherche."/>
 	<tip id="ID_SEARCHMONITOR_PAUSE" text="Mettre en pause le moniteur de recherche."/>
+	<tip id="ID_SEARCHMONITOR_FILTER" text="Configurer les options de filtrage avancé pour le moniteur de recherche."/>
+	<tip id="ID_SEARCHMONITOR_FILTER_REMOVE" text="Supprimer tous les filtres actifs."/>
 	<tip id="ID_SECURITY_BAN" text="Bannir l'hôte sélectionné pour la durée de cette session."/>
 	<tip id="ID_SECURITY_ADD" text="Ajouter une nouvelle règle à la chaîne de sécurité..."/>
 	<tip id="ID_SECURITY_EDIT" text="Éditer la règle de sécurité sélectionnée..."/>

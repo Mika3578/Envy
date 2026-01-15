@@ -882,6 +882,9 @@
     <ClCompile Include="DlgFilterSearch.cpp">
       <Filter>Source Files\Dialogs</Filter>
     </ClCompile>
+    <ClCompile Include="DlgSearchMonitorFilter.cpp">
+      <Filter>Source Files\Dialogs</Filter>
+    </ClCompile>
     <ClCompile Include="DlgFolderProperties.cpp">
       <Filter>Source Files\Dialogs</Filter>
     </ClCompile>
@@ -2514,6 +2517,9 @@
       <Filter>Header Files\Dialogs</Filter>
     </ClInclude>
     <ClInclude Include="DlgFilterSearch.h">
+      <Filter>Header Files\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="DlgSearchMonitorFilter.h">
       <Filter>Header Files\Dialogs</Filter>
     </ClInclude>
     <ClInclude Include="DlgFolderProperties.h">

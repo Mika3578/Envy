@@ -1,0 +1,200 @@
+# Development Workflow Requirements
+
+## Planning Before Coding
+
+### Always Create a Plan
+```cpp
+// ❌ Bad: Jump straight into coding
+void SomeNewFunction() {
+    // Start typing without planning...
+}
+
+// ✅ Good: Plan first, then implement
+// Plan: Add bandwidth throttling for downloads
+// Steps:
+// 1. Add rate limiting class
+// 2. Integrate with download manager
+// 3. Add UI controls
+// 4. Test with various speeds
+
+class CBandwidthThrottler {
+    // Implementation follows plan
+};
+```
+
+### Plan Structure
+1. **Define Requirements**: What problem are you solving?
+2. **Research Solutions**: Check Examples folder for similar implementations
+3. **Design Approach**: Consider multiple solutions
+4. **Implementation Steps**: Break down into manageable tasks
+5. **Testing Strategy**: How will you verify it works?
+6. **Review Plan**: Get feedback before starting
+
+## Research Examples Folder
+
+### Available P2P Client Examples
+
+The `Examples/` folder contains reference implementations:
+
+**BitTorrent Clients:**
+- `libtorrent/` - Industry-standard C++ library
+- `transmission/` - Clean, modular implementation
+- `qBittorrent/` - Full-featured Qt client
+- `deluge/` - Python implementation
+
+**eDonkey2000 Clients:**
+- `eMule/` - Original eMule implementation
+- `aMule/` - Multi-platform eMule fork
+
+**Gnutella2 Clients:**
+- `shareaza/` - Original G2 implementation
+
+**DHT Implementations:**
+- `kademlia/` - Python reference implementation
+
+**Other Protocols:**
+- `eiskaltdcpp/` - DC++ client
+- `airdcpp-webclient/` - Web-based DC++ client
+- `mldonkey/` - Multi-protocol client
+- `frostwire/` - Java-based client
+
+### Research Process
+
+```cpp
+// Example: Implementing new BitTorrent feature
+// 1. Check libtorrent implementation
+//    Look at: Examples/libtorrent/examples/
+// 2. Compare with transmission approach
+//    Look at: Examples/transmission/libtransmission/
+// 3. Review qBittorrent's implementation
+//    Look at: Examples/qBittorrent/src/
+// 4. Adapt best practices to Envy's architecture
+
+void ImplementNewBitTorrentFeature() {
+    // Research shows libtorrent uses this pattern:
+    // Examples/libtorrent/examples/simple_client.cpp
+    // Adapt to Envy's CConnection/CTransfer architecture
+}
+```
+
+## Rule Management
+
+### Rules Can Be Created, Updated, or Adapted
+
+**During Development:**
+- Add new rules for emerging patterns
+- Update existing rules based on lessons learned
+- Adapt rules to project evolution
+- Document rule changes in commit messages
+
+**Rule Creation Guidelines:**
+```markdown
+# When to create new rules:
+- New development patterns emerge
+- Recurring issues need prevention
+- Best practices from research should be captured
+- Project structure changes require new guidelines
+
+# How to create rules:
+1. Identify the need
+2. Research best practices
+3. Write focused, actionable rules
+4. Include concrete examples
+5. Keep under 500 lines
+6. Update README.md
+```
+
+**Rule Updates:**
+- Fix outdated examples
+- Add missing edge cases
+- Clarify ambiguous guidance
+- Remove obsolete rules
+
+## Commit Requirements
+
+### No Commit Without Compilation
+
+**Pre-commit Checklist:**
+- ✅ Code compiles successfully
+- ✅ All build configurations pass (Debug/Release, x64/Win32)
+- ✅ Static analysis passes
+- ✅ Unit tests pass (if applicable)
+- ✅ User approval obtained
+
+**Build Verification:**
+```bash
+# Use provided build verification script
+.\scripts\verify-build.ps1
+
+# Or manual verification
+# 1. Clean build
+# 2. Build all configurations
+# 3. Run tests
+# 4. Check for warnings
+```
+
+### User Approval Required
+
+**Before Committing:**
+- Code review completed
+- Functional testing passed
+- Performance impact assessed
+- Backward compatibility verified
+- Documentation updated
+
+**Approval Process:**
+```cpp
+// Example commit message structure:
+// feat: Add bandwidth throttling for downloads
+//
+// - Implements CBandwidthThrottler class
+// - Researched libtorrent and transmission approaches
+// - Tested with various network speeds
+// - UI controls added to settings
+//
+// Reviewed-by: @user
+// Tested-by: @user
+// Approved-by: @user
+```
+
+## Development Workflow
+
+### Standard Workflow
+
+1. **Planning Phase**
+   - Define requirements and scope
+   - Research Examples folder for similar implementations
+   - Create implementation plan
+   - Get initial feedback
+
+2. **Implementation Phase**
+   - Follow coding standards
+   - Include English comments
+   - Regular commits to feature branch
+   - Update rules if needed
+
+3. **Testing Phase**
+   - Unit tests for new functionality
+   - Integration testing
+   - Performance testing
+   - Cross-platform testing
+
+4. **Review Phase**
+   - Code review with concrete examples
+   - Build verification
+   - Documentation review
+   - User acceptance testing
+
+5. **Commit Phase**
+   - Final build verification
+   - User approval obtained
+   - Commit with detailed message
+   - Push to appropriate branch
+
+### Avoid
+
+- Committing untested code
+- Skipping build verification
+- Committing without user approval for significant changes
+- Not researching existing solutions in Examples folder
+- Starting coding without a clear plan
