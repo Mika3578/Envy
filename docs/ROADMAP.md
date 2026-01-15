@@ -1,6 +1,6 @@
 # Envy Development Roadmap
 
-**Last Updated:** January 15, 2026 (Updated for recent code fixes)
+**Last Updated:** January 16, 2026 (Updated for Phase 2 completion)
 **Based on:** Current codebase inspection (`docs/STATUS.md`)
 **Approach:** Phased, evidence-based development priorities
 
@@ -10,10 +10,10 @@ This roadmap prioritizes fixes based on actual code analysis, focusing on stabil
 
 - **Build System:** ✅ VS 2022 functional, CMake partial
 - **UI Framework:** ✅ MFC/Unicode complete
-- **Protocols:** ✅ G2 full, ⚠️ BT partial, ⚠️ ED2K partial, ❌ Kad stub
+- **Protocols:** ✅ G2 full, ⚠️ BT partial (v2 foundation), ✅ ED2K enhanced, ✅ Kad complete
 - **Performance:** ⚠️ UI blocking risks identified
-- **Testing:** ❌ Framework ready, zero tests
-- **Code Quality:** ⚠️ 15 TODO/FIXME markers, mixed error handling
+- **Testing:** ⚠️ Framework ready, integration tests added
+- **Code Quality:** ⚠️ Few remaining TODO/FIXME markers, improved error handling
 
 ---
 
@@ -173,12 +173,12 @@ ED2K implementation missing critical modern features:
 
 ---
 
-## 🚀 Phase 3: Kademlia DHT Parity (🟡 HIGH PRIORITY)
+## 🚀 Phase 3: Kademlia DHT Parity (✅ COMPLETE)
 
-**Status:** Not Started
-**Duration:** 3-5 weeks
+**Status:** Complete - January 2026
+**Duration:** Completed as part of Phase 2
 **Priority:** High - Essential for ED2K network scaling
-**Evidence:** `Envy/KadProtocol.cpp` (only 4/6 opcodes implemented), `Envy/Kademlia.cpp` (10+ TODOs)
+**Evidence:** `Envy/KadProtocol.cpp` (all opcodes implemented), `Envy/Kademlia.cpp` (bugs fixed)
 
 ### Problem Statement
 Kademlia implementation is largely incomplete:
@@ -328,9 +328,9 @@ Zero automated testing despite framework being ready:
 - Backward compatibility
 
 ### BT v2 Support
-- BEP-52 implementation
-- Hybrid torrent handling
-- Merkle tree verification
+- ✅ BEP-52 foundation implemented (SHA-256, hybrid support)
+- 🔄 Merkle tree verification (metadata parsing pending)
+- 🔄 Peer wire extensions (next phase)
 
 ### Modern C++ Migration
 - C++17 → C++20 transition
