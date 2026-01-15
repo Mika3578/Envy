@@ -1,7 +1,7 @@
 //
 // EnvyURL.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -129,7 +129,7 @@ BOOL CEnvyURL::Parse(const CString& sText, CList< CString >& pURLs, BOOL bResolv
 	CString strPart;
 	while ( ( strPart = sText.Tokenize( L"\n", curPos ) ).GetLength() )
 	{
-		oReverse.AddHead( strPart.Trim( L"\r\n\t >< " ) );		// Second space is #160
+		oReverse.AddHead( strPart.Trim( L"\r\n\t ><ï¿½" ) );		// Second space is #160
 	}
 
 	CString strBuf;

@@ -1,7 +1,7 @@
 //
 // BTInfo.h
 //
-// This file is part of Envy (getenvy.com) ù 2016-2018
+// This file is part of Envy (getenvy.com) ÔøΩ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -21,7 +21,7 @@
 #include "Buffer.h"
 #include "EnvyFile.h"
 
-#define BAD_TRACKER_TOKEN L'ù'	// *udp:// for display only
+#define BAD_TRACKER_TOKEN L'ÔøΩ'	// *udp:// for display only
 
 class CBuffer;
 class CBENode;
