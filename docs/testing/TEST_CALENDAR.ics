@@ -1,0 +1,72 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Envy Development Team//Protocol Testing Schedule//EN
+CALSCALE:GREGORIAN
+
+BEGIN:VEVENT
+UID:protocol-testing-phase1@envy-project.org
+DTSTART:20260120T090000Z
+DTEND:20260124T170000Z
+SUMMARY:Phase 1: Unit Testing - Kademlia DHT, CryptoProvider, AICHManager
+DESCRIPTION:Unit testing phase for completed protocol implementations
+LOCATION:Development Lab + Remote
+ORGANIZER:mailto:alex.chen@envy-project.org
+ATTENDEE:mailto:alex.chen@envy-project.org
+ATTENDEE:mailto:maria.gonzalez@envy-project.org
+ATTENDEE:mailto:david.kim@envy-project.org
+ATTENDEE:mailto:james.wilson@envy-project.org
+ATTENDEE:mailto:lisa.zhang@envy-project.org
+ATTENDEE:mailto:sarah.johnson@envy-project.org
+END:VEVENT
+
+BEGIN:VEVENT
+UID:protocol-testing-phase2@envy-project.org
+DTSTART:20260127T090000Z
+DTEND:20260131T170000Z
+DTEND:20260131T170000Z
+SUMMARY:Phase 2: Integration Testing - Cross-protocol Validation
+DESCRIPTION:Integration testing for component interactions and performance
+LOCATION:Test Network Environment
+ORGANIZER:mailto:alex.chen@envy-project.org
+ATTENDEE:mailto:alex.chen@envy-project.org
+ATTENDEE:mailto:maria.gonzalez@envy-project.org
+ATTENDEE:mailto:david.kim@envy-project.org
+ATTENDEE:mailto:james.wilson@envy-project.org
+ATTENDEE:mailto:sarah.johnson@envy-project.org
+END:VEVENT
+
+BEGIN:VEVENT
+UID:protocol-testing-phase3@envy-project.org
+DTSTART:20260203T090000Z
+DTEND:20260207T170000Z
+SUMMARY:Phase 3: System Testing - End-to-End Validation
+DESCRIPTION:Full system testing and production readiness validation
+LOCATION:Production Test Environment
+ORGANIZER:mailto:alex.chen@envy-project.org
+ATTENDEE:mailto:alex.chen@envy-project.org
+ATTENDEE:mailto:maria.gonzalez@envy-project.org
+ATTENDEE:mailto:david.kim@envy-project.org
+ATTENDEE:mailto:james.wilson@envy-project.org
+ATTENDEE:mailto:emma.davis@envy-project.org
+END:VEVENT
+
+BEGIN:VEVENT
+UID:testing-daily-standup@envy-project.org
+RRULE:FREQ=DAILY;UNTIL=20260207T170000Z;BYDAY=MO,TU,WE,TH,FR
+DTSTART:20260120T090000Z
+DTEND:20260120T091500Z
+SUMMARY:Daily Testing Standup
+DESCRIPTION:15-minute daily status update during testing phases
+LOCATION:Microsoft Teams / Slack
+ORGANIZER:mailto:alex.chen@envy-project.org
+ATTENDEE:mailto:alex.chen@envy-project.org
+ATTENDEE:mailto:maria.gonzalez@envy-project.org
+ATTENDEE:mailto:david.kim@envy-project.org
+ATTENDEE:mailto:james.wilson@envy-project.org
+ATTENDEE:mailto:lisa.zhang@envy-project.org
+ATTENDEE:mailto:sarah.johnson@envy-project.org
+ATTENDEE:mailto:mike.rodriguez@envy-project.org
+ATTENDEE:mailto:emma.davis@envy-project.org
+END:VEVENT
+
+END:VCALENDAR
