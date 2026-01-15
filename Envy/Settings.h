@@ -1,7 +1,7 @@
 //
 // Settings.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2020
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -478,6 +478,7 @@ public:
 	{
 		bool		Enabled;				// Was eDonkey.EnableToday
 		bool		EnableAlways;			// Do  eDonkey.EnableStartup ?
+		bool		EnableKad;				// Enable Kademlia DHT for eDonkey
 		bool		ShowInterface;			// Allow hiding some UI features
 		bool		FastConnect;			// Try connecting to 2 servers to get online faster
 		bool		ForceHighID;			// Reconnect if low-id

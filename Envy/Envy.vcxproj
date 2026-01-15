@@ -329,6 +329,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="BitTorrentDHT\dht.c" />
+    <ClCompile Include="Kademlia.cpp" />
+    <ClCompile Include="KademliaPlatform.cpp" />
+    <ClCompile Include="KBucket.cpp" />
+    <ClCompile Include="KadProtocol.cpp" />
+    <ClCompile Include="KadStorage.cpp" />
     <ClCompile Include="AlbumFolder.cpp" />
     <ClCompile Include="AntiVirus.cpp" />
     <ClCompile Include="Application.cpp" />
@@ -414,7 +419,6 @@
     <ClCompile Include="ImageFile.cpp" />
     <ClCompile Include="ImageServices.cpp" />
     <ClCompile Include="Images.cpp" />
-    <ClCompile Include="Kademlia.cpp" />
     <ClCompile Include="Library.cpp" />
     <ClCompile Include="LibraryBuilder.cpp" />
     <ClCompile Include="LibraryBuilderInternals.cpp" />
@@ -1606,6 +1610,9 @@
     <ClInclude Include="Augment\auto_ptr.hpp" />
     <ClInclude Include="Augment\IUnknownImplementation.hpp" />
     <ClInclude Include="BitTorrentDHT\dht.h" />
+    <ClInclude Include="KBucket.h" />
+    <ClInclude Include="KadProtocol.h" />
+    <ClInclude Include="KadStorage.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\HashLib\HashLib.vcxproj">

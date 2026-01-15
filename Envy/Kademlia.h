@@ -1,100 +1,143 @@
 //
 // Kademlia.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
-// Portions copyright Shareaza 2008 and PeerProject 2008-2010
+// Kademlia DHT implementation for eDonkey2000 network
+// Based on BitTorrent DHT reference implementation
+//
+// This file is part of Envy (getenvy.com) Â© 2016-2026
+// Portions copyright Juliusz Chroboczek (BitTorrent DHT)
 //
 // Envy is free software. You may redistribute and/or modify it
 // under the terms of the GNU Affero General Public License
 // as published by the Free Software Foundation (fsf.org);
 // version 3 or later at your option. (AGPLv3)
 //
-// Envy is distributed in the hope that it will be useful,
-// but AS-IS WITHOUT ANY WARRANTY; without even implied warranty
-// of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU Affero General Public License 3.0 for details:
-// (http://www.gnu.org/licenses/agpl.html)
-//
 
 #pragma once
 
-// KADEMLIA versions
-#define KADEMLIA_VERSION1_46c			0x01	// eMule 45b-46c
-#define KADEMLIA_VERSION2_47a			0x02	// eMule 47a
-#define KADEMLIA_VERSION3_47b			0x03	// eMule 47b
-#define KADEMLIA_VERSION				0x05	// current
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <time.h>
 
-// PEER[25] = <GUID 16><IP 4><UDP 2><TCP 2><NULL 1>
+// Kademlia node ID is 128-bit (16 bytes) for eDonkey2000
+#define KAD_ID_SIZE 16
+typedef unsigned char KadId[KAD_ID_SIZE];
 
-// KADEMLIA opcodes
-#define KADEMLIA_BOOTSTRAP_REQ			0x00	// <PEER (sender) [25]>
-#define KADEMLIA2_BOOTSTRAP_REQ			0x01	//
-#define KADEMLIA_BOOTSTRAP_RES			0x08	// <CNT [2]> <PEER [25]>*(CNT)
-#define KADEMLIA2_BOOTSTRAP_RES			0x09	//
-#define KADEMLIA_HELLO_REQ				0x10	// <PEER (sender) [25]>
-#define KADEMLIA2_HELLO_REQ				0x11	//
-#define KADEMLIA_HELLO_RES				0x18	// <PEER (receiver) [25]>
-#define KADEMLIA2_HELLO_RES				0x19	//
-#define KADEMLIA_REQ					0x20	// <TYPE [1]> <HASH (target) [16]> <HASH (receiver) 16>
-#define KADEMLIA2_REQ					0x21	//
-#define KADEMLIA_RES					0x28	// <HASH (target) [16]> <CNT> <PEER [25]>*(CNT)
-#define KADEMLIA2_RES					0x29	//
-#define KADEMLIA_SEARCH_REQ				0x30	// <HASH (key) [16]> <ext 0/1 [1]> <SEARCH_TREE>[ext]
-//#define UNUSED						0x31	// Old Opcode, don't use.
-#define KADEMLIA_SEARCH_NOTES_REQ		0x32	// <HASH (key) [16]>
-#define KADEMLIA2_SEARCH_KEY_REQ		0x33	//
-#define KADEMLIA2_SEARCH_SOURCE_REQ		0x34	//
-#define KADEMLIA2_SEARCH_NOTES_REQ		0x35	//
-#define KADEMLIA_SEARCH_RES				0x38	// <HASH (key) [16]> <CNT1 [2]> (<HASH (answer) [16]> <CNT2 [2]> <META>*(CNT2))*(CNT1)
-//#define UNUSED						0x39	// Old Opcode, don't use.
-#define KADEMLIA_SEARCH_NOTES_RES		0x3A	// <HASH (key) [16]> <CNT1 [2]> (<HASH (answer) [16]> <CNT2 [2]> <META>*(CNT2))*(CNT1)
-#define KADEMLIA2_SEARCH_RES			0x3B	//
-#define KADEMLIA_PUBLISH_REQ			0x40	// <HASH (key) [16]> <CNT1 [2]> (<HASH (target) [16]> <CNT2 [2]> <META>*(CNT2))*(CNT1)
-//#define UNUSED						0x41	// Old Opcode, don't use.
-#define KADEMLIA_PUBLISH_NOTES_REQ		0x42	// <HASH (key) [16]> <HASH (target) [16]> <CNT2 [2]> <META>*(CNT2))*(CNT1)
-#define	KADEMLIA2_PUBLISH_KEY_REQ		0x43	//
-#define	KADEMLIA2_PUBLISH_SOURCE_REQ	0x44	//
-#define KADEMLIA2_PUBLISH_NOTES_REQ		0x45	//
-#define KADEMLIA_PUBLISH_RES			0x48	// <HASH (key) [16]>
-//#define UNUSED						0x49	// Old Opcode, don't use.
-#define KADEMLIA_PUBLISH_NOTES_RES		0x4A	// <HASH (key) [16]>
-#define	KADEMLIA2_PUBLISH_RES			0x4B	//
-#define KADEMLIA_FIREWALLED_REQ			0x50	// <TCPPORT (sender) [2]>
-#define KADEMLIA_FINDBUDDY_REQ			0x51	// <TCPPORT (sender) [2]>
-#define KADEMLIA_CALLBACK_REQ			0x52	// <TCPPORT (sender) [2]>
-#define KADEMLIA_FIREWALLED_RES			0x58	// <IP (sender) [4]>
-#define KADEMLIA_FIREWALLED_ACK_RES		0x59	// (null)
-#define KADEMLIA_FINDBUDDY_RES			0x5A	// <TCPPORT (sender) [2]>
-#define KADEMLIA2_PING					0x60	// (null)
-#define KADEMLIA2_PONG					0x61	// (null)
+// Kademlia protocol constants
+#define KAD_K 20                          // Bucket size (number of nodes per bucket)
+#define KAD_REFRESH_INTERVAL (15 * 60)    // Bucket refresh interval (15 minutes)
+#define KAD_REPUBLISH_INTERVAL (60 * 60)  // Value republish interval (1 hour)
 
-// KADEMLIA parameter
-#define KADEMLIA_FIND_VALUE				0x02
-#define KADEMLIA_STORE					0x04
-#define KADEMLIA_FIND_NODE				0x0B
+// Maximum number of concurrent searches
+#define KAD_MAX_SEARCHES 1024
 
+// Global own node ID (defined in KBucket.cpp)
+extern KadId g_own_id;
 
-class CEDPacket;
+// Kademlia event types
+#define KAD_EVENT_NONE 0
+#define KAD_EVENT_VALUES 1
+#define KAD_EVENT_SEARCH_DONE 2
+#define KAD_EVENT_ADDED 3
+#define KAD_EVENT_SENT 4
+#define KAD_EVENT_REPLY 5
+#define KAD_EVENT_REMOVED 6
 
+// Kademlia callback function
+typedef void (*kad_callback)(void *closure, int event,
+                           const unsigned char *target_id,
+                           const void *data, size_t data_len);
 
-class CKademlia
-{
+// Core Kademlia functions
+int kad_init(int socket_fd, const unsigned char *node_id);
+int kad_uninit(void);
+
+int kad_insert_node(const unsigned char *node_id, const struct sockaddr *addr, int addr_len);
+int kad_ping_node(const struct sockaddr *addr, int addr_len);
+
+int kad_periodic(const unsigned char *buf, size_t buflen,
+                 const struct sockaddr *from, int fromlen,
+                 time_t *tosleep, kad_callback *callback, void *closure);
+
+int kad_search(const unsigned char *target_id, int port,
+               kad_callback *callback, void *closure);
+
+int kad_nodes(int *good_return, int *dubious_return, int *cached_return,
+              int *incoming_return);
+
+int kad_get_nodes(struct sockaddr_in *nodes, unsigned char *node_ids, int *num);
+
+// Key-value operations
+int kad_store(const unsigned char *key, const char *value);
+int kad_find_value(const unsigned char *key, kad_callback *callback, void *closure);
+
+// Bootstrap functions
+int kad_bootstrap_from_host_cache(void);
+
+// Debug functions
+void kad_dump_tables(void);
+void kad_debug_print(void);
+
+// User-provided functions (must be implemented)
+int kad_blacklisted(const struct sockaddr *addr, int addr_len);
+void kad_hash(void *hash_return, int hash_size,
+             const void *v1, int len1,
+             const void *v2, int len2,
+             const void *v3, int len3);
+int kad_random_bytes(void *buf, size_t size);
+int kad_sendto(int socket_fd, const void *buf, int len, int flags,
+              const struct sockaddr *to, int tolen);
+
+// Utility functions
+unsigned char *kad_create_node_id(void);
+int kad_id_compare(const unsigned char *id1, const unsigned char *id2);
+void kad_xor_distance(unsigned char *distance, const unsigned char *id1, const unsigned char *id2);
+
+// CKademlia wrapper class for OOP interface
+class CKademlia {
 public:
-	BOOL Bootstrap(const SOCKADDR_IN* pHost, bool bKad2 = true);
+    CKademlia() : m_bInitialized(false), m_socketFd(-1) {}
+    ~CKademlia() { Uninit(); }
 
-	BOOL OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    // Initialize Kademlia with socket and node ID
+    bool Init(int socketFd, const unsigned char* nodeId) {
+        if (m_bInitialized) return false;
+        m_socketFd = socketFd;
+        m_bInitialized = (kad_init(socketFd, nodeId) == 0);
+        return m_bInitialized;
+    }
 
-protected:
-	CCriticalSection m_pSection;
+    // Uninitialize
+    void Uninit() {
+        if (m_bInitialized) {
+            kad_uninit();
+            m_bInitialized = false;
+        }
+    }
 
-	BOOL Send(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
-	BOOL Send(const SOCKADDR_IN* pHost, BYTE nType);
-	BOOL SendMyDetails(const SOCKADDR_IN* pHost, BYTE nType, bool bKad2);
+    // Bootstrap from an address
+    void Bootstrap(const struct sockaddr_in* pHost) {
+        if (pHost) {
+            kad_ping_node((const struct sockaddr*)pHost, sizeof(struct sockaddr_in));
+        }
+    }
 
-	BOOL OnPacket_KADEMLIA_BOOTSTRAP_RES(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
-	BOOL OnPacket_KADEMLIA2_BOOTSTRAP_RES(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
-	BOOL OnPacket_KADEMLIA2_PING(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
-	BOOL OnPacket_KADEMLIA2_PONG(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    // Check if initialized
+    bool IsInitialized() const { return m_bInitialized; }
+
+    // Process incoming packet
+    BOOL OnPacket(const SOCKADDR_IN* pHost, class CEDPacket* pPacket) {
+        // TODO: Implement Kademlia packet processing
+        (void)pHost;
+        (void)pPacket;
+        return FALSE;
+    }
+
+private:
+    bool m_bInitialized;
+    int m_socketFd;
 };
 
+// Global Kademlia instance
 extern CKademlia Kademlia;
