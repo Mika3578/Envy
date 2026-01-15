@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
@@ -2814,6 +2814,33 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="BitTorrentDHT\dht.c">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kademlia.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KBucket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KadProtocol.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KadStorage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kademlia.cpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KademliaPlatform.cpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KBucket.cpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KadProtocol.cpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KadStorage.cpp">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="qrencode.c">

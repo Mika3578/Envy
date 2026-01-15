@@ -1,7 +1,7 @@
 //
 // Envy.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2020
+// This file is part of Envy (getenvy.com)  2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -37,6 +37,7 @@
 #include "GProfile.h"
 #include "HostCache.h"
 #include "IEProtocol.h"
+#include "Kademlia.h"
 #include "ImageFile.h"	// AfxMsgBox Banners
 #include "Images.h"
 #include "Library.h"
@@ -471,6 +472,21 @@ BOOL CEnvyApp::InitInstance()
 		DiscoveryServices.Load();
 	SplashStep( L"Host Cache" );
 		HostCache.Load();
+
+		// Initialize Kademlia DHT
+		if ( Settings.eDonkey.EnableKad ) {
+			SplashStep( L"Kademlia DHT" );
+			if ( ! InitKademlia() ) {
+				theApp.Message( MSG_ERROR, L"Failed to initialize Kademlia DHT" );
+			}
+		}
+
+		// Test Kademlia import if requested
+		if ( __argc > 1 && wcscmp(__targv[1], L"-testkad") == 0 ) {
+			theApp.Message(MSG_NOTICE, L"Running Kademlia import test...");
+			HostCache.TestKadImport();
+		}
+
 	SplashStep( L"Query Manager" );
 		QueryHashMaster.Create();
 	SplashStep( L"Scheduler" );
@@ -653,6 +669,11 @@ int CEnvyApp::ExitInstance()
 		VersionChecker.Stop();
 		DiscoveryServices.Stop();
 		Network.Disconnect();
+
+		// Stop Kademlia DHT
+		if ( Settings.eDonkey.EnableKad ) {
+			kad_uninit();
+		}
 
 		SplashStep( L"Stopping Library Tasks" );
 		LibraryBuilder.CloseThread();
@@ -857,7 +878,8 @@ BOOL CEnvyApp::ParseCommandLine()
 			L" -tabbed\t\tStart application in Tabbed mode\n"
 			L" -windowed\tStart application in Windowed mode\n"
 			L" -regserver\tRegister application components\n"
-			L" -unregserver\tUn-register application components ----------\n",	// Layout workaround
+			L" -unregserver\tUn-register application components\n"
+			L" -testkad\t\tTest Kademlia node import ----------\n",	// Layout workaround
 			MB_ICONINFORMATION | MB_OK );
 
 		return FALSE;
@@ -2124,6 +2146,46 @@ CString CEnvyApp::GetCountryName(IN_ADDR pAddress) const
 	if ( m_pfnGeoIP_country_name_by_ipnum && m_pGeoIP )
 		return CString( m_pfnGeoIP_country_name_by_ipnum( m_pGeoIP, htonl( pAddress.s_addr ) ) );
 	return L"";
+}
+
+BOOL CEnvyApp::InitKademlia()
+{
+	// Create UDP socket for Kademlia DHT
+	SOCKET kadSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (kadSocket == INVALID_SOCKET) {
+		theApp.Message(MSG_ERROR, L"Failed to create Kademlia UDP socket: %d", WSAGetLastError());
+		return FALSE;
+	}
+
+	// Bind socket to any available port
+	sockaddr_in bindAddr = {0};
+	bindAddr.sin_family = AF_INET;
+	bindAddr.sin_addr.s_addr = INADDR_ANY;
+	bindAddr.sin_port = 0; // Let system choose port
+
+	if (bind(kadSocket, (sockaddr*)&bindAddr, sizeof(bindAddr)) == SOCKET_ERROR) {
+		theApp.Message(MSG_ERROR, L"Failed to bind Kademlia socket: %d", WSAGetLastError());
+		closesocket(kadSocket);
+		return FALSE;
+	}
+
+	// Generate random node ID for this session
+	unsigned char* nodeId = kad_create_node_id();
+	if (!nodeId) {
+		theApp.Message(MSG_ERROR, L"Failed to generate Kademlia node ID");
+		closesocket(kadSocket);
+		return FALSE;
+	}
+
+	// Initialize Kademlia DHT
+	if (kad_init((int)kadSocket, nodeId) != 0) {
+		theApp.Message(MSG_ERROR, L"Failed to initialize Kademlia DHT");
+		closesocket(kadSocket);
+		return FALSE;
+	}
+
+	theApp.Message(MSG_NOTICE, L"Kademlia DHT initialized successfully");
+	return TRUE;
 }
 
 void CEnvyApp::LoadCountry()

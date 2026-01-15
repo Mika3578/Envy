@@ -225,6 +225,7 @@ protected:
 
 	void			GetVersionNumber();
 	void			InitResources();
+	BOOL			InitKademlia();
 
 	void			LoadCountry();		// Load the GeoIP library for mapping IPs to countries
 	void			FreeCountry();		// Free GeoIP resources
