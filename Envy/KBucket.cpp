@@ -1,4 +1,4 @@
-//
+﻿//
 // KBucket.cpp
 //
 // Kademlia KBucket routing table implementation
@@ -10,8 +10,13 @@
 // as published by the Free Software Foundation (fsf.org);
 // version 3 or later at your option. (AGPLv3)
 //
+// NOTE: This is legacy code. To enable, define ENVY_LEGACY_KADEMLIA.
+// The current implementation uses Kademlia.h / CKademlia class instead.
 
 #include "StdAfx.h"
+
+#ifdef ENVY_LEGACY_KADEMLIA
+
 #include "KBucket.h"
 #include <algorithm>
 #include <queue>
@@ -327,3 +332,5 @@ void KadRoutingTable::GetStats(int& totalNodes, int& totalBuckets) {
         totalNodes += (int)bucket->GetSize();
     }
 }
+
+#endif // ENVY_LEGACY_KADEMLIA

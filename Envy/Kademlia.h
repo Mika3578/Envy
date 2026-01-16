@@ -1,11 +1,10 @@
 //
 // Kademlia.h
 //
-// Kademlia DHT implementation for eDonkey2000 network
-// Based on BitTorrent DHT reference implementation
+// Kad2 (Kademlia2) DHT implementation for eDonkey2000 network
+// eMule-compatible Kademlia protocol implementation
 //
 // This file is part of Envy (getenvy.com) © 2016-2026
-// Portions copyright Juliusz Chroboczek (BitTorrent DHT)
 //
 // Envy is free software. You may redistribute and/or modify it
 // under the terms of the GNU Affero General Public License
@@ -18,127 +17,176 @@
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <time.h>
+#include <vector>
+#include <list>
+#include <map>
 
 // Kademlia node ID is 128-bit (16 bytes) for eDonkey2000
 #define KAD_ID_SIZE 16
 typedef unsigned char KadId[KAD_ID_SIZE];
 
-// Kademlia protocol constants
-#define KAD_K 20                          // Bucket size (number of nodes per bucket)
-#define KAD_REFRESH_INTERVAL (15 * 60)    // Bucket refresh interval (15 minutes)
-#define KAD_REPUBLISH_INTERVAL (60 * 60)  // Value republish interval (1 hour)
+// Kademlia routing table constants
+#define KAD_K 10                         // Bucket size (number of nodes per bucket) - eMule uses 10
+#define KAD_ID_BITS 128                  // ID size in bits
+#define KAD_BUCKET_COUNT (KAD_ID_BITS)   // Number of buckets
+#define KAD_MAX_CONTACTS 500             // Maximum contacts in routing table
 
-// Maximum number of concurrent searches
-#define KAD_MAX_SEARCHES 1024
+// Kad2 protocol constants
+#define KAD2_UDP_PORT 4672               // Default Kad UDP port
+#define KAD2_BOOTSTRAP_TIMEOUT 10000     // Bootstrap timeout in ms
+#define KAD2_PING_TIMEOUT 5000           // Ping timeout in ms
+#define KAD2_FIND_NODE_TIMEOUT 5000      // Find node timeout in ms
+#define KAD2_REQUEST_TIMEOUT 30000       // Request timeout in ms (30 seconds)
+#define KAD2_MAX_OUTSTANDING_REQUESTS 10 // Maximum outstanding requests
 
-// Global own node ID (defined in KBucket.cpp)
-extern KadId g_own_id;
+// Kad2 node contact information
+#pragma pack(push, 1)
+struct KadContact {
+    KadId id;                    // Node ID (16 bytes)
+    DWORD ip;                    // IPv4 address
+    WORD udpPort;                // UDP port
+    WORD tcpPort;                // TCP port (usually same as UDP)
+    DWORD lastSeen;              // Last contact time (tick count)
+    BYTE version;                // Kad version
+    BOOL verified;               // Contact verified via ping/pong
 
-// Kademlia event types
-#define KAD_EVENT_NONE 0
-#define KAD_EVENT_VALUES 1
-#define KAD_EVENT_SEARCH_DONE 2
-#define KAD_EVENT_ADDED 3
-#define KAD_EVENT_SENT 4
-#define KAD_EVENT_REPLY 5
-#define KAD_EVENT_REMOVED 6
-#define KAD_EVENT_PUBLISH_DONE 7
+    KadContact() {
+        memset(this, 0, sizeof(KadContact));
+    }
 
-// Kademlia callback function
-typedef void (*kad_callback)(void *closure, int event,
-                           const unsigned char *target_id,
-                           const void *data, size_t data_len);
+    KadContact(const KadId& nodeId, DWORD nodeIp, WORD nodeUdpPort, WORD nodeTcpPort = 0) {
+        memcpy(id, nodeId, KAD_ID_SIZE);
+        ip = nodeIp;
+        udpPort = nodeUdpPort;
+        tcpPort = nodeTcpPort ? nodeTcpPort : nodeUdpPort;
+        lastSeen = GetTickCount();
+        version = 0;
+        verified = FALSE;
+    }
 
-// Core Kademlia functions
-int kad_init(int socket_fd, const unsigned char *node_id);
-int kad_uninit(void);
+    // Get sockaddr_in for network operations
+    void GetSockAddr(sockaddr_in& addr) const {
+        memset(&addr, 0, sizeof(sockaddr_in));
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = htonl(ip);  // Convert host order to network order
+        addr.sin_port = htons(udpPort);
+    }
+};
+#pragma pack(pop)
 
-int kad_insert_node(const unsigned char *node_id, const struct sockaddr *addr, int addr_len);
-int kad_ping_node(const struct sockaddr *addr, int addr_len);
+// Kad2 request tracking
+enum KadRequestType {
+    KAD_REQUEST_BOOTSTRAP = 0,
+    KAD_REQUEST_FIND_NODE = 1
+};
 
-int kad_periodic(const unsigned char *buf, size_t buflen,
-                 const struct sockaddr *from, int fromlen,
-                 time_t *tosleep, kad_callback *callback, void *closure);
+struct KadOutstandingRequest {
+    KadRequestType type;
+    DWORD sentTime;
+    SOCKADDR_IN targetAddr;
 
-int kad_search(const unsigned char *target_id, int port,
-               kad_callback *callback, void *closure);
+    KadOutstandingRequest() : type(KAD_REQUEST_BOOTSTRAP), sentTime(0) {
+        memset(&targetAddr, 0, sizeof(targetAddr));
+    }
 
-int kad_nodes(int *good_return, int *dubious_return, int *cached_return,
-              int *incoming_return);
+    KadOutstandingRequest(KadRequestType t, const SOCKADDR_IN& addr) :
+        type(t), sentTime(GetTickCount()), targetAddr(addr) {}
+};
 
-int kad_get_nodes(struct sockaddr_in *nodes, unsigned char *node_ids, int *num);
+// Kad2 routing table bucket
+class KadBucket {
+public:
+    std::list<KadContact> contacts;
+    DWORD lastRefresh;
 
-// Key-value operations
-int kad_store(const unsigned char *key, const char *value);
-int kad_publish(const unsigned char *key, const char *value);
-int kad_find_value(const unsigned char *key, kad_callback *callback, void *closure);
+    KadBucket() : lastRefresh(0) {}
 
-// Bootstrap functions
-int kad_bootstrap_from_host_cache(void);
+    bool AddContact(const KadContact& contact);
+    bool RemoveContact(const KadId& id);
+    const KadContact* FindContact(const KadId& id) const;
+    size_t GetContactCount() const { return contacts.size(); }
+    bool IsFull() const { return contacts.size() >= KAD_K; }
+};
 
-// Debug functions
-void kad_dump_tables(void);
-void kad_debug_print(void);
+// Kad2 routing table (eMule-compatible)
+class Kad2RoutingTable {
+public:
+    KadBucket buckets[KAD_BUCKET_COUNT];
+    KadId ownId;
 
-// User-provided functions (must be implemented)
-int kad_blacklisted(const struct sockaddr *addr, int addr_len);
-void kad_hash(void *hash_return, int hash_size,
-             const void *v1, int len1,
-             const void *v2, int len2,
-             const void *v3, int len3);
-int kad_random_bytes(void *buf, size_t size);
-int kad_sendto(int socket_fd, const void *buf, int len, int flags,
-              const struct sockaddr *to, int tolen);
+    Kad2RoutingTable();
+    ~Kad2RoutingTable();
 
-// Utility functions
-unsigned char *kad_create_node_id(void);
-int kad_id_compare(const unsigned char *id1, const unsigned char *id2);
-void kad_xor_distance(unsigned char *distance, const unsigned char *id1, const unsigned char *id2);
+    bool Initialize(const KadId& nodeId);
+    bool AddContact(const KadContact& contact);
+    bool RemoveContact(const KadId& id);
+    const KadContact* FindContact(const KadId& id) const;
+    void FindClosestContacts(const KadId& targetId, std::vector<KadContact>& results, int maxCount = KAD_K);
+    size_t GetTotalContacts() const;
+    void GetContactsForBootstrap(std::vector<KadContact>& results, int maxCount = 20);
+    size_t GetContactCount() const { return buckets[0].GetContactCount(); } // For compatibility
+};
 
-// CKademlia wrapper class for OOP interface
+// CKademlia Kad2 implementation class
 class CKademlia {
 public:
-    CKademlia() : m_bInitialized(false), m_socketFd(-1) {}
-    ~CKademlia() { Uninit(); }
+    CKademlia();
+    ~CKademlia();
 
-    // Initialize Kademlia with socket and node ID
-    bool Init(int socketFd, const unsigned char* nodeId) {
-        if (m_bInitialized) return false;
-        m_socketFd = socketFd;
-        m_bInitialized = (kad_init(socketFd, nodeId) == 0);
-        return m_bInitialized;
-    }
+    // Initialize Kad2
+    bool Init();
 
-    // Uninitialize
-    void Uninit() {
-        if (m_bInitialized) {
-            kad_uninit();
-            m_bInitialized = false;
-        }
-    }
-
-    // Bootstrap from an address
-    void Bootstrap(const struct sockaddr_in* pHost) {
-        if (pHost) {
-            kad_ping_node((const struct sockaddr*)pHost, sizeof(struct sockaddr_in));
-        }
-    }
+    // Shutdown Kad2
+    void Stop();
 
     // Check if initialized
     bool IsInitialized() const { return m_bInitialized; }
 
-    // Process incoming packet
-    BOOL OnPacket(const SOCKADDR_IN* pHost, class CEDPacket* pPacket) {
-        // TODO: Implement Kademlia packet processing
-        (void)pHost;
-        (void)pPacket;
-        return FALSE;
-    }
+    // Process incoming Kad2 packet
+    BOOL OnPacket(const SOCKADDR_IN* pHost, class CEDPacket* pPacket);
+
+    // Timer callback (~5 seconds)
+    void OnTimer();
+
+    // Bootstrap from host cache
+    void Bootstrap();
+
+    // Send bootstrap request to specific contact
+    void SendBootstrapRequest(const KadContact& contact);
+
+    // Send find node request to specific contact
+    void SendFindNodeRequest(const KadContact& contact);
 
 private:
+    // Packet handlers
+    void OnBootstrapRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    void OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    void OnPing(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    void OnPong(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    void OnFindNodeRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    void OnFindNodeResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+
+    // Utility methods
+    void SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    bool UpdateContact(const KadContact& contact);
+    void GenerateOwnKadId();
+    void LogKadStatus();
+
+    // Request tracking methods
+    DWORD AddOutstandingRequest(KadRequestType type, const SOCKADDR_IN& targetAddr);
+    bool IsRequestOutstanding(DWORD requestId, KadRequestType expectedType, const SOCKADDR_IN& fromAddr);
+    void RemoveOutstandingRequest(DWORD requestId);
+    void CleanupExpiredRequests();
+
+    // Member variables
     bool m_bInitialized;
-    int m_socketFd;
+    KadId m_ownId;
+    Kad2RoutingTable m_routingTable;
+    DWORD m_lastBootstrapTime;
+    DWORD m_lastTimerCall;
+
+    // Request tracking
+    std::map<DWORD, KadOutstandingRequest> m_outstandingRequests; // Key is request ID
 };
 
 // Kademlia packet structures

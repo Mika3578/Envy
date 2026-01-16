@@ -1070,6 +1070,8 @@ bool CHostCache::EnoughServers(PROTOCOLID nProtocol) const
 		return ! Settings.DC.Enabled || DC.CountHosts( TRUE ) > 0;
 	case PROTOCOL_BT:
 		return ! Settings.BitTorrent.Enabled || BitTorrent.CountHosts( TRUE ) > 0;
+	case PROTOCOL_KAD:
+		return ! Settings.eDonkey.EnableKad || Kademlia.CountHosts(TRUE) > 0;
 	default:
 		return true;	// ( ForProtocol( nProtocol )->CountHosts( TRUE ) > 0 );
 	}

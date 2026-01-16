@@ -1,4 +1,4 @@
-//
+﻿//
 // KadStorage.cpp
 //
 // Kademlia key-value storage implementation
@@ -12,6 +12,9 @@
 //
 
 #include "StdAfx.h"
+
+#ifdef ENVY_LEGACY_KADEMLIA
+
 #include "KadStorage.h"
 #include "KBucket.h"
 
@@ -171,3 +174,5 @@ void KadStorage::StringToKadId(const std::string& str, KadId& id) {
         id[i] = (unsigned char)byte;
     }
 }
+
+#endif // ENVY_LEGACY_KADEMLIA

@@ -10,8 +10,12 @@
 // as published by the Free Software Foundation (fsf.org);
 // version 3 or later at your option. (AGPLv3)
 //
+// NOTE: This is legacy code. To enable, define ENVY_LEGACY_KADEMLIA.
+// The current implementation uses Kademlia.h / CKademlia class instead.
 
 #pragma once
+
+#ifdef ENVY_LEGACY_KADEMLIA
 
 #include "Kademlia.h"
 #include <map>
@@ -64,3 +68,5 @@ private:
 
 // Global storage instance
 extern KadStorage* g_kadStorage;
+
+#endif // ENVY_LEGACY_KADEMLIA

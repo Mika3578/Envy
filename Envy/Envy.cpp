@@ -699,9 +699,9 @@ int CEnvyApp::ExitInstance()
 		DiscoveryServices.Stop();
 		Network.Disconnect();
 
-		// Stop Kademlia DHT
+		// Stop Kad2
 		if ( Settings.eDonkey.EnableKad ) {
-			kad_uninit();
+			Kademlia.Stop();
 		}
 
 		SplashStep( L"Stopping Library Tasks" );
@@ -2179,41 +2179,14 @@ CString CEnvyApp::GetCountryName(IN_ADDR pAddress) const
 
 BOOL CEnvyApp::InitKademlia()
 {
-	// Create UDP socket for Kademlia DHT
-	SOCKET kadSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (kadSocket == INVALID_SOCKET) {
-		theApp.Message(MSG_ERROR, L"Failed to create Kademlia UDP socket: %d", WSAGetLastError());
+	// Initialize Kad2 (eMule-compatible Kademlia)
+	// No separate socket needed - uses existing Datagrams UDP socket
+	if (!Kademlia.Init()) {
+		theApp.Message(MSG_ERROR, L"Failed to initialize Kad2");
 		return FALSE;
 	}
 
-	// Bind socket to any available port
-	sockaddr_in bindAddr = {0};
-	bindAddr.sin_family = AF_INET;
-	bindAddr.sin_addr.s_addr = INADDR_ANY;
-	bindAddr.sin_port = 0; // Let system choose port
-
-	if (bind(kadSocket, (sockaddr*)&bindAddr, sizeof(bindAddr)) == SOCKET_ERROR) {
-		theApp.Message(MSG_ERROR, L"Failed to bind Kademlia socket: %d", WSAGetLastError());
-		closesocket(kadSocket);
-		return FALSE;
-	}
-
-	// Generate random node ID for this session
-	unsigned char* nodeId = kad_create_node_id();
-	if (!nodeId) {
-		theApp.Message(MSG_ERROR, L"Failed to generate Kademlia node ID");
-		closesocket(kadSocket);
-		return FALSE;
-	}
-
-	// Initialize Kademlia DHT
-	if (kad_init((int)kadSocket, nodeId) != 0) {
-		theApp.Message(MSG_ERROR, L"Failed to initialize Kademlia DHT");
-		closesocket(kadSocket);
-		return FALSE;
-	}
-
-	theApp.Message(MSG_NOTICE, L"Kademlia DHT initialized successfully");
+	theApp.Message(MSG_NOTICE, L"Kad2 initialized successfully");
 	return TRUE;
 }
 
