@@ -586,7 +586,9 @@ BOOL CEnvyApp::InitInstance()
 		Downloads.Load();
 		Sleep( 50 );					// Allow some splash text visibility
 	SplashStep( L"Upload Manager" );
-		UploadQueues.Load();
+		if ( ! UploadQueues.Load() )
+			UploadQueues.CreateDefault();
+		UploadQueues.Validate();
 		Sleep( 50 );					// Allow some splash text visibility
 
 	// Obsolete for reference & deletion

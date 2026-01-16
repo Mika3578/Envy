@@ -1,7 +1,7 @@
 //
 // Uploads.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -225,19 +225,19 @@ BOOL CUploads::CanUploadFileTo(const IN_ADDR* pAddress, const CEnvyFile* pFile) 
 	return ( nCount < Settings.Uploads.MaxPerHost );
 }
 
-BOOL CUploads::EnforcePerHostLimit(CUploadTransfer* pHit, BOOL bRequest)
+BOOL CUploads::EnforcePerHostLimit(CUploadTransfer* pUpload, BOOL bRequest)
 {
 	DWORD nCount = 0;
 
 	for ( POSITION pos = GetIterator(); pos; )
 	{
-		const CUploadTransfer* pUpload = GetNext( pos );
+		const CUploadTransfer* pTest = GetNext( pos );
 
-		if ( pUpload->m_nState == upsUploading ||
-			 pUpload->m_nState == upsQueued ||
-			 pUpload->m_nState == upsPreQueue )
+		if ( pTest->m_nState == upsUploading ||
+			 pTest->m_nState == upsQueued ||
+			 pTest->m_nState == upsPreQueue )
 		{
-			if ( pUpload->m_pHost.sin_addr.s_addr == pHit->m_pHost.sin_addr.s_addr )
+			if ( pTest->m_pHost.sin_addr.s_addr == pUpload->m_pHost.sin_addr.s_addr )
 				nCount++;
 		}
 	}
@@ -251,22 +251,22 @@ BOOL CUploads::EnforcePerHostLimit(CUploadTransfer* pHit, BOOL bRequest)
 
 		for ( POSITION pos = GetIterator(); pos; )
 		{
-			CUploadTransfer* pUpload = GetNext( pos );
+			CUploadTransfer* pTest = GetNext( pos );
 
-			if ( pUpload->m_nState == upsUploading ||
-				 pUpload->m_nState == upsQueued ||
-				 pUpload->m_nState == upsPreQueue )
+			if ( pTest->m_nState == upsUploading ||
+				 pTest->m_nState == upsQueued ||
+				 pTest->m_nState == upsPreQueue )
 			{
-				if ( pUpload != pHit && pUpload->m_pHost.sin_addr.s_addr == pHit->m_pHost.sin_addr.s_addr )
+				if ( pTest != pUpload && pTest->m_pHost.sin_addr.s_addr == pUpload->m_pHost.sin_addr.s_addr )
 				{
-					if ( bRequest && pUpload->m_pBaseFile == pHit->m_pBaseFile )
+					if ( bRequest && pTest->m_pBaseFile == pUpload->m_pBaseFile )
 					{
-						pNewest = pUpload;
+						pNewest = pTest;
 						break;
 					}
 
-					if ( pNewest == NULL || pUpload->m_tConnected > pNewest->m_tConnected )
-						pNewest = pUpload;
+					if ( pNewest == NULL || pTest->m_tConnected > pNewest->m_tConnected )
+						pNewest = pTest;
 				}
 			}
 		}
@@ -276,9 +276,9 @@ BOOL CUploads::EnforcePerHostLimit(CUploadTransfer* pHit, BOOL bRequest)
 
 		if ( bRequest )
 		{
-			if ( pNewest->m_pBaseFile == pHit->m_pBaseFile && ! pNewest->m_bLive )
+			if ( pNewest->m_pBaseFile == pUpload->m_pBaseFile && ! pNewest->m_bLive )
 			{
-				UploadQueues.StealPosition( pHit, pNewest );
+				UploadQueues.StealPosition( pUpload, pNewest );
 
 				theApp.Message( MSG_ERROR, IDS_UPLOAD_DROPPED_OLDER, (LPCTSTR)pNewest->m_sAddress );
 
