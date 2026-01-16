@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **CryptLayer Implementation** - Complete RSA+RC4 encryption handshake for ED2K protocol
+  - Fixed decryption ordering (decrypt before inflate to handle compressed encrypted packets)
+  - Implemented deterministic initiator selection using GUID comparison
+  - Added proper state machine for both initiator and responder roles
+  - Fixed RSA encryption bug in CryptoProvider::EncryptWithPublicKey()
+  - Corrected handshake packet protocols (ED2K_PROTOCOL_EMULE)
+- **Performance Optimizations** - Phase 1 stability improvements
+  - UI update batching with 250ms timer and 50ms data caching
+  - List processing O(n²) complexity fixes in NeighboursWithRouting
+  - Memory management improvements with buffer reuse
+  - File I/O operations moved to prevent UI thread blocking
+- **Protocol Status Updates** - ED2K marked as complete, Kad marked as wire-compatible
 - **Code Quality Improvements** - Enhanced packet reading with proper error handling in ED2K client (`EDClient.cpp`)
 - **Search Filtering Enhancement** - Case-insensitive text filtering in search monitor (`WndSearchMonitor.cpp`)
 - **CryptLayer Framework Preparation** - Member variables and initialization for ED2K encryption support
