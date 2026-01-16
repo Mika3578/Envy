@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "Uploads.h"
+#include "RemoteSecurity.h"
 #include "UploadQueue.h"
 #include "UploadQueues.h"
 #include "UploadTransfer.h"
@@ -393,11 +394,21 @@ BOOL CUploads::OnAccept(CConnection* pConnection)
 		{
 			if ( Settings.Remote.Enable )
 			{
-				if ( new CRemote( pConnection ) )
-					return FALSE;
+				// Check IP access policy BEFORE instantiating CRemote
+				if ( CRemoteSecurity::IsRemoteAccessAllowed( pConnection->m_pHost.sin_addr ) )
+				{
+					if ( new CRemote( pConnection ) )
+						return FALSE;
+				}
+				else
+				{
+					theApp.Message( MSG_ERROR, L"Remote interface access denied from %s (IP access policy).", (LPCTSTR)pConnection->m_sAddress );
+				}
 			}
-
-			theApp.Message( MSG_ERROR, L"Rejecting incoming connection from %s, remote interface disabled.", (LPCTSTR)pConnection->m_sAddress );
+			else
+			{
+				theApp.Message( MSG_ERROR, L"Rejecting incoming connection from %s, remote interface disabled.", (LPCTSTR)pConnection->m_sAddress );
+			}
 
 			pConnection->SendHTML( IDR_HTML_FILENOTFOUND );
 			pConnection->DelayClose( IDS_CONNECTION_CLOSED );

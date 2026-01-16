@@ -1,7 +1,7 @@
 //
 // Settings.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2020
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -662,6 +662,13 @@ void CSettings::Load()
 	Add( L"Remote", L"Enable", &Remote.Enable, false );
 	Add( L"Remote", L"Password", &Remote.Password );
 	Add( L"Remote", L"Username", &Remote.Username );
+	Add( L"Remote", L"BindAddress", &Remote.BindAddress, L"127.0.0.1" );  // Default: localhost only
+	Add( L"Remote", L"AllowExternal", &Remote.AllowExternal, false );  // Default: no external access (deprecated)
+	Add( L"Remote", L"AllowLAN", &Remote.AllowLAN, false );  // Default: no LAN access
+	Add( L"Remote", L"AllowWAN", &Remote.AllowWAN, false );  // Default: no WAN access
+	Add( L"Remote", L"AllowedCIDRs", &Remote.AllowedCIDRs, L"" );  // Default: empty (no explicit CIDRs)
+	Add( L"Remote", L"RateLimitRequests", &Remote.RateLimitRequests, 10, 1, 1, 100 );  // Default: 10 requests per minute
+	Add( L"Remote", L"RateLimitWindow", &Remote.RateLimitWindow, 60000, 1000, 1000, 300000 );  // Default: 60 seconds window
 
 	Add( L"Live", L"BandwidthScaleIn", &Live.BandwidthScaleIn, 101, 1, 0, 101, L" %" );
 	Add( L"Live", L"BandwidthScaleOut", &Live.BandwidthScaleOut, 101, 1, 0, 101, L" %" );

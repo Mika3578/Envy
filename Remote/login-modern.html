@@ -1,0 +1,315 @@
+<!-- Modern Login Page -->
+<div class="content-area">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1><%= text_welcome || 'Welcome to Envy Remote' %></h1>
+                <p><%= text_logininfo || 'Please enter your credentials to access the remote control interface.' %></p>
+            </div>
+
+            <%? failure %>
+            <div class="alert alert-error" role="alert">
+                <%= text_loginfail || 'Username or password was incorrect, please try again.' %>
+            </div>
+            <%?%>
+
+            <form method="get" action="" class="login-form" data-ajax>
+                <input type="hidden" name="submit" value="1" />
+
+                <div class="form-group">
+                    <label for="username"><%= text_loginuser || 'Username' %></label>
+                    <input type="text" id="username" name="username" class="form-control"
+                           value="<%= user_name %>" required autofocus
+                           aria-describedby="username-help">
+                    <small id="username-help" class="form-text">
+                        Enter your Envy username
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="password"><%= text_loginpass || 'Password' %></label>
+                    <input type="password" id="password" name="password" class="form-control"
+                           required aria-describedby="password-help">
+                    <small id="password-help" class="form-text">
+                        Enter your Envy password
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="remember" value="1">
+                        Remember me
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    <%= text_loginsubmit || 'Login' %>
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p>
+                    <a href="#" onclick="showForgotPassword(); return false;">
+                        Forgot your password?
+                    </a>
+                </p>
+                <p class="login-info">
+                    For security reasons, ensure you're accessing this interface over HTTPS.
+                </p>
+            </div>
+        </div>
+
+        <!-- Security Info -->
+        <div class="security-notice">
+            <h3>Security Notice</h3>
+            <ul>
+                <li>Use a strong, unique password</li>
+                <li>Enable HTTPS for secure connections</li>
+                <li>Keep your Envy client updated</li>
+                <li>Logout when finished</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+.login-container {
+    max-width: 500px;
+    margin: 2rem auto;
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: 1fr;
+}
+
+.login-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.login-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+}
+
+.login-header h1 {
+    margin: 0 0 1rem 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.login-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+.login-form {
+    padding: 2rem;
+}
+
+.btn-block {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.login-footer {
+    padding: 1.5rem 2rem;
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    text-align: center;
+}
+
+.login-footer a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}
+
+.login-info {
+    margin: 1rem 0 0 0;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.security-notice {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.security-notice h3 {
+    margin-top: 0;
+    color: #856404;
+    font-size: 1.1rem;
+}
+
+.security-notice ul {
+    margin: 1rem 0 0 0;
+    padding-left: 1.5rem;
+}
+
+.security-notice li {
+    margin-bottom: 0.5rem;
+    color: #856404;
+}
+
+/* Enhanced focus states */
+.login-form .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Loading state */
+.login-form.submitting {
+    position: relative;
+}
+
+.login-form.submitting::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.login-form.submitting .btn {
+    pointer-events: none;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .login-container {
+        margin: 1rem;
+        gap: 1rem;
+    }
+
+    .login-header,
+    .login-form,
+    .login-footer {
+        padding: 1.5rem;
+    }
+
+    .login-header h1 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-header,
+    .login-form,
+    .login-footer {
+        padding: 1rem;
+    }
+
+    .security-notice {
+        padding: 1rem;
+    }
+}
+</style>
+
+<script>
+// Enhanced login functionality
+(function() {
+    const form = document.querySelector('.login-form');
+    const submitBtn = form.querySelector('.btn');
+
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+
+        if (!username || !password) {
+            e.preventDefault();
+            showNotification('Please enter both username and password.', 'error');
+            return;
+        }
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="loading"></span> Logging in...';
+        form.classList.add('submitting');
+    });
+
+    // Password visibility toggle (optional enhancement)
+    function addPasswordToggle() {
+        const passwordGroup = document.querySelector('.form-group:has(#password)');
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'password-toggle';
+        toggle.innerHTML = '👁️';
+        toggle.title = 'Toggle password visibility';
+        toggle.style.cssText = `
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        `;
+
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+        passwordGroup.replaceChild(wrapper, passwordGroup.querySelector('.form-control'));
+        wrapper.appendChild(document.getElementById('password'));
+        wrapper.appendChild(toggle);
+
+        toggle.addEventListener('click', function() {
+            const input = document.getElementById('password');
+            input.type = input.type === 'password' ? 'text' : 'password';
+            toggle.innerHTML = input.type === 'password' ? '👁️' : '🙈';
+        });
+    }
+
+    // Forgot password handler
+    window.showForgotPassword = function() {
+        showNotification('Password recovery is not implemented in this demo. Please contact your administrator.', 'info');
+    };
+
+    // Initialize enhancements
+    addPasswordToggle();
+
+    // Auto-focus enhancement
+    const usernameField = document.getElementById('username');
+    if (!usernameField.value) {
+        usernameField.focus();
+    }
+
+    // Enter key handler for better UX
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && document.activeElement === document.getElementById('password')) {
+            form.dispatchEvent(new Event('submit'));
+        }
+    });
+})();
+</script>
