@@ -487,6 +487,7 @@
     <ClCompile Include="Registry.cpp" />
     <ClCompile Include="RelatedSearch.cpp" />
     <ClCompile Include="Remote.cpp" />
+    <ClCompile Include="RemoteSecurity.cpp" />
     <ClCompile Include="ResultFilters.cpp" />
     <ClCompile Include="RichDocument.cpp" />
     <ClCompile Include="RichElement.cpp" />
@@ -1341,6 +1342,7 @@
     <ClInclude Include="Registry.h" />
     <ClInclude Include="RelatedSearch.h" />
     <ClInclude Include="Remote.h" />
+    <ClInclude Include="RemoteSecurity.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ResultFilters.h" />
     <ClInclude Include="Revision.h" />

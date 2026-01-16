@@ -1129,7 +1129,7 @@ BOOL CEDClient::ShouldInitiateCryptLayer() const
 	const Hashes::Guid& oPeerGUID = m_oGUID;
 
 	// Compare GUIDs lexicographically
-	return ( memcmp( oMyGUID.begin(), oPeerGUID.begin(), oMyGUID.byteCount ) > 0 );
+	return ( memcmp( &oMyGUID[0], &oPeerGUID[0], oMyGUID.byteCount ) > 0 );
 }
 
 CHostBrowser* CEDClient::GetBrowser() const

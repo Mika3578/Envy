@@ -1,4 +1,4 @@
-//
+﻿//
 // StdAfx.h
 //
 // This file is part of Envy (getenvy.com) © 2016-2020
@@ -380,6 +380,19 @@ typedef CAtlList< CString, CStringElementTraitsI< CString > > CStringIList;
 
 template<>
 AFX_INLINE UINT AFXAPI HashKey(const CStringW& key)
+{
+	UINT nHash = 0;
+	const wchar_t* pszKey = key;
+	for ( int nSize = key.GetLength(); nSize; ++pszKey, --nSize )
+	{
+		nHash = ( nHash << 5 ) + nHash + *pszKey;
+	}
+	return nHash;
+}
+
+// VS2025+ MFC passes CString by value for ARG_KEY in CMap templates
+template<>
+AFX_INLINE UINT AFXAPI HashKey(CStringW key)
 {
 	UINT nHash = 0;
 	const wchar_t* pszKey = key;
