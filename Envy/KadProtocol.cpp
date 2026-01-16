@@ -1,4 +1,4 @@
-//
+﻿//
 // KadProtocol.cpp
 //
 // Kademlia protocol message handling and UDP networking
@@ -12,6 +12,9 @@
 //
 
 #include "StdAfx.h"
+
+#ifdef ENVY_LEGACY_KADEMLIA
+
 #include "KadProtocol.h"
 #include "KBucket.h"
 
@@ -490,3 +493,5 @@ int KadProtocol::CreatePublishResponse(unsigned char* buffer, int bufferSize,
 
     return sizeof(KadPacketHeader) + bodySize;
 }
+
+#endif // ENVY_LEGACY_KADEMLIA

@@ -44,6 +44,7 @@ Documentation for developers working on the Envy codebase.
 
 - **[Changelog](../CHANGELOG.md)** - Detailed change history
 - **[License](../LICENSE)** - Project licensing information
+- **[Kad2 Compatibility Report](KAD2_COMPATIBILITY_REPORT.md)** - eMule/aMule wire compatibility verification
 
 ## 📞 Support
 

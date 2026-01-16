@@ -923,10 +923,9 @@ void CMainWnd::OnTimer(UINT_PTR nIDEvent)
 		// Scheduler
 		Scheduler.CheckSchedule();
 
-		// Kademlia DHT maintenance
+		// Kad2 maintenance
 		if ( Settings.eDonkey.EnableKad ) {
-			time_t tosleep = 0;
-			kad_periodic(NULL, 0, NULL, 0, &tosleep, NULL, NULL);
+			Kademlia.OnTimer();
 		}
 
 		if ( tNow > tLast60SecInterval + 60 )

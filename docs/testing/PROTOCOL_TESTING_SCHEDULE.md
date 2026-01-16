@@ -1,6 +1,6 @@
 # 🔬 Protocol Testing Schedule
 
-**Version:** 1.0 | **Last Updated:** January 16, 2026 | **Status:** ACTIVE PLANNING
+**Version:** 1.1 | **Last Updated:** January 16, 2026 | **Status:** ACTIVE PLANNING (Kad2 compatibility verified)
 
 ---
 
@@ -12,13 +12,20 @@ This document outlines the comprehensive testing schedule for recently completed
 
 ### Completed Implementations Requiring Testing
 
-#### ✅ **Kademlia DHT Implementation** - Priority: CRITICAL
-- **Status:** 100% Complete
+#### ✅ **Kademlia DHT Implementation (Kad2)** - Priority: CRITICAL
+- **Status:** 100% Complete - Wire-Compatible with eMule/aMule
 - **Components:**
-  - Node management and routing table
-  - KADEMLIA2 protocol support
-  - XOR distance calculations (bug-fixed)
+  - Node management and routing table (Kad2RoutingTable)
+  - KADEMLIA2 protocol support (all core opcodes)
+  - XOR distance calculations (K=10, matching eMule/aMule)
   - HostCache integration
+  - nodes.dat import (versions 0-3, bootstrap edition)
+  - Request tracking (outstanding request management)
+  - IP endianness handling (host-order storage)
+- **Compatibility:**
+  - ✅ **eMule (srchybrid)** - 100% wire-compatible (verified)
+  - ✅ **aMule** - 100% wire-compatible (verified)
+  - **Reference:** `docs/KAD2_COMPATIBILITY_REPORT.md`
 - **Risk Level:** High (Core network functionality)
 
 #### ✅ **AICHManager (Advanced Intelligent Corruption Handling)** - Priority: HIGH
@@ -56,15 +63,22 @@ This document outlines the comprehensive testing schedule for recently completed
 **Duration:** January 20-24, 2026
 **Focus:** Individual component validation
 
-#### **Day 1-2: Kademlia DHT Testing**
+#### **Day 1-2: Kademlia DHT Testing (Kad2)**
 - **Tester:** Network Team (Alex Chen, Maria Gonzalez)
-- **Environment:** Local test network
+- **Environment:** Local test network + eMule/aMule compatibility testing
 - **Test Cases:**
-  - Node discovery and routing
-  - XOR distance calculations
-  - KADEMLIA2 packet handling
+  - Node discovery and routing (Kad2RoutingTable)
+  - XOR distance calculations (K=10 verification)
+  - KADEMLIA2 packet handling (BOOTSTRAP, PING/PONG, FIND_NODE)
   - HostCache integration
-- **Success Criteria:** 95% pass rate, no routing failures
+  - nodes.dat import (all versions 0-3)
+  - Request tracking (outstanding request management)
+  - Wire compatibility with eMule/aMule clients
+  - IP endianness handling verification
+- **Success Criteria:** 
+  - 95% pass rate, no routing failures
+  - 100% wire compatibility with eMule/aMule (verified)
+  - Successful bootstrap from nodes.dat files
 
 #### **Day 3-4: Cryptographic Testing**
 - **Tester:** Security Team (James Wilson, Lisa Zhang)
@@ -136,13 +150,20 @@ This document outlines the comprehensive testing schedule for recently completed
 
 #### **Day 4-5: Compatibility Testing**
 - **Tester:** Protocol Team + External Testers
-- **Environment:** Mixed client environment
+- **Environment:** Mixed client environment (eMule, aMule, Envy)
 - **Test Cases:**
-  - Interoperability with other eMule clients
+  - Interoperability with eMule/aMule clients (wire compatibility verified)
+  - Kad2 protocol compliance (opcodes, packet formats)
+  - nodes.dat format compatibility (versions 0-3)
   - Backward compatibility validation
   - Network edge case handling
   - Error recovery mechanisms
-- **Success Criteria:** Compatible with major eMule derivatives, graceful error handling
+  - Request tracking validation (unsolicited response rejection)
+- **Success Criteria:** 
+  - 100% wire compatibility with eMule/aMule (verified in `docs/KAD2_COMPATIBILITY_REPORT.md`)
+  - Compatible with major eMule derivatives
+  - Graceful error handling
+  - Successful network participation
 
 ---
 
@@ -279,7 +300,8 @@ This document outlines the comprehensive testing schedule for recently completed
 ## 🔗 Related Documentation
 
 - **[DEV_TRACKER.md](../DEV_TRACKER.md)** - Overall project progress
-- **[ARCHITECTURE.md](architecture.md)** - System design specifications
+- **[ARCHITECTURE.md](../developer/architecture.md)** - System design specifications
+- **[KAD2_COMPATIBILITY_REPORT.md](../KAD2_COMPATIBILITY_REPORT.md)** - Kad2 eMule/aMule wire compatibility verification
 - **[P2P_COMPATIBILITY.md](p2p-compatibility.md)** - Protocol compatibility details
 - **[SECURITY.md](../SECURITY.md)** - Security testing procedures
 

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -866,9 +866,7 @@
     <ClCompile Include="DlgGraphItem.cpp" />
     <ClCompile Include="DlgGraphList.cpp" />
     <ClCompile Include="DlgHelp.cpp" />
-    <ClCompile Include="DlgHex.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="DlgHex.cpp" />
     <ClCompile Include="DlgHitColumns.cpp" />
     <ClCompile Include="DlgIrcInput.cpp" />
     <ClCompile Include="DlgLanguage.cpp" />
@@ -1520,9 +1518,7 @@
     <ClInclude Include="DlgGraphItem.h" />
     <ClInclude Include="DlgGraphList.h" />
     <ClInclude Include="DlgHelp.h" />
-    <ClInclude Include="DlgHex.h">
-      <ExcludedFromBuild Condition="'$(Configuration)'=='Release'">true</ExcludedFromBuild>
-    </ClInclude>
+    <ClInclude Include="DlgHex.h" />
     <ClInclude Include="DlgHitColumns.h" />
     <ClInclude Include="DlgIrcInput.h" />
     <ClInclude Include="DlgLanguage.h" />
