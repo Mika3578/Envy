@@ -823,6 +823,23 @@ BOOL CUploadTransferED2K::OnReask()
 //////////////////////////////////////////////////////////////////////
 // CUploadTransferED2K 64bit Large file support
 
+//////////////////////////////////////////////////////////////////////
+// CUploadTransferED2K start upload
+
+BOOL CUploadTransferED2K::OnStartUpload(CEDPacket* /*pPacket*/)
+{
+	if ( m_nState == upsRequest )
+	{
+		m_nState = upsUploading;
+		theApp.Message( MSG_NOTICE, IDS_UPLOAD_FILE, (LPCTSTR)m_sName, (LPCTSTR)m_sAddress );
+		return TRUE;
+	}
+	return FALSE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CUploadTransferED2K request parts 64bit
+
 BOOL CUploadTransferED2K::OnRequestParts64(CEDPacket* pPacket)
 {
 	if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 4 * 3 * 2 )

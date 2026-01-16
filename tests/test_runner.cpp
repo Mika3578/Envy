@@ -112,6 +112,8 @@ private:
 #include "test_crypto.cpp"
 #include "test_ed2k.cpp"
 #include "test_integration.cpp"
+#include "test_sha256.cpp"
+#include "test_merkle_tree.cpp"
 
 // Forward declarations for test functions
 bool test_kademlia_basic_impl();
@@ -120,6 +122,7 @@ bool test_crypto_basic_impl();
 bool test_ed2k_basic_impl();
 bool test_integration_kademlia_ed2k_impl();
 bool test_integration_crypto_aich_impl();
+int test_merkle_tree();
 
 // Test function implementations that call the actual test functions
 bool test_kademlia_basic() { return test_kademlia_basic_impl(); }
@@ -128,6 +131,8 @@ bool test_crypto_basic() { return test_crypto_availability() && test_crypto_key_
 bool test_ed2k_basic() { return test_ed2k_file_identifier() && test_ed2k_multipacket() && test_ed2k_hashset() && test_ed2k_aich_integration(); }
 bool test_integration_kademlia_ed2k() { return test_integration_kademlia_ed2k_impl(); }
 bool test_integration_crypto_aich() { return test_integration_crypto_aich_impl(); }
+bool test_sha256_basic() { return test_sha256_known_vectors() && test_sha256_incremental() && test_sha256_state(); }
+bool test_merkle_tree_basic() { return test_merkle_tree() == 0; }
 
 // Test suite instance
 TestSuite g_test_suite;
@@ -138,6 +143,8 @@ int main() {
     g_test_suite.add_test("AICHManager Basic Functionality", test_aich_basic);
     g_test_suite.add_test("CryptoProvider Basic Functionality", test_crypto_basic);
     g_test_suite.add_test("ED2K Protocol Basic Functionality", test_ed2k_basic);
+    g_test_suite.add_test("SHA-256 Hash Implementation", test_sha256_basic);
+    g_test_suite.add_test("MerkleTree Basic Functionality", test_merkle_tree_basic);
     g_test_suite.add_test("Kademlia-ED2K Integration", test_integration_kademlia_ed2k);
     g_test_suite.add_test("Crypto-AICH Integration", test_integration_crypto_aich);
 

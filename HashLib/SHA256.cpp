@@ -52,9 +52,10 @@ void CSHA256::Add(const void* pData, size_t nLength)
 	m_State.m_nCount += nLength * 8; // Convert to bits
 
 	// Process data in 512-bit (64-byte) chunks
+	size_t bufferPos = (m_State.m_nCount / 8) % SHA256State::blockSize;
+
 	while (bytesProcessed < nLength) {
-		size_t bufferPos = (m_State.m_nCount / 8 % SHA256State::blockSize) - (bytesProcessed * 8 / 8);
-		size_t bytesToCopy = std::min(nLength - bytesProcessed,
+		size_t bytesToCopy = (std::min)(nLength - bytesProcessed,
 			static_cast<size_t>(SHA256State::blockSize - bufferPos));
 
 		std::copy(data + bytesProcessed, data + bytesProcessed + bytesToCopy,
@@ -76,7 +77,7 @@ void CSHA256::Add(const void* pData, size_t nLength)
 			}
 
 			for (int i = 16; i < 64; ++i) {
-				w[i] = sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
+				w[i] = Sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
 			}
 
 			Transform(w);
@@ -104,7 +105,7 @@ void CSHA256::Finish()
 				   m_State.m_oBuffer[i * 4 + 3];
 		}
 		for (int i = 16; i < 64; ++i) {
-			w[i] = sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
+			w[i] = Sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
 		}
 		Transform(w);
 		std::fill_n(m_State.m_oBuffer, SHA256State::blockSize - 8, 0);
@@ -135,7 +136,7 @@ void CSHA256::Finish()
 			   m_State.m_oBuffer[i * 4 + 3];
 	}
 	for (int i = 16; i < 64; ++i) {
-		w[i] = sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
+		w[i] = Sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
 	}
 	Transform(w);
 }

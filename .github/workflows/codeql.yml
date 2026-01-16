@@ -15,7 +15,7 @@ jobs:
     name: Analyze C++
     runs-on: windows-latest
     timeout-minutes: 360
-    
+
     permissions:
       security-events: write
       packages: read
@@ -33,13 +33,43 @@ jobs:
         config-file: ./.github/codeql/codeql-config.yml
         queries: +security-and-quality
 
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v2
+    - name: Setup MSBuild
+      shell: pwsh
+      run: |
+        # Find Visual Studio installation using vswhere (pre-installed on windows-latest)
+        $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
+          -latest `
+          -products * `
+          -requires Microsoft.Component.MSBuild `
+          -property installationPath
+
+        if ($vsPath) {
+          Write-Host "Found Visual Studio at: $vsPath"
+
+          # Add MSBuild to PATH
+          $msbuildPath = Join-Path $vsPath "MSBuild\Current\Bin"
+          if (Test-Path $msbuildPath) {
+            Write-Host "Adding MSBuild to PATH: $msbuildPath"
+            echo "$msbuildPath" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+          } else {
+            Write-Error "MSBuild not found at: $msbuildPath"
+            exit 1
+          }
+
+          # Add vswhere location to PATH for consistency
+          $vswherePath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer"
+          echo "$vswherePath" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+        } else {
+          Write-Error "Visual Studio installation not found!"
+          exit 1
+        }
 
     - name: Restore NuGet packages
+      working-directory: ${{github.workspace}}
       run: nuget restore "Visual Studio/Envy.sln"
 
     - name: Build with MSBuild
+      working-directory: ${{github.workspace}}
       run: |
         # Note: Building x64 Release for CodeQL. Win32-specific code paths are analyzed through shared codebase.
         msbuild /m /p:Configuration=Release /p:Platform=x64 "Visual Studio/Envy.sln"

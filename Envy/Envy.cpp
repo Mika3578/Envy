@@ -112,6 +112,7 @@ CAppCommandLineInfo::CAppCommandLineInfo()
 	, m_bNoAlphaWarning ( FALSE )
 	, m_bNoLibrary	( FALSE )
 	, m_bNoDownloads( FALSE )
+	, m_bNoLazyLibrary( FALSE )
 	, m_nGUIMode	( -1 )
 {
 }
@@ -149,6 +150,11 @@ void CAppCommandLineInfo::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLa
 		if ( _tcsicmp( pszParam, L"nodownloads" ) == 0 )
 		{
 			m_bNoDownloads = TRUE;
+			return;
+		}
+		if ( _tcsicmp( pszParam, L"nolazy" ) == 0 || _tcsicmp( pszParam, L"nolazylib" ) == 0 )
+		{
+			m_bNoLazyLibrary = TRUE;
 			return;
 		}
 		if ( _tcsicmp( pszParam, L"basic" ) == 0 )
@@ -562,7 +568,14 @@ BOOL CEnvyApp::InitInstance()
 		CThumbCache::InitDatabase();	// Several seconds if large (~5s)
 	SplashStep( L"Library" );
 		if ( ! m_cmdInfo.m_bNoLibrary )
-			Library.Load();				// Lengthy if very large (~20s), skipped with -nolib
+		{
+			Library.Load();				// Basic load (~10-15s), lazy operations in background
+			if ( m_cmdInfo.m_bNoLazyLibrary )
+			{
+				// Force synchronous completion of lazy operations
+				Library.CompleteLazyLoading();
+			}
+		}
 	SplashStep( L"Downloads" );
 		if ( ! m_cmdInfo.m_bNoDownloads )
 			Downloads.PreLoadAsync();	// Background preload - non-blocking (~1min in background), skipped with -nodownloads

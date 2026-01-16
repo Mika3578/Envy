@@ -1,4 +1,4 @@
-//
+﻿//
 // Downloads.cpp
 //
 // This file is part of Envy (getenvy.com) � 2016-2018
@@ -942,6 +942,37 @@ BOOL CDownloads::IsSpaceAvailable(QWORD nVolume, int nPath)
 
 void CDownloads::OnRun()
 {
+	// Background preloading mode - runs in separate thread started by PreLoadAsync()
+	if ( ! m_pPreloadFiles.IsEmpty() && ! m_bPreloadCompleted )
+	{
+	CSingleLock pLock( &Transfers.m_pSection, TRUE );
+
+	while ( ! m_pPreloadFiles.IsEmpty() && IsThreadEnabled() )
+	{
+	CString strPath = m_pPreloadFiles.RemoveHead();
+
+	// Load the download (lock must be held for Load())
+	if ( Load( strPath ) )
+	{
+	InterlockedIncrement( reinterpret_cast<volatile LONG*>( &m_nPreloadCurrent ) );
+	}
+	else
+	{
+	// Failed to load, still count as processed
+	InterlockedIncrement( reinterpret_cast<volatile LONG*>( &m_nPreloadCurrent ) );
+	}
+
+	// Release lock briefly to allow other threads to run
+	pLock.Unlock();
+	Sleep( 10 );
+	pLock.Lock();
+	}
+
+	m_bPreloadCompleted = true;
+	return;
+	}
+
+	// Normal download management mode
 	CSingleLock oLock( &Transfers.m_pSection );
 	if ( ! oLock.Lock( 250 ) )
 		return;
@@ -1524,42 +1555,6 @@ void CDownloads::PreLoadAsync()
 		// No files to preload, mark as completed
 		m_bPreloadCompleted = true;
 	}
-}
-
-/**
- * @brief Background thread function for asynchronous download preloading
- *
- * Loads download files in the background without blocking the UI.
- * Updates progress that can be displayed to the user.
- */
-void CDownloads::OnRun()
-{
-	CSingleLock pLock( &Transfers.m_pSection, TRUE );
-
-	while ( ! m_pPreloadFiles.IsEmpty() && IsThreadEnabled() )
-	{
-		CString strPath = m_pPreloadFiles.RemoveHead();
-
-		pLock.Unlock();
-
-		// Load the download (this is the expensive operation)
-		if ( Load( strPath ) )
-		{
-			InterlockedIncrement( &m_nPreloadCurrent );
-		}
-		else
-		{
-			// Failed to load, still count as processed
-			InterlockedIncrement( &m_nPreloadCurrent );
-		}
-
-		pLock.Lock();
-
-		// Small delay to prevent overwhelming the system
-		Sleep( 10 );
-	}
-
-	m_bPreloadCompleted = true;
 }
 
 /**

@@ -1,4 +1,4 @@
-//
+﻿//
 // SHA256.h
 //
 // SHA-256 hash implementation for BitTorrent v2 (BEP-52)
@@ -19,6 +19,16 @@
 
 #pragma once
 
+#include "Utility.hpp"
+
+#ifndef HASHLIB_API
+#ifdef HASHLIB_EXPORTS
+#define HASHLIB_API __declspec(dllexport)
+#else
+#define HASHLIB_API __declspec(dllimport)
+#endif
+#endif
+
 class HASHLIB_API CSHA256
 {
 public:
@@ -37,7 +47,7 @@ public:
 	void Finish();
 	void Add(const void* pData, size_t nLength);
 
-	struct HASHLIB_API Digest // 256 bit (32 bytes)
+	struct Digest // 256 bit (32 bytes)
 	{
 		uint32& operator[](size_t i) { return data[i]; }
 		const uint32& operator[](size_t i) const { return data[i]; }

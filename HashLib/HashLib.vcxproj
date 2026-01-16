@@ -217,6 +217,7 @@
     <ClCompile Include="MD4.cpp" />
     <ClCompile Include="MD5.cpp" />
     <ClCompile Include="SHA.cpp" />
+    <ClCompile Include="SHA256.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -254,6 +255,7 @@
     <ClInclude Include="MD5.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SHA.h" />
+    <ClInclude Include="SHA256.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TigerTree.h" />
     <ClInclude Include="Utility.hpp" />
