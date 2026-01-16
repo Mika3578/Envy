@@ -1,7 +1,7 @@
 //
 // Downloads.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -61,6 +61,9 @@ CDownloads::CDownloads()
 	, m_bAllowMoreDownloads	( true )
 	, m_bAllowMoreTransfers	( true )
 	, m_bClosing			( false )
+	, m_bPreloadCompleted	( false )
+	, m_nPreloadTotal		( 0 )
+	, m_nPreloadCurrent		( 0 )
 {
 }
 
@@ -1479,3 +1482,103 @@ void CDownloads::PurgeFiles()
 //		}
 //	}
 //}
+
+//////////////////////////////////////////////////////////////////////
+// CDownloads background preloading
+
+/**
+ * @brief Starts asynchronous background preloading of downloads
+ *
+ * This method collects all .pd/.sd files to preload and starts a background thread
+ * to load them without blocking the main UI thread during startup.
+ */
+void CDownloads::PreLoadAsync()
+{
+	const CString strRoot = Settings.Downloads.IncompletePath + L"\\";
+
+	WIN32_FIND_DATA pFind = {};
+	HANDLE hSearch = FindFirstFile( strRoot + L"*.?d", &pFind );		// .pd files + .sd Shareaza imports
+	if ( hSearch == INVALID_HANDLE_VALUE ) return;
+
+	m_pPreloadFiles.RemoveAll();
+	m_bPreloadCompleted = false;
+	m_nPreloadCurrent = 0;
+
+	do
+	{
+		m_pPreloadFiles.AddTail( strRoot + pFind.cFileName );
+	}
+	while ( FindNextFile( hSearch, &pFind ) );
+
+	FindClose( hSearch );
+
+	m_nPreloadTotal = (DWORD)m_pPreloadFiles.GetCount();
+
+	if ( m_nPreloadTotal > 0 )
+	{
+		// Start background thread for preloading
+		BeginThread( "DownloadsPreload", THREAD_PRIORITY_BELOW_NORMAL );
+	}
+	else
+	{
+		// No files to preload, mark as completed
+		m_bPreloadCompleted = true;
+	}
+}
+
+/**
+ * @brief Background thread function for asynchronous download preloading
+ *
+ * Loads download files in the background without blocking the UI.
+ * Updates progress that can be displayed to the user.
+ */
+void CDownloads::OnRun()
+{
+	CSingleLock pLock( &Transfers.m_pSection, TRUE );
+
+	while ( ! m_pPreloadFiles.IsEmpty() && IsThreadEnabled() )
+	{
+		CString strPath = m_pPreloadFiles.RemoveHead();
+
+		pLock.Unlock();
+
+		// Load the download (this is the expensive operation)
+		if ( Load( strPath ) )
+		{
+			InterlockedIncrement( &m_nPreloadCurrent );
+		}
+		else
+		{
+			// Failed to load, still count as processed
+			InterlockedIncrement( &m_nPreloadCurrent );
+		}
+
+		pLock.Lock();
+
+		// Small delay to prevent overwhelming the system
+		Sleep( 10 );
+	}
+
+	m_bPreloadCompleted = true;
+}
+
+/**
+ * @brief Checks if background preloading has completed
+ *
+ * @return true if all downloads have been preloaded, false otherwise
+ */
+bool CDownloads::IsPreloadCompleted() const
+{
+	return m_bPreloadCompleted;
+}
+
+/**
+ * @brief Gets the current preload progress as a percentage
+ *
+ * @return Progress percentage (0-100)
+ */
+DWORD CDownloads::GetPreloadProgress() const
+{
+	if ( m_nPreloadTotal == 0 ) return 100;
+	return ( m_nPreloadCurrent * 100 ) / m_nPreloadTotal;
+}

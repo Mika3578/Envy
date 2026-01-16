@@ -1,0 +1,249 @@
+---
+description: Error handling patterns, exception safety, and debugging practices
+globs: ["**/*.cpp", "**/*.h", "**/*.hpp"]
+---
+
+# Error Handling Patterns
+
+## Exception Safety
+
+### RAII and Smart Pointers
+```cpp
+// ✅ Good: RAII with smart pointers
+void ProcessFile(const CString& strPath) {
+    auto pFile = std::make_unique<CFile>();
+    if (!pFile->Open(strPath)) {
+        throw std::runtime_error("Failed to open file");
+    }
+    // File automatically closed on exception
+}
+
+// ❌ Bad: Manual cleanup needed
+void ProcessFileBad(const CString& strPath) {
+    CFile* pFile = new CFile();
+    if (!pFile->Open(strPath)) {
+        delete pFile;  // Easy to forget
+        throw std::runtime_error("Failed to open file");
+    }
+    delete pFile;  // Must remember
+}
+```
+
+## Win32 API Error Checking
+
+```cpp
+// ✅ Good: Check Win32 API return values
+HANDLE hFile = CreateFile(strPath, GENERIC_READ, 0, nullptr,
+                         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+if (hFile == INVALID_HANDLE_VALUE) {
+    DWORD dwError = GetLastError();
+    theApp.Message(MSG_ERROR, _T("CreateFile failed: %lu"), dwError);
+    return false;
+}
+
+// ✅ Good: Use RAII wrapper
+class CHandleWrapper {
+    HANDLE m_hHandle;
+public:
+    CHandleWrapper(HANDLE h) : m_hHandle(h) {}
+    ~CHandleWrapper() { if (m_hHandle != INVALID_HANDLE_VALUE) CloseHandle(m_hHandle); }
+    operator HANDLE() const { return m_hHandle; }
+};
+```
+
+## MFC Error Handling
+
+```cpp
+// ✅ Good: MFC object validation
+CFile file;
+if (!file.Open(strPath, CFile::modeRead)) {
+    theApp.Message(MSG_ERROR, _T("Failed to open file: %s"), (LPCTSTR)strPath);
+    return false;
+}
+
+// ✅ Good: Check for null pointers (use NULL in legacy code, nullptr in new code)
+if (pConnection == NULL) {  // Legacy codebase uses NULL
+    theApp.Message(MSG_ERROR, _T("Connection is null"));
+    return false;
+}
+
+// ✅ Good: Use theApp.Message() for error reporting
+void ProcessFile(const CString& strPath) {
+    if (!ValidatePath(strPath)) {
+        theApp.Message(MSG_ERROR, _T("Invalid path: %s"), (LPCTSTR)strPath);
+        return;
+    }
+}
+
+// ✅ Good: Check socket validity
+inline BOOL IsValid() const throw() {
+    return (m_hSocket != INVALID_SOCKET);
+}
+```
+
+## Assertions and Debugging
+
+```cpp
+// ✅ Good: Debug-time assertions
+ASSERT(pConnection != nullptr);
+ASSERT(nSize > 0);
+ASSERT(m_state != DownloadState::Invalid);
+
+// ✅ Good: Release-safe checks
+VERIFY(file.Open(strPath, CFile::modeRead));
+
+// ✅ Good: Debug logging
+#ifdef _DEBUG
+    TRACE(_T("Processing file: %s\n"), (LPCTSTR)strPath);
+    TRACE(_T("File size: %llu bytes\n"), nFileSize);
+#endif
+```
+
+## Exception Handling
+
+```cpp
+// ✅ Good: Catch specific exceptions
+try {
+    ProcessNetworkData(pBuffer, nSize);
+}
+catch (const NetworkException& e) {
+    theApp.Message(MSG_ERROR, _T("Network error: %hs"), e.what());
+    return false;
+}
+catch (const std::exception& e) {
+    theApp.Message(MSG_ERROR, _T("Error: %hs"), e.what());
+    return false;
+}
+catch (...) {
+    theApp.Message(MSG_ERROR, _T("Unknown error occurred"));
+    return false;
+}
+
+// ❌ Bad: Swallow all exceptions
+try {
+    ProcessData();
+}
+catch (...) {
+    // Silent failure - bad!
+}
+```
+
+## Return Value Patterns
+
+### Boolean Returns
+```cpp
+// ✅ Good: Clear boolean return
+bool StartDownload() {
+    if (!ValidateState()) {
+        return false;
+    }
+    // ... implementation
+    return true;
+}
+
+// ✅ Good: Use std::optional for optional values
+std::optional<CString> FindUserName(DWORD nUserID) {
+    CString strName;
+    if (LookupUser(nUserID, strName)) {
+        return strName;
+    }
+    return std::nullopt;
+}
+```
+
+### Error Codes
+```cpp
+// ✅ Good: Use enum for error codes
+enum class ErrorCode {
+    Success,
+    InvalidState,
+    NetworkError,
+    FileNotFound
+};
+
+ErrorCode StartDownload() {
+    if (!ValidateState()) {
+        return ErrorCode::InvalidState;
+    }
+    // ... implementation
+    return ErrorCode::Success;
+}
+```
+
+## Network Error Handling
+
+```cpp
+// ✅ Good: Network timeout handling
+bool ConnectWithTimeout(const CString& strHost, WORD nPort, DWORD dwTimeout) {
+    // Set socket timeout
+    DWORD dwTimeoutMs = dwTimeout;
+    setsockopt(m_hSocket, SOL_SOCKET, SO_RCVTIMEO,
+               (const char*)&dwTimeoutMs, sizeof(dwTimeoutMs));
+
+    // Attempt connection
+    if (connect(m_hSocket, ...) == SOCKET_ERROR) {
+        DWORD dwError = WSAGetLastError();
+        if (dwError == WSAETIMEDOUT) {
+            theApp.Message(MSG_ERROR, _T("Connection timeout"));
+            return false;
+        }
+        theApp.Message(MSG_ERROR, _T("Connection failed: %lu"), dwError);
+        return false;
+    }
+    return true;
+}
+```
+
+## Resource Cleanup
+
+```cpp
+// ✅ Good: Automatic cleanup with RAII
+class CScopedLock {
+    CRITICAL_SECTION* m_pCS;
+public:
+    CScopedLock(CRITICAL_SECTION* pCS) : m_pCS(pCS) {
+        EnterCriticalSection(m_pCS);
+    }
+    ~CScopedLock() {
+        LeaveCriticalSection(m_pCS);
+    }
+};
+
+void ProcessData() {
+    CRITICAL_SECTION cs;
+    InitializeCriticalSection(&cs);
+    {
+        CScopedLock lock(&cs);
+        // Protected code
+    }  // Lock automatically released
+    DeleteCriticalSection(&cs);
+}
+```
+
+## Error Logging
+
+```cpp
+// ✅ Good: Contextual error messages
+void DownloadFile(const CString& strUrl) {
+    try {
+        // ... download logic
+    }
+    catch (const std::exception& e) {
+        CString strError;
+        strError.Format(_T("Failed to download %s: %hs"),
+                       (LPCTSTR)strUrl, e.what());
+        theApp.Message(MSG_ERROR, strError);
+        LogError(strError);
+        throw;
+    }
+}
+```
+
+## Avoid
+
+- Swallowing exceptions silently
+- Using exceptions for control flow
+- Forgetting to check return values
+- Not cleaning up resources on error paths
+- Generic error messages without context
+- Ignoring error codes from Win32 APIs

@@ -1,7 +1,7 @@
 //
 // Envy.cpp
 //
-// This file is part of Envy (getenvy.com) ù 2016-2020
+// This file is part of Envy (getenvy.com) ÔøΩ 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -110,6 +110,8 @@ CAppCommandLineInfo::CAppCommandLineInfo()
 	, m_bWait		( FALSE )
 	, m_bNoSplash	( FALSE )
 	, m_bNoAlphaWarning ( FALSE )
+	, m_bNoLibrary	( FALSE )
+	, m_bNoDownloads( FALSE )
 	, m_nGUIMode	( -1 )
 {
 }
@@ -137,6 +139,16 @@ void CAppCommandLineInfo::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLa
 		if ( _tcsicmp( pszParam, L"noskin" ) == 0 )
 		{
 			ClearSkins();
+			return;
+		}
+		if ( _tcsicmp( pszParam, L"nolib" ) == 0 || _tcsicmp( pszParam, L"nolibrary" ) == 0 )
+		{
+			m_bNoLibrary = TRUE;
+			return;
+		}
+		if ( _tcsicmp( pszParam, L"nodownloads" ) == 0 )
+		{
+			m_bNoDownloads = TRUE;
 			return;
 		}
 		if ( _tcsicmp( pszParam, L"basic" ) == 0 )
@@ -549,9 +561,11 @@ BOOL CEnvyApp::InitInstance()
 	SplashStep( L"Thumb Database" );
 		CThumbCache::InitDatabase();	// Several seconds if large (~5s)
 	SplashStep( L"Library" );
-		Library.Load();					// Lengthy if very large (~20s)
+		if ( ! m_cmdInfo.m_bNoLibrary )
+			Library.Load();				// Lengthy if very large (~20s), skipped with -nolib
 	SplashStep( L"Downloads" );
-		Downloads.PreLoad();			// Very lengthy if many files (~1min)
+		if ( ! m_cmdInfo.m_bNoDownloads )
+			Downloads.PreLoadAsync();	// Background preload - non-blocking (~1min in background), skipped with -nodownloads
 	SplashStep( L"Downloads Cleanup" );
 		Downloads.PurgeFiles();
 		Sleep( 50 );					// Allow some splash text visibility
