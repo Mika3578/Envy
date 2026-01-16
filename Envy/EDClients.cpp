@@ -1,7 +1,7 @@
 //
 // EDClients.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -417,6 +417,16 @@ BOOL CEDClients::OnAccept(CConnection* pConnection)
 
 BOOL CEDClients::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
+	// For EMULE_PACKED packets that were deferred from ReadBuffer(), inflate now
+	if ( pPacket->m_nEdProtocol == ED2K_PROTOCOL_EMULE_PACKED )
+	{
+		if ( ! pPacket->Inflate() )
+		{
+			// Inflation failed - discard packet
+			return FALSE;
+		}
+	}
+
 	pPacket->SmartDump( pHost, TRUE, FALSE );
 
 	if ( pPacket->m_nEdProtocol == ED2K_PROTOCOL_EDONKEY )

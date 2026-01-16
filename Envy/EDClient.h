@@ -1,4 +1,4 @@
-﻿//
+//
 // EDClient.h
 //
 // This file is part of Envy (getenvy.com) � 2016-2018
@@ -62,6 +62,7 @@ public:
 	// CryptLayer support
 	BOOL		m_bCryptLayerActive;	// CryptLayer encryption is active
 	BOOL		m_bCryptLayerRequested;	// CryptLayer handshake requested
+	BOOL		m_bCryptLayerInitiator;	// TRUE if we initiated the handshake
 	DWORD		m_nCryptLayerState;		// CryptLayer state (0=none, 2=negotiating, 3=active)
 	BYTE*		m_pPeerPublicKey;		// Peer's RSA public key
 	DWORD		m_nPeerKeyLen;			// Peer's public key length
@@ -160,6 +161,7 @@ protected:
 	BOOL	OnCryptLayerAnswer(CEDPacket* pPacket);
 	BOOL	EncryptPacket(BYTE* pData, DWORD nLength);
 	BOOL	DecryptPacket(BYTE* pData, DWORD nLength);
+	BOOL	ShouldInitiateCryptLayer() const;
 
 	// SecureID methods
 	void	GenerateSecureIdent();

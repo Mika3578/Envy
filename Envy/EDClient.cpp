@@ -230,7 +230,7 @@ BOOL CEDClient::StartCryptLayerHandshake()
 		return FALSE;
 
 	// Send our public key to the peer
-	CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_PUBLICKEY );
+	CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_PUBLICKEY, ED2K_PROTOCOL_EMULE );
 
 	if ( ! pPacket )
 		return FALSE;
@@ -276,8 +276,21 @@ BOOL CEDClient::ProcessCryptLayerHandshake(CEDPacket* pPacket)
 
 BOOL CEDClient::OnCryptLayerPublicKey(CEDPacket* pPacket)
 {
-	if ( m_nCryptLayerState != 2 || ! pPacket )
+	if ( ! pPacket )
 		return FALSE;
+
+	// If we're not expecting this (state != 2), it means peer initiated
+	// We should become the responder
+	if ( m_nCryptLayerState == 0 )
+	{
+		InitCryptLayer();
+		m_nCryptLayerState = 1;  // Responder mode
+	}
+	else if ( m_nCryptLayerState != 2 )
+	{
+		// Invalid state for receiving PUBLICKEY
+		return FALSE;
+	}
 
 	// Read the peer's public key
 	DWORD nKeyLen = pPacket->GetRemaining();
@@ -299,14 +312,29 @@ BOOL CEDClient::OnCryptLayerPublicKey(CEDPacket* pPacket)
 
 BOOL CEDClient::SendCryptLayerAnswer()
 {
-	if ( ! m_pPeerPublicKey || m_nPeerKeyLen == 0 || m_nCryptLayerState != 2 )
+	if ( ! m_pPeerPublicKey || m_nPeerKeyLen == 0 || ( m_nCryptLayerState != 1 && m_nCryptLayerState != 2 ) )
 		return FALSE;
 
-	// Generate random RC4 keys
-	for ( int i = 0; i < 16; i++ )
+	// Generate cryptographically secure random RC4 keys
+	if ( theApp.m_hCryptProv != 0 )
 	{
-		m_RC4SendKey[i] = (BYTE)(rand() & 0xFF);
-		m_RC4RecvKey[i] = (BYTE)(rand() & 0xFF);
+		// Use Windows CSPRNG
+		if ( ! CryptGenRandom( theApp.m_hCryptProv, 16, m_RC4SendKey ) ||
+			 ! CryptGenRandom( theApp.m_hCryptProv, 16, m_RC4RecvKey ) )
+		{
+			// CSPRNG failed, cannot proceed securely
+			return FALSE;
+		}
+	}
+	else
+	{
+		// Fallback to rand() if crypto provider unavailable (not recommended for production)
+		srand( (unsigned int)time( NULL ) );
+		for ( int i = 0; i < 16; i++ )
+		{
+			m_RC4SendKey[i] = (BYTE)(rand() & 0xFF);
+			m_RC4RecvKey[i] = (BYTE)(rand() & 0xFF);
+		}
 	}
 
 	// Encrypt the RC4 keys with peer's public key using RSA
@@ -330,7 +358,7 @@ BOOL CEDClient::SendCryptLayerAnswer()
 	m_RC4Recv.Init(m_RC4RecvKey, 16);
 
 	// Send the answer packet
-	CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_ANSWERCryptLayer );
+	CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_ANSWERCryptLayer, ED2K_PROTOCOL_EMULE );
 
 	if ( ! pPacket )
 		return FALSE;
@@ -347,36 +375,55 @@ BOOL CEDClient::SendCryptLayerAnswer()
 
 BOOL CEDClient::OnCryptLayerAnswer(CEDPacket* pPacket)
 {
-	if ( m_nCryptLayerState != 2 || ! pPacket )
+	if ( ! pPacket )
 		return FALSE;
 
-	// Read the encrypted RC4 keys
+	// If we're not expecting this (state != 2), it might be a valid response
+	// from a dual-initiation scenario. We'll still try to process it.
+	if ( m_nCryptLayerState != 2 )
+	{
+		// Only process if we have the peer's public key (from a previous PUBLICKEY)
+		if ( m_nCryptLayerState != 1 || ! m_pPeerPublicKey )
+			return FALSE;
+	}
+
+	// Read the encrypted RC4 keys - RSA ciphertext length is variable (modulus size)
 	DWORD nDataLen = pPacket->GetRemaining();
-	if ( nDataLen != 32 ) // Expect 16 + 16 bytes
+	if ( nDataLen == 0 || nDataLen > 512 ) // Sanity check - should be reasonable RSA modulus size
 		return FALSE;
 
-	BYTE encryptedKeys[32];
-	pPacket->Read( encryptedKeys, 32 );
+	// Allocate buffer for ciphertext
+	BYTE* pEncryptedKeys = new BYTE[nDataLen];
+	if ( ! pEncryptedKeys )
+		return FALSE;
+
+	pPacket->Read( pEncryptedKeys, nDataLen );
 
 	// Decrypt the RC4 keys using our private key
+	// Plaintext should be 32 bytes (16 bytes send key + 16 bytes receive key)
 	BYTE decryptedKeys[32];
 	size_t nDecryptedLen = sizeof(decryptedKeys);
 
-	if ( ! m_Crypto.DecryptWithPrivateKey( encryptedKeys, nDataLen, decryptedKeys, nDecryptedLen ) )
+	if ( ! m_Crypto.DecryptWithPrivateKey( pEncryptedKeys, nDataLen, decryptedKeys, nDecryptedLen ) )
 	{
 		// Decryption failed
+		delete[] pEncryptedKeys;
 		return FALSE;
 	}
+
+	// Clean up ciphertext buffer
+	delete[] pEncryptedKeys;
 
 	if ( nDecryptedLen != 32 )
 	{
-		// Wrong decrypted size
+		// Wrong decrypted size - should be exactly 32 bytes for two RC4 keys
 		return FALSE;
 	}
 
-	// Extract the RC4 keys (note: peer's send key becomes our receive key)
-	memcpy( m_RC4RecvKey, decryptedKeys, 16 );
-	memcpy( m_RC4SendKey, decryptedKeys + 16, 16 );
+	// Extract the RC4 keys (note: peer's send key becomes our receive key, peer's recv key becomes our send key)
+	// This matches the eMule specification: sender packs (sendKey, recvKey), receiver unpacks as (recvKey, sendKey)
+	memcpy( m_RC4RecvKey, decryptedKeys, 16 );      // Peer send key -> our receive key
+	memcpy( m_RC4SendKey, decryptedKeys + 16, 16 ); // Peer recv key -> our send key
 
 	// Initialize RC4 contexts
 	m_RC4Send.Init(m_RC4SendKey, 16);
@@ -462,6 +509,7 @@ CEDClient::CEDClient()
 	, m_bLogin				( FALSE )
 	, m_bCryptLayerActive	( FALSE )
 	, m_bCryptLayerRequested( FALSE )
+	, m_bCryptLayerInitiator( FALSE )
 	, m_nCryptLayerState	( 0 )
 	, m_pPeerPublicKey		( NULL )
 	, m_nPeerKeyLen			( 0 )
@@ -483,6 +531,14 @@ CEDClient::~CEDClient()
 	ASSERT( ! IsValid() );
 	ASSERT( m_pUploadTransfer == NULL );
 	ASSERT( m_pDownloadTransfer == NULL );
+
+	// Clean up CryptLayer resources
+	if ( m_pPeerPublicKey )
+	{
+		delete[] m_pPeerPublicKey;
+		m_pPeerPublicKey = NULL;
+		m_nPeerKeyLen = 0;
+	}
 
 	EDClients.Remove( this );
 }
@@ -682,7 +738,49 @@ void CEDClient::Send(CPacket* pPacket, BOOL bRelease)
 		{
 			pPacket->SmartDump( &m_pHost, FALSE, TRUE );
 
-			Write( pPacket );
+			// Apply CryptLayer encryption if active
+			// Note: Handshake packets (ED2K_C2C_PUBLICKEY, ED2K_C2C_ANSWERCryptLayer) are not encrypted
+			// as they establish the encryption channel. CEDClient handles client-to-client connections,
+			// so all packets here are C2C and should be encrypted (except handshake packets).
+			// Encryption must happen AFTER compression (which occurs in ToBuffer()) but BEFORE writing to network.
+			if ( m_bCryptLayerActive && pPacket->m_nProtocol == PROTOCOL_ED2K )
+			{
+				CEDPacket* pEDPacket = static_cast<CEDPacket*>( pPacket );
+				if ( pEDPacket &&
+					 pEDPacket->m_nType != ED2K_C2C_PUBLICKEY &&
+					 pEDPacket->m_nType != ED2K_C2C_ANSWERCryptLayer )
+				{
+					// Write packet to temporary buffer first (this handles compression)
+					CBuffer oTempBuffer;
+					pEDPacket->ToBuffer( &oTempBuffer, TRUE ); // TRUE = TCP
+
+					// Encrypt the payload portion (skip the ED2K_TCP_HEADER)
+					// Header structure: { protocol(1), length(4), type(1) } = 6 bytes
+					const DWORD nHeaderSize = sizeof( ED2K_TCP_HEADER );
+					if ( oTempBuffer.m_nLength > nHeaderSize )
+					{
+						BYTE* pPayload = oTempBuffer.m_pBuffer + nHeaderSize;
+						DWORD nPayloadLen = oTempBuffer.m_nLength - nHeaderSize;
+
+						// Encrypt the payload (after compression, if any)
+						EncryptPacket( pPayload, nPayloadLen );
+					}
+
+					// Write the encrypted packet to the actual output buffer
+					Write( &oTempBuffer );
+				}
+				else
+				{
+					// Not encrypting this packet, write normally
+					Write( pPacket );
+				}
+			}
+			else
+			{
+				// CryptLayer not active, write normally
+				Write( pPacket );
+			}
+
 			QueueRun();
 		}
 
@@ -928,6 +1026,34 @@ BOOL CEDClient::OnRead()
 	{
 		try
 		{
+			// Apply CryptLayer decryption if active
+			// Note: Handshake packets (ED2K_C2C_PUBLICKEY, ED2K_C2C_ANSWERCryptLayer) are not encrypted
+			// as they establish the encryption channel. CEDClient handles client-to-client connections,
+			// so all packets here are C2C and should be decrypted (except handshake packets).
+			if ( m_bCryptLayerActive &&
+				 pPacket->m_nType != ED2K_C2C_PUBLICKEY &&
+				 pPacket->m_nType != ED2K_C2C_ANSWERCryptLayer )
+			{
+				// Decrypt the packet payload (m_pBuffer contains the payload data)
+				if ( pPacket->m_pBuffer && pPacket->m_nLength > 0 )
+				{
+					DecryptPacket( pPacket->m_pBuffer, pPacket->m_nLength );
+				}
+			}
+
+			// Inflate compressed packets now that decryption (if any) is complete
+			if ( pPacket->m_nEdProtocol == ED2K_PROTOCOL_EMULE_PACKED ||
+				 pPacket->m_nEdProtocol == ED2K_PROTOCOL_KAD_PACKED ||
+				 pPacket->m_nEdProtocol == ED2K_PROTOCOL_REVCONNECT_PACKED )
+			{
+				if ( ! pPacket->Inflate() )
+				{
+					// Inflation failed - discard packet
+					pPacket->Release();
+					continue;
+				}
+			}
+
 			bSuccess = OnPacket( pPacket );
 		}
 		catch ( CException* pException )
@@ -968,7 +1094,42 @@ BOOL CEDClient::OnLoggedIn()
 			Send( pPacket );
 	}
 
+	// Initiate CryptLayer handshake if both sides support it and we haven't started yet
+	// Handshake should be initiated when:
+	// - Peer supports CryptLayer (peer capability parsed from hello packet)
+	// - Either we request it OR peer requires it
+	// - Handshake hasn't been started yet
+	// - We are the designated initiator (deterministic rule using GUID comparison)
+	if ( m_bEmSupportsCryptLayer &&
+		 ( m_bEmRequestsCryptLayer || m_bEmRequiresCryptLayer ) &&
+		 m_nCryptLayerState == 0 &&
+		 ! m_bCryptLayerInitiator &&
+		 ShouldInitiateCryptLayer() )
+	{
+		m_bCryptLayerInitiator = TRUE;  // Mark ourselves as initiator
+		InitCryptLayer();
+		StartCryptLayerHandshake();
+	}
+
 	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CEDClient CryptLayer initiator determination
+
+BOOL CEDClient::ShouldInitiateCryptLayer() const
+{
+	// Use deterministic rule based on GUID comparison to prevent dual initiation
+	// If our GUID > peer's GUID, we initiate. This ensures only one side initiates.
+
+	if ( ! m_oGUID )
+		return FALSE;  // Can't determine without peer GUID
+
+	const Hashes::Guid& oMyGUID = MyProfile.oGUID;
+	const Hashes::Guid& oPeerGUID = m_oGUID;
+
+	// Compare GUIDs lexicographically
+	return ( memcmp( oMyGUID.begin(), oPeerGUID.begin(), oMyGUID.byteCount ) > 0 );
 }
 
 CHostBrowser* CEDClient::GetBrowser() const
@@ -1148,6 +1309,12 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 			return ProcessSecureIdentChallenge( pPacket );
 		case ED2K_C2C_SIGNATURE:
 			return ProcessSecureIdentResponse( pPacket );
+
+		// CryptLayer handshake
+		case ED2K_C2C_PUBLICKEY:
+			return ProcessCryptLayerHandshake( pPacket );
+		case ED2K_C2C_ANSWERCryptLayer:
+			return ProcessCryptLayerHandshake( pPacket );
 		}
 	}
 

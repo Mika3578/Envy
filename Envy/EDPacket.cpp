@@ -454,10 +454,10 @@ CEDPacket* CEDPacket::ReadBuffer(CBuffer* pBuffer)
 	if ( pBuffer->m_nLength - sizeof( *pHeader ) + 1 < pHeader->nLength ) return NULL;
 	CEDPacket* pPacket = CEDPacket::New( pHeader );
 	pBuffer->Remove( sizeof( *pHeader ) + pHeader->nLength - 1 );
-	if ( pPacket->Inflate() )
-		return pPacket;
-	pPacket->Release();
-	return NULL;
+
+	// Always defer inflation to allow for potential CryptLayer decryption
+	// The caller (CEDClient::OnRead) will handle decryption and inflation as needed
+	return pPacket;
 }
 
 //////////////////////////////////////////////////////////////////////
