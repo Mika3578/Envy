@@ -1057,7 +1057,7 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 			if ( m_pDownloadTransfer ) m_pDownloadTransfer->OnQueueRank( pPacket );
 			return TRUE;
 		case ED2K_C2C_STARTUPLOAD:
-			if ( m_pDownloadTransfer ) m_pDownloadTransfer->OnStartUpload( pPacket );
+			if ( m_pUploadTransfer ) m_pUploadTransfer->OnStartUpload( pPacket );
 			return TRUE;
 		case ED2K_C2C_FINISHUPLOAD:
 			if ( m_pDownloadTransfer ) m_pDownloadTransfer->OnFinishUpload( pPacket );

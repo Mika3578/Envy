@@ -1,4 +1,4 @@
-//
+﻿//
 // BTInfo.cpp
 //
 // This file is part of Envy (getenvy.com) � 2016-2018
@@ -210,8 +210,8 @@ void CBTInfo::Clear()
 	m_nInfoSize			= 0;
 	m_nInfoStart		= 0;
 
-	// BitTorrent v2
-	m_oBTHv2.Reset();
+	// BitTorrent v2 - ToDo: Implement fully
+	// m_oBTHv2.Reset();
 	m_bIsHybrid			= false;
 	m_sMetaVersion.Empty();
 }
@@ -275,8 +275,8 @@ CBTInfo& CBTInfo::operator=(const CBTInfo& oSource)
 	m_nInfoSize			= oSource.m_nInfoSize;
 	m_nInfoStart		= oSource.m_nInfoStart;
 
-	// BitTorrent v2
-	m_oBTHv2			= oSource.m_oBTHv2;
+	// BitTorrent v2 - ToDo: Implement fully
+	// m_oBTHv2			= oSource.m_oBTHv2;
 	m_bIsHybrid			= oSource.m_bIsHybrid;
 	m_sMetaVersion		= oSource.m_sMetaVersion;
 
@@ -357,8 +357,8 @@ void CBTInfo::Serialize(CArchive& ar)
 			ar << (DWORD)0;
 		}
 
-		// BitTorrent v2 support (version 2+)
-		SerializeOut( ar, m_oBTHv2 );
+		// BitTorrent v2 support (version 2+) - ToDo: Implement fully
+		// SerializeOut( ar, m_oBTHv2 );
 		ar << m_bIsHybrid;
 		ar << m_sMetaVersion;
 	}
@@ -462,10 +462,10 @@ void CBTInfo::Serialize(CArchive& ar)
 			}
 		}
 
-		// BitTorrent v2 support (version 2+)
+		// BitTorrent v2 support (version 2+) - ToDo: Implement fully
 		if ( nVersion >= 2 )
 		{
-			SerializeIn( ar, m_oBTHv2, nVersion );
+			// SerializeIn( ar, m_oBTHv2, nVersion );
 			ar >> m_bIsHybrid;
 			ar >> m_sMetaVersion;
 		}
@@ -1425,7 +1425,7 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 	oSHA.GetHash( &m_oBTH[ 0 ] );
 	m_oBTH.validate();
 
-	// Check for BitTorrent v2 support (BEP-52)
+	// Check for BitTorrent v2 support (BEP-52) - ToDo: Implement fully
 	const CBENode* pMetaVersion = pInfo->GetNode( "meta version" );
 	if ( pMetaVersion && pMetaVersion->IsType( CBENode::beInt ) )
 	{
@@ -1435,9 +1435,9 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 			// This is a v2 torrent
 			m_sMetaVersion = L"2";
 
-			// Calculate SHA-256 info hash for v2
-			CSHA256 oSHA256 = pInfo->GetSHA256();
-			oSHA256.GetHash( &m_oBTHv2[ 0 ] );
+			// Calculate SHA-256 info hash for v2 - ToDo: Implement
+			// CSHA256 oSHA256 = pInfo->GetSHA256();
+			// oSHA256.GetHash( &m_oBTHv2[ 0 ] );
 
 			// Check if this is a hybrid torrent (has both v1 and v2 info)
 			if ( m_oBTH )  // v1 hash already calculated
@@ -1945,21 +1945,21 @@ bool CBTInfo::CBTTracker::operator==(const CBTTracker& oSource)
 
 
 //////////////////////////////////////////////////////////////////////
-// CBTInfo BitTorrent v2 support
+// CBTInfo BitTorrent v2 support - ToDo: Implement fully
 
-CString CBTInfo::GetInfoHashV2String() const
-{
-	if ( ! m_oBTHv2 ) return CString();
-
-	CString strHash;
-	for ( int nByte = 0; nByte < HASHSIZE; nByte++ )
-	{
-		CString strByte;
-		strByte.Format( L"%02x", m_oBTHv2[nByte] );
-		strHash += strByte;
-	}
-	return strHash;
-}
+// CString CBTInfo::GetInfoHashV2String() const
+// {
+//	if ( ! m_oBTHv2 ) return CString();
+//
+//	CString strHash;
+//	for ( int nByte = 0; nByte < HASHSIZE; nByte++ )
+//	{
+//		CString strByte;
+//		strByte.Format( L"%02x", m_oBTHv2[nByte] );
+//		strHash += strByte;
+//	}
+//	return strHash;
+// }
 
 //////////////////////////////////////////////////////////////////////
 // CBTInfo::CBTTracker serialize

@@ -55,6 +55,13 @@ namespace Hashes
 	typedef Hash< Policies::BthDescriptor, Policies::ZeroInit,
 			Policies::NoCheck, Policies::NoValidation > BtPureHash;
 
+	//! \brief The default SHA256 hash type (BitTorrent v2 support).
+	typedef Hash< Policies::Sha256Descriptor, Policies::ZeroInit,
+			Policies::NoCheck, Policies::BasicValidation > Sha256Hash;
+	//! \brief The SHA256 hash type suitable to represent conditions in (partial) file objects.
+	typedef Hash< Policies::Sha256Descriptor, Policies::ZeroInit,
+			Policies::ZeroCheck, Policies::ExtendedValidation > Sha256ManagedHash;
+
 	//! \brief The Guid hash type.
 	typedef Hash< Policies::GuidDescriptor, Policies::ZeroInit,
 			Policies::ZeroCheck, Policies::BasicValidation > Guid;

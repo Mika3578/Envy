@@ -1,4 +1,4 @@
-//
+﻿//
 // BTInfo.h
 //
 // This file is part of Envy (getenvy.com) � 2016-2018
@@ -135,8 +135,8 @@ private:
 	DWORD		m_nInfoStart;
 	DWORD		m_nInfoSize;
 
-	// BitTorrent v2 support (BEP-52)
-	CSHA256		m_oBTHv2;				// SHA-256 info hash for v2 torrents
+	// BitTorrent v2 support (BEP-52) - ToDo: Implement fully
+	// CSHA256	m_oBTHv2;				// SHA-256 info hash for v2 torrents
 	bool		m_bIsHybrid;			// True if torrent supports both v1 and v2
 	CString		m_sMetaVersion;			// Metadata version ("2" for v2)
 
@@ -193,10 +193,10 @@ public:
 		return IsAvailable() && m_nBlockSize && m_nBlockCount;
 	}
 
-	// BitTorrent v2 support
+	// BitTorrent v2 support - ToDo: Implement fully
 	inline bool IsBitTorrentV2() const
 	{
-		return m_oBTHv2;
+		return false; // m_oBTHv2;
 	}
 
 	inline bool IsHybrid() const
@@ -204,12 +204,12 @@ public:
 		return m_bIsHybrid;
 	}
 
-	inline const CSHA256& GetInfoHashV2() const
-	{
-		return m_oBTHv2;
-	}
+	// inline const CSHA256& GetInfoHashV2() const
+	// {
+	//	return m_oBTHv2;
+	// }
 
-	CString GetInfoHashV2String() const;
+	// CString GetInfoHashV2String() const;
 
 	inline bool HasEncodingError() const
 	{

@@ -58,6 +58,7 @@ public:
 	BOOL			m_bNoAlphaWarning;
 	BOOL			m_bNoLibrary;
 	BOOL			m_bNoDownloads;
+	BOOL			m_bNoLazyLibrary;
 	INT				m_nGUIMode;
 	CString			m_sTask;
 
