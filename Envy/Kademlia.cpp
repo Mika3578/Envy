@@ -706,8 +706,20 @@ bool CKademlia::UpdateContact(const KadContact& contact) {
         return false;
     }
 
-    // Don't add unknown/invalid node IDs (all-zero)
+    // SECURITY: Validate node ID is not all-zeros (invalid)
     if (IsZeroId(contact.id)) {
+        return false;
+    }
+
+    // SECURITY: Validate node ID is not all-ones (invalid)
+    bool allOnes = true;
+    for (int i = 0; i < KAD_ID_SIZE; i++) {
+        if (contact.id[i] != 0xFF) {
+            allOnes = false;
+            break;
+        }
+    }
+    if (allOnes) {
         return false;
     }
 
@@ -723,6 +735,25 @@ bool CKademlia::UpdateContact(const KadContact& contact) {
             (contact.ip & 0xFFF00000) == 0xAC100000 ||  // 172.16.x.x - 172.31.x.x
             (contact.ip & 0xFFFF0000) == 0xC0A80000) {  // 192.168.x.x
             return false;
+        }
+    }
+
+    // SECURITY: Eclipse attack protection - limit contacts from same /24 subnet
+    // Count existing contacts from the same /24 subnet
+    DWORD subnet = contact.ip & 0xFFFFFF00;  // /24 subnet mask
+    int subnetCount = 0;
+    const int MAX_CONTACTS_PER_SUBNET = 2;  // eMule standard
+    
+    for (auto& bucket : m_routingTable.m_buckets) {
+        for (const auto& existingContact : bucket.contacts) {
+            if ((existingContact.ip & 0xFFFFFF00) == subnet) {
+                subnetCount++;
+                if (subnetCount >= MAX_CONTACTS_PER_SUBNET) {
+                    // Too many contacts from this subnet - reject to prevent Eclipse attack
+                    theApp.Message(MSG_DEBUG, L"Kad2: Rejected contact from subnet (Eclipse protection)");
+                    return false;
+                }
+            }
         }
     }
 
