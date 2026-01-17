@@ -88,7 +88,10 @@ void kad_hash(void *hash_return, int hash_size,
     memcpy(hash_return, sha1_result, copy_size);
 }
 
-// Generate random bytes
+// Generate random bytes using cryptographically secure RNG
+// Returns 0 on success, -1 on failure
+// SECURITY: Callers MUST check return value and handle failure appropriately
+// Do NOT proceed with cryptographic operations if this function fails
 int kad_random_bytes(void *buf, size_t size)
 {
     if (!buf || size == 0) {
@@ -110,6 +113,7 @@ int kad_random_bytes(void *buf, size_t size)
     if (!CryptAcquireContext(&hProvider, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
         // CRITICAL: Cryptographic RNG failed - this is a security-critical operation
         // DO NOT fallback to insecure rand() - return error instead
+        // Caller must handle this error appropriately (e.g., abort operation, use default, etc.)
         ASSERT(FALSE); // Alert in debug builds
         return -1; // Failure - caller must handle this
     }
