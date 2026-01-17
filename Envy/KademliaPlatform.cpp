@@ -16,6 +16,7 @@
 #include "Kademlia.h"
 #include "Security.h"
 #include "Network.h"
+#include "../HashLib/SHA.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -51,44 +52,40 @@ int kad_blacklisted(const struct sockaddr *addr, int addr_len)
     return 0; // Not blacklisted
 }
 
-// Hash function - uses Envy's existing hash functions
+// Hash function - uses SHA-1 for cryptographic security (eMule-compatible)
 void kad_hash(void *hash_return, int hash_size,
              const void *v1, int len1,
              const void *v2, int len2,
              const void *v3, int len3)
 {
-    // For Kademlia, we typically need SHA-1 or similar
-    // Use Envy's SHA class if available, otherwise fallback to simple hash
-
-    // Simple implementation - concatenate inputs and hash
-    std::vector<unsigned char> data;
-
+    // Use SHA-1 for Kademlia hashing (compatible with eMule)
+    // SHA-1 provides cryptographic security against collision and preimage attacks
+    
+    CSHA sha1;
+    
+    // Add all input data to the hash
     if (v1 && len1 > 0) {
-        data.insert(data.end(), (unsigned char*)v1, (unsigned char*)v1 + len1);
+        sha1.Add(v1, len1);
     }
     if (v2 && len2 > 0) {
-        data.insert(data.end(), (unsigned char*)v2, (unsigned char*)v2 + len2);
+        sha1.Add(v2, len2);
     }
     if (v3 && len3 > 0) {
-        data.insert(data.end(), (unsigned char*)v3, (unsigned char*)v3 + len3);
+        sha1.Add(v3, len3);
     }
-
-    // For now, use a simple hash - should be replaced with proper crypto hash
-    unsigned int hash = 5381; // djb2 hash
-    for (size_t i = 0; i < data.size(); i++) {
-        hash = ((hash << 5) + hash) + data[i];
-    }
-
-    // Copy result to output buffer
+    
+    // Finalize the hash computation
+    sha1.Finish();
+    
+    // Get the SHA-1 hash (20 bytes)
+    unsigned char sha1_result[20];
+    sha1.GetHash(sha1_result);
+    
+    // Copy the requested number of bytes to output buffer
+    // Zero out the buffer first, then copy what we need
     memset(hash_return, 0, hash_size);
-    memcpy(hash_return, &hash, (hash_size < (int)sizeof(hash)) ? hash_size : (int)sizeof(hash));
-
-    // TODO: Replace with proper SHA-1 or similar cryptographic hash
-    // Example using Envy's hash library:
-    // Hashes::Sha1 sha1;
-    // sha1.Add(data.data(), data.size());
-    // sha1.Finish();
-    // memcpy(hash_return, sha1.GetHash(), min(hash_size, Hashes::Sha1::byteCount));
+    int copy_size = (hash_size < 20) ? hash_size : 20;
+    memcpy(hash_return, sha1_result, copy_size);
 }
 
 // Generate random bytes
@@ -99,16 +96,22 @@ int kad_random_bytes(void *buf, size_t size)
     }
 
     // Use Windows CryptGenRandom for cryptographic randomness
-    HCRYPTPROV hProvider = 0;
-
-    if (!CryptAcquireContext(&hProvider, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
-        // Fallback to rand() if crypto provider unavailable
-        srand((unsigned int)time(NULL));
-        unsigned char *buffer = (unsigned char *)buf;
-        for (size_t i = 0; i < size; i++) {
-            buffer[i] = (unsigned char)(rand() & 0xFF);
+    // Priority: Use theApp.m_hCryptProv if available, otherwise create temporary context
+    if (theApp.m_hCryptProv != 0) {
+        // Use existing crypto provider from the application
+        if (CryptGenRandom(theApp.m_hCryptProv, (DWORD)size, (BYTE *)buf)) {
+            return 0; // Success
         }
-        return 0;
+        // Fall through to try creating a temporary context
+    }
+
+    // Try to create a temporary cryptographic context
+    HCRYPTPROV hProvider = 0;
+    if (!CryptAcquireContext(&hProvider, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+        // CRITICAL: Cryptographic RNG failed - this is a security-critical operation
+        // DO NOT fallback to insecure rand() - return error instead
+        ASSERT(FALSE); // Alert in debug builds
+        return -1; // Failure - caller must handle this
     }
 
     BOOL success = CryptGenRandom(hProvider, (DWORD)size, (BYTE *)buf);

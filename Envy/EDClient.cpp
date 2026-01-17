@@ -28,6 +28,7 @@
 #include "Network.h"
 #include "GProfile.h"
 #include "HostCache.h"
+#include "../HashLib/MD5.h"
 
 #include "Library.h"
 #include "LibraryFolders.h"
@@ -63,10 +64,29 @@ static char THIS_FILE[] = __FILE__;
 
 void CEDClient::GenerateSecureIdent()
 {
-	// Generate random 6-byte SecureID challenge
-	for (int i = 0; i < 6; i++)
+	// Generate cryptographically secure random 6-byte SecureID challenge
+	// SECURITY FIX: Use CryptGenRandom instead of insecure rand()
+	if (theApp.m_hCryptProv != 0)
 	{
-		m_nSecureIdent[i] = (BYTE)(rand() & 0xFF);
+		if (!CryptGenRandom(theApp.m_hCryptProv, 6, m_nSecureIdent))
+		{
+			// CSPRNG failed - critical security error
+			ASSERT(FALSE);
+			theApp.Message(MSG_ERROR, L"ED2K: Failed to generate secure challenge");
+			// Zero out to prevent use of uninitialized data
+			memset(m_nSecureIdent, 0, 6);
+			m_nSecureIdentState = 0;
+			return;
+		}
+	}
+	else
+	{
+		// No crypto provider - critical error
+		ASSERT(FALSE);
+		theApp.Message(MSG_ERROR, L"ED2K: Crypto provider unavailable");
+		memset(m_nSecureIdent, 0, 6);
+		m_nSecureIdentState = 0;
+		return;
 	}
 	m_nSecureIdentState = 1; // Challenging
 }
@@ -110,35 +130,29 @@ BOOL CEDClient::ProcessSecureIdentChallenge(CEDPacket* pPacket)
 
 void CEDClient::GenerateSecureIdentResponse()
 {
-	// eMule SecureID response algorithm:
-	// Response = MD5(ClientID + Challenge + RandomBytes)
-	// For simplicity, we'll use a basic hash approach
-
-	BYTE responseData[16]; // 4 bytes ClientID + 6 bytes challenge + 6 bytes random
+	// eMule SecureID response algorithm (per eMule specification):
+	// Response = MD5(ClientID + Challenge)
+	// The first 6 bytes of the MD5 hash are used as the response
+	
+	CMD5 md5;
+	
+	// Add client ID (4 bytes, little endian)
 	DWORD clientID = m_nClientID;
-
-	// Copy client ID (little endian)
-	responseData[0] = (BYTE)(clientID & 0xFF);
-	responseData[1] = (BYTE)((clientID >> 8) & 0xFF);
-	responseData[2] = (BYTE)((clientID >> 16) & 0xFF);
-	responseData[3] = (BYTE)((clientID >> 24) & 0xFF);
-
-	// Copy challenge
-	memcpy(responseData + 4, m_nSecureIdent, 6);
-
-	// Add some randomness
-	for (int i = 10; i < 16; i++)
-	{
-		responseData[i] = (BYTE)(rand() & 0xFF);
-	}
-
-	// Simple hash for response (MD5 would be used in real implementation)
-	// Store response in m_nSecureIdent for verification
-	for (int i = 0; i < 6; i++)
-	{
-		m_nSecureIdent[i] = responseData[i] ^ responseData[i + 4] ^ responseData[i + 8];
-	}
-
+	md5.Add(&clientID, sizeof(DWORD));
+	
+	// Add challenge (6 bytes)
+	md5.Add(m_nSecureIdent, 6);
+	
+	// Finalize MD5 computation
+	md5.Finish();
+	
+	// Get MD5 hash result (16 bytes)
+	unsigned char md5_result[16];
+	md5.GetHash(md5_result);
+	
+	// Use first 6 bytes of MD5 hash as response (per eMule protocol)
+	memcpy(m_nSecureIdent, md5_result, 6);
+	
 	m_nSecureIdentState = 2; // Responding
 }
 

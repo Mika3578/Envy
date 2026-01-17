@@ -236,12 +236,25 @@ void CKademlia::GenerateOwnKadId() {
     Hashes::Guid oGUID = MyProfile.oGUID;
     memcpy(m_ownId, &oGUID[0], std::min(oGUID.byteCount, size_t(KAD_ID_SIZE)));
 
-    // If GUID is shorter than 16 bytes, pad with zeros or random data
+    // If GUID is shorter than 16 bytes, pad with cryptographically secure random data
     if (oGUID.byteCount < KAD_ID_SIZE) {
-        // Pad with some entropy
-        srand(GetTickCount());
-        for (size_t i = oGUID.byteCount; i < KAD_ID_SIZE; i++) {
-            m_ownId[i] = (BYTE)(rand() & 0xFF);
+        // Use Windows cryptographic RNG for security-critical ID generation
+        const size_t remaining = KAD_ID_SIZE - oGUID.byteCount;
+        if (theApp.m_hCryptProv != 0) {
+            // Use CryptGenRandom for cryptographically secure randomness
+            if (!CryptGenRandom(theApp.m_hCryptProv, (DWORD)remaining, m_ownId + oGUID.byteCount)) {
+                // CSPRNG failed - this is a security-critical operation, so assert in debug
+                ASSERT(FALSE);
+                theApp.Message(MSG_ERROR, L"Kad2: Failed to generate secure node ID");
+                // Zero out the ID to prevent use of insecure randomness
+                memset(m_ownId + oGUID.byteCount, 0, remaining);
+            }
+        } else {
+            // No crypto provider available - critical security error
+            ASSERT(FALSE);
+            theApp.Message(MSG_ERROR, L"Kad2: Crypto provider unavailable for secure ID generation");
+            // Zero out rather than using insecure rand()
+            memset(m_ownId + oGUID.byteCount, 0, remaining);
         }
     }
 }
