@@ -386,6 +386,20 @@ void CKademlia::OnTimer() {
     if (m_routingTable.GetTotalContacts() < 5) {
         Bootstrap();
     }
+    
+    // Bucket refresh: eMule standard is 15 minutes (900000 ms)
+    static DWORD lastBucketRefresh = 0;
+    const DWORD BUCKET_REFRESH_INTERVAL = 900000; // 15 minutes
+    
+    if (lastBucketRefresh == 0) {
+        lastBucketRefresh = now;
+    }
+    
+    if (now - lastBucketRefresh > BUCKET_REFRESH_INTERVAL) {
+        RefreshBuckets();
+        lastBucketRefresh = now;
+    }
+}
 }
 
 BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
@@ -765,6 +779,49 @@ void CKademlia::LogKadStatus() {
     theApp.Message(MSG_DEBUG, L"Kad2: Routing table has %d contacts", contactCount);
 }
 
+void CKademlia::RefreshBuckets() {
+    // eMule standard: Refresh buckets by performing lookups for random IDs in stale buckets
+    // A bucket is considered stale if it hasn't been updated in 15 minutes
+    
+    theApp.Message(MSG_DEBUG, L"Kad2: Refreshing stale buckets");
+    
+    DWORD now = GetTickCount();
+    const DWORD BUCKET_STALE_TIME = 900000; // 15 minutes
+    
+    int refreshCount = 0;
+    
+    // Check each bucket
+    for (int i = 0; i < KAD_BUCKET_COUNT; i++) {
+        KadBucket& bucket = m_routingTable.buckets[i];
+        
+        // Skip empty buckets
+        if (bucket.contacts.empty()) {
+            continue;
+        }
+        
+        // Check if bucket needs refresh (hasn't been updated in 15 minutes)
+        if (bucket.lastRefresh == 0 || (now - bucket.lastRefresh) > BUCKET_STALE_TIME) {
+            // Generate a random ID in this bucket's range
+            // For simplicity, we'll use the first contact in the bucket as a target
+            if (!bucket.contacts.empty()) {
+                const KadContact& target = bucket.contacts.front();
+                SendFindNodeRequest(target);
+                bucket.lastRefresh = now;
+                refreshCount++;
+                
+                // Limit refreshes per cycle to avoid network flood
+                if (refreshCount >= 3) {
+                    break;
+                }
+            }
+        }
+    }
+    
+    if (refreshCount > 0) {
+        theApp.Message(MSG_DEBUG, L"Kad2: Refreshed %d buckets", refreshCount);
+    }
+}
+
 // Request tracking implementation
 DWORD CKademlia::AddOutstandingRequest(KadRequestType type, const SOCKADDR_IN& targetAddr) {
     // Simple request ID generation - use a counter for now
@@ -814,12 +871,31 @@ void CKademlia::RemoveOutstandingRequest(DWORD requestId) {
 }
 
 void CKademlia::CleanupExpiredRequests() {
-    DWORD now = GetTickCount();
     auto it = m_outstandingRequests.begin();
 
     while (it != m_outstandingRequests.end()) {
-        if (now - it->second.sentTime > KAD2_REQUEST_TIMEOUT) {
-            it = m_outstandingRequests.erase(it);
+        // Check if request has expired using per-request timeout
+        if (it->second.IsExpired()) {
+            // Check if we should retry (max 3 attempts with exponential backoff)
+            if (it->second.ShouldRetry()) {
+                // Retry the request with exponential backoff
+                it->second.retryCount++;
+                it->second.sentTime = GetTickCount();
+                // Double the timeout for each retry (exponential backoff)
+                it->second.timeout *= 2;
+                
+                theApp.Message(MSG_DEBUG, L"Kad2: Retrying request (attempt %d/3)", 
+                              it->second.retryCount + 1);
+                
+                // TODO: Resend the actual packet based on request type
+                // For now, just update the timing
+                ++it;
+            } else {
+                // Max retries reached or shouldn't retry - remove request
+                theApp.Message(MSG_DEBUG, L"Kad2: Request expired after %d attempts", 
+                              it->second.retryCount + 1);
+                it = m_outstandingRequests.erase(it);
+            }
         } else {
             ++it;
         }

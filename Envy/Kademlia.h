@@ -77,20 +77,53 @@ struct KadContact {
 // Kad2 request tracking
 enum KadRequestType {
     KAD_REQUEST_BOOTSTRAP = 0,
-    KAD_REQUEST_FIND_NODE = 1
+    KAD_REQUEST_FIND_NODE = 1,
+    KAD_REQUEST_PING = 2,
+    KAD_REQUEST_PUBLISH = 3
 };
 
 struct KadOutstandingRequest {
     KadRequestType type;
     DWORD sentTime;
     SOCKADDR_IN targetAddr;
+    int retryCount;  // Number of retries attempted
+    DWORD timeout;   // Timeout in milliseconds (specific to request type)
 
-    KadOutstandingRequest() : type(KAD_REQUEST_BOOTSTRAP), sentTime(0) {
+    KadOutstandingRequest() : type(KAD_REQUEST_BOOTSTRAP), sentTime(0), retryCount(0), timeout(KAD2_BOOTSTRAP_TIMEOUT) {
         memset(&targetAddr, 0, sizeof(targetAddr));
     }
 
     KadOutstandingRequest(KadRequestType t, const SOCKADDR_IN& addr) :
-        type(t), sentTime(GetTickCount()), targetAddr(addr) {}
+        type(t), sentTime(GetTickCount()), targetAddr(addr), retryCount(0) {
+        // Set timeout based on request type (per eMule standard)
+        switch (t) {
+            case KAD_REQUEST_BOOTSTRAP:
+                timeout = KAD2_BOOTSTRAP_TIMEOUT;  // 10s
+                break;
+            case KAD_REQUEST_PING:
+                timeout = KAD2_PING_TIMEOUT;       // 5s
+                break;
+            case KAD_REQUEST_FIND_NODE:
+                timeout = KAD2_FIND_NODE_TIMEOUT;  // 5s
+                break;
+            case KAD_REQUEST_PUBLISH:
+                timeout = 10000;                    // 10s for publish
+                break;
+            default:
+                timeout = KAD2_REQUEST_TIMEOUT;    // 30s default
+                break;
+        }
+    }
+    
+    // Check if request has timed out
+    bool IsExpired() const {
+        return (GetTickCount() - sentTime) > timeout;
+    }
+    
+    // Check if we should retry (max 3 retries per eMule standard)
+    bool ShouldRetry() const {
+        return retryCount < 3 && IsExpired();
+    }
 };
 
 // Kad2 routing table bucket
@@ -171,6 +204,7 @@ private:
     bool UpdateContact(const KadContact& contact);
     void GenerateOwnKadId();
     void LogKadStatus();
+    void RefreshBuckets();  // Periodic bucket refresh (eMule standard: 15 minutes)
 
     // Request tracking methods
     DWORD AddOutstandingRequest(KadRequestType type, const SOCKADDR_IN& targetAddr);
