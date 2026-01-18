@@ -53,7 +53,7 @@ bool CRemoteSecurity::IsRemoteAccessAllowed(const IN_ADDR& clientIP)
 	}
 
 	// Check explicit CIDR whitelist
-	if (!Settings.Remote.AllowedCIDRs.IsEmpty()) {
+	if (!Settings.Remote.AllowedCIDRs.empty()) {
 		if (IsInCIDRList(clientIP, Settings.Remote.AllowedCIDRs)) {
 			return true;
 		}
@@ -459,7 +459,7 @@ bool CRemoteSecurity::FallbackHashPassword(const std::string& password, std::str
 	std::string hashB64 = Base64Encode(&hash[0], 32);
 
 	char buffer[256];
-	sprintf_s(buffer, "sha256-salted:%s:%s", saltB64.c_str(), hashB64.c_str());
+	sprintf_s(buffer, sizeof(buffer), "sha256-salted:%s:%s", saltB64.c_str(), hashB64.c_str());
 	hashOutput = buffer;
 
 	return true;

@@ -288,7 +288,8 @@ BOOL CUploadTransferBT::OpenFile()
 			return TRUE;
 		}
 
-		// HACK: Open from disk (ToDo: Replace this with SeedTorrent in OnDownloadComplete)
+		// Temporary implementation: Open seeding file from disk
+		// TODO: Replace with proper SeedTorrent architecture in OnDownloadComplete
 		if ( m_pClient->m_pDownload->IsSeeding() )
 		{
 			augment::auto_ptr< CFragmentedFile > pSeedingFile( new CFragmentedFile );

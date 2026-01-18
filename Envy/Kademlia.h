@@ -38,6 +38,7 @@ typedef unsigned char KadId[KAD_ID_SIZE];
 #define KAD2_FIND_NODE_TIMEOUT 5000      // Find node timeout in ms
 #define KAD2_REQUEST_TIMEOUT 30000       // Request timeout in ms (30 seconds)
 #define KAD2_MAX_OUTSTANDING_REQUESTS 10 // Maximum outstanding requests
+#define KADEMLIA_VERSION 8               // Kad protocol version (eMule compatible)
 
 // Kad2 node contact information
 #pragma pack(push, 1)
@@ -48,6 +49,20 @@ struct KadContact {
     WORD tcpPort;                // TCP port (usually same as UDP)
     DWORD lastSeen;              // Last contact time (tick count)
     BYTE version;                // Kad version
+
+    // Comparison operator for binary search support
+    bool operator<(const KadContact& other) const {
+        return memcmp(id, other.id, KAD_ID_SIZE) < 0;
+    }
+
+    // Comparison with KadId for binary search
+    friend bool operator<(const KadContact& contact, const KadId& id) {
+        return memcmp(contact.id, id, KAD_ID_SIZE) < 0;
+    }
+
+    friend bool operator<(const KadId& id, const KadContact& contact) {
+        return memcmp(id, contact.id, KAD_ID_SIZE) < 0;
+    }
     BOOL verified;               // Contact verified via ping/pong
 
     KadContact() {
@@ -125,6 +140,7 @@ public:
     size_t GetTotalContacts() const;
     void GetContactsForBootstrap(std::vector<KadContact>& results, int maxCount = 20);
     size_t GetContactCount() const { return buckets[0].GetContactCount(); } // For compatibility
+    void MarkContactVerified(const KadId& id);
 };
 
 // CKademlia Kad2 implementation class
@@ -151,11 +167,24 @@ public:
     // Bootstrap from host cache
     void Bootstrap();
 
+    // Security and rate limiting
+    bool CheckRateLimit(const SOCKADDR_IN* pHost, KadRequestType type);
+    void CleanupRateLimitMap();
+
     // Send bootstrap request to specific contact
     void SendBootstrapRequest(const KadContact& contact);
 
     // Send find node request to specific contact
     void SendFindNodeRequest(const KadContact& contact);
+
+    // Send hello request to specific host
+    void SendHelloRequest(const SOCKADDR_IN* pTarget);
+
+    // Send hello response to specific host
+    void SendHelloResponse(const SOCKADDR_IN* pTarget);
+
+    // Mark contact as verified
+    void MarkContactVerified(const KadId& id);
 
 private:
     // Packet handlers
@@ -165,6 +194,8 @@ private:
     void OnPong(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
     void OnFindNodeRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
     void OnFindNodeResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    void OnHelloRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    void OnHelloResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 
     // Utility methods
     void SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
@@ -187,6 +218,10 @@ private:
 
     // Request tracking
     std::map<DWORD, KadOutstandingRequest> m_outstandingRequests; // Key is request ID
+
+    // Security and rate limiting
+    std::map<DWORD, DWORD> m_rateLimitMap; // IP -> last request time
+    DWORD m_lastRateLimitCleanup;
 };
 
 // Kademlia packet structures

@@ -1,7 +1,7 @@
-//
+﻿//
 // Skin.cpp
 //
-// This file is part of Envy (getenvy.com) � 2016-2020
+// This file is part of Envy (getenvy.com) © 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -948,10 +948,14 @@ CMenu* CSkin::GetMenu(LPCTSTR pszName) const
 //			break;
 //	}
 
-	ASSERT_VALID( pMenu );
-	ASSERT( pMenu->GetMenuItemCount() > 0 );
-
-	return pMenu;
+       if (pMenu == nullptr) {
+               // Log error or handle gracefully
+               theApp.Message(MSG_ERROR, IDS_SKIN_ERROR, L"Menu not found: %s", strName.GetString());
+               return nullptr;
+       }
+       ASSERT_VALID(pMenu);
+       ASSERT(pMenu->GetMenuItemCount() > 0);
+       return pMenu;
 }
 
 BOOL CSkin::LoadMenus(CXMLElement* pBase)

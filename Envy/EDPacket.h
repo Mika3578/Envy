@@ -104,7 +104,7 @@ public:
 	void				WriteLongEDString(LPCTSTR psz, BOOL bUnicode);
 	void				WriteFile(const CEnvyFile* pFile, QWORD nSize, const CEDClient* pClient, const CEDNeighbour* pServer = NULL, bool bPartial = false);
 	BOOL				Deflate();
-	BOOL				Inflate();	// Unzip packet if any
+	BOOL				Inflate(DWORD nMaxOutput = 0);	// Unzip packet if any (nMaxOutput = 0 for unlimited)
 
 	virtual void		Reset();
 	virtual	void		ToBuffer(CBuffer* pBuffer, bool bTCP = true);
@@ -299,8 +299,8 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define ED2K_C2C_CHATCAPTCHARES			0xA6	// <status 1>
 #define ED2K_C2C_FWCHECKUDPREQ			0xA7	// <Inter_Port 2><Extern_Port 2><KadUDPKey 4> *Support required for Kadversion >= 6
 #define ED2K_C2C_KAD_FWTCPCHECK_ACK		0xA8	// (null/reserved), replaces KADEMLIA_FIREWALLED_ACK_RES, *Support required for Kadversion >= 7
-#define ED2K_C2C_MULTIPACKET_EXT2		0xA9	// <FileIdentifier> ...
-#define ED2K_C2C_MULTIPACKETANSWER_EXT2 0xB0	// <FileIdentifier> ...
+#define ED2K_C2C_MULTIPACKET_EXT2		0xA9	// <FileIdentifier> ... (MultiPacket Ext2)
+#define ED2K_C2C_MULTIPACKETANSWER_EXT2	0xB0	// <FileIdentifier> ... (MultiPacket Answer Ext2)
 #define ED2K_C2C_HASHSETREQUEST2		0xB1	// <FileIdentifier><Options 1>
 #define ED2K_C2C_HASHSETANSWER2			0xB2	// <FileIdentifier><Options 1>[<HashSets> Options]
 #define ED2K_C2C_ANSWERCryptLayer		0xB3	// CryptLayer answer with encrypted RC4 keys
@@ -335,6 +335,19 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define KADEMLIA2_FIREWALLED_ACK_RES	0x59	// (null/reserved)
 #define KADEMLIA2_PING				0x60	// <TagList>
 #define KADEMLIA2_PONG				0x61	// <TagList>
+
+// Missing opcodes found in eMule reference implementation
+#define KADEMLIA_FIND_VALUE			0x02	// Search for values/files in DHT
+#define KADEMLIA2_HELLO_REQ_ACK		0x12	// Hello request acknowledgment
+#define KADEMLIA2_HELLO_RES_ACK		0x1A	// Hello response acknowledgment
+#define KADEMLIA2_REQ_ACK			0x22	// Request acknowledgment
+#define KADEMLIA2_RES_ACK			0x2A	// Response acknowledgment
+#define KADEMLIA2_SEARCH_KEY_REQ_ACK	0x34	// Search key request acknowledgment
+#define KADEMLIA2_SEARCH_RES_ACK	0x3C	// Search result acknowledgment
+#define KADEMLIA2_PUBLISH_KEY_REQ_ACK	0x42	// Publish key request acknowledgment
+#define KADEMLIA2_PUBLISH_RES_ACK	0x4A	// Publish result acknowledgment
+
+// Note: MultiPacket Ext2 and HashSetRequest2 opcodes are already defined above
 
 // Values for ED2K_CT_SERVER_FLAGS (server capabilities)
 #define ED2K_SRVCAP_ZLIB				0x0001

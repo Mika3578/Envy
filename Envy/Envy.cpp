@@ -1,7 +1,7 @@
 //
 // Envy.cpp
 //
-// This file is part of Envy (getenvy.com) � 2016-2020
+// This file is part of Envy (getenvy.com) © 2016-2024
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -14,13 +14,11 @@
 // of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // See the GNU Affero General Public License 3.0 for details:
 // (http://www.gnu.org/licenses/agpl.html)
-//
-
 #include "StdAfx.h"
 #include "Settings.h"
 #include "Envy.h"
 #include "CoolInterface.h"
-#include "BTInfo.h"
+#include <versionhelpers.h>
 #include "BTTrackerRequest.h"
 #include "BTClients.h"
 #include "DCClients.h"
@@ -66,14 +64,12 @@
 #include "VendorCache.h"
 #include "VersionChecker.h"
 
-#include "DlgHelp.h"
 #include "DlgSplash.h"
 #include "DlgMessage.h"
 
 #include "WndMain.h"
 #include "WndMedia.h"
 #include "WndPacket.h"
-#include "WndSystem.h"
 #include "WndLibrary.h"
 
 #if !defined(XPSUPPORT) && (_MSC_VER >= 1800)		// VS2013+ for WinSDK 8.1+
@@ -121,28 +117,28 @@ void CAppCommandLineInfo::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLa
 {
 	if ( bFlag )
 	{
-		if ( _tcsicmp( pszParam, L"tray" ) == 0 )	// lstrcmpi()
+		if ( _wcsicmp( pszParam, L"tray" ) == 0 )	// lstrcmpi()
 		{
 			m_bTray = TRUE;
 			m_bNoSplash = TRUE;
 			return;
 		}
-		if ( _tcsicmp( pszParam, L"nosplash" ) == 0 )
+		if ( _wcsicmp( pszParam, L"nosplash" ) == 0 )
 		{
 			m_bNoSplash = TRUE;
 			return;
 		}
-		if ( _tcsicmp( pszParam, L"nowarn" ) == 0 )
+		if ( _wcsicmp( pszParam, L"nowarn" ) == 0 )
 		{
 			m_bNoAlphaWarning = TRUE;
 			return;
 		}
-		if ( _tcsicmp( pszParam, L"noskin" ) == 0 )
+		if ( _wcsicmp( pszParam, L"noskin" ) == 0 )
 		{
 			ClearSkins();
 			return;
 		}
-		if ( _tcsicmp( pszParam, L"nolib" ) == 0 || _tcsicmp( pszParam, L"nolibrary" ) == 0 )
+		if ( _wcsicmp( pszParam, L"nolib" ) == 0 || _wcsicmp( pszParam, L"nolibrary" ) == 0 )
 		{
 			m_bNoLibrary = TRUE;
 			return;
@@ -177,12 +173,12 @@ void CAppCommandLineInfo::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLa
 			m_bWait = TRUE;
 			return;
 		}
-		if ( _tcsncicmp( pszParam, L"task", 4 ) == 0 )
+		if ( _wcsnicmp( pszParam, L"task", 4 ) == 0 )
 		{
 			m_sTask = pszParam + 4;
 			return;
 		}
-		if ( _tcsicmp( pszParam, L"help" ) == 0 || *pszParam == L'?' )
+		if ( _wcsicmp( pszParam, L"help" ) == 0 || *pszParam == L'?' )
 		{
 			m_bHelp = TRUE;
 			return;
@@ -304,7 +300,7 @@ BOOL CEnvyApp::InitInstance()
 {
 	CWinApp::InitInstance();
 
-	SetRegistryKey( CLIENT_NAME );
+	CWinApp::SetRegistryKey( CLIENT_NAME );
 
 	if ( ! ParseCommandLine() )	// Handle -flags, create mutex.
 		return FALSE;
@@ -322,8 +318,8 @@ BOOL CEnvyApp::InitInstance()
 //	AfxEnableControlContainer( m_pFontManager );
 	AfxEnableControlContainer();	// Enable support for containment of OLE controls.
 
-	LoadStdProfileSettings();
-	EnableShellOpen();
+	CWinApp::LoadStdProfileSettings();
+	CWinApp::EnableShellOpen();
 //	RegisterShellFileTypes();
 //	Register();					// Re-register Envy Type Library (In Splash)
 
@@ -357,7 +353,9 @@ BOOL CEnvyApp::InitInstance()
 		m_pfnSetCurrentProcessExplicitAppUserModelID( CLIENT_NAME );
 
 	if ( m_pfnRegisterApplicationRestart )
+	{
 		m_pfnRegisterApplicationRestart( L"-nowarn", 0 );
+	}
 
 	ShowStartupText();
 
@@ -385,7 +383,9 @@ BOOL CEnvyApp::InitInstance()
 #endif
 
 	if ( tCurrent > tCompileTime + tTimeOut )
+	{
 		MsgBox( IDS_BETA_EXPIRED, MB_ICONQUESTION|MB_OK, 0, NULL, 30 );
+	}
 
 
 	// ALPHA/BETA WARNING.  Remember to remove this section for public betas.
@@ -453,9 +453,13 @@ BOOL CEnvyApp::InitInstance()
 
 	SplashStep( L"Up", nSplashSteps, false );
 		if ( m_cmdInfo.m_nGUIMode != -1 )
+		{
 			Settings.General.GUIMode = m_cmdInfo.m_nGUIMode;
+		}
 		if ( Settings.General.GUIMode != GUI_WINDOWED && Settings.General.GUIMode != GUI_TABBED && Settings.General.GUIMode != GUI_BASIC )
+		{
 			Settings.General.GUIMode = GUI_TABBED;
+		}
 
 		DDEServer.Create();
 		IEProtocol.Create();
@@ -578,7 +582,9 @@ BOOL CEnvyApp::InitInstance()
 		}
 	SplashStep( L"Downloads" );
 		if ( ! m_cmdInfo.m_bNoDownloads )
+		{
 			Downloads.PreLoadAsync();	// Background preload - non-blocking (~1min in background), skipped with -nodownloads
+		}
 	SplashStep( L"Downloads Cleanup" );
 		Downloads.PurgeFiles();
 		Sleep( 50 );					// Allow some splash text visibility
@@ -622,7 +628,9 @@ BOOL CEnvyApp::InitInstance()
 	SplashStep( L"GUI" );
 		DWORD nTimer = GetTickCount();
 		if ( m_cmdInfo.m_bTray )
+		{
 			WriteProfileInt( L"Windows", L"CMainWnd.ShowCmd", 0 );
+		}
 		TRY
 		{
 			m_pMainWnd = new CMainWnd();
@@ -644,7 +652,9 @@ BOOL CEnvyApp::InitInstance()
 
 		nTimer = GetTickCount() - nTimer;
 		if ( nTimer > 500 )
+		{
 			Message( MSG_NOTICE, L"GUI Load Time: %lu ms", nTimer );
+		}
 
 		CoolMenu.EnableHook();
 		if ( m_cmdInfo.m_bTray )
@@ -661,7 +671,9 @@ BOOL CEnvyApp::InitInstance()
 		// From this point translations would be available, and LoadString returns correct strings
 
 		if ( nTimer < 400 )
+		{
 			Sleep( 60 );	// Allow some splash text visibility
+		}
 
 	SplashStep( L"Upgrade Manager" );
 		VersionChecker.Start();
@@ -784,16 +796,24 @@ int CEnvyApp::ExitInstance()
 //		FreeLibrary( m_hTheme );	// XP+
 
 	if ( m_hShlWapi != NULL )
+	{
 		FreeLibrary( m_hShlWapi );
+	}
 
 	if ( m_hShell32 != NULL )
+	{
 		FreeLibrary( m_hShell32 );
+	}
 
 	if ( m_hUser32 != NULL )
+	{
 		FreeLibrary( m_hUser32 );
+	}
 
 	if ( m_hLibGFL != NULL )
+	{
 		FreeLibrary( m_hLibGFL );
+	}
 
 	//delete m_pFontManager;	// Obsolete
 
@@ -842,7 +862,9 @@ void CEnvyApp::SplashStep(LPCTSTR pszMessage, int nMax, bool bClosing)
 void CEnvyApp::SplashUpdate(LPCTSTR pszMessage)
 {
 	if ( m_dlgSplash )
+	{
 		m_dlgSplash->Update( pszMessage );
+	}
 }
 
 void CEnvyApp::SplashAbort()
@@ -886,9 +908,8 @@ BOOL CEnvyApp::ParseCommandLine()
 #ifndef XPSUPPORT
 		const BOOL bIsXP = FALSE;
 #else // Win32 (Obsolete)
-		OSVERSIONINFOEX pVersion = { sizeof( OSVERSIONINFOEX ) };
-		GetVersionEx( (OSVERSIONINFO*)&pVersion );	// Deprecated
-		const BOOL bIsXP = pVersion.dwMajorVersion < 6;
+		// Use modern Windows version detection
+		const BOOL bIsXP = !IsWindowsVistaOrGreater();
 #endif // WIN64
 
 		CoolInterface.m_fntNormal.CreateFont( -11, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
@@ -1518,37 +1539,24 @@ void CEnvyApp::GetVersionNumber()
 	//	Major ver 10:	Windows10 = 0 (1000)
 
 #if defined(XPSUPPORT) || (_MSC_VER < 1800)
-	GetVersionEx( (OSVERSIONINFO*)&Windows );	// Deprecated
-	m_bIsWinXP = Windows.dwMajorVersion == 5;
-	m_nWinVer = Windows.dwMajorVersion * 100 + Windows.dwMinorVersion * 10;
-	TCHAR* sp = _tcsstr( Windows.szCSDVersion, L"Service Pack" );
-	if ( sp )
-	{
-		if ( sp[ 13 ] == '1' )
-			m_nWinVer++;
-		else if ( sp[ 13 ] == '2' )
-			m_nWinVer += 2;
-		else if ( sp[ 13 ] == '3' )
-			m_nWinVer += 3;
-		else if ( sp[ 13 ] == '4' )
-			m_nWinVer += 4;
-	}
-	m_bIsWinXP = m_nWinVer < WIN_VISTA;
+	// Use modern Windows version detection
+	m_bIsWinXP = !IsWindowsVistaOrGreater();
+	m_nWinVer = 1000; // Assume Windows 10+ for modern compilers
 #else // WinSDK8.1~
 
 	m_nWinVer =
 #ifndef XPSUPPORT
 		// IsWindows10OrGreater() unsupported below Win10, IsWindowsVersionOrGreater() unsupported below Vista
-		IsWindowsVersionOrGreater( 10, 0, 0 ) ? WIN_10 : // 1000
+		IsWindowsVersionOrGreater( 10, 0, 0 ) ? WIN_10 :
 #endif
-		IsWindows8Point1OrGreater() ? WIN_8_1 :			// 630
-		IsWindows8OrGreater() ? WIN_8 :					// 620
-		IsWindows7OrGreater() ? WIN_7 :					// 610
-		IsWindowsVistaSP2OrGreater() ? WIN_VISTA_SP2 :	// 602
-		IsWindowsVistaOrGreater() ? WIN_VISTA :			// 600
+		IsWindows8Point1OrGreater() ? WIN_8_1 :
+		IsWindows8OrGreater() ? WIN_8 :
+		IsWindows7OrGreater() ? WIN_7 :
+		IsWindowsVistaSP2OrGreater() ? WIN_VISTA_SP2 :
+		IsWindowsVistaOrGreater() ? WIN_VISTA :
 #ifdef XPSUPPORT
-		IsWindowsXPSP2OrGreater() ? WIN_XP_SP2 :		// 512
-		IsWindowsXPOrGreater() ? WIN_XP :				// 510
+		IsWindowsXPSP2OrGreater() ? WIN_XP_SP2 :
+		IsWindowsXPOrGreater() ? WIN_XP :
 #endif
 		0;	// Should never happen
 
@@ -3280,7 +3288,7 @@ BOOL DeleteFileEx(LPCTSTR szFileName, BOOL bShared, BOOL bToRecycleBin, BOOL bEn
 	if ( bLong )
 		GetLongPathName( strFileName, szPath, len );
 	else
-		lstrcpy( szPath, strFileName );
+		lstrcpyn( szPath, strFileName, len + 1 );
 	szPath[ len ] = 0;
 
 	if ( bShared )	// Stop uploads
@@ -4096,6 +4104,61 @@ void CProgressDialog::Progress(LPCTSTR szText, QWORD nCompleted, QWORD nTotal)
 		if ( nTotal || nCompleted )
 			p->SetProgress64( nCompleted, nTotal );
 	}
+}
+
+/**
+ * Generate cryptographically secure random bytes
+ *
+ * This function implements P0.2 security requirements by providing
+ * cryptographically secure random bytes for all security-critical operations.
+ *
+ * Priority order:
+ * 1. BCryptGenRandom (Windows 10+ preferred method)
+ * 2. CryptGenRandom (legacy CryptoAPI fallback)
+ * 3. FAIL - No insecure rand() fallback allowed
+ *
+ * @param pBuffer Buffer to fill with random bytes
+ * @param nLength Number of bytes to generate
+ * @return TRUE if successful, FALSE if no secure random source available
+ */
+BOOL GenerateCryptographicBytes(BYTE* pBuffer, size_t nLength)
+{
+	if (!pBuffer || nLength == 0)
+		return FALSE;
+
+	// First try BCryptGenRandom (modern Windows)
+	static HMODULE hBCrypt = NULL;
+	static BOOL (WINAPI* pBCryptGenRandom)(void*, BYTE*, ULONG, ULONG) = NULL;
+
+	if (!hBCrypt)
+	{
+		hBCrypt = LoadLibraryW(L"bcrypt.dll");
+		if (hBCrypt)
+		{
+			pBCryptGenRandom = (BOOL (WINAPI*)(void*, BYTE*, ULONG, ULONG))GetProcAddress(hBCrypt, "BCryptGenRandom");
+		}
+	}
+
+	if (pBCryptGenRandom)
+	{
+		// Use BCryptGenRandom with BCRYPT_USE_SYSTEM_PREFERRED_RNG flag
+		if (pBCryptGenRandom(NULL, pBuffer, (ULONG)nLength, 0x00000002))
+		{
+			return TRUE;
+		}
+	}
+
+	// Fallback to CryptGenRandom (legacy CryptoAPI)
+	if (theApp.m_hCryptProv != 0)
+	{
+		if (CryptGenRandom(theApp.m_hCryptProv, (DWORD)nLength, pBuffer))
+		{
+			return TRUE;
+		}
+	}
+
+	// No secure random source available - FAIL (no rand() fallback for security)
+	return FALSE;
 }
 
 

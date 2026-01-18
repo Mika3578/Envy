@@ -174,6 +174,7 @@ BOOL CDownloadTransferED2K::OnRunEx(DWORD tNow)
 {
 	if ( ! Network.IsConnected() || ( ! Settings.eDonkey.Enabled && Settings.Connection.RequireForTransfers ) )
 	{
+		theApp.Message( MSG_DEBUG, L"[ED2K] %s: Network not connected or ED2K disabled, closing", (LPCTSTR)m_sAddress );
 		Close( TRI_TRUE );
 		return FALSE;
 	}
@@ -184,6 +185,7 @@ BOOL CDownloadTransferED2K::OnRunEx(DWORD tNow)
 		if ( tNow > m_tConnected && tNow > m_tConnected + Settings.Connection.TimeoutConnect * 2 )
 		{
 			theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_CONNECT_TIMEOUT, m_sAddress );
+			theApp.Message( MSG_DEBUG, L"[ED2K] %s: Connection timeout in CONNECTING state", (LPCTSTR)m_sAddress );
 			Close( TRI_UNKNOWN );
 			return FALSE;
 		}
@@ -193,6 +195,7 @@ BOOL CDownloadTransferED2K::OnRunEx(DWORD tNow)
 		if ( tNow > m_tRequest && tNow > m_tRequest + Settings.Connection.TimeoutHandshake * 2 )
 		{
 			theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_HANDSHAKE_TIMEOUT, m_sAddress );
+			theApp.Message( MSG_DEBUG, L"[ED2K] %s: Handshake timeout in REQUESTING/ENQUEUE state", (LPCTSTR)m_sAddress );
 			Close( TRI_UNKNOWN );
 			return FALSE;
 		}
@@ -205,6 +208,7 @@ BOOL CDownloadTransferED2K::OnRunEx(DWORD tNow)
 			 tNow > m_pClient->m_mInput.tLast + Settings.Connection.TimeoutTraffic * 2 )
 		{
 			theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_CLOSED, m_sAddress );
+			theApp.Message( MSG_DEBUG, L"[ED2K] %s: Traffic timeout in DOWNLOADING/HASHSET state", (LPCTSTR)m_sAddress );
 			Close( TRI_TRUE );
 			return FALSE;
 		}
@@ -259,11 +263,18 @@ void CDownloadTransferED2K::OnDropped()
 
 BOOL CDownloadTransferED2K::OnFileReqAnswer(CEDPacket* /*pPacket*/)
 {
+	theApp.Message( MSG_DEBUG, L"[ED2K] %s: Received FILEREQANSWER", (LPCTSTR)m_sAddress );
+
 	if ( m_pDownload->m_nSize <= ED2K_PART_SIZE )
 	{
 		m_pAvailable.assign( 1, true );
 		m_pSource->m_oAvailable.insert( m_pSource->m_oAvailable.end(), Fragments::Fragment( 0, m_pDownload->m_nSize ) );
+		theApp.Message( MSG_DEBUG, L"[ED2K] %s: Small file available, calling SendSecondaryRequest()", (LPCTSTR)m_sAddress );
 		SendSecondaryRequest();
+	}
+	else
+	{
+		theApp.Message( MSG_DEBUG, L"[ED2K] %s: Large file, waiting for FILESTATUS response", (LPCTSTR)m_sAddress );
 	}
 	// Not really interested
 	return TRUE;
@@ -272,6 +283,7 @@ BOOL CDownloadTransferED2K::OnFileReqAnswer(CEDPacket* /*pPacket*/)
 BOOL CDownloadTransferED2K::OnFileNotFound(CEDPacket* /*pPacket*/)
 {
 	theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILENOTFOUND, (LPCTSTR)m_sAddress, (LPCTSTR)m_pDownload->GetDisplayName() );
+	theApp.Message( MSG_DEBUG, L"[ED2K] %s: File not found on client, closing", (LPCTSTR)m_sAddress );
 
 	Close( TRI_FALSE );
 	return FALSE;
@@ -336,6 +348,7 @@ BOOL CDownloadTransferED2K::OnFileStatus(CEDPacket* pPacket)
 		return FALSE;
 	}
 
+	theApp.Message( MSG_DEBUG, L"[ED2K] %s: File status received, calling SendSecondaryRequest()", (LPCTSTR)m_sAddress );
 	SendSecondaryRequest();
 
 	return TRUE;
@@ -345,6 +358,8 @@ BOOL CDownloadTransferED2K::OnHashsetAnswer(CEDPacket* pPacket)
 {
 	if ( m_nState != dtsHashset )
 		return TRUE;
+
+	theApp.Message( MSG_DEBUG, L"[ED2K] %s: Received HASHSETANSWER", (LPCTSTR)m_sAddress );
 
 	if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 2 )
 	{
@@ -358,6 +373,7 @@ BOOL CDownloadTransferED2K::OnHashsetAnswer(CEDPacket* pPacket)
 
 	if ( validAndUnequal( oED2K, m_pDownload->m_oED2K ) )
 	{
+		theApp.Message( MSG_DEBUG, L"[ED2K] %s: Hashset hash mismatch", (LPCTSTR)m_sAddress );
 		return TRUE;	// Hack
 	//	theApp.Message( MSG_ERROR, IDS_DOWNLOAD_HASHSET_ERROR, (LPCTSTR)m_sAddress );
 	//		Close( TRI_FALSE );
@@ -365,6 +381,7 @@ BOOL CDownloadTransferED2K::OnHashsetAnswer(CEDPacket* pPacket)
 	}
 
 	m_bHashset = TRUE;
+	theApp.Message( MSG_DEBUG, L"[ED2K] %s: Hashset validated, calling SendSecondaryRequest()", (LPCTSTR)m_sAddress );
 
 	DWORD nBlocks = pPacket->ReadShortLE();
 	bool bNullBlock = ( m_pDownload->m_nSize % ED2K_PART_SIZE == 0 && m_pDownload->m_nSize );
@@ -381,6 +398,7 @@ BOOL CDownloadTransferED2K::OnHashsetAnswer(CEDPacket* pPacket)
 	else if ( m_pDownload->SetHashset( pPacket->m_pBuffer + pPacket->m_nPosition, pPacket->GetRemaining() ) )
 		return SendSecondaryRequest();
 
+	theApp.Message( MSG_DEBUG, L"[ED2K] %s: Hashset processing failed, closing", (LPCTSTR)m_sAddress );
 	Close( TRI_FALSE );
 	return FALSE;
 }
@@ -525,10 +543,12 @@ BOOL CDownloadTransferED2K::OnFileComment(CEDPacket* pPacket)
 BOOL CDownloadTransferED2K::OnStartUpload(CEDPacket* /*pPacket*/)
 {
 	SetState( dtsDownloading );
+	DEBUG_ONLY( theApp.Message( MSG_DEBUG, L"[ED2K] %s: STARTUPLOAD received, state -> DOWNLOADING", (LPCTSTR)m_sAddress ) );
 	m_pClient->m_mInput.tLast = GetTickCount();
 
 	ClearRequests();
 
+	DEBUG_ONLY( theApp.Message( MSG_DEBUG, L"[ED2K] %s: sending fragment requests after STARTUPLOAD", (LPCTSTR)m_sAddress ) );
 	return SendFragmentRequests();
 }
 
@@ -707,6 +727,9 @@ BOOL CDownloadTransferED2K::SendPrimaryRequest()
 	ASSERT( m_pClient != NULL );
 	const DWORD tNow = GetTickCount();
 
+	// Debug: Log primary request start
+	theApp.Message( MSG_DEBUG, L"[ED2K] %s: Sending primary request for %s", (LPCTSTR)m_sAddress, (LPCTSTR)m_pDownload->GetDisplayName() );
+
 	//if ( m_pDownload->GetVolumeRemaining() == 0 )
 	//{
 	//	theApp.Message( MSG_INFO, IDS_DOWNLOAD_FRAGMENT_END, (LPCTSTR)m_sAddress );
@@ -738,6 +761,7 @@ BOOL CDownloadTransferED2K::SendPrimaryRequest()
 	if ( m_pDownload->m_nSize <= ED2K_PART_SIZE )
 	{
 		// Don't ask for status - if the client answers, we know the file is complete anyway
+		theApp.Message( MSG_DEBUG, L"[ED2K] %s: Small file (%I64u bytes), skipping status request", (LPCTSTR)m_sAddress, m_pDownload->m_nSize );
 	}
 	else
 	{
@@ -745,6 +769,7 @@ BOOL CDownloadTransferED2K::SendPrimaryRequest()
 		pPacket = CEDPacket::New( ED2K_C2C_FILESTATUSREQUEST );
 		pPacket->Write( m_pDownload->m_oED2K );
 		Send( pPacket );
+		theApp.Message( MSG_DEBUG, L"[ED2K] %s: Sent FILESTATUSREQUEST for large file (%I64u bytes)", (LPCTSTR)m_sAddress, m_pDownload->m_nSize );
 	}
 
 	// ToDo: Add new option "SourceExchangePeriod" (default: 10 minutes) like BitTorrent
@@ -758,8 +783,10 @@ BOOL CDownloadTransferED2K::SendPrimaryRequest()
 		pPacket = CEDPacket::New( ED2K_C2C_REQUESTSOURCES, ED2K_PROTOCOL_EMULE );
 		pPacket->Write( m_pDownload->m_oED2K );
 		Send( pPacket );
+		theApp.Message( MSG_DEBUG, L"[ED2K] %s: Sent REQUESTSOURCES", (LPCTSTR)m_sAddress );
 	}
 
+	theApp.Message( MSG_DEBUG, L"[ED2K] %s: Primary request sent, waiting for responses", (LPCTSTR)m_sAddress );
 	return TRUE;
 }
 
@@ -816,9 +843,17 @@ bool CDownloadTransferED2K::SendFragmentRequests()
 
 	ASSERT( m_pClient != NULL );
 
-	if ( m_nState != dtsDownloading ) return TRUE;
+	if ( m_nState != dtsDownloading )
+	{
+		theApp.Message( MSG_DEBUG, L"[ED2K] %s: SendFragmentRequests() called but state=%d (not downloading)", (LPCTSTR)m_sAddress, m_nState );
+		return TRUE;
+	}
 
-	if ( m_oRequested.size() >= (int)Settings.eDonkey.RequestPipe ) return TRUE;
+	if ( m_oRequested.size() >= (int)Settings.eDonkey.RequestPipe )
+	{
+		theApp.Message( MSG_DEBUG, L"[ED2K] %s: Too many pending requests (%d >= %d)", (LPCTSTR)m_sAddress, m_oRequested.size(), Settings.eDonkey.RequestPipe );
+		return TRUE;
+	}
 
 	Fragments::List oPossible( m_pDownload->GetEmptyFragmentList() );
 

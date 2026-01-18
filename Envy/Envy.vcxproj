@@ -143,6 +143,11 @@
     <BuildLog>
       <Path>$(ProjectDir)$(IntDir)$(ProjectName).log</Path>
     </BuildLog>
+    <PostBuildEvent>
+      <Message>Copying Data folder to output directory...</Message>
+      <Command>if not exist "$(TargetDir)Data" mkdir "$(TargetDir)Data"
+if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xml" "$(TargetDir)Data\Vendors.xml"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
@@ -198,6 +203,11 @@
     <BuildLog>
       <Path>$(ProjectDir)$(IntDir)$(ProjectName).log</Path>
     </BuildLog>
+    <PostBuildEvent>
+      <Message>Copying Data folder to output directory...</Message>
+      <Command>if not exist "$(TargetDir)Data" mkdir "$(TargetDir)Data"
+if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xml" "$(TargetDir)Data\Vendors.xml"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
@@ -262,6 +272,11 @@
     <BuildLog>
       <Path>$(ProjectDir)$(IntDir)$(ProjectName).log</Path>
     </BuildLog>
+    <PostBuildEvent>
+      <Message>Copying Data folder to output directory...</Message>
+      <Command>if not exist "$(TargetDir)Data" mkdir "$(TargetDir)Data"
+if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xml" "$(TargetDir)Data\Vendors.xml"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
@@ -326,6 +341,11 @@
     <BuildLog>
       <Path>$(ProjectDir)$(IntDir)$(ProjectName).log</Path>
     </BuildLog>
+    <PostBuildEvent>
+      <Message>Copying Data folder to output directory...</Message>
+      <Command>if not exist "$(TargetDir)Data" mkdir "$(TargetDir)Data"
+if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xml" "$(TargetDir)Data\Vendors.xml"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="BitTorrentDHT\dht.c" />
@@ -974,6 +994,7 @@
     <ClCompile Include="PageSettingsConnection.cpp" />
     <ClCompile Include="PageSettingsDC.cpp" />
     <ClCompile Include="PageSettingsDonkey.cpp" />
+    <ClCompile Include="PageSettingsDonkeyAdvanced.cpp" />
     <ClCompile Include="PageSettingsDownloads.cpp" />
     <ClCompile Include="PageSettingsGeneral.cpp" />
     <ClCompile Include="PageSettingsGnutella.cpp" />
@@ -1578,6 +1599,7 @@
     <ClInclude Include="PageSettingsConnection.h" />
     <ClInclude Include="PageSettingsDC.h" />
     <ClInclude Include="PageSettingsDonkey.h" />
+    <ClInclude Include="PageSettingsDonkeyAdvanced.h" />
     <ClInclude Include="PageSettingsDownloads.h" />
     <ClInclude Include="PageSettingsGeneral.h" />
     <ClInclude Include="PageSettingsGnutella.h" />

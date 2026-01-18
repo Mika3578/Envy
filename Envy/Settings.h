@@ -512,6 +512,24 @@ public:
 		DWORD		DefaultServerFlags;		// Default server flags (for UDP searches)
 		bool		LargeFileSupport;		// Allow 64 bit file sizes (for server)
 		bool		Endgame;				// Allow endgame mode when completing downloads. (Download same chunk from multiple sources)
+
+		// Advanced ED2K Protocol Features (2026 enhancements)
+		bool		EnableAICH;				// Enable Advanced Integrity Check Hashing
+		bool		AICHTrustEveryHash;	// Trust every AICH hash received (less secure but faster)
+		DWORD		AICHHashSetTimeout;	// Timeout for AICH hash set requests (seconds)
+		bool		AICHRecover;			// Try to recover from AICH verification failures
+
+		bool		EnableKadHello;			// Enable KADEMLIA2_HELLO_REQ/RES protocol
+		bool		KadFindValue;			// Enable KADEMLIA_FIND_VALUE searches
+		DWORD		KadHelloTimeout;		// Timeout for Kad hello requests (seconds)
+		DWORD		KadFindValueTimeout;	// Timeout for Kad find value requests (seconds)
+
+		bool		EnableMultiPacketExt2;	// Enable MultiPacket Ext2 for bulk transfers
+		bool		EnableHashSetRequest2;	// Enable HashSetRequest2 with FileIdentifier
+
+		bool		PreferIPv6;				// Prefer IPv6 connections when available
+		bool		EnableDualStack;		// Allow both IPv4 and IPv6 connections
+		DWORD		IPv6ConnectTimeout;	// IPv6 connection timeout (seconds)
 	} eDonkey;
 
 	struct sDC

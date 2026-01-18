@@ -1,4 +1,4 @@
-﻿//
+//
 // KadProtocol.cpp
 //
 // Kademlia protocol message handling and UDP networking
@@ -324,13 +324,13 @@ bool KadProtocol::SendPacket(const unsigned char* data, int dataLength, const st
 }
 
 unsigned short KadProtocol::GetTcpPort() const {
-    // TODO: Get actual TCP port from settings
-    return htons(DEFAULT_KAD_TCP_PORT);
+    // Get actual TCP port from network settings
+    return htons(Network.GetPort());
 }
 
 unsigned short KadProtocol::GetUdpPort() const {
-    // TODO: Get actual UDP port from settings
-    return htons(DEFAULT_KAD_UDP_PORT);
+    // Get actual UDP port from network settings (Kad uses same port as TCP)
+    return htons(Network.GetPort());
 }
 
 // Static packet creation methods

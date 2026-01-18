@@ -358,6 +358,10 @@ struct CompareNums
 	}
 };
 
+// Generate cryptographically secure random bytes
+// Returns TRUE if successful, FALSE if no secure random source available
+BOOL GenerateCryptographicBytes(BYTE* pBuffer, size_t nLength);
+
 // Use with whole numbers only
 template <typename T>
 inline T GetRandomNum(const T& min, const T& max)
