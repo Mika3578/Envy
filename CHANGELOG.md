@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **ED2K Search Modernization** - Complete UDP and TCP search functionality overhaul
+  - UDP search GUID tracking with server-specific mapping (IP, port, opcode)
+  - Support for concatenated ED2K UDP sub-packets in single datagram (eMule-compatible)
+  - Automatic cleanup of stale UDP search GUID entries (60-second timeout)
+  - Correct Unicode flag extraction from server flags in UDP search results
+- **Vendor Cache Robustness** - Enhanced Vendors.xml loading with fallback paths
+  - Primary path: User DataPath (`%APPDATA%\Envy\Data\Vendors.xml`)
+  - Fallback 1: Install path (`Settings.General.Path\Data\Vendors.xml`)
+  - Fallback 2: Binary folder (`<binary>\Data\Vendors.xml`)
+  - Automatic file copying from fallback paths to user DataPath
+  - Post-build step to ensure Vendors.xml is included in developer builds
+- **Vendor Code Log Spam Prevention** - Once-per-process logging for unknown vendor codes
+  - Static map tracking of logged vendor codes
+  - Thread-safe logging with mutex protection
+  - Reduced log verbosity from MSG_INFO to MSG_DEBUG level
+  - ASCII lookup method used in QueryHit to prevent unnecessary logging
 - **CryptLayer Implementation** - Complete RSA+RC4 encryption handshake for ED2K protocol
   - Fixed decryption ordering (decrypt before inflate to handle compressed encrypted packets)
   - Implemented deterministic initiator selection using GUID comparison
@@ -86,6 +102,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **zlib test implementation** compression and decompression functionality (`5779b77`)
 - **Packet reading robustness** in ED2K client with proper error checking
 - **Search filtering** case-insensitive matching for better user experience
+- **ED2K UDP Search Results** - Fixed incorrect GUID association causing results to match wrong searches
+  - UDP search results now correctly associated with originating search GUID
+  - Fixed Unicode flag extraction from server flags (was incorrectly using bit 0 instead of bit 8)
+  - Added support for eMule-compatible concatenated UDP sub-packets in single datagram
+- **ED2K Search Packet Construction** - Prevented potential crashes in QuerySearch::ToEDPacket()
+  - Added null checks for m_pSchema and m_pXML before accessing GetFirstElement()
+  - Prevents null pointer dereference when schema or XML is not initialized
+- **Vendor Code Log Spam** - Fixed "Unknown Vendor Code: ED2K" spam during searches
+  - Switched from wide-character lookup (L"ED2K") to ASCII lookup ("ED2K") in QueryHit.cpp
+  - ASCII lookup method does not log unknown codes, preventing log spam
+  - Wide-character lookup now logs only once per process per unique code
+- **Duplicate Case Value** - Fixed compilation error C2196 in QueryHit.cpp
+  - Resolved conflict between ED2K_FT_MAXSOURCES (0x55) and ED2K_CT_MODVERSION (0x55)
+  - Combined into single case statement with tag type discrimination
+  - File tags (INT type) handled as ED2K_FT_MAXSOURCES, client tags (STRING type) as ED2K_CT_MODVERSION
+- **Type Cast Safety** - Changed dynamic_cast to static_cast in ManagedSearch.cpp
+  - Improved performance by using static_cast for known CEDPacket types
+  - Maintains type safety while avoiding runtime type checking overhead
 
 ### Removed
 - **Legacy components**: Obsolete scripts and plugins (`ad3bd40`)
