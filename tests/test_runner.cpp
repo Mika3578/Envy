@@ -6,10 +6,13 @@
 // This file is part of Envy (getenvy.com) © 2016-2026
 //
 
+#define WIN32_LEAN_AND_MEAN
+#define _WINSOCKAPI_
 #include <iostream>
 #include <vector>
 #include <string>
 #include <chrono>
+#include <functional>
 
 // Test framework
 class TestSuite {
@@ -128,7 +131,9 @@ int test_merkle_tree();
 bool test_kademlia_basic() { return test_kademlia_basic_impl(); }
 bool test_aich_basic() { return test_aich_hash_operations() && test_aich_file_operations() && test_aich_peer_management(); }
 bool test_crypto_basic() { return test_crypto_availability() && test_crypto_key_generation() && test_crypto_encryption() && test_crypto_signatures(); }
-bool test_ed2k_basic() { return test_ed2k_file_identifier() && test_ed2k_multipacket() && test_ed2k_hashset() && test_ed2k_aich_integration(); }
+bool test_ed2k_basic() { return test_ed2k_file_identifier() && test_ed2k_multipacket() && test_ed2k_hashset() && test_ed2k_aich_integration() && test_ed2k_server_message_parsing(); }
+
+bool test_ed2k_advanced() { return test_aich_hash() && test_ed2k_metrics(); }
 bool test_integration_kademlia_ed2k() { return test_integration_kademlia_ed2k_impl(); }
 bool test_integration_crypto_aich() { return test_integration_crypto_aich_impl(); }
 bool test_sha256_basic() { return test_sha256_known_vectors() && test_sha256_incremental() && test_sha256_state(); }
@@ -143,6 +148,7 @@ int main() {
     g_test_suite.add_test("AICHManager Basic Functionality", test_aich_basic);
     g_test_suite.add_test("CryptoProvider Basic Functionality", test_crypto_basic);
     g_test_suite.add_test("ED2K Protocol Basic Functionality", test_ed2k_basic);
+    g_test_suite.add_test("ED2K Advanced Features (AICH/Metrics)", test_ed2k_advanced);
     g_test_suite.add_test("SHA-256 Hash Implementation", test_sha256_basic);
     g_test_suite.add_test("MerkleTree Basic Functionality", test_merkle_tree_basic);
     g_test_suite.add_test("Kademlia-ED2K Integration", test_integration_kademlia_ed2k);

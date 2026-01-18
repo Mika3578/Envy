@@ -44,7 +44,7 @@ D https://peerates.net/servers.met
 D http://www.gruk.org/server.met
 D http://upd.emule-security.org/server.met
 D http://www.emule-server.de/server.met/max/server.met
-#D https://www.emule-security.org/server.met
+D https://www.emule-security.org/server.met
 #D https://www.shortypower.org/server.met
 
 H http://dchublist.com/hublist.xml.bz2
