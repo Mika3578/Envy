@@ -40,7 +40,7 @@ void CSHA256::Reset()
 	m_State.m_nCount = 0;
 	// Initialize hash state with SHA-256 initial values
 	std::copy(SHA256_INITIAL_STATE, SHA256_INITIAL_STATE + 8, m_State.m_nState);
-	std::fill_n(m_State.m_oBuffer, SHA256State::blockSize, 0);
+	std::fill_n(m_State.m_oBuffer, SHA256State::blockSize, static_cast<uint8>(0));
 }
 
 void CSHA256::Add(const void* pData, size_t nLength)
@@ -70,10 +70,10 @@ void CSHA256::Add(const void* pData, size_t nLength)
 
 			// Prepare message schedule
 			for (int i = 0; i < 16; ++i) {
-				w[i] = (m_State.m_oBuffer[i * 4] << 24) |
-					   (m_State.m_oBuffer[i * 4 + 1] << 16) |
-					   (m_State.m_oBuffer[i * 4 + 2] << 8) |
-					   m_State.m_oBuffer[i * 4 + 3];
+				w[i] = (static_cast<uint32>(m_State.m_oBuffer[i * 4]) << 24) |
+					   (static_cast<uint32>(m_State.m_oBuffer[i * 4 + 1]) << 16) |
+					   (static_cast<uint32>(m_State.m_oBuffer[i * 4 + 2]) << 8) |
+					   static_cast<uint32>(m_State.m_oBuffer[i * 4 + 3]);
 			}
 
 			for (int i = 16; i < 64; ++i) {
@@ -96,21 +96,21 @@ void CSHA256::Finish()
 
 	// If not enough space for length, pad with zeros and process
 	if (bufferPos > SHA256State::blockSize - 8) {
-		std::fill(m_State.m_oBuffer + bufferPos, m_State.m_oBuffer + SHA256State::blockSize, 0);
+		std::fill(m_State.m_oBuffer + bufferPos, m_State.m_oBuffer + SHA256State::blockSize, static_cast<uint8>(0));
 		uint32 w[64];
 		for (int i = 0; i < 16; ++i) {
-			w[i] = (m_State.m_oBuffer[i * 4] << 24) |
-				   (m_State.m_oBuffer[i * 4 + 1] << 16) |
-				   (m_State.m_oBuffer[i * 4 + 2] << 8) |
-				   m_State.m_oBuffer[i * 4 + 3];
+			w[i] = (static_cast<uint32>(m_State.m_oBuffer[i * 4]) << 24) |
+				   (static_cast<uint32>(m_State.m_oBuffer[i * 4 + 1]) << 16) |
+				   (static_cast<uint32>(m_State.m_oBuffer[i * 4 + 2]) << 8) |
+				   static_cast<uint32>(m_State.m_oBuffer[i * 4 + 3]);
 		}
 		for (int i = 16; i < 64; ++i) {
 			w[i] = Sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
 		}
 		Transform(w);
-		std::fill_n(m_State.m_oBuffer, SHA256State::blockSize - 8, 0);
+		std::fill_n(m_State.m_oBuffer, SHA256State::blockSize - 8, static_cast<uint8>(0));
 	} else {
-		std::fill(m_State.m_oBuffer + bufferPos, m_State.m_oBuffer + SHA256State::blockSize - 8, 0);
+		std::fill(m_State.m_oBuffer + bufferPos, m_State.m_oBuffer + SHA256State::blockSize - 8, static_cast<uint8>(0));
 	}
 
 	// Append length in big-endian
@@ -130,10 +130,10 @@ void CSHA256::Finish()
 	// Final transform
 	uint32 w[64];
 	for (int i = 0; i < 16; ++i) {
-		w[i] = (m_State.m_oBuffer[i * 4] << 24) |
-			   (m_State.m_oBuffer[i * 4 + 1] << 16) |
-			   (m_State.m_oBuffer[i * 4 + 2] << 8) |
-			   m_State.m_oBuffer[i * 4 + 3];
+		w[i] = (static_cast<uint32>(m_State.m_oBuffer[i * 4]) << 24) |
+			   (static_cast<uint32>(m_State.m_oBuffer[i * 4 + 1]) << 16) |
+			   (static_cast<uint32>(m_State.m_oBuffer[i * 4 + 2]) << 8) |
+			   static_cast<uint32>(m_State.m_oBuffer[i * 4 + 3]);
 	}
 	for (int i = 16; i < 64; ++i) {
 		w[i] = Sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];

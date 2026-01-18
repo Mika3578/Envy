@@ -16,6 +16,7 @@
 #include "Kademlia.h"
 #include "Security.h"
 #include "Network.h"
+#include "../HashLib/HashLib.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -73,22 +74,11 @@ void kad_hash(void *hash_return, int hash_size,
         data.insert(data.end(), (unsigned char*)v3, (unsigned char*)v3 + len3);
     }
 
-    // For now, use a simple hash - should be replaced with proper crypto hash
-    unsigned int hash = 5381; // djb2 hash
-    for (size_t i = 0; i < data.size(); i++) {
-        hash = ((hash << 5) + hash) + data[i];
-    }
-
-    // Copy result to output buffer
-    memset(hash_return, 0, hash_size);
-    memcpy(hash_return, &hash, (hash_size < (int)sizeof(hash)) ? hash_size : (int)sizeof(hash));
-
-    // TODO: Replace with proper SHA-1 or similar cryptographic hash
-    // Example using Envy's hash library:
-    // Hashes::Sha1 sha1;
-    // sha1.Add(data.data(), data.size());
-    // sha1.Finish();
-    // memcpy(hash_return, sha1.GetHash(), min(hash_size, Hashes::Sha1::byteCount));
+    // Use proper SHA-1 cryptographic hash from Envy's hash library
+    CSHA sha1;
+    sha1.Add(data.data(), data.size());
+    sha1.Finish();
+    sha1.GetHash(reinterpret_cast<unsigned char*>(hash_return));
 }
 
 // Generate random bytes
@@ -102,11 +92,10 @@ int kad_random_bytes(void *buf, size_t size)
     HCRYPTPROV hProvider = 0;
 
     if (!CryptAcquireContext(&hProvider, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
-        // Fallback to rand() if crypto provider unavailable
-        srand((unsigned int)time(NULL));
-        unsigned char *buffer = (unsigned char *)buf;
-        for (size_t i = 0; i < size; i++) {
-            buffer[i] = (unsigned char)(rand() & 0xFF);
+        // Use GenerateCryptographicBytes for secure random generation (P0.2 security requirement)
+        if (!GenerateCryptographicBytes((BYTE *)buf, size)) {
+            // Critical security failure - cannot generate secure random bytes
+            return -1; // Fail rather than use insecure rand()
         }
         return 0;
     }

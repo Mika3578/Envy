@@ -503,11 +503,29 @@ void CSettings::Load()
 	Add( L"eDonkey", L"RequestPipe", &eDonkey.RequestPipe, 3, 1, 1, 10 );
 	Add( L"eDonkey", L"RequestSize", &eDonkey.RequestSize, 90*KiloByte, KiloByte, 10, KiloByte, L" KB" );
 	Add( L"eDonkey", L"SendPortServer", &eDonkey.SendPortServer, false );
-	Add( L"eDonkey", L"ServerListURL", &eDonkey.ServerListURL, L"http://peerates.net/servers.php" );
+	Add( L"eDonkey", L"ServerListURL", &eDonkey.ServerListURL, L"https://peerates.net/servers.met" );
 	Add( L"eDonkey", L"ServerWalk", &eDonkey.ServerWalk, true );
 	Add( L"eDonkey", L"SourceThrottle", &eDonkey.SourceThrottle, 1000, 1, 250, 5000, L" ms" );
 	Add( L"eDonkey", L"StatsGlobalThrottle", &eDonkey.StatsGlobalThrottle, 30*60*1000, 60*1000, 30, 120, L" m" );
 	Add( L"eDonkey", L"StatsServerThrottle", &eDonkey.StatsServerThrottle, 4*60*60, 60, 1, 7*24*60, L" m" );
+
+	// Advanced ED2K Protocol Features (2026 enhancements)
+	Add( L"eDonkey", L"EnableAICH", &eDonkey.EnableAICH, true );
+	Add( L"eDonkey", L"AICHTrustEveryHash", &eDonkey.AICHTrustEveryHash, false );
+	Add( L"eDonkey", L"AICHHashSetTimeout", &eDonkey.AICHHashSetTimeout, 30, 1, 5, 300, L" s" );
+	Add( L"eDonkey", L"AICHRecover", &eDonkey.AICHRecover, true );
+
+	Add( L"eDonkey", L"EnableKadHello", &eDonkey.EnableKadHello, true );
+	Add( L"eDonkey", L"KadFindValue", &eDonkey.KadFindValue, true );
+	Add( L"eDonkey", L"KadHelloTimeout", &eDonkey.KadHelloTimeout, 10, 1, 1, 60, L" s" );
+	Add( L"eDonkey", L"KadFindValueTimeout", &eDonkey.KadFindValueTimeout, 15, 1, 1, 120, L" s" );
+
+	Add( L"eDonkey", L"EnableMultiPacketExt2", &eDonkey.EnableMultiPacketExt2, true );
+	Add( L"eDonkey", L"EnableHashSetRequest2", &eDonkey.EnableHashSetRequest2, true );
+
+	Add( L"eDonkey", L"PreferIPv6", &eDonkey.PreferIPv6, false );
+	Add( L"eDonkey", L"EnableDualStack", &eDonkey.EnableDualStack, true );
+	Add( L"eDonkey", L"IPv6ConnectTimeout", &eDonkey.IPv6ConnectTimeout, 30, 1, 5, 300, L" s" );
 
 	Add( L"DC", L"ShowInterface", &DC.ShowInterface, true );
 	Add( L"DC", L"EnableAlways", &DC.EnableAlways, false );
@@ -667,8 +685,8 @@ void CSettings::Load()
 	Add( L"Remote", L"AllowLAN", &Remote.AllowLAN, false );  // Default: no LAN access
 	Add( L"Remote", L"AllowWAN", &Remote.AllowWAN, false );  // Default: no WAN access
 	Add( L"Remote", L"AllowedCIDRs", &Remote.AllowedCIDRs, L"" );  // Default: empty (no explicit CIDRs)
-	Add( L"Remote", L"RateLimitRequests", &Remote.RateLimitRequests, 10, 1, 1, 100 );  // Default: 10 requests per minute
-	Add( L"Remote", L"RateLimitWindow", &Remote.RateLimitWindow, 60000, 1000, 1000, 300000 );  // Default: 60 seconds window
+	Add( L"Remote", L"RateLimitRequests", &Remote.RateLimitRequests, 10, 1, 1, 100 );  // Default: 10 requests per window
+	Add( L"Remote", L"RateLimitWindow", &Remote.RateLimitWindow, 60000, 1000, 10, 300 );  // Default: 60 seconds window (displayed in seconds)
 
 	Add( L"Live", L"BandwidthScaleIn", &Live.BandwidthScaleIn, 101, 1, 0, 101, L" %" );
 	Add( L"Live", L"BandwidthScaleOut", &Live.BandwidthScaleOut, 101, 1, 0, 101, L" %" );

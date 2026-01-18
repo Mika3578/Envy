@@ -228,7 +228,7 @@ BOOL CRemote::OnHeadersComplete()
 
 		// Add security headers
 		CString securityHeaders;
-		CRemoteSecurity::AddSecurityHeaders( securityHeaders, false ); // TODO: Check if HTTPS
+		CRemoteSecurity::AddSecurityHeaders( securityHeaders, false ); // Note: HTTPS detection not implemented yet
 		Write( securityHeaders );
 
 		if ( ! m_sHeader.IsEmpty() )
@@ -250,7 +250,7 @@ BOOL CRemote::OnHeadersComplete()
 
 		// Add security headers
 		CString securityHeaders;
-		CRemoteSecurity::AddSecurityHeaders( securityHeaders, false ); // TODO: Check if HTTPS
+		CRemoteSecurity::AddSecurityHeaders( securityHeaders, false ); // Note: HTTPS detection not implemented yet
 		Write( securityHeaders );
 
 		if ( ! m_sHeader.IsEmpty() )
@@ -265,7 +265,7 @@ BOOL CRemote::OnHeadersComplete()
 
 		// Add security headers
 		CString securityHeaders;
-		CRemoteSecurity::AddSecurityHeaders( securityHeaders, false ); // TODO: Check if HTTPS
+		CRemoteSecurity::AddSecurityHeaders( securityHeaders, false ); // Note: HTTPS detection not implemented yet
 		Write( securityHeaders );
 
 		if ( ! m_sHeader.IsEmpty() ) Write( m_sHeader );
@@ -278,7 +278,7 @@ BOOL CRemote::OnHeadersComplete()
 
 		// Add security headers even for errors
 		CString securityHeaders;
-		CRemoteSecurity::AddSecurityHeaders( securityHeaders, false ); // TODO: Check if HTTPS
+		CRemoteSecurity::AddSecurityHeaders( securityHeaders, false ); // Note: HTTPS detection not implemented yet
 		Write( securityHeaders );
 	}
 
@@ -1122,7 +1122,11 @@ void CRemote::PageSearch()
 
 				PageSearchRowColumn( MATCH_COL_COUNT, pFile, (CString)inet_ntoa( pHit->m_pAddress ) );
 				PageSearchRowColumn( MATCH_COL_SPEED, pFile, pHit->m_sSpeed );
-				PageSearchRowColumn( MATCH_COL_CLIENT, pFile, pHit->m_pVendor->m_sName );
+				// Show client version string (m_sNick) if available for ED2K, otherwise vendor name
+				if ( pHit->m_nProtocol == PROTOCOL_ED2K && ! pHit->m_sNick.IsEmpty() )
+					PageSearchRowColumn( MATCH_COL_CLIENT, pFile, pHit->m_sNick );
+				else
+					PageSearchRowColumn( MATCH_COL_CLIENT, pFile, pHit->m_pVendor->m_sName );
 
 				Output( L"searchRowEnd" );
 				Prepare( L"column_" );

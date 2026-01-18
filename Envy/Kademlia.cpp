@@ -42,19 +42,22 @@ static bool IsZeroId(const KadId& id) {
 
 // KadBucket implementation
 bool KadBucket::AddContact(const KadContact& contact) {
-    // Check if contact already exists
-    for (auto it = contacts.begin(); it != contacts.end(); ++it) {
-        if (memcmp(it->id, contact.id, KAD_ID_SIZE) == 0) {
-            // Update existing contact
-            *it = contact;
-            it->lastSeen = GetTickCount();
-            return true;
-        }
+    // Use binary search for better performance (assuming contacts are sorted by ID)
+    auto it = std::lower_bound(contacts.begin(), contacts.end(), contact,
+        [](const KadContact& a, const KadContact& b) {
+            return memcmp(a.id, b.id, KAD_ID_SIZE) < 0;
+        });
+
+    if (it != contacts.end() && memcmp(it->id, contact.id, KAD_ID_SIZE) == 0) {
+        // Update existing contact
+        *it = contact;
+        it->lastSeen = GetTickCount();
+        return true;
     }
 
     // Add new contact if bucket not full
     if (contacts.size() < (size_t)KAD_K) {
-        contacts.push_back(contact);
+        contacts.insert(it, contact);
         return true;
     }
 
@@ -62,20 +65,28 @@ bool KadBucket::AddContact(const KadContact& contact) {
 }
 
 bool KadBucket::RemoveContact(const KadId& id) {
-    for (auto it = contacts.begin(); it != contacts.end(); ++it) {
-        if (memcmp(it->id, id, KAD_ID_SIZE) == 0) {
-            contacts.erase(it);
-            return true;
-        }
+    // Binary search for removal
+    auto it = std::lower_bound(contacts.begin(), contacts.end(), id,
+        [](const KadContact& contact, const KadId& targetId) {
+            return memcmp(contact.id, targetId, KAD_ID_SIZE) < 0;
+        });
+
+    if (it != contacts.end() && memcmp(it->id, id, KAD_ID_SIZE) == 0) {
+        contacts.erase(it);
+        return true;
     }
     return false;
 }
 
 const KadContact* KadBucket::FindContact(const KadId& id) const {
-    for (const auto& contact : contacts) {
-        if (memcmp(contact.id, id, KAD_ID_SIZE) == 0) {
-            return &contact;
-        }
+    // Binary search for better performance
+    auto it = std::lower_bound(contacts.begin(), contacts.end(), id,
+        [](const KadContact& contact, const KadId& targetId) {
+            return memcmp(contact.id, targetId, KAD_ID_SIZE) < 0;
+        });
+
+    if (it != contacts.end() && memcmp(it->id, id, KAD_ID_SIZE) == 0) {
+        return &(*it);
     }
     return nullptr;
 }
@@ -141,6 +152,19 @@ const KadContact* Kad2RoutingTable::FindContact(const KadId& id) const {
     return nullptr;
 }
 
+void Kad2RoutingTable::MarkContactVerified(const KadId& id) {
+    // Find the contact and mark it as verified
+    for (int i = 0; i < KAD_BUCKET_COUNT; i++) {
+        for (auto& contact : buckets[i].contacts) {
+            if (memcmp(contact.id, id, KAD_ID_SIZE) == 0) {
+                contact.verified = TRUE;
+                contact.lastSeen = GetTickCount();
+                return;
+            }
+        }
+    }
+}
+
 void Kad2RoutingTable::FindClosestContacts(const KadId& targetId, std::vector<KadContact>& results, int maxCount) {
     // Simple implementation: collect contacts from all buckets and sort by XOR distance
     std::vector<std::pair<std::array<unsigned char, KAD_ID_SIZE>, const KadContact*>> candidates;
@@ -189,7 +213,8 @@ void Kad2RoutingTable::GetContactsForBootstrap(std::vector<KadContact>& results,
 CKademlia::CKademlia() :
     m_bInitialized(false),
     m_lastBootstrapTime(0),
-    m_lastTimerCall(0)
+    m_lastTimerCall(0),
+    m_lastRateLimitCleanup(0)
 {
     memset(m_ownId, 0, KAD_ID_SIZE);
 }
@@ -236,12 +261,15 @@ void CKademlia::GenerateOwnKadId() {
     Hashes::Guid oGUID = MyProfile.oGUID;
     memcpy(m_ownId, &oGUID[0], std::min(oGUID.byteCount, size_t(KAD_ID_SIZE)));
 
-    // If GUID is shorter than 16 bytes, pad with zeros or random data
+    // If GUID is shorter than 16 bytes, pad with cryptographically secure random data
     if (oGUID.byteCount < KAD_ID_SIZE) {
-        // Pad with some entropy
-        srand(GetTickCount());
-        for (size_t i = oGUID.byteCount; i < KAD_ID_SIZE; i++) {
-            m_ownId[i] = (BYTE)(rand() & 0xFF);
+        // Fill remaining bytes with secure random data (P0.2 security requirement)
+        size_t remainingBytes = KAD_ID_SIZE - oGUID.byteCount;
+        if (!GenerateCryptographicBytes(&m_ownId[oGUID.byteCount], remainingBytes)) {
+            // Critical security failure - cannot generate secure Kad ID
+            theApp.Message(MSG_ERROR, L"Kademlia: Failed to generate secure random bytes for Kad ID");
+            // Set remaining bytes to zero as fallback (not secure but better than rand())
+            memset(&m_ownId[oGUID.byteCount], 0, remainingBytes);
         }
     }
 }
@@ -333,10 +361,13 @@ void CKademlia::SendFindNodeRequest(const KadContact& contact) {
     // Add search type (1 byte) - KADEMLIA_FIND_NODE for node search
     pPacket->WriteByte(KADEMLIA_FIND_NODE);
 
-    // Add target ID (16 bytes) - use a random ID for now to discover nodes
+    // Add target ID (16 bytes) - use cryptographically secure random ID for node discovery (P0.2 security requirement)
     KadId targetId;
-    for (int i = 0; i < KAD_ID_SIZE; i++) {
-        targetId[i] = (BYTE)(rand() & 0xFF);
+    if (!GenerateCryptographicBytes(targetId, KAD_ID_SIZE)) {
+        // Critical security failure - cannot generate secure target ID
+        theApp.Message(MSG_ERROR, L"Kademlia: Failed to generate secure random bytes for target ID");
+        // Set to zero as fallback (not secure but prevents using rand())
+        memset(targetId, 0, KAD_ID_SIZE);
     }
     pPacket->Write(targetId, KAD_ID_SIZE);
 
@@ -404,6 +435,14 @@ BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
 
     case KADEMLIA2_RES:
         OnFindNodeResponse(pHost, pPacket);
+        return TRUE;
+
+    case KADEMLIA2_HELLO_REQ:
+        OnHelloRequest(pHost, pPacket);
+        return TRUE;
+
+    case KADEMLIA2_HELLO_RES:
+        OnHelloResponse(pHost, pPacket);
         return TRUE;
 
     default:
@@ -561,20 +600,38 @@ void CKademlia::OnPong(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
 }
 
 void CKademlia::OnFindNodeRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
-    // KADEMLIA2_REQ format: <Type(1)><TargetID(16)><ReceiverID(16)>
-    // Minimum size check
-    if (pPacket->GetRemaining() < (1 + KAD_ID_SIZE + KAD_ID_SIZE)) {
-        theApp.Message(MSG_DEBUG, L"Kad2: Find node request too small");
+    if (!pHost || !pPacket) {
+        theApp.Message(MSG_ERROR, L"Kad2: Invalid parameters in find node request");
         return;
     }
 
-    // Read search type (1 byte)
-    BYTE searchType = pPacket->ReadByte();
-    BYTE type = (searchType & 0x1F);
-    if (type == 0 || type != KADEMLIA_FIND_NODE) {
-        theApp.Message(MSG_DEBUG, L"Kad2: Find node request has unsupported search type %d", searchType);
+    // KADEMLIA2_REQ format: <Type(1)><TargetID(16)><ReceiverID(16)>
+    // Minimum size check
+    if (pPacket->GetRemaining() < (1 + KAD_ID_SIZE + KAD_ID_SIZE)) {
+        theApp.Message(MSG_DEBUG, L"Kad2: Find node request too small from %s",
+            (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
         return;
     }
+
+    try {
+        // Read search type (1 byte)
+        BYTE searchType = pPacket->ReadByte();
+        BYTE type = (searchType & 0x1F);
+
+        // Security: Only allow known search types to prevent protocol abuse
+        if (type == 0 || (type != KADEMLIA_FIND_NODE && type != KADEMLIA_FIND_VALUE)) {
+            theApp.Message(MSG_WARNING, L"Kad2: Rejected find node request with unknown search type %d from %s",
+                searchType, (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+            // Don't respond to prevent amplification attacks
+            return;
+        }
+
+        // Security: Rate limiting check
+        if (!CheckRateLimit(pHost, KAD_REQUEST_FIND_NODE)) {
+            theApp.Message(MSG_WARNING, L"Kad2: Rate limit exceeded for find node request from %s",
+                (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+            return;
+        }
 
     // Read target ID (16 bytes) - this is the ID we're looking for
     if (pPacket->GetRemaining() < KAD_ID_SIZE) return;
@@ -626,6 +683,12 @@ void CKademlia::OnFindNodeRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket) 
     pResponse->Release();
 
     // Don't add requester to routing table - we don't know their ID from this packet format
+    }
+    catch (...) {
+        // Handle any exceptions during packet processing
+        theApp.Message(MSG_WARNING, L"Kad2: Exception during find node request processing from %s",
+            (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+    }
 }
 
 void CKademlia::OnFindNodeResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
@@ -716,9 +779,164 @@ bool CKademlia::UpdateContact(const KadContact& contact) {
     return m_routingTable.AddContact(contact);
 }
 
+void CKademlia::MarkContactVerified(const KadId& id) {
+    // Mark a contact as verified in the routing table
+    m_routingTable.MarkContactVerified(id);
+}
+
 void CKademlia::LogKadStatus() {
     size_t contactCount = m_routingTable.GetTotalContacts();
     theApp.Message(MSG_DEBUG, L"Kad2: Routing table has %d contacts", contactCount);
+}
+
+void CKademlia::OnHelloRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
+    theApp.Message(MSG_DEBUG, L"Kad2: Hello request from %s:%d",
+        (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), ntohs(pHost->sin_port));
+
+    // HELLO_REQ format: <TargetID(16)><TCPPort(2)><Version(1)><UDPPort(2)>
+    // We need to read the TargetID and respond with our info if we're the target
+    // or forward to the appropriate node
+
+    if (pPacket->GetRemaining() < KAD_ID_SIZE + 2 + 1 + 2) {
+        theApp.Message(MSG_WARNING, L"Kad2: Hello request packet too small from %s - expected %d bytes, got %d",
+            (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)),
+            KAD_ID_SIZE + 2 + 1 + 2, pPacket->GetRemaining());
+        return;
+    }
+
+    KadId targetId;
+    pPacket->Read(targetId, KAD_ID_SIZE);
+    WORD tcpPort = pPacket->ReadShortLE();
+    BYTE version = pPacket->ReadByte();
+    WORD udpPort = pPacket->ReadShortLE();
+
+    // Check if this is for us
+    if (memcmp(targetId, m_ownId, KAD_ID_SIZE) == 0) {
+        // This is for us - send HELLO_RES
+        SendHelloResponse(pHost);
+    } else {
+        // Forward to appropriate node (simplified - just drop for now)
+        theApp.Message(MSG_DEBUG, L"Kad2: Hello request not for us - dropping");
+    }
+}
+
+void CKademlia::OnHelloResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
+    theApp.Message(MSG_DEBUG, L"Kad2: Hello response from %s",
+        (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+
+    // HELLO_RES format: <TargetID(16)><TCPPort(2)><Version(1)><UDPPort(2)><TagCount(1)><Tags...>
+    // Extract and store contact information
+
+    if (pPacket->GetRemaining() < KAD_ID_SIZE + 2 + 1 + 2 + 1) {
+        theApp.Message(MSG_DEBUG, L"Kad2: Hello response packet too small");
+        return;
+    }
+
+    KadId targetId;
+    pPacket->Read(targetId, KAD_ID_SIZE);
+    WORD tcpPort = pPacket->ReadShortLE();
+    BYTE version = pPacket->ReadByte();
+    WORD udpPort = pPacket->ReadShortLE();
+    BYTE tagCount = pPacket->ReadByte();
+
+    // Store/update contact information
+    KadContact contact;
+    memcpy(contact.id, targetId, KAD_ID_SIZE);
+    contact.ip = pHost->sin_addr.s_addr;
+    contact.tcpPort = tcpPort;
+    contact.udpPort = udpPort;
+    contact.lastSeen = GetTickCount();
+
+    // Add to our routing table and mark as verified (successful hello response)
+    if (UpdateContact(contact)) {
+        // Mark contact as verified since we received a valid hello response
+        MarkContactVerified(contact.id);
+    }
+
+    theApp.Message(MSG_DEBUG, L"Kad2: Added/updated contact from hello response");
+}
+
+void CKademlia::SendHelloRequest(const SOCKADDR_IN* pTarget) {
+    theApp.Message(MSG_DEBUG, L"Kad2: Sending hello request to %s",
+        (LPCTSTR)CString(inet_ntoa(pTarget->sin_addr)));
+
+    CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_HELLO_REQ, ED2K_PROTOCOL_KAD);
+    if (!pPacket) return;
+
+    // HELLO_REQ format: <TargetID(16)><TCPPort(2)><Version(1)><UDPPort(2)>
+    // TargetID should be the ID of the node we're contacting
+    // For now, use a zero ID to request general contact
+    KadId zeroId = {0};
+    pPacket->Write(zeroId, KAD_ID_SIZE);
+
+    // Add our TCP port
+    pPacket->WriteShortLE(4662); // Default eMule TCP port
+
+    // Add Kad version
+    pPacket->WriteByte(KADEMLIA_VERSION);
+
+    // Add our UDP port
+    pPacket->WriteShortLE(4672); // Default eMule UDP port
+
+    SendPacket(pTarget, pPacket);
+}
+
+void CKademlia::SendHelloResponse(const SOCKADDR_IN* pTarget) {
+    theApp.Message(MSG_DEBUG, L"Kad2: Sending hello response to %s",
+        (LPCTSTR)CString(inet_ntoa(pTarget->sin_addr)));
+
+    CEDPacket* pResponse = CEDPacket::New(KADEMLIA2_HELLO_RES, ED2K_PROTOCOL_KAD);
+    if (!pResponse) return;
+
+    // HELLO_RES format: <TargetID(16)><TCPPort(2)><Version(1)><UDPPort(2)><TagCount(1)><Tags...>
+    pResponse->Write(m_ownId, KAD_ID_SIZE);
+    pResponse->WriteShortLE(4662); // Our TCP port
+    pResponse->WriteByte(KADEMLIA_VERSION); // Kad version
+    pResponse->WriteShortLE(4672); // Our UDP port
+
+    // Tag count (0 for now - no additional tags)
+    pResponse->WriteByte(0);
+
+    SendPacket(pTarget, pResponse);
+}
+
+// Security and rate limiting implementation
+bool CKademlia::CheckRateLimit(const SOCKADDR_IN* pHost, KadRequestType type) {
+    if (!pHost) return false;
+
+    DWORD currentTime = GetTickCount();
+    DWORD clientIP = pHost->sin_addr.s_addr;
+
+    // Clean up old entries periodically (every 5 minutes)
+    if (currentTime - m_lastRateLimitCleanup > 5 * 60 * 1000) {
+        CleanupRateLimitMap();
+        m_lastRateLimitCleanup = currentTime;
+    }
+
+    auto it = m_rateLimitMap.find(clientIP);
+    if (it != m_rateLimitMap.end()) {
+        DWORD lastRequestTime = it->second;
+        // Allow max 10 requests per minute per IP
+        if (currentTime - lastRequestTime < 6000) { // 6 seconds = 10 requests per minute
+            return false;
+        }
+    }
+
+    // Update last request time
+    m_rateLimitMap[clientIP] = currentTime;
+    return true;
+}
+
+void CKademlia::CleanupRateLimitMap() {
+    DWORD currentTime = GetTickCount();
+    // Remove entries older than 10 minutes
+    for (auto it = m_rateLimitMap.begin(); it != m_rateLimitMap.end(); ) {
+        if (currentTime - it->second > 10 * 60 * 1000) {
+            it = m_rateLimitMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 // Request tracking implementation

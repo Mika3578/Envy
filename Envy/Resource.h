@@ -1,4 +1,4 @@
-﻿//{{NO_DEPENDENCIES}}
+//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by Envy.rc
 //
@@ -147,7 +147,8 @@
 #define IDD_SETTINGS_NETWORKS           511
 #define IDD_SETTINGS_GNUTELLA           512
 #define IDD_SETTINGS_DONKEY             513
-#define IDD_SETTINGS_DC                 514
+#define IDD_SETTINGS_DONKEY_ADVANCED    514
+#define IDD_SETTINGS_DC                 529
 #define IDD_SETTINGS_BITTORRENT         515
 #define IDD_SETTINGS_SKINS              516
 #define IDD_SETTINGS_PLUGINS            517
@@ -306,6 +307,21 @@
 #define IDC_DOWNLOADS_SIMPLEBAR         1086
 #define IDC_ED2K_ENABLE                 1087
 #define IDC_ED2K_SETUP                  1088
+
+// Donkey Advanced Settings Page Controls
+#define IDC_ED2K_ENABLE_AICH            1089
+#define IDC_ED2K_AICH_TRUST_EVERY_HASH  1090
+#define IDC_ED2K_AICH_HASHSET_TIMEOUT   1091
+#define IDC_ED2K_AICH_RECOVER           1092
+#define IDC_ED2K_ENABLE_KAD_HELLO       1093
+#define IDC_ED2K_KAD_FIND_VALUE         1094
+#define IDC_ED2K_KAD_HELLO_TIMEOUT      1095
+#define IDC_ED2K_KAD_FIND_VALUE_TIMEOUT 1096
+#define IDC_ED2K_ENABLE_MULTIPACKET_EXT2 1097
+#define IDC_ED2K_ENABLE_HASHSET_REQUEST2 1098
+#define IDC_ED2K_PREFER_IPV6            1099
+#define IDC_ED2K_ENABLE_DUAL_STACK      1100
+#define IDC_ED2K_IPV6_CONNECT_TIMEOUT   1101
 #define IDC_EDIT_PROFILE                1089
 #define IDC_ENABLE                      1090
 #define IDC_ENABLE_ALWAYS               1091
@@ -1989,3 +2005,4 @@
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
+

@@ -60,7 +60,19 @@ public:
 			if ( m_pCodeMap.Lookup( pszCode, pVendor ) )
 				return pVendor;
 
-			theApp.Message( MSG_INFO, L"Unknown Vendor Code: %s", pszCode );
+			// Log unknown vendor codes only once per process to prevent spam
+			// Use static map to track which codes have been logged
+			static CMutex s_oLogMutex;
+			static CMap< CString, const CString&, BOOL, BOOL& > s_oLoggedCodes;
+
+			CQuickLock oLock( s_oLogMutex );
+			BOOL bLogged = FALSE;
+			if ( ! s_oLoggedCodes.Lookup( pszCode, bLogged ) )
+			{
+				BOOL bValue = TRUE;
+				s_oLoggedCodes.SetAt( pszCode, bValue );
+				theApp.Message( MSG_DEBUG, L"Unknown Vendor Code: %s", pszCode );
+			}
 		}
 		return NULL;
 	}
