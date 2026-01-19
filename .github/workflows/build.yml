@@ -41,15 +41,47 @@ jobs:
             Write-Host "Build: $($versionData.build)" -ForegroundColor Cyan
           }
 
+      - name: Install Visual Studio 2026 Build Tools
+        shell: pwsh
+        run: |
+          Write-Host "Installing Visual Studio 2026 Build Tools..." -ForegroundColor Green
+
+          # Install Chocolatey if not present
+          if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
+            Write-Host "Installing Chocolatey..."
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+          }
+
+          # Install Visual Studio 2026 Build Tools with necessary workloads
+          Write-Host "Installing VS 2026 Build Tools..."
+          choco install visualstudio2026buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.19041 --includeRecommended --includeOptional --passive --norestart" -y
+
+          # Refresh environment variables
+          refreshenv
+
+          Write-Host "Visual Studio 2026 Build Tools installation completed." -ForegroundColor Green
+
       - name: Setup MSBuild
         shell: pwsh
         run: |
-          # Find Visual Studio installation using vswhere (pre-installed on windows-latest)
+          # Find Visual Studio 2026 installation first, then fall back to latest
           $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
             -latest `
-            -products * `
-            -requires Microsoft.Component.MSBuild `
+            -products "Microsoft.VisualStudio.Product.BuildTools" `
+            -version "[18.0,19.0)" `
             -property installationPath
+
+          if (!$vsPath) {
+            # Fallback to any VS installation with MSBuild
+            Write-Host "VS 2026 Build Tools not found, looking for any VS installation..."
+            $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
+              -latest `
+              -products * `
+              -requires Microsoft.Component.MSBuild `
+              -property installationPath
+          }
 
           if ($vsPath) {
             Write-Host "Found Visual Studio at: $vsPath"
@@ -64,6 +96,11 @@ jobs:
             # Add vswhere location to PATH for consistency
             $vswherePath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer"
             echo "$vswherePath" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+
+            # Display VS version info
+            $vsVersion = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
+              -property catalog_productDisplayVersion
+            Write-Host "Visual Studio Version: $vsVersion"
           } else {
             Write-Error "Visual Studio installation not found!"
             exit 1
@@ -119,15 +156,47 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Visual Studio 2026 Build Tools
+        shell: pwsh
+        run: |
+          Write-Host "Installing Visual Studio 2026 Build Tools..." -ForegroundColor Green
+
+          # Install Chocolatey if not present
+          if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
+            Write-Host "Installing Chocolatey..."
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+          }
+
+          # Install Visual Studio 2026 Build Tools with necessary workloads
+          Write-Host "Installing VS 2026 Build Tools..."
+          choco install visualstudio2026buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.19041 --includeRecommended --includeOptional --passive --norestart" -y
+
+          # Refresh environment variables
+          refreshenv
+
+          Write-Host "Visual Studio 2026 Build Tools installation completed." -ForegroundColor Green
+
       - name: Setup MSBuild
         shell: pwsh
         run: |
-          # Find Visual Studio installation using vswhere (pre-installed on windows-latest)
+          # Find Visual Studio 2026 installation first, then fall back to latest
           $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
             -latest `
-            -products * `
-            -requires Microsoft.Component.MSBuild `
+            -products "Microsoft.VisualStudio.Product.BuildTools" `
+            -version "[18.0,19.0)" `
             -property installationPath
+
+          if (!$vsPath) {
+            # Fallback to any VS installation with MSBuild
+            Write-Host "VS 2026 Build Tools not found, looking for any VS installation..."
+            $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
+              -latest `
+              -products * `
+              -requires Microsoft.Component.MSBuild `
+              -property installationPath
+          }
 
           if ($vsPath) {
             Write-Host "Found Visual Studio at: $vsPath"
@@ -142,6 +211,11 @@ jobs:
             # Add vswhere location to PATH for consistency
             $vswherePath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer"
             echo "$vswherePath" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+
+            # Display VS version info
+            $vsVersion = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
+              -property catalog_productDisplayVersion
+            Write-Host "Visual Studio Version: $vsVersion"
           } else {
             Write-Error "Visual Studio installation not found!"
             exit 1

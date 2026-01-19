@@ -11,22 +11,44 @@ jobs:
   static-analysis:
     name: Static Analysis
     runs-on: windows-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
-      
+
+    - name: Install Visual Studio 2026 Build Tools
+      shell: pwsh
+      run: |
+        Write-Host "Installing Visual Studio 2026 Build Tools..." -ForegroundColor Green
+
+        # Install Chocolatey if not present
+        if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
+          Write-Host "Installing Chocolatey..."
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+        }
+
+        # Install Visual Studio 2026 Build Tools with necessary workloads
+        Write-Host "Installing VS 2026 Build Tools..."
+        choco install visualstudio2026buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.19041 --includeRecommended --includeOptional --passive --norestart" -y
+
+        # Refresh environment variables
+        refreshenv
+
+        Write-Host "Visual Studio 2026 Build Tools installation completed." -ForegroundColor Green
+
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
-      
+
     - name: Restore NuGet packages
       run: nuget restore "Visual Studio/Envy.sln"
-      
+
     - name: Run Code Analysis
       run: |
         msbuild /m /p:Configuration=Release /p:Platform=x64 /p:RunCodeAnalysis=true /p:CodeAnalysisRuleSet=NativeRecommendedRules.ruleset "Visual Studio/Envy.sln"
       continue-on-error: true
-      
+
     - name: Upload Analysis Results
       uses: actions/upload-artifact@v5
       if: always()
@@ -39,23 +61,23 @@ jobs:
   lint-check:
     name: Format Check
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
-      
+
     - name: Install clang-format
       run: |
         sudo apt-get update
         sudo apt-get install -y clang-format
-        
+
     - name: Check formatting (dry-run)
       run: |
         find . -name "*.cpp" -o -name "*.h" | while read file; do
           clang-format --dry-run --Werror "$file" 2>&1 | tee -a format-errors.txt || true
         done
       continue-on-error: true
-      
+
     - name: Show formatting issues
       if: always()
       run: |
@@ -69,17 +91,17 @@ jobs:
   documentation-check:
     name: Documentation Check
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
-      
+
     - name: Check for README updates
       run: |
         if ! git diff --name-only origin/main | grep -q "README.md"; then
           echo "::notice::No README updates in this PR"
         fi
-        
+
     - name: Check for broken links in markdown
       uses: gaurav-nelson/github-action-markdown-link-check@v1
       with:
@@ -91,11 +113,11 @@ jobs:
     name: Dependency Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
-      
+
     - name: Dependency Review
       uses: actions/dependency-review-action@v4
       with:
