@@ -33,8 +33,8 @@ cd Envy
 
 ### 3. Set Up Development Environment
 - Follow the [Development Guide](guide.md)
-- Ensure you can build the project successfully
-- Run the test suite to verify your setup
+- Build with Visual Studio (`Visual Studio\Envy.sln`) or `.\build_all.ps1`
+- Optionally run `tests\run_integration_tests.bat` to verify setup
 
 ### 4. Create a Feature Branch
 ```bash
@@ -69,24 +69,22 @@ git commit -m "Changes"
 ```
 
 ### Testing Your Changes
-- **Build verification**: `.\scripts\verify-build.ps1`
-- **Static analysis**: `.\scripts\run-static-analysis.ps1`
-- **Code formatting**: `.\scripts\format-code.ps1`
-- **Unit tests**: Run the test suite
+- **Build verification**: `.\build_all.ps1` (Debug/Release × Win32/x64)
+- **Formatting**: run clang-format (config: `.clang-format`) via IDE or clang-format executable
+- **Integration tests (manual)**: `tests\run_integration_tests.bat`
 
 ## 🔄 Pull Request Process
 
 ### Before Submitting
-- ✅ All tests pass
-- ✅ Code follows style guidelines
+- ✅ Build succeeds (`.\build_all.ps1` or equivalent)
+- ✅ Code follows [standards](standards.md); formatted with clang-format
 - ✅ No compiler warnings
-- ✅ Documentation updated
-- ✅ Commit history is clean
+- ✅ Docs updated if behaviour or setup changes
 
 ### Creating a Pull Request
 1. **Push your branch** to your fork
-2. **Create PR** on GitHub from your branch to `main`
-3. **Fill out the PR template** completely
+2. **Create PR** on GitHub from your branch to `develop` (or default branch)
+3. **Fill out the PR template**
 4. **Link related issues** if applicable
 
 ### PR Template Requirements
@@ -125,7 +123,7 @@ git commit -m "Changes"
 ## 📏 Code Standards
 
 ### Language and Style
-- **C++20** features encouraged
+- **C++17** baseline (C++20 planned)
 - **MFC conventions** followed
 - **Unicode** (UTF-16) throughout
 - **Smart pointers** for memory management
@@ -134,7 +132,7 @@ git commit -m "Changes"
 ```cpp
 class CDownloadTask;        // Classes: PascalCase with C prefix
 void OnDownload();          // Functions: PascalCase
-CString m_strFileName;      // Members: m_typeName format
+CString m_sFileName;        // Members: m_s* for strings in this codebase
 ```
 
 ### Code Organization
@@ -239,18 +237,13 @@ Contributors are recognized through:
 - [ ] Commits are focused and descriptive
 
 ### Before Submitting
-- [ ] All tests pass
-- [ ] Code formatted properly
+- [ ] Build succeeds; integration tests run if relevant
+- [ ] Code formatted (clang-format)
 - [ ] No compiler warnings
-- [ ] PR template completed
-- [ ] Related issues linked
+- [ ] PR template completed; related issues linked
 
 ---
 
-**Thank you for contributing to Envy!** 🎉
+**Related:** [Guide](guide.md) · [Build](build.md) · [Standards](standards.md) · [Status](status.md)
 
-Your contributions help improve the P2P ecosystem for everyone.
-
----
-
-**Last Updated:** January 15, 2026
+**Last Updated:** January 2026

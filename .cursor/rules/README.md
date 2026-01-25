@@ -58,6 +58,7 @@ When adding or modifying rules:
 
 ## Related Documentation
 
-- [Code Standards](../docs/contributing/standards.md)
+- [Code Standards](../../docs/10_dev/standards.md)
+- [Contributing Guide](../../docs/10_dev/contributing.md)
+- [Dev Guide & Build](../../docs/10_dev/guide.md) · [Build](../../docs/10_dev/build.md)
 - [Modern C++ Guide](../../.github/MODERN_CPP_GUIDE.md)
-- [Contributing Guide](../docs/contributing/guide.md)

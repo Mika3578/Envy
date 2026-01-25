@@ -1,202 +1,32 @@
 ---
-description: Naming conventions for classes, variables, functions, and files
-alwaysApply: true
+description: Naming conventions (MFC/C++): prefixes, casing, and file/class naming
+globs: ["**/*.cpp", "**/*.h", "**/*.hpp", "**/*.rc", "**/Resource.h"]
+alwaysApply: false
 ---
 
-# Naming Conventions
+# Naming conventions (Envy)
 
-## Classes and Structs
+## Classes / structs
+- MFC classes: `C` + PascalCase (e.g., `CDownloadTask`)
+- Plain structs: PascalCase (e.g., `FileMetadata`)
 
-```cpp
-// ✅ Good: PascalCase with C prefix for MFC classes
-class CDownloadTask;
-class CHashFunction;
-class CLibraryFile;
+## Member prefixes (actual codebase)
+- `m_s*`: strings (`CString`, `CStringList`) **(hard rule: use `m_s`, not `m_str`)**
+- `m_n*`: numbers/sizes/counts
+- `m_b*`: booleans (**use `BOOL` for MFC members**)
+- `m_p*`: pointers (raw or smart pointers)
+- `m_h*`: handles (`HANDLE`, `SOCKET`, hooks)
+- `m_t*`: time/tick values
+- `m_o*`: object/collection members
 
-// ✅ Good: Plain structs without C prefix
-struct FileMetadata;
-struct NetworkConfig;
-struct DownloadProgress;
-```
+## Locals / parameters
+- Use short type-prefix locals when it improves clarity: `str`, `n`, `b`, `p`, `h`, `t`, `o`.
+- Avoid single-letter names except loop counters (`i`, `j`, `k`).
 
-## Member Variables
+## Functions / methods
+- Methods: PascalCase (public + private).
+- MFC handlers: `On...` (e.g., `OnBnClickedOk`, `OnTimer`, `OnSize`).
 
-### Prefixes
-```cpp
-class CExample {
-private:
-    // String members: m_s prefix (NOT m_str - this is the actual codebase convention)
-    CString m_sAddress;          // IP address string
-    CString m_sFileName;        // File name
-    CString m_sPath;            // File path
-    CString m_sUserAgent;       // User agent string
-    CStringList m_sURLs;        // List of URLs
-
-    // Numeric members: m_n prefix
-    int m_nCount;
-    DWORD m_nFileSize;
-    size_t m_nBufferSize;
-    WORD m_nPort;
-    INT m_nTier;
-    DWORD m_nFailures;
-
-    // Boolean members: m_b prefix (use BOOL for MFC compatibility)
-    BOOL m_bIsActive;
-    BOOL m_bCompleted;
-    BOOL m_bConnected;
-    BOOL m_bInitiated;
-
-    // Pointer members: m_p prefix
-    CFile* m_pFile;
-    CConnection* m_pConnection;
-    CBuffer* m_pInput;
-    CBuffer* m_pOutput;
-    std::unique_ptr<CData> m_pData;
-
-    // Handle members: m_h prefix
-    SOCKET m_hSocket;
-    HANDLE m_hFile;
-    HHOOK m_hHookKbd;
-
-    // Time/Tick members: m_t prefix
-    DWORD m_tConnected;         // Connection time (tick count)
-    DWORD m_tLastAccess;        // Last access time
-    DWORD m_tLastSuccess;       // Last success time
-
-    // Object/Collection members: m_o prefix
-    CArray<CBTTracker> m_oTrackers;  // Array of trackers
-    CStringList m_oNodes;             // List of nodes
-    CList<CBTFile*> m_pFiles;        // List of files (note: pointer list uses m_p)
-
-    // Reference members: m_ prefix (rare, PascalCase)
-    CSettings& m_Settings;
-
-    // Smart pointers: m_p prefix
-    std::unique_ptr<CResource> m_pResource;
-    std::shared_ptr<CSharedData> m_pSharedData;
-};
-```
-
-## Functions and Methods
-
-```cpp
-// ✅ Good: Public methods - PascalCase
-void StartDownload();
-bool IsCompleted() const;
-CString GetFileName() const;
-void SetPriority(Priority priority);
-
-// ✅ Good: Private methods - PascalCase
-void UpdateProgress();
-void CleanupResources();
-bool ValidateState() const;
-
-// ✅ Good: Event handlers (MFC style)
-afx_msg void OnDownloadComplete();
-afx_msg LRESULT OnProgressUpdate(WPARAM wParam, LPARAM lParam);
-```
-
-## Local Variables and Parameters
-
-```cpp
-// ✅ Good: Local variables - camelCase with type prefix
-void ProcessFile(const CString& strPath) {
-    CString strName = GetFileName(strPath);
-    int nSize = GetFileSize(strPath);
-    bool bExists = FileExists(strPath);
-    CFile* pFile = nullptr;
-
-    // Loop variables
-    for (int i = 0; i < nCount; i++) { ... }
-
-    // References
-    auto& settings = GetSettings();
-}
-```
-
-## Constants and Enums
-
-```cpp
-// ✅ Good: Constants - ALL_CAPS with underscores
-constexpr size_t MAX_BUFFER_SIZE = 8192;
-constexpr DWORD DEFAULT_TIMEOUT = 30000;
-const int PROTOCOL_VERSION = 1;
-
-// ✅ Good: Enum classes - PascalCase
-enum class DownloadState {
-    Idle,
-    Connecting,
-    Downloading,
-    Completed,
-    Failed
-};
-
-// ✅ Good: MFC-style enums (legacy)
-enum {
-    ID_DOWNLOAD_START = 1001,
-    ID_DOWNLOAD_PAUSE = 1002,
-    ID_DOWNLOAD_CANCEL = 1003
-};
-```
-
-## Macros
-
-```cpp
-// ✅ Good: Project-wide macros - ALL_CAPS
-#define ENVY_VERSION_MAJOR 4
-#define ENVY_VERSION_MINOR 1
-
-// ✅ Good: Debug macros
-#ifdef _DEBUG
-#define TRACE_LINE() TRACE(_T("Line %d in %s\n"), __LINE__, __FILE__)
-#endif
-```
-
-## File Naming
-
-```cpp
-// ✅ Good: File names match class names
-// Class: CDownloadTask
-// Files: DownloadTask.h, DownloadTask.cpp
-
-// ✅ Good: Related files
-// DownloadTask.h
-// DownloadTask.cpp
-// DownloadTaskHelpers.cpp
-// DownloadTaskTests.cpp
-```
-
-## Type Prefixes Summary
-
-### Local Variables and Parameters
-| Prefix | Type | Example |
-|--------|------|---------|
-| `str` | String | `strFileName`, `strPath` |
-| `n` | Number/Count | `nCount`, `nSize`, `nPort` |
-| `b` | Boolean | `bIsActive`, `bCompleted` |
-| `p` | Pointer | `pFile`, `pConnection` |
-| `h` | Handle | `hFile`, `hSocket` |
-| `t` | Time/Tick | `tNow`, `tLastAccess` |
-| `o` | Object/Collection | `oTracker`, `oList` |
-
-### Member Variables
-| Prefix | Type | Example |
-|--------|------|---------|
-| `m_s` | Member string | `m_sAddress`, `m_sFileName` |
-| `m_n` | Member number | `m_nFileSize`, `m_nCount` |
-| `m_b` | Member boolean | `m_bIsActive`, `m_bConnected` |
-| `m_p` | Member pointer | `m_pFile`, `m_pConnection` |
-| `m_h` | Member handle | `m_hSocket`, `m_hFile` |
-| `m_t` | Member time/tick | `m_tConnected`, `m_tLastAccess` |
-| `m_o` | Member object/collection | `m_oTrackers`, `m_oNodes` |
-| `m_` | Member reference (PascalCase) | `m_Settings` |
-
-**Important:** The codebase uses `m_s` for strings, NOT `m_str`. This is the established convention.
-
-## Avoid
-
-- Inconsistent naming (mixing styles)
-- Single letter variables (except loop counters: `i`, `j`, `k`)
-- Abbreviations that aren't clear
-- Hungarian notation for modern C++ types (use for MFC types)
-- Underscores in class names (use PascalCase)
+## Files
+- Prefer file names that match the primary class: `Foo.h` / `Foo.cpp`.
+- Related helpers: `FooHelpers.cpp`, `FooTests.cpp` (only when it improves navigation).
