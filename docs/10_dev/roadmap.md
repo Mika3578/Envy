@@ -1,18 +1,18 @@
 # Envy Development Roadmap
 
-**Last Updated:** January 16, 2026 (Updated for CryptLayer completion and performance optimizations)
-**Based on:** Current codebase inspection (`docs/STATUS.md`)
+**Last Updated:** January 2026
+**Based on:** Current codebase inspection (`docs/10_dev/status.md`)
 **Approach:** Phased, evidence-based development priorities
 
 This roadmap prioritizes fixes based on actual code analysis, focusing on stability and user experience first, then protocol completeness.
 
 ## 📊 Current State Summary
 
-- **Build System:** ✅ VS 2022 functional, CMake partial
+- **Build System:** ✅ Visual Studio solution builds (MSVC toolset `v145`), CMake partial (HashLib only)
 - **UI Framework:** ✅ MFC/Unicode complete
-- **Protocols:** ✅ G2 full, ⚠️ BT partial (v2 foundation), ✅ ED2K complete (CryptLayer implemented), ✅ Kad complete
-- **Performance:** ✅ Optimized (UI batching, list processing, memory management)
-- **Testing:** ⚠️ Framework ready, no tests implemented
+- **Protocols:** ✅ G2 implemented, ⚠️ BT partial (v2 foundation), 🟡 ED2K enhanced (SecureID/CryptLayer present; parity/interop work remains), 🟡 Kad implemented (see compatibility report)
+- **Performance:** 🟡 Ongoing (profile-driven improvements; continue validating UI responsiveness)
+- **Testing:** 🟡 Standalone integration tests exist in `tests/` (manual runner; not in CI yet)
 - **Code Quality:** ✅ Improved (CryptLayer bugs fixed, error handling enhanced)
 
 ---
@@ -192,7 +192,7 @@ ED2K implementation now includes all critical modern features:
 - `Envy/Kademlia.cpp` (full Kad2 implementation)
 - `Envy/Kademlia.h` (Kad2RoutingTable, KadContact structures)
 - `Envy/HostCache.cpp` (nodes.dat import with full version support)
-- `docs/KAD2_COMPATIBILITY_REPORT.md` (comprehensive compatibility verification)
+- `docs/30_protocols/kad/kad2-compatibility-report.md` (compatibility verification)
 
 ### Problem Statement (RESOLVED)
 Kademlia Kad2 implementation is now complete and wire-compatible:
@@ -262,7 +262,7 @@ Kademlia Kad2 implementation is now complete and wire-compatible:
 - ✅ **eMule (srchybrid)** - 100% wire-compatible (verified)
 - ✅ **aMule** - 100% wire-compatible (verified)
 - ⚠️ **Shareaza/MLDonkey** - No Kad2 implementation found to verify
-- **Reference:** `docs/KAD2_COMPATIBILITY_REPORT.md` for detailed verification
+- **Reference:** `docs/30_protocols/kad/kad2-compatibility-report.md` for detailed verification
 
 ### Risk Assessment (RESOLVED)
 - ✅ **XOR distance** - Verified correct (K=10, matching eMule/aMule)
@@ -417,7 +417,7 @@ Zero automated testing despite framework being ready:
 - **Performance Tests:** Benchmarks, memory profiling
 
 ### Documentation Updates
-- Update `docs/STATUS.md` after each phase completion
+- Update `docs/10_dev/status.md` after each phase completion
 - Maintain accurate feature matrices
 - Document known limitations clearly
 

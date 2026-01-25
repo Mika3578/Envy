@@ -1,217 +1,86 @@
 ---
-description: Documentation standards, comment styles, and API documentation guidelines
-alwaysApply: true
+description: Documentation standards, doc organization, and API/comment guidelines
+globs: ["docs/**", "README.md", "CHANGELOG.md"]
+alwaysApply: false
 ---
 
 # Documentation Standards
 
-## Code Comments
+## Source of truth
 
-### Class Documentation
-```cpp
-/**
- * @brief Downloads a file from multiple sources using P2P protocols
- *
- * This class manages the complete lifecycle of a file download,
- * including source discovery, connection management, and integrity
- * verification through hashing.
- *
- * @note Thread-safe for read operations, write operations require external synchronization
- */
-class CDownloadTask {
-    // ...
-};
+- Canonical documentation lives in `docs/` (not in `.cursor/rules/`).
+- The **authoritative docs-sync / definition-of-done rule** is `09-docs-auto-update.mdc`.
+
+## Documentation map (single source of truth)
+
+Keep documentation in **one canonical location** per topic. Prefer updating an existing doc over creating a new one.
+
+- `docs/00_index/`
+  - `README.md`: main entry point
+  - `CURSOR_INDEX.md`: quick navigation for AI + humans
+  - `MASTER_PLAN.md`, `MIGRATION_MAP.md`: planning
+  - `DECISIONS.md`: ADR-lite decision log
+  - `KNOWN_INCONSISTENCIES.md`: doc/code mismatches to resolve
+
+- `docs/10_dev/`
+  - build/how-to, standards, contributing, status, roadmap
+
+- `docs/20_arch/`
+  - architecture and design explanations
+
+- `docs/30_protocols/<proto>/`
+  - protocol specs, compatibility notes, packet layouts, diagnostics, test fixtures
+
+- `docs/40_quality/`
+  - security, performance, testing schedules, audits
+
+- `docs/50_user/`
+  - end-user guides, settings reference
+
+Also keep the small “moved” pointer files at `docs/STATUS.md`, `docs/ROADMAP.md`, etc. aligned with the canonical targets.
+
+## Create vs update
+
+Before creating any new doc:
+1. Search the repository for an existing doc to extend (`rg -n "<keyword>" docs/`).
+2. If an existing doc covers 70%+ of the topic, **update it**.
+3. If a new doc is truly required, place it in the correct folder and add it to:
+   - `docs/00_index/CURSOR_INDEX.md` (if it’s a primary entry point)
+   - `docs/00_index/README.md` if it changes the overall navigation
+
+Avoid duplicates like multiple “status” or “roadmap” docs with different truth.
+
+## Required header for developer docs
+
+For developer-facing docs, include a metadata block at the top (keep it current):
+
+```markdown
+Status: draft|active|deprecated
+Last updated: YYYY-MM-DD
+Scope: <one sentence>
+Source of truth: <code paths / spec links>
 ```
 
-### Function Documentation
-```cpp
-/**
- * @brief Starts the download process
- *
- * Initiates connections to available sources and begins
- * transferring file chunks. The download may be resumed
- * if partially complete.
- *
- * @return true if download started successfully, false otherwise
- *
- * @throws std::runtime_error if initialization fails
- * @throws NetworkException if no sources available
- *
- * @note This method is thread-safe
- */
-bool Start();
+Update “Last updated” whenever substantive content changes.
 
-/**
- * @brief Cancels the active download
- *
- * Stops all active transfers and releases resources.
- * The download can be resumed later if desired.
- *
- * @note This method may block briefly while cleaning up connections
- */
-void Cancel();
-```
+## Writing conventions
 
-### Parameter Documentation
-```cpp
-/**
- * @brief Processes a network packet
- *
- * @param pBuffer Pointer to packet data (must not be null)
- * @param nSize Size of packet data in bytes (must be > 0)
- * @param peer Information about the peer that sent the packet
- *
- * @return true if packet processed successfully, false otherwise
- *
- * @throws std::invalid_argument if pBuffer is null or nSize is 0
- */
-bool ProcessPacket(const BYTE* pBuffer, size_t nSize, const CPeerInfo& peer);
-```
+- **English only** for developer docs, comments, and commit messages.
+- Prefer Markdown. Avoid heavy HTML; keep docs readable in plain text.
+- Prefer short sections and lists; avoid “wall of text”.
+- Always link claims to:
+  - code paths (file/function names), and/or
+  - protocol specs, and/or
+  - test fixtures / reproduction steps.
 
-## Inline Comments
+## Code and comment documentation (in code)
 
-### Algorithm Documentation
-```cpp
-void CDownloadTask::ProcessChunk(const BYTE* pData, size_t nLength) {
-    // Verify chunk hash before processing to ensure data integrity
-    if (!VerifyChunkHash(pData, nLength)) {
-        LogError("Chunk hash verification failed");
-        RequestChunkRetry();
-        return;
-    }
-
-    // Update progress and write to file atomically
-    m_nDownloaded += nLength;
-    WriteToFile(pData, nLength);
-
-    // Notify observers of progress update (thread-safe)
-    NotifyProgress(GetProgressPercent());
-}
-```
-
-### Complex Logic
-```cpp
-bool CNetworkManager::FindBestSource(const CString& strHash) {
-    // First, check active connections for this hash
-    for (auto& connection : m_activeConnections) {
-        if (connection.HasHash(strHash)) {
-            // Prefer sources with higher bandwidth
-            if (connection.GetBandwidth() > MIN_ACCEPTABLE_BANDWIDTH) {
-                return true;
-            }
-        }
-    }
-
-    // If no active source found, search in discovered sources
-    // Sort by reliability and bandwidth
-    auto sources = GetDiscoveredSources(strHash);
-    std::sort(sources.begin(), sources.end(),
-        [](const auto& a, const auto& b) {
-            // Sort by reliability first, then bandwidth
-            if (a.GetReliability() != b.GetReliability()) {
-                return a.GetReliability() > b.GetReliability();
-            }
-            return a.GetBandwidth() > b.GetBandwidth();
-        });
-
-    return !sources.empty();
-}
-```
-
-## TODO and FIXME Comments
-
-```cpp
-// TODO: Implement bandwidth throttling for slow connections
-// TODO: Add support for BEP 52 (Compact Peer Lists)
-// TODO: Optimize hash verification for large files
-
-// FIXME: Race condition in multi-threaded source management
-// FIXME: Memory leak when connection is aborted during handshake
-
-// HACK: Temporary workaround for protocol incompatibility with older clients
-// HACK: Using polling instead of events due to MFC threading limitations
-
-// NOTE: This function must be called from the main thread
-// NOTE: Performance critical - avoid allocations in this path
-```
-
-## Thread Safety Documentation
-
-```cpp
-/**
- * @brief Updates download progress
- *
- * @param nPercent Progress percentage (0-100)
- *
- * @note This method is thread-safe and can be called from any thread
- * @note UI updates are automatically dispatched to the main thread
- */
-void UpdateProgress(int nPercent);
-
-/**
- * @brief Gets the current download state
- *
- * @return Current download state
- *
- * @note This method is thread-safe for read operations
- * @warning Do not modify state while reading
- */
-DownloadState GetState() const;
-```
-
-## Ownership and Lifetime Documentation
-
-```cpp
-/**
- * @brief Creates a new download connection
- *
- * @param strHost Host address or IP
- * @param nPort Port number
- *
- * @return Pointer to connection object (caller takes ownership)
- *
- * @note Caller is responsible for deleting the returned pointer
- * @note Returns nullptr on failure
- */
-CConnection* CreateConnection(const CString& strHost, WORD nPort);
-
-/**
- * @brief Gets the shared application settings
- *
- * @return Reference to settings object
- *
- * @note The returned reference is valid for the lifetime of the application
- * @warning Do not store this reference beyond the current scope
- */
-CSettings& GetSettings();
-```
-
-## API Documentation
-
-### Public Interface
-```cpp
-/**
- * @class CDownloadTask
- * @brief Manages file downloads from P2P sources
- *
- * This class provides a high-level interface for downloading files
- * from multiple P2P sources with automatic source management,
- * error recovery, and progress tracking.
- *
- * @example
- * @code
- * CDownloadTask task;
- * task.SetFileName(_T("example.zip"));
- * task.SetHash(strFileHash);
- * if (task.Start()) {
- *     // Download in progress
- * }
- * @endcode
- */
-class CDownloadTask {
-    // ...
-};
-```
+- Comments must be in English.
+- For public-facing classes/functions, prefer Doxygen-style blocks and document:
+  - purpose/behavior
+  - parameters and return values
+  - ownership/lifetime and thread-safety notes when relevant
+- Avoid comment drift: if behavior changes, update or remove the outdated comment.
 
 ## Avoid
 
@@ -221,10 +90,3 @@ class CDownloadTask {
 - Not documenting thread safety requirements
 - Not documenting ownership semantics
 - Comments in languages other than English
-
-## Language Requirements
-
-- **All comments must be in English**
-- Code comments, documentation, and commit messages
-- Variable names and identifiers should be in English
-- Exception: Localization strings and UI text

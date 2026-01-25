@@ -375,7 +375,7 @@ Envy/BitTorrent/
 - **[BEP-52 Specification](https://wiki.theory.org/BitTorrentSpecification#BEP-52)** - Official v2 protocol spec
 - **[BEP-47](https://wiki.theory.org/BitTorrentSpecification#BEP-47)** - Padding file spec for alignment
 - **[DEV_TRACKER.md](../DEV_TRACKER.md)** - Overall project progress
-- **[ARCHITECTURE.md](architecture.md)** - System design details
+- **[Architecture](../../20_arch/architecture.md)** - System design
 
 ---
 

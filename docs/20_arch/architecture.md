@@ -205,13 +205,10 @@ Envy is a multi-network peer-to-peer file sharing application supporting BitTorr
 - **Protocol Updates**: Latest specification compliance
 - **Testing Coverage**: Comprehensive automated testing
 
-## 📚 Related Documentation
+## Related
 
-- [Development Guide](guide.md) - Development practices
-- [Modern C++ Guide](modern-cpp-guide.md) - Language standards
-- [AI Coding Guide](ai-coding-guide.md) - AI-assisted development practices
-- [Agents and Automation](agents-and-automation.md) - Development tooling
+- [Guide](../10_dev/guide.md) · [Build](../10_dev/build.md) · [Status](../10_dev/status.md) · [Standards](../10_dev/standards.md)
 
 ---
 
-**Last Updated:** January 15, 2026
+**Last Updated:** January 2026

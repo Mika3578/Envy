@@ -16,9 +16,11 @@ This guide provides comprehensive information for developers working on the Envy
 
 ### Prerequisites
 
-- **Visual Studio 2022** (v145 toolset)
-- **Windows SDK** 10.0.19041.0 or later
-- **CMake** 3.20+ (incomplete, HashLib only)
+- **Visual Studio 2022** (17.x) or newer
+  - MSVC toolset `v145` (as configured in the `.vcxproj` files)
+  - Workloads/components: Desktop development with C++, MFC/ATL, Windows 10/11 SDK
+- **Windows SDK** 10.0.x (projects target `10.0`)
+- **CMake** 3.20+ (optional; incomplete, HashLib only)
 - **Git** 2.30+
 
 ### Initial Setup
@@ -40,23 +42,19 @@ This guide provides comprehensive information for developers working on the Envy
 
 - **ClangFormat**: For code formatting (`.clang-format` provided)
 - **GitHub Copilot**: AI code completion (see [AI Coding Guide](ai-coding-guide.md))
-- **Cursor AI**: Alternative AI assistant (see `.cursorrules`)
+- **Cursor AI**: Project-specific rules live under `.cursor/rules/`
 
 ## 🏗️ Project Structure
 
 ```
 Envy/
-├── Envy/                    # Main application source
-│   ├── Core components      # Network, library, UI
-│   └── Protocol handlers    # BitTorrent, Gnutella2, eDonkey
+├── Envy/                    # Main application source (network, library, UI, protocols)
 ├── HashLib/                 # Hash algorithm library
-├── Services/                # Third-party libraries (SQLite, zlib, etc.)
+├── Services/                # Bundled libs (SQLite, zlib, etc.)
 ├── Plugins/                 # Plugin implementations
-├── Languages/               # Localization files
-├── Skins/                   # UI themes and skins
-├── Visual Studio/           # Build configurations
-├── scripts/                 # Build and utility scripts
-├── tests/                   # Unit tests (Google Test)
+├── Visual Studio/           # Solution and build configs
+├── scripts/                 # Version and build scripts
+├── tests/                   # Integration tests (manual runner)
 └── docs/                    # Documentation
 ```
 
@@ -74,7 +72,7 @@ Envy/
 
 1. **Pull latest changes:**
    ```bash
-   git pull origin main
+   git pull origin develop
    ```
 
 2. **Create feature branch:**
@@ -91,22 +89,22 @@ Envy/
 
 4. **Test your changes:**
    ```bash
-   .\scripts\verify-build.ps1
-   .\scripts\run-static-analysis.ps1
+   # Build all configurations/platforms
+   .\build_all.ps1
    ```
 
 5. **Format code:**
    ```bash
-   .\scripts\format-code.ps1
+   # Use clang-format via your IDE or the clang-format executable
+   # (configuration is in the repository root: .clang-format)
    ```
 
 ### Before Committing
 
 - ✅ Code compiles without warnings
-- ✅ All tests pass
-- ✅ Code follows style guidelines
-- ✅ Documentation updated if needed
-- ✅ No memory leaks in debug builds
+- ✅ `.\build_all.ps1` succeeds (or equivalent); run `tests\run_integration_tests.bat` if you touch protocol/hash code
+- ✅ Code follows [standards](standards.md); format with clang-format
+- ✅ Docs updated if behaviour or setup changes
 
 ### Pull Request Process
 
@@ -126,7 +124,7 @@ Envy/
 
 ### Language Standards
 
-- **C++ Standard**: C++20 (modern features encouraged)
+- **C++ Standard**: C++17 (current baseline in project files; C++20 is a future target)
 - **Character Set**: Unicode (UTF-16)
 - **Framework**: Microsoft Foundation Classes (MFC)
 
@@ -143,11 +141,11 @@ class CLibraryFile;
 class CExample
 {
 private:
-    CString m_strFileName;      // m_str prefix for strings
+    CString m_sFileName;        // strings use m_s* in this codebase
     int m_nCount;               // m_n prefix for numbers
     DWORD m_nFileSize;
     CFile* m_pFile;             // m_p prefix for pointers
-    bool m_bIsActive;           // m_b prefix for booleans
+    BOOL m_bIsActive;           // BOOL for MFC/Win32 compatibility
 };
 ```
 
@@ -185,20 +183,21 @@ See [Modern C++ Guide](modern-cpp-guide.md) for detailed examples.
 
 ## 🧪 Testing
 
-### Unit Tests
+### Integration Tests (Current)
 
-The project uses Google Test for unit testing. Tests are located in the `tests/` directory.
+The repository contains a standalone integration test runner in `tests/` (not wired into the Visual Studio solution yet).
 
-**Build with tests:**
-```powershell
-cmake -B build -S . -DBUILD_TESTS=ON
-cmake --build build --config Release
-ctest --config Release
+**Run via batch script:**
+```batch
+cd tests
+run_integration_tests.bat
 ```
 
-**Run specific tests:**
-```powershell
-.\build\bin\Release\HashLibTests.exe
+**Or compile manually (Developer Command Prompt):**
+```batch
+cd tests
+cl /EHsc /I"../Envy" /I"." test_runner.cpp /Fe:test_runner.exe
+test_runner.exe
 ```
 
 ### Testing Guidelines
@@ -209,7 +208,7 @@ ctest --config Release
 - Use descriptive test names
 - Follow the existing test structure
 
-See [Testing Documentation](../tests/README.md) for details.
+See `tests/INTEGRATION_TEST_README.md` and `tests/MANUAL_CRYPTO_TESTING_GUIDE.md`.
 
 ## 🔨 Build System
 
@@ -237,20 +236,12 @@ cmake --install build --config Release
 
 **Test all configurations:**
 ```powershell
-.\scripts\verify-build.ps1 -Configuration All -Platform All
-```
-
-**Single configuration:**
-```powershell
-.\scripts\verify-build.ps1 -Configuration Release -Platform x64
+.\build_all.ps1
 ```
 
 ### Static Analysis
 
-**Run CppCheck:**
-```powershell
-.\scripts\run-static-analysis.ps1
-```
+Static analysis is currently performed in CI (and via IDE tooling). Repo configs include `.clang-tidy` and `.cppcheck-suppressions`.
 
 ## 🤝 Contributing
 
@@ -277,16 +268,11 @@ cmake --install build --config Release
 - **Documentation**: Check this guide and related docs
 - **Code**: Look for similar implementations in the codebase
 
-## 📚 Additional Resources
+## 📚 Related
 
-- [Architecture Overview](architecture.md) - System design and components
-- [AI Coding Guide](ai-coding-guide.md) - AI assistant best practices
-- [Modern C++ Guide](modern-cpp-guide.md) - C++20 feature examples
-- [Agents and Automation](agents-and-automation.md) - Development tooling
-- [Modernization Summary](modernization-summary.md) - Recent improvements
-- [Contributing Guide](contributing.md) - Detailed contribution process
-- [Code Standards](standards.md) - Complete style guidelines
+- [Build](build.md) · [Status](status.md) · [Contributing](contributing.md) · [Standards](standards.md)
+- [Architecture](../20_arch/architecture.md) · [AI Coding Guide](ai-coding-guide.md) · [Modern C++](modern-cpp-guide.md) · [Agents & Automation](agents-and-automation.md)
 
 ---
 
-**Last Updated:** January 15, 2026
+**Last Updated:** January 2026

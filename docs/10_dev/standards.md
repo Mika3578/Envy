@@ -15,8 +15,8 @@ This document defines the coding standards and best practices for the Envy proje
 ## 🎯 Language Standards
 
 ### C++ Standard
-- **Target**: C++20 (ISO/IEC 14882:2020)
-- **Minimum**: C++17 compatible
+- **Current baseline**: C++17 (configured as `stdcpp17` in the `.vcxproj` files)
+- **Target**: C++20 (planned; adopt incrementally once the baseline is raised)
 - **Migration**: Gradual adoption of modern features
 
 ### Platform and Framework
@@ -40,8 +40,8 @@ class CExample
 {
 private:
     // String members
-    CString m_strFileName;
-    CString m_strPath;
+    CString m_sFileName;    // codebase convention: m_s* for member strings
+    CString m_sPath;
 
     // Numeric members
     int m_nCount;
@@ -49,8 +49,8 @@ private:
     size_t m_nBufferSize;
 
     // Boolean members
-    bool m_bIsActive;
-    bool m_bCompleted;
+    BOOL m_bIsActive;       // BOOL for MFC compatibility
+    BOOL m_bCompleted;
 
     // Pointer members
     CFile* m_pFile;
@@ -189,7 +189,7 @@ private:
     // Member variables (grouped logically)
     DownloadState m_state = DownloadState::Idle;
     Priority m_priority = Priority::Normal;
-    CString m_strFileName;
+    CString m_sFileName;
     std::unique_ptr<CConnection> m_pConnection;
     std::vector<CDownloadSource*> m_Sources;
 };
@@ -440,49 +440,33 @@ void CDownloadTask::ProcessChunk(const BYTE* pData, size_t nLength)
 ### Code Formatting
 - **Tool**: clang-format
 - **Config**: `.clang-format` in repository root
-- **Application**: `.\scripts\format-code.ps1`
+- **Usage**: Run clang-format via your IDE or the clang-format executable
 
 ### Static Analysis
-- **Tool**: CppCheck, MSBuild Code Analysis
-- **Execution**: `.\scripts\run-static-analysis.ps1`
-- **Reports**: `reports/` directory
+- **Tools/Configs**: `.clang-tidy`, `.cppcheck-suppressions` (plus IDE and CI tooling)
+- **Primary execution**: CI workflows under `.github/workflows/`
 
 ### Build Verification
-- **Script**: `.\scripts\verify-build.ps1`
-- **Configurations**: Debug/Release, Win32/x64
+- **Script**: `.\build_all.ps1` (builds Debug/Release for Win32/x64)
+- **Manual**: `msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64`
 - **CI/CD**: GitHub Actions workflows
 
 ### Automated Checks
 All changes must pass:
 - ✅ Compilation without warnings
-- ✅ Unit tests execution
-- ✅ Code formatting validation
-- ✅ Static analysis checks
-- ✅ Build on all target platforms
+- ✅ Build on target platforms (`.\build_all.ps1` or CI)
+- ✅ Code formatting (clang-format)
+- ✅ Static analysis (CI where configured)
 
-## 🔍 Code Review Checklist
+## Code review checklist
 
-### General
-- [ ] Code compiles without warnings
-- [ ] Follows naming conventions
-- [ ] Includes appropriate documentation
-- [ ] No memory leaks (checked with debug CRT)
-- [ ] Error handling is robust
-- [ ] Thread-safety considerations addressed
-
-### Design
-- [ ] Follows existing patterns and architecture
-- [ ] Changes are minimal and focused
-- [ ] Backward compatibility maintained
-- [ ] Performance implications considered
-- [ ] Security implications reviewed
-
-### Testing
-- [ ] Unit tests added/updated
-- [ ] Edge cases covered
-- [ ] Error conditions tested
-- [ ] Integration with existing code verified
+- [ ] Compiles without warnings; follows naming conventions
+- [ ] Error handling robust; thread-safety considered
+- [ ] Follows existing patterns; backward compatibility maintained
+- [ ] Tests added/updated where applicable (e.g. integration tests in `tests/`)
 
 ---
 
-**Last Updated:** January 15, 2026
+**Related:** [Guide](guide.md) · [Build](build.md) · [Contributing](contributing.md)
+
+**Last Updated:** January 2026

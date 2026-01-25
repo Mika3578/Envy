@@ -24,7 +24,7 @@ Since no Examples folder exists in the repository, verification was performed ag
 1. **Standard ED2K Protocol Specifications** (as documented in EDPacket.h)
 2. **eMule Protocol References** (referenced in code comments)
 3. **Implementation Analysis** (code review of Envy/EDClient.cpp, Envy/EDPacket.h)
-4. **Documentation Review** (ED2K_KAD_GAP_ANALYSIS.md, docs/STATUS.md, docs/ED2K_ADVANCED_FEATURES.md)
+4. **Documentation Review** (ED2K_KAD_GAP_ANALYSIS.md, docs/10_dev/status.md, docs/30_protocols/ed2k/ed2k-advanced-features.md)
 
 ---
 
@@ -278,7 +278,7 @@ Since no Examples folder exists in the repository, verification was performed ag
 ### Documentation
 - ✅ **Code Comments:** Reference to eMule opcodes.h in EDPacket.h
 - ✅ **Protocol Documentation:** Comprehensive opcode definitions
-- ✅ **Feature Documentation:** ED2K_ADVANCED_FEATURES.md, ED2K_SETTINGS_GUIDE.md
+- ✅ **Feature Documentation:** `docs/30_protocols/ed2k/ed2k-advanced-features.md`, `docs/50_user/ed2k-settings-guide.md`
 
 ---
 
@@ -347,8 +347,8 @@ The implementation demonstrates:
 - **Server Implementation:** `Envy/EDNeighbour.cpp` (lines 244-277)
 - **UDP Handler:** `Envy/EDClients.cpp` (lines 418-450)
 - **Gap Analysis:** `ED2K_KAD_GAP_ANALYSIS.md`
-- **Status Documentation:** `docs/STATUS.md`
-- **Advanced Features:** `docs/ED2K_ADVANCED_FEATURES.md`
+- **Status Documentation:** `docs/10_dev/status.md`
+- **Advanced Features:** `docs/30_protocols/ed2k/ed2k-advanced-features.md`
 
 ---
 

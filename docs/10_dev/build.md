@@ -1,21 +1,18 @@
 # Building Envy
 
-**Last Updated:** January 15, 2026
-**Primary Build System:** Visual Studio 2022 (v145 toolset)
-**Secondary Build System:** CMake (incomplete, HashLib only)
-**C++ Standard:** C++17
+**Last Updated:** January 2026  
+**Primary:** Visual Studio (`Visual Studio\Envy.sln`, toolset `v145`, C++17)  
+**Secondary:** CMake (HashLib only)
 
-This guide provides exact build instructions based on current codebase state.
+## Quick reference
 
-## 🎯 Quick Reference
-
-| Component | Status | Build System | Notes |
-|-----------|--------|--------------|-------|
-| **Main Application** | ✅ Working | Visual Studio | Full MFC application |
-| **HashLib** | ✅ Working | VS + CMake | Hash algorithms library |
-| **Services** | ✅ Working | Visual Studio | SQLite, zlib, etc. |
-| **Plugins** | ✅ Working | Visual Studio | 18+ plugin projects |
-| **Tests** | ⚠️ Framework | CMake | No tests implemented |
+| Component | Status | Build |
+|-----------|--------|-------|
+| **Main app** | ✅ | Visual Studio |
+| **HashLib** | ✅ | VS + CMake |
+| **Services** | ✅ | Visual Studio |
+| **Plugins** | ✅ | Visual Studio |
+| **Tests** | 🟡 | Standalone runner in `tests/` (see [status](status.md)) |
 
 ## 🏗️ Primary Build: Visual Studio 2022
 
@@ -23,8 +20,8 @@ This guide provides exact build instructions based on current codebase state.
 
 1. **Visual Studio 2022** (Community/Professional/Enterprise)
    - Version 17.0+ required
-   - MSVC v145 toolset (default in VS 2022)
-   - Windows SDK 10.0.19041.0 or later
+   - MSVC toolset `v145` (as configured in the `.vcxproj` files)
+   - Windows 10/11 SDK (projects target `WindowsTargetPlatformVersion` = `10.0`)
 
 2. **Windows Requirements**
    - Windows 10/11 (64-bit recommended)
@@ -58,9 +55,11 @@ cd Envy
 - **Status:** Monitor Output window for progress
 
 #### Step 5: Verify Build
-- Check `Envy/x64/Release/` (or Win32/Debug) for `Envy.exe`
-- File size should be ~8-12MB (includes MFC statically linked)
-- No external DLL dependencies required
+- Check the project output folder for `Envy.exe`
+  - `Envy\Release x64\Envy.exe` (Release x64)
+  - `Envy\Debug x64\Envy.exe` (Debug x64)
+  - `Envy\Release Win32\Envy.exe` (Release Win32)
+  - `Envy\Debug Win32\Envy.exe` (Debug Win32)
 
 ### Build Configurations
 
@@ -84,9 +83,8 @@ cd Envy
 - **Use Case:** Library development, cross-platform HashLib usage
 
 ### Prerequisites
-- **CMake:** 3.20+ (from Visual Studio or standalone)
+- **CMake:** 3.20+
 - **Visual Studio 2022:** For MSVC compiler
-- **Git:** For Google Test (if building tests)
 
 ### Build Steps
 
@@ -108,11 +106,9 @@ cmake --build . --config Release --target HashLib
 
 #### Step 3: Optional - Build Tests
 ```bash
-# Enable tests (downloads Google Test)
-cmake .. -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTS=ON
-
-# Build test framework
-cmake --build . --config Release --target HashLibTests
+# Note: The repository currently contains standalone test programs under `tests/`,
+# but the CMake `add_subdirectory(tests)` hook expects `tests/CMakeLists.txt`,
+# which is not present. BUILD_TESTS is therefore not usable yet.
 ```
 
 #### Step 4: Verify
@@ -125,12 +121,11 @@ cmake --build . --config Release --target HashLibTests
 
 #### 1. Platform Toolset Mismatch
 ```
-Error: MSB8036: The PlatformToolset version 'v143' is not supported by this version of Visual Studio.
+Error: MSB8036: The PlatformToolset version 'v145' is not supported by this version of Visual Studio.
 ```
 **Solution:**
-- Ensure Visual Studio 2022 is installed
-- Project uses v145 toolset automatically
-- Check: Tools → Get Tools and Features → MSVC v145 toolset
+- Install a Visual Studio version that provides toolset `v145`, or retarget the solution/projects to the toolset you have installed.
+- In Visual Studio: **Project → Retarget solution**, or update **Project Properties → General → Platform Toolset**.
 
 #### 2. Windows SDK Missing
 ```
@@ -192,28 +187,24 @@ Warning: Mixing Unicode and non-Unicode
    - BT magnet links (basic support)
 
 ### Automated Testing (Future)
-- **Current:** No automated tests implemented
-- **Framework:** Google Test ready in `tests/`
-- **Coverage:** 0% (target: 60%+ in Phase 4)
+**Current:** CI builds the solution, but does not run tests.
+
+**What exists today:** Standalone integration tests in `tests/`:
+- Run via `tests\run_integration_tests.bat` (will compile `tests\test_runner.cpp` if `cl.exe` is on PATH)
+- Or compile manually from a Visual Studio Developer Command Prompt
+
+See `tests/INTEGRATION_TEST_README.md` and `tests/MANUAL_CRYPTO_TESTING_GUIDE.md`.
 
 ## 📁 Build Output Structure
 
 ```
 Envy/
-├── x64/Release/           # Main build output
-│   ├── Envy.exe          # Main application (~10MB)
-│   ├── Envy.pdb          # Debug symbols
-│   └── *.dll             # Runtime dependencies
-├── Services/x64/Release/  # Service libraries
-│   ├── SQLite.dll        # Database engine
-│   ├── zlibwapi.dll      # Compression
-│   └── ...
-├── Plugins/x64/Release/   # Plugin DLLs
-│   ├── GFLImageServices.dll
-│   ├── RARBuilder.dll
-│   └── ...
-└── HashLib/x64/Release/   # Hash library
-    └── HashLib.dll
+├── Envy/Release x64/           # Main application output
+│   ├── Envy.exe
+│   └── Envy.pdb (if generated)
+├── Services/*/Release x64/     # Service libraries (per-project)
+├── Plugins/*/Release x64/      # Plugin DLLs (per-project)
+└── HashLib/Release x64/        # HashLib output
 ```
 
 ## 🔄 Build System Limitations
@@ -229,17 +220,12 @@ Envy/
 - **Cross-Platform:** Qt migration for Linux/macOS
 - **Reproducible Builds:** Source-only dependencies
 
-## 📞 Support
+## Support
 
-### Build Issues
-- Check `docs/STATUS.md` for current limitations
-- Review `docs/ROADMAP.md` for planned improvements
-- GitHub Issues for build problems
-
-### Development Setup
-- See `docs/contributing/guide.md` for development workflow
-- CI/CD status: Check Actions tab for build verification
+- **Limitations / roadmap:** [status](status.md) · [roadmap](roadmap.md)
+- **Workflow:** [guide](guide.md)
+- **CI:** GitHub Actions (see Actions tab)
 
 ---
 
-**Build Verification:** All instructions tested with Visual Studio 2022 17.0.31903.59 on Windows 11.
+**Last Updated:** January 2026

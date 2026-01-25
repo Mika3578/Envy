@@ -67,8 +67,8 @@ This document summarizes the comprehensive modernization and upgrade of the Envy
   - Common pitfalls to avoid
 
 #### Cursor AI Rules
-- **File**: `.cursorrules`
-- **Purpose**: Configures Cursor AI with project context
+- **Location**: `.cursor/rules/`
+- **Purpose**: Project-specific guidance for Cursor (naming, MFC patterns, error handling, performance)
 - **Contents**:
   - Naming conventions
   - Modern C++ features to use
@@ -77,15 +77,8 @@ This document summarizes the comprehensive modernization and upgrade of the Envy
   - Windows-specific considerations
   - Quality standards
 
-#### VS Code Configuration (3 files)
-- **Files**: `.vscode/settings.json`, `.vscode/extensions.json`, `.vscode/c_cpp_properties.json`
-- **Purpose**: Optimizes Visual Studio Code for C++ development
-- **Features**:
-  - IntelliSense configuration for C++20
-  - Recommended extensions
-  - Debugging settings
-  - Format on save
-  - Code navigation optimization
+#### VS Code Configuration
+- **Status**: Not committed in this repository at the moment (no `.vscode/` folder).
 
 ### 2. Build System & CI/CD (6 files)
 
@@ -124,21 +117,13 @@ This document summarizes the comprehensive modernization and upgrade of the Envy
 ### 3. Code Standards (3 files)
 
 #### EditorConfig
-- **File**: `.editorconfig`
-- **Purpose**: Consistent formatting across editors
-- **Defines**:
-  - Indentation (tabs, 4 spaces)
-  - Line endings (CRLF for Windows)
-  - Character encoding (UTF-8)
-  - Trim trailing whitespace
-  - File-specific rules
+- **Status**: Not committed in this repository at the moment (no `.editorconfig` file).
 
 #### Clang-Format
 - **File**: `.clang-format`
 - **Purpose**: C++ code formatting standard
 - **Configuration**:
   - Based on Microsoft style
-  - C++20 standard
   - 120 character line limit
   - Allman brace style
   - Pointer alignment left
@@ -256,12 +241,14 @@ This document summarizes the comprehensive modernization and upgrade of the Envy
 - **Purpose**: Support project development
 - **Template**: Ready for sponsor links
 
-### 6. C++20 Upgrade (45 files)
+### 6. C++ Standard Baseline (C++17) and C++20 Migration Plan
 
-#### Project Files Updated
-All Visual Studio project files (`.vcxproj`) updated with:
-- `<LanguageStandard>stdcpp20</LanguageStandard>`
-- Enables modern C++20 features throughout
+#### Current State (Verified)
+Visual Studio project files (`.vcxproj`) are currently configured with:
+- `<LanguageStandard>stdcpp17</LanguageStandard>`
+
+#### Plan
+The project targets C++20 longer-term, but the baseline has not been raised yet. The migration should be incremental and validated in CI.
 
 **Updated Projects**:
 - Main application: Envy
@@ -270,8 +257,8 @@ All Visual Studio project files (`.vcxproj`) updated with:
 - Plugins: All 18 plugin projects
 - Tools: Language tools, repository tools, hash test
 
-**Benefits**:
-- Access to C++20 features (concepts, ranges, coroutines)
+**Benefits (once migrated)**:
+- Access to C++20 features (concepts, ranges, etc.)
 - Better type safety
 - Improved performance
 - Modern standard library features
@@ -321,7 +308,7 @@ All Visual Studio project files (`.vcxproj`) updated with:
 ## 🔧 Technical Details
 
 ### Languages & Technologies
-- **C++20**: Modern standard across all projects
+- **C++17**: Current baseline across projects (C++20 planned)
 - **MFC**: Microsoft Foundation Classes (unchanged)
 - **Win32 API**: Windows platform APIs (unchanged)
 - **GitHub Actions**: CI/CD platform
@@ -330,7 +317,7 @@ All Visual Studio project files (`.vcxproj`) updated with:
 ### Build Configurations
 - **Platforms**: Win32 (x86), x64
 - **Configurations**: Debug, Release
-- **Toolset**: Visual Studio 2022 (v143)
+- **Toolset**: MSVC toolset `v145` (as configured in the `.vcxproj` files)
 
 ### Dependencies
 All bundled, no external setup required:
@@ -341,7 +328,7 @@ All bundled, no external setup required:
 ## 🎓 Best Practices Implemented
 
 ### Code Standards
-✅ Modern C++20 features  
+✅ Modern C++ (C++17 baseline; adopt newer features as the baseline is raised)  
 ✅ Consistent code formatting  
 ✅ Smart pointer usage guidelines  
 ✅ RAII patterns  
@@ -396,7 +383,7 @@ cd "Visual Studio"
 
 ### With AI Assistants
 - **GitHub Copilot**: Automatically uses `.github/copilot-instructions.md`
-- **Cursor AI**: Automatically reads `.cursorrules`
+- **Cursor AI**: Uses project rules under `.cursor/rules/`
 - **VS Code**: Open folder, extensions will be recommended
 
 ---
@@ -405,7 +392,7 @@ cd "Visual Studio"
 
 ### ✅ Completed
 - [x] All project files compile without errors
-- [x] C++20 standard applied to all 45 projects
+- [x] C++17 baseline confirmed in project files
 - [x] CI/CD workflows configured
 - [x] Documentation is comprehensive
 - [x] AI assistant configurations active
@@ -465,10 +452,10 @@ cd "Visual Studio"
 - `CHANGELOG.md` - Change history
 
 ### Configuration Files
-- `.editorconfig` - Editor settings
 - `.clang-format` - Code formatting
-- `.cursorrules` - Cursor AI config
-- `.vscode/*` - VS Code settings
+- `.clang-tidy` - clang-tidy configuration
+- `.cppcheck-suppressions` - cppcheck suppressions
+- `.cursor/rules/*` - Cursor rules and project context
 
 ---
 
@@ -506,7 +493,7 @@ cd "Visual Studio"
 ## 👥 Acknowledgments
 
 This modernization effort represents a significant investment in the project's future:
-- Upgraded to latest C++20 standard
+- Confirmed C++17 baseline and documented the C++20 migration plan
 - Implemented industry best practices
 - Enhanced developer experience with AI tools
 - Established comprehensive documentation
@@ -527,7 +514,7 @@ For questions about these changes:
 ---
 
 **Version**: 2.1
-**Last Updated**: 2026-01-17
+**Last Updated:** January 2026
 **Status**: Phase 2 Complete ✅ (ED2K Search Modernization)
 
 This modernization establishes Envy as a cutting-edge P2P client with modern protocols, enhanced security, and sustainable development practices. The implementation of BitTorrent v2 support positions Envy for future protocol evolution while maintaining full backward compatibility.

@@ -345,6 +345,12 @@ conan.lock
 # Project Specific
 ###############################################################################
 
+# Runtime-generated crash/error reports (keep out of git)
+/errorlog*.xml
+
+# Root-level duplicate web template (source is under Envy/Res/)
+/About.htm
+
 # Reference code examples from other P2P programs
 Examples/
 

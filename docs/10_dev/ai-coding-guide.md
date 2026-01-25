@@ -68,9 +68,8 @@ Envy/
 
 ### Recommended Tools
 - **ClangFormat**: Code formatting (`.clang-format` provided)
-- **EditorConfig**: Consistent editor settings (`.editorconfig` provided)
 - **GitHub Copilot**: AI code completion (see `.github/copilot-instructions.md`)
-- **Cursor AI**: Alternative AI assistant (see `.cursorrules`)
+- **Cursor AI**: Project rules live under `.cursor/rules/`
 
 ### Build Configurations
 - **Debug**: Full debug symbols, no optimizations, verbose logging
@@ -79,12 +78,13 @@ Envy/
 
 ### Important Files to Review
 - `.github/copilot-instructions.md` - GitHub Copilot configuration
-- `.cursorrules` - Cursor AI rules and conventions
-- `DEVELOPMENT.md` - Development setup and workflow
-- `CONTRIBUTING.md` - Contribution guidelines
-- `MODERNIZATION.md` - C++20 modernization guide
+- `.cursor/rules/` - Cursor rules and project context
+- `docs/00_index/CURSOR_INDEX.md` - Doc entry points
+- `docs/10_dev/guide.md` - Developer workflow
+- `docs/10_dev/build.md` - Build instructions
+- `docs/10_dev/standards.md` - Code standards
 - `.github/MODERN_CPP_GUIDE.md` - Modern C++ examples
-- `.github/ROADMAP.md` - Project roadmap and priorities
+- `docs/10_dev/roadmap.md` - Project roadmap and priorities
 
 ---
 
@@ -104,7 +104,7 @@ class CNetworkConnection;
 class CExample
 {
 private:
-    CString m_strFileName;      // m_str prefix for strings
+    CString m_sFileName;        // codebase convention: m_s* for member strings
     int m_nCount;               // m_n prefix for numbers/counts
     DWORD m_nFileSize;
     CFile* m_pFile;             // m_p prefix for pointers
@@ -233,7 +233,7 @@ private:
     // Private members
     State m_state = State::Idle;
     std::unique_ptr<CConnection> m_pConnection;
-    CString m_strFileName;
+    CString m_sFileName;
     
     // Private methods
     void UpdateProgress();
@@ -1034,7 +1034,7 @@ When reviewing code:
 - [Development Guide](guide.md) - Development setup and guide
 - [Contributing Guide](contributing.md) - Contribution guidelines
 - [Modern C++ Guide](modern-cpp-guide.md) - C++20 modernization guide
-- [Architecture](architecture.md) - System architecture
+- [Architecture](../20_arch/architecture.md) - System design
 - [Agents and Automation](agents-and-automation.md) - Development automation tools
 - [Modernization Summary](modernization-summary.md) - Recent improvements
 
@@ -1052,7 +1052,6 @@ When reviewing code:
 
 ### Tools and Configuration
 - `.clang-format` - Code formatting rules
-- `.editorconfig` - Editor configuration
 - `.github/workflows/` - CI/CD configuration
 
 ---
@@ -1092,6 +1091,6 @@ When reviewing code:
 
 ---
 
-**Last Updated**: 2025-11-07
+**Related:** [Guide](guide.md) · [Standards](standards.md) · [Build](build.md)
 
-This document is a living guide. Update it as the project evolves and new patterns emerge.
+**Last Updated:** January 2026

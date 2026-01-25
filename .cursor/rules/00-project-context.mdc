@@ -1,5 +1,6 @@
 ---
 description: Project overview, technology stack, and development philosophy for the Envy P2P client
+globs: ["**/*"]
 alwaysApply: true
 ---
 

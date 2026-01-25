@@ -29,9 +29,11 @@ This repository represents the modernization and continued development of the En
 
 ### Prerequisites
 
-- **Visual Studio 2022** (v145 toolset)
-- **Windows SDK** 10.0.19041.0 or later
-- **CMake** 3.20+ (incomplete, HashLib only)
+- **Visual Studio 2022** (17.x) or newer
+  - MSVC **Platform Toolset:** `v145` (as configured in the `.vcxproj` files)
+  - Workloads/components: **Desktop development with C++**, **MFC/ATL**, Windows 10/11 SDK
+- **Windows SDK** 10.0.x (the projects use `WindowsTargetPlatformVersion` = `10.0`)
+- **CMake** 3.20+ (optional; currently incomplete, HashLib only)
 - **Git** 2.30+
 
 ### Version Management
@@ -53,17 +55,17 @@ The project uses automatic version management with semantic versioning:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-org/envy.git
-   cd envy
+   git clone https://github.com/Mika3578/Envy.git
+   cd Envy
    ```
 
 2. **Open solution:**
-   - Open `Visual Studio\Envy.sln` in Visual Studio 2026
+   - Open `Visual Studio\Envy.sln` in Visual Studio
 
 3. **Select configuration:**
    - Configuration: Release/Debug
    - Platform: x64/Win32 (x64 recommended)
-   - Platform Toolset: v145 (VS2022)
+   - If you get a toolset prompt, retarget to an installed toolset or install `v145`
 
 4. **Build:**
    - Build → Build Solution (Ctrl+Shift+B)
@@ -221,32 +223,33 @@ GitHub Actions provides comprehensive automation with optimized workflows:
 
 ## 📚 Documentation
 
-Complete documentation is available in the [`docs/`](./docs/) directory.
+Documentation lives in [`docs/`](./docs/). **Start:** [docs index](docs/00_index/README.md) · [Cursor index](docs/00_index/CURSOR_INDEX.md).
 
 ### Current Status & Roadmap
-- **[Status](docs/STATUS.md)** - Current implementation status with evidence-based assessment
-- **[Roadmap](docs/ROADMAP.md)** - Phased development priorities and timeline
+- **[Status](docs/10_dev/status.md)** - Current implementation status (evidence-based)
+- **[Roadmap](docs/10_dev/roadmap.md)** - Phased development priorities and timeline
 
 ### User Documentation
-- **[User Guide](docs/user/guide.md)** - Complete usage instructions and features
-- **[Installation](docs/user/installation.md)** - Installation and setup guide
-- **[Configuration](docs/user/configuration.md)** - Settings and customization
+- **[User Guide](docs/50_user/guide.md)** - Complete usage instructions and features
+- **[Installation](docs/50_user/installation.md)** - Installation and setup guide
+- **[Configuration](docs/50_user/configuration.md)** - Settings and customization
+- **[Settings Reference](docs/50_user/reference/COMPLETE_SETTINGS_REFERENCE.md)** - Comprehensive settings reference
 
 ### Developer Documentation
-- **[Developer Guide](docs/developer/guide.md)** - Development workflow and practices
-- **[Architecture](docs/developer/architecture.md)** - System design and components
-- **[Modern C++ Guide](docs/developer/modern-cpp-guide.md)** - C++17 best practices
-- **[AI Coding Guide](docs/developer/ai-coding-guide.md)** - AI assistant usage
-- **[Agents & Automation](docs/developer/agents-and-automation.md)** - Development tooling
+- **[Developer Guide](docs/10_dev/guide.md)** - Development workflow and practices
+- **[Build](docs/10_dev/build.md)** - Build steps and troubleshooting
+- **[Code Standards](docs/10_dev/standards.md)** - Coding conventions and rules
+- **[Architecture](docs/20_arch/architecture.md)** - System design and components
+- **[Modern C++ Guide](docs/10_dev/modern-cpp-guide.md)** - Modern C++ usage (C++17 baseline)
+- **[AI Coding Guide](docs/10_dev/ai-coding-guide.md)** - AI assistant usage
+- **[Agents & Automation](docs/10_dev/agents-and-automation.md)** - Development tooling
 
 ### Contributing
-- **[Contributing Guide](docs/contributing/guide.md)** - How to contribute
-- **[Build Instructions](docs/contributing/build.md)** - Exact build steps and troubleshooting
-- **[Code Standards](docs/contributing/standards.md)** - Coding conventions and rules
+- **[Contributing Guide](docs/10_dev/contributing.md)** - How to contribute
 
 ### Additional Resources
 - **[Changelog](CHANGELOG.md)** - Version history and changes
-- **[Testing](tests/README.md)** - Unit testing documentation (framework ready, no tests implemented)
+- **[Integration Tests](tests/INTEGRATION_TEST_README.md)** - Standalone integration tests (manual runner)
 
 ## 🎯 Modernization Status
 
@@ -258,14 +261,14 @@ Complete documentation is available in the [`docs/`](./docs/) directory.
 - ✅ Code formatting tools (.clang-format) with CI validation
 - ✅ Static analysis tools (.clang-tidy, .cppcheck-suppressions)
 - ✅ HashLib CMake implementation
-- ✅ Google Test framework scaffolding
+- ✅ Standalone integration tests in `tests/` (manual runner)
 - ✅ GitHub configuration (dependabot, issue templates, PR templates)
 - ✅ Performance optimizations (UI batching, list processing, memory management)
 - ✅ CryptLayer implementation fixes and completion
 
 **In Progress:**
 - 🔄 Complete CMake integration for main app/services/plugins
-- 🔄 Implement actual unit tests (currently 0 tests)
+- 🔄 Wire integration tests into CI; add unit tests where useful
 - 🔄 Dependency updates and security audits
 
 ### Phase 2: P2P Protocol Modernization (🟡 In Progress)
@@ -284,22 +287,16 @@ Complete documentation is available in the [`docs/`](./docs/) directory.
 - ✅ Multipacket and SourceEx2 (ED2K - implemented)
 - 🟡 Cross-protocol optimization features
 
-See **[docs/STATUS.md](docs/STATUS.md)** for detailed current state assessment.
+See **[docs/10_dev/status.md](docs/10_dev/status.md)** for a detailed current state assessment.
 
 ## 🧪 Testing
 
 ### Unit Tests
 
-**Status:** Framework configured but no unit tests implemented yet.
+**Status:** No unit-test framework is wired into the Visual Studio solution yet.
 
-**Build test framework:**
-```powershell
-cmake -B build -S . -DBUILD_TESTS=ON
-cmake --build build --config Release
-ctest --config Release  # Currently no tests to run
-```
-
-See **[tests/README.md](tests/README.md)** for testing documentation.
+There is a **standalone integration test runner** under `tests/` that you can compile with `cl.exe` (or run via `tests/run_integration_tests.bat`).
+See **[`tests/INTEGRATION_TEST_README.md`](tests/INTEGRATION_TEST_README.md)**.
 
 ## 🤝 Contributing
 
@@ -355,14 +352,14 @@ Copyright Envy Development Team (getenvy.com). All good-faith use is encouraged,
 ## 📞 Support
 
 - **Documentation:** [Complete Documentation](docs/)
-- **User Guide:** [Getting Started](docs/user/guide.md)
-- **Developer Guide:** [Contributing](docs/contributing/guide.md)
+- **User Guide:** [Getting Started](docs/50_user/guide.md)
+- **Developer Guide:** [Contributing](docs/10_dev/contributing.md)
 - **Issues:** [GitHub Issues](../../issues)
 - **Discussions:** [GitHub Discussions](../../discussions)
 
 ---
 
 **Last Updated:** January 15, 2026
-**Build System:** Visual Studio 2022 (v145) primary, CMake 3.20+ (HashLib only)
+**Build System:** Visual Studio (MSVC toolset `v145`) primary, CMake 3.20+ (HashLib only)
 **C++ Standard:** C++17
-**Documentation:** See [docs/STATUS.md](docs/STATUS.md) and [docs/ROADMAP.md](docs/ROADMAP.md)
+**Documentation:** See [docs/10_dev/status.md](docs/10_dev/status.md) and [docs/10_dev/roadmap.md](docs/10_dev/roadmap.md)

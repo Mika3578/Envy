@@ -385,12 +385,12 @@
 
 ## 🔗 Related Documentation
 
-- **[Project README](README.md)** - Complete project overview
-- **[Architecture Guide](docs/developer/architecture.md)** - Technical design
-- **[Contributing Guide](docs/contributing/guide.md)** - Development workflow
-- **[Protocol Compatibility](docs/developer/p2p-compatibility.md)** - Network protocol details
-- **[Security Policy](SECURITY.md)** - Security procedures
-- **[CHANGELOG](CHANGELOG.md)** - Version history and changes
+- **[Project README](../../README.md)** - Complete project overview
+- **[Architecture](../20_arch/architecture.md)** - Technical design overview
+- **[Contributing](contributing.md)** - Development workflow
+- **[Protocols](../30_protocols/)** - Protocol documentation and verification notes
+- **[Security audit](../40_quality/security/SECURITY_AUDIT_REPORT.md)** - Security review notes
+- **[CHANGELOG](../../CHANGELOG.md)** - Version history and changes
 
 ---
 
