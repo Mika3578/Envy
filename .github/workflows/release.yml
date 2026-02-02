@@ -86,7 +86,7 @@ jobs:
         Compress-Archive -Path "envy-${{matrix.platform}}-release\*" -DestinationPath "envy-${{matrix.platform}}-${{ github.event.inputs.version || github.ref_name }}.zip"
 
     - name: Upload Release Artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: envy-${{matrix.platform}}-release
         path: envy-${{matrix.platform}}-*.zip
