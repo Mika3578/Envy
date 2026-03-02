@@ -28,7 +28,7 @@ jobs:
       continue-on-error: true
       
     - name: Upload Analysis Results
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       if: always()
       with:
         name: code-analysis-results
