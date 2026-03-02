@@ -111,13 +111,13 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Download Win32 artifacts
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v8
       with:
         name: envy-Win32-release
         path: ./artifacts/Win32
 
     - name: Download x64 artifacts
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v8
       with:
         name: envy-x64-release
         path: ./artifacts/x64
