@@ -78,6 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated README.md with CI/CD capabilities (`63eb0e7`)
 
 ### Changed
+- **CI/CD workflows updated to v145 toolset** - All GitHub Actions build workflows now explicitly pass `/p:PlatformToolset=v145` for Visual Studio 2026 compatibility
+- **Documentation aligned to Visual Studio 2026** - Updated all references from VS 2022 to VS 2026 across README, build guide, dev guide, AI coding guide, roadmap, and modernization summary
 - **README.md updates** - Comprehensive CI/CD capabilities documentation (`63eb0e7`)
 - **Dependency updates**:
   - SQLite and zlib components to latest versions (`5314409`)

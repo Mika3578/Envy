@@ -29,7 +29,7 @@ This repository represents the modernization and continued development of the En
 
 ### Prerequisites
 
-- **Visual Studio 2022** (17.x) or newer
+- **Visual Studio 2026** (18.x) or newer
   - MSVC **Platform Toolset:** `v145` (as configured in the `.vcxproj` files)
   - Workloads/components: **Desktop development with C++**, **MFC/ATL**, Windows 10/11 SDK
 - **Windows SDK** 10.0.x (the projects use `WindowsTargetPlatformVersion` = `10.0`)
@@ -146,7 +146,7 @@ Dependency management is handled through GitHub's Dependabot integration.
 - **Language:** C++17
 - **Framework:** MFC (Microsoft Foundation Classes)
 - **Database:** SQLite 3.x
-- **Build System:** Visual Studio 2022 (v145 toolset), CMake 3.20+ (incomplete)
+- **Build System:** Visual Studio 2026 (v145 toolset), CMake 3.20+ (incomplete)
 - **Networking:** Custom Winsock implementation (IPv4 only)
 - **Compression:** zlib, bzip2
 - **Hashing:** Custom library (MD4, MD5, SHA-1, SHA-256, Tiger)
@@ -256,7 +256,7 @@ Documentation lives in [`docs/`](./docs/). **Start:** [docs index](docs/00_index
 ### Phase 1: Critical Infrastructure Updates (✅ Complete)
 
 **Completed:**
-- ✅ Visual Studio 2022 (v145 toolset) migration
+- ✅ Visual Studio 2026 (v145 toolset) migration
 - ✅ CI/CD pipeline with GitHub Actions
 - ✅ Code formatting tools (.clang-format) with CI validation
 - ✅ Static analysis tools (.clang-tidy, .cppcheck-suppressions)

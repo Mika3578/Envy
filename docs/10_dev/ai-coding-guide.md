@@ -29,7 +29,7 @@ Envy is a multi-network P2P filesharing and BitTorrent client for Windows, suppo
 - **Language**: C++20 (modern C++ features)
 - **Framework**: Microsoft Foundation Classes (MFC)
 - **Platform**: Windows (Win32/x64)
-- **Build System**: Visual Studio 2022, MSBuild
+- **Build System**: Visual Studio 2026, MSBuild
 - **Character Set**: Unicode (UTF-16)
 - **License**: AGPL v3.0
 
@@ -60,7 +60,7 @@ Envy/
 ## Development Environment
 
 ### Required Software
-- **Visual Studio 2022** (v17.0 or later)
+- **Visual Studio 2026** (v18.0 or later)
   - Desktop development with C++ workload
   - Windows 10/11 SDK (10.0.19041.0 or later)
   - MFC and ATL support
