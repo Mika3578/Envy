@@ -321,13 +321,13 @@ BOOL CFileExecutor::Execute(LPCTSTR pszFile, LPCTSTR pszExt)
 				pszFile = pszShortPath;
 		}
 
-		// Sanitize file path: canonicalize and reject embedded quotes to prevent argument injection
+		// Sanitize file path: strip embedded quotes to prevent argument injection,
+		// then canonicalize to normalize traversals (fall back to stripped path for long/UNC paths)
 		CString strSafePath( pszFile );
 		strSafePath.Remove( L'\"' );
 		TCHAR szCanonical[ MAX_PATH ];
-		if ( ! PathCanonicalize( szCanonical, strSafePath ) )
-			return FALSE;	// Fail safely if path cannot be canonicalized
-		strSafePath = szCanonical;
+		if ( PathCanonicalize( szCanonical, strSafePath ) )
+			strSafePath = szCanonical;
 
 		HINSTANCE hResult = ShellExecute( AfxGetMainWnd()->GetSafeHwnd(), L"open",
 			strCustomPlayer, CString( L'\"' ) + strSafePath + L'\"', NULL, SW_SHOWNORMAL );

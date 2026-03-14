@@ -163,7 +163,7 @@ std::string KadStorage::KadIdToString(const unsigned char* id) {
     for (int i = 0; i < KAD_ID_SIZE; i++) {
         ASSERT( static_cast<size_t>(i * 2) < sizeof(buffer) );
         const size_t remaining = sizeof(buffer) - static_cast<size_t>(i * 2);
-        sprintf_s(buffer + i * 2, remaining, "%02x", id[i]);
+        sprintf_s(buffer + i * 2, remaining, "%02x", static_cast<unsigned int>(id[i]));
     }
     buffer[KAD_ID_SIZE * 2] = '\0';
     return std::string(buffer);
