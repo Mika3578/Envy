@@ -188,6 +188,8 @@ protected:
 	BOOL	OnMultiPacketAnswerExt2(CEDPacket* pPacket);
 	BOOL	OnSourceRequest(CEDPacket* pPacket);
 	BOOL	OnSourceAnswer(CEDPacket* pPacket);
+	BOOL	OnSourceRequest2(CEDPacket* pPacket);
+	BOOL	OnSourceAnswer2(CEDPacket* pPacket);
 	BOOL	OnRequestPreview(CEDPacket* pPacket);
 	BOOL	OnPreviewAnswer(CEDPacket* pPacket);
 // Chat:

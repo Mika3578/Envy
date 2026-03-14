@@ -779,11 +779,34 @@ BOOL CDownloadTransferED2K::SendPrimaryRequest()
 	{
 		// Set 'last asked for sources' time
 		m_tSourceRequest = tNow;
-		// Send ed2k request for sources packet
-		pPacket = CEDPacket::New( ED2K_C2C_REQUESTSOURCES, ED2K_PROTOCOL_EMULE );
-		pPacket->Write( m_pDownload->m_oED2K );
-		Send( pPacket );
-		theApp.Message( MSG_DEBUG, L"[ED2K] %s: Sent REQUESTSOURCES", (LPCTSTR)m_sAddress );
+
+		if ( m_pClient->m_bEmSupportsSourceEx2 )
+		{
+			// Use SourceEx2 (0x83) when peer supports it
+			pPacket = CEDPacket::New( ED2K_C2C_REQUESTSOURCES2, ED2K_PROTOCOL_EMULE );
+			pPacket->Write( m_pDownload->m_oED2K );
+			// File size (4 bytes low, or 8 bytes for large files)
+			if ( m_pDownload->m_nSize > 0xFFFFFFFF )
+			{
+				pPacket->WriteLongLE( 0 );
+				pPacket->WriteLongLE( (DWORD)( m_pDownload->m_nSize >> 32 ) );
+			}
+			else
+			{
+				pPacket->WriteLongLE( (DWORD)m_pDownload->m_nSize );
+			}
+			pPacket->WriteShortLE( 0 );	// Options (none for now)
+			Send( pPacket );
+			theApp.Message( MSG_DEBUG, L"[ED2K] %s: Sent REQUESTSOURCES2", (LPCTSTR)m_sAddress );
+		}
+		else
+		{
+			// Fall back to SourceEx v1 (0x81)
+			pPacket = CEDPacket::New( ED2K_C2C_REQUESTSOURCES, ED2K_PROTOCOL_EMULE );
+			pPacket->Write( m_pDownload->m_oED2K );
+			Send( pPacket );
+			theApp.Message( MSG_DEBUG, L"[ED2K] %s: Sent REQUESTSOURCES", (LPCTSTR)m_sAddress );
+		}
 	}
 
 	theApp.Message( MSG_DEBUG, L"[ED2K] %s: Primary request sent, waiting for responses", (LPCTSTR)m_sAddress );

@@ -553,6 +553,7 @@ void CSettings::Load()
 	Add( L"BitTorrent", L"Endgame", &BitTorrent.Endgame, true );
 	Add( L"BitTorrent", L"PeerID", &BitTorrent.PeerID, L"" );	// Alternate to PE1000 for trackers
 	Add( L"BitTorrent", L"PreferenceBTSources", &BitTorrent.PreferenceBTSources, true );
+	Add( L"BitTorrent", L"Encryption", &BitTorrent.Encryption, (DWORD)1 );	// MSE/PE: 0=off, 1=prefer, 2=require
 	Add( L"BitTorrent", L"LinkPing", &BitTorrent.LinkPing, 120*1000, 1000, 10, 60*10, L" s" );
 	Add( L"BitTorrent", L"LinkTimeout", &BitTorrent.LinkTimeout, 180*1000, 1000, 10, 60*10, L" s" );
 	Add( L"BitTorrent", L"HostExpire", &BitTorrent.HostExpire, 60*24*60*60, 24*60*60, 1, 120, L" d" );	// DHT
