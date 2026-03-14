@@ -102,6 +102,22 @@ jobs:
             exit 1
           }
 
+      - name: Run Unit Tests
+        shell: pwsh
+        run: |
+          $testExe = "tests\${{env.BUILD_CONFIGURATION}} ${{matrix.platform}}\EnvyTests.exe"
+          if (Test-Path $testExe) {
+            Write-Host "Running unit tests: $testExe"
+            & $testExe
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Unit tests failed with exit code $LASTEXITCODE"
+              exit $LASTEXITCODE
+            }
+            Write-Host "Unit tests passed."
+          } else {
+            Write-Warning "Test executable not found at $testExe - skipping tests"
+          }
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v5
         with:
@@ -186,4 +202,20 @@ jobs:
           } else {
             Write-Error "✗ Debug build failed: $exePath not found"
             exit 1
+          }
+
+      - name: Run Unit Tests (Debug)
+        shell: pwsh
+        run: |
+          $testExe = "tests\Debug ${{matrix.platform}}\EnvyTests.exe"
+          if (Test-Path $testExe) {
+            Write-Host "Running unit tests: $testExe"
+            & $testExe
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Unit tests failed with exit code $LASTEXITCODE"
+              exit $LASTEXITCODE
+            }
+            Write-Host "Unit tests passed."
+          } else {
+            Write-Warning "Test executable not found at $testExe - skipping tests"
           }

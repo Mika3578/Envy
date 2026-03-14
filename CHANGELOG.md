@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Unit Testing Infrastructure** - Automated test suite integrated into build and CI
+  - `tests/EnvyTests.vcxproj` console app project added to main solution
+  - `tests/CMakeLists.txt` for CMake builds (`BUILD_TESTS=ON`)
+  - Lightweight test framework (`tests/test_framework.h`)
+  - 12 HashLib unit tests: MD4 (RFC 1320), MD5 (RFC 1321), SHA-1 (FIPS 180-4), SHA-256 (FIPS 180-4), ED2K hash
+  - CI workflow runs tests automatically after Release and Debug builds
+  - Tests exposed a SHA-256 implementation bug (buffer position calculation in `Add()`)
+
 - **ED2K Search Modernization** - Complete UDP and TCP search functionality overhaul
   - UDP search GUID tracking with server-specific mapping (IP, port, opcode)
   - Support for concatenated ED2K UDP sub-packets in single datagram (eMule-compatible)
