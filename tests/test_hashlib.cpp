@@ -219,6 +219,9 @@ static bool test_sha256_vectors() {
 		{ "",
 		  {0xe3,0xb0,0xc4,0x42,0x98,0xfc,0x1c,0x14,0x9a,0xfb,0xf4,0xc8,0x99,0x6f,0xb9,0x24,
 		   0x27,0xae,0x41,0xe4,0x64,0x9b,0x93,0x4c,0xa4,0x95,0x99,0x1b,0x78,0x52,0xb8,0x55} },
+		{ "a",
+		  {0xca,0x97,0x81,0x12,0xca,0x1b,0xbd,0xca,0xfa,0xc2,0x31,0xb3,0x9a,0x23,0xdc,0x4d,
+		   0xa7,0x86,0xef,0xf8,0x14,0x7c,0x4e,0x72,0xb9,0x80,0x77,0x85,0xaf,0xee,0x48,0xbb} },
 		{ "abc",
 		  {0xba,0x78,0x16,0xbf,0x8f,0x01,0xcf,0xea,0x41,0x41,0x40,0xde,0x5d,0xae,0x22,0x23,
 		   0xb0,0x03,0x61,0xa3,0x96,0x17,0x7a,0x9c,0xb4,0x10,0xff,0x61,0xf2,0x00,0x15,0xad} },
@@ -281,6 +284,35 @@ static bool test_sha256_copy() {
 	sha3 = sha1;
 	if (sha1 != sha3) {
 		std::printf("SHA-256 assignment operator broken\n");
+		return false;
+	}
+	return true;
+}
+
+static bool test_sha256_block_boundary() {
+	// Hash exactly one 64-byte block, then the same 64 bytes in two 32-byte chunks.
+	// Ensures block boundary handling and buffer reset are correct.
+	uint8 block[64];
+	for (int i = 0; i < 64; ++i)
+		block[i] = static_cast<uint8>('a' + (i % 26));
+
+	CSHA256 full, chunks;
+	full.Reset();
+	full.Add(block, 64);
+	full.Finish();
+
+	chunks.Reset();
+	chunks.Add(block, 32);
+	chunks.Add(block + 32, 32);
+	chunks.Finish();
+
+	uint8 h1[32], h2[32];
+	full.GetHash(h1);
+	chunks.GetHash(h2);
+	if (!hash_eq(h1, h2, 32)) {
+		std::printf("SHA-256 block boundary: full block vs two chunks mismatch\n");
+		print_hex("full  ", h1, 32);
+		print_hex("chunks", h2, 32);
 		return false;
 	}
 	return true;
@@ -398,6 +430,7 @@ void register_hashlib_tests(TestSuite& suite) {
 	suite.add_test("SHA-256 - FIPS 180-4 vectors",  test_sha256_vectors);
 	suite.add_test("SHA-256 - incremental hashing",  test_sha256_incremental);
 	suite.add_test("SHA-256 - copy/assign",          test_sha256_copy);
+	suite.add_test("SHA-256 - block boundary",       test_sha256_block_boundary);
 
 	// ED2K
 	suite.add_test("ED2K - small file == MD4",       test_ed2k_small_file);
