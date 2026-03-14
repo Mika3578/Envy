@@ -15,7 +15,16 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
-      
+
+    - name: Install VS 2026 Build Tools
+      shell: pwsh
+      run: |
+        Write-Host "Installing VS 2026 Build Tools..."
+        choco install visualstudio2026buildtools `
+          --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATLMFC --includeRecommended --quiet" `
+          -y --ignore-package-exit-codes=3010
+        Write-Host "VS 2026 Build Tools installation completed"
+
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
       
@@ -24,7 +33,7 @@ jobs:
       
     - name: Run Code Analysis
       run: |
-        msbuild /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:RunCodeAnalysis=true /p:CodeAnalysisRuleSet=NativeRecommendedRules.ruleset "Visual Studio/Envy.sln"
+        msbuild /m /p:Configuration=Release /p:Platform=x64 /p:RunCodeAnalysis=true /p:CodeAnalysisRuleSet=NativeRecommendedRules.ruleset "Visual Studio/Envy.sln"
       continue-on-error: true
       
     - name: Upload Analysis Results

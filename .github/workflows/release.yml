@@ -28,6 +28,15 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Install VS 2026 Build Tools
+      shell: pwsh
+      run: |
+        Write-Host "Installing VS 2026 Build Tools..."
+        choco install visualstudio2026buildtools `
+          --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATLMFC --includeRecommended --quiet" `
+          -y --ignore-package-exit-codes=3010
+        Write-Host "VS 2026 Build Tools installation completed"
+
     - name: Auto-Version Management
       shell: pwsh
       run: |
@@ -51,7 +60,7 @@ jobs:
 
     - name: Build Release
       run: |
-        msbuild /m /p:Configuration=Release /p:Platform=${{matrix.platform}} /p:PlatformToolset=v143 "${{env.SOLUTION_FILE_PATH}}"
+        msbuild /m /p:Configuration=Release /p:Platform=${{matrix.platform}} "${{env.SOLUTION_FILE_PATH}}"
 
     - name: Package Release
       run: |
