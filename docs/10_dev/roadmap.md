@@ -271,35 +271,39 @@ Kademlia Kad2 implementation is now complete and wire-compatible:
 
 ---
 
-## 🚀 Phase 4: Testing & Quality Assurance (🟢 MEDIUM PRIORITY)
+## 🚀 Phase 4: Testing & Quality Assurance (🟢 IN PROGRESS)
 
-**Status:** Framework Ready
+**Status:** Infrastructure Complete, Tests Growing
 **Duration:** 4-6 weeks
 **Priority:** Medium - Essential for long-term stability
-**Evidence:** `tests/CMakeLists.txt` (framework present, no tests), 15 TODO/FIXME markers
+**Evidence:** `tests/EnvyTests.vcxproj` (12 tests, 10 passing), CI integration active
 
-### Problem Statement
-Zero automated testing despite framework being ready:
-- No unit tests for core functionality
-- No protocol validation
-- No regression testing
-- Manual testing only
+### Problem Statement (PARTIALLY RESOLVED)
+Automated testing infrastructure is now in place:
+- ✅ Unit tests for HashLib algorithms (MD4, MD5, SHA-1, SHA-256, ED2K)
+- ✅ CI/CD test execution after every build
+- ⚠️ SHA-256 implementation has a bug (found by tests, fix pending)
+- 🔄 Protocol tests need Envy core refactored into a static library
+- 🔄 No coverage reporting yet
 
 ### Implementation Tasks
 
-#### 4.1 Re-establish Testing Infrastructure
-- **Testing Framework**
-  - Restore Google Test integration
-  - Re-implement test runner scripts
-  - Set up CI/CD test execution
+#### 4.1 Re-establish Testing Infrastructure (✅ COMPLETE - March 2026)
+- ✅ **Testing Framework**
+  - Custom lightweight test framework (`tests/test_framework.h`)
+  - VS project `tests/EnvyTests.vcxproj` in main solution
+  - CMake support via `tests/CMakeLists.txt`
+  - CI/CD test execution in `build.yml` (Release + Debug, Win32 + x64)
 
-#### 4.2 Core Unit Tests
-- **HashLib Tests**
-  - MD4, MD5, SHA-1, SHA-256 algorithms
-  - ED2K hash computation
-  - Performance benchmarks
+#### 4.2 Core Unit Tests (🟡 PARTIALLY COMPLETE)
+- ✅ **HashLib Tests** (12 tests)
+  - MD4: RFC 1320 test vectors + incremental hashing
+  - MD5: RFC 1321 test vectors + incremental hashing
+  - SHA-1: FIPS 180-4 vectors + incremental hashing
+  - SHA-256: FIPS 180-4 vectors + incremental + copy/assign (⚠️ 2 failing - bug in SHA256.cpp)
+  - ED2K: small file == MD4, consistency, incremental chunks
 
-- **Network Protocol Tests**
+- 🔄 **Network Protocol Tests** (requires Envy core static library)
   - Packet parsing/validation
   - Handshake sequences
   - Error condition handling
@@ -375,10 +379,11 @@ Zero automated testing despite framework being ready:
 - Kad: ✅ Successful network bootstrap and searches (wire-compatible)
 - BT: ⚠️ Basic operation working, v2 foundation implemented
 
-### Phase 4 (Quality) - 🔄 NEXT
-- Testing: Framework configured, no tests implemented yet
-- Test coverage: 0% (need to write actual tests)
-- CI/CD: All builds passing, automated testing ready
+### Phase 4 (Quality) - 🟡 IN PROGRESS
+- Testing: 12 unit tests (10 passing), CI integration active
+- Test coverage: HashLib algorithms covered; Envy core pending
+- CI/CD: All builds passing, tests run automatically
+- Bug found: SHA-256 implementation has buffer position bug (fix pending)
 - Bug rate: <5 new bugs per release (CryptLayer bugs fixed)
 
 ---

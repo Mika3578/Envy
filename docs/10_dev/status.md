@@ -1,6 +1,6 @@
 # Envy Development Status
 
-**Last Updated:** January 2026  
+**Last Updated:** March 2026  
 **Default branch:** `develop`  
 **Build baseline:** Visual Studio solution `Visual Studio/Envy.sln` (VS 17.x), MSVC toolset `v145`, C++17 (`stdcpp17`)
 
@@ -20,21 +20,28 @@ This document summarizes the current state of the repository based on what’s a
 - `build_all.ps1` builds Debug/Release × Win32/x64 via `MSBuild.exe` (requires MSBuild on PATH).
 
 ### CMake (secondary)
-- **Status:** ⚠️ Incomplete (HashLib only)
-- `CMakeLists.txt` adds `HashLib/` and contains TODOs for the main app/services/plugins.
-- **Note:** `CMakeLists.txt` references `add_subdirectory(tests)`, but there is currently **no** `tests/CMakeLists.txt`, so `-DBUILD_TESTS=ON` is not usable yet.
+- **Status:** ⚠️ Incomplete (HashLib + tests only)
+- `CMakeLists.txt` adds `HashLib/` and `tests/` (when `BUILD_TESTS=ON`).
+- TODOs remain for the main app, services, and plugins.
 
 ## 🧪 Testing
 
+### Automated unit tests (EnvyTests)
+- **Status:** ✅ Working in CI and locally
+- **Project:** `tests/EnvyTests.vcxproj` (console app, part of `Envy.sln`)
+- **CMake:** `tests/CMakeLists.txt` (when `BUILD_TESTS=ON`)
+- **Tests:** 12 tests covering HashLib algorithms (MD4, MD5, SHA-1, SHA-256, ED2K)
+- **Results:** 10/12 passing; SHA-256 has a known bug (buffer position calculation in `Add()`)
+- **CI:** Tests run automatically after each build in `.github/workflows/build.yml`
+
 ### CI coverage
 - CI builds Debug and Release for Win32/x64 (`.github/workflows/build.yml`).
+- CI runs unit tests after each build.
 - CI also runs code analysis, formatting checks, and markdown link checking (`.github/workflows/code-quality.yml`).
 
-### In-repo tests (manual runner)
-- The repository contains a standalone integration test runner under `tests/`.
-- Run it via:
-  - `tests\run_integration_tests.bat` (compiles `tests\test_runner.cpp` if `cl.exe` is available), or
-  - manually from a Developer Command Prompt (`cl ... test_runner.cpp`).
+### Legacy integration tests (manual, not compiled)
+- `tests/test_runner.cpp` and related `test_*.cpp` files exist but have deep MFC dependencies.
+- These tests have never been successfully compiled; they require the Envy core to be refactored into a static library.
 - See `tests/INTEGRATION_TEST_README.md`.
 
 ## 🔗 Protocols (high-level)
