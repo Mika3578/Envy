@@ -188,8 +188,10 @@ void CBuffer::AddReversed(const void *pData, const size_t nLength)
 // Makes sure the buffer will be big enough to hold them, allocating more memory if necessary
 bool CBuffer::EnsureBuffer(const size_t nLength) throw()
 {
-	// Limit buffer size to a signed int. This is the most that can be sent/received from a socket in one call.
-	if ( nLength > 0xffffffff - m_nBuffer ) return false;
+	// Prevent integer overflow in subsequent m_nLength + nLength + rounding calculations.
+	// BLOCK_MASK (0xFFFFFC00) is the maximum allocatable buffer size after KB rounding.
+	// This ensures the addition and rounding on the allocation path cannot wrap a DWORD.
+	if ( nLength > static_cast< size_t >( BLOCK_MASK ) - m_nLength ) return false;
 
 	// If the size of the buffer minus the size filled is bigger than or big enough for the given length, do nothing
 	if ( m_nBuffer - m_nLength >= nLength )

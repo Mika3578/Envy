@@ -161,17 +161,25 @@ size_t KadStorage::GetSize() const {
 std::string KadStorage::KadIdToString(const unsigned char* id) {
     char buffer[KAD_ID_SIZE * 2 + 1];
     for (int i = 0; i < KAD_ID_SIZE; i++) {
-        sprintf(buffer + i * 2, "%02x", id[i]);
+        const size_t remaining = sizeof(buffer) - static_cast<size_t>(i * 2);
+        sprintf_s(buffer + i * 2, remaining, "%02x", id[i]);
     }
     buffer[KAD_ID_SIZE * 2] = '\0';
     return std::string(buffer);
 }
 
 void KadStorage::StringToKadId(const std::string& str, KadId& id) {
-    for (int i = 0; i < KAD_ID_SIZE && i * 2 + 1 < (int)str.length(); i++) {
-        unsigned int byte;
-        sscanf(str.c_str() + i * 2, "%02x", &byte);
-        id[i] = (unsigned char)byte;
+    memset(&id[0], 0, KAD_ID_SIZE);
+    if (str.length() < KAD_ID_SIZE * 2) return;
+    for (int i = 0; i < KAD_ID_SIZE; i++) {
+        // Validate hex characters before parsing
+        const char c1 = str[i * 2];
+        const char c2 = str[i * 2 + 1];
+        if (!isxdigit(static_cast<unsigned char>(c1)) || !isxdigit(static_cast<unsigned char>(c2)))
+            return;
+        unsigned int byte = 0;
+        sscanf_s(str.c_str() + i * 2, "%02x", &byte);
+        id[i] = static_cast<unsigned char>(byte);
     }
 }
 
