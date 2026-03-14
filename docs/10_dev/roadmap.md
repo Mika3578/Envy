@@ -1,429 +1,237 @@
 # Envy Development Roadmap
 
-**Last Updated:** January 2026
-**Based on:** Current codebase inspection (`docs/10_dev/status.md`)
-**Approach:** Phased, evidence-based development priorities
-
-This roadmap prioritizes fixes based on actual code analysis, focusing on stability and user experience first, then protocol completeness.
-
-## 📊 Current State Summary
-
-- **Build System:** ✅ Visual Studio solution builds (MSVC toolset `v145`), CMake partial (HashLib only)
-- **UI Framework:** ✅ MFC/Unicode complete
-- **Protocols:** ✅ G2 implemented, ⚠️ BT partial (v2 foundation), 🟡 ED2K enhanced (SecureID/CryptLayer present; parity/interop work remains), 🟡 Kad implemented (see compatibility report)
-- **Performance:** 🟡 Ongoing (profile-driven improvements; continue validating UI responsiveness)
-- **Testing:** 🟡 Standalone integration tests exist in `tests/` (manual runner; not in CI yet)
-- **Code Quality:** ✅ Improved (CryptLayer bugs fixed, error handling enhanced)
+**Last Updated:** March 2026
+**Based on:** Full codebase comparison against reference clients (eMule, aMule, libtorrent, qBittorrent, Transmission)
+**Approach:** Phased, evidence-based priorities; see `docs/10_dev/status.md` for the detailed comparison
 
 ---
 
-## 🚀 Phase 0: Build & Infrastructure Sanity (✅ COMPLETE)
+## Current State Summary
 
-**Status:** Complete - Foundation established
-**Duration:** Completed in prior development
-**Evidence:** Working VS builds, CI/CD active
-
-### Completed Tasks
-- ✅ Visual Studio 2026 (v145) migration
-- ✅ GitHub Actions CI/CD pipeline
-- ✅ Basic CMake for HashLib
-- ✅ Code formatting (.clang-format)
-- ✅ Static analysis tools
-- ✅ Google Test framework integration
-
-**Impact:** Development environment stable, automated quality checks active.
+- **Build System:** Visual Studio solution builds (MSVC toolset `v145`), CMake partial (HashLib only)
+- **UI Framework:** MFC/Unicode complete
+- **G2 / G1 / DC++:** Fully implemented
+- **BitTorrent v1:** Solid (DHT, ut_metadata, ut_pex, lt_tex, web seeds, trackers)
+- **BitTorrent v2:** Library-only (Merkle tree + SHA-256); no wire protocol
+- **ED2K:** Core transfers + CryptLayer + SourceEx2 (0x83/0x84) working; compressed upload, AICH C2C, and several opcodes missing
+- **Kademlia:** Bootstrap, ping, find_node, FIND_VALUE (search key/source), PUBLISH (key/source), and DHT store implemented; bucket splitting, LRU, refresh, firewalled handling TODO
+- **IPv6:** Utilities exist, core connections IPv4-only
+- **Testing:** 13 HashLib unit tests passing; protocol integration tests require core refactoring
 
 ---
 
-## 🚀 Phase 1: Performance & Stability (✅ COMPLETE)
+## Phase 0: Build & Infrastructure (COMPLETE)
 
-**Status:** Complete - Critical issues resolved
-**Duration:** Completed January 2026
-**Priority:** Highest - Affects all users immediately
-**Evidence:** UI batching implemented, list processing optimized, memory management improved
-
-### Completed Tasks
-- ✅ UI thread blocking fixes (file I/O moved to background, network operations optimized)
-- ✅ UI update batching (250ms timer, 50ms data caching, search monitor batching)
-- ✅ List processing optimization (O(n²) complexity eliminated)
-- ✅ Memory management improvements (buffer reuse, smart pointers)
-- ✅ CryptLayer implementation fixes (decryption ordering, state machine, RSA encryption)
-
-**Impact:** Application is now stable and responsive, no UI freezing during downloads or searches.
-
-### Problem Statement
-Current implementation has multiple UI freeze risks:
-- Network operations blocking UI thread
-- Synchronous I/O without async patterns
-- Large list processing without batching
-- Frequent UI updates causing redraw storms
-
-### Critical Tasks
-
-#### 1.1 UI Thread Blocking Fixes
-- **Fix Network Operations on UI Thread**
-  - Evidence: `Envy/Network.cpp` line 1417 (commented sync ping)
-  - Impact: UI freezes during network operations
-  - Solution: Move to background threads with message posting
-
-- **Async File I/O Operations**
-  - Evidence: Direct `CreateFile/ReadFile` calls in UI context
-  - Impact: UI blocks during file operations
-  - Solution: Background file processing
-
-#### 1.2 UI Update Batching
-- **Download Progress Updates**
-  - Evidence: `Envy/CtrlDownloads.cpp` - frequent `Invalidate()` calls
-  - Impact: UI redraw storms during downloads
-  - Solution: Timer-based batched updates (100-500ms intervals)
-
-- **Search Result Processing**
-  - Evidence: `Envy/WndSearchMonitor.cpp` - real-time filtering of large lists
-  - Impact: UI freezing during search result processing
-  - Solution: Background processing with progress indicators
-
-#### 1.3 List Processing Optimization
-- **Position-Based Iteration**
-  - Evidence: `Envy/NeighboursWithRouting.cpp` line 108 - manual position iteration
-  - Impact: O(n²) complexity for large neighbour lists
-  - Solution: Switch to range-based for loops or cached indices
-
-#### 1.4 Memory Management
-- **Buffer Reuse**
-  - Evidence: Large allocations in hot paths
-  - Impact: Memory fragmentation, GC pressure
-  - Solution: Object pooling for frequent allocations
-
-### Success Criteria
-- ✅ No UI freezing during network operations
-- ✅ Smooth scrolling in large lists (1000+ items)
-- ✅ Download progress updates don't impact responsiveness
-- ✅ Memory usage stable during long sessions
-
-### Testing Approach
-- Manual UI responsiveness testing
-- Memory profiling with VS Diagnostic Tools
-- Network simulation under load
+- Visual Studio 2026 (v145) migration
+- GitHub Actions CI/CD pipeline (Debug + Release, Win32 + x64)
+- Google Test / custom test framework integration
+- Code formatting (.clang-format), static analysis
+- CMake for HashLib + tests
+- OpenCppCoverage in CI
 
 ---
 
-## 🚀 Phase 2: ED2K/eMule Protocol Parity (✅ COMPLETE)
+## Phase 1: Performance & Stability (COMPLETE)
 
-**Status:** Complete - CryptLayer implemented, other features already working
-**Duration:** Completed January 2026
-**Priority:** High - Core functionality for ED2K network
-**Evidence:** `Envy/EDClient.cpp` (CryptLayer handshake complete), `Envy/CryptoProvider.cpp` (RSA encryption fixed)
-
-### Problem Statement (RESOLVED)
-ED2K implementation now includes all critical modern features:
-- ✅ CryptLayer (traffic obfuscation) - RSA+RC4 handshake implemented
-- ✅ SecureID (authentication) - Fully working
-- ✅ AICH (file verification) - Enabled and functional
-- ✅ Multi-packet extensions - Implemented
-- ✅ SourceEx2 exchange - Working
-
-### Current vs Target State
-
-| Feature | Current | Target | Status |
-|---------|---------|--------|--------|
-| CryptLayer | ✅ Implemented | ✅ Full support | ✅ Complete |
-| SecureID | ✅ Working | ✅ Authentication | ✅ Complete |
-| AICH | ✅ Enabled | ✅ Hash verification | ✅ Complete |
-| Multi-packet | ✅ Implemented | ✅ Extensions | ✅ Complete |
-| SourceEx2 | ✅ Working | ✅ Exchange | ✅ Complete |
-| Unicode | ✅ Full UTF-8 | ✅ Full UTF-8 | ✅ Complete |
-
-### Implementation Tasks
-
-#### 2.1 CryptLayer Obfuscation
-- **Protocol Analysis**
-  - Study eMule CryptLayer specification
-  - Implement RC4-based obfuscation
-- **Integration Points**
-  - `Envy/EDClient.cpp` - enable flag, add handshake
-  - `Envy/Connection.cpp` - encrypt/decrypt data streams
-- **Testing**
-  - Interop with eMule clients
-  - Fallback to non-obfuscated connections
-
-#### 2.2 SecureID Authentication
-- **Client Identification**
-  - Implement SecureID generation/validation
-  - Server authentication handshake
-- **Integration**
-  - `Envy/EDClient.cpp` - add to connection setup
-  - Server list integration
-
-#### 2.3 AICH Hash Verification
-- **Merkle Tree Implementation**
-  - Complete AICH hash tree construction
-  - Verification during downloads
-- **Integration**
-  - `Envy/FileIdentifier.h` - add AICH support
-  - Download verification pipeline
-
-#### 2.4 Multi-packet Extensions
-- **Protocol Extension**
-  - Implement multi-packet framing
-  - Backward compatibility
-- **Performance Benefits**
-  - Reduced packet overhead
-  - Better large file handling
-
-### Success Criteria
-- ✅ Interoperability with modern eMule clients
-- ✅ Secure connections (CryptLayer)
-- ✅ File verification (AICH) working
-- ✅ No regressions in basic ED2K functionality
-
-### Risk Assessment
-- **High Risk:** CryptLayer implementation complexity
-- **Medium Risk:** AICH integration with existing hash system
-- **Low Risk:** Multi-packet extensions (additive feature)
+- UI thread blocking fixes (file I/O moved to background)
+- UI update batching (250ms timer, 50ms data caching)
+- List processing O(n^2) elimination
+- Memory management improvements (buffer reuse, smart pointers)
+- CryptLayer implementation fixes (decryption ordering, state machine, RSA encryption)
 
 ---
 
-## 🚀 Phase 3: Kademlia DHT Parity (✅ COMPLETE - January 2026)
+## Phase 2: ED2K Protocol Fixes (PARTIALLY COMPLETE)
 
-**Status:** Complete - Wire-Compatible with eMule/aMule
-**Duration:** Completed January 2026
-**Priority:** High - Essential for ED2K network scaling
-**Evidence:** 
-- `Envy/Kademlia.cpp` (full Kad2 implementation)
-- `Envy/Kademlia.h` (Kad2RoutingTable, KadContact structures)
-- `Envy/HostCache.cpp` (nodes.dat import with full version support)
-- `docs/30_protocols/kad/kad2-compatibility-report.md` (compatibility verification)
+**Goal:** Fix incorrect advertisements and finish partially implemented features.
 
-### Problem Statement (RESOLVED)
-Kademlia Kad2 implementation is now complete and wire-compatible:
-- ✅ Full bootstrap and routing operations
-- ✅ FIND_NODE search support
-- ✅ PING/PONG for node discovery
-- ✅ XOR distance calculation (K=10, matching eMule/aMule)
-- ✅ nodes.dat import (versions 0-3, bootstrap edition)
-- ✅ Request tracking (outstanding request management)
-- ✅ IP endianness handling (host-order storage, network-order conversion)
+### Done
+- CryptLayer RSA+RC4 handshake
+- SecureID challenge/response flow (crypto-random)
+- Large file support (64-bit request/send/compressed)
+- HASHSETREQUEST2 / HASHSETANSWER2
+- FileIdentifier support
+- AICH hash tree building and verification
+- Concatenated UDP packet parsing fix
 
-### Current vs Target State
+### Done (bugs fixed / features completed)
+- **SecureID version advertisement** — `EDPacket.h` now has `ED2K_VERSION_SECUREID = 3` (eMule-compatible).
+- **SourceEx2** — REQUESTSOURCES2 (0x83) / ANSWERSOURCES2 (0x84) implemented in `EDClient.cpp`; advertised via nOpt2 bit 10; `DownloadTransferED2K` sends REQUESTSOURCES2 when peer supports it.
 
-| Operation | Current | Target | Status |
-|-----------|---------|--------|--------|
-| BOOTSTRAP (Kad2) | ✅ Full | ✅ Full | ✅ Complete |
-| HELLO/PING (Kad2) | ✅ Full | ✅ Full | ✅ Complete |
-| FIND_NODE (Kad2) | ✅ Full | ✅ Full | ✅ Complete |
-| Wire Compatibility | ✅ eMule/aMule | ✅ eMule/aMule | ✅ Verified |
-| nodes.dat Import | ✅ v0-3 | ✅ v0-3 | ✅ Complete |
-| PUBLISH | ❌ Not Implemented | ✅ Full | 🟡 Future |
-| FIREWALL_CHECK | ❌ Not Implemented | ✅ Full | 🟡 Future |
+### TODO: Bugs / verification
 
-### Implementation Tasks
+| Item | Detail | Priority |
+|------|--------|----------|
+| **AICH hash algorithm** | Envy uses SHA-1 for AICH blocks; eMule uses MD4 — verify actual wire compatibility | Medium |
 
-#### 3.1 Complete Kad Opcodes
-- **PUBLISH Operations** (0x30/0x31)
-  - Keyword publishing to DHT
-  - File hash indexing
-  - Integration with ED2K search
+### TODO: Missing features
 
-- **Firewall Check** (0x50/0x51)
-  - NAT detection
-  - Firewall traversal support
-
-#### 3.2 XOR Distance Bug Fix
-- **Distance Calculation**
-  - Verify XOR implementation
-  - Test with known Kad networks
-- **Routing Table**
-  - Node organization fixes
-  - Bucket maintenance
-
-#### 3.3 Kad Nodes Import
-- **nodes.dat Support**
-  - Parse existing Kad network dumps
-  - Bootstrap from imported nodes
-- **Persistence**
-  - Save/restore Kad routing table
-
-#### 3.4 Full DHT Indexing
-- **Search Implementation**
-  - Recursive node lookups
-  - Value storage/retrieval
-- **Replication**
-  - Data replication across nodes
-  - Maintenance operations
-
-### Success Criteria
-- ✅ Successful bootstrap into Kad network
-- ✅ File searches working via Kad
-- ✅ Firewall detection functional
-- ✅ Routing table persistence
-- ✅ No distance calculation errors
-
-### Compatibility Verification
-- ✅ **eMule (srchybrid)** - 100% wire-compatible (verified)
-- ✅ **aMule** - 100% wire-compatible (verified)
-- ⚠️ **Shareaza/MLDonkey** - No Kad2 implementation found to verify
-- **Reference:** `docs/30_protocols/kad/kad2-compatibility-report.md` for detailed verification
-
-### Risk Assessment (RESOLVED)
-- ✅ **XOR distance** - Verified correct (K=10, matching eMule/aMule)
-- ✅ **Kad opcode implementation** - Complete and wire-compatible
-- ✅ **nodes.dat import** - Full version support implemented
+| Item | Detail | Priority |
+|------|--------|----------|
+| **Compressed upload** | Can receive COMPRESSEDPART but never sends it; implement zlib deflate in `UploadTransferED2K::DispatchNextChunk()` | Medium |
+| **REQUESTSOURCES2 / ANSWERSOURCES2** | Source exchange v2 (0x83/0x84) — implement or stop advertising | Medium |
+| **AICH C2C protocol** | AICHFILEHASHREQ (0x9E) / AICHFILEHASHANS (0x9D) handlers — required for AICH corruption recovery from peers | Medium |
+| **MULTIPACKET_EXT2 full batching** | Current handler treats each entry as separate FILEREQUEST; implement proper batched processing | Low |
+| **PUBLICIP_REQ / PUBLICIP_ANSWER** (0x97/0x98) | Public IP discovery from peers | Low |
+| **CALLBACK / REASKCALLBACKTCP** (0x99/0x9A) | Callback mechanism for firewalled clients | Low |
+| **BUDDYPING / BUDDYPONG** (0x9F/0xA0) | Buddy system for low-ID clients | Low |
+| **FWCHECKUDPREQ** (0xA7) | Firewall check for Kad >=6/7 integration | Low |
 
 ---
 
-## 🚀 Phase 4: Testing & Quality Assurance (🟢 IN PROGRESS)
+## Phase 3: Kademlia DHT Completion (PARTIALLY COMPLETE)
 
-**Status:** Infrastructure Complete, Tests Growing
-**Duration:** 4-6 weeks
-**Priority:** Medium - Essential for long-term stability
-**Evidence:** `tests/EnvyTests.vcxproj` (13 tests, 13 passing), CI integration active
+**Goal:** Move from "wire-compatible for bootstrap" to "fully functional DHT participant."
 
-### Problem Statement (PARTIALLY RESOLVED)
-Automated testing infrastructure is now in place:
-- ✅ Unit tests for HashLib algorithms (MD4, MD5, SHA-1, SHA-256, ED2K)
-- ✅ CI/CD test execution after every build
-- ✅ SHA-256 implementation fixed (length encoding + message schedule σ1 per FIPS 180-4)
-- 🔄 Protocol tests need Envy core refactored into a static library
-- 🔄 No coverage reporting yet
+### Done
+- BOOTSTRAP_REQ/RES, PING/PONG, FIND_NODE, HELLO
+- Routing table (XOR distance, K=10)
+- nodes.dat import (v0-3)
+- Rate limiting, blacklist integration
+- Request tracking, IP endianness
 
-### Implementation Tasks
+### Done (Kad2 search/publish)
+- **FIND_VALUE** — SEARCH_KEY_REQ, SEARCH_SOURCE_REQ, SEARCH_RES implemented in `Kademlia.cpp`.
+- **PUBLISH (KEY/SOURCE)** — PUBLISH_KEY_REQ, PUBLISH_SOURCE_REQ, PUBLISH_RES implemented; DHT store (`KadStore`) for keyword/source entries.
 
-#### 4.1 Re-establish Testing Infrastructure (✅ COMPLETE - March 2026)
-- ✅ **Testing Framework**
-  - Custom lightweight test framework (`tests/test_framework.h`)
-  - VS project `tests/EnvyTests.vcxproj` in main solution
-  - CMake support via `tests/CMakeLists.txt`
-  - CI/CD test execution in `build.yml` (Release + Debug, Win32 + x64)
+### TODO
 
-#### 4.2 Core Unit Tests (🟡 PARTIALLY COMPLETE)
-- ✅ **HashLib Tests** (13 tests)
-  - MD4: RFC 1320 test vectors + incremental hashing
-  - MD5: RFC 1321 test vectors + incremental hashing
-  - SHA-1: FIPS 180-4 vectors + incremental hashing
-  - SHA-256: FIPS 180-4 vectors (incl. "a") + incremental + copy/assign + block boundary (✅ all passing)
-  - ED2K: small file == MD4, consistency, incremental chunks
-
-- 🔄 **Network Protocol Tests** (requires Envy core static library)
-  - Packet parsing/validation
-  - Handshake sequences
-  - Error condition handling
-
-#### 4.2 Protocol Integration Tests
-- **ED2K Interoperability**
-  - Connection handshakes
-  - File transfer validation
-  - Search/response cycles
-
-- **Kad Network Tests**
-  - Bootstrap sequences
-  - Search operations
-  - Node communication
-
-#### 4.3 Performance & Stress Tests
-- **UI Responsiveness**
-  - Large list handling
-  - Concurrent operations
-  - Memory usage monitoring
-
-- **Network Load Testing**
-  - High connection counts
-  - Large file transfers
-  - Network saturation scenarios
-
-#### 4.4 CI/CD Integration
-- **Automated Testing**
-  - Pre-merge test execution
-  - **Coverage reporting** – OpenCppCoverage on Debug x64; Cobertura + HTML artifact in `build.yml`
-  - Performance regression detection (future)
-
-### Success Criteria
-- ✅ 60%+ code coverage on core components
-- ✅ All protocol handshakes validated
-- ✅ Performance benchmarks established
-- ✅ CI/CD testing fully integrated
+| Item | Detail | Priority |
+|------|--------|----------|
+| **Bucket splitting** | Split buckets when full (if bucket contains own ID); current implementation uses simple add | High |
+| **LRU replacement** | Replace least-recently-used contact when bucket is full; currently rejects new contacts | Medium |
+| **Bucket refresh** | Periodic refresh of stale buckets (eMule uses 15-minute intervals) | Medium |
+| **Eclipse protection** | Limit contacts from same /24 subnet to prevent eclipse attacks | Medium |
+| **FIREWALLED_REQ/RES** | Handle firewalled node detection and relay | Medium |
+| **FINDBUDDY_REQ/RES** | Buddy system for NAT traversal | Low |
+| **CALLBACK_REQ/RES** | Kad callback mechanism | Low |
+| **UDP hole punching** | NAT traversal for firewalled nodes | Low |
+| **Firewall self-check** | Detect own firewall status via Kademlia | Low |
 
 ---
 
-## 🚀 Phase 5: Advanced Features (🔵 FUTURE)
+## Phase 4: BitTorrent Upgrades (TODO)
 
-**Status:** Not Started
-**Duration:** 8-12 weeks
-**Priority:** Low - After stability achieved
+**Goal:** Close the gap with modern BT clients (libtorrent, qBittorrent, Transmission).
 
-### IPv6 Support
-- Network layer updates
-- Dual-stack operation
-- Backward compatibility
+### 4.1 Transport & Security (no v2 dependency)
 
-### BT v2 Support
-- ✅ BEP-52 foundation implemented (SHA-256, hybrid support)
-- 🔄 Merkle tree verification (metadata parsing pending)
-- 🔄 Peer wire extensions (next phase)
+| Item | Detail | Priority |
+|------|--------|----------|
+| ~~Protocol encryption (MSE/PE)~~ | Done: `BTCrypto.h/cpp` with DH+RC4, integrated into `CBTClient`; `Settings.BitTorrent.Encryption` | Done |
+| **uTP (BEP-29)** | UDP-based congestion-controlled transport; required by many modern peers | High |
+| **HTTPS tracker support** | Accept `https://` tracker URLs | Medium |
+| **HTTP scrape** | Uncomment and fix `ScrapeTracker()` in `BTInfo.cpp` | Medium |
+| **Fast peers (BEP-6)** | Have/Allowed-Fast/Suggest-Piece/Reject — flag defined but never set | Low |
+| **Local peer discovery (BEP-14)** | mDNS/LPD for LAN peers | Low |
 
-### Modern C++ Migration
-- C++17 → C++20 transition
-- Smart pointer adoption
-- Constexpr usage
+### 4.2 BitTorrent v2 / BEP-52
 
----
+| Item | Detail | Priority |
+|------|--------|----------|
+| **32-byte SHA-256 infohash** | Uncomment `m_oBTHv2`, implement `IsBitTorrentV2()` properly | High |
+| **v2 .torrent parsing** | Parse `file tree`, per-file Merkle roots, `meta version` | High |
+| **Hash request/response** (BEP-52 msg 21-23) | Wire protocol for Merkle piece verification | High |
+| **Hybrid mode** (v1+v2 in one torrent) | Dual infohash, shared piece data | Medium |
+| **v2 magnet download path** | Connect `btmh:` parsing to actual v2 metadata fetch | Medium |
 
-## 📈 Success Metrics
+### 4.3 Peer Exchange & Connectivity
 
-### Phase 1 (Performance) - ✅ COMPLETE
-- UI responsiveness: <100ms response times (batching implemented)
-- Memory usage: <500MB during normal operation (buffer reuse added)
-- No UI freezes during network operations (background processing)
-
-### Phase 2-3 (Protocols) - 🟡 IN PROGRESS
-- ED2K: ✅ CryptLayer working, full interoperability with Envy clients
-- Kad: ✅ Successful network bootstrap and searches (wire-compatible)
-- BT: ⚠️ Basic operation working, v2 foundation implemented
-
-### Phase 4 (Quality) - 🟡 IN PROGRESS
-- Testing: 13 unit tests (13 passing), CI integration active
-- Test coverage: HashLib algorithms covered; Envy core pending
-- CI/CD: All builds passing, tests run automatically
-- SHA-256: buffer position, length encoding, and message-schedule (σ1) fixes applied; all tests pass
-- Bug rate: <5 new bugs per release (CryptLayer bugs fixed)
+| Item | Detail | Priority |
+|------|--------|----------|
+| **IPv6 peers in PEX** | Currently 6-byte compact (IPv4 only) | Medium |
+| **NAT traversal (BEP-10)** | Flag defined but not set; implement holepunch | Low |
 
 ---
 
-## 🎯 Development Principles
+## Phase 5: IPv6 Integration (TODO)
 
-### Evidence-Based Planning
-- All priorities based on code inspection, not speculation
-- User impact drives sequencing (performance first)
-- Protocol gaps validated through feature flags and TODOs
+**Goal:** Full dual-stack networking.
 
-### Incremental Approach
-- Each phase delivers working functionality
-- Backward compatibility maintained
-- Testing integrated at each step
-
-### Risk Management
-- Critical UI issues addressed before feature work
-- Protocol implementations tested against reference clients
-- Performance profiling guides optimizations
+| Item | Detail | Priority |
+|------|--------|----------|
+| **Core connection layer** | Change `CConnection` from `AF_INET` to dual-stack (`AF_INET6` with `IPV6_V6ONLY=0`) | High |
+| **IPv6 in BT PEX** | 18-byte compact format for IPv6 peers | Medium |
+| **IPv6 UPnP** | Port mapping for IPv6 | Medium |
+| **UPnP GetExternalIP** | Currently returns empty; implement | Medium |
+| **IPv6 in Kad DHT** | DHT already has IPv6 paths; integrate with core | Medium |
+| **IPv6 in G2/G1** | Hub/ultrapeer connections over IPv6 | Low |
 
 ---
 
-## 📋 Implementation Notes
+## Phase 6: Testing & Quality (IN PROGRESS)
 
-### Dependencies
-- **Phase 1:** No external dependencies (code refactoring)
-- **Phase 2:** Protocol specification analysis
-- **Phase 3:** Kad network access for testing
-- **Phase 4:** Testing framework expansion
+**Goal:** Expand test coverage beyond HashLib.
 
-### Testing Strategy
-- **Manual Testing:** UI responsiveness, basic functionality
-- **Unit Tests:** Algorithm correctness, edge cases
-- **Integration Tests:** Protocol interoperability
-- **Performance Tests:** Benchmarks, memory profiling
+### Done
+- 13 HashLib unit tests (MD4, MD5, SHA-1, SHA-256, ED2K) — all passing
+- CI/CD test execution (Release + Debug, Win32 + x64)
+- OpenCppCoverage code coverage in CI
+- Code analysis, formatting checks, markdown link checking
 
-### Documentation Updates
-- Update `docs/10_dev/status.md` after each phase completion
-- Maintain accurate feature matrices
-- Document known limitations clearly
+### TODO
 
-This roadmap reflects the actual current state and focuses on delivering user value through stability and completeness rather than new features.
+| Item | Detail | Priority |
+|------|--------|----------|
+| **Envy core static library** | Refactor core into a static lib to enable protocol unit tests | High |
+| **ED2K packet parsing tests** | Test handshake, concatenated UDP, compressed parts | High |
+| **BT protocol tests** | Test bencode, magnet parsing, DHT messages | Medium |
+| **Kad routing table tests** | XOR distance, bucket operations, node eviction | Medium |
+| **Integration tests** | Protocol interop with reference clients (manual or containerized) | Low |
+| **Performance benchmarks** | Baseline metrics for download throughput, UI responsiveness, memory | Low |
+
+---
+
+## Phase 7: Modern C++ & Long-Term (FUTURE)
+
+| Item | Detail | Priority |
+|------|--------|----------|
+| **C++20 adoption** | Concepts, ranges, coroutines where beneficial | Low |
+| **Smart pointer migration** | Replace raw `new`/`delete` with `unique_ptr`/`shared_ptr` | Low |
+| **Constexpr usage** | Compile-time computation where applicable | Low |
+| **CMake for full project** | Extend CMake to main app, services, plugins | Low |
+
+---
+
+## Priority Summary
+
+### Immediate (High Priority)
+1. ~~Fix SecureID version advertisement~~ -- Done (`ED2K_VERSION_SECUREID = 3`).
+2. ~~Fix SourceEx2 / Kad FIND_VALUE + PUBLISH~~ -- Done (SourceEx2 and Kad search/publish implemented).
+3. ~~BT protocol encryption~~ -- Done (MSE/PE integrated into `CBTClient` via `BTCrypto.h/cpp`; `Settings.BitTorrent.Encryption` setting added).
+4. BT uTP transport -- Deferred (requires full UDP reliable transport implementation).
+
+### Next (Medium Priority)
+5. Compressed upload for ED2K (send COMPRESSEDPART).
+6. Kad bucket splitting + LRU + refresh.
+7. AICH C2C protocol.
+8. BT v2 infohash + .torrent parsing.
+9. IPv6 core connection layer.
+
+### Later (Low Priority)
+10. BT v2 wire protocol (hash req/res, hybrid mode)
+11. Remaining ED2K opcodes (CALLBACK, BUDDY, PUBLICIP)
+12. BT local peer discovery
+13. HTTPS trackers
+14. Full test suite expansion
+
+---
+
+## Development Principles
+
+- **Evidence-based:** All priorities from code inspection against reference clients
+- **Fix bugs before features:** Mis-advertised capabilities can cause interop failures
+- **Incremental delivery:** Each phase delivers working functionality
+- **Backward compatibility:** Maintain existing protocol compatibility
+- **Profile before optimizing:** Performance changes guided by profiling
+
+---
+
+## Reference Implementations (Examples/)
+
+| Protocol | Reference Clients | Location |
+|----------|-------------------|----------|
+| ED2K / Kad2 | eMule (srchybrid), aMule | `Examples/eMule/`, `Examples/aMule/` |
+| BitTorrent / DHT | libtorrent, qBittorrent, Transmission | `Examples/libtorrent/`, `Examples/qbittorrent/`, `Examples/transmission/` |
+
+These are gitignored reference sources used for protocol verification and compatibility checking.

@@ -1316,6 +1316,10 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 			return OnSourceRequest( pPacket );
 		case ED2K_C2C_ANSWERSOURCES:
 			return OnSourceAnswer( pPacket );
+		case ED2K_C2C_REQUESTSOURCES2:
+			return OnSourceRequest2( pPacket );
+		case ED2K_C2C_ANSWERSOURCES2:
+			return OnSourceAnswer2( pPacket );
 		case ED2K_C2C_REQUESTPREVIEW:
 			return OnRequestPreview( pPacket );
 		case ED2K_C2C_PREVIEWANWSER:
@@ -3104,6 +3108,119 @@ BOOL CEDClient::OnSourceAnswer(CEDPacket* pPacket)
 
 			Hashes::Guid oGUID;
 			if ( m_bEmSources >= 2 ) pPacket->Read( oGUID );
+			pDownload->AddSourceED2K( nClientID, nClientPort, nServerIP, nServerPort, oGUID );
+		}
+	}
+
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CEDClient source request v2 (SourceEx2)
+// Format: <HASH 16><FileSize 4 or 8><Options 2>
+
+BOOL CEDClient::OnSourceRequest2(CEDPacket* pPacket)
+{
+	if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 4 + 2 )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	Hashes::Ed2kHash oHash;
+	pPacket->Read( oHash );
+
+	DWORD nFileSizeLow = pPacket->ReadLongLE();
+	QWORD nFileSize = nFileSizeLow;
+
+	// If the low 32 bits indicate a large file and there's more data, read the high 32 bits
+	if ( nFileSizeLow == 0 && pPacket->GetRemaining() >= 4 + 2 )
+	{
+		DWORD nFileSizeHigh = pPacket->ReadLongLE();
+		nFileSize = ( (QWORD)nFileSizeHigh << 32 ) | nFileSizeLow;
+	}
+
+	WORD nOptions = pPacket->ReadShortLE();
+
+	CEDPacket* pReply = CEDPacket::New( ED2K_C2C_ANSWERSOURCES2, ED2K_PROTOCOL_EMULE );
+	int nCount = 0;
+
+	if ( CDownload* pDownload = Downloads.FindByED2K( oHash, TRUE ) )
+	{
+		for ( POSITION posSource = pDownload->GetIterator(); posSource; )
+		{
+			CDownloadSource* pSource = pDownload->GetNext( posSource );
+
+			if ( pSource->m_nProtocol == PROTOCOL_ED2K && pSource->m_bReadContent )
+			{
+				pReply->WriteLongLE( pSource->m_pAddress.S_un.S_addr );
+				pReply->WriteShortLE( pSource->m_nPort );
+				pReply->WriteLongLE( pSource->m_pServerAddress.S_un.S_addr );
+				pReply->WriteShortLE( (WORD)pSource->m_nServerPort );
+				pReply->Write( pSource->m_oGUID );
+				nCount++;
+			}
+		}
+	}
+
+	if ( pReply->m_nLength > 0 )
+	{
+		BYTE* pStart = pReply->WriteGetPointer( Hashes::Ed2kHash::byteCount + 2, 0 );
+		if ( pStart == NULL )
+		{
+			pReply->Release();
+			return TRUE;
+		}
+
+		*reinterpret_cast< Hashes::Ed2kHash::RawStorage* >( pStart ) = oHash.storage();
+		pStart += Hashes::Ed2kHash::byteCount;
+		*(WORD*)pStart = WORD( nCount );
+		Send( pReply, FALSE );
+	}
+
+	pReply->Release();
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CEDClient source answer v2 (SourceEx2)
+// Format: <HASH 16><Count 2>[<ClientID 4><Port 2><ServerIP 4><ServerPort 2><GUID 16>]*
+
+BOOL CEDClient::OnSourceAnswer2(CEDPacket* pPacket)
+{
+	if ( ! Settings.Library.SourceMesh ) return TRUE;
+
+	if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 2 )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	Hashes::Ed2kHash oHash;
+	pPacket->Read( oHash );
+	DWORD nCount = pPacket->ReadShortLE();
+
+	// SourceEx2 always includes GUID (28 bytes per source)
+	const DWORD nSourceSize = 4 + 2 + 4 + 2 + 16;
+	if ( pPacket->GetRemaining() < nCount * nSourceSize )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+
+	if ( CDownload* pDownload = Downloads.FindByED2K( oHash ) )
+	{
+		if ( pDownload->IsCompleted() || pDownload->IsMoving() ) return TRUE;
+
+		while ( nCount-- > 0 )
+		{
+			DWORD nClientID   = pPacket->ReadLongLE();
+			WORD nClientPort  = pPacket->ReadShortLE();
+			DWORD nServerIP   = pPacket->ReadLongLE();
+			WORD nServerPort  = pPacket->ReadShortLE();
+
+			Hashes::Guid oGUID;
+			pPacket->Read( oGUID );
 			pDownload->AddSourceED2K( nClientID, nClientPort, nServerIP, nServerPort, oGUID );
 		}
 	}

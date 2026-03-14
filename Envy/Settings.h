@@ -579,6 +579,7 @@ public:
 		DWORD		BandwidthPercentage;	// Percentage of bandwidth to use when BT active.
 		bool		TrackerKey;				// Send a key (random value) to trackers
 		bool		PreferenceBTSources;	// Preference downloading from BT sources where appropriate
+		DWORD		Encryption;				// MSE/PE: 0=disabled, 1=enabled (prefer), 2=required
 		bool		SkipPaddingFiles;		// Deselect BitComet "____padding_file_..."
 		bool		SkipTrackerFiles;		// Deselect "Torrent downloaded from ... .txt" files
 	} BitTorrent;

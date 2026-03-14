@@ -615,7 +615,7 @@ public:
 
 // AICH support level
 #define ED2K_VERSION_AICH			0x01	// Basic AICH support
-#define ED2K_VERSION_SECUREID		0x00
+#define ED2K_VERSION_SECUREID		0x03	// eMule SecureID version 3 (challenge/response implemented)
 
 #define ED2K_DEFAULT_MULTICAST_ADDRESS	"224.0.0.1"
 #define ED2K_DEFAULT_MULTICAST_PORT	5000

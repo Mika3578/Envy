@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Full protocol comparison audit** - Comprehensive comparison against reference implementations (eMule, aMule, libtorrent, qBittorrent, Transmission)
+  - Updated `docs/10_dev/status.md` with detailed feature matrices for all protocol areas
+  - Updated `docs/10_dev/roadmap.md` with evidence-based phases and accurate TODO items
+
 ### Added
+- **ED2K SecureID version fix** - Changed `ED2K_VERSION_SECUREID` from 0 to 3 in `EDPacket.h`; peers now correctly see Envy as supporting SecureID
+- **ED2K SourceEx2 implementation** (0x83/0x84) - `OnSourceRequest2()`/`OnSourceAnswer2()` handlers; `DownloadTransferED2K` prefers SourceEx2 when peer supports it
+- **Kademlia FIND_VALUE + PUBLISH** - DHT search and publish with in-memory value storage, handlers for opcodes 0x33-0x49, search/publish initiation methods
+- **BitTorrent MSE/PE encryption** (`BTCrypto.h/cpp`) - DH key exchange (768-bit), RC4 stream encryption, MSE handshake state machine, integrated into `CBTClient`; new `Settings.BitTorrent.Encryption` setting (default: prefer)
+
 - **Unit Testing Infrastructure** - Automated test suite integrated into build and CI
   - `tests/EnvyTests.vcxproj` console app project added to main solution
   - `tests/CMakeLists.txt` for CMake builds (`BUILD_TESTS=ON`)
