@@ -25,6 +25,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install VS 2026 Build Tools
+        shell: pwsh
+        run: |
+          Write-Host "Installing VS 2026 Build Tools..."
+          choco install visualstudio2026buildtools `
+            --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATLMFC --includeRecommended --quiet" `
+            -y --ignore-package-exit-codes=3010
+          Write-Host "VS 2026 Build Tools installation completed"
+
       - name: Auto-Version Management
         shell: pwsh
         run: |
@@ -77,7 +86,7 @@ jobs:
         working-directory: ${{github.workspace}}
         run: |
           # Note: TreatWarningsAsErrors not enabled to allow gradual warning cleanup
-          msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:PlatformToolset=v143 "${{env.SOLUTION_FILE_PATH}}"
+          msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} "${{env.SOLUTION_FILE_PATH}}"
 
       - name: Verify Build Output
         shell: pwsh
@@ -119,6 +128,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install VS 2026 Build Tools
+        shell: pwsh
+        run: |
+          Write-Host "Installing VS 2026 Build Tools..."
+          choco install visualstudio2026buildtools `
+            --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATLMFC --includeRecommended --quiet" `
+            -y --ignore-package-exit-codes=3010
+          Write-Host "VS 2026 Build Tools installation completed"
+
       - name: Setup MSBuild
         shell: pwsh
         run: |
@@ -154,7 +172,7 @@ jobs:
       - name: Build Debug Configuration
         working-directory: ${{github.workspace}}
         run: |
-          msbuild /m /p:Configuration=Debug /p:Platform=${{matrix.platform}} /p:PlatformToolset=v143 "${{env.SOLUTION_FILE_PATH}}"
+          msbuild /m /p:Configuration=Debug /p:Platform=${{matrix.platform}} "${{env.SOLUTION_FILE_PATH}}"
 
       - name: Verify Debug Build Output
         shell: pwsh
