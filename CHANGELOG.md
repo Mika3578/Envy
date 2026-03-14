@@ -18,9 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SHA-256 fix** - Corrected buffer position and block reset in `HashLib/SHA256.cpp::Add()`
   - Buffer position is now computed from the byte count before updating `m_nCount`
   - Reset `bufferPos` to 0 after processing a full block
-- **SHA-256 full fix** - All 12 unit tests now pass
+- **SHA-256 full fix** - All unit tests now pass
   - Fixed 64-bit length encoding in `Finish()`: use `bitLength` directly for big-endian bytes (was wrongly placing length in high byte)
   - Message schedule now uses FIPS 180-4 lowercase σ1 (`sigma1`) instead of Σ1 (`Sigma1`) in all three places (Add + Finish)
+- **Unit test expansion** - Added 2 HashLib tests (13 total)
+  - SHA-256: NIST-style vector for single-byte "a"; block-boundary test (64-byte input in one go vs two 32-byte chunks)
+- **CI code coverage** - Code coverage job in `.github/workflows/build.yml`
+  - Runs after Debug build (x64); uses OpenCppCoverage on EnvyTests.exe
+  - Scopes coverage to `HashLib` and `tests`; exports Cobertura XML and HTML report
+  - Uploads artifact `coverage-report` (14-day retention) for download from Actions run
 
 - **ED2K Search Modernization** - Complete UDP and TCP search functionality overhaul
   - UDP search GUID tracking with server-specific mapping (IP, port, opcode)

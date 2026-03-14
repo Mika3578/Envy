@@ -276,7 +276,7 @@ Kademlia Kad2 implementation is now complete and wire-compatible:
 **Status:** Infrastructure Complete, Tests Growing
 **Duration:** 4-6 weeks
 **Priority:** Medium - Essential for long-term stability
-**Evidence:** `tests/EnvyTests.vcxproj` (12 tests, 10 passing), CI integration active
+**Evidence:** `tests/EnvyTests.vcxproj` (13 tests, 13 passing), CI integration active
 
 ### Problem Statement (PARTIALLY RESOLVED)
 Automated testing infrastructure is now in place:
@@ -296,11 +296,11 @@ Automated testing infrastructure is now in place:
   - CI/CD test execution in `build.yml` (Release + Debug, Win32 + x64)
 
 #### 4.2 Core Unit Tests (🟡 PARTIALLY COMPLETE)
-- ✅ **HashLib Tests** (12 tests)
+- ✅ **HashLib Tests** (13 tests)
   - MD4: RFC 1320 test vectors + incremental hashing
   - MD5: RFC 1321 test vectors + incremental hashing
   - SHA-1: FIPS 180-4 vectors + incremental hashing
-  - SHA-256: FIPS 180-4 vectors + incremental + copy/assign (✅ all passing)
+  - SHA-256: FIPS 180-4 vectors (incl. "a") + incremental + copy/assign + block boundary (✅ all passing)
   - ED2K: small file == MD4, consistency, incremental chunks
 
 - 🔄 **Network Protocol Tests** (requires Envy core static library)
@@ -333,8 +333,8 @@ Automated testing infrastructure is now in place:
 #### 4.4 CI/CD Integration
 - **Automated Testing**
   - Pre-merge test execution
-  - Coverage reporting
-  - Performance regression detection
+  - **Coverage reporting** – OpenCppCoverage on Debug x64; Cobertura + HTML artifact in `build.yml`
+  - Performance regression detection (future)
 
 ### Success Criteria
 - ✅ 60%+ code coverage on core components
@@ -380,7 +380,7 @@ Automated testing infrastructure is now in place:
 - BT: ⚠️ Basic operation working, v2 foundation implemented
 
 ### Phase 4 (Quality) - 🟡 IN PROGRESS
-- Testing: 12 unit tests (10 passing), CI integration active
+- Testing: 13 unit tests (13 passing), CI integration active
 - Test coverage: HashLib algorithms covered; Envy core pending
 - CI/CD: All builds passing, tests run automatically
 - SHA-256: buffer position, length encoding, and message-schedule (σ1) fixes applied; all tests pass

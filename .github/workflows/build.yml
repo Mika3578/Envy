@@ -219,3 +219,78 @@ jobs:
           } else {
             Write-Warning "Test executable not found at $testExe - skipping tests"
           }
+
+      - name: Upload Debug test binaries (for coverage)
+        if: matrix.platform == 'x64'
+        uses: actions/upload-artifact@v5
+        with:
+          name: debug-tests-x64
+          path: |
+            tests/Debug x64/EnvyTests.exe
+            tests/Debug x64/EnvyTests.pdb
+            tests/Debug x64/HashLib.dll
+            HashLib/Debug x64/HashLib.pdb
+          retention-days: 1
+          if-no-files-found: warn
+
+  coverage:
+    runs-on: windows-latest
+    needs: build-debug
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download Debug test binaries
+        uses: actions/download-artifact@v5
+        with:
+          name: debug-tests-x64
+
+      - name: Restore test output layout
+        shell: pwsh
+        run: |
+          $art = "debug-tests-x64"
+          New-Item -ItemType Directory -Force -Path "tests\Debug x64", "HashLib\Debug x64" | Out-Null
+          Copy-Item "$art\tests\Debug x64\*" "tests\Debug x64\" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item "$art\HashLib\Debug x64\HashLib.pdb" "HashLib\Debug x64\" -Force -ErrorAction SilentlyContinue
+
+      - name: Install OpenCppCoverage
+        shell: pwsh
+        run: choco install opencppcoverage -y --ignore-package-exit-codes=3010
+
+      - name: Run coverage
+        working-directory: ${{github.workspace}}
+        shell: pwsh
+        run: |
+          $testExe = "tests\Debug x64\EnvyTests.exe"
+          if (-not (Test-Path $testExe)) {
+            Write-Error "EnvyTests.exe not found at $testExe"
+            exit 1
+          }
+          $occ = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
+          if (-not (Test-Path $occ)) {
+            Write-Error "OpenCppCoverage not found at $occ"
+            exit 1
+          }
+          & $occ `
+            --sources HashLib `
+            --sources tests `
+            --export_type cobertura:coverage.xml `
+            --export_type html:coverage_report `
+            -- $testExe
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "OpenCppCoverage or tests failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+          Write-Host "Coverage completed."
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v5
+        with:
+          name: coverage-report
+          path: |
+            coverage.xml
+            coverage_report/
+          retention-days: 14
+          if-no-files-found: warn
