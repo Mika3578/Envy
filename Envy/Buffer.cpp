@@ -191,7 +191,7 @@ bool CBuffer::EnsureBuffer(const size_t nLength) throw()
 	// Prevent integer overflow in subsequent m_nLength + nLength + rounding calculations.
 	// BLOCK_MASK (0xFFFFFC00) is the maximum allocatable buffer size after KB rounding.
 	// This ensures the addition and rounding on the allocation path cannot wrap a DWORD.
-	if ( nLength > static_cast< size_t >( BLOCK_MASK ) - m_nLength ) return false;
+	if ( m_nLength > BLOCK_MASK || nLength > static_cast< size_t >( BLOCK_MASK ) - m_nLength ) return false;
 
 	// If the size of the buffer minus the size filled is bigger than or big enough for the given length, do nothing
 	if ( m_nBuffer - m_nLength >= nLength )
