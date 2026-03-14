@@ -361,6 +361,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClCompile Include="BENode.cpp" />
     <ClCompile Include="BitprintsDownloader.cpp" />
     <ClCompile Include="BTClient.cpp" />
+    <ClCompile Include="BTCrypto.cpp" />
     <ClCompile Include="BTClients.cpp" />
     <ClCompile Include="BTInfo.cpp" />
     <ClCompile Include="BTPacket.cpp" />
@@ -1232,6 +1233,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="BENode.h" />
     <ClInclude Include="BitprintsDownloader.h" />
     <ClInclude Include="BTClient.h" />
+    <ClInclude Include="BTCrypto.h" />
     <ClInclude Include="BTClients.h" />
     <ClInclude Include="BTInfo.h" />
     <ClInclude Include="BTPacket.h" />

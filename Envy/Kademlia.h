@@ -20,6 +20,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <unordered_map>
 
 // Kademlia node ID is 128-bit (16 bytes) for eDonkey2000
 #define KAD_ID_SIZE 16
@@ -92,8 +93,40 @@ struct KadContact {
 // Kad2 request tracking
 enum KadRequestType {
     KAD_REQUEST_BOOTSTRAP = 0,
-    KAD_REQUEST_FIND_NODE = 1
+    KAD_REQUEST_FIND_NODE = 1,
+    KAD_REQUEST_SEARCH_KEY = 2,
+    KAD_REQUEST_SEARCH_SOURCE = 3,
+    KAD_REQUEST_PUBLISH_KEY = 4,
+    KAD_REQUEST_PUBLISH_SOURCE = 5
 };
+
+// DHT stored entry (published keyword or source)
+struct KadStoredEntry {
+    KadId       sourceId;       // Publisher node ID
+    DWORD       ip;             // Publisher IP
+    WORD        tcpPort;        // Publisher TCP port
+    WORD        udpPort;        // Publisher UDP port
+    DWORD       lifetime;       // Expiry tick count
+    std::vector<std::pair<BYTE, std::vector<BYTE>>> tags;   // Tag list (tagId, value)
+};
+
+// Hash functor for KadId in unordered_map
+struct KadIdHash {
+    size_t operator()(const std::array<unsigned char, KAD_ID_SIZE>& id) const {
+        size_t h = 0;
+        for (int i = 0; i < KAD_ID_SIZE; i++)
+            h = h * 31 + id[i];
+        return h;
+    }
+};
+
+// DHT value storage: target hash -> list of entries
+typedef std::array<unsigned char, KAD_ID_SIZE> KadIdKey;
+typedef std::unordered_map<KadIdKey, std::vector<KadStoredEntry>, KadIdHash> KadStore;
+
+#define KAD_STORE_MAX_ENTRIES_PER_KEY 50
+#define KAD_STORE_ENTRY_LIFETIME (2 * 60 * 60 * 1000)  // 2 hours
+#define KAD_STORE_MAX_TOTAL 5000
 
 struct KadOutstandingRequest {
     KadRequestType type;
@@ -186,6 +219,21 @@ public:
     // Mark contact as verified
     void MarkContactVerified(const KadId& id);
 
+    // Search for keyword results in DHT
+    void SearchKeyword(const KadId& keywordHash);
+
+    // Search for file sources in DHT
+    void SearchSource(const KadId& fileHash);
+
+    // Publish a keyword entry to DHT
+    void PublishKeyword(const KadId& keywordHash, const KadStoredEntry& entry);
+
+    // Publish a source entry to DHT
+    void PublishSource(const KadId& fileHash, const KadStoredEntry& entry);
+
+    // Get total stored DHT entries
+    size_t GetStoredEntryCount() const;
+
 private:
     // Packet handlers
     void OnBootstrapRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
@@ -196,6 +244,26 @@ private:
     void OnFindNodeResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
     void OnHelloRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
     void OnHelloResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+
+    // Search and publish handlers
+    void OnSearchKeyRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    void OnSearchSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    void OnSearchResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    void OnPublishKeyRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    void OnPublishSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+    void OnPublishResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+
+    // Send search/publish packets to a contact
+    void SendSearchKeyRequest(const KadContact& contact, const KadId& targetId);
+    void SendSearchSourceRequest(const KadContact& contact, const KadId& targetId);
+    void SendPublishKeyRequest(const KadContact& contact, const KadId& targetId, const KadStoredEntry& entry);
+    void SendPublishSourceRequest(const KadContact& contact, const KadId& targetId, const KadStoredEntry& entry);
+
+    // Store management
+    bool StoreEntry(const KadIdKey& key, const KadStoredEntry& entry);
+    void CleanupExpiredEntries();
+    void WriteEntryTags(CEDPacket* pPacket, const KadStoredEntry& entry);
+    bool ReadEntryTags(CEDPacket* pPacket, KadStoredEntry& entry);
 
     // Utility methods
     void SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
@@ -222,6 +290,11 @@ private:
     // Security and rate limiting
     std::map<DWORD, DWORD> m_rateLimitMap; // IP -> last request time
     DWORD m_lastRateLimitCleanup;
+
+    // DHT value storage
+    KadStore m_keywordStore;     // Keyword hash -> published keyword entries
+    KadStore m_sourceStore;      // File hash -> published source entries
+    DWORD m_lastStoreCleanup;
 };
 
 // Kademlia packet structures
