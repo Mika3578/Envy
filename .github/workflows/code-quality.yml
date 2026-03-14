@@ -24,7 +24,7 @@ jobs:
       
     - name: Run Code Analysis
       run: |
-        msbuild /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:RunCodeAnalysis=true /p:CodeAnalysisRuleSet=NativeRecommendedRules.ruleset "Visual Studio/Envy.sln"
+        msbuild /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:RunCodeAnalysis=true /p:CodeAnalysisRuleSet=NativeRecommendedRules.ruleset "Visual Studio/Envy.sln"
       continue-on-error: true
       
     - name: Upload Analysis Results

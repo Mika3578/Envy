@@ -72,7 +72,7 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         # Note: Building x64 Release for CodeQL. Win32-specific code paths are analyzed through shared codebase.
-        msbuild /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 "Visual Studio/Envy.sln"
+        msbuild /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 "Visual Studio/Envy.sln"
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4

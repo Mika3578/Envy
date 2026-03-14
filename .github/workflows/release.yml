@@ -51,7 +51,7 @@ jobs:
 
     - name: Build Release
       run: |
-        msbuild /m /p:Configuration=Release /p:Platform=${{matrix.platform}} /p:PlatformToolset=v145 "${{env.SOLUTION_FILE_PATH}}"
+        msbuild /m /p:Configuration=Release /p:Platform=${{matrix.platform}} /p:PlatformToolset=v143 "${{env.SOLUTION_FILE_PATH}}"
 
     - name: Package Release
       run: |
