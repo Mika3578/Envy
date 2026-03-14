@@ -24,7 +24,7 @@ This roadmap prioritizes fixes based on actual code analysis, focusing on stabil
 **Evidence:** Working VS builds, CI/CD active
 
 ### Completed Tasks
-- ✅ Visual Studio 2022 (v145) migration
+- ✅ Visual Studio 2026 (v145) migration
 - ✅ GitHub Actions CI/CD pipeline
 - ✅ Basic CMake for HashLib
 - ✅ Code formatting (.clang-format)

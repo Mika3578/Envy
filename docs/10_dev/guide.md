@@ -16,7 +16,7 @@ This guide provides comprehensive information for developers working on the Envy
 
 ### Prerequisites
 
-- **Visual Studio 2022** (17.x) or newer
+- **Visual Studio 2026** (18.x) or newer
   - MSVC toolset `v145` (as configured in the `.vcxproj` files)
   - Workloads/components: Desktop development with C++, MFC/ATL, Windows 10/11 SDK
 - **Windows SDK** 10.0.x (projects target `10.0`)

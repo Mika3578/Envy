@@ -77,7 +77,7 @@ jobs:
         working-directory: ${{github.workspace}}
         run: |
           # Note: TreatWarningsAsErrors not enabled to allow gradual warning cleanup
-          msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} "${{env.SOLUTION_FILE_PATH}}"
+          msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:PlatformToolset=v145 "${{env.SOLUTION_FILE_PATH}}"
 
       - name: Verify Build Output
         shell: pwsh
@@ -154,7 +154,7 @@ jobs:
       - name: Build Debug Configuration
         working-directory: ${{github.workspace}}
         run: |
-          msbuild /m /p:Configuration=Debug /p:Platform=${{matrix.platform}} "${{env.SOLUTION_FILE_PATH}}"
+          msbuild /m /p:Configuration=Debug /p:Platform=${{matrix.platform}} /p:PlatformToolset=v145 "${{env.SOLUTION_FILE_PATH}}"
 
       - name: Verify Debug Build Output
         shell: pwsh

@@ -14,12 +14,12 @@
 | **Plugins** | ✅ | Visual Studio |
 | **Tests** | 🟡 | Standalone runner in `tests/` (see [status](status.md)) |
 
-## 🏗️ Primary Build: Visual Studio 2022
+## 🏗️ Primary Build: Visual Studio 2026
 
 ### Prerequisites
 
-1. **Visual Studio 2022** (Community/Professional/Enterprise)
-   - Version 17.0+ required
+1. **Visual Studio 2026** (Community/Professional/Enterprise)
+   - Version 18.0+ required
    - MSVC toolset `v145` (as configured in the `.vcxproj` files)
    - Windows 10/11 SDK (projects target `WindowsTargetPlatformVersion` = `10.0`)
 
@@ -42,7 +42,7 @@ cd Envy
 #### Step 2: Open Solution
 - Navigate to `Visual Studio/` directory
 - Double-click `Envy.sln`
-- Visual Studio 2022 will open the solution
+- Visual Studio 2026 will open the solution
 
 #### Step 3: Select Configuration
 - **Platform:** x64 (recommended) or Win32
@@ -84,7 +84,7 @@ cd Envy
 
 ### Prerequisites
 - **CMake:** 3.20+
-- **Visual Studio 2022:** For MSVC compiler
+- **Visual Studio 2026:** For MSVC compiler
 
 ### Build Steps
 
@@ -94,8 +94,8 @@ cd Envy
 mkdir build
 cd build
 
-# Configure for Visual Studio 2022
-cmake .. -G "Visual Studio 17 2022" -A x64
+# Configure for Visual Studio 2026
+cmake .. -G "Visual Studio 18 2026" -A x64
 ```
 
 #### Step 2: Build HashLib

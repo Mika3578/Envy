@@ -363,7 +363,7 @@ All bundled, no external setup required:
 ## 🚀 Getting Started for Developers
 
 ### Prerequisites
-1. Visual Studio 2022 with C++ workload
+1. Visual Studio 2026 with C++ workload
 2. Windows 10/11 SDK
 3. Git
 
@@ -375,7 +375,7 @@ cd Envy
 
 # Open solution
 cd "Visual Studio"
-# Open Envy.sln in Visual Studio 2022
+# Open Envy.sln in Visual Studio 2026
 
 # Build
 # Press Ctrl+Shift+B or Build > Build Solution
