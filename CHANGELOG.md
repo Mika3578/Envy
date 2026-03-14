@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 12 HashLib unit tests: MD4 (RFC 1320), MD5 (RFC 1321), SHA-1 (FIPS 180-4), SHA-256 (FIPS 180-4), ED2K hash
   - CI workflow runs tests automatically after Release and Debug builds
   - Tests exposed a SHA-256 implementation bug (buffer position calculation in `Add()`)
+- **SHA-256 fix** - Corrected buffer position and block reset in `HashLib/SHA256.cpp::Add()`
+  - Buffer position is now computed from the byte count before updating `m_nCount`
+  - Reset `bufferPos` to 0 after processing a full block
+- **SHA-256 full fix** - All 12 unit tests now pass
+  - Fixed 64-bit length encoding in `Finish()`: use `bitLength` directly for big-endian bytes (was wrongly placing length in high byte)
+  - Message schedule now uses FIPS 180-4 lowercase σ1 (`sigma1`) instead of Σ1 (`Sigma1`) in all three places (Add + Finish)
 
 - **ED2K Search Modernization** - Complete UDP and TCP search functionality overhaul
   - UDP search GUID tracking with server-specific mapping (IP, port, opcode)
