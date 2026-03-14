@@ -82,10 +82,19 @@ BOOL CHttpRequest::SetURL(LPCTSTR pszURL)
 		return FALSE;
 	if ( pszURL == NULL )
 		return FALSE;
-	// Validate URL scheme is strictly http:// or https://
-	if ( _tcsnicmp( pszURL, L"https://", 8 ) != 0 &&
-		 _tcsnicmp( pszURL, L"http://", 7 ) != 0 )
+	// Validate URL scheme is strictly http:// or https:// with a non-empty host
+	if ( _tcsnicmp( pszURL, L"https://", 8 ) == 0 )
+	{
+		if ( pszURL[8] == L'\0' ) return FALSE;		// Empty host
+	}
+	else if ( _tcsnicmp( pszURL, L"http://", 7 ) == 0 )
+	{
+		if ( pszURL[7] == L'\0' ) return FALSE;		// Empty host
+	}
+	else
+	{
 		return FALSE;
+	}
 
 	m_sURL = pszURL;
 	return TRUE;

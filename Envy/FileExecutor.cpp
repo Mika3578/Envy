@@ -325,8 +325,9 @@ BOOL CFileExecutor::Execute(LPCTSTR pszFile, LPCTSTR pszExt)
 		CString strSafePath( pszFile );
 		strSafePath.Remove( L'\"' );
 		TCHAR szCanonical[ MAX_PATH ];
-		if ( PathCanonicalize( szCanonical, strSafePath ) )
-			strSafePath = szCanonical;
+		if ( ! PathCanonicalize( szCanonical, strSafePath ) )
+			return FALSE;	// Fail safely if path cannot be canonicalized
+		strSafePath = szCanonical;
 
 		HINSTANCE hResult = ShellExecute( AfxGetMainWnd()->GetSafeHwnd(), L"open",
 			strCustomPlayer, CString( L'\"' ) + strSafePath + L'\"', NULL, SW_SHOWNORMAL );
