@@ -1,7 +1,7 @@
 //
 // FileExecutor.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -321,8 +321,15 @@ BOOL CFileExecutor::Execute(LPCTSTR pszFile, LPCTSTR pszExt)
 				pszFile = pszShortPath;
 		}
 
+		// Sanitize file path: canonicalize and reject embedded quotes to prevent argument injection
+		CString strSafePath( pszFile );
+		strSafePath.Remove( L'\"' );
+		TCHAR szCanonical[ MAX_PATH ];
+		if ( PathCanonicalize( szCanonical, strSafePath ) )
+			strSafePath = szCanonical;
+
 		HINSTANCE hResult = ShellExecute( AfxGetMainWnd()->GetSafeHwnd(), L"open",
-			strCustomPlayer, CString( L'\"' ) + pszFile + L'\"', NULL, SW_SHOWNORMAL );
+			strCustomPlayer, CString( L'\"' ) + strSafePath + L'\"', NULL, SW_SHOWNORMAL );
 		if ( hResult > (HINSTANCE)32 )
 			return TRUE;
 	}
