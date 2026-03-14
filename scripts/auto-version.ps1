@@ -22,6 +22,40 @@ param(
 $VersionFilePath = Join-Path $PSScriptRoot ".." $VersionFile
 $ProjectRoot = Split-Path $PSScriptRoot -Parent
 
+function Update-ProjectFiles {
+    param($VersionData)
+
+    Write-Host "Updating project files..." -ForegroundColor Yellow
+
+    # Update CMakeLists.txt
+    $cmakePath = Join-Path $ProjectRoot "CMakeLists.txt"
+    if (Test-Path $cmakePath) {
+        $cmakeContent = Get-Content $cmakePath -Raw
+        $cmakeContent = $cmakeContent -replace 'project\(Envy VERSION [\d\.]+\)', "project(Envy VERSION $($VersionData.major).$($VersionData.minor).$($VersionData.patch))"
+        Set-Content $cmakePath $cmakeContent -Encoding UTF8
+        Write-Host "  Updated CMakeLists.txt" -ForegroundColor Gray
+    }
+
+    # Update Visual Studio version script
+    $vsScriptPath = Join-Path $ProjectRoot "Visual Studio" "SetReleaseVersion.bat"
+    if (Test-Path $vsScriptPath) {
+        $scriptContent = Get-Content $vsScriptPath -Raw
+        $scriptContent = $scriptContent -replace 'set "version=[\d\.]+"', "set `"version=$($VersionData.major).$($VersionData.minor)`""
+        $scriptContent = $scriptContent -replace 'set "internalver=[\d]+"', "set `"internalver=$($VersionData.major)$($VersionData.minor)`""
+        Set-Content $vsScriptPath $scriptContent -Encoding UTF8
+        Write-Host "  Updated SetReleaseVersion.bat" -ForegroundColor Gray
+    }
+
+    # Update Envy.h if it exists
+    $envyHeaderPath = Join-Path $ProjectRoot "Envy" "Envy.h"
+    if (Test-Path $envyHeaderPath) {
+        $headerContent = Get-Content $envyHeaderPath -Raw
+        Write-Host "  Note: Manual update may be needed for Envy.h version defines" -ForegroundColor Yellow
+    }
+
+    Write-Host "Project files updated successfully!" -ForegroundColor Green
+}
+
 # Ensure we're in the project root
 Push-Location $ProjectRoot
 
@@ -126,41 +160,3 @@ try {
 } finally {
     Pop-Location
 }
-
-function Update-ProjectFiles {
-    param($VersionData)
-
-    Write-Host "Updating project files..." -ForegroundColor Yellow
-
-    # Update CMakeLists.txt
-    $cmakePath = Join-Path $ProjectRoot "CMakeLists.txt"
-    if (Test-Path $cmakePath) {
-        $cmakeContent = Get-Content $cmakePath -Raw
-        $cmakeContent = $cmakeContent -replace 'project\(Envy VERSION [\d\.]+\)', "project(Envy VERSION $($VersionData.major).$($VersionData.minor).$($VersionData.patch))"
-        Set-Content $cmakePath $cmakeContent -Encoding UTF8
-        Write-Host "  Updated CMakeLists.txt" -ForegroundColor Gray
-    }
-
-    # Update Visual Studio version script
-    $vsScriptPath = Join-Path $ProjectRoot "Visual Studio" "SetReleaseVersion.bat"
-    if (Test-Path $vsScriptPath) {
-        $scriptContent = Get-Content $vsScriptPath -Raw
-        $scriptContent = $scriptContent -replace 'set "version=[\d\.]+"', "set `"version=$($VersionData.major).$($VersionData.minor)`""
-        $scriptContent = $scriptContent -replace 'set "internalver=[\d]+"', "set `"internalver=$($VersionData.major)$($VersionData.minor)`""
-        Set-Content $vsScriptPath $scriptContent -Encoding UTF8
-        Write-Host "  Updated SetReleaseVersion.bat" -ForegroundColor Gray
-    }
-
-    # Update Envy.h if it exists
-    $envyHeaderPath = Join-Path $ProjectRoot "Envy" "Envy.h"
-    if (Test-Path $envyHeaderPath) {
-        $headerContent = Get-Content $envyHeaderPath -Raw
-        # This would need more specific pattern matching for version defines
-        Write-Host "  Note: Manual update may be needed for Envy.h version defines" -ForegroundColor Yellow
-    }
-
-    Write-Host "Project files updated successfully!" -ForegroundColor Green
-}
-
-# Export functions for use in other scripts
-Export-ModuleMember -Function Update-ProjectFiles
