@@ -7,6 +7,7 @@
 //
 // Based on FIPS 180-4 Secure Hash Standard (SHS)
 //
+//
 
 #include "StdAfx.h"
 #include "SHA256.h"
@@ -48,11 +49,11 @@ void CSHA256::Add(const void* pData, size_t nLength)
 	const uint8* data = static_cast<const uint8*>(pData);
 	size_t bytesProcessed = 0;
 
+	// Buffer position = bytes already in buffer (before this call)
+	size_t bufferPos = static_cast<size_t>((m_State.m_nCount / 8) % SHA256State::blockSize);
+
 	// Update bit count
 	m_State.m_nCount += nLength * 8; // Convert to bits
-
-	// Process data in 512-bit (64-byte) chunks
-	size_t bufferPos = (m_State.m_nCount / 8) % SHA256State::blockSize;
 
 	while (bytesProcessed < nLength) {
 		size_t bytesToCopy = (std::min)(nLength - bytesProcessed,
@@ -77,10 +78,11 @@ void CSHA256::Add(const void* pData, size_t nLength)
 			}
 
 			for (int i = 16; i < 64; ++i) {
-				w[i] = Sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
+				w[i] = sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
 			}
 
 			Transform(w);
+			bufferPos = 0;
 		}
 	}
 }
@@ -91,10 +93,16 @@ void CSHA256::Finish()
 	uint64 bitLength = m_State.m_nCount;
 	size_t bufferPos = (bitLength / 8) % SHA256State::blockSize;
 
+	// Empty message: ensure buffer is fully defined (no reliance on prior state)
+	if (bitLength == 0) {
+		std::fill_n(m_State.m_oBuffer, SHA256State::blockSize, static_cast<uint8>(0));
+		bufferPos = 0;
+	}
+
 	// Append padding
 	m_State.m_oBuffer[bufferPos++] = 0x80; // Append '1' bit
 
-	// If not enough space for length, pad with zeros and process
+	// If not enough space in this block for the 64-bit length, pad and process this block first
 	if (bufferPos > SHA256State::blockSize - 8) {
 		std::fill(m_State.m_oBuffer + bufferPos, m_State.m_oBuffer + SHA256State::blockSize, static_cast<uint8>(0));
 		uint32 w[64];
@@ -105,7 +113,7 @@ void CSHA256::Finish()
 				   static_cast<uint32>(m_State.m_oBuffer[i * 4 + 3]);
 		}
 		for (int i = 16; i < 64; ++i) {
-			w[i] = Sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
+			w[i] = sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
 		}
 		Transform(w);
 		std::fill_n(m_State.m_oBuffer, SHA256State::blockSize - 8, static_cast<uint8>(0));
@@ -113,18 +121,10 @@ void CSHA256::Finish()
 		std::fill(m_State.m_oBuffer + bufferPos, m_State.m_oBuffer + SHA256State::blockSize - 8, static_cast<uint8>(0));
 	}
 
-	// Append length in big-endian
-	uint64 lengthBE = ((bitLength >> 56) & 0xFF) |
-					  ((bitLength >> 40) & 0xFF00) |
-					  ((bitLength >> 24) & 0xFF0000) |
-					  ((bitLength >> 8) & 0xFF000000) |
-					  ((bitLength << 8) & 0xFF00000000ULL) |
-					  ((bitLength << 24) & 0xFF0000000000ULL) |
-					  ((bitLength << 40) & 0xFF000000000000ULL) |
-					  ((bitLength << 56) & 0xFF00000000000000ULL);
-
+	// Append 64-bit message length in bits, big-endian (MSB first in buffer)
+	uint64 lengthBE = bitLength;
 	for (int i = 0; i < 8; ++i) {
-		m_State.m_oBuffer[SHA256State::blockSize - 8 + i] = (lengthBE >> (56 - i * 8)) & 0xFF;
+		m_State.m_oBuffer[SHA256State::blockSize - 8 + i] = static_cast<uint8>((lengthBE >> (56 - i * 8)) & 0xFF);
 	}
 
 	// Final transform
@@ -136,22 +136,20 @@ void CSHA256::Finish()
 			   static_cast<uint32>(m_State.m_oBuffer[i * 4 + 3]);
 	}
 	for (int i = 16; i < 64; ++i) {
-		w[i] = Sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
+		w[i] = sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
 	}
 	Transform(w);
 }
 
 void CSHA256::GetHash(__in_bcount(32) uint8* pHash) const
 {
-	// Convert to big-endian and output
+	// Output each 32-bit state word in big-endian byte order (MSB first)
 	for (int i = 0; i < 8; ++i) {
-		uint32 be = ((m_State.m_nState[i] >> 24) & 0xFF) |
-					((m_State.m_nState[i] >> 8) & 0xFF00) |
-					((m_State.m_nState[i] << 8) & 0xFF0000) |
-					((m_State.m_nState[i] << 24) & 0xFF000000);
-		std::copy(reinterpret_cast<uint8*>(&be),
-				 reinterpret_cast<uint8*>(&be) + 4,
-				 pHash + i * 4);
+		uint32 word = m_State.m_nState[i];
+		pHash[i * 4 + 0] = static_cast<uint8>((word >> 24) & 0xFF);
+		pHash[i * 4 + 1] = static_cast<uint8>((word >> 16) & 0xFF);
+		pHash[i * 4 + 2] = static_cast<uint8>((word >> 8) & 0xFF);
+		pHash[i * 4 + 3] = static_cast<uint8>(word & 0xFF);
 	}
 }
 

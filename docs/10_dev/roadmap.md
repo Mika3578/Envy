@@ -282,7 +282,7 @@ Kademlia Kad2 implementation is now complete and wire-compatible:
 Automated testing infrastructure is now in place:
 - ✅ Unit tests for HashLib algorithms (MD4, MD5, SHA-1, SHA-256, ED2K)
 - ✅ CI/CD test execution after every build
-- ⚠️ SHA-256 implementation has a bug (found by tests, fix pending)
+- ✅ SHA-256 implementation fixed (length encoding + message schedule σ1 per FIPS 180-4)
 - 🔄 Protocol tests need Envy core refactored into a static library
 - 🔄 No coverage reporting yet
 
@@ -300,7 +300,7 @@ Automated testing infrastructure is now in place:
   - MD4: RFC 1320 test vectors + incremental hashing
   - MD5: RFC 1321 test vectors + incremental hashing
   - SHA-1: FIPS 180-4 vectors + incremental hashing
-  - SHA-256: FIPS 180-4 vectors + incremental + copy/assign (⚠️ 2 failing - bug in SHA256.cpp)
+  - SHA-256: FIPS 180-4 vectors + incremental + copy/assign (✅ all passing)
   - ED2K: small file == MD4, consistency, incremental chunks
 
 - 🔄 **Network Protocol Tests** (requires Envy core static library)
@@ -383,7 +383,7 @@ Automated testing infrastructure is now in place:
 - Testing: 12 unit tests (10 passing), CI integration active
 - Test coverage: HashLib algorithms covered; Envy core pending
 - CI/CD: All builds passing, tests run automatically
-- Bug found: SHA-256 implementation has buffer position bug (fix pending)
+- SHA-256: buffer position, length encoding, and message-schedule (σ1) fixes applied; all tests pass
 - Bug rate: <5 new bugs per release (CryptLayer bugs fixed)
 
 ---

@@ -31,7 +31,7 @@ This document summarizes the current state of the repository based on what’s a
 - **Project:** `tests/EnvyTests.vcxproj` (console app, part of `Envy.sln`)
 - **CMake:** `tests/CMakeLists.txt` (when `BUILD_TESTS=ON`)
 - **Tests:** 12 tests covering HashLib algorithms (MD4, MD5, SHA-1, SHA-256, ED2K)
-- **Results:** 10/12 passing; SHA-256 has a known bug (buffer position calculation in `Add()`)
+- **Results:** 12/12 passing (SHA-256 length encoding and message-schedule fixes applied)
 - **CI:** Tests run automatically after each build in `.github/workflows/build.yml`
 
 ### CI coverage
