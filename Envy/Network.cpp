@@ -741,8 +741,13 @@ bool CNetwork::PreRun()
 	m_bConnected = true;
 
 	// Get host name
-	gethostname( m_sHostName.GetBuffer( 255 ), 255 );
-	m_sHostName.ReleaseBuffer();
+	{
+		char szHostName[ 256 ] = {};
+		if ( gethostname( szHostName, sizeof(szHostName) ) == 0 )
+			m_sHostName = CA2T( szHostName );
+		else
+			m_sHostName = L"localhost";
+	}
 
 	// Get all IPs
 	if ( hostent* h = gethostbyname( m_sHostName ) )

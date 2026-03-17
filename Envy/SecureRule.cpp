@@ -1,7 +1,7 @@
 //
 // SecureRule.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2012-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -121,7 +121,7 @@ BOOL CSecureRule::IsExpired(DWORD nNow, BOOL bSession) const
 BOOL CSecureRule::Match(const IN_ADDR* pAddress) const
 {
 	return m_nType == srAddress && pAddress &&
-		( pAddress->s_addr & *(DWORD*)m_nMask ) == *(DWORD*)m_nIP;
+		( pAddress->s_addr & GetMaskAsDWORD() ) == GetIPAsDWORD();
 }
 
 BOOL CSecureRule::Match(LPCTSTR pszContent) const
@@ -498,7 +498,7 @@ CXMLElement* CSecureRule::ToXML()
 			m_nIP[0], m_nIP[1], m_nIP[2], m_nIP[3] );
 		pXML->AddAttribute( L"address", strValue );
 
-		if ( *(DWORD*)m_nMask != 0xFFFFFFFF )
+		if ( GetMaskAsDWORD() != 0xFFFFFFFF )
 		{
 			strValue.Format( L"%lu.%lu.%lu.%lu",
 				m_nMask[0], m_nMask[1], m_nMask[2], m_nMask[3] );
@@ -656,7 +656,7 @@ CString CSecureRule::ToGnucleusString() const
 	if ( m_nType != srAddress ) return strRule;
 	if ( m_nAction != srDeny ) return strRule;
 
-	if ( *(DWORD*)m_nMask == 0xFFFFFFFF )
+	if ( GetMaskAsDWORD() == 0xFFFFFFFF )
 	{
 		strRule.Format( L"%lu.%lu.%lu.%lu",
 			m_nIP[0], m_nIP[1], m_nIP[2], m_nIP[3] );
@@ -806,7 +806,7 @@ void CSecureRule::ToList(CLiveList* pLiveList, int nCount, DWORD tNow) const
 
 	if ( m_nType == CSecureRule::srAddress )
 	{
-		if ( *(DWORD*)m_nMask == 0xFFFFFFFF )
+		if ( GetMaskAsDWORD() == 0xFFFFFFFF )
 			pItem->Format( COL_SECURITY_CONTENT, L"%u.%u.%u.%u",
 				m_nIP[0], m_nIP[1], m_nIP[2], m_nIP[3] );
 		else

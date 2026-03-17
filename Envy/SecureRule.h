@@ -1,7 +1,7 @@
 //
 // SecureRule.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2012
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -62,6 +62,10 @@ public:
 	void		SetContentWords(const CString& strContent);
 	void		Serialize(CArchive& ar, int nVersion);
 	void		ToList(CLiveList* pLiveList, int nCount, DWORD tNow) const;		// Adds new item to CLiveList object
+
+	// Safe (no-UB) helpers to read the 4-byte IP/mask arrays as a DWORD
+	inline DWORD GetIPAsDWORD()   const { DWORD d; memcpy( &d, m_nIP,   sizeof(DWORD) ); return d; }
+	inline DWORD GetMaskAsDWORD() const { DWORD d; memcpy( &d, m_nMask, sizeof(DWORD) ); return d; }
 
 	CXMLElement* ToXML();
 	BOOL		FromXML(const CXMLElement* pXML);

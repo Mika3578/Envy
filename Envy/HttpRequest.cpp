@@ -94,6 +94,49 @@ BOOL CHttpRequest::SetURL(LPCTSTR pszURL)
 	if ( *pszHost == L'\0' || *pszHost == L'/' || *pszHost == L'?' || *pszHost == L'#' )
 		return FALSE;
 
+	// Extract the host part (strip port and path) for SSRF check.
+	// Also handle user-info (e.g. http://user:pass@host/path) by stripping before '@'
+	CString strHost( pszHost );
+	int nAt = strHost.Find( L'@' );
+	if ( nAt >= 0 )
+		strHost = strHost.Mid( nAt + 1 );
+	int nDelim = strHost.FindOneOf( L"/:?#" );
+	if ( nDelim >= 0 )
+		strHost = strHost.Left( nDelim );
+
+	// SSRF protection: block requests to private/loopback address literals.
+	// This prevents the most direct SSRF attacks where an attacker supplies
+	// a URL with a private IP (e.g. http://127.0.0.1/, http://192.168.1.1/).
+	// IPv6 loopback literal [::1] is rejected separately below.
+	// Note: hostname-based URLs that resolve to private IPs are not covered here.
+	if ( strHost == L"[::1]" || strHost == L"[0:0:0:0:0:0:0:1]" )
+		return FALSE;
+
+	CT2CA pszHostA( strHost );
+	DWORD dwAddr = inet_addr( pszHostA );
+	if ( dwAddr != INADDR_NONE )
+	{
+		// Use memcpy to read the DWORD bytes without strict-aliasing UB.
+		// inet_addr returns network byte order so ip[0] is the first octet.
+		BYTE ip[4];
+		memcpy( ip, &dwAddr, sizeof(ip) );
+		// Loopback: 127.0.0.0/8
+		if ( ip[0] == 127 )
+			return FALSE;
+		// Private RFC1918: 10.0.0.0/8
+		if ( ip[0] == 10 )
+			return FALSE;
+		// Private RFC1918: 172.16.0.0/12
+		if ( ip[0] == 172 && ( ip[1] >= 16 && ip[1] <= 31 ) )
+			return FALSE;
+		// Private RFC1918: 192.168.0.0/16
+		if ( ip[0] == 192 && ip[1] == 168 )
+			return FALSE;
+		// Link-local: 169.254.0.0/16
+		if ( ip[0] == 169 && ip[1] == 254 )
+			return FALSE;
+	}
+
 	m_sURL = pszURL;
 	return TRUE;
 }

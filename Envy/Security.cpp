@@ -1,7 +1,7 @@
 //
 // Security.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -107,13 +107,13 @@ void CSecurity::Add(CSecureRule* pRule)
 			if ( pRule->m_nType == CSecureRule::srAddress )
 			{
 				pRule->MaskFix();
-				if ( *(DWORD*)pRule->m_nMask == 0xffffffff )
-					m_Cache.erase( *(DWORD*)pRule->m_nIP );
+				if ( pRule->GetMaskAsDWORD() == 0xffffffff )
+					m_Cache.erase( pRule->GetIPAsDWORD() );
 				else
 					m_Cache.clear();
 
-				if ( *(DWORD*)pRule->m_nMask == 0xffffffff && pRule->m_nExpire == CSecureRule::srIndefinite )
-					SetAddressMap( *(DWORD*)pRule->m_nIP, SetRuleIndex( pRule ) );
+				if ( pRule->GetMaskAsDWORD() == 0xffffffff && pRule->m_nExpire == CSecureRule::srIndefinite )
+					SetAddressMap( pRule->GetIPAsDWORD(), SetRuleIndex( pRule ) );
 			}
 			else if ( pRule->m_nType == CSecureRule::srContentHash )
 			{
@@ -492,15 +492,19 @@ bool CSecurity::Complain(const IN_ADDR* pAddress, int nBanLength, int nExpire, i
 
 BOOL CSecurity::IsDenied(const IN_ADDR* pAddress)
 {
+	// Use memcpy to safely read the address as DWORD (avoids strict-aliasing UB)
+	DWORD dwAddress = 0;
+	memcpy( &dwAddress, pAddress, sizeof( DWORD ) );
+
 	{
 		CQuickLock oLock( m_pSection );
 
-		if ( m_Cache.count( *(DWORD*)pAddress ) )		// Rare crash if unlocked
+		if ( m_Cache.count( dwAddress ) )
 			return m_bDenyPolicy;
 			//theApp.Message( MSG_DEBUG, L"Skipped Repeat IP Security Check  (%i Cached)", m_Cache.size() );
 	}
 
-	if ( BYTE nIndex = GetAddressMap( *(DWORD*)pAddress ) )
+	if ( BYTE nIndex = GetAddressMap( dwAddress ) )
 	{
 		if ( CSecureRule* pRule = m_pRuleIndexMap[ nIndex ] )
 		{
@@ -514,6 +518,10 @@ BOOL CSecurity::IsDenied(const IN_ADDR* pAddress)
 	const DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
 	CQuickLock oLock( m_pSection );
+
+	// Check cache again under lock in case another thread populated it while we were unlocked
+	if ( m_Cache.count( dwAddress ) )
+		return m_bDenyPolicy;
 
 	for ( POSITION pos = GetIterator(); pos; )
 	{
@@ -542,7 +550,7 @@ BOOL CSecurity::IsDenied(const IN_ADDR* pAddress)
 		}
 	}
 
-	m_Cache.insert( *(DWORD*)pAddress );	// Skip future lookups
+	m_Cache.insert( dwAddress );	// Skip future lookups
 
 	return m_bDenyPolicy;
 }
@@ -920,9 +928,9 @@ void CSecurity::Serialize(CArchive& ar)
 			// Special handling for single-IP security rules
 			if ( pRule->m_nType == CSecureRule::srAddress &&
 				 pRule->m_nAction == CSecureRule::srDeny &&
-				*(DWORD*)pRule->m_nMask == 0xffffffff )
+				pRule->GetMaskAsDWORD() == 0xffffffff )
 			{
-				SetAddressMap( *(DWORD*)pRule->m_nIP, SetRuleIndex( pRule ) );
+				SetAddressMap( pRule->GetIPAsDWORD(), SetRuleIndex( pRule ) );
 				continue;
 			}
 
@@ -1768,11 +1776,11 @@ void CListLoader::OnRun()
 
 		CString strCommentBase = pRule->m_sComment;
 		if ( strCommentBase.IsEmpty() )
-			strCommentBase = L"• %u";
-		else if ( strCommentBase.ReverseFind( L'•' ) >= 0 )
-			strCommentBase = strCommentBase.Left( strCommentBase.ReverseFind( L'•' ) + 1 ) + L" %u";
+			strCommentBase = L"ï¿½ %u";
+		else if ( strCommentBase.ReverseFind( L'ï¿½' ) >= 0 )
+			strCommentBase = strCommentBase.Left( strCommentBase.ReverseFind( L'ï¿½' ) + 1 ) + L" %u";
 		else
-			strCommentBase += L"  • %u";
+			strCommentBase += L"  ï¿½ %u";
 
 		if ( strPath[1] != L':' )
 			strPath = Settings.General.DataPath + strPath;
@@ -1823,9 +1831,9 @@ void CListLoader::OnRun()
 				if ( ++nCount % 10 == 0 )
 				{
 					if ( pRule->m_sComment.IsEmpty() )
-						strCommentBase = L"• %u";
-					else if ( pRule->m_sComment.ReverseFind( L'•' ) < 0 )
-						strCommentBase = pRule->m_sComment + L"  • %u";
+						strCommentBase = L"ï¿½ %u";
+					else if ( pRule->m_sComment.ReverseFind( L'ï¿½' ) < 0 )
+						strCommentBase = pRule->m_sComment + L"  ï¿½ %u";
 
 					pRule->m_sComment.Format( strCommentBase, nCount );
 					Sleep( 1 );

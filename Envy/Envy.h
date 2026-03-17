@@ -366,15 +366,20 @@ BOOL GenerateCryptographicBytes(BYTE* pBuffer, size_t nLength);
 template <typename T>
 inline T GetRandomNum(const T& min, const T& max)
 {
+	T nRandom = 0;
+	// Prefer the pre-acquired CryptProv handle for speed
 	if ( theApp.m_hCryptProv != 0 )
 	{
-		T nRandom = 0;
 		if ( CryptGenRandom( theApp.m_hCryptProv, sizeof( T ), (BYTE*)&nRandom ) )
 			return static_cast< T >( (double)nRandom  * ( (double)max - (double)min + 1 ) / ( (double)static_cast< T >( -1 ) + 1 ) + min );
 	}
+	// Fall back to the multi-layer cryptographic generator (BCryptGenRandom / CryptGenRandom)
+	if ( GenerateCryptographicBytes( (BYTE*)&nRandom, sizeof( T ) ) )
+		return static_cast< T >( (double)nRandom  * ( (double)max - (double)min + 1 ) / ( (double)static_cast< T >( -1 ) + 1 ) + min );
 
-	// Fallback to non-secure method
-	return static_cast< T >( (double)rand() * ( max - min + 1 ) / ( (double)RAND_MAX + 1 ) + min );
+	// All cryptographic sources failed – return midpoint to avoid insecure rand() use
+	ASSERT( FALSE );	// Should never reach here on a normal Windows installation
+	return static_cast< T >( ( (double)min + (double)max ) / 2.0 );
 }
 
 template <>
