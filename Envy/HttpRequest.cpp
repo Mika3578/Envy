@@ -116,8 +116,9 @@ BOOL CHttpRequest::SetURL(LPCTSTR pszURL)
 	DWORD dwAddr = inet_addr( pszHostA );
 	if ( dwAddr != INADDR_NONE )
 	{
-		// Use memcpy to read the DWORD bytes without strict-aliasing UB.
-		// inet_addr returns network byte order so ip[0] is the first octet.
+		// Use memcpy to avoid strict-aliasing UB when reading the bytes.
+		// inet_addr() stores bytes in network (big-endian) order in memory,
+		// so ip[0] is the first IP octet regardless of host endianness.
 		BYTE ip[4];
 		memcpy( ip, &dwAddr, sizeof(ip) );
 		// Loopback: 127.0.0.0/8
