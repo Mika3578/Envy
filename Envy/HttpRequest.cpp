@@ -93,6 +93,17 @@ BOOL CHttpRequest::SetURL(LPCTSTR pszURL)
 	// Reject empty or delimiter-only host (e.g. "http:///path", "http://?q")
 	if ( *pszHost == L'\0' || *pszHost == L'/' || *pszHost == L'?' || *pszHost == L'#' )
 		return FALSE;
+	// Validate URL scheme is strictly http:// or https:// with a valid host
+	LPCTSTR pszHost = NULL;
+	if ( _tcsnicmp( pszURL, L"https://", 8 ) == 0 )
+		pszHost = pszURL + 8;
+	else if ( _tcsnicmp( pszURL, L"http://", 7 ) == 0 )
+		pszHost = pszURL + 7;
+	else
+		return FALSE;
+	// Reject empty or delimiter-only host (e.g. "http:///path", "http://?q")
+	if ( *pszHost == L'\0' || *pszHost == L'/' || *pszHost == L'?' || *pszHost == L'#' )
+		return FALSE;
 
 	// Extract the host part (strip port and path) for SSRF check.
 	// Also handle user-info (e.g. http://user:pass@host/path) by stripping before '@'
