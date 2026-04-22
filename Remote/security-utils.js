@@ -104,11 +104,19 @@
         if (global.DOMPurify && typeof global.DOMPurify.sanitize === 'function') {
             return global.DOMPurify.sanitize(html, {
                 ALLOWED_TAGS: [
-                    'div', 'span', 'p', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'a',
-                    'table', 'thead', 'tbody', 'tr', 'th', 'td', 'button', 'input', 'form',
-                    'label', 'section', 'article', 'header', 'footer', 'h1', 'h2', 'h3', 'h4'
+                    'div', 'span', 'p', 'br', 'hr', 'small', 'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+                    'strong', 'em', 'b', 'i', 'u', 'a', 'table', 'caption', 'thead', 'tbody', 'tfoot',
+                    'tr', 'th', 'td', 'button', 'input', 'select', 'option', 'optgroup', 'textarea',
+                    'form', 'label', 'fieldset', 'legend', 'section', 'article', 'header', 'footer',
+                    'main', 'nav', 'aside', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
                 ],
-                ALLOWED_ATTR: ['class', 'id', 'href', 'title', 'aria-label', 'aria-current', 'data-*', 'type', 'name', 'value', 'role', 'method', 'action']
+                ALLOWED_ATTR: [
+                    'class', 'id', 'href', 'title', 'target', 'rel',
+                    'aria-label', 'aria-labelledby', 'aria-describedby', 'aria-current', 'aria-hidden',
+                    'type', 'name', 'value', 'placeholder', 'checked', 'selected', 'disabled',
+                    'readonly', 'required', 'multiple', 'for', 'role', 'method', 'action'
+                ],
+                ALLOW_DATA_ATTR: true
             });
         }
 

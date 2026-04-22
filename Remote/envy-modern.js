@@ -121,15 +121,7 @@
 
         showLoadingIndicator();
 
-        let method;
-        try {
-            method = window.EnvySecurityUtils.validateHttpMethod(form.method || 'POST');
-        } catch (error) {
-            showNotification('Unsupported form method.', 'error');
-            return;
-        }
-
-        ajaxRequest(safeAction, {
+        ajaxRequest(safeUrl, {
             method: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -170,8 +162,17 @@
      */
     function submitFormAjax(form) {
         const formData = new FormData(form);
-        const action = form.getAttribute('action');
-        const safeAction = window.EnvySecurityUtils.validateRedirectTarget(action || '', ['/remote', '/api']);
+        const rawAction = form.getAttribute('action');
+        // Resolve relative and empty actions against current location before validating
+        let resolvedAction;
+        try {
+            resolvedAction = rawAction
+                ? new URL(rawAction, window.location.href).pathname
+                : window.location.pathname;
+        } catch (_) {
+            resolvedAction = window.location.pathname;
+        }
+        const safeAction = window.EnvySecurityUtils.validateRedirectTarget(resolvedAction, ['/remote', '/api']);
         if (!safeAction) {
             showNotification('Invalid form action.', 'error');
             return;

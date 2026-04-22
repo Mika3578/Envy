@@ -43,8 +43,15 @@
         }
 
         const label = navigator.onLine ? 'Online' : 'Offline';
+        const statusDot = statusElement.querySelector('.status-dot');
+
         statusElement.className = `status-indicator ${navigator.onLine ? 'status-online' : 'status-offline'}`;
-        statusElement.textContent = label;
+
+        if (statusDot) {
+            statusElement.replaceChildren(statusDot, document.createTextNode(` ${label}`));
+        } else {
+            statusElement.textContent = label;
+        }
 
         if (timestamp) {
             timestamp.setAttribute('data-timestamp', Date.now());
