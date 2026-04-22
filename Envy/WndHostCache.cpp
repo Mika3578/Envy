@@ -452,20 +452,37 @@ void CHostCacheWnd::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 		{
 			TCHAR szText[32] = {};
 			m_wndList.GetItemText( (int)pDraw->nmcd.dwItemSpec, COL_LOAD, szText, _countof( szText ) );
+
+			CDC dc;
+			dc.Attach( pDraw->nmcd.hdc );
+
+			CRect rcCell( pDraw->nmcd.rc );
+			dc.FillSolidRect( &rcCell, m_wndList.GetBkColor() );
+
 			const int nLoad = _tstoi( szText );
 			if ( nLoad > 0 )
 			{
-				CDC dc;
-				dc.Attach( pDraw->nmcd.hdc );
-				CRect rc( pDraw->nmcd.rc );
-				rc.DeflateRect( 4, 4 );
-				CRect rcBar( rc );
-				rcBar.right = rc.left + ( rc.Width() * min( nLoad, 100 ) ) / 100;
-				dc.FillSolidRect( &rc, RGB( 50, 50, 50 ) );
-				dc.FillSolidRect( &rcBar, nLoad > 85 ? RGB( 220, 75, 75 ) : ( nLoad > 60 ? RGB( 230, 180, 60 ) : RGB( 80, 180, 90 ) ) );
-				dc.Detach();
+				CRect rcBar( rcCell );
+				rcBar.DeflateRect( 4, 4 );
+
+				CRect rcFill( rcBar );
+				rcFill.right = rcBar.left + ( rcBar.Width() * min( nLoad, 100 ) ) / 100;
+
+				dc.FillSolidRect( &rcBar, RGB( 50, 50, 50 ) );
+				dc.FillSolidRect( &rcFill,
+					nLoad > 85 ? RGB( 220, 75, 75 ) :
+					( nLoad > 60 ? RGB( 230, 180, 60 ) : RGB( 80, 180, 90 ) ) );
 			}
-			*pResult = CDRF_DODEFAULT;
+
+			dc.SetBkMode( TRANSPARENT );
+			dc.SetTextColor( pDraw->clrText );
+			CRect rcText( rcCell );
+			rcText.DeflateRect( 4, 0 );
+			dc.DrawText( szText, -1, &rcText, DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_END_ELLIPSIS );
+
+			dc.Detach();
+
+			*pResult = CDRF_SKIPDEFAULT;
 			return;
 		}
 		*pResult = CDRF_DODEFAULT;
@@ -477,11 +494,19 @@ void CHostCacheWnd::OnGetInfoTip(NMHDR* pNMHDR, LRESULT* pResult)
 	NMLVGETINFOTIP* pInfo = (NMLVGETINFOTIP*)pNMHDR;
 	if ( CHostCacheHostPtr pHost = (CHostCacheHostPtr)m_wndList.GetItemData( pInfo->iItem ) )
 	{
+		const DWORD tSeen = pHost->Seen();
+		const CString strLastSeen = tSeen
+			? CTime( static_cast< __time64_t >( tSeen ) ).Format( L"%Y-%m-%d %H:%M:%S" )
+			: CString( L"Unknown" );
+		const CString strLastSuccess = pHost->m_tLastSuccess
+			? CTime( static_cast< __time64_t >( pHost->m_tLastSuccess ) ).Format( L"%Y-%m-%d %H:%M:%S" )
+			: CString( L"Unknown" );
+
 		CString str;
-		str.Format( L"Address: %s\nProtocol: %s\nStatus: %s\nUsers: %u/%u\nFiles: %u\nFailures: %u\nSuccesses: %u (%u%%)\nLast Seen: %u\nLast Success: %u\nAvg Response: %ums\nSource: %s\nFeatures: %s",
+		str.Format( L"Address: %s\r\nProtocol: %s\r\nStatus: %s\r\nUsers: %u/%u\r\nFiles: %u\r\nFailures: %u\r\nSuccesses: %u (%u%%)\r\nLast Seen: %s\r\nLast Success: %s\r\nAvg Response: %ums\r\nSource: %s\r\nFeatures: %s",
 			(LPCTSTR)pHost->Address(), (LPCTSTR)ProtocolToString( pHost->m_nProtocol ), (LPCTSTR)HostStatusString( pHost ),
 			pHost->m_nUserCount, pHost->m_nUserLimit, pHost->m_nFileLimit, pHost->m_nFailures,
-			pHost->m_nSuccesses, pHost->SuccessRate(), pHost->Seen(), pHost->m_tLastSuccess,
+			pHost->m_nSuccesses, pHost->SuccessRate(), (LPCTSTR)strLastSeen, (LPCTSTR)strLastSuccess,
 			pHost->m_nAvgResponse, (LPCTSTR)( pHost->m_sSource.IsEmpty() ? L"Unknown" : pHost->m_sSource ),
 			(LPCTSTR)FeatureFlagsString( pHost ) );
 		_tcsncpy_s( pInfo->pszText, pInfo->cchTextMax, str, _TRUNCATE );

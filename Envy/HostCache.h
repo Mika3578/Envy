@@ -63,11 +63,15 @@ public:
 	DWORD		m_nFailures;		// Failures counter
 	DWORD		m_nDailyUptime;		// Daily uptime (G1)
 	DWORD		m_nSuccesses;		// Successful connection count
+	DWORD		m_nTotalFailures;	// Lifetime failure count (persisted; separate from consecutive m_nFailures)
 	DWORD		m_tFirstSeen;		// First seen timestamp
 	DWORD		m_tLastSuccess;		// Last successful connection timestamp
 	DWORD		m_nLastPing;		// Last measured ping in milliseconds
 	DWORD		m_nAvgResponse;		// Average response time in milliseconds
 	CString		m_sSource;			// Discovery source (server.met, UDP, DNS...)
+
+	// Runtime-only (not persisted)
+	ULONGLONG	m_tConnectAttempt;	// Tick count (ms) when ConnectTo() was last called (GetTickCount64)
 
 	// Attributes: Query Keys
 	DWORD		m_tKeyTime; 		// G2 time when query key was received

@@ -181,7 +181,7 @@ BOOL CHostCache::Save()
 
 
 // Set at INTERNAL_VERSION on change:
-#define HOSTCACHE_SER_VERSION 2
+#define HOSTCACHE_SER_VERSION 3
 
 // nVersion History:
 // 14 - Add m_sCountry
@@ -193,6 +193,7 @@ BOOL CHostCache::Save()
 // 1000 - Remove m_bDHT
 // 1 - (Envy 1.0)
 // 2 - Add host quality/history fields
+// 3 - Add m_nTotalFailures (lifetime failure counter)
 
 void CHostCache::Serialize(CArchive& ar)
 {
@@ -603,6 +604,7 @@ void CHostCacheList::OnFailure(const IN_ADDR* pAddress, WORD nPort, bool bRemove
 	{
 		m_nCookie++;
 		pHost->m_nFailures++;
+		pHost->m_nTotalFailures++;
 		pHost->m_tFailure = static_cast< DWORD >( time( NULL ) );
 		pHost->m_bCheckedLocally = TRUE;
 
@@ -628,6 +630,7 @@ void CHostCacheList::OnFailure(LPCTSTR szAddress, bool bRemove)
 	{
 		m_nCookie++;
 		pHost->m_nFailures++;
+		pHost->m_nTotalFailures++;
 		pHost->m_tFailure = static_cast< DWORD >( time( NULL ) );
 		if ( pHost->m_sSource.IsEmpty() )
 			pHost->m_sSource = L"Local";
@@ -656,14 +659,20 @@ CHostCacheHostPtr CHostCacheList::OnSuccess(const IN_ADDR* pAddress, WORD nPort,
 		pHost->m_bCheckedLocally = TRUE;
 		if ( pHost->m_sSource.IsEmpty() )
 			pHost->m_sSource = L"Connection";
-		if ( pHost->m_tConnect && tNow > pHost->m_tConnect )
+		if ( pHost->m_tConnectAttempt )
 		{
-			const DWORD nResponseMs = ( tNow - pHost->m_tConnect ) * 1000;
-			pHost->m_nLastPing = nResponseMs;
-			if ( pHost->m_nAvgResponse == 0 )
-				pHost->m_nAvgResponse = nResponseMs;
-			else
-				pHost->m_nAvgResponse = ( pHost->m_nAvgResponse * 3 + nResponseMs ) / 4;
+			const ULONGLONG nElapsedMs = GetTickCount64() - pHost->m_tConnectAttempt;
+			const DWORD nResponseMs = ( nElapsedMs <= 0xFFFFFFFFULL )
+				? static_cast< DWORD >( nElapsedMs ) : 0;
+			if ( nResponseMs )
+			{
+				pHost->m_nLastPing = nResponseMs;
+				if ( pHost->m_nAvgResponse == 0 )
+					pHost->m_nAvgResponse = nResponseMs;
+				else
+					pHost->m_nAvgResponse = ( pHost->m_nAvgResponse * 3 + nResponseMs ) / 4;
+			}
+			pHost->m_tConnectAttempt = 0;
 		}
 		if ( bUpdate )
 			Update( pHost, nPort );
@@ -1295,10 +1304,12 @@ CHostCacheHost::CHostCacheHost(PROTOCOLID nProtocol)
 	, m_nFailures	( 0 )
 	, m_nDailyUptime( 0 )
 	, m_nSuccesses	( 0 )
+	, m_nTotalFailures( 0 )
 	, m_tFirstSeen	( 0 )
 	, m_tLastSuccess( 0 )
 	, m_nLastPing	( 0 )
 	, m_nAvgResponse( 0 )
+	, m_tConnectAttempt( 0ULL )
 	, m_tKeyTime	( 0 )
 	, m_nKeyValue	( 0 )
 	, m_nKeyHost	( 0 )
@@ -1339,8 +1350,14 @@ CString CHostCacheHost::Address() const
 
 DWORD CHostCacheHost::SuccessRate() const
 {
-	const DWORD nTotal = m_nSuccesses + m_nFailures;
-	return nTotal ? ( m_nSuccesses * 100 / nTotal ) : 0;
+	const ULONGLONG nTotal =
+		static_cast< ULONGLONG >( m_nSuccesses ) +
+		static_cast< ULONGLONG >( m_nTotalFailures );
+
+	return nTotal
+		? static_cast< DWORD >(
+			( static_cast< ULONGLONG >( m_nSuccesses ) * 100ULL ) / nTotal )
+		: 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1401,6 +1418,7 @@ void CHostCacheHost::Serialize(CArchive& ar, int nVersion)	// HOSTCACHE_SER_VER
 		ar << m_nLastPing;
 		ar << m_nAvgResponse;
 		ar << m_sSource;
+		ar << m_nTotalFailures;
 
 	//	ar << m_bDHT;	// Unused
 		ar.Write( &m_oBtGUID[0], m_oBtGUID.byteCount );
@@ -1478,10 +1496,15 @@ void CHostCacheHost::Serialize(CArchive& ar, int nVersion)	// HOSTCACHE_SER_VER
 			ar >> m_nLastPing;
 			ar >> m_nAvgResponse;
 			ar >> m_sSource;
+			if ( nVersion >= 3 )
+				ar >> m_nTotalFailures;
+			else
+				m_nTotalFailures = m_nFailures;	// Best-effort default from consecutive counter
 		}
 		else
 		{
 			m_nSuccesses = 0;
+			m_nTotalFailures = m_nFailures;
 			m_tFirstSeen = m_tSeen;
 			m_tLastSuccess = 0;
 			m_nLastPing = 0;
@@ -1563,6 +1586,7 @@ bool CHostCacheHost::Update(WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nU
 bool CHostCacheHost::ConnectTo(BOOL bAutomatic)
 {
 	m_tConnect = static_cast< DWORD >( time( NULL ) );
+	m_tConnectAttempt = GetTickCount64();
 
 	if ( m_pAddress.s_addr != INADDR_ANY )
 		return Neighbours.ConnectTo( m_pAddress, m_nPort, m_nProtocol, bAutomatic ) != NULL;
