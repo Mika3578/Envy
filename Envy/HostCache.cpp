@@ -181,7 +181,7 @@ BOOL CHostCache::Save()
 
 
 // Set at INTERNAL_VERSION on change:
-#define HOSTCACHE_SER_VERSION 1
+#define HOSTCACHE_SER_VERSION 2
 
 // nVersion History:
 // 14 - Add m_sCountry
@@ -192,6 +192,7 @@ BOOL CHostCache::Save()
 // 19 - Add m_sAddress (Ryo-oh-ki)
 // 1000 - Remove m_bDHT
 // 1 - (Envy 1.0)
+// 2 - Add host quality/history fields
 
 void CHostCache::Serialize(CArchive& ar)
 {
@@ -628,6 +629,8 @@ void CHostCacheList::OnFailure(LPCTSTR szAddress, bool bRemove)
 		m_nCookie++;
 		pHost->m_nFailures++;
 		pHost->m_tFailure = static_cast< DWORD >( time( NULL ) );
+		if ( pHost->m_sSource.IsEmpty() )
+			pHost->m_sSource = L"Local";
 
 		if ( ! pHost->m_bPriority && ( bRemove || pHost->m_nFailures > Settings.Connection.FailureLimit ) )
 			Remove( pHost );
@@ -644,10 +647,24 @@ CHostCacheHostPtr CHostCacheList::OnSuccess(const IN_ADDR* pAddress, WORD nPort,
 	CHostCacheHostPtr pHost = Add( const_cast< IN_ADDR* >( pAddress ), nPort );
 	if ( pHost && ( ! nPort || pHost->m_nPort == nPort ) )
 	{
+		const DWORD tNow = static_cast< DWORD >( time( NULL ) );
 		m_nCookie++;
 		pHost->m_tFailure = 0;
 		pHost->m_nFailures = 0;
+		pHost->m_nSuccesses++;
+		pHost->m_tLastSuccess = tNow;
 		pHost->m_bCheckedLocally = TRUE;
+		if ( pHost->m_sSource.IsEmpty() )
+			pHost->m_sSource = L"Connection";
+		if ( pHost->m_tConnect && tNow > pHost->m_tConnect )
+		{
+			const DWORD nResponseMs = ( tNow - pHost->m_tConnect ) * 1000;
+			pHost->m_nLastPing = nResponseMs;
+			if ( pHost->m_nAvgResponse == 0 )
+				pHost->m_nAvgResponse = nResponseMs;
+			else
+				pHost->m_nAvgResponse = ( pHost->m_nAvgResponse * 3 + nResponseMs ) / 4;
+		}
 		if ( bUpdate )
 			Update( pHost, nPort );
 	}
@@ -934,6 +951,7 @@ int CHostCache::ImportHubList(CFile* pFile)
 			{
 				pServer->m_sName = pHub->GetAttributeValue( L"Name" );
 				pServer->m_sDescription = pHub->GetAttributeValue( L"Description" );
+				pServer->m_sSource = L"HubList";
 				nHubs++;
 			}
 		}
@@ -973,6 +991,8 @@ int CHostCache::ImportMET(CFile* pFile)
 			CEDTag pTag;
 			if ( ! pTag.Read( pFile ) ) break;
 			if ( pServer == NULL ) continue;
+			if ( pServer->m_sSource.IsEmpty() )
+				pServer->m_sSource = L"server.met";
 
 			if ( pTag.Check( ED2K_ST_SERVERNAME, ED2K_TAG_STRING ) )
 				pServer->m_sName = pTag.m_sValue;
@@ -1048,6 +1068,7 @@ int CHostCache::ImportNodes(CFile* pFile)
 				pCache->m_sDescription = oGUID.toString();
 				pCache->m_nUDPPort = nUDPPort;
 				pCache->m_nKADVersion = nKADVersion;
+				pCache->m_sSource = L"nodes.dat";
 				nServers++;
 			}
 		}
@@ -1273,6 +1294,11 @@ CHostCacheHost::CHostCacheHost(PROTOCOLID nProtocol)
 	, m_tFailure	( 0 )
 	, m_nFailures	( 0 )
 	, m_nDailyUptime( 0 )
+	, m_nSuccesses	( 0 )
+	, m_tFirstSeen	( 0 )
+	, m_tLastSuccess( 0 )
+	, m_nLastPing	( 0 )
+	, m_nAvgResponse( 0 )
 	, m_tKeyTime	( 0 )
 	, m_nKeyValue	( 0 )
 	, m_nKeyHost	( 0 )
@@ -1311,10 +1337,16 @@ CString CHostCacheHost::Address() const
 	return m_sAddress;
 }
 
+DWORD CHostCacheHost::SuccessRate() const
+{
+	const DWORD nTotal = m_nSuccesses + m_nFailures;
+	return nTotal ? ( m_nSuccesses * 100 / nTotal ) : 0;
+}
+
 //////////////////////////////////////////////////////////////////////
 // CHostCacheHost serialize
 
-void CHostCacheHost::Serialize(CArchive& ar, int /*nVersion*/)	// HOSTCACHE_SER_VER
+void CHostCacheHost::Serialize(CArchive& ar, int nVersion)	// HOSTCACHE_SER_VER
 {
 	if ( ar.IsStoring() )
 	{
@@ -1363,6 +1395,12 @@ void CHostCacheHost::Serialize(CArchive& ar, int /*nVersion*/)	// HOSTCACHE_SER_
 		ar << m_bCheckedLocally;
 		ar << m_nDailyUptime;
 		ar << m_sCountry;
+		ar << m_nSuccesses;
+		ar << m_tFirstSeen;
+		ar << m_tLastSuccess;
+		ar << m_nLastPing;
+		ar << m_nAvgResponse;
+		ar << m_sSource;
 
 	//	ar << m_bDHT;	// Unused
 		ar.Write( &m_oBtGUID[0], m_oBtGUID.byteCount );
@@ -1432,6 +1470,24 @@ void CHostCacheHost::Serialize(CArchive& ar, int /*nVersion*/)	// HOSTCACHE_SER_
 		ar >> m_nDailyUptime;
 
 		ar >> m_sCountry;
+		if ( nVersion >= 2 )
+		{
+			ar >> m_nSuccesses;
+			ar >> m_tFirstSeen;
+			ar >> m_tLastSuccess;
+			ar >> m_nLastPing;
+			ar >> m_nAvgResponse;
+			ar >> m_sSource;
+		}
+		else
+		{
+			m_nSuccesses = 0;
+			m_tFirstSeen = m_tSeen;
+			m_tLastSuccess = 0;
+			m_nLastPing = 0;
+			m_nAvgResponse = 0;
+			m_sSource.Empty();
+		}
 
 		//ar >> m_bDHT;	// Unused
 		ReadArchive( ar, &m_oBtGUID[0], m_oBtGUID.byteCount );
@@ -1473,6 +1529,8 @@ bool CHostCacheHost::Update(WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nU
 	if ( m_tSeen < tSeen )
 	{
 		m_tSeen = tSeen;
+		if ( ! m_tFirstSeen || m_tFirstSeen > tSeen )
+			m_tFirstSeen = tSeen;
 		bChanged = true;
 	}
 

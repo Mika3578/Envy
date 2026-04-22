@@ -1,7 +1,7 @@
 //
 // WndHostCache.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) Â© 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -58,6 +58,7 @@ protected:
 	afx_msg int  OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnGetInfoTip(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnDblClkList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnSortList(NMHDR* pNotifyStruct, LRESULT *pResult);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);

@@ -3,7 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-04-22
-- **Changelog Entry:** 2026-04-22 — Initial comprehensive planning baseline established during documentation and audit pass.
+- **Changelog Entry:** 2026-04-22 — Host Cache UI/data-model enhancement pass started (richer host diagnostics columns, tooltip detail, and persistent quality metrics fields).
 
 ## Update Protocol
 1. Update **Last Updated** date on every meaningful change.
@@ -26,6 +26,7 @@
 ### In Progress
 - C++ modernization across legacy modules.
 - Incremental protocol compatibility and robustness improvements.
+- Host Cache UX improvements (column richness, status/load visualization, persistence-safe model expansion).
 
 ### Blocked / At Risk
 - Full CMake parity with Visual Studio build graph.

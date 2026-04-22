@@ -1,7 +1,7 @@
 //
 // WndHostCache.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) Â© 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -32,6 +32,7 @@
 #include "Skin.h"
 #include "Flags.h"
 #include "VendorCache.h"
+#include "EDPacket.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -43,12 +44,28 @@ static char THIS_FILE[] = __FILE__;
 enum {
 	COL_ADDRESS,
 	COL_PORT,
+	COL_PROTOCOL,
+	COL_STATUS,
+	COL_PING,
+	COL_UPTIME,
+	COL_OBFUSCATION,
+	COL_TLS,
+	COL_IPV6,
 	COL_SEEN,
+	COL_FIRSTSEEN,
+	COL_LASTSUCCESS,
 	COL_FAILURES,
+	COL_SUCCESSES,
+	COL_SUCCESSRATE,
+	COL_AVGRESPONSE,
 	COL_USERS,
 	COL_MAXUSERS,
+	COL_LOAD,
+	COL_FILES,
 	COL_NAME,
 	COL_INFO,
+	COL_SOURCE,
+	COL_FEATURES,
 	COL_CLIENT,
 	COL_COUNTRY,
 #ifdef _DEBUG
@@ -59,6 +76,45 @@ enum {
 	COL_LAST	// Column Count
 };
 
+static CString ProtocolToString(PROTOCOLID nProtocol)
+{
+	if ( nProtocol >= PROTOCOL_NULL && nProtocol < PROTOCOL_LAST )
+		return protocolNames[ nProtocol ];
+	return L"Unknown";
+}
+
+static CString HostStatusString(const CHostCacheHost* pHost)
+{
+	if ( pHost->m_nFailures > Settings.Connection.FailureLimit )
+		return L"Unreachable";
+	if ( pHost->m_tFailure && pHost->m_tLastSuccess < pHost->m_tFailure )
+		return L"Offline";
+	if ( pHost->m_tLastSuccess )
+		return L"Online";
+	return L"Unknown";
+}
+
+static CString ObfuscationString(const CHostCacheHost* pHost)
+{
+	if ( pHost->m_nProtocol != PROTOCOL_ED2K )
+		return L"None";
+	const bool bTcp = ( pHost->m_nTCPFlags & ED2K_SERVER_TCP_TCPOBFUSCATION ) != 0;
+	const bool bUdp = ( pHost->m_nUDPFlags & ED2K_SERVER_UDP_UDPOBFUSCATION ) != 0;
+	if ( bTcp || bUdp )
+		return bTcp && bUdp ? L"Supported" : ( bTcp ? L"TCP" : L"UDP" );
+	return L"None";
+}
+
+static CString FeatureFlagsString(const CHostCacheHost* pHost)
+{
+	CString str;
+	if ( pHost->m_nTCPFlags & ED2K_SERVER_TCP_SMALLTAGS ) str += L"NewTags,";
+	if ( pHost->m_nTCPFlags & ED2K_SERVER_TCP_64BITSIZE ) str += L"LargeFiles,";
+	if ( pHost->m_nTCPFlags & ED2K_SERVER_TCP_UNICODE ) str += L"Unicode,";
+	if ( pHost->m_nTCPFlags & ED2K_SERVER_TCP_GETSOURCES2 ) str += L"GetSources2,";
+	if ( ! str.IsEmpty() ) str.Truncate( str.GetLength() - 1 );
+	return str;
+}
 
 IMPLEMENT_SERIAL(CHostCacheWnd, CPanelWnd, 0)
 
@@ -70,6 +126,7 @@ BEGIN_MESSAGE_MAP(CHostCacheWnd, CPanelWnd)
 	ON_WM_NCMOUSEMOVE()
 	ON_WM_CONTEXTMENU()
 	ON_NOTIFY(NM_CUSTOMDRAW, IDC_HOSTS, OnCustomDrawList)
+	ON_NOTIFY(LVN_GETINFOTIP, IDC_HOSTS, OnGetInfoTip)
 	ON_NOTIFY(NM_DBLCLK, IDC_HOSTS, OnDblClkList)
 	ON_NOTIFY(LVN_COLUMNCLICK, IDC_HOSTS, OnSortList)
 	ON_UPDATE_COMMAND_UI(ID_HOSTCACHE_CONNECT, OnUpdateHostCacheConnect)
@@ -137,19 +194,35 @@ int CHostCacheWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 //	CoolInterface.LoadFlagsTo( m_gdiImageList );
 //	m_wndList.SetImageList( &m_gdiImageList, LVSIL_SMALL );
 
-	m_wndList.SetExtendedStyle( LVS_EX_DOUBLEBUFFER|LVS_EX_FULLROWSELECT|LVS_EX_HEADERDRAGDROP|LVS_EX_LABELTIP|LVS_EX_SUBITEMIMAGES );
+	m_wndList.SetExtendedStyle( LVS_EX_DOUBLEBUFFER|LVS_EX_FULLROWSELECT|LVS_EX_HEADERDRAGDROP|LVS_EX_LABELTIP|LVS_EX_SUBITEMIMAGES|LVS_EX_INFOTIP );
 	m_wndList.SetFont( &theApp.m_gdiFont );
 
-	m_wndList.InsertColumn( COL_ADDRESS,	L"Address",	LVCFMT_LEFT,	140 );
-	m_wndList.InsertColumn( COL_PORT,		L"Port", 	LVCFMT_CENTER,	 60 );
-	m_wndList.InsertColumn( COL_SEEN,		L"Last Seen", LVCFMT_CENTER,	128 );
-	m_wndList.InsertColumn( COL_FAILURES,	L"Failures",	LVCFMT_CENTER,	 60 );
-	m_wndList.InsertColumn( COL_USERS,		L"CurUsers",	LVCFMT_CENTER,	 60 );
-	m_wndList.InsertColumn( COL_MAXUSERS,	L"MaxUsers",	LVCFMT_CENTER,	 60 );
-	m_wndList.InsertColumn( COL_NAME,		L"Name", 	LVCFMT_LEFT,	140 );
-	m_wndList.InsertColumn( COL_INFO,		L"Description", LVCFMT_LEFT,	140 );
-	m_wndList.InsertColumn( COL_CLIENT, 	L"Client",	LVCFMT_CENTER,	100 );
-	m_wndList.InsertColumn( COL_COUNTRY,	L"Country",	LVCFMT_LEFT,	 60 );
+	m_wndList.InsertColumn( COL_ADDRESS,		L"Address",		LVCFMT_LEFT,	180 );
+	m_wndList.InsertColumn( COL_PORT,			L"Port", 		LVCFMT_RIGHT,	 60 );
+	m_wndList.InsertColumn( COL_PROTOCOL,		L"Protocol",		LVCFMT_LEFT,	 70 );
+	m_wndList.InsertColumn( COL_STATUS,		L"Network Status",	LVCFMT_LEFT,	100 );
+	m_wndList.InsertColumn( COL_PING,			L"Ping (ms)",		LVCFMT_RIGHT,	 80 );
+	m_wndList.InsertColumn( COL_UPTIME,		L"Uptime",		LVCFMT_RIGHT,	 80 );
+	m_wndList.InsertColumn( COL_OBFUSCATION,	L"TCP/UDP Obfuscation",LVCFMT_LEFT,	120 );
+	m_wndList.InsertColumn( COL_TLS,			L"TLS",			LVCFMT_CENTER,	 45 );
+	m_wndList.InsertColumn( COL_IPV6,			L"IPv6",			LVCFMT_CENTER,	 50 );
+	m_wndList.InsertColumn( COL_SEEN,			L"Last Seen",		LVCFMT_RIGHT,	128 );
+	m_wndList.InsertColumn( COL_FIRSTSEEN,		L"First Seen",		LVCFMT_RIGHT,	128 );
+	m_wndList.InsertColumn( COL_LASTSUCCESS,	L"Last Success",		LVCFMT_RIGHT,	128 );
+	m_wndList.InsertColumn( COL_FAILURES,		L"Failures",		LVCFMT_RIGHT,	 70 );
+	m_wndList.InsertColumn( COL_SUCCESSES,		L"Successes",		LVCFMT_RIGHT,	 70 );
+	m_wndList.InsertColumn( COL_SUCCESSRATE,	L"Success Rate %",	LVCFMT_RIGHT,	 90 );
+	m_wndList.InsertColumn( COL_AVGRESPONSE,	L"Avg Response",	LVCFMT_RIGHT,	 95 );
+	m_wndList.InsertColumn( COL_USERS,			L"Users",			LVCFMT_RIGHT,	 70 );
+	m_wndList.InsertColumn( COL_MAXUSERS,		L"MaxUsers",		LVCFMT_RIGHT,	 75 );
+	m_wndList.InsertColumn( COL_LOAD,			L"Load %",		LVCFMT_RIGHT,	 80 );
+	m_wndList.InsertColumn( COL_FILES,			L"Files",			LVCFMT_RIGHT,	 80 );
+	m_wndList.InsertColumn( COL_NAME,			L"Name", 		LVCFMT_LEFT,	150 );
+	m_wndList.InsertColumn( COL_INFO,			L"Description", 	LVCFMT_LEFT,	190 );
+	m_wndList.InsertColumn( COL_SOURCE,		L"Source",		LVCFMT_LEFT,	100 );
+	m_wndList.InsertColumn( COL_FEATURES,		L"Features",		LVCFMT_LEFT,	170 );
+	m_wndList.InsertColumn( COL_CLIENT, 		L"Client",		LVCFMT_LEFT,	100 );
+	m_wndList.InsertColumn( COL_COUNTRY,		L"Country",		LVCFMT_LEFT,	 80 );
 #ifdef _DEBUG
 	m_wndList.InsertColumn( COL_DBG_KEY,	L"Key",		LVCFMT_RIGHT, 0 );
 	m_wndList.InsertColumn( COL_DBG_QUERY,	L"Query",	LVCFMT_RIGHT, 0 );
@@ -215,6 +288,11 @@ void CHostCacheWnd::Update(BOOL bForce)
 			pItem->Set( COL_ADDRESS, L" " + pHost->m_sAddress + L"  (" + strAddress + L")" );
 
 		pItem->Format( COL_PORT, L"%hu", pHost->m_nPort );
+		pItem->Set( COL_PROTOCOL, ProtocolToString( pHost->m_nProtocol ) );
+		pItem->Set( COL_STATUS, HostStatusString( pHost ) );
+		pItem->Set( COL_OBFUSCATION, ObfuscationString( pHost ) );
+		pItem->Set( COL_TLS, L"No" );
+		pItem->Set( COL_IPV6, L"No" );
 
 		if ( pHost->m_pVendor )
 			pItem->Set( COL_CLIENT, pHost->m_pVendor->m_sName );
@@ -223,6 +301,16 @@ void CHostCacheWnd::Update(BOOL bForce)
 
 		CTime pTime( (time_t)pHost->Seen() );
 		pItem->Set( COL_SEEN, pTime.Format( L"%Y-%m-%d %H:%M:%S" ) );
+		if ( pHost->m_tFirstSeen )
+		{
+			pTime = (time_t)pHost->m_tFirstSeen;
+			pItem->Set( COL_FIRSTSEEN, pTime.Format( L"%Y-%m-%d %H:%M:%S" ) );
+		}
+		if ( pHost->m_tLastSuccess )
+		{
+			pTime = (time_t)pHost->m_tLastSuccess;
+			pItem->Set( COL_LASTSUCCESS, pTime.Format( L"%Y-%m-%d %H:%M:%S" ) );
+		}
 
 		// Display workaround  (ToDo: Fix properly elsewhere)
 		CString strName = pHost->m_sName;
@@ -234,13 +322,30 @@ void CHostCacheWnd::Update(BOOL bForce)
 		if ( pHost->m_nDailyUptime )	// Only G1?
 		{
 			pTime = (time_t)pHost->m_nDailyUptime;
-			pItem->Set( COL_INFO, pTime.Format( L"%H:%M:%S" ) );
+			pItem->Set( COL_UPTIME, pTime.Format( L"%H:%M:%S" ) );
 		}
-		//else	// ToDo: Use COL_INFO for G2?
 
-		if ( pHost->m_nFailures )  pItem->Format( COL_FAILURES, L"%u", pHost->m_nFailures );
-		if ( pHost->m_nUserCount ) pItem->Format( COL_USERS,    L"%u", pHost->m_nUserCount );
-		if ( pHost->m_nUserLimit ) pItem->Format( COL_MAXUSERS, L"%u", pHost->m_nUserLimit );
+		if ( pHost->m_nLastPing )
+			pItem->Format( COL_PING, L"%u", pHost->m_nLastPing );
+		if ( pHost->m_nAvgResponse )
+			pItem->Format( COL_AVGRESPONSE, L"%u", pHost->m_nAvgResponse );
+		if ( pHost->m_nFailures )
+			pItem->Format( COL_FAILURES, L"%u", pHost->m_nFailures );
+		if ( pHost->m_nSuccesses )
+			pItem->Format( COL_SUCCESSES, L"%u", pHost->m_nSuccesses );
+		pItem->Format( COL_SUCCESSRATE, L"%u", pHost->SuccessRate() );
+		if ( pHost->m_nUserCount )
+			pItem->Format( COL_USERS,    L"%u", pHost->m_nUserCount );
+		if ( pHost->m_nUserLimit )
+		{
+			pItem->Format( COL_MAXUSERS, L"%u", pHost->m_nUserLimit );
+			pItem->Format( COL_LOAD, L"%u", min( 100u, (UINT)( pHost->m_nUserCount * 100 / pHost->m_nUserLimit ) ) );
+		}
+		if ( pHost->m_nFileLimit )
+			pItem->Format( COL_FILES, L"%u", pHost->m_nFileLimit );
+		pItem->Set( COL_SOURCE, pHost->m_sSource.IsEmpty() ? L"Unknown" : pHost->m_sSource );
+		pItem->Set( COL_FEATURES, FeatureFlagsString( pHost ) );
+
 		if ( pHost->m_sCountry )
 		{
 			pItem->Set( COL_COUNTRY, pHost->m_sCountry );
@@ -338,8 +443,50 @@ void CHostCacheWnd::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 		if ( m_wndList.GetItemOverlayMask( (int)pDraw->nmcd.dwItemSpec ) )
 			pDraw->clrText = Colors.m_crSysActiveCaption;
 
+		*pResult = CDRF_NOTIFYSUBITEMDRAW;
+	}
+	else if ( pDraw->nmcd.dwDrawStage == ( CDDS_ITEMPREPAINT | CDDS_SUBITEM ) )
+	{
+		const int nColumn = pDraw->iSubItem;
+		if ( nColumn == COL_LOAD )
+		{
+			TCHAR szText[32] = {};
+			m_wndList.GetItemText( (int)pDraw->nmcd.dwItemSpec, COL_LOAD, szText, _countof( szText ) );
+			const int nLoad = _tstoi( szText );
+			if ( nLoad > 0 )
+			{
+				CDC dc;
+				dc.Attach( pDraw->nmcd.hdc );
+				CRect rc( pDraw->nmcd.rc );
+				rc.DeflateRect( 4, 4 );
+				CRect rcBar( rc );
+				rcBar.right = rc.left + ( rc.Width() * min( nLoad, 100 ) ) / 100;
+				dc.FillSolidRect( &rc, RGB( 50, 50, 50 ) );
+				dc.FillSolidRect( &rcBar, nLoad > 85 ? RGB( 220, 75, 75 ) : ( nLoad > 60 ? RGB( 230, 180, 60 ) : RGB( 80, 180, 90 ) ) );
+				dc.Detach();
+			}
+			*pResult = CDRF_DODEFAULT;
+			return;
+		}
 		*pResult = CDRF_DODEFAULT;
 	}
+}
+
+void CHostCacheWnd::OnGetInfoTip(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	NMLVGETINFOTIP* pInfo = (NMLVGETINFOTIP*)pNMHDR;
+	if ( CHostCacheHostPtr pHost = (CHostCacheHostPtr)m_wndList.GetItemData( pInfo->iItem ) )
+	{
+		CString str;
+		str.Format( L"Address: %s\nProtocol: %s\nStatus: %s\nUsers: %u/%u\nFiles: %u\nFailures: %u\nSuccesses: %u (%u%%)\nLast Seen: %u\nLast Success: %u\nAvg Response: %ums\nSource: %s\nFeatures: %s",
+			(LPCTSTR)pHost->Address(), (LPCTSTR)ProtocolToString( pHost->m_nProtocol ), (LPCTSTR)HostStatusString( pHost ),
+			pHost->m_nUserCount, pHost->m_nUserLimit, pHost->m_nFileLimit, pHost->m_nFailures,
+			pHost->m_nSuccesses, pHost->SuccessRate(), pHost->m_tSeen, pHost->m_tLastSuccess,
+			pHost->m_nAvgResponse, (LPCTSTR)( pHost->m_sSource.IsEmpty() ? L"Unknown" : pHost->m_sSource ),
+			(LPCTSTR)FeatureFlagsString( pHost ) );
+		_tcsncpy_s( pInfo->pszText, pInfo->cchTextMax, str, _TRUNCATE );
+	}
+	*pResult = 0;
 }
 
 void CHostCacheWnd::OnDblClkList(NMHDR* /*pNMHDR*/, LRESULT* pResult)

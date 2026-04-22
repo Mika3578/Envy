@@ -62,6 +62,12 @@ public:
 	DWORD		m_tFailure; 		// Last failure time
 	DWORD		m_nFailures;		// Failures counter
 	DWORD		m_nDailyUptime;		// Daily uptime (G1)
+	DWORD		m_nSuccesses;		// Successful connection count
+	DWORD		m_tFirstSeen;		// First seen timestamp
+	DWORD		m_tLastSuccess;		// Last successful connection timestamp
+	DWORD		m_nLastPing;		// Last measured ping in milliseconds
+	DWORD		m_nAvgResponse;		// Average response time in milliseconds
+	CString		m_sSource;			// Discovery source (server.met, UDP, DNS...)
 
 	// Attributes: Query Keys
 	DWORD		m_tKeyTime; 		// G2 time when query key was received
@@ -88,6 +94,7 @@ public:
 
 	DWORD		Seen() const;		// Get host last seen time
 	CString		Address() const;	// Get host address as string
+	DWORD		SuccessRate() const;	// Successful connection ratio in %
 
 protected:
 	DWORD		m_tSeen;			// Host last seen time
