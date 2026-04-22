@@ -35,8 +35,8 @@
         csp: {
             enabled: true,
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"], // Consider removing unsafe-inline in production
-            styleSrc: ["'self'", "'unsafe-inline'"], // Consider removing unsafe-inline in production
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'"],
             imgSrc: ["'self'", "data:", "https:"],
             fontSrc: ["'self'", "https:"],
             connectSrc: ["'self'"],
@@ -91,12 +91,18 @@
          * Generate a new CSRF token
          */
         generateToken() {
-            const array = new Uint8Array(this.config.tokenLength);
-            crypto.getRandomValues(array);
-            this.token = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+            this.token = window.EnvySecurityUtils
+                ? window.EnvySecurityUtils.generateSecureToken(this.config.tokenLength)
+                : this.generateFallbackToken();
             this.tokenExpiry = Date.now() + this.config.tokenLifetime;
             this.storeToken();
             return this.token;
+        }
+
+        generateFallbackToken() {
+            const array = new Uint8Array(this.config.tokenLength);
+            crypto.getRandomValues(array);
+            return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
         }
 
         /**
@@ -465,9 +471,9 @@
          */
         getRemainingRequests() {
             const now = Date.now();
-            const windowStart = now - this.config.rateLimit.windowMs;
+            const windowStart = now - this.config.windowMs;
             const recentRequests = this.requests.filter(time => time > windowStart);
-            return Math.max(0, this.config.rateLimit.maxRequests - recentRequests.length);
+            return Math.max(0, this.config.maxRequests - recentRequests.length);
         }
 
         /**
@@ -476,7 +482,7 @@
         getTimeUntilReset() {
             if (this.requests.length === 0) return 0;
             const oldestRequest = Math.min(...this.requests);
-            const resetTime = oldestRequest + this.config.rateLimit.windowMs;
+            const resetTime = oldestRequest + this.config.windowMs;
             return Math.max(0, resetTime - Date.now());
         }
     }

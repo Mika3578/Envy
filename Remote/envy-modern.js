@@ -84,7 +84,9 @@
      */
     function setupCSRFProtection() {
         // Generate CSRF token
-        state.csrfToken = generateCSRFToken();
+        state.csrfToken = window.EnvySecurity && typeof window.EnvySecurity.getCSRFToken === 'function'
+            ? window.EnvySecurity.getCSRFToken()
+            : generateCSRFToken();
 
         // Add to all forms
         document.querySelectorAll('form').forEach(form => {
@@ -111,9 +113,23 @@
      * Navigate to a new page with AJAX
      */
     function navigateTo(url, pushState = true) {
+        const safeUrl = window.EnvySecurityUtils.validateRedirectTarget(url, ['/remote', '/api']);
+        if (!safeUrl) {
+            console.warn('Blocked unsafe navigation target:', url);
+            return;
+        }
+
         showLoadingIndicator();
 
-        ajaxRequest(url, {
+        let method;
+        try {
+            method = window.EnvySecurityUtils.validateHttpMethod(form.method || 'POST');
+        } catch (error) {
+            showNotification('Unsupported form method.', 'error');
+            return;
+        }
+
+        ajaxRequest(safeAction, {
             method: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -123,15 +139,16 @@
         .then(response => {
             updateContent(response.html);
             if (pushState) {
-                history.pushState({url: url}, '', url);
+                history.pushState({url: safeUrl}, '', safeUrl);
             }
-            updateNavigationState(url);
+            updateNavigationState(safeUrl);
             hideLoadingIndicator();
         })
         .catch(error => {
             console.error('Navigation failed:', error);
             // Fallback to regular navigation
-            window.location.href = url;
+            const safeFallback = window.EnvySecurityUtils.validateRedirectTarget(safeUrl, ['/remote']);
+            window.location.href = safeFallback || '/remote/home';
         });
     }
 
@@ -153,12 +170,25 @@
      */
     function submitFormAjax(form) {
         const formData = new FormData(form);
-        const url = form.getAttribute('action') || window.location.href;
+        const action = form.getAttribute('action');
+        const safeAction = window.EnvySecurityUtils.validateRedirectTarget(action || '', ['/remote', '/api']);
+        if (!safeAction) {
+            showNotification('Invalid form action.', 'error');
+            return;
+        }
 
         showLoadingIndicator();
 
-        ajaxRequest(url, {
-            method: form.method || 'POST',
+        let method;
+        try {
+            method = window.EnvySecurityUtils.validateHttpMethod(form.method || 'POST');
+        } catch (error) {
+            showNotification('Unsupported form method.', 'error');
+            return;
+        }
+
+        ajaxRequest(safeAction, {
+            method,
             body: formData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -169,7 +199,10 @@
             if (response.success) {
                 showNotification(response.message || 'Operation completed successfully', 'success');
                 if (response.redirect) {
-                    setTimeout(() => navigateTo(response.redirect), 1000);
+                    const safeRedirect = window.EnvySecurityUtils.validateRedirectTarget(response.redirect, ['/remote']);
+                    if (safeRedirect) {
+                        setTimeout(() => navigateTo(safeRedirect), 1000);
+                    }
                 } else if (response.refresh) {
                     refreshCurrentPage();
                 }
@@ -235,7 +268,7 @@
      */
     function updateContent(html) {
         if (cache.mainContent) {
-            cache.mainContent.innerHTML = html;
+            cache.mainContent.innerHTML = window.EnvySecurityUtils.sanitizeHTML(html);
             initializeDynamicContent();
         }
     }
@@ -279,24 +312,20 @@
     function createLoadingIndicator() {
         const indicator = document.createElement('div');
         indicator.className = 'loading-indicator';
-        indicator.innerHTML = `
-            <div class="loading-content">
-                <div class="loading-spinner"></div>
-                <span>Loading...</span>
-            </div>
-        `;
-        indicator.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 1rem;
-            border-radius: 8px;
-            z-index: 10000;
-            display: none;
-        `;
+
+        const content = document.createElement('div');
+        content.className = 'loading-content';
+
+        const spinner = document.createElement('div');
+        spinner.className = 'loading-spinner';
+
+        const label = document.createElement('span');
+        label.textContent = 'Loading...';
+
+        content.appendChild(spinner);
+        content.appendChild(label);
+        indicator.appendChild(content);
+
         document.body.appendChild(indicator);
         return indicator;
     }
@@ -319,19 +348,21 @@
      */
     function createNotification(message, type) {
         const notification = document.createElement('div');
-        notification.className = `alert alert-${type}`;
-        notification.innerHTML = `
-            <span>${message}</span>
-            <button type="button" onclick="this.parentElement.remove()" aria-label="Close notification">×</button>
-        `;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            max-width: 400px;
-            z-index: 10001;
-            animation: slideIn 0.3s ease;
-        `;
+        const safeType = ['info', 'success', 'warning', 'error'].includes(type) ? type : 'info';
+        notification.className = `alert alert-${safeType} envy-toast`;
+
+        const text = document.createElement('span');
+        text.textContent = String(message || '');
+
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.setAttribute('aria-label', 'Close notification');
+        close.textContent = '×';
+        close.addEventListener('click', () => notification.remove());
+
+        notification.appendChild(text);
+        notification.appendChild(close);
+
         return notification;
     }
 
@@ -428,6 +459,16 @@
      * Fetch progress update
      */
     function fetchProgressUpdate(id) {
+        try {
+            window.EnvySecurityUtils.validateApiSegment(id, 'progress id');
+        } catch (error) {
+            if (error.name === 'ValidationError') {
+                console.warn('Invalid progress id:', error.code);
+                return;
+            }
+            throw error;
+        }
+
         ajaxRequest(`/api/progress/${id}`)
             .then(data => {
                 updateProgressElement(id, data);
@@ -557,15 +598,8 @@
         // Mobile menu toggle
         const navToggle = document.createElement('button');
         navToggle.className = 'nav-toggle';
-        navToggle.innerHTML = '☰';
-        navToggle.style.cssText = `
-            display: none;
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            color: #007bff;
-            cursor: pointer;
-        `;
+        navToggle.type = 'button';
+        navToggle.textContent = '☰';
 
         const header = document.querySelector('.header');
         if (header) {
@@ -576,11 +610,12 @@
         // Show/hide toggle based on screen size
         function checkScreenSize() {
             if (window.innerWidth <= 768) {
-                navToggle.style.display = 'block';
-                cache.navTabs.style.display = 'none';
+                navToggle.classList.add('nav-toggle-visible');
+                cache.navTabs.classList.add('nav-tabs-mobile-hidden');
             } else {
-                navToggle.style.display = 'none';
-                cache.navTabs.style.display = 'flex';
+                navToggle.classList.remove('nav-toggle-visible');
+                cache.navTabs.classList.remove('nav-tabs-mobile-hidden');
+                cache.navTabs.classList.remove('nav-tabs-mobile-open');
             }
         }
 
@@ -594,16 +629,7 @@
     function toggleMobileMenu() {
         const nav = cache.navTabs;
         if (nav) {
-            nav.style.display = nav.style.display === 'flex' ? 'none' : 'flex';
-            if (nav.style.display === 'flex') {
-                nav.style.flexDirection = 'column';
-                nav.style.position = 'absolute';
-                nav.style.top = '100%';
-                nav.style.left = '0';
-                nav.style.right = '0';
-                nav.style.background = 'white';
-                nav.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-            }
+            nav.classList.toggle('nav-tabs-mobile-open');
         }
     }
 
@@ -649,7 +675,7 @@
      * Generate CSRF token
      */
     function generateCSRFToken() {
-        return Math.random().toString(36).substring(2) + Date.now().toString(36);
+        return window.EnvySecurityUtils.generateSecureToken(16);
     }
 
     /**
@@ -683,11 +709,25 @@
      * Fetch stat update
      */
     function fetchStatUpdate(stat) {
+        try {
+            window.EnvySecurityUtils.validateApiSegment(stat, 'stat');
+        } catch (error) {
+            if (error.name === 'ValidationError') {
+                console.warn('Invalid stat parameter:', error.code);
+                return;
+            }
+            throw error;
+        }
+
         ajaxRequest(`/api/stats/${stat}`)
             .then(data => {
+                if (!data || (typeof data.value !== 'string' && typeof data.value !== 'number')) {
+                    throw new window.EnvySecurityUtils.ValidationError('INVALID_RESPONSE', 'Unexpected stat response shape');
+                }
+
                 const element = document.querySelector(`[data-stat="${stat}"]`);
                 if (element) {
-                    element.textContent = data.value;
+                    element.textContent = String(data.value);
                 }
             })
             .catch(error => {

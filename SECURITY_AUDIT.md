@@ -52,6 +52,8 @@ generateCSRFToken() {
 
 **Priority:** IMMEDIATE (implement before production)
 
+**Status (2026-04-22):** RESOLVED in `6b50aed` (CSRF token generation migrated to `crypto.getRandomValues()` with base64url output and runtime validation paths).
+
 ---
 
 ### 1.2 DOM-based XSS via innerHTML
@@ -124,6 +126,8 @@ Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{random}';
 
 **Priority:** IMMEDIATE (active attack vector)
 
+**Status (2026-04-22):** RESOLVED in `07af6a0` + `3f3cac9` (DOMPurify vendored locally, unsafe sinks removed/sanitized, inline handlers removed for strict CSP compatibility).
+
 ---
 
 ## 2. HIGH PRIORITY ISSUES
@@ -187,6 +191,8 @@ window.location.href = validateRedirectUrl(url) ? url : '/';
 
 **Priority:** IMMEDIATE
 
+**Status (2026-04-22):** RESOLVED in `37d3746` (all redirect flows now validated against internal allowlist and dangerous schemes are rejected).
+
 ---
 
 ### 2.2 Weak CSP Configuration
@@ -220,6 +226,8 @@ styleSrc: ["'self'"],   // Use external stylesheets only
 ```
 
 **Priority:** URGENT (currently active vulnerability)
+
+**Status (2026-04-22):** RESOLVED in `3f3cac9` + `6b50aed` (CSP no longer uses `'unsafe-inline'`; external handlers/styles wired for Remote modern pages).
 
 ---
 
@@ -260,6 +268,8 @@ getRemainingRequests() {
 
 **Priority:** HIGH (impacts account security)
 
+**Status (2026-04-22):** RESOLVED in `6b50aed` (rate limiter path corrected to `this.config.windowMs`/`this.config.maxRequests`).
+
 ---
 
 ### 2.4 Duplicate/Inconsistent CSRF Implementations
@@ -282,6 +292,8 @@ getRemainingRequests() {
 - Use security-config.js consistently
 
 **Priority:** HIGH (architectural issue)
+
+**Status (2026-04-22):** RESOLVED in `6b50aed` (Remote UI now prefers centralized secure token source, eliminating weak parallel path).
 
 ---
 
@@ -337,6 +349,8 @@ function fetchStatUpdate(stat) {
 ```
 
 **Priority:** HIGH (validation missing)
+
+**Status (2026-04-22):** RESOLVED in `37d3746` (boundary validators added for dynamic params/methods and typed validation errors introduced).
 
 ---
 
@@ -605,6 +619,7 @@ function submitFormAjax(form) {
 ### 4.1 Missing JS/Unit Tests for Remote Security Functions
 **Finding:** The repository contains tests (C++ tests in `tests/`), but no dedicated JavaScript/unit test files were identified for the Remote security-critical functions reviewed in this audit.  
 **Severity:** HIGH  
+**Status (2026-04-22):** RESOLVED in `4d66396` (Jest suite added for CSRF, redirect, validation, CSP, and rate-limiter regression coverage).
 **Impact:**
 - CSRF protection logic in the audited Remote JS code is not covered by dedicated unit tests
 - Session management behavior for these functions is not exercised by targeted JS tests

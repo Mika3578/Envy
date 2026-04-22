@@ -9,7 +9,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
     <!-- Security Headers -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; font-src 'self' https:;">
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
@@ -25,9 +25,14 @@
 
     <!-- Modern CSS -->
     <link rel="stylesheet" type="text/css" href="Envy-modern.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="modern-inline.css" media="screen">
 
     <!-- JavaScript Libraries -->
+    <script src="vendor/purify.min.js" defer></script>
+    <script src="security-utils.js" defer></script>
+    <script src="security-config.js" defer></script>
     <script src="envy-modern.js" defer></script>
+    <script src="modern-page-handlers.js" defer></script>
 
     <!-- Theme Color for Mobile Browsers -->
     <meta name="theme-color" content="#007bff">
@@ -37,48 +42,6 @@
     <meta property="og:title" content="<%= text_metatitle %>">
     <meta property="og:description" content="Remote control interface for Envy P2P client">
     <meta property="og:type" content="website">
-
-    <style>
-        /* Critical CSS for above-the-fold content */
-        .loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            transition: opacity 0.3s ease;
-        }
-
-        .loading-screen.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .loading-content {
-            text-align: center;
-            color: white;
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
 </head>
 <body>
     <!-- Loading Screen -->
