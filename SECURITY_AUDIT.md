@@ -70,15 +70,15 @@ function updateContent(html) {
 }
 
 // Line 282
-cache.notification.innerHTML = `<div class="loading-spinner"></div>`;
+indicator.innerHTML = `<div class="loading-spinner"></div>`;
 
 // Line 323
-cache.notificationContainer.innerHTML = `<div class="notification ${type}">${message}</div>`;
+notification.innerHTML = `<div class="notification ${type}">${message}</div>`;
 ```
 
 **Issues:**
 1. Direct HTML insertion without sanitization
-2. No Content Security Policy enforcement
+2. Existing Content Security Policy is weakened by `'unsafe-inline'`, reducing XSS protection
 3. User-controlled data (message, type) inserted directly
 4. Server-provided HTML not validated
 
@@ -90,11 +90,17 @@ cache.notificationContainer.innerHTML = `<div class="notification ${type}">${mes
 - Defacement
 
 **Remediation:**
-1. Install DOMPurify: `npm install dompurify`
+1. Add DOMPurify via a vendored script file or CDN with subresource integrity (the Remote UI is loaded via plain `<script>` tags with no npm/module build step):
+```html
+<!-- Option A: Vendor DOMPurify alongside envy-modern.js -->
+<script src="purify.min.js"></script>
+
+<!-- Option B: CDN with integrity hash (verify hash matches the version used) -->
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"
+        integrity="sha384-..." crossorigin="anonymous"></script>
+```
 2. Replace innerHTML with safer alternatives:
 ```javascript
-import DOMPurify from 'dompurify';
-
 function updateContent(html) {
     if (cache.mainContent) {
         cache.mainContent.innerHTML = DOMPurify.sanitize(html);
@@ -107,11 +113,11 @@ function showNotification(message, type) {
     const notif = document.createElement('div');
     notif.className = `notification ${type}`;
     notif.textContent = message;  // Safe: text only
-    cache.notificationContainer.appendChild(notif);
+    document.body.appendChild(notif);
 }
 ```
 
-3. Implement strict Content Security Policy:
+3. Strengthen the existing Content Security Policy by removing `'unsafe-inline'`:
 ```
 Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{random}'; style-src 'self'
 ```
@@ -344,7 +350,7 @@ function fetchStatUpdate(stat) {
 **Issues:**
 1. **Python 2 Syntax** (EOL: January 1, 2020):
    - Line 11: `print "scanning..."` → `print("scanning...")`
-   - Line 152: `print >>sys.stderr, "..."` → `print("...", file=sys.stderr)`
+   - Around line 152: legacy redirected print syntax such as `print >>out, ...` should be converted to `print(..., file=out)`
 
 2. **Bare Exception Handlers** (Lines 19, 40, 47, 110, 114, 159):
    ```python
@@ -357,28 +363,25 @@ function fetchStatUpdate(stat) {
    - Masks programming errors
    - Makes debugging impossible
 
-3. **Unsafe File Operations** (Lines 48-50):
-   ```python
-   fso = CreateObject("Scripting.FileSystemObject")  # COM object - Windows-specific
-   ```
-
 **Impact:**
 - Silent failures hide bugs
 - Security issues masked
 - Code unmaintainable
-- Not cross-platform
 
 **Remediation:**
-1. Migrate to Python 3:
+1. Migrate to Python 3 using the bundled migration tool:
 ```bash
-python -m pip install 2to3
-2to3 -w Services/LibUTP/parse_log.py
+# Use the bundled migration tool when available
+python -m lib2to3 -w Services/LibUTP/parse_log.py
+# or, if the 2to3 script is available on PATH
+# 2to3 -w Services/LibUTP/parse_log.py
 ```
 
 2. Use specific exception handlers:
 ```python
 try:
-    svnfile = fso.OpenTextFile(".svn\\all-wcprops")
+    with open(".svn/all-wcprops") as svnfile:
+        pass  # process file
 except FileNotFoundError:
     logger.warning("SVN props file not found")
     continue
@@ -400,7 +403,7 @@ svn_props = Path(".svn") / "all-wcprops"
 ### 3.2 Magic Numbers and Hardcoded Values
 **File:** `Remote/security-config.js` (Throughout)  
 **Severity:** MEDIUM  
-**CWE:** CWE-1025 (Comparison Using Wrong Factors)
+**CWE:** N/A (code quality finding; no direct CWE mapping)
 
 **Examples:**
 - Line 19: `tokenLifetime: 3600000` (1 hour in ms - unclear)
@@ -599,16 +602,16 @@ function submitFormAjax(form) {
 
 ## 4. ADDITIONAL FINDINGS
 
-### 4.1 Missing Unit Tests for Security Functions
-**Finding:** No test files found for security-critical functions  
+### 4.1 Missing JS/Unit Tests for Remote Security Functions
+**Finding:** The repository contains tests (C++ tests in `tests/`), but no dedicated JavaScript/unit test files were identified for the Remote security-critical functions reviewed in this audit.  
 **Severity:** HIGH  
 **Impact:**
-- CSRF protection not validated
-- Session management not tested
-- Security regressions possible
+- CSRF protection logic in the audited Remote JS code is not covered by dedicated unit tests
+- Session management behavior for these functions is not exercised by targeted JS tests
+- Security regressions in this code path may go undetected
 
 **Recommendation:**
-Create test files:
+Create dedicated JS/unit test files for these functions, for example:
 ```
 tests/
   ├── security-config.test.js
@@ -724,10 +727,16 @@ safety check
 
 ## 8. SECURITY CONTACTS
 
-For security issues, do not open public issues. Instead:
-1. Email security team at security@envyproject.org
-2. Or use responsible disclosure form on project website
-3. Issues will be addressed within 48 hours
+**Maintainer action required:** This audit does not verify an official in-repository
+security disclosure policy or contact channel.
+
+Before publishing or sharing this report, either:
+1. Link to the project's documented security policy/contact information in-repo
+   (for example, `SECURITY.md`), or
+2. Replace this section with maintainer-approved disclosure instructions.
+
+Until that policy exists, do not treat this report as the authoritative source for
+security contact details or response-time commitments.
 
 ---
 
@@ -763,7 +772,7 @@ For security issues, do not open public issues. Instead:
 | CWE-693 | Weak CSP / Session mgmt | security-config.js:38,248 | HIGH |
 | CWE-863 | Rate limiter bug | security-config.js:466 | HIGH |
 | CWE-390 | Bare except clauses | parse_log.py:19,40,47 | MEDIUM |
-| CWE-1025 | Magic numbers | security-config.js | MEDIUM |
+| N/A | Magic numbers | security-config.js | MEDIUM |
 | CWE-20 | Missing input validation | envy-modern.js:686 | HIGH |
 | CWE-352 | Form CSRF | envy-modern.js:154 | MEDIUM |
 
