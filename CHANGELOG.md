@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Documentation governance baseline: added comprehensive audit reports under `docs/audit/` (architecture, security, code quality, dependency, performance).
+- New canonical docs: `docs/ARCHITECTURE.md`, `docs/API.md`, `docs/SETUP.md`, `docs/CONTRIBUTING.md`, `docs/TESTING.md`, `docs/DEPLOYMENT.md`, and living `docs/DEVELOPMENT_PLAN.md`.
+- GitHub community/automation configuration: Markdown issue templates, `security.yml` (secret scanning), `CODEOWNERS`, and Dependabot configuration for GitHub Actions.
+- Agent guidance files: root `CLAUDE.md`, root `AGENTS.md`, and refreshed `.cursor/rules/README.md`.
+
 ### Changed
+- Rewrote root `README.md` to reflect current repository layout, build entry points, and documentation map.
+- Updated `.github/PULL_REQUEST_TEMPLATE.md` to align with risk-based review and validation reporting.
 - **Full protocol comparison audit** - Comprehensive comparison against reference implementations (eMule, aMule, libtorrent, qBittorrent, Transmission)
   - Updated `docs/10_dev/status.md` with detailed feature matrices for all protocol areas
   - Updated `docs/10_dev/roadmap.md` with evidence-based phases and accurate TODO items
