@@ -7,7 +7,7 @@
 ## Dependency Inventory (Observed)
 
 | Component | Source Location | Observed Version Signal | Status |
-|---|---|---:|---|
+|---|---|---|---|
 | SQLite | `Services/SQLite/sqlite3.h` | `3.51.1` | Current/newer snapshot present |
 | zlib | `Services/zlib/zlib.h` | `1.3` | Current baseline |
 | MiniUPnPc | `Services/MiniUPnP/miniupnpc.h` | `2.0` (2016 header metadata) | Likely outdated |
