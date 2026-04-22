@@ -481,7 +481,7 @@ void CHostCacheWnd::OnGetInfoTip(NMHDR* pNMHDR, LRESULT* pResult)
 		str.Format( L"Address: %s\nProtocol: %s\nStatus: %s\nUsers: %u/%u\nFiles: %u\nFailures: %u\nSuccesses: %u (%u%%)\nLast Seen: %u\nLast Success: %u\nAvg Response: %ums\nSource: %s\nFeatures: %s",
 			(LPCTSTR)pHost->Address(), (LPCTSTR)ProtocolToString( pHost->m_nProtocol ), (LPCTSTR)HostStatusString( pHost ),
 			pHost->m_nUserCount, pHost->m_nUserLimit, pHost->m_nFileLimit, pHost->m_nFailures,
-			pHost->m_nSuccesses, pHost->SuccessRate(), pHost->m_tSeen, pHost->m_tLastSuccess,
+			pHost->m_nSuccesses, pHost->SuccessRate(), pHost->Seen(), pHost->m_tLastSuccess,
 			pHost->m_nAvgResponse, (LPCTSTR)( pHost->m_sSource.IsEmpty() ? L"Unknown" : pHost->m_sSource ),
 			(LPCTSTR)FeatureFlagsString( pHost ) );
 		_tcsncpy_s( pInfo->pszText, pInfo->cchTextMax, str, _TRUNCATE );
