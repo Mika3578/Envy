@@ -492,7 +492,13 @@ void CHostCacheWnd::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 void CHostCacheWnd::OnGetInfoTip(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NMLVGETINFOTIP* pInfo = (NMLVGETINFOTIP*)pNMHDR;
-	if ( CHostCacheHostPtr pHost = (CHostCacheHostPtr)m_wndList.GetItemData( pInfo->iItem ) )
+	CHostCacheHostPtr pHost = (CHostCacheHostPtr)m_wndList.GetItemData( pInfo->iItem );
+	if ( ! pHost || ! HostCache.Check( pHost ) )
+	{
+		*pResult = 0;
+		return;
+	}
+
 	{
 		const DWORD tSeen = pHost->Seen();
 		const CString strLastSeen = tSeen
