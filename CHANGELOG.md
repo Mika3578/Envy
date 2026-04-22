@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- IPv6 Phase 0 planning docs: created `docs/ipv6/SCOPE.md` (file impact inventory + migration scope) and `docs/ipv6/PLAN.md` (living phased dual-stack plan, risks, rollback).
 - Documentation governance baseline: added comprehensive audit reports under `docs/audit/` (architecture, security, code quality, dependency, performance).
 - New canonical docs: `docs/ARCHITECTURE.md`, `docs/API.md`, `docs/SETUP.md`, `docs/CONTRIBUTING.md`, `docs/TESTING.md`, `docs/DEPLOYMENT.md`, and living `docs/DEVELOPMENT_PLAN.md`.
 - GitHub community/automation configuration: Markdown issue templates, `security.yml` (secret scanning), `CODEOWNERS`, and Dependabot configuration for GitHub Actions.

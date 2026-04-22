@@ -3,7 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-04-22
-- **Changelog Entry:** 2026-04-22 — Initial comprehensive planning baseline established during documentation and audit pass.
+- **Changelog Entry:** 2026-04-22 — Added IPv6 dual-stack Phase 0 scope/plan docs (`docs/ipv6/SCOPE.md`, `docs/ipv6/PLAN.md`).
 
 ## Update Protocol
 1. Update **Last Updated** date on every meaningful change.
@@ -57,6 +57,7 @@
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-04-22:** Added IPv6 dual-stack Phase 0 scoping inventory and phased rollout plan under `docs/ipv6/`.
 - **2026-04-22:** Keep Visual Studio solution as authoritative full-build path while CMake remains partial.
 - **2026-04-22:** Standardize new audit reports under `docs/audit/`.
 - **2026-04-22:** Treat this plan as a required living artifact for project management continuity.
