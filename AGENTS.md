@@ -26,3 +26,9 @@
 - Use clear commit messages with one intent per commit.
 - Include risk notes for security, dependency, and performance impacts.
 - Surface any human decisions required before implementation.
+
+
+### 6) Security Patterns
+- Always use `crypto.getRandomValues` for security tokens (no `Math.random` for secrets).
+- Never assign user-controlled input directly to `innerHTML`; use `textContent` or approved sanitization.
+- Redirects must pass through an internal allowlist validator (block absolute, protocol-relative, and dangerous schemes).

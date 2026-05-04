@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Security
+- Remote UI hardening completed for CRITICAL/HIGH audit findings: cryptographically secure CSRF tokens, centralized token handling, DOMPurify-backed sanitization for dynamic HTML, redirect allowlist enforcement, and boundary API input validation with typed errors.
+- CSP tightened for modern Remote pages by removing `'unsafe-inline'` and migrating inline handlers/styles/scripts to external assets (`modern-page-handlers.js`, `modern-inline.css`).
+- Rate limiter config-path bug fixed (`windowMs`/`maxRequests` now sourced from the correct object path) with regression test coverage.
+- Added JavaScript security regression suite in `Remote/tests` and integrated into `.github/workflows/code-quality.yml`.
+
+
 ### Added
 - Host Cache diagnostics upgrade: richer columns for protocol/status/ping/uptime/load/success metrics, enhanced tooltips, and persisted host quality metadata in `HostCache.dat` with backward-compatible defaults.
 - Documentation governance baseline: added comprehensive audit reports under `docs/audit/` (architecture, security, code quality, dependency, performance).

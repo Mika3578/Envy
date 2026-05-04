@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-04-22
+- **Changelog Entry:** 2026-04-22 — Remote CRITICAL/HIGH security findings remediated; JS regression suite and CI gate added.
 - **Changelog Entry:** 2026-04-22 — Host Cache UI/data-model enhancement pass started (richer host diagnostics columns, tooltip detail, and persistent quality metrics fields).
 
 ## Update Protocol
@@ -22,6 +23,8 @@
 - CI workflows for build/quality/security exist.
 - Hash-focused unit tests integrated in repo and workflows.
 - Audit and core documentation baseline established.
+- Remote CRITICAL/HIGH security items remediated (CSRF, XSS sanitization, CSP hardening, redirects, rate limiter, API input validation).
+- Remote JS security regression tests wired into `code-quality.yml`.
 
 ### In Progress
 - C++ modernization across legacy modules.
@@ -36,7 +39,7 @@
 
 ### Phase 1 — Stability & Visibility (P0)
 - [ ] Create dependency register + ownership map (2d)
-- [ ] Add threat model and secure-coding checklist (2d)
+- [x] Add threat model and secure-coding checklist (2d)
 - [ ] Expand tests for protocol parser/state-machine paths (5d)
 - [ ] Establish baseline metrics (startup, memory, throughput) (3d)
 
@@ -58,6 +61,7 @@
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-04-22:** Remote web UI must use cryptographic token generation (`crypto.getRandomValues`) and allowlist-based redirect validation for all client-side navigation paths.
 - **2026-04-22:** Keep Visual Studio solution as authoritative full-build path while CMake remains partial.
 - **2026-04-22:** Standardize new audit reports under `docs/audit/`.
 - **2026-04-22:** Treat this plan as a required living artifact for project management continuity.
