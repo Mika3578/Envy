@@ -1359,12 +1359,11 @@ CString CHostCacheHost::Address() const
 
 DWORD CHostCacheHost::SuccessRate() const
 {
-	const DWORD nFailures =
-		( m_nTotalFailures > m_nFailures ) ? m_nTotalFailures : m_nFailures;
-
+	// Use the dedicated lifetime failure counter so the rate is not inflated by
+	// the consecutive-failure counter being reset to 0 on success.
 	const ULONGLONG nTotal =
 		static_cast< ULONGLONG >( m_nSuccesses ) +
-		static_cast< ULONGLONG >( nFailures );
+		static_cast< ULONGLONG >( m_nTotalFailures );
 
 	return nTotal
 		? static_cast< DWORD >(

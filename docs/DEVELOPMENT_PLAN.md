@@ -7,6 +7,7 @@
 - **Changelog Entry:** 2026-04-22 — Host Cache UI/data-model enhancement pass started (richer host diagnostics columns, tooltip detail, and persistent quality metrics fields).
 - **Changelog Entry:** 2026-04-22 — Added IPv6 dual-stack Phase 0 scope/plan docs (`docs/ipv6/SCOPE.md`, `docs/ipv6/PLAN.md`).
 - **Changelog Entry:** 2026-05-04 — Host Cache quality metrics: fixed `PruneOldHosts` to persist timeout failures in `m_nTotalFailures`, fixed infotip lock safety, fixed custom-draw selection highlight, fixed `m_tFirstSeen` and `m_sSource` on import paths.
+- **Changelog Entry:** 2026-05-04 — Host Cache UI: removed placeholder TLS/IPv6 columns (no per-host data), fixed `m_nDailyUptime` formatted as duration (H:MM:SS) not wall-clock, simplified `SuccessRate()` to use `m_nTotalFailures` only.
 
 ## Update Protocol
 1. Update **Last Updated** date on every meaningful change.

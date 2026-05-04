@@ -49,8 +49,6 @@ enum {
 	COL_PING,
 	COL_UPTIME,
 	COL_OBFUSCATION,
-	COL_TLS,
-	COL_IPV6,
 	COL_SEEN,
 	COL_FIRSTSEEN,
 	COL_LASTSUCCESS,
@@ -204,8 +202,6 @@ int CHostCacheWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndList.InsertColumn( COL_PING,			L"Ping (ms)",		LVCFMT_RIGHT,	 80 );
 	m_wndList.InsertColumn( COL_UPTIME,		L"Uptime",		LVCFMT_RIGHT,	 80 );
 	m_wndList.InsertColumn( COL_OBFUSCATION,	L"TCP/UDP Obfuscation",LVCFMT_LEFT,	120 );
-	m_wndList.InsertColumn( COL_TLS,			L"TLS",			LVCFMT_CENTER,	 45 );
-	m_wndList.InsertColumn( COL_IPV6,			L"IPv6",			LVCFMT_CENTER,	 50 );
 	m_wndList.InsertColumn( COL_SEEN,			L"Last Seen",		LVCFMT_RIGHT,	128 );
 	m_wndList.InsertColumn( COL_FIRSTSEEN,		L"First Seen",		LVCFMT_RIGHT,	128 );
 	m_wndList.InsertColumn( COL_LASTSUCCESS,	L"Last Success",		LVCFMT_RIGHT,	128 );
@@ -291,8 +287,6 @@ void CHostCacheWnd::Update(BOOL bForce)
 		pItem->Set( COL_PROTOCOL, ProtocolToString( pHost->m_nProtocol ) );
 		pItem->Set( COL_STATUS, HostStatusString( pHost ) );
 		pItem->Set( COL_OBFUSCATION, ObfuscationString( pHost ) );
-		pItem->Set( COL_TLS, L"" );		// TLS capability not yet tracked per-host
-		pItem->Set( COL_IPV6, L"" );	// IPv6 capability not yet tracked per-host
 
 		if ( pHost->m_pVendor )
 			pItem->Set( COL_CLIENT, pHost->m_pVendor->m_sName );
@@ -321,8 +315,13 @@ void CHostCacheWnd::Update(BOOL bForce)
 		pItem->Set( COL_INFO, pHost->m_sDescription );
 		if ( pHost->m_nDailyUptime )	// Only G1?
 		{
-			pTime = (time_t)pHost->m_nDailyUptime;
-			pItem->Set( COL_UPTIME, pTime.Format( L"%H:%M:%S" ) );
+			// m_nDailyUptime is a duration in seconds; format as H:MM:SS (not as a wall-clock time).
+			DWORD nSecs = pHost->m_nDailyUptime;
+			const DWORD nHours   = nSecs / 3600; nSecs %= 3600;
+			const DWORD nMinutes = nSecs /   60; nSecs %=   60;
+			CString strUptime;
+			strUptime.Format( L"%u:%02u:%02u", nHours, nMinutes, nSecs );
+			pItem->Set( COL_UPTIME, strUptime );
 		}
 
 		if ( pHost->m_nLastPing )
