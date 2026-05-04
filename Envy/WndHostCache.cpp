@@ -485,9 +485,9 @@ void CHostCacheWnd::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 				CRect rcFill( rcBar );
 				rcFill.right = rcBar.left + ( rcBar.Width() * min( nLoad, 100 ) ) / 100;
 
-				// Use system colors for the track background and fill so the bar remains readable
-				// in high-contrast and custom skin setups. Semantic coding is preserved via
-				// the load percentage text drawn on top.
+				// Use system colors for track background and low-load fill so the bar remains
+				// readable in high-contrast and custom skin setups. Accessibility takes precedence
+				// over color-based semantics; the load percentage text always conveys the value.
 				dc.FillSolidRect( &rcBar, GetSysColor( COLOR_BTNSHADOW ) );
 				dc.FillSolidRect( &rcFill,
 					nLoad > 85 ? RGB( 220, 75, 75 ) :
