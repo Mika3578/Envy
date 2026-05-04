@@ -66,5 +66,5 @@
 ## Open Questions
 1. Should this project explicitly remain Windows-only, or is cross-platform parity still a target?
 2. What is the acceptable backward-compatibility policy for legacy protocols/features?
-3. Which dependency update cadence (monthly/quarterly) is realistic for maintainers?
+3. ~~Which dependency update cadence (monthly/quarterly) is realistic for maintainers?~~ **Resolved 2026-05-04:** Quarterly for vendored C/C++; monthly for GitHub Actions (see Decisions Log).
 4. Should remote API documentation be strict contract-first or implementation-first?
