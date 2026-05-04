@@ -3,6 +3,7 @@
 - **Date:** 2026-04-22
 - **Scope:** In-repo vendored libraries, GitHub Actions dependencies, language/runtime dependencies
 - **Method:** Static version macro inspection and workflow review
+- **Dependency Register:** See the living register at [`docs/DEPENDENCIES.md`](../DEPENDENCIES.md).
 
 ## Dependency Inventory (Observed)
 

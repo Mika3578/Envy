@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-04-22
+- **Last Updated:** 2026-05-04
+- **Changelog Entry:** 2026-05-04 — Completed Phase 1 dependency register + ownership map and recorded maintenance cadence.
 - **Changelog Entry:** 2026-04-22 — Initial comprehensive planning baseline established during documentation and audit pass.
 
 ## Update Protocol
@@ -34,7 +35,7 @@
 ## Roadmap
 
 ### Phase 1 — Stability & Visibility (P0)
-- [ ] Create dependency register + ownership map (2d)
+- [x] Create dependency register + ownership map (2d)
 - [ ] Add threat model and secure-coding checklist (2d)
 - [ ] Expand tests for protocol parser/state-machine paths (5d)
 - [ ] Establish baseline metrics (startup, memory, throughput) (3d)
@@ -57,6 +58,7 @@
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-05-04:** Set dependency review cadence to quarterly for vendored C/C++ libraries and monthly for GitHub Actions dependencies.
 - **2026-04-22:** Keep Visual Studio solution as authoritative full-build path while CMake remains partial.
 - **2026-04-22:** Standardize new audit reports under `docs/audit/`.
 - **2026-04-22:** Treat this plan as a required living artifact for project management continuity.

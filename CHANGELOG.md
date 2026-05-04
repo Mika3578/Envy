@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Dependency governance docs: added `docs/DEPENDENCIES.md` (register + ownership map) and `docs/THIRD_PARTY_LICENSES.md` (vendored attribution skeleton).
 - Legacy refactor plan: `docs/10_dev/legacy-refactor-plan.md` — phased PR sequence (PR-01 → PR-26) with ready-to-paste prompts, sized for human review and aligned with `AGENTS.md` rules.
 - Documentation governance baseline: added comprehensive audit reports under `docs/audit/` (architecture, security, code quality, dependency, performance).
 - New canonical docs: `docs/ARCHITECTURE.md`, `docs/API.md`, `docs/SETUP.md`, `docs/CONTRIBUTING.md`, `docs/TESTING.md`, `docs/DEPLOYMENT.md`, and living `docs/DEVELOPMENT_PLAN.md`.
