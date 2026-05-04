@@ -196,7 +196,7 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 		pIndex = NULL;
 	}
 
-	DWORD nBestPos = 0;
+	size_t nBestPos = 0;
 	BOOL bHaveBest = FALSE;
 	DWORD nBestOverhead = 0xFFFFFFFF;
 	DWORD nCount;
@@ -209,7 +209,9 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 
 			if ( nOverhead < nBestOverhead )
 			{
-				nBestPos = (DWORD)( pIndex - m_pIndex );
+				const ptrdiff_t nDiff = pIndex - m_pIndex;
+				ASSERT( nDiff >= 0 && static_cast< DWORD >( nDiff ) < m_nBuffer );
+				nBestPos = static_cast< size_t >( nDiff );
 				bHaveBest = TRUE;
 				nBestOverhead = nOverhead;
 				if ( nOverhead == 0 ) break;
