@@ -1,7 +1,7 @@
 //
 // CtrlSearchDetailPanel.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -764,11 +764,20 @@ BOOL CSearchDetailPanel::CachePreviewImage(const Hashes::Sha1Hash& /*oSHA1*/, LP
 
 	if ( m_pMatches->FileToItem( m_pFile ) != 0xFFFFFFFF )
 	{
-		if ( m_pFile->m_pPreview != NULL ) delete [] m_pFile->m_pPreview;
+		BYTE* pNewPreview = NULL;
+		if ( nBuffer > 0 )
+		{
+			if ( pBuffer == NULL ) return FALSE;
 
+			pNewPreview = new BYTE[ nBuffer ];
+			if ( pNewPreview == NULL ) return FALSE;
+
+			CopyMemory( pNewPreview, pBuffer, nBuffer );
+		}
+
+		if ( m_pFile->m_pPreview != NULL ) delete [] m_pFile->m_pPreview;
+		m_pFile->m_pPreview = pNewPreview;
 		m_pFile->m_nPreview = nBuffer;
-		m_pFile->m_pPreview = new BYTE[ nBuffer ];
-		CopyMemory( m_pFile->m_pPreview, pBuffer, nBuffer );
 
 		return TRUE;
 	}
