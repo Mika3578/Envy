@@ -329,8 +329,8 @@ void CHostCacheWnd::Update(BOOL bForce)
 			pItem->Format( COL_PING, L"%u", pHost->m_nLastPing );
 		if ( pHost->m_nAvgResponse )
 			pItem->Format( COL_AVGRESPONSE, L"%u", pHost->m_nAvgResponse );
-		if ( pHost->m_nFailures )
-			pItem->Format( COL_FAILURES, L"%u", pHost->m_nFailures );
+		if ( pHost->m_nTotalFailures )
+			pItem->Format( COL_FAILURES, L"%u", pHost->m_nTotalFailures );
 		if ( pHost->m_nSuccesses )
 			pItem->Format( COL_SUCCESSES, L"%u", pHost->m_nSuccesses );
 		pItem->Format( COL_SUCCESSRATE, L"%u", pHost->SuccessRate() );
