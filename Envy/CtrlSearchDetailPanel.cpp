@@ -17,6 +17,7 @@
 //
 
 #include "StdAfx.h"
+#include <new>
 #include "Settings.h"
 #include "Envy.h"
 #include "CtrlSearchDetailPanel.h"
@@ -769,7 +770,7 @@ BOOL CSearchDetailPanel::CachePreviewImage(const Hashes::Sha1Hash& /*oSHA1*/, LP
 		{
 			if ( pBuffer == NULL ) return FALSE;
 
-			pNewPreview = new BYTE[ nBuffer ];
+			pNewPreview = new (std::nothrow) BYTE[ nBuffer ];
 			if ( pNewPreview == NULL ) return FALSE;
 
 			CopyMemory( pNewPreview, pBuffer, nBuffer );
