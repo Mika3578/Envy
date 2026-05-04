@@ -291,8 +291,8 @@ void CHostCacheWnd::Update(BOOL bForce)
 		pItem->Set( COL_PROTOCOL, ProtocolToString( pHost->m_nProtocol ) );
 		pItem->Set( COL_STATUS, HostStatusString( pHost ) );
 		pItem->Set( COL_OBFUSCATION, ObfuscationString( pHost ) );
-		pItem->Set( COL_TLS, L"" );		// TLS capability not yet tracked per-host
-		pItem->Set( COL_IPV6, L"" );	// IPv6 capability not yet tracked per-host
+		pItem->Set( COL_TLS, L"N/A" );		// TLS capability not yet tracked per-host
+		pItem->Set( COL_IPV6, L"N/A" );	// IPv6 capability not yet tracked per-host
 
 		if ( pHost->m_pVendor )
 			pItem->Set( COL_CLIENT, pHost->m_pVendor->m_sName );
