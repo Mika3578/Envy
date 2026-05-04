@@ -733,6 +733,7 @@ void CHostCacheList::PruneOldHosts(DWORD tNow)
 			if ( pHost->m_tAck && tNow > pHost->m_tAck + Settings.Gnutella2.QueryHostDeadline )
 			{
 				pHost->m_tAck = 0;
+				pHost->m_tFailure = tNow;
 
 				m_nCookie++;
 				pHost->m_nFailures++;
@@ -744,6 +745,7 @@ void CHostCacheList::PruneOldHosts(DWORD tNow)
 			if ( pHost->m_tAck && tNow > pHost->m_tAck + Settings.BitTorrent.QueryHostDeadline )
 			{
 				pHost->m_tAck = 0;
+				pHost->m_tFailure = tNow;
 
 				m_nCookie++;
 				pHost->m_nFailures++;

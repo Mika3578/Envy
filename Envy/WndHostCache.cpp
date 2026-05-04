@@ -485,10 +485,13 @@ void CHostCacheWnd::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 				CRect rcFill( rcBar );
 				rcFill.right = rcBar.left + ( rcBar.Width() * min( nLoad, 100 ) ) / 100;
 
-				dc.FillSolidRect( &rcBar, RGB( 50, 50, 50 ) );
+				// Use system colors for the track background and fill so the bar remains readable
+				// in high-contrast and custom skin setups. Semantic coding is preserved via
+				// the load percentage text drawn on top.
+				dc.FillSolidRect( &rcBar, GetSysColor( COLOR_BTNSHADOW ) );
 				dc.FillSolidRect( &rcFill,
 					nLoad > 85 ? RGB( 220, 75, 75 ) :
-					( nLoad > 60 ? RGB( 230, 180, 60 ) : RGB( 80, 180, 90 ) ) );
+					( nLoad > 60 ? RGB( 230, 180, 60 ) : GetSysColor( COLOR_HIGHLIGHT ) ) );
 			}
 
 			dc.SetBkMode( TRANSPARENT );
@@ -539,7 +542,7 @@ void CHostCacheWnd::OnGetInfoTip(NMHDR* pNMHDR, LRESULT* pResult)
 		CString str;
 		str.Format( L"Address: %s\r\nProtocol: %s\r\nStatus: %s\r\nUsers: %u/%u\r\nFiles: %u\r\nFailures: %u\r\nSuccesses: %u (%u%%)\r\nLast Seen: %s\r\nLast Success: %s\r\nAvg Response: %ums\r\nSource: %s\r\nFeatures: %s",
 			(LPCTSTR)pHost->Address(), (LPCTSTR)ProtocolToString( pHost->m_nProtocol ), (LPCTSTR)HostStatusString( pHost ),
-			pHost->m_nUserCount, pHost->m_nUserLimit, pHost->m_nFileLimit, pHost->m_nFailures,
+			pHost->m_nUserCount, pHost->m_nUserLimit, pHost->m_nFileLimit, pHost->m_nTotalFailures,
 			pHost->m_nSuccesses, pHost->SuccessRate(), (LPCTSTR)strLastSeen, (LPCTSTR)strLastSuccess,
 			pHost->m_nAvgResponse, (LPCTSTR)( pHost->m_sSource.IsEmpty() ? L"Unknown" : pHost->m_sSource ),
 			(LPCTSTR)FeatureFlagsString( pHost ) );
