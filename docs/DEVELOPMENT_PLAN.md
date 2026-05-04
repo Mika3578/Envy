@@ -5,6 +5,7 @@
 - **Last Updated:** 2026-04-22
 - **Changelog Entry:** 2026-04-22 — Remote CRITICAL/HIGH security findings remediated; JS regression suite and CI gate added.
 - **Changelog Entry:** 2026-04-22 — Host Cache UI/data-model enhancement pass started (richer host diagnostics columns, tooltip detail, and persistent quality metrics fields).
+- **Changelog Entry:** 2026-04-22 — Added IPv6 dual-stack Phase 0 scope/plan docs (`docs/ipv6/SCOPE.md`, `docs/ipv6/PLAN.md`).
 
 ## Update Protocol
 1. Update **Last Updated** date on every meaningful change.
@@ -61,6 +62,7 @@
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-04-22:** Added IPv6 dual-stack Phase 0 scoping inventory and phased rollout plan under `docs/ipv6/`.
 - **2026-04-22:** Remote web UI must use cryptographic token generation (`crypto.getRandomValues`) and allowlist-based redirect validation for all client-side navigation paths.
 - **2026-04-22:** Keep Visual Studio solution as authoritative full-build path while CMake remains partial.
 - **2026-04-22:** Standardize new audit reports under `docs/audit/`.
