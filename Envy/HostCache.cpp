@@ -607,6 +607,9 @@ void CHostCacheList::OnFailure(const IN_ADDR* pAddress, WORD nPort, bool bRemove
 		pHost->m_nTotalFailures++;
 		pHost->m_tFailure = static_cast< DWORD >( time( NULL ) );
 		pHost->m_bCheckedLocally = TRUE;
+		// Clear the connect-attempt timestamp so a stale start time is not
+		// carried into the next OnSuccess() ping calculation.
+		pHost->m_tConnectAttempt = 0;
 
 		// Clear current IP address to re-resolve name later
 		if ( ! pHost->m_sAddress.IsEmpty() )
@@ -632,6 +635,7 @@ void CHostCacheList::OnFailure(LPCTSTR szAddress, bool bRemove)
 		pHost->m_nFailures++;
 		pHost->m_nTotalFailures++;
 		pHost->m_tFailure = static_cast< DWORD >( time( NULL ) );
+		pHost->m_tConnectAttempt = 0;
 		if ( pHost->m_sSource.IsEmpty() )
 			pHost->m_sSource = L"Local";
 
@@ -1599,10 +1603,18 @@ bool CHostCacheHost::ConnectTo(BOOL bAutomatic)
 	m_tConnectAttempt = GetTickCount64();
 
 	if ( m_pAddress.s_addr != INADDR_ANY )
-		return Neighbours.ConnectTo( m_pAddress, m_nPort, m_nProtocol, bAutomatic ) != NULL;
+	{
+		const bool bOK = Neighbours.ConnectTo( m_pAddress, m_nPort, m_nProtocol, bAutomatic ) != NULL;
+		if ( ! bOK )
+			m_tConnectAttempt = 0;	// Immediate failure: clear so next OnSuccess gets a valid ping
+		return bOK;
+	}
 
 	m_tConnect += 30;	// Throttle for 30 seconds
-	return Network.ConnectTo( m_sAddress, m_nPort, m_nProtocol ) != FALSE;
+	const bool bOK = Network.ConnectTo( m_sAddress, m_nPort, m_nProtocol ) != FALSE;
+	if ( ! bOK )
+		m_tConnectAttempt = 0;	// Immediate failure: clear so next OnSuccess gets a valid ping
+	return bOK;
 }
 
 //////////////////////////////////////////////////////////////////////

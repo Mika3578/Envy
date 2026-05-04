@@ -2,10 +2,11 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-04-22
+- **Last Updated:** 2026-05-04
 - **Changelog Entry:** 2026-04-22 — Remote CRITICAL/HIGH security findings remediated; JS regression suite and CI gate added.
 - **Changelog Entry:** 2026-04-22 — Host Cache UI/data-model enhancement pass started (richer host diagnostics columns, tooltip detail, and persistent quality metrics fields).
 - **Changelog Entry:** 2026-04-22 — Added IPv6 dual-stack Phase 0 scope/plan docs (`docs/ipv6/SCOPE.md`, `docs/ipv6/PLAN.md`).
+- **Changelog Entry:** 2026-05-04 — Host Cache quality metrics: fixed `PruneOldHosts` to persist timeout failures in `m_nTotalFailures`, fixed infotip lock safety, fixed custom-draw selection highlight, fixed `m_tFirstSeen` and `m_sSource` on import paths.
 
 ## Update Protocol
 1. Update **Last Updated** date on every meaningful change.
