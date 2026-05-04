@@ -657,7 +657,6 @@ CHostCacheHostPtr CHostCacheList::OnSuccess(const IN_ADDR* pAddress, WORD nPort,
 		const DWORD tNow = static_cast< DWORD >( time( NULL ) );
 		m_nCookie++;
 		pHost->m_tFailure = 0;
-		pHost->m_nFailures = 0;
 		// Note: m_nSuccesses counts any successful contact (includes BT DHT/extension replies,
 		// not only completed TCP connections). The UI displays this as "Successes".
 		pHost->m_nSuccesses++;
