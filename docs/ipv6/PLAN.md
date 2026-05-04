@@ -10,7 +10,7 @@ Deliver feature-flagged IPv6 dual-stack support across Envy networking surfaces 
 - IPv4-only deployments.
 
 ## Rollout guardrails
-- **Primary flag:** `Settings.Connection.EnableIPv6` (default ON) gates all new behavior.
+- **Primary flag:** `Settings.Connection.EnableIPv6` (default OFF initially) gates all new behavior; enable only after rollout validation confirms backward-compatible behavior.
 - **Preference flag:** `Settings.Connection.PreferIPv6` influences dial order only.
 - **Fallback policy:** if IPv6 initialization fails, continue in IPv4 mode.
 - **Compatibility:** every disk format bump includes dual-reader fallback.
@@ -50,11 +50,11 @@ Deliver feature-flagged IPv6 dual-stack support across Envy networking surfaces 
 ### Phase 2 — Socket layer dual-stack
 - TCP listen: `AF_INET6` + `IPV6_V6ONLY=0` with IPv4 fallback if unavailable.
 - UDP send/recv path selects family per endpoint.
-- Add `Connection.EnableIPv6` and `Connection.IPv6Port` settings.
+- Add `Settings.Connection.EnableIPv6` and `Settings.Connection.IPv6Port` settings.
 - UPnP/NAT-PMP attempt v6 mapping, log non-support as non-fatal.
 
 **Rollback**
-- Disable via `EnableIPv6=false` and retain prior IPv4 bind path.
+- Disable via `Settings.Connection.EnableIPv6=false` and retain prior IPv4 bind path.
 
 ### Phase 3 — Cache/discovery/filter/GeoIP
 - Host cache and discovery store `CEnvyAddress`.
@@ -109,7 +109,7 @@ Deliver feature-flagged IPv6 dual-stack support across Envy networking surfaces 
 5. **Medium:** G2 negotiation mistakes causing interoperability breakage.
 
 ## Rollback strategy
-- Runtime rollback: set `EnableIPv6=false`.
+- Runtime rollback: set `Settings.Connection.EnableIPv6=false`.
 - Code rollback: keep phased commits scoped by subsystem for selective reverts.
 - Data rollback: preserve `.bak` of old cache files before first dual-stack write.
 

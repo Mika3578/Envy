@@ -98,148 +98,19 @@
         <div class="grid grid-2">
             <div>
                 <ul class="link-list">
-                    <li><a href="http://getenvy.com" onclick="window.open(this.href); return false;">GetEnvy.com</a></li>
-                    <li><a href="http://getenvy.com/love" onclick="window.open(this.href); return false;">GetEnvy.com/Love</a></li>
-                    <li><a href="http://contentdb.emule-project.net" onclick="window.open(this.href); return false;">eMule content DB</a></li>
+                    <li><a href="http://getenvy.com" class="external-link">GetEnvy.com</a></li>
+                    <li><a href="http://getenvy.com/love" class="external-link">GetEnvy.com/Love</a></li>
+                    <li><a href="http://contentdb.emule-project.net" class="external-link">eMule content DB</a></li>
                 </ul>
             </div>
             <div>
                 <ul class="link-list">
-                    <li><a href="http://peerweb.org" onclick="window.open(this.href); return false;">PeerWeb.org</a></li>
-                    <li><a href="http://legaltorrents.com" onclick="window.open(this.href); return false;">Legal Torrents</a></li>
-                    <li><a href="<%= text_customlink || '#' %>" onclick="window.open(this.href); return false;"><%= text_customlink || 'Custom Link' %></a></li>
+                    <li><a href="http://peerweb.org" class="external-link">PeerWeb.org</a></li>
+                    <li><a href="http://legaltorrents.com" class="external-link">Legal Torrents</a></li>
+                    <li><a href="<%= text_customlink || '#' %>" class="external-link"><%= text_customlink || 'Custom Link' %></a></li>
                 </ul>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Activity Feed Script -->
-<script>
-(function() {
-    let activityInterval;
-
-    function loadRecentActivity() {
-        EnvyRemote.ajaxRequest('/api/recent-activity')
-            .then(data => {
-                updateActivityFeed(data);
-            })
-            .catch(error => {
-                console.warn('Failed to load activity:', error);
-                document.getElementById('recent-activity').innerHTML =
-                    '<div class="card-body"><p>Unable to load recent activity.</p></div>';
-            });
-    }
-
-    function updateActivityFeed(data) {
-        const container = document.getElementById('recent-activity');
-        if (!data.activities || data.activities.length === 0) {
-            container.innerHTML = '<div class="card-body"><p>No recent activity.</p></div>';
-            return;
-        }
-
-        const html = data.activities.map(activity => `
-            <div class="activity-item">
-                <span class="activity-time" data-timestamp="${activity.timestamp}">${formatTimeAgo(Date.now() - activity.timestamp)}</span>
-                <span class="activity-text">${activity.description}</span>
-            </div>
-        `).join('');
-
-        container.innerHTML = '<div class="card-body">' + html + '</div>';
-    }
-
-    function formatTimeAgo(diff) {
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
-
-        if (days > 0) return `${days}d ago`;
-        if (hours > 0) return `${hours}h ago`;
-        if (minutes > 0) return `${minutes}m ago`;
-        return `${seconds}s ago`;
-    }
-
-    // Load activity on page load
-    loadRecentActivity();
-
-    // Refresh every 30 seconds
-    activityInterval = setInterval(loadRecentActivity, 30000);
-
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-        if (activityInterval) {
-            clearInterval(activityInterval);
-        }
-    });
-})();
-</script>
-
-<style>
-.link-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.link-list li {
-    margin-bottom: 0.5rem;
-}
-
-.link-list a {
-    color: #007bff;
-    text-decoration: none;
-    padding: 0.5rem;
-    display: block;
-    border-radius: 4px;
-    transition: background-color 0.3s ease;
-}
-
-.link-list a:hover {
-    background-color: #f8f9fa;
-    text-decoration: underline;
-}
-
-.activity-item {
-    padding: 0.75rem;
-    border-bottom: 1px solid #dee2e6;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.activity-item:last-child {
-    border-bottom: none;
-}
-
-.activity-time {
-    font-size: 0.8rem;
-    color: #6c757d;
-    font-weight: 500;
-}
-
-.activity-text {
-    flex: 1;
-    margin-left: 1rem;
-    font-size: 0.9rem;
-}
-
-.text-center {
-    text-align: center;
-}
-
-@media (max-width: 768px) {
-    .activity-item {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .activity-time {
-        margin-bottom: 0.25rem;
-    }
-
-    .activity-text {
-        margin-left: 0;
-    }
-}
-</style>

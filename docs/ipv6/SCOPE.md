@@ -23,7 +23,7 @@ python (symbol density ranking for IPv4-only call sites)
 - Settings already contain some ED2K-oriented flags (`PreferIPv6`, `EnableDualStack`, `IPv6ConnectTimeout`) but this is not wired as a global address-family abstraction.
 
 ### Structural IPv4 coupling hotspots
-- Core types still use `SOCKADDR_IN` and `IN_ADDR` widely in connection, network routing, handshake, datagram, neighbor, and host/discovery caches.
+- Core types still use `SOCKADDR_IN` and `IN_ADDR` widely in connection, network routing, handshake, datagram, neighbour, and host/discovery caches.
 - String conversion/logging is heavily `inet_ntoa`/`inet_addr` based.
 - Cache indexes/map keys are `IN_ADDR` (`std::multimap<IN_ADDR,...>`), tightly coupling host cache internals to IPv4.
 
@@ -111,8 +111,8 @@ These should be addressed after Tier 0/1 conversion establishes `CEnvyAddress` a
 
 ### 4) Settings storage
 - `Settings.Connection` currently has IPv4-centric host/port fields.
-- Add global `Connection.EnableIPv6` + `Connection.IPv6Port` (and preference toggle) with defaults preserving existing behavior.
-- Preserve old settings keys; new keys optional with safe defaults.
+- Add global `Settings.Connection.EnableIPv6` + `Settings.Connection.IPv6Port` (and preference toggle) with defaults preserving existing behavior.
+- Preserve old `Settings.Connection` keys; new `Settings.Connection.*` keys remain optional with safe defaults.
 
 ## Compatibility requirements captured for implementation phases
 - No protocol regression in IPv4-only mode.
