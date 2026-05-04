@@ -449,8 +449,14 @@ void CHostCacheWnd::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 		const int nColumn = pDraw->iSubItem;
 		if ( nColumn == COL_LOAD )
 		{
-			TCHAR szText[32] = {};
-			m_wndList.GetItemText( (int)pDraw->nmcd.dwItemSpec, COL_LOAD, szText, _countof( szText ) );
+			// Read load directly from the host item data to avoid per-paint GetItemText + _tstoi
+			CHostCacheHostPtr pHost = (CHostCacheHostPtr)m_wndList.GetItemData( (int)pDraw->nmcd.dwItemSpec );
+			const int nLoad = ( pHost && pHost->m_nUserLimit )
+				? (int)min( 100u, (UINT)( pHost->m_nUserCount * 100 / pHost->m_nUserLimit ) )
+				: 0;
+			CString strLoad;
+			if ( nLoad > 0 )
+				strLoad.Format( L"%d", nLoad );
 
 			CDC dc;
 			dc.Attach( pDraw->nmcd.hdc );
@@ -469,7 +475,6 @@ void CHostCacheWnd::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 
 			dc.FillSolidRect( &rcCell, crBack );
 
-			const int nLoad = _tstoi( szText );
 			// Skip the progress bar when the row is selected: it would not be visible
 			// against the highlight background and the system selection highlight is sufficient.
 			if ( nLoad > 0 && ! bSelected )
@@ -490,7 +495,7 @@ void CHostCacheWnd::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 			dc.SetTextColor( crText );
 			CRect rcText( rcCell );
 			rcText.DeflateRect( 4, 0 );
-			dc.DrawText( szText, -1, &rcText, DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_END_ELLIPSIS );
+			dc.DrawText( strLoad, -1, &rcText, DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_END_ELLIPSIS );
 
 			dc.Detach();
 
