@@ -654,6 +654,8 @@ CHostCacheHostPtr CHostCacheList::OnSuccess(const IN_ADDR* pAddress, WORD nPort,
 		m_nCookie++;
 		pHost->m_tFailure = 0;
 		pHost->m_nFailures = 0;
+		// Note: m_nSuccesses counts any successful contact (includes BT DHT/extension replies,
+		// not only completed TCP connections). The UI displays this as "Successes".
 		pHost->m_nSuccesses++;
 		pHost->m_tLastSuccess = tNow;
 		pHost->m_bCheckedLocally = TRUE;
@@ -730,6 +732,7 @@ void CHostCacheList::PruneOldHosts(DWORD tNow)
 
 				m_nCookie++;
 				pHost->m_nFailures++;
+				pHost->m_nTotalFailures++;
 			}
 			break;
 
@@ -740,6 +743,7 @@ void CHostCacheList::PruneOldHosts(DWORD tNow)
 
 				m_nCookie++;
 				pHost->m_nFailures++;
+				pHost->m_nTotalFailures++;
 			}
 			break;
 
@@ -751,6 +755,7 @@ void CHostCacheList::PruneOldHosts(DWORD tNow)
 
 				m_nCookie++;
 				pHost->m_nFailures++;
+				pHost->m_nTotalFailures++;
 			}
 			break;
 
@@ -995,13 +1000,14 @@ int CHostCache::ImportMET(CFile* pFile)
 		CQuickLock oLock( eDonkey.m_pSection );
 		CHostCacheHostPtr pServer = eDonkey.Add( &pAddress, nPort );
 
+		if ( pServer && pServer->m_sSource.IsEmpty() )
+			pServer->m_sSource = L"server.met";
+
 		while ( nTags-- > 0 )
 		{
 			CEDTag pTag;
 			if ( ! pTag.Read( pFile ) ) break;
 			if ( pServer == NULL ) continue;
-			if ( pServer->m_sSource.IsEmpty() )
-				pServer->m_sSource = L"server.met";
 
 			if ( pTag.Check( ED2K_ST_SERVERNAME, ED2K_TAG_STRING ) )
 				pServer->m_sName = pTag.m_sValue;
@@ -1549,11 +1555,15 @@ bool CHostCacheHost::Update(WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nU
 	if ( ! tSeen || tSeen > tNow )
 		tSeen = tNow;
 
+	// Always record first-seen, even if m_tSeen is already up-to-date.
+	// The condition m_tFirstSeen > tSeen handles out-of-order updates (e.g., a GWebCache
+	// entry that carries an older timestamp than a previously seen runtime update).
+	if ( ! m_tFirstSeen || m_tFirstSeen > tSeen )
+		m_tFirstSeen = tSeen;
+
 	if ( m_tSeen < tSeen )
 	{
 		m_tSeen = tSeen;
-		if ( ! m_tFirstSeen || m_tFirstSeen > tSeen )
-			m_tFirstSeen = tSeen;
 		bChanged = true;
 	}
 

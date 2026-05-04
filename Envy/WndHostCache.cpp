@@ -291,8 +291,8 @@ void CHostCacheWnd::Update(BOOL bForce)
 		pItem->Set( COL_PROTOCOL, ProtocolToString( pHost->m_nProtocol ) );
 		pItem->Set( COL_STATUS, HostStatusString( pHost ) );
 		pItem->Set( COL_OBFUSCATION, ObfuscationString( pHost ) );
-		pItem->Set( COL_TLS, L"No" );
-		pItem->Set( COL_IPV6, L"No" );
+		pItem->Set( COL_TLS, L"" );		// TLS capability not yet tracked per-host
+		pItem->Set( COL_IPV6, L"" );	// IPv6 capability not yet tracked per-host
 
 		if ( pHost->m_pVendor )
 			pItem->Set( COL_CLIENT, pHost->m_pVendor->m_sName );
@@ -457,10 +457,23 @@ void CHostCacheWnd::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 			dc.Attach( pDraw->nmcd.hdc );
 
 			CRect rcCell( pDraw->nmcd.rc );
-			dc.FillSolidRect( &rcCell, m_wndList.GetBkColor() );
+
+			// Respect selection highlight: use system colors when the item is selected
+			const bool bSelected = ( pDraw->nmcd.uItemState & CDIS_SELECTED ) != 0;
+			const bool bListFocused = ( GetFocus() == m_wndList.GetSafeHwnd() );
+			const COLORREF crBack = bSelected
+				? GetSysColor( bListFocused ? COLOR_HIGHLIGHT : COLOR_BTNFACE )
+				: m_wndList.GetBkColor();
+			const COLORREF crText = bSelected
+				? GetSysColor( bListFocused ? COLOR_HIGHLIGHTTEXT : COLOR_BTNTEXT )
+				: pDraw->clrText;
+
+			dc.FillSolidRect( &rcCell, crBack );
 
 			const int nLoad = _tstoi( szText );
-			if ( nLoad > 0 )
+			// Skip the progress bar when the row is selected: it would not be visible
+			// against the highlight background and the system selection highlight is sufficient.
+			if ( nLoad > 0 && ! bSelected )
 			{
 				CRect rcBar( rcCell );
 				rcBar.DeflateRect( 4, 4 );
@@ -475,7 +488,7 @@ void CHostCacheWnd::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 			}
 
 			dc.SetBkMode( TRANSPARENT );
-			dc.SetTextColor( pDraw->clrText );
+			dc.SetTextColor( crText );
 			CRect rcText( rcCell );
 			rcText.DeflateRect( 4, 0 );
 			dc.DrawText( szText, -1, &rcText, DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_END_ELLIPSIS );
@@ -493,7 +506,18 @@ void CHostCacheWnd::OnGetInfoTip(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NMLVGETINFOTIP* pInfo = (NMLVGETINFOTIP*)pNMHDR;
 	CHostCacheHostPtr pHost = (CHostCacheHostPtr)m_wndList.GetItemData( pInfo->iItem );
-	if ( ! pHost || ! HostCache.Check( pHost ) )
+	if ( ! pHost )
+	{
+		*pResult = 0;
+		return;
+	}
+
+	// Hold the cache lock while reading host fields to prevent use-after-free:
+	// hosts can be removed (and freed) by background threads between Check() and dereference.
+	CHostCacheList* pCache = HostCache.ForProtocol( m_nMode ? m_nMode : PROTOCOL_G2 );
+	CQuickLock oLock( pCache->m_pSection );
+
+	if ( ! pCache->Check( pHost ) )
 	{
 		*pResult = 0;
 		return;
