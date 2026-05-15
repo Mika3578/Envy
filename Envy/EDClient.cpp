@@ -3129,8 +3129,8 @@ BOOL CEDClient::OnSourceAnswer(CEDPacket* pPacket)
 
 //////////////////////////////////////////////////////////////////////
 // CEDClient source request v2 (SourceEx2)
-// Format: <HASH 16><FileSizeLow 4>[FileSizeHigh 4 (legacy, detected heuristically when Low==0)]<Options 2>
-// Note: The legacy large-file form is wire-ambiguous with a 32-bit zero size and inherited from eMule behavior.
+// Format: <HASH 16><FileSizeLow 4>[FileSizeHigh 4 (legacy, detected heuristically when Low==0 and >=6 bytes remain)]<Options 2>
+// Note: This eMule-inherited wire format is ambiguous for a 32-bit zero size; parser resolves by packet length heuristic.
 
 BOOL CEDClient::OnSourceRequest2(CEDPacket* pPacket)
 {
