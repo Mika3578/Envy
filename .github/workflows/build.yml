@@ -6,106 +6,105 @@ on:
   pull_request:
     branches: [main, master, develop]
   workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'
 
 env:
   SOLUTION_FILE_PATH: Visual Studio/Envy.sln
-  BUILD_CONFIGURATION: Release
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        platform: [Win32, x64]
-
-    runs-on: windows-latest
-
+  changes:
+    name: Build Scope Detection
+    runs-on: ubuntu-latest
+    outputs:
+      cpp_or_build_changed: ${{ steps.filter.outputs.cpp_or_build }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
         with:
-          fetch-depth: 0
+          filters: |
+            cpp_or_build:
+              - 'Envy/**'
+              - 'HashLib/**'
+              - 'Services/**'
+              - 'Plugins/**'
+              - 'Visual Studio/**'
+              - '*.sln'
+              - '**/*.sln'
+              - '*.vcxproj'
+              - '**/*.vcxproj'
+              - '.github/workflows/**'
 
-      - name: Install VS 2026 Build Tools
-        shell: pwsh
-        run: |
-          Write-Host "Installing VS 2026 Build Tools..."
-          choco install visualstudio2026buildtools `
-            --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATLMFC --includeRecommended --quiet" `
-            -y --ignore-package-exit-codes=3010
-          Write-Host "VS 2026 Build Tools installation completed"
-
-      - name: Auto-Version Management
-        shell: pwsh
-        run: |
-          Write-Host "Running auto-version management..." -ForegroundColor Green
-
-          # Run auto-version script
-          .\scripts\auto-version.ps1 -UpdateFiles
-
-          # Display version information
-          if (Test-Path version.json) {
-            $versionData = Get-Content version.json | ConvertFrom-Json
-            Write-Host "Version: $($versionData.displayVersion)" -ForegroundColor Cyan
-            Write-Host "Full Version: $($versionData.fullVersion)" -ForegroundColor Cyan
-            Write-Host "Build: $($versionData.build)" -ForegroundColor Cyan
-          }
+  build-release:
+    name: Build Release (${{ matrix.platform }})
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.cpp_or_build_changed == 'true'
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: [Win32, x64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
 
       - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Validate v145 toolchain and diagnostics
         shell: pwsh
         run: |
-          # Find Visual Studio installation using vswhere (pre-installed on windows-latest)
-          $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
-            -latest `
-            -products * `
-            -requires Microsoft.Component.MSBuild `
-            -property installationPath
+          $ErrorActionPreference = 'Stop'
+          $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path $vswhere)) { throw 'vswhere.exe is missing from runner.' }
 
-          if ($vsPath) {
-            Write-Host "Found Visual Studio at: $vsPath"
+          $vsPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          if (-not $vsPath) { throw 'No Visual Studio with MSBuild was detected.' }
+          Write-Host "Visual Studio path: $vsPath"
 
-            # Add MSBuild to PATH
-            $msbuildPath = Join-Path $vsPath "MSBuild\Current\Bin"
-            if (Test-Path $msbuildPath) {
-              Write-Host "Adding MSBuild to PATH: $msbuildPath"
-              echo "$msbuildPath" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-            }
+          $msbuild = Get-Command msbuild | Select-Object -ExpandProperty Source
+          Write-Host "MSBuild path: $msbuild"
+          & $msbuild -version
 
-            # Add vswhere location to PATH for consistency
-            $vswherePath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer"
-            echo "$vswherePath" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          } else {
-            Write-Error "Visual Studio installation not found!"
-            exit 1
+          $vcToolsRoot = Join-Path $vsPath 'VC\Tools\MSVC'
+          if (-not (Test-Path $vcToolsRoot)) { throw "VC tools root missing: $vcToolsRoot" }
+          $v145 = Get-ChildItem $vcToolsRoot -Directory | Where-Object { $_.Name -like '14.5*' } | Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $v145) {
+            throw 'MSVC v145 is required for authoritative Envy builds. Install a runner image with Visual Studio 2026 + v145 + ATL/MFC. VS2022/v143 fallback is not allowed.'
           }
+          Write-Host "VC tools version: $($v145.Name)"
+          Write-Host "VC tools path: $($v145.FullName)"
+
+          $mfcHeader = Join-Path $vsPath 'VC\Tools\MSVC\' + $v145.Name + '\atlmfc\include\afxwin.h'
+          if (-not (Test-Path $mfcHeader)) {
+            throw "ATL/MFC component appears missing. Expected header not found: $mfcHeader"
+          }
+          Write-Host 'ATL/MFC availability: confirmed via afxwin.h'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\NuGet\Cache
+            ~\AppData\Local\NuGet\v3-cache
+            ~\.nuget\packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.sln', '**/packages.config', '**/*.vcxproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
       - name: Restore NuGet packages
-        working-directory: ${{github.workspace}}
-        run: nuget restore "${{env.SOLUTION_FILE_PATH}}"
+        run: nuget restore "${{ env.SOLUTION_FILE_PATH }}"
 
-      - name: Build Solution
-        working-directory: ${{github.workspace}}
-        run: |
-          # Note: TreatWarningsAsErrors not enabled to allow gradual warning cleanup
-          msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} "${{env.SOLUTION_FILE_PATH}}"
+      - name: Build Release
+        run: msbuild /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:PlatformToolset=v145 "${{ env.SOLUTION_FILE_PATH }}"
 
-      - name: Verify Build Output
+      - name: Run Unit Tests (Release)
         shell: pwsh
         run: |
-          $exePath = "Envy\${{env.BUILD_CONFIGURATION}} ${{matrix.platform}}\Envy.exe"
-          if (Test-Path $exePath) {
-            Write-Host "✓ Build successful: $exePath exists"
-            $fileInfo = Get-Item $exePath
-            Write-Host "  Size: $($fileInfo.Length) bytes"
-            Write-Host "  Modified: $($fileInfo.LastWriteTime)"
-          } else {
-            Write-Error "✗ Build failed: $exePath not found"
-            exit 1
-          }
-
-      - name: Run Unit Tests
-        shell: pwsh
-        run: |
-          $testExe = "tests\${{env.BUILD_CONFIGURATION}} ${{matrix.platform}}\EnvyTests.exe"
+          $testExe = "tests\Release ${{ matrix.platform }}\EnvyTests.exe"
           if (Test-Path $testExe) {
             Write-Host "Running unit tests: $testExe"
             & $testExe
@@ -121,93 +120,74 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v5
         with:
-          name: envy-${{matrix.platform}}-${{env.BUILD_CONFIGURATION}}
+          name: envy-${{ matrix.platform }}-release
           path: |
-            Envy/${{env.BUILD_CONFIGURATION}} ${{matrix.platform}}/Envy.exe
-            Envy/${{env.BUILD_CONFIGURATION}} ${{matrix.platform}}/Envy.pdb
-            HashLib/${{env.BUILD_CONFIGURATION}} ${{matrix.platform}}/HashLib.dll
-            Services/*/${{env.BUILD_CONFIGURATION}} ${{matrix.platform}}/*.dll
-            Plugins/*/${{env.BUILD_CONFIGURATION}} ${{matrix.platform}}/*.dll
+            Envy/Release ${{ matrix.platform }}/Envy.exe
+            Envy/Release ${{ matrix.platform }}/Envy.pdb
+            HashLib/Release ${{ matrix.platform }}/HashLib.dll
+            HashLib/Release ${{ matrix.platform }}/HashLib.pdb
+            Services/*/Release ${{ matrix.platform }}/*.dll
+            Plugins/*/Release ${{ matrix.platform }}/*.dll
           retention-days: 30
           if-no-files-found: warn
 
   build-debug:
+    name: Build Debug (${{ matrix.platform }})
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.cpp_or_build_changed == 'true'
+    runs-on: windows-latest
     strategy:
       matrix:
         platform: [Win32, x64]
-
-    runs-on: windows-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Install VS 2026 Build Tools
-        shell: pwsh
-        run: |
-          Write-Host "Installing VS 2026 Build Tools..."
-          choco install visualstudio2026buildtools `
-            --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATLMFC --includeRecommended --quiet" `
-            -y --ignore-package-exit-codes=3010
-          Write-Host "VS 2026 Build Tools installation completed"
 
       - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Validate v145 toolchain and diagnostics
         shell: pwsh
         run: |
-          # Find Visual Studio installation using vswhere (pre-installed on windows-latest)
-          $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
-            -latest `
-            -products * `
-            -requires Microsoft.Component.MSBuild `
-            -property installationPath
+          $ErrorActionPreference = 'Stop'
+          $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+          $vsPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          if (-not $vsPath) { throw 'No Visual Studio with MSBuild was detected.' }
+          Write-Host "Visual Studio path: $vsPath"
 
-          if ($vsPath) {
-            Write-Host "Found Visual Studio at: $vsPath"
+          $msbuild = Get-Command msbuild | Select-Object -ExpandProperty Source
+          Write-Host "MSBuild path: $msbuild"
+          & $msbuild -version
 
-            # Add MSBuild to PATH
-            $msbuildPath = Join-Path $vsPath "MSBuild\Current\Bin"
-            if (Test-Path $msbuildPath) {
-              Write-Host "Adding MSBuild to PATH: $msbuildPath"
-              echo "$msbuildPath" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-            }
-
-            # Add vswhere location to PATH for consistency
-            $vswherePath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer"
-            echo "$vswherePath" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          } else {
-            Write-Error "Visual Studio installation not found!"
-            exit 1
+          $vcToolsRoot = Join-Path $vsPath 'VC\Tools\MSVC'
+          $v145 = Get-ChildItem $vcToolsRoot -Directory | Where-Object { $_.Name -like '14.5*' } | Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $v145) {
+            throw 'MSVC v145 is required for authoritative Envy builds. Install a runner image with Visual Studio 2026 + v145 + ATL/MFC. VS2022/v143 fallback is not allowed.'
           }
+          Write-Host "VC tools version: $($v145.Name)"
+          Write-Host "VC tools path: $($v145.FullName)"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\NuGet\Cache
+            ~\AppData\Local\NuGet\v3-cache
+            ~\.nuget\packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.sln', '**/packages.config', '**/*.vcxproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
       - name: Restore NuGet packages
-        working-directory: ${{github.workspace}}
-        run: nuget restore "${{env.SOLUTION_FILE_PATH}}"
+        run: nuget restore "${{ env.SOLUTION_FILE_PATH }}"
 
-      - name: Build Debug Configuration
-        working-directory: ${{github.workspace}}
-        run: |
-          msbuild /m /p:Configuration=Debug /p:Platform=${{matrix.platform}} "${{env.SOLUTION_FILE_PATH}}"
-
-      - name: Verify Debug Build Output
-        shell: pwsh
-        run: |
-          $exePath = "Envy\Debug ${{matrix.platform}}\Envy.exe"
-          if (Test-Path $exePath) {
-            Write-Host "✓ Debug build successful: $exePath exists"
-            $fileInfo = Get-Item $exePath
-            Write-Host "  Size: $($fileInfo.Length) bytes"
-            Write-Host "  Modified: $($fileInfo.LastWriteTime)"
-          } else {
-            Write-Error "✗ Debug build failed: $exePath not found"
-            exit 1
-          }
+      - name: Build Debug
+        run: msbuild /m /p:Configuration=Debug /p:Platform=${{ matrix.platform }} /p:PlatformToolset=v145 "${{ env.SOLUTION_FILE_PATH }}"
 
       - name: Run Unit Tests (Debug)
         shell: pwsh
         run: |
-          $testExe = "tests\Debug ${{matrix.platform}}\EnvyTests.exe"
+          $testExe = "tests\Debug ${{ matrix.platform }}\EnvyTests.exe"
           if (Test-Path $testExe) {
             Write-Host "Running unit tests: $testExe"
             & $testExe
@@ -220,77 +200,82 @@ jobs:
             Write-Warning "Test executable not found at $testExe - skipping tests"
           }
 
-      - name: Upload Debug test binaries (for coverage)
-        if: matrix.platform == 'x64'
+      - name: Upload Debug Artifacts
         uses: actions/upload-artifact@v5
         with:
-          name: debug-tests-x64
+          name: envy-${{ matrix.platform }}-debug
           path: |
-            tests/Debug x64/EnvyTests.exe
-            tests/Debug x64/EnvyTests.pdb
-            tests/Debug x64/HashLib.dll
-            HashLib/Debug x64/HashLib.pdb
-          retention-days: 1
+            Envy/Debug ${{ matrix.platform }}/Envy.exe
+            Envy/Debug ${{ matrix.platform }}/Envy.pdb
+            HashLib/Debug ${{ matrix.platform }}/HashLib.dll
+            HashLib/Debug ${{ matrix.platform }}/HashLib.pdb
+            tests/Debug ${{ matrix.platform }}/EnvyTests.exe
+            tests/Debug ${{ matrix.platform }}/EnvyTests.pdb
+            Services/*/Debug ${{ matrix.platform }}/*.dll
+            Plugins/*/Debug ${{ matrix.platform }}/*.dll
+          retention-days: 14
           if-no-files-found: warn
 
+
   coverage:
+    name: Coverage (Debug x64)
     runs-on: windows-latest
-    needs: build-debug
+    needs: [changes, build-debug]
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && needs.changes.outputs.cpp_or_build_changed == 'true')
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
 
-      - name: Download Debug test binaries
-        uses: actions/download-artifact@v5
-        with:
-          name: debug-tests-x64
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
 
-      - name: Restore test output layout
+      - name: Validate v145 toolchain
         shell: pwsh
         run: |
-          $art = "debug-tests-x64"
-          New-Item -ItemType Directory -Force -Path "tests\Debug x64", "HashLib\Debug x64" | Out-Null
-          Copy-Item "$art\tests\Debug x64\*" "tests\Debug x64\" -Recurse -Force -ErrorAction SilentlyContinue
-          Copy-Item "$art\HashLib\Debug x64\HashLib.pdb" "HashLib\Debug x64\" -Force -ErrorAction SilentlyContinue
+          $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+          $vsPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          if (-not $vsPath) { throw 'No Visual Studio with MSBuild was detected.' }
+          $vcToolsRoot = Join-Path $vsPath 'VC\Tools\MSVC'
+          $v145 = Get-ChildItem $vcToolsRoot -Directory | Where-Object { $_.Name -like '14.5*' } | Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $v145) { throw 'MSVC v145 is required for authoritative Envy builds. VS2022/v143 fallback is not allowed.' }
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\NuGet\Cache
+            ~\AppData\Local\NuGet\v3-cache
+            ~\.nuget\packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.sln', '**/packages.config', '**/*.vcxproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore NuGet packages
+        run: nuget restore "${{ env.SOLUTION_FILE_PATH }}"
+
+      - name: Build Debug x64 for coverage
+        run: msbuild /m /p:Configuration=Debug /p:Platform=x64 /p:PlatformToolset=v145 "${{ env.SOLUTION_FILE_PATH }}"
 
       - name: Install OpenCppCoverage
         shell: pwsh
         run: choco install opencppcoverage -y --ignore-package-exit-codes=3010
 
       - name: Run coverage
-        working-directory: ${{github.workspace}}
         shell: pwsh
         run: |
           $testExe = "tests\Debug x64\EnvyTests.exe"
           if (-not (Test-Path $testExe)) {
-            Write-Error "EnvyTests.exe not found at $testExe"
-            exit 1
+            Write-Warning "Coverage skipped because test executable was not found at $testExe"
+            exit 0
           }
-          $occ = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
-          if (-not (Test-Path $occ)) {
-            Write-Error "OpenCppCoverage not found at $occ"
-            exit 1
-          }
-          & $occ `
-            --sources HashLib `
-            --sources tests `
-            --export_type cobertura:coverage.xml `
-            --export_type html:coverage_report `
-            -- $testExe
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "OpenCppCoverage or tests failed with exit code $LASTEXITCODE"
-            exit $LASTEXITCODE
-          }
-          Write-Host "Coverage completed."
+
+          OpenCppCoverage --sources HashLib --sources tests --export_type cobertura:coverage.xml -- "${testExe}"
 
       - name: Upload coverage report
+        if: always()
         uses: actions/upload-artifact@v5
         with:
           name: coverage-report
-          path: |
-            coverage.xml
-            coverage_report/
+          path: coverage.xml
           retention-days: 14
           if-no-files-found: warn

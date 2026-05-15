@@ -28,14 +28,23 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Install VS 2026 Build Tools
+    - name: Validate v145 toolchain and diagnostics
       shell: pwsh
       run: |
-        Write-Host "Installing VS 2026 Build Tools..."
-        choco install visualstudio2026buildtools `
-          --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATLMFC --includeRecommended --quiet" `
-          -y --ignore-package-exit-codes=3010
-        Write-Host "VS 2026 Build Tools installation completed"
+        $ErrorActionPreference = 'Stop'
+        $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+        $vsPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+        if (-not $vsPath) { throw 'No Visual Studio with MSBuild was detected.' }
+        Write-Host "Visual Studio path: $vsPath"
+
+        $msbuild = Get-Command msbuild -ErrorAction SilentlyContinue
+        if ($msbuild) { Write-Host "MSBuild path (pre-setup): $($msbuild.Source)" }
+
+        $vcToolsRoot = Join-Path $vsPath 'VC\Tools\MSVC'
+        $v145 = Get-ChildItem $vcToolsRoot -Directory | Where-Object { $_.Name -like '14.5*' } | Sort-Object Name -Descending | Select-Object -First 1
+        if (-not $v145) { throw 'MSVC v145 is required for authoritative Envy release builds. VS2022/v143 fallback is not allowed.' }
+        Write-Host "VC tools version: $($v145.Name)"
+        Write-Host "VC tools path: $($v145.FullName)"
 
     - name: Auto-Version Management
       shell: pwsh
@@ -60,7 +69,7 @@ jobs:
 
     - name: Build Release
       run: |
-        msbuild /m /p:Configuration=Release /p:Platform=${{matrix.platform}} "${{env.SOLUTION_FILE_PATH}}"
+        msbuild /m /p:Configuration=Release /p:Platform=${{matrix.platform}} /p:PlatformToolset=v145 "${{env.SOLUTION_FILE_PATH}}"
 
     - name: Package Release
       run: |
