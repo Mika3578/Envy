@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Security
+- Kad publish packet builder now uses bounded keyword copying in `KadProtocol::CreatePublishRequest` (`memcpy` + explicit null terminator) and added null/size guards for `buffer`, `targetId`, and `keyword` before writes, preserving existing packet wire format and 255-byte keyword limit.
 - Remote UI hardening completed for CRITICAL/HIGH audit findings: cryptographically secure CSRF tokens, centralized token handling, DOMPurify-backed sanitization for dynamic HTML, redirect allowlist enforcement, and boundary API input validation with typed errors.
 - CSP tightened for modern Remote pages by removing `'unsafe-inline'` and migrating inline handlers/styles/scripts to external assets (`modern-page-handlers.js`, `modern-inline.css`).
 - Rate limiter config-path bug fixed (`windowMs`/`maxRequests` now sourced from the correct object path) with regression test coverage.
