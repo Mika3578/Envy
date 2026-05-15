@@ -7,8 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Hardened ED2K/eMule Source Exchange parsing (`OP_ANSWERSOURCES`/`OP_ANSWERSOURCES2`) with shared defensive source-count/body-length validation to reject malformed packet bodies safely.
+- Modernized SourceEx2 request parsing to defensively handle 32-bit vs legacy large-file size encodings while preserving existing wire compatibility and peer behavior.
+- Updated `EDClient.h` capability annotation for `m_bEmSupportsSourceEx2` to match the implemented/advertised behavior.
+- Added interoperability notes at `docs/30_protocols/ed2k/SOURCE_EXCHANGE_INTEROP_NOTES.md`, including explicit IPv6 limitation documentation (current SourceEx paths are IPv4-only on-wire).
+- Updated `docs/DEVELOPMENT_PLAN.md` to reflect current `develop` repository hygiene status, including branch posture (`develop` default, `main` behind), CI gate maturity guidance, and Dependabot label prerequisites (`ci`, `dependencies`).
+- Clarified dependency register status as **not complete** while `docs/DEPENDENCIES.md` is absent on `develop`.
+- Rewrote root `README.md` to reflect current repository layout, build entry points, and documentation map.
+- Updated `.github/PULL_REQUEST_TEMPLATE.md` to align with risk-based review and validation reporting.
+- **Full protocol comparison audit** - Comprehensive comparison against reference implementations (eMule, aMule, libtorrent, qBittorrent, Transmission)
+  - Updated `docs/10_dev/status.md` with detailed feature matrices for all protocol areas
+  - Updated `docs/10_dev/roadmap.md` with evidence-based phases and accurate TODO items
+
 
 ### Security
+- Kad publish packet builder now uses bounded keyword copying in `KadProtocol::CreatePublishRequest` (`memcpy` + explicit null terminator) and added null/size guards for `buffer`, `targetId`, and `keyword` before writes, preserving existing packet wire format and 255-byte keyword limit.
 - Remote UI hardening completed for CRITICAL/HIGH audit findings: cryptographically secure CSRF tokens, centralized token handling, DOMPurify-backed sanitization for dynamic HTML, redirect allowlist enforcement, and boundary API input validation with typed errors.
 - CSP tightened for modern Remote pages by removing `'unsafe-inline'` and migrating inline handlers/styles/scripts to external assets (`modern-page-handlers.js`, `modern-inline.css`).
 - Rate limiter config-path bug fixed (`windowMs`/`maxRequests` now sourced from the correct object path) with regression test coverage.
@@ -21,13 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New canonical docs: `docs/ARCHITECTURE.md`, `docs/API.md`, `docs/SETUP.md`, `docs/CONTRIBUTING.md`, `docs/TESTING.md`, `docs/DEPLOYMENT.md`, and living `docs/DEVELOPMENT_PLAN.md`.
 - GitHub community/automation configuration: Markdown issue templates, `security.yml` (secret scanning), `CODEOWNERS`, and Dependabot configuration for GitHub Actions.
 - Agent guidance files: root `CLAUDE.md`, root `AGENTS.md`, and refreshed `.cursor/rules/README.md`.
-
-### Changed
-- Rewrote root `README.md` to reflect current repository layout, build entry points, and documentation map.
-- Updated `.github/PULL_REQUEST_TEMPLATE.md` to align with risk-based review and validation reporting.
-- **Full protocol comparison audit** - Comprehensive comparison against reference implementations (eMule, aMule, libtorrent, qBittorrent, Transmission)
-  - Updated `docs/10_dev/status.md` with detailed feature matrices for all protocol areas
-  - Updated `docs/10_dev/roadmap.md` with evidence-based phases and accurate TODO items
 
 ### Added
 - **ED2K SecureID version fix** - Changed `ED2K_VERSION_SECUREID` from 0 to 3 in `EDPacket.h`; peers now correctly see Envy as supporting SecureID
