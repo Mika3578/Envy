@@ -28,3 +28,11 @@ alwaysApply: true
 ## Rules maintenance hook
 - If a repeated pattern appears: **update/merge existing rules** instead of adding new ones.
 - After any major feature/fix: run **Rules Curator** to remove duplicates and keep rules <150 lines.
+
+
+## Additional repository operating rules
+- Prefer small, reviewable PRs with one logical change area.
+- Never silently remove tests/coverage/workflows/docs/artifacts/legacy files.
+- Every meaningful PR updates: `CHANGELOG.md` + `docs/DEVELOPMENT_PLAN.md` (strategic) + `docs/DEV_TRACKER.md` (operational).
+- Always include testing performed, testing not performed, and environment limitations.
+- Treat `Visual Studio/Envy.sln` + MSVC `v145` as authoritative; CMake is partial only.
