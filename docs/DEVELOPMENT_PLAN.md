@@ -2,8 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-04-22
-- **Changelog Entry:** 2026-04-22 — Added IPv6 dual-stack Phase 0 scope/plan docs (`docs/ipv6/SCOPE.md`, `docs/ipv6/PLAN.md`); Remote CRITICAL/HIGH security findings remediated; JS regression suite and CI gate added.
+- **Last Updated:** 2026-05-15
+- **Changelog Entry:** 2026-05-15 — Synced repository hygiene status for `develop`: documented branch state, CI gate maturity, Dependabot labels requirement, and dependency register status (not complete because `docs/DEPENDENCIES.md` is absent).
 
 ## Update Protocol
 1. Update **Last Updated** date on every meaningful change.
@@ -11,6 +11,13 @@
 3. Reflect status changes in **Current Status** and **Roadmap**.
 4. Record consequential technical decisions in **Decisions Log**.
 5. Close or refresh **Open Questions** explicitly.
+
+
+## Repository Status (develop)
+- Default branch is `develop`.
+- `main` is currently behind `develop`.
+- CI workflows exist, but should not yet be treated as mandatory merge gates until required checks are consistently emitted and stable in GitHub Actions.
+- Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
 ## Vision & Goals
 - Maintain Envy as a stable multi-network P2P client for Windows.
@@ -36,7 +43,7 @@
 ## Roadmap
 
 ### Phase 1 — Stability & Visibility (P0)
-- [ ] Create dependency register + ownership map (2d)
+- [ ] Create dependency register + ownership map (2d) — **Not complete on develop** (`docs/DEPENDENCIES.md` is currently missing).
 - [x] Add threat model and secure-coding checklist (2d)
 - [ ] Expand tests for protocol parser/state-machine paths (5d)
 - [ ] Establish baseline metrics (startup, memory, throughput) (3d)
@@ -59,6 +66,7 @@
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-05-15:** Repository hygiene baseline on `develop` requires explicit branch-state tracking and GitHub label prerequisites (`ci`, `dependencies`) before enforcing CI as mandatory gates.
 - **2026-04-22:** Added IPv6 dual-stack Phase 0 scoping inventory and phased rollout plan under `docs/ipv6/`.
 - **2026-04-22:** Remote web UI must use cryptographic token generation (`crypto.getRandomValues`) and allowlist-based redirect validation for all client-side navigation paths.
 - **2026-04-22:** Keep Visual Studio solution as authoritative full-build path while CMake remains partial.
