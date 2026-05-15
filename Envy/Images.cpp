@@ -1,7 +1,8 @@
 //
 // Images.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+#include <memory>
+// This file is part of Envy (getenvy.com) Â© 2016-2018
 // All work here is original and released as-is under Persistent Public Domain [PPD]
 //
 
@@ -402,20 +403,39 @@ BOOL CImages::SkinImage(CBitmap* bmImage, LPCTSTR pszName, BOOL bAllowAlpha /*1*
 
 void CImages::BlendAlpha(CBitmap* bmImage, COLORREF crBlend /*RGB(255,255,255)*/)
 {
+	if ( bmImage == NULL || bmImage->m_hObject == NULL )
+		return;
+
 	BITMAP pInfo;
-	bmImage->GetBitmap( &pInfo );
-	if ( pInfo.bmBitsPixel != 32 )
+	ZeroMemory( &pInfo, sizeof( pInfo ) );
+	if ( bmImage->GetBitmap( &pInfo ) == 0 || pInfo.bmBitsPixel != 32 )
+		return;
+
+	if ( pInfo.bmWidthBytes <= 0 || pInfo.bmHeight <= 0 )
+		return;
+
+	const int bufferSize = pInfo.bmWidthBytes * pInfo.bmHeight;
+	if ( bufferSize <= 0 )
+		return;
+
+	std::unique_ptr<BYTE[]> buffer( new ( std::nothrow ) BYTE[ bufferSize ] );
+	if ( ! buffer )
 		return;
 
 	HBITMAP hImage = (HBITMAP)bmImage->Detach();
+	if ( hImage == NULL )
+		return;
+
+	const LONG bytesRead = GetBitmapBits( hImage, bufferSize, buffer.get() );	// Get/SetBitmapBits() deprecated by MS, but useful here
+	if ( bytesRead != bufferSize )
+	{
+		bmImage->Attach( hImage );
+		return;
+	}
 
 	const BYTE nRValue = GetBValue( crBlend );	// Flip
 	const BYTE nGValue = GetGValue( crBlend );
 	const BYTE nBValue = GetRValue( crBlend );	// Flip
-
-	const int bufferSize = pInfo.bmWidthBytes * pInfo.bmHeight;
-	BYTE* buffer = (BYTE*)malloc( bufferSize );
-	GetBitmapBits( hImage, bufferSize, buffer );	// Get/SetBitmapBits() deprecated by MS, but useful here
 
 	for ( int i = 0, j = 0; i < bufferSize; i += 4, j += 3 )
 	{
@@ -475,34 +495,66 @@ void CImages::BlendAlpha(CBitmap* bmImage, COLORREF crBlend /*RGB(255,255,255)*/
 	pV5Header.bV5Compression	= BI_RGB;
 	pV5Header.bV5SizeImage		= pInfo.bmWidth * pInfo.bmHeight * 3;
 
+	HDC hScreenDC = GetDC( NULL );
+	HBITMAP hNewImage = NULL;
 	__try
 	{
 		void* pBits = NULL;
-		hImage = CreateDIBSection( GetDC( 0 ), (BITMAPINFO*)&pV5Header, DIB_RGB_COLORS, (void**)&pBits, NULL, 0ul );
+		hNewImage = CreateDIBSection( hScreenDC, (BITMAPINFO*)&pV5Header, DIB_RGB_COLORS, (void**)&pBits, NULL, 0ul );
 	}
 	__except( EXCEPTION_EXECUTE_HANDLER )
 	{
-		hImage = NULL;
+		hNewImage = NULL;
+	}
+	if ( hScreenDC != NULL )
+		ReleaseDC( NULL, hScreenDC );
+
+	if ( hNewImage == NULL )
+	{
+		bmImage->Attach( hImage );
+		return;
 	}
 
-	SetBitmapBits( hImage, bufferSize * 3 / 4, buffer );
-	bmImage->Attach( hImage );
+	if ( SetBitmapBits( hNewImage, bufferSize * 3 / 4, buffer.get() ) == 0 )
+	{
+		DeleteObject( hNewImage );
+		bmImage->Attach( hImage );
+		return;
+	}
 
-	free( buffer );
+	DeleteObject( hImage );
+	bmImage->Attach( hNewImage );
 }
 
 BOOL CImages::PreBlend(HBITMAP hButton)
 {
+	if ( hButton == NULL )
+		return FALSE;
+
 	BITMAP pInfo;
-	CBitmap::FromHandle( hButton )->GetObject( sizeof( BITMAP ), &pInfo );		// CBitmap*
-	if ( pInfo.bmBitsPixel != 32 )
+	ZeroMemory( &pInfo, sizeof( pInfo ) );
+	CBitmap* pButtonBitmap = CBitmap::FromHandle( hButton );
+	if ( pButtonBitmap == NULL )
+		return FALSE;
+	if ( pButtonBitmap->GetObject( sizeof( BITMAP ), &pInfo ) == 0 || pInfo.bmBitsPixel != 32 )
+		return FALSE;
+
+	if ( pInfo.bmWidthBytes <= 0 || pInfo.bmHeight <= 0 )
 		return FALSE;
 
 	// Pre-multiply for AlphaBlend transparency support (rgba from PNG)
 
 	const int bufferSize = pInfo.bmWidthBytes * pInfo.bmHeight;
-	BYTE* buffer = (BYTE*)malloc( bufferSize );
-	GetBitmapBits( hButton, bufferSize, buffer );	// Get/SetBitmapBits() deprecated by MS, but useful here
+	if ( bufferSize <= 0 )
+		return FALSE;
+
+	std::unique_ptr<BYTE[]> buffer( new ( std::nothrow ) BYTE[ bufferSize ] );
+	if ( ! buffer )
+		return FALSE;
+
+	const LONG bytesRead = GetBitmapBits( hButton, bufferSize, buffer.get() );	// Get/SetBitmapBits() deprecated by MS, but useful here
+	if ( bytesRead != bufferSize )
+		return FALSE;
 
 	for ( int i = 0; i < bufferSize; i += 4 )
 	{
@@ -513,8 +565,8 @@ BOOL CImages::PreBlend(HBITMAP hButton)
 		buffer[i + 2] = buffer[i + 2] * buffer[i + 3] / 255;
 	}
 
-	SetBitmapBits( hButton, bufferSize, buffer );
-	free( buffer );
+	if ( SetBitmapBits( hButton, bufferSize, buffer.get() ) == 0 )
+		return FALSE;
 
 	return TRUE;
 }
