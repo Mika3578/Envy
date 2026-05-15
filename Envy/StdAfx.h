@@ -32,16 +32,22 @@
 // Uncomment for temporary workarounds:
 #define PUBLIC_RELEASE_FIX
 
-#if defined(_MSC_VER) && (_MSC_FULL_VER < 150030000)
-	#error Visual Studio 2008 SP1 or higher required for building
+// MSVC 14.50 (Visual Studio 2026 / toolset v145) or newer is required.
+// _MSC_VER 1950+ corresponds to MSVC 14.50; _MSC_FULL_VER >= 195000000.
+#if !defined(_MSC_VER) || (_MSC_VER < 1950)
+	#error Visual Studio 2026 (MSVC 14.50, toolset v145) or higher is required.
 #endif
 
 #if !defined(_UNICODE) || !defined(UNICODE)
 	#error Unicode Required
 #endif
 
-#if !defined(XPSUPPORT) && !defined(NOXPSUPPORT) && !defined(WIN64) //&& (_MSC_VER < 1920)
-	#define XPSUPPORT	// No Windows XP support needed on x64 builds
+// Windows XP / Vista / 7 / 8 are no longer supported targets.
+// VS 2026 (v145) toolchain does not ship an XP-targeting variant.
+// Define NOXPSUPPORT explicitly so legacy #ifdef XPSUPPORT branches stay off
+// and the modern Win 10 code paths are taken everywhere.
+#ifndef NOXPSUPPORT
+	#define NOXPSUPPORT
 #endif
 
 // Deprecated Workarounds for legacy compilers (No C++11, use std::tr1:: for VS2008sp1)
@@ -117,18 +123,12 @@
 #endif	// 1
 
 
-// WINVER Target features available from Windows Vista/7 onwards.
-// To find features that need guards for Windows XP temporarily use:
-#if 0
-#define NTDDI_VERSION	NTDDI_WINXPSP2
-#define _WIN32_WINNT	0x0501
-//#elif defined(_MSC_VER) && (_MSC_VER >= 1600)	// Features require WinSDK 7.0+ (VS2010+)
-//#define NTDDI_VERSION	NTDDI_WIN7		// Minimum build target Win7
-//#define _WIN32_WINNT	0x0601			// Win7/2008.2
-#else
-#define NTDDI_VERSION	NTDDI_VISTA		// Minimum build target Vista  (NTDDI_LONGHORN for unsupported VS2008 rtm)
-#define _WIN32_WINNT	0x0600			// Vista/2008
-#endif
+// Minimum supported runtime: Windows 10 1809 (build 17763).
+// VS 2026 / v145 dropped pre-Win10 toolchains, and modern security
+// mitigations (CFG, Spectre, AppContainer) require Win 10+.
+#define NTDDI_VERSION	NTDDI_WIN10_RS5
+#define _WIN32_WINNT	0x0A00			// Windows 10
+#define WINVER			0x0A00
 
 // Add defines missed/messed up when Microsoft converted to NTDDI macros
 #define WINXP			0x05010000		// rpcdce.h, rpcdcep.h

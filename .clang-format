@@ -1,99 +1,52 @@
-# Clang-Format configuration for Envy project
-# Based on code style guidelines: 4 spaces, 120 char max line length
-
-BasedOnStyle: Microsoft
-IndentWidth: 4
-TabWidth: 4
-UseTab: Never
-ColumnLimit: 120
-
-# Language settings
+# Conservative clang-format that preserves the legacy MFC style of the codebase.
+# Goal: catch trailing whitespace and trivial inconsistencies without re-flowing
+# every file. Run with --dry-run in CI before enabling auto-formatting.
+---
 Language: Cpp
-Standard: Cpp17
-
-# Indentation
-IndentCaseLabels: true
+BasedOnStyle: Microsoft
+UseTab: ForIndentation
+TabWidth: 4
+IndentWidth: 4
+ColumnLimit: 0
+AccessModifierOffset: -4
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLambdasOnASingleLine: All
+AllowShortLoopsOnASingleLine: true
+AlwaysBreakAfterReturnType: None
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBraces: Allman
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+Cpp11BracedListStyle: false
+DerivePointerAlignment: false
+FixNamespaceComments: false
+IndentCaseLabels: false
 IndentPPDirectives: None
-ContinuationIndentWidth: 4
-
-# Spacing
+KeepEmptyLinesAtTheStartOfBlocks: true
+MaxEmptyLinesToKeep: 2
+NamespaceIndentation: None
+PointerAlignment: Left
+ReflowComments: false
+SortIncludes: Never
+SortUsingDeclarations: false
 SpaceAfterCStyleCast: false
-SpaceAfterTemplateKeyword: true
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: false
 SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: false
 SpaceBeforeParens: ControlStatements
 SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 1
 SpacesInAngles: false
 SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
+Standard: c++20
 
-# Line breaks
-BreakBeforeBinaryOperators: None
-BreakBeforeTernaryOperators: true
-BreakConstructorInitializersBeforeComma: false
-BreakAfterJavaFieldAnnotations: false
-BreakStringLiterals: true
-
-# Formatting
-AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: false
-AlignConsecutiveDeclarations: false
-AlignOperands: true
-AlignTrailingComments: true
-AllowShortIfStatementsOnASingleLine: false
-AllowShortLoopsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: None
-AllowShortBlocksOnASingleLine: false
-
-# Brace style (Allman style with modifications)
-BraceWrapping:
-  AfterClass: true
-  AfterControlStatement: true
-  AfterEnum: true
-  AfterFunction: true
-  AfterNamespace: false
-  AfterObjCDeclaration: false
-  AfterStruct: true
-  AfterUnion: true
-  BeforeCatch: true
-  BeforeElse: true
-  IndentBraces: false
-
-# Includes
-SortIncludes: true
-IncludeBlocks: Preserve
-
-# Pointers and references
-PointerAlignment: Left
-ReferenceAlignment: Left
-
-# Comments
-ReflowComments: true
-CommentPragmas: '^ IWYU pragma:'
-
-# Preprocessor
-IndentPPDirectives: None
-
-# Other
-FixNamespaceComments: true
-KeepEmptyLinesAtTheStartOfBlocks: false
-NamespaceIndentation: None
-ObjCBinPackProtocolList: Auto
-ObjCBlockIndentWidth: 2
-ObjCSpaceAfterProperty: false
-ObjCSpaceBeforeProtocolList: true
-PenaltyBreakAssignment: 2
-PenaltyBreakBeforeFirstCallParameter: 1
-PenaltyBreakComment: 300
-PenaltyBreakFirstLessLess: 120
-PenaltyBreakString: 1000
-PenaltyExcessCharacter: 1000000
-PenaltyReturnTypeOnItsOwnLine: 200
-
-# Disable formatting for specific patterns
-DisableFormat: false
-ForEachMacros:
-  - foreach
-  - Q_FOREACH
-  - BOOST_FOREACH
+# Exclude vendored / third-party trees from format checks.
+# Use clang-format --files=... to enumerate the files you want to lint.

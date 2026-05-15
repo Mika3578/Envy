@@ -1,0 +1,77 @@
+name: clang-tidy (advisory)
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "Envy/**.cpp"
+      - "Envy/**.h"
+      - "TorrentEnvy/**.cpp"
+      - "TorrentEnvy/**.h"
+      - "HashLib/**.cpp"
+      - "HashLib/**.h"
+      - ".clang-tidy"
+      - ".github/workflows/clang-tidy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tidy:
+    name: clang-tidy diff
+    runs-on: windows-2025
+    timeout-minutes: 30
+    # Advisory only - never block PRs while the legacy codebase is still being
+    # cleaned up. Flip to required once the baseline is clean.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Find changed C/C++ files
+        id: changed
+        shell: bash
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          files=$(git diff --name-only "$base...$head" -- '*.cpp' '*.h' '*.cxx' '*.hpp' \
+            | grep -E '^(Envy|TorrentEnvy|HashLib)/' \
+            | grep -vE '^(Services|Plugins/PluginWizard|Plugins/RatDVDPlugin|Plugins/SWFPlugin)/' \
+            || true)
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$files" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Run clang-tidy
+        if: steps.changed.outputs.files != ''
+        shell: pwsh
+        run: |
+          $files = "${{ steps.changed.outputs.files }}" -split "`n" | Where-Object { $_ -ne "" }
+          if ($files.Count -eq 0) { exit 0 }
+          $tidy = "${env:ProgramFiles}\Microsoft Visual Studio\2026\Enterprise\VC\Tools\Llvm\x64\bin\clang-tidy.exe"
+          if (-not (Test-Path $tidy)) {
+            $tidy = (Get-Command clang-tidy -ErrorAction SilentlyContinue).Source
+          }
+          if (-not $tidy) {
+            Write-Host "::warning::clang-tidy not found on the runner; skipping."
+            exit 0
+          }
+          foreach ($f in $files) {
+            Write-Host "::group::clang-tidy $f"
+            & $tidy --quiet $f -- -std=c++20 -DWIN32 -D_WINDOWS -D_UNICODE -DUNICODE 2>&1 | Tee-Object -Append -FilePath clang-tidy.log
+            Write-Host "::endgroup::"
+          }
+
+      - name: Upload report
+        if: always() && steps.changed.outputs.files != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: clang-tidy-report
+          path: clang-tidy.log
+          if-no-files-found: ignore
+          retention-days: 7
