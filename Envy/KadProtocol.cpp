@@ -441,14 +441,20 @@ int KadProtocol::CreateFindNodeResponse(unsigned char* buffer, int bufferSize,
 
 int KadProtocol::CreatePublishRequest(unsigned char* buffer, int bufferSize,
                                      const unsigned char* targetId, const char* keyword) {
-    if (!keyword) return -1;
+    if (!buffer || !targetId || !keyword) return -1;
 
-    size_t keywordLen = strlen(keyword);
-    if (keywordLen > 255) return -1; // Keyword too long
+    const size_t maxKeywordLen = 255;
+    size_t keywordLen = 0;
+    while (keywordLen < maxKeywordLen && keyword[keywordLen] != '\0') {
+        keywordLen++;
+    }
+    if (keywordLen == maxKeywordLen) return -1; // Keyword too long or not null-terminated in range
 
     int bodySize = sizeof(KadPublishRequest) + (int)keywordLen + 1; // +1 for null terminator
+    if (bodySize > 0xFF) return -1; // bodyLength is one byte in KadPacketHeader
+    int packetSize = (int)sizeof(KadPacketHeader) + bodySize;
 
-    if (bufferSize < (int)sizeof(KadPacketHeader) + bodySize) {
+    if (bufferSize < packetSize) {
         return -1; // Buffer too small
     }
 
@@ -466,9 +472,10 @@ int KadProtocol::CreatePublishRequest(unsigned char* buffer, int bufferSize,
     request->load = 0; // Not used in basic implementation
 
     // Copy keyword
-    strcpy(keywordData, keyword);
+    memcpy(keywordData, keyword, keywordLen);
+    keywordData[keywordLen] = '\0';
 
-    return sizeof(KadPacketHeader) + bodySize;
+    return packetSize;
 }
 
 int KadProtocol::CreatePublishResponse(unsigned char* buffer, int bufferSize,
