@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Added operational documentation governance set: `docs/DEV_TRACKER.md`, `docs/PR_PLAYBOOK.md`, `docs/DECISIONS.md`, `docs/KNOWN_LIMITATIONS.md`, `docs/LABELS.md`, `docs/DEPENDENCIES.md`, and `docs/audit/REPOSITORY_CLEANUP_AUDIT.md`.
+- Clarified canonical doc split (strategic vs operational vs deep protocol reference) and improved root documentation discoverability in `README.md`.
+- Updated AI/agent workflow rules in `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/08-dev-workflow.mdc` to enforce small scoped PRs, mandatory reporting, and authoritative VS/v145 build guidance.
 - Updated `docs/DEVELOPMENT_PLAN.md` to reflect current `develop` repository hygiene status, including branch posture (`develop` default, `main` behind), CI gate maturity guidance, and Dependabot label prerequisites (`ci`, `dependencies`).
 - Clarified dependency register status as **not complete** while `docs/DEPENDENCIES.md` is absent on `develop`.
 - Rewrote root `README.md` to reflect current repository layout, build entry points, and documentation map.

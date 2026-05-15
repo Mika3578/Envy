@@ -6,6 +6,9 @@
 
 This document summarizes the current state of the repository based on actual code inspection and comparison against reference implementations (eMule, aMule, libtorrent, qBittorrent, Transmission).
 
+
+Canonical context: operational dashboard in `docs/DEV_TRACKER.md`; strategic plan in `docs/DEVELOPMENT_PLAN.md`.
+
 ---
 
 ## Build & Tooling

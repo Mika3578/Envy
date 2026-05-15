@@ -33,13 +33,27 @@ ctest --test-dir build
 - `docs/` – architecture, setup, testing, deployment, and audit docs
 
 ## Documentation Index
+
+### Canonical project docs
+- **Operational dashboard (live):** `docs/DEV_TRACKER.md`
+- **Strategic roadmap/decisions:** `docs/DEVELOPMENT_PLAN.md`
+- **Deep protocol status matrix:** `docs/10_dev/status.md`
+- **Technical modernization roadmap:** `docs/10_dev/roadmap.md`
+
+### Contributor and governance docs
+- Contribution guide: `docs/CONTRIBUTING.md`
+- PR workflow checklist: `docs/PR_PLAYBOOK.md`
+- Decision log (ADR-lite): `docs/DECISIONS.md`
+- Known limitations: `docs/KNOWN_LIMITATIONS.md`
+- Recommended issue/PR labels: `docs/LABELS.md`
+- Dependency register (initial seed): `docs/DEPENDENCIES.md`
+
+### Supporting references
 - Architecture: `docs/ARCHITECTURE.md`
 - Setup: `docs/SETUP.md`
 - API: `docs/API.md`
 - Testing: `docs/TESTING.md`
 - Deployment/Release: `docs/DEPLOYMENT.md`
-- Contribution guide: `docs/CONTRIBUTING.md`
-- Development plan (living): `docs/DEVELOPMENT_PLAN.md`
 - Audit reports: `docs/audit/`
 
 ## Current State

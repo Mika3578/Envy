@@ -20,6 +20,13 @@
 - CI workflows exist, but should not yet be treated as mandatory merge gates until required checks are consistently emitted and stable in GitHub Actions.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
+
+## Canonical Documentation Split
+- `docs/DEVELOPMENT_PLAN.md`: strategic roadmap, major decisions, and sequencing.
+- `docs/DEV_TRACKER.md`: operational dashboard, near-term status, blockers, and PR queue.
+- `docs/10_dev/status.md`: deep protocol comparison and implementation evidence.
+- `docs/10_dev/roadmap.md`: technical modernization roadmap details.
+
 ## Vision & Goals
 - Maintain Envy as a stable multi-network P2P client for Windows.
 - Reduce modernization risk by improving testability and dependency hygiene.

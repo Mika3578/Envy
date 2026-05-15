@@ -1,3 +1,9 @@
+# Superseded Operational Tracker Notice
+
+This file is retained for legacy context. Use `docs/DEV_TRACKER.md` as the canonical operational dashboard. Strategic scope stays in `docs/DEVELOPMENT_PLAN.md`, and deep protocol evidence remains in `docs/10_dev/status.md`.
+
+---
+
 # 🚀 Envy Development Tracker
 
 **Version:** 4.1.0.54 | **Last Updated:** March 14, 2026 | **Status:** 🟢 ACTIVE DEVELOPMENT
