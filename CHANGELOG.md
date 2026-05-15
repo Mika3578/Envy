@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated `docs/DEVELOPMENT_PLAN.md` to reflect current `develop` repository hygiene status, including branch posture (`develop` default, `main` behind), CI gate maturity guidance, and Dependabot label prerequisites (`ci`, `dependencies`).
 - Clarified dependency register status as **not complete** while `docs/DEPENDENCIES.md` is absent on `develop`.
+- Rewrote root `README.md` to reflect current repository layout, build entry points, and documentation map.
+- Updated `.github/PULL_REQUEST_TEMPLATE.md` to align with risk-based review and validation reporting.
+- **Full protocol comparison audit** - Comprehensive comparison against reference implementations (eMule, aMule, libtorrent, qBittorrent, Transmission)
+  - Updated `docs/10_dev/status.md` with detailed feature matrices for all protocol areas
+  - Updated `docs/10_dev/roadmap.md` with evidence-based phases and accurate TODO items
 
 
 ### Security
@@ -25,13 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New canonical docs: `docs/ARCHITECTURE.md`, `docs/API.md`, `docs/SETUP.md`, `docs/CONTRIBUTING.md`, `docs/TESTING.md`, `docs/DEPLOYMENT.md`, and living `docs/DEVELOPMENT_PLAN.md`.
 - GitHub community/automation configuration: Markdown issue templates, `security.yml` (secret scanning), `CODEOWNERS`, and Dependabot configuration for GitHub Actions.
 - Agent guidance files: root `CLAUDE.md`, root `AGENTS.md`, and refreshed `.cursor/rules/README.md`.
-
-### Changed
-- Rewrote root `README.md` to reflect current repository layout, build entry points, and documentation map.
-- Updated `.github/PULL_REQUEST_TEMPLATE.md` to align with risk-based review and validation reporting.
-- **Full protocol comparison audit** - Comprehensive comparison against reference implementations (eMule, aMule, libtorrent, qBittorrent, Transmission)
-  - Updated `docs/10_dev/status.md` with detailed feature matrices for all protocol areas
-  - Updated `docs/10_dev/roadmap.md` with evidence-based phases and accurate TODO items
 
 ### Added
 - **ED2K SecureID version fix** - Changed `ED2K_VERSION_SECUREID` from 0 to 3 in `EDPacket.h`; peers now correctly see Envy as supporting SecureID
