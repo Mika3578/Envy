@@ -4,6 +4,9 @@
 **Based on:** Full codebase comparison against reference clients (eMule, aMule, libtorrent, qBittorrent, Transmission)
 **Approach:** Phased, evidence-based priorities; see `docs/10_dev/status.md` for the detailed comparison
 
+
+Canonical context: operational dashboard in `docs/DEV_TRACKER.md`; strategic plan in `docs/DEVELOPMENT_PLAN.md`.
+
 ---
 
 ## Current State Summary

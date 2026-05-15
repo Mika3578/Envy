@@ -29,3 +29,13 @@
 - **Do** call out security/performance implications of changes.
 - **Don't** introduce broad refactors without explicit scope.
 - **Don't** add new dependencies without update/ownership notes.
+
+## Operating Discipline
+- Keep PRs small and scoped to one logical change area.
+- Do not silently remove tests/coverage/workflows/legacy files/docs.
+- For meaningful PRs, update `CHANGELOG.md`, `docs/DEVELOPMENT_PLAN.md` (strategic), and `docs/DEV_TRACKER.md` (operational).
+- Preserve protocol wire compatibility unless explicitly documented.
+- Preserve CI validation capability unless intentionally moved and documented.
+- Always report testing performed, not performed, and environment limits.
+- Build authority reminder: `Visual Studio/Envy.sln` authoritative, MSVC `v145` required, CMake partial only.
+- Prefer audit-first work for risky security/protocol areas.
