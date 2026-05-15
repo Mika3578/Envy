@@ -445,10 +445,10 @@ int KadProtocol::CreatePublishRequest(unsigned char* buffer, int bufferSize,
 
     const size_t maxKeywordLen = 255;
     size_t keywordLen = 0;
-    while (keywordLen <= maxKeywordLen && keyword[keywordLen] != '\0') {
+    while (keywordLen < maxKeywordLen && keyword[keywordLen] != '\0') {
         keywordLen++;
     }
-    if (keywordLen > maxKeywordLen) return -1; // Keyword too long or not null-terminated in range
+    if (keywordLen == maxKeywordLen) return -1; // Keyword too long or not null-terminated in range
 
     int bodySize = sizeof(KadPublishRequest) + (int)keywordLen + 1; // +1 for null terminator
     if (bodySize > 0xFF) return -1; // bodyLength is one byte in KadPacketHeader
