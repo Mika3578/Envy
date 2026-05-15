@@ -3156,8 +3156,7 @@ BOOL CEDClient::OnSourceRequest2(CEDPacket* pPacket)
 		return TRUE;
 	}
 
-	WORD nOptions = pPacket->ReadShortLE();
-	UNREFERENCED_PARAMETER( nOptions );
+	(void)pPacket->ReadShortLE();
 
 	CEDPacket* pReply = CEDPacket::New( ED2K_C2C_ANSWERSOURCES2, ED2K_PROTOCOL_EMULE );
 	int nCount = 0;
