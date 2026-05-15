@@ -3013,6 +3013,17 @@ BOOL CEDClient::OnPreviewAnswer(CEDPacket* pPacket)
 	return TRUE;
 }
 
+static BOOL ValidateSourcePacketBody(CEDPacket* pPacket, DWORD nCount, DWORD nSourceSize)
+{
+	if ( nSourceSize == 0 ) return FALSE;
+
+	const DWORD nRemaining = pPacket->GetRemaining();
+	if ( nCount > ( nRemaining / nSourceSize ) )
+		return FALSE;
+
+	return nRemaining >= nCount * nSourceSize;
+}
+
 //////////////////////////////////////////////////////////////////////
 // CEDClient source request
 
@@ -3088,7 +3099,8 @@ BOOL CEDClient::OnSourceAnswer(CEDPacket* pPacket)
 	pPacket->Read( oHash );
 	DWORD nCount = pPacket->ReadShortLE();
 
-	if ( pPacket->GetRemaining() < nCount * ( ( m_bEmSources >= 2 ) ? 12u + 16u : 12u ) )
+	const DWORD nSourceSize = ( m_bEmSources >= 2 ) ? 28u : 12u;
+	if ( ! ValidateSourcePacketBody( pPacket, nCount, nSourceSize ) )
 	{
 		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
 		return TRUE;
@@ -3131,16 +3143,21 @@ BOOL CEDClient::OnSourceRequest2(CEDPacket* pPacket)
 	pPacket->Read( oHash );
 
 	DWORD nFileSizeLow = pPacket->ReadLongLE();
-	QWORD nFileSize = nFileSizeLow;
 
-	// If the low 32 bits indicate a large file and there's more data, read the high 32 bits
-	if ( nFileSizeLow == 0 && pPacket->GetRemaining() >= 4 + 2 )
+	// SourceEx2 request file size can be 32-bit, or 64-bit in legacy large-file format (<0><high32>).
+	if ( nFileSizeLow == 0 && pPacket->GetRemaining() >= 6 )
 	{
-		DWORD nFileSizeHigh = pPacket->ReadLongLE();
-		nFileSize = ( (QWORD)nFileSizeHigh << 32 ) | nFileSizeLow;
+		(void)pPacket->ReadLongLE();
+	}
+
+	if ( pPacket->GetRemaining() < 2 )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
 	}
 
 	WORD nOptions = pPacket->ReadShortLE();
+	UNREFERENCED_PARAMETER( nOptions );
 
 	CEDPacket* pReply = CEDPacket::New( ED2K_C2C_ANSWERSOURCES2, ED2K_PROTOCOL_EMULE );
 	int nCount = 0;
@@ -3202,7 +3219,7 @@ BOOL CEDClient::OnSourceAnswer2(CEDPacket* pPacket)
 
 	// SourceEx2 always includes GUID (28 bytes per source)
 	const DWORD nSourceSize = 4 + 2 + 4 + 2 + 16;
-	if ( pPacket->GetRemaining() < nCount * nSourceSize )
+	if ( ! ValidateSourcePacketBody( pPacket, nCount, nSourceSize ) )
 	{
 		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
 		return TRUE;
