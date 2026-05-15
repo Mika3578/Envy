@@ -53,7 +53,7 @@
 ## Roadmap
 
 ### Phase 1 — Stability & Visibility (P0)
-- [ ] Create dependency register + ownership map (2d) — **In progress on develop** (`docs/DEPENDENCIES.md` exists but is still an incomplete seed).
+- [ ] Create dependency register + ownership map (2d) — **In progress on develop** (`docs/DEPENDENCIES.md` exists but remains an incomplete seed).
 - [x] Add threat model and secure-coding checklist (2d)
 - [ ] Expand tests for protocol parser/state-machine paths (5d)
 - [ ] Establish baseline metrics (startup, memory, throughput) (3d)
