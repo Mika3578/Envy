@@ -3145,7 +3145,9 @@ BOOL CEDClient::OnSourceRequest2(CEDPacket* pPacket)
 
 	DWORD nFileSizeLow = pPacket->ReadLongLE();
 
-	// SourceEx2 request file size can be 32-bit, or 64-bit in legacy large-file format (<0><high32>).
+	// SourceEx2 request file size can be 32-bit, or legacy 64-bit format (<0><high32>).
+	// Legacy form is detected heuristically (Low32 == 0 and enough bytes for <high32><Options>),
+	// which is an on-wire ambiguity inherited from eMule.
 	if ( nFileSizeLow == 0 && pPacket->GetRemaining() >= 6 )
 	{
 		(void)pPacket->ReadLongLE();
