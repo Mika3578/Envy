@@ -250,8 +250,9 @@ void CEDPacket::WriteFile(const CEnvyFile* pEnvyFile, QWORD nSize,
 {
 	ASSERT( ( pClient && ! pServer ) || ( ! pClient && pServer ) );
 
-	const CLibraryFile* pFile = bPartial ?
-		NULL : static_cast< const CLibraryFile* >( pEnvyFile );
+	const CLibraryFile* pFile = NULL;
+	if ( ! bPartial )
+		pFile = dynamic_cast< const CLibraryFile* >( pEnvyFile );
 
 	bool bDeflate = ( pServer && ( pServer->m_nTCPFlags & ED2K_SERVER_TCP_DEFLATE ) != 0 );
 	bool bUnicode = ( pServer && ( pServer->m_nTCPFlags & ED2K_SERVER_TCP_UNICODE ) != 0 ) ||

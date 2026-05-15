@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Security
+- Fixed CodeQL `cpp/type-confusion` alerts (#2663, #2662, #2661) by replacing unsafe downcasts with checked polymorphic/RTTI-safe handling in XML deletion, ED2K file tagging, and ED2K upload start paths without changing protocol or ownership semantics.
 - Kad publish packet builder now uses bounded keyword copying in `KadProtocol::CreatePublishRequest` (`memcpy` + explicit null terminator) and added null/size guards for `buffer`, `targetId`, and `keyword` before writes, preserving existing packet wire format and 255-byte keyword limit.
 - Remote UI hardening completed for CRITICAL/HIGH audit findings: cryptographically secure CSRF tokens, centralized token handling, DOMPurify-backed sanitization for dynamic HTML, redirect allowlist enforcement, and boundary API input validation with typed errors.
 - CSP tightened for modern Remote pages by removing `'unsafe-inline'` and migrating inline handlers/styles/scripts to external assets (`modern-page-handlers.js`, `modern-inline.css`).
