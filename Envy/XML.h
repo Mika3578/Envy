@@ -84,7 +84,7 @@ protected:
 	void			ToString(CString& strXML, BOOL bNewline) const;
 
 public:
-	virtual void	RemoveFromParent();
+	void			RemoveFromParent() override;
 	CXMLElement*	Detach();
 	CXMLElement*	Clone(CXMLElement* pParent = NULL) const;
 	CXMLElement*	Prefix(const CString& sPrefix, CXMLElement* pParent = NULL) const;		// Clone element then rename all elements and attributes by using specified prefix
