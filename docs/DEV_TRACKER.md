@@ -12,7 +12,7 @@ This is the **operational dashboard** for day-to-day execution.
 
 | Item | Current State |
 |---|---|
-| Default branch | `develop` |
+| Default branch | `develop` _(repository settings are authoritative; if `.github/settings.yml` still specifies `master`, treat that file as stale until it is updated)_ |
 | Authoritative build path | `Visual Studio/Envy.sln` |
 | Toolchain requirement | MSVC `v145` required for authoritative Windows builds |
 | CMake status | Partial/non-authoritative (HashLib + selected tests) |
