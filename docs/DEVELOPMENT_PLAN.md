@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-05-15
+- **Changelog Entry:** 2026-05-15 — Refreshed the development plan to reflect current repository status, roadmap alignment, and active follow-up items.
 - **Changelog Entry:** 2026-05-15 — Re-tiered CI into fast PR checks vs heavy advisory Windows/CodeQL checks with path filters, v145 fail-fast diagnostics, and reduced unnecessary tool installation.
 - **Changelog Entry:** 2026-05-15 — Synced repository hygiene status for `develop`: documented branch state, CI gate maturity, Dependabot labels requirement, and dependency register status (not complete because `docs/DEPENDENCIES.md` is absent).
 - **Changelog Entry:** 2026-05-15 — Hardened legacy Kad publish packet construction by replacing unsafe keyword copy with bounded copy and explicit terminator in `KadProtocol::CreatePublishRequest`, preserving wire format.
