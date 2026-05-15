@@ -3,7 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-05-15
-- **Changelog Entry:** 2026-05-15 — Synced repository hygiene status for `develop`: documented branch state, CI gate maturity, Dependabot labels requirement, and dependency register status (not complete because `docs/DEPENDENCIES.md` is absent).
+- **Changelog Entry:** 2026-05-15 — Hardened legacy Kad publish packet construction by replacing unsafe keyword copy with bounded copy and explicit terminator in `KadProtocol::CreatePublishRequest`, preserving wire format.
 
 ## Update Protocol
 1. Update **Last Updated** date on every meaningful change.
@@ -59,7 +59,7 @@
 - [ ] Create automated dependency/SBOM release artifact (3d)
 
 ## Backlog
-- Replace unsafe string operations in first-party code
+- [~] Replace unsafe string operations in first-party code (incremental: bounded keyword copy in legacy Kad publish packet builder completed)
 - Consolidate duplicate roadmap/status markdown into canonical set
 - Document remote API implementation status endpoint-by-endpoint
 - Add long-running memory/regression test scenario
