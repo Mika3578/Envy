@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clarified canonical doc split (strategic vs operational vs deep protocol reference) and improved root documentation discoverability in `README.md`.
 - Updated AI/agent workflow rules in `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/08-dev-workflow.mdc` to enforce small scoped PRs, mandatory reporting, and authoritative VS/v145 build guidance.
 - Updated `docs/DEVELOPMENT_PLAN.md` to reflect current `develop` repository hygiene status, including branch posture (`develop` default, `main` behind), CI gate maturity guidance, and Dependabot label prerequisites (`ci`, `dependencies`).
-- Clarified dependency register status as **not complete** while `docs/DEPENDENCIES.md` is absent on `develop`.
+- Clarified dependency register status as **initial seed only**; `docs/DEPENDENCIES.md` now exists on `develop` but remains incomplete.
 - Rewrote root `README.md` to reflect current repository layout, build entry points, and documentation map.
 - Updated `.github/PULL_REQUEST_TEMPLATE.md` to align with risk-based review and validation reporting.
 - **Full protocol comparison audit** - Comprehensive comparison against reference implementations (eMule, aMule, libtorrent, qBittorrent, Transmission)

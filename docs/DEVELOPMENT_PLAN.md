@@ -3,7 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-05-15
-- **Changelog Entry:** 2026-05-15 — Synced repository hygiene status for `develop`: documented branch state, CI gate maturity, Dependabot labels requirement, and dependency register status (not complete because `docs/DEPENDENCIES.md` is absent).
+- **Changelog Entry:** 2026-05-15 — Synced repository hygiene status for `develop`: documented branch state, CI gate maturity, Dependabot labels requirement, and dependency register status (`docs/DEPENDENCIES.md` exists but remains an incomplete seed).
 - **Changelog Entry:** 2026-05-15 — Hardened legacy Kad publish packet construction by replacing unsafe keyword copy with bounded copy and explicit terminator in `KadProtocol::CreatePublishRequest`, preserving wire format.
 
 ## Update Protocol
@@ -51,7 +51,7 @@
 ## Roadmap
 
 ### Phase 1 — Stability & Visibility (P0)
-- [ ] Create dependency register + ownership map (2d) — **Not complete on develop** (`docs/DEPENDENCIES.md` is currently missing).
+- [ ] Create dependency register + ownership map (2d) — **In progress on develop** (`docs/DEPENDENCIES.md` exists but is still an incomplete seed).
 - [x] Add threat model and secure-coding checklist (2d)
 - [ ] Expand tests for protocol parser/state-machine paths (5d)
 - [ ] Establish baseline metrics (startup, memory, throughput) (3d)
