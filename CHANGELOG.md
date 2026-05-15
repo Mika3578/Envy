@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Optimized GitHub Actions into fast PR checks and heavy advisory/full-build checks with explicit path-filter routing for docs-only, markdown-only, Remote JS-only, and C++/build-impacting changes.
+- Stabilized authoritative Windows CI by requiring MSVC `v145` with explicit diagnostics (VS path, MSBuild version, VC tools path/version, ATL/MFC presence) and clear fail-fast behavior without `v143` fallback.
+- Reduced unnecessary heavy tool installation by removing repeated Visual Studio Build Tools installation from standard CI jobs and improving safe NuGet/npm caching usage.
+- Optimized CI workflows to separate fast PR checks from heavy Windows builds, add path-based routing (docs-only and Remote JS-only behavior), and add safe NuGet/npm caching.
+- Enforced authoritative Windows build policy by explicitly requiring MSVC PlatformToolset `v145`, adding toolset detection, and failing clearly when `v145` is unavailable (no silent `v143` fallback).
 - Updated `docs/DEVELOPMENT_PLAN.md` to reflect current `develop` repository hygiene status, including branch posture (`develop` default, `main` behind), CI gate maturity guidance, and Dependabot label prerequisites (`ci`, `dependencies`).
 - Clarified dependency register status as **not complete** while `docs/DEPENDENCIES.md` is absent on `develop`.
 - Rewrote root `README.md` to reflect current repository layout, build entry points, and documentation map.
