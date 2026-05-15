@@ -88,7 +88,7 @@ public:
 
 // Client capabilities 2
 	BOOL		m_bEmSupportsCaptcha;
-	BOOL		m_bEmSupportsSourceEx2;		// Not supported
+	BOOL		m_bEmSupportsSourceEx2;		// Source Exchange v2 support
 	BOOL		m_bEmRequiresCryptLayer;	// Not supported
 	BOOL		m_bEmRequestsCryptLayer;	// Not supported
 	BOOL		m_bEmSupportsCryptLayer;	// Not supported

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added operational documentation governance set: `docs/DEV_TRACKER.md`, `docs/PR_PLAYBOOK.md`, `docs/DECISIONS.md`, `docs/KNOWN_LIMITATIONS.md`, `docs/LABELS.md`, `docs/DEPENDENCIES.md`, and `docs/audit/REPOSITORY_CLEANUP_AUDIT.md`.
 - Clarified canonical doc split (strategic vs operational vs deep protocol reference) and improved root documentation discoverability in `README.md`.
 - Updated AI/agent workflow rules in `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/08-dev-workflow.mdc` to enforce small scoped PRs, mandatory reporting, and authoritative VS/v145 build guidance.
+- Hardened ED2K/eMule Source Exchange parsing (`OP_ANSWERSOURCES`/`OP_ANSWERSOURCES2`) with shared defensive source-count/body-length validation to reject malformed packet bodies safely.
+- Modernized SourceEx2 request parsing to defensively handle 32-bit vs legacy large-file size encodings while preserving existing wire compatibility and peer behavior.
+- Updated `EDClient.h` capability annotation for `m_bEmSupportsSourceEx2` to match the implemented/advertised behavior.
+- Added interoperability notes at `docs/30_protocols/ed2k/SOURCE_EXCHANGE_INTEROP_NOTES.md`, including explicit IPv6 limitation documentation (current SourceEx paths are IPv4-only on-wire).
 - Updated `docs/DEVELOPMENT_PLAN.md` to reflect current `develop` repository hygiene status, including branch posture (`develop` default, `main` behind), CI gate maturity guidance, and Dependabot label prerequisites (`ci`, `dependencies`).
 - Clarified dependency register status as **initial seed only**; `docs/DEPENDENCIES.md` now exists on `develop` but remains incomplete.
 - Rewrote root `README.md` to reflect current repository layout, build entry points, and documentation map.
