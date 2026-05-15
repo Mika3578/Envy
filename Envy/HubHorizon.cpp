@@ -215,15 +215,16 @@ void CHubHorizonGroup::Add(IN_ADDR* pAddress, WORD nPort)
 
 	if ( m_nCount == m_nBuffer )
 	{
-		m_nBuffer += 8;
-		CHubHorizonHub** pList = new CHubHorizonHub*[ m_nBuffer ];
-		if ( m_pList )
+		const DWORD nNewBuffer = m_nBuffer + 8;
+		CHubHorizonHub** pList = new CHubHorizonHub*[ nNewBuffer ];
+		if ( m_pList && m_nCount )
 		{
-			if ( m_nCount ) CopyMemory( pList, m_pList, sizeof(CHubHorizonHub*) * m_nCount );
-			delete [] m_pList;
-			m_pList = NULL;
+			CopyMemory( pList, m_pList, sizeof(CHubHorizonHub*) * m_nCount );
 		}
+		CHubHorizonHub** pOldList = m_pList;
 		m_pList = pList;
+		m_nBuffer = nNewBuffer;
+		if ( pOldList ) delete [] pOldList;
 	}
 
 	m_pList[ m_nCount++ ] = pHub;

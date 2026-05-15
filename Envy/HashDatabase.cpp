@@ -225,19 +225,23 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 	}
 	else
 	{
-		if ( m_nIndex >= m_nBuffer )
+		const DWORD nInsertPos = m_nIndex;
+		if ( nInsertPos >= m_nBuffer )
 		{
-			m_nBuffer += 64;
-			HASHDB_INDEX* pNew = new HASHDB_INDEX[ m_nBuffer ];
-			if ( m_pIndex )
+			const DWORD nNewBuffer = m_nBuffer + 64;
+			HASHDB_INDEX* pNew = new HASHDB_INDEX[ nNewBuffer ];
+			if ( m_pIndex && m_nIndex )
 			{
-				if ( m_nIndex ) CopyMemory( pNew, m_pIndex, sizeof( HASHDB_INDEX ) * m_nIndex );
-				delete [] m_pIndex;
+				CopyMemory( pNew, m_pIndex, sizeof( HASHDB_INDEX ) * m_nIndex );
 			}
+			HASHDB_INDEX* pOldIndex = m_pIndex;
 			m_pIndex = pNew;
+			m_nBuffer = nNewBuffer;
+			if ( pOldIndex ) delete [] pOldIndex;
 		}
 
-		pIndex = m_pIndex + m_nIndex++;
+		pIndex = m_pIndex + nInsertPos;
+		m_nIndex = nInsertPos + 1;
 		pIndex->nOffset = m_nOffset;
 		pIndex->nLength = nLength;
 
