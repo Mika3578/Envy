@@ -46,7 +46,7 @@ protected:
 	void			Serialize(CArchive& ar);
 
 public:
-	virtual void	Delete();
+	void			Delete();
 	virtual void	RemoveFromParent();
 	int				GetType() const;
 	CXMLNode*		AsNode() const;
