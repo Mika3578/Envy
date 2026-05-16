@@ -22,11 +22,12 @@ For the canonical AI rules, see [`AGENTS.md`](./AGENTS.md).
 ## In progress
 
 - **2026-05-16** | claude/code-audit-modernization-nJcTT
-  -> Phase 1 in progress. The MSBuild log is now reachable via the
-  failure-comment loop. v143 (VS 2022) selected as the effective
-  toolset on the hosted runner; the v145 install attempt is
-  best-effort and silently falls back. C++20 source fixes landing
-  incrementally. Build matrix stays advisory.
+  -> Pinned the CI to `windows-2025-vs2026` (public-preview hosted
+  image that carries Visual Studio 2026 + v145 + MSVC 14.50). The
+  workflows now require v145 strictly: no toolset fallback, no
+  `continue-on-error`, and `Envy/StdAfx.h` reinstated as a hard
+  `#error` when `_MSC_VER < 1950`. Next CI run will be the first
+  honest v145 build.
 
 ---
 
@@ -74,6 +75,23 @@ _(none right now)_
     `.continue/rules/envy.md`,
     `.github/copilot-instructions.md`
   - `DEV_TRACKER.md` (this file)
+
+- **2026-05-16** | PR #35 eighth CI feedback | _(this commit)_
+  -> Switch the hosted runner from `windows-2025` (VS 2022 / v143)
+  to `windows-2025-vs2026` (public-preview image with VS 2026 /
+  v145 / MSVC 14.50). Microsoft made this image GA-track in March
+  2026; it carries the right toolset out of the box.
+  - All four workflows that ran on `windows-2025` re-pinned:
+    `build.yml`, `release.yml`, `codeql.yml`,
+    `copilot-setup-steps.yml`.
+  - `build.yml` is now strict: no `continue-on-error`, no toolset
+    fallback. Added a `Verify Visual Studio 2026 with v145 is
+    installed` step that fails fast if the runner image regresses.
+  - Removed the best-effort `Install VS 2026 build tools` step
+    (no longer needed) and the multi-toolset detection / fallback
+    matrix in `Resolve effective PlatformToolset`.
+  - Reinstated the hard `#error` guard in `Envy/StdAfx.h` when
+    `_MSC_VER < 1950`.
 
 - **2026-05-16** | PR #35 seventh CI feedback | commit `22897da`
   -> The previous fix commit (`cc9f5e2`) cleared the

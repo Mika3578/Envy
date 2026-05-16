@@ -35,13 +35,11 @@ env:
 jobs:
   build:
     name: Build ${{ matrix.platform }} ${{ matrix.configuration }}
-    runs-on: windows-2025
+    # windows-2025-vs2026 is the public-preview hosted image that ships
+    # Visual Studio 2026 (v145 / MSVC 14.50). v145 is the only supported
+    # toolset for this branch - a failure here is a real failure.
+    runs-on: windows-2025-vs2026
     timeout-minutes: 120
-    # Phase 0: hosted runners may still ship Visual Studio 2022 (v143) rather
-    # than VS 2026 (v145). Until the runner image catches up, treat build
-    # failures as advisory so the rest of the CI matrix can run. Phase 1 will
-    # flip this off once `Install VS 2026 build tools` succeeds reliably.
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -64,60 +62,24 @@ jobs:
         with:
           msbuild-architecture: x64
 
-      - name: Show MSBuild & VS version
+      - name: Verify Visual Studio 2026 with v145 is installed
         shell: pwsh
         run: |
           msbuild -version
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          if (Test-Path $vswhere) {
-            & $vswhere -latest -prerelease -property installationVersion
-            & $vswhere -latest -prerelease -property displayName
-            $components = & $vswhere -latest -prerelease -property packages
-            $hasV145 = $components -match "Microsoft.VisualStudio.Component.VC.Tools.14.50"
-            if ($hasV145) {
-              Write-Host "::notice::v145 (MSVC 14.50) toolset detected."
-            } else {
-              Write-Host "::warning::v145 toolset NOT installed on this runner. The build will fall back to the latest available v14x toolset."
-            }
-          } else {
-            Write-Host "::warning::vswhere.exe not found."
-          }
-
-      - name: Install VS 2026 build tools (MSVC v145) if missing
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
           if (-not (Test-Path $vswhere)) {
-            Write-Host "::warning::vswhere not available; skipping v145 install attempt."
-            exit 0
+            Write-Error "vswhere.exe not found at $vswhere - cannot validate VS install."
+            exit 1
           }
-          $vsPath = & $vswhere -latest -prerelease -property installationPath
-          $components = & $vswhere -latest -prerelease -property packages
-          if ($components -match "Microsoft.VisualStudio.Component.VC.Tools.14.50") {
-            Write-Host "v145 already installed."
-            exit 0
+          & $vswhere -latest -prerelease -property installationVersion
+          & $vswhere -latest -prerelease -property displayName
+          $components = (& $vswhere -latest -prerelease -property packages) -join "`n"
+          if ($components -notmatch "Microsoft\.VisualStudio\.Component\.VC\.Tools\.14\.50") {
+            Write-Error "::error::v145 (MSVC 14.50) toolset NOT installed on this runner. Expected runner image is windows-2025-vs2026."
+            $components | Out-File -FilePath vs-packages.log -Encoding utf8
+            exit 1
           }
-          $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
-          if (-not (Test-Path $installer)) {
-            Write-Host "::warning::vs_installer.exe not found at $installer; skipping."
-            exit 0
-          }
-          Write-Host "Attempting to add v145 (MSVC 14.50) build tools to: $vsPath"
-          $args = @(
-            "modify", "--quiet", "--norestart", "--installPath", "`"$vsPath`"",
-            "--add", "Microsoft.VisualStudio.Component.VC.Tools.14.50.x86.x64",
-            "--add", "Microsoft.VisualStudio.Component.VC.MFC.14.50.x86.x64",
-            "--add", "Microsoft.VisualStudio.Component.VC.ATL.14.50",
-            "--add", "Microsoft.VisualStudio.Component.VC.Tools.14.50.x86.x64.Spectre",
-            "--add", "Microsoft.VisualStudio.Component.VC.MFC.14.50.x86.x64.Spectre",
-            "--add", "Microsoft.VisualStudio.Component.VC.ASAN"
-          )
-          $proc = Start-Process -FilePath $installer -ArgumentList $args -Wait -PassThru -NoNewWindow
-          Write-Host "vs_installer exited with code $($proc.ExitCode)"
-          if ($proc.ExitCode -ne 0 -and $proc.ExitCode -ne 3010) {
-            Write-Host "::warning::vs_installer failed (exit $($proc.ExitCode)); the build will use whatever v14x toolset is currently installed."
-          }
+          Write-Host "::notice::v145 (MSVC 14.50) toolset present - proceeding with strict build."
 
       - name: Cache vcpkg binary cache
         uses: actions/cache@v4
@@ -154,48 +116,17 @@ jobs:
           }
         continue-on-error: true
 
-      - name: Resolve effective PlatformToolset
+      - name: Export effective PlatformToolset
         id: toolset
         shell: pwsh
         run: |
-          # Phase 0: prefer v145 (VS 2026) but fall back to the newest v14x
-          # toolset present on the runner so we still get actionable build
-          # logs while the hosted image is being updated.
-          #
-          # MSVC -> PlatformToolset mapping (binary-compat v14x line):
-          #   14.50+        -> v145 (VS 2026)
-          #   14.30 - 14.49 -> v143 (VS 2022)
-          #   14.20 - 14.29 -> v142 (VS 2019)
-          #   14.10 - 14.16 -> v141 (VS 2017)
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          $effective = "v145"
-          if (Test-Path $vswhere) {
-            try {
-              $pkgs = (& $vswhere -latest -prerelease -property packages) -join "`n"
-            } catch {
-              $pkgs = ""
-            }
-            if ($pkgs -match "Microsoft\.VisualStudio\.Component\.VC\.Tools\.14\.50") {
-              $effective = "v145"
-            } elseif ($pkgs -match "Microsoft\.VisualStudio\.Component\.VC\.Tools\.x86\.x64") {
-              $effective = "v143"
-              Write-Host "::warning::v145 not installed; falling back to v143 (VS 2022)."
-            } elseif ($pkgs -match "Microsoft\.VisualStudio\.Component\.VC\.142") {
-              $effective = "v142"
-              Write-Host "::warning::v145 not installed; falling back to v142 (VS 2019)."
-            } else {
-              $effective = "v143"
-              Write-Host "::warning::No specific v14x marker detected; trying v143 as a generic default."
-            }
-          } else {
-            Write-Host "::warning::vswhere.exe not found - assuming v145."
-          }
-          Write-Host "Effective PlatformToolset = $effective"
-          # Write to GITHUB_OUTPUT (no BOM) so other steps can reference it
-          # via steps.toolset.outputs.PlatformToolset.
+          # The runner image (windows-2025-vs2026) is verified to carry v145
+          # above. We pin to it strictly here so any future image regression
+          # surfaces as a clear error rather than a silent toolset downgrade.
+          $effective = "$env:PLATFORM_TOOLSET"
           [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "PlatformToolset=$effective`n", [System.Text.UTF8Encoding]::new($false))
-          # Also export as env var for steps that can't use the outputs syntax.
           [System.IO.File]::AppendAllText($env:GITHUB_ENV, "EFFECTIVE_TOOLSET=$effective`n", [System.Text.UTF8Encoding]::new($false))
+          Write-Host "Effective PlatformToolset = $effective"
 
       - name: Build solution
         shell: cmd
