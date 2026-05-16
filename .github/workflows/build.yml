@@ -71,15 +71,37 @@ jobs:
             Write-Error "vswhere.exe not found at $vswhere - cannot validate VS install."
             exit 1
           }
-          & $vswhere -latest -prerelease -property installationVersion
-          & $vswhere -latest -prerelease -property displayName
-          $components = (& $vswhere -latest -prerelease -property packages) -join "`n"
-          if ($components -notmatch "Microsoft\.VisualStudio\.Component\.VC\.Tools\.14\.50") {
-            Write-Error "::error::v145 (MSVC 14.50) toolset NOT installed on this runner. Expected runner image is windows-2025-vs2026."
-            $components | Out-File -FilePath vs-packages.log -Encoding utf8
+          $installVersion = (& $vswhere -latest -prerelease -property installationVersion) -as [string]
+          $displayName    = (& $vswhere -latest -prerelease -property displayName)    -as [string]
+          $installPath    = (& $vswhere -latest -prerelease -property installationPath) -as [string]
+          Write-Host "Installation : $installPath"
+          Write-Host "Display name : $displayName"
+          Write-Host "Version      : $installVersion"
+
+          # On the windows-2025-vs2026 runner the default v145 toolset is
+          # exposed as `Microsoft.VisualStudio.Component.VC.Tools.x86.x64`
+          # (no .14.50 suffix). The .14.4x variants are the v143 fallback
+          # tools shipped alongside it. We confirm v145 by checking the
+          # MSVC tool directory under VC\Tools\MSVC for a 14.5x folder.
+          $msvcDir = Join-Path $installPath "VC\Tools\MSVC"
+          if (-not (Test-Path $msvcDir)) {
+            Write-Error "VC\Tools\MSVC directory not found in $installPath."
             exit 1
           }
-          Write-Host "::notice::v145 (MSVC 14.50) toolset present - proceeding with strict build."
+          $vc145 = Get-ChildItem $msvcDir -Directory | Where-Object { $_.Name -match "^14\.5" } | Sort-Object Name -Descending
+          if (-not $vc145) {
+            Write-Host "Installed MSVC tool directories:"
+            Get-ChildItem $msvcDir -Directory | ForEach-Object { Write-Host "  $($_.Name)" }
+            Write-Error "::error::v145 (MSVC 14.5x) tool directory NOT found in $msvcDir. Expected runner image is windows-2025-vs2026."
+            exit 1
+          }
+          $vcToolsVersion = $vc145[0].Name
+          Write-Host "::notice::v145 (MSVC $vcToolsVersion) toolset detected at $($vc145[0].FullName)"
+          # Major version 18 = VS 2026.
+          if ($installVersion -notmatch "^18\.") {
+            Write-Error "::error::VS major version is $installVersion, expected 18.x (Visual Studio 2026)."
+            exit 1
+          }
 
       - name: Cache vcpkg binary cache
         uses: actions/cache@v4

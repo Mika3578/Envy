@@ -76,7 +76,17 @@ _(none right now)_
     `.github/copilot-instructions.md`
   - `DEV_TRACKER.md` (this file)
 
-- **2026-05-16** | PR #35 eighth CI feedback | _(this commit)_
+- **2026-05-16** | PR #35 ninth CI feedback | _(this commit)_
+  -> First `windows-2025-vs2026` run failed in 27-43 s in the
+  "Verify Visual Studio 2026 with v145 is installed" step. The
+  image exposes v145 under the generic
+  `Microsoft.VisualStudio.Component.VC.Tools.x86.x64` component
+  (no `.14.50` suffix) and ships the v143 fallback as
+  `VC.14.44.17.14.x86.x64`. Replaced the package-name check with
+  a filesystem probe: look for `VC\Tools\MSVC\14.5*` under the
+  install path, and confirm the VS major version is 18.x.
+
+- **2026-05-16** | PR #35 eighth CI feedback | commit `1699b8d`
   -> Switch the hosted runner from `windows-2025` (VS 2022 / v143)
   to `windows-2025-vs2026` (public-preview image with VS 2026 /
   v145 / MSVC 14.50). Microsoft made this image GA-track in March
