@@ -163,30 +163,39 @@ jobs:
           # logs while the hosted image is being updated.
           #
           # MSVC -> PlatformToolset mapping (binary-compat v14x line):
-          #   14.50+  -> v145 (VS 2026)
+          #   14.50+        -> v145 (VS 2026)
           #   14.30 - 14.49 -> v143 (VS 2022)
           #   14.20 - 14.29 -> v142 (VS 2019)
           #   14.10 - 14.16 -> v141 (VS 2017)
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
           $effective = "v145"
           if (Test-Path $vswhere) {
-            $pkgs = (& $vswhere -latest -prerelease -property packages) -join "`n"
+            try {
+              $pkgs = (& $vswhere -latest -prerelease -property packages) -join "`n"
+            } catch {
+              $pkgs = ""
+            }
             if ($pkgs -match "Microsoft\.VisualStudio\.Component\.VC\.Tools\.14\.50") {
               $effective = "v145"
             } elseif ($pkgs -match "Microsoft\.VisualStudio\.Component\.VC\.Tools\.x86\.x64") {
-              # Generic v143 marker present on VS 2022 runner.
               $effective = "v143"
               Write-Host "::warning::v145 not installed; falling back to v143 (VS 2022)."
             } elseif ($pkgs -match "Microsoft\.VisualStudio\.Component\.VC\.142") {
               $effective = "v142"
               Write-Host "::warning::v145 not installed; falling back to v142 (VS 2019)."
             } else {
-              Write-Host "::warning::No v14x toolset detected; trying v143 as a generic default."
               $effective = "v143"
+              Write-Host "::warning::No specific v14x marker detected; trying v143 as a generic default."
             }
+          } else {
+            Write-Host "::warning::vswhere.exe not found - assuming v145."
           }
-          "PlatformToolset=$effective" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           Write-Host "Effective PlatformToolset = $effective"
+          # Write to GITHUB_OUTPUT (no BOM) so other steps can reference it
+          # via steps.toolset.outputs.PlatformToolset.
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "PlatformToolset=$effective`n", [System.Text.UTF8Encoding]::new($false))
+          # Also export as env var for steps that can't use the outputs syntax.
+          [System.IO.File]::AppendAllText($env:GITHUB_ENV, "EFFECTIVE_TOOLSET=$effective`n", [System.Text.UTF8Encoding]::new($false))
 
       - name: Build solution
         shell: cmd
@@ -227,43 +236,76 @@ jobs:
         run: |
           $errLog = "build-${{ matrix.platform }}-${{ matrix.configuration }}.errors.log"
           $warnLog = "build-${{ matrix.platform }}-${{ matrix.configuration }}.warnings.log"
-          $body = @()
-          $body += "### Build ${{ matrix.platform }} ${{ matrix.configuration }} - failures"
-          $body += ""
-          $body += "Effective PlatformToolset: ``${{ steps.toolset.outputs.PlatformToolset }}``"
-          $body += "Commit: ``${{ github.event.pull_request.head.sha }}``"
-          $body += "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          $body += ""
-          if (Test-Path $errLog) {
-            $errors = (Get-Content -LiteralPath $errLog -ErrorAction SilentlyContinue) | Select-Object -First 200
-            if ($errors.Count -gt 0) {
-              $body += "<details><summary>First 200 error lines</summary>"
-              $body += ""
-              $body += '```'
-              $body += $errors
-              $body += '```'
-              $body += "</details>"
+          $vcpkgLog = "$env:VCPKG_INSTALLATION_ROOT/buildtrees/install-x64-windows-static-rel-out.log"
+          $body = New-Object System.Collections.Generic.List[string]
+          $body.Add("### Build ${{ matrix.platform }} ${{ matrix.configuration }} - failures") | Out-Null
+          $body.Add("") | Out-Null
+          $body.Add("- Effective PlatformToolset: ``$($env:EFFECTIVE_TOOLSET)``") | Out-Null
+          $body.Add("- Commit: ``${{ github.event.pull_request.head.sha }}``") | Out-Null
+          $body.Add("- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}") | Out-Null
+          $body.Add("") | Out-Null
+
+          $reachedMsbuild = Test-Path $errLog
+
+          if ($reachedMsbuild) {
+            $errLines = @(Get-Content -LiteralPath $errLog -ErrorAction SilentlyContinue)
+            $errFirst = $errLines | Select-Object -First 200
+            $body.Add("**Reached MSBuild.** Errors captured: $($errLines.Count). Showing first $([Math]::Min(200, $errLines.Count)).") | Out-Null
+            $body.Add("") | Out-Null
+            $body.Add("<details><summary>First 200 MSBuild error lines</summary>") | Out-Null
+            $body.Add("") | Out-Null
+            $body.Add('```') | Out-Null
+            foreach ($l in $errFirst) { $body.Add($l) | Out-Null }
+            $body.Add('```') | Out-Null
+            $body.Add("</details>") | Out-Null
+            if (Test-Path $warnLog) {
+              $warn = @(Get-Content -LiteralPath $warnLog -ErrorAction SilentlyContinue) | Select-Object -First 80
+              if ($warn.Count -gt 0) {
+                $body.Add("") | Out-Null
+                $body.Add("<details><summary>First 80 warning lines</summary>") | Out-Null
+                $body.Add("") | Out-Null
+                $body.Add('```') | Out-Null
+                foreach ($l in $warn) { $body.Add($l) | Out-Null }
+                $body.Add('```') | Out-Null
+                $body.Add("</details>") | Out-Null
+              }
             }
           } else {
-            $body += "_No build-errors.log produced; the build likely failed before MSBuild started._"
-          }
-          if (Test-Path $warnLog) {
-            $warnings = (Get-Content -LiteralPath $warnLog -ErrorAction SilentlyContinue) | Select-Object -First 80
-            if ($warnings.Count -gt 0) {
-              $body += ""
-              $body += "<details><summary>First 80 warning lines</summary>"
-              $body += ""
-              $body += '```'
-              $body += $warnings
-              $body += '```'
-              $body += "</details>"
+            $body.Add("**Build failed before MSBuild started.** Likely a setup-msbuild, vcpkg bootstrap, or vcpkg install issue.") | Out-Null
+            $body.Add("") | Out-Null
+            # Try to surface vcpkg logs if any
+            $vcpkgLogs = @()
+            if (Test-Path "$env:VCPKG_INSTALLATION_ROOT/buildtrees") {
+              $vcpkgLogs = Get-ChildItem -LiteralPath "$env:VCPKG_INSTALLATION_ROOT/buildtrees" -Recurse -Filter "*.log" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 3
             }
+            if ($vcpkgLogs.Count -gt 0) {
+              foreach ($lg in $vcpkgLogs) {
+                $tail = @(Get-Content -LiteralPath $lg.FullName -Tail 80 -ErrorAction SilentlyContinue)
+                $body.Add("<details><summary>vcpkg log: $($lg.FullName) (last 80 lines)</summary>") | Out-Null
+                $body.Add("") | Out-Null
+                $body.Add('```') | Out-Null
+                foreach ($l in $tail) { $body.Add($l) | Out-Null }
+                $body.Add('```') | Out-Null
+                $body.Add("</details>") | Out-Null
+              }
+            } else {
+              $body.Add("_No vcpkg buildtree logs found - the failure is likely in setup-msbuild or the toolset detection step._") | Out-Null
+            }
+            # Dump the workspace top level so we can see what's there
+            $body.Add("") | Out-Null
+            $body.Add("<details><summary>Workspace listing</summary>") | Out-Null
+            $body.Add("") | Out-Null
+            $body.Add('```') | Out-Null
+            Get-ChildItem -Path . -File | ForEach-Object { $body.Add(("  " + $_.Name + "  (" + $_.Length + " bytes)")) | Out-Null }
+            $body.Add('```') | Out-Null
+            $body.Add("</details>") | Out-Null
           }
+
           $bodyText = $body -join "`n"
           # Write to step summary (visible on the run page)
-          $bodyText | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, $bodyText + "`n", [System.Text.UTF8Encoding]::new($false))
           # Also post as a PR comment so external tooling can read it.
-          $bodyText | Out-File -FilePath comment-body.md -Encoding utf8
+          [System.IO.File]::WriteAllText("comment-body.md", $bodyText, [System.Text.UTF8Encoding]::new($false))
           gh pr comment ${{ github.event.pull_request.number }} `
             --repo ${{ github.repository }} `
             --body-file comment-body.md
