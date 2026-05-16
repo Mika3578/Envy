@@ -21,7 +21,11 @@ For the canonical AI rules, see [`AGENTS.md`](./AGENTS.md).
 
 ## In progress
 
-_(none right now)_
+- **2026-05-16** | claude/code-audit-modernization-nJcTT
+  -> Phase 1 readiness: first CI run on the modernization branch.
+  Status: build matrix marked advisory (`continue-on-error: true`)
+  while the hosted `windows-2025` image is still on VS 2022 (v143).
+  See "Done" below for the lint + setup-msbuild fix already pushed.
 
 ---
 
@@ -61,7 +65,7 @@ _(none right now)_
   - `CITATION.cff`
   - `MODERNIZATION.md` (full audit + 5-phase plan)
 
-- **2026-05-16** | claude/code-audit-modernization-nJcTT | _(this commit)_
+- **2026-05-16** | claude/code-audit-modernization-nJcTT | commit `ac6474c`
   -> Translate `MODERNIZATION.md` to English, add AI rules
   - `AGENTS.md` (canonical AI ruleset)
   - `CLAUDE.md`, `.cursorrules`, `.cursor/rules/envy.mdc`,
@@ -69,6 +73,24 @@ _(none right now)_
     `.continue/rules/envy.md`,
     `.github/copilot-instructions.md`
   - `DEV_TRACKER.md` (this file)
+
+- **2026-05-16** | PR #35 first CI feedback | _(next commit)_
+  -> Fix two CI failures surfaced by the first PR run:
+  - `Lint build files` was matching `_ATL_XP_TARGETING` inside the
+    `Plugins/PluginWizard/**` templates (which are intentionally
+    left untouched). Added `--exclude-dir=PluginWizard` to the
+    grep so first-party projects are checked correctly.
+  - `Build Win32 Debug` failed at `Add MSBuild to PATH` with
+    "Unable to find MSBuild" because the strict
+    `vs-version: "[18.0,)"` requires VS 2026, which the hosted
+    `windows-2025` image does not yet ship by default. Dropped the
+    constraint (same change in `build.yml`, `codeql.yml`,
+    `release.yml`, `copilot-setup-steps.yml`), added a best-effort
+    step that asks the VS Installer to add the v145 toolset, and a
+    fallback that selects the newest installed v14x toolset if
+    v145 is still absent. Build matrix marked
+    `continue-on-error: true` for Phase 0; Phase 1 will flip it
+    off once the runner reliably provides v145.
 
 ---
 

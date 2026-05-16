@@ -16,8 +16,6 @@ jobs:
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
-        with:
-          vs-version: "[18.0,)"
 
       - name: Bootstrap vcpkg
         shell: pwsh
