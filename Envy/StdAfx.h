@@ -32,10 +32,20 @@
 // Uncomment for temporary workarounds:
 #define PUBLIC_RELEASE_FIX
 
-// MSVC 14.50 (Visual Studio 2026 / toolset v145) or newer is required.
+// Target toolchain is MSVC 14.50 (Visual Studio 2026 / PlatformToolset v145).
 // _MSC_VER 1950+ corresponds to MSVC 14.50; _MSC_FULL_VER >= 195000000.
-#if !defined(_MSC_VER) || (_MSC_VER < 1950)
-	#error Visual Studio 2026 (MSVC 14.50, toolset v145) or higher is required.
+//
+// During the Phase 0 / Phase 1 modernization window the hosted CI runners
+// still ship Visual Studio 2022 (v143, MSVC 14.3x-14.4x). Building with a
+// fallback toolset is allowed; emit a build-log notice so the gap is visible
+// without failing the build. Anything older than v141 (_MSC_VER < 1910) is
+// a hard error - that line is below the modern MFC/ATL support cut-off.
+#if !defined(_MSC_VER)
+	#error A Microsoft C++ compiler is required.
+#elif (_MSC_VER < 1910)
+	#error Visual Studio 2017 (toolset v141, MSVC 14.10) or newer is required.
+#elif (_MSC_VER < 1950)
+	#pragma message("warning: building with a toolset older than v145 (MSVC 14.50). Target is Visual Studio 2026; current value of _MSC_VER is below 1950.")
 #endif
 
 #if !defined(_UNICODE) || !defined(UNICODE)
