@@ -22,10 +22,16 @@ For the canonical AI rules, see [`AGENTS.md`](./AGENTS.md).
 ## In progress
 
 - **2026-05-16** | claude/code-audit-modernization-nJcTT
-  -> Phase 1 readiness: first CI run on the modernization branch.
-  Status: build matrix marked advisory (`continue-on-error: true`)
-  while the hosted `windows-2025` image is still on VS 2022 (v143).
-  See "Done" below for the lint + setup-msbuild fix already pushed.
+  -> Phase 1 readiness: chasing CI failures back to root cause.
+  Build matrix still advisory (`continue-on-error: true`) until the
+  v145 toolset reaches the hosted image. The PR-comment feedback
+  loop is now in place so external tooling can read the failure
+  details via `pull_request_read get_comments`.
+
+  Latest known root cause (commit `b459a75`): vcpkg.json had an
+  invalid `builtin-baseline` placeholder that caused `vcpkg install`
+  to reject the manifest before MSBuild ever started. Removed the
+  field (Dependabot will repopulate it once enabled in repo settings).
 
 ---
 
@@ -74,8 +80,32 @@ _(none right now)_
     `.github/copilot-instructions.md`
   - `DEV_TRACKER.md` (this file)
 
-- **2026-05-16** | PR #35 second CI feedback | _(this commit)_
-  -> Fix three more CI failures from run #2:
+- **2026-05-16** | PR #35 fourth CI feedback | commit `b459a75`
+  -> Fix the actual build blocker plus toolset output propagation:
+  - `vcpkg.json`: removed placeholder `builtin-baseline: "000...0"`
+    that made vcpkg reject the manifest before MSBuild started.
+    Also dropped `version>=` constraints (they require a real
+    baseline) and the `libgeoip` dep (not in vcpkg under that
+    name; libmaxminddb replaces it in Phase 3).
+  - Toolset detection step now writes to `$GITHUB_OUTPUT` and
+    `$GITHUB_ENV` via `[System.IO.File]::AppendAllText` with a
+    BOM-less UTF-8 encoding, so the output is parseable. Previous
+    `Out-File -Encoding utf8` was adding a BOM that confused
+    GitHub Actions' parser, leaving the failure comment showing
+    `Effective PlatformToolset: ``` (empty).
+  - Failure-comment step now distinguishes "reached MSBuild" vs
+    "died earlier", reads vcpkg buildtree logs when MSBuild logs
+    are absent, and lists workspace files for diagnosis.
+
+- **2026-05-16** | PR #35 third CI feedback | commit `a8ba22e`
+  -> Auto-publish failing build details back as a PR comment so
+  the failure log can be read via `pull_request_read get_comments`
+  (the runner log archives need GitHub auth which isn't reachable
+  from this session). 200 error lines + 80 warning lines wrapped
+  in `<details>` blocks per matrix cell.
+
+- **2026-05-16** | PR #35 second CI feedback | commit `a9d1d72`
+  -> Fix three CI failures from run #2:
   - `Vcpkg manifest sanity`: jq parsed `.version-string` as `.version
     - string` (subtraction) because of the dash. Switched to bracket
     notation `.["version-string"]` and added an explicit type check
