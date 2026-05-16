@@ -1,41 +1,47 @@
-# CLAUDE.md
+# Claude Code - Envy repository
 
-## Project Snapshot
-- Windows-first C++17/MFC monorepo for Envy P2P client.
-- Canonical full build uses `Visual Studio/Envy.sln`.
-- CMake is partial (mainly HashLib + tests).
+Authoritative rules for AI assistants live in [`AGENTS.md`](./AGENTS.md).
+Read it first; everything below is just shortcuts.
 
-## Key Commands
-- Build solution (Windows): `msbuild /m /p:Configuration=Release /p:Platform=x64 "Visual Studio/Envy.sln"`
-- Restore packages: `nuget restore "Visual Studio/Envy.sln"`
-- CMake tests (limited):
-  - `cmake -S . -B build -DBUILD_TESTS=ON`
-  - `cmake --build build`
-  - `ctest --test-dir build`
+## Quick context
 
-## Conventions
-- Keep changes minimal and scoped.
-- Do not assume CMake parity with Visual Studio.
-- Prefer edits that preserve protocol compatibility behavior.
-- Update docs and changelog when behavior/process changes.
+- **Stack**: C++ MFC, MSBuild, Visual Studio 2026 (toolset **v145**).
+- **C++ standard**: C++20 for first-party, C++17 for legacy plugins.
+- **OS target**: Windows 10 1809+ (XP/Vista/7/8 dropped).
+- **Deps**: vcpkg manifest (`vcpkg.json`).
+- **CI**: GitHub Actions on `windows-2025` (`.github/workflows/`).
 
-## Architecture Hints
-- `Envy/` mixes UI, protocol logic, and application state.
-- `HashLib/` is a shared dependency used by tests and core code.
-- `Services/` and `Plugins/` are high-impact areas for dependency/API stability.
+## Build command (copy-paste)
 
-## Do / Don't
-- **Do** document assumptions and validation limits.
-- **Do** call out security/performance implications of changes.
-- **Don't** introduce broad refactors without explicit scope.
-- **Don't** add new dependencies without update/ownership notes.
+```cmd
+msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
+  /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 ^
+  /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
+```
 
-## Operating Discipline
-- Keep PRs small and scoped to one logical change area.
-- Do not silently remove tests/coverage/workflows/legacy files/docs.
-- For meaningful PRs, update `CHANGELOG.md`, `docs/DEVELOPMENT_PLAN.md` (strategic), and `docs/DEV_TRACKER.md` (operational).
-- Preserve protocol wire compatibility unless explicitly documented.
-- Preserve CI validation capability unless intentionally moved and documented.
-- Always report testing performed, not performed, and environment limits.
-- Build authority reminder: `Visual Studio/Envy.sln` authoritative, MSVC `v145` required, CMake partial only.
-- Prefer audit-first work for risky security/protocol areas.
+## Mandatory steps when you act on this repo
+
+1. **Read** [`DEV_TRACKER.md`](./DEV_TRACKER.md) to see what's in flight.
+2. **Update** the tracker at start (Backlog -> In progress) and end
+   (In progress -> Done with date, commit, outcome).
+3. **Push** only to the branch the session was assigned to.
+4. **Reply to the user in the language they used in chat**, but all
+   commits, comments, docs, and PR text in **English**.
+
+## Common pitfalls in this codebase
+
+- `throw()` is removed in C++20 - use `noexcept`.
+- `register` is no longer a storage class - drop it.
+- Source files mix ISO-8859 and UTF-8 - never bulk-convert; respect the
+  BOM you find.
+- `Plugins/PluginWizard/**` are project templates - do **not** retarget
+  their `.vcxproj` files.
+- `_CRT_SECURE_NO_WARNINGS` is set repo-wide; do not rely on it as
+  permission to use unsafe APIs in new code.
+
+## See also
+
+- [`MODERNIZATION.md`](./MODERNIZATION.md) - full plan and phases.
+- [`AGENTS.md`](./AGENTS.md) - canonical rules.
+- [`DEV_TRACKER.md`](./DEV_TRACKER.md) - living progress log.
+- [`.github/CONTRIBUTING.md`](./.github/CONTRIBUTING.md) - human-facing.
