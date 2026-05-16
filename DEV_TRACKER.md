@@ -80,8 +80,22 @@ _(none right now)_
     `.github/copilot-instructions.md`
   - `DEV_TRACKER.md` (this file)
 
+- **2026-05-16** | PR #35 fifth CI feedback | _(this commit)_
+  -> Set a real vcpkg baseline. The previous commit removed the
+  placeholder from `vcpkg.json` but `vcpkg-configuration.json`
+  still had `baseline: "000...0"`, which is what produced
+  `fatal: remote error: upload-pack: not our ref 000...` during
+  the vcpkg install step (confirmed by Copilot's diagnosis of
+  the failure log).
+  - Set `builtin-baseline` in both `vcpkg.json` and
+    `vcpkg-configuration.json` to
+    `2b65c20fc66eda893aa15a15a453c3cf09500b19` (current vcpkg
+    master tip).
+  - Dependabot will continue to bump this baseline weekly.
+
 - **2026-05-16** | PR #35 fourth CI feedback | commit `b459a75`
-  -> Fix the actual build blocker plus toolset output propagation:
+  -> Fix the build-blocker hypothesis (round 1) plus toolset
+  output propagation:
   - `vcpkg.json`: removed placeholder `builtin-baseline: "000...0"`
     that made vcpkg reject the manifest before MSBuild started.
     Also dropped `version>=` constraints (they require a real
