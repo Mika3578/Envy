@@ -957,10 +957,13 @@ public:
 			m_Data.pop_front();
 		}
 
-		// Calculate average
+		// Calculate average. Use a range-based for; the previous
+		// `CAverageList::const_iterator i = ...` reference to a member typedef
+		// declared further down the class body trips C++20 two-phase name
+		// lookup under MSVC 14.50 (v145).
 		T sum = 0;
-		for ( CAverageList::const_iterator i = m_Data.begin(); i != m_Data.end(); ++i )
-			sum += (*i).first;
+		for ( const auto& entry : m_Data )
+			sum += entry.first;
 		return sum / (T)m_Data.size();
 	}
 
@@ -1027,7 +1030,16 @@ inline bool IsFileNewerThan(LPCTSTR pszFile, const QWORD nMilliseconds)
 inline QWORD GetFileSize(LPCTSTR pszFile)
 {
 	WIN32_FILE_ATTRIBUTE_DATA fd = {};
-	if ( pszFile && pszFile[ 0 ] && GetFileAttributesEx( ( _tcslen( pszFile ) > 255 && pszFile[ 0 ] != _T('\\') ) ? ( CString( L"\\\\?\\" ) + pszFile ) : pszFile, GetFileExInfoStandard, &fd ) )
+	if ( ! pszFile || ! pszFile[ 0 ] )
+		return SIZE_UNKNOWN;
+
+	// Force a single common type for the ternary - C++20 rejects implicit
+	// CString/LPCTSTR ambiguity that older /std:c++14 default tolerated.
+	const CString strPath = ( _tcslen( pszFile ) > 255 && pszFile[ 0 ] != _T('\\') )
+		? ( CString( L"\\\\?\\" ) + pszFile )
+		: CString( pszFile );
+
+	if ( GetFileAttributesEx( strPath, GetFileExInfoStandard, &fd ) )
 		return MAKEQWORD( fd.nFileSizeLow, fd.nFileSizeHigh );
 
 	return SIZE_UNKNOWN;

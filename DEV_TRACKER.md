@@ -76,7 +76,29 @@ _(none right now)_
     `.github/copilot-instructions.md`
   - `DEV_TRACKER.md` (this file)
 
-- **2026-05-16** | PR #35 ninth CI feedback | _(this commit)_
+- **2026-05-16** | PR #35 tenth CI feedback | _(this commit)_
+  -> First **v145 build** confirmed (MSVC 14.50.35717,
+  PlatformToolset reported correctly). 52 real C++20 errors
+  surfaced. Three distinct fixes landed:
+  - `Envy/StdAfx.h:939` (`CTimeAverage`): replaced
+    `for (CAverageList::const_iterator i = ...)` with a
+    range-based for. Two-phase lookup couldn't see the
+    `CAverageList` typedef that was declared later in the same
+    template class body.
+  - `Envy/StdAfx.h:1007` (`GetFileSize`): C++20 ternary type
+    deduction rejects `CString` vs `LPCTSTR` ambiguity. Rewrote
+    the call so both branches produce `CString`.
+  - `Envy/Envy.vcxproj`, `HashLib/*`, `TorrentEnvy/*`,
+    `Unpacker/Unpacker.vcxproj`: added
+    `<ConformanceMode>false</ConformanceMode>` (= `/permissive`,
+    not `/permissive-`). v145 with `/std:c++20` defaults to
+    `/permissive-`, which enforces strict two-phase name lookup
+    against the templated `Envy/Hashes/{Hash,StoragePolicies,
+    CheckingPolicies,ValidationPolicies}.hpp` policy chain. The
+    proper Phase 2 fix is `this->name` annotations everywhere;
+    keeping `/permissive` unblocks Phase 0 builds.
+
+- **2026-05-16** | PR #35 ninth CI feedback | commit `80d73b7`
   -> First `windows-2025-vs2026` run failed in 27-43 s in the
   "Verify Visual Studio 2026 with v145 is installed" step. The
   image exposes v145 under the generic
