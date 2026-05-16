@@ -75,7 +75,18 @@ _(none right now)_
     `.github/copilot-instructions.md`
   - `DEV_TRACKER.md` (this file)
 
-- **2026-05-16** | PR #35 sixth CI feedback | _(this commit)_
+- **2026-05-16** | PR #35 seventh CI feedback | commit `22897da`
+  -> The previous fix commit (`cc9f5e2`) cleared the
+  binary_function / for_each_if / D9035 errors as expected. The
+  only remaining failure in the next run was my own toolset guard
+  in `Envy/StdAfx.h:32`, which hard-errors when `_MSC_VER < 1950`.
+  Hosted runners are still at MSVC 14.4x (v143). Downgraded the
+  v145 requirement to a `#pragma message` warning so the build
+  proceeds on v143; only pre-VS 2017 toolsets still hard-error.
+  Will be restored to a hard error once the runner image carries
+  v145 reliably.
+
+- **2026-05-16** | PR #35 sixth CI feedback | commit `cc9f5e2`
   -> First real C++20 build errors from MSBuild (toolset v143).
   Only two distinct errors in the entire matrix, both trivial:
   - `HashLib/Utility.hpp:288`: missing semicolon after
