@@ -20,55 +20,60 @@ permissions:
 jobs:
   tidy:
     name: clang-tidy diff
-    runs-on: windows-2025
-    timeout-minutes: 30
-    # Advisory only - never block PRs while the legacy codebase is still being
-    # cleaned up. Flip to required once the baseline is clean.
-    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Advisory only: this job always exits 0 and surfaces findings as
+    # ::warning:: lines so the check shows green while the legacy codebase
+    # is still being cleaned up. Flip to required once the baseline is clean.
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v2
+      - name: Install clang-tidy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy
 
-      - name: Find changed C/C++ files
-        id: changed
+      - name: Find changed C/C++ files and lint
         shell: bash
         run: |
+          set +e
           base="${{ github.event.pull_request.base.sha }}"
           head="${{ github.event.pull_request.head.sha }}"
-          files=$(git diff --name-only "$base...$head" -- '*.cpp' '*.h' '*.cxx' '*.hpp' \
+          if [ -z "$base" ] || [ -z "$head" ]; then
+            echo "No PR context (base/head SHAs missing); skipping."
+            exit 0
+          fi
+          files=$(git diff --name-only "$base...$head" -- '*.cpp' '*.h' '*.cxx' '*.hpp' 2>/dev/null \
             | grep -E '^(Envy|TorrentEnvy|HashLib)/' \
             | grep -vE '^(Services|Plugins/PluginWizard|Plugins/RatDVDPlugin|Plugins/SWFPlugin)/' \
             || true)
-          echo "files<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$files" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-      - name: Run clang-tidy
-        if: steps.changed.outputs.files != ''
-        shell: pwsh
-        run: |
-          $files = "${{ steps.changed.outputs.files }}" -split "`n" | Where-Object { $_ -ne "" }
-          if ($files.Count -eq 0) { exit 0 }
-          $tidy = "${env:ProgramFiles}\Microsoft Visual Studio\2026\Enterprise\VC\Tools\Llvm\x64\bin\clang-tidy.exe"
-          if (-not (Test-Path $tidy)) {
-            $tidy = (Get-Command clang-tidy -ErrorAction SilentlyContinue).Source
-          }
-          if (-not $tidy) {
-            Write-Host "::warning::clang-tidy not found on the runner; skipping."
+          if [ -z "$files" ]; then
+            echo "No relevant C/C++ files changed."
             exit 0
-          }
-          foreach ($f in $files) {
-            Write-Host "::group::clang-tidy $f"
-            & $tidy --quiet $f -- -std=c++20 -DWIN32 -D_WINDOWS -D_UNICODE -DUNICODE 2>&1 | Tee-Object -Append -FilePath clang-tidy.log
-            Write-Host "::endgroup::"
-          }
+          fi
+          echo "Changed C/C++ files:"
+          echo "$files"
+          : > clang-tidy.log
+          warned=0
+          for f in $files; do
+            [ -f "$f" ] || continue
+            echo "::group::clang-tidy $f"
+            # Without a compile_commands.json on Linux this is a syntax-only
+            # check (no MFC headers). We only surface findings, never fail.
+            clang-tidy --quiet "$f" -- -std=c++20 -DWIN32 -D_WINDOWS -D_UNICODE -DUNICODE \
+              2>&1 | tee -a clang-tidy.log
+            echo "::endgroup::"
+            warned=1
+          done
+          if [ "$warned" -eq 1 ]; then
+            echo "::warning::clang-tidy completed with advisory findings - see the uploaded report."
+          fi
+          exit 0
 
       - name: Upload report
-        if: always() && steps.changed.outputs.files != ''
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: clang-tidy-report

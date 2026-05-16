@@ -41,7 +41,10 @@ jobs:
           if ! command -v jq >/dev/null; then
             sudo apt-get update && sudo apt-get install -y jq
           fi
-          jq -e '.name and .version-string and .dependencies' vcpkg.json > /dev/null
+          # Use bracket notation: jq parses `.version-string` as
+          # subtraction because of the dash.
+          jq -e '.name and .["version-string"] and (.dependencies | type == "array")' \
+            vcpkg.json > /dev/null
           echo "vcpkg.json is structurally valid."
 
       - name: Warn if builtin-baseline is unset

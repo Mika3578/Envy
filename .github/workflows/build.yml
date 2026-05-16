@@ -160,19 +160,28 @@ jobs:
           # Phase 0: prefer v145 (VS 2026) but fall back to the newest v14x
           # toolset present on the runner so we still get actionable build
           # logs while the hosted image is being updated.
+          #
+          # MSVC -> PlatformToolset mapping (binary-compat v14x line):
+          #   14.50+  -> v145 (VS 2026)
+          #   14.30 - 14.49 -> v143 (VS 2022)
+          #   14.20 - 14.29 -> v142 (VS 2019)
+          #   14.10 - 14.16 -> v141 (VS 2017)
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          $effective = "$env:PLATFORM_TOOLSET"
+          $effective = "v145"
           if (Test-Path $vswhere) {
-            $pkgs = & $vswhere -latest -prerelease -property packages
-            $candidates = @("14.50","14.44","14.43","14.42","14.41","14.40","14.39","14.38","14.37","14.36","14.35","14.34")
-            $installed = $candidates | Where-Object { $pkgs -match "Microsoft.VisualStudio.Component.VC.Tools.$_" }
-            $effective = "v145"
-            if (-not ($pkgs -match "Microsoft.VisualStudio.Component.VC.Tools.14.50")) {
-              if ($installed) {
-                $newest = $installed[0]
-                $effective = "v" + ($newest -replace "\.","")
-                Write-Host "::warning::v145 not installed; using $effective (MSVC $newest) instead."
-              }
+            $pkgs = (& $vswhere -latest -prerelease -property packages) -join "`n"
+            if ($pkgs -match "Microsoft\.VisualStudio\.Component\.VC\.Tools\.14\.50") {
+              $effective = "v145"
+            } elseif ($pkgs -match "Microsoft\.VisualStudio\.Component\.VC\.Tools\.x86\.x64") {
+              # Generic v143 marker present on VS 2022 runner.
+              $effective = "v143"
+              Write-Host "::warning::v145 not installed; falling back to v143 (VS 2022)."
+            } elseif ($pkgs -match "Microsoft\.VisualStudio\.Component\.VC\.142") {
+              $effective = "v142"
+              Write-Host "::warning::v145 not installed; falling back to v142 (VS 2019)."
+            } else {
+              Write-Host "::warning::No v14x toolset detected; trying v143 as a generic default."
+              $effective = "v143"
             }
           }
           "PlatformToolset=$effective" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
