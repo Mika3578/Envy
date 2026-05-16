@@ -1,7 +1,11 @@
 ﻿//
 // Strings.h
 //
+<<<<<<< HEAD
 // This file is part of Envy (getenvy.com) © 2016-2018
+=======
+// This file is part of Envy (getenvy.com) � 2016-2018
+>>>>>>> cc9f5e2 (fix(c++20): trivial syntax + drop std::binary_function + remove /Gm)
 // Portions copyright Shareaza 2010 and PeerProject 2010-2016
 //
 // Envy is free software. You may redistribute and/or modify it

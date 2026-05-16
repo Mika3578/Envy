@@ -22,16 +22,11 @@ For the canonical AI rules, see [`AGENTS.md`](./AGENTS.md).
 ## In progress
 
 - **2026-05-16** | claude/code-audit-modernization-nJcTT
-  -> Phase 1 readiness: chasing CI failures back to root cause.
-  Build matrix still advisory (`continue-on-error: true`) until the
-  v145 toolset reaches the hosted image. The PR-comment feedback
-  loop is now in place so external tooling can read the failure
-  details via `pull_request_read get_comments`.
-
-  Latest known root cause (commit `b459a75`): vcpkg.json had an
-  invalid `builtin-baseline` placeholder that caused `vcpkg install`
-  to reject the manifest before MSBuild ever started. Removed the
-  field (Dependabot will repopulate it once enabled in repo settings).
+  -> Phase 1 in progress. The MSBuild log is now reachable via the
+  failure-comment loop. v143 (VS 2022) selected as the effective
+  toolset on the hosted runner; the v145 install attempt is
+  best-effort and silently falls back. C++20 source fixes landing
+  incrementally. Build matrix stays advisory.
 
 ---
 
@@ -80,7 +75,24 @@ _(none right now)_
     `.github/copilot-instructions.md`
   - `DEV_TRACKER.md` (this file)
 
-- **2026-05-16** | PR #35 fifth CI feedback | _(this commit)_
+- **2026-05-16** | PR #35 sixth CI feedback | _(this commit)_
+  -> First real C++20 build errors from MSBuild (toolset v143).
+  Only two distinct errors in the entire matrix, both trivial:
+  - `HashLib/Utility.hpp:288`: missing semicolon after
+    `f( *first )` in `for_each_if`. Pre-existing typo that v141/v142
+    never complained about; v143's C++20 parser is stricter.
+  - `Envy/Strings.h:166`: `std::binary_function` was removed in
+    C++17. Dropped the empty base class from `CompareWordEntries`
+    (nothing in the codebase relies on the inherited typedefs).
+  - Same `std::binary_function` pattern also in
+    `Envy/StdAfx.h:872` (`std::less<CLSID>`) and
+    `Envy/StdAfx.h:884` (`std::less<CString>`). Both swept.
+    `throw()` exception specs in those two struct operators
+    converted to `noexcept` while we were there.
+  - Bonus: removed `<MinimalRebuild>true</...>` (=`/Gm`) from 6
+    projects - the flag is deprecated and emits D9035 in v143+.
+
+- **2026-05-16** | PR #35 fifth CI feedback | commit `bd3917d`
   -> Set a real vcpkg baseline. The previous commit removed the
   placeholder from `vcpkg.json` but `vcpkg-configuration.json`
   still had `baseline: "000...0"`, which is what produced

@@ -891,10 +891,13 @@ private:
 	#define VERIFY_FILE_ACCESS(h,f) ((void)0);
 #endif
 
+// std::binary_function and the throw() exception specifier were both removed
+// in C++17/20. The base class only provided unused typedefs; noexcept is the
+// modern equivalent of throw().
 template<>
-struct std::less< CLSID > : public std::binary_function< CLSID, CLSID, bool >
+struct std::less< CLSID >
 {
-	inline bool operator()(const CLSID& _Left, const CLSID& _Right) const throw()
+	inline bool operator()(const CLSID& _Left, const CLSID& _Right) const noexcept
 	{
 		return _Left.Data1 < _Right.Data1 || ( _Left.Data1 == _Right.Data1 &&
 			 ( _Left.Data2 < _Right.Data2 || ( _Left.Data2 == _Right.Data2 &&
@@ -904,9 +907,9 @@ struct std::less< CLSID > : public std::binary_function< CLSID, CLSID, bool >
 };
 
 template<>
-struct std::less< CString > : public std::binary_function< CString, CString, bool>
+struct std::less< CString >
 {
-	inline bool operator()(const CString& _Left, const CString& _Right) const throw()
+	inline bool operator()(const CString& _Left, const CString& _Right) const noexcept
 	{
 		return ( _Left.CompareNoCase( _Right ) < 0 );
 	}
