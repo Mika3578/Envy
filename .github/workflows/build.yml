@@ -48,13 +48,13 @@ jobs:
         include:
           - platform: x64
             msbuild_platform: x64
-            msbuild_parallel: /m
-            use_multi_tool_task: true
           - platform: Win32
             msbuild_platform: Win32
-            # Win32 PCH creation races under /m on hosted runners (C1083 permission denied).
-            msbuild_parallel: /m:1
-            use_multi_tool_task: false
+    # Hosted runners hit C1083 (PCH permission denied) when Envy.pch is built
+    # under parallel CL/MSBuild; serialize the solution build for reliability.
+    env:
+      MSBUILD_PARALLEL: /m:1
+      MSBUILD_USE_MULTI_TOOL_TASK: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -158,14 +158,14 @@ jobs:
         shell: cmd
         run: |
           msbuild "%SOLUTION%" ^
-            ${{ matrix.msbuild_parallel }} ^
+            %MSBUILD_PARALLEL% ^
             /nologo ^
             /verbosity:minimal ^
             /p:Configuration=${{ matrix.configuration }} ^
             /p:Platform=${{ matrix.msbuild_platform }} ^
             /p:PlatformToolset=${{ steps.toolset.outputs.PlatformToolset }} ^
             /p:WindowsTargetPlatformVersion=10.0 ^
-            /p:UseMultiToolTask=${{ matrix.use_multi_tool_task }} ^
+            /p:UseMultiToolTask=%MSBUILD_USE_MULTI_TOOL_TASK% ^
             /p:EnforceProcessCountAcrossBuilds=true ^
             /p:VcpkgEnableManifest=true ^
             /p:VcpkgEnabled=true ^
