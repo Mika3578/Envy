@@ -24,7 +24,7 @@ jobs:
     timeout-minutes: 10
     continue-on-error: true  # advisory until baseline is reformatted
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 

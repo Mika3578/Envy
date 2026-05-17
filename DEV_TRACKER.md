@@ -39,6 +39,11 @@ _(none right now)_
 
 ## Done
 
+- **2026-05-17** | PR #35 Node.js runtime follow-up | _(this commit)_
+  -> Upgraded workflow `actions/checkout` from `v4` to `v5` across
+  `.github/workflows/*` for Node.js 24 readiness; no runtime/source/docs
+  changes besides this tracker note.
+
 ### Phase 0 - Infrastructure bootstrap
 
 - **2026-05-16** | claude/code-audit-modernization-nJcTT | commit `a2ee3ec`
