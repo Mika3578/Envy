@@ -6,6 +6,9 @@ name: Copilot setup
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   copilot-setup-steps:
     runs-on: windows-2025-vs2026
