@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Startup skin diagnostics** — Eliminated spurious `Skin load error: Toolbar Lookup` (for `CDownloadsWnd`, `CUploadsWnd`, `CNeighboursWnd`, `CIRCFrame`, `CLibraryTree.Top`, `CLibraryHeaderBar.Physical`, `CLibraryTileView.Physical`, `CLibraryTree.Physical`) and `Failed to load icon` (for command IDs 40156, 40158, 40320–40328, 40340, 40345) debug-log noise emitted at startup. Root cause: `CChildWnd::OnCreate` invokes the virtual `OnSkinChange()` (through `LoadState`) before `CMainWnd::OnSkinChanged` runs the first `Skin.Apply()`, so `CSkin::m_pToolbars` and the `CCoolInterface` image maps were still empty when child windows requested them. `CSkin` now lazily loads the embedded default skin on first toolbar / command-image lookup, and both `CSkin::CreateToolBar` and `CCoolInterface::ExtractIcon` deduplicate the remaining debug messages once per session. A debug-only `CSkin::ValidateLoaded()` runs at the end of `Skin.Apply()` to report toolbar / command-image counts and surface genuine missing built-in toolbar names or image IDs.
+
 ### Changed
 - **CodeQL C# analysis quality** — Split C# CodeQL into dedicated manual-build workflow (`.github/workflows/codeql-csharp.yml`) on `windows-latest` with `security-extended` and `security-and-quality` queries, and removed C# `build-mode: none` from the shared CodeQL matrix.
 - **Build / CI (Phase 0, PR #35)** — Rebased modernization branch onto `develop`; CI uses `windows-2025-vs2026` with strict `v145` enforcement, path-filtered workflows, and MSBuild log artifacts. Fixed additional C++20 compile blockers (`TOOLBAR_RES`, `TCPBandwidthMeter`, legacy `std::binary_function` functors).

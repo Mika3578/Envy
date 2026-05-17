@@ -30,6 +30,7 @@ This is the **operational dashboard** for day-to-day execution.
 ## 3) Current Status
 
 ### Done
+- **fix/startup-skin-toolbar-icons** — Removed startup `Toolbar Lookup` / `Failed to load icon` debug-log noise. Added `CSkin::EnsureLoaded()` so early child-window OnCreate / OnSkinChange calls lazy-populate the embedded default skin before lookups; deduplicated per-session debug emissions in `CSkin::CreateToolBar` and `CCoolInterface::ExtractIcon`; added a debug-only `CSkin::ValidateLoaded()` post-apply sanity check. Files: `Envy/Skin.{h,cpp}`, `Envy/CoolInterface.cpp`. See root `DEV_TRACKER.md` for full entry.
 - Canonical strategy baseline established in `docs/DEVELOPMENT_PLAN.md`.
 - Protocol gap analysis and comparative audits exist (`docs/10_dev/status.md`, `docs/audit/*`).
 - Core governance docs exist (README, setup/testing/deployment, contributing).

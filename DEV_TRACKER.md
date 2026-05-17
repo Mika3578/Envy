@@ -39,6 +39,27 @@ _(none right now)_
 
 ## Done
 
+- **2026-05-17** | fix/startup-skin-toolbar-icons | _(uncommitted)_
+  -> Fixed startup `Skin load error: Toolbar Lookup` and
+  `Failed to load icon` debug-log noise for built-in panel windows
+  (`CDownloadsWnd`, `CUploadsWnd`, `CNeighboursWnd`, `CIRCFrame`,
+  `CLibraryTree.Top`, `CLibraryHeaderBar.Physical`,
+  `CLibraryTileView.Physical`, `CLibraryTree.Physical`) and command
+  IDs 40156, 40158, 40320-40328, 40340, 40345. Root cause:
+  `CChildWnd::OnCreate` invokes virtual `OnSkinChange()` (via
+  `LoadState`) before `CMainWnd::OnSkinChanged` calls the first
+  `Skin.Apply()`, so `CSkin::m_pToolbars` / `CCoolInterface` image
+  maps were still empty when children requested them. Minimal fix:
+  lazy `CSkin::EnsureLoaded()` from toolbar / image lookups; once-
+  per-session dedup in `CSkin::CreateToolBar` and
+  `CCoolInterface::ExtractIcon`; debug-only `CSkin::ValidateLoaded()`
+  called at end of `Skin.Apply()`. No toolbar buttons removed, no
+  network behaviour changed. Validation: `git diff --check` clean;
+  MSBuild Debug x64 + Release x64 (toolset v145) on
+  `Visual Studio\Envy.sln` both succeed with 0 errors.
+  Files: `Envy/Skin.h`, `Envy/Skin.cpp`, `Envy/CoolInterface.cpp`,
+  `CHANGELOG.md`, `DEV_TRACKER.md`, `docs/DEV_TRACKER.md`.
+
 - **2026-05-17** | PR #35 Node.js runtime follow-up | _(this commit)_
   -> Upgraded workflow `actions/checkout` from `v4` to `v5` across
   `.github/workflows/*` for Node.js 24 readiness; no runtime/source/docs
