@@ -39,6 +39,19 @@ _(none right now)_
 
 ## Done
 
+- **2026-05-18** | fix/startup-skin-toolbar-icons | follow-up PR #43
+  -> Closed the residual real miss: `CLibraryTree.Physical` was the
+  only built-in toolbar name actually absent from `Default.xml`.
+  Added an empty `<toolbar name="CLibraryTree.Physical"/>` next to
+  its `CLibraryTree.Virtual` counterpart; `CLibraryFrame::OnSkinChange`
+  requests this name when `Settings.Library.ShowVirtual` is false and
+  then hides `m_wndTreeBottom`, so an empty definition resolves the
+  lookup with zero visible UI change. Extended `CSkin::ValidateLoaded`
+  critical-toolbar list to cover the library frame names so a future
+  regression surfaces immediately. Files: `Envy/Res/Default.xml`,
+  `Envy/Skin.cpp`, `CHANGELOG.md`, `DEV_TRACKER.md`,
+  `docs/DEV_TRACKER.md`.
+
 - **2026-05-17** | fix/startup-skin-toolbar-icons | _(uncommitted)_
   -> Fixed startup `Skin load error: Toolbar Lookup` and
   `Failed to load icon` debug-log noise for built-in panel windows

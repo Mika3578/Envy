@@ -2878,6 +2878,12 @@ void CSkin::ValidateLoaded() const
 		L"CIRCFrame",
 		L"CSearchWnd.Panel",
 		L"CSearchWnd.Full",
+		L"CLibraryTree.Top",
+		L"CLibraryTree.Virtual",
+		L"CLibraryTree.Physical",
+		L"CLibraryHeaderBar.Physical",
+		L"CLibraryHeaderBar.Virtual",
+		L"CLibraryTileView.Physical",
 		NULL
 	};
 	for ( int i = 0; s_pszCriticalToolbars[ i ]; ++i )
