@@ -106,9 +106,9 @@ private:
 typedef CHostCacheHost* CHostCacheHostPtr;
 
 template<>
-struct std::less< IN_ADDR > : public std::binary_function< IN_ADDR, IN_ADDR, bool>
+struct std::less< IN_ADDR >
 {
-	inline bool operator()(const IN_ADDR& _Left, const IN_ADDR& _Right) const throw()
+	inline bool operator()(const IN_ADDR& _Left, const IN_ADDR& _Right) const noexcept
 	{
 		return ( ntohl( _Left.s_addr ) < ntohl( _Right.s_addr ) );
 	}
@@ -119,9 +119,9 @@ typedef std::pair< IN_ADDR, CHostCacheHostPtr > CHostCacheMapPair;
 typedef CHostCacheMap::iterator CHostCacheMapItr;
 
 template<>
-struct std::less< CHostCacheHostPtr > : public std::binary_function< CHostCacheHostPtr, CHostCacheHostPtr, bool>
+struct std::less< CHostCacheHostPtr >
 {
-	inline bool operator()(const CHostCacheHostPtr& _Left, const CHostCacheHostPtr& _Right) const throw()
+	inline bool operator()(const CHostCacheHostPtr& _Left, const CHostCacheHostPtr& _Right) const noexcept
 	{
 		return ( _Left->Seen() > _Right->Seen() );
 	}
@@ -132,26 +132,38 @@ typedef std::pair < CHostCacheIndex::iterator, CHostCacheIndex::iterator > CHost
 typedef CHostCacheIndex::const_iterator CHostCacheIterator;
 typedef CHostCacheIndex::const_reverse_iterator CHostCacheRIterator;
 
-struct good_host : public std::binary_function< CHostCacheMapPair, BOOL, bool>
+struct good_host
 {
-	inline bool operator()(const CHostCacheMapPair& _Pair, const BOOL& _bLocally) const throw()
+	typedef CHostCacheMapPair first_argument_type;
+	typedef BOOL second_argument_type;
+	typedef bool result_type;
+
+	inline bool operator()(const CHostCacheMapPair& _Pair, const BOOL& _bLocally) const noexcept
 	{
 		return ( _Pair.second->m_nFailures == 0 &&
 			( _Pair.second->m_bCheckedLocally || _bLocally ) );
 	}
 };
 
-struct is_host : public std::binary_function< CHostCacheMapPair, CHostCacheHostPtr, bool>
+struct is_host
 {
-	inline bool operator()(const CHostCacheMapPair& _Pair, const CHostCacheHostPtr& _bLocally) const throw()
+	typedef CHostCacheMapPair first_argument_type;
+	typedef CHostCacheHostPtr second_argument_type;
+	typedef bool result_type;
+
+	inline bool operator()(const CHostCacheMapPair& _Pair, const CHostCacheHostPtr& _bLocally) const noexcept
 	{
 		return ( _Pair.second == _bLocally );
 	}
 };
 
-struct is_address : public std::binary_function< CHostCacheMapPair, LPCTSTR, bool>
+struct is_address
 {
-	inline bool operator()(const CHostCacheMapPair& _Pair, const LPCTSTR& _bLocally) const throw()
+	typedef CHostCacheMapPair first_argument_type;
+	typedef LPCTSTR second_argument_type;
+	typedef bool result_type;
+
+	inline bool operator()(const CHostCacheMapPair& _Pair, const LPCTSTR& _bLocally) const noexcept
 	{
 		return ( _Pair.second->m_sAddress.CompareNoCase( _bLocally ) == 0 );
 	}

@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>BugTrapSort</ProjectName>
     <ProjectGuid>{22D1722C-BA48-4B9A-BD40-916908C4E3D8}</ProjectGuid>
     <RootNamespace>BugTrapSort</RootNamespace>

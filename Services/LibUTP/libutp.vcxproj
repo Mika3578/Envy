@@ -39,6 +39,7 @@
     <ClCompile Include="utp_utils.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectGuid>{5984D5CD-6ADD-4EB7-82E7-A555888FBBBD}</ProjectGuid>
     <RootNamespace>libutp2012</RootNamespace>
     <ProjectName>libutp</ProjectName>
