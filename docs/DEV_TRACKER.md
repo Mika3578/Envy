@@ -38,6 +38,7 @@ This is the **operational dashboard** for day-to-day execution.
 - **Phase 0 / PR #35** — Visual Studio 2026 (`v145`) toolset migration, hosted CI on `windows-2025-vs2026`, build-log artifacts, AI rules (target base: `develop`).
 - Consolidating duplicated status/tracker information into this operational dashboard.
 - CI signal quality improvements and clearer required-vs-advisory checks.
+- CodeQL C# analysis quality hardening: moved from `build-mode: none` to dedicated manual-build workflow and documented legacy C# blockers.
 - Dependency ownership visibility and risk classification.
 
 ### Next
@@ -84,6 +85,7 @@ This is the **operational dashboard** for day-to-day execution.
 
 | Check | Last known result (pre-rebase push) | Notes |
 |---|---|---|
+| CodeQL C# manual build | **Updated** | Dedicated `.github/workflows/codeql-csharp.yml` now uses manual build for `SkinUpdater`; legacy FictionBookReader blockers documented in `docs/maintenance/codeql-csharp.md`. |
 | Lint build files | PASS | No legacy `v141_xp` / `v142` outside `Plugins/PluginWizard` |
 | Format check (`clang-format`) | PASS | |
 | clang-tidy (advisory) | PASS | |
