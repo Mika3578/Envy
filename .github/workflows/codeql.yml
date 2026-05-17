@@ -1,4 +1,4 @@
-name: CodeQL
+name: "CodeQL Advanced"
 
 on:
   push:
@@ -20,13 +20,19 @@ concurrency:
 
 jobs:
   analyze:
-    name: Analyze C/C++
+    name: Analyze (${{ matrix.language }})
     runs-on: windows-2025-vs2026
     timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
-        language: [c-cpp]
+        include:
+          - language: c-cpp
+            build-mode: manual
+          - language: csharp
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,54 +40,26 @@ jobs:
           submodules: recursive
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          queries: security-extended,security-and-quality
-          config: |
-            paths:
-              - Envy
-              - TorrentEnvy
-              - HashLib
-              - Plugins
-              - Installer
-              - Unpacker
-            paths-ignore:
-              - Services/zlib
-              - Services/SQLite
-              - Services/Bzlib
-              - Services/UnRAR
-              - Services/MiniUPnP
-              - Services/GeoIP
-              - Services/LibUTP
-              - Services/BugTrap
-              - Languages
-              - Skins
-              - Templates
-              - Plugins/PluginWizard
-              - Plugins/RatDVDPlugin
-              - Plugins/SWFPlugin
+          build-mode: ${{ matrix.build-mode }}
 
       - name: Add MSBuild to PATH
+        if: matrix.language == 'c-cpp'
         uses: microsoft/setup-msbuild@v2
         with:
           msbuild-architecture: x64
 
       - name: Build solution (x64 Release)
+        if: matrix.language == 'c-cpp'
         shell: cmd
         run: |
           msbuild "Visual Studio\Envy.sln" ^
-            /m ^
-            /nologo ^
-            /verbosity:minimal ^
             /p:Configuration=Release ^
-            /p:Platform=x64 ^
-            /p:PlatformToolset=v145 ^
-            /p:WindowsTargetPlatformVersion=10.0 ^
-            /p:UseMultiToolTask=true
-        continue-on-error: true
+            /p:Platform=x64
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
