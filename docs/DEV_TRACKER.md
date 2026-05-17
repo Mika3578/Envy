@@ -88,7 +88,7 @@ This is the **operational dashboard** for day-to-day execution.
 | Format check (`clang-format`) | PASS | |
 | clang-tidy (advisory) | PASS | |
 | Dependency review / vcpkg sanity | PASS | Real `builtin-baseline` in manifest |
-| Build matrix (Win32/x64 × Debug/Release) | **FAIL** | First honest `windows-2025-vs2026` + MSVC 14.50 run |
+| Build matrix (Win32/x64 × Debug/Release) | **Partial** | x64 Debug/Release green on run `25993019518`; Win32 hit PCH lock (`C1083`); CI uses `/m:1` for Win32 |
 | YAML / workflow validation | PASS | Workflows lint clean |
 
 **Compile errors fixed in this session (C++20 / v145 blockers):**
@@ -101,9 +101,9 @@ This is the **operational dashboard** for day-to-day execution.
 - `Envy/Envy.cpp` — disabled taskbar block that referenced missing `CJumpList` wrapper (local **Release x64** build verified).
 - Prior PR commits (already on branch): `HashLib/Utility.hpp` semicolon; `Envy/Strings.h` / `Envy/StdAfx.h` comparators; `CTimeAverage` range-for; `GetFileSize` ternary; `/permissive` on first-party projects for `Envy/Hashes/*` two-phase lookup.
 
-**Remaining blockers (post-fix, until CI re-run):**
+**Remaining blockers (post-fix):**
 
-- Full four-configuration matrix not yet green on GitHub Actions after rebase onto `develop`.
+- Win32 matrix jobs: verify green after `/m:1` PCH workaround in `build.yml`.
 - Phase 2 follow-up: add `this->` in `Envy/Hashes/*` policy templates and re-enable strict `/permissive-` on first-party projects.
 - Plugin projects still on `stdcpp17`; main app on `stdcpp20` — intentional Phase 0 split.
 
