@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Build / CI (Phase 0, PR #35)** — Rebased modernization branch onto `develop`; CI uses `windows-2025-vs2026` with strict `v145` enforcement, path-filtered workflows, and MSBuild log artifacts. Fixed additional C++20 compile blockers (`TOOLBAR_RES`, `TCPBandwidthMeter`, legacy `std::binary_function` functors).
 - Added operational documentation governance set: `docs/DEV_TRACKER.md`, `docs/PR_PLAYBOOK.md`, `docs/DECISIONS.md`, `docs/KNOWN_LIMITATIONS.md`, `docs/LABELS.md`, `docs/DEPENDENCIES.md`, and `docs/audit/REPOSITORY_CLEANUP_AUDIT.md`.
 - Clarified canonical doc split (strategic vs operational vs deep protocol reference) and improved root documentation discoverability in `README.md`.
 - Updated AI/agent workflow rules in `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/08-dev-workflow.mdc` to enforce small scoped PRs, mandatory reporting, and authoritative VS/v145 build guidance.

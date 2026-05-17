@@ -1,7 +1,7 @@
 //
 // FragmentedFile.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -77,7 +77,7 @@ protected:
 
 	typedef std::vector< CVirtualFilePart > CVirtualFile;
 
-	struct Less : public std::binary_function< CVirtualFilePart, CVirtualFilePart, bool >
+	struct Less
 	{
 		inline bool operator()(const CVirtualFilePart& _Left, const CVirtualFilePart& _Right) const
 		{
@@ -85,7 +85,7 @@ protected:
 		}
 	};
 
-	struct Greater : public std::binary_function< CVirtualFilePart, QWORD, bool >
+	struct Greater
 	{
 		inline bool operator()(const CVirtualFilePart& _Left, QWORD _Right) const
 		{
@@ -93,7 +93,7 @@ protected:
 		}
 	};
 
-	struct Flusher : public std::unary_function< CVirtualFilePart, void >
+	struct Flusher
 	{
 		inline void operator()(const CVirtualFilePart& p) const
 		{
@@ -104,7 +104,7 @@ protected:
 		}
 	};
 
-	struct Releaser : public std::unary_function< CVirtualFilePart, void >
+	struct Releaser
 	{
 		inline void operator()(CVirtualFilePart& p) const
 		{
@@ -116,7 +116,7 @@ protected:
 		}
 	};
 
-	struct Completer : public std::unary_function< CVirtualFilePart, void >
+	struct Completer
 	{
 		inline void operator()(const CVirtualFilePart& p) const
 		{
@@ -134,7 +134,7 @@ protected:
 		}
 	};
 
-	struct EnsureWriter : public std::unary_function< CVirtualFilePart, bool >
+	struct EnsureWriter
 	{
 		inline bool operator()(const CVirtualFilePart& p) const
 		{

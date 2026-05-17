@@ -21,13 +21,13 @@ For the canonical AI rules, see [`AGENTS.md`](./AGENTS.md).
 
 ## In progress
 
-- **2026-05-16** | claude/code-audit-modernization-nJcTT
-  -> Pinned the CI to `windows-2025-vs2026` (public-preview hosted
-  image that carries Visual Studio 2026 + v145 + MSVC 14.50). The
-  workflows now require v145 strictly: no toolset fallback, no
-  `continue-on-error`, and `Envy/StdAfx.h` reinstated as a hard
-  `#error` when `_MSC_VER < 1950`. Next CI run will be the first
-  honest v145 build.
+- **2026-05-17** | claude/code-audit-modernization-nJcTT / PR #35
+  -> Rebased onto `origin/develop` (base retargeted from `main`).
+  Fixed second-wave C++20 errors: C7626 (`TOOLBAR_RES`,
+  `TCPBandwidthMeter`), remaining `std::binary_function` /
+  `std::unary_function` in HostCache, FragmentedFile, DownloadSource,
+  CtrlLibraryTileView. Pushed; awaiting green `windows-2025-vs2026`
+  matrix. Operational status: `docs/DEV_TRACKER.md` §6.
 
 ---
 

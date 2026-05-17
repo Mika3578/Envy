@@ -267,7 +267,7 @@ public:
 	static const DWORD	METER_PERIOD	= METER_MINIMUM * METER_LENGTH;	// The time that the bandwidth meter keeps information for
 
 	// Keep track of how fast we are reading or writing bytes to a socket
-	typedef struct
+	struct TCPBandwidthMeter
 	{
 		// Options to limit bandwidth
 		DWORD*	pLimit;		// Points to a DWORD that holds the limit for this bandwidth meter
@@ -288,7 +288,7 @@ public:
 		DWORD	CalculateLimit(DWORD tNow, DWORD nBandwidthScale, bool bMaxMode = false) const;	// Work out the limit
 		DWORD	CalculateUsage(DWORD tTime ) const;						// Work out the meter usage from a given time over 30sec   (optimal for time periods more than METER_LENGTH / 2)
 		DWORD	CalculateUsage(DWORD tTime, bool bShortPeriod ) const;	// Work out the meter usage from a given time under 30sec  (optimal for time periods less than METER_LENGTH / 2)
-	} TCPBandwidthMeter;
+	};
 
 	// Structures to control bandwidth in each direction
 	TCPBandwidthMeter m_mInput;		// Input TCP bandwidth meter
