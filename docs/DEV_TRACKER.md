@@ -96,6 +96,9 @@ This is the **operational dashboard** for day-to-day execution.
 - `Envy/CoolInterface.h` — `TOOLBAR_RES`: named `struct` (fixes C7626 anonymous struct with member function).
 - `Envy/Connection.h` — `TCPBandwidthMeter`: named nested `struct` (same C7626).
 - `Envy/HostCache.h`, `Envy/FragmentedFile.h`, `Envy/DownloadSource.h`, `Envy/CtrlLibraryTileView.h` — removed deprecated `std::binary_function` / `std::unary_function` bases; `throw()` → `noexcept` where touched.
+- `Envy/HostCache.h` / `Envy/FragmentedFile.h` — restored `first_argument_type` / `second_argument_type` / `result_type` for `std::bind2nd` predicates.
+- `Envy/Buffer.h` — `Read()` declaration aligned to `noexcept` definition.
+- `Envy/Envy.cpp` — disabled taskbar block that referenced missing `CJumpList` wrapper (local **Release x64** build verified).
 - Prior PR commits (already on branch): `HashLib/Utility.hpp` semicolon; `Envy/Strings.h` / `Envy/StdAfx.h` comparators; `CTimeAverage` range-for; `GetFileSize` ternary; `/permissive` on first-party projects for `Envy/Hashes/*` two-phase lookup.
 
 **Remaining blockers (post-fix, until CI re-run):**

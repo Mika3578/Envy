@@ -68,7 +68,7 @@ public:
 	// Read the data in the buffer as text
 	CString ReadString(const size_t nBytes, const UINT nCodePage = CP_ACP) const;					// Reads nBytes of ASCII characters as a string
 
-	BOOL	Read(void* pData, const size_t nLength); //throw();
+	BOOL	Read(void* pData, const size_t nLength) noexcept;
 	BOOL	ReadLine(CString& strLine, BOOL bPeek = FALSE);											// Reads until "\r\n". Encoding detection.
 	BOOL	StartsWith(LPCSTR pszString, const size_t nLength, const BOOL bRemove = FALSE) noexcept;	// Returns true if the buffer starts with this text
 

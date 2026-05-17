@@ -1029,8 +1029,8 @@ BOOL CEnvyApp::Register()
 	// See http://msdn.microsoft.com/en-us/gg465010#_Toc243450447 for TaskBar
 	if ( theApp.m_nWinVer >= WIN_7 )
 	{
-#if defined(_MSC_VER) && (_MSC_VER >= 1600) && (NTDDI_VERSION >= NTDDI_WIN7)
-		// For VS2010+:
+#if 0 && defined(_MSC_VER) && (_MSC_VER >= 1600) && (NTDDI_VERSION >= NTDDI_WIN7)
+		// Disabled: CJumpList wrapper is not in the repository (Phase 0 v145 build).
 		CJumpList oTasks = new JumpList();
 		oTasks.ClearAllDestinations();
 		oTasks.AddKnownCategory( KDC_RECENT );

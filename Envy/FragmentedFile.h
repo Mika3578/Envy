@@ -87,6 +87,10 @@ protected:
 
 	struct Greater
 	{
+		typedef CVirtualFilePart first_argument_type;
+		typedef QWORD second_argument_type;
+		typedef bool result_type;
+
 		inline bool operator()(const CVirtualFilePart& _Left, QWORD _Right) const
 		{
 			return _Left.m_nOffset > _Right;

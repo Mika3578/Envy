@@ -134,6 +134,10 @@ typedef CHostCacheIndex::const_reverse_iterator CHostCacheRIterator;
 
 struct good_host
 {
+	typedef CHostCacheMapPair first_argument_type;
+	typedef BOOL second_argument_type;
+	typedef bool result_type;
+
 	inline bool operator()(const CHostCacheMapPair& _Pair, const BOOL& _bLocally) const noexcept
 	{
 		return ( _Pair.second->m_nFailures == 0 &&
@@ -143,6 +147,10 @@ struct good_host
 
 struct is_host
 {
+	typedef CHostCacheMapPair first_argument_type;
+	typedef CHostCacheHostPtr second_argument_type;
+	typedef bool result_type;
+
 	inline bool operator()(const CHostCacheMapPair& _Pair, const CHostCacheHostPtr& _bLocally) const noexcept
 	{
 		return ( _Pair.second == _bLocally );
@@ -151,6 +159,10 @@ struct is_host
 
 struct is_address
 {
+	typedef CHostCacheMapPair first_argument_type;
+	typedef LPCTSTR second_argument_type;
+	typedef bool result_type;
+
 	inline bool operator()(const CHostCacheMapPair& _Pair, const LPCTSTR& _bLocally) const noexcept
 	{
 		return ( _Pair.second->m_sAddress.CompareNoCase( _bLocally ) == 0 );
