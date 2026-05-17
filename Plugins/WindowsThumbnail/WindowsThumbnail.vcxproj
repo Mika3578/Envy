@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>WindowsThumbnail</ProjectName>
     <ProjectGuid>{A3CA6023-3655-4BBB-95CC-5ED4EA8075C8}</ProjectGuid>
     <RootNamespace>WindowsThumbnail</RootNamespace>
@@ -97,8 +98,9 @@
       </ProxyFileName>
     </Midl>
     <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_ATL_XP_TARGETING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(RootDir)%(Directory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/FS /Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>
@@ -148,6 +150,7 @@
       </ProxyFileName>
     </Midl>
     <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;WIN64;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(RootDir)%(Directory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -198,9 +201,10 @@
       </ProxyFileName>
     </Midl>
     <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <Optimization>Full</Optimization>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_ATL_XP_TARGETING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(RootDir)%(Directory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/FS /Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -254,6 +258,7 @@
       </ProxyFileName>
     </Midl>
     <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <Optimization>Full</Optimization>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <PreprocessorDefinitions>WIN64;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>

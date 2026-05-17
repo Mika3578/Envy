@@ -1,89 +1,72 @@
-name: "CodeQL Security Scan"
+name: "CodeQL Advanced"
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [main, develop]
   schedule:
-    # Run every Monday at 0:00 UTC
-    - cron: '0 0 * * 1'
+    # Weekly scan on Sunday early morning UTC
+    - cron: "13 4 * * 0"
   workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
-    name: Analyze C++
-    runs-on: windows-latest
-    timeout-minutes: 360
-
-    permissions:
-      security-events: write
-      packages: read
-      actions: read
-      contents: read
-
+    name: Analyze (${{ matrix.language }})
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: c-cpp
+            build-mode: manual
+          - language: csharp
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
 
-    - name: Install VS 2026 Build Tools
-      shell: pwsh
-      run: |
-        Write-Host "Installing VS 2026 Build Tools..."
-        choco install visualstudio2026buildtools `
-          --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATLMFC --includeRecommended --quiet" `
-          -y --ignore-package-exit-codes=3010
-        Write-Host "VS 2026 Build Tools installation completed"
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
-      with:
-        languages: cpp
-        config-file: ./.github/codeql/codeql-config.yml
-        queries: +security-and-quality
+      - name: Add MSBuild to PATH
+        if: matrix.language == 'c-cpp'
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
 
-    - name: Setup MSBuild
-      shell: pwsh
-      run: |
-        # Find Visual Studio installation using vswhere (pre-installed on windows-latest)
-        $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
-          -latest `
-          -products * `
-          -requires Microsoft.Component.MSBuild `
-          -property installationPath
+      - name: Build solution (x64 Release)
+        if: matrix.language == 'c-cpp'
+        shell: cmd
+        run: |
+          msbuild "Visual Studio\Envy.sln" ^
+            /m ^
+            /nologo ^
+            /verbosity:minimal ^
+            /p:Configuration=Release ^
+            /p:Platform=x64 ^
+            /p:PlatformToolset=v145 ^
+            /p:WindowsTargetPlatformVersion=10.0 ^
+            /p:UseMultiToolTask=true
 
-        if ($vsPath) {
-          Write-Host "Found Visual Studio at: $vsPath"
-
-          # Add MSBuild to PATH
-          $msbuildPath = Join-Path $vsPath "MSBuild\Current\Bin"
-          if (Test-Path $msbuildPath) {
-            Write-Host "Adding MSBuild to PATH: $msbuildPath"
-            echo "$msbuildPath" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          } else {
-            Write-Error "MSBuild not found at: $msbuildPath"
-            exit 1
-          }
-
-          # Add vswhere location to PATH for consistency
-          $vswherePath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer"
-          echo "$vswherePath" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-        } else {
-          Write-Error "Visual Studio installation not found!"
-          exit 1
-        }
-
-    - name: Restore NuGet packages
-      working-directory: ${{github.workspace}}
-      run: nuget restore "Visual Studio/Envy.sln"
-
-    - name: Build with MSBuild
-      working-directory: ${{github.workspace}}
-      run: |
-        # Note: Building x64 Release for CodeQL. Win32-specific code paths are analyzed through shared codebase.
-        msbuild /m /p:Configuration=Release /p:Platform=x64 "Visual Studio/Envy.sln"
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
-      with:
-        category: "/language:cpp"
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"

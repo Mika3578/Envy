@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>TorrentEnvy</ProjectName>
     <ProjectGuid>{F02EDE36-E2AC-40E8-B6DC-76B1D53F9A5A}</ProjectGuid>
     <RootNamespace>TorrentEnvy</RootNamespace>
@@ -93,8 +94,10 @@
       </HeaderFileName>
     </Midl>
     <ClCompile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ConformanceMode>false</ConformanceMode>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_ATL_XP_TARGETING;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -141,6 +144,8 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ConformanceMode>false</ConformanceMode>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;WIN64;_WINDOWS;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -182,9 +187,11 @@
       <Command>copy /b /y "..\HashLib\$(Configuration) $(Platform)\HashLib.dll" "$(TargetDir)"</Command>
     </PreBuildEvent>
     <ClCompile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ConformanceMode>false</ConformanceMode>
       <Optimization>Full</Optimization>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_ATL_XP_TARGETING;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -234,6 +241,8 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ConformanceMode>false</ConformanceMode>
       <Optimization>Full</Optimization>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <PreprocessorDefinitions>NDEBUG;WIN64;_WINDOWS;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>

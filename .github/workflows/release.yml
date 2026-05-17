@@ -1,147 +1,104 @@
-name: Release Build
+name: Release
 
 on:
-  release:
-    types: [created, published]
+  push:
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number (e.g., 1.0.0.0)'
+        description: "Release tag (e.g. v5.0.0)"
         required: true
-        default: '1.0.0.0'
+        type: string
 
-env:
-  SOLUTION_FILE_PATH: Visual Studio/Envy.sln
+permissions:
+  contents: write
 
 jobs:
-  build-release:
-    name: Build Release (${{ matrix.platform }})
-    runs-on: windows-latest
-
+  build:
+    name: Build Release ${{ matrix.platform }}
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 120
     strategy:
+      fail-fast: false
       matrix:
-        platform: [Win32, x64]
-
+        platform: [x64, Win32]
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
-    - name: Install VS 2026 Build Tools
-      shell: pwsh
-      run: |
-        Write-Host "Installing VS 2026 Build Tools..."
-        choco install visualstudio2026buildtools `
-          --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATLMFC --includeRecommended --quiet" `
-          -y --ignore-package-exit-codes=3010
-        Write-Host "VS 2026 Build Tools installation completed"
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
 
-    - name: Auto-Version Management
-      shell: pwsh
-      run: |
-        Write-Host "Running auto-version management for release..." -ForegroundColor Green
+      - name: Bootstrap vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
+          & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
+          echo "VCPKG_INSTALLATION_ROOT=$env:GITHUB_WORKSPACE/vcpkg" >> $env:GITHUB_ENV
 
-        # For releases, increment patch version
-        .\scripts\auto-version.ps1 -IncrementPatch -UpdateFiles
+      - name: Install vcpkg dependencies
+        shell: pwsh
+        run: |
+          $triplet = if ("${{ matrix.platform }}" -eq "x64") { "x64-windows-static" } else { "x86-windows-static" }
+          echo "VCPKG_TARGET_TRIPLET=$triplet" >> $env:GITHUB_ENV
+          & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install --triplet=$triplet
 
-        # Display version information
-        if (Test-Path version.json) {
-          $versionData = Get-Content version.json | ConvertFrom-Json
-          Write-Host "Release Version: $($versionData.displayVersion)" -ForegroundColor Cyan
-          Write-Host "Full Version: $($versionData.fullVersion)" -ForegroundColor Cyan
-        }
+      - name: Build solution
+        shell: cmd
+        run: |
+          msbuild "Visual Studio\Envy.sln" ^
+            /m /nologo /verbosity:minimal ^
+            /p:Configuration=Release ^
+            /p:Platform=${{ matrix.platform }} ^
+            /p:PlatformToolset=v145 ^
+            /p:WindowsTargetPlatformVersion=10.0 ^
+            /p:VcpkgEnableManifest=true ^
+            /p:VcpkgTriplet=%VCPKG_TARGET_TRIPLET%
 
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v2
+      - name: Stage artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          Get-ChildItem -Recurse -Include *.exe, *.dll -Path Envy, Plugins, TorrentEnvy `
+            | Where-Object { $_.FullName -match "Release" } `
+            | Copy-Item -Destination artifacts -Force
 
-    - name: Restore NuGet packages
-      run: nuget restore "${{env.SOLUTION_FILE_PATH}}"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: envy-${{ matrix.platform }}-release
+          path: artifacts/**
+          retention-days: 30
 
-    - name: Build Release
-      run: |
-        msbuild /m /p:Configuration=Release /p:Platform=${{matrix.platform}} "${{env.SOLUTION_FILE_PATH}}"
-
-    - name: Package Release
-      run: |
-        $artifactPath = "envy-${{matrix.platform}}-release"
-        New-Item -ItemType Directory -Force -Path $artifactPath
-
-        # Copy executables and DLLs
-        Copy-Item -Path "Release ${{matrix.platform}}\*.exe" -Destination $artifactPath -ErrorAction SilentlyContinue
-        Copy-Item -Path "Release ${{matrix.platform}}\*.dll" -Destination $artifactPath -ErrorAction SilentlyContinue
-
-        # Copy data files
-        Copy-Item -Path "Data" -Destination $artifactPath -Recurse -ErrorAction SilentlyContinue
-        Copy-Item -Path "Skins" -Destination $artifactPath -Recurse -ErrorAction SilentlyContinue
-        Copy-Item -Path "Languages" -Destination $artifactPath -Recurse -ErrorAction SilentlyContinue
-
-        # Copy documentation
-        Copy-Item -Path "README.md" -Destination $artifactPath -ErrorAction SilentlyContinue
-        Copy-Item -Path "ReadMe.txt" -Destination $artifactPath -ErrorAction SilentlyContinue
-        Copy-Item -Path "Envy\AGPL-License.txt" -Destination $artifactPath -ErrorAction SilentlyContinue
-
-        # Create version info file
-        @"
-        Envy P2P Client
-        Version: ${{ github.event.inputs.version || github.ref_name }}
-        Platform: ${{matrix.platform}}
-        Build Date: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-        Commit: ${{ github.sha }}
-        "@ | Out-File -FilePath "$artifactPath\VERSION.txt"
-
-    - name: Create ZIP archive
-      run: |
-        Compress-Archive -Path "envy-${{matrix.platform}}-release\*" -DestinationPath "envy-${{matrix.platform}}-${{ github.event.inputs.version || github.ref_name }}.zip"
-
-    - name: Upload Release Artifact
-      uses: actions/upload-artifact@v5
-      with:
-        name: envy-${{matrix.platform}}-release
-        path: envy-${{matrix.platform}}-*.zip
-        retention-days: 90
-
-    - name: Upload to Release
-      if: github.event_name == 'release'
-      uses: softprops/action-gh-release@v2
-      with:
-        files: envy-${{matrix.platform}}-*.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  create-installer:
-    name: Create Installer
-    needs: build-release
-    runs-on: windows-latest
-    if: github.event_name == 'release'
-
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
-    - name: Download Win32 artifacts
-      uses: actions/download-artifact@v6
-      with:
-        name: envy-Win32-release
-        path: ./artifacts/Win32
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: envy-*-release
 
-    - name: Download x64 artifacts
-      uses: actions/download-artifact@v6
-      with:
-        name: envy-x64-release
-        path: ./artifacts/x64
+      - name: Create release archives
+        shell: bash
+        run: |
+          mkdir -p release
+          for d in dist/envy-*-release; do
+            name=$(basename "$d")
+            (cd "$d" && zip -9 -r "../../release/${name}.zip" .)
+          done
 
-    - name: Create installer
-      run: |
-        # Placeholder for installer creation
-        # This would typically use NSIS, WiX, or InnoSetup
-        echo "Installer creation would go here"
-
-    - name: Upload Installer
-      if: success()
-      uses: softprops/action-gh-release@v2
-      with:
-        files: |
-          EnvyInstaller-*.exe
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: true
+          files: release/*.zip

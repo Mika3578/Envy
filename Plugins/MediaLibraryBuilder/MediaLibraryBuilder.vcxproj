@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>MediaLibraryBuilder</ProjectName>
     <ProjectGuid>{6591E1B2-D3E7-4B83-9A40-67AC0E98B255}</ProjectGuid>
     <RootNamespace>MediaLibraryBuilder_9</RootNamespace>
@@ -97,8 +98,9 @@
       </ProxyFileName>
     </Midl>
     <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_USRDLL;_ATL_XP_TARGETING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(RootDir)%(Directory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -151,6 +153,7 @@
       </ProxyFileName>
     </Midl>
     <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;WIN64;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(RootDir)%(Directory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -201,9 +204,10 @@
       </ProxyFileName>
     </Midl>
     <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <Optimization>Full</Optimization>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_USRDLL;_ATL_XP_TARGETING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(RootDir)%(Directory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -263,6 +267,7 @@
       </ProxyFileName>
     </Midl>
     <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <Optimization>Full</Optimization>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <PreprocessorDefinitions>NDEBUG;WIN64;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>

@@ -32,16 +32,23 @@
 // Uncomment for temporary workarounds:
 #define PUBLIC_RELEASE_FIX
 
-#if defined(_MSC_VER) && (_MSC_FULL_VER < 150030000)
-	#error Visual Studio 2008 SP1 or higher required for building
+// Target toolchain is MSVC 14.50 (Visual Studio 2026 / PlatformToolset v145).
+// _MSC_VER 1950+ corresponds to MSVC 14.50; _MSC_FULL_VER >= 195000000.
+// CI uses the `windows-2025-vs2026` hosted runner which ships v145.
+#if !defined(_MSC_VER) || (_MSC_VER < 1950)
+	#error Visual Studio 2026 (MSVC 14.50, toolset v145) or higher is required.
 #endif
 
 #if !defined(_UNICODE) || !defined(UNICODE)
 	#error Unicode Required
 #endif
 
-#if !defined(XPSUPPORT) && !defined(NOXPSUPPORT) && !defined(WIN64) //&& (_MSC_VER < 1920)
-	#define XPSUPPORT	// No Windows XP support needed on x64 builds
+// Windows XP / Vista / 7 / 8 are no longer supported targets.
+// VS 2026 (v145) toolchain does not ship an XP-targeting variant.
+// Define NOXPSUPPORT explicitly so legacy #ifdef XPSUPPORT branches stay off
+// and the modern Win 10 code paths are taken everywhere.
+#ifndef NOXPSUPPORT
+	#define NOXPSUPPORT
 #endif
 
 // Deprecated Workarounds for legacy compilers (No C++11, use std::tr1:: for VS2008sp1)
@@ -117,18 +124,12 @@
 #endif	// 1
 
 
-// WINVER Target features available from Windows Vista/7 onwards.
-// To find features that need guards for Windows XP temporarily use:
-#if 0
-#define NTDDI_VERSION	NTDDI_WINXPSP2
-#define _WIN32_WINNT	0x0501
-//#elif defined(_MSC_VER) && (_MSC_VER >= 1600)	// Features require WinSDK 7.0+ (VS2010+)
-//#define NTDDI_VERSION	NTDDI_WIN7		// Minimum build target Win7
-//#define _WIN32_WINNT	0x0601			// Win7/2008.2
-#else
-#define NTDDI_VERSION	NTDDI_VISTA		// Minimum build target Vista  (NTDDI_LONGHORN for unsupported VS2008 rtm)
-#define _WIN32_WINNT	0x0600			// Vista/2008
-#endif
+// Minimum supported runtime: Windows 10 1809 (build 17763).
+// VS 2026 / v145 dropped pre-Win10 toolchains, and modern security
+// mitigations (CFG, Spectre, AppContainer) require Win 10+.
+#define NTDDI_VERSION	NTDDI_WIN10_RS5
+#define _WIN32_WINNT	0x0A00			// Windows 10
+#define WINVER			0x0A00
 
 // Add defines missed/messed up when Microsoft converted to NTDDI macros
 #define WINXP			0x05010000		// rpcdce.h, rpcdcep.h
@@ -891,10 +892,13 @@ private:
 	#define VERIFY_FILE_ACCESS(h,f) ((void)0);
 #endif
 
+// std::binary_function and the throw() exception specifier were both removed
+// in C++17/20. The base class only provided unused typedefs; noexcept is the
+// modern equivalent of throw().
 template<>
-struct std::less< CLSID > : public std::binary_function< CLSID, CLSID, bool >
+struct std::less< CLSID >
 {
-	inline bool operator()(const CLSID& _Left, const CLSID& _Right) const throw()
+	inline bool operator()(const CLSID& _Left, const CLSID& _Right) const noexcept
 	{
 		return _Left.Data1 < _Right.Data1 || ( _Left.Data1 == _Right.Data1 &&
 			 ( _Left.Data2 < _Right.Data2 || ( _Left.Data2 == _Right.Data2 &&
@@ -904,9 +908,9 @@ struct std::less< CLSID > : public std::binary_function< CLSID, CLSID, bool >
 };
 
 template<>
-struct std::less< CString > : public std::binary_function< CString, CString, bool>
+struct std::less< CString >
 {
-	inline bool operator()(const CString& _Left, const CString& _Right) const throw()
+	inline bool operator()(const CString& _Left, const CString& _Right) const noexcept
 	{
 		return ( _Left.CompareNoCase( _Right ) < 0 );
 	}
@@ -953,10 +957,13 @@ public:
 			m_Data.pop_front();
 		}
 
-		// Calculate average
+		// Calculate average. Use a range-based for; the previous
+		// `CAverageList::const_iterator i = ...` reference to a member typedef
+		// declared further down the class body trips C++20 two-phase name
+		// lookup under MSVC 14.50 (v145).
 		T sum = 0;
-		for ( CAverageList::const_iterator i = m_Data.begin(); i != m_Data.end(); ++i )
-			sum += (*i).first;
+		for ( const auto& entry : m_Data )
+			sum += entry.first;
 		return sum / (T)m_Data.size();
 	}
 
@@ -1023,7 +1030,16 @@ inline bool IsFileNewerThan(LPCTSTR pszFile, const QWORD nMilliseconds)
 inline QWORD GetFileSize(LPCTSTR pszFile)
 {
 	WIN32_FILE_ATTRIBUTE_DATA fd = {};
-	if ( pszFile && pszFile[ 0 ] && GetFileAttributesEx( ( _tcslen( pszFile ) > 255 && pszFile[ 0 ] != _T('\\') ) ? ( CString( L"\\\\?\\" ) + pszFile ) : pszFile, GetFileExInfoStandard, &fd ) )
+	if ( ! pszFile || ! pszFile[ 0 ] )
+		return SIZE_UNKNOWN;
+
+	// Force a single common type for the ternary - C++20 rejects implicit
+	// CString/LPCTSTR ambiguity that older /std:c++14 default tolerated.
+	const CString strPath = ( _tcslen( pszFile ) > 255 && pszFile[ 0 ] != _T('\\') )
+		? ( CString( L"\\\\?\\" ) + pszFile )
+		: CString( pszFile );
+
+	if ( GetFileAttributesEx( strPath, GetFileExInfoStandard, &fd ) )
 		return MAKEQWORD( fd.nFileSizeLow, fd.nFileSizeHigh );
 
 	return SIZE_UNKNOWN;

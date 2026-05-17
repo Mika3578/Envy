@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>UnRAR</ProjectName>
     <ProjectGuid>{E815C46C-36C4-499F-BBC2-E772C6B17971}</ProjectGuid>
     <RootNamespace>UnRAR</RootNamespace>

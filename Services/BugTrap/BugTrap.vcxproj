@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>BugTrap</ProjectName>
     <ProjectGuid>{E8CF1ADA-264A-4127-86C2-FD7057D3792C}</ProjectGuid>
     <RootNamespace>BugTrap</RootNamespace>
@@ -92,7 +93,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WIN32;_WINDOWS;_USRDLL;_ATL_XP_TARGETING;BUGTRAP_EXPORTS;ZLIB_WINAPI;ZLIB_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;WIN32;_WIN32;_WINDOWS;_USRDLL;BUGTRAP_EXPORTS;ZLIB_WINAPI;ZLIB_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>
@@ -156,7 +157,7 @@
     <ClCompile>
       <Optimization>Full</Optimization>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_WIN32;_WINDOWS;_USRDLL;_ATL_XP_TARGETING;BUGTRAP_EXPORTS;ZLIB_DLL;ZLIB_WINAPI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WIN32;_WINDOWS;_USRDLL;BUGTRAP_EXPORTS;ZLIB_DLL;ZLIB_WINAPI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
