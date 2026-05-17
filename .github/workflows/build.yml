@@ -113,7 +113,6 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/vcpkg_cache
-            ${{ env.LOCALAPPDATA }}/vcpkg/archives
           key: vcpkg-${{ runner.os }}-${{ matrix.platform }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
           restore-keys: |
             vcpkg-${{ runner.os }}-${{ matrix.platform }}-
