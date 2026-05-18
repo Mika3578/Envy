@@ -1,12 +1,13 @@
 name: Release
 
+# checkov:skip=CKV_GHA_7:Release tag is operator-supplied for manual publishes.
 on:
   push:
-    tags: ["v*"]
+    tags: [v*]
   workflow_dispatch:
     inputs:
       version:
-        description: "Release tag (e.g. v5.0.0)"
+        description: Release tag (e.g. v5.0.0)
         required: true
         type: string
 

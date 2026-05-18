@@ -6,8 +6,11 @@ on:
   pull_request:
     branches: [main, master, develop]
   schedule:
-    - cron: '0 0 * * 1'
+    - cron: 0 0 * * 1
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 # CodeQL scanning is handled by codeql.yml.
 # Dependency review is handled by code-quality.yml.
