@@ -21,10 +21,6 @@ For the canonical AI rules, see [`AGENTS.md`](./AGENTS.md).
 
 ## In progress
 
-- **2026-05-18** | ci/reduce-pr-check-warnings
-  -> CI-only: labeler/README guards for empty PRs, runner pins, Node 24
-  readiness (`setup-msbuild@v3`, artifact v5, `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`).
-
 - **2026-05-17** | claude/code-audit-modernization-nJcTT / PR #35
   -> Rebased onto `origin/develop` (base retargeted from `main`).
   Fixed second-wave C++20 errors: C7626 (`TOOLBAR_RES`,
@@ -42,6 +38,11 @@ _(none right now)_
 ---
 
 ## Done
+
+- **2026-05-18** | ci/reduce-pr-check-warnings | commit `2ce3bc0`
+  -> CI-only maintenance: zero-file PR guards for labeler/README advisory,
+  `windows-2025`/`windows-2025-vs2026` pins, `setup-msbuild@v3`,
+  artifact actions v5, `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` on legacy JS actions.
 
 - **2026-05-18** | fix/startup-skin-toolbar-icons | follow-up PR #43
   -> Closed the residual real miss: `CLibraryTree.Physical` was the
