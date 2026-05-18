@@ -21,6 +21,10 @@ For the canonical AI rules, see [`AGENTS.md`](./AGENTS.md).
 
 ## In progress
 
+- **2026-05-18** | ci/reduce-pr-check-warnings
+  -> CI-only: labeler/README guards for empty PRs, runner pins, Node 24
+  readiness (`setup-msbuild@v3`, artifact v5, `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`).
+
 - **2026-05-17** | claude/code-audit-modernization-nJcTT / PR #35
   -> Rebased onto `origin/develop` (base retargeted from `main`).
   Fixed second-wave C++20 errors: C7626 (`TOOLBAR_RES`,

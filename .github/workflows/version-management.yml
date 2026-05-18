@@ -27,7 +27,7 @@ on:
 jobs:
   version-management:
     name: Version Management
-    runs-on: windows-latest
+    runs-on: windows-2025
 
     steps:
       - name: Checkout code
