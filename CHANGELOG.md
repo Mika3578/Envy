@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **CI maintenance** — Pin Windows jobs to `windows-2025` / `windows-2025-vs2026`, upgrade `microsoft/setup-msbuild@v3` and artifact actions to v5, opt JavaScript actions into Node 24 where upstream lacks native builds, skip PR labeler and README advisory on zero-file pull requests.
+- **CI maintenance** — Pin Windows jobs to `windows-2025` / `windows-2025-vs2026`, upgrade `microsoft/setup-msbuild@v3` and artifact actions to v6, opt legacy JavaScript actions into Node 24 where needed, skip PR labeler and README advisory on zero-file or CI-only pull requests.
 
 ### Fixed
 - **Startup skin diagnostics** — Eliminated spurious `Skin load error: Toolbar Lookup` (for `CDownloadsWnd`, `CUploadsWnd`, `CNeighboursWnd`, `CIRCFrame`, `CLibraryTree.Top`, `CLibraryHeaderBar.Physical`, `CLibraryTileView.Physical`, `CLibraryTree.Physical`) and `Failed to load icon` (for command IDs 40156, 40158, 40320–40328, 40340, 40345) debug-log noise emitted at startup. Root cause: `CChildWnd::OnCreate` invokes the virtual `OnSkinChange()` (through `LoadState`) before `CMainWnd::OnSkinChanged` runs the first `Skin.Apply()`, so `CSkin::m_pToolbars` and the `CCoolInterface` image maps were still empty when child windows requested them. `CSkin` now lazily loads the embedded default skin on first toolbar / command-image lookup, and both `CSkin::CreateToolBar` and `CCoolInterface::ExtractIcon` deduplicate the remaining debug messages once per session. A debug-only `CSkin::ValidateLoaded()` runs at the end of `Skin.Apply()` to report toolbar / command-image counts and surface genuine missing built-in toolbar names or image IDs.

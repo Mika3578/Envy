@@ -13,9 +13,6 @@ on:
 # Dependency review is handled by code-quality.yml.
 # This workflow adds secret scanning not covered elsewhere.
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   secret-scan:
     runs-on: ubuntu-latest
