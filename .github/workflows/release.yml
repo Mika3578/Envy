@@ -13,15 +13,31 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SOLUTION: Visual Studio\Envy.sln
+  PLATFORM_TOOLSET: v145
+
 jobs:
   build:
     name: Build Release ${{ matrix.platform }}
+    # windows-2025-vs2026 is the GA hosted image (since 2026-05-04) that
+    # ships Visual Studio 2026 (v145 / MSVC 14.50). v145 is the only
+    # supported toolset for this branch - a failure here is a real failure.
     runs-on: windows-2025-vs2026
     timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
         platform: [x64, Win32]
+    # Hosted runners hit C1083 (PCH permission denied) when Envy.pch is built
+    # under parallel CL/MSBuild; serialize the solution build for reliability.
+    env:
+      MSBUILD_PARALLEL: /m:1
+      MSBUILD_USE_MULTI_TOOL_TASK: false
     steps:
       - uses: actions/checkout@v5
         with:
@@ -33,14 +49,58 @@ jobs:
         with:
           msbuild-architecture: x64
 
+      - name: Verify Visual Studio 2026 with v145 is installed
+        shell: pwsh
+        run: |
+          msbuild -version
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) {
+            Write-Error "vswhere.exe not found at $vswhere - cannot validate VS install."
+            exit 1
+          }
+          $installVersion = (& $vswhere -latest -prerelease -property installationVersion) -as [string]
+          $installPath    = (& $vswhere -latest -prerelease -property installationPath) -as [string]
+          Write-Host "Installation : $installPath"
+          Write-Host "Version      : $installVersion"
+
+          $msvcDir = Join-Path $installPath "VC\Tools\MSVC"
+          if (-not (Test-Path $msvcDir)) {
+            Write-Error "VC\Tools\MSVC directory not found in $installPath."
+            exit 1
+          }
+          $vc145 = Get-ChildItem $msvcDir -Directory | Where-Object { $_.Name -match "^14\.5" } | Sort-Object Name -Descending
+          if (-not $vc145) {
+            Write-Host "Installed MSVC tool directories:"
+            Get-ChildItem $msvcDir -Directory | ForEach-Object { Write-Host "  $($_.Name)" }
+            Write-Error "::error::v145 (MSVC 14.5x) tool directory NOT found in $msvcDir. Expected runner image is windows-2025-vs2026."
+            exit 1
+          }
+          Write-Host "::notice::v145 (MSVC $($vc145[0].Name)) toolset detected at $($vc145[0].FullName)"
+          if ($installVersion -notmatch "^18\.") {
+            Write-Error "::error::VS major version is $installVersion, expected 18.x (Visual Studio 2026)."
+            exit 1
+          }
+
+      - name: Cache vcpkg binary cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ github.workspace }}/vcpkg_cache
+          key: vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: |
+            vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-
+
       - name: Bootstrap vcpkg
         shell: pwsh
         run: |
-          git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
-          & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
-          echo "VCPKG_INSTALLATION_ROOT=$env:GITHUB_WORKSPACE/vcpkg" >> $env:GITHUB_ENV
+          if (-not (Test-Path "$env:VCPKG_INSTALLATION_ROOT")) {
+            git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
+            & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
+            echo "VCPKG_INSTALLATION_ROOT=$env:GITHUB_WORKSPACE/vcpkg" >> $env:GITHUB_ENV
+          }
+          echo "VCPKG_BINARY_SOURCES=clear;files,${{ github.workspace }}/vcpkg_cache,readwrite" >> $env:GITHUB_ENV
 
-      - name: Install vcpkg dependencies
+      - name: Install vcpkg dependencies (manifest mode)
         shell: pwsh
         run: |
           $triplet = if ("${{ matrix.platform }}" -eq "x64") { "x64-windows-static" } else { "x86-windows-static" }
@@ -50,14 +110,31 @@ jobs:
       - name: Build solution
         shell: cmd
         run: |
-          msbuild "Visual Studio\Envy.sln" ^
-            /m /nologo /verbosity:minimal ^
+          msbuild "%SOLUTION%" ^
+            %MSBUILD_PARALLEL% ^
+            /nologo ^
+            /verbosity:minimal ^
             /p:Configuration=Release ^
             /p:Platform=${{ matrix.platform }} ^
-            /p:PlatformToolset=v145 ^
+            /p:PlatformToolset=%PLATFORM_TOOLSET% ^
             /p:WindowsTargetPlatformVersion=10.0 ^
+            /p:UseMultiToolTask=%MSBUILD_USE_MULTI_TOOL_TASK% ^
+            /p:EnforceProcessCountAcrossBuilds=true ^
             /p:VcpkgEnableManifest=true ^
-            /p:VcpkgTriplet=%VCPKG_TARGET_TRIPLET%
+            /p:VcpkgEnabled=true ^
+            /p:VcpkgTriplet=%VCPKG_TARGET_TRIPLET% ^
+            /p:TreatWarningsAsErrors=false ^
+            /flp:LogFile=release-${{ matrix.platform }}.log;Verbosity=detailed;Encoding=UTF-8 ^
+            /flp1:LogFile=release-${{ matrix.platform }}.errors.log;ErrorsOnly;Verbosity=normal
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-build-logs-${{ matrix.platform }}
+          path: release-*.log
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Stage artifacts
         shell: pwsh
@@ -100,5 +177,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          draft: true
+          # Tag pushes publish immediately; manual dispatch stays draft for review.
+          draft: ${{ github.event_name == 'workflow_dispatch' }}
           files: release/*.zip
