@@ -21,6 +21,12 @@ For the canonical AI rules, see [`AGENTS.md`](./AGENTS.md).
 
 ## In progress
 
+- **2026-05-19** | claude/review-ci-workflow-twgeE / PR #47
+  -> Apply PR review thread fixes in CI workflows (`release.yml`,
+  `security.yml`): pin vcpkg clone source + cache key hardening,
+  keep release publication gated as draft, and add gitleaks integrity
+  verification + SARIF upload.
+
 - **2026-05-19** | claude/review-ci-workflow-twgeE
   -> CI workflow audit + refactor. Phase 1 (quick wins) in flight:
   aligning `release.yml` on `build.yml` (v145 verification, C1083 PCH

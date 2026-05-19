@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -81,24 +81,42 @@ jobs:
             exit 1
           }
 
+      - name: Bootstrap vcpkg
+        shell: pwsh
+        run: |
+          $vcpkgRoot = Join-Path $env:GITHUB_WORKSPACE "vcpkg"
+          if (-not (Test-Path (Join-Path $vcpkgRoot ".git"))) {
+            git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
+          }
+
+          $baseline = $null
+          $vcpkgConfig = Join-Path $env:GITHUB_WORKSPACE "vcpkg-configuration.json"
+          if (Test-Path $vcpkgConfig) {
+            $baseline = (Get-Content $vcpkgConfig -Raw | ConvertFrom-Json)."builtin-baseline"
+          }
+          if (-not $baseline) {
+            $vcpkgManifest = Join-Path $env:GITHUB_WORKSPACE "vcpkg.json"
+            $baseline = (Get-Content $vcpkgManifest -Raw | ConvertFrom-Json)."builtin-baseline"
+          }
+          if ($baseline) {
+            git -C $vcpkgRoot checkout $baseline
+          }
+
+          & "$vcpkgRoot/bootstrap-vcpkg.bat" -disableMetrics
+          $resolvedCommit = (git -C $vcpkgRoot rev-parse HEAD).Trim()
+          echo "VCPKG_INSTALLATION_ROOT=$vcpkgRoot" >> $env:GITHUB_ENV
+          echo "VCPKG_COMMIT=$resolvedCommit" >> $env:GITHUB_ENV
+          echo "VCPKG_BINARY_SOURCES=clear;files,${{ github.workspace }}/vcpkg_cache,readwrite" >> $env:GITHUB_ENV
+
       - name: Cache vcpkg binary cache
         uses: actions/cache@v5
         with:
           path: |
             ${{ github.workspace }}/vcpkg_cache
-          key: vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          key: vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
           restore-keys: |
-            vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-
-
-      - name: Bootstrap vcpkg
-        shell: pwsh
-        run: |
-          if (-not (Test-Path "$env:VCPKG_INSTALLATION_ROOT")) {
-            git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
-            & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
-            echo "VCPKG_INSTALLATION_ROOT=$env:GITHUB_WORKSPACE/vcpkg" >> $env:GITHUB_ENV
-          }
-          echo "VCPKG_BINARY_SOURCES=clear;files,${{ github.workspace }}/vcpkg_cache,readwrite" >> $env:GITHUB_ENV
+            vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-${{ env.VCPKG_COMMIT }}-
+            vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-
 
       - name: Install vcpkg dependencies (manifest mode)
         shell: pwsh
@@ -177,6 +195,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          # Tag pushes publish immediately; manual dispatch stays draft for review.
-          draft: ${{ github.event_name == 'workflow_dispatch' }}
+          draft: true
           files: release/*.zip
