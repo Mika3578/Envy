@@ -98,7 +98,7 @@ jobs:
       MSBUILD_PARALLEL: /m:1
       MSBUILD_USE_MULTI_TOOL_TASK: false
       VCPKG_INSTALLATION_ROOT: ${{ runner.temp }}\vcpkg
-      VCPKG_INSTALLED_DIR: ${{ runner.temp }}\vcpkg_installed
+      VCPKG_INSTALLED_ROOT: ${{ runner.temp }}\vcpkg_installed
       VCPKG_BINARY_SOURCES: clear;files,${{ runner.temp }}\vcpkg_cache,readwrite
     steps:
       - name: Checkout
@@ -144,7 +144,7 @@ jobs:
           & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install `
             --triplet=$env:VCPKG_TARGET_TRIPLET `
             --x-manifest-root="$env:GITHUB_WORKSPACE" `
-            --x-install-root="$env:VCPKG_INSTALLED_DIR"
+            --x-install-root="$env:VCPKG_INSTALLED_ROOT"
 
       - name: Build x64 Release
         shell: cmd
@@ -162,7 +162,7 @@ jobs:
             /p:VcpkgEnableManifest=true ^
             /p:VcpkgEnabled=true ^
             /p:VcpkgTriplet=%VCPKG_TARGET_TRIPLET% ^
-            /p:VcpkgInstalledDir=%VCPKG_INSTALLED_DIR% ^
+            /p:VcpkgInstalledDir=%VCPKG_INSTALLED_ROOT% ^
             /p:TreatWarningsAsErrors=false ^
             /flp:LogFile=quick-build-x64-Release.log;Verbosity=detailed;Encoding=UTF-8 ^
             /flp1:LogFile=quick-build-x64-Release.errors.log;ErrorsOnly;Verbosity=normal
