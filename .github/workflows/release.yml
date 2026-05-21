@@ -1,12 +1,13 @@
 name: Release
 
+# checkov:skip=CKV_GHA_7:Release tag is operator-supplied for manual publishes.
 on:
   push:
-    tags: ["v*"]
+    tags: [v*]
   workflow_dispatch:
     inputs:
       version:
-        description: "Release tag (e.g. v5.0.0)"
+        description: Release tag (e.g. v5.0.0)
         required: true
         type: string
 
@@ -18,6 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   SOLUTION: Visual Studio\Envy.sln
   PLATFORM_TOOLSET: v145
 
@@ -177,7 +179,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
           path: dist
           pattern: envy-*-release

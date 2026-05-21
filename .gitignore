@@ -428,3 +428,4 @@ Plugins/SkinScan/SkinScan.h
 Plugins/VirusTotal/VirusTotal.h
 Plugins/WindowsThumbnail/WindowsThumbnail.h
 Plugins/ZIPBuilder/ZIPBuilder.h
+vcpkg/

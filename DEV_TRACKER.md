@@ -55,6 +55,11 @@ _(none right now)_
   restored draft-only release publication gate, and added checksum-verified
   gitleaks install + SARIF upload.
 
+- **2026-05-18** | ci/reduce-pr-check-warnings | commit `2ce3bc0`
+  -> CI-only maintenance: zero-file PR guards for labeler/README advisory,
+  `windows-2025`/`windows-2025-vs2026` pins, `setup-msbuild@v3`,
+  artifact actions v5, `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` on legacy JS actions.
+
 - **2026-05-18** | fix/startup-skin-toolbar-icons | follow-up PR #43
   -> Closed the residual real miss: `CLibraryTree.Physical` was the
   only built-in toolbar name actually absent from `Default.xml`.

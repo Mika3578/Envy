@@ -1,22 +1,24 @@
 name: Build
 
+# checkov:skip=CKV_GHA_7:Manual reruns need an operator-selected configuration.
 on:
   push:
-    branches: [main, develop, "claude/**"]
+    branches: [main, develop, claude/**]
     paths-ignore:
+      # yamllint disable-line rule:quoted-strings -- ** must be quoted (YAML alias)
       - "**.md"
-      - "Languages/**"
-      - "Templates/**"
-      - "Skins/**"
-      - "Data/**"
+      - Languages/**
+      - Templates/**
+      - Skins/**
+      - Data/**
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
     inputs:
       configuration:
-        description: "Build configuration"
+        description: Build configuration
         required: true
-        default: "Release"
+        default: Release
         type: choice
         options: [Release, Debug]
 
