@@ -1,0 +1,161 @@
+name: PR Quick Checks
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-quick-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOLUTION: Visual Studio\Envy.sln
+  PLATFORM_TOOLSET: v145
+  VCPKG_INSTALLATION_ROOT: ${{ runner.temp }}\vcpkg
+  VCPKG_INSTALLED_DIR: ${{ runner.temp }}\vcpkg_installed
+  VCPKG_BINARY_SOURCES: clear;files,${{ runner.temp }}\vcpkg_cache,readwrite
+  VCPKG_TARGET_TRIPLET: x64-windows-static
+
+jobs:
+  workflow-lint:
+    name: Workflow and docs lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Run actionlint
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="1.7.7"
+          curl -sSL "https://github.com/rhysd/actionlint/releases/download/v${version}/actionlint_${version}_linux_amd64.tar.gz" -o actionlint.tar.gz
+          tar -xzf actionlint.tar.gz actionlint
+          ./actionlint -color
+
+      - name: Run zizmor audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user --disable-pip-version-check zizmor
+          python3 -m zizmor --min-severity high .github/workflows
+
+      - name: Markdown lint
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes markdownlint-cli2 "**/*.md" "#vcpkg/**" "#build/**" "#Build/**"
+
+  pr-guard:
+    name: PR guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check PR size and tracker hints
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          changed=$(git diff --name-only "$base...$head")
+          count=$(printf '%s\n' "$changed" | sed '/^$/d' | wc -l)
+          echo "Changed files: $count"
+          if [ "$count" -gt 25 ]; then
+            echo "::warning::Large PR detected ($count files). Prefer smaller PRs for legacy C++ changes."
+          fi
+          if printf '%s\n' "$changed" | grep -Eq '^(Envy|Plugins|Services|HashLib|TorrentEnvy|Remote)/'; then
+            if ! printf '%s\n' "$changed" | grep -Eq '^(CHANGELOG.md|docs/DEV_TRACKER.md|docs/DEVELOPMENT_PLAN.md)'; then
+              echo "::notice::Code changed without CHANGELOG/tracker update. Add one when behavior, security, release, or architecture changes."
+            fi
+          fi
+
+  quick-build:
+    name: Quick build x64 Release
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 45
+    env:
+      MSBUILD_PARALLEL: /m:1
+      MSBUILD_USE_MULTI_TOOL_TASK: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+        with:
+          msbuild-architecture: x64
+
+      - name: Cache vcpkg binary cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}\vcpkg_cache
+          key: vcpkg-quick-${{ runner.os }}-x64-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: |
+            vcpkg-quick-${{ runner.os }}-x64-
+
+      - name: Bootstrap vcpkg outside workspace
+        shell: pwsh
+        run: |
+          $vcpkgRoot = $env:VCPKG_INSTALLATION_ROOT
+          if (-not (Test-Path (Join-Path $vcpkgRoot '.git'))) {
+            git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
+          }
+          $configPath = Join-Path $env:GITHUB_WORKSPACE 'vcpkg-configuration.json'
+          if (Test-Path $configPath) {
+            $baseline = (Get-Content $configPath -Raw | ConvertFrom-Json).'builtin-baseline'
+            if ($baseline) { git -C $vcpkgRoot checkout $baseline }
+          }
+          & "$vcpkgRoot\bootstrap-vcpkg.bat" -disableMetrics
+
+      - name: Install vcpkg dependencies (manifest mode)
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install `
+            --triplet=$env:VCPKG_TARGET_TRIPLET `
+            --x-manifest-root="$env:GITHUB_WORKSPACE" `
+            --x-install-root="$env:VCPKG_INSTALLED_DIR"
+
+      - name: Build x64 Release
+        shell: cmd
+        run: |
+          msbuild "%SOLUTION%" ^
+            %MSBUILD_PARALLEL% ^
+            /nologo ^
+            /verbosity:minimal ^
+            /p:Configuration=Release ^
+            /p:Platform=x64 ^
+            /p:PlatformToolset=%PLATFORM_TOOLSET% ^
+            /p:WindowsTargetPlatformVersion=10.0 ^
+            /p:UseMultiToolTask=%MSBUILD_USE_MULTI_TOOL_TASK% ^
+            /p:EnforceProcessCountAcrossBuilds=true ^
+            /p:VcpkgEnableManifest=true ^
+            /p:VcpkgEnabled=true ^
+            /p:VcpkgTriplet=%VCPKG_TARGET_TRIPLET% ^
+            /p:VcpkgInstalledDir=%VCPKG_INSTALLED_DIR%\%VCPKG_TARGET_TRIPLET% ^
+            /p:TreatWarningsAsErrors=false ^
+            /flp:LogFile=quick-build-x64-Release.log;Verbosity=detailed;Encoding=UTF-8 ^
+            /flp1:LogFile=quick-build-x64-Release.errors.log;ErrorsOnly;Verbosity=normal
+
+      - name: Upload quick build logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quick-build-logs-x64-Release
+          path: quick-build-*.log
+          if-no-files-found: ignore
+          retention-days: 7
