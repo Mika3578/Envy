@@ -21,6 +21,15 @@ For the canonical AI rules, see [`AGENTS.md`](./AGENTS.md).
 
 ## In progress
 
+- **2026-05-19** | claude/review-ci-workflow-twgeE
+  -> CI workflow audit + refactor. Phase 1 (quick wins) in flight:
+  aligning `release.yml` on `build.yml` (v145 verification, C1083 PCH
+  workaround, vcpkg cache + pinning, action versions, draft logic).
+  VS 2026 / v145 / `windows-2025-vs2026` confirmed real & GA
+  (Microsoft Nov 2025 + Actions May 4 2026). Migration of
+  `windows-latest` to VS 2026 starts June 8 2026 -> `code-quality.yml`
+  must be removed before then (Phase 2).
+
 - **2026-05-17** | claude/code-audit-modernization-nJcTT / PR #35
   -> Rebased onto `origin/develop` (base retargeted from `main`).
   Fixed second-wave C++20 errors: C7626 (`TOOLBAR_RES`,
@@ -38,6 +47,13 @@ _(none right now)_
 ---
 
 ## Done
+
+- **2026-05-19** | claude/review-ci-workflow-twgeE | commit `20638bf`
+  -> Applied PR #47 review-thread fixes in `.github/workflows/release.yml`
+  and `.github/workflows/security.yml`: simplified release concurrency key,
+  forced workspace-local/pinned vcpkg bootstrap with cache key hardening,
+  restored draft-only release publication gate, and added checksum-verified
+  gitleaks install + SARIF upload.
 
 - **2026-05-18** | ci/reduce-pr-check-warnings | commit `2ce3bc0`
   -> CI-only maintenance: zero-file PR guards for labeler/README advisory,
