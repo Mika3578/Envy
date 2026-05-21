@@ -22,6 +22,7 @@
 #include "EDClient.h"
 #include "EDClients.h"
 #include "EDPacket.h"
+#include "EDSourcePacketValidate.h"
 #include "EDNeighbour.h"
 #include "FileIdentifier.h"
 #include "Neighbours.h"
@@ -3015,13 +3016,7 @@ BOOL CEDClient::OnPreviewAnswer(CEDPacket* pPacket)
 
 static BOOL ValidateSourcePacketBody(CEDPacket* pPacket, DWORD nCount, DWORD nSourceSize)
 {
-	if ( nSourceSize == 0 ) return FALSE;
-
-	const DWORD nRemaining = pPacket->GetRemaining();
-	if ( nCount > ( nRemaining / nSourceSize ) )
-		return FALSE;
-
-	return nRemaining >= nCount * nSourceSize;
+	return Ed2kValidateSourcePacketBody( pPacket->GetRemaining(), nCount, nSourceSize );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3134,7 +3129,7 @@ BOOL CEDClient::OnSourceAnswer(CEDPacket* pPacket)
 
 BOOL CEDClient::OnSourceRequest2(CEDPacket* pPacket)
 {
-	if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 4 + 2 )
+	if ( pPacket->GetRemaining() < Ed2kSourceEx2RequestMinBytes() )
 	{
 		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
 		return TRUE;
@@ -3148,12 +3143,10 @@ BOOL CEDClient::OnSourceRequest2(CEDPacket* pPacket)
 	// SourceEx2 request file size can be 32-bit, or legacy 64-bit format (<0><high32>).
 	// Legacy form is detected heuristically (Low32 == 0 and enough bytes for <high32><Options>),
 	// which is an on-wire ambiguity inherited from eMule.
-	if ( nFileSizeLow == 0 && pPacket->GetRemaining() >= 6 )
-	{
+	if ( const DWORD nLegacy = Ed2kSourceEx2ConsumeLegacyHigh32( nFileSizeLow, pPacket->GetRemaining() ) )
 		(void)pPacket->ReadLongLE();
-	}
 
-	if ( pPacket->GetRemaining() < 2 )
+	if ( ! Ed2kSourceEx2HasOptionsBytes( pPacket->GetRemaining() ) )
 	{
 		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
 		return TRUE;
@@ -3209,7 +3202,7 @@ BOOL CEDClient::OnSourceAnswer2(CEDPacket* pPacket)
 {
 	if ( ! Settings.Library.SourceMesh ) return TRUE;
 
-	if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 2 )
+	if ( pPacket->GetRemaining() < Ed2kSourceEx2AnswerMinBytes() )
 	{
 		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
 		return TRUE;
@@ -3220,7 +3213,7 @@ BOOL CEDClient::OnSourceAnswer2(CEDPacket* pPacket)
 	DWORD nCount = pPacket->ReadShortLE();
 
 	// SourceEx2 always includes GUID (28 bytes per source)
-	const DWORD nSourceSize = 4 + 2 + 4 + 2 + 16;
+	const DWORD nSourceSize = Ed2kSourceEx2SourceRecordBytes();
 	if ( ! ValidateSourcePacketBody( pPacket, nCount, nSourceSize ) )
 	{
 		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
