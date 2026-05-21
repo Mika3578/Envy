@@ -48,7 +48,7 @@ _(none right now)_
 
 ## Done
 
-- **2026-05-21** | ci/pr-quick-checks-full-ci / PR #48 | commit `_(this commit)_`
+- **2026-05-21** | ci/pr-quick-checks-full-ci / PR #48 | commit `d0d067a`
   -> Applied all PR #48 review-thread fixes in CI workflows: removed
   unnecessary `pull-requests: write`, added actionlint tarball checksum
   validation, pinned `zizmor` + `markdownlint-cli2` versions, hardened
