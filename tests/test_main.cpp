@@ -12,11 +12,13 @@
 
 // Test modules register their tests via these functions
 void register_hashlib_tests(TestSuite& suite);
+void register_protocol_parser_smoke_tests(TestSuite& suite);
 
 int main() {
 	TestSuite suite;
 
 	register_hashlib_tests(suite);
+	register_protocol_parser_smoke_tests(suite);
 
 	int failures = suite.run_all_tests();
 
