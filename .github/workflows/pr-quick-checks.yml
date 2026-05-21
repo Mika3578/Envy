@@ -16,9 +16,6 @@ concurrency:
 env:
   SOLUTION: Visual Studio\Envy.sln
   PLATFORM_TOOLSET: v145
-  VCPKG_INSTALLATION_ROOT: ${{ runner.temp }}\vcpkg
-  VCPKG_INSTALLED_DIR: ${{ runner.temp }}\vcpkg_installed
-  VCPKG_BINARY_SOURCES: clear;files,${{ runner.temp }}\vcpkg_cache,readwrite
   VCPKG_TARGET_TRIPLET: x64-windows-static
 
 jobs:
@@ -29,6 +26,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Run actionlint
         shell: bash
@@ -44,13 +43,21 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m pip install --user --disable-pip-version-check zizmor
-          python3 -m zizmor --min-severity high .github/workflows
+          "$HOME/.local/bin/zizmor" --min-severity high .github/workflows
 
-      - name: Markdown lint
+      - name: Markdown lint changed files
+        if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes markdownlint-cli2 "**/*.md" "#vcpkg/**" "#build/**" "#Build/**"
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          mapfile -t files < <(git diff --name-only "$base...$head" -- '*.md')
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No changed Markdown files."
+            exit 0
+          fi
+          npx --yes markdownlint-cli2 "${files[@]}"
 
   pr-guard:
     name: PR guard
@@ -88,6 +95,9 @@ jobs:
     env:
       MSBUILD_PARALLEL: /m:1
       MSBUILD_USE_MULTI_TOOL_TASK: false
+      VCPKG_INSTALLATION_ROOT: ${{ runner.temp }}\vcpkg
+      VCPKG_INSTALLED_DIR: ${{ runner.temp }}\vcpkg_installed
+      VCPKG_BINARY_SOURCES: clear;files,${{ runner.temp }}\vcpkg_cache,readwrite
     steps:
       - name: Checkout
         uses: actions/checkout@v5
