@@ -4,14 +4,14 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
-      - "Envy/**.cpp"
-      - "Envy/**.h"
-      - "TorrentEnvy/**.cpp"
-      - "TorrentEnvy/**.h"
-      - "HashLib/**.cpp"
-      - "HashLib/**.h"
-      - ".clang-tidy"
-      - ".github/workflows/clang-tidy.yml"
+      - Envy/**.cpp
+      - Envy/**.h
+      - TorrentEnvy/**.cpp
+      - TorrentEnvy/**.h
+      - HashLib/**.cpp
+      - HashLib/**.h
+      - .clang-tidy
+      - .github/workflows/clang-tidy.yml
   workflow_dispatch:
 
 permissions:

@@ -7,10 +7,17 @@ on:
     branches: [ main, master, develop ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+# Third-party JS actions (markdown link check, dependency-review) lack Node 24 builds.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   static-analysis:
     name: Static Analysis
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     
     steps:
     - name: Checkout code
@@ -82,11 +89,27 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
-      
+      with:
+        fetch-depth: 0
+
     - name: Check for README updates
+      if: github.event_name == 'pull_request'
       run: |
-        if ! git diff --name-only origin/main | grep -q "README.md"; then
-          echo "::notice::No README updates in this PR"
+        base="${{ github.event.pull_request.base.sha }}"
+        head="${{ github.event.pull_request.head.sha }}"
+        if [ -z "$base" ] || [ -z "$head" ]; then
+          echo "Missing PR SHAs; skipping README advisory."
+          exit 0
+        fi
+        changed=$(git diff --name-only "$base...$head" || true)
+        if [ -z "$changed" ]; then
+          echo "No files changed in this pull request; skipping README advisory."
+          exit 0
+        fi
+        if echo "$changed" | grep -qE '^(Envy|Services|Plugins|HashLib|TorrentEnvy|Remote)/'; then
+          if ! echo "$changed" | grep -Fxq 'README.md'; then
+            echo "::notice::No README updates in this PR"
+          fi
         fi
         
     - name: Check for broken links in markdown
@@ -108,7 +131,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v6
       with:
-        node-version: '20'
+        node-version: '24'
         cache: npm
         cache-dependency-path: Remote/tests/package-lock.json
 
