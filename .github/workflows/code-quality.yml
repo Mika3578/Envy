@@ -26,7 +26,7 @@ jobs:
         Write-Host "VS 2026 Build Tools installation completed"
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v2
+      uses: microsoft/setup-msbuild@v3
       
     - name: Restore NuGet packages
       run: nuget restore "Visual Studio/Envy.sln"
@@ -37,7 +37,7 @@ jobs:
       continue-on-error: true
       
     - name: Upload Analysis Results
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: code-analysis-results
