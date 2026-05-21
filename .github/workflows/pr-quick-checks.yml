@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 concurrency:
   group: pr-quick-${{ github.workflow }}-${{ github.ref }}
@@ -34,15 +33,18 @@ jobs:
         run: |
           set -euo pipefail
           version="1.7.7"
-          curl -sSL "https://github.com/rhysd/actionlint/releases/download/v${version}/actionlint_${version}_linux_amd64.tar.gz" -o actionlint.tar.gz
-          tar -xzf actionlint.tar.gz actionlint
+          archive="actionlint_${version}_linux_amd64.tar.gz"
+          curl -sSL "https://github.com/rhysd/actionlint/releases/download/v${version}/${archive}" -o "${archive}"
+          curl -sSL "https://github.com/rhysd/actionlint/releases/download/v${version}/checksums.txt" -o checksums.txt
+          grep " ${archive}\$" checksums.txt | sha256sum -c -
+          tar -xzf "${archive}" actionlint
           ./actionlint -color
 
       - name: Run zizmor audit
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m pip install --user --disable-pip-version-check zizmor
+          python3 -m pip install --user --disable-pip-version-check "zizmor==1.13.0"
           "$HOME/.local/bin/zizmor" --min-severity high .github/workflows
 
       - name: Markdown lint changed files
@@ -57,7 +59,7 @@ jobs:
             echo "No changed Markdown files."
             exit 0
           fi
-          npx --yes markdownlint-cli2 "${files[@]}"
+          npx --yes markdownlint-cli2@0.14.0 "${files[@]}"
 
   pr-guard:
     name: PR guard
@@ -128,7 +130,11 @@ jobs:
           $configPath = Join-Path $env:GITHUB_WORKSPACE 'vcpkg-configuration.json'
           if (Test-Path $configPath) {
             $baseline = (Get-Content $configPath -Raw | ConvertFrom-Json).'builtin-baseline'
-            if ($baseline) { git -C $vcpkgRoot checkout $baseline }
+            if ($baseline) {
+              git -C $vcpkgRoot fetch --depth 1 origin $baseline
+              git -C $vcpkgRoot checkout --force $baseline
+              git -C $vcpkgRoot reset --hard $baseline
+            }
           }
           & "$vcpkgRoot\bootstrap-vcpkg.bat" -disableMetrics
 
@@ -156,7 +162,7 @@ jobs:
             /p:VcpkgEnableManifest=true ^
             /p:VcpkgEnabled=true ^
             /p:VcpkgTriplet=%VCPKG_TARGET_TRIPLET% ^
-            /p:VcpkgInstalledDir=%VCPKG_INSTALLED_DIR%\%VCPKG_TARGET_TRIPLET% ^
+            /p:VcpkgInstalledDir=%VCPKG_INSTALLED_DIR% ^
             /p:TreatWarningsAsErrors=false ^
             /flp:LogFile=quick-build-x64-Release.log;Verbosity=detailed;Encoding=UTF-8 ^
             /flp1:LogFile=quick-build-x64-Release.errors.log;ErrorsOnly;Verbosity=normal

@@ -48,6 +48,13 @@ _(none right now)_
 
 ## Done
 
+- **2026-05-21** | ci/pr-quick-checks-full-ci / PR #48 | commit `_(this commit)_`
+  -> Applied all PR #48 review-thread fixes in CI workflows: removed
+  unnecessary `pull-requests: write`, added actionlint tarball checksum
+  validation, pinned `zizmor` + `markdownlint-cli2` versions, hardened
+  vcpkg baseline fetch/checkout, corrected `VcpkgInstalledDir` root
+  usage in PR quick build, and consolidated full-CI installed-root env.
+
 - **2026-05-19** | claude/review-ci-workflow-twgeE | commit `20638bf`
   -> Applied PR #47 review-thread fixes in `.github/workflows/release.yml`
   and `.github/workflows/security.yml`: simplified release concurrency key,

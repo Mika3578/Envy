@@ -33,7 +33,7 @@ env:
   SOLUTION: Visual Studio\Envy.sln
   PLATFORM_TOOLSET: v145
   VCPKG_INSTALLATION_ROOT: ${{ runner.temp }}\vcpkg
-  VCPKG_INSTALLED_BASE: ${{ runner.temp }}\vcpkg_installed
+  VCPKG_INSTALLED_DIR: ${{ runner.temp }}\vcpkg_installed
   VCPKG_BINARY_SOURCES: clear;files,${{ runner.temp }}\vcpkg_cache,readwrite
 
 jobs:
@@ -57,7 +57,6 @@ jobs:
       MSBUILD_PARALLEL: /m:1
       MSBUILD_USE_MULTI_TOOL_TASK: false
       VCPKG_TARGET_TRIPLET: ${{ matrix.triplet }}
-      VCPKG_INSTALLED_DIR: ${{ runner.temp }}\vcpkg_installed
     steps:
       - name: Checkout
         uses: actions/checkout@v5
