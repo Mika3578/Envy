@@ -59,8 +59,9 @@ commits:
 git config pull.ff only
 ```
 
-To apply repo-wide for all clones of this repository, each contributor can
-run the command above in their local clone.
+This configures fast-forward-only pulls for this local clone. To apply
+it globally across all your repositories instead, run
+`git config --global pull.ff only`.
 
 ### Sync `develop` locally
 
@@ -71,7 +72,8 @@ git pull --ff-only origin develop
 ```
 
 If `git pull --ff-only` fails, your local `develop` has diverged. Reset it
-to the remote (safe when you have no local-only commits on `develop`):
+to the remote (**ensure your working tree is clean first — `git reset --hard`
+discards all uncommitted changes**; stash or commit any work in progress):
 
 ```bash
 git fetch origin

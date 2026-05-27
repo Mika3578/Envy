@@ -5,8 +5,6 @@ Use this playbook to keep PRs small, reviewable, and operationally safe.
 ## Global Expectations (All PR Types)
 
 - One logical change area per PR.
-- Branch from `develop`; rebase onto `origin/develop` before merge.
-- Merge with **squash** (preferred) or **rebase**; merge commits are disabled on GitHub.
 - Report:
   - testing performed
   - testing not performed

@@ -22,7 +22,7 @@
 - Default branch is `develop`.
 - `main` is currently behind `develop`.
 - **Merge policy (GitHub):** merge commits disabled; squash and rebase merges enabled. Prefer squash for PRs.
-- **History:** `develop` was rewritten to a linear history with no merge commits; the old tree is preserved in the backup branch/tag created before the rewrite.
+- **History:** `develop` was rewritten to a linear history with no merge commits; the old tree is preserved in the `backup/develop-before-linear-rewrite` branch (and tag of the same name) created before the rewrite.
 - **Local hygiene:** use `git pull --ff-only` on `develop`; rebase feature branches with `git rebase origin/develop` and `git push --force-with-lease`.
 - **Branch protection:** the active `Protect develop` ruleset requires pull requests, linear history, passing checks, and blocks force-pushes/deletions. `.github/settings.yml` mirrors the intended policy for Probot Settings or manual audits.
 - CI workflows exist, but should not yet be treated as mandatory merge gates until required checks are consistently emitted and stable in GitHub Actions.
