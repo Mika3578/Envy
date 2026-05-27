@@ -14,15 +14,7 @@
 - Use imperative, specific commit messages.
 - Separate refactors from behavior changes where possible.
 
-### Sync commands (feature branches)
-
-```bash
-git fetch origin
-git rebase origin/develop
-git push --force-with-lease
-```
-
-See `.github/CONTRIBUTING.md` for the full linear-history workflow.
+See `.github/CONTRIBUTING.md` for the canonical linear-history workflow and exact sync commands.
 
 ## Code Style
 - Follow existing C++ conventions in touched files.
