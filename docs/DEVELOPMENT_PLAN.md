@@ -22,9 +22,9 @@
 - Default branch is `develop`.
 - `main` is currently behind `develop`.
 - **Merge policy (GitHub):** merge commits disabled; squash and rebase merges enabled. Prefer squash for PRs.
-- **History:** two legacy merge commits remain in pushed history (`e92d930`, `320dbe3`); recent integration is linear (squash merges). Do not rewrite `origin/develop` to remove them.
+- **History:** `develop` was rewritten to a linear history with no merge commits; the old tree is preserved in the backup branch/tag created before the rewrite.
 - **Local hygiene:** use `git pull --ff-only` on `develop`; rebase feature branches with `git rebase origin/develop` and `git push --force-with-lease`.
-- **Branch protection:** not yet enforced on GitHub; enable **Require linear history** on `develop` when ready (template in `.github/settings.yml`).
+- **Branch protection:** the active `Protect develop` ruleset requires pull requests, linear history, passing checks, and blocks force-pushes/deletions. `.github/settings.yml` mirrors the intended policy for Probot Settings or manual audits.
 - CI workflows exist, but should not yet be treated as mandatory merge gates until required checks are consistently emitted and stable in GitHub Actions.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
@@ -82,7 +82,7 @@
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
-- **2026-05-27:** Keep existing pushed merge commits on `develop`; enforce linear history going forward via GitHub merge settings (no merge commits; squash/rebase only), contributor `git pull --ff-only`, and eventual branch-protection **Require linear history**.
+- **2026-05-27:** Rewrote `develop` into a linear history with no merge commits while preserving the final tree through backup refs; enforce linear history going forward via the active `Protect develop` ruleset, GitHub merge settings (no merge commits; squash/rebase only), and contributor `git pull --ff-only` hygiene.
 - **2026-05-15:** Repository hygiene baseline on `develop` requires explicit branch-state tracking and GitHub label prerequisites (`ci`, `dependencies`) before enforcing CI as mandatory gates.
 - **2026-04-22:** Added IPv6 dual-stack Phase 0 scoping inventory and phased rollout plan under `docs/ipv6/`.
 - **2026-04-22:** Remote web UI must use cryptographic token generation (`crypto.getRandomValues`) and allowlist-based redirect validation for all client-side navigation paths.
