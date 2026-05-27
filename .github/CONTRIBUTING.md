@@ -39,15 +39,16 @@ to retarget every project to v145.
 
 ## Git workflow (linear history)
 
-`develop` keeps a **linear first-parent history** going forward. Two older
-merge commits remain in history; do not rewrite them.
+`develop` keeps a **linear history** with no merge commits. Keep local pulls
+fast-forward-only and rebase feature branches before opening or updating PRs.
 
 ### Repository merge settings (GitHub)
 
 - Merge commits: **disabled**
 - Squash merge: **enabled** (preferred)
 - Rebase merge: **enabled** (optional)
-- Require linear history on `develop`: enable in branch protection (see below)
+- Require linear history on `develop`: **enabled** via the active `Protect develop` ruleset
+- Force pushes and branch deletions on `develop`: **blocked**
 
 ### Local settings
 
@@ -92,13 +93,12 @@ git push --force-with-lease
 Use `--force-with-lease`, not `--force`, so you do not overwrite someone
 else's pushed work.
 
-### Enable linear history on GitHub (one-time, admin)
+### Protected branch policy
 
-In **Settings → Branches → Branch protection rules → `develop`**, enable
-**Require linear history**. If branch protection is not configured yet, add
-a rule for `develop` with at least that checkbox. The declarative template
-in `.github/settings.yml` documents the intended protection shape for
-Probot Settings or manual alignment.
+The active `Protect develop` ruleset requires pull requests, linear history,
+passing status checks, and blocks force-pushes and branch deletion. The
+declarative template in `.github/settings.yml` mirrors this intended policy
+for Probot Settings or manual audits.
 
 ## Pull request checklist
 
