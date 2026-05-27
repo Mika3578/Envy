@@ -32,10 +32,73 @@ to retarget every project to v145.
 ## Branch model
 
 - `main` - stable, releases tagged `v*` from here.
-- `develop` - integration branch.
+- `develop` - integration branch (default).
 - `legacy` - frozen pre-modernization snapshot for historical builds.
 - Feature branches : `feature/<short-name>` or `claude/<short-name>` for
   AI-assisted work.
+
+## Git workflow (linear history)
+
+`develop` keeps a **linear first-parent history** going forward. Two older
+merge commits remain in history; do not rewrite them.
+
+### Repository merge settings (GitHub)
+
+- Merge commits: **disabled**
+- Squash merge: **enabled** (preferred)
+- Rebase merge: **enabled** (optional)
+- Require linear history on `develop`: enable in branch protection (see below)
+
+### Local settings
+
+Configure fast-forward-only pulls so a plain `git pull` never creates merge
+commits:
+
+```bash
+git config pull.ff only
+```
+
+To apply repo-wide for all clones of this repository, each contributor can
+run the command above in their local clone.
+
+### Sync `develop` locally
+
+```bash
+git fetch origin
+git checkout develop
+git pull --ff-only origin develop
+```
+
+If `git pull --ff-only` fails, your local `develop` has diverged. Reset it
+to the remote (safe when you have no local-only commits on `develop`):
+
+```bash
+git fetch origin
+git checkout develop
+git reset --hard origin/develop
+```
+
+Never commit directly on `develop`; always use a feature branch and PR.
+
+### Feature branch workflow (before opening or updating a PR)
+
+```bash
+git fetch origin
+git checkout your-feature-branch
+git rebase origin/develop
+git push --force-with-lease
+```
+
+Use `--force-with-lease`, not `--force`, so you do not overwrite someone
+else's pushed work.
+
+### Enable linear history on GitHub (one-time, admin)
+
+In **Settings → Branches → Branch protection rules → `develop`**, enable
+**Require linear history**. If branch protection is not configured yet, add
+a rule for `develop` with at least that checkbox. The declarative template
+in `.github/settings.yml` documents the intended protection shape for
+Probot Settings or manual alignment.
 
 ## Pull request checklist
 

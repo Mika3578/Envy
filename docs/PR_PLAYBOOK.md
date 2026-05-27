@@ -5,6 +5,8 @@ Use this playbook to keep PRs small, reviewable, and operationally safe.
 ## Global Expectations (All PR Types)
 
 - One logical change area per PR.
+- Branch from `develop`; rebase onto `origin/develop` before merge.
+- Merge with **squash** (preferred) or **rebase**; merge commits are disabled on GitHub.
 - Report:
   - testing performed
   - testing not performed
@@ -13,6 +15,27 @@ Use this playbook to keep PRs small, reviewable, and operationally safe.
 - Update under `[Unreleased]` in `CHANGELOG.md`.
 - Update `docs/DEVELOPMENT_PLAN.md` for strategic/scope decisions.
 - Update `docs/DEV_TRACKER.md` for operational status changes.
+
+## Git sync (feature branches)
+
+Before opening a PR or after `develop` moves forward:
+
+```bash
+git fetch origin
+git checkout your-feature-branch
+git rebase origin/develop
+git push --force-with-lease
+```
+
+Keep local `develop` aligned without merge commits:
+
+```bash
+git fetch origin
+git checkout develop
+git pull --ff-only origin develop
+```
+
+Configure once per clone: `git config pull.ff only`
 
 ## Documentation PR Checklist
 
