@@ -16,26 +16,9 @@ Use this playbook to keep PRs small, reviewable, and operationally safe.
 - Update `docs/DEVELOPMENT_PLAN.md` for strategic/scope decisions.
 - Update `docs/DEV_TRACKER.md` for operational status changes.
 
-## Git sync (feature branches)
+## Git sync
 
-Before opening a PR or after `develop` moves forward:
-
-```bash
-git fetch origin
-git checkout your-feature-branch
-git rebase origin/develop
-git push --force-with-lease
-```
-
-Keep local `develop` aligned without merge commits:
-
-```bash
-git fetch origin
-git checkout develop
-git pull --ff-only origin develop
-```
-
-Configure once per clone: `git config pull.ff only`
+Use `.github/CONTRIBUTING.md` as the canonical source for the linear-history workflow and exact `git fetch` / `git rebase origin/develop` / `git push --force-with-lease` commands.
 
 ## Documentation PR Checklist
 
