@@ -14,6 +14,10 @@ Use this playbook to keep PRs small, reviewable, and operationally safe.
 - Update `docs/DEVELOPMENT_PLAN.md` for strategic/scope decisions.
 - Update `docs/DEV_TRACKER.md` for operational status changes.
 
+## Git sync
+
+Use `.github/CONTRIBUTING.md` as the canonical source for the linear-history workflow and exact `git fetch` / `git rebase origin/develop` / `git push --force-with-lease` commands.
+
 ## Documentation PR Checklist
 
 ### Testing expectations
