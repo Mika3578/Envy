@@ -24,7 +24,11 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
 1. **Read** [`DEV_TRACKER.md`](./DEV_TRACKER.md) to see what's in flight.
 2. **Update** the tracker at start (Backlog -> In progress) and end
    (In progress -> Done with date, commit, outcome).
-3. **Push** only to the branch the session was assigned to.
+3. **Branch & merge gate.** Use conventional branch names off `develop`
+   (`feat/`, `fix/`, `docs/`, `ci/`, ...); never use `claude/`-prefixed
+   branches. You may push your own branch and open **draft** PRs, but never
+   merge or push to `develop`/`main` without explicit approval.
+   (See AGENTS.md section 2, rules 11-12.)
 4. **Reply to the user in the language they used in chat**, but all
    commits, comments, docs, and PR text in **English**.
 

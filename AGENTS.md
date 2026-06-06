@@ -27,9 +27,14 @@ Envy is a multi-network peer-to-peer client for Windows. Stack:
 - **License**: AGPL-3.0-or-later (`Envy/AGPL-License.txt`). Some bundled
   resources have additional CC-BY-NC-SA terms - see `ReadMe.txt`.
 
-Branch model: develop on `claude/code-audit-modernization-nJcTT`
-(per session instructions). Do **not** push to `main`, `develop`, or
-`legacy` directly.
+Branch model: the default branch is `develop` (linear history). Branch off
+`develop` using conventional `type/short-kebab-summary` names - `feat/`,
+`fix/`, `docs/`, `refactor/`, `perf/`, `test/`, `build/`, `ci/`, `chore/`
+(plus `hotfix/`), matching the Conventional Commit types this repo already
+uses. Never create or push agent-/tool-prefixed branches (e.g. `claude/...`).
+You may push your own feature branch and open a **draft** PR freely; never
+push to `main`, `develop`, or `legacy` directly, and never merge without
+maintainer approval.
 
 ---
 
@@ -66,6 +71,17 @@ Branch model: develop on `claude/code-audit-modernization-nJcTT`
 10. **Never skip git hooks** (`--no-verify`, `--no-gpg-sign`) and never
     force-push to `main` or `develop`. Always create new commits rather
     than amending.
+11. **Branch naming**. Never create or push `claude/`-prefixed (or any
+    agent-/tool-prefixed) branches. Use conventional
+    `type/short-kebab-summary` names - `feat/`, `fix/`, `docs/`,
+    `refactor/`, `perf/`, `test/`, `build/`, `ci/`, `chore/` (plus
+    `hotfix/`), matching the Conventional Commit types - branched off
+    `develop`.
+12. **Human approval at the merge gate**. An assistant may commit and push
+    to its *own* feature branch and open **draft** PRs (so CI runs and the
+    diff is reviewable), but must **not** merge, mark a PR ready-for-review,
+    or push to `main`/`develop`/`legacy` without explicit maintainer
+    approval. The agent proposes; the maintainer owns the merge.
 
 ---
 

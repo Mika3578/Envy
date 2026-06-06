@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Agent branch & merge-gate rules** — Added branch-naming and merge-gate approval rules to `AGENTS.md` (hard rules 11-12 + branch-model paragraph) and `CLAUDE.md`: assistants use conventional `type/short-kebab-summary` branches matching Conventional Commit types (no `claude/`-prefixed or tool-prefixed branches), may push their own feature branch and open draft PRs, but must not merge or push to `main`/`develop` without explicit maintainer approval. Documentation only.
 - **Git workflow / linear history** — Documented squash-or-rebase merge policy for `develop`, `git pull --ff-only` local hygiene, and feature-branch rebase commands in `.github/CONTRIBUTING.md`, `docs/CONTRIBUTING.md`, and `docs/PR_PLAYBOOK.md`. Aligned `.github/settings.yml` with GitHub by disabling merge commits while keeping squash and rebase merges enabled, and tightening branch protection settings to match.
 - **CI maintenance** — Pin Windows jobs to `windows-2025` / `windows-2025-vs2026`, upgrade `microsoft/setup-msbuild@v3` and artifact actions to v6, opt legacy JavaScript actions into Node 24 where needed, skip PR labeler and README advisory on zero-file or CI-only pull requests.
 
