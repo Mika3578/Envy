@@ -1,6 +1,6 @@
 # Envy Development Tracker (Operational)
 
-_Last Updated: 2026-05-17_
+_Last Updated: 2026-06-06_
 
 This is the **operational dashboard** for day-to-day execution.
 
@@ -30,6 +30,7 @@ This is the **operational dashboard** for day-to-day execution.
 ## 3) Current Status
 
 ### Done
+- **claude/kind-goodall-rHYTG (2026-06-06)** — Full project state & governance audit at `docs/audit/2026-06-06-project-state-and-governance-audit.md`. Key findings: the v145 build is **green** (PR #51, full x64+Win32 / Debug+Release matrix on `windows-2025-vs2026`); the canonical rule files (`AGENTS.md`, `CLAUDE.md`, `MODERNIZATION.md`) still describe the old `claude/code-audit-modernization-nJcTT` → `main` model and forbid `CMakeLists.txt` that now exists; 14 CI workflows with real duplication (format ×2, dependency-review ×3) and a required-status-check/job-name mismatch in `.github/settings.yml`; version drift (`vcpkg.json` 5.0.0 vs `version.json` 4.1.0); documentation sprawl (3× tracker/roadmap/contributing, duplicate PR template). Includes a prioritized P0–P2 plan and a cited comparison with qBittorrent/Transmission/libtorrent/aMule/DC/Shareaza.
 - **fix/startup-skin-toolbar-icons** — Removed startup `Toolbar Lookup` / `Failed to load icon` debug-log noise. Added `CSkin::EnsureLoaded()` so early child-window OnCreate / OnSkinChange calls lazy-populate the embedded default skin before lookups; deduplicated per-session debug emissions in `CSkin::CreateToolBar` and `CCoolInterface::ExtractIcon`; added a debug-only `CSkin::ValidateLoaded()` post-apply sanity check. Follow-up: added the missing `<toolbar name="CLibraryTree.Physical"/>` to `Envy/Res/Default.xml` and extended the validator's critical-toolbar list to cover the library frame names. Files: `Envy/Res/Default.xml`, `Envy/Skin.{h,cpp}`, `Envy/CoolInterface.cpp`. See root `DEV_TRACKER.md` for full entry.
 - Canonical strategy baseline established in `docs/DEVELOPMENT_PLAN.md`.
 - Protocol gap analysis and comparative audits exist (`docs/10_dev/status.md`, `docs/audit/*`).

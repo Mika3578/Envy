@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-05-27
+- **Last Updated:** 2026-06-06
+- **Changelog Entry:** 2026-06-06 — Added full project state & governance audit (`docs/audit/2026-06-06-project-state-and-governance-audit.md`): confirms the v145 build is green (PR #51), flags governance rule-file drift, CI workflow duplication and a required-status-check/job-name mismatch, version-source inconsistency, and documentation sprawl; benchmarks against peer P2P projects and proposes a prioritized P0–P2 plan.
 - **Changelog Entry:** 2026-05-27 — Documented linear-history workflow for `develop`: squash/rebase merges only, `git pull --ff-only`, feature-branch rebase commands; aligned `.github/settings.yml` with GitHub merge settings.
 - **Changelog Entry:** 2026-05-17 — Improved CodeQL C# analysis precision by introducing a dedicated manual-build workflow and documenting legacy FictionBookReader build blockers plus minimal .NET Framework 4.8 retarget path.
 - **Changelog Entry:** 2026-05-15 — Synced repository hygiene status for `develop`: documented branch state, CI gate maturity, Dependabot labels requirement, and dependency register status (`docs/DEPENDENCIES.md` exists but remains an incomplete seed).

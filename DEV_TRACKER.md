@@ -48,6 +48,16 @@ _(none right now)_
 
 ## Done
 
+- **2026-06-06** | claude/kind-goodall-rHYTG
+  -> Project state & governance audit added at
+  `docs/audit/2026-06-06-project-state-and-governance-audit.md`. Confirms the
+  v145 build is green (PR #51, full matrix on `windows-2025-vs2026`); flags
+  rule-file drift (this tracker, `AGENTS.md`, `CLAUDE.md` and `MODERNIZATION.md`
+  still describe the old `…nJcTT` -> `main` model and forbid the `CMakeLists.txt`
+  that now exists), CI workflow duplication + a required-check/job-name mismatch
+  in `.github/settings.yml`, version-source drift, and documentation sprawl.
+  NOTE: per the audit, `docs/DEV_TRACKER.md` is the canonical operational
+  tracker; this root file should be reduced to a redirect stub.
 - **2026-05-19** | claude/review-ci-workflow-twgeE | commit `20638bf`
   -> Applied PR #47 review-thread fixes in `.github/workflows/release.yml`
   and `.github/workflows/security.yml`: simplified release concurrency key,
