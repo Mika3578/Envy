@@ -18,7 +18,7 @@ Read AGENTS.md before acting on this repo. Highlights:
    add ad-hoc submodules or bundled sources.
 6. Never edit files under Plugins/PluginWizard/** (project templates).
 7. Never bulk-format existing files. .clang-format is advisory.
-8. Always update DEV_TRACKER.md when you start and finish a task.
+8. Always update docs/DEV_TRACKER.md when you start and finish a task.
 9. Push only to the branch the session is pinned to. Never push to
    main, develop, or legacy.
 10. `throw()` is removed in C++20 - use `noexcept`. `register` is

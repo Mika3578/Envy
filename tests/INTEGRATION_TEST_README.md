@@ -207,7 +207,7 @@ Success rate: 100%
 ## Related Documentation
 
 - **[PROTOCOL_TESTING_SCHEDULE.md](../testing/PROTOCOL_TESTING_SCHEDULE.md)** - Official testing timeline
-- **[DEV_TRACKER.md](../DEV_TRACKER.md)** - Project progress tracking
+- **[docs/DEV_TRACKER.md](../docs/DEV_TRACKER.md)** - Project progress tracking
 - **[ARCHITECTURE.md](architecture.md)** - System design details
 
 ---
