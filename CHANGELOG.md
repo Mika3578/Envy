@@ -10,8 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Governance: single source of truth** — Comprehensive project-state and governance audit (`docs/audit/2026-06-06-project-state-and-governance-audit.md`). Deleted stale root `DEV_TRACKER.md`; repointed all 12 references across AI rule files, docs, and tests to `docs/DEV_TRACKER.md`. Replaced obsolete `.github/ROADMAP.md` (Q4 2024) with redirect stub. Prepended historical banner to `MODERNIZATION.md`. Refreshed `docs/DEV_TRACKER.md` to reflect actual CI state (v145 build GREEN, Phase 0 merged). Deduplicated `.github/pull_request_template.md`.
 - **AI rules: branch naming and merge gate** — Added AGENTS.md rules 11 (conventional branch prefixes, no tool-specific `claude/`/`cursor/`/`aider/` names) and 12 (human approval at merge gate — agents open draft PRs, only humans merge). Updated branch model description from stale session-specific reference to linear-history-on-`develop` model. Aligned CLAUDE.md accordingly.
-
-### Changed
 - **Git workflow / linear history** — Documented squash-or-rebase merge policy for `develop`, `git pull --ff-only` local hygiene, and feature-branch rebase commands in `.github/CONTRIBUTING.md`, `docs/CONTRIBUTING.md`, and `docs/PR_PLAYBOOK.md`. Aligned `.github/settings.yml` with GitHub by disabling merge commits while keeping squash and rebase merges enabled, and tightening branch protection settings to match.
 - **CI maintenance** — Pin Windows jobs to `windows-2025` / `windows-2025-vs2026`, upgrade `microsoft/setup-msbuild@v3` and artifact actions to v6, opt legacy JavaScript actions into Node 24 where needed, skip PR labeler and README advisory on zero-file or CI-only pull requests.
 

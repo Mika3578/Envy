@@ -176,7 +176,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 
 - `.github/CODEOWNERS`: required review for CI / build files / third-party.
 - `.github/SECURITY.md`: responsible disclosure policy.
-- `.github/pull_request_template.md`: build x64/Win32 + analysis checklist.
+- `.github/PULL_REQUEST_TEMPLATE.md`: build x64/Win32 + analysis checklist.
 - `.github/ISSUE_TEMPLATE/{bug_report,feature_request,build_failure}.yml`.
 - `.editorconfig`: tab/4 for C++, space/2 for XML/JSON, LF for YAML.
 - `.clang-format` (Microsoft, conservative) + `.clang-format-ignore` to

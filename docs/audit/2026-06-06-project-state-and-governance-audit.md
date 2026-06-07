@@ -5,7 +5,7 @@
 > hygiene. Includes a comparison against peer P2P projects and a prioritized,
 > PR-sized action plan.
 >
-> Method: read of the working tree on `develop`/`claude/kind-goodall-rHYTG`,
+> Method: read of the working tree on `develop` (plus a local feature branch),
 > the 14 GitHub Actions workflows, `.github/settings.yml`, the governance docs
 > (`AGENTS.md`, `CLAUDE.md`, `MODERNIZATION.md`, `docs/DEVELOPMENT_PLAN.md`,
 > `docs/DEV_TRACKER.md`), and the live state of PRs #48 and #51 and their CI
@@ -446,7 +446,7 @@ Each item is intended to be **one small, reviewable PR** (per `PR_PLAYBOOK.md`).
 
 ## 11. Appendix — what was verified
 
-- Git: on `claude/kind-goodall-rHYTG`, even with `origin/develop` at `7ea8b46`.
+- Git: on a local feature branch, with `origin/develop` at `7ea8b46`.
 - PR #51 check runs: full Windows matrix **success**; SonarCloud **success**.
 - PR #48 check runs: SonarCloud **failure**; builds not run (by design).
 - Workflows read in full: `build.yml`, `code-quality.yml`, `security.yml`,

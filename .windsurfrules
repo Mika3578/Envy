@@ -11,8 +11,9 @@ Hard rules:
    C++20 first-party, C++17 legacy plugins).
 3. Windows 10 1809+ target. Never re-introduce XP support.
 4. Dependencies via vcpkg manifest (vcpkg.json).
-5. Push only to the branch the session is pinned to. Update
-   docs/DEV_TRACKER.md at the start and end of each task.
+5. Push only to your own feature branch with a conventional prefix
+   (feat/, fix/, docs/, ci/, refactor/, test/, chore/); no tool-specific
+   prefixes. Update docs/DEV_TRACKER.md at the start and end of each task.
 6. Don't bulk-reformat. Don't edit Plugins/PluginWizard/**.
 7. Match the legacy MFC style: tabs/4, Allman braces, Hungarian
    prefixes, CString/CAtlList over std:: containers.

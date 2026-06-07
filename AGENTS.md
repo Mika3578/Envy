@@ -10,7 +10,7 @@ Envy. It is read by:
   this document.
 
 Keep this file short. If you find yourself wanting to add a paragraph,
-write it in `MODERNIZATION.md` or `DEV_TRACKER.md` and link to it here.
+write it in `MODERNIZATION.md` or `docs/DEV_TRACKER.md` and link to it here.
 
 ---
 
@@ -133,7 +133,7 @@ When you take on a task you are expected to:
 2. **Push only to your feature branch** (conventional name, see
    rule 11) with `git push -u origin <branch>`.
 3. **Open a draft PR** if one does not exist. Match the PR template at
-   `.github/pull_request_template.md`.
+   `.github/PULL_REQUEST_TEMPLATE.md`.
 4. **Tick the checkboxes** in the PR template that genuinely apply -
    don't blanket-check them.
 5. **Cite file:line** in chat replies when discussing code:
@@ -177,9 +177,11 @@ When you take on a task you are expected to:
   warning. Fix the warning or document why it must stay.
 - **Don't** add new dependencies to `vcpkg.json` without first
   discussing in `docs/DEV_TRACKER.md` (architectural decisions block).
-- **Don't** introduce `CMakeLists.txt` files yet. `CMakePresets.json`
-  exists as a scaffold for Phase 5; CMake migration is not in scope
-  for the current PR.
+- **Don't** treat CMake as authoritative. A root `CMakeLists.txt` and
+  `CMakePresets.json` exist for partial/supplementary builds (HashLib +
+  selected tests); the Visual Studio solution remains the authoritative
+  build. Don't expand CMake coverage without first discussing in
+  `docs/DEV_TRACKER.md`.
 - **Don't** rewrite `MODERNIZATION.md` from scratch. Update the
   checklists, don't reflow the prose.
 - **Don't** translate translated XML files in `Languages/`. Only
