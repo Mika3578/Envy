@@ -26,7 +26,7 @@ Highlights:
 5. **Style**: tabs/4, Allman braces, Hungarian-ish naming.
 6. **Don't bulk-reformat** existing files; `.clang-format` is advisory.
 7. **Don't edit** `Plugins/PluginWizard/**` - those are templates.
-8. **Update `DEV_TRACKER.md`** at the start and end of every task.
+8. **Update `docs/DEV_TRACKER.md`** at the start and end of every task.
 9. **English** for all artifacts (code, comments, commits, PRs, docs).
    Chat replies follow the user's language.
 10. **No GPL-2.0 or GPL-3.0** dependencies. AGPL-3.0 is fine.

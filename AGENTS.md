@@ -10,7 +10,7 @@ Envy. It is read by:
   this document.
 
 Keep this file short. If you find yourself wanting to add a paragraph,
-write it in `MODERNIZATION.md` or `DEV_TRACKER.md` and link to it here.
+write it in `MODERNIZATION.md` or `docs/DEV_TRACKER.md` and link to it here.
 
 ---
 
@@ -37,7 +37,7 @@ Branch model: develop on `claude/code-audit-modernization-nJcTT`
 
 1. **Language**: all human-readable artifacts you produce or edit -
    code comments, commit messages, PR bodies, issue descriptions,
-   `MODERNIZATION.md`, `DEV_TRACKER.md`, workflow names, error messages -
+   `MODERNIZATION.md`, `docs/DEV_TRACKER.md`, workflow names, error messages -
    are written in **English**. Reply to the user in the language they
    used in chat; that's separate from the artifacts above.
 2. **No XP support**. Do not reintroduce `_ATL_XP_TARGETING`, `v141_xp`,
@@ -119,7 +119,7 @@ patterns you will see and should preserve:
 
 When you take on a task you are expected to:
 
-1. **Update `DEV_TRACKER.md`** at the start (move item from "Backlog" to
+1. **Update `docs/DEV_TRACKER.md`** at the start (move item from "Backlog" to
    "In progress") and at the end (move to "Done" with date + commit
    hash + brief outcome).
 2. **Push only to the designated branch**
@@ -169,7 +169,7 @@ When you take on a task you are expected to:
 - **Don't** add `#pragma warning(disable: ...)` to silence a new
   warning. Fix the warning or document why it must stay.
 - **Don't** add new dependencies to `vcpkg.json` without first
-  discussing in `DEV_TRACKER.md` (architectural decisions block).
+  discussing in `docs/DEV_TRACKER.md` (architectural decisions block).
 - **Don't** introduce `CMakeLists.txt` files yet. `CMakePresets.json`
   exists as a scaffold for Phase 5; CMake migration is not in scope
   for the current PR.
@@ -205,7 +205,7 @@ others continue to delegate.
 
 If you are blocked and can't make progress on a task:
 
-1. Write the dead-end into `DEV_TRACKER.md` under "Blockers".
+1. Write the dead-end into `docs/DEV_TRACKER.md` under "Blockers".
 2. Open or update an issue using the `build_failure.yml` template if
    the blocker is a build error.
 3. Stop. Do not invent workarounds (`/* TODO */`, dummy returns,
