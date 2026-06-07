@@ -16,7 +16,7 @@ Full ruleset: `AGENTS.md`. This file is a pointer.
   over std::.
 - **Language**: English for code, comments, commits, PRs, docs; chat
   follows the user.
-- **Tracking**: update `DEV_TRACKER.md` at the start and end of each task.
+- **Tracking**: update `docs/DEV_TRACKER.md` at the start and end of each task.
 - **Branch discipline**: push only to the assigned branch.
 
 Build command:

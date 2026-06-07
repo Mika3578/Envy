@@ -52,7 +52,7 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
 
 ## Living workflow
 
-Every task starts with reading `DEV_TRACKER.md` and ends with updating
+Every task starts with reading `docs/DEV_TRACKER.md` and ends with updating
 it. Use the `In progress` / `Done` columns at the top of the file.
 
 ## Languages
@@ -65,5 +65,5 @@ it. Use the `In progress` / `Done` columns at the top of the file.
 
 - `AGENTS.md` - canonical rules
 - `MODERNIZATION.md` - multi-phase plan
-- `DEV_TRACKER.md` - living progress log
+- `docs/DEV_TRACKER.md` - living progress log
 - `.github/CONTRIBUTING.md` - human-facing contributor guide

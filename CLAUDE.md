@@ -21,10 +21,11 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
 
 ## Mandatory steps when you act on this repo
 
-1. **Read** [`DEV_TRACKER.md`](./DEV_TRACKER.md) to see what's in flight.
+1. **Read** [`docs/DEV_TRACKER.md`](./docs/DEV_TRACKER.md) to see what's in flight.
 2. **Update** the tracker at start (Backlog -> In progress) and end
    (In progress -> Done with date, commit, outcome).
-3. **Push** only to the branch the session was assigned to.
+3. **Push** only to your feature branch (conventional name per
+   AGENTS.md rule 11). Only a human maintainer merges into `develop`.
 4. **Reply to the user in the language they used in chat**, but all
    commits, comments, docs, and PR text in **English**.
 
@@ -43,5 +44,5 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
 
 - [`MODERNIZATION.md`](./MODERNIZATION.md) - full plan and phases.
 - [`AGENTS.md`](./AGENTS.md) - canonical rules.
-- [`DEV_TRACKER.md`](./DEV_TRACKER.md) - living progress log.
+- [`docs/DEV_TRACKER.md`](./docs/DEV_TRACKER.md) - living progress log.
 - [`.github/CONTRIBUTING.md`](./.github/CONTRIBUTING.md) - human-facing.

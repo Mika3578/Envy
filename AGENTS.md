@@ -27,9 +27,11 @@ Envy is a multi-network peer-to-peer client for Windows. Stack:
 - **License**: AGPL-3.0-or-later (`Envy/AGPL-License.txt`). Some bundled
   resources have additional CC-BY-NC-SA terms - see `ReadMe.txt`.
 
-Branch model: develop on `claude/code-audit-modernization-nJcTT`
-(per session instructions). Do **not** push to `main`, `develop`, or
-`legacy` directly.
+Branch model: **linear history on `develop`** (squash-merge or
+rebase-merge only; no merge commits). Feature branches use
+conventional prefixes: `feat/`, `fix/`, `docs/`, `ci/`, `refactor/`,
+`test/`, `chore/`. Do **not** push directly to `main`, `develop`, or
+`legacy`.
 
 ---
 
@@ -37,7 +39,7 @@ Branch model: develop on `claude/code-audit-modernization-nJcTT`
 
 1. **Language**: all human-readable artifacts you produce or edit -
    code comments, commit messages, PR bodies, issue descriptions,
-   `MODERNIZATION.md`, `DEV_TRACKER.md`, workflow names, error messages -
+   `MODERNIZATION.md`, `docs/DEV_TRACKER.md`, workflow names, error messages -
    are written in **English**. Reply to the user in the language they
    used in chat; that's separate from the artifacts above.
 2. **No XP support**. Do not reintroduce `_ATL_XP_TARGETING`, `v141_xp`,
@@ -66,6 +68,12 @@ Branch model: develop on `claude/code-audit-modernization-nJcTT`
 10. **Never skip git hooks** (`--no-verify`, `--no-gpg-sign`) and never
     force-push to `main` or `develop`. Always create new commits rather
     than amending.
+11. **Conventional branch names**. Use `feat/`, `fix/`, `docs/`, `ci/`,
+    `refactor/`, `test/`, or `chore/` prefixes. Never use tool-specific
+    prefixes like `claude/`, `cursor/`, or `aider/`.
+12. **Human approval at merge gate**. AI agents open **draft** PRs and
+    push to their own branches freely. Only a human maintainer may
+    mark a PR "ready for review" and merge it into `develop`.
 
 ---
 
@@ -119,12 +127,11 @@ patterns you will see and should preserve:
 
 When you take on a task you are expected to:
 
-1. **Update `DEV_TRACKER.md`** at the start (move item from "Backlog" to
-   "In progress") and at the end (move to "Done" with date + commit
-   hash + brief outcome).
-2. **Push only to the designated branch**
-   (`claude/code-audit-modernization-nJcTT` for this session) with
-   `git push -u origin <branch>`.
+1. **Update `docs/DEV_TRACKER.md`** at the start (move item from
+   "Backlog" to "In progress") and at the end (move to "Done" with
+   date + commit hash + brief outcome).
+2. **Push only to your feature branch** (conventional name, see
+   rule 11) with `git push -u origin <branch>`.
 3. **Open a draft PR** if one does not exist. Match the PR template at
    `.github/pull_request_template.md`.
 4. **Tick the checkboxes** in the PR template that genuinely apply -
@@ -169,7 +176,7 @@ When you take on a task you are expected to:
 - **Don't** add `#pragma warning(disable: ...)` to silence a new
   warning. Fix the warning or document why it must stay.
 - **Don't** add new dependencies to `vcpkg.json` without first
-  discussing in `DEV_TRACKER.md` (architectural decisions block).
+  discussing in `docs/DEV_TRACKER.md` (architectural decisions block).
 - **Don't** introduce `CMakeLists.txt` files yet. `CMakePresets.json`
   exists as a scaffold for Phase 5; CMake migration is not in scope
   for the current PR.
@@ -205,7 +212,7 @@ others continue to delegate.
 
 If you are blocked and can't make progress on a task:
 
-1. Write the dead-end into `DEV_TRACKER.md` under "Blockers".
+1. Write the dead-end into `docs/DEV_TRACKER.md` under "Blockers".
 2. Open or update an issue using the `build_failure.yml` template if
    the blocker is a build error.
 3. Stop. Do not invent workarounds (`/* TODO */`, dummy returns,
