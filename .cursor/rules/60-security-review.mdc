@@ -1,0 +1,19 @@
+---
+description: Security-sensitive change checklist
+globs: ["**/Remote/**", "**/*Security*", "**/docs/40_quality/security/**", "**/*Auth*", "**/*Crypto*"]
+alwaysApply: false
+---
+
+# Security review
+
+For changes touching authentication, crypto, remote API, input parsing, or
+network-exposed surfaces:
+
+- Validate and bound all untrusted input at trust boundaries.
+- Do not log secrets, tokens, or credentials.
+- Prefer existing crypto APIs; do not roll custom primitives.
+- Remote/navigation: allowlist redirects; use `crypto.getRandomValues` for tokens where applicable.
+- Add or adjust regression tests when feasible.
+- Update `docs/40_quality/security/**` or `.github/SECURITY.md` when durable
+  threat model or procedure changes.
+- Never open public issues for undisclosed vulnerabilities — see `.github/SECURITY.md`.

@@ -1,0 +1,34 @@
+---
+description: Branching, PR discipline, and GitHub work tracking
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Git and PR workflow
+
+## Branching
+
+- Branch from updated `origin/develop`; keep history linear.
+- Names: `type/short-kebab-summary` — no `claude/`, `cursor/`, `agent/` prefixes.
+- Never push to `develop`, `main`, or `legacy`.
+- Short-lived branches; small, reviewable PRs.
+
+## Shared work tracking
+
+Use **GitHub Issues, Projects, Milestones, and PRs** — not committed Markdown
+trackers. Do not create or update session tracker files in the repository.
+
+Personal/session notes may go in **`.local/`** (gitignored).
+
+## PR checklist
+
+- Match `.github/pull_request_template.md`; tick boxes that genuinely apply.
+- Report testing performed, not performed, and environment limits.
+- User-visible changes: `CHANGELOG.md` under `[Unreleased]`.
+- Do not silently remove tests, workflows, docs, or legacy artifacts.
+- Draft PRs only unless maintainer approves ready-for-review or merge.
+
+## Planning
+
+For multi-file or architectural work, write a short plan (goal, constraints,
+files, verification) before editing.

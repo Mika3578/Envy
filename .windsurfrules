@@ -1,21 +1,16 @@
 # Windsurf rules for Envy.
 #
-# Canonical rules live in AGENTS.md.
+# Canonical rules: AGENTS.md
 
-Read AGENTS.md and docs/DEVELOPMENT_PLAN.md before making changes.
+Read AGENTS.md before making changes.
 
 Hard rules:
-1. English for all artifacts (code, comments, commits, PRs, docs).
-   Chat replies follow the user's language.
-2. Visual Studio 2026 toolchain only (PlatformToolset v145, MSVC 14.50,
-   C++20 first-party, C++17 legacy plugins).
-3. Windows 10 1809+ target. Never re-introduce XP support.
+1. English for all repository artifacts; chat follows the user's language.
+2. VS 2026 / toolset v145 / C++20 first-party / C++17 plugins.
+3. Windows 10 1809+ target; no XP support.
 4. Dependencies via vcpkg manifest (vcpkg.json).
-5. Branch off develop; push only your feature branch. Record strategic
-   progress in docs/DEVELOPMENT_PLAN.md; session notes go in
-   .local/DEV_TRACKER.md (gitignored).
-6. Don't bulk-reformat. Don't edit Plugins/PluginWizard/**.
-7. Match the legacy MFC style: tabs/4, Allman braces, Hungarian
-   prefixes, CString/CAtlList over std:: containers.
+5. Branch off develop; push only your feature branch.
+6. GitHub Issues/Projects/Milestones/PRs for shared tracking; .local/ for session notes.
+7. Do not bulk-reformat; do not edit Plugins/PluginWizard/**.
 
 See MODERNIZATION.md for the full multi-phase plan.

@@ -7,10 +7,9 @@ introduction of a complete GitHub Actions CI/CD pipeline, and the
 automation of dependency updates.
 
 > **Audit date** : 2026-05-15
-> **Target branch** : `claude/code-audit-modernization-nJcTT`
 
-For the day-by-day execution log, see [`docs/DEV_TRACKER.md`](./docs/DEV_TRACKER.md).
 For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
+For shared work tracking, use GitHub Issues, Projects, Milestones, and PRs.
 
 ---
 
@@ -88,7 +87,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 - [x] Replaced `throw()` with `noexcept` (Envy/Buffer.{h,cpp}, Connection.h)
 - [x] Modernized `Envy/StdAfx.h`: Win 10 baseline, MSVC 14.50 requirement,
       auto-XPSUPPORT detection removed
-- [x] AI rules file (`AGENTS.md`) and living dev tracker (`docs/DEV_TRACKER.md`)
+- [x] AI rules file (`AGENTS.md`) and repository documentation policy
 
 ### Phase 1 - First green build (next PR)
 
@@ -190,10 +189,10 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 ::   - C++ CMake tools for Windows
 ::   - vcpkg (bundled with VS 2026)
 
-:: 1. Clone and switch to the branch
+:: 1. Clone and check out develop
 git clone https://github.com/mika3578/envy.git
 cd envy
-git checkout claude/code-audit-modernization-nJcTT
+git checkout develop
 
 :: 2. Bootstrap vcpkg (manifest mode auto-enabled by VS 2026)
 git clone https://github.com/microsoft/vcpkg.git
@@ -222,11 +221,11 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
 
 ## 6. How to enable Dependabot and the workflows
 
-1. **Push the branch** to GitHub:
+1. **Push your feature branch** to GitHub:
    ```
-   git push -u origin claude/code-audit-modernization-nJcTT
+   git push -u origin your-feature-branch
    ```
-2. **Create the draft PR** against `main`.
+2. **Open a draft PR** against `develop`.
 3. In the repo **Settings -> Security and analysis**:
    - Enable "Dependency graph"
    - Enable "Dependabot alerts"

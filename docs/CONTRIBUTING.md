@@ -6,6 +6,14 @@
 3. Run relevant local checks before opening PR.
 4. Use PR template and include risk/testing notes.
 
+## Documentation and work tracking
+
+- **Git:** durable project knowledge only (architecture, setup, protocols, conventions).
+- **GitHub:** Issues, Projects, Milestones, and PRs for shared actionable work.
+- **Local (gitignored):** `.local/` for session notes; `references/` for external client sources; `.envy.local.*` for local config. Do not commit these.
+
+See `.github/CONTRIBUTING.md` and `AGENTS.md` for the full policy.
+
 ## Branch and Commit Strategy
 - Prefer small, logical commits on feature branches.
 - Rebase feature branches onto `origin/develop` before opening or updating a PR.

@@ -10,9 +10,11 @@ Use this playbook to keep PRs small, reviewable, and operationally safe.
   - testing not performed
   - environment limitations
 - Never silently remove tests, coverage, workflows, docs, artifacts, or legacy files.
-- Update under `[Unreleased]` in `CHANGELOG.md`.
-- Update `docs/DEVELOPMENT_PLAN.md` for strategic/scope decisions.
-- Record session notes in `.local/DEV_TRACKER.md` (gitignored).
+- Update under `[Unreleased]` in `CHANGELOG.md` for user-visible changes.
+- Update durable docs only when behavior, setup, architecture, security, or
+  release procedures change (see `AGENTS.md` documentation policy).
+- Use GitHub Issues and PR descriptions for shared task status; optional
+  personal session notes may go in `.local/` (gitignored).
 
 ## Git sync
 
@@ -38,7 +40,7 @@ Use `.github/CONTRIBUTING.md` as the canonical source for the linear-history wor
 - Capture required vs advisory check impact.
 
 ### Documentation expectations
-- Update build/CI sections in relevant docs (`README.md`, `docs/DEV_TRACKER.md`, plan docs).
+- Update build/CI sections in relevant durable docs (`README.md`, `docs/SETUP.md`, plan docs).
 
 ### Risk review expectations
 - Preserve validation capability unless intentionally moved and documented.

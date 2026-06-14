@@ -1,0 +1,34 @@
+---
+description: P2P protocol safety, validation, and compatibility
+globs: ["**/Services/**", "**/Envy/**", "**/*Network*.cpp", "**/*Network*.h", "**/*Protocol*.cpp", "**/*Protocol*.h"]
+alwaysApply: false
+---
+
+# P2P protocols (Envy)
+
+## Treat the network as hostile
+
+- Validate sizes, bounds, and types before parsing.
+- Reject malformed/oversized packets safely — no crashes, no allocations from untrusted sizes.
+- Never trust remote paths/names; prevent traversal and invalid characters.
+
+## Timeouts and responsiveness
+
+- Sockets need sane send/recv timeouts.
+- Never block the UI thread on network I/O.
+- Handle partial I/O and transient errors (`WSAEWOULDBLOCK`, `WSAEINTR`).
+
+## Rate limiting and caps
+
+- Rate-limit where appropriate (per-peer and/or global).
+- Cap memory growth from peer-controlled inputs.
+
+## Compatibility
+
+- Preserve backward compatibility; gate new behavior behind capability detection.
+- Unknown fields: ignore safely when possible; never assume fixed layouts.
+
+## Documentation
+
+Protocol behavior changes require updates under `docs/30_protocols/**` in the
+same PR when durable wire or compatibility behavior changes.

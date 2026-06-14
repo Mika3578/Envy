@@ -1,0 +1,49 @@
+---
+description: Documentation policy — what belongs in Git vs local vs GitHub
+globs: ["docs/**", "README.md", "CHANGELOG.md", "MODERNIZATION.md", "AGENTS.md"]
+alwaysApply: false
+---
+
+# Documentation policy
+
+## Source of truth
+
+- Durable project knowledge: versioned under `docs/`, `README.md`, `CHANGELOG.md`, `MODERNIZATION.md`, `AGENTS.md`.
+- Shared work state: **GitHub Issues, Projects, Milestones, PRs**.
+- Volatile working material: **`.local/`** and **`references/`** (both gitignored).
+
+## Version in Git
+
+Architecture, build/setup, protocols, conventions, security, release procedure,
+contribution workflow, stable modernization decisions (`docs/DECISIONS.md`), and
+docs required to understand delivered behavior.
+
+## Do not commit
+
+Task lists, session trackers, agent scratchpads, prompt collections, exploratory
+notes, unvalidated research, audit drafts, external source trees, or duplicated
+GitHub status.
+
+## When to update
+
+Only when a change affects durable documented behavior, setup, architecture,
+security, compatibility, or release procedures:
+
+- User-visible: `CHANGELOG.md`
+- Protocol: matching `docs/30_protocols/**` page
+- Security: `docs/40_quality/security/**` or `.github/SECURITY.md`
+- Doc drift: fix or record in `docs/00_index/KNOWN_INCONSISTENCIES.md`
+
+Search for an existing doc before creating a new file. Prefer extending over
+duplicating status/roadmap content.
+
+## Doc map (canonical locations)
+
+- `docs/00_index/` — navigation, decisions, known inconsistencies
+- `docs/10_dev/` — build, contributing, technical roadmap
+- `docs/20_arch/` — architecture
+- `docs/30_protocols/<proto>/` — protocol specs and compatibility
+- `docs/40_quality/` — security, testing, audits
+- `docs/50_user/` — end-user guides
+
+Developer docs: English, Markdown, link claims to code paths or specs.

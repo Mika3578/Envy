@@ -4,30 +4,13 @@ description: Canonical rules for AI assistants operating on the Envy codebase.
 alwaysApply: true
 ---
 
-# Envy - AI rules
+# Envy — AI rules pointer
 
-Full ruleset: `AGENTS.md`. This file is a pointer.
+Full ruleset: **`AGENTS.md`**. Scoped Cursor rules: **`.cursor/rules/*.mdc`**.
 
-- **Toolchain**: VS 2026, toolset v145, MSVC 14.50.
-- **C++**: C++20 first-party, C++17 legacy plugins.
-- **OS target**: Windows 10 1809+ (no XP support).
-- **Dependencies**: vcpkg manifest (`vcpkg.json`).
-- **Style**: tabs/4, Allman braces, Hungarian-ish naming, CString/CAtlList
-  over std::.
-- **Language**: English for code, comments, commits, PRs, docs; chat
-  follows the user.
-- **Tracking**: record strategic progress in `docs/DEVELOPMENT_PLAN.md`;
-  session notes go in `.local/DEV_TRACKER.md` (gitignored).
-- **Branch discipline**: branch off develop; push only your feature branch.
-  Use type/short-kebab-summary names; no tool/agent prefixes.
+- VS 2026 / v145 / C++20 (C++17 plugins) / Windows 10 1809+
+- Build: `Visual Studio/Envy.sln` + vcpkg manifest
+- GitHub Issues/Projects/Milestones/PRs for shared tracking
+- `.local/` for volatile session notes (gitignored)
 
-Build command:
-
-```
-msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release ^
-  /p:Platform=x64 /p:PlatformToolset=v145 ^
-  /p:WindowsTargetPlatformVersion=10.0 ^
-  /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
-```
-
-Read `MODERNIZATION.md` for the multi-phase plan.
+See AGENTS.md for build command and hard rules.

@@ -34,8 +34,31 @@ to retarget every project to v145.
 - `main` - stable, releases tagged `v*` from here.
 - `develop` - integration branch (default).
 - `legacy` - frozen pre-modernization snapshot for historical builds.
-- Feature branches : `feature/<short-name>` or `claude/<short-name>` for
-  AI-assisted work.
+- Feature branches: `type/short-kebab-summary` off `develop` (for example
+  `feat/ed2k-source-validation`, `fix/skin-toolbar`, `docs/setup-guide`).
+  Do not use tool- or agent-prefixed branch names (`claude/`, `cursor/`,
+  `agent/`, and similar).
+
+## Documentation and work tracking
+
+**Version in Git** — durable project knowledge only: architecture, build/setup,
+protocols, conventions, security, release procedure, and docs required to
+understand delivered behavior.
+
+**GitHub** — shared source of truth for actionable work: Issues (bugs, features,
+tasks), Projects (backlog and status), Milestones (release scope), and Pull
+Requests (implementation and review).
+
+**Local (gitignored)** — volatile material that must not be committed:
+
+| Path | Purpose |
+| --- | --- |
+| `.local/` | Session notes, personal backlogs, prompts, audits, research drafts |
+| `references/` | Local clones or extracts of external clients (eMule, Shareaza, etc.) |
+| `.envy.local.*` | Local environment overrides |
+
+Do not commit secrets, machine-specific absolute paths, prompt collections, or
+working notes from these directories.
 
 ## Git workflow (linear history)
 

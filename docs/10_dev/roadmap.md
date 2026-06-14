@@ -5,7 +5,9 @@
 **Approach:** Phased, evidence-based priorities; see `docs/10_dev/status.md` for the detailed comparison
 
 
-Canonical context: operational dashboard in `docs/DEV_TRACKER.md`; strategic plan in `docs/DEVELOPMENT_PLAN.md`.
+Canonical context: shared work tracking via GitHub Issues, Projects, and Milestones;
+strategic modernization context in `MODERNIZATION.md` and `docs/DEVELOPMENT_PLAN.md`;
+architecture decisions in `docs/DECISIONS.md`.
 
 ---
 

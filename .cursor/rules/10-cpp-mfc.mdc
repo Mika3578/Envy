@@ -1,0 +1,49 @@
+---
+description: C++20, MFC patterns, naming, error handling, and performance
+globs: ["**/*.cpp", "**/*.h", "**/*.hpp", "**/*.rc", "**/Resource.h"]
+alwaysApply: false
+---
+
+# C++ and MFC (Envy)
+
+## C++ baseline
+
+- Target C++20; keep changes C++17-compatible unless the project is bumped.
+- RAII ownership; raw pointers are non-owning unless documented.
+- `nullptr`, `override`, `constexpr`, `noexcept` (not `throw()`).
+- Prefer small local modernizations; avoid rewrite refactors.
+
+## MFC hard rules
+
+- Never block the UI thread on network/disk work.
+- Never touch UI controls from worker threads — use `PostMessage`.
+- Use `CCriticalSectionPtr`, `CQuickLock`, `CLocked<T>` for shared state.
+- Prefer `CString`, `_T("...")`, Unicode paths in MFC-facing code.
+
+## GUI resource de-duplication
+
+Before adding dialog/control/menu/toolbar/icon/string resources:
+
+1. Search by ID, symbolic name, and caption text.
+2. Search code usage (`IDD_*`, `ID_*`, `DDX_*`, message maps).
+3. Reuse or extend existing resources when possible.
+
+If a new resource is unavoidable, document IDs checked, chosen slot, and usage site.
+
+## Naming (actual codebase)
+
+- Classes: `C` + PascalCase; members: `m_s`, `m_n`, `m_b` (`BOOL`), `m_p`, `m_h`, `m_t`, `m_o`
+- Handlers: `On...`; files match primary class name
+
+## Error handling
+
+- Check Win32/MFC return values; include context in failures.
+- `theApp.Message(MSG_ERROR, ...)` for user-visible errors.
+- `ASSERT` for debug invariants; `VERIFY` when side effects must run in release.
+- Treat malformed network input as protocol errors — reject safely.
+
+## Performance
+
+- Profile before optimizing; avoid allocations/logging in hot loops.
+- Pre-size containers; prefer `const&` for large inputs.
+- Batch UI updates for large lists.

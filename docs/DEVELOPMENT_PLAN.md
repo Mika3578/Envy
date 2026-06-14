@@ -1,23 +1,13 @@
-# DEVELOPMENT PLAN (LIVING)
+# DEVELOPMENT PLAN (strategic reference)
 
-> **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
+> **Status:** Historical strategic snapshot. **Shared work tracking** (tasks,
+> backlog, blockers, PR queue) lives in **GitHub Issues, Projects, Milestones,
+> and Pull Requests**. Update this file only when recording durable strategic
+> or architectural context that belongs in version control — not for session
+> or daily task status.
 
-- **Last Updated:** 2026-05-27
-- **Changelog Entry:** 2026-05-27 — Documented linear-history workflow for `develop`: squash/rebase merges only, `git pull --ff-only`, feature-branch rebase commands; aligned `.github/settings.yml` with GitHub merge settings.
-- **Changelog Entry:** 2026-05-17 — Improved CodeQL C# analysis precision by introducing a dedicated manual-build workflow and documenting legacy FictionBookReader build blockers plus minimal .NET Framework 4.8 retarget path.
-- **Changelog Entry:** 2026-05-15 — Synced repository hygiene status for `develop`: documented branch state, CI gate maturity, Dependabot labels requirement, and dependency register status (`docs/DEPENDENCIES.md` exists but remains an incomplete seed).
-- **Changelog Entry:** 2026-05-15 — Hardened legacy Kad publish packet construction by replacing unsafe keyword copy with bounded copy and explicit terminator in `KadProtocol::CreatePublishRequest`, preserving wire format.
-
-- **Changelog Entry:** 2026-05-15 — ED2K Source Exchange hardening: added shared bounds validation for SourceEx/SourceEx2 source lists, modernized SourceEx2 request length handling, and documented current IPv4-only SourceEx wire limitation.
-
-## Update Protocol
-1. Update **Last Updated** date on every meaningful change.
-2. Add a one-line entry to the changelog section above.
-3. Reflect status changes in **Current Status** and **Roadmap**.
-4. Record consequential technical decisions in **Decisions Log**.
-5. Close or refresh **Open Questions** explicitly.
-
-
+- **Last Updated:** 2026-06-15
+- **Changelog Entry:** 2026-06-15 — Deprecated operational tracker role; GitHub is the shared work source of truth; volatile notes belong in `.local/` (gitignored).
 ## Repository Status (develop)
 - Default branch is `develop`.
 - `main` is currently behind `develop`.
@@ -30,17 +20,20 @@
 
 
 ## Canonical Documentation Split
-- `docs/DEVELOPMENT_PLAN.md`: strategic roadmap, major decisions, and sequencing.
-- `docs/DEV_TRACKER.md`: operational dashboard, near-term status, blockers, and PR queue.
-- `docs/10_dev/status.md`: deep protocol comparison and implementation evidence.
-- `docs/10_dev/roadmap.md`: technical modernization roadmap details.
+- **GitHub Issues / Projects / Milestones / PRs:** shared operational work tracking.
+- **`docs/DECISIONS.md`:** architecture decision records (ADR-lite).
+- **`MODERNIZATION.md`:** multi-phase modernization plan and audit baseline.
+- **`docs/DEVELOPMENT_PLAN.md`:** strategic context snapshot (this file).
+- **`docs/10_dev/status.md`:** deep protocol comparison and implementation evidence.
+- **`docs/10_dev/roadmap.md`:** technical modernization roadmap details.
+- **`.local/`** (gitignored): volatile session notes and personal backlogs.
 
 ## Vision & Goals
 - Maintain Envy as a stable multi-network P2P client for Windows.
 - Reduce modernization risk by improving testability and dependency hygiene.
 - Increase release confidence through clearer architecture boundaries and measurable quality gates.
 
-## Current Status
+## Current Status (historical snapshot — see GitHub for live status)
 ### Done
 - CI workflows for build/quality/security exist.
 - Hash-focused unit tests integrated in repo and workflows.
@@ -56,7 +49,7 @@
 - Full CMake parity with Visual Studio build graph.
 - Dependency refresh for older vendored components without regressions.
 
-## Roadmap
+## Roadmap (historical snapshot — track active work in GitHub)
 
 ### Phase 1 — Stability & Visibility (P0)
 - [ ] Create dependency register + ownership map (2d) — **In progress on develop** (`docs/DEPENDENCIES.md` exists but remains an incomplete seed).
@@ -74,7 +67,7 @@
 - [ ] Version plugin-facing APIs and compatibility policy (5d)
 - [ ] Create automated dependency/SBOM release artifact (3d)
 
-## Backlog
+## Backlog (historical — prefer GitHub Issues/Projects)
 - [ ] Replace unsafe string operations in first-party code (incremental: bounded keyword copy in legacy Kad publish packet builder completed)
 - Consolidate duplicate roadmap/status markdown into canonical set
 - Document remote API implementation status endpoint-by-endpoint
@@ -88,7 +81,8 @@
 - **2026-04-22:** Remote web UI must use cryptographic token generation (`crypto.getRandomValues`) and allowlist-based redirect validation for all client-side navigation paths.
 - **2026-04-22:** Keep Visual Studio solution as authoritative full-build path while CMake remains partial.
 - **2026-04-22:** Standardize new audit reports under `docs/audit/`.
-- **2026-04-22:** Treat this plan as a required living artifact for project management continuity.
+- **2026-06-15:** Shared work tracking moved to GitHub Issues, Projects, Milestones, and PRs; volatile session material belongs in `.local/` (gitignored). See `AGENTS.md` documentation policy.
+- **2026-04-22:** Consequential decisions should be recorded in `docs/DECISIONS.md` going forward.
 
 ## Open Questions
 1. Should this project explicitly remain Windows-only, or is cross-platform parity still a target?

@@ -35,10 +35,15 @@ ctest --test-dir build
 ## Documentation Index
 
 ### Canonical project docs
-- **Operational dashboard (live):** `docs/DEV_TRACKER.md`
-- **Strategic roadmap/decisions:** `docs/DEVELOPMENT_PLAN.md`
+- **Shared work tracking:** GitHub Issues, Projects, Milestones, and Pull Requests
+- **Strategic modernization context:** `MODERNIZATION.md`, `docs/DEVELOPMENT_PLAN.md`
+- **Architecture decisions:** `docs/DECISIONS.md`
 - **Deep protocol status matrix:** `docs/10_dev/status.md`
 - **Technical modernization roadmap:** `docs/10_dev/roadmap.md`
+
+### Local workspace (gitignored)
+- **`.local/`** — session notes, personal backlogs, prompts, audits (not committed)
+- **`references/`** — local clones of external P2P clients for research (not committed)
 
 ### Contributor and governance docs
 - Contribution guide: `docs/CONTRIBUTING.md`

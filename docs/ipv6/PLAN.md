@@ -114,5 +114,4 @@ Deliver feature-flagged IPv6 dual-stack support across Envy networking surfaces 
 - Data rollback: preserve `.bak` of old cache files before first dual-stack write.
 
 ## Known limitations at planning stage
-- Branch `claude/setup-docs-planning-iR4N0` was not present locally during this planning pass; work is staged on current branch.
 - Existing `IPv6Support.*` utility is ED2K-oriented and not yet used as a universal address abstraction.

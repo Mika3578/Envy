@@ -1,24 +1,19 @@
 # Cursor Rules (Envy)
 
-This folder contains Cursor rule files for Envy development (`*.mdc`).
+Cursor rule files (`*.mdc`) provide scoped guidance. Canonical cross-tool rules
+live in **`AGENTS.md`** at the repository root.
 
-## Active Rule Set
-- `00-project-context.mdc`
-- `00-rules-index.mdc`
-- `01-cpp-standards.mdc`
-- `02-mfc-patterns.mdc`
-- `03-naming-conventions.mdc`
-- `04-error-handling.mdc`
-- `05-performance.mdc`
-- `06-p2p-protocols.mdc`
-- `07-documentation.mdc`
-- `08-dev-workflow.mdc`
-- `09-docs-auto-update.mdc`
+## Active rule set
 
-## Intent
-Rules provide focused guidance for:
-- C++/MFC coding patterns
-- Protocol-safe changes
-- Documentation and workflow discipline
+| File | Scope |
+| --- | --- |
+| `00-core.mdc` | Project context, AGENTS.md pointer (always on) |
+| `10-cpp-mfc.mdc` | C++, MFC, naming, errors, performance |
+| `20-build-msbuild.mdc` | MSBuild, vcpkg, build authority |
+| `30-protocols.mdc` | P2P protocol safety and compatibility |
+| `40-git-pr-workflow.mdc` | Branching, PRs, GitHub tracking (always on) |
+| `50-documentation.mdc` | Documentation policy |
+| `60-security-review.mdc` | Security-sensitive change checklist |
 
-Keep this list aligned with actual files in `.cursor/rules/`.
+Change canonical rules in `AGENTS.md`; update scoped rules here only when
+Cursor-specific scoping adds value.

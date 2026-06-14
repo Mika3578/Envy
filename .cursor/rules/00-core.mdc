@@ -1,0 +1,28 @@
+---
+description: Core repository context and pointer to AGENTS.md
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Envy — core context
+
+Read **`AGENTS.md`** for canonical cross-tool rules (git, docs policy, build,
+security, work tracking).
+
+## Stack (summary)
+
+- Windows MFC P2P client; VS 2026 / toolset **v145** / C++20 (C++17 plugins)
+- Authoritative build: `Visual Studio/Envy.sln` + vcpkg manifest
+- Target OS: Windows 10 1809+ (no XP/Vista/7/8)
+
+## Work tracking
+
+Shared state: **GitHub Issues, Projects, Milestones, and PRs**.
+Volatile notes: **`.local/`** (gitignored). External client sources: **`references/`** (gitignored).
+
+## Key conventions
+
+- Tabs/4, Allman braces, Hungarian-ish prefixes (`m_s`, `m_p`, `m_n`, `m_b`)
+- `StdAfx.h` first in `.cpp` files; `CString` / MFC collections in UI code
+- English artifacts; chat may follow the user's language
+- No tool/agent branch prefixes; branch from `develop`

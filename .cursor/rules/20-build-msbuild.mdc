@@ -1,0 +1,33 @@
+---
+description: MSBuild toolchain, vcpkg, and build authority
+globs: ["**/*.vcxproj", "**/*.sln", "**/vcpkg.json", "Visual Studio/**"]
+alwaysApply: false
+---
+
+# Build (MSBuild)
+
+## Authoritative path
+
+`Visual Studio/Envy.sln` + toolset **v145** + vcpkg manifest. CMake is partial
+and auxiliary — do not treat it as equivalent to the VS solution.
+
+## Standard build
+
+```cmd
+msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
+  /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 ^
+  /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
+```
+
+## Hard rules
+
+- Do not reintroduce XP targeting (`v141_xp`, `_ATL_XP_TARGETING`).
+- Do not retarget `Plugins/PluginWizard/**` project templates.
+- Do not add vcpkg dependencies without an architectural decision (`docs/DECISIONS.md` or GitHub issue).
+- Do not modify `Envy.sln` solely to satisfy CMake.
+- Do not hand-edit vendored trees in `Services/` — replace via vcpkg.
+
+## Before PR
+
+Build at least one relevant configuration (Debug or Release x64). Build Release
+x64 for user-visible or risky changes.
