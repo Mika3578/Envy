@@ -21,10 +21,15 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
 
 ## Mandatory steps when you act on this repo
 
-1. **Read** [`docs/DEV_TRACKER.md`](./docs/DEV_TRACKER.md) to see what's in flight.
-2. **Update** the tracker at start (Backlog -> In progress) and end
-   (In progress -> Done with date, commit, outcome).
-3. **Push** only to the branch the session was assigned to.
+1. **Read** [`docs/DEVELOPMENT_PLAN.md`](./docs/DEVELOPMENT_PLAN.md) for strategic scope.
+2. **Record progress** in `docs/DEVELOPMENT_PLAN.md` (strategic) and
+   `.local/DEV_TRACKER.md` (session notes, gitignored).
+3. **Branch & merge gate.** Branch off `develop` using conventional
+   `type/short-kebab-summary` names (`feat/`, `fix/`, `docs/`, `ci/`, ...);
+   never use tool- or agent-prefixed branches. You may push your own branch
+   and open **draft** PRs, but never mark ready-for-review, enable
+   auto-merge, or merge without explicit maintainer approval.
+   (See AGENTS.md section 2, rules 11-12.)
 4. **Reply to the user in the language they used in chat**, but all
    commits, comments, docs, and PR text in **English**.
 
@@ -43,5 +48,5 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
 
 - [`MODERNIZATION.md`](./MODERNIZATION.md) - full plan and phases.
 - [`AGENTS.md`](./AGENTS.md) - canonical rules.
-- [`docs/DEV_TRACKER.md`](./docs/DEV_TRACKER.md) - living progress log.
+- [`docs/DEVELOPMENT_PLAN.md`](./docs/DEVELOPMENT_PLAN.md) - strategic plan.
 - [`.github/CONTRIBUTING.md`](./.github/CONTRIBUTING.md) - human-facing.
