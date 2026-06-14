@@ -27,9 +27,15 @@ Envy is a multi-network peer-to-peer client for Windows. Stack:
 - **License**: AGPL-3.0-or-later (`Envy/AGPL-License.txt`). Some bundled
   resources have additional CC-BY-NC-SA terms - see `ReadMe.txt`.
 
-Branch model: develop on `claude/code-audit-modernization-nJcTT`
-(per session instructions). Do **not** push to `main`, `develop`, or
-`legacy` directly.
+Branch model:
+
+- **`develop`** is the active integration branch and the repository default.
+- Create every work branch from the latest **`origin/develop`**.
+- Never push directly to **`develop`**, **`main`**, or **`legacy`**; land
+  changes through a pull request to **`develop`**.
+- Keep **`develop`** history **linear**: merge PRs with **squash** or
+  **rebase** only; ordinary merge commits are not allowed on **`develop`**.
+- Branch names use `type/short-kebab-summary` (see hard rule 11).
 
 ---
 
@@ -66,6 +72,22 @@ Branch model: develop on `claude/code-audit-modernization-nJcTT`
 10. **Never skip git hooks** (`--no-verify`, `--no-gpg-sign`) and never
     force-push to `main` or `develop`. Always create new commits rather
     than amending.
+11. **Branch naming**. Use functional `type/short-kebab-summary` names
+    branched off `develop`. Allowed prefixes include `feat/`, `fix/`,
+    `docs/`, `refactor/`, `perf/`, `test/`, `build/`, `ci/`, `chore/`,
+    and `hotfix/`. Examples: `fix/ed2k-source-validation`,
+    `docs/align-development-rules`, `ci/add-pr-quick-checks`,
+    `security/configure-scorecard`. Never create or push tool- or
+    agent-prefixed branches such as `claude/`, `cursor/`, `codex/`,
+    `aider/`, `copilot/`, or `agent/`; the name must describe the change,
+    not the tool that produced it.
+12. **Human approval at the merge gate**. An assistant may create a work
+    branch, commit on that branch, push the branch, and open a **draft**
+    PR. An assistant must **not** mark a PR ready-for-review, enable
+    auto-merge, or merge without explicit maintainer approval. When a
+    maintainer explicitly instructs you to merge a specific PR after its
+    checks pass, you may perform that merge. Never push to
+    `main`/`develop`/`legacy` directly.
 
 ---
 
@@ -90,6 +112,14 @@ msbuild HashLib\HashTest\HashTest.vcxproj /p:Configuration=Release /p:Platform=x
 
 There is no `make test` or `cargo test` - all building flows through
 MSBuild.
+
+**Build authority:** `Visual Studio/Envy.sln` is the authoritative build
+definition. Visual Studio 2026, MSBuild, and toolset **v145** are the
+primary path. Existing CMake files (`CMakePresets.json`, partial
+`CMakeLists.txt` trees) are auxiliary or experimental until Phase 5
+migration completes. Do not treat CMake as equivalent to the Visual Studio
+solution, do not modify the solution solely to satisfy CMake, and do not
+add new CMake changes outside a PR explicitly dedicated to CMake work.
 
 ---
 
@@ -122,9 +152,8 @@ When you take on a task you are expected to:
 1. **Update `docs/DEV_TRACKER.md`** at the start (move item from "Backlog" to
    "In progress") and at the end (move to "Done" with date + commit
    hash + brief outcome).
-2. **Push only to the designated branch**
-   (`claude/code-audit-modernization-nJcTT` for this session) with
-   `git push -u origin <branch>`.
+2. **Push only to your feature branch** (never `develop`, `main`, or
+   `legacy`) with `git push -u origin <branch>`.
 3. **Open a draft PR** if one does not exist. Match the PR template at
    `.github/pull_request_template.md`.
 4. **Tick the checkboxes** in the PR template that genuinely apply -
@@ -170,9 +199,11 @@ When you take on a task you are expected to:
   warning. Fix the warning or document why it must stay.
 - **Don't** add new dependencies to `vcpkg.json` without first
   discussing in `docs/DEV_TRACKER.md` (architectural decisions block).
-- **Don't** introduce `CMakeLists.txt` files yet. `CMakePresets.json`
-  exists as a scaffold for Phase 5; CMake migration is not in scope
-  for the current PR.
+- **Don't** expand CMake beyond its current auxiliary role. Existing
+  partial CMake files and `CMakePresets.json` are not authoritative;
+  do not add new CMake changes outside a PR explicitly dedicated to
+  CMake work, and do not modify `Visual Studio/Envy.sln` solely to
+  satisfy CMake.
 - **Don't** rewrite `MODERNIZATION.md` from scratch. Update the
   checklists, don't reflow the prose.
 - **Don't** translate translated XML files in `Languages/`. Only

@@ -19,8 +19,9 @@ Read AGENTS.md before acting on this repo. Highlights:
 6. Never edit files under Plugins/PluginWizard/** (project templates).
 7. Never bulk-format existing files. .clang-format is advisory.
 8. Always update docs/DEV_TRACKER.md when you start and finish a task.
-9. Push only to the branch the session is pinned to. Never push to
-   main, develop, or legacy.
+9. Branch off develop with conventional type/short-kebab-summary names;
+   push only your feature branch. Never push to main, develop, or legacy.
+   Never use claude/, cursor/, or other tool/agent branch prefixes.
 10. `throw()` is removed in C++20 - use `noexcept`. `register` is
     removed in C++17 - drop it. Source files in this repo are mixed
     encoding (ISO-8859/UTF-8) - never bulk-convert.
@@ -33,9 +34,9 @@ Style:
 - Headers include StdAfx.h first.
 
 Branch model:
-- main: protected, only merges from PRs.
-- develop: integration.
+- develop: default integration branch (linear history).
+- main: protected stable branch.
 - legacy: frozen pre-modernization snapshot.
-- claude/* or feature/*: working branches.
+- Work branches: type/short-kebab-summary off develop (feat/, fix/, docs/, …).
 
 See MODERNIZATION.md for the full multi-phase plan.

@@ -17,7 +17,8 @@ Full ruleset: `AGENTS.md`. This file is a pointer.
 - **Language**: English for code, comments, commits, PRs, docs; chat
   follows the user.
 - **Tracking**: update `docs/DEV_TRACKER.md` at the start and end of each task.
-- **Branch discipline**: push only to the assigned branch.
+- **Branch discipline**: branch off develop; push only your feature branch.
+  Use type/short-kebab-summary names; no tool/agent prefixes.
 
 Build command:
 

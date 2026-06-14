@@ -5,8 +5,8 @@
 Before making changes, read AGENTS.md and docs/DEV_TRACKER.md.
 
 Required:
-- Push only to the branch the session is pinned to (never main, develop,
-  or legacy).
+- Branch off develop; push only your feature branch (never main, develop,
+  or legacy). Use type/short-kebab-summary names; no tool/agent prefixes.
 - Update docs/DEV_TRACKER.md when starting and finishing a task.
 - All artifacts (code, comments, commits, PRs, docs) in English; chat
   replies follow the user's language.

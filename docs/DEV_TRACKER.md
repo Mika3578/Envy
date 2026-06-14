@@ -1,6 +1,6 @@
 # Envy Development Tracker
 
-_Last updated: 2026-06-07_
+_Last updated: 2026-06-14_
 
 Operational dashboard for day-to-day work. Strategic scope lives in
 [`docs/DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md); technical sequencing in
@@ -25,6 +25,9 @@ Operational dashboard for day-to-day work. Strategic scope lives in
 
 ## Done (merged on `develop`)
 
+- **2026-06-14** — `docs/align-development-rules` @ `b423c07` — aligned branch
+  naming, merge gates, and build-authority rules in `AGENTS.md`, `CLAUDE.md`,
+  and governance pointer files (draft PR opened; not merged in this pass).
 - **#35** — Visual Studio 2026 (`v145`) toolset migration, CI infrastructure,
   AI rules (`AGENTS.md` and tool pointers).
 - **#43** — Lazy-load default skin; silence startup toolbar/icon debug noise.
