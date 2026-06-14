@@ -469,7 +469,7 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 				DelayClose( IDS_CONNECTION_CLOSED );
 				return TRUE;
 			}
-			
+
 			Prefix( _P("GET /remote/ HTTP/1.1\r\n\r\n") );
 			new CRemote( this );
 			Remove( FALSE );

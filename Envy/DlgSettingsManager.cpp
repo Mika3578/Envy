@@ -253,4 +253,3 @@ void CSettingsManagerDlg::OnApply()
 //
 //	CSettingsSheet::DoPaint( dc );
 //}
-

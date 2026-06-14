@@ -172,7 +172,7 @@ auto [success, value] = GetResult();
 std::optional<CString> FindUser(DWORD id);
 
 // Lambda expressions
-std::sort(files.begin(), files.end(), 
+std::sort(files.begin(), files.end(),
     [](CFile* a, CFile* b) { return a->GetSize() < b->GetSize(); });
 ```
 
@@ -215,11 +215,11 @@ class CDownloadTask
 public:
     // Public types and enums
     enum class State { Idle, Running, Completed, Failed };
-    
+
     // Constructors/Destructor
     CDownloadTask();
     virtual ~CDownloadTask();
-    
+
     // Public methods
     bool Start();
     void Cancel();
@@ -234,10 +234,10 @@ private:
     State m_state = State::Idle;
     std::unique_ptr<CConnection> m_pConnection;
     CString m_strFileName;
-    
+
     // Private methods
     void UpdateProgress();
-    
+
     // Disable copy (if appropriate)
     CDownloadTask(const CDownloadTask&) = delete;
     CDownloadTask& operator=(const CDownloadTask&) = delete;
@@ -274,7 +274,7 @@ class CFileHandler
 {
 private:
     std::unique_ptr<CFile> m_pFile;
-    
+
 public:
     CFileHandler(const CString& path)
         : m_pFile(std::make_unique<CFile>())
@@ -289,7 +289,7 @@ class CFileHandler
 {
 private:
     CFile* m_pFile;
-    
+
 public:
     CFileHandler() : m_pFile(new CFile()) { }
     ~CFileHandler() { delete m_pFile; }  // Easy to forget
@@ -348,14 +348,14 @@ class CThreadSafeCache
 private:
     mutable std::mutex m_mutex;
     std::map<CString, CData> m_cache;
-    
+
 public:
     void Add(const CString& key, const CData& data)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_cache[key] = data;
     }
-    
+
     std::optional<CData> Get(const CString& key) const
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -385,7 +385,7 @@ class CFileCache { ... };
 class CMyWindow : public CWnd
 {
     DECLARE_MESSAGE_MAP()
-    
+
 protected:
     afx_msg void OnPaint();
     afx_msg void OnTimer(UINT_PTR nIDEvent);
@@ -449,7 +449,7 @@ private:
     QWORD m_nSize;
     CSchemaPtr m_pSchema;
     CXMLElement* m_pMetadata;
-    
+
 public:
     bool Scan();                    // Scan file and extract metadata
     bool VerifyHash();              // Verify file integrity
@@ -491,19 +491,19 @@ bool CConnection::ReadString(CString& strOutput, int nMaxLength)
     DWORD nLength;
     if (!Read(&nLength, sizeof(nLength)))
         return false;
-    
+
     // Validate length to prevent buffer overflow
     if (nLength > nMaxLength || nLength > 1024 * 1024)
     {
         theApp.Message(MSG_ERROR, _T("Invalid string length: %lu"), nLength);
         return false;
     }
-    
+
     // Safe read
     std::vector<BYTE> buffer(nLength);
     if (!Read(buffer.data(), nLength))
         return false;
-    
+
     strOutput = CString(reinterpret_cast<LPCSTR>(buffer.data()), nLength);
     return true;
 }
@@ -517,7 +517,7 @@ bool ValidateFilePath(const CString& strPath)
     // Prevent directory traversal
     if (strPath.Find(_T("..")) >= 0)
         return false;
-    
+
     // Check for invalid characters
     static const CString strInvalid = _T("<>:\"|?*");
     for (int i = 0; i < strInvalid.GetLength(); i++)
@@ -525,14 +525,14 @@ bool ValidateFilePath(const CString& strPath)
         if (strPath.Find(strInvalid[i]) >= 0)
             return false;
     }
-    
+
     // Validate path length
     if (strPath.GetLength() > MAX_PATH)
     {
         // Handle long paths appropriately
         return false;
     }
-    
+
     return true;
 }
 ```
@@ -563,7 +563,7 @@ void GenerateSessionID(BYTE* pBuffer, size_t nLength)
 {
     // Use cryptographically secure random
     HCRYPTPROV hProv;
-    if (CryptAcquireContext(&hProv, nullptr, nullptr, 
+    if (CryptAcquireContext(&hProv, nullptr, nullptr,
                            PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
     {
         CryptGenRandom(hProv, static_cast<DWORD>(nLength), pBuffer);
@@ -581,9 +581,9 @@ void ProcessPassword(CString& strPassword)
 {
     // Use password
     AuthenticateUser(strPassword);
-    
+
     // Clear from memory
-    SecureZeroMemory(strPassword.GetBuffer(), 
+    SecureZeroMemory(strPassword.GetBuffer(),
                     strPassword.GetLength() * sizeof(TCHAR));
     strPassword.ReleaseBuffer();
 }
@@ -598,14 +598,14 @@ bool CHttpRequest::SendRequest()
     // Prefer HTTPS
     if (m_sURL.Find(_T("http://")) == 0)
     {
-        theApp.Message(MSG_WARNING, 
+        theApp.Message(MSG_WARNING,
             _T("Insecure HTTP connection to %s"), (LPCTSTR)m_sURL);
     }
-    
+
     // Validate SSL/TLS certificates
     DWORD dwFlags = INTERNET_FLAG_SECURE;
     // Don't ignore certificate errors in production
-    
+
     return Send(dwFlags);
 }
 ```
@@ -642,14 +642,14 @@ class CHashCache
 {
 private:
     std::map<CString, CString> m_cache;
-    
+
 public:
     CString GetHash(const CString& path)
     {
         auto it = m_cache.find(path);
         if (it != m_cache.end())
             return it->second;  // Cache hit
-        
+
         CString hash = ComputeExpensiveHash(path);
         m_cache[path] = hash;
         return hash;
@@ -679,7 +679,7 @@ void CMyDialog::OnDownload()
         for (int i = 0; i < 1000; i++)
         {
             ProcessFile(i);
-            
+
             // Update UI on main thread
             PostMessage(WM_PROGRESS_UPDATE, i);
         }
@@ -707,7 +707,7 @@ public:
         // Minimize allocations in hot path
         static thread_local std::vector<BYTE> buffer;
         buffer.resize(pBuffer->m_nLength);
-        
+
         // Avoid virtual function calls if possible
         // Use inline functions for small operations
         return ProcessData(buffer.data(), buffer.size());
@@ -748,10 +748,10 @@ void TestDownloadSpeed()
     // Arrange
     CDownload download;
     download.SetSpeed(1024 * 1024);  // 1 MB/s
-    
+
     // Act
     DWORD speed = download.GetSpeed();
-    
+
     // Assert
     ASSERT(speed == 1024 * 1024);
 }
@@ -808,14 +808,14 @@ MSBuild /p:Configuration=Release /p:Platform=x64 /v:minimal
 void ProfileFunction()
 {
     auto start = std::chrono::high_resolution_clock::now();
-    
+
     // Code to profile
     ProcessLargeFile();
-    
+
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
         end - start);
-    
+
     TRACE(_T("ProcessLargeFile took %lld ms\n"), duration.count());
 }
 ```
@@ -833,14 +833,14 @@ class CSettings
 private:
     static CSettings* s_pInstance;
     CSettings() = default;
-    
+
 public:
     static CSettings& Instance()
     {
         static CSettings instance;
         return instance;
     }
-    
+
     // Prevent copying
     CSettings(const CSettings&) = delete;
     CSettings& operator=(const CSettings&) = delete;
@@ -880,13 +880,13 @@ class CDownload
 {
 private:
     std::vector<IDownloadObserver*> m_observers;
-    
+
 public:
     void AddObserver(IDownloadObserver* pObserver)
     {
         m_observers.push_back(pObserver);
     }
-    
+
     void NotifyProgress(int nPercent)
     {
         for (auto pObserver : m_observers)

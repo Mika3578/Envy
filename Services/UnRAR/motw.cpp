@@ -104,7 +104,7 @@ void MarkOfTheWeb::CreateZoneIdStream(const std::wstring &Name,StringList &MotwL
     return;
 
   std::wstring StreamName=Name+MOTW_STREAM_NAME;
-  
+
   File StreamFile;
   if (StreamFile.Create(StreamName)) // Can fail on FAT.
   {

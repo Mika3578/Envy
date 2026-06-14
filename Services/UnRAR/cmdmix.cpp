@@ -120,4 +120,3 @@ void CommandData::OutHelp(RAR_EXIT ExitCode)
   ErrHandler.Exit(ExitCode);
 #endif
 }
-

@@ -251,7 +251,7 @@ For questions about the roadmap:
 
 ---
 
-**Last Updated**: 2024-11-05  
+**Last Updated**: 2024-11-05
 **Next Review**: 2025-01-01
 
 This roadmap reflects our current plans and may change based on community needs and available resources.
