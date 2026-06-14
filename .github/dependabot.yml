@@ -1,0 +1,15 @@
+# Dependabot configuration for dependency updates
+# Note: For C++ projects, Dependabot has limited support
+# This config helps track dependency update needs
+
+version: 2
+updates:
+  # Track dependency update needs (manual updates required for C++)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # Note: C++ dependencies (SQLite, zlib, etc.) require manual updates
+  # See: scripts/update-dependencies.ps1
