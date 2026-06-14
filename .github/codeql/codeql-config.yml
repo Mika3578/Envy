@@ -18,7 +18,7 @@ paths-ignore:
   - "**/Release*/**"
   - "Services/*/lib/**"
   - "Services/*/include/**"
-  
+
 # Disable default queries to use custom ones
 disable-default-queries: false
 
@@ -26,7 +26,7 @@ disable-default-queries: false
 queries:
   - uses: security-and-quality
   - uses: security-extended
-  
+
 # Query filters
 query-filters:
   - exclude:

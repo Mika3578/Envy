@@ -942,7 +942,7 @@ public:
 	CTimeAverage()
 	{
 	}
-	
+
 	inline T operator()(T Val)
 	{
 		// Add new value

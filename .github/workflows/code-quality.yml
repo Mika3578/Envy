@@ -18,7 +18,7 @@ jobs:
   static-analysis:
     name: Static Analysis
     runs-on: windows-2025-vs2026
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
@@ -34,15 +34,15 @@ jobs:
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v3
-      
+
     - name: Restore NuGet packages
       run: nuget restore "Visual Studio/Envy.sln"
-      
+
     - name: Run Code Analysis
       run: |
         msbuild /m /p:Configuration=Release /p:Platform=x64 /p:RunCodeAnalysis=true /p:CodeAnalysisRuleSet=NativeRecommendedRules.ruleset "Visual Studio/Envy.sln"
       continue-on-error: true
-      
+
     - name: Upload Analysis Results
       uses: actions/upload-artifact@v6
       if: always()
@@ -55,23 +55,23 @@ jobs:
   lint-check:
     name: Format Check
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
-      
+
     - name: Install clang-format
       run: |
         sudo apt-get update
         sudo apt-get install -y clang-format
-        
+
     - name: Check formatting (dry-run)
       run: |
         find . -name "*.cpp" -o -name "*.h" | while read file; do
           clang-format --dry-run --Werror "$file" 2>&1 | tee -a format-errors.txt || true
         done
       continue-on-error: true
-      
+
     - name: Show formatting issues
       if: always()
       run: |
@@ -85,7 +85,7 @@ jobs:
   documentation-check:
     name: Documentation Check
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
@@ -111,7 +111,7 @@ jobs:
             echo "::notice::No README updates in this PR"
           fi
         fi
-        
+
     - name: Check for broken links in markdown
       uses: gaurav-nelson/github-action-markdown-link-check@v1
       with:
@@ -147,11 +147,11 @@ jobs:
     name: Dependency Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
-      
+
     - name: Dependency Review
       uses: actions/dependency-review-action@v5
       with:

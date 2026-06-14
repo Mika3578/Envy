@@ -22,5 +22,3 @@ class MarkOfTheWeb
 };
 
 #endif
-
-

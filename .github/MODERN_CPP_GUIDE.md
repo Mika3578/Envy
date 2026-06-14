@@ -22,10 +22,10 @@ class CDownload
 {
 private:
 	CConnection* m_pConnection;
-	
+
 public:
 	CDownload() : m_pConnection(NULL) {}
-	
+
 	~CDownload()
 	{
 		if (m_pConnection != NULL)
@@ -34,7 +34,7 @@ public:
 			m_pConnection = NULL;
 		}
 	}
-	
+
 	void CreateConnection()
 	{
 		m_pConnection = new CConnection();
@@ -48,11 +48,11 @@ class CDownload
 {
 private:
 	std::unique_ptr<CConnection> m_pConnection;
-	
+
 public:
 	CDownload() = default;
 	~CDownload() = default; // Automatic cleanup
-	
+
 	void CreateConnection()
 	{
 		m_pConnection = std::make_unique<CConnection>();
@@ -129,7 +129,7 @@ void ProcessVector()
 	{
 		pFile->Process();
 	}
-	
+
 	// Or with const reference for efficiency
 	std::vector<CString> names;
 	for (const auto& name : names)
@@ -367,7 +367,7 @@ std::vector<int> GetSquares(const std::vector<int>& numbers)
 
 auto GetSquares(const std::vector<int>& numbers)
 {
-	return numbers 
+	return numbers
 		| std::views::filter([](int n) { return n > 0; })
 		| std::views::transform([](int n) { return n * n; });
 }
@@ -402,7 +402,7 @@ void SortFiles(std::vector<CFile*>& files)
 ```cpp
 void SortFiles(std::vector<CFile*>& files)
 {
-	std::sort(files.begin(), files.end(), 
+	std::sort(files.begin(), files.end(),
 		[](CFile* a, CFile* b) { return a->GetSize() < b->GetSize(); });
 }
 
@@ -411,12 +411,12 @@ void ProcessDownloads(int minSpeed)
 {
 	std::vector<CDownload*> downloads;
 	// ...
-	
+
 	// Capture minSpeed by value
 	auto fastEnough = [minSpeed](CDownload* d) {
 		return d->GetSpeed() >= minSpeed;
 	};
-	
+
 	auto it = std::find_if(downloads.begin(), downloads.end(), fastEnough);
 }
 ```
@@ -444,7 +444,7 @@ public:
 	{
 		// Implementation
 	}
-	
+
 	// Mark as final if shouldn't be overridden further
 	void OnError() override final
 	{
@@ -463,7 +463,7 @@ private:
 	CString m_strHost;
 	WORD m_nPort;
 	bool m_bConnected;
-	
+
 public:
 	CConnection()
 	{
@@ -482,10 +482,10 @@ private:
 	CString m_strHost;
 	WORD m_nPort = 0;
 	bool m_bConnected = false;
-	
+
 public:
 	CConnection() = default; // Use member initializers
-	
+
 	// Or with constructor
 	CConnection(const CString& host, WORD port)
 		: m_strHost(host)

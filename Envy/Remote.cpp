@@ -1772,5 +1772,3 @@ void CRemote::PageImage(const CString& strPath)
 		hFile.Close();
 	}
 }
-
-

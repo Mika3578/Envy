@@ -25,7 +25,7 @@ bool CommandData::CheckArgs(StringList *Args,bool Dir,const std::wstring &CheckN
     // convert it for Unix. In Windows we wish -xdir\file and -xdir/file both
     // to exclude the file.
     UnixSlashToDos(CurMask,CurMask);
-#endif    
+#endif
     wchar LastMaskChar=GetLastChar(CurMask);
     bool DirMask=IsPathDiv(LastMaskChar); // Mask for directories only.
 
@@ -36,7 +36,7 @@ bool CommandData::CheckArgs(StringList *Args,bool Dir,const std::wstring &CheckN
       {
         // We process the directory and have the directory exclusion mask.
         // So let's convert "mask\" to "mask" and process it normally.
-        
+
         CurMask.pop_back();
       }
       else
@@ -167,7 +167,7 @@ void CommandData::SetTimeFilters(const wchar *Mod,bool Before,bool Age)
   for (;*Mod!=0 && wcschr(L"MCAOmcao",*Mod)!=NULL;Mod++)
     switch(toupperw(*Mod))
     {
-      case 'M': 
+      case 'M':
         if (Before)
         {
           Age ? FileMtimeBefore.SetAgeText(S):FileMtimeBefore.SetIsoText(S);
@@ -216,62 +216,62 @@ bool CommandData::TimeCheck(RarTime &ftm,RarTime &ftc,RarTime &fta)
 
   if (FileMtimeBefore.IsSet()) // Filter present.
     if (ftm>=FileMtimeBefore) // Condition not matched.
-      if (FileMtimeBeforeOR) 
+      if (FileMtimeBeforeOR)
         FilterOR=true; // Not matched OR filter is present.
       else
         return true; // Exclude file in AND mode.
     else  // Condition matched.
-      if (FileMtimeBeforeOR) 
+      if (FileMtimeBeforeOR)
         return false; // Include file in OR mode.
 
   if (FileMtimeAfter.IsSet()) // Filter present.
     if (ftm<FileMtimeAfter) // Condition not matched.
-      if (FileMtimeAfterOR) 
+      if (FileMtimeAfterOR)
         FilterOR=true; // Not matched OR filter is present.
       else
         return true; // Exclude file in AND mode.
     else  // Condition matched.
-      if (FileMtimeAfterOR) 
+      if (FileMtimeAfterOR)
         return false; // Include file in OR mode.
 
   if (FileCtimeBefore.IsSet()) // Filter present.
     if (ftc>=FileCtimeBefore) // Condition not matched.
-      if (FileCtimeBeforeOR) 
+      if (FileCtimeBeforeOR)
         FilterOR=true; // Not matched OR filter is present.
       else
         return true; // Exclude file in AND mode.
     else  // Condition matched.
-      if (FileCtimeBeforeOR) 
+      if (FileCtimeBeforeOR)
         return false; // Include file in OR mode.
 
   if (FileCtimeAfter.IsSet()) // Filter present.
     if (ftc<FileCtimeAfter) // Condition not matched.
-      if (FileCtimeAfterOR) 
+      if (FileCtimeAfterOR)
         FilterOR=true; // Not matched OR filter is present.
       else
         return true; // Exclude file in AND mode.
     else  // Condition matched.
-      if (FileCtimeAfterOR) 
+      if (FileCtimeAfterOR)
         return false; // Include file in OR mode.
 
   if (FileAtimeBefore.IsSet()) // Filter present.
     if (fta>=FileAtimeBefore) // Condition not matched.
-      if (FileAtimeBeforeOR) 
+      if (FileAtimeBeforeOR)
         FilterOR=true; // Not matched OR filter is present.
       else
         return true; // Exclude file in AND mode.
     else  // Condition matched.
-      if (FileAtimeBeforeOR) 
+      if (FileAtimeBeforeOR)
         return false; // Include file in OR mode.
 
   if (FileAtimeAfter.IsSet()) // Filter present.
     if (fta<FileAtimeAfter) // Condition not matched.
-      if (FileAtimeAfterOR) 
+      if (FileAtimeAfterOR)
         FilterOR=true; // Not matched OR filter is present.
       else
         return true; // Exclude file in AND mode.
     else  // Condition matched.
-      if (FileAtimeAfterOR) 
+      if (FileAtimeAfterOR)
         return false; // Include file in OR mode.
 
   return FilterOR; // Exclude if all OR filters are not matched.
