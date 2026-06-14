@@ -1,8 +1,8 @@
 //
-// DlgHex.h
+// DlgSearchMonitorFilter.h
 //
-// This file is part of Envy (getenvy.com) � 2016-2018
-// Portions copyright Shareaza 2014 and PeerProject 2014
+// This file is part of Envy (getenvy.com) © 2016-2018
+// Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
 // under the terms of the GNU Affero General Public License
@@ -15,37 +15,39 @@
 // See the GNU Affero General Public License 3.0 for details:
 // (http://www.gnu.org/licenses/agpl.html)
 //
-// Debug-only
 
 #pragma once
 
-#ifdef _DEBUG
-
 #include "DlgSkinDialog.h"
-#include "Buffer.h"
 
+struct SearchFilterCriteria;
 
-class CHexDlg : public CSkinDialog
+class CDlgSearchMonitorFilter : public CSkinDialog
 {
-	DECLARE_DYNAMIC(CHexDlg)
+public:
+	CDlgSearchMonitorFilter(CWnd* pParent = NULL, SearchFilterCriteria* pCriteria = NULL);
+
+	enum { IDD = IDD_SEARCHMONITOR_FILTER };
 
 public:
-	CHexDlg(CWnd* pParent = NULL);
-	virtual ~CHexDlg();
+	CString m_sTextFilter;
+	CString m_sIPFilter;
+	CString m_sSchemaFilter;
+	CString m_sMinSize;
+	CString m_sMaxSize;
+	BOOL m_bProtocolG2;
+	BOOL m_bProtocolG1;
+	BOOL m_bProtocolED2K;
+	BOOL m_bProtocolDC;
+	BOOL m_bFilterEnabled;
 
-	enum { IDD = IDD_DEBUG_HEX };
-
-	CBuffer* GetData() { return &m_pBuffer; }
+	SearchFilterCriteria* m_pCriteria;
 
 protected:
-	CString m_sHex;
-	CBuffer m_pBuffer;
-
 	virtual void DoDataExchange(CDataExchange* pDX);
+
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
 
 	DECLARE_MESSAGE_MAP()
 };
-
-#endif // _DEBUG
