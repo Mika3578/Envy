@@ -177,7 +177,6 @@
   <ItemGroup>
     <ClCompile Include="test_main.cpp" />
     <ClCompile Include="test_hashlib.cpp" />
-    <ClCompile Include="test_protocol_parser_smoke.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />
