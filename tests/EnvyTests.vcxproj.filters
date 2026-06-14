@@ -17,9 +17,6 @@
     <ClCompile Include="test_hashlib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="test_protocol_parser_smoke.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h">
