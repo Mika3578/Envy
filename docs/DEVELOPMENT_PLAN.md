@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-05-27
+- **Last Updated:** 2026-06-22
+- **Changelog Entry:** 2026-06-22 — Added a first-party compiler-warning baseline ratchet (`Repository/Warnings/`). A clean `Release|x64` build emits ~8.2k warnings, but only 4 are located in first-party source (3× C5033 `register`, 1× C5038 init-order); the rest fire inside SDK/MFC/STL headers under `/Wall`. CI now checks the baseline on the x64 Release leg (advisory until a green run confirms parity with the runner's MSVC).
 - **Changelog Entry:** 2026-05-27 — Documented linear-history workflow for `develop`: squash/rebase merges only, `git pull --ff-only`, feature-branch rebase commands; aligned `.github/settings.yml` with GitHub merge settings.
 - **Changelog Entry:** 2026-05-17 — Improved CodeQL C# analysis precision by introducing a dedicated manual-build workflow and documenting legacy FictionBookReader build blockers plus minimal .NET Framework 4.8 retarget path.
 - **Changelog Entry:** 2026-05-15 — Synced repository hygiene status for `develop`: documented branch state, CI gate maturity, Dependabot labels requirement, and dependency register status (`docs/DEPENDENCIES.md` exists but remains an incomplete seed).

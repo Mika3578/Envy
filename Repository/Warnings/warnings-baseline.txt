@@ -1,0 +1,12 @@
+# Envy first-party compiler-warning baseline.
+# Format: <repo-relative-path>|<warning-code>  (one per line, sorted).
+# Line/column numbers are intentionally omitted to avoid churn.
+# Excludes Services/ (vendored) and Plugins/PluginWizard/ (templates).
+# Regenerate: pwsh Repository/Warnings/WarningBaseline.ps1 -Mode generate \
+#   -LogPath build-x64-Release.warnings.log
+# Entries: 4
+
+envy/strings.cpp|C5033
+hashlib/tigertree.cpp|C5033
+hashlib/tigertree.cpp|C5038
+plugins/swfplugin/swfreader.cpp|C5033

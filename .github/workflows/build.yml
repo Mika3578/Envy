@@ -187,6 +187,26 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+      - name: Check first-party warning baseline
+        # Reuses the build-x64-Release.warnings.log emitted by the build step
+        # above (no extra build). Only the x64 Release leg gates warnings, to
+        # avoid duplicate noise across the matrix. The check ignores SDK/MFC
+        # header warnings and vendored Services/ code; it fails only on a NEW
+        # warning in first-party source.
+        #
+        # Advisory for now (continue-on-error) until one green run confirms the
+        # committed baseline matches this runner's MSVC. To promote it to a
+        # gate: remove continue-on-error here and the "Build x64 Release"
+        # context already required in .github/settings.yml will enforce it.
+        if: ${{ success() && matrix.platform == 'x64' && matrix.configuration == 'Release' }}
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./Repository/Warnings/WarningBaseline.ps1 `
+            -Mode check `
+            -LogPath build-x64-Release.warnings.log
+          exit $LASTEXITCODE
+
       - name: Surface build errors to step summary and PR comment
         if: failure() && github.event_name == 'pull_request'
         shell: pwsh
