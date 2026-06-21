@@ -23,6 +23,7 @@ jobs:
         uses: dependabot/fetch-metadata@v3
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
+          skip-commit-verification: true
 
       # Auto-merge minor + patch updates for GitHub Actions only.
       # vcpkg baseline bumps stay manual because they can change ABI of native
