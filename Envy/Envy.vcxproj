@@ -91,7 +91,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
       <Message>Pre-Build Dependencies...</Message>
-      <Command>PreBuild.cmd $(ConfigurationName) $(PlatformName)</Command>
+      <Command>.\PreBuild.cmd $(ConfigurationName) $(PlatformName)</Command>
     </PreBuildEvent>
     <Midl>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -155,7 +155,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
       <Message>Pre-Build Dependencies...</Message>
-      <Command>PreBuild.cmd $(ConfigurationName) $(PlatformName)</Command>
+      <Command>.\PreBuild.cmd $(ConfigurationName) $(PlatformName)</Command>
     </PreBuildEvent>
     <Midl>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -217,7 +217,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
       <Message>Pre-Build Dependencies...</Message>
-      <Command>PreBuild.cmd $(ConfigurationName) $(PlatformName)</Command>
+      <Command>.\PreBuild.cmd $(ConfigurationName) $(PlatformName)</Command>
     </PreBuildEvent>
     <Midl>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -289,7 +289,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <PreBuildEvent>
       <Message>Copying DLL Services and SVN Revision...</Message>
       <Message>Pre-Build Dependencies...</Message>
-      <Command>PreBuild.cmd $(ConfigurationName) $(PlatformName)</Command>
+      <Command>.\PreBuild.cmd $(ConfigurationName) $(PlatformName)</Command>
     </PreBuildEvent>
     <Midl>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
