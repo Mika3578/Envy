@@ -892,7 +892,11 @@ void ReadGGEPHash(const CGGEPItem* pItem, Hashes::Sha1Hash& oSHA1,
 	{
 	case GGEP_H_SHA1:
 		if ( pItem->m_nLength == 20 + 1 )
-			oSHA1 = *static_cast< const Hashes::Sha1Hash::RawStorage* >( pItem->m_pBuffer + 1 );
+		{
+			Hashes::Sha1Hash::RawStorage raw;
+			memcpy( &raw, pItem->m_pBuffer + 1, Hashes::Sha1Hash::byteCount );
+			oSHA1 = raw;
+		}
 		else
 			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" type SHA1 unknown size (%d bytes)", pItem->m_nLength );
 		break;
@@ -900,8 +904,12 @@ void ReadGGEPHash(const CGGEPItem* pItem, Hashes::Sha1Hash& oSHA1,
 	case GGEP_H_BITPRINT:
 		if ( pItem->m_nLength == 24 + 20 + 1 )
 		{
-			oSHA1  = *static_cast< const Hashes::Sha1Hash::RawStorage* >( pItem->m_pBuffer + 1 );
-			oTiger = *static_cast< const Hashes::TigerHash::RawStorage* >( pItem->m_pBuffer + 21 );
+			Hashes::Sha1Hash::RawStorage rawSHA1;
+			Hashes::TigerHash::RawStorage rawTiger;
+			memcpy( &rawSHA1, pItem->m_pBuffer + 1, Hashes::Sha1Hash::byteCount );
+			memcpy( &rawTiger, pItem->m_pBuffer + 21, Hashes::TigerHash::byteCount );
+			oSHA1  = rawSHA1;
+			oTiger = rawTiger;
 		}
 		else
 			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" type SHA1+TTR unknown size (%d bytes)", pItem->m_nLength );
@@ -909,14 +917,22 @@ void ReadGGEPHash(const CGGEPItem* pItem, Hashes::Sha1Hash& oSHA1,
 
 	case GGEP_H_MD5:
 		if ( pItem->m_nLength == 16 + 1 )
-			oMD5 = *static_cast< const Hashes::Md5Hash::RawStorage* >( pItem->m_pBuffer + 1 );
+		{
+			Hashes::Md5Hash::RawStorage raw;
+			memcpy( &raw, pItem->m_pBuffer + 1, Hashes::Md5Hash::byteCount );
+			oMD5 = raw;
+		}
 		else
 			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" type MD5 unknown size (%d bytes)", pItem->m_nLength );
 		break;
 
 	case GGEP_H_MD4:
 		if ( pItem->m_nLength == 16 + 1 )
-			oED2K = *static_cast< const Hashes::Ed2kHash::RawStorage* >( pItem->m_pBuffer + 1 );
+		{
+			Hashes::Ed2kHash::RawStorage raw;
+			memcpy( &raw, pItem->m_pBuffer + 1, Hashes::Ed2kHash::byteCount );
+			oED2K = raw;
+		}
 		else
 			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" type MD4 unknown size (%d bytes)", pItem->m_nLength );
 		break;
