@@ -205,9 +205,13 @@ branches:
         strict: true
         # Each context below MUST match an emitted check-run name exactly,
         # i.e. the (matrix-expanded) job `name:` from its workflow. A context
-        # that no run produces stays "pending" forever and blocks every PR.
+        # that no run produces stays "pending" forever and blocks every PR,
+        # so only checks that run ON pull_request events may be listed here.
         #   - Build legs -> .github/workflows/build.yml job `build`
-        #     name: "Build ${{ matrix.platform }} ${{ matrix.configuration }}"
+        #     name: "Build ${{ matrix.platform }} ${{ matrix.configuration }}".
+        #     On pull_request the matrix builds Release only (x64 + Win32);
+        #     Debug runs on pushes to integration branches, not on PRs, so the
+        #     Debug legs are deliberately NOT required here.
         #   - Lint build files -> build.yml job `lint-build-files`
         #   - Analyze (c-cpp) / Analyze (javascript-typescript) ->
         #     .github/workflows/codeql.yml job `analyze`
@@ -216,9 +220,7 @@ branches:
         #     so both contexts must be listed to gate on CodeQL results.
         contexts:
           - "Build x64 Release"
-          - "Build x64 Debug"
           - "Build Win32 Release"
-          - "Build Win32 Debug"
           - "Lint build files"
           - "Analyze (c-cpp)"
           - "Analyze (javascript-typescript)"
