@@ -551,6 +551,10 @@ CBTPacket* CBTPacket::ReadBuffer(CBuffer* pBuffer)
 			if ( nLength >= 2 )
 				pPacket = CBTPacket::New( BT_PACKET_EXTENSION,
 					pBuffer->m_pBuffer[ 1 ], pBuffer->m_pBuffer + 2, nLength - 2 );
+			else
+				// Drop malformed extension but keep CBTClient::OnRead draining:
+				// returning NULL would stall packets already buffered this recv.
+				pPacket = CBTPacket::New( BT_PACKET_KEEPALIVE );
 		}
 		else
 		{
