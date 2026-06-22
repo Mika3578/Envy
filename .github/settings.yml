@@ -201,11 +201,27 @@ branches:
         dismiss_stale_reviews: true
         require_code_owner_reviews: false
       required_status_checks:
+        # strict: PRs must be up to date with develop before merging.
         strict: true
+        # Each context below MUST match an emitted check-run name exactly,
+        # i.e. the (matrix-expanded) job `name:` from its workflow. A context
+        # that no run produces stays "pending" forever and blocks every PR.
+        #   - Build legs -> .github/workflows/build.yml job `build`
+        #     name: "Build ${{ matrix.platform }} ${{ matrix.configuration }}"
+        #   - Lint build files -> build.yml job `lint-build-files`
+        #   - Analyze (c-cpp) / Analyze (javascript-typescript) ->
+        #     .github/workflows/codeql.yml job `analyze`
+        #     name: "Analyze (${{ matrix.language }})". The language matrix
+        #     emits one check per language (c-cpp and javascript-typescript),
+        #     so both contexts must be listed to gate on CodeQL results.
         contexts:
-          - "Build and Test (Win32)"
-          - "Build and Test (x64)"
-          - "CodeQL Security Scan"
+          - "Build x64 Release"
+          - "Build x64 Debug"
+          - "Build Win32 Release"
+          - "Build Win32 Debug"
+          - "Lint build files"
+          - "Analyze (c-cpp)"
+          - "Analyze (javascript-typescript)"
       enforce_admins: false
       allow_force_pushes: false
       allow_deletions: false

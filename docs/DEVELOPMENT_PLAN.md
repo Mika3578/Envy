@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-05-27
+- **Last Updated:** 2026-06-22
+- **Changelog Entry:** 2026-06-22 — Verified a green full-solution build (VS 2026, MSVC 14.5x / v145): `Envy.exe` and `TorrentEnvy.exe` link with 0 errors. Fixed the `Envy` pre-build event (bare `PreBuild.cmd` -> `.\PreBuild.cmd`) that broke the build under `NoDefaultCurrentDirectoryInExePath`. Corrected the stale `required_status_checks` contexts in `.github/settings.yml` to the actually-emitted check names so the build can be promoted to a required merge gate.
 - **Changelog Entry:** 2026-05-27 — Documented linear-history workflow for `develop`: squash/rebase merges only, `git pull --ff-only`, feature-branch rebase commands; aligned `.github/settings.yml` with GitHub merge settings.
 - **Changelog Entry:** 2026-05-17 — Improved CodeQL C# analysis precision by introducing a dedicated manual-build workflow and documenting legacy FictionBookReader build blockers plus minimal .NET Framework 4.8 retarget path.
 - **Changelog Entry:** 2026-05-15 — Synced repository hygiene status for `develop`: documented branch state, CI gate maturity, Dependabot labels requirement, and dependency register status (`docs/DEPENDENCIES.md` exists but remains an incomplete seed).
@@ -25,7 +26,7 @@
 - **History:** `develop` was rewritten to a linear history with no merge commits; the old tree is preserved in the `backup/develop-before-linear-rewrite` branch (and tag of the same name) created before the rewrite.
 - **Local hygiene:** use `git pull --ff-only` on `develop`; rebase feature branches with `git rebase origin/develop` and `git push --force-with-lease`.
 - **Branch protection:** the active `Protect develop` ruleset requires pull requests, linear history, passing checks, and blocks force-pushes/deletions. `.github/settings.yml` mirrors the intended policy for Probot Settings or manual audits.
-- CI workflows exist, but should not yet be treated as mandatory merge gates until required checks are consistently emitted and stable in GitHub Actions.
+- CI workflows exist and the full-solution build is green on `windows-2025-vs2026`. The `.github/settings.yml` `required_status_checks` contexts now match the emitted check names (`Build x64 Release`, `Build x64 Debug`, `Build Win32 Release`, `Build Win32 Debug`, `Lint build files`, `Analyze (c-cpp)`, `Analyze (javascript-typescript)`). **Maintainer action required:** apply these contexts to the live `Protect develop` ruleset to make the build a mandatory merge gate (an assistant cannot change live branch protection).
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
 
