@@ -33,14 +33,6 @@ class CQuerySearch;
 
 typedef CComObjectPtr< CQuerySearch > CQuerySearchPtr;
 
-class CGGEPItem;
-
-// Shared parser for the GGEP "H" (binary hash) extension used by both G1
-// queries (CQuerySearch) and query hits (CQueryHit). A zero-length item leaves
-// m_pBuffer NULL, so the type byte is guarded before use. Defined in QuerySearch.cpp.
-void ReadGGEPHash(const CGGEPItem* pItem, Hashes::Sha1Hash& oSHA1,
-	Hashes::TigerHash& oTiger, Hashes::Ed2kHash& oED2K, Hashes::Md5Hash& oMD5);
-
 
 class CQuerySearch : public CEnvyFile
 {

@@ -892,7 +892,7 @@ void ReadGGEPHash(const CGGEPItem* pItem, Hashes::Sha1Hash& oSHA1,
 	{
 	case GGEP_H_SHA1:
 		if ( pItem->m_nLength == 20 + 1 )
-			oSHA1 = reinterpret_cast< Hashes::Sha1Hash::RawStorage& >( pItem->m_pBuffer[ 1 ] );
+			oSHA1 = *static_cast< const Hashes::Sha1Hash::RawStorage* >( pItem->m_pBuffer + 1 );
 		else
 			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" type SHA1 unknown size (%d bytes)", pItem->m_nLength );
 		break;
@@ -900,8 +900,8 @@ void ReadGGEPHash(const CGGEPItem* pItem, Hashes::Sha1Hash& oSHA1,
 	case GGEP_H_BITPRINT:
 		if ( pItem->m_nLength == 24 + 20 + 1 )
 		{
-			oSHA1  = reinterpret_cast< Hashes::Sha1Hash::RawStorage& >( pItem->m_pBuffer[ 1 ] );
-			oTiger = reinterpret_cast< Hashes::TigerHash::RawStorage& >( pItem->m_pBuffer[ 21 ] );
+			oSHA1  = *static_cast< const Hashes::Sha1Hash::RawStorage* >( pItem->m_pBuffer + 1 );
+			oTiger = *static_cast< const Hashes::TigerHash::RawStorage* >( pItem->m_pBuffer + 21 );
 		}
 		else
 			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" type SHA1+TTR unknown size (%d bytes)", pItem->m_nLength );
@@ -909,14 +909,14 @@ void ReadGGEPHash(const CGGEPItem* pItem, Hashes::Sha1Hash& oSHA1,
 
 	case GGEP_H_MD5:
 		if ( pItem->m_nLength == 16 + 1 )
-			oMD5 = reinterpret_cast< Hashes::Md5Hash::RawStorage& >( pItem->m_pBuffer[ 1 ] );
+			oMD5 = *static_cast< const Hashes::Md5Hash::RawStorage* >( pItem->m_pBuffer + 1 );
 		else
 			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" type MD5 unknown size (%d bytes)", pItem->m_nLength );
 		break;
 
 	case GGEP_H_MD4:
 		if ( pItem->m_nLength == 16 + 1 )
-			oED2K = reinterpret_cast< Hashes::Ed2kHash::RawStorage& >( pItem->m_pBuffer[ 1 ] );
+			oED2K = *static_cast< const Hashes::Ed2kHash::RawStorage* >( pItem->m_pBuffer + 1 );
 		else
 			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" type MD4 unknown size (%d bytes)", pItem->m_nLength );
 		break;

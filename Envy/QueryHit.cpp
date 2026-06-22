@@ -36,6 +36,12 @@
 #include "XML.h"
 #include "GGEP.h"
 
+class CGGEPItem;
+
+// Shared GGEP "H" parser; defined in QuerySearch.cpp.
+void ReadGGEPHash(const CGGEPItem* pItem, Hashes::Sha1Hash& oSHA1,
+	Hashes::TigerHash& oTiger, Hashes::Ed2kHash& oED2K, Hashes::Md5Hash& oMD5);
+
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;

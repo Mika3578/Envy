@@ -458,8 +458,8 @@ CEDPacket* CEDPacket::ReadBuffer(CBuffer* pBuffer)
 	// nLength counts the type byte, so a valid packet has nLength >= 1. Reject
 	// before "nLength - 1" (in New/Remove below) underflows to ~4 GB and Write()
 	// performs a huge allocation + heap over-read from an attacker-supplied length.
-	if ( pHeader->nLength < 1 ) return NULL;
-	if ( pHeader->nLength - 1 > pBuffer->m_nLength - sizeof( *pHeader ) ) return NULL;
+	if ( pHeader->nLength < 1 ) return nullptr;
+	if ( pHeader->nLength - 1 > pBuffer->m_nLength - sizeof( *pHeader ) ) return nullptr;
 	CEDPacket* pPacket = CEDPacket::New( pHeader );
 	pBuffer->Remove( sizeof( *pHeader ) + pHeader->nLength - 1 );
 
