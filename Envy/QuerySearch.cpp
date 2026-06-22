@@ -879,6 +879,56 @@ BOOL CQuerySearch::ReadG1Packet(CG1Packet* pPacket, const SOCKADDR_IN* pEndpoint
 	return CheckValid( false );
 }
 
+// Shared parser for the GGEP "H" (binary hash) extension used by both G1
+// queries and query hits. A zero-length item leaves m_pBuffer NULL, so the
+// type byte is guarded before it is dereferenced on a crafted packet.
+void ReadGGEPHash(const CGGEPItem* pItem, Hashes::Sha1Hash& oSHA1,
+	Hashes::TigerHash& oTiger, Hashes::Ed2kHash& oED2K, Hashes::Md5Hash& oMD5)
+{
+	if ( ! pItem->m_pBuffer || pItem->m_nLength < 1 )
+		return;		// No type byte present
+
+	switch ( pItem->m_pBuffer[0] )
+	{
+	case GGEP_H_SHA1:
+		if ( pItem->m_nLength == 20 + 1 )
+			oSHA1 = reinterpret_cast< Hashes::Sha1Hash::RawStorage& >( pItem->m_pBuffer[ 1 ] );
+		else
+			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" type SHA1 unknown size (%d bytes)", pItem->m_nLength );
+		break;
+
+	case GGEP_H_BITPRINT:
+		if ( pItem->m_nLength == 24 + 20 + 1 )
+		{
+			oSHA1  = reinterpret_cast< Hashes::Sha1Hash::RawStorage& >( pItem->m_pBuffer[ 1 ] );
+			oTiger = reinterpret_cast< Hashes::TigerHash::RawStorage& >( pItem->m_pBuffer[ 21 ] );
+		}
+		else
+			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" type SHA1+TTR unknown size (%d bytes)", pItem->m_nLength );
+		break;
+
+	case GGEP_H_MD5:
+		if ( pItem->m_nLength == 16 + 1 )
+			oMD5 = reinterpret_cast< Hashes::Md5Hash::RawStorage& >( pItem->m_pBuffer[ 1 ] );
+		else
+			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" type MD5 unknown size (%d bytes)", pItem->m_nLength );
+		break;
+
+	case GGEP_H_MD4:
+		if ( pItem->m_nLength == 16 + 1 )
+			oED2K = reinterpret_cast< Hashes::Ed2kHash::RawStorage& >( pItem->m_pBuffer[ 1 ] );
+		else
+			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" type MD4 unknown size (%d bytes)", pItem->m_nLength );
+		break;
+
+	case GGEP_H_UUID:
+		break;	// Unsupported
+
+	default:
+		theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got GGEP \"H\" unknown type %d (%d bytes)", pItem->m_pBuffer[0], pItem->m_nLength );
+	}
+}
+
 void CQuerySearch::ReadGGEP(CG1Packet* pPacket)
 {
 	CGGEPBlock pGGEP;
@@ -897,50 +947,9 @@ void CQuerySearch::ReadGGEP(CG1Packet* pPacket)
 		for ( BYTE nItemCount = 0; pItemPos && nItemCount < pGGEP.GetCount();
 			nItemCount++, pItemPos = pItemPos->m_pNext )
 		{
-			// A zero-length GGEP "H" item leaves m_pBuffer NULL; require a type
-			// byte before dereferencing it so a crafted query cannot crash here.
-			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) && pItemPos->m_pBuffer && pItemPos->m_nLength >= 1 )
+			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) )
 			{
-				switch ( pItemPos->m_pBuffer[0] )
-				{
-				case GGEP_H_SHA1:
-					if ( pItemPos->m_nLength == 20 + 1 )
-						oSHA1 = reinterpret_cast< Hashes::Sha1Hash::RawStorage& >( pItemPos->m_pBuffer[ 1 ] );
-					else
-						theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got query packet with GGEP \"H\" type SH1 unknown size (%d bytes)", pItemPos->m_nLength );
-					break;
-
-				case GGEP_H_BITPRINT:
-					if ( pItemPos->m_nLength == 24 + 20 + 1 )
-					{
-						oSHA1  = reinterpret_cast< Hashes::Sha1Hash::RawStorage& >( pItemPos->m_pBuffer[ 1 ] );
-						oTiger = reinterpret_cast< Hashes::TigerHash::RawStorage& >( pItemPos->m_pBuffer[ 21 ] );
-					}
-					else
-						theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got query packet with GGEP \"H\" type SH1+TTR unknown size (%d bytes)", pItemPos->m_nLength );
-					break;
-
-				case GGEP_H_MD5:
-					if ( pItemPos->m_nLength == 16 + 1 )
-						oMD5 = reinterpret_cast< Hashes::Md5Hash::RawStorage& >( pItemPos->m_pBuffer[ 1 ] );
-					else
-						theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got query packet with GGEP \"H\" type MD5 unknown size (%d bytes)", pItemPos->m_nLength );
-					break;
-
-				case GGEP_H_MD4:
-					if ( pItemPos->m_nLength == 16 + 1 )
-						oED2K = reinterpret_cast< Hashes::Ed2kHash::RawStorage& >( pItemPos->m_pBuffer[ 1 ] );
-					else
-						theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got query packet with GGEP \"H\" type MD4 unknown size (%d bytes)", pItemPos->m_nLength );
-					break;
-
-				case GGEP_H_UUID:
-					// Unsupported
-					break;
-
-				default:
-					theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got query packet with GGEP \"H\" unknown type %d (%d bytes)", pItemPos->m_pBuffer[0], pItemPos->m_nLength );
-				}
+				ReadGGEPHash( pItemPos, oSHA1, oTiger, oED2K, oMD5 );
 			}
 			else if ( pItemPos->IsNamed( GGEP_HEADER_URN ) )
 			{

@@ -1108,49 +1108,9 @@ void CQueryHit::ReadGGEP(CG1Packet* pPacket)
 		CGGEPItem* pItemPos = pGGEP.GetFirst();
 		for ( BYTE nItemCount = 0; pItemPos && nItemCount < pGGEP.GetCount(); nItemCount++, pItemPos = pItemPos->m_pNext )
 		{
-			// A zero-length GGEP "H" item leaves m_pBuffer NULL; require a type
-			// byte before dereferencing it so a crafted hit cannot crash here.
-			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) && pItemPos->m_pBuffer && pItemPos->m_nLength >= 1 )
+			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) )
 			{
-				switch ( pItemPos->m_pBuffer[0] )
-				{
-				case GGEP_H_SHA1:
-					if ( pItemPos->m_nLength == 20 + 1 )
-						oSHA1 = reinterpret_cast< Hashes::Sha1Hash::RawStorage& >( pItemPos->m_pBuffer[ 1 ] );
-					else
-						theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got query packet with GGEP \"H\" type SH1 unknown size (%d bytes)", pItemPos->m_nLength );
-					break;
-
-				case GGEP_H_BITPRINT:
-					if ( pItemPos->m_nLength == 24 + 20 + 1 )
-					{
-						oSHA1 = reinterpret_cast< Hashes::Sha1Hash::RawStorage& >( pItemPos->m_pBuffer[ 1 ] );
-						oTiger = reinterpret_cast< Hashes::TigerHash::RawStorage& >( pItemPos->m_pBuffer[ 21 ] );
-					}
-					else
-						theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with GGEP \"H\" type SH1+TTR unknown size (%d bytes)", pItemPos->m_nLength );
-					break;
-
-				case GGEP_H_MD5:
-					if ( pItemPos->m_nLength == 16 + 1 )
-						oMD5 = reinterpret_cast< Hashes::Md5Hash::RawStorage& >( pItemPos->m_pBuffer[ 1 ] );
-					else
-						theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with GGEP \"H\" type MD5 unknown size (%d bytes)", pItemPos->m_nLength );
-					break;
-
-				case GGEP_H_MD4:
-					if ( pItemPos->m_nLength == 16 + 1 )
-						oED2K = reinterpret_cast< Hashes::Ed2kHash::RawStorage& >( pItemPos->m_pBuffer[ 1 ] );
-					else
-						theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with GGEP \"H\" type MD4 unknown size (%d bytes)", pItemPos->m_nLength );
-					break;
-
-				case GGEP_H_UUID:
-					break;	// Unsupported
-
-				default:
-					theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with GGEP \"H\" unknown type %d (%d bytes)", pItemPos->m_pBuffer[0], pItemPos->m_nLength );
-				}
+				ReadGGEPHash( pItemPos, oSHA1, oTiger, oED2K, oMD5 );
 			}
 			else if ( pItemPos->IsNamed( GGEP_HEADER_URN ) )
 			{
