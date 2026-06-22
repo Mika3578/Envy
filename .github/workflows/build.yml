@@ -46,7 +46,12 @@ jobs:
       fail-fast: false
       matrix:
         platform: [x64, Win32]
-        configuration: [Release, Debug]
+        # PRs only build the two required Release configs (x64 + Win32) for
+        # fast feedback; pushes to the integration branches still build Debug
+        # too, so coverage is unchanged; manual runs honour the
+        # workflow_dispatch `configuration` input. The list is varied by event
+        # via the `github` and `inputs` contexts.
+        configuration: ${{ github.event_name == 'pull_request' && fromJSON('["Release"]') || github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.configuration)) || fromJSON('["Release", "Debug"]') }}
         include:
           - platform: x64
             msbuild_platform: x64
@@ -115,9 +120,16 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/vcpkg_cache
-          key: vcpkg-${{ runner.os }}-${{ matrix.platform }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          # Stable, content-addressed key: keyed by OS, target platform, the
+          # pinned toolset and a hash of the vcpkg manifest. The same entry is
+          # reused across runs and only rotates when one of those inputs
+          # changes, so a populated cache is restored on every run without
+          # creating a new entry each time (which would churn the cache and
+          # evict other entries). The "v3-" prefix starts a clean namespace.
+          key: vcpkg-v3-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
           restore-keys: |
-            vcpkg-${{ runner.os }}-${{ matrix.platform }}-
+            vcpkg-v3-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-
+            vcpkg-v3-${{ runner.os }}-${{ matrix.platform }}-
 
       - name: Bootstrap vcpkg
         shell: pwsh
