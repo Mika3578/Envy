@@ -5,10 +5,21 @@ on:
     branches: [ main, master, develop ]
   pull_request:
     branches: [ main, master, develop ]
+  schedule:
+    # Nightly run (default branch only) so the expensive MSVC code-analysis
+    # build stays off the PR critical path while still being exercised daily.
+    - cron: "0 3 * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  # One group per PR (so superseded PR runs are cancelled) and a unique group
+  # per non-PR event (so pushes / scheduled runs / manual runs never queue
+  # behind each other).
+  group: code-quality-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Third-party JS actions (markdown link check, dependency-review) lack Node 24 builds.
 env:
@@ -18,20 +29,17 @@ jobs:
   static-analysis:
     name: Static Analysis
     runs-on: windows-2025-vs2026
+    # Expensive full-solution code-analysis build. Skip it on pull_request -
+    # CodeQL (security-and-quality) already gates PRs; this runs on push to
+    # the integration branches, on the nightly schedule, and on demand.
+    if: github.event_name != 'pull_request'
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
 
-    - name: Install VS 2026 Build Tools
-      shell: pwsh
-      run: |
-        Write-Host "Installing VS 2026 Build Tools..."
-        choco install visualstudio2026buildtools `
-          --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATLMFC --includeRecommended --quiet" `
-          -y --ignore-package-exit-codes=3010
-        Write-Host "VS 2026 Build Tools installation completed"
-
+    # The windows-2025-vs2026 runner already ships Visual Studio 2026 with the
+    # v145 / ATLMFC toolset, so no Chocolatey install is needed here.
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v3
 
@@ -55,6 +63,9 @@ jobs:
   lint-check:
     name: Format Check
     runs-on: ubuntu-latest
+    # The nightly schedule only needs Static Analysis; this still runs on
+    # pull_request (required check) and on push.
+    if: github.event_name != 'schedule'
 
     steps:
     - name: Checkout code
@@ -85,6 +96,8 @@ jobs:
   documentation-check:
     name: Documentation Check
     runs-on: ubuntu-latest
+    # Not needed on the nightly schedule (Static Analysis only).
+    if: github.event_name != 'schedule'
 
     steps:
     - name: Checkout code
@@ -123,6 +136,8 @@ jobs:
   remote-js-security-tests:
     name: Remote JS Security Tests
     runs-on: ubuntu-latest
+    # Not needed on the nightly schedule (Static Analysis only).
+    if: github.event_name != 'schedule'
 
     steps:
     - name: Checkout code
@@ -143,17 +158,6 @@ jobs:
       working-directory: Remote/tests
       run: npm test
 
-  dependency-check:
-    name: Dependency Review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-
-    - name: Dependency Review
-      uses: actions/dependency-review-action@v5
-      with:
-        fail-on-severity: moderate
-      continue-on-error: true
+  # Dependency review and the vcpkg manifest sanity check live in the
+  # dedicated dependency-review.yml workflow (single source of truth) and are
+  # intentionally not duplicated here.
