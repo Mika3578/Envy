@@ -2971,7 +2971,10 @@ BOOL CEDClient::OnPreviewAnswer(CEDPacket* pPacket)
 				for ( int nFrame = 0; nFrame < nFrames; nFrame++ )
 				{
 					DWORD nFrameSize = pPacket->ReadLongLE();
-					if ( pPacket->GetRemaining() < static_cast<int>( nFrameSize ) )
+					// Compare unsigned: the old (int) cast made any nFrameSize with
+					// the high bit set look negative, bypassing the check and letting
+					// a peer drive a multi-GB byte-by-byte write/over-read.
+					if ( nFrameSize > (DWORD)pPacket->GetRemaining() )
 					{
 						theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
 						return TRUE;

@@ -545,9 +545,12 @@ CBTPacket* CBTPacket::ReadBuffer(CBuffer* pBuffer)
 	{
 		if ( pBuffer->m_pBuffer[ 0 ] == BT_PACKET_EXTENSION )
 		{
-			// Read extension packet
-			pPacket = CBTPacket::New( BT_PACKET_EXTENSION,
-				pBuffer->m_pBuffer[ 1 ], pBuffer->m_pBuffer + 2, nLength - 2 );
+			// Read extension packet. It needs the BT id byte + the extension id
+			// byte; otherwise "nLength - 2" underflows to ~4 GB and the bencode
+			// decoder reads far past the buffer. Drop the malformed packet.
+			if ( nLength >= 2 )
+				pPacket = CBTPacket::New( BT_PACKET_EXTENSION,
+					pBuffer->m_pBuffer[ 1 ], pBuffer->m_pBuffer + 2, nLength - 2 );
 		}
 		else
 		{

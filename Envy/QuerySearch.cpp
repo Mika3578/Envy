@@ -897,7 +897,9 @@ void CQuerySearch::ReadGGEP(CG1Packet* pPacket)
 		for ( BYTE nItemCount = 0; pItemPos && nItemCount < pGGEP.GetCount();
 			nItemCount++, pItemPos = pItemPos->m_pNext )
 		{
-			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) )
+			// A zero-length GGEP "H" item leaves m_pBuffer NULL; require a type
+			// byte before dereferencing it so a crafted query cannot crash here.
+			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) && pItemPos->m_pBuffer && pItemPos->m_nLength >= 1 )
 			{
 				switch ( pItemPos->m_pBuffer[0] )
 				{
@@ -957,8 +959,9 @@ void CQuerySearch::ReadGGEP(CG1Packet* pPacket)
 			{
 				m_bOOBv3 = true;
 			}
-			else if ( pItemPos->IsNamed( GGEP_HEADER_META ) )
+			else if ( pItemPos->IsNamed( GGEP_HEADER_META ) && pItemPos->m_pBuffer && pItemPos->m_nLength >= 1 )
 			{
+				// Guarded above: a zero-length "M" item has no flags byte to read.
 				switch ( pItemPos->m_pBuffer[0] & 0xfc )
 				{
 				case GGEP_META_AUDIO:

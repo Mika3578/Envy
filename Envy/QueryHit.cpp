@@ -902,9 +902,11 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 	pPacket->Read( pRaw.get(), nSize );
 
 	LPBYTE pszXML = NULL;
-	if ( nSize >= 9 && strncmp( (LPCSTR)pRaw.get(), "{deflate}", 9 ) == 0 )
+	if ( nSize > 10 && strncmp( (LPCSTR)pRaw.get(), "{deflate}", 9 ) == 0 )
 	{
-		// Deflate data
+		// Deflate data. Require at least one compressed byte after the 9-byte
+		// "{deflate}" marker so "nSize - 10" cannot underflow to ~4 GB and make
+		// CZLib::Decompress read far past this buffer on a crafted hit.
 		DWORD nRealSize = 0;
 		auto_array< BYTE > pText( CZLib::Decompress( pRaw.get() + 9, nSize - 10, &nRealSize ) );
 		if ( ! pText.get() )
@@ -1106,7 +1108,9 @@ void CQueryHit::ReadGGEP(CG1Packet* pPacket)
 		CGGEPItem* pItemPos = pGGEP.GetFirst();
 		for ( BYTE nItemCount = 0; pItemPos && nItemCount < pGGEP.GetCount(); nItemCount++, pItemPos = pItemPos->m_pNext )
 		{
-			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) )
+			// A zero-length GGEP "H" item leaves m_pBuffer NULL; require a type
+			// byte before dereferencing it so a crafted hit cannot crash here.
+			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) && pItemPos->m_pBuffer && pItemPos->m_nLength >= 1 )
 			{
 				switch ( pItemPos->m_pBuffer[0] )
 				{
