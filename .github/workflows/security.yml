@@ -13,9 +13,16 @@ permissions:
   contents: read
   security-events: write
 
-# CodeQL scanning is handled by codeql.yml.
-# Dependency review is handled by code-quality.yml.
-# This workflow adds secret scanning not covered elsewhere.
+concurrency:
+  # One group per PR (so superseded PR runs are cancelled) and a unique group
+  # per non-PR event (so pushes / scheduled scans / manual runs never queue
+  # behind each other).
+  group: security-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# CodeQL scanning is handled by codeql.yml. Dependency review and the
+# vcpkg manifest sanity check are handled by dependency-review.yml on pull
+# requests. This workflow adds secret scanning not covered elsewhere.
 
 jobs:
   secret-scan:
