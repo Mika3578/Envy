@@ -1365,6 +1365,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="PongCache.h" />
     <ClInclude Include="qrencode.h" />
     <ClInclude Include="QRCode.h" />
+    <ClInclude Include="QueryGGEPHash.h" />
     <ClInclude Include="QueryHashGroup.h" />
     <ClInclude Include="QueryHashMaster.h" />
     <ClInclude Include="QueryHashTable.h" />

@@ -31,6 +31,7 @@
 #include "SchemaCache.h"
 #include "QueryHashTable.h"
 #include "GGEP.h"
+#include "QueryGGEPHash.h"
 #include "XML.h"
 
 #include "WndSearch.h"
@@ -984,28 +985,35 @@ void CQuerySearch::ReadGGEP(CG1Packet* pPacket)
 			{
 				m_bOOBv3 = true;
 			}
-			else if ( pItemPos->IsNamed( GGEP_HEADER_META ) && pItemPos->m_pBuffer && pItemPos->m_nLength >= 1 )
+			else if ( pItemPos->IsNamed( GGEP_HEADER_META ) )
 			{
-				// Guarded above: a zero-length "M" item has no flags byte to read.
-				switch ( pItemPos->m_pBuffer[0] & 0xfc )
+				// A zero-length "M" item has no flags byte to read; recognize it
+				// as a malformed-but-known extension here instead of letting it
+				// fall through to the "unknown GGEP" branch below.
+				if ( pItemPos->m_pBuffer && pItemPos->m_nLength >= 1 )
 				{
-				case GGEP_META_AUDIO:
-					m_pSchema = SchemaCache.Get( CSchema::uriAudio );
-					break;
-				case GGEP_META_VIDEO:
-					m_pSchema = SchemaCache.Get( CSchema::uriVideo );
-					break;
-				case GGEP_META_DOCUMENTS:
-					m_pSchema = SchemaCache.Get( CSchema::uriDocument );
-					break;
-				case GGEP_META_IMAGES:
-					m_pSchema = SchemaCache.Get( CSchema::uriImage );
-					break;
-				case GGEP_META_WINDOWS:
-				case GGEP_META_UNIX:
-					m_pSchema = SchemaCache.Get( CSchema::uriApplication );
-					break;
+					switch ( pItemPos->m_pBuffer[0] & 0xfc )
+					{
+					case GGEP_META_AUDIO:
+						m_pSchema = SchemaCache.Get( CSchema::uriAudio );
+						break;
+					case GGEP_META_VIDEO:
+						m_pSchema = SchemaCache.Get( CSchema::uriVideo );
+						break;
+					case GGEP_META_DOCUMENTS:
+						m_pSchema = SchemaCache.Get( CSchema::uriDocument );
+						break;
+					case GGEP_META_IMAGES:
+						m_pSchema = SchemaCache.Get( CSchema::uriImage );
+						break;
+					case GGEP_META_WINDOWS:
+					case GGEP_META_UNIX:
+						m_pSchema = SchemaCache.Get( CSchema::uriApplication );
+						break;
+					}
 				}
+				else
+					theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got query packet with malformed GGEP \"M\" (no flags byte)" );
 			}
 			else if ( pItemPos->IsNamed( GGEP_HEADER_PARTIAL_RESULT_PREFIX ) )
 			{

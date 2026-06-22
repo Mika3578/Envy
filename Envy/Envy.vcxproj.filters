@@ -1976,6 +1976,9 @@
     <ClInclude Include="QRCode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="QueryGGEPHash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="QueryHashGroup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
