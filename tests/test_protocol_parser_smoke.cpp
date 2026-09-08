@@ -115,20 +115,26 @@ static bool test_ed2k_readbuffer_length_valid_body()
 	return Ed2kTcpPacketLengthOk( nBuf, kEd2kTcpHeaderSize, 1 + nBody ) == TRUE;
 }
 
-static bool test_bt_extension_length_zero()
+static bool test_bt_true_keepalive_length_zero()
 {
-	return BtExtensionPayloadLengthOk( 0 ) == FALSE;
+	// Wire keep-alive is length-prefix 0 only — not an extension frame.
+	return BtIsKeepAliveLength( 0 ) == TRUE
+		&& BtExtensionPayloadLengthOk( 0 ) == FALSE;
 }
 
-static bool test_bt_extension_length_one()
+static bool test_bt_extension_length_one_not_keepalive()
 {
-	return BtExtensionPayloadLengthOk( 1 ) == FALSE;
+	// length 1 may be a normal single-id message, but as a BEP-10 extension
+	// it is malformed (missing extended id). It must not be treated as keep-alive.
+	return BtIsKeepAliveLength( 1 ) == FALSE
+		&& BtExtensionPayloadLengthOk( 1 ) == FALSE;
 }
 
 static bool test_bt_extension_length_min_valid()
 {
 	// BT id + extension id; empty bencode payload is allowed (length 2).
-	return BtExtensionPayloadLengthOk( 2 ) == TRUE;
+	return BtIsKeepAliveLength( 2 ) == FALSE
+		&& BtExtensionPayloadLengthOk( 2 ) == TRUE;
 }
 
 static bool test_bt_extension_length_with_bencode()
@@ -219,8 +225,8 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_readbuffer_exceeds_buffer", test_ed2k_readbuffer_length_exceeds_buffer );
 	suite.add_test( "ed2k_readbuffer_valid_body", test_ed2k_readbuffer_length_valid_body );
 
-	suite.add_test( "bt_extension_length_zero", test_bt_extension_length_zero );
-	suite.add_test( "bt_extension_length_one", test_bt_extension_length_one );
+	suite.add_test( "bt_true_keepalive_length_zero", test_bt_true_keepalive_length_zero );
+	suite.add_test( "bt_extension_length_one_not_keepalive", test_bt_extension_length_one_not_keepalive );
 	suite.add_test( "bt_extension_length_min_valid", test_bt_extension_length_min_valid );
 	suite.add_test( "bt_extension_length_bencode", test_bt_extension_length_with_bencode );
 

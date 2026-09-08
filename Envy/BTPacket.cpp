@@ -546,16 +546,20 @@ CBTPacket* CBTPacket::ReadBuffer(CBuffer* pBuffer)
 	{
 		if ( pBuffer->m_pBuffer[ 0 ] == BT_PACKET_EXTENSION )
 		{
-			// Read extension packet. It needs the BT id byte + the extension id
-			// byte; otherwise "nLength - 2" underflows to ~4 GB and the bencode
-			// decoder reads far past the buffer. Drop the malformed packet.
+			// BEP-10 extension needs message id (20) + extended id before
+			// "nLength - 2" is safe. Wire keep-alive is length-prefix 0 only
+			// (handled above); length 1 with id 20 is malformed, not a keep-alive.
 			if ( BtExtensionPayloadLengthOk( nLength ) )
 				pPacket = CBTPacket::New( BT_PACKET_EXTENSION,
 					pBuffer->m_pBuffer[ 1 ], pBuffer->m_pBuffer + 2, nLength - 2 );
 			else
-				// Drop malformed extension but keep CBTClient::OnRead draining:
-				// returning NULL would stall packets already buffered this recv.
-				pPacket = CBTPacket::New( BT_PACKET_KEEPALIVE );
+			{
+				// Drop the short frame (Remove below) and return an empty
+				// extension/NOP no-op so OnRead keeps draining later packets.
+				// Do not synthesize BT_PACKET_KEEPALIVE: that type is reserved
+				// for real length-prefix-0 keep-alives.
+				pPacket = CBTPacket::New( BT_PACKET_EXTENSION, BT_EXTENSION_NOP );
+			}
 		}
 		else
 		{

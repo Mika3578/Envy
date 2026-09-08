@@ -24,11 +24,22 @@ inline BOOL Ed2kTcpPacketLengthOk(DWORD nBufferLength, DWORD nHeaderSize, DWORD 
 	return ( nLength - 1 ) <= ( nBufferLength - nHeaderSize );
 }
 
-// BitTorrent BEP-10 extension messages need the message id byte plus the
-// extension id byte before "nLength - 2" is safe.
+// BitTorrent wire framing:
+//   length-prefix 0      -> real keep-alive (not an extension; handled separately)
+//   length-prefix 1      -> single message-id byte; for id 20 (BEP-10) this is
+//                          malformed because the extended id byte is missing
+//   length-prefix >= 2   -> message id + extended id (+ optional bencode)
+// This predicate only validates BEP-10 extension payload sizing before
+// "nLength - 2"; it must not be used to classify keep-alives.
 inline BOOL BtExtensionPayloadLengthOk(DWORD nLength)
 {
 	return nLength >= 2;
+}
+
+// True BitTorrent keep-alive is exclusively a zero length-prefix.
+inline BOOL BtIsKeepAliveLength(DWORD nLength)
+{
+	return nLength == 0;
 }
 
 // QueryHit XML "{deflate}" path uses "nSize - 10" (marker 9 + trailing byte).
