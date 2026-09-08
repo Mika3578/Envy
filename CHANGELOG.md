@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Restored inbound packet length validation against untrusted P2P peers (rework of closed PR #69 on current `develop`): reject ED2K TCP `nLength < 1` before `nLength - 1` arithmetic; require BitTorrent extension messages `nLength >= 2` before `nLength - 2`; require Gnutella QueryHit `{deflate}` size `> 10` before `nSize - 10`; guard GGEP `H`/`M` items before `m_pBuffer[0]`; compare ED2K preview frame sizes unsigned against `GetRemaining()`. Shared predicates live in `Envy/PacketLengthValidate.h` with smoke tests in `tests/test_protocol_parser_smoke.cpp`. No behavior change for valid packets.
+
 ### Changed
 - **Git workflow / linear history** — Documented squash-or-rebase merge policy for `develop`, `git pull --ff-only` local hygiene, and feature-branch rebase commands in `.github/CONTRIBUTING.md`, `docs/CONTRIBUTING.md`, and `docs/PR_PLAYBOOK.md`. Aligned `.github/settings.yml` with GitHub by disabling merge commits while keeping squash and rebase merges enabled, and tightening branch protection settings to match.
 - **CI maintenance** — Pin Windows jobs to `windows-2025` / `windows-2025-vs2026`, upgrade `microsoft/setup-msbuild@v3` and artifact actions to v6, opt legacy JavaScript actions into Node 24 where needed, skip PR labeler and README advisory on zero-file or CI-only pull requests.

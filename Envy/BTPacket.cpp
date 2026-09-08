@@ -1,7 +1,7 @@
 //
 // BTPacket.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "BTPacket.h"
+#include "PacketLengthValidate.h"
 
 #include "BENode.h"
 #include "BTClient.h"
@@ -545,9 +546,16 @@ CBTPacket* CBTPacket::ReadBuffer(CBuffer* pBuffer)
 	{
 		if ( pBuffer->m_pBuffer[ 0 ] == BT_PACKET_EXTENSION )
 		{
-			// Read extension packet
-			pPacket = CBTPacket::New( BT_PACKET_EXTENSION,
-				pBuffer->m_pBuffer[ 1 ], pBuffer->m_pBuffer + 2, nLength - 2 );
+			// Read extension packet. It needs the BT id byte + the extension id
+			// byte; otherwise "nLength - 2" underflows to ~4 GB and the bencode
+			// decoder reads far past the buffer. Drop the malformed packet.
+			if ( BtExtensionPayloadLengthOk( nLength ) )
+				pPacket = CBTPacket::New( BT_PACKET_EXTENSION,
+					pBuffer->m_pBuffer[ 1 ], pBuffer->m_pBuffer + 2, nLength - 2 );
+			else
+				// Drop malformed extension but keep CBTClient::OnRead draining:
+				// returning NULL would stall packets already buffered this recv.
+				pPacket = CBTPacket::New( BT_PACKET_KEEPALIVE );
 		}
 		else
 		{

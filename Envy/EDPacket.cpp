@@ -23,6 +23,7 @@
 #include "EDClient.h"
 #include "EDClients.h"
 #include "EDNeighbour.h"
+#include "PacketLengthValidate.h"
 #include "Buffer.h"
 #include "Network.h"
 #include "Kademlia.h"
@@ -455,7 +456,11 @@ CEDPacket* CEDPacket::ReadBuffer(CBuffer* pBuffer)
 	if ( pHeader->nProtocol != ED2K_PROTOCOL_EDONKEY &&
 		 pHeader->nProtocol != ED2K_PROTOCOL_EMULE &&
 		 pHeader->nProtocol != ED2K_PROTOCOL_EMULE_PACKED ) return NULL;
-	if ( pBuffer->m_nLength - sizeof( *pHeader ) + 1 < pHeader->nLength ) return NULL;
+	// nLength counts the type byte, so a valid packet has nLength >= 1. Reject
+	// before "nLength - 1" (in New/Remove below) underflows to ~4 GB and Write()
+	// performs a huge allocation + heap over-read from an attacker-supplied length.
+	if ( ! Ed2kTcpPacketLengthOk( pBuffer->m_nLength, sizeof( *pHeader ), pHeader->nLength ) )
+		return nullptr;
 	CEDPacket* pPacket = CEDPacket::New( pHeader );
 	pBuffer->Remove( sizeof( *pHeader ) + pHeader->nLength - 1 );
 
