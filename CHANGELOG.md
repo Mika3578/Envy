@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- Disabled invalid ED2K/eMule SecureIdent verification (#75): removed the historical MD5/non-zero response acceptance in `CEDClient`, stopped advertising SecureIdent (`ED2K_VERSION_SECUREID = 0`), and ensured peers are never marked SecureIdent-verified without eMule-compatible RSA validation (not implemented yet). Inbound SecureIdent packets are ignored without dropping ED2K connectivity. Shared policy predicates live in `Envy/SecureIdentPolicy.h` with smoke tests in `tests/test_secureident_policy_smoke.cpp`.
 - Restored inbound packet length validation against untrusted P2P peers (rework of closed PR #69 on current `develop`): reject ED2K TCP `nLength < 1` before `nLength - 1` arithmetic; require BitTorrent extension messages `nLength >= 2` before `nLength - 2`; require Gnutella QueryHit `{deflate}` size `> 10` before `nSize - 10`; guard GGEP `H`/`M` items before `m_pBuffer[0]`; compare ED2K preview frame sizes unsigned against `GetRemaining()`. Shared predicates live in `Envy/PacketLengthValidate.h` with smoke tests in `tests/test_protocol_parser_smoke.cpp`. No behavior change for valid packets.
 
 ### Changed
