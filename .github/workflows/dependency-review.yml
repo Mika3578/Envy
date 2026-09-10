@@ -9,19 +9,27 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: dep-review-${{ github.ref }}
+  group: dep-review-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  changes:
+    name: Classify (deps)
+    uses: ./.github/workflows/classify-changes.yml
+
   review:
     name: Dependency review
+    needs: changes
+    if: needs.changes.outputs.run_dep_review == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
 
       - name: Dependency Review
         uses: actions/dependency-review-action@v5
@@ -37,6 +45,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
 
       - name: Validate vcpkg.json against schema
         shell: bash

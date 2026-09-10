@@ -186,8 +186,9 @@ Warning: Mixing Unicode and non-Unicode
    - Basic ED2K connections (limited functionality)
    - BT magnet links (basic support)
 
-### Automated Testing (Future)
-**Current:** CI builds the solution, but does not run tests.
+### Automated Testing
+**Current:** CI builds `Visual Studio/Envy.sln` and runs `EnvyTests.exe` after
+x64/Win32 Release (PRs) and after Release+Debug (`develop` pushes).
 
 **What exists today:** Standalone integration tests in `tests/`:
 - Run via `tests\run_integration_tests.bat` (will compile `tests\test_runner.cpp` if `cl.exe` is on PATH)

@@ -14,60 +14,132 @@ permissions:
   contents: read
   security-events: write
   actions: read
+  pull-requests: read
 
 concurrency:
-  group: codeql-${{ github.ref }}
-  cancel-in-progress: true
+  group: codeql-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  SOLUTION: Visual Studio\Envy.sln
+  PLATFORM_TOOLSET: v145
 
 jobs:
-  analyze:
-    name: Analyze (${{ matrix.language }})
-    runs-on: windows-2025-vs2026
+  changes:
+    name: Classify (codeql)
+    uses: ./.github/workflows/classify-changes.yml
+
+  analyze-cpp:
+    name: Analyze (c-cpp)
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.run_codeql_cpp == 'true'
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'windows-2025-vs2026' }}
     timeout-minutes: 180
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: c-cpp
-            build-mode: manual
-          - language: javascript-typescript
-            build-mode: none
+    env:
+      MSBUILD_PARALLEL: /m:1
+      MSBUILD_USE_MULTI_TOOL_TASK: false
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          submodules: recursive
+          fetch-depth: 1
 
-      - name: Initialize CodeQL
+      # Pull requests use build-mode: none so CodeQL does not rebuild the
+      # solution (the Build x64 Release job already compiled it). develop,
+      # schedule, and manual runs keep a full traced MSBuild for precision.
+      - name: Initialize CodeQL (PR, no build)
+        if: github.event_name == 'pull_request'
         uses: github/codeql-action/init@v4
         with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
+          languages: c-cpp
+          build-mode: none
 
       - name: Add MSBuild to PATH
-        if: matrix.language == 'c-cpp'
+        if: github.event_name != 'pull_request'
         uses: microsoft/setup-msbuild@v3
         with:
           msbuild-architecture: x64
 
+      - name: Cache vcpkg binary cache
+        if: github.event_name != 'pull_request'
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ github.workspace }}/vcpkg_cache
+          key: vcpkg-v3-${{ runner.os }}-x64-${{ env.PLATFORM_TOOLSET }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: |
+            vcpkg-v3-${{ runner.os }}-x64-${{ env.PLATFORM_TOOLSET }}-
+            vcpkg-v3-${{ runner.os }}-x64-
+
+      - name: Bootstrap vcpkg
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "$env:VCPKG_INSTALLATION_ROOT")) {
+            git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
+            & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
+            echo "VCPKG_INSTALLATION_ROOT=$env:GITHUB_WORKSPACE/vcpkg" >> $env:GITHUB_ENV
+          }
+          echo "VCPKG_BINARY_SOURCES=clear;files,$($env:GITHUB_WORKSPACE)/vcpkg_cache,readwrite" >> $env:GITHUB_ENV
+
+      - name: Install vcpkg dependencies (manifest mode)
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        run: |
+          echo "VCPKG_TARGET_TRIPLET=x64-windows-static" >> $env:GITHUB_ENV
+          & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install --triplet=x64-windows-static
+
+      - name: Initialize CodeQL (manual build)
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/init@v4
+        with:
+          languages: c-cpp
+          build-mode: manual
+
       - name: Build solution (x64 Release)
-        if: matrix.language == 'c-cpp'
+        if: github.event_name != 'pull_request'
         shell: cmd
         run: |
-          msbuild "Visual Studio\Envy.sln" ^
-            /m ^
+          msbuild "%SOLUTION%" ^
+            %MSBUILD_PARALLEL% ^
             /nologo ^
             /verbosity:minimal ^
             /p:Configuration=Release ^
             /p:Platform=x64 ^
-            /p:PlatformToolset=v145 ^
+            /p:PlatformToolset=%PLATFORM_TOOLSET% ^
             /p:WindowsTargetPlatformVersion=10.0 ^
-            /p:UseMultiToolTask=true
+            /p:UseMultiToolTask=%MSBUILD_USE_MULTI_TOOL_TASK% ^
+            /p:EnforceProcessCountAcrossBuilds=true ^
+            /p:VcpkgEnableManifest=true ^
+            /p:VcpkgEnabled=true ^
+            /p:VcpkgTriplet=x64-windows-static ^
+            /p:TreatWarningsAsErrors=false
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
-          category: "/language:${{ matrix.language }}"
+          category: /language:c-cpp
+
+  analyze-js:
+    name: Analyze (javascript-typescript)
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.run_codeql_js == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          build-mode: none
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:javascript-typescript

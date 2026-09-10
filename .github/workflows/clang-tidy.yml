@@ -1,8 +1,8 @@
 name: clang-tidy (advisory)
 
 on:
-  pull_request:
-    branches: [main, develop]
+  push:
+    branches: [develop]
     paths:
       - Envy/**.cpp
       - Envy/**.h
@@ -12,19 +12,22 @@ on:
       - HashLib/**.h
       - .clang-tidy
       - .github/workflows/clang-tidy.yml
+  schedule:
+    - cron: 17 4 * * *
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: clang-tidy-${{ github.event_name == 'push' && github.sha || github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   tidy:
     name: clang-tidy diff
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Advisory only: this job always exits 0 and surfaces findings as
-    # ::warning:: lines so the check shows green while the legacy codebase
-    # is still being cleaned up. Flip to required once the baseline is clean.
     steps:
       - uses: actions/checkout@v5
         with:
@@ -39,10 +42,16 @@ jobs:
         shell: bash
         run: |
           set +e
-          base="${{ github.event.pull_request.base.sha }}"
-          head="${{ github.event.pull_request.head.sha }}"
-          if [ -z "$base" ] || [ -z "$head" ]; then
-            echo "No PR context (base/head SHAs missing); skipping."
+          if [ "${{ github.event_name }}" = "push" ]; then
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+          else
+            # Nightly / manual: lint files touched on develop in the last day.
+            base="$(git log --since='25 hours ago' --pretty=format:%H --reverse | head -1)"
+            head="${{ github.sha }}"
+          fi
+          if [ -z "$base" ] || [ -z "$head" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "No usable commit range; skipping."
             exit 0
           fi
           files=$(git diff --name-only "$base...$head" -- '*.cpp' '*.h' '*.cxx' '*.hpp' 2>/dev/null \
@@ -60,8 +69,6 @@ jobs:
           for f in $files; do
             [ -f "$f" ] || continue
             echo "::group::clang-tidy $f"
-            # Without a compile_commands.json on Linux this is a syntax-only
-            # check (no MFC headers). We only surface findings, never fail.
             clang-tidy --quiet "$f" -- -std=c++20 -DWIN32 -D_WINDOWS -D_UNICODE -DUNICODE \
               2>&1 | tee -a clang-tidy.log
             echo "::endgroup::"

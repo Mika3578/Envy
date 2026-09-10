@@ -1,0 +1,236 @@
+name: Windows MSBuild
+description: Restore vcpkg, build Envy.sln for one platform/config, optionally run EnvyTests.
+
+inputs:
+  platform:
+    description: MSBuild platform (x64 or Win32)
+    required: true
+  configuration:
+    description: MSBuild configuration (Release or Debug)
+    required: true
+  upload-binaries:
+    description: Upload Release binaries as artifacts
+    required: false
+    default: "false"
+  run-tests:
+    description: Run EnvyTests.exe after a successful build
+    required: false
+    default: "true"
+  upload-logs:
+    description: Upload MSBuild logs
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v3
+      with:
+        msbuild-architecture: x64
+
+    - name: Verify Visual Studio 2026 with v145 is installed
+      shell: pwsh
+      run: |
+        msbuild -version
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        if (-not (Test-Path $vswhere)) {
+          Write-Error "vswhere.exe not found at $vswhere - cannot validate VS install."
+          exit 1
+        }
+        $installVersion = (& $vswhere -latest -prerelease -property installationVersion) -as [string]
+        $displayName    = (& $vswhere -latest -prerelease -property displayName)    -as [string]
+        $installPath    = (& $vswhere -latest -prerelease -property installationPath) -as [string]
+        Write-Host "Installation : $installPath"
+        Write-Host "Display name : $displayName"
+        Write-Host "Version      : $installVersion"
+
+        $msvcDir = Join-Path $installPath "VC\Tools\MSVC"
+        if (-not (Test-Path $msvcDir)) {
+          Write-Error "VC\Tools\MSVC directory not found in $installPath."
+          exit 1
+        }
+        $vc145 = Get-ChildItem $msvcDir -Directory | Where-Object { $_.Name -match "^14\.5" } | Sort-Object Name -Descending
+        if (-not $vc145) {
+          Write-Host "Installed MSVC tool directories:"
+          Get-ChildItem $msvcDir -Directory | ForEach-Object { Write-Host "  $($_.Name)" }
+          Write-Error "::error::v145 (MSVC 14.5x) tool directory NOT found in $msvcDir. Expected runner image is windows-2025-vs2026."
+          exit 1
+        }
+        $vcToolsVersion = $vc145[0].Name
+        Write-Host "::notice::v145 (MSVC $vcToolsVersion) toolset detected at $($vc145[0].FullName)"
+        if ($installVersion -notmatch "^18\.") {
+          Write-Error "::error::VS major version is $installVersion, expected 18.x (Visual Studio 2026)."
+          exit 1
+        }
+
+    - name: Cache vcpkg binary cache
+      uses: actions/cache@v5
+      with:
+        path: |
+          ${{ github.workspace }}/vcpkg_cache
+        key: vcpkg-v3-${{ runner.os }}-${{ inputs.platform }}-${{ env.PLATFORM_TOOLSET }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+        restore-keys: |
+          vcpkg-v3-${{ runner.os }}-${{ inputs.platform }}-${{ env.PLATFORM_TOOLSET }}-
+          vcpkg-v3-${{ runner.os }}-${{ inputs.platform }}-
+
+    - name: Bootstrap vcpkg
+      shell: pwsh
+      run: |
+        if (-not (Test-Path "$env:VCPKG_INSTALLATION_ROOT")) {
+          git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
+          & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
+          echo "VCPKG_INSTALLATION_ROOT=$env:GITHUB_WORKSPACE/vcpkg" >> $env:GITHUB_ENV
+        }
+        echo "VCPKG_BINARY_SOURCES=clear;files,$($env:GITHUB_WORKSPACE)/vcpkg_cache,readwrite" >> $env:GITHUB_ENV
+
+    - name: Install vcpkg dependencies (manifest mode)
+      shell: pwsh
+      run: |
+        $triplet = if ("${{ inputs.platform }}" -eq "x64") { "x64-windows-static" } else { "x86-windows-static" }
+        echo "VCPKG_TARGET_TRIPLET=$triplet" >> $env:GITHUB_ENV
+        Write-Host "VCPKG_BINARY_SOURCES=$env:VCPKG_BINARY_SOURCES"
+        Write-Host "Triplet=$triplet"
+        & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install --triplet=$triplet
+
+    - name: Restore NuGet packages (if any)
+      shell: pwsh
+      run: |
+        if (Test-Path "Visual Studio\Envy.sln") {
+          nuget restore "Visual Studio\Envy.sln" -NonInteractive 2>$null
+        }
+      continue-on-error: true
+
+    - name: Export effective PlatformToolset
+      id: toolset
+      shell: pwsh
+      run: |
+        $effective = "$env:PLATFORM_TOOLSET"
+        [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "PlatformToolset=$effective`n", [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::AppendAllText($env:GITHUB_ENV, "EFFECTIVE_TOOLSET=$effective`n", [System.Text.UTF8Encoding]::new($false))
+        Write-Host "Effective PlatformToolset = $effective"
+
+    - name: Build solution
+      shell: cmd
+      run: |
+        msbuild "%SOLUTION%" ^
+          %MSBUILD_PARALLEL% ^
+          /nologo ^
+          /verbosity:minimal ^
+          /p:Configuration=${{ inputs.configuration }} ^
+          /p:Platform=${{ inputs.platform }} ^
+          /p:PlatformToolset=${{ steps.toolset.outputs.PlatformToolset }} ^
+          /p:WindowsTargetPlatformVersion=10.0 ^
+          /p:UseMultiToolTask=%MSBUILD_USE_MULTI_TOOL_TASK% ^
+          /p:EnforceProcessCountAcrossBuilds=true ^
+          /p:VcpkgEnableManifest=true ^
+          /p:VcpkgEnabled=true ^
+          /p:VcpkgTriplet=%VCPKG_TARGET_TRIPLET% ^
+          /p:TreatWarningsAsErrors=false ^
+          /flp:LogFile=build-${{ inputs.platform }}-${{ inputs.configuration }}.log;Verbosity=detailed;Encoding=UTF-8 ^
+          /flp1:LogFile=build-${{ inputs.platform }}-${{ inputs.configuration }}.warnings.log;WarningsOnly;Verbosity=normal ^
+          /flp2:LogFile=build-${{ inputs.platform }}-${{ inputs.configuration }}.errors.log;ErrorsOnly;Verbosity=normal
+
+    - name: Run EnvyTests
+      if: ${{ inputs.run-tests == 'true' }}
+      shell: cmd
+      run: |
+        set "EXE=tests\${{ inputs.configuration }} ${{ inputs.platform }}\EnvyTests.exe"
+        if not exist "%EXE%" (
+          echo ::error::EnvyTests.exe not found at %EXE%
+          exit /b 1
+        )
+        "%EXE%"
+
+    - name: Upload build logs
+      if: ${{ always() && inputs.upload-logs == 'true' }}
+      uses: actions/upload-artifact@v6
+      with:
+        name: build-logs-${{ inputs.platform }}-${{ inputs.configuration }}
+        path: |
+          build-*.log
+        if-no-files-found: ignore
+        retention-days: 14
+
+    - name: Surface build errors to step summary and PR comment
+      if: ${{ failure() && github.event_name == 'pull_request' }}
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        $errLog = "build-${{ inputs.platform }}-${{ inputs.configuration }}.errors.log"
+        $warnLog = "build-${{ inputs.platform }}-${{ inputs.configuration }}.warnings.log"
+        $body = New-Object System.Collections.Generic.List[string]
+        $body.Add("### Build ${{ inputs.platform }} ${{ inputs.configuration }} - failures") | Out-Null
+        $body.Add("") | Out-Null
+        $body.Add("- Effective PlatformToolset: ``$($env:EFFECTIVE_TOOLSET)``") | Out-Null
+        $body.Add("- Commit: ``${{ github.event.pull_request.head.sha }}``") | Out-Null
+        $body.Add("- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}") | Out-Null
+        $body.Add("") | Out-Null
+
+        $reachedMsbuild = Test-Path $errLog
+
+        if ($reachedMsbuild) {
+          $errLines = @(Get-Content -LiteralPath $errLog -ErrorAction SilentlyContinue)
+          $errFirst = $errLines | Select-Object -First 200
+          $body.Add("**Reached MSBuild.** Errors captured: $($errLines.Count). Showing first $([Math]::Min(200, $errLines.Count)).") | Out-Null
+          $body.Add("") | Out-Null
+          $body.Add("<details><summary>First 200 MSBuild error lines</summary>") | Out-Null
+          $body.Add("") | Out-Null
+          $body.Add('```') | Out-Null
+          foreach ($l in $errFirst) { $body.Add($l) | Out-Null }
+          $body.Add('```') | Out-Null
+          $body.Add("</details>") | Out-Null
+          if (Test-Path $warnLog) {
+            $warn = @(Get-Content -LiteralPath $warnLog -ErrorAction SilentlyContinue) | Select-Object -First 80
+            if ($warn.Count -gt 0) {
+              $body.Add("") | Out-Null
+              $body.Add("<details><summary>First 80 warning lines</summary>") | Out-Null
+              $body.Add("") | Out-Null
+              $body.Add('```') | Out-Null
+              foreach ($l in $warn) { $body.Add($l) | Out-Null }
+              $body.Add('```') | Out-Null
+              $body.Add("</details>") | Out-Null
+            }
+          }
+        } else {
+          $body.Add("**Build failed before MSBuild started.** Likely a setup-msbuild, vcpkg bootstrap, or vcpkg install issue.") | Out-Null
+          $body.Add("") | Out-Null
+          $vcpkgLogs = @()
+          if ($env:VCPKG_INSTALLATION_ROOT -and (Test-Path "$env:VCPKG_INSTALLATION_ROOT/buildtrees")) {
+            $vcpkgLogs = Get-ChildItem -LiteralPath "$env:VCPKG_INSTALLATION_ROOT/buildtrees" -Recurse -Filter "*.log" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 3
+          }
+          if ($vcpkgLogs.Count -gt 0) {
+            foreach ($lg in $vcpkgLogs) {
+              $tail = @(Get-Content -LiteralPath $lg.FullName -Tail 80 -ErrorAction SilentlyContinue)
+              $body.Add("<details><summary>vcpkg log: $($lg.FullName) (last 80 lines)</summary>") | Out-Null
+              $body.Add("") | Out-Null
+              $body.Add('```') | Out-Null
+              foreach ($l in $tail) { $body.Add($l) | Out-Null }
+              $body.Add('```') | Out-Null
+              $body.Add("</details>") | Out-Null
+            }
+          } else {
+            $body.Add("_No vcpkg buildtree logs found - the failure is likely in setup-msbuild or the toolset detection step._") | Out-Null
+          }
+        }
+
+        $bodyText = $body -join "`n"
+        [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, $bodyText + "`n", [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::WriteAllText("comment-body.md", $bodyText, [System.Text.UTF8Encoding]::new($false))
+        gh pr comment ${{ github.event.pull_request.number }} `
+          --repo ${{ github.repository }} `
+          --body-file comment-body.md
+
+    - name: Upload binaries
+      if: ${{ success() && inputs.upload-binaries == 'true' && inputs.configuration == 'Release' }}
+      uses: actions/upload-artifact@v6
+      with:
+        name: envy-${{ inputs.platform }}-${{ inputs.configuration }}
+        path: |
+          Envy/**/Release/*.exe
+          Envy/**/Release/*.dll
+          Plugins/**/Release/*.dll
+          Builds/**
+        if-no-files-found: warn
+        retention-days: 14
