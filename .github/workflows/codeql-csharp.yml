@@ -11,23 +11,32 @@ permissions:
   contents: read
   security-events: write
   actions: read
+  pull-requests: read
 
 concurrency:
-  group: codeql-csharp-${{ github.ref }}
-  cancel-in-progress: true
+  group: codeql-csharp-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  changes:
+    name: Classify (csharp)
+    uses: ./.github/workflows/classify-changes.yml
+
   analyze-csharp:
     name: Analyze (csharp)
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.run_codeql_csharp == 'true'
     runs-on: windows-2025-vs2026
     timeout-minutes: 60
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v3

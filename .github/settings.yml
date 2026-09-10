@@ -202,10 +202,18 @@ branches:
         require_code_owner_reviews: false
       required_status_checks:
         strict: true
+        # Mirrors the live `Protect develop` ruleset. `PR Gate` is emitted on
+        # every PR but is NOT required yet — a maintainer must add it to the
+        # ruleset before any of the eight contexts below can be removed.
         contexts:
-          - "Build and Test (Win32)"
-          - "Build and Test (x64)"
-          - "CodeQL Security Scan"
+          - "Build x64 Release"
+          - "Build Win32 Release"
+          - "Lint build files"
+          - "Vcpkg manifest sanity"
+          - "Format Check"
+          - "secret-scan"
+          - "Analyze (c-cpp)"
+          - "Analyze (javascript-typescript)"
       enforce_admins: false
       allow_force_pushes: false
       allow_deletions: false

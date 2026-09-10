@@ -3,6 +3,12 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-10
+- **Changelog Entry:** 2026-09-10 — Two-speed GitHub Actions: change-aware PR
+  gate (skip Windows/CodeQL/Remote/C# when unrelated), CodeQL C++ `build-mode: none`
+  on PRs with full manual analysis on `develop`/weekly, vcpkg `x-gha` binary
+  cache, differential Format Check, clang-tidy moved off PRs, EnvyTests after
+  MSBuild. Live required check names are unchanged. `PR Gate` is advisory until
+  a maintainer updates the `Protect develop` ruleset.
 - **Changelog Entry:** 2026-09-10 — Safely disabled invalid ED2K/eMule SecureIdent verification (#75): no SecureIdent advertisement, no MD5/non-zero accept path, peers never marked verified without future RSA validation. Documented ED2K SecureIdent RSA roadmap and separate ED2K/Kad interop checklists. SecureIdent remains authentication/trust only — not required for ED2K connectivity.
 - **Changelog Entry:** 2026-09-08 — Restored inbound packet length validation (closed PR #69) on current `develop`: ED2K `ReadBuffer`, BitTorrent extension framing, Gnutella QueryHit `{deflate}`, GGEP `H`/`M` type-byte guards, and ED2K preview frame unsigned bounds. Shared predicates in `PacketLengthValidate.h` with EnvyTests smoke coverage. Documented QueryHit vs G1Packet `{deflate}` -10/-9 sizing as a known inconsistency (functional follow-up, not fixed here).
 - **Changelog Entry:** 2026-05-27 — Documented linear-history workflow for `develop`: squash/rebase merges only, `git pull --ff-only`, feature-branch rebase commands; aligned `.github/settings.yml` with GitHub merge settings.
@@ -27,7 +33,11 @@
 - **History:** `develop` was rewritten to a linear history with no merge commits; the old tree is preserved in the `backup/develop-before-linear-rewrite` branch (and tag of the same name) created before the rewrite.
 - **Local hygiene:** use `git pull --ff-only` on `develop`; rebase feature branches with `git rebase origin/develop` and `git push --force-with-lease`.
 - **Branch protection:** the active `Protect develop` ruleset requires pull requests, linear history, passing checks, and blocks force-pushes/deletions. `.github/settings.yml` mirrors the intended policy for Probot Settings or manual audits.
-- CI workflows exist, but should not yet be treated as mandatory merge gates until required checks are consistently emitted and stable in GitHub Actions.
+- CI uses a two-speed model: change-aware PR jobs plus full integration on
+  `develop` / scheduled analysis. The live `Protect develop` ruleset still
+  requires the eight named contexts listed in `.github/settings.yml`; `PR Gate`
+  is emitted on every PR but is not required until a maintainer updates the
+  ruleset. See `docs/10_dev/agents-and-automation.md`.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
 
@@ -44,7 +54,8 @@
 
 ## Current Status
 ### Done
-- CI workflows for build/quality/security exist.
+- CI workflows for build/quality/security exist, with a change-aware PR gate
+  and full validation after merge to `develop`.
 - Hash-focused unit tests integrated in repo and workflows.
 - Audit and core documentation baseline established.
 - Remote CRITICAL/HIGH security items remediated (CSRF, XSS sanitization, CSP hardening, redirects, rate limiter, API input validation).
@@ -132,6 +143,11 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-09-10:** Adopt a two-speed CI: path-aware PR jobs (`if:`, never
+  `paths-ignore` on required workflows), CodeQL C++ `build-mode: none` on PRs
+  and manual traced builds on `develop`/schedule, vcpkg `x-gha` + files cache.
+  Keep the eight live required check names until `PR Gate` is promoted in the
+  GitHub ruleset by a maintainer.
 - **2026-09-10:** For issue #75, choose safe disable of fake SecureIdent over
   implementing RSA in the same PR. Advertisement stays at version 0 until a
   dedicated RSA SecureIdent workstream lands. ED2K connectivity must not depend

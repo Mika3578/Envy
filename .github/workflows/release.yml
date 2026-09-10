@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -108,7 +109,13 @@ jobs:
           $resolvedCommit = (git -C $vcpkgRoot rev-parse HEAD).Trim()
           echo "VCPKG_INSTALLATION_ROOT=$vcpkgRoot" >> $env:GITHUB_ENV
           echo "VCPKG_COMMIT=$resolvedCommit" >> $env:GITHUB_ENV
-          echo "VCPKG_BINARY_SOURCES=clear;files,${{ github.workspace }}/vcpkg_cache,readwrite" >> $env:GITHUB_ENV
+          if ($env:ACTIONS_CACHE_URL) {
+            echo "ACTIONS_CACHE_URL=$env:ACTIONS_CACHE_URL" >> $env:GITHUB_ENV
+          }
+          if ($env:ACTIONS_RUNTIME_TOKEN) {
+            echo "ACTIONS_RUNTIME_TOKEN=$env:ACTIONS_RUNTIME_TOKEN" >> $env:GITHUB_ENV
+          }
+          echo "VCPKG_BINARY_SOURCES=clear;x-gha,readwrite;files,${{ github.workspace }}/vcpkg_cache,readwrite" >> $env:GITHUB_ENV
 
       - name: Cache vcpkg binary cache
         uses: actions/cache@v5
