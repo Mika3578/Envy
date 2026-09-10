@@ -80,8 +80,8 @@ Since no Examples folder exists in the repository, verification was performed ag
 - ✅ **ED2K_C2C_MULTIPACKETANSWER_EXT2** (0xB0) - MultiPacket answer Ext2
 - ✅ **ED2K_C2C_HASHSETREQUEST2** (0xB1) - Hash set request v2
 - ✅ **ED2K_C2C_HASHSETANSWER2** (0xB2) - Hash set answer v2
-- ✅ **ED2K_C2C_SECIDENTSTATE** (0x87) - SecureID challenge
-- ✅ **ED2K_C2C_SIGNATURE** (0x86) - SecureID response
+- ⚠️ **ED2K_C2C_SECIDENTSTATE** (0x87) - SecureIdent challenge (received/ignored; RSA not implemented — #75)
+- ⚠️ **ED2K_C2C_SIGNATURE** (0x86) - SecureIdent signature (received/ignored; RSA not implemented — #75)
 - ✅ **ED2K_C2C_PUBLICKEY** (0x85) - CryptLayer public key
 - ✅ **ED2K_C2C_ANSWERCryptLayer** (0xB3) - CryptLayer answer
 
@@ -134,11 +134,15 @@ Since no Examples folder exists in the repository, verification was performed ag
 ## 🔐 Security Features
 
 ### SecureID Authentication
-- ✅ **Implementation:** `Envy/EDClient.cpp:64-173`
-- ✅ **Cryptographically Secure RNG:** Uses `GenerateCryptographicBytes()` instead of `rand()`
-- ✅ **MD5 Hash:** Proper MD5 hash calculation for SecureID response
-- ✅ **Challenge-Response:** Full challenge-response protocol implemented
-- ✅ **State Management:** Proper state tracking (0=none, 1=challenging, 2=responding, 3=verified)
+- **Status (2026-09-10 / #75):** Safely disabled. Envy does **not** advertise
+  SecureIdent (`ED2K_VERSION_SECUREID = 0`) and does **not** mark peers verified.
+  The previous MD5/non-zero path was not eMule-compatible RSA verification.
+- **Policy:** `Envy/SecureIdentPolicy.h` — shared rejection predicates + tests.
+- **Handlers:** Inbound `ED2K_C2C_SECIDENTSTATE` / `ED2K_C2C_SIGNATURE` are
+  ignored without dropping the ED2K connection.
+- **Follow-up:** Real RSA SecureIdent is a separate roadmap item in
+  `docs/DEVELOPMENT_PLAN.md`. SecureIdent is authentication/trust only and is
+  not required for ED2K Hello, sources, or file transfer.
 
 ### CryptLayer Encryption
 - ✅ **Implementation:** `Envy/EDClient.cpp:155-164` (methods), `1043-1093` (decryption)
@@ -215,7 +219,7 @@ Since no Examples folder exists in the repository, verification was performed ag
 | AICH Verification | Optional | Standard | ✅ Implemented |
 | Large File Support (>4GB) | No | Standard | ✅ Implemented |
 | Compressed Transfers | No | Standard | ✅ Implemented |
-| SecureID Authentication | No | Standard | ✅ Implemented |
+| SecureID Authentication | No | Standard | ⚠️ Safely disabled (#75); RSA not implemented |
 | CryptLayer Encryption | No | Standard | ✅ Implemented |
 | Source Exchange v2 | No | Standard | ✅ Implemented |
 | MultiPacket Ext2 | No | Standard | ✅ Implemented |
@@ -322,7 +326,7 @@ Since no Examples folder exists in the repository, verification was performed ag
 ### Operational Readiness
 - ✅ **Production Ready:** Yes, all critical operations functional
 - ✅ **Interoperability:** Compatible with major ED2K clients
-- ✅ **Security:** SecureID and CryptLayer properly implemented
+- ⚠️ **Security:** CryptLayer present; SecureIdent RSA not implemented (safe-disable #75)
 - ✅ **Performance:** Optimized with streaming hashing, compression support
 
 ### Recommendation
