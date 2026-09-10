@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   previous whole-tree scan and the duplicate `format-check.yml` PR job are
   gone). clang-tidy moved off the PR path. `EnvyTests` runs after MSBuild.
   Gitleaks and dependency review remain. See `docs/10_dev/agents-and-automation.md`.
+- Documented runtime performance backlog from the 2026-09-10 audit: benchmarks (#111), `CBuffer` (#112), network hot path (#113), TransferFiles I/O (#114); IOCP and hashing optimizations deferred pending evidence.
 
 ### Security
 - Disabled invalid ED2K/eMule SecureIdent verification (#75): removed the historical MD5/non-zero response acceptance in `CEDClient`, stopped advertising SecureIdent (`ED2K_VERSION_SECUREID = 0`), and ensured peers are never marked SecureIdent-verified without eMule-compatible RSA validation (not implemented yet). Inbound SecureIdent packets are ignored without dropping ED2K connectivity. Shared policy predicates live in `Envy/SecureIdentPolicy.h` with smoke tests in `tests/test_secureident_policy_smoke.cpp`.

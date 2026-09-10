@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-10
+- **Changelog Entry:** 2026-09-10 — Runtime performance audit backlog: reproducible benchmarks (#111), then CBuffer front-consume (#112), network hot-path copies/locks (#113), TransferFiles I/O contention (#114). IOCP and dedicated hashing optimization deferred pending evidence. #102 remains CI runner latency only.
 - **Changelog Entry:** 2026-09-10 — Two-speed GitHub Actions: change-aware PR
   gate (skip Windows/CodeQL/Remote/C# when unrelated), CodeQL C++ `build-mode: none`
   on PRs with full manual analysis on `develop`/weekly, vcpkg files binary
@@ -75,7 +76,20 @@
 - [ ] Create dependency register + ownership map (2d) — **In progress on develop** (`docs/DEPENDENCIES.md` exists but remains an incomplete seed).
 - [x] Add threat model and secure-coding checklist (2d)
 - [ ] Expand tests for protocol parser/state-machine paths (5d)
-- [ ] Establish baseline metrics (startup, memory, throughput) (3d)
+- [ ] Establish baseline metrics (startup, memory, throughput) (3d) — tracked as [#111](https://github.com/Mika3578/Envy/issues/111)
+
+### Runtime performance (audit 2026-09-10)
+
+Measure before optimizing. Recommended order:
+
+1. [#111](https://github.com/Mika3578/Envy/issues/111) — reproducible runtime benchmarks (P0)
+2. [#112](https://github.com/Mika3578/Envy/issues/112) — `CBuffer` amortized front consume (P1)
+3. [#113](https://github.com/Mika3578/Envy/issues/113) — network hot-path copies / lock hold times (P1; stability dependency [#92](https://github.com/Mika3578/Envy/issues/92))
+4. [#114](https://github.com/Mika3578/Envy/issues/114) — global `TransferFiles` I/O lock contention (P1)
+5. Hashing throughput — only if #111 measurements justify a dedicated issue; keep protocol hashes unchanged
+6. IOCP — deferred until scalability evidence after Buffer/lock work; sockets are already non-blocking
+
+Do not reuse [#102](https://github.com/Mika3578/Envy/issues/102) (CI runner latency) for `Envy.exe` runtime performance.
 
 ### Phase 2 — Build/Quality Convergence (P1)
 - [ ] Define CMake migration boundary and milestones (3d)
@@ -143,6 +157,7 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-09-10:** Runtime performance work starts with reproducible benchmarks (#111). No IOCP rewrite issue until peer-scalability evidence after Buffer/lock optimizations. No dedicated LibraryBuilder hashing issue until measurements show a user-visible bottleneck. #92 stays correctness/stability (lock order); #113 tracks contention separately.
 - **2026-09-10:** Adopt a two-speed CI: path-aware PR jobs (`if:`, never
   `paths-ignore` on required workflows), CodeQL C++ `build-mode: none` on PRs
   and manual traced builds on `develop`/schedule, vcpkg files binary cache
