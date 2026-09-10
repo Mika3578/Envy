@@ -615,7 +615,10 @@ public:
 
 // AICH support level
 #define ED2K_VERSION_AICH			0x01	// Basic AICH support
-#define ED2K_VERSION_SECUREID		0x03	// eMule SecureID version 3 (challenge/response implemented)
+// Advertise 0 until eMule-compatible RSA SecureIdent verification exists (#75).
+// Claiming 0x03 previously implied working SecureIdent while Envy only ran a
+// non-cryptographic MD5/non-zero check that could mark peers as verified.
+#define ED2K_VERSION_SECUREID		0x00
 
 #define ED2K_DEFAULT_MULTICAST_ADDRESS	"224.0.0.1"
 #define ED2K_DEFAULT_MULTICAST_PORT	5000

@@ -1946,6 +1946,9 @@
     <ClInclude Include="PacketLengthValidate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SecureIdentPolicy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="PacketBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
