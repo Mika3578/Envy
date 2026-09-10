@@ -8,7 +8,7 @@ check() {
 	local key="$3"
 	local expect="$4"
 	local got
-	got=$(CLASSIFY_EVENT=pull_request CLASSIFY_FILES="$files" bash .github/scripts/classify-changes.sh | awk -F= -v k="$key" '$1==k {print $2}')
+	got=$(GITHUB_OUTPUT= CLASSIFY_EVENT=pull_request CLASSIFY_FILES="$files" bash .github/scripts/classify-changes.sh | awk -F= -v k="$key" '$1==k {v=$2} END {print v}')
 	if [ "$got" != "$expect" ]; then
 		echo "FAIL $name: $key got='$got' want='$expect'"
 		CLASSIFY_EVENT=pull_request CLASSIFY_FILES="$files" bash .github/scripts/classify-changes.sh
@@ -33,6 +33,6 @@ check csharp $'Languages/Tools/SkinUpdater/Program.cs' run_codeql_csharp true
 check csharp-win $'Languages/Tools/SkinUpdater/Program.cs' run_windows_build false
 check deps $'vcpkg.json' run_dep_review true
 check deps-win $'vcpkg.json' run_windows_build true
-got=$(CLASSIFY_EVENT=push bash .github/scripts/classify-changes.sh | awk -F= '$1=="run_windows_build"{print $2}')
+got=$(GITHUB_OUTPUT= CLASSIFY_EVENT=push bash .github/scripts/classify-changes.sh | awk -F= '$1=="run_windows_build"{v=$2} END{print v}')
 if [ "$got" != "true" ]; then echo "FAIL push run_windows_build=$got"; fail=1; else echo "OK   push-full"; fi
 exit "$fail"

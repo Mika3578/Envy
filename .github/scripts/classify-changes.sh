@@ -10,15 +10,15 @@
 set -euo pipefail
 
 EVENT_NAME="${CLASSIFY_EVENT:-${EVENT_NAME:-${GITHUB_EVENT_NAME:-}}}"
-OUTPUT_FILE="${GITHUB_OUTPUT:-/dev/stdout}"
 
 write_out() {
 	local key="$1"
 	local value="$2"
-	if [[ "$OUTPUT_FILE" == "/dev/stdout" ]]; then
-		printf '%s=%s\n' "$key" "$value"
-	else
-		printf '%s=%s\n' "$key" "$value" >>"$OUTPUT_FILE"
+	# Always echo to stdout so local self-tests and CI logs can read flags.
+	# GITHUB_OUTPUT is also set on Actions runners, including the lint job.
+	printf '%s=%s\n' "$key" "$value"
+	if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+		printf '%s=%s\n' "$key" "$value" >>"$GITHUB_OUTPUT"
 	fi
 }
 
