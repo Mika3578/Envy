@@ -35,6 +35,7 @@
 #include "ZLib.h"
 #include "XML.h"
 #include "GGEP.h"
+#include "PacketLengthValidate.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -902,7 +903,12 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 	pPacket->Read( pRaw.get(), nSize );
 
 	LPBYTE pszXML = NULL;
-	if ( nSize >= 9 && strncmp( (LPCSTR)pRaw.get(), "{deflate}", 9 ) == 0 )
+	// Require at least one compressed byte after the 9-byte "{deflate}" marker
+	// so "nSize - 10" cannot underflow. Keep the historical -10 sizing (sibling
+	// G1Packet.cpp uses len-9 after advancing the pointer); do not "fix" that
+	// off-by-one here — memory safety only.
+	if ( G1QueryHitDeflateXmlLengthOk( nSize ) &&
+		 strncmp( (LPCSTR)pRaw.get(), "{deflate}", 9 ) == 0 )
 	{
 		// Deflate data
 		DWORD nRealSize = 0;
@@ -1108,6 +1114,10 @@ void CQueryHit::ReadGGEP(CG1Packet* pPacket)
 		{
 			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) )
 			{
+				// Zero-length "H" leaves m_pBuffer NULL — guard before type byte.
+				if ( ! GgepItemHasTypeByte( pItemPos->m_pBuffer, pItemPos->m_nLength ) )
+					continue;
+
 				switch ( pItemPos->m_pBuffer[0] )
 				{
 				case GGEP_H_SHA1:
