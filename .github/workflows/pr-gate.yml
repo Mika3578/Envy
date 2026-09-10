@@ -1,0 +1,55 @@
+name: PR Gate
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: read
+
+concurrency:
+  group: pr-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Classify (gate)
+    uses: ./.github/workflows/classify-changes.yml
+
+  gate:
+    name: PR Gate
+    needs: changes
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Fail if classification failed
+        if: needs.changes.result != 'success'
+        run: |
+          echo "::error::Change classification did not succeed (${{ needs.changes.result }})."
+          exit 1
+
+      - name: Wait for expected PR checks
+        if: needs.changes.result == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          MERGE_SHA: ${{ github.sha }}
+          RUN_WINDOWS_BUILD: ${{ needs.changes.outputs.run_windows_build }}
+          RUN_CODEQL_CPP: ${{ needs.changes.outputs.run_codeql_cpp }}
+          RUN_CODEQL_JS: ${{ needs.changes.outputs.run_codeql_js }}
+          RUN_CODEQL_CSHARP: ${{ needs.changes.outputs.run_codeql_csharp }}
+          RUN_REMOTE_JS: ${{ needs.changes.outputs.run_remote_js }}
+          RUN_FORMAT: ${{ needs.changes.outputs.run_format }}
+          RUN_DEP_REVIEW: ${{ needs.changes.outputs.run_dep_review }}
+          TIMEOUT_SEC: "3000"
+          POLL_SEC: "20"
+        run: bash .github/scripts/pr-gate.sh

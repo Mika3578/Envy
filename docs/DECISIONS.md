@@ -10,3 +10,4 @@ This is a concise decision register. Use for major repo-level operating decision
 | D-004 | 2026-05-15 | CMake remains partial and non-authoritative. | Current CMake coverage does not represent full runtime build graph. | Active |
 | D-005 | 2026-05-15 | Protocol changes must preserve wire compatibility by default. | Interoperability across legacy P2P networks is critical. | Active |
 | D-006 | 2026-05-15 | Modernization proceeds incrementally via small reviewable PRs. | Reduces regression risk in legacy coupled codebase. | Active |
+| D-007 | 2026-09-10 | Two-speed CI: change-aware PR gate; exhaustive analysis on `develop`/schedule. Keep live required check names until `PR Gate` is promoted in the ruleset. | PR feedback was dominated by a second CodeQL C++ MSBuild (~18 min) and unconditional Windows/JS/C# jobs. | Active |
