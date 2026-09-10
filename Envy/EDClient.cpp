@@ -24,6 +24,7 @@
 #include "EDPacket.h"
 #include "EDSourcePacketValidate.h"
 #include "PacketLengthValidate.h"
+#include "SecureIdentPolicy.h"
 #include "EDNeighbour.h"
 #include "FileIdentifier.h"
 #include "Neighbours.h"
@@ -62,171 +63,81 @@ static char THIS_FILE[] = __FILE__;
 
 //////////////////////////////////////////////////////////////////////
 // CEDClient SecureID authentication
+//
+// Safe disable (#75): Envy does not implement eMule RSA SecureIdent yet.
+// Do not advertise the capability, do not send fake MD5 challenges/responses,
+// and never mark a peer verified. Inbound SecureIdent packets are ignored
+// without dropping the ED2K connection — SecureIdent is not required for
+// Hello, sources, or file transfer.
 
 void CEDClient::GenerateSecureIdent()
 {
-	// Generate cryptographically secure 6-byte SecureID challenge (P0.2 security requirement)
-	if (!GenerateCryptographicBytes(m_nSecureIdent, 6)) {
-		// Critical security failure - cannot generate secure SecureID
-		theApp.Message(MSG_ERROR, L"ED2K: Failed to generate secure random bytes for SecureID challenge");
-		// Set to zero as fallback (not secure but prevents using rand())
-		memset(m_nSecureIdent, 0, 6);
-	}
-	m_nSecureIdentState = 1; // Challenging
+	// Reserved for future eMule RSA SecureIdent challenge generation.
+	memset(m_nSecureIdent, 0, sizeof(m_nSecureIdent));
+	m_nSecureIdentState = ED2K_SECUREIDENT_STATE_NONE;
 }
 
 BOOL CEDClient::SendSecureIdentChallenge()
 {
-	if (!m_bEmSecureID || m_nSecureIdentState != 1)
-		return FALSE;
-
-	CEDPacket* pPacket = CEDPacket::New(ED2K_C2C_SECIDENTSTATE);
-
-	if (!pPacket)
-		return FALSE;
-
-	// Write challenge data (6 bytes)
-	pPacket->Write(m_nSecureIdent, 6);
-
-	// Send challenge
-	Send(pPacket);
-
-	return TRUE;
+	// Do not emit SecureIdent challenges until RSA verification exists.
+	return FALSE;
 }
 
 BOOL CEDClient::ProcessSecureIdentChallenge(CEDPacket* pPacket)
 {
-	if (!pPacket || !m_bEmSecureID)
+	if ( ! pPacket )
 		return FALSE;
 
-	// Read challenge data (6 bytes)
-	if (pPacket->GetRemaining() != 6)
-		return FALSE;
-
-	pPacket->Read(m_nSecureIdent, 6);
-
-	// Generate response based on our client ID and challenge
-	GenerateSecureIdentResponse();
-
-	// Send response
-	return SendSecureIdentResponse();
+	// Ignore inbound challenges (any length). Do not answer with the old
+	// MD5 payload and do not mark the peer verified. Keep the connection.
+	m_nSecureIdentState = Ed2kSecureIdentStateAfterRejectedResponse();
+	return TRUE;
 }
 
 void CEDClient::GenerateSecureIdentResponse()
 {
-	// eMule SecureID response algorithm:
-	// Response = MD5(ClientID + Challenge + RandomBytes)
-
-	BYTE hashInput[16]; // 4 bytes ClientID + 6 bytes challenge + 6 bytes random
-	DWORD clientID = m_nClientID;
-
-	// Copy client ID (little endian)
-	hashInput[0] = (BYTE)(clientID & 0xFF);
-	hashInput[1] = (BYTE)((clientID >> 8) & 0xFF);
-	hashInput[2] = (BYTE)((clientID >> 16) & 0xFF);
-	hashInput[3] = (BYTE)((clientID >> 24) & 0xFF);
-
-	// Copy challenge
-	memcpy(hashInput + 4, m_nSecureIdent, 6);
-
-	// Add cryptographically secure randomness (P0.2 security requirement)
-	if (!GenerateCryptographicBytes(hashInput + 10, 6)) {
-		// Critical security failure - cannot generate secure random bytes
-		theApp.Message(MSG_ERROR, L"ED2K: Failed to generate secure random bytes for SecureID response");
-		// Set to zero as fallback (not secure but prevents using rand())
-		memset(hashInput + 10, 0, 6);
-	}
-
-	// Compute MD5 hash of the input data
-	CMD5 pMD5;
-	pMD5.Add(hashInput, sizeof(hashInput));
-	pMD5.Finish();
-
-	// Get the 16-byte MD5 hash
-	BYTE md5Hash[16];
-	pMD5.GetHash(md5Hash);
-
-	// Use first 6 bytes of MD5 hash as response (matches eMule specification)
-	memcpy(m_nSecureIdent, md5Hash, 6);
-
-	m_nSecureIdentState = 2; // Responding
+	// Reserved for future RSA signature response generation.
+	memset(m_nSecureIdent, 0, sizeof(m_nSecureIdent));
+	m_nSecureIdentState = ED2K_SECUREIDENT_STATE_NONE;
 }
 
 BOOL CEDClient::SendSecureIdentResponse()
 {
-	if (m_nSecureIdentState != 2)
-		return FALSE;
-
-	CEDPacket* pPacket = CEDPacket::New(ED2K_C2C_SIGNATURE);
-
-	if (!pPacket)
-		return FALSE;
-
-	// Write response data (6 bytes)
-	pPacket->Write(m_nSecureIdent, 6);
-
-	// Send response
-	Send(pPacket);
-
-	m_nSecureIdentState = 3; // Response sent
-
-	return TRUE;
+	// Do not emit SecureIdent signatures until RSA signing exists.
+	return FALSE;
 }
 
 BOOL CEDClient::ProcessSecureIdentResponse(CEDPacket* pPacket)
 {
-	if (!pPacket || m_nSecureIdentState != 1)
+	if ( ! pPacket )
 		return FALSE;
 
-	// Read response data (6 bytes)
-	BYTE response[6];
-	if (pPacket->GetRemaining() != 6)
-		return FALSE;
-
-	pPacket->Read(response, 6);
-
-	// Verify response matches expected challenge response
-	if (VerifySecureIdentResponse(response))
+	// Consume whatever payload is present without accepting identity.
+	const DWORD nRemaining = pPacket->GetRemaining();
+	if ( nRemaining > 0 )
 	{
-		m_nSecureIdentState = 3; // Verified
-		return TRUE;
+		const DWORD nTake = min( nRemaining, (DWORD)512 );
+		BYTE scratch[512];
+		pPacket->Read( scratch, (int)nTake );
 	}
 
-	// Verification failed
-	m_nSecureIdentState = 0; // Reset
-	return FALSE;
+	m_nSecureIdentState = Ed2kSecureIdentStateAfterRejectedResponse();
+	// Keep ED2K connectivity; SecureIdent failure must not drop the peer.
+	return TRUE;
 }
 
 BOOL CEDClient::VerifySecureIdentResponse(const BYTE* response) const
 {
-	// Verify the response matches what we expect based on our challenge
-	BYTE expectedResponse[6];
-	BYTE hashInput[16];
-
-	// Reconstruct the hash input that the peer should have used
-	DWORD peerID = m_nClientID; // This should be the peer's ID, not ours
-	hashInput[0] = (BYTE)(peerID & 0xFF);
-	hashInput[1] = (BYTE)((peerID >> 8) & 0xFF);
-	hashInput[2] = (BYTE)((peerID >> 16) & 0xFF);
-	hashInput[3] = (BYTE)((peerID >> 24) & 0xFF);
-
-	// Copy the challenge we sent
-	memcpy(hashInput + 4, m_nSecureIdent, 6);
-
-	// We don't know the random bytes the peer used, so we can't verify
-	// In a proper implementation, we'd need to store the random bytes
-	// For now, just accept any non-zero response as valid
-	for (int i = 0; i < 6; i++)
-	{
-		if (response[i] != 0)
-			return TRUE;
-	}
-	return FALSE;
+	// Historical MD5/non-zero acceptance removed. Real eMule SecureIdent
+	// requires verifying an RSA signature over the challenge with the peer's
+	// published public key — not implemented yet.
+	const DWORD nLength = response ? 6u : 0u;
+	return Ed2kSecureIdentAcceptResponse( response, nLength );
 }
 
 BOOL CEDClient::VerifySecureIdent() const
 {
-	return (m_nSecureIdentState == 3); // Fully verified
+	return Ed2kSecureIdentIsVerifiedState( m_nSecureIdentState );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -506,7 +417,7 @@ CEDClient::CEDClient()
 	, m_bEmUnicode			( FALSE )
 	, m_bEmUDPVersion		( FALSE )
 	, m_bEmDeflate			( FALSE )
-	, m_bEmSecureID			( TRUE )	// SecureID authentication enabled
+	, m_bEmSecureID			( FALSE )	// Do not claim SecureIdent locally (#75); peer nibble still parsed
 	, m_bEmSources			( FALSE )
 	, m_bEmRequest			( FALSE )
 	, m_bEmComments			( FALSE )
@@ -525,7 +436,7 @@ CEDClient::CEDClient()
 	, m_nEmKadVersion		( 0 )		// Unsupported
 
 	// SecureID state
-	, m_nSecureIdentState	( 0 )		// No authentication in progress
+	, m_nSecureIdentState	( ED2K_SECUREIDENT_STATE_NONE )
 
 	// Misc stuff
 	, m_pDownloadTransfer	( NULL )
@@ -728,12 +639,8 @@ void CEDClient::CopyCapabilities(CEDClient* pClient)
 	if ( ! m_bEmDeflate )			m_bEmDeflate = pClient->m_bEmDeflate;
 	if ( ! m_bEmSecureID )			m_bEmSecureID = pClient->m_bEmSecureID;
 
-	// Initiate SecureID authentication if both support it and we're connected
-	if ( m_bEmSecureID && pClient->m_bEmSecureID && m_nSecureIdentState == 0 )
-	{
-		GenerateSecureIdent();
-		SendSecureIdentChallenge();
-	}
+	// Do not start SecureIdent challenges: RSA verification is not implemented
+	// (#75). Peer capability bits are still copied for diagnostics only.
 	if ( ! m_bEmSources )			m_bEmSources = pClient->m_bEmSources;
 	if ( ! m_bEmRequest )			m_bEmRequest = pClient->m_bEmRequest;
 	if ( ! m_bEmComments )			m_bEmComments = pClient->m_bEmComments;
@@ -1454,7 +1361,7 @@ void CEDClient::SendHello(BYTE nType)
 					 ( TRUE << 28 ) |								// Unicode
 					 ( ED2K_VERSION_UDP << 24 ) |					// UDP version
 					 ( ED2K_VERSION_COMPRESSION << 20 ) |			// Compression
-					 ( ED2K_VERSION_SECUREID << 16 ) |				// Secure ID
+					 ( Ed2kSecureIdentAdvertisedVersion() << 16 ) |	// Secure ID (0: not implemented / not advertised)
 					 ( ED2K_VERSION_SOURCEEXCHANGE << 12 ) |		// Source exchange
 					 ( nExtendedRequests << 8 ) |					// Extended requests
 					 ( ED2K_VERSION_COMMENTS << 4 ) |				// Comments

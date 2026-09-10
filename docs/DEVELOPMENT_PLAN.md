@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-08
+- **Last Updated:** 2026-09-10
+- **Changelog Entry:** 2026-09-10 — Safely disabled invalid ED2K/eMule SecureIdent verification (#75): no SecureIdent advertisement, no MD5/non-zero accept path, peers never marked verified without future RSA validation. Documented ED2K SecureIdent RSA roadmap and separate ED2K/Kad interop checklists. SecureIdent remains authentication/trust only — not required for ED2K connectivity.
 - **Changelog Entry:** 2026-09-08 — Restored inbound packet length validation (closed PR #69) on current `develop`: ED2K `ReadBuffer`, BitTorrent extension framing, Gnutella QueryHit `{deflate}`, GGEP `H`/`M` type-byte guards, and ED2K preview frame unsigned bounds. Shared predicates in `PacketLengthValidate.h` with EnvyTests smoke coverage. Documented QueryHit vs G1Packet `{deflate}` -10/-9 sizing as a known inconsistency (functional follow-up, not fixed here).
 - **Changelog Entry:** 2026-05-27 — Documented linear-history workflow for `develop`: squash/rebase merges only, `git pull --ff-only`, feature-branch rebase commands; aligned `.github/settings.yml` with GitHub merge settings.
 - **Changelog Entry:** 2026-05-17 — Improved CodeQL C# analysis precision by introducing a dedicated manual-build workflow and documenting legacy FictionBookReader build blockers plus minimal .NET Framework 4.8 retarget path.
@@ -75,6 +76,54 @@
 - [ ] Version plugin-facing APIs and compatibility policy (5d)
 - [ ] Create automated dependency/SBOM release artifact (3d)
 
+## ED2K / eMule SecureIdent roadmap
+
+**Important:** SecureIdent is an authentication/trust feature. It must not be
+confused with ED2K connectivity or Kad. Short-term goal: Envy remains visible,
+can communicate, search, exchange sources, and transfer files with compatible
+ED2K clients even when SecureIdent is unavailable. RSA SecureIdent comes later
+to improve authentication and eMule credit-system compatibility.
+
+### Current (#75 — safe disable)
+- [x] Stop advertising SecureIdent (`ED2K_VERSION_SECUREID = 0`).
+- [x] Never accept MD5/non-zero/legacy responses as verified.
+- [x] Ignore inbound SecureIdent packets without dropping ED2K connections.
+- [x] Keep ED2K transfer independent of SecureIdent.
+
+### Future RSA SecureIdent (separate workstream)
+1. Baseline ED2K interoperability with eMule/aMule without SecureIdent.
+2. Confirm Envy works correctly when SecureIdent is unsupported/unavailable.
+3. Implement real eMule SecureIdent (not the removed MD5 stub).
+4. Remote public-key handling (`ED2K_C2C_PUBLICKEY` / peer key store).
+5. Local private-key generation/persistence if required by the protocol.
+6. Protocol-correct SecureIdent challenge (`ED2K_C2C_SECIDENTSTATE`).
+7. RSA signature generation (`ED2K_C2C_SIGNATURE`).
+8. RSA signature verification against the peer public key.
+9. Correct binding of identity / userhash / challenge / peer context.
+10. Explicit SecureIdent state machine: unsupported, unavailable/incomplete,
+    unverified, verified, failed.
+11. Rejection tests: invalid signature, wrong key, wrong challenge, replay,
+    response from another client.
+12. Live interop tests: Envy ↔ eMule, Envy ↔ aMule, ideally eMule ↔ Envy ↔ aMule.
+
+Protocol references for that future work: eDonkey paper, aMule ED2K wiki,
+eMule protocol notes, and the eMuleCommunity reference tree (adapt behavior;
+do not copy blindly).
+
+### Future ED2K interoperability checklist (document only)
+Hello/HelloAnswer, MuleInfo/MuleInfoAnswer, userhash, ClientID, HighID/LowID,
+LowID callback, advertised capabilities/extensions, extended protocol,
+compression, multipacket, search, source exchange, publish-as-source,
+upload/download, large files, and clean handling of unsupported extensions.
+**Rule:** Envy must advertise an eMule capability only when it is actually
+implemented and sufficiently tested.
+
+### Future Kad interoperability checklist (document only — out of #75 scope)
+Bootstrap, routing table, Node ID, UDP, HELLO/HELLO_RES, PING/PONG, FIND_NODE,
+keyword search, source search, publish, firewall check, UDP firewall, Buddy,
+NAT traversal, Kad versions, HighID/LowID/firewalled behavior, and
+eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
+
 ## Backlog
 - [ ] Replace unsafe string operations in first-party code (incremental: bounded keyword copy in legacy Kad publish packet builder completed)
 - Consolidate duplicate roadmap/status markdown into canonical set
@@ -83,6 +132,10 @@
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-09-10:** For issue #75, choose safe disable of fake SecureIdent over
+  implementing RSA in the same PR. Advertisement stays at version 0 until a
+  dedicated RSA SecureIdent workstream lands. ED2K connectivity must not depend
+  on SecureIdent.
 - **2026-05-27:** Rewrote `develop` into a linear history with no merge commits while preserving the final tree through backup refs; enforce linear history going forward via the active `Protect develop` ruleset, GitHub merge settings (no merge commits; squash/rebase only), and contributor `git pull --ff-only` hygiene.
 - **2026-05-15:** Repository hygiene baseline on `develop` requires explicit branch-state tracking and GitHub label prerequisites (`ci`, `dependencies`) before enforcing CI as mandatory gates.
 - **2026-04-22:** Added IPv6 dual-stack Phase 0 scoping inventory and phased rollout plan under `docs/ipv6/`.

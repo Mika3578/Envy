@@ -55,9 +55,9 @@ public:
 	DWORD		m_nEmCompatible;
 	DWORD		m_nSoftwareVersion;
 
-	// SecureID authentication
-	BYTE		m_nSecureIdent[6];		// SecureID challenge/response data
-	DWORD		m_nSecureIdentState;	// SecureID state (0=none, 1=challenging, 2=responding, 3=verified)
+	// SecureID authentication (RSA SecureIdent not implemented — see SecureIdentPolicy.h / #75)
+	BYTE		m_nSecureIdent[6];		// Reserved challenge/response buffer for future RSA SecureIdent
+	DWORD		m_nSecureIdentState;	// ED2K_SECUREIDENT_STATE_*; verified only after real RSA
 
 	// CryptLayer support
 	BOOL		m_bCryptLayerActive;	// CryptLayer encryption is active
@@ -77,7 +77,7 @@ public:
 	BOOL		m_bEmUnicode;
 	BOOL		m_bEmUDPVersion;
 	BOOL		m_bEmDeflate;
-	BOOL		m_bEmSecureID;				// Not supported
+	BOOL		m_bEmSecureID;				// Peer FeatureVersions SecureIdent nibble (local advertise is 0)
 	BOOL		m_bEmSources;
 	BOOL		m_bEmRequest;
 	BOOL		m_bEmComments;
