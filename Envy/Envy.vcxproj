@@ -1295,6 +1295,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="EDNeighbour.h" />
     <ClInclude Include="EDPacket.h" />
     <ClInclude Include="EDSourcePacketValidate.h" />
+    <ClInclude Include="PacketLengthValidate.h" />
     <ClInclude Include="EDPartImporter.h" />
     <ClInclude Include="Emoticons.h" />
     <ClInclude Include="FileExecutor.h" />
