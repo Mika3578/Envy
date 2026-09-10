@@ -4,7 +4,7 @@ This document tracks important current constraints that affect development and v
 
 - **Toolchain runner dependency:** Authoritative `v145` parity is not guaranteed in every hosted CI context.
 - **Incomplete CMake:** Top-level CMake does not yet model the full authoritative application build.
-- **Limited protocol parser tests:** Automated coverage for malformed/edge packet paths is still shallow.
+- **Limited protocol parser tests:** Automated coverage for malformed/edge packet paths remains partial; ED2K SourceEx and inbound length-underflow guards are covered by `tests/test_protocol_parser_smoke.cpp`, but full MFC-linked ReadBuffer integration tests are still absent.
 - **Legacy UI/core coupling:** MFC and core protocol logic remain tightly coupled in key paths.
 - **Partial IPv6 support:** IPv6 capability is not fully integrated end-to-end.
 - **CI limitations:** CI signals are useful but not a complete substitute for full local/VS validation.

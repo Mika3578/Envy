@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "BTPacket.h"
+#include "PacketLengthValidate.h"
 
 #include "BENode.h"
 #include "BTClient.h"
@@ -545,9 +546,20 @@ CBTPacket* CBTPacket::ReadBuffer(CBuffer* pBuffer)
 	{
 		if ( pBuffer->m_pBuffer[ 0 ] == BT_PACKET_EXTENSION )
 		{
-			// Read extension packet
-			pPacket = CBTPacket::New( BT_PACKET_EXTENSION,
-				pBuffer->m_pBuffer[ 1 ], pBuffer->m_pBuffer + 2, nLength - 2 );
+			// BEP-10 extension needs message id (20) + extended id before
+			// "nLength - 2" is safe. Wire keep-alive is length-prefix 0 only
+			// (handled above); length 1 with id 20 is malformed, not a keep-alive.
+			if ( BtExtensionPayloadLengthOk( nLength ) )
+				pPacket = CBTPacket::New( BT_PACKET_EXTENSION,
+					pBuffer->m_pBuffer[ 1 ], pBuffer->m_pBuffer + 2, nLength - 2 );
+			else
+			{
+				// Drop the short frame (Remove below) and return an empty
+				// extension/NOP no-op so OnRead keeps draining later packets.
+				// Do not synthesize BT_PACKET_KEEPALIVE: that type is reserved
+				// for real length-prefix-0 keep-alives.
+				pPacket = CBTPacket::New( BT_PACKET_EXTENSION, BT_EXTENSION_NOP );
+			}
 		}
 		else
 		{

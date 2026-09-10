@@ -26,3 +26,10 @@ ctest --test-dir build
 - Hashing/core utilities: maintain high coverage.
 - Protocol handlers: add targeted unit tests for packet parse/serialize logic.
 - Persistence/config migration: add regression tests for settings and schema changes.
+
+## Packet length validation smoke tests
+- `tests/test_protocol_parser_smoke.cpp` exercises pure predicates in
+  `Envy/EDSourcePacketValidate.h` and `Envy/PacketLengthValidate.h`
+  (ED2K TCP length, BT extension length, G1 `{deflate}` bound, GGEP type
+  byte, ED2K preview frame size). These mirror the guards used by the
+  live parsers without linking the full MFC application.
