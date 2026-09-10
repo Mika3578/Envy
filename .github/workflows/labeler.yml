@@ -8,7 +8,7 @@ permissions:
   contents: read
   pull-requests: write
 
-# actions/labeler@v6 has no Node 24 release yet; opt in until upstream ships one.
+# actions/labeler@v7 has no Node 24 release yet; opt in until upstream ships one.
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
@@ -28,7 +28,7 @@ jobs:
             echo "No files changed in this pull request; labeler will be skipped."
           fi
 
-      - uses: actions/labeler@v6
+      - uses: actions/labeler@v7
         if: steps.changes.outputs.count != '0'
         with:
           configuration-path: .github/labeler.yml
