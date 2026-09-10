@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CI two-speed gate** — Pull requests classify changed paths and skip
   Windows/CodeQL/Remote/C# jobs that are not needed. PR CodeQL C/C++ uses
   `build-mode: none` (no second solution build); `develop`/weekly keep a
-  traced manual build. vcpkg now uses GitHub Actions binary caching (`x-gha`)
-  alongside the existing files cache. `Format Check` is differential (the
+  traced manual build. vcpkg keeps the `vcpkg-v3-…` files binary cache
+  (Win32 included; current vcpkg has removed `x-gha`). `Format Check` is differential (the
   previous whole-tree scan and the duplicate `format-check.yml` PR job are
   gone). clang-tidy moved off the PR path. `EnvyTests` runs after MSBuild.
   Gitleaks and dependency review remain. See `docs/10_dev/agents-and-automation.md`.

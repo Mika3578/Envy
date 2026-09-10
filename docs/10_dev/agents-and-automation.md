@@ -72,8 +72,9 @@ a live required context yet. After it is stable, a maintainer can require only
 
 ### Caches and CodeQL
 
-- vcpkg uses GitHub Actions binary caching (`x-gha`) plus the existing
-  `actions/cache` files backend (`vcpkg-v3-…` keys, including Win32/`x86`).
+- vcpkg uses the `actions/cache` files backend (`vcpkg-v3-…` keys, including
+  Win32/`x86`). Current vcpkg has removed `x-gha`; a NuGet GitHub provider is
+  a follow-up if that cache starts evicting again.
 - PR CodeQL C/C++ uses `build-mode: none` (no second MSBuild). `develop` /
   weekly / manual keep `build-mode: manual` after vcpkg restore.
 - Gitleaks and Dependency Review stay. Dependency Review runs when manifests

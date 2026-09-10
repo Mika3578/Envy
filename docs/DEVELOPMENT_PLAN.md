@@ -5,8 +5,8 @@
 - **Last Updated:** 2026-09-10
 - **Changelog Entry:** 2026-09-10 — Two-speed GitHub Actions: change-aware PR
   gate (skip Windows/CodeQL/Remote/C# when unrelated), CodeQL C++ `build-mode: none`
-  on PRs with full manual analysis on `develop`/weekly, vcpkg `x-gha` binary
-  cache, differential Format Check, clang-tidy moved off PRs, EnvyTests after
+  on PRs with full manual analysis on `develop`/weekly, vcpkg files binary
+  cache (Win32 included; `x-gha` is gone upstream), differential Format Check, clang-tidy moved off PRs, EnvyTests after
   MSBuild. Live required check names are unchanged. `PR Gate` is advisory until
   a maintainer updates the `Protect develop` ruleset.
 - **Changelog Entry:** 2026-09-10 — Safely disabled invalid ED2K/eMule SecureIdent verification (#75): no SecureIdent advertisement, no MD5/non-zero accept path, peers never marked verified without future RSA validation. Documented ED2K SecureIdent RSA roadmap and separate ED2K/Kad interop checklists. SecureIdent remains authentication/trust only — not required for ED2K connectivity.
@@ -145,8 +145,8 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 ## Decisions Log
 - **2026-09-10:** Adopt a two-speed CI: path-aware PR jobs (`if:`, never
   `paths-ignore` on required workflows), CodeQL C++ `build-mode: none` on PRs
-  and manual traced builds on `develop`/schedule, vcpkg `x-gha` + files cache.
-  Keep the eight live required check names until `PR Gate` is promoted in the
+  and manual traced builds on `develop`/schedule, vcpkg files binary cache
+  (`x-gha` removed upstream). Keep the eight live required check names until `PR Gate` is promoted in the
   GitHub ruleset by a maintainer.
 - **2026-09-10:** For issue #75, choose safe disable of fake SecureIdent over
   implementing RSA in the same PR. Advertisement stays at version 0 until a
