@@ -33,3 +33,9 @@ ctest --test-dir build
   (ED2K TCP length, BT extension length, G1 `{deflate}` bound, GGEP type
   byte, ED2K preview frame size). These mirror the guards used by the
   live parsers without linking the full MFC application.
+
+## SecureIdent policy smoke tests
+- `tests/test_secureident_policy_smoke.cpp` exercises `Envy/SecureIdentPolicy.h`
+  for issue #75: null/empty/zero/non-zero/legacy-MD5 responses are rejected,
+  SecureIdent is not advertised (`ED2K_VERSION_SECUREID == 0`), state never
+  becomes verified, and ED2K transfer does not require SecureIdent.
