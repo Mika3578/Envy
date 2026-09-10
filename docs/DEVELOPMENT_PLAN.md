@@ -90,7 +90,7 @@ to improve authentication and eMule credit-system compatibility.
 - [x] Ignore inbound SecureIdent packets without dropping ED2K connections.
 - [x] Keep ED2K transfer independent of SecureIdent.
 
-### Future RSA SecureIdent (separate chantier)
+### Future RSA SecureIdent (separate workstream)
 1. Baseline ED2K interoperability with eMule/aMule without SecureIdent.
 2. Confirm Envy works correctly when SecureIdent is unsupported/unavailable.
 3. Implement real eMule SecureIdent (not the removed MD5 stub).
@@ -134,7 +134,7 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 ## Decisions Log
 - **2026-09-10:** For issue #75, choose safe disable of fake SecureIdent over
   implementing RSA in the same PR. Advertisement stays at version 0 until a
-  dedicated RSA SecureIdent chantier lands. ED2K connectivity must not depend
+  dedicated RSA SecureIdent workstream lands. ED2K connectivity must not depend
   on SecureIdent.
 - **2026-05-27:** Rewrote `develop` into a linear history with no merge commits while preserving the final tree through backup refs; enforce linear history going forward via the active `Protect develop` ruleset, GitHub merge settings (no merge commits; squash/rebase only), and contributor `git pull --ff-only` hygiene.
 - **2026-05-15:** Repository hygiene baseline on `develop` requires explicit branch-state tracking and GitHub label prerequisites (`ci`, `dependencies`) before enforcing CI as mandatory gates.
