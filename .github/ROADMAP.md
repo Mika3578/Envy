@@ -1,6 +1,13 @@
 # Envy Project Roadmap
 
-This document outlines the planned improvements and features for the Envy P2P client.
+Canonical sequencing and status:
+
+- `docs/DEVELOPMENT_PLAN.md` (P0–P3 protocol/architecture sequence)
+- `docs/10_dev/roadmap.md` (technical items)
+- `docs/10_dev/status.md` (evidence matrix)
+- `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` (external projects)
+
+This file is a historical product-roadmap sketch (2024–2025 dates). Do not treat the checkboxes below as current protocol completeness. Envy remains multi-network (BitTorrent, G1, G2, ED2K, Kad, Direct Connect).
 
 ## Current Focus: Modernization (Q4 2024)
 

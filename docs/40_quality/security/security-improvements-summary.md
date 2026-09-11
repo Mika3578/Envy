@@ -1,6 +1,8 @@
-# 🔐 P0.2 Security Improvements Summary
+**Correction (2026-09-11):** Cryptographic RNG replacements in this note may still be valid for Kad node IDs and related helpers. They do **not** mean eMule SecureIdent is implemented. Envy does not advertise SecureIdent (`ED2K_VERSION_SECUREID = 0`) and never marks peers verified (#75). Canonical status: `docs/10_dev/status.md`.
 
-**Version:** 1.0 | **Date:** January 17, 2026 | **Status:** IMPLEMENTED ✅
+# P0.2 Security Improvements Summary
+
+**Version:** 1.1 | **Date:** January 17, 2026 (SecureIdent claims corrected 2026-09-11) | **Status:** RNG work recorded; SecureIdent RSA **not implemented**
 
 ---
 
@@ -19,7 +21,7 @@ The Envy P2P client has undergone comprehensive security enhancements to address
 | Security Component | **BEFORE (Vulnerable)** | **AFTER (Secure)** | **Risk Reduction** |
 |-------------------|-------------------------|-------------------|-------------------|
 | **Node ID Generation** | `rand()` - Predictable | BCryptGenRandom | 🔴 **CRITICAL → NONE** |
-| **ED2K Authentication** | Weak SecureID challenges | Cryptographic challenges | 🔴 **HIGH → NONE** |
+| **ED2K Authentication** | Invalid MD5/non-zero “SecureIdent” | Advertisement disabled; peers never verified (#75). RSA SecureIdent **not implemented**. | 🔴 **HIGH → residual (no RSA)** |
 | **Encryption Keys** | `rand()`-based RC4 keys | Secure key generation | 🔴 **CRITICAL → NONE** |
 | **DHT Operations** | Predictable routing | Secure random routing | 🟡 **MEDIUM → NONE** |
 | **Overall Security** | Vulnerable to attacks | Cryptographically secure | 🔴 **CRITICAL → SECURE** |
@@ -62,13 +64,10 @@ BOOL GenerateCryptographicBytes(BYTE* pBuffer, size_t nLength) {
 - **Change:** Replaced `srand()/rand()` with `GenerateCryptographicBytes()`
 - **Impact:** Node IDs now cryptographically secure, preventing tracking attacks
 
-#### **ED2K Authentication Security**
-**File:** `Envy\EDClient.cpp`
-- **Functions:**
-  - `GenerateSecureIdent()` (lines 64-72)
-  - `GenerateSecureIdentResponse()` (lines 113-141)
-- **Change:** 6-byte SecureID challenges now cryptographic
-- **Impact:** Authentication challenges are unpredictable and secure
+#### **ED2K SecureIdent (disabled, not replaced)**
+**File:** `Envy\EDClient.cpp`, `Envy\SecureIdentPolicy.h`
+- **Current:** Envy does not generate or accept SecureIdent as authentication. Inbound `SECIDENTSTATE` / `SIGNATURE` packets are ignored. Historical challenge helpers are not an eMule-compatible RSA implementation.
+- **Impact:** ED2K transfer does not depend on SecureIdent. Real RSA SecureIdent is a later roadmap item.
 
 #### **RC4 Encryption Security**
 **File:** `Envy\EDClient.cpp`
@@ -93,10 +92,10 @@ BOOL GenerateCryptographicBytes(BYTE* pBuffer, size_t nLength) {
 - **After:** Cryptographically secure node IDs prevent identification
 - **Impact:** Complete elimination of user tracking via node IDs
 
-#### **2. Authentication Bypass**
-- **Before:** Weak SecureID challenges could be predicted/brute-forced
-- **After:** Cryptographic challenges are computationally infeasible to predict
-- **Impact:** ED2K authentication is now cryptographically secure
+#### **2. ED2K SecureIdent**
+- **Before:** Weak or non-eMule “SecureIdent” paths could be mistaken for authentication
+- **After (#75):** SecureIdent is not advertised and never marks a peer verified
+- **Impact:** No eMule-compatible RSA SecureIdent yet; do not claim ED2K authentication is complete
 
 #### **3. Man-in-the-Middle Attacks**
 - **Before:** Weak RC4 keys vulnerable to cryptanalysis

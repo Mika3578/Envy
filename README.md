@@ -1,6 +1,8 @@
 # Envy
 
-Envy is a Windows-native, MFC-based peer-to-peer client with support for multiple legacy and modern networks (BitTorrent, G2, ED2K/Kad, DC, and related services). The repository is a monorepo containing the main desktop client, plugins, vendored native dependencies, installer tooling, and a growing test suite.
+Envy is a Windows-native, MFC-based **multi-network** peer-to-peer client (BitTorrent, Gnutella, Gnutella2, ED2K, Kad, Direct Connect, Remote/Web, plus library and multi-network search). The repository is a monorepo containing the main desktop client, plugins, vendored native dependencies, installer tooling, and a growing test suite.
+
+Envy is not an eMule replacement and is not replaced by aMule, eMule Qt, aria2-next, or similar projects. Those are interoperability and architecture **references**; see `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`.
 
 ## Quick Start
 
@@ -35,10 +37,11 @@ ctest --test-dir build
 ## Documentation Index
 
 ### Canonical project docs
-- **Operational dashboard (live):** `docs/DEV_TRACKER.md`
 - **Strategic roadmap/decisions:** `docs/DEVELOPMENT_PLAN.md`
-- **Deep protocol status matrix:** `docs/10_dev/status.md`
+- **Protocol/architecture status matrix:** `docs/10_dev/status.md`
 - **Technical modernization roadmap:** `docs/10_dev/roadmap.md`
+- **External P2P references (spec first):** `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`
+- **Session notes (gitignored):** `.local/DEV_TRACKER.md` (`docs/DEV_TRACKER.md` is gitignored and not committed)
 
 ### Contributor and governance docs
 - Contribution guide: `docs/CONTRIBUTING.md`

@@ -1,13 +1,13 @@
 # Envy Documentation
 
-**Quick links:** [Cursor Index](CURSOR_INDEX.md) · [Status](../10_dev/status.md) · [Roadmap](../10_dev/roadmap.md) · [Build](../10_dev/build.md)
+**Quick links:** [Cursor Index](CURSOR_INDEX.md) · [Status](../10_dev/status.md) · [Roadmap](../10_dev/roadmap.md) · [References](../30_protocols/REFERENCE_IMPLEMENTATIONS.md) · [Build](../10_dev/build.md)
 
 ## Start here
 | Doc | Purpose |
 |-----|---------|
 | [CURSOR_INDEX](CURSOR_INDEX.md) | Quick entry points for development |
-| [MASTER_PLAN](MASTER_PLAN.md) | Modernisation master plan |
-| [DECISIONS](DECISIONS.md) | ADR-lite decisions |
+| [DEVELOPMENT_PLAN](../DEVELOPMENT_PLAN.md) | Strategic roadmap (canonical) |
+| [DECISIONS](../DECISIONS.md) | ADR-lite decisions |
 | [STYLE_GUIDE](STYLE_GUIDE.md) | Writing and formatting |
 
 ## Map
@@ -17,7 +17,7 @@
 | **User** | `docs/50_user/` | Guide, installation, configuration, [settings reference](../50_user/reference/COMPLETE_SETTINGS_REFERENCE.md) |
 | **Developer** | `docs/10_dev/` | Build, guide, standards, contributing, status, roadmap |
 | **Architecture** | [architecture](../20_arch/architecture.md) | System design |
-| **Protocols** | `docs/30_protocols/` | ED2K, Kad, BitTorrent |
+| **Protocols** | `docs/30_protocols/` | ED2K, Kad, BitTorrent, [reference implementations](../30_protocols/REFERENCE_IMPLEMENTATIONS.md) |
 | **Quality** | `docs/40_quality/` | Analysis, performance, security, testing |
 
 ## Maintenance

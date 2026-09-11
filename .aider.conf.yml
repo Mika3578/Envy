@@ -3,7 +3,7 @@
 
 read:
   - AGENTS.md
-  - docs/DEV_TRACKER.md
+  - docs/DEVELOPMENT_PLAN.md
   - MODERNIZATION.md
 
 auto-commits: false
