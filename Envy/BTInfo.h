@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "Buffer.h"
 #include "EnvyFile.h"
 
@@ -108,7 +110,7 @@ public:
 	CStringList	m_sURLs;				// Add sources from torrents - DWK
 	CStringList	m_oNodes;				// DHT nodes list
 	CList< CBTFile* > m_pFiles;			// List of files
-	Hashes::BtPureHash* m_pBlockBTH;
+	std::vector< Hashes::BtPureHash > m_pBlockBTH;	// Piece hashes (BTH)
 	DWORD		m_nBlockSize;
 	DWORD		m_nBlockCount;
 	QWORD		m_nTotalUpload;			// Total amount uploaded
