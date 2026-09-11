@@ -1348,7 +1348,7 @@ BOOL CBTClient::OnExtendedHandshake(CBTPacket* pPacket)
 		if ( CBENode* pUtMetadata = pMetadata->GetNode( BT_DICT_UT_METADATA ) )		// "ut_metadata"
 		{
 			m_nUtMetadataID = (QWORD)pUtMetadata->GetInt();
-			if ( m_nUtMetadataID && ! m_pDownload->m_pTorrent.m_pBlockBTH )			// Send first info request
+			if ( m_nUtMetadataID && m_pDownload->m_pTorrent.m_pBlockBTH.empty() )	// Send first info request
 			{
 				const int nNextPiece = m_pDownload->m_pTorrent.NextInfoPiece();
 				if ( nNextPiece >= 0 )
@@ -1474,7 +1474,7 @@ BOOL CBTClient::OnMetadataRequest(CBTPacket* pPacket)
 				if ( m_nUtMetadataID )
 					SendMetadataRequest( nPiece );
 			}
-			else if ( nMsgType == UT_METADATA_DATA && ! m_pDownload->m_pTorrent.m_pBlockBTH )
+			else if ( nMsgType == UT_METADATA_DATA && m_pDownload->m_pTorrent.m_pBlockBTH.empty() )
 			{
 				if ( CBENode* pTotalSize = pRoot->GetNode( BT_DICT_TOTAL_SIZE ) )	// "total_size"
 				{
@@ -1484,7 +1484,7 @@ BOOL CBTClient::OnMetadataRequest(CBTPacket* pPacket)
 						m_nUtMetadataSize = nTotalSize;
 				}
 
-				if ( m_nUtMetadataSize && ! m_pDownload->m_pTorrent.m_pBlockBTH )
+				if ( m_nUtMetadataSize && m_pDownload->m_pTorrent.m_pBlockBTH.empty() )
 				{
 					if ( m_pDownload->m_pTorrent.LoadInfoPiece( pPacket->m_pBuffer, pPacket->m_nLength, m_nUtMetadataSize, nPiece ) )
 					{

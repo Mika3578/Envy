@@ -53,7 +53,6 @@ static bool IsValid(const CString& str)
 CBTInfo::CBTInfo()
 	: m_nBlockSize		( 0ul )
 	, m_nBlockCount		( 0ul )
-	, m_pBlockBTH		( NULL )
 	, m_nTotalUpload	( 0ull )
 	, m_nTotalDownload	( 0ull )
 	, m_nTrackerSeeds	( 0 )
@@ -78,7 +77,6 @@ CBTInfo::CBTInfo()
 CBTInfo::CBTInfo(const CBTInfo& oSource)
 	: m_nBlockSize		( 0ul )
 	, m_nBlockCount		( 0ul )
-	, m_pBlockBTH		( NULL )
 	, m_nTotalUpload	( 0ull )
 	, m_nTotalDownload	( 0ull )
 	, m_nTrackerIndex	( -1 )
@@ -184,8 +182,7 @@ const CString& CBTInfo::CBTFile::FindFile()
 
 void CBTInfo::Clear()
 {
-	delete [] m_pBlockBTH;
-	m_pBlockBTH			= NULL;
+	m_pBlockBTH.clear();
 
 	m_nTotalUpload		= 0;
 	m_nTotalDownload	= 0;
@@ -236,15 +233,7 @@ CBTInfo& CBTInfo::operator=(const CBTInfo& oSource)
 
 	m_nBlockSize		= oSource.m_nBlockSize;
 	m_nBlockCount		= oSource.m_nBlockCount;
-
-	if ( oSource.m_pBlockBTH )
-	{
-		// Clear() already freed any previous buffer; own the temp until copy succeeds.
-		auto pNewBlockBTH = std::make_unique< Hashes::BtPureHash[] >( m_nBlockCount );
-		std::copy( oSource.m_pBlockBTH, oSource.m_pBlockBTH + m_nBlockCount,
-			pNewBlockBTH.get() );
-		m_pBlockBTH = pNewBlockBTH.release();
-	}
+	m_pBlockBTH			= oSource.m_pBlockBTH;
 
 	m_nTotalUpload		= oSource.m_nTotalUpload;
 	m_nTotalDownload	= oSource.m_nTotalDownload;
@@ -321,7 +310,7 @@ void CBTInfo::Serialize(CArchive& ar)
 		ar << m_nBlockCount;
 		for ( DWORD i = 0; i < m_nBlockCount; ++i )
 		{
-			ar.Write( &*m_pBlockBTH[ i ].begin(), m_pBlockBTH->byteCount );
+			ar.Write( &m_pBlockBTH[ i ][ 0 ], Hashes::BtPureHash::byteCount );
 		}
 
 		ar << m_nTotalUpload;
@@ -384,23 +373,21 @@ void CBTInfo::Serialize(CArchive& ar)
 		ar >> m_nBlockSize;
 		ar >> m_nBlockCount;
 
-		// Replace (or clear) the piece-hash buffer only after a successful fill so a
-		// ReadArchive failure keeps the previous member intact and does not leak the temp.
-		// Zero block count must drop any prior buffer to keep count/buffer consistent.
+		// Fill a temporary vector first so a ReadArchive failure keeps the previous
+		// piece-hash buffer intact. Zero block count swaps in an empty vector.
 		{
-			std::unique_ptr< Hashes::BtPureHash[] > pNewBlockBTH;
+			std::vector< Hashes::BtPureHash > oNewBlockBTH;
 			if ( m_nBlockCount )
 			{
-				pNewBlockBTH = std::make_unique< Hashes::BtPureHash[] >( m_nBlockCount );
+				oNewBlockBTH.resize( m_nBlockCount );
 
 				for ( DWORD i = 0; i < m_nBlockCount; ++i )
 				{
-					ReadArchive( ar, &pNewBlockBTH[ i ][ 0 ], Hashes::BtPureHash::byteCount );
+					ReadArchive( ar, &oNewBlockBTH[ i ][ 0 ], Hashes::BtPureHash::byteCount );
 				}
 			}
 
-			std::unique_ptr< Hashes::BtPureHash[] > pOldBlockBTH( m_pBlockBTH );
-			m_pBlockBTH = pNewBlockBTH.release();
+			m_pBlockBTH.swap( oNewBlockBTH );
 		}
 
 		ar >> m_nTotalUpload;
@@ -802,7 +789,7 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 {
 	//ASSERT( m_sName.IsEmpty() && m_nSize == SIZE_UNKNOWN );	// Assume empty object
 	// Prefer a fresh CBTInfo / Clear() before reload. An existing m_pBlockBTH
-	// is replaced safely when pieces are installed below (no leak / dangling).
+	// is replaced via swap when pieces are installed below (no leak / dangling).
 
 	theApp.Message( MSG_DEBUG, L"[BT] Loading torrent tree: %s", (LPCTSTR)pRoot->Encode() );
 
@@ -1119,15 +1106,12 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 	m_nBlockCount = (DWORD)( pHash->m_nValue / Hashes::Sha1Hash::byteCount );
 	if ( ! m_nBlockCount || m_nBlockCount > 209716 ) return FALSE;
 
-	auto pNewBlockBTH = std::make_unique< Hashes::BtPureHash[] >( m_nBlockCount );
-
-	std::copy( static_cast< const Hashes::BtHash::RawStorage* >( pHash->m_pValue ),
-		static_cast< const Hashes::BtHash::RawStorage* >( pHash->m_pValue ) + m_nBlockCount,
-		pNewBlockBTH.get() );
-
 	{
-		std::unique_ptr< Hashes::BtPureHash[] > pOldBlockBTH( m_pBlockBTH );
-		m_pBlockBTH = pNewBlockBTH.release();
+		std::vector< Hashes::BtPureHash > oNewBlockBTH( m_nBlockCount );
+		std::copy( static_cast< const Hashes::BtHash::RawStorage* >( pHash->m_pValue ),
+			static_cast< const Hashes::BtHash::RawStorage* >( pHash->m_pValue ) + m_nBlockCount,
+			oNewBlockBTH.begin() );
+		m_pBlockBTH.swap( oNewBlockBTH );
 	}
 
 	// Hash info
@@ -1528,7 +1512,7 @@ BOOL CBTInfo::CheckFiles()
 void CBTInfo::BeginBlockTest()
 {
 	ASSERT( IsAvailable() );
-	ASSERT( m_pBlockBTH != NULL );
+	ASSERT( ! m_pBlockBTH.empty() );
 
 	m_pTestSHA1.Reset();
 	m_nTestByte = 0;
@@ -1539,7 +1523,7 @@ void CBTInfo::AddToTest(LPCVOID pInput, DWORD nLength)
 	if ( nLength == 0 ) return;
 
 	ASSERT( IsAvailable() );
-	ASSERT( m_pBlockBTH != NULL );
+	ASSERT( ! m_pBlockBTH.empty() );
 	ASSERT( m_nTestByte + nLength <= m_nBlockSize );
 
 	m_pTestSHA1.Add( pInput, nLength );
@@ -1550,7 +1534,7 @@ BOOL CBTInfo::FinishBlockTest(DWORD nBlock)
 {
 	ASSERT( IsAvailable() );
 
-	if ( m_pBlockBTH == NULL || nBlock >= m_nBlockCount )
+	if ( m_pBlockBTH.empty() || nBlock >= m_nBlockCount )
 		return FALSE;
 
 	Hashes::BtHash oBTH;
