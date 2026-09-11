@@ -47,6 +47,15 @@ static bool IsValid(const CString& str)
 	return ! str.IsEmpty() && ( str.Find( L'?' ) == -1 ) && ( str != L"#ERROR#" );
 }
 
+// Install a newly filled BTH piece-hash buffer. Allocates/fills happen on a
+// temporary pointer first so a failed new[] leaves the previous member intact.
+// delete[] on a null destination is a no-op (reload / first load).
+static void InstallBlockBTH(Hashes::BtPureHash*& pDest, Hashes::BtPureHash* pNew)
+{
+	delete [] pDest;
+	pDest = pNew;
+}
+
 //////////////////////////////////////////////////////////////////////
 // CBTInfo construction
 
@@ -221,6 +230,10 @@ void CBTInfo::Clear()
 
 CBTInfo& CBTInfo::operator=(const CBTInfo& oSource)
 {
+	// Clear() frees owned buffers first; self-assignment would wipe source.
+	if ( this == &oSource )
+		return *this;
+
 	Clear();
 
 	CEnvyFile::operator=( oSource );
@@ -235,9 +248,10 @@ CBTInfo& CBTInfo::operator=(const CBTInfo& oSource)
 
 	if ( oSource.m_pBlockBTH )
 	{
-		m_pBlockBTH = new Hashes::BtPureHash[ m_nBlockCount ];
+		Hashes::BtPureHash* pNewBlockBTH = new Hashes::BtPureHash[ m_nBlockCount ];
 		std::copy( oSource.m_pBlockBTH, oSource.m_pBlockBTH + m_nBlockCount,
-			m_pBlockBTH );
+			pNewBlockBTH );
+		InstallBlockBTH( m_pBlockBTH, pNewBlockBTH );
 	}
 
 	m_nTotalUpload		= oSource.m_nTotalUpload;
@@ -380,12 +394,14 @@ void CBTInfo::Serialize(CArchive& ar)
 
 		if ( m_nBlockCount )
 		{
-			m_pBlockBTH = new Hashes::BtPureHash[ (DWORD)m_nBlockCount ];
+			Hashes::BtPureHash* pNewBlockBTH = new Hashes::BtPureHash[ (DWORD)m_nBlockCount ];
 
 			for ( DWORD i = 0; i < m_nBlockCount; ++i )
 			{
-				ReadArchive( ar, &*m_pBlockBTH[ i ].begin(), m_pBlockBTH->byteCount );
+				ReadArchive( ar, &*pNewBlockBTH[ i ].begin(), pNewBlockBTH->byteCount );
 			}
+
+			InstallBlockBTH( m_pBlockBTH, pNewBlockBTH );
 		}
 
 		ar >> m_nTotalUpload;
@@ -786,7 +802,8 @@ BOOL CBTInfo::LoadTorrentBuffer(const CBuffer* pBuffer)
 BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 {
 	//ASSERT( m_sName.IsEmpty() && m_nSize == SIZE_UNKNOWN );	// Assume empty object
-	ASSERT( ! m_pBlockBTH );
+	// Prefer a fresh CBTInfo / Clear() before reload. An existing m_pBlockBTH
+	// is replaced safely when pieces are installed below (no leak / dangling).
 
 	theApp.Message( MSG_DEBUG, L"[BT] Loading torrent tree: %s", (LPCTSTR)pRoot->Encode() );
 
@@ -1103,11 +1120,13 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 	m_nBlockCount = (DWORD)( pHash->m_nValue / Hashes::Sha1Hash::byteCount );
 	if ( ! m_nBlockCount || m_nBlockCount > 209716 ) return FALSE;
 
-	m_pBlockBTH = new Hashes::BtPureHash[ m_nBlockCount ];
+	Hashes::BtPureHash* pNewBlockBTH = new Hashes::BtPureHash[ m_nBlockCount ];
 
 	std::copy( static_cast< const Hashes::BtHash::RawStorage* >( pHash->m_pValue ),
 		static_cast< const Hashes::BtHash::RawStorage* >( pHash->m_pValue ) + m_nBlockCount,
-		m_pBlockBTH );
+		pNewBlockBTH );
+
+	InstallBlockBTH( m_pBlockBTH, pNewBlockBTH );
 
 	// Hash info
 	if ( const CBENode* pSHA1 = pInfo->GetNode( "sha1" ) )
