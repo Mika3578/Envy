@@ -25,6 +25,7 @@
 #include "EDSourcePacketValidate.h"
 #include "PacketLengthValidate.h"
 #include "SecureIdentPolicy.h"
+#include "Ed2kHelloCapabilities.h"
 #include "EDNeighbour.h"
 #include "FileIdentifier.h"
 #include "Neighbours.h"
@@ -1355,27 +1356,32 @@ void CEDClient::SendHello(BYTE nType)
 	// 3 - UDP Port
 	CEDTag( ED2K_CT_UDPPORTS, htons( Network.m_pHost.sin_port ) ).Write( pPacket );
 
-	// 4 - Feature Versions 1
+	// 4 - Feature Versions 1 (advertise only implemented capabilities — #87)
 	BYTE nExtendedRequests = (BYTE)min ( Settings.eDonkey.ExtendedRequest, (DWORD)ED2K_VERSION_EXTENDEDREQUEST );
-	DWORD nOpt1 =  ( ( ED2K_VERSION_AICH << 29 ) |					// AICH (enabled)
-					 ( TRUE << 28 ) |								// Unicode
-					 ( ED2K_VERSION_UDP << 24 ) |					// UDP version
-					 ( ED2K_VERSION_COMPRESSION << 20 ) |			// Compression
-					 ( Ed2kSecureIdentAdvertisedVersion() << 16 ) |	// Secure ID (0: not implemented / not advertised)
-					 ( ED2K_VERSION_SOURCEEXCHANGE << 12 ) |		// Source exchange
-					 ( nExtendedRequests << 8 ) |					// Extended requests
-					 ( ED2K_VERSION_COMMENTS << 4 ) |				// Comments
-				//	 ( FALSE << 3 ) |								// Peer Cache
-				//	 ( FALSE << 2 ) |								// Browse
-				//	 ( FALSE << 1 ) |								// Multipacket
-					 ( Settings.Uploads.SharePreviews ? 1 : 0 ) );	// Preview
+	DWORD nOpt1 = Ed2kPackFeatureVersions1(
+		Ed2kAichAdvertisedVersion(),			// 0: no C2C AICH handlers yet
+		TRUE,									// Unicode
+		ED2K_VERSION_UDP,
+		ED2K_VERSION_COMPRESSION,
+		Ed2kSecureIdentAdvertisedVersion(),		// 0: RSA SecureIdent not implemented
+		ED2K_VERSION_SOURCEEXCHANGE,
+		nExtendedRequests,
+		ED2K_VERSION_COMMENTS,
+		Settings.Uploads.SharePreviews ? TRUE : FALSE );
 	CEDTag( ED2K_CT_FEATUREVERSIONS, nOpt1 ).Write( pPacket );
 
 	// 5 - Feature Versions 2
-	DWORD nOpt2 =  ( ( TRUE << 11 ) |								// Captcha support
-					 ( TRUE << 10 ) |								// Source Exchange v2
-					 ( TRUE << 5 ) |								// Ext Multipacket (FileIdentifiers/MultiPacket Ext2)
-					 ( Settings.eDonkey.LargeFileSupport ? ( TRUE << 4 ) : 0 ) );	// LargeFile support
+	// CryptLayer SUPPORTS/REQUESTS/REQUIRES stay 0 until TCP obfuscation interop
+	// is proven (packet PUBLICKEY crypto != eMule MiscOptions2 crypt bits).
+	DWORD nOpt2 = Ed2kPackFeatureVersions2(
+		TRUE,									// Captcha (chat path exists)
+		TRUE,									// Source Exchange v2
+		Ed2kCryptLayerRequiresAdvertised(),
+		Ed2kCryptLayerRequestsAdvertised(),
+		Ed2kCryptLayerSupportsAdvertised(),
+		TRUE,									// Ext Multipacket / FileIdentifiers
+		Settings.eDonkey.LargeFileSupport ? TRUE : FALSE,
+		0 );									// Kad version nibble (EnableKad binding separate)
 	CEDTag( ED2K_CT_MOREFEATUREVERSIONS, nOpt2 ).Write( pPacket );
 
 	// 6 - Software Version
