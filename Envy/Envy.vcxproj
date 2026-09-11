@@ -1298,6 +1298,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="PacketLengthValidate.h" />
     <ClInclude Include="SecureIdentPolicy.h" />
     <ClInclude Include="Ed2kHelloCapabilities.h" />
+    <ClInclude Include="Ed2kKadSettingsPolicy.h" />
     <ClInclude Include="EDPartImporter.h" />
     <ClInclude Include="Emoticons.h" />
     <ClInclude Include="FileExecutor.h" />
