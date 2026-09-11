@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BitTorrent BTH buffer lifetime** — `CBTInfo::m_pBlockBTH` is now a `std::vector` of piece hashes: self-assignment is guarded, `Serialize` load / `LoadTorrentTree` fill a temporary then `swap` (so failures keep the previous buffer and zero-count clears it), and callers use `.empty()` instead of null checks.
 
 ### Changed
+- Documented external P2P reference implementations (eMule Community, aMule, eMule Qt, eMule AI, aria2-next, Ember, Rucio, eMule eSE), specification-first policy (D-008), and the P0–P3 interoperability/architecture sequence. Restored the missing `docs/10_dev/status.md` matrix. Corrected obsolete SecureIdent “active/complete” wording: RSA SecureIdent is not implemented (#75). Documentation only; no protocol or runtime change.
 - **CI two-speed gate** — Pull requests classify changed paths and skip
   Windows/CodeQL/Remote/C# jobs that are not needed. PR CodeQL C/C++ uses
   `build-mode: none` (no second solution build); `develop`/weekly keep a
@@ -70,7 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Agent guidance files: root `CLAUDE.md`, root `AGENTS.md`, and refreshed `.cursor/rules/README.md`.
 
 ### Added
-- **ED2K SecureID version fix** - Changed `ED2K_VERSION_SECUREID` from 0 to 3 in `EDPacket.h`; peers now correctly see Envy as supporting SecureID
+- **ED2K SecureID version fix** - Changed `ED2K_VERSION_SECUREID` from 0 to 3 in `EDPacket.h` (historical; later superseded by #75 which returned advertisement to 0 because RSA SecureIdent is not implemented)
 - **ED2K SourceEx2 implementation** (0x83/0x84) - `OnSourceRequest2()`/`OnSourceAnswer2()` handlers; `DownloadTransferED2K` prefers SourceEx2 when peer supports it
 - **Kademlia FIND_VALUE + PUBLISH** - DHT search and publish with in-memory value storage, handlers for opcodes 0x33-0x49, search/publish initiation methods
 - **BitTorrent MSE/PE encryption** (`BTCrypto.h/cpp`) - DH key exchange (768-bit), RC4 stream encryption, MSE handshake state machine, integrated into `CBTClient`; new `Settings.BitTorrent.Encryption` setting (default: prefer)

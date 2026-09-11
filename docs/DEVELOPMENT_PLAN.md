@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-10
+- **Last Updated:** 2026-09-11
+- **Changelog Entry:** 2026-09-11 — Documented external P2P reference implementations (eMule Community, aMule, eMule Qt, eMule AI, aria2-next, Ember, Rucio, eMule eSE), Envy’s multi-network positioning, specification-first policy (D-008), and the P0–P3 interoperability/architecture sequence. Restored the missing `docs/10_dev/status.md` matrix. Corrected remaining SecureIdent “active/complete” claims: RSA SecureIdent is not implemented (#75).
 - **Changelog Entry:** 2026-09-10 — Runtime performance audit backlog: reproducible benchmarks (#111), then CBuffer front-consume (#112), network hot-path copies/locks (#113), TransferFiles I/O contention (#114). IOCP and dedicated hashing optimization deferred pending evidence. #102 remains CI runner latency only.
 - **Changelog Entry:** 2026-09-10 — Two-speed GitHub Actions: change-aware PR
   gate (skip Windows/CodeQL/Remote/C# when unrelated), CodeQL C++ `build-mode: none`
@@ -43,15 +44,29 @@
 
 
 ## Canonical Documentation Split
-- `docs/DEVELOPMENT_PLAN.md`: strategic roadmap, major decisions, and sequencing.
-- `docs/DEV_TRACKER.md`: operational dashboard, near-term status, blockers, and PR queue.
-- `docs/10_dev/status.md`: deep protocol comparison and implementation evidence.
-- `docs/10_dev/roadmap.md`: technical modernization roadmap details.
+- `docs/DEVELOPMENT_PLAN.md`: strategic roadmap, major decisions, and sequencing (this file).
+- `docs/10_dev/status.md`: protocol/architecture status matrix (evidence-based; no “complete” without proof).
+- `docs/10_dev/roadmap.md`: technical modernization itemization aligned with the P0–P3 sequence below.
+- `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`: external P2P reference projects and spec-first policy.
+- `.local/DEV_TRACKER.md`: session notes (gitignored). `docs/DEV_TRACKER.md` is also gitignored and is not a committed source of truth.
 
 ## Vision & Goals
-- Maintain Envy as a stable multi-network P2P client for Windows.
-- Reduce modernization risk by improving testability and dependency hygiene.
+- Keep Envy a stable **Windows-native multi-network** client: BitTorrent, Gnutella, Gnutella2, ED2K, Kad, Direct Connect, Remote/Web, plus library and multi-network search.
+- Improve ED2K/Kad interoperability against eMule Community and aMule without dropping other networks.
+- Reduce modernization risk with incremental core/UI boundaries, testability, and dependency hygiene.
 - Increase release confidence through clearer architecture boundaries and measurable quality gates.
+
+## Positioning
+Envy is not an eMule fork and is not replaced by aMule, eMule Qt, aria2-next, Ember, or Rucio. Those projects are **references**:
+
+- ED2K/Kad behaviour: eMule Community and aMule
+- core/UI split: eMule Qt (incremental, not a rewrite)
+- modern reachability: eMule AI
+- engine/API/headless: aria2-next
+- DHT/security research: Ember (Envy-specific extensions only; never labelled Kad2)
+- IPv6/Kad6 experiments: eMule eSE (P3 only)
+
+Policy: specification first, interoperability implementation second. See D-008 in `docs/DECISIONS.md`.
 
 ## Current Status
 ### Done
@@ -65,12 +80,59 @@
 ### In Progress
 - C++ modernization across legacy modules.
 - Incremental protocol compatibility and robustness improvements.
+- **P0 ED2K/Kad interoperability baseline** against eMule Community and aMule (live interop unverified; see `docs/10_dev/status.md`).
 
 ### Blocked / At Risk
 - Full CMake parity with Visual Studio build graph.
 - Dependency refresh for older vendored components without regressions.
 
 ## Roadmap
+
+Protocol and architecture work uses the sequence below. Engineering phases (tests, CI, CMake, performance) remain in parallel and must not be dropped for ED2K-only work.
+
+Priorities must match `docs/10_dev/status.md` and `docs/10_dev/roadmap.md`.
+
+### P0 — ED2K / Kad interoperability baseline
+
+Absolute priority before new ED2K/Kad extensions. Validate against eMule Community and aMule (live Envy ↔ eMule, Envy ↔ aMule, ideally eMule ↔ Envy ↔ aMule). Status today: **partial / unverified live**.
+
+ED2K: Hello / HelloAnswer, MuleInfo / MuleInfoAnswer, userhash, ClientID, HighID / LowID, callbacks, capability negotiation, compression, multipacket, search, Source Exchange, publish-as-source, upload/download, large files, unsupported-extension handling.
+
+Kad2: bootstrap, routing table, node ID, UDP, HELLO / HELLO_RES, PING / PONG, FIND_NODE, keyword search, source search, publish, firewall check, Buddy, NAT traversal, HighID / LowID / firewalled.
+
+Do not advertise an eMule capability that Envy does not implement.
+
+### P0/P1 — Real RSA SecureIdent
+
+Only after a reliable ED2K baseline without SecureIdent. **Not implemented today** (`ED2K_VERSION_SECUREID = 0`, #75). Primary reference: eMule Community; secondary: aMule. Details in the SecureIdent section below.
+
+### P1 — IPv6 / reachability
+
+References: eMule AI, eMule Qt, eMule eSE, aria2-next where relevant. Start with a clean dual-stack architecture (address type, sockets, DNS A/AAAA, connect/listen, source exchange, host cache, bans, dedup, UI/logging, UPnP / NAT-PMP / PCP, CGNAT). **Do not start Kad6** before this foundation. See `docs/ipv6/PLAN.md`.
+
+### P1 — Incremental core / UI separation
+
+Inspired by eMule Qt, aMule, and aria2-next. Long-term shape:
+
+`EnvyCore` → protocol engines → transfer engine → library/search → stable internal API / IPC → MFC frontend → future Web/CLI frontend.
+
+Incremental extraction only. No full rewrite.
+
+### P1 — Headless / API
+
+Evaluate an Envy daemon, CLI, REST or JSON-RPC, remote-control API, interop-test automation, and running without a GUI. References: aMule, eMule Qt, aria2-next, Rucio. Today: MFC GUI plus limited Remote web UI (`docs/API.md`).
+
+### P1/P2 — BitTorrent modernization
+
+Preserve the existing BitTorrent track. Continue v1, BEP 10, DHT, PEX, UDP tracker, uTP, magnet, BEP 52 / v2, hybrid torrents. Never sacrifice BitTorrent to make Envy an eMule-only client.
+
+### P2 — DHT / security research
+
+References: Ember, Rucio, original Kademlia papers. Possible studies: stronger node verification, anti-amplification, routing-table diversity, subnet limits, signed records, modern crypto identities, BLAKE3 for **Envy-specific** features. Must not break Kad2/eMule compatibility. Any Envy-only extension must be versioned, optional, backward compatible, and distinct from Kad2.
+
+### P3 — Experimental Kad6 / next overlay
+
+Reference: eMule eSE. Not a short-term goal. Preconditions: stable Envy IPv6, stable Kad2 interop, clean NAT/reachability, and a protocol test harness.
 
 ### Phase 1 — Stability & Visibility (P0)
 - [ ] Create dependency register + ownership map (2d) — **In progress on develop** (`docs/DEPENDENCIES.md` exists but remains an incomplete seed).
@@ -97,7 +159,7 @@ Do not reuse [#102](https://github.com/Mika3578/Envy/issues/102) (CI runner late
 - [ ] Promote selected static-analysis checks to required gates (2d)
 
 ### Phase 3 — Architecture Hardening (P2)
-- [ ] Isolate core transfer engine interfaces from UI classes (10d)
+- [ ] Isolate core transfer engine interfaces from UI classes (10d) — same intent as **P1 core/UI separation** above; incremental only
 - [ ] Version plugin-facing APIs and compatibility policy (5d)
 - [ ] Create automated dependency/SBOM release artifact (3d)
 
@@ -140,9 +202,11 @@ to improve authentication and eMule credit-system compatibility.
     response from another client.
 12. Live interop tests: Envy ↔ eMule, Envy ↔ aMule, ideally eMule ↔ Envy ↔ aMule.
 
-Protocol references for that future work: eDonkey paper, aMule ED2K wiki,
-eMule protocol notes, and the eMuleCommunity reference tree (adapt behavior;
-do not copy blindly).
+Protocol references for that future work: specifications first (eDonkey
+paper, aMule ED2K wiki, ED2K URI spec), then eMule Community as de-facto
+wire reference and aMule as second interop target. See
+`docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`. Adapt behaviour; do not
+copy blindly.
 
 ### Future ED2K interoperability checklist (document only)
 Hello/HelloAnswer, MuleInfo/MuleInfoAnswer, userhash, ClientID, HighID/LowID,
@@ -170,6 +234,7 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
   handlers exist. Keep CryptLayer MiscOptions2 bits at 0 until TCP
   obfuscation interop is audited separately from packet PUBLICKEY crypto.
   SecureIdent advertisement remains 0 (#75).
+- **2026-09-11:** Adopt an explicit reference-implementation policy (D-008): specifications first; eMule Community/aMule as ED2K/Kad de-facto interop; eMule Qt/aria2-next/eMule AI as architecture; Ember/eSE as experimental only. Envy stays multi-network.
 - **2026-09-10:** Runtime performance work starts with reproducible benchmarks (#111). No IOCP rewrite issue until peer-scalability evidence after Buffer/lock optimizations. No dedicated LibraryBuilder hashing issue until measurements show a user-visible bottleneck. #92 stays correctness/stability (lock order); #113 tracks contention separately.
 - **2026-09-10:** Adopt a two-speed CI: path-aware PR jobs (`if:`, never
   `paths-ignore` on required workflows), CodeQL C++ `build-mode: none` on PRs
@@ -189,7 +254,8 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - **2026-04-22:** Treat this plan as a required living artifact for project management continuity.
 
 ## Open Questions
-1. Should this project explicitly remain Windows-only, or is cross-platform parity still a target?
-2. What is the acceptable backward-compatibility policy for legacy protocols/features?
+1. Should this project explicitly remain Windows-only, or is cross-platform parity still a target? (Headless/API work can proceed on Windows first; aMule-style multi-OS is not a current delivery goal.)
+2. What is the acceptable backward-compatibility policy for legacy protocols/features? Working default: preserve G1/G2/DC/BitTorrent; ED2K/Kad changes must remain eMule/aMule-compatible unless versioned as optional Envy extensions.
 3. Which dependency update cadence (monthly/quarterly) is realistic for maintainers?
 4. Should remote API documentation be strict contract-first or implementation-first?
+5. REST versus JSON-RPC for a future Envy daemon API (evaluate against aMule EC, eMule Qt, and aria2-next; no choice yet).
