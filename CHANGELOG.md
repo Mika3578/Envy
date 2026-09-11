@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **BitTorrent BTH buffer lifetime** — `CBTInfo::m_pBlockBTH` is now a `std::vector` of piece hashes: self-assignment is guarded, `Serialize` load / `LoadTorrentTree` fill a temporary then `swap` (so failures keep the previous buffer and zero-count clears it), and callers use `.empty()` instead of null checks.
+
 ### Changed
 - **CI two-speed gate** — Pull requests classify changed paths and skip
   Windows/CodeQL/Remote/C# jobs that are not needed. PR CodeQL C/C++ uses
