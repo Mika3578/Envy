@@ -1,8 +1,10 @@
 # Advanced ED2K Protocol Features
 
+> **Snapshot.** Feature marketing in this file is not live status. Canonical: [`docs/10_dev/status.md`](../../10_dev/status.md). IPv6 is **partial** (helpers/settings only). AICH C2C recovery protocol is still a roadmap item. SecureIdent is **not** an Envy feature.
+
 ## Overview
 
-Envy now supports advanced ED2K protocol features that enhance compatibility with the latest eMule implementations and provide improved file integrity and network performance.
+Envy implements several eMule-oriented ED2K extensions (SourceEx2, large files, CryptLayer, AICH hashing in HashLib). Live eMule/aMule interoperability is unverified. Specs first: [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md).
 
 ## Features
 
@@ -61,12 +63,7 @@ Envy now supports advanced ED2K protocol features that enhance compatibility wit
 
 ### 4. IPv6 Network Support
 
-**Purpose**: Extended network connectivity with IPv6 support.
-
-**Features**:
-- **Dual Stack Operation**: Simultaneous IPv4/IPv6 connectivity
-- **IPv6 Address Resolution**: Native IPv6 hostname resolution
-- **Configurable Timeouts**: IPv6-specific connection timeouts
+**Status:** partial (not dual-stack). Helpers and some ED2K-oriented settings exist; core connections remain IPv4 (`docs/ipv6/PLAN.md`). Dual-stack is P1; Kad6 is P3.
 
 **Configuration**:
 - **Prefer IPv6**: Prefer IPv6 connections when available

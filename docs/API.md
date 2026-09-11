@@ -29,6 +29,7 @@ Spec uses a common envelope:
 
 ## Verification Status
 - This repository pass did **not** execute end-to-end API integration tests against a running Envy instance.
+- Remote/Web is a limited control surface, not a headless JSON-RPC/REST engine API. A daemon/CLI/RPC is **planned** (P1); see `docs/DEVELOPMENT_PLAN.md` and `docs/10_dev/status.md`.
 - Before relying on this API in external tooling, validate each endpoint against live behavior and update this document with confirmed contracts.
 
 ## Source of Truth

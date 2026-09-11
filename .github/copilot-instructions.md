@@ -52,8 +52,8 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
 
 ## Living workflow
 
-Every task starts with reading `docs/DEV_TRACKER.md` and ends with updating
-it. Use the `In progress` / `Done` sections at the top of the file.
+Strategic plan: `docs/DEVELOPMENT_PLAN.md`. Protocol status: `docs/10_dev/status.md`.
+Session notes: `.local/DEV_TRACKER.md` (gitignored, not a committed source of truth).
 
 ## Languages
 
@@ -65,5 +65,6 @@ it. Use the `In progress` / `Done` sections at the top of the file.
 
 - `AGENTS.md` - canonical rules
 - `MODERNIZATION.md` - multi-phase plan
-- `docs/DEV_TRACKER.md` - living progress log
+- `docs/DEVELOPMENT_PLAN.md` / `docs/10_dev/status.md` - committed plan and status
+- `.local/DEV_TRACKER.md` - gitignored session notes
 - `.github/CONTRIBUTING.md` - human-facing contributor guide

@@ -1,6 +1,8 @@
 # ED2K Protocol Operational Verification Report
 
-**Date:** January 16, 2026
+> **Historical (January 2026).** This report over-claims completeness and live compatibility. Canonical status: [`docs/10_dev/status.md`](../../10_dev/status.md). **SecureIdent RSA is not implemented** (#75). IPv6 is not dual-stack end-to-end. Kad FIND_VALUE/PUBLISH later landed in code but live eMule/aMule interop is still **unverified**. Use opcode lists below as archaeology, not as a ship checklist.
+
+**Date:** January 16, 2026 (banner 2026-09-11)
 **Version:** 1.0
 **Purpose:** Verification of Envy's ED2K protocol implementation against standard ED2K/eMule specifications
 
@@ -8,13 +10,9 @@
 
 ## 📋 Executive Summary
 
-**Status:** ✅ **OPERATIONAL** - Envy's ED2K protocol implementation is **fully operational** with comprehensive feature support matching modern eMule implementations.
+**Status:** Historical snapshot — **not** an operational sign-off. See `docs/10_dev/status.md`.
 
-**Compatibility:** Envy implements a complete ED2K protocol stack compatible with:
-- ✅ Standard eDonkey2000 clients
-- ✅ eMule clients (including modern versions)
-- ✅ aMule clients
-- ✅ Kademlia DHT (Kad2) network
+**Compatibility:** Envy implements a large ED2K opcode surface. Live compatibility with eMule Community / aMule is **unverified**. Do not treat the checkmarks in this file as current proof.
 
 ---
 
@@ -179,9 +177,8 @@ Since no Examples folder exists in the repository, verification was performed ag
 - ✅ **File Size Limits:** Supports files > 4GB
 
 ### IPv6 Support
-- ✅ **Implementation:** `Envy/IPv6Support.cpp`
-- ✅ **Dual-Stack Operation:** Simultaneous IPv4/IPv6 connectivity
-- ✅ **RFC Compliant:** RFC 4291, RFC 6555 (Happy Eyeballs)
+- ⚠️ **Helpers:** `Envy/IPv6Support.cpp` exists
+- ⚠️ **Not dual-stack:** core sockets/host cache remain IPv4-centric (`docs/ipv6/SCOPE.md`). The “RFC dual-stack” claim in this historical report is **not** current status.
 
 ### UPnP Port Forwarding
 - ✅ **Implementation:** `Envy/UPnPManager.cpp`
@@ -206,7 +203,7 @@ Since no Examples folder exists in the repository, verification was performed ag
 - ✅ **XOR Distance:** Proper XOR distance calculation
 - ✅ **HostCache Integration:** Integration with host cache system
 - ✅ **nodes.dat Import:** Supports nodes.dat versions 0-3
-- ✅ **Wire Compatibility:** 100% wire-compatible with eMule/aMule
+- ⚠️ **Wire comparison:** opcode/format notes only; live eMule/aMule interop unverified
 
 ---
 
@@ -224,7 +221,7 @@ Since no Examples folder exists in the repository, verification was performed ag
 | Source Exchange v2 | No | Standard | ✅ Implemented |
 | MultiPacket Ext2 | No | Standard | ✅ Implemented |
 | Kademlia DHT (Kad2) | No | Standard | ✅ Implemented |
-| IPv6 Support | No | Some clients | ✅ Implemented |
+| IPv6 Support | No | Some clients | ⚠️ Partial helpers; core still IPv4 |
 | UPnP Port Forwarding | No | Some clients | ✅ Implemented |
 
 ---
@@ -260,8 +257,8 @@ Since no Examples folder exists in the repository, verification was performed ag
 ### Network Operations
 - ✅ **TCP Connections:** Client-to-client, client-to-server
 - ✅ **UDP Communications:** UDP searches, status queries, callbacks
-- ✅ **DHT Operations:** Kademlia bootstrap, node discovery, routing
-- ✅ **NAT Traversal:** UPnP port forwarding, IPv6 dual-stack
+- ⚠️ **DHT Operations:** Kad2 code present; live eMule/aMule interop unverified
+- ⚠️ **NAT Traversal:** UPnP exists; IPv6 dual-stack is not done
 
 ---
 
@@ -318,10 +315,10 @@ Since no Examples folder exists in the repository, verification was performed ag
 - ✅ Kademlia DHT (Kad2) network standards
 
 ### Implementation Completeness
-- **Core Protocol:** 100% complete
-- **eMule Extensions:** 95% complete (all critical features implemented)
-- **Security Features:** 100% complete
-- **Advanced Features:** 90% complete (AICH, MultiPacket, IPv6, UPnP all implemented)
+- **Core Protocol:** handlers present for a large opcode set; live interop unverified
+- **eMule Extensions:** partial (see `docs/10_dev/roadmap.md` and `docs/10_dev/status.md`)
+- **Security Features:** CryptLayer present; SecureIdent RSA **not implemented**
+- **Advanced Features:** AICH library, MultiPacket, UPnP present; IPv6 not dual-stack
 
 ### Operational Readiness
 - ✅ **Production Ready:** Yes, all critical operations functional
@@ -331,7 +328,7 @@ Since no Examples folder exists in the repository, verification was performed ag
 
 ### Recommendation
 
-**ENVY'S ED2K PROTOCOL IS VERIFIED AS OPERATIONAL** ✅
+**Do not treat this file as a production sign-off.** Canonical assessment: `docs/10_dev/status.md`.
 
 The implementation demonstrates:
 - Comprehensive protocol coverage

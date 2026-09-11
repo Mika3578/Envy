@@ -60,7 +60,7 @@ This checklist ensures the secure deployment of Envy P2P client with P0.2 crypto
 - [ ] **Functional Testing** ⏳ TO BE EXECUTED
   - [ ] Test 1: Basic application startup
   - [ ] Test 2: Kademlia DHT node ID security
-  - [ ] Test 3: ED2K SecureID authentication
+  - [ ] Test 3: ED2K SecureIdent policy (not advertised; peers never verified; #75)
   - [ ] Test 4: RC4 encryption key security
   - [ ] Test 5: Cryptographic performance impact
   - [ ] Test 6: Fallback mechanism validation

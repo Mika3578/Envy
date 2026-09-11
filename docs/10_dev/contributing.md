@@ -103,10 +103,10 @@ git commit -m "Changes"
 ## 🎯 Areas for Contribution
 
 ### High Priority
-- **Protocol fixes**: Kademlia, CryptLayer, SecureID
+- **Protocol fixes**: ED2K/Kad interop with eMule Community and aMule (P0); RSA SecureIdent only after that baseline
 - **Security**: Vulnerability fixes, input validation
 - **Performance**: Memory usage, CPU optimization
-- **Testing**: Unit tests, integration tests
+- **Testing**: Unit tests, live interop tests
 
 ### Medium Priority
 - **UI improvements**: Modern Windows features, accessibility

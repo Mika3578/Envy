@@ -41,7 +41,7 @@ Use `.github/CONTRIBUTING.md` as the canonical source for the linear-history wor
   `docs/10_dev/agents-and-automation.md`.
 
 ### Documentation expectations
-- Update build/CI sections in relevant docs (`README.md`, `docs/DEV_TRACKER.md`, plan docs).
+- Update build/CI sections in relevant docs (`README.md`, `docs/DEVELOPMENT_PLAN.md`).
 
 ### Risk review expectations
 - Preserve validation capability unless intentionally moved and documented.

@@ -16,3 +16,5 @@ This note documents current Envy behavior for Source Exchange v1/v2 packets and 
 - SourceEx and SourceEx2 source tuples are currently IPv4-only on-wire in Envy.
 - No IPv6 source tuple encoding/decoding is currently implemented for Source Exchange packets.
 - This is intentional for compatibility with the existing legacy ED2K/eMule tuple format and to avoid wire-format regressions in this incremental hardening pass.
+
+Live Envy ↔ eMule Community / aMule Source Exchange behaviour is still **unverified**. Specs first, then [eMule Community](https://github.com/irwir/eMule) / [aMule](https://github.com/amule-project/amule): `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`.

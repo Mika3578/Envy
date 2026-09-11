@@ -77,34 +77,24 @@ Expected log entries:
 
 ---
 
-### **Test 3: ED2K SecureID Authentication** 🔐
-**Objective:** Verify ED2K authentication uses cryptographic challenges
+### **Test 3: ED2K SecureIdent policy** 🔐
+**Objective:** Verify Envy does **not** claim eMule SecureIdent (RSA is not implemented; #75)
 
 **Steps:**
-1. Configure Envy for ED2K network
-2. Enable SecureID in ED2K settings
-3. Initiate connection to ED2K server or peer
-4. Monitor authentication handshake logs
+1. Configure Envy for ED2K
+2. Confirm SecureIdent is not advertised (`ED2K_VERSION_SECUREID = 0`)
+3. Connect to an ED2K peer; ED2K transfer must work without SecureIdent
+4. If the peer sends SecureIdent packets, the connection must stay up
 
 **Validation:**
-
-#### **Challenge Generation Test**
-```
-Expected log pattern:
-- "ED2K: Generated cryptographic SecureID challenge"
-- "ED2K: SecureID challenge entropy: [high value]"
-- No fallback to insecure random generation
-```
-
-#### **Authentication Success Test**
-1. Connect to known ED2K server
-2. Verify successful authentication
-3. Check for "SecureID authentication successful" logs
+- Peers are never marked SecureIdent-verified
+- No “SecureID authentication successful” path
+- Policy covered by `tests/test_secureident_policy_smoke.cpp`
 
 **Expected Results:**
-- ✅ SecureID challenges are generated successfully
-- ✅ Authentication succeeds with known servers
-- ✅ No authentication failures due to weak randomness
+- ✅ ED2K connectivity does not depend on SecureIdent
+- ✅ No false verified state
+- ❌ Do not expect an eMule-compatible RSA challenge-response
 
 ---
 
@@ -207,7 +197,7 @@ Expected behavior:
 |---------|-----------|--------|--------|-------|
 | T1 | Basic Startup | ⏳ | | |
 | T2 | Kad Node ID Security | ⏳ | | |
-| T3 | ED2K SecureID Auth | ⏳ | | |
+| T3 | ED2K SecureIdent policy (#75) | ⏳ | | |
 | T4 | RC4 Key Security | ⏳ | | |
 | T5 | Performance Impact | ⏳ | | |
 | T6 | Fallback Mechanisms | ⏳ | | |
@@ -243,7 +233,7 @@ Expected behavior:
 
 #### **Authentication Errors**
 - **Symptom:** ED2K/Kad authentication failures
-- **Solution:** Check SecureID challenge generation
+- **Solution:** Confirm #75 policy (no SecureIdent advertisement / verified state)
 - **Verify:** Challenge entropy and uniqueness
 
 ---
@@ -253,7 +243,7 @@ Expected behavior:
 ### **Minimum Requirements (All Must Pass)**
 - [ ] Application starts without cryptographic errors
 - [ ] Kademlia node IDs are cryptographically generated
-- [ ] ED2K SecureID uses cryptographic challenges
+- [ ] ED2K SecureIdent is not advertised and peers are never marked verified (#75)
 - [ ] RC4 keys are securely generated
 - [ ] No performance degradation > 50%
 - [ ] Proper error handling for crypto failures

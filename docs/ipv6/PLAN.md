@@ -1,6 +1,6 @@
 # IPv6 Dual-Stack Implementation Plan (Living)
 
-_Last Updated: 2026-04-22_
+_Last Updated: 2026-09-11_
 _Status Legend: `todo` | `in-progress` | `done` | `deferred`_
 
 ## Goal
@@ -8,6 +8,8 @@ Deliver feature-flagged IPv6 dual-stack support across Envy networking surfaces 
 - legacy peers and trackers,
 - existing on-disk caches/settings,
 - IPv4-only deployments.
+
+P1 in `docs/DEVELOPMENT_PLAN.md`. Architecture references: [eMule AI](https://github.com/eMuleAI/eMuleAI), [eMule Qt](https://github.com/ModderMule/emule-qt), [eMule eSE](https://github.com/diad87/eMule-eSE-LiveTV) (Kad6 remains **P3** and must stay distinct from Kad2). Do not start Kad6 before phases 1–2 of this plan. Policy: `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`.
 
 ## Rollout guardrails
 - **Primary flag:** `Settings.Connection.EnableIPv6` (default OFF initially) gates all new behavior; enable only after rollout validation confirms backward-compatible behavior.

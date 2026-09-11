@@ -1,6 +1,8 @@
-# 🔍 Analyse des Écarts ED2K/Kademlia - Envy vs eMule
+# ED2K/Kademlia gap analysis (historical)
 
-**Date:** 16 janvier 2026
+> **Historical (January 2026).** Mixed French/English snapshot. Opcode lists may be useful; conclusions are not live status. Canonical status: [`docs/10_dev/status.md`](../../10_dev/status.md). **SecureIdent RSA is not implemented** (#75); the SecureID section below describing an incomplete MD5/`rand()` path is obsolete (safe-disable, no advertisement). Prefer [eMule Community](https://github.com/irwir/eMule) and [aMule](https://github.com/amule-project/amule) over a pinned “eMule 0.60+” string. See [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md).
+
+**Date:** 16 January 2026 (banner 2026-09-11)
 **Version:** 1.0
 **Objective:** Detailed comparison of Envy's ED2K/Kademlia implementation with eMule (reference)
 
@@ -126,19 +128,9 @@
 
 #### Manquants dans Envy
 
-**1. ED2K_C2C_SECIDENTSTATE / ED2K_C2C_SIGNATURE**
-- **Usage:** Authentification SecureID eMule
-- **Format eMule:**
-  ```
-  SECIDENTSTATE: <Challenge(6)>
-  SIGNATURE: <Response(16)> (MD5 hash)
-  ```
-- **État actuel:** Code présent mais incomplet - `Envy/EDClient.cpp:64-159`
-- **Problèmes:**
-  - Utilise `rand()` au lieu de RNG cryptographique
-  - Hash simple au lieu de MD5
-- **Fichier à modifier:** `Envy/EDClient.cpp:64-159` - Compléter implémentation
-- **Complexity:** Low (S) - Corriger RNG et hash
+**1. ED2K_C2C_SECIDENTSTATE / ED2K_C2C_SIGNATURE (obsolete note)**
+- **Usage:** eMule SecureIdent (RSA in the real protocol; not MD5)
+- **Current (2026-09-11 / #75):** Not implemented. Envy does not advertise SecureIdent and never marks peers verified. Inbound packets ignored. Do not “complete” the old MD5 stub.
 
 **2. ED2K_C2C_EMULEINFO / ED2K_C2C_EMULEINFOANSWER**
 - **Usage:** Échange d'informations eMule (version, capacités)
@@ -404,13 +396,13 @@
 3. **ED2K_C2C_COMPRESSEDPART** - Semaine 2
 
 **Files:**
-- `Envy/EDClient.cpp:64-159` - Fix SecureID
+- `Envy/EDClient.cpp` / `SecureIdentPolicy.h` - SecureIdent safe-disable (#75); RSA later
 - `Envy/EDClient.cpp` - Add handlers
 - `Envy/UploadTransferED2K.cpp` - Add compression
 
 **Tests:**
-- SecureID authentication functional
-- eMule compatibility verified
+- SecureIdent: policy tests only (`test_secureident_policy_smoke.cpp`); RSA not implemented
+- eMule compatibility: **unverified** live
 - Compression tested
 
 ---

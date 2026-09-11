@@ -1,12 +1,16 @@
 # Envy Project Modernization Summary
 
+**Correction (2026-09-11):** This file is a **historical snapshot** (January 2026). It is not live protocol status. Canonical status: [`docs/10_dev/status.md`](status.md). Canonical sequence: [`docs/DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md).
+
+In particular, **eMule SecureIdent RSA is not implemented**. Claims below that SecureID is “active”, “complete”, or that Envy has an eMule-compatible challenge-response are obsolete (#75: do not advertise; never mark peers verified). BitTorrent v2 below is also overstated: HashLib SHA-256 exists, but `CBTInfo::IsBitTorrentV2()` still returns false.
+
 ## Overview
 
 This document summarizes the comprehensive modernization and upgrade of the Envy P2P client project to meet current development standards and best practices.
 
-**Date**: January 17, 2026
-**Status**: Phase 2 Protocol Modernization completed, ED2K search modernization complete
-**Impact**: P2P protocol enhancements complete, SecureID authentication active, ED2K search fully functional
+**Date**: January 17, 2026 (snapshot); status banner updated 2026-09-11
+**Status**: Historical Phase 2 notes only — see `docs/10_dev/status.md` for current evidence
+**Impact**: CI/docs/tooling modernization landed; protocol claims in this file must be checked against the status matrix
 
 ---
 
@@ -37,13 +41,11 @@ This document summarizes the comprehensive modernization and upgrade of the Envy
   - Extended serialization support
   - Backward compatibility with v1 torrents
 
-#### ED2K SecureID Authentication
-- **Files**: `EDClient.h`, `EDClient.cpp`
-- **Features**:
-  - Complete SecureID challenge-response system
-  - Client-to-client authentication
-  - Proper state management and verification
-  - Integration with eMule capability negotiation
+#### ED2K SecureIdent (obsolete snapshot)
+
+- **Files**: `EDClient.h`, `EDClient.cpp`, `SecureIdentPolicy.h`
+- **Current (2026-09-11 / #75):** RSA SecureIdent is **not implemented**. Envy does not advertise SecureIdent (`ED2K_VERSION_SECUREID = 0`) and does not mark peers verified. The January 2026 “complete challenge-response” text described a non-eMule MD5/non-zero path that was later disabled.
+- **Follow-up:** real RSA SecureIdent after the ED2K interop baseline (`docs/DEVELOPMENT_PLAN.md`).
 
 #### Kademlia DHT Enhancements
 - **Files**: `Kademlia.cpp`, `Kademlia.h`, `KademliaPlatform.cpp`
@@ -466,9 +468,9 @@ cd "Visual Studio"
 ✅ Update all documentation
 ✅ Configure CI/CD
 ✅ Setup AI assistants
-✅ Implement SecureID authentication
-✅ Complete Kademlia DHT enhancements
-✅ Add BitTorrent v2 foundation
+- SecureIdent: **not implemented** (safe-disable #75; RSA is a later workstream)
+✅ Kademlia DHT enhancements (code present; live eMule/aMule interop unverified)
+✅ Add BitTorrent v2 **foundation** (HashLib SHA-256; wire/infohash still partial)
 ✅ Modernize ED2K search functionality (UDP/TCP GUID tracking)
 ✅ Fix vendor cache loading and log spam issues
 ✅ Resolve QueryHit duplicate case compilation error
@@ -514,7 +516,7 @@ For questions about these changes:
 ---
 
 **Version**: 2.1
-**Last Updated:** January 2026
-**Status**: Phase 2 Complete ✅ (ED2K Search Modernization)
+**Last Updated:** 2026-09-11 (historical body January 2026)
+**Status**: Snapshot only — live status is `docs/10_dev/status.md`
 
-This modernization establishes Envy as a cutting-edge P2P client with modern protocols, enhanced security, and sustainable development practices. The implementation of BitTorrent v2 support positions Envy for future protocol evolution while maintaining full backward compatibility.
+This document recorded a January 2026 tooling/docs push. Envy remains a multi-network Windows client; do not read the checkboxes above as current protocol completeness.

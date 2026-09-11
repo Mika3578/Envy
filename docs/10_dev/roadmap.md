@@ -1,11 +1,15 @@
 # Envy Development Roadmap
 
-**Last Updated:** March 2026
-**Based on:** Full codebase comparison against reference clients (eMule, aMule, libtorrent, qBittorrent, Transmission)
-**Approach:** Phased, evidence-based priorities; see `docs/10_dev/status.md` for the detailed comparison
+Status: active
+Last updated: 2026-09-11
+Scope: Technical itemization of Envy modernization. Strategic sequence is `docs/DEVELOPMENT_PLAN.md`.
+Source of truth: `docs/10_dev/status.md` for current vs planned; `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` for external projects.
 
+**Based on:** Envy code plus reference clients (eMule Community, aMule, and others listed below). Older Examples/ notes for libtorrent, qBittorrent, and Transmission remain valid for BitTorrent.
 
-Canonical context: operational dashboard in `docs/DEV_TRACKER.md`; strategic plan in `docs/DEVELOPMENT_PLAN.md`.
+Canonical context: strategic plan in `docs/DEVELOPMENT_PLAN.md`; status matrix in `docs/10_dev/status.md`. Session notes: `.local/DEV_TRACKER.md` (gitignored).
+
+Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA SecureIdent → P1 IPv6 and core/UI/headless → P1/P2 BitTorrent → P2 DHT research → P3 Kad6**. Envy stays multi-network.
 
 ---
 
@@ -13,13 +17,14 @@ Canonical context: operational dashboard in `docs/DEV_TRACKER.md`; strategic pla
 
 - **Build System:** Visual Studio solution builds (MSVC toolset `v145`), CMake partial (HashLib only)
 - **UI Framework:** MFC/Unicode complete
-- **G2 / G1 / DC++:** Fully implemented
+- **G2 / G1 / DC:** implemented and in scope to preserve (feature depth vs latest ADC-EXT unverified)
 - **BitTorrent v1:** Solid (DHT, ut_metadata, ut_pex, lt_tex, web seeds, trackers)
 - **BitTorrent v2:** Library-only (Merkle tree + SHA-256); no wire protocol
-- **ED2K:** Core transfers + CryptLayer + SourceEx2 (0x83/0x84) working; compressed upload, AICH C2C, and several opcodes missing
-- **Kademlia:** Bootstrap, ping, find_node, FIND_VALUE (search key/source), PUBLISH (key/source), and DHT store implemented; bucket splitting, LRU, refresh, firewalled handling TODO
-- **IPv6:** Utilities exist, core connections IPv4-only
-- **Testing:** 13 HashLib unit tests passing; protocol integration tests require core refactoring
+- **ED2K:** Core transfers + CryptLayer + SourceEx2 (0x83/0x84) present; compressed upload send path, AICH C2C, callbacks/buddy, and live eMule/aMule interop still open. **SecureIdent RSA is not implemented** (#75; do not advertise).
+- **Kademlia:** Bootstrap, ping, find_node, FIND_VALUE (search key/source), PUBLISH (key/source), and DHT store implemented; bucket splitting, LRU, refresh, firewalled handling TODO. Live Kad2 interop **unverified**.
+- **IPv6:** Utilities exist, core connections IPv4-only (`docs/ipv6/PLAN.md`)
+- **Headless / RPC:** not implemented (MFC GUI + limited Remote web UI)
+- **Testing:** HashLib unit tests plus parser/policy smokes; protocol integration tests require core refactoring
 
 ---
 
@@ -50,16 +55,16 @@ Canonical context: operational dashboard in `docs/DEV_TRACKER.md`; strategic pla
 
 ### Done
 - CryptLayer RSA+RC4 handshake
-- SecureID challenge/response flow (crypto-random)
 - Large file support (64-bit request/send/compressed)
 - HASHSETREQUEST2 / HASHSETANSWER2
 - FileIdentifier support
-- AICH hash tree building and verification
+- AICH hash tree building and verification (C2C recovery protocol still TODO)
 - Concatenated UDP packet parsing fix
+- SourceEx2 — REQUESTSOURCES2 (0x83) / ANSWERSOURCES2 (0x84) in `EDClient.cpp`; advertised via nOpt2 bit 10; IPv4-only tuples (`SOURCE_EXCHANGE_INTEROP_NOTES.md`)
+- SecureIdent **safe disable** (#75): `ED2K_VERSION_SECUREID = 0`; peers never marked verified; inbound SecureIdent packets ignored
 
-### Done (bugs fixed / features completed)
-- **SecureID version advertisement** — `EDPacket.h` now has `ED2K_VERSION_SECUREID = 3` (eMule-compatible).
-- **SourceEx2** — REQUESTSOURCES2 (0x83) / ANSWERSOURCES2 (0x84) implemented in `EDClient.cpp`; advertised via nOpt2 bit 10; `DownloadTransferED2K` sends REQUESTSOURCES2 when peer supports it.
+### Not implemented (do not list as done)
+- **eMule RSA SecureIdent** — not implemented. Historical MD5/non-zero “verification” was invalid and is disabled. Do not advertise SecureIdent until a dedicated RSA workstream lands.
 
 ### TODO: Bugs / verification
 
@@ -72,13 +77,14 @@ Canonical context: operational dashboard in `docs/DEV_TRACKER.md`; strategic pla
 | Item | Detail | Priority |
 |------|--------|----------|
 | **Compressed upload** | Can receive COMPRESSEDPART but never sends it; implement zlib deflate in `UploadTransferED2K::DispatchNextChunk()` | Medium |
-| **REQUESTSOURCES2 / ANSWERSOURCES2** | Source exchange v2 (0x83/0x84) — implement or stop advertising | Medium |
+| **Live ED2K interop** | Envy ↔ eMule Community / aMule (Hello, HighID/LowID, search, SourceEx, transfer) | P0 |
+| **RSA SecureIdent** | Real eMule challenge-response after ED2K baseline (`docs/DEVELOPMENT_PLAN.md`) | P0/P1 |
 | **AICH C2C protocol** | AICHFILEHASHREQ (0x9E) / AICHFILEHASHANS (0x9D) handlers — required for AICH corruption recovery from peers | Medium |
 | **MULTIPACKET_EXT2 full batching** | Current handler treats each entry as separate FILEREQUEST; implement proper batched processing | Low |
 | **PUBLICIP_REQ / PUBLICIP_ANSWER** (0x97/0x98) | Public IP discovery from peers | Low |
-| **CALLBACK / REASKCALLBACKTCP** (0x99/0x9A) | Callback mechanism for firewalled clients | Low |
-| **BUDDYPING / BUDDYPONG** (0x9F/0xA0) | Buddy system for low-ID clients | Low |
-| **FWCHECKUDPREQ** (0xA7) | Firewall check for Kad >=6/7 integration | Low |
+| **CALLBACK / REASKCALLBACKTCP** (0x99/0x9A) | Callback mechanism for firewalled clients | P0 baseline |
+| **BUDDYPING / BUDDYPONG** (0x9F/0xA0) | Buddy system for low-ID clients | P0 Kad/ED2K |
+| **FWCHECKUDPREQ** (0xA7) | Firewall check for Kad integration | P0 Kad |
 
 ---
 
@@ -105,11 +111,12 @@ Canonical context: operational dashboard in `docs/DEV_TRACKER.md`; strategic pla
 | **LRU replacement** | Replace least-recently-used contact when bucket is full; currently rejects new contacts | Medium |
 | **Bucket refresh** | Periodic refresh of stale buckets (eMule uses 15-minute intervals) | Medium |
 | **Eclipse protection** | Limit contacts from same /24 subnet to prevent eclipse attacks | Medium |
-| **FIREWALLED_REQ/RES** | Handle firewalled node detection and relay | Medium |
-| **FINDBUDDY_REQ/RES** | Buddy system for NAT traversal | Low |
-| **CALLBACK_REQ/RES** | Kad callback mechanism | Low |
-| **UDP hole punching** | NAT traversal for firewalled nodes | Low |
-| **Firewall self-check** | Detect own firewall status via Kademlia | Low |
+| **FIREWALLED_REQ/RES** | Handle firewalled node detection and relay | P0 |
+| **FINDBUDDY_REQ/RES** | Buddy system for NAT traversal | P0 |
+| **CALLBACK_REQ/RES** | Kad callback mechanism | P0 |
+| **UDP hole punching** | NAT traversal for firewalled nodes (historical Kad2; not Ember/eSE overlays) | P0 |
+| **Firewall self-check** | Detect own firewall status via Kademlia | P0 |
+| **Kad6** | Experimental IPv6 overlay (eMule eSE). Distinct from Kad2. | P3 |
 
 ---
 
@@ -147,9 +154,9 @@ Canonical context: operational dashboard in `docs/DEV_TRACKER.md`; strategic pla
 
 ---
 
-## Phase 5: IPv6 Integration (TODO)
+## Phase 5: IPv6 Integration (TODO) — P1
 
-**Goal:** Full dual-stack networking.
+**Goal:** Dual-stack networking before any Kad6 work. References: eMule AI, eMule Qt, eMule eSE, `docs/ipv6/PLAN.md`.
 
 | Item | Detail | Priority |
 |------|--------|----------|
@@ -180,61 +187,80 @@ Canonical context: operational dashboard in `docs/DEV_TRACKER.md`; strategic pla
 | **ED2K packet parsing tests** | Test handshake, concatenated UDP, compressed parts | High |
 | **BT protocol tests** | Test bencode, magnet parsing, DHT messages | Medium |
 | **Kad routing table tests** | XOR distance, bucket operations, node eviction | Medium |
-| **Integration tests** | Protocol interop with reference clients (manual or containerized) | Low |
+| **Integration tests** | Live Envy ↔ eMule Community / aMule (and BT vs aria2-next where useful) | P0 |
 | **Performance benchmarks** | Baseline metrics for download throughput, UI responsiveness, memory | Low |
 
 ---
 
-## Phase 7: Modern C++ & Long-Term (FUTURE)
+## Phase 7: Core/UI, headless, Modern C++ (FUTURE / P1 architecture)
+
+Incremental only. References: eMule Qt, aMule, aria2-next, Rucio. No rewrite.
 
 | Item | Detail | Priority |
 |------|--------|----------|
+| **EnvyCore extraction** | Protocol/transfer/library behind a stable internal API; keep MFC as first frontend | P1 |
+| **Headless / CLI / RPC** | Evaluate daemon + REST or JSON-RPC; Remote/Web is not that API yet | P1 |
 | **C++20 adoption** | Concepts, ranges, coroutines where beneficial | Low |
 | **Smart pointer migration** | Replace raw `new`/`delete` with `unique_ptr`/`shared_ptr` | Low |
-| **Constexpr usage** | Compile-time computation where applicable | Low |
 | **CMake for full project** | Extend CMake to main app, services, plugins | Low |
 
 ---
 
 ## Priority Summary
 
-### Immediate (High Priority)
-1. ~~Fix SecureID version advertisement~~ -- Done (`ED2K_VERSION_SECUREID = 3`).
-2. ~~Fix SourceEx2 / Kad FIND_VALUE + PUBLISH~~ -- Done (SourceEx2 and Kad search/publish implemented).
-3. ~~BT protocol encryption~~ -- Done (MSE/PE integrated into `CBTClient` via `BTCrypto.h/cpp`; `Settings.BitTorrent.Encryption` setting added).
-4. BT uTP transport -- Deferred (requires full UDP reliable transport implementation).
+Aligned with `docs/DEVELOPMENT_PLAN.md`.
 
-### Next (Medium Priority)
-5. Compressed upload for ED2K (send COMPRESSEDPART).
-6. Kad bucket splitting + LRU + refresh.
-7. AICH C2C protocol.
-8. BT v2 infohash + .torrent parsing.
-9. IPv6 core connection layer.
+### P0 — ED2K / Kad interop baseline
+1. Live Envy ↔ eMule Community / aMule validation (Hello, HighID/LowID, search, SourceEx, transfer, Kad bootstrap/search/publish).
+2. Firewalled / callback / Buddy / firewall-check behaviour.
+3. Kad bucket splitting + LRU + refresh (needed for a real routing table).
+4. ~~SourceEx2 / Kad FIND_VALUE + PUBLISH (code present; live interop still unverified).~~
+5. ~~BT protocol encryption~~ — Done (MSE/PE in `CBTClient` via `BTCrypto.h/cpp`).
 
-### Later (Low Priority)
-10. BT v2 wire protocol (hash req/res, hybrid mode)
-11. Remaining ED2K opcodes (CALLBACK, BUDDY, PUBLICIP)
-12. BT local peer discovery
-13. HTTPS trackers
-14. Full test suite expansion
+### P0/P1 — SecureIdent RSA
+6. Real eMule RSA SecureIdent **after** the ED2K baseline. Not advertised today (`ED2K_VERSION_SECUREID = 0`).
+
+### P1 — IPv6, core/UI, headless
+7. IPv6 address/socket/DNS/host-cache foundation (`docs/ipv6/PLAN.md`). No Kad6 yet.
+8. Incremental `EnvyCore` / MFC split (eMule Qt, aMule, aria2-next).
+9. Evaluate daemon / CLI / REST or JSON-RPC.
+
+### P1/P2 — BitTorrent (do not drop)
+10. Compressed ED2K upload (send COMPRESSEDPART) — ED2K quality, can proceed beside BT.
+11. AICH C2C protocol.
+12. BT uTP (BEP 29) — not wired; `Services/LibUTP` is unused by Envy code.
+13. BT v2 infohash + .torrent parsing + wire (BEP 52).
+
+### P2 / P3
+14. DHT/security research (Ember/Rucio ideas, Envy-specific, not Kad2).
+15. Kad6 / eSE-style overlay only after IPv6 + Kad2 interop.
+16. HTTPS trackers, LPD, remaining low-priority opcodes.
 
 ---
 
 ## Development Principles
 
-- **Evidence-based:** All priorities from code inspection against reference clients
+- **Evidence-based:** Priorities from Envy code plus specs; reference clients second
 - **Fix bugs before features:** Mis-advertised capabilities can cause interop failures
-- **Incremental delivery:** Each phase delivers working functionality
-- **Backward compatibility:** Maintain existing protocol compatibility
+- **Incremental delivery:** Each phase delivers working functionality; no full rewrite
+- **Multi-network:** Keep BitTorrent, G1, G2, and Direct Connect while improving ED2K/Kad
 - **Profile before optimizing:** Performance changes guided by profiling
 
 ---
 
-## Reference Implementations (Examples/)
+## Reference implementations
 
-| Protocol | Reference Clients | Location |
-|----------|-------------------|----------|
-| ED2K / Kad2 | eMule (srchybrid), aMule | `Examples/eMule/`, `Examples/aMule/` |
-| BitTorrent / DHT | libtorrent, qBittorrent, Transmission | `Examples/libtorrent/`, `Examples/qbittorrent/`, `Examples/transmission/` |
+Canonical list, trust order, and “do not copy” notes: `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`.
 
-These are gitignored reference sources used for protocol verification and compatibility checking.
+| Priority | Project | Role |
+| ---: | --- | --- |
+| P0 | [eMule Community](https://github.com/irwir/eMule) | ED2K/Kad2 wire reference |
+| P0 | [aMule](https://github.com/amule-project/amule) | Interop + daemon architecture |
+| P1 | [eMule Qt](https://github.com/ModderMule/emule-qt) | core/UI, IPC, REST |
+| P1 | [eMule AI](https://github.com/eMuleAI/eMuleAI) | IPv6 / reachability (not ED2K-normative) |
+| P1 | [aria2-next](https://github.com/AnInsomniacy/aria2-next) | engine, RPC, BT + ED2K tests |
+| P2 | [Ember](https://github.com/untaimed18/Ember-P2P) | DHT/security research; **not Kad2** |
+| P2 | [Rucio](https://github.com/ogarcia/rucio) | daemon/Web/libp2p architecture (not CERN Rucio) |
+| P3 | [eMule eSE](https://github.com/diad87/eMule-eSE-LiveTV) | IPv6/Kad6 R&D |
+
+Local `Examples/` trees (if present, often gitignored) remain useful for libtorrent / qBittorrent / Transmission / historical eMule/aMule checkouts. Prefer the GitHub roots above over a pinned tag.
