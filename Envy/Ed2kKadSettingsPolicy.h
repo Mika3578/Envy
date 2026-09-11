@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <cstddef>
+#include <cwchar>
 #include <windows.h>
 
 // Registry / settings section and value names (must match Settings.Add).
