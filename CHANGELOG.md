@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **BitTorrent BTH buffer lifetime** — `CBTInfo` now guards self-assignment in `operator=`, and installs piece-hash (`m_pBlockBTH`) buffers via allocate-fill-then-replace so a failed `new[]` cannot leave a dangling member and reloads no longer leak the previous array (`operator=`, `Serialize` load, `LoadTorrentTree`).
+- **BitTorrent BTH buffer lifetime** — `CBTInfo` now guards self-assignment in `operator=`, and replaces piece-hash (`m_pBlockBTH`) buffers via RAII temporaries (allocate/fill, then install) so a failed allocation or `Serialize` read cannot leak or leave a dangling member; zero-count loads clear any previous buffer (`operator=`, `Serialize` load, `LoadTorrentTree`).
 
 ### Changed
 - **CI two-speed gate** — Pull requests classify changed paths and skip
