@@ -1,9 +1,11 @@
 # Kad2 eMule/aMule Compatibility Report
 
-**Date:** January 16, 2026
+> **Opcode/format match only (January 2026).** This is not live DHT interoperability. Canonical status: [`docs/10_dev/status.md`](../../10_dev/status.md) (`partial / unverified`). Ember/eSE overlays are **not** Kad2. Preferred live references: [eMule Community](https://github.com/irwir/eMule), [aMule](https://github.com/amule-project/amule) — see [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md).
+
+**Date:** January 16, 2026 (banner 2026-09-11)
 **Reference Implementations:**
-- eMule (Examples/eMule/srchybrid)
-- aMule (Examples/aMule)
+- eMule (Examples/eMule/srchybrid; prefer https://github.com/irwir/eMule)
+- aMule (Examples/aMule; prefer https://github.com/amule-project/amule)
 - Shareaza (Examples/shareaza) - No Kad2 implementation found
 - MLDonkey (Examples/mldonkey) - No Kad2 implementation found
 
@@ -11,11 +13,9 @@
 
 ## Executive Summary
 
-✅ **FULLY COMPATIBLE** - Envy's Kad2 implementation is wire-compatible with eMule and aMule clients.
+**Wire/opcode comparison only.** Several Kad2 opcodes and packet shapes in Envy match eMule/aMule sources inspected at the time. That is **not** a claim that Envy is a fully functional Kad2 peer on the live network (routing-table maintenance, firewalled/Buddy, and live interop remain open — `docs/10_dev/roadmap.md`).
 
-All tested opcodes, packet formats, and protocol constants match the reference implementations in eMule and aMule.
-
-**Note:** Shareaza and MLDonkey do not appear to have Kad2 implementations in the Examples folder, or they use different naming conventions. Only eMule and aMule were used as reference implementations.
+Shareaza and MLDonkey were not used as Kad2 references.
 
 ---
 
@@ -42,8 +42,8 @@ All tested opcodes, packet formats, and protocol constants match the reference i
 **Envy:** `Envy/EDPacket.h` lines 318-337
 
 **Verified Clients:**
-- ✅ **eMule** - Full compatibility verified (all opcodes and formats match)
-- ✅ **aMule** - Full compatibility verified (all opcodes and formats match)
+- ✅ **eMule** - opcode/format match in the inspected sources (not live interop)
+- ✅ **aMule** - opcode/format match in the inspected sources (not live interop)
 - ⚠️ **Shareaza** - No Kad2 implementation found in Examples (may use different protocol)
 - ⚠️ **MLDonkey** - No Kad2 implementation found in Examples (OCaml-based, different architecture)
 
@@ -340,38 +340,30 @@ pResponse->WriteByte(contactCount);        // 1 byte
 
 ## Conclusion
 
-✅ **Envy's Kad2 implementation is fully wire-compatible with eMule and aMule clients.**
-
-All critical opcodes, packet formats, and protocol constants match both reference implementations (eMule and aMule). The implementation follows eMule's exact specifications for:
-
-- Opcode values (verified against both eMule and aMule)
-- Packet layouts (BOOTSTRAP, PING/PONG, FIND_NODE)
-- IP endianness handling
-- Request tracking (outtrack list)
-- nodes.dat import (all versions 0-3)
+Opcode values, BOOTSTRAP/PING/PONG/FIND_NODE layouts, IP endianness notes, request tracking, and nodes.dat import (v0–3) matched the inspected eMule/aMule sources. That is **not** live DHT interoperability (`docs/10_dev/status.md`: partial / unverified).
 
 **Verified Compatibility:**
-- ✅ **eMule (srchybrid)** - 100% compatible
-- ✅ **aMule** - 100% compatible
+- ⚠️ **eMule (srchybrid)** — opcode/format match only
+- ⚠️ **aMule** — opcode/format match only
 - ⚠️ **Shareaza** - No Kad2 implementation found to verify
 - ⚠️ **MLDonkey** - No Kad2 implementation found to verify
 
-The only differences are intentional limitations for minimal scope (restrictive FIND_NODE type validation, no tag lists yet), which do not affect basic interoperability with eMule/aMule networks.
+Intentional scope limits (restrictive FIND_NODE type validation, no tag lists yet) remain. Do not treat this report as production-ready Kad2 interop.
 
-**Status:** ✅ **READY FOR TESTING** with live eMule/aMule network
+**Status:** opcode/format comparison only; live eMule/aMule DHT interop is **unverified** (`docs/10_dev/status.md`)
 
 ---
 
 ## Client-Specific Notes
 
 ### eMule (srchybrid)
-- ✅ **Full compatibility verified**
+- ⚠️ **Opcode/format match only** (not live interop)
 - Uses identical packet formats to aMule
 - Same opcode values and validation logic
 - Reference: `Examples/eMule/srchybrid/kademlia/net/KademliaUDPListener.cpp`
 
 ### aMule
-- ✅ **Full compatibility verified**
+- ⚠️ **Opcode/format match only** (not live interop)
 - Uses identical packet formats to eMule
 - Same opcode values and validation logic
 - Reference: `Examples/aMule/src/kademlia/net/KademliaUDPListener.cpp`

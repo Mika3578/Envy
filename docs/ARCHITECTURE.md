@@ -1,7 +1,7 @@
 # Architecture
 
 ## System Overview
-Envy is a Windows desktop monolith with modular subsystems and plugin extension points.
+Envy is a Windows desktop monolith with modular subsystems and plugin extension points. Long-term (P1, incremental): extract `EnvyCore` (protocol/transfer/library) behind an internal API while keeping the MFC UI as the first frontend. Inspired by eMule Qt / aMule / aria2-next; not a rewrite (`docs/DEVELOPMENT_PLAN.md`).
 
 ```text
 UI (MFC Wnd/Dlg/Page/Ctrl classes)
@@ -19,7 +19,7 @@ Services + Plugins (zlib, bzip2, miniupnp, BugTrap, plugin DLLs)
 - **Application shell (`Envy/Envy.cpp`)**: startup, command-line options, global state, process control.
 - **Networking/protocol subsystem**: per-network handlers and transfer state machines.
 - **Library subsystem**: file indexing, metadata extraction, schema mapping, sharing rules.
-- **Remote management surface (`Remote/`)**: HTML templates and JS assets for remote control UX.
+- **Remote management surface (`Remote/`)**: HTML templates and JS assets for remote control UX (limited; not a headless JSON-RPC daemon).
 - **Plugin host (`Plugins/`)**: media handlers, readers/builders, integration modules.
 
 ## Build Architecture

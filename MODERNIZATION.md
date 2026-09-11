@@ -9,7 +9,7 @@ automation of dependency updates.
 > **Audit date** : 2026-05-15
 > **Target branch** : `claude/code-audit-modernization-nJcTT`
 
-For the day-by-day execution log, see [`docs/DEV_TRACKER.md`](./docs/DEV_TRACKER.md).
+For the day-by-day execution log, see `.local/DEV_TRACKER.md` (gitignored). Strategic plan: [`docs/DEVELOPMENT_PLAN.md`](./docs/DEVELOPMENT_PLAN.md). Protocol status: [`docs/10_dev/status.md`](./docs/10_dev/status.md). External P2P references: [`docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`](./docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md).
 For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 
 ---
@@ -88,7 +88,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 - [x] Replaced `throw()` with `noexcept` (Envy/Buffer.{h,cpp}, Connection.h)
 - [x] Modernized `Envy/StdAfx.h`: Win 10 baseline, MSVC 14.50 requirement,
       auto-XPSUPPORT detection removed
-- [x] AI rules file (`AGENTS.md`) and living dev tracker (`docs/DEV_TRACKER.md`)
+- [x] AI rules file (`AGENTS.md`) and living session notes (`.local/DEV_TRACKER.md`, gitignored)
 
 ### Phase 1 - First green build (next PR)
 
