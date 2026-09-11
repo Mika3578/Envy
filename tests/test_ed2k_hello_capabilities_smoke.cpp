@@ -33,8 +33,8 @@ static bool test_pack_opt1_matches_honest_defaults()
 	const DWORD nOpt1 = Ed2kPackFeatureVersions1(
 		Ed2kAichAdvertisedVersion(),
 		TRUE,
-		4,	// UDP version constant proxy (layout only)
-		1,	// compression
+		2,	// ED2K_VERSION_UDP (Envy/EDPacket.h)
+		1,	// ED2K_VERSION_COMPRESSION
 		Ed2kSecureIdentAdvertisedVersion(),
 		2,	// SourceEx
 		2,	// ExtReq
@@ -44,6 +44,7 @@ static bool test_pack_opt1_matches_honest_defaults()
 	return Ed2kFeatureVersions1Aich(nOpt1) == 0
 		&& Ed2kFeatureVersions1SecureIdent(nOpt1) == 0
 		&& ( ( nOpt1 >> 28 ) & 0x01 ) == 1	// Unicode
+		&& ( ( nOpt1 >> 24 ) & 0x0F ) == 2	// UDP nibble
 		&& ( ( nOpt1 >> 12 ) & 0x0F ) == 2	// SourceEx
 		&& ( nOpt1 & 0x01 ) == 1;			// Preview
 }
