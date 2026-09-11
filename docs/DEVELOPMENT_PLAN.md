@@ -177,6 +177,15 @@ to improve authentication and eMule credit-system compatibility.
 - [x] Ignore inbound SecureIdent packets without dropping ED2K connections.
 - [x] Keep ED2K transfer independent of SecureIdent.
 
+### Current (#87 — honest Hello advertising)
+- [x] AICH: local hash support may exist; **do not advertise** AICH FeatureVersions
+  until C2C request/answer handlers are implemented (`Ed2kAichAdvertisedVersion() = 0`).
+- [x] CryptLayer Hello bits (SUPPORTS/REQUESTS/REQUIRES) stay **0** until TCP
+  protocol-obfuscation interop with eMule/aMule is proven; packet PUBLICKEY
+  crypto is not treated as equivalent to MiscOptions2 crypt bits.
+- [ ] CryptLayer Hello bit alignment (separate PR after obfuscation audit — #121).
+- [ ] Live Hello capture vs eMule Community / aMule (validation after merge).
+
 ### Future RSA SecureIdent (separate workstream)
 1. Baseline ED2K interoperability with eMule/aMule without SecureIdent.
 2. Confirm Envy works correctly when SecureIdent is unsupported/unavailable.
@@ -221,6 +230,10 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-09-11:** For #87 Hello honesty, stop advertising AICH until C2C
+  handlers exist. Keep CryptLayer MiscOptions2 bits at 0 until TCP
+  obfuscation interop is audited separately from packet PUBLICKEY crypto.
+  SecureIdent advertisement remains 0 (#75).
 - **2026-09-11:** Adopt an explicit reference-implementation policy (D-008): specifications first; eMule Community/aMule as ED2K/Kad de-facto interop; eMule Qt/aria2-next/eMule AI as architecture; Ember/eSE as experimental only. Envy stays multi-network.
 - **2026-09-10:** Runtime performance work starts with reproducible benchmarks (#111). No IOCP rewrite issue until peer-scalability evidence after Buffer/lock optimizations. No dedicated LibraryBuilder hashing issue until measurements show a user-visible bottleneck. #92 stays correctness/stability (lock order); #113 tracks contention separately.
 - **2026-09-10:** Adopt a two-speed CI: path-aware PR jobs (`if:`, never

@@ -613,8 +613,9 @@ public:
 #define ED2K_VERSION_COMMENTS		0x01
 #define ED2K_VERSION_EXTENDEDREQUEST 0x02	// Note: Defined at run time. 0, 1, or 2
 
-// AICH support level
-#define ED2K_VERSION_AICH			0x01	// Basic AICH support
+// Historical AICH version constant. Hello advertisement uses
+// Ed2kAichAdvertisedVersion() (currently 0 — no C2C AICH handlers).
+#define ED2K_VERSION_AICH			0x01
 // Advertise 0 until eMule-compatible RSA SecureIdent verification exists (#75).
 // Claiming 0x03 previously implied working SecureIdent while Envy only ran a
 // non-cryptographic MD5/non-zero check that could mark peers as verified.
