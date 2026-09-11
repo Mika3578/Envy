@@ -22,6 +22,7 @@
 #include "Registry.h"
 #include "Schema.h"
 #include "Skin.h"
+#include "Ed2kKadSettingsPolicy.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -515,6 +516,8 @@ void CSettings::Load()
 	Add( L"eDonkey", L"AICHHashSetTimeout", &eDonkey.AICHHashSetTimeout, 30, 1, 5, 300, L" s" );
 	Add( L"eDonkey", L"AICHRecover", &eDonkey.AICHRecover, true );
 
+	// Master Kad switch (InitKademlia). Must be registered — distinct from EnableKadHello.
+	Add( Ed2kEnableKadSection(), Ed2kEnableKadName(), &eDonkey.EnableKad, Ed2kEnableKadDefault() );
 	Add( L"eDonkey", L"EnableKadHello", &eDonkey.EnableKadHello, true );
 	Add( L"eDonkey", L"KadFindValue", &eDonkey.KadFindValue, true );
 	Add( L"eDonkey", L"KadHelloTimeout", &eDonkey.KadHelloTimeout, 10, 1, 1, 60, L" s" );

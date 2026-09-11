@@ -186,6 +186,12 @@ to improve authentication and eMule credit-system compatibility.
 - [ ] CryptLayer Hello bit alignment (separate PR after obfuscation audit — #121).
 - [ ] Live Hello capture vs eMule Community / aMule (validation after merge).
 
+### Current (#124 — EnableKad settings binding)
+- [x] Register `eDonkey.EnableKad` with `Settings.Add` (default `true`) so
+  `InitKademlia()` can run; distinct from `EnableKadHello`.
+- [ ] UI checkbox for EnableKad (optional follow-up; registry/settings dump works).
+- [ ] Kad search/source hits → `AddSourceED2K` (separate PR; not #86 routing table).
+
 ### Future RSA SecureIdent (separate workstream)
 1. Baseline ED2K interoperability with eMule/aMule without SecureIdent.
 2. Confirm Envy works correctly when SecureIdent is unsupported/unavailable.
@@ -230,6 +236,9 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-09-11:** Persist `eDonkey.EnableKad` via `Settings.Add` (#124) separately
+  from Kad routing-table work (#86) and from Kad→`AddSourceED2K` source delivery.
+  Default remains `true` per settings reference; no migration (key never existed).
 - **2026-09-11:** For #87 Hello honesty, stop advertising AICH until C2C
   handlers exist. Keep CryptLayer MiscOptions2 bits at 0 until TCP
   obfuscation interop is audited separately from packet PUBLICKEY crypto.

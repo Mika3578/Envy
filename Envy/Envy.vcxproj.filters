@@ -1949,6 +1949,9 @@
     <ClInclude Include="Ed2kHelloCapabilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Ed2kKadSettingsPolicy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="SecureIdentPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>

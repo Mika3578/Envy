@@ -180,6 +180,7 @@
     <ClCompile Include="test_protocol_parser_smoke.cpp" />
     <ClCompile Include="test_secureident_policy_smoke.cpp" />
     <ClCompile Include="test_ed2k_hello_capabilities_smoke.cpp" />
+    <ClCompile Include="test_ed2k_kad_settings_smoke.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />
