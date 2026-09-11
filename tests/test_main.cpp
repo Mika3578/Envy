@@ -15,6 +15,7 @@ void register_hashlib_tests(TestSuite& suite);
 void register_protocol_parser_smoke_tests(TestSuite& suite);
 void register_secureident_policy_smoke_tests(TestSuite& suite);
 void register_ed2k_hello_capabilities_smoke_tests(TestSuite& suite);
+void register_ed2k_kad_settings_smoke_tests(TestSuite& suite);
 
 int main() {
 	TestSuite suite;
@@ -23,6 +24,7 @@ int main() {
 	register_protocol_parser_smoke_tests(suite);
 	register_secureident_policy_smoke_tests(suite);
 	register_ed2k_hello_capabilities_smoke_tests(suite);
+	register_ed2k_kad_settings_smoke_tests(suite);
 
 	int failures = suite.run_all_tests();
 
