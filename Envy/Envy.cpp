@@ -448,8 +448,11 @@ BOOL CEnvyApp::InitInstance()
 	}
 
 	// Show Startup Splash Screen
+	// Base path has 21 Step() calls; EnableKad adds one more ("Kademlia DHT").
 
-	const int nSplashSteps = ( m_cmdInfo.m_bNoSplash || ! m_cmdInfo.m_bShowSplash ) ? 0 : 21;
+	const int nSplashSteps = ( m_cmdInfo.m_bNoSplash || ! m_cmdInfo.m_bShowSplash )
+		? 0
+		: ( 21 + ( Settings.eDonkey.EnableKad ? 1 : 0 ) );
 
 	SplashStep( L"Up", nSplashSteps, false );
 		if ( m_cmdInfo.m_nGUIMode != -1 )
