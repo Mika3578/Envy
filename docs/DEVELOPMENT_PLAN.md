@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-11
+- **Last Updated:** 2026-09-13
+- **Changelog Entry:** 2026-09-13 — Fixed Debug splash assertion: `nSplashSteps` now accounts for the conditional `Kademlia DHT` step when `eDonkey.EnableKad` is enabled (miscount since Kad init splash was added; surfaced after EnableKad defaulted true).
 - **Changelog Entry:** 2026-09-11 — Documented external P2P reference implementations (eMule Community, aMule, eMule Qt, eMule AI, aria2-next, Ember, Rucio, eMule eSE), Envy’s multi-network positioning, specification-first policy (D-008), and the P0–P3 interoperability/architecture sequence. Restored the missing `docs/10_dev/status.md` matrix. Corrected remaining SecureIdent “active/complete” claims: RSA SecureIdent is not implemented (#75).
 - **Changelog Entry:** 2026-09-10 — Runtime performance audit backlog: reproducible benchmarks (#111), then CBuffer front-consume (#112), network hot-path copies/locks (#113), TransferFiles I/O contention (#114). IOCP and dedicated hashing optimization deferred pending evidence. #102 remains CI runner latency only.
 - **Changelog Entry:** 2026-09-10 — Two-speed GitHub Actions: change-aware PR
