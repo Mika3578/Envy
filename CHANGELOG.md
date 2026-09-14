@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Startup splash step count** — When `eDonkey.EnableKad` is on (default since #125), `InitInstance` runs an extra `SplashStep("Kademlia DHT")` that was never counted in `nSplashSteps` (still 21 from the pre-Kad path). Debug builds hit `ASSERT(m_nPos < m_nMax)` in `CSplashDlg::Step` on the following `"Upgrade Manager"` step. `nSplashSteps` now includes the conditional Kad step.
 - **ED2K EnableKad persistence (#124)** — Register `eDonkey.EnableKad` with `Settings.Add` (default `true`, matching the settings reference). Without registration the flag stayed at static zero-init (`false`), so `InitKademlia()` never ran even when `EnableKadHello` / `KadFindValue` defaulted on. Policy helpers in `Envy/Ed2kKadSettingsPolicy.h` with smoke tests. Does not wire Kad hits into `AddSourceED2K` (follow-up).
 - **BitTorrent BTH buffer lifetime** — `CBTInfo::m_pBlockBTH` is now a `std::vector` of piece hashes: self-assignment is guarded, `Serialize` load / `LoadTorrentTree` fill a temporary then `swap` (so failures keep the previous buffer and zero-count clears it), and callers use `.empty()` instead of null checks.
 
