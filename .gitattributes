@@ -1,0 +1,4 @@
+# Binary assets must not pass through text encoding / CRLF conversion.
+# About.htm.gz / Browser.htm.gz were once committed as UTF-8-mangled data
+# (U+FFFD replacement bytes), which broke gzip and dirtied every build.
+*.gz binary
