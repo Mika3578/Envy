@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-15
+- **Changelog Entry:** 2026-09-15 — ED2K Hello honesty: stop advertising Ext Multipacket (MiscOptions2 bit 5) until 0x92/0xA4 (or wired Ext2) handlers exist; `Ed2kExtMultipacketAdvertised()` + smoke tests.
 - **Changelog Entry:** 2026-09-15 — Keep C++ RTTI disabled (`/GR-`). `CUploadQueue::StartImpl` uses a construction-proven `static_cast` instead of `dynamic_cast` for ED2K uploads. Future protocol actions should move to virtual methods; do not enable global RTTI.
 - **Changelog Entry:** 2026-09-15 — Fixed ED2K regression: `CEDPacket::WriteFile` no longer uses `dynamic_cast` (Envy builds with `/GR-`, so it crashed in `__RTDynamicCast` during `SendSharedFiles`); restored the historical `static_cast` contract (complete files are always `CLibraryFile`). No RTTI enablement.
 - **Changelog Entry:** 2026-09-13 — Fixed Debug splash assertion: `nSplashSteps` now accounts for the conditional `Kademlia DHT` step when `eDonkey.EnableKad` is enabled (miscount since Kad init splash was added; surfaced after EnableKad defaulted true).

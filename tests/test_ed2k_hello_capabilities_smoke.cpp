@@ -28,6 +28,11 @@ static bool test_cryptlayer_advertise_all_zero()
 		&& Ed2kCryptLayerRequiresAdvertised() == FALSE;
 }
 
+static bool test_ext_multipacket_not_advertised()
+{
+	return Ed2kExtMultipacketAdvertised() == FALSE;
+}
+
 static bool test_pack_opt1_matches_honest_defaults()
 {
 	const DWORD nOpt1 = Ed2kPackFeatureVersions1(
@@ -49,7 +54,7 @@ static bool test_pack_opt1_matches_honest_defaults()
 		&& ( nOpt1 & 0x01 ) == 1;			// Preview
 }
 
-static bool test_pack_opt2_crypt_zero_others_intact()
+static bool test_pack_opt2_honest_defaults()
 {
 	const DWORD nOpt2 = Ed2kPackFeatureVersions2(
 		TRUE,	// Captcha
@@ -57,18 +62,29 @@ static bool test_pack_opt2_crypt_zero_others_intact()
 		Ed2kCryptLayerRequiresAdvertised(),
 		Ed2kCryptLayerRequestsAdvertised(),
 		Ed2kCryptLayerSupportsAdvertised(),
-		TRUE,	// ExtMultipacket
+		Ed2kExtMultipacketAdvertised(),
 		TRUE,	// LargeFiles
 		0 );	// Kad version nibble
 
 	return Ed2kFeatureVersions2SupportsCrypt(nOpt2) == FALSE
 		&& Ed2kFeatureVersions2RequestsCrypt(nOpt2) == FALSE
 		&& Ed2kFeatureVersions2RequiresCrypt(nOpt2) == FALSE
+		&& Ed2kFeatureVersions2ExtMultipacket(nOpt2) == FALSE
 		&& ( ( nOpt2 >> 11 ) & 0x01 ) == 1	// Captcha
 		&& ( ( nOpt2 >> 10 ) & 0x01 ) == 1	// SourceEx2
-		&& ( ( nOpt2 >> 5 ) & 0x01 ) == 1	// ExtMulti
 		&& ( ( nOpt2 >> 4 ) & 0x01 ) == 1	// LargeFiles
 		&& ( nOpt2 & 0x0F ) == 0;			// Kad
+}
+
+static bool test_pack_opt2_ext_multipacket_bit_position()
+{
+	// Packer coverage: bit 5 must toggle when explicitly requested.
+	const DWORD nOn = Ed2kPackFeatureVersions2(
+		FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, 0 );
+	const DWORD nOff = Ed2kPackFeatureVersions2(
+		FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, 0 );
+	return Ed2kFeatureVersions2ExtMultipacket(nOn) == TRUE
+		&& Ed2kFeatureVersions2ExtMultipacket(nOff) == FALSE;
 }
 
 static bool test_require_clamped_without_support()
@@ -91,7 +107,9 @@ void register_ed2k_hello_capabilities_smoke_tests(TestSuite& suite)
 	suite.add_test("aich_not_advertised_until_c2c", test_aich_not_advertised_until_c2c);
 	suite.add_test("secureident_still_zero_in_hello_pack", test_secureident_still_zero);
 	suite.add_test("cryptlayer_advertise_all_zero", test_cryptlayer_advertise_all_zero);
+	suite.add_test("ext_multipacket_not_advertised", test_ext_multipacket_not_advertised);
 	suite.add_test("pack_opt1_matches_honest_defaults", test_pack_opt1_matches_honest_defaults);
-	suite.add_test("pack_opt2_crypt_zero_others_intact", test_pack_opt2_crypt_zero_others_intact);
+	suite.add_test("pack_opt2_honest_defaults", test_pack_opt2_honest_defaults);
+	suite.add_test("pack_opt2_ext_multipacket_bit_position", test_pack_opt2_ext_multipacket_bit_position);
 	suite.add_test("require_clamped_without_support", test_require_clamped_without_support);
 }
