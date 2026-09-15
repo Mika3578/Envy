@@ -1322,6 +1322,10 @@ BOOL CEDClient::SendCommentsPacket(int nRating, LPCTSTR pszComments)
 
 void CEDClient::SendHello(BYTE nType)
 {
+	// Wire layout (hash-size, tags, MiscOptions, trailing server) is mirrored
+	// by Envy/Ed2kHelloWire.h for golden Hello/HelloAnswer vectors. Keep both
+	// in sync; do not advertise unimplemented capabilities (#87 / #129).
+
 	CEDPacket* pPacket = CEDPacket::New( nType );
 
 	if ( nType == ED2K_C2C_HELLO )
