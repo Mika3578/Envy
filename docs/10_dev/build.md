@@ -218,10 +218,12 @@ At runtime, `LoadHTML` finds the `RT_GZIP` resource and decompresses via
 `CBuffer::Ungzip()` before serving/rendering (not served as
 `Content-Encoding: gzip`).
 
-Generation command (all Envy configurations/platforms):
+Manual regeneration from the repository root (all Envy configurations/platforms
+use the same flags via MSBuild `CustomBuild`):
 
 ```bat
-Envy\Res\gzip.exe -n -c About.htm > About.htm.gz
+Envy\Res\gzip.exe -n -c Envy\Res\About.htm > Envy\Res\About.htm.gz
+Envy\Res\gzip.exe -n -c Envy\Res\Browser.htm > Envy\Res\Browser.htm.gz
 ```
 
 `-n` (`--no-name`) forces `mtime = 0` and omits the original filename so two
