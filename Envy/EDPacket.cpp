@@ -251,9 +251,11 @@ void CEDPacket::WriteFile(const CEnvyFile* pEnvyFile, QWORD nSize,
 {
 	ASSERT( ( pClient && ! pServer ) || ( ! pClient && pServer ) );
 
-	const CLibraryFile* pFile = NULL;
-	if ( ! bPartial )
-		pFile = dynamic_cast< const CLibraryFile* >( pEnvyFile );
+	// Envy is built without RTTI (/GR-), so dynamic_cast is unusable here.
+	// Contract: complete files (bPartial == false) are always CLibraryFile;
+	// partial files (bPartial == true) are CDownload and never take this cast.
+	const CLibraryFile* pFile = bPartial ?
+		NULL : static_cast< const CLibraryFile* >( pEnvyFile );
 
 	bool bDeflate = ( pServer && ( pServer->m_nTCPFlags & ED2K_SERVER_TCP_DEFLATE ) != 0 );
 	bool bUnicode = ( pServer && ( pServer->m_nTCPFlags & ED2K_SERVER_TCP_UNICODE ) != 0 ) ||
