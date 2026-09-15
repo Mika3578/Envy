@@ -1,7 +1,7 @@
 # Envy implementation status
 
 Status: active
-Last updated: 2026-09-11
+Last updated: 2026-09-15
 Scope: Evidence-based protocol and architecture status for Envy on `develop`.
 Source of truth: Envy source under `Envy/`, tests under `tests/`, and the documents linked below. External projects are references only.
 
@@ -22,7 +22,7 @@ Use these terms only:
 | not implemented | Absent, or deliberately disabled |
 | experimental | Research-only; not a compatibility target |
 
-Avoid “complete” / “fully compatible” unless live interop evidence exists. Opcode or struct matching is **not** live interoperability.
+Avoid “complete” / “fully compatible” unless live interop evidence exists. Opcode or struct matching is **not** live interoperability. A Hello capability bit is **not** proof of implementation.
 
 ## Feature matrix
 
@@ -38,7 +38,8 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 | BitTorrent v2 | partial | BEP 52, aria2-next | implemented |
 | Gnutella (G1) | implemented | Envy / Shareaza lineage | preserve |
 | Gnutella2 (G2) | implemented | Envy / Shareaza lineage | preserve |
-| Direct Connect | implemented | NMDC / ADC / Shareaza | preserve |
+| Direct Connect (NMDC) | implemented | NMDC, Shareaza, DC++ | preserve |
+| Direct Connect (ADC/ADCS) | not implemented | ADC / ADC-EXT, EiskaltDC++ | planned (separate layer) |
 | uTP (BEP 29) | not implemented | BEP 29, aria2-next | planned |
 | Kad6 / next overlay | not implemented | eMule eSE (R&D only) | experimental (P3) |
 
@@ -48,15 +49,19 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 
 - Handshake, transfer, Source Exchange v1/v2, large-file I64 packets, and many eMule opcodes are present in `Envy/EDClient.cpp` / `Envy/EDPacket.h`.
 - Source Exchange remains **IPv4-only on-wire** (`docs/30_protocols/ed2k/SOURCE_EXCHANGE_INTEROP_NOTES.md`).
-- Capability advertisement rule: Envy must advertise an eMule capability only when it is implemented and tested (`docs/DEVELOPMENT_PLAN.md`).
+- Capability advertisement rule: Envy must advertise an eMule capability only when it is implemented and tested (`docs/DEVELOPMENT_PLAN.md`). Helpers live in `Envy/Ed2kHelloCapabilities.h` / `Envy/SecureIdentPolicy.h`.
+- Honest-by-default Hello bits (advertise 0 until wired): AICH, SecureIdent, CryptLayer MiscOptions2, and Ext Multipacket (MiscOptions2 bit 5, `#129`, `Ed2kExtMultipacketAdvertised()`). Legacy MultiPacket (`0x92`/`0x93`) and Ext Multipacket (`0xA4`) C2C handlers are absent; Ext2 handlers are stubs that never `Send`. Compression is still advertised while compressed **upload** is missing — decide advertise-vs-implement after golden Hello vectors / interop harness.
 - Live Envy ↔ eMule Community / aMule transfers are **unverified** in-repo. Treat historical “fully operational” wording in older reports as outdated.
-- P0 baseline before new ED2K extensions: Hello/HelloAnswer, MuleInfo, userhash, ClientID, HighID/LowID, callbacks, capability negotiation, compression, multipacket, search, Source Exchange, publish-as-source, upload/download, large files, and clean handling of unsupported extensions.
+- P0 baseline before new ED2K extensions: Hello/HelloAnswer, MuleInfo, userhash, ClientID, HighID/LowID, callbacks, capability negotiation, compression, multipacket (only if implemented), search, Source Exchange, publish-as-source, upload/download, large files, and clean handling of unsupported extensions.
 
 ### Kad2
 
-- Bootstrap, HELLO, PING/PONG, FIND_NODE, FIND_VALUE, and PUBLISH paths exist (`Envy/Kademlia.cpp`, `Envy/KadProtocol.cpp`).
-- `docs/30_protocols/kad/kad2-compatibility-report.md` records **opcode/format matching** against eMule/aMule sources, not live DHT interop.
-- Roadmap still lists bucket split/LRU/refresh, eclipse /24 limits, FIREWALLED, Buddy, callback, and hole punching as gaps (`docs/10_dev/roadmap.md`).
+- **Active path:** `Envy/Kademlia.cpp` / `Envy/Kademlia.h` (UDP via `Datagrams` / `EDPacket` `ED2K_PROTOCOL_KAD`). Started when `Settings.eDonkey.EnableKad` is true (`CEnvyApp::InitKademlia`).
+- **Legacy path (inactive):** `Envy/KadProtocol.cpp`, `KBucket.cpp`, `KadStorage.cpp` are compiled only under `ENVY_LEGACY_KADEMLIA`, which is **never defined**. Do not treat them as the live Kad2 stack. Header-only stubs (`KadFirewall.h`, `KadUDPKeys.h`, `KadIndex.h`) have no implementations.
+- Wire handlers present for bootstrap, HELLO, PING/PONG, REQ/RES (FIND_NODE), SEARCH_KEY/SOURCE/RES, PUBLISH_KEY/SOURCE/RES — **partial**: search results are not delivered to downloads/UI (`TODO` in `Kademlia.cpp`); `StoreEntry` is a no-op stub; outbound `SearchKeyword` / `Publish*` / `SendHelloRequest` have no app callers; HELLO uses hard-coded ports in places; `EnableKadHello` / `KadFindValue` settings are **not read** by `Kademlia.cpp`.
+- **Absent:** FIREWALLED_*, Buddy, Kad callback, UDP keys, notes search/publish, bucket split/LRU/refresh, eclipse /24 limits.
+- ED2K Hello Kad version nibble is advertised as **0** (`CEDClient::SendHello`) even when Kad is enabled — honest until Kad is app-integrated and tested.
+- `docs/30_protocols/kad/kad2-compatibility-report.md` records **opcode/format matching**, not live DHT interop.
 - Status: **partial / unverified**. Target: interoperable Kad2 with eMule/aMule without mixing in Kad6 or Ember overlays.
 
 ### SecureIdent RSA
@@ -92,8 +97,9 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 
 - G1: `Envy/G1Packet.*`, `Envy/G1Neighbour.*`, `Envy/NeighboursWithG1.*`.
 - G2: `Envy/G2Packet.*`, `Envy/G2Neighbour.*`, `Envy/NeighboursWithG2.*`.
-- DC: `Envy/DCClient.*`, `Envy/DCNeighbour.*`, `Envy/DCPacket.*`, transfer classes.
-- These stacks are **in scope to preserve**. Depth versus ADC-EXT / latest G2 extras is **unverified**; that is not an invitation to remove them.
+- **NMDC (preserve):** `Envy/DCClient.*`, `Envy/DCNeighbour.*`, `Envy/DCPacket.*`, transfer classes. Client `$Supports` includes NMDC-side `ADCGet`/`ADCSND` file-transfer extensions — these are **not** an ADC hub protocol.
+- **ADC/ADCS hub protocol: not implemented.** `adc://` / `adcs://` are skipped in hublist import (`HostCache`); no ADC `CSUP`/`CINF`/`CID`/`PID` hub session. Future ADC support must be a **separate layer**, not a graft onto the NMDC parser.
+- G1/G2 depth versus gtk-gnutella / latest G2 extras remains **unverified**; that is not an invitation to remove them.
 
 ## Historical documents (do not treat as live status)
 
