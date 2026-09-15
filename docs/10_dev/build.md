@@ -1,6 +1,6 @@
 # Building Envy
 
-**Last Updated:** January 2026
+**Last Updated:** September 2026
 **Primary:** Visual Studio (`Visual Studio\Envy.sln`, toolset `v145`, C++17)
 **Secondary:** CMake (HashLib only)
 
@@ -208,6 +208,28 @@ Envy/
 └── HashLib/Release x64/        # HashLib output
 ```
 
+## Embedded web HTML gzip resources
+
+`Envy/Res/About.htm` and `Envy/Res/Browser.htm` are the source HTML pages.
+MSBuild `CustomBuild` steps in `Envy/Envy.vcxproj` compress them with the
+bundled `Envy/Res/gzip.exe` into `About.htm.gz` / `Browser.htm.gz`, which
+`Envy.rc` embeds as `GZIP` resources (`IDR_HTML_ABOUT`, `IDR_HTML_BROWSER`).
+At runtime, `LoadHTML` finds the `RT_GZIP` resource and decompresses via
+`CBuffer::Ungzip()` before serving/rendering (not served as
+`Content-Encoding: gzip`).
+
+Manual regeneration from the repository root (all Envy configurations/platforms
+use the same flags via MSBuild `CustomBuild`):
+
+```bat
+Envy\Res\gzip.exe -n -c Envy\Res\About.htm > Envy\Res\About.htm.gz
+Envy\Res\gzip.exe -n -c Envy\Res\Browser.htm > Envy\Res\Browser.htm.gz
+```
+
+`-n` (`--no-name`) forces `mtime = 0` and omits the original filename so two
+builds with unchanged HTML produce identical `.gz` bytes. The tracked `.gz`
+files must remain valid binary gzip (see root `.gitattributes`: `*.gz binary`).
+
 ## 🔄 Build System Limitations
 
 ### Known Issues
@@ -229,4 +251,4 @@ Envy/
 
 ---
 
-**Last Updated:** January 2026
+**Last Updated:** September 2026
