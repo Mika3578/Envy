@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-15
+- **Last Updated:** 2026-09-16
+- **Changelog Entry:** 2026-09-16 — Fixed CoolMenu selected-item double blue band: `DrawButton`/`DrawButtonMap` stretch one skin state vertically (no vertical tile) when destination height exceeds asset height; CoolMenu `rcItem` stays within `DRAWITEMSTRUCT` and icon offsets use `SCALE()`.
 - **Changelog Entry:** 2026-09-15 — Deterministic `About.htm.gz` / `Browser.htm.gz` generation (`gzip -n`), restore valid binary blobs, `*.gz binary` in `.gitattributes`. See `docs/10_dev/build.md`.
 - **Changelog Entry:** 2026-09-15 — Added Envy self-golden Hello/HelloAnswer TCP vectors (`Ed2kHelloWire.h` + EnvyTests) freezing honest MiscOptions bits; compression advertise left frozen for post-interop decision. No wire behavior change.
 - **Changelog Entry:** 2026-09-15 — Reconciled status/roadmap: live Kad2 is `Kademlia.cpp` only (`KadProtocol` legacy inactive); SEARCH/PUBLISH wire-only; ADC/ADCS hub not implemented (NMDC preserved). Prevents roadmap drift from the September 2026 current-code audit.
