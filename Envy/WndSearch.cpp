@@ -82,6 +82,15 @@ END_MESSAGE_MAP()
 //#define SPLIT_SIZE		6	// Settings.Skin.Splitter
 //#define TOOLBAR_HEIGHT	28	// Settings.Skin.ToolbarHeight
 
+// Search panel needs ~200 logical px (Shareaza PANEL_WIDTH). SidebarWidth is
+// shared with other panes and may be smaller (PeerProject skins ~182); clamp
+// locally so CSearchAdvancedBox's two-column layout does not collapse.
+static int GetSearchPanelWidth()
+{
+	return max( static_cast< int >( Settings.Skin.SidebarWidth ),
+		static_cast< int >( SCALE( 200 ) ) );
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CSearchWnd construction
 
@@ -192,7 +201,7 @@ void CSearchWnd::OnSize(UINT nType, int cx, int cy)
 
 	if ( m_bPanel )
 	{
-		const int nSidepanel = Settings.Skin.SidebarWidth;
+		const int nSidepanel = GetSearchPanelWidth();
 
 		m_wndPanel.SetWindowPos( NULL, rc.left, rc.top, nSidepanel, rc.Height(), SWP_NOZORDER|SWP_SHOWWINDOW );
 		rc.left += nSidepanel;
@@ -276,7 +285,7 @@ void CSearchWnd::OnPaint()
 		CRect rcBar( rcClient.left, rcClient.bottom - m_nDetails - Settings.Skin.Splitter,
 					rcClient.right, rcClient.bottom - m_nDetails );
 
-		if ( m_bPanel ) rcBar.left += Settings.Skin.SidebarWidth;
+		if ( m_bPanel ) rcBar.left += GetSearchPanelWidth();
 
 		dc.FillSolidRect( rcBar.left, rcBar.top, rcBar.Width(), 1, Colors.m_crResizebarEdge );
 		dc.FillSolidRect( rcBar.left, rcBar.top + 1, rcBar.Width(), 1, Colors.m_crResizebarHighlight );
@@ -293,7 +302,7 @@ void CSearchWnd::OnPaint()
 
 	if ( m_bPanel )
 	{
-		rc.left += Settings.Skin.SidebarWidth;
+		rc.left += GetSearchPanelWidth();
 		rc.bottom --;
 		dc.FillSolidRect( rc.left, rc.bottom, rc.Width(), 1, RGB( 255, 255, 255 ) );
 		dc.Draw3dRect( &rc,
@@ -334,9 +343,9 @@ BOOL CSearchWnd::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		if ( m_bPanel )
 		{
 			if ( Settings.General.LanguageRTL )
-				rc.right -= Settings.Skin.SidebarWidth;
+				rc.right -= GetSearchPanelWidth();
 			else
-				rc.left += Settings.Skin.SidebarWidth;
+				rc.left += GetSearchPanelWidth();
 		}
 
 		if ( rc.PtInRect( point ) )
@@ -359,7 +368,7 @@ void CSearchWnd::OnLButtonDown(UINT nFlags, CPoint point)
 				rcClient.right,
 				rcClient.bottom - Settings.Skin.ToolbarHeight - m_nDetails );
 
-	if ( m_bPanel ) rc.left += Settings.Skin.SidebarWidth;
+	if ( m_bPanel ) rc.left += GetSearchPanelWidth();
 
 	if ( m_wndDetails.IsWindowVisible() && rc.PtInRect( point ) )
 	{
@@ -378,7 +387,7 @@ BOOL CSearchWnd::DoSizeDetails()
 
 	GetClientRect( &rcClient );
 	if ( m_bPanel )
-		rcClient.left += Settings.Skin.SidebarWidth;
+		rcClient.left += GetSearchPanelWidth();
 	if ( ! ( m_bPaused || m_bWaitMore ) )
 		rcClient.top += STATUS_HEIGHT;
 	rcClient.bottom -= Settings.Skin.ToolbarHeight;
