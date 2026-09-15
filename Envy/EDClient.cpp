@@ -1379,7 +1379,7 @@ void CEDClient::SendHello(BYTE nType)
 		Ed2kCryptLayerRequiresAdvertised(),
 		Ed2kCryptLayerRequestsAdvertised(),
 		Ed2kCryptLayerSupportsAdvertised(),
-		TRUE,									// Ext Multipacket / FileIdentifiers
+		Ed2kExtMultipacketAdvertised(),			// Ext Multipacket (no 0x92/0xA4 handlers)
 		Settings.eDonkey.LargeFileSupport ? TRUE : FALSE,
 		0 );									// Kad version nibble (EnableKad binding separate)
 	CEDTag( ED2K_CT_MOREFEATUREVERSIONS, nOpt2 ).Write( pPacket );

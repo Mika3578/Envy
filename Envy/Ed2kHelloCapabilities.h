@@ -44,6 +44,15 @@ inline BOOL Ed2kCryptLayerRequiresAdvertised()
 	return FALSE;
 }
 
+// Ext Multipacket bit 5 in MiscOptions2 (eMule CT_MOREFEATUREVERSIONS).
+// Legacy MultiPacket (0x92/0x93) and Ext Multipacket (0xA4) C2C handlers are
+// not implemented. Multipacket Ext2 handlers exist as stubs and never Send.
+// Advertise 0 until a real Ext Multipacket / Ext2 path is wired and tested.
+inline BOOL Ed2kExtMultipacketAdvertised()
+{
+	return FALSE;
+}
+
 // Pack MiscOptions1 / ED2K_CT_FEATUREVERSIONS (layout matches eMule).
 inline DWORD Ed2kPackFeatureVersions1(
 	BYTE nAichVersion,
@@ -117,4 +126,9 @@ inline BOOL Ed2kFeatureVersions2RequestsCrypt(DWORD nOpt2)
 inline BOOL Ed2kFeatureVersions2RequiresCrypt(DWORD nOpt2)
 {
 	return ( ( nOpt2 >> 9 ) & 0x01 ) != 0;
+}
+
+inline BOOL Ed2kFeatureVersions2ExtMultipacket(DWORD nOpt2)
+{
+	return ( ( nOpt2 >> 5 ) & 0x01 ) != 0;
 }
