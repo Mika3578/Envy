@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-15
+- **Changelog Entry:** 2026-09-15 — Reconciled status/roadmap: live Kad2 is `Kademlia.cpp` only (`KadProtocol` legacy inactive); SEARCH/PUBLISH wire-only; ADC/ADCS hub not implemented (NMDC preserved). Prevents roadmap drift from the September 2026 current-code audit.
 - **Changelog Entry:** 2026-09-15 — ED2K Hello honesty: stop advertising Ext Multipacket (MiscOptions2 bit 5) until 0x92/0xA4 (or wired Ext2) handlers exist; `Ed2kExtMultipacketAdvertised()` + smoke tests.
 - **Changelog Entry:** 2026-09-15 — Keep C++ RTTI disabled (`/GR-`). `CUploadQueue::StartImpl` uses a construction-proven `static_cast` instead of `dynamic_cast` for ED2K uploads. Future protocol actions should move to virtual methods; do not enable global RTTI.
 - **Changelog Entry:** 2026-09-15 — Fixed ED2K regression: `CEDPacket::WriteFile` no longer uses `dynamic_cast` (Envy builds with `/GR-`, so it crashed in `__RTDynamicCast` during `SendSharedFiles`); restored the historical `static_cast` contract (complete files are always `CLibraryFile`). No RTTI enablement.

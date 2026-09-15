@@ -59,8 +59,9 @@ python (symbol density ranking for IPv4-only call sites)
 - Keep payload compatibility IPv4-only while enabling IPv6 transport where possible.
 
 ### Kademlia
-- `Envy/Kademlia.h`, `Envy/Kademlia.cpp`, `Envy/KadProtocol.h`, `Envy/KadProtocol.cpp`, `Envy/KBucket.*`.
-- Separate contact tables/bootstrap per family, serialization tags.
+- Active: `Envy/Kademlia.h`, `Envy/Kademlia.cpp` (IPv4 `SOCKADDR_IN` today).
+- Legacy/inactive unless `ENVY_LEGACY_KADEMLIA` is defined: `KadProtocol.*`, `KBucket.*`, `KadStorage.*`.
+- Separate contact tables/bootstrap per family, serialization tags (future dual-stack).
 
 ### Gnutella2
 - `Envy/G2Packet.h`, `Envy/G2Packet.cpp`, `Envy/G2Neighbour.cpp`.

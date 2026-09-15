@@ -17,14 +17,14 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 
 - **Build System:** Visual Studio solution builds (MSVC toolset `v145`), CMake partial (HashLib only)
 - **UI Framework:** MFC/Unicode complete
-- **G2 / G1 / DC:** implemented and in scope to preserve (feature depth vs latest ADC-EXT unverified)
+- **G2 / G1 / NMDC:** implemented and in scope to preserve. **ADC/ADCS hub protocol is not implemented** (NMDC-side `ADCGet`/`ADCSND` ≠ ADC hubs). Feature depth vs latest ADC-EXT / gtk-gnutella unverified.
 - **BitTorrent v1:** Solid (DHT, ut_metadata, ut_pex, lt_tex, web seeds, trackers)
 - **BitTorrent v2:** Library-only (Merkle tree + SHA-256); no wire protocol
-- **ED2K:** Core transfers + CryptLayer + SourceEx2 (0x83/0x84) present; compressed upload send path, AICH C2C, callbacks/buddy, and live eMule/aMule interop still open. **SecureIdent RSA is not implemented** (#75; do not advertise).
-- **Kademlia:** Bootstrap, ping, find_node, FIND_VALUE (search key/source), PUBLISH (key/source), and DHT store implemented; bucket splitting, LRU, refresh, firewalled handling TODO. Live Kad2 interop **unverified**.
+- **ED2K:** Core transfers + SourceEx2 (0x83/0x84) present; Hello honesty for AICH/SecureIdent/CryptLayer/Ext Multipacket. Compressed upload send path, AICH C2C, Ext Multipacket handlers, callbacks/buddy, and live eMule/aMule interop still open. **SecureIdent RSA is not implemented** (#75; do not advertise).
+- **Kademlia (active: `Kademlia.cpp` only):** Bootstrap, ping, find_node, HELLO, SEARCH/PUBLISH **wire handlers** present; results not delivered to downloads; FIREWALLED/Buddy/UDP keys absent. Legacy `KadProtocol.cpp` / `KBucket` / `KadStorage` require undefined `ENVY_LEGACY_KADEMLIA` and are **inactive**. Live Kad2 interop **unverified**.
 - **IPv6:** Utilities exist, core connections IPv4-only (`docs/ipv6/PLAN.md`)
 - **Headless / RPC:** not implemented (MFC GUI + limited Remote web UI)
-- **Testing:** HashLib unit tests plus parser/policy smokes; protocol integration tests require core refactoring
+- **Testing:** HashLib unit tests plus parser/policy/Hello smokes; no live interop harness yet; protocol integration tests require core refactoring
 
 ---
 
@@ -92,21 +92,23 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 
 **Goal:** Move from "wire-compatible for bootstrap" to "fully functional DHT participant."
 
-### Done
-- BOOTSTRAP_REQ/RES, PING/PONG, FIND_NODE, HELLO
-- Routing table (XOR distance, K=10)
-- nodes.dat import (v0-3)
+### Done (wire surface in `Kademlia.cpp` — not app-complete)
+- BOOTSTRAP_REQ/RES, PING/PONG, FIND_NODE, HELLO handlers
+- Routing table (XOR distance, K=10; no split/LRU/refresh yet)
+- nodes.dat import (v0–3) via `HostCache`
 - Rate limiting, blacklist integration
 - Request tracking, IP endianness
 
-### Done (Kad2 search/publish)
-- **FIND_VALUE** — SEARCH_KEY_REQ, SEARCH_SOURCE_REQ, SEARCH_RES implemented in `Kademlia.cpp`.
-- **PUBLISH (KEY/SOURCE)** — PUBLISH_KEY_REQ, PUBLISH_SOURCE_REQ, PUBLISH_RES implemented; DHT store (`KadStore`) for keyword/source entries.
+### Partial (wire handlers exist; not delivered to UI/downloads)
+- **SEARCH_KEY / SEARCH_SOURCE / SEARCH_RES** — handlers in `Kademlia.cpp`; results not delivered (`TODO`); no app callers for `SearchKeyword` / `SearchSource`.
+- **PUBLISH_KEY / PUBLISH_SOURCE / PUBLISH_RES** — handlers present; `StoreEntry` is a no-op stub; no app callers for `PublishKeyword` / `PublishSource`.
+- Legacy `KadProtocol` / `KBucket` / `KadStorage` — **inactive** (`ENVY_LEGACY_KADEMLIA` undefined).
 
 ### TODO
 
 | Item | Detail | Priority |
 |------|--------|----------|
+| **Deliver SEARCH_RES to downloads** | Wire Kad source hits into `AddSourceED2K` / download UI | P0 |
 | **Bucket splitting** | Split buckets when full (if bucket contains own ID); current implementation uses simple add | High |
 | **LRU replacement** | Replace least-recently-used contact when bucket is full; currently rejects new contacts | Medium |
 | **Bucket refresh** | Periodic refresh of stale buckets (eMule uses 15-minute intervals) | Medium |
@@ -116,6 +118,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 | **CALLBACK_REQ/RES** | Kad callback mechanism | P0 |
 | **UDP hole punching** | NAT traversal for firewalled nodes (historical Kad2; not Ember/eSE overlays) | P0 |
 | **Firewall self-check** | Detect own firewall status via Kademlia | P0 |
+| **Wire EnableKadHello / KadFindValue** | Settings exist but are not read by `Kademlia.cpp` | Medium |
 | **Kad6** | Experimental IPv6 overlay (eMule eSE). Distinct from Kad2. | P3 |
 
 ---
