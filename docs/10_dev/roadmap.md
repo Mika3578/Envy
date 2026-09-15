@@ -1,7 +1,7 @@
 # Envy Development Roadmap
 
 Status: active
-Last updated: 2026-09-11
+Last updated: 2026-09-15
 Scope: Technical itemization of Envy modernization. Strategic sequence is `docs/DEVELOPMENT_PLAN.md`.
 Source of truth: `docs/10_dev/status.md` for current vs planned; `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` for external projects.
 
@@ -201,6 +201,7 @@ Incremental only. References: eMule Qt, aMule, aria2-next, Rucio. No rewrite.
 | **EnvyCore extraction** | Protocol/transfer/library behind a stable internal API; keep MFC as first frontend | P1 |
 | **Headless / CLI / RPC** | Evaluate daemon + REST or JSON-RPC; Remote/Web is not that API yet | P1 |
 | **C++20 adoption** | Concepts, ranges, coroutines where beneficial | Low |
+| **Protocol virtual dispatch** | Replace `switch(PROTOCOL_*) + downcast` with virtual methods on transfer/neighbour classes. Keep `/GR-`; do not enable global RTTI. The two C++ `dynamic_cast` ED2K defects (`EDPacket::WriteFile`, `CUploadQueue::StartImpl`) are already replaced with construction-proven `static_cast`. | Low |
 | **Smart pointer migration** | Replace raw `new`/`delete` with `unique_ptr`/`shared_ptr` | Low |
 | **CMake for full project** | Extend CMake to main app, services, plugins | Low |
 

@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-15
+- **Changelog Entry:** 2026-09-15 — Keep C++ RTTI disabled (`/GR-`). `CUploadQueue::StartImpl` uses a construction-proven `static_cast` instead of `dynamic_cast` for ED2K uploads. Future protocol actions should move to virtual methods; do not enable global RTTI.
 - **Changelog Entry:** 2026-09-15 — Fixed ED2K regression: `CEDPacket::WriteFile` no longer uses `dynamic_cast` (Envy builds with `/GR-`, so it crashed in `__RTDynamicCast` during `SendSharedFiles`); restored the historical `static_cast` contract (complete files are always `CLibraryFile`). No RTTI enablement.
 - **Changelog Entry:** 2026-09-13 — Fixed Debug splash assertion: `nSplashSteps` now accounts for the conditional `Kademlia DHT` step when `eDonkey.EnableKad` is enabled (miscount since Kad init splash was added; surfaced after EnableKad defaulted true).
 - **Changelog Entry:** 2026-09-11 — Documented external P2P reference implementations (eMule Community, aMule, eMule Qt, eMule AI, aria2-next, Ember, Rucio, eMule eSE), Envy’s multi-network positioning, specification-first policy (D-008), and the P0–P3 interoperability/architecture sequence. Restored the missing `docs/10_dev/status.md` matrix. Corrected remaining SecureIdent “active/complete” claims: RSA SecureIdent is not implemented (#75).
@@ -238,6 +239,7 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-09-15:** Keep C++ RTTI disabled project-wide (`RuntimeTypeInfo=false` / `/GR-`). Do not enable `/GR` to make `dynamic_cast` work. Protocol-specific actions belong on the transfer/neighbour classes via `virtual`/`override`. Localized `static_cast` is acceptable only when the construction path proves the concrete type (first case: `PROTOCOL_ED2K` uploads are always `CUploadTransferED2K` from `CEDClient::OnQueueRequest`). The protocol enum remains valid for UI, stats, logs, filtering, and serialization.
 - **2026-09-11:** Persist `eDonkey.EnableKad` via `Settings.Add` (#124) separately
   from Kad routing-table work (#86) and from Kad→`AddSourceED2K` source delivery.
   Default remains `true` per settings reference; no migration (key never existed).
