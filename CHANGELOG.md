@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BitTorrent BTH buffer lifetime** — `CBTInfo::m_pBlockBTH` is now a `std::vector` of piece hashes: self-assignment is guarded, `Serialize` load / `LoadTorrentTree` fill a temporary then `swap` (so failures keep the previous buffer and zero-count clears it), and callers use `.empty()` instead of null checks.
 
 ### Changed
+- **Status matrix reconciliation (2026-09 audit)** - `docs/10_dev/status.md` and `docs/10_dev/roadmap.md` no longer treat legacy `KadProtocol.cpp` as the live Kad2 path, no longer mark SEARCH/PUBLISH as app-complete, and split Direct Connect into NMDC (implemented) vs ADC/ADCS hub (not implemented). Hello honesty / Ext Multipacket note aligned with capability policy.
 - Documented external P2P reference implementations (eMule Community, aMule, eMule Qt, eMule AI, aria2-next, Ember, Rucio, eMule eSE), specification-first policy (D-008), and the P0–P3 interoperability/architecture sequence. Restored the missing `docs/10_dev/status.md` matrix. Corrected obsolete SecureIdent “active/complete” wording: RSA SecureIdent is not implemented (#75). Documentation only; no protocol or runtime change.
 - **CI two-speed gate** — Pull requests classify changed paths and skip
   Windows/CodeQL/Remote/C# jobs that are not needed. PR CodeQL C/C++ uses
