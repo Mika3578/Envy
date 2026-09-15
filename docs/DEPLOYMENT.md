@@ -28,6 +28,7 @@ Published assets (draft + prerelease when the tag contains `preview` / `beta` / 
 
 Notes:
 - Matrix builds x64 and Win32 independently; Preview 1 ships **two** setups (unified universal installer is deferred).
+- Inno writes each platform setup to repo-root `Builds/` (e.g. `Envy.4.2.0.1.64.Preview.exe` / `Envy.4.2.0.1.32.Preview.exe`); `release.yml` stages exactly one `.exe` from that directory per matrix job, then renames for GitHub Release assets.
 - Inno channel is driven by MSBuild `/p:InstallerAlpha=…` (from the tag: `Preview` / `True` / `False`).
 - Authenticode signing is **not** configured for Preview 1; SmartScreen may warn.
 - Releases are created as **draft** so assets can be verified before publish.

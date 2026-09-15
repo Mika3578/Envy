@@ -178,23 +178,21 @@ jobs:
             | Where-Object { $_.FullName -match "Release" } `
             | Copy-Item -Destination artifacts/portable -Force
 
-          $setupRoots = @(
-            "Installer\Scripts\Builds",
-            "Installer\Builds"
-          )
-          $setupCopied = $false
-          foreach ($root in $setupRoots) {
-            if (-not (Test-Path $root)) { continue }
-            Get-ChildItem -Path $root -Filter *.exe -File -ErrorAction SilentlyContinue | ForEach-Object {
-              Copy-Item $_.FullName -Destination artifacts/setup -Force
-              Write-Host "Staged setup: $($_.FullName)"
-              $setupCopied = $true
-            }
-          }
-          if (-not $setupCopied) {
-            Write-Error "No Inno Setup output found under Installer/Scripts/Builds or Installer/Builds."
+          # Inno Main.iss uses OutputDir=Builds resolved against the MSBuild cwd
+          # (repo root). Fail hard if the contract drifts.
+          $setupRoot = "Builds"
+          if (-not (Test-Path $setupRoot)) {
+            Write-Error "Expected Inno Setup output directory not found: $setupRoot"
             exit 1
           }
+          $setups = @(Get-ChildItem -Path $setupRoot -Filter *.exe -File)
+          if ($setups.Count -ne 1) {
+            Write-Error "Expected exactly one setup executable in $setupRoot, found $($setups.Count)."
+            $setups | ForEach-Object { Write-Host "  $($_.FullName)" }
+            exit 1
+          }
+          Copy-Item $setups[0].FullName -Destination artifacts/setup -Force
+          Write-Host "Staged setup: $($setups[0].FullName)"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
