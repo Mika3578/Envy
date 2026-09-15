@@ -329,9 +329,13 @@ void CUploadQueue::StartImpl(CUploadTransfer* pUpload)
 	pUpload->m_pQueue = this;
 	if ( pUpload->m_nProtocol == PROTOCOL_ED2K )
 	{
-		CUploadTransferED2K* pEdUpload = dynamic_cast< CUploadTransferED2K* >( pUpload );
-		ASSERT( pEdUpload != NULL );
-		if ( pEdUpload != NULL && pEdUpload->m_pClient != NULL )
+		// CEDClient::OnQueueRequest constructs every PROTOCOL_ED2K upload
+		// as CUploadTransferED2K. C++ RTTI is disabled (/GR-), so rely on
+		// this construction invariant rather than dynamic_cast.
+		CUploadTransferED2K* pEdUpload =
+			static_cast< CUploadTransferED2K* >( pUpload );
+
+		if ( pEdUpload->m_pClient != NULL )
 			pEdUpload->m_pClient->Connect();
 	}
 }
