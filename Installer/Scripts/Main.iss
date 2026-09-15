@@ -1,8 +1,11 @@
 ; Input defines: ConfigurationName (Debug or Release), PlatformName (Win32 or x64)
 ; Build x64 first then Win32 in Release for unified installer
 
-; Change from "True" to "False" or "Preview" on the next line for public releases.
+; Default release channel. CI / local builds may override with ISCC /dalpha=...
+; Values: "False" (stable), "True" (alpha), "Preview" (public preview).
+#ifndef alpha
 #define alpha "False"
+#endif
 
 ; Optional: Change to match signing certificate password, if available
 #define signpass "XXXXXX"

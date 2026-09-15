@@ -1,15 +1,16 @@
 {
   "major": 4,
-  "minor": 1,
+  "minor": 2,
   "patch": 0,
-  "build": 53,
-  "preRelease": null,
-  "fullVersion": "4.1.0",
-  "displayVersion": "4.1.0.53",
-  "lastUpdated": "2026-01-15T00:00:00Z",
+  "build": 1,
+  "preRelease": "preview.1",
+  "fullVersion": "4.2.0-preview.1",
+  "displayVersion": "4.2.0 Preview 1",
+  "lastUpdated": "2026-09-15T00:00:00Z",
   "git": {
-    "commitCount": 53,
+    "commitCount": 1,
     "lastTag": "v4.1.0",
-    "branch": "develop"
+    "intendedTag": "v4.2.0-preview.1",
+    "branch": "release/4.2.0-preview.1-preparation"
   }
 }

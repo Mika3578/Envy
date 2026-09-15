@@ -11,4 +11,5 @@ This document tracks important current constraints that affect development and v
 - **Legacy UI/core coupling:** MFC and core protocol logic remain tightly coupled in key paths.
 - **Partial IPv6 support:** Helpers and settings exist; core sockets, host cache, and Source Exchange remain IPv4-centric (`docs/ipv6/PLAN.md`).
 - **CI limitations:** CI signals are useful but not a complete substitute for full local/VS validation.
+- **Unsigned Preview builds:** Preview installers/Zips published via GitHub Releases are not Authenticode-signed until a certificate is configured in CI. Windows SmartScreen / Smart App Control may block or warn on first run; verify downloads against `SHA256SUMS.txt` on the Release page.
 - **Protocol gaps:** Some advanced ED2K/Kad/BitTorrent features remain partial or planned.

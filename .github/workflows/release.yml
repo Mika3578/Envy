@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release tag (e.g. v5.0.0)
+        description: Release tag (e.g. v4.2.0-preview.1)
         required: true
         type: string
 
@@ -22,6 +22,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   SOLUTION: Visual Studio\Envy.sln
   PLATFORM_TOOLSET: v145
+  # Prefer workflow_dispatch input; fall back to the pushed tag name.
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
 
 jobs:
   build:
@@ -83,6 +85,17 @@ jobs:
             exit 1
           }
 
+      - name: Resolve installer channel from tag
+        id: channel
+        shell: pwsh
+        run: |
+          $tag = "${{ env.RELEASE_TAG }}".ToLowerInvariant()
+          $alpha = "False"
+          if ($tag -match "preview") { $alpha = "Preview" }
+          elseif ($tag -match "alpha") { $alpha = "True" }
+          Write-Host "RELEASE_TAG=$tag → InstallerAlpha=$alpha"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "InstallerAlpha=$alpha"
+
       - name: Bootstrap vcpkg
         shell: pwsh
         run: |
@@ -143,6 +156,7 @@ jobs:
             /p:VcpkgEnableManifest=true ^
             /p:VcpkgEnabled=true ^
             /p:VcpkgTriplet=%VCPKG_TARGET_TRIPLET% ^
+            /p:InstallerAlpha=${{ steps.channel.outputs.InstallerAlpha }} ^
             /p:TreatWarningsAsErrors=false ^
             /flp:LogFile=release-${{ matrix.platform }}.log;Verbosity=detailed;Encoding=UTF-8 ^
             /flp1:LogFile=release-${{ matrix.platform }}.errors.log;ErrorsOnly;Verbosity=normal
@@ -159,10 +173,26 @@ jobs:
       - name: Stage artifacts
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          New-Item -ItemType Directory -Force -Path artifacts/portable, artifacts/setup | Out-Null
           Get-ChildItem -Recurse -Include *.exe, *.dll -Path Envy, Plugins, TorrentEnvy `
             | Where-Object { $_.FullName -match "Release" } `
-            | Copy-Item -Destination artifacts -Force
+            | Copy-Item -Destination artifacts/portable -Force
+
+          # Inno Main.iss uses OutputDir=Builds resolved against the MSBuild cwd
+          # (repo root). Fail hard if the contract drifts.
+          $setupRoot = "Builds"
+          if (-not (Test-Path $setupRoot)) {
+            Write-Error "Expected Inno Setup output directory not found: $setupRoot"
+            exit 1
+          }
+          $setups = @(Get-ChildItem -Path $setupRoot -Filter *.exe -File)
+          if ($setups.Count -ne 1) {
+            Write-Error "Expected exactly one setup executable in $setupRoot, found $($setups.Count)."
+            $setups | ForEach-Object { Write-Host "  $($_.FullName)" }
+            exit 1
+          }
+          Copy-Item $setups[0].FullName -Destination artifacts/setup -Force
+          Write-Host "Staged setup: $($setups[0].FullName)"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
@@ -172,7 +202,7 @@ jobs:
           retention-days: 30
 
   release:
-    name: Publish GitHub Release
+    name: Package release assets
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -184,18 +214,84 @@ jobs:
           path: dist
           pattern: envy-*-release
 
-      - name: Create release archives
+      - name: Package release assets
         shell: bash
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
         run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
           mkdir -p release
+
+          shopt -s nullglob
           for d in dist/envy-*-release; do
             name=$(basename "$d")
-            (cd "$d" && zip -9 -r "../../release/${name}.zip" .)
+            plat="${name#envy-}"
+            plat="${plat%-release}"
+            case "$plat" in
+              x64) slug=x64 ;;
+              Win32|win32) slug=win32 ;;
+              *) echo "Unknown platform artifact: $name" >&2; exit 1 ;;
+            esac
+
+            portable="$d/portable"
+            if [[ ! -d "$portable" ]]; then
+              echo "Missing portable/ in $d" >&2
+              exit 1
+            fi
+            (cd "$portable" && zip -9 -r "../../../release/Envy-${version}-${slug}.zip" .)
+
+            mapfile -t setups < <(find "$d/setup" -maxdepth 1 -type f -name '*.exe' | sort)
+            if [[ ${#setups[@]} -eq 0 ]]; then
+              echo "Missing setup .exe in $d/setup" >&2
+              exit 1
+            fi
+            if [[ ${#setups[@]} -gt 1 ]]; then
+              echo "Multiple setup executables found; using ${setups[0]}" >&2
+            fi
+            cp "${setups[0]}" "release/Envy-${version}-${slug}-setup.exe"
           done
 
+          (
+            cd release
+            sha256sum -- * > SHA256SUMS.txt
+          )
+          ls -la release
+
+      - name: Detect prerelease
+        id: meta
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          tag="${RELEASE_TAG,,}"
+          prerelease=false
+          if [[ "$tag" == *preview* || "$tag" == *beta* || "$tag" == *rc* || "$tag" == *alpha* ]]; then
+            prerelease=true
+          fi
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "tag_name=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Upload packaged release assets
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-${{ env.RELEASE_TAG }}
+          path: release/*
+          retention-days: 30
+
+      # workflow_dispatch is a dry-run only: package + upload Actions artifacts.
+      # Never create a GitHub Release / tag unless this run was triggered by a real tag push.
       - name: Publish release
+        if: github.event_name == 'push' && github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.meta.outputs.tag_name }}
+          name: Envy ${{ env.RELEASE_TAG }}
           generate_release_notes: true
           draft: true
-          files: release/*.zip
+          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
+          fail_on_unmatched_files: true
+          files: |
+            release/*.zip
+            release/*-setup.exe
+            release/SHA256SUMS.txt

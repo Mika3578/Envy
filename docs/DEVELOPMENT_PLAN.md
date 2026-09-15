@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-15
+- **Changelog Entry:** 2026-09-15 — Started **Envy 4.2.0 Preview 1** release preparation: single version source (`4.2.0-preview.1` / Windows `4.2.0.1`), Inno `alpha` driven from CI (`/p:InstallerAlpha=Preview`), `release.yml` publishes per-platform setup + ZIP + `SHA256SUMS.txt` as draft prerelease. Universal installer and Authenticode deferred. See README Preview section.
 - **Changelog Entry:** 2026-09-15 — Deterministic `About.htm.gz` / `Browser.htm.gz` generation (`gzip -n`), restore valid binary blobs, `*.gz binary` in `.gitattributes`. See `docs/10_dev/build.md`.
 - **Changelog Entry:** 2026-09-15 — Added Envy self-golden Hello/HelloAnswer TCP vectors (`Ed2kHelloWire.h` + EnvyTests) freezing honest MiscOptions bits; compression advertise left frozen for post-interop decision. No wire behavior change.
 - **Changelog Entry:** 2026-09-15 — Reconciled status/roadmap: live Kad2 is `Kademlia.cpp` only (`KadProtocol` legacy inactive); SEARCH/PUBLISH wire-only; ADC/ADCS hub not implemented (NMDC preserved). Prevents roadmap drift from the September 2026 current-code audit.
@@ -85,6 +86,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - Remote JS security regression tests wired into `code-quality.yml`.
 
 ### In Progress
+- **Envy 4.2.0 Preview 1 release readiness** — version/packaging PR; install/uninstall + network smoke tests still required before tagging `v4.2.0-preview.1` and publishing the draft GitHub prerelease.
 - C++ modernization across legacy modules.
 - Incremental protocol compatibility and robustness improvements.
 - **P0 ED2K/Kad interoperability baseline** against eMule Community and aMule (live interop unverified; see `docs/10_dev/status.md`).
