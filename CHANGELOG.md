@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **4.2.0 Preview 1 release packaging** — Unified product version metadata (`version.json` `4.2.0-preview.1`, Windows `FILEVERSION`/`PRODUCTVERSION` `4.2.0.1`, display `4.2.0 Preview 1`). Release workflow builds per-platform Inno Setup installers (`InstallerAlpha=Preview` from tags containing `preview`), publishes `Envy-<version>-{x64|win32}-{setup.exe|.zip}` plus `SHA256SUMS.txt`, and creates a **draft** GitHub Release marked **prerelease** when the tag contains `preview`/`beta`/`rc`/`alpha`. Preview 1 uses separate x64 and Win32 setups (unified universal installer deferred).
+
 ### Fixed
 - **Deterministic web resource gzip** — `About.htm.gz` / `Browser.htm.gz` CustomBuild now runs `Envy/Res/gzip.exe -n -c` (mtime 0, no original name) so repeated builds do not dirty Git when HTML is unchanged. Restored valid binary `.gz` blobs (they had been UTF-8-mangled in-tree) and marked `*.gz binary` in `.gitattributes`. HTML payload unchanged; still embedded as `GZIP` resources and decompressed by `LoadHTML`.
 - **ED2K Hello Ext Multipacket honesty** - Stop advertising MiscOptions2 bit 5 (Ext Multipacket) in `CEDClient::SendHello`. Legacy MultiPacket (`0x92`/`0x93`) and Ext Multipacket (`0xA4`) C2C handlers are absent; Multipacket Ext2 handlers are stubs that never `Send`. Policy helper `Ed2kExtMultipacketAdvertised()` returns `FALSE` with smoke tests. No protocol feature added.
