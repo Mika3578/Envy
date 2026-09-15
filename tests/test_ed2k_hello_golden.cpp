@@ -10,8 +10,10 @@
 // Level-2 reference-golden slots (eMule/aMule captures) are intentionally
 // empty stubs so a later interop PR can drop real captures without redesign.
 //
-// Expected arrays are hand-authored (not taken from Ed2kPackHelloTcpPacket
-// output) so the packer under test is not tautological.
+// Expected bytes are hand-authored (not taken from Ed2kPackHelloTcpPacket
+// output) so the packer under test is not tautological. Hello and HelloAnswer
+// share one literal body because their wire payload is identical apart from
+// the Hello-only 0x10 prefix and TCP opcode/length.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
@@ -111,20 +113,30 @@ static bool bytes_equal(
 }
 
 // ---------------------------------------------------------------------------
-// Vector A — Hello Envy nominal (full TCP frame)
+// Vectors A/B — Hello and HelloAnswer Envy nominal (full TCP frames)
 //
 // SOURCE: Envy implementation (self-golden). Hand-authored from SendHello.
+// The protocol payload after the Hello-only 0x10 byte is common to both
+// packets, so it is written once here instead of duplicated line-for-line.
 // ---------------------------------------------------------------------------
 
-static const BYTE kExpectedHelloTcp[] =
+static const BYTE kExpectedHelloPrefix[] =
 {
-	// TCP header
 	0xE3,										// ED2K_PROTOCOL_EDONKEY
 	0x54, 0x00, 0x00, 0x00,						// length = body + 1 = 84
 	0x01,										// ED2K_C2C_HELLO
+	0x10										// legacy hash size
+};
 
-	// body
-	0x10,										// legacy hash size
+static const BYTE kExpectedHelloAnswerPrefix[] =
+{
+	0xE3,
+	0x53, 0x00, 0x00, 0x00,						// length = 83
+	0x4C										// ED2K_C2C_HELLOANSWER
+};
+
+static const BYTE kExpectedHelloCommonBody[] =
+{
 	// user hash (after mutation)
 	0x00, 0x01, 0x02, 0x03, 0x04, 0x0E, 0x06, 0x07,
 	0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x6F, 0x0F,
@@ -158,36 +170,38 @@ static const BYTE kExpectedHelloTcp[] =
 	0x00, 0x00
 };
 
-// ---------------------------------------------------------------------------
-// Vector B — HelloAnswer Envy nominal (full TCP frame)
-//
-// SOURCE: Envy implementation (self-golden). Same tags as Hello; no 0x10;
-// opcode 0x4C.
-// ---------------------------------------------------------------------------
-
-static const BYTE kExpectedHelloAnswerTcp[] =
+static bool build_expected_packet(BOOL bHello, BYTE* pOut, size_t nCap, size_t* pLen)
 {
-	0xE3,
-	0x53, 0x00, 0x00, 0x00,						// length = 83
-	0x4C,										// ED2K_C2C_HELLOANSWER
+	if ( ! pOut || ! pLen )
+		return false;
 
-	// user hash (after mutation) — no 0x10 prefix
-	0x00, 0x01, 0x02, 0x03, 0x04, 0x0E, 0x06, 0x07,
-	0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x6F, 0x0F,
-	0x44, 0x33, 0x22, 0x11,
-	0x36, 0x12,
-	0x06, 0x00, 0x00, 0x00,
+	const BYTE* pPrefix = bHello ? kExpectedHelloPrefix : kExpectedHelloAnswerPrefix;
+	const size_t nPrefix = bHello ? sizeof( kExpectedHelloPrefix ) : sizeof( kExpectedHelloAnswerPrefix );
+	const size_t nTotal = nPrefix + sizeof( kExpectedHelloCommonBody );
+	if ( nCap < nTotal )
+		return false;
 
-	0x02, 0x01, 0x00, 0x01, 0x04, 0x00, 0x45, 0x6E, 0x76, 0x79,
-	0x03, 0x01, 0x00, 0x11, 0x3D, 0x00, 0x00, 0x00,
-	0x03, 0x01, 0x00, 0xF9, 0x36, 0x12, 0x00, 0x00,
-	0x03, 0x01, 0x00, 0xFA, 0x11, 0x22, 0x10, 0x12,
-	0x03, 0x01, 0x00, 0xFE, 0x10, 0x0C, 0x00, 0x00,
-	0x03, 0x01, 0x00, 0xFB, 0x00, 0x00, 0x08, 0x50,
+	CopyMemory( pOut, pPrefix, nPrefix );
+	CopyMemory( pOut + nPrefix, kExpectedHelloCommonBody, sizeof( kExpectedHelloCommonBody ) );
+	*pLen = nTotal;
+	return true;
+}
 
-	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00
-};
+static bool test_nominal_packet_bytes(BOOL bHello)
+{
+	const Ed2kHelloWireInput in = make_nominal_input( bHello );
+	BYTE actual[256];
+	BYTE expected[256];
+	size_t nActual = 0;
+	size_t nExpected = 0;
+	if ( ! Ed2kPackHelloTcpPacket( &in, actual, sizeof( actual ), &nActual )
+		|| ! build_expected_packet( bHello, expected, sizeof( expected ), &nExpected ) )
+	{
+		return false;
+	}
+
+	return bytes_equal( expected, nExpected, actual, nActual );
+}
 
 static bool test_guid_mutation_matches_sendhello()
 {
@@ -199,28 +213,12 @@ static bool test_guid_mutation_matches_sendhello()
 
 static bool test_vector_a_hello_nominal_bytes()
 {
-	const Ed2kHelloWireInput in = make_nominal_input( TRUE );
-	BYTE actual[256];
-	size_t nActual = 0;
-	if ( ! Ed2kPackHelloTcpPacket( &in, actual, sizeof( actual ), &nActual ) )
-		return false;
-
-	return bytes_equal(
-		kExpectedHelloTcp, sizeof( kExpectedHelloTcp ),
-		actual, nActual );
+	return test_nominal_packet_bytes( TRUE );
 }
 
 static bool test_vector_b_helloanswer_nominal_bytes()
 {
-	const Ed2kHelloWireInput in = make_nominal_input( FALSE );
-	BYTE actual[256];
-	size_t nActual = 0;
-	if ( ! Ed2kPackHelloTcpPacket( &in, actual, sizeof( actual ), &nActual ) )
-		return false;
-
-	return bytes_equal(
-		kExpectedHelloAnswerTcp, sizeof( kExpectedHelloAnswerTcp ),
-		actual, nActual );
+	return test_nominal_packet_bytes( FALSE );
 }
 
 // ---------------------------------------------------------------------------
@@ -324,23 +322,33 @@ static bool test_vector_c_software_version_helper()
 // Vector D — round-trip parse of golden MiscOptions tags
 // ---------------------------------------------------------------------------
 
-static bool test_vector_d_parse_miscoptions_from_hello_golden()
+static bool parse_golden_miscoptions(BOOL bHello, DWORD* pOpt1, DWORD* pOpt2)
 {
+	BYTE packet[256];
+	size_t nPacket = 0;
+	if ( ! pOpt1 || ! pOpt2
+		|| ! build_expected_packet( bHello, packet, sizeof( packet ), &nPacket ) )
+	{
+		return false;
+	}
+
 	BYTE opcode = 0;
 	const BYTE* pBody = NULL;
 	size_t nBody = 0;
-	if ( ! Ed2kHelloTcpStripHeader(
-			kExpectedHelloTcp, sizeof( kExpectedHelloTcp ),
-			&opcode, &pBody, &nBody ) )
-		return false;
-	if ( opcode != ED2K_C2C_HELLO )
+	if ( ! Ed2kHelloTcpStripHeader( packet, nPacket, &opcode, &pBody, &nBody ) )
 		return false;
 
+	const BYTE nExpectedOpcode = bHello ? (BYTE)ED2K_C2C_HELLO : (BYTE)ED2K_C2C_HELLOANSWER;
+	return opcode == nExpectedOpcode
+		&& Ed2kHelloBodyFindIntTag( pBody, nBody, bHello, ED2K_CT_FEATUREVERSIONS, pOpt1 )
+		&& Ed2kHelloBodyFindIntTag( pBody, nBody, bHello, ED2K_CT_MOREFEATUREVERSIONS, pOpt2 );
+}
+
+static bool test_vector_d_parse_miscoptions_from_hello_golden()
+{
 	DWORD nOpt1 = 0;
 	DWORD nOpt2 = 0;
-	if ( ! Ed2kHelloBodyFindIntTag( pBody, nBody, TRUE, ED2K_CT_FEATUREVERSIONS, &nOpt1 ) )
-		return false;
-	if ( ! Ed2kHelloBodyFindIntTag( pBody, nBody, TRUE, ED2K_CT_MOREFEATUREVERSIONS, &nOpt2 ) )
+	if ( ! parse_golden_miscoptions( TRUE, &nOpt1, &nOpt2 ) )
 		return false;
 
 	return nOpt1 == kMiscOptions1
@@ -352,24 +360,11 @@ static bool test_vector_d_parse_miscoptions_from_hello_golden()
 
 static bool test_vector_d_parse_miscoptions_from_helloanswer_golden()
 {
-	BYTE opcode = 0;
-	const BYTE* pBody = NULL;
-	size_t nBody = 0;
-	if ( ! Ed2kHelloTcpStripHeader(
-			kExpectedHelloAnswerTcp, sizeof( kExpectedHelloAnswerTcp ),
-			&opcode, &pBody, &nBody ) )
-		return false;
-	if ( opcode != ED2K_C2C_HELLOANSWER )
-		return false;
-
 	DWORD nOpt1 = 0;
 	DWORD nOpt2 = 0;
-	if ( ! Ed2kHelloBodyFindIntTag( pBody, nBody, FALSE, ED2K_CT_FEATUREVERSIONS, &nOpt1 ) )
-		return false;
-	if ( ! Ed2kHelloBodyFindIntTag( pBody, nBody, FALSE, ED2K_CT_MOREFEATUREVERSIONS, &nOpt2 ) )
-		return false;
-
-	return nOpt1 == kMiscOptions1 && nOpt2 == kMiscOptions2;
+	return parse_golden_miscoptions( FALSE, &nOpt1, &nOpt2 )
+		&& nOpt1 == kMiscOptions1
+		&& nOpt2 == kMiscOptions2;
 }
 
 static bool test_vector_d_roundtrip_packer_then_parse()
@@ -403,16 +398,20 @@ static bool test_vector_d_roundtrip_packer_then_parse()
 }
 
 // ---------------------------------------------------------------------------
-// Level-2 reference-golden placeholder (eMule/aMule captures — not yet present)
+// Level-2 reference-golden placeholders (eMule/aMule captures — not yet present)
 // ---------------------------------------------------------------------------
+
+static bool reference_capture_slot_empty(const BYTE* pCapture, size_t nCaptureLen)
+{
+	return pCapture == NULL && nCaptureLen == 0;
+}
 
 static bool test_reference_golden_emule_capture_slot_empty()
 {
 	// SOURCE: eMule capture — NOT YET AVAILABLE.
-	// Drop a real OP_HELLO / OP_HELLOANSWER capture here in a follow-up interop PR.
 	static const BYTE* const kEmuleHelloCapture = NULL;
 	static const size_t kEmuleHelloCaptureLen = 0;
-	return kEmuleHelloCapture == NULL && kEmuleHelloCaptureLen == 0;
+	return reference_capture_slot_empty( kEmuleHelloCapture, kEmuleHelloCaptureLen );
 }
 
 static bool test_reference_golden_amule_capture_slot_empty()
@@ -420,7 +419,7 @@ static bool test_reference_golden_amule_capture_slot_empty()
 	// SOURCE: aMule capture — NOT YET AVAILABLE.
 	static const BYTE* const kAmuleHelloCapture = NULL;
 	static const size_t kAmuleHelloCaptureLen = 0;
-	return kAmuleHelloCapture == NULL && kAmuleHelloCaptureLen == 0;
+	return reference_capture_slot_empty( kAmuleHelloCapture, kAmuleHelloCaptureLen );
 }
 
 void register_ed2k_hello_golden_tests(TestSuite& suite)
