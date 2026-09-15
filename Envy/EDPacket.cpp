@@ -255,7 +255,7 @@ void CEDPacket::WriteFile(const CEnvyFile* pEnvyFile, QWORD nSize,
 	// Contract: complete files (bPartial == false) are always CLibraryFile;
 	// partial files (bPartial == true) are CDownload and never take this cast.
 	const CLibraryFile* pFile = bPartial ?
-		NULL : static_cast< const CLibraryFile* >( pEnvyFile );
+		nullptr : static_cast< const CLibraryFile* >( pEnvyFile );
 
 	bool bDeflate = ( pServer && ( pServer->m_nTCPFlags & ED2K_SERVER_TCP_DEFLATE ) != 0 );
 	bool bUnicode = ( pServer && ( pServer->m_nTCPFlags & ED2K_SERVER_TCP_UNICODE ) != 0 ) ||
