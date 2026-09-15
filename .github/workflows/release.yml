@@ -202,7 +202,7 @@ jobs:
           retention-days: 30
 
   release:
-    name: Publish GitHub Release
+    name: Package release assets
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -272,7 +272,17 @@ jobs:
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
           echo "tag_name=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
+      - name: Upload packaged release assets
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-${{ env.RELEASE_TAG }}
+          path: release/*
+          retention-days: 30
+
+      # workflow_dispatch is a dry-run only: package + upload Actions artifacts.
+      # Never create a GitHub Release / tag unless this run was triggered by a real tag push.
       - name: Publish release
+        if: github.event_name == 'push' && github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag_name }}
@@ -280,6 +290,7 @@ jobs:
           generate_release_notes: true
           draft: true
           prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
+          fail_on_unmatched_files: true
           files: |
             release/*.zip
             release/*-setup.exe

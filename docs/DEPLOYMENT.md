@@ -32,13 +32,19 @@ Notes:
 - Inno channel is driven by MSBuild `/p:InstallerAlpha=…` (from the tag: `Preview` / `True` / `False`).
 - Authenticode signing is **not** configured for Preview 1; SmartScreen may warn.
 - Releases are created as **draft** so assets can be verified before publish.
+- `workflow_dispatch` dry-runs packaging into an Actions artifact; only a real `v*` tag push creates the GitHub Release.
 
 ## Release Process (Current)
-1. Land packaging/version changes on `develop`.
-2. Smoke-test installers from CI artifacts (install, launch, uninstall) on a clean Windows host.
-3. Tag the exact `develop` commit (`v4.2.0-preview.1`).
-4. Let `release.yml` create the draft prerelease; download and re-verify those assets.
-5. Complete release notes (limitations + unsigned warning) and publish the prerelease.
+1. On the packaging branch (or `develop` after merge), run **workflow_dispatch** with `version=v4.2.0-preview.1`. That path builds, packages, and uploads Actions artifact `release-v4.2.0-preview.1` only — **no GitHub Release and no tag**.
+2. Download that artifact; confirm the five expected files; smoke-test install / launch / uninstall (x64 and Win32).
+3. Land packaging/version changes on `develop`.
+4. Tag the exact `develop` commit (`v4.2.0-preview.1`).
+5. The same `release.yml` on tag push creates the **draft** GitHub prerelease; download and re-verify those assets.
+6. Complete release notes (limitations + unsigned warning) and publish the prerelease.
+
+Notes:
+- `workflow_dispatch` is intentionally a dry-run. Do **not** treat it as a publish path.
+- Tag-push publish uses `softprops/action-gh-release` with `fail_on_unmatched_files: true`.
 
 ## Rollback Procedure (Recommended baseline)
 1. Identify bad release tag/build.
