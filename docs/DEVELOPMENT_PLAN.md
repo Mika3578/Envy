@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-16
+- **Changelog Entry:** 2026-09-16 — Fixed legacy IE WebHook startup registration: skip `WebHook32.dll`/`WebHook64.dll` (and historical `WebHook.dll`) when `WebHookEnable` is false; BHO key registered in code under HKCU (per-user) or HKLM (machine). Documented as IE-only legacy; candidate for removal in favor of a modern browser extension + `envy://url:`.
 - **Changelog Entry:** 2026-09-16 — Search Input/Advanced panel layout is font/DPI-aware (`GetPreferredHeight` + progressive Y); combo drop-down height kept separate from visible stacking; hash/prefix anchored to the search edit. No change to `GetSearchPanelWidth()` / SidebarWidth floor.
 - **Changelog Entry:** 2026-09-16 — Skin engine P0: StatusbarHeight pointer fix, ParseRect point/size + FindOneOf, roundRect size validation, LoadFromXML section-failure aggregation (non-transactional), strict metric parse/clamp aligned with Settings bounds; `SkinEngineP0.h` + EnvyTests. HiDPI/logical units deferred to P1+.
 - **Changelog Entry:** 2026-09-16 — Search window left panel clamps to `max(SidebarWidth, SCALE(200))` only in `CSearchWnd` (Shareaza PANEL_WIDTH); avoids Advanced two-column collapse without raising the global SidebarWidth floor used by other panes / ~182 px PeerProject skins.

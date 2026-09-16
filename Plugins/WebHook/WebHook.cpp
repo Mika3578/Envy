@@ -19,6 +19,7 @@
 #include "StdAfx.h"
 #include "Resource.h"
 #include "WebHook_i.h"
+#include "WebHookRegistrationPolicy.h"
 
 class CWebHookModule : public CAtlDllModuleT< CWebHookModule >
 {
@@ -28,6 +29,43 @@ public :
 };
 
 CWebHookModule _AtlModule;
+
+// IE BHO presence key (not ProgID/CLSID - those stay in Object.rgs under HKCR,
+// which AtlSetPerUserRegistration redirects to HKCU\Software\Classes).
+static HRESULT RegisterBrowserHelperObject()
+{
+	bool bPerUser = false;
+	AtlGetPerUserRegistration( &bPerUser );
+
+	HKEY hKey = NULL;
+	const LONG lResult = RegCreateKeyExW(
+		WebHookBhoRegistryRoot( bPerUser ),
+		WebHookBhoRegistrySubKey(),
+		0,
+		NULL,
+		REG_OPTION_NON_VOLATILE,
+		KEY_WRITE,
+		NULL,
+		&hKey,
+		NULL );
+	if ( lResult != ERROR_SUCCESS )
+		return HRESULT_FROM_WIN32( lResult );
+
+	RegCloseKey( hKey );
+	return S_OK;
+}
+
+static HRESULT UnregisterBrowserHelperObject()
+{
+	bool bPerUser = false;
+	AtlGetPerUserRegistration( &bPerUser );
+
+	// Scope follows AtlGetPerUserRegistration only: never delete across HKLM/HKCU.
+	const LONG lResult = RegDeleteKeyW(
+		WebHookBhoRegistryRoot( bPerUser ),
+		WebHookBhoRegistrySubKey() );
+	return WebHookMapBhoDeleteResult( lResult );
+}
 
 extern "C" BOOL WINAPI DllMain(HINSTANCE /*hInstance*/, DWORD dwReason, LPVOID lpReserved)
 {
@@ -57,12 +95,29 @@ STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
 
 STDAPI DllRegisterServer(void)
 {
-	return _AtlModule.DllRegisterServer();
+	const HRESULT hr = _AtlModule.DllRegisterServer();
+	if ( FAILED( hr ) )
+		return hr;
+
+	const HRESULT hrBho = RegisterBrowserHelperObject();
+	if ( FAILED( hrBho ) )
+	{
+		// ATL COM keys already written; roll them back so registry stays consistent.
+		// Preserve the BHO failure - do not replace it with the rollback HRESULT.
+		_AtlModule.DllUnregisterServer();
+		return WebHookPreferBhoFailureOverRollback( hrBho );
+	}
+
+	return S_OK;
 }
 
 STDAPI DllUnregisterServer(void)
 {
-	return _AtlModule.DllUnregisterServer();
+	// Machine path: DllUnregisterServer -> HKLM BHO + ATL.
+	// User path: DllInstall(FALSE, "user") -> HKCU BHO + ATL (per-user ATL).
+	const HRESULT hrBho = UnregisterBrowserHelperObject();
+	const HRESULT hrAtl = _AtlModule.DllUnregisterServer();
+	return WebHookCombineUnregisterHresults( hrBho, hrAtl );
 }
 
 STDAPI DllInstall(BOOL bInstall, LPCWSTR pszCmdLine)
