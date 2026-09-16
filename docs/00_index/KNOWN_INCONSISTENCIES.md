@@ -12,7 +12,7 @@
 
 - **Gnutella `{deflate}` sizing (QueryHit vs G1Packet):** `CQueryHit::ReadXML` (`QueryHit.cpp`) passes `nSize - 10` to `CZLib::Decompress` after the 9-byte `{deflate}` marker (effective compressed length excludes one trailing byte). The sibling path in `CG1Packet` (`G1Packet.cpp`) advances the pointer by 9 and decompresses `len - 9` (full remainder). Memory-safety hardening only requires `nSize > 10` before the QueryHit subtraction; reconciling the off-by-one as a functional bug is a separate maintainer decision (do not "fix" it opportunistically in parser-length PRs).
 
-- **Root CMake removed (2026-09):** Root `CMakeLists.txt` / `CMakePresets.json` were deleted as incomplete scaffolding that looked like a full app build. Authoritative build is `Visual Studio/Envy.sln`. Optional auxiliary CMake remains under `HashLib/CMakeLists.txt` and `tests/CMakeLists.txt` (not equivalent to building Envy).
+- **Root CMake removed (2026-09):** Root `CMakeLists.txt` / `CMakePresets.json` and orphan `tests/CMakeLists.txt` were deleted as incomplete scaffolding that looked like a full app / test CMake build without a working parent entry point. Authoritative build and tests are MSBuild (`Visual Studio/Envy.sln`, `tests/EnvyTests.vcxproj`). Optional HashLib-only CMake remains under `HashLib/CMakeLists.txt` (not equivalent to building Envy).
 
 - **Missing user FAQ stubs:** `docs/50_user/ed2k-settings-guide.md` previously
   linked to non-existent `faq.md` / `forums.md` / `troubleshooting.md`; those

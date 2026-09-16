@@ -122,10 +122,10 @@ MSBuild.
 **Build authority:** `Visual Studio/Envy.sln` is the authoritative build
 definition. Visual Studio 2026, MSBuild, and toolset **v145** are the
 primary path. There is no root `CMakeLists.txt` that builds the Envy
-application. Optional CMake under `HashLib/` / `tests/` is auxiliary only
+application. Optional CMake under `HashLib/` is auxiliary only
 and must never be presented as equivalent to the Visual Studio solution.
 Do not modify the solution solely to satisfy CMake, and do not expand
-CMake into a full app build outside a PR dedicated to Phase 5.
+CMake into a full app or tests build outside a PR dedicated to Phase 5.
 
 ---
 
@@ -204,10 +204,10 @@ When you take on a task you are expected to:
   warning. Fix the warning or document why it must stay.
 - **Don't** add new dependencies to `vcpkg.json` without first
   discussing in `docs/DEVELOPMENT_PLAN.md` (architectural decisions block).
-- **Don't** reintroduce a root CMake app build, or present `HashLib/` /
-  `tests/` CMake as equivalent to building Envy, outside a PR explicitly
-  dedicated to Phase 5 CMake work. Do not modify `Visual Studio/Envy.sln`
-  solely to satisfy CMake.
+- **Don't** reintroduce a root CMake app build, or present `HashLib/`
+  CMake (or a restored orphan `tests/CMakeLists.txt`) as equivalent to
+  building Envy / EnvyTests, outside a PR explicitly dedicated to Phase 5
+  CMake work. Do not modify `Visual Studio/Envy.sln` solely to satisfy CMake.
 - **Don't** reintroduce a second modernization plan file (for example
   `MODERNIZATION.md`). Keep sequencing and status in
   `docs/DEVELOPMENT_PLAN.md` (and `docs/10_dev/roadmap.md` /

@@ -27,9 +27,9 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 `
 Or open `Visual Studio/Envy.sln` and build, or run `.\build_all.ps1` for the
 Debug/Release × Win32/x64 matrix.
 
-There is **no root CMake app build**. Optional CMake under `HashLib/` (and
-`tests/` helpers) supports auxiliary library/test work only — it does **not**
-produce the Envy MFC client.
+There is **no root CMake app build**. Optional CMake under `HashLib/`
+supports auxiliary library work only — it does **not** produce the Envy MFC
+client. Tests are MSBuild-first (`tests/EnvyTests.vcxproj`).
 
 ### Version
 
