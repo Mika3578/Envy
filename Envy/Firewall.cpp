@@ -1,7 +1,7 @@
 //
 // Firewall.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) Â© 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -22,12 +22,39 @@
 
 #include "StdAfx.h"
 #include "Firewall.h"
+#include "Envy.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #define new DEBUG_NEW
 #endif	// Debug
+
+namespace
+{
+	void LogFirewallHRESULT( LPCWSTR pszOperation, HRESULT hr )
+	{
+		theApp.Message( MSG_ERROR, L"Windows Firewall %s failed (HRESULT 0x%08lX).", pszOperation, (DWORD)hr );
+	}
+
+	// Always preserve the real COM HRESULT; never substitute E_NOINTERFACE for a successful hr.
+	BOOL LogFirewallInterfaceFailure( LPCWSTR pszOperation, HRESULT hr, IUnknown* pInterface )
+	{
+		if ( FAILED( hr ) )
+		{
+			LogFirewallHRESULT( pszOperation, hr );
+			return FALSE;
+		}
+		if ( ! pInterface )
+		{
+			theApp.Message( MSG_ERROR,
+				L"Windows Firewall %s returned a null interface (HRESULT 0x%08lX).",
+				pszOperation, (DWORD)hr );
+			return FALSE;
+		}
+		return TRUE;
+	}
+}
 
 // Make/Delete the WindowsFirewall object
 CFirewall::CFirewall()
@@ -40,27 +67,43 @@ CFirewall::~CFirewall()
 
 BOOL CFirewall::Init()
 {
+	// CComPtr::operator& asserts if the pointer is already set; clear for re-init.
+	FwManager.Release();
+	Policy.Release();
+	Profile.Release();
+	ServiceList.Release();
+	ProgramList.Release();
+	PortList.Release();
+	Service.Release();
+	Program.Release();
+	Port.Release();
+
 	// Create an instance of the firewall settings manager
 	HRESULT hr = FwManager.CoCreateInstance( __uuidof( NetFwMgr ) );
-	if ( SUCCEEDED( hr ) && FwManager )
-	{
-		// Retrieve the local firewall policy
-		hr = FwManager->get_LocalPolicy( &Policy );
-		if ( SUCCEEDED( hr ) && Policy )
-		{
-			// Retrieve the firewall profile currently in effect
-			hr = Policy->get_CurrentProfile( &Profile );
-			if ( SUCCEEDED( hr ) && Profile )
-			{
-				// Retrieve the allowed services collection
-				/*hr =*/ Profile->get_Services( &ServiceList );
-				// Retrieve the authorized application collection
-				/*hr =*/ Profile->get_AuthorizedApplications( &ProgramList );
-				// Retrieve the globally open ports collection
-				/*hr =*/ Profile->get_GloballyOpenPorts( &PortList );
-			}
-		}
-	}
+	if ( ! LogFirewallInterfaceFailure( L"manager initialization", hr, FwManager ) )
+		return FALSE;
+
+	// Retrieve the local firewall policy
+	hr = FwManager->get_LocalPolicy( &Policy );
+	if ( ! LogFirewallInterfaceFailure( L"local policy query", hr, Policy ) )
+		return FALSE;
+
+	// Retrieve the firewall profile currently in effect
+	hr = Policy->get_CurrentProfile( &Profile );
+	if ( ! LogFirewallInterfaceFailure( L"current profile query", hr, Profile ) )
+		return FALSE;
+
+	// Retrieve the allowed services collection
+	hr = Profile->get_Services( &ServiceList );
+	LogFirewallInterfaceFailure( L"services collection query", hr, ServiceList );
+
+	// Retrieve the authorized application collection
+	hr = Profile->get_AuthorizedApplications( &ProgramList );
+	LogFirewallInterfaceFailure( L"authorized applications query", hr, ProgramList );
+
+	// Retrieve the globally open ports collection
+	hr = Profile->get_GloballyOpenPorts( &PortList );
+	LogFirewallInterfaceFailure( L"open ports collection query", hr, PortList );
 
 	return ServiceList && ProgramList && PortList;
 }
@@ -161,17 +204,28 @@ BOOL CFirewall::IsProgramListed( const CString& path, BOOL* listed )
 // Returns true if it works, and writes the answer in enabled
 BOOL CFirewall::IsServiceEnabled( NET_FW_SERVICE_TYPE service, BOOL* enabled )
 {
-	if ( ! ServiceList ) return FALSE;
+	if ( ! ServiceList )
+	{
+		// No COM call ran; E_NOINTERFACE is an explicit sentinel for an unavailable list.
+		LogFirewallHRESULT( L"UPnP service lookup (service list unavailable)", E_NOINTERFACE );
+		return FALSE;
+	}
 
 	// Look for the service in the list
 	Service.Release();
 	HRESULT hr = ServiceList->Item( service, &Service );
-	if ( FAILED( hr ) || ! Service ) return FALSE;	// Services can't be removed from the list
+	if ( ! LogFirewallInterfaceFailure( L"UPnP service lookup", hr, Service ) )
+		return FALSE;	// Services can't be removed from the list
+
 
 	// Find out if the service is enabled
 	VARIANT_BOOL v = VARIANT_FALSE;
 	hr = Service->get_Enabled( &v );
-	if ( FAILED( hr ) ) return FALSE;
+	if ( FAILED( hr ) )
+	{
+		LogFirewallHRESULT( L"UPnP service state query", hr );
+		return FALSE;
+	}
 
 	if ( v == VARIANT_FALSE )
 		*enabled = FALSE;	// The service is on the list, but the checkbox next to it is cleared
@@ -258,16 +312,27 @@ BOOL CFirewall::RemoveProgram( const CString& path )
 // Returns false on error
 BOOL CFirewall::EnableService( NET_FW_SERVICE_TYPE service )
 {
-	if ( ! ServiceList ) return FALSE;	// COM not initialized
+	if ( ! ServiceList )
+	{
+		// No COM call ran; E_NOINTERFACE is an explicit sentinel for an unavailable list.
+		LogFirewallHRESULT( L"UPnP service enable (service list unavailable)", E_NOINTERFACE );
+		return FALSE;	// COM not initialized
+	}
 
 	// Look for the service in the list
 	Service.Release();
 	HRESULT hr = ServiceList->Item( service, &Service );
-	if ( FAILED( hr ) || ! Service ) return FALSE;				// Services can't be removed from the list
+	if ( ! LogFirewallInterfaceFailure( L"UPnP service lookup before enable", hr, Service ) )
+		return FALSE;	// Services can't be removed from the list
+
 
 	// Check the box next to the service
 	hr = Service->put_Enabled( VARIANT_TRUE );
-	if ( FAILED( hr ) ) return FALSE;
+	if ( FAILED( hr ) )
+	{
+		LogFirewallHRESULT( L"UPnP service enable", hr );
+		return FALSE;
+	}
 
 	return TRUE;
 }
