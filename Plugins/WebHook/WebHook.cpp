@@ -19,7 +19,7 @@
 #include "StdAfx.h"
 #include "Resource.h"
 #include "WebHook_i.h"
-#include "../../Envy/WebHookRegistrationPolicy.h"
+#include "WebHookRegistrationPolicy.h"
 
 class CWebHookModule : public CAtlDllModuleT< CWebHookModule >
 {
@@ -103,7 +103,7 @@ STDAPI DllRegisterServer(void)
 	if ( FAILED( hrBho ) )
 	{
 		// ATL COM keys already written; roll them back so registry stays consistent.
-		// Preserve the BHO failure — do not replace it with the rollback HRESULT.
+		// Preserve the BHO failure - do not replace it with the rollback HRESULT.
 		_AtlModule.DllUnregisterServer();
 		return WebHookPreferBhoFailureOverRollback( hrBho );
 	}
@@ -113,8 +113,8 @@ STDAPI DllRegisterServer(void)
 
 STDAPI DllUnregisterServer(void)
 {
-	// Machine path: DllUnregisterServer ? HKLM BHO + ATL.
-	// User path: DllInstall(FALSE, "user") ? HKCU BHO + ATL (per-user ATL).
+	// Machine path: DllUnregisterServer -> HKLM BHO + ATL.
+	// User path: DllInstall(FALSE, "user") -> HKCU BHO + ATL (per-user ATL).
 	const HRESULT hrBho = UnregisterBrowserHelperObject();
 	const HRESULT hrAtl = _AtlModule.DllUnregisterServer();
 	return WebHookCombineUnregisterHresults( hrBho, hrAtl );
