@@ -1,7 +1,7 @@
 //
 // Images.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) Â© 2016-2018
 // All work here is original and released as-is under Persistent Public Domain [PPD]
 //
 
@@ -638,16 +638,17 @@ BOOL CImages::DrawButton(CDC* pDC, const CRect* rc, CBitmap* bmButton, CBitmap* 
 	// Tile horizontally only. Stretch vertically to the target height so DPI-scaled
 	// destinations (e.g. CoolMenu items at SCALE(23)) never repeat a second state band.
 	const int nDestHeight = rc->Height();
-	if ( nDestHeight > 0 && pInfo.bmHeight > 0 && rc->Width() > nEdge )
+	const int nSourceHeight = min( pInfo.bmHeight, nDestHeight );
+	if ( nDestHeight > 0 && nSourceHeight > 0 && rc->Width() > nEdge )
 	{
 		for ( int nX = rc->left; nX < rc->right - nEdge; nX += pInfo.bmWidth )
 		{
 			const int nWidth = min( pInfo.bmWidth, rc->right - nX - nEdge );
 
 			if ( pInfo.bmBitsPixel == 32 )		// (Pre-multiplied for AlphaBlend Transparency)
-				pDC->AlphaBlend( nX, rc->top, nWidth, nDestHeight, &dcMark, 0, 0, nWidth, pInfo.bmHeight, bf );
+				pDC->AlphaBlend( nX, rc->top, nWidth, nDestHeight, &dcMark, 0, 0, nWidth, nSourceHeight, bf );
 			else
-				pDC->StretchBlt( nX, rc->top, nWidth, nDestHeight, &dcMark, 0, 0, nWidth, pInfo.bmHeight, SRCCOPY );
+				pDC->StretchBlt( nX, rc->top, nWidth, nDestHeight, &dcMark, 0, 0, nWidth, nSourceHeight, SRCCOPY );
 		}
 	}
 
@@ -657,12 +658,13 @@ BOOL CImages::DrawButton(CDC* pDC, const CRect* rc, CBitmap* bmButton, CBitmap* 
 		bmButtonEdge->GetBitmap( &pEdgeInfo );
 		dcMark.SelectObject( bmButtonEdge );
 
-		if ( pEdgeInfo.bmHeight > 0 )
+		const int nEdgeSourceHeight = min( pEdgeInfo.bmHeight, nDestHeight );
+		if ( nEdgeSourceHeight > 0 )
 		{
 			if ( pEdgeInfo.bmBitsPixel == 32 )
-				pDC->AlphaBlend( rc->right - nEdge, rc->top, nEdge, nDestHeight, &dcMark, 0, 0, nEdge, pEdgeInfo.bmHeight, bf );
+				pDC->AlphaBlend( rc->right - nEdge, rc->top, nEdge, nDestHeight, &dcMark, 0, 0, nEdge, nEdgeSourceHeight, bf );
 			else
-				pDC->StretchBlt( rc->right - nEdge, rc->top, nEdge, nDestHeight, &dcMark, 0, 0, nEdge, pEdgeInfo.bmHeight, SRCCOPY );
+				pDC->StretchBlt( rc->right - nEdge, rc->top, nEdge, nDestHeight, &dcMark, 0, 0, nEdge, nEdgeSourceHeight, SRCCOPY );
 		}
 	}
 
@@ -745,25 +747,26 @@ BOOL CImages::DrawButtonMap(CDC* pDC, const CRect* rc, CBitmap* bmButtonMap, con
 	else	// Default: tile horizontally, stretch one state vertically (never stack states)
 	{
 		const int nDestHeight = rc->Height();
-		if ( nDestHeight > 0 && nSourceHeight > 0 && rc->Width() > nEdge )
+		const int nDrawSourceHeight = min( nSourceHeight, nDestHeight );
+		if ( nDestHeight > 0 && nDrawSourceHeight > 0 && rc->Width() > nEdge )
 		{
 			for ( int nX = rc->left; nX < rc->right - nEdge; nX += nSourceWidth )
 			{
 				const int nWidth = min( nSourceWidth, rc->right - nX - nEdge );
 
 				if ( pInfo.bmBitsPixel == 32 )		// (Pre-multiplied for AlphaBlend Transparency)
-					pDC->AlphaBlend( nX, rc->top, nWidth, nDestHeight, &dcMark, 0, nPosition, nWidth, nSourceHeight, bf );
+					pDC->AlphaBlend( nX, rc->top, nWidth, nDestHeight, &dcMark, 0, nPosition, nWidth, nDrawSourceHeight, bf );
 				else
-					pDC->StretchBlt( nX, rc->top, nWidth, nDestHeight, &dcMark, 0, nPosition, nWidth, nSourceHeight, SRCCOPY );
+					pDC->StretchBlt( nX, rc->top, nWidth, nDestHeight, &dcMark, 0, nPosition, nWidth, nDrawSourceHeight, SRCCOPY );
 			}
 		}
 
-		if ( nEdge > 0 && nDestHeight > 0 && nSourceHeight > 0 )
+		if ( nEdge > 0 && nDestHeight > 0 && nDrawSourceHeight > 0 )
 		{
 			if ( pInfo.bmBitsPixel == 32 )
-				pDC->AlphaBlend( rc->right - nEdge, rc->top, nEdge, nDestHeight, &dcMark, nSourceWidth, nPosition, nEdge, nSourceHeight, bf );
+				pDC->AlphaBlend( rc->right - nEdge, rc->top, nEdge, nDestHeight, &dcMark, nSourceWidth, nPosition, nEdge, nDrawSourceHeight, bf );
 			else
-				pDC->StretchBlt( rc->right - nEdge, rc->top, nEdge, nDestHeight, &dcMark, nSourceWidth, nPosition, nEdge, nSourceHeight, SRCCOPY );
+				pDC->StretchBlt( rc->right - nEdge, rc->top, nEdge, nDestHeight, &dcMark, nSourceWidth, nPosition, nEdge, nDrawSourceHeight, SRCCOPY );
 		}
 	}
 
