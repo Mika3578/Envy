@@ -74,6 +74,38 @@ static bool test_shared_clsid_unchanged()
 		L"{C0283C00-AA11-43E4-8C1D-8D28A0C86042}" ) == 0;
 }
 
+static bool test_unregister_missing_key_idempotent()
+{
+	if ( FAILED( WebHookMapBhoDeleteResult( ERROR_FILE_NOT_FOUND ) ) )
+		return false;
+	if ( FAILED( WebHookMapBhoDeleteResult( ERROR_PATH_NOT_FOUND ) ) )
+		return false;
+	if ( FAILED( WebHookMapBhoDeleteResult( ERROR_SUCCESS ) ) )
+		return false;
+	if ( SUCCEEDED( WebHookMapBhoDeleteResult( ERROR_ACCESS_DENIED ) ) )
+		return false;
+	return true;
+}
+
+static bool test_combine_unregister_prefers_bho_failure()
+{
+	const HRESULT hrDenied = HRESULT_FROM_WIN32( ERROR_ACCESS_DENIED );
+	if ( WebHookCombineUnregisterHresults( hrDenied, S_OK ) != hrDenied )
+		return false;
+	if ( WebHookCombineUnregisterHresults( S_OK, hrDenied ) != hrDenied )
+		return false;
+	if ( WebHookCombineUnregisterHresults( S_OK, S_OK ) != S_OK )
+		return false;
+	return true;
+}
+
+static bool test_register_rollback_prefers_bho_hresult()
+{
+	const HRESULT hrBho = HRESULT_FROM_WIN32( ERROR_ACCESS_DENIED );
+	// Rollback HRESULT must not replace the original BHO failure.
+	return WebHookPreferBhoFailureOverRollback( hrBho ) == hrBho;
+}
+
 void register_webhook_registration_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "webhook_skip_both_when_disabled", test_skip_both_when_disabled );
@@ -82,4 +114,7 @@ void register_webhook_registration_smoke_tests(TestSuite& suite)
 	suite.add_test( "webhook_does_not_match_other_plugins", test_does_not_match_other_plugins );
 	suite.add_test( "webhook_bho_root_per_user_vs_machine", test_bho_root_per_user_vs_machine );
 	suite.add_test( "webhook_shared_clsid_unchanged", test_shared_clsid_unchanged );
+	suite.add_test( "webhook_unregister_missing_key_idempotent", test_unregister_missing_key_idempotent );
+	suite.add_test( "webhook_combine_unregister_prefers_bho_failure", test_combine_unregister_prefers_bho_failure );
+	suite.add_test( "webhook_register_rollback_prefers_bho_hresult", test_register_rollback_prefers_bho_hresult );
 }

@@ -4,6 +4,8 @@
 
 - **Last Updated:** 2026-09-16
 - **Changelog Entry:** 2026-09-16 — Fixed legacy IE WebHook startup registration: skip `WebHook32.dll`/`WebHook64.dll` (and historical `WebHook.dll`) when `WebHookEnable` is false; BHO key registered in code under HKCU (per-user) or HKLM (machine). Documented as IE-only legacy; candidate for removal in favor of a modern browser extension + `envy://url:`.
+- **Changelog Entry:** 2026-09-16 — Search Input/Advanced panel layout is font/DPI-aware (`GetPreferredHeight` + progressive Y); combo drop-down height kept separate from visible stacking; hash/prefix anchored to the search edit. No change to `GetSearchPanelWidth()` / SidebarWidth floor.
+- **Changelog Entry:** 2026-09-16 — Skin engine P0: StatusbarHeight pointer fix, ParseRect point/size + FindOneOf, roundRect size validation, LoadFromXML section-failure aggregation (non-transactional), strict metric parse/clamp aligned with Settings bounds; `SkinEngineP0.h` + EnvyTests. HiDPI/logical units deferred to P1+.
 - **Changelog Entry:** 2026-09-16 — Search window left panel clamps to `max(SidebarWidth, SCALE(200))` only in `CSearchWnd` (Shareaza PANEL_WIDTH); avoids Advanced two-column collapse without raising the global SidebarWidth floor used by other panes / ~182 px PeerProject skins.
 - **Changelog Entry:** 2026-09-16 — Fixed CoolMenu selected-item double blue band: `DrawButton`/`DrawButtonMap` stretch one skin state vertically (no vertical tile) when destination height exceeds asset height; CoolMenu `rcItem` stays within `DRAWITEMSTRUCT` and icon offsets use `SCALE()`.
 - **Changelog Entry:** 2026-09-15 — Deterministic `About.htm.gz` / `Browser.htm.gz` generation (`gzip -n`), restore valid binary blobs, `*.gz binary` in `.gitattributes`. See `docs/10_dev/build.md`.
@@ -86,6 +88,9 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - Audit and core documentation baseline established.
 - Remote CRITICAL/HIGH security items remediated (CSRF, XSS sanitization, CSP hardening, redirects, rate limiter, API input validation).
 - Remote JS security regression tests wired into `code-quality.yml`.
+- Skin engine **P0** input hardening (`SkinEngineP0.h`): StatusbarHeight registration,
+  ParseRect `point`/`size`, roundRect validation, LoadFromXML section-failure
+  aggregation (non-transactional), strict metric parse/clamp. HiDPI deferred.
 
 ### In Progress
 - C++ modernization across legacy modules.
@@ -127,6 +132,16 @@ Inspired by eMule Qt, aMule, and aria2-next. Long-term shape:
 `EnvyCore` → protocol engines → transfer engine → library/search → stable internal API / IPC → MFC frontend → future Web/CLI frontend.
 
 Incremental extraction only. No full rewrite.
+
+### P1 — Skin engine HiDPI / modern display (after P0)
+
+Do not mix with metric validation P0. Remaining backlog from the 2026-09 skin display audit:
+
+- Logical 96-DPI XML units → per-window `MulDiv(..., dpi, 96)` for fonts, frames, anchors, regions
+- Multi-monitor maximize using the window's `MONITORINFO.rcWork` (not primary-only)
+- Black mask `000000` vs absent mask; restore or reject `LVSIL_MID` 24px; command-image index bounds
+- Dialog skinning by control ID; real PNG alpha; transactional skin load / rollback
+- Mark Slim / Win7–8 / Vista skins Legacy until the DPI layer exists
 
 ### P1 — Headless / API
 

@@ -18,6 +18,7 @@ void register_ed2k_hello_capabilities_smoke_tests(TestSuite& suite);
 void register_ed2k_hello_golden_tests(TestSuite& suite);
 void register_ed2k_kad_settings_smoke_tests(TestSuite& suite);
 void register_webhook_registration_smoke_tests(TestSuite& suite);
+void register_skin_engine_p0_smoke_tests(TestSuite& suite);
 
 int main() {
 	TestSuite suite;
@@ -29,6 +30,7 @@ int main() {
 	register_ed2k_hello_golden_tests(suite);
 	register_ed2k_kad_settings_smoke_tests(suite);
 	register_webhook_registration_smoke_tests(suite);
+	register_skin_engine_p0_smoke_tests(suite);
 
 	int failures = suite.run_all_tests();
 

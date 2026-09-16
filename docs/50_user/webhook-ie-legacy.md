@@ -31,6 +31,12 @@ Internet Explorer  -->  WebHook BHO  -->  envy://url:...  -->  Envy downloads
 | Enabled + non-admin / per-user | `DllInstall(..., "user")`; COM under per-user HKCR; BHO key under **HKCU** |
 | Enabled + machine-wide `DllRegisterServer` | COM machine-wide; BHO key under **HKLM** |
 
+`DllUnregisterServer` removes only the **machine** scope; `DllInstall(FALSE, "user")`
+removes only the **user** scope — never cross-delete HKLM/HKCU.
+
+If ATL COM registration succeeds but creating the BHO key fails, registration
+rolls back the ATL keys and returns the original BHO HRESULT.
+
 Shared CLSID (x86 and x64): `{C0283C00-AA11-43E4-8C1D-8D28A0C86042}`.
 
 Normal non-elevated Envy startup must not require administrator rights for this

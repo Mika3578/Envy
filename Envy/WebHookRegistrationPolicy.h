@@ -54,3 +54,28 @@ inline LPCTSTR WebHookBhoRegistrySubKey()
 	return L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\"
 		L"Browser Helper Objects\\{C0283C00-AA11-43E4-8C1D-8D28A0C86042}";
 }
+
+// RegDeleteKey result for BHO cleanup: missing key is idempotent success.
+inline HRESULT WebHookMapBhoDeleteResult(LONG lResult)
+{
+	if ( lResult == ERROR_SUCCESS ||
+		lResult == ERROR_FILE_NOT_FOUND ||
+		lResult == ERROR_PATH_NOT_FOUND )
+		return S_OK;
+	return HRESULT_FROM_WIN32( lResult );
+}
+
+// Prefer a real BHO failure over ATL unregister result (never cross-mask).
+inline HRESULT WebHookCombineUnregisterHresults(HRESULT hrBho, HRESULT hrAtl)
+{
+	if ( FAILED( hrBho ) )
+		return hrBho;
+	return hrAtl;
+}
+
+// After ATL COM registration succeeded, BHO key failure must roll back ATL and
+// still return the original BHO HRESULT (ignore rollback HRESULT).
+inline HRESULT WebHookPreferBhoFailureOverRollback(HRESULT hrBho)
+{
+	return hrBho;
+}

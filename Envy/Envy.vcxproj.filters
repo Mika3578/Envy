@@ -1952,6 +1952,9 @@
     <ClInclude Include="Ed2kKadSettingsPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SkinEngineP0.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="SecureIdentPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>

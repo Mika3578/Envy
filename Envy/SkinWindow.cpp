@@ -1,7 +1,7 @@
 //
 // SkinWindow.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "SkinWindow.h"
+#include "SkinEngineP0.h"
 #include "CoolInterface.h"
 #include "ImageFile.h"
 #include "XML.h"
@@ -472,6 +473,22 @@ BOOL CSkinWindow::ParseRect(const CXMLElement* pXML, CRect* pRect)
 	CString strPoint = pXML->GetAttributeValue( L"point" );
 	if ( ! strPoint.IsEmpty() )
 	{
+		CString strSize = pXML->GetAttributeValue( L"size" );
+		if ( ! strSize.IsEmpty() )
+		{
+			SkinParsedRect oParsed = {};
+			if ( ! ParseSkinPointSizeRect( strPoint, strSize, oParsed ) )
+			{
+				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Invalid [point]/[size] attribute", pXML->ToString() );
+				return FALSE;
+			}
+			pRect->left = oParsed.left;
+			pRect->top = oParsed.top;
+			pRect->right = oParsed.right;
+			pRect->bottom = oParsed.bottom;
+			return TRUE;
+		}
+
 		int x, y;
 		if ( _stscanf( strPoint, L"%i,%i", &x, &y ) != 2 )
 		{
@@ -482,28 +499,13 @@ BOOL CSkinWindow::ParseRect(const CXMLElement* pXML, CRect* pRect)
 		pRect->top = y;
 		pRect->right = pRect->bottom = 0;
 
-		CString strSize = pXML->GetAttributeValue( L"size" );
-		if ( ! strSize.IsEmpty() )
-		{
-			if ( _stscanf( strPoint, L"%i,%i", &x, &y ) != 2 )
-			{
-				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Invalid [size] attribute", pXML->ToString() );
-			}
-			else
-			{
-				if ( x )
-					pRect->right  = pRect->left + x;
-				if ( y )
-					pRect->bottom = pRect->top + y;
-			}
-		}
-
 		// Infer 0 size values where possible
 		if ( ! pRect->right || ! pRect->bottom )
 		{
 			CString strName = pXML->GetAttributeValue( L"name" );
-			int nTruncate = strName.FindOneOf( L".HDA" );	// CloseHover/Down/Alt/.
-			if ( nTruncate ) strName = strName.Left( nTruncate );
+			wchar_t szBase[ 256 ] = {};
+			if ( TruncateSkinPartNameSuffix( strName, szBase, _countof( szBase ) ) )
+				strName = szBase;
 			CRect* pPartRect;
 			if ( m_pAnchorList.Lookup( strName, pPartRect ) || m_pPartList.Lookup( strName, pPartRect ) )
 			{
@@ -1685,8 +1687,13 @@ void CSkinWindow::SelectRegion(CWnd* pWnd)
 		}
 		else if ( strType.CompareNoCase( L"roundRect" ) == 0 )
 		{
-			int nWidth, nHeight;
-			_stscanf( pXML->GetAttributeValue( L"size" ), L"%i,%i", &nWidth, &nHeight );
+			int nWidth = 0;
+			int nHeight = 0;
+			if ( ! ParseSkinRoundRectSize( pXML->GetAttributeValue( L"size" ), nWidth, nHeight ) )
+			{
+				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Invalid roundRect [size] attribute", pXML->ToString() );
+				continue;
+			}
 			hPart = CreateRoundRectRgn( rcPart.left, rcPart.top, rcPart.right, rcPart.bottom,
 				nWidth, nHeight );
 		}
