@@ -182,6 +182,7 @@
     <ClCompile Include="test_ed2k_hello_capabilities_smoke.cpp" />
     <ClCompile Include="test_ed2k_hello_golden.cpp" />
     <ClCompile Include="test_ed2k_kad_settings_smoke.cpp" />
+    <ClCompile Include="test_webhook_registration_smoke.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />

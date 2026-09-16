@@ -31,28 +31,6 @@ HKCR
 		}
 	}
 }
-HKLM
-{
-	NoRemove Software
-	{
-		NoRemove Microsoft
-		{
-			NoRemove Windows
-			{
-				NoRemove CurrentVersion
-				{
-					NoRemove Explorer
-					{
-						NoRemove 'Browser Helper Objects'
-						{
-							ForceRemove {C0283C00-AA11-43E4-8C1D-8D28A0C86042}
-						}
-					}
-				}
-			}
-		}
-	}
-}
 HKCU
 {
 	NoRemove Software
