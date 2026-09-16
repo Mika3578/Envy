@@ -160,8 +160,8 @@ while IFS= read -r f; do
 		workflow=true
 		classified=true
 		;;
-	.github/workflows/clang-tidy.yml | .clang-tidy)
-		workflow=true
+	.clang-tidy)
+		# Local starter config only; no CI workflow.
 		classified=true
 		;;
 	.github/workflows/classify-changes.yml | \

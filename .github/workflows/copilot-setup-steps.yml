@@ -29,4 +29,7 @@ jobs:
       - name: Restore vcpkg manifest
         shell: pwsh
         run: |
-          & "$env:GITHUB_WORKSPACE/vcpkg/vcpkg.exe" install --triplet=x64-windows-static
+          $env:VCPKG_ROOT = "$env:GITHUB_WORKSPACE/vcpkg"
+          & "$env:VCPKG_ROOT/vcpkg.exe" install --triplet=x64-windows-static --x-wait-for-lock
+        env:
+          VCPKG_DEFAULT_TRIPLET: x64-windows-static
