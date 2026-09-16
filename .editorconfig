@@ -1,7 +1,9 @@
 root = true
 
+# First-party sources historically mix ISO-8859 and UTF-8 encodings.
+# Do NOT set charset globally — editors must not bulk-convert existing .cpp/.h.
+
 [*]
-charset = utf-8
 end_of_line = crlf
 insert_final_newline = true
 trim_trailing_whitespace = true
@@ -17,6 +19,7 @@ indent_size = 2
 end_of_line = crlf
 
 [*.{yml,yaml,json}]
+charset = utf-8
 indent_style = space
 indent_size = 2
 end_of_line = lf
@@ -32,6 +35,7 @@ indent_style = space
 indent_size = 4
 
 [*.md]
+charset = utf-8
 trim_trailing_whitespace = false
 indent_style = space
 indent_size = 2

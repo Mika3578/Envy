@@ -27,15 +27,6 @@ function Update-ProjectFiles {
 
     Write-Host "Updating project files..." -ForegroundColor Yellow
 
-    # Update CMakeLists.txt
-    $cmakePath = Join-Path $ProjectRoot "CMakeLists.txt"
-    if (Test-Path $cmakePath) {
-        $cmakeContent = Get-Content $cmakePath -Raw
-        $cmakeContent = $cmakeContent -replace 'project\(Envy VERSION [\d\.]+\)', "project(Envy VERSION $($VersionData.major).$($VersionData.minor).$($VersionData.patch))"
-        Set-Content $cmakePath $cmakeContent -Encoding UTF8
-        Write-Host "  Updated CMakeLists.txt" -ForegroundColor Gray
-    }
-
     # Update Visual Studio version script
     $vsScriptPath = Join-Path $ProjectRoot "Visual Studio" "SetReleaseVersion.bat"
     if (Test-Path $vsScriptPath) {
