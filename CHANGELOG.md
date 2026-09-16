@@ -12,11 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   obsolete migration docs from the public tree; `docs/DEVELOPMENT_PLAN.md`
   remains the canonical living plan (`AGENTS.md` updated accordingly).
 - **Repository tooling hygiene** — Dropped incomplete root CMake /
-  `CMakePresets.json` and unused `.cppcheck-suppressions`; rewrote
-  `build_all.ps1` for v145 + vcpkg; narrowed `.clang-tidy` / `.clangd`;
-  stopped forcing global UTF-8 in `.editorconfig`; aligned `vcpkg.json`
-  `version-string` with `version.json`. Kept auxiliary `tests/CMakeLists.txt`
-  (commented as non-app CMake).
+  `CMakePresets.json`, orphan `tests/CMakeLists.txt`, and unused
+  `.cppcheck-suppressions`; rewrote `build_all.ps1` for v145 + vcpkg;
+  narrowed `.clang-tidy` / `.clangd`; stopped forcing global UTF-8 in
+  `.editorconfig`; aligned `vcpkg.json` `version-string` with `version.json`.
+  Tests remain MSBuild-first (`tests/EnvyTests.vcxproj`); CMake test wiring
+  waits for a functional Phase 5 entry point.
 - **CI hygiene** — Removed no-op advisory `clang-tidy.yml`; fixed MSVC
   analysis invocation (no missing ruleset; v145/vcpkg flags); dropped dead
   `master` workflow triggers.

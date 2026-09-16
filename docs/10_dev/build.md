@@ -2,7 +2,7 @@
 
 **Last Updated:** September 2026
 **Primary (canonical):** Visual Studio / MSBuild — `Visual Studio\Envy.sln`, toolset `v145`, C++20 first-party
-**Secondary (auxiliary only):** CMake under `HashLib/` and `tests/` — does **not** build the Envy MFC application
+**Secondary (auxiliary only):** Optional HashLib-only CMake under `HashLib/` — does **not** build the Envy MFC application or the MSBuild test suite
 **Version SoT:** `version.json`
 
 ## Quick reference
@@ -87,8 +87,9 @@ cmake -S HashLib -B out/hashlib -G "Visual Studio 18 2026" -A x64
 cmake --build out/hashlib --config Release
 ```
 
-`tests/CMakeLists.txt` is retained for future/auxiliary CMake test wiring;
-the supported test path today is MSBuild `EnvyTests` via `Visual Studio/Envy.sln`.
+`tests/` is MSBuild-first (`EnvyTests.vcxproj` via `Visual Studio/Envy.sln`).
+There is no `tests/CMakeLists.txt` until a Phase 5 CMake entry point can
+link HashLib without a fake root project.
 
 ## 🔍 Troubleshooting
 
