@@ -12,13 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   obsolete migration docs from the public tree; `docs/DEVELOPMENT_PLAN.md`
   remains the canonical living plan (`AGENTS.md` updated accordingly).
 - **Repository tooling hygiene** — Dropped incomplete root CMake /
-  `CMakePresets.json` / orphan `tests/CMakeLists.txt` and unused
-  `.cppcheck-suppressions`; rewrote `build_all.ps1` for v145 + vcpkg;
-  narrowed `.clang-tidy` / `.clangd`; stopped forcing global UTF-8 in
-  `.editorconfig`; aligned `vcpkg.json` `version-string` with `version.json`.
+  `CMakePresets.json` and unused `.cppcheck-suppressions`; rewrote
+  `build_all.ps1` for v145 + vcpkg; narrowed `.clang-tidy` / `.clangd`;
+  stopped forcing global UTF-8 in `.editorconfig`; aligned `vcpkg.json`
+  `version-string` with `version.json`. Kept auxiliary `tests/CMakeLists.txt`
+  (commented as non-app CMake).
 - **CI hygiene** — Removed no-op advisory `clang-tidy.yml`; fixed MSVC
   analysis invocation (no missing ruleset; v145/vcpkg flags); dropped dead
   `master` workflow triggers.
+- **Publishable surface** — Added root `LICENSE` (verbatim AGPL text from
+  `Envy/AGPL-License.txt`); removed redundant `.github/agents/my-agent.md`;
+  clarified MSBuild-vs-CMake and `version.json` as version SoT in README /
+  AGENTS / build docs; expanded `docs/DEPENDENCIES.md` for vcpkg vs Services.
 
 ### Fixed
 - **Deterministic web resource gzip** — `About.htm.gz` / `Browser.htm.gz` CustomBuild now runs `Envy/Res/gzip.exe -n -c` (mtime 0, no original name) so repeated builds do not dirty Git when HTML is unchanged. Restored valid binary `.gz` blobs (they had been UTF-8-mangled in-tree) and marked `*.gz binary` in `.gitattributes`. HTML payload unchanged; still embedded as `GZIP` resources and decompressed by `LoadHTML`.

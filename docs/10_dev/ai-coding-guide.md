@@ -1031,7 +1031,7 @@ When reviewing code:
 ## Resources and References
 
 ### Project Documentation
-- [Documentation Index](../README.md) - Documentation overview
+- [Documentation Index](../00_index/README.md) - Documentation overview
 - [Development Guide](guide.md) - Development setup and guide
 - [Contributing Guide](contributing.md) - Contribution guidelines
 - [Modern C++ Guide](modern-cpp-guide.md) - C++20 modernization guide

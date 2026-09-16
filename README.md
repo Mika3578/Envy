@@ -13,15 +13,34 @@ Envy is not an eMule replacement and is not replaced by aMule, eMule Qt, aria2-n
 - [vcpkg](https://vcpkg.io/) (manifest mode; see `vcpkg.json`)
 
 ### Build (authoritative)
+
+The **canonical Windows build** is `Visual Studio/Envy.sln` (MSBuild, toolset
+`v145`, vcpkg manifest). That is the only path that builds the full Envy
+application, plugins, and installer-facing outputs.
+
 ```powershell
 msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 `
   /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 `
   /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
 ```
 
-Or open `Visual Studio/Envy.sln` and build, or run `.\build_all.ps1` for the Debug/Release × Win32/x64 matrix.
+Or open `Visual Studio/Envy.sln` and build, or run `.\build_all.ps1` for the
+Debug/Release × Win32/x64 matrix.
 
-Optional HashLib-only CMake lives under `HashLib/CMakeLists.txt` (not required for the app).
+There is **no root CMake app build**. Optional CMake under `HashLib/` (and
+`tests/` helpers) supports auxiliary library/test work only — it does **not**
+produce the Envy MFC client.
+
+### Version
+
+Canonical product version metadata lives in `version.json`. Other files
+(`vcpkg.json` `version-string`, installer scripts) should follow it; do not
+edit version numbers in multiple places by hand.
+
+### License
+
+AGPL-3.0-or-later: root [`LICENSE`](./LICENSE) (same text as
+`Envy/AGPL-License.txt`, kept for historical installer/docs paths).
 
 ## Repository Layout
 - `Envy/` – primary desktop application (UI + protocols + library)
