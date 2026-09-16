@@ -1,7 +1,7 @@
 //
 // MiniUPnP.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2014 and PeerProject 2014-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -93,6 +93,9 @@ void CMiniUPnP::OnRun()
 {
 	BOOL bSuccess = FALSE;
 	int error = 0;
+	// -1 means discovery returned no device list, so no later MiniUPnPc op ran.
+	// (UPNP_GetValidIGD uses 0 for failure; UPNPCOMMAND_SUCCESS is also 0.)
+	int result = -1;
 
 	if ( UPNPDev* pDevList = upnpDiscover( Settings.Connection.UPnPTimeout, NULL, NULL, UPNP_LOCAL_PORT_ANY, FALSE, 2, &error ) )
 	{
@@ -103,7 +106,7 @@ void CMiniUPnP::OnRun()
 			UPNPUrls urls = {};
 			IGDdatas data = {};
 			char internalIPAddress[ 16 ] = {};
-			int result = UPNP_GetValidIGD( pDevice, &urls, &data, internalIPAddress, sizeof( internalIPAddress ) );
+			result = UPNP_GetValidIGD( pDevice, &urls, &data, internalIPAddress, sizeof( internalIPAddress ) );
 			if ( result )
 			{
 				m_sServiceType = data.first.servicetype;
@@ -210,10 +213,15 @@ void CMiniUPnP::OnRun()
 		freeUPNPDevlist( pDevList );
 	}
 	else
-		theApp.Message( MSG_DEBUG, L"UPnP found no devices." );
+		theApp.Message( MSG_DEBUG, L"UPnP found no devices, discovery error %d.", error );
 
 	if ( bSuccess )
 		Network.OnMapSuccess();
 	else
+	{
+		// Avoid false MSG_ERROR when the worker is cancelled (e.g. CloseThread on shutdown).
+		if ( IsThreadEnabled() )
+			theApp.Message( MSG_ERROR, L"UPnP MiniUPnPc backend failed (discovery error %d, last command result %d).", error, result );
 		Network.OnMapFailed();
+	}
 }

@@ -2,8 +2,12 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-15
-- **Changelog Entry:** 2026-09-15 — Started **Envy 4.2.0 Preview 1** release preparation: single version source (`4.2.0-preview.1` / Windows `4.2.0.1`), Inno `alpha` driven from CI (`/p:InstallerAlpha=Preview`), `release.yml` publishes per-platform setup + ZIP + `SHA256SUMS.txt` as draft prerelease. Universal installer and Authenticode deferred. See README Preview section.
+- **Last Updated:** 2026-09-16
+- **Changelog Entry:** 2026-09-15 — Started **Envy 4.2.0 Preview 1** release preparation: single version source (`4.2.0-preview.1` / Windows `4.2.0.1`), Inno `alpha` driven from CI (`/p:InstallerAlpha=Preview`), `release.yml` publishes per-platform setup + ZIP + `SHA256SUMS.txt` as draft prerelease. Universal installer and Authenticode deferred. See README Preview section. (Still gated on interactive installer smoke before merge.)
+- **Changelog Entry:** 2026-09-16 — Search Input/Advanced panel layout is font/DPI-aware (`GetPreferredHeight` + progressive Y); combo drop-down height kept separate from visible stacking; hash/prefix anchored to the search edit. No change to `GetSearchPanelWidth()` / SidebarWidth floor.
+- **Changelog Entry:** 2026-09-16 — Skin engine P0: StatusbarHeight pointer fix, ParseRect point/size + FindOneOf, roundRect size validation, LoadFromXML section-failure aggregation (non-transactional), strict metric parse/clamp aligned with Settings bounds; `SkinEngineP0.h` + EnvyTests. HiDPI/logical units deferred to P1+.
+- **Changelog Entry:** 2026-09-16 — Search window left panel clamps to `max(SidebarWidth, SCALE(200))` only in `CSearchWnd` (Shareaza PANEL_WIDTH); avoids Advanced two-column collapse without raising the global SidebarWidth floor used by other panes / ~182 px PeerProject skins.
+- **Changelog Entry:** 2026-09-16 — Fixed CoolMenu selected-item double blue band: `DrawButton`/`DrawButtonMap` stretch one skin state vertically (no vertical tile) when destination height exceeds asset height; CoolMenu `rcItem` stays within `DRAWITEMSTRUCT` and icon offsets use `SCALE()`.
 - **Changelog Entry:** 2026-09-15 — Deterministic `About.htm.gz` / `Browser.htm.gz` generation (`gzip -n`), restore valid binary blobs, `*.gz binary` in `.gitattributes`. See `docs/10_dev/build.md`.
 - **Changelog Entry:** 2026-09-15 — Added Envy self-golden Hello/HelloAnswer TCP vectors (`Ed2kHelloWire.h` + EnvyTests) freezing honest MiscOptions bits; compression advertise left frozen for post-interop decision. No wire behavior change.
 - **Changelog Entry:** 2026-09-15 — Reconciled status/roadmap: live Kad2 is `Kademlia.cpp` only (`KadProtocol` legacy inactive); SEARCH/PUBLISH wire-only; ADC/ADCS hub not implemented (NMDC preserved). Prevents roadmap drift from the September 2026 current-code audit.
@@ -84,6 +88,9 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - Audit and core documentation baseline established.
 - Remote CRITICAL/HIGH security items remediated (CSRF, XSS sanitization, CSP hardening, redirects, rate limiter, API input validation).
 - Remote JS security regression tests wired into `code-quality.yml`.
+- Skin engine **P0** input hardening (`SkinEngineP0.h`): StatusbarHeight registration,
+  ParseRect `point`/`size`, roundRect validation, LoadFromXML section-failure
+  aggregation (non-transactional), strict metric parse/clamp. HiDPI deferred.
 
 ### In Progress
 - **Envy 4.2.0 Preview 1 release readiness** — version/packaging PR; install/uninstall + network smoke tests still required before tagging `v4.2.0-preview.1` and publishing the draft GitHub prerelease.
@@ -126,6 +133,16 @@ Inspired by eMule Qt, aMule, and aria2-next. Long-term shape:
 `EnvyCore` → protocol engines → transfer engine → library/search → stable internal API / IPC → MFC frontend → future Web/CLI frontend.
 
 Incremental extraction only. No full rewrite.
+
+### P1 — Skin engine HiDPI / modern display (after P0)
+
+Do not mix with metric validation P0. Remaining backlog from the 2026-09 skin display audit:
+
+- Logical 96-DPI XML units → per-window `MulDiv(..., dpi, 96)` for fonts, frames, anchors, regions
+- Multi-monitor maximize using the window's `MONITORINFO.rcWork` (not primary-only)
+- Black mask `000000` vs absent mask; restore or reject `LVSIL_MID` 24px; command-image index bounds
+- Dialog skinning by control ID; real PNG alpha; transactional skin load / rollback
+- Mark Slim / Win7–8 / Vista skins Legacy until the DPI layer exists
 
 ### P1 — Headless / API
 

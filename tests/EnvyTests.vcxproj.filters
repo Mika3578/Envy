@@ -23,6 +23,9 @@
     <ClCompile Include="test_ed2k_hello_golden.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_skin_engine_p0_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h">
