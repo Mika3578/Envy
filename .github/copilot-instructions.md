@@ -63,8 +63,7 @@ Session notes: `.local/DEV_TRACKER.md` (gitignored, not a committed source of tr
 
 ## See also
 
-- `AGENTS.md` - canonical rules
-- `MODERNIZATION.md` - multi-phase plan
-- `docs/DEVELOPMENT_PLAN.md` / `docs/10_dev/status.md` - committed plan and status
+- `AGENTS.md` - canonical rules for assistants
+- `docs/DEVELOPMENT_PLAN.md` / `docs/10_dev/status.md` - living plan and status
 - `.local/DEV_TRACKER.md` - gitignored session notes
 - `.github/CONTRIBUTING.md` - human-facing contributor guide

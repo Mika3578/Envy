@@ -3,14 +3,17 @@
 This file is the single source of truth for AI assistants working on
 Envy. It is read by:
 
-- **GitHub Copilot** (chat + code completions)
-- **Claude Code** (CLI, GitHub Action, web/IDE sessions)
-- **Cursor**, **Cline**, **Aider**, **Windsurf**, etc., via their
-  conventional rule files - see the symlinks / pointers at the bottom of
-  this document.
+- **GitHub Copilot** (chat + code completions), via
+  `.github/copilot-instructions.md`
+- **Other assistants** (Cursor, Claude Code, Cline, Aider, Windsurf,
+  Continue, etc.) when they can load repository guidance — point them
+  at **this file** directly. Do not reintroduce per-tool pointer stubs
+  (`.cursorrules`, `.cursor/rules/**`, `CLAUDE.md`, `.clinerules`,
+  `.aider.conf.yml`, `.windsurfrules`, `.continue/**`).
 
 Keep this file short. If you find yourself wanting to add a paragraph,
-write it in `MODERNIZATION.md` or `docs/DEVELOPMENT_PLAN.md` and link to it here.
+write it in `docs/DEVELOPMENT_PLAN.md` (canonical living plan) and link
+to it here.
 
 ---
 
@@ -43,7 +46,7 @@ Branch model:
 
 1. **Language**: all human-readable artifacts you produce or edit -
    code comments, commit messages, PR bodies, issue descriptions,
-   `MODERNIZATION.md`, `docs/DEVELOPMENT_PLAN.md`, workflow names, error messages -
+   `docs/DEVELOPMENT_PLAN.md`, workflow names, error messages -
    are written in **English**. Reply to the user in the language they
    used in chat; that's separate from the artifacts above.
 2. **No XP support**. Do not reintroduce `_ATL_XP_TARGETING`, `v141_xp`,
@@ -115,11 +118,11 @@ MSBuild.
 
 **Build authority:** `Visual Studio/Envy.sln` is the authoritative build
 definition. Visual Studio 2026, MSBuild, and toolset **v145** are the
-primary path. Existing CMake files (`CMakePresets.json`, partial
-`CMakeLists.txt` trees) are auxiliary or experimental until Phase 5
-migration completes. Do not treat CMake as equivalent to the Visual Studio
-solution, do not modify the solution solely to satisfy CMake, and do not
-add new CMake changes outside a PR explicitly dedicated to CMake work.
+primary path. There is no root `CMakeLists.txt` / `CMakePresets.json`.
+Optional HashLib-only CMake under `HashLib/` is non-authoritative.
+Do not treat CMake as equivalent to the Visual Studio solution, do not
+modify the solution solely to satisfy CMake, and do not add new CMake
+work outside a PR explicitly dedicated to Phase 5 CMake.
 
 ---
 
@@ -154,7 +157,7 @@ When you take on a task you are expected to:
 2. **Push only to your feature branch** (never `develop`, `main`, or
    `legacy`) with `git push -u origin <branch>`.
 3. **Open a draft PR** if one does not exist. Match the PR template at
-   `.github/pull_request_template.md`.
+   `.github/PULL_REQUEST_TEMPLATE.md`.
 4. **Tick the checkboxes** in the PR template that genuinely apply -
    don't blanket-check them.
 5. **Cite file:line** in chat replies when discussing code:
@@ -198,13 +201,14 @@ When you take on a task you are expected to:
   warning. Fix the warning or document why it must stay.
 - **Don't** add new dependencies to `vcpkg.json` without first
   discussing in `docs/DEVELOPMENT_PLAN.md` (architectural decisions block).
-- **Don't** expand CMake beyond its current auxiliary role. Existing
-  partial CMake files and `CMakePresets.json` are not authoritative;
-  do not add new CMake changes outside a PR explicitly dedicated to
-  CMake work, and do not modify `Visual Studio/Envy.sln` solely to
+- **Don't** reintroduce a root CMake app build, or expand HashLib CMake
+  into a full application build, outside a PR explicitly dedicated to
+  Phase 5 CMake work. Do not modify `Visual Studio/Envy.sln` solely to
   satisfy CMake.
-- **Don't** rewrite `MODERNIZATION.md` from scratch. Update the
-  checklists, don't reflow the prose.
+- **Don't** reintroduce a second modernization plan file (for example
+  `MODERNIZATION.md`). Keep sequencing and status in
+  `docs/DEVELOPMENT_PLAN.md` (and `docs/10_dev/roadmap.md` /
+  `docs/10_dev/status.md` for technical detail).
 - **Don't** translate translated XML files in `Languages/`. Only
   developers fluent in the target language should change those.
 - **Don't** delete files in `Skins/` or `Data/`. They are runtime
@@ -214,20 +218,11 @@ When you take on a task you are expected to:
 
 ## 8. AI-tool-specific notes
 
-The following tools all read this file. Where they need a private
-config you'll find a thin pointer file that delegates here.
-
-- `.github/copilot-instructions.md` - GitHub Copilot context.
-- `.cursorrules` and `.cursor/rules/*.mdc` - Cursor IDE.
-- `.clinerules` - Cline.
-- `.aider.conf.yml` - Aider.
-- `.windsurfrules` - Windsurf.
-- `CLAUDE.md` - Claude Code (CLI / web / IDE).
-- `.continue/rules/*.md` - Continue.
-
-Keep these pointers; do not let them drift into independent rule sets.
-If a rule needs to change, change it in **this file** and let the
-others continue to delegate.
+- `.github/copilot-instructions.md` — GitHub Copilot context (keep in
+  sync with this file; do not let it become an independent rule set).
+- All other assistants: load **this file** (`AGENTS.md`) and
+  `docs/DEVELOPMENT_PLAN.md` when the tool allows. Prefer one source of
+  truth over per-tool stubs.
 
 ---
 
