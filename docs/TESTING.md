@@ -39,3 +39,11 @@ ctest --test-dir build
   for issue #75: null/empty/zero/non-zero/legacy-MD5 responses are rejected,
   SecureIdent is not advertised (`ED2K_VERSION_SECUREID == 0`), state never
   becomes verified, and ED2K transfer does not require SecureIdent.
+
+## Skin engine P0 smoke tests
+- `tests/test_skin_engine_p0_smoke.cpp` exercises `Envy/SkinEngineP0.h`:
+  StatusbarHeight member targeting, strict metric parse/clamp (keeps current
+  on non-numeric input), `point`+`size` rect parse, `.HDA` part-name truncate,
+  roundRect size validation, and LoadFromXML success aggregation.
+  LoadFromXML remains non-transactional (failed sections fail the file load
+  without rolling back earlier mutations).
