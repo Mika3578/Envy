@@ -1,7 +1,7 @@
 //
 // CtrlSearchPanel.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -92,6 +92,9 @@ int BoxMargin()
 
 int MeasureFontHeight(CFont& font)
 {
+	if ( font.GetSafeHandle() == NULL )
+		return SCALE( 16 );
+
 	HDC hDC = ::GetDC( NULL );
 	if ( hDC == NULL )
 		return SCALE( 16 );
@@ -1294,7 +1297,7 @@ void CSearchResultsBox::OnPaint()
 	LoadString( strText, IDS_SEARCH_PANEL_RESULTS_STATUS );
 	DrawText( pDC, BoxMargin(), BoxMargin(), nFlags, strText );
 	LoadString( strText, IDS_SEARCH_PANEL_RESULTS_FOUND );
-	DrawText( pDC, BoxMargin(), BoxMargin() + 32, nFlags, strText );
+	DrawText( pDC, BoxMargin(), BoxMargin() + SCALE( 32 ), nFlags, strText );
 
 	pDC->SelectObject( &theApp.m_gdiFont );
 
@@ -1308,7 +1311,7 @@ void CSearchResultsBox::OnPaint()
 		LoadString( strText, IDS_SEARCH_PANEL_RESULTS_INACTIVE );
 	}
 
-	DrawText( pDC, BoxMargin() + 8, BoxMargin() + 15, nFlags, strText );
+	DrawText( pDC, BoxMargin() + SCALE( 8 ), BoxMargin() + SCALE( 15 ), nFlags, strText );
 
 	if ( m_nFiles )
 	{
@@ -1338,7 +1341,7 @@ void CSearchResultsBox::OnPaint()
 		LoadString( strText, IDS_SEARCH_PANEL_RESULTS_NONE );
 	}
 
-	DrawText( pDC, BoxMargin() + 8, BoxMargin() + 32 + 15, nFlags, strText );
+	DrawText( pDC, BoxMargin() + SCALE( 8 ), BoxMargin() + SCALE( 32 ) + SCALE( 15 ), nFlags, strText );
 
 	// ToDo: Change Filtered Results Count from Files to Hits (WndSearch.cpp L.795)
 	if ( m_nBadHits && Settings.General.GUIMode != GUI_BASIC )
@@ -1355,7 +1358,7 @@ void CSearchResultsBox::OnPaint()
 
 		strText.Format( strFormat, m_nBadHits );
 
-		DrawText( pDC, BoxMargin() + 8, BoxMargin() + 32 + 30, nFlags, strText );
+		DrawText( pDC, BoxMargin() + SCALE( 8 ), BoxMargin() + SCALE( 32 ) + SCALE( 30 ), nFlags, strText );
 	}
 
 	pDC->SelectObject( pOldFont );
