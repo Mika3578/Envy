@@ -349,8 +349,8 @@ This document provides a comprehensive reference of all configurable settings in
 | | SourcesWanted | Sources Wanted | Desired number of sources |
 | | MaxReviews | Max Reviews | Maximum reviews per download |
 | | NoRandomFragments | No Random Fragments | Disable random fragment selection |
-| | WebHookEnable | Web Hook | Enable web hook notifications |
-| | WebHookExtensions | Web Hook Extensions | File extensions for web hooks |
+| | WebHookEnable | Web Hook (IE legacy) | Enable legacy Internet Explorer download interception (BHO). Default off. Not used by Edge Chromium / Chrome / Firefox. |
+| | WebHookExtensions | Web Hook Extensions (IE legacy) | File extensions intercepted by the IE WebHook BHO and sent to Envy via envy://url: |
 
 ---
 

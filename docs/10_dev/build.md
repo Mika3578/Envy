@@ -170,7 +170,7 @@ Warning: Mixing Unicode and non-Unicode
 
 #### Plugin Dependencies
 - **Build Order:** Services → HashLib → Main App → Plugins
-- **COM Registration:** Some plugins require registration (admin rights)
+- **COM Registration:** Most plugins register at Envy startup via `DllInstall(..., "user")` when not elevated (per-user / HKCU). The legacy IE WebHook BHO writes `Browser Helper Objects` under HKCU in that mode and under HKLM only for machine-wide `DllRegisterServer`. Normal non-elevated startup must not require admin; with `WebHookEnable` false (default), `WebHook32.dll` / `WebHook64.dll` (and historical `WebHook.dll`) are not registered at all.
 
 ## 🧪 Testing Build
 

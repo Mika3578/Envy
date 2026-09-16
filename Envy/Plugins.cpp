@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "Plugins.h"
+#include "WebHookRegistrationPolicy.h"
 #include "SharedFile.h"
 #include "Application.h"
 #include "CtrlCoolBar.h"
@@ -62,8 +63,10 @@ BOOL CPlugins::Register(const CString& sPath)
 
 		if ( strExt.CompareNoCase( L".dll" ) == 0 )
 		{
-			if ( strName == L"WebHook.dll" && ! Settings.Downloads.WebHookEnable )
-				continue;	// Skip WebHook Integration
+			// Legacy IE BHO only: skip both architectures when disabled (default).
+			if ( ShouldSkipWebHookPluginRegistration( strName,
+				Settings.Downloads.WebHookEnable ) )
+				continue;
 
 			if ( HINSTANCE hDll = LoadLibrary( strPath ) )
 			{
