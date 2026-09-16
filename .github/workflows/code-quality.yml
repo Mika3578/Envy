@@ -2,9 +2,9 @@ name: Code Quality
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [main, develop]
   pull_request:
-    branches: [main, master, develop]
+    branches: [main, develop]
   schedule:
     # Nightly run (default branch only) so the expensive MSVC code-analysis
     # build stays off the PR critical path while still being exercised daily.
@@ -50,7 +50,16 @@ jobs:
 
       - name: Run Code Analysis
         run: |
-          msbuild /m /p:Configuration=Release /p:Platform=x64 /p:RunCodeAnalysis=true /p:CodeAnalysisRuleSet=NativeRecommendedRules.ruleset "Visual Studio/Envy.sln"
+          msbuild /m `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:PlatformToolset=v145 `
+            /p:WindowsTargetPlatformVersion=10.0 `
+            /p:VcpkgEnableManifest=true `
+            /p:VcpkgTriplet=x64-windows-static `
+            /p:RunCodeAnalysis=true `
+            "Visual Studio/Envy.sln"
+        # Advisory until a first-party .ruleset is checked in; do not fail the job on legacy noise.
         continue-on-error: true
 
       - name: Upload Analysis Results
