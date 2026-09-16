@@ -43,6 +43,7 @@ public:
 
 public:
 	void	OnSkinChange();
+	int		GetPreferredHeight() const;
 
 protected:
 	afx_msg int  OnCreate(LPCREATESTRUCT lpCreateStruct);
@@ -86,6 +87,7 @@ public:
 
 public:
 	void		OnSkinChange();
+	int			GetPreferredHeight() const;
 
 protected:
 	afx_msg int  OnCreate(LPCREATESTRUCT lpCreateStruct);
@@ -176,6 +178,7 @@ public:
 	void		ExecuteSearch();
 	void		Enable();
 	void		Disable();
+	void		UpdateBoxHeights();
 
 public:
 	virtual BOOL Create(CWnd* pParentWnd);
