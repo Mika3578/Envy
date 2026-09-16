@@ -95,9 +95,9 @@ Version management is automatically handled in GitHub Actions:
 
 ### Project Files Updated
 When `-UpdateFiles` is used, the following files are automatically updated:
-- `CMakeLists.txt` - Project version
 - `Visual Studio\SetReleaseVersion.bat` - Version variables
 - `Envy.h` - Version defines (may need manual adjustment)
+- Root `CMakeLists.txt` is no longer present; the script skips it if missing.
 
 ### GitHub Actions
 - **build.yml**: Updates build numbers on every build

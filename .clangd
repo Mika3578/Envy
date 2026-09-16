@@ -1,12 +1,11 @@
+# clangd hints for Windows/MFC browsing. Incomplete without a compile_commands.json
+# from MSBuild; prefer IntelliSense in Visual Studio for authoritative diagnostics.
 CompileFlags:
   Add:
-    # Completely suppress clang diagnostics for legacy MFC code
-    - "-Wno-everything"
-    - "-w"  # Suppress all warnings
-    # Basic Windows defines (may help with some type recognition)
-    - "-D _WINDOWS"
-    - "-D WIN32"
-    - "-D _WIN32"
-    - "-D UNICODE"
-    - "-D _UNICODE"
-    - "-D _ENVY"
+    - "-D_WINDOWS"
+    - "-DWIN32"
+    - "-D_WIN32"
+    - "-DUNICODE"
+    - "-D_UNICODE"
+    - "-D_ENVY"
+    - "-std=c++20"
