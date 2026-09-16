@@ -69,7 +69,7 @@ Envy/
 ### Recommended Tools
 - **ClangFormat**: Code formatting (`.clang-format` provided)
 - **GitHub Copilot**: AI code completion (see `.github/copilot-instructions.md`)
-- **Cursor AI**: Project rules live under `.cursor/rules/`
+- **Other assistants**: read root `AGENTS.md` directly
 
 ### Build Configurations
 - **Debug**: Full debug symbols, no optimizations, verbose logging
@@ -77,14 +77,15 @@ Envy/
 - **Platforms**: Win32 (x86) and x64 (recommended)
 
 ### Important Files to Review
+- `AGENTS.md` - canonical assistant rules
 - `.github/copilot-instructions.md` - GitHub Copilot configuration
-- `.cursor/rules/` - Cursor rules and project context
-- `docs/00_index/CURSOR_INDEX.md` - Doc entry points
-- `docs/10_dev/guide.md` - Developer workflow
-- `docs/10_dev/build.md` - Build instructions
-- `docs/10_dev/standards.md` - Code standards
-- `.github/MODERN_CPP_GUIDE.md` - Modern C++ examples
-- `docs/10_dev/roadmap.md` - Project roadmap and priorities
+- `docs/00_index/README.md` - documentation map
+- `docs/DEVELOPMENT_PLAN.md` - living strategic plan
+- `docs/10_dev/guide.md` - developer workflow
+- `docs/10_dev/build.md` - build instructions
+- `docs/10_dev/standards.md` - code standards
+- `docs/10_dev/roadmap.md` - technical roadmap
+- `docs/10_dev/status.md` - status matrix
 
 ---
 

@@ -443,12 +443,12 @@ void CDownloadTask::ProcessChunk(const BYTE* pData, size_t nLength)
 - **Usage**: Run clang-format via your IDE or the clang-format executable
 
 ### Static Analysis
-- **Tools/Configs**: `.clang-tidy`, `.cppcheck-suppressions` (plus IDE and CI tooling)
-- **Primary execution**: CI workflows under `.github/workflows/`
+- **CI**: CodeQL + MSVC `/analyze` (see `.github/workflows/`)
+- **Local starter**: `.clang-tidy` (narrow check set; not a CI gate)
 
 ### Build Verification
-- **Script**: `.\build_all.ps1` (builds Debug/Release for Win32/x64)
-- **Manual**: `msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64`
+- **Script**: `.\build_all.ps1` (Debug/Release × Win32/x64 with v145 + vcpkg)
+- **Manual**: `msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static`
 - **CI/CD**: GitHub Actions workflows
 
 ### Automated Checks

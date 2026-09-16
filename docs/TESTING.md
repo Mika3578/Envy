@@ -5,17 +5,11 @@
 - Additional standalone test executables exist in `tests/` (`test_runner.cpp`, simple integration binaries)
 - Current coverage is strongest in hashing/crypto-related paths
 
-## Running Tests (Visual Studio)
-1. Build `EnvyTests` for chosen config/platform.
-2. Run `tests/<Config> <Platform>/EnvyTests.exe`.
+## Running Tests (Visual Studio / MSBuild)
+1. Build `EnvyTests` (`tests/EnvyTests.vcxproj` via `Visual Studio/Envy.sln`).
+2. Run the produced `EnvyTests.exe` for the chosen config/platform.
 
-## Running Tests (CMake path)
-```bash
-cmake -S . -B build -DBUILD_TESTS=ON
-cmake --build build
-ctest --test-dir build
-```
-
+There is no CMake test entry point at the repository root.
 ## Writing New Tests
 - Place new test source files under `tests/`.
 - Register test entry in the existing test framework/main.

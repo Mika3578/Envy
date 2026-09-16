@@ -1,13 +1,13 @@
 # Envy Development Agents & Automation
 
-**Last Updated:** 2026-09-10
+**Last Updated:** 2026-09-16
 
 ## What exists today
 
 - **CI/CD:** two-speed GitHub Actions (fast PR gate + full `develop` / scheduled analysis). See [CI architecture](#ci-architecture-two-speed) below.
 - **Versioning:** `scripts/auto-version.ps1`, `scripts/bump-version.ps1`, `version.json`
 - **Build:** `build_all.ps1` (local full-matrix build via MSBuild)
-- **AI:** `.github/copilot-instructions.md`, `.cursor/rules/`
+- **AI:** `AGENTS.md` (canonical) + `.github/copilot-instructions.md` (Copilot)
 
 ## CI architecture (two-speed)
 
@@ -39,7 +39,6 @@ After merge to `develop` (and weekly/nightly schedules):
 - CodeQL C++ **manual** traced MSBuild (more precise than PR `none`)
 - CodeQL JavaScript and C#
 - MSVC Static Analysis
-- advisory clang-tidy
 
 ### Path classification
 
@@ -83,14 +82,14 @@ a live required context yet. After it is stable, a maintainer can require only
 ### Follow-ups
 
 - Parser fuzzers / sanitizers on nightly (out of the PR gate).
-- clang-tidy with a real Windows `compile_commands.json`.
+- Optional local clang-tidy once a Windows `compile_commands.json` exists.
 - Promote `PR Gate` to the single required ruleset context once measured.
 
 ## Automation reference
 
 | Area | Tools / config |
 |------|----------------|
-| **Code analysis** | MSVC Code Analysis on `develop`/nightly; CodeQL (`none` on PR C++, manual on `develop`); `.clang-tidy` on `develop`/nightly |
+| **Code analysis** | MSVC Code Analysis on `develop`/nightly; CodeQL (`none` on PR C++, manual on `develop`); local `.clang-tidy` starter (not CI) |
 | **Format / docs** | Differential `Format Check` on changed C/C++; markdown link check when docs change |
 | **Dependencies** | Dependabot, GitHub dependency review, vcpkg manifest sanity |
 | **Testing** | `EnvyTests.exe` after PR and `develop` MSBuild; Remote JS tests when `Remote/` changes |

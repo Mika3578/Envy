@@ -8,27 +8,25 @@ Envy is not an eMule replacement and is not replaced by aMule, eMule Qt, aria2-n
 
 ### Prerequisites
 - Windows 10/11 development environment
-- Visual Studio with C++ + MFC/ATL workloads
-- MSVC platform toolset `v145` (as referenced by project files)
-- Optional: CMake 3.20+ (currently partial build support)
+- Visual Studio 2026 with C++ + MFC/ATL workloads
+- MSVC platform toolset `v145`
+- [vcpkg](https://vcpkg.io/) (manifest mode; see `vcpkg.json`)
 
-### Build (Authoritative path)
-1. Open `Visual Studio/Envy.sln`.
-2. Select `Debug` or `Release`, and `Win32` or `x64`.
-3. Build solution.
-
-### Build (Partial CMake path)
-```bash
-cmake -S . -B build -DBUILD_TESTS=ON
-cmake --build build
-ctest --test-dir build
+### Build (authoritative)
+```powershell
+msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 `
+  /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 `
+  /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
 ```
-> Note: current top-level CMake is intentionally incomplete and mainly covers `HashLib` + selected tests.
+
+Or open `Visual Studio/Envy.sln` and build, or run `.\build_all.ps1` for the Debug/Release × Win32/x64 matrix.
+
+Optional HashLib-only CMake lives under `HashLib/CMakeLists.txt` (not required for the app).
 
 ## Repository Layout
 - `Envy/` – primary desktop application (UI + protocols + library)
 - `HashLib/` – hashing library (MD4/MD5/SHA/Tiger/AICH/ED2K)
-- `Services/` – vendored third-party native libraries (SQLite, zlib, MiniUPnP, etc.)
+- `Services/` – legacy vendored third-party trees (phasing toward `vcpkg.json`)
 - `Plugins/` – optional feature modules loaded by the app
 - `Remote/` – remote web UI templates/assets and API notes
 - `tests/` – unit/integration test executables and framework glue
@@ -57,7 +55,7 @@ ctest --test-dir build
 - API: `docs/API.md`
 - Testing: `docs/TESTING.md`
 - Deployment/Release: `docs/DEPLOYMENT.md`
-- Audit reports: `docs/audit/`
+- Quality notes: `docs/40_quality/` (security checklist + analysis summaries)
 
 ## Current State
 - Mature C++ codebase with active modernization effort.

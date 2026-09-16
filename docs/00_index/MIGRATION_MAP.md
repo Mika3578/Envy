@@ -3,7 +3,7 @@
 This file records the move from the old layout (`docs/user`, `docs/developer`) to the new layout.
 
 ## Key changes
-- Root `docs/README.md` became `docs/00_index/README.md` (old preserved as `docs/00_index/README_old.md`).
+- Root `docs/README.md` became `docs/00_index/README.md` (`README_old.md` was later removed during 2026-09 repository hygiene).
 - User docs moved to `docs/50_user/`.
 - Developer docs split into:
   - `docs/10_dev/` (workflow, build, standards)

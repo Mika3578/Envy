@@ -42,7 +42,7 @@ This guide provides comprehensive information for developers working on the Envy
 
 - **ClangFormat**: For code formatting (`.clang-format` provided)
 - **GitHub Copilot**: AI code completion (see [AI Coding Guide](ai-coding-guide.md))
-- **Cursor AI**: Project-specific rules live under `.cursor/rules/`
+- **Other assistants**: read root `AGENTS.md` (no per-tool stub configs in-repo)
 
 ## 🏗️ Project Structure
 
@@ -219,19 +219,14 @@ See `tests/INTEGRATION_TEST_README.md` and `tests/MANUAL_CRYPTO_TESTING_GUIDE.md
 - **Platforms**: Win32, x64 (x64 recommended)
 - **Toolset**: v145 (VS2026)
 
-### CMake Builds (Modern)
+### Optional HashLib CMake
 
 ```powershell
-# Configure
-cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-
-# Build
-cmake --build build --config Release --parallel
-
-# Install
-cmake --install build --config Release
+cmake -S HashLib -B out/hashlib -G "Visual Studio 18 2026" -A x64
+cmake --build out/hashlib --config Release
 ```
 
+There is no root CMake build for the MFC application.
 ### Build Verification
 
 **Test all configurations:**
@@ -241,7 +236,7 @@ cmake --install build --config Release
 
 ### Static Analysis
 
-Static analysis is currently performed in CI (and via IDE tooling). Repo configs include `.clang-tidy` and `.cppcheck-suppressions`.
+Static analysis in CI is CodeQL + MSVC Code Analysis. A narrow local `.clang-tidy` starter exists for IDE use; it is not a CI gate.
 
 ## 🤝 Contributing
 
