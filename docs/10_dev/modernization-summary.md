@@ -448,16 +448,14 @@ cd "Visual Studio"
 - `SECURITY.md` - Security policy
 
 ### Development Resources
-- `.github/copilot-instructions.md` - AI assistant context
-- `.github/MODERN_CPP_GUIDE.md` - Modern C++ patterns
-- `.github/ROADMAP.md` - Future plans
+- `.github/copilot-instructions.md` - AI assistant context (still present)
+- `AGENTS.md` / `docs/DEVELOPMENT_PLAN.md` - canonical guidance (as of 2026-09 hygiene)
 - `CHANGELOG.md` - Change history
+- Note: `.github/MODERN_CPP_GUIDE.md`, `.github/ROADMAP.md`, and `.cursor/rules/*` were removed later; do not treat paths above this note as current.
 
 ### Configuration Files
 - `.clang-format` - Code formatting
-- `.clang-tidy` - clang-tidy configuration
-- `.cppcheck-suppressions` - cppcheck suppressions
-- `.cursor/rules/*` - Cursor rules and project context
+- `.clang-tidy` - local clang-tidy starter (not CI)
 
 ---
 

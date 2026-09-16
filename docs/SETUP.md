@@ -16,14 +16,25 @@ cd Envy
 
 ### Visual Studio path (recommended)
 1. Open `Visual Studio/Envy.sln`.
-2. Restore NuGet packages if prompted.
-3. Build `Release|x64` (or desired configuration).
+2. Ensure vcpkg manifest integration is available.
+3. Build `Release|x64` (or desired configuration), toolset `v145`.
 
-### CMake path (limited)
+Or from PowerShell (authoritative flags):
+
+```powershell
+msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 `
+  /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 `
+  /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
+```
+
+Matrix helper: `.\build_all.ps1`
+
+### Optional HashLib CMake
+There is no root CMake app build. For HashLib only:
+
 ```bash
-cmake -S . -B build -DBUILD_TESTS=ON
-cmake --build build
-ctest --test-dir build
+cmake -S HashLib -B out/hashlib -G "Visual Studio 18 2026" -A x64
+cmake --build out/hashlib --config Release
 ```
 
 ## Runtime Assets

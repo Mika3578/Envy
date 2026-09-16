@@ -206,9 +206,9 @@ Success rate: 100%
 
 ## Related Documentation
 
-- **[PROTOCOL_TESTING_SCHEDULE.md](../testing/PROTOCOL_TESTING_SCHEDULE.md)** - Official testing timeline
-- **[docs/DEVELOPMENT_PLAN.md](../docs/DEVELOPMENT_PLAN.md)** / **[docs/10_dev/status.md](../docs/10_dev/status.md)** - Strategic plan and status matrix
-- **[ARCHITECTURE.md](architecture.md)** - System design details
+- **[docs/DEVELOPMENT_PLAN.md](../docs/DEVELOPMENT_PLAN.md)** / **[docs/10_dev/status.md](../docs/10_dev/status.md)** — strategic plan and status matrix
+- **[docs/TESTING.md](../docs/TESTING.md)** — test surface and EnvyTests path
+- **[docs/20_arch/architecture.md](../docs/20_arch/architecture.md)** — system design
 
 ---
 

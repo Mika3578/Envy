@@ -1,15 +1,15 @@
 # Building Envy
 
 **Last Updated:** September 2026
-**Primary:** Visual Studio (`Visual Studio\Envy.sln`, toolset `v145`, C++17)
-**Secondary:** CMake (HashLib only)
+**Primary:** Visual Studio (`Visual Studio\Envy.sln`, toolset `v145`, C++20 first-party)
+**Secondary:** Optional HashLib-only CMake under `HashLib/` (no root CMake)
 
 ## Quick reference
 
 | Component | Status | Build |
 |-----------|--------|-------|
 | **Main app** | ✅ | Visual Studio |
-| **HashLib** | ✅ | VS + CMake |
+| **HashLib** | ✅ | Visual Studio (optional: `HashLib/CMakeLists.txt`) |
 | **Services** | ✅ | Visual Studio |
 | **Plugins** | ✅ | Visual Studio |
 | **Tests** | 🟡 | Standalone runner in `tests/` (see [status](status.md)) |
@@ -27,10 +27,9 @@
    - Windows 10/11 (64-bit recommended)
    - Administrator privileges (for some operations)
 
-3. **No External Dependencies**
-   - All libraries bundled in `Services/`
-   - Precompiled binaries included
-
+3. **Dependencies**
+   - Managed via **vcpkg manifest** (`vcpkg.json`: zlib, bzip2, sqlite3, miniupnpc, openssl, …)
+   - Legacy trees under `Services/` remain for in-tree builds being phased toward vcpkg (Phase 3)
 ### Build Steps
 
 #### Step 1: Clone Repository
@@ -75,45 +74,19 @@ cd Envy
 | **x64** | 64-bit | ✅ Primary | Better performance, larger files |
 | **Win32** | 32-bit | ⚠️ Legacy | Limited to 2GB address space |
 
-## 🔧 Secondary Build: CMake (Limited)
+## 🔧 Secondary Build: HashLib CMake (optional)
 
-### Current Status
-- **Supported:** HashLib library only
-- **Missing:** Main application, services, plugins, MFC integration
-- **Use Case:** Library development, cross-platform HashLib usage
+Root `CMakeLists.txt` / `CMakePresets.json` were removed (incomplete
+scaffolding; MSBuild remains authoritative). If you need a CMake-only
+HashLib configure, use the tree under `HashLib/`:
 
-### Prerequisites
-- **CMake:** 3.20+
-- **Visual Studio 2026:** For MSVC compiler
-
-### Build Steps
-
-#### Step 1: Configure
 ```bash
-# Create build directory
-mkdir build
-cd build
-
-# Configure for Visual Studio 2026
-cmake .. -G "Visual Studio 18 2026" -A x64
+cmake -S HashLib -B out/hashlib -G "Visual Studio 18 2026" -A x64
+cmake --build out/hashlib --config Release
 ```
 
-#### Step 2: Build HashLib
-```bash
-# Build HashLib library
-cmake --build . --config Release --target HashLib
-```
-
-#### Step 3: Optional - Build Tests
-```bash
-# Note: The repository currently contains standalone test programs under `tests/`,
-# but the CMake `add_subdirectory(tests)` hook expects `tests/CMakeLists.txt`,
-# which is not present. BUILD_TESTS is therefore not usable yet.
-```
-
-#### Step 4: Verify
-- Check `build/Release/HashLib.dll` (library)
-- Check `build/bin/Release/HashLibTests.exe` (if tests enabled)
+Do not expect the main Envy MFC app, Services, or Plugins to build via CMake
+until a dedicated Phase 5 CMake PR.
 
 ## 🔍 Troubleshooting
 
@@ -233,13 +206,13 @@ files must remain valid binary gzip (see root `.gitattributes`: `*.gz binary`).
 ## 🔄 Build System Limitations
 
 ### Known Issues
-1. **CMake Incomplete:** Only HashLib builds via CMake
+1. **No root CMake:** App build is MSBuild-only; HashLib has optional local CMake
 2. **No Cross-Platform:** Windows-only (MFC dependency)
 3. **Precompiled Binaries:** Services contain prebuilt libraries
 4. **Large Solution:** 30+ projects, complex dependencies
 
 ### Future Improvements
-- **CMake Completion:** Full application build support
+- **Phase 5 CMake (optional):** Full application build support, if pursued
 - **Cross-Platform:** Qt migration for Linux/macOS
 - **Reproducible Builds:** Source-only dependencies
 
