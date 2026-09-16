@@ -83,7 +83,137 @@ BEGIN_MESSAGE_MAP(CSearchResultsBox, CTaskBox)
 	ON_WM_PAINT()
 END_MESSAGE_MAP()
 
-#define BOX_MARGIN	6
+namespace {
+
+int BoxMargin()
+{
+	return SCALE( 6 );
+}
+
+int MeasureFontHeight(CFont& font)
+{
+	HDC hDC = ::GetDC( NULL );
+	if ( hDC == NULL )
+		return SCALE( 16 );
+
+	CDC dc;
+	dc.Attach( hDC );
+	CFont* pOld = dc.SelectObject( &font );
+	TEXTMETRIC tm = {};
+	dc.GetTextMetrics( &tm );
+	dc.SelectObject( pOld );
+	dc.Detach();
+	::ReleaseDC( NULL, hDC );
+
+	const int nHeight = tm.tmHeight + tm.tmExternalLeading;
+	return nHeight > 0 ? nHeight : SCALE( 16 );
+}
+
+// CBS_DROPDOWN Create/SetWindowPos height = visible edit + drop-down list.
+// Vertical stacking must advance by the visible portion only.
+const int COMBO_DROPDOWN_LIST = 200;
+
+struct SearchInputMetrics
+{
+	int nMargin;
+	int nLabelH;
+	int nGap;
+	int nEditH;
+	int nEditY;
+	int nPrefix;
+	int nSchemaLabelY;
+	int nSchemaY;
+	int nSchemaVisible;
+	int nSchemaDrop;
+	int nButtonY;
+	int nButtonH;
+	int nHeight;
+};
+
+SearchInputMetrics ComputeSearchInputMetrics()
+{
+	SearchInputMetrics m = {};
+	m.nMargin = BoxMargin();
+	m.nLabelH = MeasureFontHeight( CoolInterface.m_fntNormal );
+	m.nGap = SCALE( 6 );
+	m.nEditH = max( m.nLabelH + SCALE( 6 ), SCALE( 20 ) );
+	m.nPrefix = max( SCALE( 14 ), min( m.nEditH - SCALE( 2 ), SCALE( 16 ) ) );
+	m.nButtonH = max( SCALE( 24 ), m.nLabelH + SCALE( 8 ) );
+	m.nSchemaVisible = max( m.nEditH, SCALE( 20 ) );
+	m.nSchemaDrop = SCALE( COMBO_DROPDOWN_LIST );
+
+	int y = m.nMargin;
+	y += m.nLabelH + SCALE( 2 );
+	m.nEditY = y;
+	y += m.nEditH + m.nGap;
+	m.nSchemaLabelY = y;
+	y += m.nLabelH + SCALE( 2 );
+	m.nSchemaY = y;
+	y += m.nSchemaVisible + m.nGap;
+	m.nButtonY = y;
+	y += m.nButtonH + m.nMargin;
+	m.nHeight = y;
+	return m;
+}
+
+struct SearchAdvancedMetrics
+{
+	int nMargin;
+	int nLabelH;
+	int nGap;
+	int nComboVisible;
+	int nComboDrop;
+	int nMinLabelY;
+	int nMinComboY;
+	int nMaxLabelY;
+	int nMaxComboY;
+	int nProtoIcon;
+	int nProtoRow;
+	int nProtoStartY;
+	BOOL bNetworkLabel;
+	int nHeight;
+};
+
+SearchAdvancedMetrics ComputeSearchAdvancedMetrics()
+{
+	SearchAdvancedMetrics m = {};
+	m.nMargin = BoxMargin();
+	m.nLabelH = MeasureFontHeight( CoolInterface.m_fntNormal );
+	m.nGap = SCALE( 6 );
+	m.nComboVisible = max( m.nLabelH + SCALE( 6 ), SCALE( 20 ) );
+	m.nComboDrop = SCALE( COMBO_DROPDOWN_LIST );
+	m.nProtoIcon = SCALE( 16 );
+
+	const int nCheckGlyph = max( GetSystemMetrics( SM_CYMENUCHECK ), SCALE( 13 ) );
+	m.nProtoRow = max( m.nLabelH, nCheckGlyph ) + SCALE( 4 );
+	if ( m.nProtoRow < m.nProtoIcon + SCALE( 2 ) )
+		m.nProtoRow = m.nProtoIcon + SCALE( 2 );
+
+	m.bNetworkLabel = !( Settings.DC.ShowInterface && Settings.eDonkey.ShowInterface &&
+		Settings.Gnutella1.ShowInterface );
+
+	m.nMinLabelY = m.nMargin;
+	m.nMinComboY = m.nMinLabelY + m.nLabelH + SCALE( 2 );
+	m.nMaxLabelY = m.nMinComboY + m.nComboVisible + m.nGap;
+	m.nMaxComboY = m.nMaxLabelY + m.nLabelH + SCALE( 2 );
+
+	const int nLeftBottom = m.nMaxComboY + m.nComboVisible + m.nMargin;
+
+	m.nProtoStartY = m.nMargin;
+	if ( m.bNetworkLabel )
+		m.nProtoStartY += m.nLabelH + SCALE( 2 );
+
+	int nProtoRows = 1;	// G2 always present in this panel
+	if ( Settings.Gnutella1.ShowInterface ) ++nProtoRows;
+	if ( Settings.eDonkey.ShowInterface ) ++nProtoRows;
+	if ( Settings.DC.ShowInterface ) ++nProtoRows;
+
+	const int nRightBottom = m.nProtoStartY + nProtoRows * m.nProtoRow + m.nMargin;
+	m.nHeight = max( nLeftBottom, nRightBottom );
+	return m;
+}
+
+} // namespace
 
 /////////////////////////////////////////////////////////////////////////////
 // CSearchPanel construction
@@ -109,10 +239,10 @@ int CSearchPanel::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_bAdvanced = Settings.Search.AdvancedPanel && Settings.General.GUIMode != GUI_BASIC;
 
-	// Set Box Heights & Caption Icons
-	m_boxSearch.Create( this, 136, L"Search", IDR_SEARCHFRAME );
+	// Preferred heights are font/DPI aware; refreshed again after skin change.
+	m_boxSearch.Create( this, ComputeSearchInputMetrics().nHeight, L"Search", IDR_SEARCHFRAME );
 	m_boxSchema.Create( this, 0, L"Schema", IDR_SEARCHFRAME );
-	m_boxAdvanced.Create( this, 92, L"Options", IDR_SEARCHFRAME );
+	m_boxAdvanced.Create( this, ComputeSearchAdvancedMetrics().nHeight, L"Options", IDR_SEARCHFRAME );
 	m_boxResults.Create(  this, 86, L"Results", IDR_SEARCHMONITORFRAME );
 
 	// 1: Basic search box
@@ -140,6 +270,13 @@ int CSearchPanel::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	return 0;
 }
 
+void CSearchPanel::UpdateBoxHeights()
+{
+	m_boxSearch.SetSize( m_boxSearch.GetPreferredHeight() );
+	if ( m_bAdvanced )
+		m_boxAdvanced.SetSize( m_boxAdvanced.GetPreferredHeight() );
+}
+
 void CSearchPanel::OnSkinChange()
 {
 	m_boxSearch.SetCaption( LoadString( IDS_SEARCH_PANEL_INPUT_CAPTION ) );
@@ -162,6 +299,8 @@ void CSearchPanel::OnSkinChange()
 
 	m_boxResults.SetWatermark( L"CSearchResultsBox" );
 	m_boxResults.SetCaptionmark( L"CSearchResultsBox.Caption" );
+
+	UpdateBoxHeights();
 
 	Invalidate();
 }
@@ -479,28 +618,40 @@ void CSearchInputBox::OnSkinChange()
 	m_wndPrefix.SetCoolIcon( IDI_HASH );
 }
 
+int CSearchInputBox::GetPreferredHeight() const
+{
+	return ComputeSearchInputMetrics().nHeight;
+}
+
 void CSearchInputBox::OnSize(UINT nType, int cx, int cy)
 {
 	CTaskBox::OnSize( nType, cx, cy );
 
-	HDWP hDWP = BeginDeferWindowPos( 4 );
+	const SearchInputMetrics m = ComputeSearchInputMetrics();
+	const int nEditRight = cx - m.nMargin - m.nPrefix - SCALE( 2 );
+	const int nEditWidth = max( nEditRight - m.nMargin, SCALE( 40 ) );
+	const int nPrefixX = m.nMargin + nEditWidth + SCALE( 2 );
+	const int nPrefixY = m.nEditY + max( 0, ( m.nEditH - m.nPrefix ) / 2 );
+	const int nButtonWidth = max( ( cx - m.nMargin * 3 ) / 2, SCALE( 40 ) );
+	const int nSchemaWidth = max( cx - m.nMargin * 2, SCALE( 40 ) );
+	const int nSchemaHeight = m.nSchemaVisible + m.nSchemaDrop;
 
-	const int width = ( cx - BOX_MARGIN * 3 ) / 2;	// Equal button size
+	HDWP hDWP = BeginDeferWindowPos( 5 );
 
 	DeferWindowPos( hDWP, m_wndSearch, NULL,
-		BOX_MARGIN, 25, cx - BOX_MARGIN * 2, 20,	// Search Bar
-		SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
-	DeferWindowPos( hDWP, m_wndSchemas, NULL,
-		BOX_MARGIN, 68, cx - BOX_MARGIN * 2, 256,	// Schema Bar
-		SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
-	DeferWindowPos( hDWP, m_wndStart, NULL,
-		BOX_MARGIN, 102, width, 24,					// Search Button
-		SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
-	DeferWindowPos( hDWP, m_wndStop, NULL,
-		BOX_MARGIN * 2 + width, 102, width, 24, 	// Cancel Button
+		m.nMargin, m.nEditY, nEditWidth, m.nEditH,
 		SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
 	DeferWindowPos( hDWP, m_wndPrefix, NULL,
-		cx - BOX_MARGIN - 8, 8, 14, 16, 			// Hash Icon
+		nPrefixX, nPrefixY, m.nPrefix, m.nPrefix,
+		SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
+	DeferWindowPos( hDWP, m_wndSchemas, NULL,
+		m.nMargin, m.nSchemaY, nSchemaWidth, nSchemaHeight,
+		SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
+	DeferWindowPos( hDWP, m_wndStart, NULL,
+		m.nMargin, m.nButtonY, nButtonWidth, m.nButtonH,
+		SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
+	DeferWindowPos( hDWP, m_wndStop, NULL,
+		m.nMargin * 2 + nButtonWidth, m.nButtonY, nButtonWidth, m.nButtonH,
 		SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
 
 	EndDeferWindowPos( hDWP );
@@ -530,18 +681,19 @@ void CSearchInputBox::OnPaint()
 		nFlags |= ETO_OPAQUE;
 	}
 
+	const SearchInputMetrics m = ComputeSearchInputMetrics();
 	CFont* pOldFont = (CFont*)pDC->SelectObject( &CoolInterface.m_fntNormal );
 
 	pDC->SetTextColor( Colors.m_crTaskBoxText );	// Was 0
 	pDC->SetBkColor( Colors.m_crTaskBoxClient );
 
 	LoadString( str, IDS_SEARCH_PANEL_INPUT_1 );	// "Type Search Here"
-	rct.SetRect( BOX_MARGIN + 1, BOX_MARGIN, rc.right - BOX_MARGIN - 8, BOX_MARGIN + 16 );
+	rct.SetRect( m.nMargin + 1, m.nMargin, rc.right - m.nMargin - m.nPrefix, m.nMargin + m.nLabelH );
 	pDC->ExtTextOut( rct.left, rct.top, nFlags, &rct, str, NULL );
 	pDC->ExcludeClipRect( &rct );
 
 	LoadString( str, IDS_SEARCH_PANEL_INPUT_2 );	// "Type of File"
-	rct.OffsetRect( 0, 44 );
+	rct.SetRect( m.nMargin + 1, m.nSchemaLabelY, rc.right - m.nMargin, m.nSchemaLabelY + m.nLabelH );
 	pDC->ExtTextOut( rct.left, rct.top, nFlags, &rct, str, NULL );
 	pDC->ExcludeClipRect( &rct );
 
@@ -857,40 +1009,62 @@ void CSearchAdvancedBox::OnSkinChange()
 	CoolInterface.EnableTheme( &m_wndCheckBoxDC, bThemed );
 }
 
+int CSearchAdvancedBox::GetPreferredHeight() const
+{
+	return ComputeSearchAdvancedMetrics().nHeight;
+}
+
 void CSearchAdvancedBox::OnSize(UINT nType, int cx, int cy)
 {
 	CTaskBox::OnSize( nType, cx, cy );
 
-	HDWP hDWP = BeginDeferWindowPos( 3 );
+	const SearchAdvancedMetrics m = ComputeSearchAdvancedMetrics();
+	const int nHalf = cx / 2;
+	const int nSizeWidth = max( nHalf - m.nMargin * 2, SCALE( 40 ) );
+	const int nComboHeight = m.nComboVisible + m.nComboDrop;
+	const int nProtoIconX = nHalf + m.nMargin;
+	const int nCheckX = nProtoIconX + m.nProtoIcon + SCALE( 4 );
+	const int nCheckW = max( cx - nCheckX - m.nMargin, SCALE( 40 ) );
+	const int nCheckH = m.nProtoRow - SCALE( 2 );
+
+	HDWP hDWP = BeginDeferWindowPos( 6 );
 
 	if ( m_wndSizeMin.m_hWnd )
 	{
-		const int nWidth = ( cx - BOX_MARGIN * 3 ) / 2;
-		DeferWindowPos( hDWP, m_wndSizeMin, NULL, BOX_MARGIN, 22, nWidth, 219,		// Min Box Pos
+		DeferWindowPos( hDWP, m_wndSizeMin, NULL, m.nMargin, m.nMinComboY, nSizeWidth, nComboHeight,
 			SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
-		DeferWindowPos( hDWP, m_wndSizeMax, NULL, BOX_MARGIN, 61, nWidth, 219,		// Max Box Pos
+		DeferWindowPos( hDWP, m_wndSizeMax, NULL, m.nMargin, m.nMaxComboY, nSizeWidth, nComboHeight,
 			SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
 	}
 
-	int nY = ( Settings.DC.ShowInterface && Settings.eDonkey.ShowInterface && Settings.Gnutella1.ShowInterface ) ? 8 : 26;
-	const int nX = ( cx / 2 ) + BOX_MARGIN + 25;
-	const int nWidth = ( cx - BOX_MARGIN * 3 ) / 2 - 26;
+	int nY = m.nProtoStartY;
+	const int nCheckFlags = SWP_NOACTIVATE | SWP_NOZORDER;
 
 	if ( m_wndCheckBoxG2.m_hWnd )
-		DeferWindowPos( hDWP, m_wndCheckBoxG2, NULL, nX, nY, nWidth, 14,			// G2 Checkbox Pos
-			SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
-	/*if ( Settings.Gnutella2.ShowInterface )*/ nY += 20;
+	{
+		DeferWindowPos( hDWP, m_wndCheckBoxG2, NULL, nCheckX, nY, nCheckW, nCheckH,
+			SWP_SHOWWINDOW | nCheckFlags );
+		nY += m.nProtoRow;
+	}
 	if ( m_wndCheckBoxG1.m_hWnd )
-		DeferWindowPos( hDWP, m_wndCheckBoxG1, NULL, nX, nY, nWidth, 14,			// G1 Checkbox Pos
-			SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
-	if ( Settings.Gnutella1.ShowInterface ) nY += 20;
+	{
+		const UINT nFlags = ( Settings.Gnutella1.ShowInterface ? SWP_SHOWWINDOW : SWP_HIDEWINDOW ) | nCheckFlags;
+		DeferWindowPos( hDWP, m_wndCheckBoxG1, NULL, nCheckX, nY, nCheckW, nCheckH, nFlags );
+		if ( Settings.Gnutella1.ShowInterface )
+			nY += m.nProtoRow;
+	}
 	if ( m_wndCheckBoxED2K.m_hWnd )
-		DeferWindowPos( hDWP, m_wndCheckBoxED2K, NULL, nX, nY, nWidth, 14,			// ED2K Checkbox Pos
-			SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
-	if ( Settings.eDonkey.ShowInterface ) nY += 20;
+	{
+		const UINT nFlags = ( Settings.eDonkey.ShowInterface ? SWP_SHOWWINDOW : SWP_HIDEWINDOW ) | nCheckFlags;
+		DeferWindowPos( hDWP, m_wndCheckBoxED2K, NULL, nCheckX, nY, nCheckW, nCheckH, nFlags );
+		if ( Settings.eDonkey.ShowInterface )
+			nY += m.nProtoRow;
+	}
 	if ( m_wndCheckBoxDC.m_hWnd )
-		DeferWindowPos( hDWP, m_wndCheckBoxDC, NULL, nX, nY, nWidth, 14,			// DC++ Checkbox Pos
-			SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER );
+	{
+		const UINT nFlags = ( Settings.DC.ShowInterface ? SWP_SHOWWINDOW : SWP_HIDEWINDOW ) | nCheckFlags;
+		DeferWindowPos( hDWP, m_wndCheckBoxDC, NULL, nCheckX, nY, nCheckW, nCheckH, nFlags );
+	}
 
 	EndDeferWindowPos( hDWP );
 }
@@ -921,24 +1095,25 @@ void CSearchAdvancedBox::OnPaint()
 		nFlags |= ETO_OPAQUE;
 	}
 
+	const SearchAdvancedMetrics m = ComputeSearchAdvancedMetrics();
 	CFont* pOldFont = (CFont*)pDC->SelectObject( &CoolInterface.m_fntNormal );
 
 	pDC->SetTextColor( Colors.m_crTaskBoxText );	// Was 0
 
 	LoadString( strControlTitle, IDS_SEARCH_PANEL_INPUT_4 );		// "Min Filesize:"
-	rct.SetRect( BOX_MARGIN + 1, BOX_MARGIN, rc.right / 2, BOX_MARGIN + 16 );
+	rct.SetRect( m.nMargin + 1, m.nMinLabelY, rc.right / 2, m.nMinLabelY + m.nLabelH );
 	pDC->ExtTextOut( rct.left, rct.top, nFlags, &rct, strControlTitle, NULL );
 	pDC->ExcludeClipRect( &rct );
 
 	LoadString( strControlTitle, IDS_SEARCH_PANEL_INPUT_5 );		// "Max Filesize:"
-	rct.SetRect( BOX_MARGIN + 1, BOX_MARGIN + 39, rc.right / 2, BOX_MARGIN + 55 );
+	rct.SetRect( m.nMargin + 1, m.nMaxLabelY, rc.right / 2, m.nMaxLabelY + m.nLabelH );
 	pDC->ExtTextOut( rct.left, rct.top, nFlags, &rct, strControlTitle, NULL );
 	pDC->ExcludeClipRect( &rct );
 
-	if ( ! Settings.DC.ShowInterface || ! Settings.eDonkey.ShowInterface || ! Settings.Gnutella1.ShowInterface )
+	if ( m.bNetworkLabel )
 	{
 		LoadString( strControlTitle, IDS_SEARCH_PANEL_INPUT_3 );	// "Network:"
-		rct.SetRect( rc.right / 2 + BOX_MARGIN, BOX_MARGIN, rc.right - BOX_MARGIN, BOX_MARGIN + 16 );
+		rct.SetRect( rc.right / 2 + m.nMargin, m.nMargin, rc.right - m.nMargin, m.nMargin + m.nLabelH );
 		pDC->ExtTextOut( rct.left, rct.top, nFlags, &rct, strControlTitle, NULL );
 		pDC->ExcludeClipRect( &rct );
 	}
@@ -948,28 +1123,26 @@ void CSearchAdvancedBox::OnPaint()
 	if ( pDC == &dc )
 		pDC->FillSolidRect( &rc, Colors.m_crTaskBoxClient );		// Paint remaining background for unskinned Advanced box
 
-	const int nX = rc.right / 2 + BOX_MARGIN + 1;
-	int nY = ( Settings.DC.ShowInterface && Settings.eDonkey.ShowInterface && Settings.Gnutella1.ShowInterface ) ? 6 : 24;
+	const int nIconX = rc.right / 2 + m.nMargin;
+	int nY = m.nProtoStartY;
+	const int nIconPad = max( 0, ( m.nProtoRow - m.nProtoIcon ) / 2 );
 
-	//if ( Settings.Gnutella2.ShowInterface )
-	{
-		m_gdiProtocols.Draw( pDC, PROTOCOL_G2, CPoint( nX, nY ), ILD_NORMAL );		// G2 Icon
-		nY += 20;
-	}
+	m_gdiProtocols.Draw( pDC, PROTOCOL_G2, CPoint( nIconX, nY + nIconPad ), ILD_NORMAL );
+	nY += m.nProtoRow;
+
 	if ( Settings.Gnutella1.ShowInterface )
 	{
-		m_gdiProtocols.Draw( pDC, PROTOCOL_G1, CPoint( nX, nY ), ILD_NORMAL );		// G1 Icon
-		nY += 20;
+		m_gdiProtocols.Draw( pDC, PROTOCOL_G1, CPoint( nIconX, nY + nIconPad ), ILD_NORMAL );
+		nY += m.nProtoRow;
 	}
 	if ( Settings.eDonkey.ShowInterface )
 	{
-		m_gdiProtocols.Draw( pDC, PROTOCOL_ED2K, CPoint( nX, nY ), ILD_NORMAL );	// ED2K Icon
-		nY += 20;
+		m_gdiProtocols.Draw( pDC, PROTOCOL_ED2K, CPoint( nIconX, nY + nIconPad ), ILD_NORMAL );
+		nY += m.nProtoRow;
 	}
 	if ( Settings.DC.ShowInterface )
 	{
-		m_gdiProtocols.Draw( pDC, PROTOCOL_DC, CPoint( nX, nY ), ILD_NORMAL );		// DC++ Icon
-	//	nY += 20;
+		m_gdiProtocols.Draw( pDC, PROTOCOL_DC, CPoint( nIconX, nY + nIconPad ), ILD_NORMAL );
 	}
 
 	if ( pDC != &dc )
@@ -979,21 +1152,6 @@ void CSearchAdvancedBox::OnPaint()
 	m_wndCheckBoxG1.EnableWindow( Settings.Gnutella1.Enabled );
 	m_wndCheckBoxED2K.EnableWindow( Settings.eDonkey.Enabled );
 	m_wndCheckBoxDC.EnableWindow( Settings.DC.Enabled );
-
-	if ( Settings.Gnutella1.ShowInterface )
-		m_wndCheckBoxG1.ModifyStyle( 0, WS_VISIBLE );
-	else
-		m_wndCheckBoxG1.ModifyStyle( WS_VISIBLE, 0 );
-
-	if ( Settings.eDonkey.ShowInterface )
-		m_wndCheckBoxED2K.ModifyStyle( 0, WS_VISIBLE );
-	else
-		m_wndCheckBoxED2K.ModifyStyle( WS_VISIBLE, 0 );
-
-	if ( Settings.DC.ShowInterface )
-		m_wndCheckBoxDC.ModifyStyle( 0, WS_VISIBLE );
-	else
-		m_wndCheckBoxDC.ModifyStyle( WS_VISIBLE, 0 );
 }
 
 LRESULT CSearchAdvancedBox::OnCtlColorStatic(WPARAM wParam, LPARAM /*lParam*/)
@@ -1134,9 +1292,9 @@ void CSearchResultsBox::OnPaint()
 	pDC->SetTextColor( Colors.m_crTaskBoxText );	// Was 0
 
 	LoadString( strText, IDS_SEARCH_PANEL_RESULTS_STATUS );
-	DrawText( pDC, BOX_MARGIN, BOX_MARGIN, nFlags, strText );
+	DrawText( pDC, BoxMargin(), BoxMargin(), nFlags, strText );
 	LoadString( strText, IDS_SEARCH_PANEL_RESULTS_FOUND );
-	DrawText( pDC, BOX_MARGIN, BOX_MARGIN + 32, nFlags, strText );
+	DrawText( pDC, BoxMargin(), BoxMargin() + 32, nFlags, strText );
 
 	pDC->SelectObject( &theApp.m_gdiFont );
 
@@ -1150,7 +1308,7 @@ void CSearchResultsBox::OnPaint()
 		LoadString( strText, IDS_SEARCH_PANEL_RESULTS_INACTIVE );
 	}
 
-	DrawText( pDC, BOX_MARGIN + 8, BOX_MARGIN + 15, nFlags, strText );
+	DrawText( pDC, BoxMargin() + 8, BoxMargin() + 15, nFlags, strText );
 
 	if ( m_nFiles )
 	{
@@ -1180,7 +1338,7 @@ void CSearchResultsBox::OnPaint()
 		LoadString( strText, IDS_SEARCH_PANEL_RESULTS_NONE );
 	}
 
-	DrawText( pDC, BOX_MARGIN + 8, BOX_MARGIN + 32 + 15, nFlags, strText );
+	DrawText( pDC, BoxMargin() + 8, BoxMargin() + 32 + 15, nFlags, strText );
 
 	// ToDo: Change Filtered Results Count from Files to Hits (WndSearch.cpp L.795)
 	if ( m_nBadHits && Settings.General.GUIMode != GUI_BASIC )
@@ -1197,7 +1355,7 @@ void CSearchResultsBox::OnPaint()
 
 		strText.Format( strFormat, m_nBadHits );
 
-		DrawText( pDC, BOX_MARGIN + 8, BOX_MARGIN + 32 + 30, nFlags, strText );
+		DrawText( pDC, BoxMargin() + 8, BoxMargin() + 32 + 30, nFlags, strText );
 	}
 
 	pDC->SelectObject( pOldFont );

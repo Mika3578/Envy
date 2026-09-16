@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-16
+- **Changelog Entry:** 2026-09-16 — Search Input/Advanced panel layout is font/DPI-aware (`GetPreferredHeight` + progressive Y); combo drop-down height kept separate from visible stacking; hash/prefix anchored to the search edit. No change to `GetSearchPanelWidth()` / SidebarWidth floor.
 - **Changelog Entry:** 2026-09-16 — Search window left panel clamps to `max(SidebarWidth, SCALE(200))` only in `CSearchWnd` (Shareaza PANEL_WIDTH); avoids Advanced two-column collapse without raising the global SidebarWidth floor used by other panes / ~182 px PeerProject skins.
 - **Changelog Entry:** 2026-09-16 — Fixed CoolMenu selected-item double blue band: `DrawButton`/`DrawButtonMap` stretch one skin state vertically (no vertical tile) when destination height exceeds asset height; CoolMenu `rcItem` stays within `DRAWITEMSTRUCT` and icon offsets use `SCALE()`.
 - **Changelog Entry:** 2026-09-15 — Deterministic `About.htm.gz` / `Browser.htm.gz` generation (`gzip -n`), restore valid binary blobs, `*.gz binary` in `.gitattributes`. See `docs/10_dev/build.md`.
