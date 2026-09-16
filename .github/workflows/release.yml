@@ -88,12 +88,15 @@ jobs:
       - name: Resolve installer channel from tag
         id: channel
         shell: pwsh
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
         run: |
-          $tag = "${{ env.RELEASE_TAG }}".ToLowerInvariant()
+          $tag = $env:RELEASE_TAG.ToLowerInvariant()
           $alpha = "False"
-          if ($tag -match "preview") { $alpha = "Preview" }
+          # Align installer channel with Detect prerelease: preview/beta/rc/alpha.
+          if ($tag -match "preview|beta|rc") { $alpha = "Preview" }
           elseif ($tag -match "alpha") { $alpha = "True" }
-          Write-Host "RELEASE_TAG=$tag → InstallerAlpha=$alpha"
+          Write-Host "RELEASE_TAG=$tag -> InstallerAlpha=$alpha"
           Add-Content -Path $env:GITHUB_OUTPUT -Value "InstallerAlpha=$alpha"
 
       - name: Bootstrap vcpkg
