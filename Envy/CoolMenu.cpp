@@ -1,7 +1,7 @@
 //
 // CoolMenu.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2020
+// This file is part of Envy (getenvy.com) Â© 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -355,13 +355,18 @@ void CCoolMenu::OnDrawItemInternal(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	CString strText;
 	int nIcon = -1;
 
-	static const int nIconSize = SCALE( 16 );	// ToDo: CommandIconSize Setting
+	const int nIconSize = SCALE( 16 );	// ToDo: CommandIconSize Setting
 
 	const BOOL bSelected = lpDrawItemStruct->itemState & ODS_SELECTED;
 	const BOOL bChecked  = lpDrawItemStruct->itemState & ODS_CHECKED;
 	const BOOL bDisabled = lpDrawItemStruct->itemState & ODS_GRAYED;
-	const BOOL bEdge	 = m_bPrinted;
 	BOOL bKeyboard = FALSE;
+
+	// Icon gutter/offsets must track DisplayScaling with the measured item height.
+	const int nIconOffsetX = SCALE( ICONOFFSET_X );
+	const int nIconOffsetY = SCALE( ICONOFFSET_Y );
+	const int nGutterPad = SCALE( 8 );
+	const int nTextPad = SCALE( 16 );
 
 	CDC dc;
 	dc.Attach( lpDrawItemStruct->hDC );
@@ -377,13 +382,14 @@ void CCoolMenu::OnDrawItemInternal(LPDRAWITEMSTRUCT lpDrawItemStruct)
 		bKeyboard = ! rcScreen.PtInRect( ptCursor );
 	}
 
+	// rcItem must match DRAWITEMSTRUCT exactly. Historically rcItem.bottom was
+	// expanded by m_bPrinted to paper over WM_PRINT seams; that overflowed the
+	// highlight (and with ButtonMap vertical tiling produced a second blue band).
 	rcItem.CopyRect( &lpDrawItemStruct->rcItem );
 	rcItem.OffsetRect( -rcItem.left, -rcItem.top );
-	if ( m_hMsgHook != NULL )
-		rcItem.bottom += bEdge;
 
 	rcText.CopyRect( &rcItem );
-	rcText.left += nIconSize + 16;
+	rcText.left += nIconSize + nTextPad;
 	rcText.right -= 2;
 
 	CSize size = rcItem.Size();
@@ -395,8 +401,8 @@ void CCoolMenu::OnDrawItemInternal(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	}
 	else
 	{
-		pDC->FillSolidRect( rcItem.left, rcItem.top, nIconSize + 8, rcItem.Height(), Colors.m_crMargin );
-		pDC->FillSolidRect( rcItem.left + nIconSize + 8, rcItem.top, rcItem.Width() - nIconSize - 8, rcItem.Height(), Colors.m_crBackNormal );
+		pDC->FillSolidRect( rcItem.left, rcItem.top, nIconSize + nGutterPad, rcItem.Height(), Colors.m_crMargin );
+		pDC->FillSolidRect( rcItem.left + nIconSize + nGutterPad, rcItem.top, rcItem.Width() - nIconSize - nGutterPad, rcItem.Height(), Colors.m_crBackNormal );
 	}
 
 	if ( m_pStrings.Lookup( lpDrawItemStruct->itemData, strText ) == FALSE )
@@ -419,17 +425,17 @@ void CCoolMenu::OnDrawItemInternal(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	{
 		const COLORREF crBack = bDisabled ? Colors.m_crBackNormal : Colors.m_crBackSel;
 
-		pDC->Draw3dRect( rcItem.left + 1, rcItem.top + 1, rcItem.Width() - 2, rcItem.Height() - 1 - bEdge, Colors.m_crBorder, Colors.m_crBorder );
-		pDC->FillSolidRect( rcItem.left + 2, rcItem.top + 2, rcItem.Width() - 4, rcItem.Height() - 3 - bEdge, crBack );
+		pDC->Draw3dRect( rcItem.left + 1, rcItem.top + 1, rcItem.Width() - 2, rcItem.Height() - 1, Colors.m_crBorder, Colors.m_crBorder );
+		pDC->FillSolidRect( rcItem.left + 2, rcItem.top + 2, rcItem.Width() - 4, rcItem.Height() - 3, crBack );
 
 		pDC->SetBkColor( crBack );
 	}
 
 	if ( bChecked ) 	// Checked-icon box Position
 	{
-		pDC->Draw3dRect( rcItem.left + ICONOFFSET_X - 2, rcItem.top + ICONOFFSET_Y - 2, nIconSize + 4, nIconSize + 4, //rcItem.Height() - 3 - bEdge,
+		pDC->Draw3dRect( rcItem.left + nIconOffsetX - 2, rcItem.top + nIconOffsetY - 2, nIconSize + 4, nIconSize + 4,
 			Colors.m_crBorder, Colors.m_crBorder );
-		pDC->FillSolidRect( rcItem.left + ICONOFFSET_X - 1, rcItem.top + ICONOFFSET_Y - 1, nIconSize + 2, nIconSize + 2, //rcItem.Height() - 5 - bEdge ),
+		pDC->FillSolidRect( rcItem.left + nIconOffsetX - 1, rcItem.top + nIconOffsetY - 1, nIconSize + 2, nIconSize + 2,
 			( bSelected && ! bDisabled ) ? Colors.m_crBackCheckSel : Colors.m_crBackCheck );
 	}
 
@@ -440,7 +446,7 @@ void CCoolMenu::OnDrawItemInternal(LPDRAWITEMSTRUCT lpDrawItemStruct)
 
 	if ( nIcon >= 0 )
 	{
-		CPoint pt( rcItem.left + ICONOFFSET_X, rcItem.top + ICONOFFSET_Y );	// Icon Position
+		CPoint pt( rcItem.left + nIconOffsetX, rcItem.top + nIconOffsetY );	// Icon Position
 
 		if ( bDisabled )
 		{

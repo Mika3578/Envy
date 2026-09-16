@@ -1,7 +1,7 @@
 //
 // Images.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) Â© 2016-2018
 // All work here is original and released as-is under Persistent Public Domain [PPD]
 //
 
@@ -632,38 +632,40 @@ BOOL CImages::DrawButton(CDC* pDC, const CRect* rc, CBitmap* bmButton, CBitmap* 
 
 	const int nEdge = ( bmButtonEdge && bmButtonEdge->m_hObject ) ? bmButtonEdge->GetBitmapDimension().cx : 0;
 
-	if ( rc->Width() > nEdge )
+	BITMAP pInfo;
+	bmButton->GetBitmap( &pInfo );
+
+	// Tile horizontally only. Stretch vertically to the target height so DPI-scaled
+	// destinations (e.g. CoolMenu items at SCALE(23)) never repeat a second state band.
+	const int nDestHeight = rc->Height();
+	const int nSourceHeight = min( pInfo.bmHeight, nDestHeight );
+	if ( nDestHeight > 0 && nSourceHeight > 0 && rc->Width() > nEdge )
 	{
-		BITMAP pInfo;
-		bmButton->GetBitmap( &pInfo );
-
-		for ( int nY = rc->top; nY < rc->bottom; nY += pInfo.bmHeight )
+		for ( int nX = rc->left; nX < rc->right - nEdge; nX += pInfo.bmWidth )
 		{
-			for ( int nX = rc->left; nX < rc->right - nEdge; nX += pInfo.bmWidth )
-			{
-				const int nWidth  = min( pInfo.bmWidth, rc->right - nX - nEdge );
-				const int nHeight = min( pInfo.bmHeight, rc->bottom - nY ); 	// No repeat (+ 1 to allow 1px overdraw?)
+			const int nWidth = min( pInfo.bmWidth, rc->right - nX - nEdge );
 
-				if ( pInfo.bmBitsPixel == 32 )		// (Pre-multiplied for AlphaBlend Transparency)
-					pDC->AlphaBlend( nX, nY, nWidth, nHeight, &dcMark, 0, 0, nWidth, nHeight, bf );
-				else
-					pDC->BitBlt( nX, nY, nWidth, nHeight, &dcMark, 0, 0, SRCCOPY );
-			}
+			if ( pInfo.bmBitsPixel == 32 )		// (Pre-multiplied for AlphaBlend Transparency)
+				pDC->AlphaBlend( nX, rc->top, nWidth, nDestHeight, &dcMark, 0, 0, nWidth, nSourceHeight, bf );
+			else
+				pDC->StretchBlt( nX, rc->top, nWidth, nDestHeight, &dcMark, 0, 0, nWidth, nSourceHeight, SRCCOPY );
 		}
 	}
 
-	if ( nEdge > 0 )
+	if ( nEdge > 0 && nDestHeight > 0 )
 	{
-		BITMAP pInfo;
-		bmButtonEdge->GetBitmap( &pInfo );
+		BITMAP pEdgeInfo;
+		bmButtonEdge->GetBitmap( &pEdgeInfo );
 		dcMark.SelectObject( bmButtonEdge );
 
-		const int nHeight = min( pInfo.bmHeight, rc->Height() ); 	// No repeat (+ 1 to allow 1px overdraw?)
-
-		if ( pInfo.bmBitsPixel == 32 )
-			pDC->AlphaBlend( rc->right - nEdge, rc->top, nEdge, nHeight, &dcMark, 0, 0, nEdge, nHeight, bf );
-		else
-			pDC->BitBlt( rc->right - nEdge, rc->top, nEdge, nHeight, &dcMark, 0, 0, SRCCOPY );
+		const int nEdgeSourceHeight = min( pEdgeInfo.bmHeight, nDestHeight );
+		if ( nEdgeSourceHeight > 0 )
+		{
+			if ( pEdgeInfo.bmBitsPixel == 32 )
+				pDC->AlphaBlend( rc->right - nEdge, rc->top, nEdge, nDestHeight, &dcMark, 0, 0, nEdge, nEdgeSourceHeight, bf );
+			else
+				pDC->StretchBlt( rc->right - nEdge, rc->top, nEdge, nDestHeight, &dcMark, 0, 0, nEdge, nEdgeSourceHeight, SRCCOPY );
+		}
 	}
 
 	dcMark.SelectObject( pOld );
@@ -742,33 +744,29 @@ BOOL CImages::DrawButtonMap(CDC* pDC, const CRect* rc, CBitmap* bmButtonMap, con
 		else
 			pDC->BitBlt( nLeft, nTop, nWidth, nHeight, &dcMark, 0, nPosition, SRCCOPY );
 	}
-	else	// Default
+	else	// Default: tile horizontally, stretch one state vertically (never stack states)
 	{
-		if ( rc->Width() > nEdge )
+		const int nDestHeight = rc->Height();
+		const int nDrawSourceHeight = min( nSourceHeight, nDestHeight );
+		if ( nDestHeight > 0 && nDrawSourceHeight > 0 && rc->Width() > nEdge )
 		{
-			for ( int nY = rc->top; nY < rc->bottom; nY += nSourceHeight )
+			for ( int nX = rc->left; nX < rc->right - nEdge; nX += nSourceWidth )
 			{
-				for ( int nX = rc->left; nX < rc->right - nEdge; nX += nSourceWidth )
-				{
-					const int nWidth  = min( nSourceWidth, rc->right - nX - nEdge );
-					const int nHeight = min( nSourceHeight, rc->bottom - nY ); 	// No repeat (+ 1 to allow 1px overdraw?)
+				const int nWidth = min( nSourceWidth, rc->right - nX - nEdge );
 
-					if ( pInfo.bmBitsPixel == 32 )		// (Pre-multiplied for AlphaBlend Transparency)
-						pDC->AlphaBlend( nX, nY, nWidth, nHeight, &dcMark, 0, nPosition, nWidth, nHeight, bf );
-					else
-						pDC->BitBlt( nX, nY, nWidth, nHeight, &dcMark, 0, nPosition, SRCCOPY );
-				}
+				if ( pInfo.bmBitsPixel == 32 )		// (Pre-multiplied for AlphaBlend Transparency)
+					pDC->AlphaBlend( nX, rc->top, nWidth, nDestHeight, &dcMark, 0, nPosition, nWidth, nDrawSourceHeight, bf );
+				else
+					pDC->StretchBlt( nX, rc->top, nWidth, nDestHeight, &dcMark, 0, nPosition, nWidth, nDrawSourceHeight, SRCCOPY );
 			}
 		}
 
-		if ( nEdge > 0 )
+		if ( nEdge > 0 && nDestHeight > 0 && nDrawSourceHeight > 0 )
 		{
-			const int nHeight = min( nSourceHeight, rc->Height() ); 	// No repeat (+ 1 to allow 1px overdraw?)
-
 			if ( pInfo.bmBitsPixel == 32 )
-				pDC->AlphaBlend( rc->right - nEdge, rc->top, nEdge, nHeight, &dcMark, nSourceWidth, nPosition, nEdge, nHeight, bf );
+				pDC->AlphaBlend( rc->right - nEdge, rc->top, nEdge, nDestHeight, &dcMark, nSourceWidth, nPosition, nEdge, nDrawSourceHeight, bf );
 			else
-				pDC->BitBlt( rc->right - nEdge, rc->top, nEdge, nHeight, &dcMark, nSourceWidth, nPosition, SRCCOPY );
+				pDC->StretchBlt( rc->right - nEdge, rc->top, nEdge, nDestHeight, &dcMark, nSourceWidth, nPosition, nEdge, nDrawSourceHeight, SRCCOPY );
 		}
 	}
 
