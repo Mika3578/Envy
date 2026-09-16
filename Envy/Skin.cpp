@@ -596,15 +596,18 @@ BOOL CSkin::LoadOptions(CXMLElement* pBase)
 		const CString strHeight	= pXML->GetAttributeValue( L"height" );
 		const CString strWidth	= pXML->GetAttributeValue( L"width" );
 
-		auto applyMetric = []( const CString& strText, DWORD& nTarget, int nMin, int nMax, LPCWSTR pszLabel ) -> void
+		auto applyMetric = [&]( const CString& strText, DWORD& nTarget, int nMin, int nMax, LPCWSTR pszLabel ) -> void
 		{
 			if ( strText.IsEmpty() )
 				return;
 			const DWORD nPrevious = nTarget;
 			if ( ! ApplySkinMetric( strText, nTarget, nMin, nMax ) )
 			{
+				CString strMsg;
+				strMsg.Format( L"Invalid skin metric '%s' value '%s' (kept previous value)",
+					pszLabel, (LPCTSTR)strText );
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR,
-					L"Invalid skin metric (kept previous value)", pszLabel );
+					(LPCTSTR)strMsg, (LPCTSTR)pXML->ToString() );
 				nTarget = nPrevious;
 			}
 		};
