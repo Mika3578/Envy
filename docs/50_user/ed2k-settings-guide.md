@@ -195,9 +195,10 @@ envy.exe /ed2k=true /kad=true /aich=true /ipv6=false
 ## Support
 
 If you encounter issues:
-1. Check the [Envy FAQ](faq.md)
-2. Visit the [Community Forums](forums.md)
-3. Review the [Troubleshooting Guide](troubleshooting.md)
+1. Review the [user guide](guide.md) and [configuration](configuration.md)
+2. See [known limitations](../KNOWN_LIMITATIONS.md) and the
+   [status matrix](../10_dev/status.md)
+3. Open a GitHub issue using the project templates
 4. Enable debug logging for detailed error reports
 
 ---

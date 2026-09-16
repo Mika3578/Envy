@@ -1,8 +1,9 @@
 # Building Envy
 
 **Last Updated:** September 2026
-**Primary:** Visual Studio (`Visual Studio\Envy.sln`, toolset `v145`, C++20 first-party)
-**Secondary:** Optional HashLib-only CMake under `HashLib/` (no root CMake)
+**Primary (canonical):** Visual Studio / MSBuild — `Visual Studio\Envy.sln`, toolset `v145`, C++20 first-party
+**Secondary (auxiliary only):** CMake under `HashLib/` and `tests/` — does **not** build the Envy MFC application
+**Version SoT:** `version.json`
 
 ## Quick reference
 
@@ -74,19 +75,20 @@ cd Envy
 | **x64** | 64-bit | ✅ Primary | Better performance, larger files |
 | **Win32** | 32-bit | ⚠️ Legacy | Limited to 2GB address space |
 
-## 🔧 Secondary Build: HashLib CMake (optional)
+## 🔧 Secondary Build: auxiliary CMake only
 
-Root `CMakeLists.txt` / `CMakePresets.json` were removed (incomplete
-scaffolding; MSBuild remains authoritative). If you need a CMake-only
-HashLib configure, use the tree under `HashLib/`:
+There is **no root CMake** project for Envy. Do not run `cmake -S .` expecting
+the desktop client.
+
+Optional HashLib-only configure:
 
 ```bash
 cmake -S HashLib -B out/hashlib -G "Visual Studio 18 2026" -A x64
 cmake --build out/hashlib --config Release
 ```
 
-Do not expect the main Envy MFC app, Services, or Plugins to build via CMake
-until a dedicated Phase 5 CMake PR.
+`tests/CMakeLists.txt` is retained for future/auxiliary CMake test wiring;
+the supported test path today is MSBuild `EnvyTests` via `Visual Studio/Envy.sln`.
 
 ## 🔍 Troubleshooting
 

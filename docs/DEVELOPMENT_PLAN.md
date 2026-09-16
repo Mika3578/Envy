@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-16
+- **Changelog Entry:** 2026-09-16 — Publishable surface: root `LICENSE`, drop `.github/agents/my-agent.md`, MSBuild-vs-CMake clarity, `version.json` SoT docs, restore auxiliary `tests/CMakeLists.txt` note, DEPENDENCIES vcpkg/Services note. Prior commits on this branch already fixed AGENTS after metadata cleanup.
 - **Changelog Entry:** 2026-09-16 — Repository hygiene on `chore/publishable-repo-hygiene`: align `AGENTS.md` after metadata cleanup (no MODERNIZATION.md / per-tool stubs); drop root CMake + cppcheck + advisory clang-tidy CI; fix `build_all.ps1` and build docs; vcpkg version-string aligned to `version.json`.
 - **Changelog Entry:** 2026-09-15 — Deterministic `About.htm.gz` / `Browser.htm.gz` generation (`gzip -n`), restore valid binary blobs, `*.gz binary` in `.gitattributes`. See `docs/10_dev/build.md`.
 - **Changelog Entry:** 2026-09-15 — Added Envy self-golden Hello/HelloAnswer TCP vectors (`Ed2kHelloWire.h` + EnvyTests) freezing honest MiscOptions bits; compression advertise left frozen for post-interop decision. No wire behavior change.

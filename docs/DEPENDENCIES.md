@@ -2,6 +2,15 @@
 
 > Status: **Incomplete baseline**. This is a starting register, not a full audited SBOM.
 
+## Package managers
+
+| Source | Role | Notes |
+|---|---|---|
+| `vcpkg.json` | Intended manifest for zlib, bzip2, sqlite3, miniupnpc, openssl, gtest (feature) | `version-string` must track `version.json`. **openssl** is declared once; no second-party first-party `.vcxproj` consumer was found in a quick 2026-09 scan — confirm before removing (may still be pulled transitively or for future crypto). |
+| `Services/*` | Legacy vendored trees (zlib, SQLite, MiniUPnP, …) overlapping vcpkg | Phase 3: migrate consumers to vcpkg, then delete unused vendor trees. Do not relocate wholesale in a hygiene PR. |
+
+## In-tree / vendored
+
 | Dependency / Component | Location | Purpose | Owner / Status | Risk | Update Strategy | Notes |
 |---|---|---|---|---|---|---|
 | HashLib (in-repo) | `HashLib/` | Hashing primitives used by core/tests | Owner TBD / Active | Medium | Manual review + targeted tests | Core crypto-adjacent library, high correctness sensitivity |
@@ -14,3 +23,5 @@
 - Assign explicit owners for top dependencies.
 - Add exact version identifiers and upstream source links.
 - Add update cadence and validation checklist per dependency.
+- Decide openssl keep/drop after a consumer audit (separate PR).
+- Unify release versioning: `version.json` → headers / installer / vcpkg (`scripts/auto-version.ps1` vs `SetReleaseVersion.bat`).
