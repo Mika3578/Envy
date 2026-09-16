@@ -1,7 +1,7 @@
 //
 // CoolMenu.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2020
+// This file is part of Envy (getenvy.com) Â© 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -10,7 +10,7 @@
 // version 3 or later at your option. (AGPLv3)
 //
 // Envy is distributed in the hope that it will be useful,
-// but AS-IS WITHOUT ANY WARRANTY; without even implied warranty
+// but AS-IS WITHOUT ANY WARRANTY; without even the implied warranty
 // of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // See the GNU Affero General Public License 3.0 for details:
 // (http://www.gnu.org/licenses/agpl.html)
@@ -425,8 +425,8 @@ void CCoolMenu::OnDrawItemInternal(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	{
 		const COLORREF crBack = bDisabled ? Colors.m_crBackNormal : Colors.m_crBackSel;
 
-		pDC->Draw3dRect( rcItem.left + 1, rcItem.top + 1, rcItem.Width() - 2, rcItem.Height() - 2, Colors.m_crBorder, Colors.m_crBorder );
-		pDC->FillSolidRect( rcItem.left + 2, rcItem.top + 2, rcItem.Width() - 4, rcItem.Height() - 4, crBack );
+		pDC->Draw3dRect( rcItem.left + 1, rcItem.top + 1, rcItem.Width() - 2, rcItem.Height() - 1, Colors.m_crBorder, Colors.m_crBorder );
+		pDC->FillSolidRect( rcItem.left + 2, rcItem.top + 2, rcItem.Width() - 4, rcItem.Height() - 3, crBack );
 
 		pDC->SetBkColor( crBack );
 	}
