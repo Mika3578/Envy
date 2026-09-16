@@ -21,6 +21,7 @@
 #include "Envy.h"
 #include "Skin.h"
 #include "SkinWindow.h"
+#include "SkinEngineP0.h"
 
 #include <set>
 #include "CtrlCoolBar.h"
@@ -395,12 +396,15 @@ BOOL CSkin::LoadFromString(const CString& strXML, const CString& strPath)
 
 BOOL CSkin::LoadFromXML(CXMLElement* pXML, const CString& strPath)
 {
-	BOOL bSuccess = FALSE;
+	// Start true so section results AND into a meaningful aggregate.
+	// Note: load is not transactional — earlier sections' mutations remain
+	// applied if a later section fails (documented SkinEngineP0 limitation).
+	SkinLoadSuccessState oLoad;
 
 	if ( ! pXML->IsNamed( L"skin" ) )
 	{
 		theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Unknown [skin] root element", pXML->ToString() );
-		return bSuccess;
+		return FALSE;
 	}
 
 	// XML Root Elements:
@@ -439,73 +443,105 @@ BOOL CSkin::LoadFromXML(CXMLElement* pXML, const CString& strPath)
 		CXMLElement* pSub = pXML->GetNextElement( pos );
 		CString strElement = pSub->GetName();
 		strElement.MakeLower();
-		bSuccess = FALSE;
+		BOOL bSectionOk = TRUE;
 
 		switch ( Text[ strElement ] )
 		{
 		case 'w':	// windowskins, windows
-			if ( ! LoadWindowSkins( pSub, strPath ) )
+			bSectionOk = LoadWindowSkins( pSub, strPath );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"WindowSkins" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'e':	// watermarks, images
-			if ( ! LoadWatermarks( pSub, strPath ) )
+			bSectionOk = LoadWatermarks( pSub, strPath );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"Watermarks" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'i':	// commandimages, icons
-			if ( ! LoadCommandImages( pSub, strPath ) )
+			bSectionOk = LoadCommandImages( pSub, strPath );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"CommandImages" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'c':	// colorscheme, colourscheme, colors
-			if ( ! LoadColorScheme( pSub ) )
+			bSectionOk = LoadColorScheme( pSub );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"ColorScheme" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 't':	// toolbars
-			if ( ! LoadToolbars( pSub ) )
+			bSectionOk = LoadToolbars( pSub );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"Toolbars" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'u':	// menus
-			if ( ! LoadMenus( pSub ) )
+			bSectionOk = LoadMenus( pSub );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"Menus" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'a':	// dialogs
-			if ( ! LoadDialogs( pSub ) )
+			bSectionOk = LoadDialogs( pSub );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"Dialogs" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'd':	// documents
-			if ( ! LoadDocuments( pSub ) )
+			bSectionOk = LoadDocuments( pSub );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"Documents" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'r':	// remote
-			if ( ! LoadRemoteInterface( pSub ) )
+			bSectionOk = LoadRemoteInterface( pSub );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"Remote" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 's':	// strings, commandtips
-			if ( ! LoadStrings( pSub ) )
+			bSectionOk = LoadStrings( pSub );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"Strings" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'n':	// controltips
-			if ( ! LoadControlTips( pSub ) )
+			bSectionOk = LoadControlTips( pSub );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"ControlTips" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'p':	// commandmap, resourcemap, tipmap
-			if ( ! LoadResourceMap( pSub ) )
+			bSectionOk = LoadResourceMap( pSub );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"ResourceMap" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'l':	// listcolumns
-			if ( ! LoadListColumns( pSub ) )
+			bSectionOk = LoadListColumns( pSub );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"ListColumns" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'f':	// fonts
-			if ( ! LoadFonts( pSub, strPath ) )
+			bSectionOk = LoadFonts( pSub, strPath );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"Fonts" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'o':	// options
-			if ( ! LoadOptions( pSub ) )
+			bSectionOk = LoadOptions( pSub );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"Options" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 		case 'v':	// navbar  (Deprecated Shareaza import only)
-			if ( ! LoadNavBar( pSub ) )
+			bSectionOk = LoadNavBar( pSub );
+			if ( ! bSectionOk )
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Failed section", L"NavBar (Deprecated)" );
+			oLoad.OnSectionResult( bSectionOk != FALSE );
 			break;
 
 		case 'm':	// manifest
@@ -525,18 +561,18 @@ BOOL CSkin::LoadFromXML(CXMLElement* pXML, const CString& strPath)
 			else
 			{
 				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Unknown [type] attribute in [manifest] element", (LPCTSTR)pSub->ToString() );
+				oLoad.OnInvalidManifest();
 			}
 			break;
 
 		default:
 			theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, L"Unknown element in root [skin] element", (LPCTSTR)pSub->ToString() );
-			continue;
+			oLoad.OnUnknownRootElement();
+			break;
 		}
-
-		bSuccess = TRUE;
 	}
 
-	return bSuccess;
+	return oLoad.bSuccess ? TRUE : FALSE;
 }
 
 
@@ -559,6 +595,22 @@ BOOL CSkin::LoadOptions(CXMLElement* pBase)
 		const CString strValue	= pXML->GetAttributeValue( L"value" ).MakeLower();
 		const CString strHeight	= pXML->GetAttributeValue( L"height" );
 		const CString strWidth	= pXML->GetAttributeValue( L"width" );
+
+		auto applyMetric = [&]( const CString& strText, DWORD& nTarget, int nMin, int nMax, LPCWSTR pszLabel ) -> void
+		{
+			if ( strText.IsEmpty() )
+				return;
+			const DWORD nPrevious = nTarget;
+			if ( ! ApplySkinMetric( strText, nTarget, nMin, nMax ) )
+			{
+				CString strMsg;
+				strMsg.Format( L"Invalid skin metric '%s' value '%s' (kept previous value)",
+					pszLabel, (LPCTSTR)strText );
+				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR,
+					(LPCTSTR)strMsg, (LPCTSTR)pXML->ToString() );
+				nTarget = nPrevious;
+			}
+		};
 
 		// Skin Options:
 		SwitchMap( Text )
@@ -621,9 +673,11 @@ BOOL CSkin::LoadOptions(CXMLElement* pBase)
 			else if ( strValue == L"0" )
 				Settings.Skin.DropMenu = false;
 			else if ( ! strValue.IsEmpty() && strValue.GetLength() < 3 )
-				Settings.Skin.DropMenuLabel = _wtoi(strValue);
+				applyMetric( strValue, Settings.Skin.DropMenuLabel,
+					SkinMetricDropMenuLabelMin, SkinMetricDropMenuLabelMax, L"DropMenuLabel" );
 			if ( ! strWidth.IsEmpty() )
-				Settings.Skin.DropMenuLabel = _wtoi(strWidth);
+				applyMetric( strWidth, Settings.Skin.DropMenuLabel,
+					SkinMetricDropMenuLabelMin, SkinMetricDropMenuLabelMax, L"DropMenuLabel" );
 			if ( Settings.Skin.DropMenuLabel > 100 )
 				Settings.Skin.DropMenuLabel = 0;
 			else if ( Settings.Skin.DropMenuLabel > 1 )
@@ -640,71 +694,94 @@ BOOL CSkin::LoadOptions(CXMLElement* pBase)
 			break;
 		case 'm':	// "Menubar" or "Menubars"
 			if ( ! strHeight.IsEmpty() )
-				Settings.Skin.MenubarHeight = _wtoi(strHeight);
+				applyMetric( strHeight, Settings.Skin.MenubarHeight,
+					SkinMetricBarMin, SkinMetricBarMax, L"MenubarHeight" );
 			else if ( ! strValue.IsEmpty() )
-				Settings.Skin.MenubarHeight = _wtoi(strValue);
+				applyMetric( strValue, Settings.Skin.MenubarHeight,
+					SkinMetricBarMin, SkinMetricBarMax, L"MenubarHeight" );
 			break;
 		case 'u':	// "Statusbar"
 			if ( ! strHeight.IsEmpty() )
-				Settings.Skin.StatusbarHeight = _wtoi( strHeight );
+				applyMetric( strHeight, Settings.Skin.StatusbarHeight,
+					SkinMetricBarMin, SkinMetricBarMax, L"StatusbarHeight" );
 			else if ( ! strValue.IsEmpty() )
-				Settings.Skin.StatusbarHeight = _wtoi( strValue );
+				applyMetric( strValue, Settings.Skin.StatusbarHeight,
+					SkinMetricBarMin, SkinMetricBarMax, L"StatusbarHeight" );
 			break;
 		case 't':	// "Toolbar" or "Toolbars"
 			if ( ! strHeight.IsEmpty() )
-				Settings.Skin.ToolbarHeight = _wtoi(strHeight);
+				applyMetric( strHeight, Settings.Skin.ToolbarHeight,
+					SkinMetricBarMin, SkinMetricBarMax, L"ToolbarHeight" );
 			else if ( ! strValue.IsEmpty() )
-				Settings.Skin.ToolbarHeight = _wtoi(strValue);
+				applyMetric( strValue, Settings.Skin.ToolbarHeight,
+					SkinMetricBarMin, SkinMetricBarMax, L"ToolbarHeight" );
 			break;
 		case 'k':	// "Taskbar" or "TabBar"
 			if ( ! strWidth.IsEmpty() )
-				Settings.Skin.TaskbarTabWidth = _wtoi(strWidth);
+				applyMetric( strWidth, Settings.Skin.TaskbarTabWidth,
+					SkinMetricTaskbarTabMin, SkinMetricTaskbarTabMax, L"TaskbarTabWidth" );
 			if ( ! strHeight.IsEmpty() )
-				Settings.Skin.TaskbarHeight = _wtoi(strHeight);
+				applyMetric( strHeight, Settings.Skin.TaskbarHeight,
+					SkinMetricBarMin, SkinMetricBarMax, L"TaskbarHeight" );
 			else if ( ! strValue.IsEmpty() )
-				Settings.Skin.TaskbarHeight = _wtoi(strValue);
+				applyMetric( strValue, Settings.Skin.TaskbarHeight,
+					SkinMetricBarMin, SkinMetricBarMax, L"TaskbarHeight" );
 			break;
 		case 's':	// "Sidebar" or "SidePanel" or "TaskPanel"
 			if ( ! strWidth.IsEmpty() )
-				Settings.Skin.SidebarWidth = _wtoi(strWidth);
+				applyMetric( strWidth, Settings.Skin.SidebarWidth,
+					SkinMetricSidebarMin, SkinMetricSidebarMax, L"SidebarWidth" );
 			else if ( ! strValue.IsEmpty() )
-				Settings.Skin.SidebarWidth = _wtoi(strValue);
+				applyMetric( strValue, Settings.Skin.SidebarWidth,
+					SkinMetricSidebarMin, SkinMetricSidebarMax, L"SidebarWidth" );
 			break;
 		case 'a':	// "SidebarMargin" or "SidebarPadding" or "TaskPanelPadding"
 			if ( ! strWidth.IsEmpty() )
-				Settings.Skin.SidebarPadding = _wtoi(strWidth);
+				applyMetric( strWidth, Settings.Skin.SidebarPadding,
+					SkinMetricBarMin, SkinMetricBarMax, L"SidebarPadding" );
 			else if ( ! strValue.IsEmpty() )
-				Settings.Skin.SidebarPadding = _wtoi(strValue);
+				applyMetric( strValue, Settings.Skin.SidebarPadding,
+					SkinMetricBarMin, SkinMetricBarMax, L"SidebarPadding" );
 			break;
 		case 'h':	// "Titlebar" or "HeaderPanel"
 			if ( ! strHeight.IsEmpty() )
-				Settings.Skin.HeaderbarHeight = _wtoi(strHeight);
+				applyMetric( strHeight, Settings.Skin.HeaderbarHeight,
+					SkinMetricBarMin, SkinMetricBarMax, L"HeaderbarHeight" );
 			else if ( ! strValue.IsEmpty() )
-				Settings.Skin.HeaderbarHeight = _wtoi(strValue);
+				applyMetric( strValue, Settings.Skin.HeaderbarHeight,
+					SkinMetricBarMin, SkinMetricBarMax, L"HeaderbarHeight" );
 			break;
 		case 'g':	// "Groupsbar" or "DownloadGroups"
 			if ( ! strHeight.IsEmpty() )
-				Settings.Skin.GroupsbarHeight = _wtoi(strHeight);
+				applyMetric( strHeight, Settings.Skin.GroupsbarHeight,
+					SkinMetricBarMin, SkinMetricBarMax, L"GroupsbarHeight" );
 			else if ( ! strValue.IsEmpty() )
-				Settings.Skin.GroupsbarHeight = _wtoi(strValue);
+				applyMetric( strValue, Settings.Skin.GroupsbarHeight,
+					SkinMetricBarMin, SkinMetricBarMax, L"GroupsbarHeight" );
 			break;
 		case 'o':	// "Monitorbar" or "BandwidthWidget"
 			if ( ! strWidth.IsEmpty() )
-				Settings.Skin.MonitorbarWidth = _wtoi(strWidth);
+				applyMetric( strWidth, Settings.Skin.MonitorbarWidth,
+					SkinMetricMonitorbarMin, SkinMetricMonitorbarMax, L"MonitorbarWidth" );
 			else if ( ! strValue.IsEmpty() )
-				Settings.Skin.MonitorbarWidth = _wtoi(strValue);
+				applyMetric( strValue, Settings.Skin.MonitorbarWidth,
+					SkinMetricMonitorbarMin, SkinMetricMonitorbarMax, L"MonitorbarWidth" );
 			break;
 		case 'r':	// "Dragbar" or "Splitter"
 			if ( ! strWidth.IsEmpty() )
-				Settings.Skin.Splitter = _wtoi(strWidth);
+				applyMetric( strWidth, Settings.Skin.Splitter,
+					SkinMetricSplitterMin, SkinMetricSplitterMax, L"Splitter" );
 			else if ( ! strValue.IsEmpty() )
-				Settings.Skin.Splitter = _wtoi(strValue);
+				applyMetric( strValue, Settings.Skin.Splitter,
+					SkinMetricSplitterMin, SkinMetricSplitterMax, L"Splitter" );
 			break;
 		case 'e':	// "ButtonEdge" or "ButtonMap"
 			if ( ! strWidth.IsEmpty() )
-				Settings.Skin.ButtonEdge = _wtoi(strWidth);
+				applyMetric( strWidth, Settings.Skin.ButtonEdge,
+					SkinMetricButtonEdgeMin, SkinMetricButtonEdgeMax, L"ButtonEdge" );
 			else if ( ! strValue.IsEmpty() )
-				Settings.Skin.ButtonEdge = _wtoi(strValue);
+				applyMetric( strValue, Settings.Skin.ButtonEdge,
+					SkinMetricButtonEdgeMin, SkinMetricButtonEdgeMax, L"ButtonEdge" );
 			break;
 		case 'f':	// "FrameEdge"
 			Settings.Skin.FrameEdge = LoadOptionBool( strValue, Settings.Skin.FrameEdge );
@@ -714,25 +791,23 @@ BOOL CSkin::LoadOptions(CXMLElement* pBase)
 			break;
 		case 'i':	// "IconGrid" or "LibraryTiles"
 			if ( ! strHeight.IsEmpty() )
-				Settings.Skin.LibIconsY = _wtoi(strHeight);
+				applyMetric( strHeight, Settings.Skin.LibIconsY,
+					SkinMetricLibIconsYMin, SkinMetricLibIconsYMax, L"LibIconsY" );
 			if ( ! strWidth.IsEmpty() )
-				Settings.Skin.LibIconsX = _wtoi(strWidth);
+				applyMetric( strWidth, Settings.Skin.LibIconsX,
+					SkinMetricLibIconsXMin, SkinMetricLibIconsXMax, L"LibIconsX" );
 			else if ( ! strValue.IsEmpty() )
-				Settings.Skin.LibIconsX = _wtoi(strValue);
+				applyMetric( strValue, Settings.Skin.LibIconsX,
+					SkinMetricLibIconsXMin, SkinMetricLibIconsXMax, L"LibIconsX" );
 			break;
 		case 'w':	// "RowSize" or "ListItem"
-		{
-			int nSize;
 			if ( ! strHeight.IsEmpty() )
-				nSize = _wtoi(strHeight);
+				applyMetric( strHeight, Settings.Skin.RowSize,
+					SkinMetricRowSizeMin, SkinMetricRowSizeMax, L"RowSize" );
 			else if ( ! strValue.IsEmpty() )
-				nSize = _wtoi(strValue);
-			else
-				break;
-			if ( nSize >= 16 && nSize <= 50 )
-				Settings.Skin.RowSize = nSize;
-		}
-		break;
+				applyMetric( strValue, Settings.Skin.RowSize,
+					SkinMetricRowSizeMin, SkinMetricRowSizeMax, L"RowSize" );
+			break;
 		}
 	}
 
