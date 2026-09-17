@@ -1,7 +1,7 @@
 //
 // PageSettingsRemote.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -25,6 +25,9 @@
 #include "Handshakes.h"
 #include "QRCode.h"
 #include "QRCode.cpp"	// Why does this need to be included?
+#include "RemoteSecurity.h"
+
+#include <string>
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -49,7 +52,8 @@ END_MESSAGE_MAP()
 
 CRemoteSettingsPage::CRemoteSettingsPage()
 	: CSettingsPage( CRemoteSettingsPage::IDD )
-	, m_bEnable ( FALSE )
+	, m_bEnable( FALSE )
+	, m_bPasswordDirty( FALSE )
 {
 }
 
@@ -93,24 +97,48 @@ void CRemoteSettingsPage::OnNewPassword()
 
 	if ( m_sPassword.GetLength() < 2 )		// Password too short
 	{
+		m_bPasswordDirty = FALSE;
 		Settings.Remote.Password = m_sOldPassword;
 	}
 	else if ( m_sPassword == L"      " )	// Password hasn't been edited
 	{
+		m_bPasswordDirty = FALSE;
 		Settings.Remote.Password = m_sOldPassword;
 	}
 	else
 	{
-		CSHA pSHA1;
-		pSHA1.Add( (LPCTSTR)m_sPassword, m_sPassword.GetLength() * sizeof( TCHAR ) );
-		pSHA1.Finish();
-		Hashes::Sha1Hash tmp;
-		pSHA1.GetHash( &tmp[ 0 ] );
-		tmp.validate();
-		Settings.Remote.Password = tmp.toString();
+		// Keep prior at-rest hash until Apply/OK ù PBKDF2 is too costly for EN_CHANGE
+		m_bPasswordDirty = TRUE;
+		Settings.Remote.Password = m_sOldPassword;
 	}
 
 	OnBnClickedRemoteEnable();
+}
+
+BOOL CRemoteSettingsPage::CommitRemotePassword()
+{
+	if ( ! m_bPasswordDirty )
+		return TRUE;
+
+	UpdateData();
+	if ( m_sPassword.GetLength() < 2 || m_sPassword == L"      " )
+	{
+		m_bPasswordDirty = FALSE;
+		Settings.Remote.Password = m_sOldPassword;
+		return TRUE;
+	}
+
+	CW2A utf8( m_sPassword, CP_UTF8 );
+	std::string hashOutput;
+	if ( ! CRemoteSecurity::HashPassword( std::string( utf8 ), hashOutput ) )
+	{
+		Settings.Remote.Password = m_sOldPassword;
+		return FALSE;
+	}
+
+	Settings.Remote.Password = CString( hashOutput.c_str() );
+	m_bPasswordDirty = FALSE;
+	return TRUE;
 }
 
 void CRemoteSettingsPage::OnBnClickedRemoteEnable()
@@ -127,8 +155,9 @@ void CRemoteSettingsPage::OnBnClickedRemoteEnable()
 	m_wndPassword.EnableWindow( m_bEnable );
 
 	CString strURL;
+	const BOOL bHasPassword = m_bPasswordDirty || ! Settings.Remote.Password.IsEmpty();
 
-	if ( m_bEnable && ! m_sUsername.IsEmpty() && ! Settings.Remote.Password.IsEmpty() )
+	if ( m_bEnable && ! m_sUsername.IsEmpty() && bHasPassword )
 	{
 		if ( Network.IsListening() )
 		{
@@ -226,8 +255,15 @@ void CRemoteSettingsPage::OnLButtonUp(UINT nFlags, CPoint point)
 	CSettingsPage::OnLButtonUp( nFlags, point );
 }
 
+void CRemoteSettingsPage::OnOK()
+{
+	CommitRemotePassword();
+	CSettingsPage::OnOK();
+}
+
 void CRemoteSettingsPage::OnCancel()
 {
+	m_bPasswordDirty = FALSE;
 	Settings.Remote.Enable		= m_bOldEnable != FALSE;
 	Settings.Remote.Username	= m_sOldUsername;
 	Settings.Remote.Password	= m_sOldPassword;

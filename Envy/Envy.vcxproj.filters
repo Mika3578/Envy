@@ -1974,8 +1974,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SecureRandom.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Ed2kLockOrder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="EnvyThreadPolicy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RemotePasswordPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PacketBuffer.h">
