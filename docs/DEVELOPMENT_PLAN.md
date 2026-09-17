@@ -3,6 +3,9 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
+- **Changelog Entry:** 2026-09-18 — #96: pin external GitHub Actions to immutable commit SHAs under `.github/workflows` and `.github/actions` (documented upgrade path in `docs/10_dev/agents-and-automation.md`).
+- **Changelog Entry:** 2026-09-18 — Restored historical `CHANGELOG.md` body truncated by #148 squash (kept current Unreleased; reattached from `## [4.1.0]` onward).
+- **Changelog Entry:** 2026-09-18 — DevSecOps finalize: `AGENTS.md` controlled autonomy + max-3 development PR cap; Renovate `enabledManagers` = github-actions only; CodeRabbit `drafts: false` + `Envy/*Remote*` path; `ci-verify.ps1 -Full` builds/runs Win32 EnvyTests and requires clang-format; Merge Queue documented as optional.
 - **Changelog Entry:** 2026-09-18 — #81: NMDC HubName/HubTopic/chat prefixed-payload length guards before trailing-`|` arithmetic (`DcPacketLengthValidate.h` + EnvyTests).
 - **Changelog Entry:** 2026-09-18 — Restored full `docs/DEVELOPMENT_PLAN.md` body accidentally truncated by #159 squash; retained post-#147/#153 changelog lines and #119 `{deflate}` resolution note.
 - **Changelog Entry:** 2026-09-17 — #119: QueryHit `nSize-10` vs G1Packet `len-9` `{deflate}` sizing documented as intentional (trailing NUL vs HIT_SEP framing); no wire change.
