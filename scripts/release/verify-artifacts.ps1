@@ -147,11 +147,45 @@ try
 			Write-Fail "ZIP is not extractable: $zipName ($_)"
 		}
 
-		$envyExe = Get-ChildItem -LiteralPath $extractDir -Recurse -Filter 'Envy.exe' -File -ErrorAction SilentlyContinue |
-			Select-Object -First 1
-		if (-not $envyExe)
+		$envyExe = Join-Path $extractDir 'Envy.exe'
+		if (-not (Test-Path -LiteralPath $envyExe))
 		{
-			Write-Fail "ZIP $zipName does not contain Envy.exe"
+			Write-Fail "ZIP $zipName does not contain Envy.exe at archive root"
+		}
+
+		$requiredDirs = @('Data', 'Schemas', 'Skins', 'Plugins', 'Templates', 'Remote')
+		foreach ($dirName in $requiredDirs)
+		{
+			$path = Join-Path $extractDir $dirName
+			if (-not (Test-Path -LiteralPath $path))
+			{
+				Write-Fail "ZIP $zipName missing required runtime directory: $dirName"
+			}
+		}
+		$enDefaults = Join-Path $extractDir 'Skins\Languages\en.defaults'
+		if (-not (Test-Path -LiteralPath $enDefaults))
+		{
+			Write-Fail "ZIP $zipName missing Skins\Languages\en.defaults (languages not staged)"
+		}
+		$dataFiles = @(Get-ChildItem -LiteralPath (Join-Path $extractDir 'Data') -File -ErrorAction SilentlyContinue)
+		if ($dataFiles.Count -eq 0)
+		{
+			Write-Fail "ZIP $zipName has empty Data\ directory"
+		}
+		$pluginFiles = @(Get-ChildItem -LiteralPath (Join-Path $extractDir 'Plugins') -File -ErrorAction SilentlyContinue)
+		if ($pluginFiles.Count -eq 0)
+		{
+			Write-Fail "ZIP $zipName has empty Plugins\ directory"
+		}
+
+		# Flattened-only packages (previous bug) put plugin DLLs next to Envy.exe.
+		$rootDlls = @(Get-ChildItem -LiteralPath $extractDir -Filter '*.dll' -File -ErrorAction SilentlyContinue)
+		$suspiciousFlat = @($rootDlls | Where-Object {
+			$_.Name -match '^(DocumentReader|ImageViewer|MediaPlayer|SearchExport)\.dll$'
+		})
+		if ($suspiciousFlat.Count -gt 0)
+		{
+			Write-Fail ("ZIP {0} looks flattened (plugin DLLs at archive root): {1}" -f $zipName, (($suspiciousFlat | ForEach-Object Name) -join ', '))
 		}
 
 		$pdb = @(Get-ChildItem -LiteralPath $extractDir -Recurse -Filter '*.pdb' -File -ErrorAction SilentlyContinue)
@@ -167,7 +201,7 @@ try
 			Write-Fail "ZIP $zipName contains Debug-path files."
 		}
 
-		Write-Host "  zip OK $zipName (Envy.exe present, no pdb/Debug)"
+		Write-Host "  zip OK $zipName (runtime tree present, no pdb/Debug)"
 	}
 }
 finally

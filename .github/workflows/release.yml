@@ -185,14 +185,17 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
-      - name: Stage artifacts
+      - name: Stage portable runtime tree
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path artifacts/portable, artifacts/setup | Out-Null
-          Get-ChildItem -Recurse -Include *.exe, *.dll -Path Envy, Plugins, TorrentEnvy `
-            | Where-Object { $_.FullName -match "Release" } `
-            | Copy-Item -Destination artifacts/portable -Force
+          # Mirror Installer/Scripts/Main.iss layout (binaries + Data/Skins/Schemas/...).
+          # Do NOT flatten EXE/DLL into a single folder — that is not a portable Envy.
+          ./scripts/release/stage-portable.ps1 -Platform ${{ matrix.platform }} -RepoRoot $env:GITHUB_WORKSPACE
 
+      - name: Stage setup installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts/setup | Out-Null
           # Inno Main.iss uses OutputDir=Builds resolved against the MSBuild cwd
           # (repo root). Fail hard if the contract drifts.
           $setupRoot = "Builds"
@@ -214,12 +217,12 @@ jobs:
         env:
           RELEASE_TAG: ${{ env.RELEASE_TAG }}
         run: |
-          $exe = Get-ChildItem -Path artifacts/portable -Filter Envy.exe -File | Select-Object -First 1
-          if (-not $exe) {
+          $exe = Join-Path $env:GITHUB_WORKSPACE "artifacts\portable\Envy.exe"
+          if (-not (Test-Path -LiteralPath $exe)) {
             Write-Error "Envy.exe missing from staged portable artifacts."
             exit 1
           }
-          ./scripts/release/verify-version.ps1 -Tag $env:RELEASE_TAG -EnvyExePath $exe.FullName
+          ./scripts/release/verify-version.ps1 -Tag $env:RELEASE_TAG -EnvyExePath $exe
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
