@@ -27,9 +27,9 @@ This checklist ensures the secure deployment of Envy P2P client with P0.2 crypto
 
 ### **Code Quality Assurance**
 - [x] **Security Implementation Complete**
-  - [x] `GenerateCryptographicBytes()` function implemented
-  - [x] All `rand()` calls in security-critical code replaced
-  - [x] Proper error handling and fallback logic
+  - [x] `GenerateCryptographicBytes()` / `SecureRandomFill()` (#78) — BCrypt CSPRNG, fail closed, no `rand()` fallback for session/CSRF/salt/anti-spoof paths
+  - [x] All `rand()` calls in security-critical code replaced (cosmetic `GetRandomNum` may still use `rand()`)
+  - [x] Proper error handling (fail closed; no weak RNG fallback)
 
 - [x] **Code Review Completed**
   - [x] Security-critical functions reviewed
