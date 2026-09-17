@@ -32,19 +32,37 @@ Notes:
 - Inno channel is driven by MSBuild `/p:InstallerAlpha=…` (from the tag: `Preview` / `True` / `False`).
 - Authenticode signing is **not** configured for Preview 1; SmartScreen may warn.
 - Releases are created as **draft** so assets can be verified before publish.
-- `workflow_dispatch` dry-runs packaging into an Actions artifact; only a real `v*` tag push creates the GitHub Release.
+- The automatic pipeline **never** publishes (`draft` stays `true`); a human publishes after smoke tests.
+- `workflow_dispatch` dry-runs packaging into an Actions artifact; only a real `v*` tag push creates/updates the GitHub draft Release (unless `repair_release_id` is set — see below).
 
 ## Release Process (Current)
-1. On the packaging branch (or `develop` after merge), run **workflow_dispatch** with `version=v4.2.0-preview.1`. That path builds, packages, and uploads Actions artifact `release-v4.2.0-preview.1` only — **no GitHub Release and no tag**.
+1. On the packaging branch (or `develop` after merge), run **workflow_dispatch** with `version=v4.2.0-preview.1` and leave `repair_release_id` empty. That path builds, packages, verifies checksums/ZIPs, and uploads Actions artifact `release-v4.2.0-preview.1` only — **no GitHub Release and no tag**.
 2. Download that artifact; confirm the five expected files; smoke-test install / launch / uninstall (x64 and Win32).
 3. Land packaging/version changes on `develop`.
-4. Tag the exact `develop` commit (`v4.2.0-preview.1`).
-5. The same `release.yml` on tag push creates the **draft** GitHub prerelease; download and re-verify those assets.
-6. Complete release notes (limitations + unsigned warning) and publish the prerelease.
+4. Tag the exact `develop` commit (`v4.2.0-preview.1`). Do not move/retag an existing release tag.
+5. The same `release.yml` on tag push creates or **reuses** the **draft** GitHub prerelease, then uploads the five assets **sequentially by `release_id`** (scripts under `scripts/release/`). Reruns are idempotent: matching assets are kept; mismatched assets are replaced; the job fails if the final remote set is incomplete.
+6. Complete release notes (limitations + unsigned warning) and publish the prerelease manually in the GitHub UI.
+
+### Repairing an existing draft (no retag)
+If a draft already exists for the tag but is missing assets (example: Preview 1 release id `391048728`):
+
+1. Prefer a full `workflow_dispatch` with `version=v4.2.0-preview.1` and `repair_release_id=<id>` so CI rebuilds, re-verifies, and uploads onto that draft only (`draft` remains true).
+2. Or run locally / in a trusted shell:
+
+```powershell
+pwsh ./scripts/release/repair-draft-release.ps1 `
+  -Tag v4.2.0-preview.1 `
+  -ReleaseId 391048728 `
+  -ArtifactRunId <run-id> `
+  -ArtifactName release-v4.2.0-preview.1
+```
+
+Never delete, recreate, or move the tag to repair assets.
 
 Notes:
-- `workflow_dispatch` is intentionally a dry-run. Do **not** treat it as a publish path.
-- Tag-push publish uses `softprops/action-gh-release` with `fail_on_unmatched_files: true`.
+- `workflow_dispatch` without `repair_release_id` is intentionally a dry-run. Do **not** treat it as a publish path.
+- Draft upload no longer uses `softprops/action-gh-release` (parallel uploads raced on freshly created drafts). Publication uses `scripts/release/publish-draft-release.ps1` with `gh api` against the concrete `release_id`.
+- Pre-upload gates: `verify-version.ps1` (tag / `version.json` / `Envy.rc` / built `Envy.exe`) and `verify-artifacts.ps1` (five assets, SHA256, ZIP extract, no `.pdb`/Debug paths).
 
 ## Rollback Procedure (Recommended baseline)
 1. Identify bad release tag/build.

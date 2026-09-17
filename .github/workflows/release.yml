@@ -10,6 +10,11 @@ on:
         description: Release tag (e.g. v4.2.0-preview.1)
         required: true
         type: string
+      repair_release_id:
+        description: Optional existing draft release ID to repair after packaging (never publishes). Empty = dry-run only (no GitHub Release).
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -84,6 +89,13 @@ jobs:
             Write-Error "::error::VS major version is $installVersion, expected 18.x (Visual Studio 2026)."
             exit 1
           }
+
+      - name: Verify version sources match tag
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          ./scripts/release/verify-version.ps1 -Tag $env:RELEASE_TAG
 
       - name: Resolve installer channel from tag
         id: channel
@@ -197,6 +209,18 @@ jobs:
           Copy-Item $setups[0].FullName -Destination artifacts/setup -Force
           Write-Host "Staged setup: $($setups[0].FullName)"
 
+      - name: Verify built Envy.exe version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          $exe = Get-ChildItem -Path artifacts/portable -Filter Envy.exe -File | Select-Object -First 1
+          if (-not $exe) {
+            Write-Error "Envy.exe missing from staged portable artifacts."
+            exit 1
+          }
+          ./scripts/release/verify-version.ps1 -Tag $env:RELEASE_TAG -EnvyExePath $exe.FullName
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         with:
@@ -208,7 +232,7 @@ jobs:
     name: Package release assets
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
 
@@ -216,6 +240,13 @@ jobs:
         with:
           path: dist
           pattern: envy-*-release
+
+      - name: Verify version sources match tag
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          ./scripts/release/verify-version.ps1 -Tag $env:RELEASE_TAG
 
       - name: Package release assets
         shell: bash
@@ -261,6 +292,14 @@ jobs:
           )
           ls -la release
 
+      - name: Verify packaged assets and checksums
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          $version = $env:RELEASE_TAG.TrimStart('v')
+          ./scripts/release/verify-artifacts.ps1 -ReleaseDir ./release -Version $version
+
       - name: Detect prerelease
         id: meta
         shell: bash
@@ -282,19 +321,39 @@ jobs:
           path: release/*
           retention-days: 30
 
-      # workflow_dispatch is a dry-run only: package + upload Actions artifacts.
-      # Never create a GitHub Release / tag unless this run was triggered by a real tag push.
-      - name: Publish release
-        if: github.event_name == 'push' && github.ref_type == 'tag'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.meta.outputs.tag_name }}
-          name: Envy ${{ env.RELEASE_TAG }}
-          generate_release_notes: true
-          draft: true
-          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
-          fail_on_unmatched_files: true
-          files: |
-            release/*.zip
-            release/*-setup.exe
-            release/SHA256SUMS.txt
+      # Tag push: create/reuse draft and upload assets sequentially by release_id.
+      # workflow_dispatch: dry-run only UNLESS repair_release_id is explicitly set
+      # (repair still keeps draft=true and never publishes).
+      - name: Guard accidental manual publish
+        if: github.event_name == 'workflow_dispatch' && (inputs.repair_release_id == '' || inputs.repair_release_id == null)
+        shell: bash
+        run: |
+          echo "workflow_dispatch dry-run: skipping GitHub Release (no repair_release_id)."
+          echo "Packaged Actions artifact release-${{ env.RELEASE_TAG }} is available for manual inspection."
+
+      - name: Publish or repair draft release
+        id: draft
+        if: >-
+          (github.event_name == 'push' && github.ref_type == 'tag') ||
+          (github.event_name == 'workflow_dispatch' && inputs.repair_release_id != '')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+          REPAIR_RELEASE_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.repair_release_id || '' }}
+          PRERELEASE: ${{ steps.meta.outputs.prerelease }}
+        run: |
+          $prerelease = ($env:PRERELEASE -eq 'true')
+          $args = @{
+            Tag = $env:RELEASE_TAG
+            AssetDir = './release'
+            Repository = $env:GITHUB_REPOSITORY
+            Prerelease = $prerelease
+            GenerateNotes = $true
+          }
+          if ($env:REPAIR_RELEASE_ID) {
+            Write-Host "Repair mode: targeting explicit release_id=$($env:REPAIR_RELEASE_ID)"
+            $args['ReleaseId'] = $env:REPAIR_RELEASE_ID
+            $args['GenerateNotes'] = $false
+          }
+          ./scripts/release/publish-draft-release.ps1 @args
