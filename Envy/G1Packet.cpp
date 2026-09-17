@@ -435,7 +435,9 @@ bool CG1Packet::ReadXML(CSchemaPtr& pSchema, CXMLElement*& pXML)
 	auto_array< BYTE > pTmp;
 	if ( len >= 9 && memcmp( p, "{deflate}", 9 ) == 0 )
 	{
-		// Compressed text
+		// Compressed text. len already excludes HIT_SEP/NUL (measured above),
+		// so decompress the full remainder after the 9-byte marker (not nSize-10;
+		// that path is QueryHit::ReadXML where nXMLSize includes the trailing NUL).
 		p += 9;
 		len -= 9;
 
