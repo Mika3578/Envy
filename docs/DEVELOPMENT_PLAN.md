@@ -2,7 +2,11 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-16
+- **Last Updated:** 2026-09-17
+- **Changelog Entry:** 2026-09-17 — #140 docs: clarify MiniUPnPc 2.0 SSDP is one discovery receive phase (`searchalltypes=1`), not a strict wall-clock deadline; #142 / P3 covers absolute SSDP and HTTP timeout bounding.
+- **Changelog Entry:** 2026-09-17 — #140 P0 runtime PASS on post-squash HEAD: targeted IGD discovery (single MiniUPnPc receive phase), gateway-only rootdevice fallback, non-IGD devices never receive WAN mapping commands. Known debt: MiniUPnPc 2.0 SSDP/HTTP latency (#142 / P3). Backlog: listeners must not wait for NAT (#141). Next: P1 WFAS.
+- **Changelog Entry:** 2026-09-17 — #140 P0 strategy: targeted IGD SSDP (`searchalltypes=1`, one discovery receive phase) + gateway-only rootdevice fallback. SSDP success != usable IGD; discovery fails cleanly when no IGD/WAN service is exposed.
+- **Changelog Entry:** 2026-09-16 — UPnP SSDP discovery selects Internet-facing IPv4 via `GetAdaptersAddresses` + `GetBestRoute2` (`NetworkInterfaceSelector`), replacing `GetAdaptersInfo` fallback on PR #140. Phased NAT/Firewall plan: P0 interface → P1 WFAS firewall → P2 local/external ports → P3 MiniUPnPc 2.3.x vendored → P4 PCP/NAT-PMP → P5 CGNAT/diagnostics. MiniUPnPc stays vendored (not vcpkg-only) for now.
 - **Changelog Entry:** 2026-09-16 — Fixed legacy IE WebHook startup registration: skip `WebHook32.dll`/`WebHook64.dll` (and historical `WebHook.dll`) when `WebHookEnable` is false; BHO key registered in code under HKCU (per-user) or HKLM (machine). Documented as IE-only legacy; candidate for removal in favor of a modern browser extension + `envy://url:`.
 - **Changelog Entry:** 2026-09-16 — Search Input/Advanced panel layout is font/DPI-aware (`GetPreferredHeight` + progressive Y); combo drop-down height kept separate from visible stacking; hash/prefix anchored to the search edit. No change to `GetSearchPanelWidth()` / SidebarWidth floor.
 - **Changelog Entry:** 2026-09-16 — Skin engine P0: StatusbarHeight pointer fix, ParseRect point/size + FindOneOf, roundRect size validation, LoadFromXML section-failure aggregation (non-transactional), strict metric parse/clamp aligned with Settings bounds; `SkinEngineP0.h` + EnvyTests. HiDPI/logical units deferred to P1+.
@@ -261,6 +265,10 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-09-17:** #140 wording: MiniUPnPc 2.0 targeted discovery is one receive phase for requested ST values, not a strict wall-clock SSDP deadline; absolute SSDP and HTTP timeout bounding → [#142](https://github.com/Mika3578/Envy/issues/142) / P3.
+- **2026-09-17:** #140 P0 runtime PASS (post-squash HEAD): targeted discovery + gateway-only rootdevice fallback; non-IGD devices never receive WAN mapping commands. Remaining MiniUPnPc 2.0 SSDP/HTTP latency → [#142](https://github.com/Mika3578/Envy/issues/142) / P3. Separate backlog: bind/listen must not wait for NAT completion → [#141](https://github.com/Mika3578/Envy/issues/141). Order remains P1 WFAS → P2 ports → P3 MiniUPnPc 2.3.x.
+- **2026-09-17:** SSDP success != usable IGD. #140 uses targeted `upnpDiscoverDevices` with `searchalltypes=1` (one discovery receive phase), filters to explicit IGD/WAN ST, and limits rootdevice fallback to the selected gateway IP with exact LOCATION string dedupe. `UPNP_GetValidIGD` runs once on filtered candidates; results `0`/`3` never issue WAN commands.
+- **2026-09-16:** NAT/Firewall recovery is phased PRs (not a monolith): P0 modern interface selection (#140), P1 Windows Firewall WFAS (`INetFwPolicy2`), P2 LocalPort/ExternalPort model (behavior-preserving first), P3 MiniUPnPc 2.3.x **vendored** update (no vcpkg introduction for this alone), P4 NatTraversalManager + PCP/NAT-PMP, P5 CGNAT/diagnostics. Do not declare inbound reachability fixed without runtime evidence on a non-CGNAT path.
 - **2026-09-15:** Keep C++ RTTI disabled project-wide (`RuntimeTypeInfo=false` / `/GR-`). Do not enable `/GR` to make `dynamic_cast` work. Protocol-specific actions belong on the transfer/neighbour classes via `virtual`/`override`. Localized `static_cast` is acceptable only when the construction path proves the concrete type (first case: `PROTOCOL_ED2K` uploads are always `CUploadTransferED2K` from `CEDClient::OnQueueRequest`). The protocol enum remains valid for UI, stats, logs, filtering, and serialization.
 - **2026-09-11:** Persist `eDonkey.EnableKad` via `Settings.Add` (#124) separately
   from Kad routing-table work (#86) and from Kad→`AddSourceED2K` source delivery.
