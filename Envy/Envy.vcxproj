@@ -478,6 +478,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClCompile Include="NeighboursWithG2.cpp" />
     <ClCompile Include="NeighboursWithRouting.cpp" />
     <ClCompile Include="Network.cpp" />
+    <ClCompile Include="NetworkInterfaceSelector.cpp" />
     <ClCompile Include="Packet.cpp" />
     <ClCompile Include="PacketBuffer.cpp" />
     <ClCompile Include="Envy.cpp" />
@@ -1360,6 +1361,8 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="NeighboursWithG2.h" />
     <ClInclude Include="NeighboursWithRouting.h" />
     <ClInclude Include="Network.h" />
+    <ClInclude Include="NetworkInterfaceSelector.h" />
+    <ClInclude Include="MiniUPnPIgdPolicy.h" />
     <ClInclude Include="Packet.h" />
     <ClInclude Include="PacketBuffer.h" />
     <ClInclude Include="Envy.h" />

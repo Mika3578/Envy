@@ -1,7 +1,7 @@
 //
 // MiniUPnP.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2014 and PeerProject 2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -39,6 +39,14 @@ protected:
 	CStringA	m_sControlURL;
 	CStringA	m_sServiceType;
 	CStringA	m_sExternalAddress;
+
+	// Map+verify one protocol (TCP or UDP). On failure leaves *pnCommandResult set.
+	// pszInternalIP is in/out for GetSpecificPortMappingEntry (MiniUPnPc intClient).
+	bool MapAndVerifyProtocol( LPCSTR pszProtocol, WORD nPort, char* pszInternalIP, int& nCommandResult );
+	// Map TCP then UDP for one local/external port; cleans up on partial failure.
+	bool TryMapPortPair( WORD nPort, char* pszInternalIP, bool bRandomPort, int& nCommandResult );
+	// Up to 5 mapping attempts with sleep + sequential/random port advance.
+	bool TryMapWithPortRetries( char* pszInternalIP, int& nCommandResult );
 
 	void OnRun();
 };
