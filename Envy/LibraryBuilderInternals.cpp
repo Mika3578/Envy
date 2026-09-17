@@ -1,7 +1,7 @@
 //
 // LibraryBuilderInternals.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -4505,22 +4505,27 @@ bool CLibraryBuilderInternals::ReadCHM(DWORD nIndex, HANDLE hFile, LPCTSTR pszPa
 	WORD nData;
 	CHARSETINFO csInfo;
 	CString strTemp;
-	TCHAR *pszBuffer = NULL;
 	UINT nCodePage = CP_ACP;
 	bool bHasTitle = false;
 
 	// Find default ANSI codepage for given LCID
 	DWORD nLength = GetLocaleInfo( nLCID, LOCALE_IDEFAULTANSICODEPAGE, NULL, 0 );
-	pszBuffer = (TCHAR*)LocalAlloc( LPTR, ( nLength + 1 ) * sizeof( TCHAR ) );
-	DWORD nCwc = GetLocaleInfo( nLCID, LOCALE_IDEFAULTANSICODEPAGE, pszBuffer, nLength );
-	if ( nCwc > 0 )
+	if ( nLength > 0 )
 	{
-		DWORD charSet = DEFAULT_CHARSET;
-		strTemp = pszBuffer;
-		strTemp = strTemp.Left( nCwc - 1 );
-		_stscanf( strTemp, L"%lu", charSet );	// ToDo: Is this right?
-		if ( TranslateCharsetInfo( (LPDWORD)(DWORD_PTR)charSet, &csInfo, TCI_SRCCODEPAGE ) )
-			nCodePage = csInfo.ciACP;
+		if ( TCHAR* pszBuffer = (TCHAR*)LocalAlloc( LPTR, ( nLength + 1 ) * sizeof( TCHAR ) ) )
+		{
+			DWORD nCwc = GetLocaleInfo( nLCID, LOCALE_IDEFAULTANSICODEPAGE, pszBuffer, nLength );
+			if ( nCwc > 0 )
+			{
+				DWORD charSet = DEFAULT_CHARSET;
+				strTemp = pszBuffer;
+				strTemp = strTemp.Left( nCwc - 1 );
+				_stscanf( strTemp, L"%lu", charSet );	// ToDo: Is this right?
+				if ( TranslateCharsetInfo( (LPDWORD)(DWORD_PTR)charSet, &csInfo, TCI_SRCCODEPAGE ) )
+					nCodePage = csInfo.ciACP;
+			}
+			LocalFree( pszBuffer );
+		}
 	}
 	SetFilePointer( hFile, nPos, NULL, FILE_BEGIN );
 

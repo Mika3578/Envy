@@ -7,6 +7,7 @@
 
 #include "StdAfx.h"
 #include "RemoteSecurity.h"
+#include "RemoteBase64.h"
 #include "Settings.h"
 #include <vector>
 #include <sstream>
@@ -518,31 +519,7 @@ std::vector<std::string> CRemoteSecurity::SplitString(const std::string& str, ch
 
 std::string CRemoteSecurity::Base64Encode(const BYTE* data, size_t length)
 {
-	// Simple base64 encoding (you might want to use a proper base64 library)
-	static const char* base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-	std::string encoded;
-	const BYTE* bytes = data;
-
-	for (size_t i = 0; i < length; i += 3) {
-		uint32_t octet_a = i < length ? bytes[i] : 0;
-		uint32_t octet_b = i + 1 < length ? bytes[i + 1] : 0;
-		uint32_t octet_c = i + 2 < length ? bytes[i + 2] : 0;
-
-		uint32_t triple = (octet_a << 16) + (octet_b << 8) + octet_c;
-
-		encoded += base64Chars[(triple >> 18) & 0x3F];
-		encoded += base64Chars[(triple >> 12) & 0x3F];
-		encoded += base64Chars[(triple >> 6) & 0x3F];
-		encoded += base64Chars[triple & 0x3F];
-	}
-
-	// Add padding
-	size_t padding = (3 - (length % 3)) % 3;
-	for (size_t i = 0; i < padding; ++i) {
-		encoded[encoded.size() - 1 - i] = '=';
-	}
-
-	return encoded;
+	return RemoteBase64Encode( reinterpret_cast< const uint8_t* >( data ), length );
 }
 
 std::vector<BYTE> CRemoteSecurity::Base64Decode(const std::string& encoded)

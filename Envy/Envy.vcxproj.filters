@@ -1967,6 +1967,9 @@
     <ClInclude Include="SecureIdentPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RemoteBase64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="PacketBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>

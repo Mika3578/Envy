@@ -329,9 +329,10 @@ void CFinishedPage::OnTorrentCopy()
 
 		//if ( pVersion.dwPlatformId == VER_PLATFORM_WIN32_NT )
 		//{
-			HANDLE hMem = GlobalAlloc( GMEM_MOVEABLE|GMEM_DDESHARE, strText.GetLength() * 2 + 1 );
+			const SIZE_T nBytes = ( static_cast< SIZE_T >( strText.GetLength() ) + 1 ) * sizeof( WCHAR );
+			HANDLE hMem = GlobalAlloc( GMEM_MOVEABLE|GMEM_DDESHARE, nBytes );
 			LPVOID pMem = GlobalLock( hMem );
-			CopyMemory( pMem, (LPCTSTR)strText.GetBuffer(), strText.GetLength() * 2 + 1 );
+			CopyMemory( pMem, (LPCTSTR)strText, nBytes );
 			GlobalUnlock( hMem );
 
 			EmptyClipboard();
