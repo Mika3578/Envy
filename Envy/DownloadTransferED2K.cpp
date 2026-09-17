@@ -32,6 +32,7 @@
 #include "FileIdentifier.h"
 #include "Network.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -395,6 +396,8 @@ BOOL CDownloadTransferED2K::OnHashsetAnswer(CEDPacket* pPacket)
 
 	if ( nBlocks != nBlocksFromSize )
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_HASHSET_ERROR, (LPCTSTR)m_sAddress );
+	else if ( ! Ed2kHashsetPayloadFits( nBlocks, pPacket->GetRemaining() ) )
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
 	else if ( m_pDownload->SetHashset( pPacket->m_pBuffer + pPacket->m_nPosition, pPacket->GetRemaining() ) )
 		return SendSecondaryRequest();
 
@@ -458,6 +461,8 @@ BOOL CDownloadTransferED2K::OnHashsetAnswer2(CEDPacket* pPacket)
 
 		if ( nBlocks != nBlocksFromSize )
 			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_HASHSET_ERROR, (LPCTSTR)m_sAddress );
+		else if ( ! Ed2kHashsetPayloadFits( nBlocks, pPacket->GetRemaining() ) )
+			theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
 		else if ( m_pDownload->SetHashset( pPacket->m_pBuffer + pPacket->m_nPosition, pPacket->GetRemaining() ) )
 			return SendSecondaryRequest();
 	}
