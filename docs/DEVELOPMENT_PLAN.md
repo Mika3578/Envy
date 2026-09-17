@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
+- **Changelog Entry:** 2026-09-18 — #121: CryptLayer Hello bits stay 0 (TCP obfuscation unimplemented); peer Hello crypt bits no longer start PUBLICKEY packet crypto (`Ed2kCryptLayerHelloBitsMayStartPacketCrypto`).
 - **Changelog Entry:** 2026-09-18 — DevSecOps finalize: `AGENTS.md` controlled autonomy + max-3 development PR cap; Renovate `enabledManagers` = github-actions only; CodeRabbit `drafts: false` + `Envy/*Remote*` path; `ci-verify.ps1 -Full` builds/runs Win32 EnvyTests and requires clang-format; Merge Queue documented as optional.
 - **Changelog Entry:** 2026-09-18 — #96: pin external GitHub Actions to immutable commit SHAs under `.github/workflows` and `.github/actions` (documented upgrade path in `docs/10_dev/agents-and-automation.md`).
 - **Changelog Entry:** 2026-09-18 — Restored historical `CHANGELOG.md` body truncated by #148 squash (kept current Unreleased; reattached from `## [4.1.0]` onward).
@@ -226,7 +227,7 @@ to improve authentication and eMule credit-system compatibility.
 - [x] CryptLayer Hello bits (SUPPORTS/REQUESTS/REQUIRES) stay **0** until TCP
   protocol-obfuscation interop with eMule/aMule is proven; packet PUBLICKEY
   crypto is not treated as equivalent to MiscOptions2 crypt bits.
-- [ ] CryptLayer Hello bit alignment (separate PR after obfuscation audit — #121).
+- [x] CryptLayer Hello bit alignment (separate PR after obfuscation audit — #121).
 - [ ] Live Hello capture vs eMule Community / aMule (validation after merge).
 
 ### Current (#124 — EnableKad settings binding)
