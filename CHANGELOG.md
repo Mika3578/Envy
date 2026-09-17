@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GitHub Actions SHA pinning (#96)** — External actions in `.github/workflows/` and `.github/actions/` are pinned to full commit SHAs (with `# vN` comments). Upgrade process documented in `docs/10_dev/agents-and-automation.md`.
 
 ### Fixed
+- **BitTorrent BEP-9 ut_metadata size cap (#82)** — Reject peer-advertised `metadata_size`/`total_size` above 32 MiB and refuse `LoadInfoPiece` for oversize info dicts (`BtUtMetadataSizeOk`).
 - **Cooperative thread close without TerminateThread (#92)** — `CEnvyThread::CloseThread` abandons timed-out threads after cancel instead of `TerminateThread` (`EnvyThreadPolicy.h`); `throw()` → `noexcept`.
 - **ED2K EDClients-before-Transfers lock order (#92)** — Canonical order `EDClients.m_pSection` then `Transfers.m_pSection` (`Ed2kLockOrder.h`); fix inverted acquisition in `CEDClients::OnAccept`, UDP C2C path, and `CHostBrowser::Browse`.
 - **ED2K CryptLayer Hello honesty (#121)** — Confirm MiscOptions2 CryptLayer bits mean TCP protocol obfuscation (not PUBLICKEY packet RC4). Keep Hello advertise at 0; peer Hello crypt bits no longer start PUBLICKEY; peer flag defaults FALSE until Hello. Policy helpers + smoke tests extended.
