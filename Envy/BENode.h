@@ -48,7 +48,7 @@ public:
 	CString		GetStringFromSubNode(int nItem, UINT nEncoding) const;
 	CSHA		GetSHA1() const;
 	void		Encode(CBuffer* pBuffer) const;
-	void		Decode(LPCBYTE& pInput, DWORD& nInput, DWORD nSize);
+	void		Decode(LPCBYTE& pInput, DWORD& nInput, DWORD nSize, DWORD nDepth = 0);
 	static CBENode*	Decode(const CBuffer* pBuffer, DWORD *pnReaden = NULL);
 	static CBENode* Decode(LPCBYTE pBuffer, DWORD nLength, DWORD *pnReaden = NULL);
 private:

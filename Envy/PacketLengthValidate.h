@@ -10,6 +10,7 @@
 #pragma once
 
 #include <windows.h>
+#include <cstdint>
 
 // ED2K TCP framing: nLength counts the type byte, so valid packets need
 // nLength >= 1. Reject before callers do "nLength - 1" arithmetic.
@@ -63,4 +64,57 @@ inline BOOL GgepItemHasTypeByte(const BYTE* pBuffer, DWORD nLength)
 inline BOOL Ed2kPreviewFrameFits(DWORD nFrameSize, DWORD nRemaining)
 {
 	return nFrameSize <= nRemaining;
+}
+
+// Bencode nesting limit for list/dict Decode recursion (stack exhaustion / #82).
+constexpr DWORD BENODE_MAX_DEPTH = 32u;
+
+inline BOOL BencodeDepthOk(DWORD nDepth)
+{
+	return nDepth <= BENODE_MAX_DEPTH;
+}
+
+// Overflow-safe base-10 parse of a length-bounded ASCII integer (bencode 'i' / lengths).
+inline BOOL ParseInt64Bounded(const char* pszString, size_t nLen, __int64& nNum)
+{
+	if ( pszString == nullptr || nLen == 0 )
+		return FALSE;
+
+	bool bNeg = false;
+	size_t i = 0;
+	if ( pszString[ 0 ] == '-' )
+	{
+		if ( nLen < 2 )
+			return FALSE;
+		bNeg = true;
+		i = 1;
+	}
+
+	unsigned __int64 nAbs = 0;
+	const unsigned __int64 nMaxPos = static_cast< unsigned __int64 >( INT64_MAX );
+	const unsigned __int64 nMaxNeg = nMaxPos + 1ull;	// magnitude of INT64_MIN
+
+	for ( ; i < nLen; ++i )
+	{
+		if ( pszString[ i ] < '0' || pszString[ i ] > '9' )
+			return FALSE;
+		const unsigned d = static_cast< unsigned >( pszString[ i ] - '0' );
+		const unsigned __int64 nLimit = bNeg ? nMaxNeg : nMaxPos;
+		if ( nAbs > ( nLimit - d ) / 10ull )
+			return FALSE;
+		nAbs = nAbs * 10ull + d;
+	}
+
+	if ( bNeg )
+	{
+		if ( nAbs == nMaxNeg )
+			nNum = INT64_MIN;
+		else
+			nNum = -static_cast< __int64 >( nAbs );
+	}
+	else
+	{
+		nNum = static_cast< __int64 >( nAbs );
+	}
+	return TRUE;
 }

@@ -1,7 +1,7 @@
 //
 // Strings.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2020
+// This file is part of Envy (getenvy.com) ù 2016-2020
 // Portions copyright Shareaza 2010 and PeerProject 2010-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -18,6 +18,7 @@
 
 #include "StdAfx.h"
 #include "Strings.h"
+#include "PacketLengthValidate.h"
 
 #ifndef XPSUPPORT	// inet_ntoa deprecated, use InetNtop Vista+
 #include <Ws2tcpip.h>
@@ -672,20 +673,7 @@ LPCTSTR _tcsnistr(LPCTSTR pszString, LPCTSTR pszSubString, size_t nlen)
 
 bool atoin(__in_bcount(nLen) const char* pszString, __in size_t nLen, __int64& nNum)
 {
-	bool bNeg = false;
-	nNum = 0;
-	for ( size_t i = 0; i < nLen; ++i )
-	{
-		if ( pszString[ i ] >= '0' && pszString[ i ] <= '9' )
-			nNum = nNum * 10 + ( pszString[ i ] - '0' );
-		else if ( i == 0 && nLen > 1 && pszString[ i ] == '-' )
-			bNeg = true;
-		else
-			return false;
-	}
-	if ( bNeg )
-		nNum = - nNum;
-	return true;
+	return ParseInt64Bounded( pszString, nLen, nNum ) != FALSE;
 }
 
 #ifdef __AFXCOLL_H__

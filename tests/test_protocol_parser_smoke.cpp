@@ -204,6 +204,46 @@ static bool test_ed2k_preview_frame_max_uint_vs_zero()
 	return Ed2kPreviewFrameFits( 0xFFFFFFFFu, 0 ) == FALSE;
 }
 
+static bool test_bencode_depth_ok_zero()
+{
+	return BencodeDepthOk( 0 ) == TRUE;
+}
+
+static bool test_bencode_depth_ok_max()
+{
+	return BencodeDepthOk( BENODE_MAX_DEPTH ) == TRUE;
+}
+
+static bool test_bencode_depth_over_max()
+{
+	return BencodeDepthOk( BENODE_MAX_DEPTH + 1 ) == FALSE;
+}
+
+static bool test_parse_int64_bounded_normal()
+{
+	__int64 n = 0;
+	return ParseInt64Bounded( "12345", 5, n ) == TRUE && n == 12345;
+}
+
+static bool test_parse_int64_bounded_negative()
+{
+	__int64 n = 0;
+	return ParseInt64Bounded( "-42", 3, n ) == TRUE && n == -42;
+}
+
+static bool test_parse_int64_bounded_overflow()
+{
+	__int64 n = 0;
+	// 20 digits > INT64_MAX
+	return ParseInt64Bounded( "99999999999999999999", 20, n ) == FALSE;
+}
+
+static bool test_parse_int64_bounded_min()
+{
+	__int64 n = 0;
+	return ParseInt64Bounded( "-9223372036854775808", 20, n ) == TRUE && n == INT64_MIN;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -243,4 +283,11 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_preview_frame_too_large", test_ed2k_preview_frame_exceeds_remaining );
 	suite.add_test( "ed2k_preview_frame_high_bit", test_ed2k_preview_frame_high_bit );
 	suite.add_test( "ed2k_preview_frame_max_uint", test_ed2k_preview_frame_max_uint_vs_zero );
+	suite.add_test( "bencode_depth_ok_zero", test_bencode_depth_ok_zero );
+	suite.add_test( "bencode_depth_ok_max", test_bencode_depth_ok_max );
+	suite.add_test( "bencode_depth_over_max", test_bencode_depth_over_max );
+	suite.add_test( "parse_int64_bounded_normal", test_parse_int64_bounded_normal );
+	suite.add_test( "parse_int64_bounded_negative", test_parse_int64_bounded_negative );
+	suite.add_test( "parse_int64_bounded_overflow", test_parse_int64_bounded_overflow );
+	suite.add_test( "parse_int64_bounded_min", test_parse_int64_bounded_min );
 }
