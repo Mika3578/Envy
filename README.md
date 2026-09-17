@@ -4,6 +4,20 @@ Envy is a Windows-native, MFC-based **multi-network** peer-to-peer client (BitTo
 
 Envy is not an eMule replacement and is not replaced by aMule, eMule Qt, aria2-next, or similar projects. Those are interoperability and architecture **references**; see `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`.
 
+## Envy Preview Builds
+
+The modernized version of Envy is currently under active development.
+
+**Latest test release target:** Envy 4.2.0 Preview 1 (`v4.2.0-preview.1`)
+
+- **Windows x64:** recommended download
+- **Windows x86 (Win32):** legacy compatibility
+- **Portable ZIP:** diagnostic / no-installer runs
+
+Download builds from the GitHub [Releases](https://github.com/Mika3578/Envy/releases) page once Preview 1 is published.
+
+This is **preview** software. Some P2P protocol functionality is still under development. Preview installers are **not Authenticode-signed**; Windows SmartScreen may warn on first run. See `docs/KNOWN_LIMITATIONS.md`.
+
 ## Quick Start
 
 ### Prerequisites

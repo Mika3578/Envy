@@ -7,6 +7,7 @@
 - **Changelog Entry:** 2026-09-17 — #140 P0 runtime PASS on post-squash HEAD: targeted IGD discovery (single MiniUPnPc receive phase), gateway-only rootdevice fallback, non-IGD devices never receive WAN mapping commands. Known debt: MiniUPnPc 2.0 SSDP/HTTP latency (#142 / P3). Backlog: listeners must not wait for NAT (#141). Next: P1 WFAS.
 - **Changelog Entry:** 2026-09-17 — #140 P0 strategy: targeted IGD SSDP (`searchalltypes=1`, one discovery receive phase) + gateway-only rootdevice fallback. SSDP success != usable IGD; discovery fails cleanly when no IGD/WAN service is exposed.
 - **Changelog Entry:** 2026-09-16 — UPnP SSDP discovery selects Internet-facing IPv4 via `GetAdaptersAddresses` + `GetBestRoute2` (`NetworkInterfaceSelector`), replacing `GetAdaptersInfo` fallback on PR #140. Phased NAT/Firewall plan: P0 interface → P1 WFAS firewall → P2 local/external ports → P3 MiniUPnPc 2.3.x vendored → P4 PCP/NAT-PMP → P5 CGNAT/diagnostics. MiniUPnPc stays vendored (not vcpkg-only) for now.
+- **Changelog Entry:** 2026-09-16 — Started **Envy 4.2.0 Preview 1** release preparation: single version source (`4.2.0-preview.1` / Windows `4.2.0.1`), Inno `alpha` driven from CI (`/p:InstallerAlpha=Preview`), `release.yml` publishes per-platform setup + ZIP + `SHA256SUMS.txt` as draft prerelease. Universal installer and Authenticode deferred. See README Preview section. (Still gated on interactive installer smoke before merge; includes #139 WebHook BHO fix.)
 - **Changelog Entry:** 2026-09-16 — Fixed legacy IE WebHook startup registration: skip `WebHook32.dll`/`WebHook64.dll` (and historical `WebHook.dll`) when `WebHookEnable` is false; BHO key registered in code under HKCU (per-user) or HKLM (machine). Documented as IE-only legacy; candidate for removal in favor of a modern browser extension + `envy://url:`.
 - **Changelog Entry:** 2026-09-16 — Search Input/Advanced panel layout is font/DPI-aware (`GetPreferredHeight` + progressive Y); combo drop-down height kept separate from visible stacking; hash/prefix anchored to the search edit. No change to `GetSearchPanelWidth()` / SidebarWidth floor.
 - **Changelog Entry:** 2026-09-16 — Skin engine P0: StatusbarHeight pointer fix, ParseRect point/size + FindOneOf, roundRect size validation, LoadFromXML section-failure aggregation (non-transactional), strict metric parse/clamp aligned with Settings bounds; `SkinEngineP0.h` + EnvyTests. HiDPI/logical units deferred to P1+.
@@ -97,6 +98,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
   aggregation (non-transactional), strict metric parse/clamp. HiDPI deferred.
 
 ### In Progress
+- **Envy 4.2.0 Preview 1 release readiness** — version/packaging PR; install/uninstall + network smoke tests still required before tagging `v4.2.0-preview.1` and publishing the draft GitHub prerelease.
 - C++ modernization across legacy modules.
 - Incremental protocol compatibility and robustness improvements.
 - **P0 ED2K/Kad interoperability baseline** against eMule Community and aMule (live interop unverified; see `docs/10_dev/status.md`).
