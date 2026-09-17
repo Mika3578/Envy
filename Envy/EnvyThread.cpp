@@ -19,6 +19,7 @@
 #include "StdAfx.h"
 #include "Envy.h"
 #include "EnvyThread.h"
+#include "EnvyThreadPolicy.h"
 
 
 inline void SetThreadName(DWORD dwThreadID, LPCSTR szThreadName)
@@ -236,7 +237,7 @@ HANDLE CEnvyThread::BeginThread(LPCSTR pszName, AFX_THREADPROC pfnThreadProc, LP
 	return NULL;
 }
 
-void CEnvyThread::CloseThread(DWORD nThreadID, DWORD dwTimeout) throw()
+void CEnvyThread::CloseThread(DWORD nThreadID, DWORD dwTimeout) noexcept
 {
 	__try
 	{
@@ -255,15 +256,27 @@ void CEnvyThread::CloseThread(DWORD nThreadID, DWORD dwTimeout) throw()
 				if ( res != WAIT_TIMEOUT )
 					break;		// Handle signaled state or errors
 
-				// Timeout
-
-				// Very dangerous function produces 100% unrecoverable TLS leaks/deadlocks
-				if ( TerminateThread( hThread, 0 ) )
+				// Timeout after cooperative cancel (CThreadImpl sets m_pCancel first).
+				// TerminateThread orphans critical sections / TLS (#92)  never force-kill
+				// unless an explicit emergency policy enables it.
+				if ( EnvyThreadAllowForcedTerminate() )
 				{
-					theApp.Message( MSG_DEBUG, L"WARNING: Terminating thread (0x%x).", nThreadID );
-					TRACE( "WARNING: Terminating thread (0x%x).\n", nThreadID );
-
-					DeleteThread( nThreadID );
+					if ( TerminateThread( hThread, 0 ) )
+					{
+						theApp.Message( MSG_DEBUG, L"WARNING: Terminating thread (0x%x).", nThreadID );
+						TRACE( "WARNING: Terminating thread (0x%x).\n", nThreadID );
+						DeleteThread( nThreadID );
+					}
+				}
+				else
+				{
+					theApp.Message( MSG_ERROR,
+						L"Thread 0x%x did not exit within %u ms after cancel; abandoning without TerminateThread.",
+						nThreadID, dwTimeout );
+					TRACE( "WARNING: Abandoning thread (0x%x) without TerminateThread.\n", nThreadID );
+					// Drop map entry only  CWinThread auto-deletes when the worker eventually exits.
+					DetachThread( nThreadID );
+					Remove( nThreadID );
 				}
 				break;
 			}

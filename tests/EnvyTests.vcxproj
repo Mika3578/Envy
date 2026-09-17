@@ -189,6 +189,7 @@
     <ClCompile Include="test_secure_random_smoke.cpp" />
     <ClCompile Include="test_dc_packet_length_smoke.cpp" />
     <ClCompile Include="test_ed2k_lock_order_smoke.cpp" />
+    <ClCompile Include="test_envy_thread_policy_smoke.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />

@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
+- **Changelog Entry:** 2026-09-18 — #92 cooperative close: abandon timed-out threads without `TerminateThread` (`EnvyThreadPolicy.h`); completes remaining #92 slice after lock-order.
 - **Changelog Entry:** 2026-09-18 — #92 lock-order: EDClients before Transfers (`Ed2kLockOrder.h`); remaining #92 item is cooperative thread close without `TerminateThread`.
 - **Changelog Entry:** 2026-09-18 — #121: CryptLayer Hello bits stay 0 (TCP obfuscation unimplemented); peer Hello crypt bits no longer start PUBLICKEY packet crypto (`Ed2kCryptLayerHelloBitsMayStartPacketCrypto`).
 - **Changelog Entry:** 2026-09-18 — DevSecOps finalize: `AGENTS.md` controlled autonomy + max-3 development PR cap; Renovate `enabledManagers` = github-actions only; CodeRabbit `drafts: false` + `Envy/*Remote*` path; `ci-verify.ps1 -Full` builds/runs Win32 EnvyTests and requires clang-format; Merge Queue documented as optional.
@@ -11,7 +12,7 @@
 - **Changelog Entry:** 2026-09-18 — #81: NMDC HubName/HubTopic/chat prefixed-payload length guards before trailing-`|` arithmetic (`DcPacketLengthValidate.h` + EnvyTests).
 - **Changelog Entry:** 2026-09-18 — Restored full `docs/DEVELOPMENT_PLAN.md` body accidentally truncated by #159 squash; retained post-#147/#153 changelog lines and #119 `{deflate}` resolution note.
 - **Changelog Entry:** 2026-09-17 — #119: QueryHit `nSize-10` vs G1Packet `len-9` `{deflate}` sizing documented as intentional (trailing NUL vs HIT_SEP framing); no wire change.
-- **Changelog Entry:** 2026-09-17 — #92 slice: Remote Base64 empty-input safety (`RemoteBase64.h`), CHM `LocalAlloc`/`LocalFree` pairing, TorrentEnvy clipboard wide-NUL size. `TerminateThread` cooperative close remains open after lock-order fix.
+- **Changelog Entry:** 2026-09-17 — #92 slice: Remote Base64 empty-input safety (`RemoteBase64.h`), CHM `LocalAlloc`/`LocalFree` pairing, TorrentEnvy clipboard wide-NUL size. #92 TerminateThread and lock-order slices delivered.
 - **Changelog Entry:** 2026-09-17 — Portable ZIP staging now mirrors the Inno runtime tree (`stage-portable.ps1`: `Data`/`Skins`/`Schemas`/`Plugins`/…); flattened EXE/DLL-only ZIPs are rejected by `verify-artifacts.ps1`.
 - **Changelog Entry:** 2026-09-17 — Hardened `release.yml`: replaced parallel `softprops/action-gh-release` asset uploads with idempotent sequential `gh api` uploads by `release_id` (`scripts/release/*`); draft stays unpublished; `workflow_dispatch` remains dry-run unless explicit `repair_release_id`.
 - **Changelog Entry:** 2026-09-17 — #120: ED2K preview frames capped at 4 MiB and written with a bounded bulk copy (`Ed2kPreviewFrameAcceptable`).
