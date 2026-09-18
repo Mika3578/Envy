@@ -355,8 +355,10 @@ conan.lock
 # Reference code examples from other P2P programs
 Examples/
 
-# Build output file
+# Build output file (packaging dir at repo root / cwd). Keep scripts/release/ tracked.
 release
+!scripts/release/
+!scripts/release/**
 
 # Cleanup script notes (if needed)
 Cleanup.log
