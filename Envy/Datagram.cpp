@@ -22,6 +22,7 @@
 #include "Datagrams.h"
 #include "Buffer.h"
 #include "G2Packet.h"
+#include "PacketLengthValidate.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -98,6 +99,19 @@ BOOL CDatagramIn::Add(BYTE nPart, LPCVOID pData, DWORD nLength)
 
 CG2Packet* CDatagramIn::ToG2Packet()
 {
+	DWORD nTotal = 0;
+	for (int nPart = 0; nPart < m_nCount; nPart++)
+	{
+		if (m_pBuffer[nPart] == NULL)
+			return NULL;
+		const DWORD nPartLen = m_pBuffer[nPart]->m_nLength;
+		if (nPartLen > G2_SGP_REASSEMBLED_MAX - nTotal)
+			return NULL;
+		nTotal += nPartLen;
+		if (!G2SgpReassembledBytesOk(nTotal))
+			return NULL;
+	}
+
 	if ( m_nCount != 1 )
 	{
 		for ( int nPart = 1; nPart < m_nCount; nPart++ )
@@ -106,7 +120,15 @@ CG2Packet* CDatagramIn::ToG2Packet()
 		}
 	}
 
-	if ( m_bCompressed && ! m_pBuffer[0]->Inflate() ) return NULL;
+	if (m_bCompressed)
+	{
+		if (!m_pBuffer[0]->Inflate(G2_SGP_INFLATE_MAX))
+			return NULL;
+	}
+	else if (!G2SgpReassembledBytesOk(m_pBuffer[0]->m_nLength))
+	{
+		return NULL;
+	}
 
 	return CG2Packet::ReadBuffer( m_pBuffer[0] );
 }

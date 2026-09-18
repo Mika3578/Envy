@@ -982,6 +982,9 @@ BOOL CDatagrams::OnReceiveSGP(const SOCKADDR_IN* pHost, const SGP_HEADER* pHeade
 
 	m_nInFrags++;
 
+	if (!G2SgpFragmentCountOk(pHeader->nCount))
+		return FALSE;
+
 	if ( pHeader->nFlags & SGP_ACKNOWLEDGE )
 	{
 		SGP_HEADER pAck;

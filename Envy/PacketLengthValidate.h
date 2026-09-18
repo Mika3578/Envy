@@ -575,3 +575,20 @@ inline BOOL BtSourcesWantedAllowsMore(DWORD nEffectiveSources, DWORD nSourcesWan
 {
 	return nSourcesWanted > 0 && nEffectiveSources < nSourcesWanted;
 }
+
+// G2 SGP UDP reassembly / deflate caps (#81).
+// Matches Settings.Gnutella.MaximumPacket ceiling (256 KiB); TCP G2 already
+// enforces MaximumPacket — UDP ToG2Packet must not bypass it via Inflate.
+constexpr DWORD G2_SGP_REASSEMBLED_MAX = 256u * 1024u;
+constexpr DWORD G2_SGP_INFLATE_MAX = G2_SGP_REASSEMBLED_MAX;
+constexpr BYTE G2_SGP_FRAGMENT_MAX = 64;
+
+inline BOOL G2SgpFragmentCountOk(BYTE nCount)
+{
+	return nCount >= 1 && nCount <= G2_SGP_FRAGMENT_MAX;
+}
+
+inline BOOL G2SgpReassembledBytesOk(DWORD nTotal)
+{
+	return nTotal > 0 && nTotal <= G2_SGP_REASSEMBLED_MAX;
+}

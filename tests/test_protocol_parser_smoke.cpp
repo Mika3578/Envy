@@ -723,6 +723,11 @@ static bool test_bt_sources_wanted_allows_more()
 	return BtSourcesWantedAllowsMore(0, 500) == TRUE && BtSourcesWantedAllowsMore(499, 500) == TRUE && BtSourcesWantedAllowsMore(500, 500) == FALSE && BtSourcesWantedAllowsMore(0, 0) == FALSE;
 }
 
+static bool test_g2_sgp_reassembly_bounds()
+{
+	return G2SgpFragmentCountOk(1) == TRUE && G2SgpFragmentCountOk(G2_SGP_FRAGMENT_MAX) == TRUE && G2SgpFragmentCountOk(0) == FALSE && G2SgpFragmentCountOk(static_cast<BYTE>(G2_SGP_FRAGMENT_MAX + 1)) == FALSE && G2SgpReassembledBytesOk(1) == TRUE && G2SgpReassembledBytesOk(G2_SGP_REASSEMBLED_MAX) == TRUE && G2SgpReassembledBytesOk(0) == FALSE && G2SgpReassembledBytesOk(G2_SGP_REASSEMBLED_MAX + 1) == FALSE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("ed2k_source_body_exact_fit", test_source_body_valid_exact);
@@ -820,4 +825,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test("g1_wrapped_payload_ok", test_g1_wrapped_payload_ok);
 	suite.add_test("bt_compact_peer_list_bytes", test_bt_compact_peer_list_bytes);
 	suite.add_test("bt_sources_wanted_allows_more", test_bt_sources_wanted_allows_more);
+	suite.add_test("g2_sgp_reassembly_bounds", test_g2_sgp_reassembly_bounds);
 }
