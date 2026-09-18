@@ -2,12 +2,12 @@
 <%? !network_connected %>
 		<p>
 			<%= text_networkdisabled %> -<!--This network is <b>not</b> enabled-->
-			<a href="?connect=<%= network_id %>"><strong><%= text_networkconnect %> <%= network_caption %></strong></a>
+			<a href="?connect=<%= network_id %>&csrf_token=<%= csrf_token %>"><strong><%= text_networkconnect %> <%= network_caption %></strong></a>
 		</p>
 <%?%><%? network_connected %>
 		<p>
 			<%= text_networkenabled %> -<!--This network is enabled-->
-			<a href="?disconnect=<%= network_id %>"><strong><%= text_networkdisconnect %> <%= network_caption %></strong></a>
+			<a href="?disconnect=<%= network_id %>&csrf_token=<%= csrf_token %>"><strong><%= text_networkdisconnect %> <%= network_caption %></strong></a>
 		</p>
 		<div class="centertable">
 			<table>
