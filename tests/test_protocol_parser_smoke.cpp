@@ -481,6 +481,13 @@ static bool test_ggep_inflate_output_ok()
 		&& GgepInflateOutputOk( GGEP_INFLATE_MAX + 1 ) == FALSE;
 }
 
+static bool test_ed2k_compressedpart_inflate_ok()
+{
+	return Ed2kCompressedPartInflateOk( 0, ED2K_COMPRESSEDPART_INFLATE_MAX ) == TRUE
+		&& Ed2kCompressedPartInflateOk( ED2K_COMPRESSEDPART_INFLATE_MAX, ED2K_COMPRESSEDPART_INFLATE_MAX ) == TRUE
+		&& Ed2kCompressedPartInflateOk( ED2K_COMPRESSEDPART_INFLATE_MAX + 1, ED2K_COMPRESSEDPART_INFLATE_MAX ) == FALSE
+		&& Ed2kCompressedPartInflateOk( 100, 50 ) == FALSE;
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -553,4 +560,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "cbuffer_inflate_output_ok", test_cbuffer_inflate_output_ok );
 	suite.add_test( "cbuffer_inflate_stream_output_ok", test_cbuffer_inflate_stream_output_ok );
 	suite.add_test( "ggep_inflate_output_ok", test_ggep_inflate_output_ok );
+	suite.add_test( "ed2k_compressedpart_inflate_ok", test_ed2k_compressedpart_inflate_ok );
 }

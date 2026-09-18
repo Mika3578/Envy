@@ -694,6 +694,23 @@ BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 				QWORD nOffset = m_nInflateOffset + m_nInflateWritten;
 				QWORD nLength = BUFFER_SIZE - m_pInflatePtr->avail_out;
 
+				QWORD nMaxUncompressed = ED2K_COMPRESSEDPART_INFLATE_MAX;
+				if ( m_pDownload->m_nSize != SIZE_UNKNOWN &&
+					 m_pDownload->m_nSize > m_nInflateOffset )
+				{
+					nMaxUncompressed = min( nMaxUncompressed,
+						m_pDownload->m_nSize - m_nInflateOffset );
+				}
+				if ( ! Ed2kCompressedPartInflateOk( m_nInflateWritten + nLength, nMaxUncompressed ) )
+				{
+					CBuffer::InflateStreamCleanup( m_pInflatePtr );
+					m_pInflateBuffer->Clear();
+					theApp.Message( MSG_ERROR, IDS_DOWNLOAD_INFLATE_ERROR,
+						(LPCTSTR)m_pDownload->GetDisplayName() );
+					Close( TRI_FALSE );
+					return FALSE;
+				}
+
 				m_pDownload->SubmitData( nOffset, pBuffer.get(), nLength );
 
 				m_oRequested.erase( Fragments::Fragment( nOffset, nOffset + nLength ) );
@@ -1258,6 +1275,23 @@ BOOL CDownloadTransferED2K::OnCompressedPart64(CEDPacket* pPacket)
 			{
 				QWORD nOffset = m_nInflateOffset + m_nInflateWritten;
 				QWORD nLength = BUFFER_SIZE - m_pInflatePtr->avail_out;
+
+				QWORD nMaxUncompressed = ED2K_COMPRESSEDPART_INFLATE_MAX;
+				if ( m_pDownload->m_nSize != SIZE_UNKNOWN &&
+					 m_pDownload->m_nSize > m_nInflateOffset )
+				{
+					nMaxUncompressed = min( nMaxUncompressed,
+						m_pDownload->m_nSize - m_nInflateOffset );
+				}
+				if ( ! Ed2kCompressedPartInflateOk( m_nInflateWritten + nLength, nMaxUncompressed ) )
+				{
+					CBuffer::InflateStreamCleanup( m_pInflatePtr );
+					m_pInflateBuffer->Clear();
+					theApp.Message( MSG_ERROR, IDS_DOWNLOAD_INFLATE_ERROR,
+						(LPCTSTR)m_pDownload->GetDisplayName() );
+					Close( TRI_FALSE );
+					return FALSE;
+				}
 
 				m_pDownload->SubmitData( nOffset, pBuffer.get(), nLength );
 

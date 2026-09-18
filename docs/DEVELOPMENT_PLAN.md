@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #81: ED2K `COMPRESSEDPART` / `COMPRESSEDPART64` stream inflate capped at one part (`ED2K_COMPRESSEDPART_INFLATE_MAX` / `Ed2kCompressedPartInflateOk`) before `SubmitData`.
 - **Changelog Entry:** 2026-09-19 — #81: GGEP DEFLATE inflate capped at 256 KiB (`GGEP_INFLATE_MAX` / `GgepInflateOutputOk`).
 - **Changelog Entry:** 2026-09-19 — #81: `CBuffer::InflateStreamTo` default `nMaxOutput=0` to `CBUFFER_INFLATE_STREAM_MAX` (32 MiB) for Neighbour G1/G2 deflate backlog; G1/G2/ED/DC `OnRead` fail-closes on inflate error; `CBufferInflateStreamOutputOk` smoke coverage.
 - **Changelog Entry:** 2026-09-19 — #81: `CBuffer::Inflate`/`Ungzip` default `nMaxOutput=0` to `CBUFFER_INFLATE_MAX` (32 MiB); `CBufferInflateOutputOk` smoke coverage.
