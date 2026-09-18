@@ -185,6 +185,7 @@
     <ClCompile Include="test_webhook_registration_smoke.cpp" />
     <ClCompile Include="test_skin_engine_p0_smoke.cpp" />
     <ClCompile Include="test_network_interface_selector_smoke.cpp" />
+    <ClCompile Include="test_remote_base64_smoke.cpp" />
     <ClCompile Include="test_secure_random_smoke.cpp" />
   </ItemGroup>
   <ItemGroup>
