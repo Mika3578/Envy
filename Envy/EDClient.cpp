@@ -429,9 +429,9 @@ CEDClient::CEDClient()
 
 	, m_bEmSupportsCaptcha	( FALSE )
 	, m_bEmSupportsSourceEx2 ( TRUE )	// Source Exchange v2 enabled
-	, m_bEmRequiresCryptLayer ( FALSE )	// Basic support enabled
-	, m_bEmRequestsCryptLayer ( TRUE )	// Request encryption when available
-	, m_bEmSupportsCryptLayer ( TRUE )	// Support encryption
+	, m_bEmRequiresCryptLayer ( FALSE )	// Peer Hello bit; TCP obfuscation (#121)
+	, m_bEmRequestsCryptLayer ( FALSE )	// Peer Hello bit; default unknown until Hello
+	, m_bEmSupportsCryptLayer ( FALSE )	// Peer Hello bit; default unknown until Hello
 	, m_bEmExtMultiPacket	( FALSE )	// Unsupported
 	, m_bEmLargeFile		( FALSE )	// LargeFile support
 	, m_nEmKadVersion		( 0 )		// Unsupported
@@ -1027,19 +1027,17 @@ BOOL CEDClient::OnLoggedIn()
 			Send( pPacket );
 	}
 
-	// Initiate CryptLayer handshake if both sides support it and we haven't started yet
-	// Handshake should be initiated when:
-	// - Peer supports CryptLayer (peer capability parsed from hello packet)
-	// - Either we request it OR peer requires it
-	// - Handshake hasn't been started yet
-	// - We are the designated initiator (deterministic rule using GUID comparison)
-	if ( m_bEmSupportsCryptLayer &&
+	// #121: eMule MiscOptions2 CryptLayer bits mean TCP protocol obfuscation,
+	// not PUBLICKEY/ANSWERCryptLayer packet RC4. Envy does not implement TCP
+	// obfuscation and must not start packet crypto from peer Hello bits.
+	if ( Ed2kCryptLayerHelloBitsMayStartPacketCrypto() &&
+		 m_bEmSupportsCryptLayer &&
 		 ( m_bEmRequestsCryptLayer || m_bEmRequiresCryptLayer ) &&
 		 m_nCryptLayerState == 0 &&
 		 ! m_bCryptLayerInitiator &&
 		 ShouldInitiateCryptLayer() )
 	{
-		m_bCryptLayerInitiator = TRUE;  // Mark ourselves as initiator
+		m_bCryptLayerInitiator = TRUE;
 		InitCryptLayer();
 		StartCryptLayerHandshake();
 	}

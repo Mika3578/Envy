@@ -25,7 +25,9 @@ static bool test_cryptlayer_advertise_all_zero()
 {
 	return Ed2kCryptLayerSupportsAdvertised() == FALSE
 		&& Ed2kCryptLayerRequestsAdvertised() == FALSE
-		&& Ed2kCryptLayerRequiresAdvertised() == FALSE;
+		&& Ed2kCryptLayerRequiresAdvertised() == FALSE
+		&& Ed2kCryptLayerTcpObfuscationImplemented() == FALSE
+		&& Ed2kCryptLayerHelloBitsMayStartPacketCrypto() == FALSE;
 }
 
 static bool test_ext_multipacket_not_advertised()
