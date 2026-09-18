@@ -94,6 +94,8 @@ protected:
 //	BOOL	SendAwayMessage(const CString& strText);
 	void	ProcessMessages();
 	void	ClearMessages();
+	void	EnqueueMessage(MSG& oMsg);
+	void	FreeQueueMessage(MSG& oMsg);
 
 	// G1/G2
 	BOOL	ReadHandshake();

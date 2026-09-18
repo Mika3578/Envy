@@ -29,6 +29,7 @@ void register_remote_password_policy_smoke_tests(TestSuite& suite);
 void register_remote_html_escape_smoke_tests(TestSuite& suite);
 void register_firewall_wfas_policy_smoke_tests(TestSuite& suite);
 void register_network_job_queue_smoke_tests(TestSuite& suite);
+void register_chat_session_queue_smoke_tests(TestSuite& suite);
 
 int main() {
 	TestSuite suite;
@@ -51,6 +52,7 @@ int main() {
 	register_remote_html_escape_smoke_tests(suite);
 	register_firewall_wfas_policy_smoke_tests(suite);
 	register_network_job_queue_smoke_tests(suite);
+	register_chat_session_queue_smoke_tests(suite);
 
 	int failures = suite.run_all_tests();
 
