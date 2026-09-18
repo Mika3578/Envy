@@ -1,4 +1,6 @@
 {
+  // Renovate Community Cloud config for Mika3578/Envy
+  // Dependabot retains vcpkg only — do not enable a vcpkg manager here.
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
@@ -21,14 +23,14 @@
   ],
   "packageRules": [
     {
-      "description": "Group GitHub Actions minor/patch updates into one PR",
+      "description": "Group GitHub Actions minor/patch/digest updates into one PR",
       "matchManagers": ["github-actions"],
       "matchUpdateTypes": ["minor", "patch", "digest"],
       "groupName": "GitHub Actions (non-major)",
       "automerge": false
     },
     {
-      "description": "Keep major Actions bumps reviewable and ungrouped",
+      "description": "Major Actions bumps stay ungrouped and need dashboard approval",
       "matchManagers": ["github-actions"],
       "matchUpdateTypes": ["major"],
       "labels": ["dependencies", "renovate", "major"],
@@ -36,7 +38,7 @@
       "dependencyDashboardApproval": true
     },
     {
-      "description": "Prefer commit SHA digests for third-party Actions supply-chain hygiene",
+      "description": "Pin third-party Actions to commit digests (supply-chain)",
       "matchManagers": ["github-actions"],
       "pinDigests": true
     }

@@ -44,7 +44,8 @@ false-positive period and an explicit Fail-on-unresolved policy.
 | Tool | Owns | Notes |
 | --- | --- | --- |
 | Dependabot | `vcpkg` baseline only | `.github/dependabot.yml` |
-| Renovate | GitHub Actions (+ future custom/regex) | `renovate.json`, group non-major, pin digests, Dependency Dashboard |
+| Renovate | GitHub Actions (+ future custom/regex) | `renovate.json5`, group non-major, pin digests, Dependency Dashboard |
+
 
 Install the **Renovate GitHub App** on Mika3578/Envy if suites appear queued but idle.
 Do not re-enable `github-actions` under Dependabot (duplicate PRs).
@@ -62,6 +63,14 @@ High-risk paths (extra bar before auto-merge): G1/G2, ED2K/Kad, BitTorrent, NMDC
 Network/NAT, packet parsing, crypto, threading/locking, serialization, Remote.
 Require a regression/protocol test, explicit “no wire-format change”, or reference
 comparison notes.
+
+## Manual setup (cannot be completed from repo files alone)
+
+1. **CodeRabbit GitHub App** — Install on [Mika3578/Envy](https://github.com/Mika3578/Envy) (public OSS reviews are free). Config already lives in `.coderabbit.yaml`. Keep reviews **advisory**.
+2. **Renovate GitHub App** — Confirm installed/enabled; config is `renovate.json5`. Suites may show `QUEUED` until the app processes the repo.
+3. **Merge Queue** — API ruleset `merge_queue` returned validation failure on this repository (2026-09-18). Enable via GitHub UI if the plan allows:  
+   Settings → Rules → Protect develop → add Merge queue (squash) **or** Settings → General → Pull Requests → allow merge queue, then require it on `develop`. Until then, use **squash auto-merge** + update-branch after each land.
+4. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 
 ## Agent PR back-pressure
 
