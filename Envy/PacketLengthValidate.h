@@ -104,13 +104,13 @@ constexpr DWORD ED2K_FILE_COMMENT_MAX = 250u;
 
 inline BOOL Ed2kFileCommentHeaderFits(DWORD nRemaining)
 {
-	return nRemaining >= 5u;	// rating + length
+	return nRemaining >= 5u; // rating + length
 }
 
 // After header consumed: claimed length must fit remaining payload (optionally pre-clamped).
 inline BOOL Ed2kFileCommentLengthOk(DWORD nClaimedLen, DWORD nRemainingAfterHeader)
 {
-	if ( nClaimedLen > ED2K_FILE_COMMENT_MAX )
+	if (nClaimedLen > ED2K_FILE_COMMENT_MAX)
 		return FALSE;
 	return nClaimedLen <= nRemainingAfterHeader;
 }
