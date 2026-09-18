@@ -310,6 +310,16 @@ static bool test_bt_ut_metadata_size_over_max()
 	return BtUtMetadataSizeOk( BT_UT_METADATA_MAX + 1 ) == FALSE;
 }
 
+static bool test_g1_wrapped_payload_ok()
+{
+	return G1WrappedPayloadLengthOk( 0 ) == TRUE
+		&& G1WrappedPayloadLengthOk( static_cast< LONG >( G1_WRAPPED_PAYLOAD_MAX ) ) == TRUE
+		&& G1WrappedPayloadLengthOk( -1 ) == FALSE
+		&& G1WrappedPayloadFits( G1_PACKET_HEADER_BYTES + 10, 10 ) == TRUE
+		&& G1WrappedPayloadFits( G1_PACKET_HEADER_BYTES + 9, 10 ) == FALSE
+		&& G1WrappedPayloadFits( 100, -1 ) == FALSE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -367,4 +377,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero );
 	suite.add_test( "bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max );
 	suite.add_test( "bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max );
+	suite.add_test( "g1_wrapped_payload_ok", test_g1_wrapped_payload_ok );
 }

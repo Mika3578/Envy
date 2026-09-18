@@ -172,3 +172,25 @@ inline BOOL BtUtMetadataSizeOk(std::uint64_t nSize)
 {
 	return nSize > 0 && nSize <= BT_UT_METADATA_MAX;
 }
+
+// G2 HIT_WRAP / routing embeds a GNUTELLAPACKET (#81).
+// m_nLength is signed LONG — negative values must not enter unsigned
+// "remaining >= header + length" math or (DWORD) cast before Write.
+constexpr DWORD G1_PACKET_HEADER_BYTES = 23u;	// sizeof(GNUTELLAPACKET)
+constexpr DWORD G1_WRAPPED_PAYLOAD_MAX = 256u * 1024u;	// Settings.Gnutella.MaximumPacket ceiling
+
+inline BOOL G1WrappedPayloadLengthOk(LONG nPayloadLen)
+{
+	if ( nPayloadLen < 0 )
+		return FALSE;
+	return static_cast< DWORD >( nPayloadLen ) <= G1_WRAPPED_PAYLOAD_MAX;
+}
+
+inline BOOL G1WrappedPayloadFits(DWORD nRemaining, LONG nPayloadLen)
+{
+	if ( ! G1WrappedPayloadLengthOk( nPayloadLen ) )
+		return FALSE;
+	if ( nRemaining < G1_PACKET_HEADER_BYTES )
+		return FALSE;
+	return static_cast< DWORD >( nPayloadLen ) <= ( nRemaining - G1_PACKET_HEADER_BYTES );
+}
