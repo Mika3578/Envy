@@ -94,14 +94,12 @@ else if ( ::StartsWith( m_sRequest, _P( L"/remote" ) ) )
 - Verification in `CheckCookie()` for state-changing operations
 
 **CSRF Token:**
-- Generated with `CryptGenRandom` (16 bytes → hex string)
-- Stored per session (cookie ID)
-- Included in all pages with forms
-- Verified for all state-changing operations:
-  - `newsearch`, `newdownload`
-  - `modify_action` (downloads, sources)
-  - `drop` (uploads, network)
-  - `connect`, `disconnect` (network)
+- Generated with CSPRNG / session store (`CRemoteSecurity`)
+- Required for known mutating path segments (`newsearch`, `newdownload`, `modify`, `drop`)
+- Also required for mutating **query keys** on otherwise-read pages (`connect`, `disconnect`, `filter_set`, `group_select`/`deselect`/`exclusive`, `queue_expand`/`collapse`) — closes #77 path-only blind spot
+- Non-empty `_method` overrides require CSRF (must not bypass checks)
+- Classic Remote HTML links/forms include `csrf_token` for those actions
+- Stored per session; verified in `CheckCookie()` before page handlers mutate state
 
 **Impact:** Protection against cross-origin CSRF attacks
 
