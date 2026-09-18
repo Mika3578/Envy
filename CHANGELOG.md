@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Cloud Agent Linux dev environment (`.cursor/environment.json`)** — Cloud Agents now boot a ready-to-use Linux environment for Envy's cross-platform checks. The install step provisions `clang-format`/`clang-tidy`/`cppcheck` and installs the Remote web UI security test dependencies (`npm --prefix Remote/tests ci`). The MFC/ATL app and HashLib remain Windows-only (MSVC v145); this environment targets the same checks CI runs on `ubuntu-latest`.
 - **Cross-platform foundations (docs)** — Canonical plan for progressive EnvyCore / platform abstraction / retained MFC Windows frontend; Linux/macOS marked **planned** (not supported); Win32 legacy Stage A policy; CMake portable-slice priority (D-012…D-015). See `docs/20_arch/PORTABILITY_PLAN.md`.
 - **DevSecOps tooling (local + PR advisors)** — `scripts/ci-fast.ps1` / `scripts/ci-verify.ps1` for a Windows-local gate approximating MSVC/tests; Renovate (root `renovate.json`) owns GitHub Actions updates with grouping/digests while Dependabot keeps **vcpkg only**; CodeRabbit (`.coderabbit.yaml`) and clang-tidy→reviewdog (`.github/workflows/clang-tidy-pr.yml`) are advisory PR reviewers. See `docs/10_dev/devsecops-envy.md`.
 
