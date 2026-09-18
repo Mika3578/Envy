@@ -81,13 +81,34 @@ Branch model:
     agent-prefixed branches such as `claude/`, `cursor/`, `codex/`,
     `aider/`, `copilot/`, or `agent/`; the name must describe the change,
     not the tool that produced it.
-12. **Human approval at the merge gate**. An assistant may create a work
-    branch, commit on that branch, push the branch, and open a **draft**
-    PR. An assistant must **not** mark a PR ready-for-review, enable
-    auto-merge, or merge without explicit maintainer approval. When a
-    maintainer explicitly instructs you to merge a specific PR after its
-    checks pass, you may perform that merge. Never push to
-    `main`/`develop`/`legacy` directly.
+12. **Controlled autonomy at the merge gate**. An assistant **may** create a
+    work branch, commit/push on that branch, open a **draft** PR, mark the
+    PR ready-for-review, address reviews, fix CI, update the branch with
+    `develop`, enable **squash auto-merge**, and let GitHub merge
+    **without** an extra human approval when **all** of the following hold:
+    - low-risk change;
+    - branch up to date with `develop`;
+    - no merge conflicts;
+    - all **required** status checks green;
+    - no unresolved review threads;
+    - sufficient tests for the change;
+    - no unvalidated risky protocol, crypto, authentication, threading,
+      locking, memory-ownership, or undocumented wire-format change.
+    For high-risk areas (ED2K/eMule, Kad/Kademlia, Gnutella/G1,
+    Gnutella2/G2, BitTorrent, NMDC/ADC, Network/NAT, packet parsing,
+    serialization, crypto, authentication, threading, locking, memory
+    lifetime), also require sufficient evidence: a regression test,
+    protocol/spec comparison, comparison with eMule/aMule/Shareaza (or
+    another relevant reference), **or** an explicit
+    `Wire-format impact: none` justification in the PR.
+    **Never** bypass GitHub rulesets, required checks, or branch
+    protections. Never push to `main`/`develop`/`legacy` directly.
+13. **Maximum 3 active development PRs**. Before opening a new PR, count
+    open **development** PRs (Dependabot/Renovate PRs do **not** count).
+    If **≤ 2**, a new PR is allowed. If **≥ 3**, creating another PR is
+    **forbidden** — work only on existing PRs (CI, reviews, conflicts,
+    update-branch, tests, ready-for-review, squash auto-merge, merge).
+    No exceptions for “small/quick”, “tooling”, or “simple refactor” PRs.
 
 ---
 
@@ -154,15 +175,18 @@ When you take on a task you are expected to:
 2. **Push only to your feature branch** (never `develop`, `main`, or
    `legacy`) with `git push -u origin <branch>`.
 3. **Open a draft PR** if one does not exist. Match the PR template at
-   `.github/pull_request_template.md`.
-4. **Tick the checkboxes** in the PR template that genuinely apply -
+   `.github/pull_request_template.md`. Mark ready-for-review and enable
+   squash auto-merge only under hard rule 12.
+4. **Respect the max-3 development PR cap** (hard rule 13) before opening
+   anything new.
+5. **Tick the checkboxes** in the PR template that genuinely apply -
    don't blanket-check them.
-5. **Cite file:line** in chat replies when discussing code:
+6. **Cite file:line** in chat replies when discussing code:
    `Envy/Buffer.cpp:782`, never paraphrased.
-6. **Never edit a vendored third-party file** to suppress a warning -
+7. **Never edit a vendored third-party file** to suppress a warning -
    either fix it upstream (vcpkg port), add a `/wd<num>` per-project,
    or leave the warning.
-7. **Cluster mechanical edits**. If you are going to rewrite a token
+8. **Cluster mechanical edits**. If you are going to rewrite a token
    across N files, write a Python/PowerShell script under
    `Visual Studio/` (or a tmp script you delete), run it, commit the
    resulting diff. Don't hand-edit 40 files.

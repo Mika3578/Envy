@@ -1,6 +1,6 @@
 # Envy DevSecOps map (cost-minimal, Windows-first)
 
-**Last Updated:** 2026-09-18  
+**Last Updated:** 2026-09-18
 **Repo:** [Mika3578/Envy](https://github.com/Mika3578/Envy) (not upstream GetEnvy/Envy)
 
 ## Principle
@@ -13,17 +13,20 @@ Cursor Agent → PR → CodeRabbit (advisory)
                   → reviewdog/clang-tidy (advisory)
                   → MSVC + EnvyTests + Format + PR Gate
                   → CodeQL + Sonar + gitleaks
-                  → Merge Queue (when enabled) / squash auto-merge
+                  → squash auto-merge (update branch + required checks)
                   → develop
 ```
+
+Personal repositories may not support Merge Queue; **do not block** on enabling
+it. Prefer strict required checks + update-branch + squash auto-merge.
 
 ## Local commands
 
 | Command | Role |
 | --- | --- |
-| `.\scripts\ci-fast.ps1` | Pre-push: optional clang-format dry-run on changed C/C++, conflict-marker scan |
-| `.\scripts\ci-verify.ps1` | Local MSVC gate: fast + Envy x64 Release + EnvyTests x64 |
-| `.\scripts\ci-verify.ps1 -Full` | Also Envy Win32 Release |
+| `.\scripts\ci-fast.ps1` | Pre-push: optional clang-format dry-run on changed C/C++ (warn if missing), conflict-marker scan |
+| `.\scripts\ci-verify.ps1` | Local MSVC gate: ci-fast + Envy x64 Release + EnvyTests x64 + run tests |
+| `.\scripts\ci-verify.ps1 -Full` | Also Envy/EnvyTests Win32 + run Win32 tests; **requires** clang-format on PATH |
 
 These approximate GitHub gates; they do **not** replace CodeQL/Sonar/gitleaks/PR Gate.
 
@@ -44,11 +47,14 @@ false-positive period and an explicit Fail-on-unresolved policy.
 | Tool | Owns | Notes |
 | --- | --- | --- |
 | Dependabot | `vcpkg` baseline only | `.github/dependabot.yml` |
-| Renovate | GitHub Actions (+ future custom/regex) | `renovate.json5`, group non-major, pin digests, Dependency Dashboard |
+| Renovate | GitHub Actions only | `renovate.json5` (`enabledManagers: ["github-actions"]`), group non-major, pin digests, Dependency Dashboard; no blind automerge |
 
 
-Install the **Renovate GitHub App** on Mika3578/Envy if suites appear queued but idle.
+Install the **Renovate GitHub App** on Mika3578/Envy if suites appear queued but idle
+(no Dependency Dashboard issue / no Renovate PRs). Until then Actions pins are
+maintained manually / via PR #156-style SHA pinning.
 Do not re-enable `github-actions` under Dependabot (duplicate PRs).
+Do not add `regex` to `enabledManagers` unless a real `customManagers` regex entry exists.
 
 ## AI review
 
@@ -66,16 +72,21 @@ comparison notes.
 
 ## Manual setup (cannot be completed from repo files alone)
 
-1. **CodeRabbit GitHub App** — Install on [Mika3578/Envy](https://github.com/Mika3578/Envy) (public OSS reviews are free). Config already lives in `.coderabbit.yaml`. Keep reviews **advisory**.
-2. **Renovate GitHub App** — Confirm installed/enabled; config is `renovate.json5`. Suites may show `QUEUED` until the app processes the repo.
-3. **Merge Queue** — API ruleset `merge_queue` returned validation failure on this repository (2026-09-18). Enable via GitHub UI if the plan allows:  
-   Settings → Rules → Protect develop → add Merge queue (squash) **or** Settings → General → Pull Requests → allow merge queue, then require it on `develop`. Until then, use **squash auto-merge** + update-branch after each land.
+1. **CodeRabbit GitHub App** — If reviews do not appear on ready (non-draft) PRs, open
+   GitHub → Settings → Applications → Installed GitHub Apps → **CodeRabbit** → Configure → **Mika3578/Envy**.
+   Config: `.coderabbit.yaml` (`drafts: false`, advisory only). Repos with fewer than 10 stars may require a manual `@coderabbitai review` / checkbox trigger.
+2. **Renovate GitHub App** — If there is no Dependency Dashboard issue and no Renovate PRs, open
+   GitHub → Settings → Applications → Installed GitHub Apps → **Renovate** → Configure → **Mika3578/Envy**
+   (or install from [renovatebot.com](https://github.com/apps/renovate)).
+   Config: `renovate.json5`. Suites may show `QUEUED` until the app processes the repo.
+3. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks on `Protect develop`.
 4. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 
 ## Agent PR back-pressure
 
-Max **3** active agent development PRs. If at cap: repair CI, handle CodeRabbit /
-reviewdog comments, resolve conflicts, merge — **do not** open another PR.
+Max **3** active development PRs (canonical rule in `AGENTS.md`). If at cap: repair CI,
+handle CodeRabbit / reviewdog comments, resolve conflicts, ready-for-review,
+squash auto-merge — **do not** open another PR. No “small/tooling” exceptions.
 Dependabot/Renovate PRs are outside the agent cap but should stay grouped.
 
 ## Related

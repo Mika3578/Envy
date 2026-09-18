@@ -15,7 +15,7 @@ reviews:
   collapse_walkthrough: true
   auto_review:
     enabled: true
-    drafts: true
+    drafts: false
     base_branches:
       - develop
       - main
@@ -42,7 +42,14 @@ reviews:
         covered by Format Check / .clang-format.
     - path: "Remote/**"
       instructions: |
-        Focus on CSRF, XSS, auth/session handling, and HTML/JS injection risks.
+        Focus on CSRF, XSS, authentication, authorization, sessions,
+        credential storage, HTML/JS injection, bounds, and security
+        regressions in Remote UI assets.
+    - path: "Envy/*Remote*"
+      instructions: |
+        Focus on CSRF, XSS, authentication, authorization, sessions,
+        credential storage, HTML/JS injection, bounds, and security
+        regressions in the C++ Remote control surface under Envy/.
     - path: "tests/**"
       instructions: |
         Prefer concrete regression assertions over implementation-detail tests.
