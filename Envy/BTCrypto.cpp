@@ -12,6 +12,7 @@
 #include "BTCrypto.h"
 #include "Buffer.h"
 #include "Envy.h"
+#include "PacketLengthValidate.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -256,7 +257,8 @@ CBTCrypto::CBTCrypto() :
 	m_nCryptoMethod(0),
 	m_bInitiator(false),
 	m_bHasInfoHash(false),
-	m_nPadALen(0)
+	m_nPadALen(0),
+	m_nPendingIaLen(0)
 {
 	memset(m_privateKey, 0, sizeof(m_privateKey));
 	memset(m_publicKey, 0, sizeof(m_publicKey));
@@ -643,13 +645,14 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 		WORD iaLen;
 		memcpy(&iaLen, iaLenBuf, 2);
 
-		// IA (initial payload) stays in the buffer for BT handshake processing
-		if (iaLen > 0 && pInput->m_nLength >= iaLen) {
-			// Decrypt IA in-place
-			m_rc4Decrypt.Process(pInput->m_pBuffer, iaLen);
+		if ( ! BtMseIaLengthOk( iaLen ) )
+		{
+			theApp.Message(MSG_WARNING, L"[BT-MSE] IA length exceeds BT_MSE_IA_MAX");
+			m_nState = MSE_FAILED;
+			return false;
 		}
 
-		// Select crypto method (prefer RC4)
+		// Select crypto method before waiting (prefer RC4)
 		if (cryptoProvide & MSE_CRYPTO_RC4)
 			m_nCryptoMethod = MSE_CRYPTO_RC4;
 		else if (cryptoProvide & MSE_CRYPTO_PLAIN)
@@ -659,6 +662,40 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 			return false;
 		}
 
+		// Stall in MSE_AWAITING_IA — RC4 already advanced past len(IA).
+		if ( iaLen > 0 && pInput->m_nLength < iaLen )
+		{
+			m_nPendingIaLen = iaLen;
+			m_nState = MSE_AWAITING_IA;
+			return true;
+		}
+
+		// IA (initial payload) stays in the buffer for BT handshake processing
+		if ( iaLen > 0 )
+			m_rc4Decrypt.Process( pInput->m_pBuffer, iaLen );
+
+		return SendResponderCryptoSelect( pOutput );
+	}
+
+	case MSE_AWAITING_IA:
+	{
+		if ( pInput->m_nLength < m_nPendingIaLen )
+			return true;
+
+		if ( m_nPendingIaLen > 0 )
+			m_rc4Decrypt.Process( pInput->m_pBuffer, m_nPendingIaLen );
+		m_nPendingIaLen = 0;
+
+		return SendResponderCryptoSelect( pOutput );
+	}
+
+	default:
+		return true;
+	}
+}
+
+bool CBTCrypto::SendResponderCryptoSelect(CBuffer* pOutput)
+{
 		// Send response: encrypted [VC(8) + crypto_select(4) + len(Pad_D)(2) + Pad_D]
 		BYTE block[16];
 
@@ -684,11 +721,6 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 		}
 
 		return true;
-	}
-
-	default:
-		return true;
-	}
 }
 
 void CBTCrypto::Encrypt(BYTE* pData, size_t nLength) {

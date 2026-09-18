@@ -33,6 +33,7 @@ enum MseState {
 	MSE_AWAITING_YA,       // Responder: waiting for initiator DH key
 	MSE_SENT_YB,           // Responder: sent DH public key
 	MSE_AWAITING_HASH,     // Responder: waiting for hash verification
+	MSE_AWAITING_IA,       // Responder: len(IA) consumed, waiting for IA bytes
 	MSE_SENT_SELECT,       // Responder: sent crypto_select
 
 	MSE_ACTIVE,            // Encryption active
@@ -114,10 +115,12 @@ private:
 
 	// Scratch buffer for handshake processing
 	size_t      m_nPadALen;
+	WORD        m_nPendingIaLen;	// Responder: IA bytes still owed after len(IA)
 
 	void GenerateDHKeyPair();
 	void ComputeSharedSecret(const BYTE* pPeerKey);
 	void DeriveRC4Keys();
+	bool SendResponderCryptoSelect(CBuffer* pOutput);
 	void HashSHA1(const BYTE* pData, size_t nLen, BYTE* pHash);
 	void HashSHA1Two(const BYTE* p1, size_t n1, const BYTE* p2, size_t n2, BYTE* pHash);
 };
