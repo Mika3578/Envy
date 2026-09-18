@@ -2,10 +2,13 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-17
+- **Last Updated:** 2026-09-18
 - **Changelog Entry:** 2026-09-17 — #82: ED2K TAG_BLOB file read capped (4 MiB + EOF) and hashset answers require exact `nBlocks*16` payload before `SetHashset`.
+- **Changelog Entry:** 2026-09-17 — #77: Remote CSRF enforced for mutating query keys (`connect`/`disconnect`, filters, group/queue UI actions); `_method` no longer bypasses CSRF.
+- **Changelog Entry:** 2026-09-17 — #141: listen sockets open before NAT completes (`OnRun` no longer waits on `IsAsyncFindRunning`); `MapPorts` starts after successful bind/listen (D-011).
+- **Changelog Entry:** 2026-09-17 — #78 security: remove weak `rand()` fallbacks for session/CSRF/salt and protocol anti-spoof nonces; single CSPRNG helper (`SecureRandom.h` / `BCryptGenRandom`) with fail-closed contracts. Out of scope: #79 PBKDF2, #77 CSRF policy, #76 XSS.
 - **Changelog Entry:** 2026-09-17 — #140 docs: clarify MiniUPnPc 2.0 SSDP is one discovery receive phase (`searchalltypes=1`), not a strict wall-clock deadline; #142 / P3 covers absolute SSDP and HTTP timeout bounding.
-- **Changelog Entry:** 2026-09-17 — #140 P0 runtime PASS on post-squash HEAD: targeted IGD discovery (single MiniUPnPc receive phase), gateway-only rootdevice fallback, non-IGD devices never receive WAN mapping commands. Known debt: MiniUPnPc 2.0 SSDP/HTTP latency (#142 / P3). Backlog: listeners must not wait for NAT (#141). Next: P1 WFAS.
+- **Changelog Entry:** 2026-09-17 — #140 P0 runtime PASS on post-squash HEAD: targeted IGD discovery (single MiniUPnPc receive phase), gateway-only rootdevice fallback, non-IGD devices never receive WAN mapping commands. Known debt: MiniUPnPc 2.0 SSDP/HTTP latency (#142 / P3). Listen-before-NAT delivered as #141. Next: P1 WFAS.
 - **Changelog Entry:** 2026-09-17 — #140 P0 strategy: targeted IGD SSDP (`searchalltypes=1`, one discovery receive phase) + gateway-only rootdevice fallback. SSDP success != usable IGD; discovery fails cleanly when no IGD/WAN service is exposed.
 - **Changelog Entry:** 2026-09-16 — UPnP SSDP discovery selects Internet-facing IPv4 via `GetAdaptersAddresses` + `GetBestRoute2` (`NetworkInterfaceSelector`), replacing `GetAdaptersInfo` fallback on PR #140. Phased NAT/Firewall plan: P0 interface → P1 WFAS firewall → P2 local/external ports → P3 MiniUPnPc 2.3.x vendored → P4 PCP/NAT-PMP → P5 CGNAT/diagnostics. MiniUPnPc stays vendored (not vcpkg-only) for now.
 - **Changelog Entry:** 2026-09-16 — Started **Envy 4.2.0 Preview 1** release preparation: single version source (`4.2.0-preview.1` / Windows `4.2.0.1`), Inno `alpha` driven from CI (`/p:InstallerAlpha=Preview`), `release.yml` publishes per-platform setup + ZIP + `SHA256SUMS.txt` as draft prerelease. Universal installer and Authenticode deferred. See README Preview section. (Still gated on interactive installer smoke before merge; includes #139 WebHook BHO fix.)
