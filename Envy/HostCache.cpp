@@ -1157,14 +1157,13 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 		bool bParsedPriority = false;
 		const wchar_t* pszHost = NULL;
 		size_t nHost = 0;
-		if ( BootstrapParseServerLine(
-				strLine, static_cast< size_t >( strLine.GetLength() ),
-				&cType, &bParsedPriority, &pszHost, &nHost )
-			!= BootstrapParseStatus::Ok )
+		if (BootstrapParseServerLine(
+		        strLine, static_cast<size_t>(strLine.GetLength()),
+		        &cType, &bParsedPriority, &pszHost, &nHost) != BootstrapParseStatus::Ok)
 			continue;
 
 		CHostCacheList* pCache = NULL;
-		switch ( BootstrapClassifyServerType( cType ) )
+		switch (BootstrapClassifyServerType(cType))
 		{
 		case BootstrapServerClass::Gnutella1:
 			pCache = &Gnutella1;
@@ -1194,11 +1193,11 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 		if ( nProtocol != pCache->m_nProtocol && nProtocol != PROTOCOL_ANY )
 			continue;	// Unneeded protocol
 
-		const CString strHost( pszHost, static_cast< int >( nHost ) );
+		const CString strHost(pszHost, static_cast<int>(nHost));
 		const BOOL bPriority = bParsedPriority ? TRUE : FALSE;
 
 		CQuickLock oLock( pCache->m_pSection );
-		if ( CHostCacheHostPtr pServer = pCache->Add( strHost ) )
+		if (CHostCacheHostPtr pServer = pCache->Add(strHost))
 		{
 			pServer->m_bPriority = bPriority;
 			nServers++;

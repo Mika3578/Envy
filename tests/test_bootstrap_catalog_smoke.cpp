@@ -219,6 +219,17 @@ static bool test_dedup_case_insensitive()
 		&& ! BootstrapWideEqualsNoCase( a, wcslen( a ), other, wcslen( other ) );
 }
 
+static bool test_fold_ascii_only()
+{
+	const wchar_t upperA = L'A';
+	const wchar_t lowerA = L'a';
+	const wchar_t angstrom = 0x00C5;	// Latin capital A with ring
+	const wchar_t angstromSmall = 0x00E5;
+	return BootstrapFoldAscii( upperA ) == lowerA
+		&& BootstrapFoldAscii( angstrom ) == angstrom
+		&& ! BootstrapWideEqualsNoCase( &angstrom, 1, &angstromSmall, 1 );
+}
+
 static bool test_shipped_catalogue_meets_minima()
 {
 	int nWeb = 0, nG2 = 0, nG1 = 0, nMet = 0, nHub = 0;
@@ -300,6 +311,7 @@ void register_bootstrap_catalog_smoke_tests( TestSuite& suite )
 	suite.add_test( "bootstrap_server_missing_port", test_server_missing_port );
 	suite.add_test( "bootstrap_server_unknown_type", test_server_unknown_type );
 	suite.add_test( "bootstrap_dedup_case_insensitive", test_dedup_case_insensitive );
+	suite.add_test( "bootstrap_fold_ascii_only", test_fold_ascii_only );
 	suite.add_test( "bootstrap_shipped_catalogue_meets_minima", test_shipped_catalogue_meets_minima );
 	suite.add_test( "bootstrap_shipped_catalogue_no_static_ed2k_ip", test_shipped_catalogue_no_static_ed2k_ip );
 	suite.add_test( "bootstrap_shipped_catalogue_no_getenvy_gwc", test_shipped_catalogue_no_getenvy_gwc );

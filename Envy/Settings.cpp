@@ -505,7 +505,7 @@ void CSettings::Load()
 	Add( L"eDonkey", L"RequestPipe", &eDonkey.RequestPipe, 3, 1, 1, 10 );
 	Add( L"eDonkey", L"RequestSize", &eDonkey.RequestSize, 90*KiloByte, KiloByte, 10, KiloByte, L" KB" );
 	Add( L"eDonkey", L"SendPortServer", &eDonkey.SendPortServer, false );
-	Add( L"eDonkey", L"ServerListURL", &eDonkey.ServerListURL, L"https://upd.emule-security.org/server.met" );
+	Add(L"eDonkey", L"ServerListURL", &eDonkey.ServerListURL, L"https://upd.emule-security.org/server.met");
 	Add( L"eDonkey", L"ServerWalk", &eDonkey.ServerWalk, true );
 	Add( L"eDonkey", L"SourceThrottle", &eDonkey.SourceThrottle, 1000, 1, 250, 5000, L" ms" );
 	Add( L"eDonkey", L"StatsGlobalThrottle", &eDonkey.StatsGlobalThrottle, 30*60*1000, 60*1000, 30, 120, L" m" );

@@ -2,8 +2,8 @@
 // BootstrapCatalog.h
 //
 // Line parsers for the shipped bootstrap catalogues:
-//   Data/DefaultServices.dat  — discovery URLs (GWC, UHC, server.met, hublist)
-//   Data/DefaultServers.dat   — direct host:port seeds (BT DHT routers, optional
+//   Data/DefaultServices.dat  - discovery URLs (GWC, UHC, server.met, hublist)
+//   Data/DefaultServers.dat   - direct host:port seeds (BT DHT routers, optional
 //                               ED2K/Kad/G1/G2/DC hosts)
 //
 // These files are DATA, not discovered runtime peers. HostCache.dat /
@@ -35,7 +35,7 @@ constexpr int BootstrapDhtRouterPingCap = 8;
 
 enum class BootstrapParseStatus
 {
-	Skip,		// blank or comment
+	Skip, // blank or comment
 	Ok,
 	Invalid
 };
@@ -43,54 +43,54 @@ enum class BootstrapParseStatus
 enum class BootstrapServiceClass
 {
 	Unknown,
-	MultiGwc,		// M
-	G2Gwc,			// 2
-	G1Gwc,			// 1
-	Ed2kMet,		// D
-	DcHublist,		// H or C
-	GnutellaUdp,	// U (uhc / ukhl / host)
-	Blocked,		// X
+	MultiGwc,    // M
+	G2Gwc,       // 2
+	G1Gwc,       // 1
+	Ed2kMet,     // D
+	DcHublist,   // H or C
+	GnutellaUdp, // U (uhc / ukhl / host)
+	Blocked,     // X
 	Comment
 };
 
 enum class BootstrapServerClass
 {
 	Unknown,
-	Gnutella1,		// 1 or L
-	Gnutella2,		// 2 or G
-	Ed2k,			// E or legacy leading space
-	Dc,				// D
-	BitTorrent,		// B
-	Kademlia,		// K
-	Blocked			// X
+	Gnutella1,  // 1 or L
+	Gnutella2,  // 2 or G
+	Ed2k,       // E or legacy leading space
+	Dc,         // D
+	BitTorrent, // B
+	Kademlia,   // K
+	Blocked     // X
 };
 
 inline bool BootstrapIsHttpOrHttps(const wchar_t* psz, size_t nLen)
 {
-	if ( psz == nullptr )
+	if (psz == nullptr)
 		return false;
-	if ( nLen >= 8 && wcsncmp( psz, L"https://", 8 ) == 0 )
+	if (nLen >= 8 && wcsncmp(psz, L"https://", 8) == 0)
 		return true;
-	if ( nLen >= 7 && wcsncmp( psz, L"http://", 7 ) == 0 )
+	if (nLen >= 7 && wcsncmp(psz, L"http://", 7) == 0)
 		return true;
 	return false;
 }
 
 inline bool BootstrapLooksLikeHostPort(const wchar_t* psz, size_t nLen)
 {
-	if ( psz == nullptr || nLen < 3 )
+	if (psz == nullptr || nLen < 3)
 		return false;
 	const wchar_t* pColon = nullptr;
-	for ( size_t i = 0; i < nLen; ++i )
+	for (size_t i = 0; i < nLen; ++i)
 	{
-		if ( psz[ i ] == L':' )
+		if (psz[i] == L':')
 			pColon = psz + i;
 	}
-	if ( pColon == nullptr || pColon == psz || pColon + 1 >= psz + nLen )
+	if (pColon == nullptr || pColon == psz || pColon + 1 >= psz + nLen)
 		return false;
-	for ( const wchar_t* p = pColon + 1; p < psz + nLen; ++p )
+	for (const wchar_t* p = pColon + 1; p < psz + nLen; ++p)
 	{
-		if ( *p < L'0' || *p > L'9' )
+		if (*p < L'0' || *p > L'9')
 			return false;
 	}
 	return true;
@@ -98,7 +98,7 @@ inline bool BootstrapLooksLikeHostPort(const wchar_t* psz, size_t nLen)
 
 inline BootstrapServiceClass BootstrapClassifyServiceType(wchar_t cType)
 {
-	switch ( cType )
+	switch (cType)
 	{
 	case L'M': return BootstrapServiceClass::MultiGwc;
 	case L'2': return BootstrapServiceClass::G2Gwc;
@@ -109,13 +109,13 @@ inline BootstrapServiceClass BootstrapClassifyServiceType(wchar_t cType)
 	case L'U': return BootstrapServiceClass::GnutellaUdp;
 	case L'X': return BootstrapServiceClass::Blocked;
 	case L'#': return BootstrapServiceClass::Comment;
-	default:   return BootstrapServiceClass::Unknown;
+	default: return BootstrapServiceClass::Unknown;
 	}
 }
 
 inline BootstrapServerClass BootstrapClassifyServerType(wchar_t cType)
 {
-	switch ( cType )
+	switch (cType)
 	{
 	case L'1':
 	case L'L': return BootstrapServerClass::Gnutella1;
@@ -127,13 +127,13 @@ inline BootstrapServerClass BootstrapClassifyServerType(wchar_t cType)
 	case L'B': return BootstrapServerClass::BitTorrent;
 	case L'K': return BootstrapServerClass::Kademlia;
 	case L'X': return BootstrapServerClass::Blocked;
-	default:   return BootstrapServerClass::Unknown;
+	default: return BootstrapServerClass::Unknown;
 	}
 }
 
 inline bool BootstrapServiceTypeNeedsUrl(BootstrapServiceClass nClass)
 {
-	switch ( nClass )
+	switch (nClass)
 	{
 	case BootstrapServiceClass::MultiGwc:
 	case BootstrapServiceClass::G2Gwc:
@@ -149,190 +149,194 @@ inline bool BootstrapServiceTypeNeedsUrl(BootstrapServiceClass nClass)
 
 // DefaultServices.dat: "<type> <endpoint>"
 inline BootstrapParseStatus BootstrapParseServiceLine(
-	const wchar_t* pszLine,
-	size_t nLen,
-	wchar_t* pcType,
-	const wchar_t** ppszEndpoint,
-	size_t* pnEndpoint )
+    const wchar_t* pszLine,
+    size_t nLen,
+    wchar_t* pcType,
+    const wchar_t** ppszEndpoint,
+    size_t* pnEndpoint)
 {
-	if ( pcType != nullptr )
+	if (pcType != nullptr)
 		*pcType = 0;
-	if ( ppszEndpoint != nullptr )
+	if (ppszEndpoint != nullptr)
 		*ppszEndpoint = nullptr;
-	if ( pnEndpoint != nullptr )
+	if (pnEndpoint != nullptr)
 		*pnEndpoint = 0;
 
-	if ( pszLine == nullptr || nLen == 0 )
+	if (pszLine == nullptr || nLen == 0)
 		return BootstrapParseStatus::Skip;
 
 	size_t nBegin = 0;
-	while ( nBegin < nLen && ( pszLine[ nBegin ] == L' ' || pszLine[ nBegin ] == L'\t' ||
-		pszLine[ nBegin ] == L'\r' || pszLine[ nBegin ] == L'\n' ) )
+	while (nBegin < nLen && (pszLine[nBegin] == L' ' || pszLine[nBegin] == L'\t' ||
+	                         pszLine[nBegin] == L'\r' || pszLine[nBegin] == L'\n'))
 		++nBegin;
 	size_t nEnd = nLen;
-	while ( nEnd > nBegin && ( pszLine[ nEnd - 1 ] == L' ' || pszLine[ nEnd - 1 ] == L'\t' ||
-		pszLine[ nEnd - 1 ] == L'\r' || pszLine[ nEnd - 1 ] == L'\n' ) )
+	while (nEnd > nBegin && (pszLine[nEnd - 1] == L' ' || pszLine[nEnd - 1] == L'\t' ||
+	                         pszLine[nEnd - 1] == L'\r' || pszLine[nEnd - 1] == L'\n'))
 		--nEnd;
-	if ( nBegin >= nEnd )
+	if (nBegin >= nEnd)
 		return BootstrapParseStatus::Skip;
 
-	const wchar_t cType = pszLine[ nBegin ];
-	if ( cType == L'#' )
+	const wchar_t cType = pszLine[nBegin];
+	if (cType == L'#')
 		return BootstrapParseStatus::Skip;
 
 	// Match CDiscoveryServices::AddDefaults: ignore impossibly short rows.
-	if ( nEnd - nBegin < 7 )
+	if (nEnd - nBegin < 7)
 		return BootstrapParseStatus::Skip;
 
-	if ( nBegin + 2 > nEnd || ( pszLine[ nBegin + 1 ] != L' ' && pszLine[ nBegin + 1 ] != L'\t' ) )
+	if (nBegin + 2 > nEnd || (pszLine[nBegin + 1] != L' ' && pszLine[nBegin + 1] != L'\t'))
 		return BootstrapParseStatus::Invalid;
 
-	const BootstrapServiceClass nClass = BootstrapClassifyServiceType( cType );
-	if ( nClass == BootstrapServiceClass::Unknown )
+	const BootstrapServiceClass nClass = BootstrapClassifyServiceType(cType);
+	if (nClass == BootstrapServiceClass::Unknown)
 		return BootstrapParseStatus::Invalid;
 
 	const wchar_t* pszEndpoint = pszLine + nBegin + 2;
-	size_t nEndpoint = nEnd - ( nBegin + 2 );
-	while ( nEndpoint > 0 && ( *pszEndpoint == L' ' || *pszEndpoint == L'\t' ) )
+	size_t nEndpoint = nEnd - (nBegin + 2);
+	while (nEndpoint > 0 && (*pszEndpoint == L' ' || *pszEndpoint == L'\t'))
 	{
 		++pszEndpoint;
 		--nEndpoint;
 	}
-	if ( nEndpoint == 0 )
+	if (nEndpoint == 0)
 		return BootstrapParseStatus::Invalid;
 
-	if ( BootstrapServiceTypeNeedsUrl( nClass ) )
+	if (BootstrapServiceTypeNeedsUrl(nClass))
 	{
-		if ( ! BootstrapIsHttpOrHttps( pszEndpoint, nEndpoint ) )
+		if (!BootstrapIsHttpOrHttps(pszEndpoint, nEndpoint))
 			return BootstrapParseStatus::Invalid;
 	}
-	else if ( nClass == BootstrapServiceClass::GnutellaUdp )
+	else if (nClass == BootstrapServiceClass::GnutellaUdp)
 	{
 		// uhc:host:port / ukhl:host:port / gnutella:host:ip:port variants
-		if ( nEndpoint < 5 )
+		if (nEndpoint < 5)
 			return BootstrapParseStatus::Invalid;
 	}
 
-	if ( pcType != nullptr )
+	if (pcType != nullptr)
 		*pcType = cType;
-	if ( ppszEndpoint != nullptr )
+	if (ppszEndpoint != nullptr)
 		*ppszEndpoint = pszEndpoint;
-	if ( pnEndpoint != nullptr )
+	if (pnEndpoint != nullptr)
 		*pnEndpoint = nEndpoint;
 	return BootstrapParseStatus::Ok;
 }
 
 // DefaultServers.dat: "[P|*][type][P|*] host:port"
 inline BootstrapParseStatus BootstrapParseServerLine(
-	const wchar_t* pszLine,
-	size_t nLen,
-	wchar_t* pcType,
-	bool* pbPriority,
-	const wchar_t** ppszHost,
-	size_t* pnHost )
+    const wchar_t* pszLine,
+    size_t nLen,
+    wchar_t* pcType,
+    bool* pbPriority,
+    const wchar_t** ppszHost,
+    size_t* pnHost)
 {
-	if ( pcType != nullptr )
+	if (pcType != nullptr)
 		*pcType = 0;
-	if ( pbPriority != nullptr )
+	if (pbPriority != nullptr)
 		*pbPriority = false;
-	if ( ppszHost != nullptr )
+	if (ppszHost != nullptr)
 		*ppszHost = nullptr;
-	if ( pnHost != nullptr )
+	if (pnHost != nullptr)
 		*pnHost = 0;
 
-	if ( pszLine == nullptr || nLen == 0 )
+	if (pszLine == nullptr || nLen == 0)
 		return BootstrapParseStatus::Skip;
 
 	size_t nBegin = 0;
-	while ( nBegin < nLen && ( pszLine[ nBegin ] == L' ' || pszLine[ nBegin ] == L'\t' ||
-		pszLine[ nBegin ] == L'\r' || pszLine[ nBegin ] == L'\n' ) )
+	while (nBegin < nLen && (pszLine[nBegin] == L' ' || pszLine[nBegin] == L'\t' ||
+	                         pszLine[nBegin] == L'\r' || pszLine[nBegin] == L'\n'))
 		++nBegin;
 	size_t nEnd = nLen;
-	while ( nEnd > nBegin && ( pszLine[ nEnd - 1 ] == L' ' || pszLine[ nEnd - 1 ] == L'\t' ||
-		pszLine[ nEnd - 1 ] == L'\r' || pszLine[ nEnd - 1 ] == L'\n' ) )
+	while (nEnd > nBegin && (pszLine[nEnd - 1] == L' ' || pszLine[nEnd - 1] == L'\t' ||
+	                         pszLine[nEnd - 1] == L'\r' || pszLine[nEnd - 1] == L'\n'))
 		--nEnd;
-	if ( nBegin >= nEnd )
+	if (nBegin >= nEnd)
 		return BootstrapParseStatus::Skip;
 
-	if ( pszLine[ nBegin ] == L'#' )
+	if (pszLine[nBegin] == L'#')
 		return BootstrapParseStatus::Skip;
 
 	// Strip trailing comments (tab or space after the host token).
-	for ( size_t i = nBegin + 1; i < nEnd; ++i )
+	for (size_t i = nBegin + 1; i < nEnd; ++i)
 	{
-		if ( pszLine[ i ] == L'\t' )
+		if (pszLine[i] == L'\t')
 		{
 			nEnd = i;
 			break;
 		}
 	}
 	// Space comment only after a host:port token (avoid splitting the host).
-	for ( size_t i = nBegin + 1; i + 1 < nEnd; ++i )
+	for (size_t i = nBegin + 1; i + 1 < nEnd; ++i)
 	{
-		if ( pszLine[ i ] == L' ' && pszLine[ i + 1 ] == L'#' )
+		if (pszLine[i] == L' ' && pszLine[i + 1] == L'#')
 		{
 			nEnd = i;
 			break;
 		}
 	}
-	while ( nEnd > nBegin && ( pszLine[ nEnd - 1 ] == L' ' || pszLine[ nEnd - 1 ] == L'\t' ) )
+	while (nEnd > nBegin && (pszLine[nEnd - 1] == L' ' || pszLine[nEnd - 1] == L'\t'))
 		--nEnd;
-	if ( nBegin >= nEnd )
+	if (nBegin >= nEnd)
 		return BootstrapParseStatus::Skip;
 
 	bool bPriority = false;
 	size_t nPos = nBegin;
-	if ( pszLine[ nPos ] == L'P' || pszLine[ nPos ] == L'*' )
+	if (pszLine[nPos] == L'P' || pszLine[nPos] == L'*')
 	{
 		bPriority = true;
 		++nPos;
 	}
-	if ( nPos >= nEnd )
+	if (nPos >= nEnd)
 		return BootstrapParseStatus::Invalid;
 
-	const wchar_t cType = pszLine[ nPos ];
-	const BootstrapServerClass nClass = BootstrapClassifyServerType( cType );
-	if ( nClass == BootstrapServerClass::Unknown )
+	const wchar_t cType = pszLine[nPos];
+	const BootstrapServerClass nClass = BootstrapClassifyServerType(cType);
+	if (nClass == BootstrapServerClass::Unknown)
 		return BootstrapParseStatus::Invalid;
 	++nPos;
 
-	if ( nPos < nEnd && ( pszLine[ nPos ] == L'P' || pszLine[ nPos ] == L'*' ) )
+	if (nPos < nEnd && (pszLine[nPos] == L'P' || pszLine[nPos] == L'*'))
 	{
 		bPriority = true;
 		++nPos;
 	}
-	while ( nPos < nEnd && ( pszLine[ nPos ] == L' ' || pszLine[ nPos ] == L'\t' ) )
+	while (nPos < nEnd && (pszLine[nPos] == L' ' || pszLine[nPos] == L'\t'))
 		++nPos;
-	if ( nPos >= nEnd )
+	if (nPos >= nEnd)
 		return BootstrapParseStatus::Invalid;
 
 	const wchar_t* pszHost = pszLine + nPos;
 	const size_t nHost = nEnd - nPos;
-	if ( ! BootstrapLooksLikeHostPort( pszHost, nHost ) )
+	if (!BootstrapLooksLikeHostPort(pszHost, nHost))
 		return BootstrapParseStatus::Invalid;
 
-	if ( pcType != nullptr )
+	if (pcType != nullptr)
 		*pcType = cType;
-	if ( pbPriority != nullptr )
+	if (pbPriority != nullptr)
 		*pbPriority = bPriority;
-	if ( ppszHost != nullptr )
+	if (ppszHost != nullptr)
 		*ppszHost = pszHost;
-	if ( pnHost != nullptr )
+	if (pnHost != nullptr)
 		*pnHost = nHost;
 	return BootstrapParseStatus::Ok;
 }
 
+// ASCII A-Z only. Catalogue URLs are ASCII; non-ASCII wchar_t values compare as-is.
+inline wchar_t BootstrapFoldAscii(wchar_t c)
+{
+	if (c >= L'A' && c <= L'Z')
+		return static_cast<wchar_t>(c - L'A' + L'a');
+	return c;
+}
+
 inline bool BootstrapWideEqualsNoCase(const wchar_t* a, size_t na, const wchar_t* b, size_t nb)
 {
-	if ( a == nullptr || b == nullptr || na != nb )
+	if (a == nullptr || b == nullptr || na != nb)
 		return false;
-	for ( size_t i = 0; i < na; ++i )
+	for (size_t i = 0; i < na; ++i)
 	{
-		wchar_t ca = a[ i ];
-		wchar_t cb = b[ i ];
-		if ( ca >= L'A' && ca <= L'Z' ) ca = static_cast< wchar_t >( ca - L'A' + L'a' );
-		if ( cb >= L'A' && cb <= L'Z' ) cb = static_cast< wchar_t >( cb - L'A' + L'a' );
-		if ( ca != cb )
+		if (BootstrapFoldAscii(a[i]) != BootstrapFoldAscii(b[i]))
 			return false;
 	}
 	return true;
