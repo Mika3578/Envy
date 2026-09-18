@@ -19,6 +19,7 @@
             <div class="controls-right">
                 <form class="filter-form" method="get" data-ajax>
                     <input type="hidden" name="filter_set" value="1" />
+                    <input type="hidden" name="csrf_token" value="<%= csrf_token %>" />
                     <div class="filter-group">
                         <label for="filter-status">Status:</label>
                         <select id="filter-status" name="filter_status" class="form-control">

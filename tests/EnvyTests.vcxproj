@@ -91,7 +91,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(ProjectDir)..\HashLib\$(Configuration) $(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>HashLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>HashLib.lib;bcrypt.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Message>Copy HashLib.dll to test output...</Message>
@@ -116,7 +116,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(ProjectDir)..\HashLib\$(Configuration) $(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>HashLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>HashLib.lib;bcrypt.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Message>Copy HashLib.dll to test output...</Message>
@@ -141,7 +141,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(ProjectDir)..\HashLib\$(Configuration) $(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>HashLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>HashLib.lib;bcrypt.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Message>Copy HashLib.dll to test output...</Message>
@@ -166,7 +166,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(ProjectDir)..\HashLib\$(Configuration) $(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>HashLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>HashLib.lib;bcrypt.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Message>Copy HashLib.dll to test output...</Message>
@@ -186,6 +186,7 @@
     <ClCompile Include="test_skin_engine_p0_smoke.cpp" />
     <ClCompile Include="test_network_interface_selector_smoke.cpp" />
     <ClCompile Include="test_remote_base64_smoke.cpp" />
+    <ClCompile Include="test_secure_random_smoke.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />

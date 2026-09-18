@@ -66,9 +66,9 @@ private:
 	static bool IsInCIDRList(const IN_ADDR& ip, const std::set<CString>& cidrs);
 	static bool IsIPInCIDR(const IN_ADDR& ip, const CString& cidr);
 
-	// Helper functions - Session/Token generation
-	static std::string GenerateSecureId(size_t length = 32);
-	static std::string GenerateCSRFToken();
+	// Helper functions - Session/Token generation (fail closed on RNG error)
+	static bool GenerateSecureId(size_t length, std::string& out);
+	static bool GenerateCSRFToken(std::string& out);
 
 	// Helper functions - Password hashing
 	static bool FallbackHashPassword(const std::string& password, std::string& hashOutput);
