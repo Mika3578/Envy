@@ -47,20 +47,32 @@ else
 	fi
 fi
 
-# Head A: change only an already-clean return line; legacy `int x = 1;` stays
-# off-hunk with -U0 and must NOT fail the check.
+# Head A: comment-only touch on an already-indented return line so the changed
+# hunk is clang-format clean; legacy `int x = 1;` stays off-hunk with -U0.
 cat >Envy/Foo.cpp <<'EOF'
 int main() {
 int x = 1;
-    return x + 0;
+    return x; // keep
 }
 EOF
 git add Envy/Foo.cpp
 git commit -q -m 'clean hunk change'
 HEAD_CLEAN=$(git rev-parse HEAD)
 
+# format-check.sh may detach HEAD to HEAD_SHA; restore tip after each call.
+run_format_check() {
+	local tip rc
+	tip=$(git rev-parse HEAD)
+	set +e
+	bash "$ROOT/.github/scripts/format-check.sh"
+	rc=$?
+	set -e
+	git checkout --detach --quiet "$tip"
+	return "$rc"
+}
+
 set +e
-BASE_SHA=$BASE HEAD_SHA=$HEAD_CLEAN bash "$ROOT/.github/scripts/format-check.sh"
+BASE_SHA=$BASE HEAD_SHA=$HEAD_CLEAN run_format_check
 rc=$?
 set -e
 if [[ "$rc" -ne 0 ]]; then
@@ -82,7 +94,7 @@ git commit -q -m 'bad hunk'
 HEAD_BAD=$(git rev-parse HEAD)
 
 set +e
-BASE_SHA=$BASE HEAD_SHA=$HEAD_BAD bash "$ROOT/.github/scripts/format-check.sh"
+BASE_SHA=$BASE HEAD_SHA=$HEAD_BAD run_format_check
 rc=$?
 set -e
 if [[ "$rc" -eq 0 ]]; then
@@ -98,12 +110,12 @@ echo note >docs/a.md
 git add docs/a.md
 git commit -q -m docs
 HEAD_DOCS=$(git rev-parse HEAD)
-BASE_SHA=$HEAD_BAD HEAD_SHA=$HEAD_DOCS bash "$ROOT/.github/scripts/format-check.sh"
+BASE_SHA=$HEAD_BAD HEAD_SHA=$HEAD_DOCS run_format_check
 echo "OK   no C++ hunks → SUCCESS"
 
 # Invalid BASE must fail closed.
 set +e
-BASE_SHA=deadbeef HEAD_SHA=$HEAD_DOCS bash "$ROOT/.github/scripts/format-check.sh"
+BASE_SHA=deadbeef HEAD_SHA=$HEAD_DOCS run_format_check
 rc=$?
 set -e
 if [[ "$rc" -eq 0 ]]; then
@@ -116,7 +128,7 @@ fi
 # Missing tool must fail closed.
 set +e
 BASE_SHA=$BASE HEAD_SHA=$HEAD_CLEAN CLANG_FORMAT_DIFF=clang-format-diff-missing-xyz \
-	bash "$ROOT/.github/scripts/format-check.sh"
+	run_format_check
 rc=$?
 set -e
 if [[ "$rc" -eq 0 ]]; then
