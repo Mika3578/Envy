@@ -805,6 +805,10 @@ BOOL CBTTrackerRequest::OnAnnounce(CBTTrackerPacket* pPacket)
 
 	while ( pPacket->GetRemaining() >= sizeof( bt_peer_t ) )
 	{
+		if ( ! BtSourcesWantedAllowsMore( (DWORD)m_pSources.GetCount(),
+			Settings.Downloads.SourcesWanted ) )
+			break;
+
 		saPeer.sin_addr.s_addr = pPacket->ReadLongLE();
 		saPeer.sin_port = pPacket->ReadShortLE();
 		m_pSources.AddTail( CBTTrackerSource( Hashes::BtGuid(), saPeer ) );

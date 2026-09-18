@@ -24,6 +24,7 @@
 #include "BTPacket.h"
 #include "BENode.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 
 #include "EnvyURL.h"
 #include "Download.h"
@@ -1590,19 +1591,20 @@ BOOL CBTClient::OnUtPex(CBTPacket* pPacket)
 
 	if ( CBENode* pPeersAdd = pRoot->GetNode( BT_DICT_ADDED ) )
 	{
-		if ( 0 == ( pPeersAdd->m_nValue % 6 ) )		// IPv4?
+		if ( BtCompactPeerListBytesOk( pPeersAdd->m_nValue ) )
 		{
 			const BYTE* pPointer = (const BYTE*)pPeersAdd->m_pValue;
-			//int nMax = Settings.Downloads.SourcesWanted;
 
 			for ( int nPeer = (int)pPeersAdd->m_nValue / 6; nPeer > 0; nPeer--, pPointer += 6 )
 			{
+				if ( ! BtSourcesWantedAllowsMore( m_pDownload->GetEffectiveSourceCount(),
+					Settings.Downloads.SourcesWanted ) )
+					break;
+
 				const IN_ADDR* pAddress = (const IN_ADDR*)pPointer;
 				WORD nPort = *(const WORD*)( pPointer + 4 );
 
 				m_pDownload->AddSourceBT( Hashes::BtGuid(), pAddress, ntohs( nPort ) );
-				//if ( nMax-- < 0 && m_pDownload->GetEffectiveSourceCount() > Settings.Downloads.SourcesWanted )
-				//	break;
 			}
 		}
 	}
