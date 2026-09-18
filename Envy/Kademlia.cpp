@@ -22,6 +22,7 @@
 #include "Settings.h"
 #include <array>
 #include <algorithm>
+#include "PacketLengthValidate.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -1113,6 +1114,7 @@ bool CKademlia::ReadEntryTags(CEDPacket* pPacket, KadStoredEntry& entry) {
         if (pPacket->GetRemaining() < 3) return false;
         BYTE tagId = pPacket->ReadByte();
         WORD tagLen = pPacket->ReadShortLE();
+        if ( ! KadStoreTagLengthOk( tagLen ) ) return false;
         if (pPacket->GetRemaining() < tagLen) return false;
 
         std::vector<BYTE> tagData(tagLen);

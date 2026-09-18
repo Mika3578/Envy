@@ -310,6 +310,13 @@ static bool test_bt_ut_metadata_size_over_max()
 	return BtUtMetadataSizeOk( BT_UT_METADATA_MAX + 1 ) == FALSE;
 }
 
+static bool test_kad_store_tag_length_ok()
+{
+	return KadStoreTagLengthOk( 0 ) == TRUE
+		&& KadStoreTagLengthOk( static_cast< WORD >( KAD_STORE_TAG_MAX ) ) == TRUE
+		&& KadStoreTagLengthOk( static_cast< WORD >( KAD_STORE_TAG_MAX + 1 ) ) == FALSE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -367,4 +374,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero );
 	suite.add_test( "bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max );
 	suite.add_test( "bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max );
+	suite.add_test( "kad_store_tag_length_ok", test_kad_store_tag_length_ok );
 }

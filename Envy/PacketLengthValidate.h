@@ -98,6 +98,15 @@ inline BOOL Ed2kTagStringLengthOk(DWORD nLen, ULONGLONG nFileRemaining)
 	return nLen <= nFileRemaining;
 }
 
+// Absolute cap for one Kademlia store-entry tag value (#81).
+// Store tags are small metadata; WORD max * 32 tags is an easy UDP DoS.
+constexpr DWORD KAD_STORE_TAG_MAX = 4u * 1024u;
+
+inline BOOL KadStoreTagLengthOk(WORD nTagLen)
+{
+	return nTagLen <= KAD_STORE_TAG_MAX;
+}
+
 // ED2K hashset answer: after nBlocks, payload must be exactly nBlocks MD4 digests.
 constexpr DWORD ED2K_HASHSET_DIGEST_BYTES = 16u;
 
