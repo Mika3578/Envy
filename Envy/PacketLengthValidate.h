@@ -172,3 +172,11 @@ inline BOOL BtUtMetadataSizeOk(std::uint64_t nSize)
 {
 	return nSize > 0 && nSize <= BT_UT_METADATA_MAX;
 }
+
+// Cap for VersionChecker HTTP response (key=value metadata only) (#81/#82).
+constexpr DWORD VERSION_CHECK_HTTP_RESPONSE_MAX = 64u * 1024u;
+
+inline BOOL VersionCheckerHttpResponseOk(DWORD nLength)
+{
+	return nLength > 0 && nLength <= VERSION_CHECK_HTTP_RESPONSE_MAX;
+}

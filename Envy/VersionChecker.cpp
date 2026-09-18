@@ -1,7 +1,7 @@
 //
 // VersionChecker.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -21,6 +21,7 @@
 #include "Envy.h"
 #include "VersionChecker.h"
 #include "DiscoveryServices.h"
+#include "PacketLengthValidate.h"
 #include "Library.h"
 #include "SharedFile.h"
 #include "Transfer.h"
@@ -159,6 +160,7 @@ BOOL CVersionChecker::ExecuteRequest()
 
 	BOOL bSuccess = FALSE;
 	theApp.Message( MSG_DEBUG | MSG_FACILITY_OUTGOING, L"[VersionChecker] Request: %s", UPDATE_URL );
+	m_pRequest.LimitContentLength( VERSION_CHECK_HTTP_RESPONSE_MAX );
 	if ( m_pRequest.SetURL( UPDATE_URL ) && m_pRequest.Execute( false ) )
 	{
 		int nStatusCode = m_pRequest.GetStatusCode();
@@ -169,6 +171,7 @@ BOOL CVersionChecker::ExecuteRequest()
 	if ( ! bSuccess )
 	{
 		theApp.Message( MSG_DEBUG | MSG_FACILITY_OUTGOING, L"[VersionChecker] Request: %s", UPDATE_URL_ALT );
+		m_pRequest.LimitContentLength( VERSION_CHECK_HTTP_RESPONSE_MAX );
 		if ( m_pRequest.SetURL( UPDATE_URL_ALT ) && m_pRequest.Execute( false ) )
 		{
 			int nStatusCode = m_pRequest.GetStatusCode();
@@ -178,6 +181,10 @@ BOOL CVersionChecker::ExecuteRequest()
 	}
 
 	if ( ! bSuccess )
+		return FALSE;
+
+	const CBuffer* pBuffer = m_pRequest.GetResponseBuffer();
+	if ( pBuffer == NULL || ! VersionCheckerHttpResponseOk( pBuffer->m_nLength ) )
 		return FALSE;
 
 	CString strOutput = m_pRequest.GetResponseString();
