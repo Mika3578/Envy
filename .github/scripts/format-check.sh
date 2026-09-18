@@ -83,7 +83,9 @@ echo "Checking clang-format on changed hunks with ${CLANG_FORMAT_DIFF} -binary $
 "$CLANG_FORMAT_BIN" --version
 
 # Bind clang-format-diff to the pinned major (do not rely on unversioned clang-format).
-# LLVM clang-format-diff exits 1 when it emits a reformatting patch (not a tool crash).
+# Non-empty stdout means a reformatting patch is required. Exit codes vary by
+# LLVM version (18 often exits 0 with a patch; newer may exit 1), so treat
+# output as authoritative and non-zero-with-empty-output as a tool failure.
 set +e
 format_out="$(
 	printf '%s\n' "$filtered" |
@@ -92,22 +94,15 @@ format_out="$(
 format_rc=$?
 set -e
 
-if ((format_rc == 0)); then
-	if [[ -n "${format_out}" ]]; then
-		echo "::error::Unexpected clang-format-diff stdout with exit 0" >&2
-		printf '%s\n' "$format_out" >&2
-		exit 1
-	fi
-	echo "clang-format-diff clean on changed hunks."
-	exit 0
-fi
-
-if ((format_rc == 1)) && [[ -n "${format_out}" ]]; then
+if [[ -n "${format_out}" ]]; then
 	echo "::error::Changed C/C++ hunks are not clang-format clean. Format the modified lines only (do not bulk-reformat)." >&2
 	printf '%s\n' "$format_out" >&2
 	exit 1
 fi
 
-echo "::error::${CLANG_FORMAT_DIFF} failed (exit ${format_rc})" >&2
-printf '%s\n' "$format_out" >&2
-exit 1
+if ((format_rc != 0)); then
+	echo "::error::${CLANG_FORMAT_DIFF} failed (exit ${format_rc})" >&2
+	exit 1
+fi
+
+echo "clang-format-diff clean on changed hunks."

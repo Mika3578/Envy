@@ -116,7 +116,12 @@ git add docs/a.md
 git commit -q -m docs
 HEAD_DOCS=$(git rev-parse HEAD)
 BASE_SHA=$HEAD_BAD HEAD_SHA=$HEAD_DOCS run_format_check
-echo "OK   no C++ hunks → SUCCESS"
+if [[ "$LAST_FORMAT_RC" -ne 0 ]]; then
+	echo "FAIL expected SUCCESS on docs-only / no C++ hunks (rc=$LAST_FORMAT_RC)"
+	fail=1
+else
+	echo "OK   no C++ hunks → SUCCESS"
+fi
 
 # Invalid BASE must fail closed.
 BASE_SHA=deadbeef HEAD_SHA=$HEAD_DOCS run_format_check

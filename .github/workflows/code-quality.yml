@@ -98,7 +98,22 @@ jobs:
           CLANG_FORMAT_MAJOR: ${{ env.CLANG_FORMAT_MAJOR }}
           CLANG_FORMAT_BIN: clang-format-${{ env.CLANG_FORMAT_MAJOR }}
           CLANG_FORMAT_DIFF: clang-format-diff-${{ env.CLANG_FORMAT_MAJOR }}
-        run: bash .github/scripts/format-check.sh
+        run: |
+          set -euo pipefail
+          # Prefer the Format Check script from the PR base so a PR cannot
+          # bypass the required check by rewriting format-check.sh alone.
+          # If the script is new on this branch (not yet on base), fall back
+          # to HEAD for bootstrap only.
+          trusted_script="$(mktemp)"
+          if git cat-file -e "${BASE_SHA}:.github/scripts/format-check.sh" 2>/dev/null; then
+            git show "${BASE_SHA}:.github/scripts/format-check.sh" >"$trusted_script"
+            echo "Using format-check.sh from base ${BASE_SHA}"
+          else
+            git show "${HEAD_SHA}:.github/scripts/format-check.sh" >"$trusted_script"
+            echo "Using format-check.sh from head ${HEAD_SHA} (not present on base yet)"
+          fi
+          # Working tree stays at HEAD_SHA for clang-format-diff inputs.
+          bash "$trusted_script"
 
   documentation-check:
     name: Documentation Check
