@@ -2889,10 +2889,9 @@ BOOL CEDClient::OnPreviewAnswer(CEDPacket* pPacket)
 				for ( int nFrame = 0; nFrame < nFrames; nFrame++ )
 				{
 					DWORD nFrameSize = pPacket->ReadLongLE();
-					// Compare unsigned: the old (int) cast made any nFrameSize with
-					// the high bit set look negative, bypassing the check and letting
-					// a peer drive a multi-GB byte-by-byte write/over-read.
-					if ( ! Ed2kPreviewFrameFits( nFrameSize, pPacket->GetRemaining() ) )
+					// Compare unsigned + absolute max (#74/#109/#120): reject
+					// high-bit sizes, oversize frames, and empty frames.
+					if ( ! Ed2kPreviewFrameAcceptable( nFrameSize, pPacket->GetRemaining() ) )
 					{
 						theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
 						return TRUE;
@@ -2902,14 +2901,9 @@ BOOL CEDClient::OnPreviewAnswer(CEDPacket* pPacket)
 					CString strPath = pDownload->m_sPath + L".png";
 					if ( pFile.Open( strPath, CFile::modeCreate|CFile::modeWrite ) )
 					{
-						BYTE szByte = 0;
-
-						// Write only the first frame
-						for ( DWORD nByte = 0; nByte < nFrameSize; nByte++ )
-						{
-							szByte = pPacket->ReadByte();
-							pFile.Write( &szByte, 1 );
-						}
+						// Write only the first frame (bounded bulk copy)
+						pFile.Write( pPacket->GetCurrent(), nFrameSize );
+						pPacket->Seek( nFrameSize, CPacket::seekCurrent );
 						pFile.Close();
 
 						// Make it hidden, so the files won't be shared
