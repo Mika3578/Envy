@@ -1216,13 +1216,13 @@ BOOL CNetwork::OnPush(const Hashes::Guid& oGUID, CConnection* pConnection)
 void CNetwork::OnQuerySearch(CLocalSearch* pSearch)
 {
 	CQuickLock oLock( m_pJobSection );
-	EnqueueJob( CJob( CJob::Search, pSearch ) );
+	EnqueueJob(CJob(CJob::Search, pSearch));
 }
 
 void CNetwork::OnQueryHits(CQueryHit* pHits)
 {
 	CQuickLock oLock( m_pJobSection );
-	EnqueueJob( CJob( CJob::Hit, pHits ) );
+	EnqueueJob(CJob(CJob::Hit, pHits));
 }
 
 void CNetwork::FreeJob(CJob& oJob)
@@ -1238,19 +1238,19 @@ void CNetwork::FreeJob(CJob& oJob)
 		break;
 
 	default:
-		ASSERT( FALSE );
+		ASSERT(FALSE);
 	}
 }
 
 void CNetwork::EnqueueJob(CJob oJob)
 {
 	// Caller holds m_pJobSection. Drop oldest owned search/hit trees when full.
-	while ( ! NetworkJobQueueCountOk( static_cast< DWORD >( m_oJobs.GetCount() ) ) )
+	while (!NetworkJobQueueCountOk(static_cast<DWORD>(m_oJobs.GetCount())))
 	{
 		CJob oOld = m_oJobs.RemoveHead();
-		FreeJob( oOld );
+		FreeJob(oOld);
 	}
-	m_oJobs.AddTail( oJob );
+	m_oJobs.AddTail(oJob);
 }
 
 void CNetwork::RunJobs()

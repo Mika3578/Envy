@@ -11,13 +11,13 @@
 
 static bool test_network_job_queue_bounds()
 {
-	return NetworkJobQueueCountOk( 0 ) == TRUE
-		&& NetworkJobQueueCountOk( NETWORK_JOB_QUEUE_MAX - 1 ) == TRUE
-		&& NetworkJobQueueCountOk( NETWORK_JOB_QUEUE_MAX ) == FALSE
-		&& NetworkJobQueueCountOk( NETWORK_JOB_QUEUE_MAX + 1 ) == FALSE;
+	return NetworkJobQueueCountOk(0) == TRUE
+		&& NetworkJobQueueCountOk(NETWORK_JOB_QUEUE_MAX - 1) == TRUE
+		&& NetworkJobQueueCountOk(NETWORK_JOB_QUEUE_MAX) == FALSE
+		&& NetworkJobQueueCountOk(NETWORK_JOB_QUEUE_MAX + 1) == FALSE;
 }
 
-void register_network_job_queue_smoke_tests( TestSuite& suite )
+void register_network_job_queue_smoke_tests(TestSuite& suite)
 {
-	suite.add_test( "network_job_queue_bounds", test_network_job_queue_bounds );
+	suite.add_test("network_job_queue_bounds", test_network_job_queue_bounds);
 }
