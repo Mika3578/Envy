@@ -16,17 +16,13 @@
 // (http://www.gnu.org/licenses/agpl.html)
 //
 
-// CFirewall wraps Windows COM components to change Windows Firewall settings, and talk UPnP to a NAT router
-// http://shareaza.sourceforge.net/mediawiki/index.php/Developers.Code.CFirewall (Missing)
-//
-// Include headers from the Windows SDK
+// CFirewall wraps Windows Firewall with Advanced Security (WFAS / INetFwPolicy2).
+// OS target is Windows 10 1809+; legacy INetFwMgr is not used (#166 / D-009 P1).
 
 #pragma once
 
-#include <upnp.h>
+#include <netfw.h>
 
-
-// Control the Windows Firewall, and talk UPnP to the NAT router to setup port forwarding
 class CFirewall
 {
 public:
@@ -34,43 +30,23 @@ public:
 	~CFirewall();
 
 public:
-	// Windows Firewall COM interfaces accessed with the object
-	CComPtr< INetFwMgr >					FwManager;
-	CComPtr< INetFwPolicy >					Policy;
-	CComPtr< INetFwProfile >				Profile;
-	CComPtr< INetFwServices >				ServiceList;
-	CComPtr< INetFwAuthorizedApplications >	ProgramList;
-	CComPtr< INetFwOpenPorts >				PortList;
+	CComPtr< INetFwPolicy2 >	Policy2;
+	CComPtr< INetFwRules >		Rules;
+	CComPtr< INetFwRule >		Rule;	// Scratch for Item / create paths
 
-	// Windows Firewall COM interfaces accessed in methods
-	CComPtr< INetFwService >				Service;
-	CComPtr< INetFwAuthorizedApplication >	Program;
-	CComPtr< INetFwOpenPort >				Port;
+	BOOL Init();
+	BOOL AddProgram( const CString& path, const CString& name );
+	BOOL RemoveProgram( const CString& path );
+	BOOL SetupService( NET_FW_SERVICE_TYPE service );
+	BOOL SetupProgram( const CString& path, const CString& name, BOOL bRemove = FALSE );
+	BOOL EnableService( NET_FW_SERVICE_TYPE service );
+	BOOL EnableProgram( const CString& path );
+	BOOL IsServiceEnabled( NET_FW_SERVICE_TYPE service, BOOL* enabled );
+	BOOL IsProgramEnabled( const CString& path, BOOL* enabled );
+	BOOL IsProgramListed( const CString& path, BOOL* listed );
+	BOOL AreExceptionsAllowed() const;
 
-	// UPnP COM interfaces (Obsolete)
-	//CComPtr< IUPnPNAT >					Nat;
-	//CComPtr< IStaticPortMapping >			Mapping;
-	//CComPtr< IStaticPortMappingCollection > Collection;
-
-	// Examples controlling Windows Firewall
-	//
-	//	// Let a program listen on a socket without Windows Firewall poping up a warning
-	//	CFirewall firewall;
-	//	firewall.SetupProgram( "C:\\Program Files\\Outlook Express\\msimn.exe", "Outlook Express" );
-	//
-	//	// Enable the UPnP service in Windows Firewall so we can talk UPnP through it
-	//	firewall.SetupService( NET_FW_SERVICE_UPNP );
-
-	// Windows Firewall Methods
-	BOOL Init();															// Initialization, access the Windows Firewall COM objects
-	BOOL AddProgram(const CString& path, const CString& name);				// Add a program to the list with a checked box
-	BOOL RemoveProgram(const CString& path);								// Add a program to the list with a checked box
-	BOOL SetupService(NET_FW_SERVICE_TYPE service);							// Check a box for a service on the Windows Firewall exceptions list
-	BOOL SetupProgram(const CString& path, const CString& name, BOOL bRemove = FALSE);	// List a program and check its box
-	BOOL EnableService(NET_FW_SERVICE_TYPE service);						// Check the box for a service
-	BOOL EnableProgram(const CString& path);								// Check the box for a program
-	BOOL IsServiceEnabled(NET_FW_SERVICE_TYPE service, BOOL* enabled);		// Determine if a service is checked
-	BOOL IsProgramEnabled(const CString& path, BOOL* enabled);				// Determine if a listed program is checked
-	BOOL IsProgramListed(const CString& path, BOOL* listed);				// Determine if a program is on the exceptions list
-	BOOL AreExceptionsAllowed() const;										// Find out if the system is in no-exceptions mode
+private:
+	BOOL FindRuleByApplication( const CString& path, INetFwRule** ppRule ) const;
+	static CString UPnPRuleGroupName();
 };

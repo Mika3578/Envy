@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GitHub Actions SHA pinning (#96)** — External actions in `.github/workflows/` and `.github/actions/` are pinned to full commit SHAs (with `# vN` comments). Upgrade process documented in `docs/10_dev/agents-and-automation.md`.
 
 ### Fixed
+- **Windows Firewall WFAS migration (#166)** — Replace XP-era `INetFwMgr`/`INetFwPolicy`/`INetFwProfile` with `INetFwPolicy2` rules API. Application exceptions use inbound allow rules on Domain+Private+Public; UPnP uses WFAS rule-group enable; `AreExceptionsAllowed` consults BlockAllInboundTraffic on every currently active profile. `FirewallWfasPolicy.h` + EnvyTests smoke coverage.
 - **BitTorrent BEP-9 ut_metadata size cap (#82)** — Reject peer-advertised `metadata_size`/`total_size` above 32 MiB and refuse `LoadInfoPiece` for oversize info dicts (`BtUtMetadataSizeOk`).
 - **Cooperative thread close without TerminateThread (#92)** — `CEnvyThread::CloseThread` abandons timed-out threads after cancel instead of `TerminateThread` (`EnvyThreadPolicy.h`); `throw()` → `noexcept`.
 - **ED2K EDClients-before-Transfers lock order (#92)** — Canonical order `EDClients.m_pSection` then `Transfers.m_pSection` (`Ed2kLockOrder.h`); fix inverted acquisition in `CEDClients::OnAccept`, UDP C2C path, and `CHostBrowser::Browse`.
