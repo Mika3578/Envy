@@ -64,7 +64,8 @@ protected:
 	BOOL			RemoveCookie();
 	CString			GetCSRFToken();  // Get CSRF token for current session
 	void			Prepare(LPCTSTR pszPrefix = NULL);
-	void			Add(LPCTSTR pszKey, LPCTSTR pszValue);
+	void			Add(LPCTSTR pszKey, LPCTSTR pszValue);		// HTML-escaped (#76)
+	void			AddRaw(LPCTSTR pszKey, LPCTSTR pszValue);	// Trusted HTML / attributes
 	void			AddText(LPCTSTR pszKey, LPCTSTR pszDefault = NULL);
 	void			Output(LPCTSTR pszName);
 

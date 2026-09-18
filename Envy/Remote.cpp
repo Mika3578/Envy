@@ -624,6 +624,13 @@ void CRemote::Prepare(LPCTSTR pszPrefix)
 
 void CRemote::Add(LPCTSTR pszKey, LPCTSTR pszValue)
 {
+	// Escape peer/local dynamic values before <% =key %> substitution (#76 XSS).
+	m_pKeys.SetAt( pszKey, Escape( CString( pszValue ) ) );
+}
+
+void CRemote::AddRaw(LPCTSTR pszKey, LPCTSTR pszValue)
+{
+	// Trusted markup only (filter checked attrs, pre-escaped option lists, AddText HTML).
 	m_pKeys.SetAt( pszKey, pszValue );
 }
 
@@ -959,14 +966,14 @@ void CRemote::PageSearch()
 			CSchemaPtr pSchema = SchemaCache.GetNext( pos );
 			if ( ! pSchema->m_bPrivate && pSchema->m_nType == CSchema::typeFile )
 			{
-				str += L"<option value=\"" + pSchema->GetURI();
-				str += L"\">" + pSchema->m_sTitle;
+				str += L"<option value=\"" + Escape( pSchema->GetURI() );
+				str += L"\">" + Escape( pSchema->m_sTitle );
 				str += L"</option>\r\n";
 			}
 		}
 
 		Prepare();		// Header
-		Add( L"schema_option_list", str );
+		AddRaw( L"schema_option_list", str );
 		Output( L"searchNew" );
 		Output( L"searchFooter" );
 		return;
@@ -1284,12 +1291,12 @@ void CRemote::PageDownloads()
 		Settings.Downloads.ShowAllSources = ( GetKey( L"filter_show_all" ) == L"1" );
 	}
 
-	Add( L"filter_active", ( Settings.Downloads.FilterMask & DLF_ACTIVE ) ? L"checked=\"checked\"" : L"" );
-	Add( L"filter_paused", ( Settings.Downloads.FilterMask & DLF_PAUSED ) ? L"checked=\"checked\"" : L"" );
-	Add( L"filter_queued", ( Settings.Downloads.FilterMask & DLF_QUEUED ) ? L"checked=\"checked\"" : L"" );
-	Add( L"filter_sources", ( Settings.Downloads.FilterMask & DLF_SOURCES ) ? L"checked=\"checked\"" : L"" );
-	Add( L"filter_seeds", ( Settings.Downloads.FilterMask & DLF_PAUSED ) ? L"checked=\"checked\"" : L"" );
-	Add( L"filter_show_all", Settings.Downloads.ShowAllSources ? L"checked=\"checked\"" : L"" );
+	AddRaw( L"filter_active", ( Settings.Downloads.FilterMask & DLF_ACTIVE ) ? L"checked=\"checked\"" : L"" );
+	AddRaw( L"filter_paused", ( Settings.Downloads.FilterMask & DLF_PAUSED ) ? L"checked=\"checked\"" : L"" );
+	AddRaw( L"filter_queued", ( Settings.Downloads.FilterMask & DLF_QUEUED ) ? L"checked=\"checked\"" : L"" );
+	AddRaw( L"filter_sources", ( Settings.Downloads.FilterMask & DLF_SOURCES ) ? L"checked=\"checked\"" : L"" );
+	AddRaw( L"filter_seeds", ( Settings.Downloads.FilterMask & DLF_PAUSED ) ? L"checked=\"checked\"" : L"" );
+	AddRaw( L"filter_show_all", Settings.Downloads.ShowAllSources ? L"checked=\"checked\"" : L"" );
 	Output( L"downloadsTop" );
 
 	for ( POSITION posDownload = Downloads.GetIterator(); posDownload != NULL; )
