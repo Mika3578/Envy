@@ -373,6 +373,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_preview_acceptable_at_cap", test_ed2k_preview_acceptable_at_cap );
 	suite.add_test( "ed2k_tag_blob_bounds", test_ed2k_tag_blob_bounds );
 	suite.add_test( "ed2k_tag_string_bounds", test_ed2k_tag_string_bounds );
+	suite.add_test( "ed2k_file_comment_bounds", test_ed2k_file_comment_bounds );
 	suite.add_test( "ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds );
 	suite.add_test( "bt_ut_metadata_size_ok", test_bt_ut_metadata_size_ok );
 	suite.add_test( "bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero );
