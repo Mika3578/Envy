@@ -310,6 +310,14 @@ static bool test_bt_ut_metadata_size_over_max()
 	return BtUtMetadataSizeOk( BT_UT_METADATA_MAX + 1 ) == FALSE;
 }
 
+static bool test_update_servers_http_response_bounds()
+{
+	return UpdateServersHttpResponseOk( 1 ) == TRUE
+		&& UpdateServersHttpResponseOk( UPDATE_SERVERS_HTTP_RESPONSE_MAX ) == TRUE
+		&& UpdateServersHttpResponseOk( UPDATE_SERVERS_HTTP_RESPONSE_MAX + 1 ) == FALSE
+		&& UpdateServersHttpResponseOk( 0 ) == FALSE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -367,4 +375,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero );
 	suite.add_test( "bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max );
 	suite.add_test( "bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max );
+	suite.add_test( "update_servers_http_response_bounds", test_update_servers_http_response_bounds );
 }

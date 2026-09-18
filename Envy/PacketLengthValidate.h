@@ -172,3 +172,11 @@ inline BOOL BtUtMetadataSizeOk(std::uint64_t nSize)
 {
 	return nSize > 0 && nSize <= BT_UT_METADATA_MAX;
 }
+
+// Cap for Update Servers dialog HTTP downloads (user/server-list URL) (#81/#82).
+constexpr DWORD UPDATE_SERVERS_HTTP_RESPONSE_MAX = 32u * 1024u * 1024u;
+
+inline BOOL UpdateServersHttpResponseOk(DWORD nLength)
+{
+	return nLength > 0 && nLength <= UPDATE_SERVERS_HTTP_RESPONSE_MAX;
+}
