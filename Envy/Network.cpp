@@ -1227,7 +1227,7 @@ void CNetwork::OnQueryHits(CQueryHit* pHits)
 
 void CNetwork::FreeJob(CJob& oJob)
 {
-	switch ( oJob.GetType() )
+	switch (oJob.GetType())
 	{
 	case CJob::Search:
 		delete (CLocalSearch*)oJob.GetData();
@@ -1273,7 +1273,7 @@ void CNetwork::RunJobs()
 		CSingleLock oNetworkLock( &m_pSection, FALSE );
 		if ( oNetworkLock.Lock( 250 ) )
 		{
-			switch ( oJob.GetType() )
+			switch (oJob.GetType())
 			{
 			case CJob::Hit:
 				bKeep = ProcessQueryHits( oJob );
@@ -1303,7 +1303,7 @@ void CNetwork::ClearJobs()
 	while ( ! m_oJobs.IsEmpty() )
 	{
 		CJob oJob = m_oJobs.RemoveHead();
-		FreeJob( oJob );
+		FreeJob(oJob);
 	}
 }
 
