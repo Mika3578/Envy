@@ -295,6 +295,8 @@ static bool test_ed2k_file_comment_bounds()
 		&& Ed2kFileCommentLengthOk(11, 10) == FALSE
 		&& Ed2kFileCommentLengthOk(ED2K_FILE_COMMENT_MAX, ED2K_FILE_COMMENT_MAX) == TRUE
 		&& Ed2kFileCommentLengthOk(ED2K_FILE_COMMENT_MAX + 1, ED2K_FILE_COMMENT_MAX + 1) == FALSE;
+}
+
 static bool test_ed2k_tag_uint64_remaining()
 {
 	return Ed2kTagUint64RemainingOk( ED2K_TAG_UINT64_BYTES ) == TRUE
