@@ -69,6 +69,8 @@ protected:
 	BOOL	SendSecondaryRequest();
 	void	ClearRequests();
 	BOOL	RunQueued(DWORD tNow);
+	// FALSE = inflate overflow; stream cleaned and transfer closed.
+	BOOL	AcceptCompressedPartChunk(QWORD nChunkLength);
 //	BOOL	SelectFragment(const Fragments::List& oPossible, QWORD& nOffset, QWORD& nLength);
 
 public:
