@@ -1415,7 +1415,7 @@ void CChatSession::NotifyMessage(MessageType bType, const CString& sFrom, const 
 	CQuickLock oLock( ChatCore.m_pSection );
 
 	MSG oMsg = { NULL, WM_CHAT_MESSAGE, 0, (LPARAM)new CChatMessage( bType, sFrom, sMessage, hBitmap ) };
-	EnqueueMessage( oMsg );
+	EnqueueMessage(oMsg);
 }
 
 void CChatSession::AddUser(CChatUser* pUser)
@@ -1423,7 +1423,7 @@ void CChatSession::AddUser(CChatUser* pUser)
 	CQuickLock oLock( ChatCore.m_pSection );
 
 	MSG oMsg = { NULL, WM_CHAT_ADD_USER, 0, (LPARAM)pUser };
-	EnqueueMessage( oMsg );
+	EnqueueMessage(oMsg);
 }
 
 void CChatSession::DeleteUser(CString* pUser)
@@ -1431,7 +1431,7 @@ void CChatSession::DeleteUser(CString* pUser)
 	CQuickLock oLock( ChatCore.m_pSection );
 
 	MSG oMsg = { NULL, WM_CHAT_DELETE_USER, 0, (LPARAM)pUser };
-	EnqueueMessage( oMsg );
+	EnqueueMessage(oMsg);
 }
 
 void CChatSession::Command(UINT nCommand)
@@ -1439,17 +1439,18 @@ void CChatSession::Command(UINT nCommand)
 	CQuickLock oLock( ChatCore.m_pSection );
 
 	MSG oMsg = { NULL, WM_COMMAND, nCommand };
-	EnqueueMessage( oMsg );
+	EnqueueMessage(oMsg);
 }
 
 void CChatSession::FreeQueueMessage(MSG& oMsg)
 {
-	switch ( oMsg.message )
+	switch (oMsg.message)
 	{
 	case WM_CHAT_MESSAGE:
-		if ( CChatMessage* pMsg = (CChatMessage*)oMsg.lParam )
+		if (CChatMessage* pMsg = (CChatMessage*)oMsg.lParam)
 		{
-			if ( pMsg->m_hBitmap ) DeleteObject( pMsg->m_hBitmap );
+			if (pMsg->m_hBitmap)
+				DeleteObject(pMsg->m_hBitmap);
 			delete pMsg;
 		}
 		break;
@@ -1467,12 +1468,12 @@ void CChatSession::FreeQueueMessage(MSG& oMsg)
 void CChatSession::EnqueueMessage(MSG& oMsg)
 {
 	// Caller holds ChatCore.m_pSection. Drop oldest owned payloads when full.
-	while ( ! ChatSessionQueueCountOk( static_cast< DWORD >( m_pMessages.GetCount() ) ) )
+	while (!ChatSessionQueueCountOk(static_cast<DWORD>(m_pMessages.GetCount())))
 	{
 		MSG oOld = m_pMessages.RemoveHead();
-		FreeQueueMessage( oOld );
+		FreeQueueMessage(oOld);
 	}
-	m_pMessages.AddTail( oMsg );
+	m_pMessages.AddTail(oMsg);
 }
 
 void CChatSession::ProcessMessages()
@@ -1499,7 +1500,7 @@ void CChatSession::ClearMessages()
 	while ( ! m_pMessages.IsEmpty() )
 	{
 		MSG oMsg = m_pMessages.RemoveHead();
-		FreeQueueMessage( oMsg );
+		FreeQueueMessage(oMsg);
 	}
 }
 
