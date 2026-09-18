@@ -429,6 +429,14 @@ static bool test_ed2k_packed_inflate_ok()
 		&& Ed2kPackedInflateOk( ED2K_PACKED_INFLATE_MAX + 1 ) == FALSE;
 }
 
+static bool test_bt_tracker_http_response_bounds()
+{
+	return BtTrackerHttpResponseOk( 1 ) == TRUE
+		&& BtTrackerHttpResponseOk( BT_TRACKER_HTTP_RESPONSE_MAX ) == TRUE
+		&& BtTrackerHttpResponseOk( BT_TRACKER_HTTP_RESPONSE_MAX + 1 ) == FALSE
+		&& BtTrackerHttpResponseOk( 0 ) == FALSE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -495,4 +503,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "qht_patch_expected_bytes", test_qht_patch_expected_bytes );
 	suite.add_test( "qht_patch_compressed_budget", test_qht_patch_compressed_budget );
 	suite.add_test( "ed2k_packed_inflate_ok", test_ed2k_packed_inflate_ok );
+	suite.add_test( "bt_tracker_http_response_bounds", test_bt_tracker_http_response_bounds );
 }
