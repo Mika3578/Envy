@@ -1,0 +1,5 @@
+{
+  "name": "Envy (Linux dev checks)",
+  "user": "ubuntu",
+  "install": "sudo apt-get update && sudo apt-get install -y clang-format clang-tidy cppcheck && npm --prefix Remote/tests ci --no-audit --no-fund"
+}
