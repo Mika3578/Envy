@@ -1,6 +1,6 @@
 # Modern C++ Best Practices for Envy
 
-This guide provides specific examples of how to use modern C++17 features in the Envy codebase.
+This guide provides specific examples of how to use modern C++20 features in the Envy codebase.
 
 ## Table of Contents
 - [Smart Pointers](#smart-pointers)
@@ -11,8 +11,8 @@ This guide provides specific examples of how to use modern C++17 features in the
 - [String View](#string-view)
 - [Optional Values](#optional-values)
 - [Structured Bindings](#structured-bindings)
-- [Concepts (C++20)](#concepts-c20) - Planned for future C++20 migration
-- [Ranges (C++20)](#ranges-c20) - Planned for future C++20 migration
+- [Concepts (C++20)](#concepts-c20)
+- [Ranges (C++20)](#ranges-c20)
 
 ## Smart Pointers
 
