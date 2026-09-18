@@ -34,7 +34,6 @@
 #include "Security.h"
 #include "Transfers.h"
 #include "Statistics.h"
-#include "BootstrapCatalog.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -145,69 +144,25 @@ void CDHT::Connect()
 	Hashes::BtGuid oID = MyProfile.oGUIDBT;
 	if ( dht_init( 0, -1, &oID[ 0 ], theApp.m_pBTVersion ) >= 0 )
 	{
-		struct DhtBootHost
-		{
-			IN_ADDR addr;
-			WORD nPort;
-			CString sHost;
-		};
-		DhtBootHost oBoot[ BootstrapDhtRouterPingCap ];
-		int nBoot = 0;
+		CQuickLock oLock( HostCache.BitTorrent.m_pSection );
+
 		int nCount = 0;
-
+		for ( CHostCacheIterator i = HostCache.BitTorrent.Begin(); i != HostCache.BitTorrent.End() && nCount < 100; ++i )
 		{
-			CQuickLock oLock( HostCache.BitTorrent.m_pSection );
-
-			for ( CHostCacheIterator i = HostCache.BitTorrent.Begin(); i != HostCache.BitTorrent.End() && nCount < 100; ++i )
+			CHostCacheHostPtr pCache = (*i);
+			if ( pCache->m_oBtGUID )
 			{
-				CHostCacheHostPtr pCache = (*i);
-				if ( pCache->m_oBtGUID )
-				{
-					SOCKADDR_IN sa = { AF_INET, htons( pCache->m_nPort ), pCache->m_pAddress };
-					dht_insert_node( &pCache->m_oBtGUID[ 0 ], (sockaddr*)&sa, sizeof( SOCKADDR_IN ) );
-					nCount++;
-				}
-			}
-
-			if ( nCount == 0 )
-			{
-				// Cold-start: ping catalogue routers from HostCache (DefaultServers.dat
-				// B lines, plus any previously seen nodes). Do not hard-code DHT DNS
-				// names here — the data file is the bootstrap source.
-				for ( CHostCacheIterator i = HostCache.BitTorrent.Begin();
-					i != HostCache.BitTorrent.End() && nBoot < BootstrapDhtRouterPingCap; ++i )
-				{
-					CHostCacheHostPtr pCache = (*i);
-					oBoot[ nBoot ].addr = pCache->m_pAddress;
-					oBoot[ nBoot ].nPort = pCache->m_nPort;
-					oBoot[ nBoot ].sHost = pCache->m_sAddress;
-					++nBoot;
-				}
+				SOCKADDR_IN sa = { AF_INET, htons( pCache->m_nPort ), pCache->m_pAddress };
+				dht_insert_node( &pCache->m_oBtGUID[ 0 ], (sockaddr*)&sa, sizeof( SOCKADDR_IN ) );
+				nCount++;
 			}
 		}
 
 		if ( nCount == 0 )
 		{
-			for ( int i = 0; i < nBoot; ++i )
+			SOCKADDR_IN sa;
+			if ( Network.Resolve( L"router.bittorrent.com:6881", 0, &sa ) )
 			{
-				SOCKADDR_IN sa = {};
-				sa.sin_family = AF_INET;
-				if ( oBoot[ i ].addr.s_addr != INADDR_ANY )
-				{
-					sa.sin_addr = oBoot[ i ].addr;
-					sa.sin_port = htons( oBoot[ i ].nPort );
-				}
-				else if ( ! oBoot[ i ].sHost.IsEmpty() )
-				{
-					if ( ! Network.Resolve( oBoot[ i ].sHost, oBoot[ i ].nPort, &sa ) )
-						continue;
-				}
-				else
-					continue;
-
-				if ( sa.sin_addr.s_addr == INADDR_ANY )
-					continue;
-
 				unsigned char tid[4];
 				make_tid( tid, "fn", 0 );
 				send_find_node( (sockaddr*)&sa, sizeof(SOCKADDR_IN), tid, 4, &oID[0], 1, 0 );

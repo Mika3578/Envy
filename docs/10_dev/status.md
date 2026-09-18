@@ -89,7 +89,7 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 
 ### BitTorrent
 
-- v1: DHT, magnet, PEX, LTEP, web seeds, trackers, MSE/PE (`Envy/BTCrypto.*`) are present per `docs/10_dev/roadmap.md` / CHANGELOG. DHT cold-start uses HostCache BT routers from `DefaultServers.dat` (Transmission/libtorrent/router.bittorrent.com); known node IDs persist in `HostCache.dat`.
+- v1: DHT, magnet, PEX, LTEP, web seeds, trackers, MSE/PE (`Envy/BTCrypto.*`) are present per `docs/10_dev/roadmap.md` / CHANGELOG. DHT catalogue routers live in `DefaultServers.dat`; `CDHT::Connect` still resolves `router.bittorrent.com` when no node IDs are cached; known node IDs persist in `HostCache.dat`.
 - v2 / BEP 52: HashLib SHA-256 exists; `CBTInfo::IsBitTorrentV2()` currently returns false and `m_oBTHv2` remains commented (`Envy/BTInfo.h`). Magnet `btmh:` parsing is not a complete v2 download path (`docs/30_protocols/bittorrent/BITTORRENT_V2_PLAN.md`).
 - uTP: `Services/LibUTP` is vendored; Envy code does not call it. Status: **not implemented**.
 - Do not sacrifice BitTorrent work to make Envy an eMule-only client.
