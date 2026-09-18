@@ -28,6 +28,7 @@
 #include "EDPacket.h"
 #include "EDClient.h"
 #include "EDClients.h"
+#include "Ed2kLockOrder.h"
 #include "Downloads.h"
 #include "Neighbours.h"
 #include "Transfers.h"
@@ -88,8 +89,6 @@ CHostBrowser::~CHostBrowser()
 
 BOOL CHostBrowser::Browse()
 {
-	CQuickLock oTransfersLock( Transfers.m_pSection );
-
 	m_sAddress = inet_ntoa( m_pAddress );
 	m_sServer = protocolAbbr[ ( ( m_nProtocol == PROTOCOL_ANY ) ? PROTOCOL_NULL : m_nProtocol ) ];
 	m_pVendor = VendorCache.Lookup( m_sServer );
@@ -115,8 +114,9 @@ BOOL CHostBrowser::Browse()
 	// (One connection used for many things)
 	if ( m_nProtocol == PROTOCOL_ED2K )
 	{
-		// Lock this object until we are finished with it
+		// Lock order: EDClients then Transfers (see Ed2kLockOrder.h / #92)
 		CQuickLock oCEDClientsLock( EDClients.m_pSection );
+		CQuickLock oTransfersLock( Transfers.m_pSection );
 
 		SOCKADDR_IN* pServer = NULL;	// ToDo: Add push connections
 		CEDClient* pClient = EDClients.Connect( m_pAddress.s_addr, m_nPort,
@@ -134,9 +134,18 @@ BOOL CHostBrowser::Browse()
 			theApp.Message( MSG_NOTICE, IDS_BROWSE_CANT_CONNECT_TO, (LPCTSTR)m_sAddress );
 			return FALSE;
 		}
+
+		m_nState = hbsConnecting;
+		m_nHits  = 0;
+		delete m_pProfile;
+		m_pProfile = NULL;
+		m_pNotify->UpdateMessages();
+		return TRUE;
 	}
 	else if ( m_nProtocol == PROTOCOL_DC )
 	{
+		CQuickLock oTransfersLock( Transfers.m_pSection );
+
 		CEnvyURL oURL;
 		oURL.m_nProtocol		= PROTOCOL_DC;
 		oURL.m_nAction			= CEnvyURL::uriDownload;
@@ -150,6 +159,8 @@ BOOL CHostBrowser::Browse()
 	}
 	else // G2/Gunetella
 	{
+		CQuickLock oTransfersLock( Transfers.m_pSection );
+
 		if ( IsValid() )
 			return FALSE;
 
@@ -177,18 +188,14 @@ BOOL CHostBrowser::Browse()
 				return FALSE;
 			}
 		}
+
+		m_nState = hbsConnecting;
+		m_nHits  = 0;
+		delete m_pProfile;
+		m_pProfile = NULL;
+		m_pNotify->UpdateMessages();
+		return TRUE;
 	}
-
-	m_nState = hbsConnecting;
-	m_nHits  = 0;
-
-	delete m_pProfile;
-	m_pProfile = NULL;
-
-	// Ensure window text is updated after state has been set to "connecting"
-	m_pNotify->UpdateMessages();
-
-	return TRUE;
 }
 
 void CHostBrowser::Stop(BOOL bCompleted)

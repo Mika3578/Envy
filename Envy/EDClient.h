@@ -89,9 +89,9 @@ public:
 // Client capabilities 2
 	BOOL		m_bEmSupportsCaptcha;
 	BOOL		m_bEmSupportsSourceEx2;		// Source Exchange v2 support
-	BOOL		m_bEmRequiresCryptLayer;	// Not supported
-	BOOL		m_bEmRequestsCryptLayer;	// Not supported
-	BOOL		m_bEmSupportsCryptLayer;	// Not supported
+	BOOL		m_bEmRequiresCryptLayer;	// Peer Hello: TCP obfuscation REQUIRE (#121)
+	BOOL		m_bEmRequestsCryptLayer;	// Peer Hello: TCP obfuscation REQUEST
+	BOOL		m_bEmSupportsCryptLayer;	// Peer Hello: TCP obfuscation SUPPORT
 	BOOL		m_bEmExtMultiPacket;		// Not supported
 	BOOL		m_bEmLargeFile;				// Large file support
 	BOOL		m_nEmKadVersion;			// Not supported

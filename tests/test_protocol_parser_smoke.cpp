@@ -272,12 +272,42 @@ static bool test_ed2k_tag_blob_bounds()
 		&& Ed2kTagBlobLengthOk( 0, 0 ) == TRUE;
 }
 
+static bool test_ed2k_tag_string_bounds()
+{
+	return Ed2kTagStringLengthOk( 100, 100 ) == TRUE
+		&& Ed2kTagStringLengthOk( 101, 100 ) == FALSE
+		&& Ed2kTagStringLengthOk( ED2K_TAG_STRING_MAX, ED2K_TAG_STRING_MAX ) == TRUE
+		&& Ed2kTagStringLengthOk( ED2K_TAG_STRING_MAX + 1, ED2K_TAG_STRING_MAX + 1 ) == FALSE
+		&& Ed2kTagStringLengthOk( 0, 0 ) == TRUE;
+}
+
 static bool test_ed2k_hashset_payload_bounds()
 {
 	const DWORD nExact = 3 * ED2K_HASHSET_DIGEST_BYTES;
 	return Ed2kHashsetPayloadFits( 3, nExact ) == TRUE
 		&& Ed2kHashsetPayloadFits( 3, nExact - 1 ) == FALSE
 		&& Ed2kHashsetPayloadFits( 3, nExact + 1 ) == FALSE;
+}
+
+
+static bool test_bt_ut_metadata_size_ok()
+{
+	return BtUtMetadataSizeOk( 1024 ) == TRUE;
+}
+
+static bool test_bt_ut_metadata_size_zero()
+{
+	return BtUtMetadataSizeOk( 0 ) == FALSE;
+}
+
+static bool test_bt_ut_metadata_size_at_max()
+{
+	return BtUtMetadataSizeOk( BT_UT_METADATA_MAX ) == TRUE;
+}
+
+static bool test_bt_ut_metadata_size_over_max()
+{
+	return BtUtMetadataSizeOk( BT_UT_METADATA_MAX + 1 ) == FALSE;
 }
 
 void register_protocol_parser_smoke_tests(TestSuite& suite)
@@ -331,5 +361,10 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_preview_acceptable_over_cap", test_ed2k_preview_acceptable_over_cap );
 	suite.add_test( "ed2k_preview_acceptable_at_cap", test_ed2k_preview_acceptable_at_cap );
 	suite.add_test( "ed2k_tag_blob_bounds", test_ed2k_tag_blob_bounds );
+	suite.add_test( "ed2k_tag_string_bounds", test_ed2k_tag_string_bounds );
 	suite.add_test( "ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds );
+	suite.add_test( "bt_ut_metadata_size_ok", test_bt_ut_metadata_size_ok );
+	suite.add_test( "bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero );
+	suite.add_test( "bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max );
+	suite.add_test( "bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max );
 }

@@ -39,6 +39,7 @@
 #include "Security.h"
 #include "Statistics.h"
 #include "VendorCache.h"
+#include "PacketLengthValidate.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -1359,8 +1360,10 @@ BOOL CBTClient::OnExtendedHandshake(CBTPacket* pPacket)
 		if ( CBENode* pUtMetadataSize = pRoot->GetNode( BT_DICT_METADATA_SIZE ) )	// "metadata_size"
 		{
 			__int64 nMetadataSize = pUtMetadataSize->GetInt();
-			if ( nMetadataSize > 0 )	// Sanity check?
+			if ( BtUtMetadataSizeOk( static_cast< std::uint64_t >( nMetadataSize ) ) )
 				m_nUtMetadataSize = (QWORD)nMetadataSize;
+			else
+				m_nUtMetadataSize = 0;
 		}
 
 		if ( CBENode* pUtPex = pMetadata->GetNode( BT_DICT_UT_PEX ) )				// "ut_pex" Peer-exchange
@@ -1480,13 +1483,15 @@ BOOL CBTClient::OnMetadataRequest(CBTPacket* pPacket)
 				{
 					QWORD nTotalSize = (QWORD)pTotalSize->GetInt();
 					ASSERT( ! ( m_nUtMetadataSize && m_nUtMetadataSize != nTotalSize ) );
-					if ( ! m_nUtMetadataSize )
+					if ( ! m_nUtMetadataSize && BtUtMetadataSizeOk( nTotalSize ) )
 						m_nUtMetadataSize = nTotalSize;
 				}
 
-				if ( m_nUtMetadataSize && m_pDownload->m_pTorrent.m_pBlockBTH.empty() )
+				if ( m_nUtMetadataSize &&
+					 BtUtMetadataSizeOk( m_nUtMetadataSize ) &&
+					 m_pDownload->m_pTorrent.m_pBlockBTH.empty() )
 				{
-					if ( m_pDownload->m_pTorrent.LoadInfoPiece( pPacket->m_pBuffer, pPacket->m_nLength, m_nUtMetadataSize, nPiece ) )
+					if ( m_pDownload->m_pTorrent.LoadInfoPiece( pPacket->m_pBuffer, pPacket->m_nLength, (DWORD)m_nUtMetadataSize, (DWORD)nPiece ) )
 					{
 						// Full info loaded
 						m_pDownload->SetTorrent();

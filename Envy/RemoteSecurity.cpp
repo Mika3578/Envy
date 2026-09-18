@@ -8,8 +8,12 @@
 #include "StdAfx.h"
 #include "RemoteSecurity.h"
 #include "RemoteBase64.h"
+#include "RemotePasswordPolicy.h"
 #include "Settings.h"
 #include "SecureRandom.h"
+#include <bcrypt.h>
+
+#pragma comment(lib, "bcrypt.lib")
 #include <vector>
 #include <sstream>
 #include <iphlpapi.h>  // For GetAdaptersInfo
@@ -395,32 +399,106 @@ bool CRemoteSecurity::GenerateCSRFToken(std::string& out)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// Password Hashing with PBKDF2
+// Password Hashing with PBKDF2-HMAC-SHA256 (#79)
+
+bool CRemoteSecurity::DerivePbkdf2Sha256(const std::string& password, const BYTE* pSalt, ULONG nSaltLen,
+	ULONG nIterations, BYTE* pOut, ULONG nOutLen)
+{
+	if ( ! pSalt || nSaltLen == 0 || ! pOut || nOutLen == 0 || nIterations == 0 )
+		return false;
+
+	BCRYPT_ALG_HANDLE hPrf = nullptr;
+	NTSTATUS status = BCryptOpenAlgorithmProvider( &hPrf, BCRYPT_SHA256_ALGORITHM,
+		nullptr, BCRYPT_ALG_HANDLE_HMAC_FLAG );
+	if ( ! BCRYPT_SUCCESS( status ) || ! hPrf )
+		return false;
+
+	status = BCryptDeriveKeyPBKDF2( hPrf,
+		reinterpret_cast< PUCHAR >( const_cast< char* >( password.data() ) ),
+		static_cast< ULONG >( password.size() ),
+		const_cast< PUCHAR >( pSalt ), nSaltLen,
+		nIterations, pOut, nOutLen, 0 );
+
+	BCryptCloseAlgorithmProvider( hPrf, 0 );
+	return BCRYPT_SUCCESS( status ) != FALSE;
+}
+
+bool CRemoteSecurity::HashPasswordPbkdf2(const std::string& password, std::string& hashOutput)
+{
+	BYTE salt[ REMOTE_PBKDF2_SALT_BYTES ];
+	NTSTATUS rngStatus = BCryptGenRandom( nullptr, salt, sizeof( salt ), BCRYPT_USE_SYSTEM_PREFERRED_RNG );
+	if ( ! BCRYPT_SUCCESS( rngStatus ) )
+		return false;
+
+	BYTE derived[ REMOTE_PBKDF2_KEY_BYTES ];
+	if ( ! DerivePbkdf2Sha256( password, salt, sizeof( salt ),
+		REMOTE_PBKDF2_ITERATIONS, derived, sizeof( derived ) ) )
+		return false;
+
+	const std::string saltB64 = Base64Encode( salt, sizeof( salt ) );
+	const std::string hashB64 = Base64Encode( derived, sizeof( derived ) );
+
+	char buffer[ 512 ];
+	sprintf_s( buffer, sizeof( buffer ), "pbkdf2-sha256:%lu:%s:%s",
+		REMOTE_PBKDF2_ITERATIONS, saltB64.c_str(), hashB64.c_str() );
+	hashOutput = buffer;
+	SecureZeroMemory( derived, sizeof( derived ) );
+	SecureZeroMemory( salt, sizeof( salt ) );
+	return true;
+}
+
+bool CRemoteSecurity::VerifyPasswordPbkdf2(const std::string& password, const std::string& hashString)
+{
+	std::vector< std::string > parts = SplitString( hashString, ':' );
+	if ( parts.size() != 4 || parts[ 0 ] != "pbkdf2-sha256" )
+		return false;
+
+	const ULONG nIterations = static_cast< ULONG >( strtoul( parts[ 1 ].c_str(), nullptr, 10 ) );
+	if ( nIterations < 10000 || nIterations > 10000000 )
+		return false;
+
+	std::vector< BYTE > salt = Base64Decode( parts[ 2 ] );
+	std::vector< BYTE > expected = Base64Decode( parts[ 3 ] );
+	if ( salt.size() < 8 || expected.size() != REMOTE_PBKDF2_KEY_BYTES )
+		return false;
+
+	BYTE derived[ REMOTE_PBKDF2_KEY_BYTES ];
+	if ( ! DerivePbkdf2Sha256( password, salt.data(), static_cast< ULONG >( salt.size() ),
+		nIterations, derived, sizeof( derived ) ) )
+		return false;
+
+	const bool bOk = ConstantTimeCompare( derived, expected.data(), REMOTE_PBKDF2_KEY_BYTES );
+	SecureZeroMemory( derived, sizeof( derived ) );
+	return bOk;
+}
 
 bool CRemoteSecurity::HashPassword(const std::string& password, std::string& hashOutput)
 {
-	// Use a simple salted SHA256 hash for now
-	// PBKDF2 would be better but requires more complex bcrypt setup
-	return FallbackHashPassword(password, hashOutput);
+	return HashPasswordPbkdf2( password, hashOutput );
+}
+
+bool CRemoteSecurity::PasswordNeedsRehash(const std::string& hashString)
+{
+	return RemotePasswordNeedsRehash( hashString.c_str() ) != FALSE;
 }
 
 bool CRemoteSecurity::VerifyPassword(const std::string& password, const std::string& hashString)
 {
-	// Parse hash string: algorithm:salt:hash
-	std::vector<std::string> parts = SplitString(hashString, ':');
+	std::vector< std::string > parts = SplitString( hashString, ':' );
 
-	if (parts.size() == 3 && parts[0] == "sha256-salted") {
-		return FallbackVerifyPassword(password, hashString);
-	}
+	if ( parts.size() == 4 && parts[ 0 ] == "pbkdf2-sha256" )
+		return VerifyPasswordPbkdf2( password, hashString );
 
-	// Check if it's a legacy SHA1 hash for backward compatibility
-	return VerifyLegacySHA1(password, hashString);
+	if ( parts.size() == 3 && parts[ 0 ] == "sha256-salted" )
+		return FallbackVerifyPassword( password, hashString );
+
+	// Legacy settings SHA1 (exactly 40 hex chars) — UTF-16 heritage from PageSettingsRemote
+	return VerifyLegacySHA1( password, hashString );
 }
 
 bool CRemoteSecurity::FallbackHashPassword(const std::string& password, std::string& hashOutput)
 {
-	// Fallback to SHA256 with salt (better than SHA1 but not as secure as PBKDF2)
-	// Hash string format unchanged: sha256-salted:<b64-salt>:<b64-hash> (#79 for PBKDF2).
+	// Intermediate format only; new passwords use PBKDF2 (#79). Salt via CSPRNG (#78).
 	const size_t SALT_LENGTH = 16;
 
 	std::vector<BYTE> salt(SALT_LENGTH);
@@ -429,19 +507,18 @@ bool CRemoteSecurity::FallbackHashPassword(const std::string& password, std::str
 		return false;
 	}
 
-	// Simple hash: SHA256(salt + password)
-	std::string combined = std::string(reinterpret_cast<char*>(salt.data()), SALT_LENGTH) + password;
+	std::string combined = std::string( reinterpret_cast< char* >( salt.data() ), SALT_LENGTH ) + password;
 
 	CSHA256 sha256;
-	sha256.Add(reinterpret_cast<const BYTE*>(combined.c_str()), combined.length());
+	sha256.Add( reinterpret_cast< const BYTE* >( combined.c_str() ), combined.length() );
 	Hashes::Sha256Hash hash;
-	sha256.GetHash(&hash[0]);
+	sha256.GetHash( &hash[ 0 ] );
 
-	std::string saltB64 = Base64Encode(salt.data(), SALT_LENGTH);
-	std::string hashB64 = Base64Encode(&hash[0], 32);
+	std::string saltB64 = Base64Encode( salt.data(), SALT_LENGTH );
+	std::string hashB64 = Base64Encode( &hash[ 0 ], 32 );
 
-	char buffer[256];
-	sprintf_s(buffer, sizeof(buffer), "sha256-salted:%s:%s", saltB64.c_str(), hashB64.c_str());
+	char buffer[ 256 ];
+	sprintf_s( buffer, sizeof( buffer ), "sha256-salted:%s:%s", saltB64.c_str(), hashB64.c_str() );
 	hashOutput = buffer;
 
 	return true;
@@ -449,39 +526,48 @@ bool CRemoteSecurity::FallbackHashPassword(const std::string& password, std::str
 
 bool CRemoteSecurity::FallbackVerifyPassword(const std::string& password, const std::string& hashString)
 {
-	std::vector<std::string> parts = SplitString(hashString, ':');
-	if (parts.size() != 3 || parts[0] != "sha256-salted") {
+	std::vector< std::string > parts = SplitString( hashString, ':' );
+	if ( parts.size() != 3 || parts[ 0 ] != "sha256-salted" )
 		return false;
-	}
 
-	std::vector<BYTE> salt = Base64Decode(parts[1]);
-	std::vector<BYTE> expectedHash = Base64Decode(parts[2]);
+	std::vector< BYTE > salt = Base64Decode( parts[ 1 ] );
+	std::vector< BYTE > expectedHash = Base64Decode( parts[ 2 ] );
 
-	if (salt.empty() || expectedHash.empty()) {
+	if ( salt.empty() || expectedHash.size() != 32 )
 		return false;
-	}
 
-	std::string combined = std::string(reinterpret_cast<char*>(salt.data()), salt.size()) + password;
+	std::string combined = std::string( reinterpret_cast< char* >( salt.data() ), salt.size() ) + password;
 
 	CSHA256 sha256;
-	sha256.Add(reinterpret_cast<const BYTE*>(combined.c_str()), combined.length());
+	sha256.Add( reinterpret_cast< const BYTE* >( combined.c_str() ), combined.length() );
 	Hashes::Sha256Hash computedHash;
-	sha256.GetHash(&computedHash[0]);
+	sha256.GetHash( &computedHash[ 0 ] );
 
-	return ConstantTimeCompare(&computedHash[0], expectedHash.data(), 32);
+	return ConstantTimeCompare( &computedHash[ 0 ], expectedHash.data(), 32 );
 }
 
-bool CRemoteSecurity::VerifyLegacySHA1(const std::string& password, const std::string& hashString)
+bool CRemoteSecurity::VerifyLegacySHA1(const std::string& passwordUtf8, const std::string& hashString)
 {
-	// Support legacy SHA1 hashes for backward compatibility
+	if ( ! RemoteLegacySha1HashLooksValid( hashString.c_str(), hashString.length() ) )
+		return false;
+
+	// Settings historically stored SHA1 of UTF-16LE password bytes.
+	CA2W wide( passwordUtf8.c_str(), CP_UTF8 );
+	const size_t nWideBytes = wcslen( wide ) * sizeof( WCHAR );
+
 	CSHA sha1;
-	sha1.Add(reinterpret_cast<const BYTE*>(password.c_str()), password.length());
+	sha1.Add( reinterpret_cast< const BYTE* >( static_cast< LPCWSTR >( wide ) ), nWideBytes );
 	Hashes::Sha1Hash computedHash;
-	sha1.GetHash(&computedHash[0]);
+	sha1.GetHash( &computedHash[ 0 ] );
+	computedHash.validate();
 
 	CString computedCStr = computedHash.toString();
-	CT2A computedStr(computedCStr);  // Convert CString to narrow string
-	return ConstantTimeCompare(static_cast<const char*>(computedStr), hashString.c_str(), hashString.length());
+	CT2A computedStr( computedCStr );
+	const size_t nComputed = strlen( computedStr );
+	if ( nComputed != 40 )
+		return false;
+
+	return ConstantTimeCompare( static_cast< const char* >( computedStr ), hashString.c_str(), 40 );
 }
 
 /////////////////////////////////////////////////////////////////////////////

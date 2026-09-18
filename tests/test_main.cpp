@@ -23,6 +23,11 @@ void register_network_interface_selector_smoke_tests(TestSuite& suite);
 void register_remote_base64_smoke_tests(TestSuite& suite);
 void register_secure_random_smoke_tests(TestSuite& suite);
 void register_dc_packet_length_smoke_tests(TestSuite& suite);
+void register_ed2k_lock_order_smoke_tests(TestSuite& suite);
+void register_envy_thread_policy_smoke_tests(TestSuite& suite);
+void register_remote_password_policy_smoke_tests(TestSuite& suite);
+void register_remote_html_escape_smoke_tests(TestSuite& suite);
+void register_firewall_wfas_policy_smoke_tests(TestSuite& suite);
 
 int main() {
 	TestSuite suite;
@@ -39,6 +44,11 @@ int main() {
 	register_remote_base64_smoke_tests(suite);
 	register_secure_random_smoke_tests(suite);
 	register_dc_packet_length_smoke_tests(suite);
+	register_ed2k_lock_order_smoke_tests(suite);
+	register_envy_thread_policy_smoke_tests(suite);
+	register_remote_password_policy_smoke_tests(suite);
+	register_remote_html_escape_smoke_tests(suite);
+	register_firewall_wfas_policy_smoke_tests(suite);
 
 	int failures = suite.run_all_tests();
 

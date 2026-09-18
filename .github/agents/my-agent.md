@@ -83,8 +83,8 @@ Envy/
 - `DEVELOPMENT.md` - Development setup and workflow
 - `CONTRIBUTING.md` - Contribution guidelines
 - `MODERNIZATION.md` - C++20 modernization guide
-- `.github/MODERN_CPP_GUIDE.md` - Modern C++ examples
-- `.github/ROADMAP.md` - Project roadmap and priorities
+- `docs/10_dev/modern-cpp-guide.md` - Modern C++ examples
+- `docs/10_dev/roadmap.md` - Project roadmap and priorities (`.github/ROADMAP.md` is a pointer)
 
 ---
 
@@ -1034,9 +1034,9 @@ When reviewing code:
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Development setup and guide
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
 - [MODERNIZATION.md](MODERNIZATION.md) - C++20 modernization guide
-- [.github/MODERN_CPP_GUIDE.md](.github/MODERN_CPP_GUIDE.md) - Modern C++ examples
-- [.github/ROADMAP.md](.github/ROADMAP.md) - Project roadmap
-- [.github/copilot-instructions.md](.github/copilot-instructions.md) - Copilot configuration
+- [docs/10_dev/modern-cpp-guide.md](../../docs/10_dev/modern-cpp-guide.md) - Modern C++ examples
+- [docs/10_dev/roadmap.md](../../docs/10_dev/roadmap.md) - Project roadmap
+- [copilot-instructions.md](../copilot-instructions.md) - Copilot configuration
 - [.cursorrules](.cursorrules) - Cursor AI rules
 - [SECURITY.md](SECURITY.md) - Security policy
 

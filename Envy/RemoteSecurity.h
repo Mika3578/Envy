@@ -44,6 +44,7 @@ public:
 	// Password Hashing
 	static bool HashPassword(const std::string& password, std::string& hashOutput);
 	static bool VerifyPassword(const std::string& password, const std::string& hashString);
+	static bool PasswordNeedsRehash(const std::string& hashString);
 
 private:
 	// Session storage
@@ -71,9 +72,13 @@ private:
 	static bool GenerateCSRFToken(std::string& out);
 
 	// Helper functions - Password hashing
+	static bool HashPasswordPbkdf2(const std::string& password, std::string& hashOutput);
+	static bool VerifyPasswordPbkdf2(const std::string& password, const std::string& hashString);
 	static bool FallbackHashPassword(const std::string& password, std::string& hashOutput);
 	static bool FallbackVerifyPassword(const std::string& password, const std::string& hashString);
-	static bool VerifyLegacySHA1(const std::string& password, const std::string& hashString);
+	static bool VerifyLegacySHA1(const std::string& passwordUtf8, const std::string& hashString);
+	static bool DerivePbkdf2Sha256(const std::string& password, const BYTE* pSalt, ULONG nSaltLen,
+		ULONG nIterations, BYTE* pOut, ULONG nOutLen);
 
 	// Helper functions - Encoding/Utilities
 	static std::string Base64Encode(const BYTE* data, size_t length);

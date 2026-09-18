@@ -83,7 +83,7 @@ Envy/
 - `docs/10_dev/guide.md` - Developer workflow
 - `docs/10_dev/build.md` - Build instructions
 - `docs/10_dev/standards.md` - Code standards
-- `.github/MODERN_CPP_GUIDE.md` - Modern C++ examples
+- `docs/10_dev/modern-cpp-guide.md` - Modern C++ examples
 - `docs/10_dev/roadmap.md` - Project roadmap and priorities
 
 ---

@@ -24,11 +24,20 @@ inline BYTE Ed2kAichAdvertisedVersion()
 	return 0;
 }
 
-// CryptLayer bits in MiscOptions2 (eMule CT_MOREFEATUREVERSIONS / MISCOPTIONS2):
+// CryptLayer MiscOptions2 bits (eMule CT_MOREFEATUREVERSIONS):
 //   bit 7 Supports, bit 8 Requests, bit 9 Requires
-// Envy currently has packet-level PUBLICKEY/ANSWERCryptLayer helpers, but that
-// is not proven equivalent to eMule/aMule TCP protocol-obfuscation semantics.
-// Keep all three at 0 until a dedicated obfuscation interop audit lands.
+//
+// #121 audit (2026-09-18): In eMule/aMule these bits mean *TCP protocol
+// obfuscation* (encrypted stream negotiation before Hello), not the older
+// C2C PUBLICKEY / ANSWERCryptLayer packet RC4 path that Envy still has.
+// Envy does not implement bidirectional TCP obfuscation compatible with
+// peers that REQUIRE encryption. Keep all three Hello bits at 0.
+// Do not treat peer Hello CryptLayer bits as a signal to start PUBLICKEY.
+inline BOOL Ed2kCryptLayerTcpObfuscationImplemented()
+{
+	return FALSE;
+}
+
 inline BOOL Ed2kCryptLayerSupportsAdvertised()
 {
 	return FALSE;
@@ -40,6 +49,12 @@ inline BOOL Ed2kCryptLayerRequestsAdvertised()
 }
 
 inline BOOL Ed2kCryptLayerRequiresAdvertised()
+{
+	return FALSE;
+}
+
+// Peer Hello CryptLayer bits must not trigger Envy's PUBLICKEY packet path.
+inline BOOL Ed2kCryptLayerHelloBitsMayStartPacketCrypto()
 {
 	return FALSE;
 }

@@ -22,6 +22,7 @@
 #include "EDClients.h"
 #include "EDClient.h"
 #include "EDPacket.h"
+#include "Ed2kLockOrder.h"
 #include "Transfers.h"
 
 #include "Network.h"
@@ -380,16 +381,17 @@ BOOL CEDClients::OnAccept(CConnection* pConnection)
 		return FALSE;
 	}
 
-	CSingleLock oTransfersLock( &Transfers.m_pSection );
-	if ( ! oTransfersLock.Lock( 250 ) )
+	// Lock order: EDClients then Transfers (see Ed2kLockOrder.h / #92)
+	CSingleLock oEDClientsLock( &m_pSection );
+	if ( ! oEDClientsLock.Lock( 250 ) )
 	{
 		theApp.Message( MSG_DEBUG, L"Rejecting ed2k connection from %s, network core overloaded.",
 			(LPCTSTR)pConnection->m_sAddress );			// protocolNames[ PROTOCOL_ED2K ]
 		return FALSE;
 	}
 
-	CSingleLock oEDClientsLock( &m_pSection );
-	if ( ! oEDClientsLock.Lock( 250 ) )
+	CSingleLock oTransfersLock( &Transfers.m_pSection );
+	if ( ! oTransfersLock.Lock( 250 ) )
 	{
 		theApp.Message( MSG_DEBUG, L"Rejecting ed2k connection from %s, network core overloaded.",
 			(LPCTSTR)pConnection->m_sAddress );			// protocolNames[ PROTOCOL_ED2K ]
@@ -459,14 +461,20 @@ BOOL CEDClients::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	}
 	else
 	{
+		// Lock order: EDClients then Transfers (see Ed2kLockOrder.h / #92)
+		CSingleLock oEDClientsLock( &m_pSection );
+		if ( ! oEDClientsLock.Lock( 250 ) )
+		{
+			theApp.Message( MSG_ERROR, L"Rejecting %s connection from %s, network core overloaded.", protocolNames[ PROTOCOL_ED2K ], (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pHost->sin_addr ) ) );
+			return FALSE;
+		}
+
 		CSingleLock pLock( &Transfers.m_pSection );
 		if ( ! pLock.Lock( 250 ) )
 		{
 			theApp.Message( MSG_ERROR, L"Rejecting %s connection from %s, network core overloaded.", protocolNames[ PROTOCOL_ED2K ], (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pHost->sin_addr ) ) );
 			return FALSE;
 		}
-
-		CQuickLock oLock( m_pSection );
 
 		switch ( pPacket->m_nType )
 		{
