@@ -61,6 +61,25 @@ inline BOOL G1DeflateXmlInflateOk(DWORD nOutput)
 	return nOutput > 0 && nOutput <= G1_DEFLATE_XML_INFLATE_MAX;
 }
 
+// G1 TCP framing: payload length is a signed LONG on the wire (#81).
+// Reject negative payloads and overflow when adding the fixed header size
+// before comparing against Settings.Gnutella.MaximumPacket.
+constexpr DWORD G1_PACKET_HEADER_BYTES = 23u;	// sizeof(GNUTELLAPACKET)
+
+inline BOOL G1PacketTotalLengthOk(LONG nPayloadLength, DWORD nMaxTotal)
+{
+	if (nPayloadLength < 0)
+		return FALSE;
+	if (nMaxTotal <= G1_PACKET_HEADER_BYTES)
+		return FALSE;
+	// Legacy ProcessPackets rejects when total >= MaximumPacket (strict <).
+	return static_cast<DWORD>(nPayloadLength) < (nMaxTotal - G1_PACKET_HEADER_BYTES);
+}
+
+inline DWORD G1PacketTotalLength(LONG nPayloadLength)
+{
+	return G1_PACKET_HEADER_BYTES + static_cast<DWORD>(nPayloadLength);
+}
 // GGEP item must expose at least one payload byte before m_pBuffer[0].
 inline BOOL GgepItemHasTypeByte(const BYTE* pBuffer, DWORD nLength)
 {
