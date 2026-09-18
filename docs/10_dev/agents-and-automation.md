@@ -9,7 +9,7 @@
 - **Versioning:** `scripts/auto-version.ps1`, `scripts/bump-version.ps1`, `version.json`
 - **Build:** `build_all.ps1` (local full-matrix build via MSBuild)
 - **AI / review:** CodeRabbit (advisory, `.coderabbit.yaml`), clang-tidy→reviewdog on PRs, `.github/copilot-instructions.md`, `.cursor/rules/`
-- **Dependencies:** Dependabot **vcpkg only**; Renovate for GitHub Actions (`renovate.json`)
+- **Dependencies:** Dependabot **vcpkg only**; Renovate for GitHub Actions (`renovate.json5`)
 
 ## CI architecture (two-speed)
 
@@ -85,6 +85,23 @@ See [devsecops-envy.md](devsecops-envy.md) for the full stack map.
   weekly / manual keep `build-mode: manual` after vcpkg restore.
 - Gitleaks and Dependency Review stay. Dependency Review runs when manifests
   change; vcpkg sanity always runs (required name).
+
+### GitHub Actions SHA pinning (#96)
+
+Third-party and GitHub-hosted actions under `.github/workflows/` and
+`.github/actions/` are pinned to full commit SHAs with a trailing `# vN`
+comment for the human-readable major (or exact) version.
+
+To upgrade an action:
+
+1. Resolve the desired tag to a commit:
+   `gh api repos/<owner>/<repo>/git/ref/tags/<tag>`
+   (for annotated tags, follow `object.sha` to the peeled commit).
+2. Replace the SHA in every workflow/composite that uses that action.
+3. Keep the `# v…` comment aligned with the tag you intended.
+4. Open a small `ci/` or `security/` PR; confirm required checks still pass.
+
+Do not reintroduce mutable `@vN` tags for external actions.
 
 ### Follow-ups
 

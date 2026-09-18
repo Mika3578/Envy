@@ -16,7 +16,7 @@
   "branchConcurrentLimit": 5,
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
-  "enabledManagers": ["github-actions", "regex"],
+  "enabledManagers": ["github-actions"],
   "ignorePaths": [
     "**/Plugins/PluginWizard/**",
     "**/Services/**"
