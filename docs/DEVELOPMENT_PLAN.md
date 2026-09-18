@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
+- **Changelog Entry:** 2026-09-18 — #81: NMDC HubName/HubTopic/chat prefixed-payload length guards before trailing-`|` arithmetic (`DcPacketLengthValidate.h` + EnvyTests).
 - **Changelog Entry:** 2026-09-18 — Restored full `docs/DEVELOPMENT_PLAN.md` body accidentally truncated by #159 squash; retained post-#147/#153 changelog lines and #119 `{deflate}` resolution note.
 - **Changelog Entry:** 2026-09-17 — #119: QueryHit `nSize-10` vs G1Packet `len-9` `{deflate}` sizing documented as intentional (trailing NUL vs HIT_SEP framing); no wire change.
 - **Changelog Entry:** 2026-09-17 — #92 slice: Remote Base64 empty-input safety (`RemoteBase64.h`), CHM `LocalAlloc`/`LocalFree` pairing, TorrentEnvy clipboard wide-NUL size. EDClients lock order and `TerminateThread` remain open.

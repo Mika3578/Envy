@@ -187,6 +187,7 @@
     <ClCompile Include="test_network_interface_selector_smoke.cpp" />
     <ClCompile Include="test_remote_base64_smoke.cpp" />
     <ClCompile Include="test_secure_random_smoke.cpp" />
+    <ClCompile Include="test_dc_packet_length_smoke.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />
