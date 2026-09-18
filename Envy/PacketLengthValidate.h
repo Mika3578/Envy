@@ -172,3 +172,13 @@ inline BOOL BtUtMetadataSizeOk(std::uint64_t nSize)
 {
 	return nSize > 0 && nSize <= BT_UT_METADATA_MAX;
 }
+
+// Max MSE/PE Pad_C / Pad_D length accepted on receive (#81).
+// Matches send-side MSE_PAD_MAX_LEN (BTCrypto.h); peers may advertise up to
+// WORD max otherwise and force a large new[] before any framed BT messages.
+constexpr WORD BT_MSE_PAD_MAX = 512;
+
+inline BOOL BtMsePadLengthOk(WORD nPadLength)
+{
+	return nPadLength <= BT_MSE_PAD_MAX;
+}
