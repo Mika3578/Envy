@@ -1569,6 +1569,11 @@ BOOL CEDTag::Read(CFile* pFile)
 			DWORD nBlolbLen;
 			if ( pFile->Read( &nBlolbLen, sizeof( nBlolbLen ) ) != sizeof( nBlolbLen ) )
 				return FALSE;
+			const ULONGLONG nRemaining = pFile->GetLength() - pFile->GetPosition();
+			if ( ! Ed2kTagBlobLengthOk( nBlolbLen, nRemaining ) )
+				return FALSE;
+			if ( nBlolbLen == 0 )
+				break;
 			auto_array< CHAR > psz( new CHAR[ nBlolbLen ] );
 			if ( ! psz.get() )
 				return FALSE;

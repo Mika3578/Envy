@@ -50,6 +50,9 @@ public:
 	BOOL	OnFileStatus(CEDPacket* pPacket);
 	BOOL	OnHashsetAnswer(CEDPacket* pPacket);
 	BOOL	OnHashsetAnswer2(CEDPacket* pPacket);
+	// Shared HASHSETANSWER / HASHSETANSWER2 payload apply after nBlocks is known.
+	// TRUE => secondary request sent; FALSE => caller should Close.
+	BOOL	ApplyHashsetBlocks(CEDPacket* pPacket, DWORD nBlocks);
 	BOOL	OnQueueRank(CEDPacket* pPacket);
 	BOOL	OnRankingInfo(CEDPacket* pPacket);
 	BOOL	OnFileComment(CEDPacket* pPacket);

@@ -32,6 +32,7 @@
 #include "FileIdentifier.h"
 #include "Network.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -384,6 +385,16 @@ BOOL CDownloadTransferED2K::OnHashsetAnswer(CEDPacket* pPacket)
 	theApp.Message( MSG_DEBUG, L"[ED2K] %s: Hashset validated, calling SendSecondaryRequest()", (LPCTSTR)m_sAddress );
 
 	DWORD nBlocks = pPacket->ReadShortLE();
+	if ( ApplyHashsetBlocks( pPacket, nBlocks ) )
+		return TRUE;
+
+	theApp.Message( MSG_DEBUG, L"[ED2K] %s: Hashset processing failed, closing", (LPCTSTR)m_sAddress );
+	Close( TRI_FALSE );
+	return FALSE;
+}
+
+BOOL CDownloadTransferED2K::ApplyHashsetBlocks(CEDPacket* pPacket, DWORD nBlocks)
+{
 	bool bNullBlock = ( m_pDownload->m_nSize % ED2K_PART_SIZE == 0 && m_pDownload->m_nSize );
 	QWORD nBlocksFromSize = ( m_pDownload->m_nSize + ED2K_PART_SIZE - 1 ) / ED2K_PART_SIZE;
 
@@ -394,13 +405,21 @@ BOOL CDownloadTransferED2K::OnHashsetAnswer(CEDPacket* pPacket)
 		nBlocks = 1;
 
 	if ( nBlocks != nBlocksFromSize )
+	{
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_HASHSET_ERROR, (LPCTSTR)m_sAddress );
-	else if ( m_pDownload->SetHashset( pPacket->m_pBuffer + pPacket->m_nPosition, pPacket->GetRemaining() ) )
-		return SendSecondaryRequest();
+		return FALSE;
+	}
 
-	theApp.Message( MSG_DEBUG, L"[ED2K] %s: Hashset processing failed, closing", (LPCTSTR)m_sAddress );
-	Close( TRI_FALSE );
-	return FALSE;
+	if ( ! Ed2kHashsetPayloadFits( nBlocks, pPacket->GetRemaining() ) )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return FALSE;
+	}
+
+	if ( ! m_pDownload->SetHashset( pPacket->m_pBuffer + pPacket->m_nPosition, pPacket->GetRemaining() ) )
+		return FALSE;
+
+	return SendSecondaryRequest();
 }
 
 BOOL CDownloadTransferED2K::OnHashsetAnswer2(CEDPacket* pPacket)
@@ -447,19 +466,8 @@ BOOL CDownloadTransferED2K::OnHashsetAnswer2(CEDPacket* pPacket)
 		}
 
 		DWORD nBlocks = pPacket->ReadShortLE();
-		bool bNullBlock = ( m_pDownload->m_nSize % ED2K_PART_SIZE == 0 && m_pDownload->m_nSize );
-		QWORD nBlocksFromSize = ( m_pDownload->m_nSize + ED2K_PART_SIZE - 1 ) / ED2K_PART_SIZE;
-
-		if ( bNullBlock )
-			nBlocksFromSize++;
-
-		if ( nBlocks == 0 )
-			nBlocks = 1;
-
-		if ( nBlocks != nBlocksFromSize )
-			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_HASHSET_ERROR, (LPCTSTR)m_sAddress );
-		else if ( m_pDownload->SetHashset( pPacket->m_pBuffer + pPacket->m_nPosition, pPacket->GetRemaining() ) )
-			return SendSecondaryRequest();
+		if ( ApplyHashsetBlocks( pPacket, nBlocks ) )
+			return TRUE;
 	}
 
 	Close( TRI_FALSE );

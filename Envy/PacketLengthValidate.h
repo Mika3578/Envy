@@ -77,6 +77,26 @@ inline BOOL Ed2kPreviewFrameAcceptable(DWORD nFrameSize, DWORD nRemaining)
 	return Ed2kPreviewFrameFits( nFrameSize, nRemaining );
 }
 
+// Absolute cap for ED2K TAG_BLOB values in file-backed .met / collection tags (#82).
+// Same 4 MiB policy as preview frames (thumbnails / metadata blobs, not payloads).
+constexpr DWORD ED2K_TAG_BLOB_MAX = ED2K_PREVIEW_FRAME_MAX;
+
+inline BOOL Ed2kTagBlobLengthOk(DWORD nBlobLen, ULONGLONG nFileRemaining)
+{
+	if ( nBlobLen > ED2K_TAG_BLOB_MAX )
+		return FALSE;
+	return nBlobLen <= nFileRemaining;
+}
+
+// ED2K hashset answer: after nBlocks, payload must be exactly nBlocks MD4 digests.
+constexpr DWORD ED2K_HASHSET_DIGEST_BYTES = 16u;
+
+inline BOOL Ed2kHashsetPayloadFits(DWORD nBlocks, DWORD nRemaining)
+{
+	const ULONGLONG nNeed = static_cast< ULONGLONG >( nBlocks ) * ED2K_HASHSET_DIGEST_BYTES;
+	return nNeed == nRemaining;
+}
+
 // Bencode nesting limit for list/dict Decode recursion (stack exhaustion / #82).
 constexpr DWORD BENODE_MAX_DEPTH = 32u;
 
