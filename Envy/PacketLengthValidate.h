@@ -87,6 +87,17 @@ inline BOOL Ed2kTagBlobLengthOk(DWORD nBlobLen, ULONGLONG nFileRemaining)
 	return nBlobLen <= nFileRemaining;
 }
 
+// File-backed ED2K tag key / TAG_STRING lengths are WORD-prefixed (#81/#82).
+// Cap at WORD max; reject when claimed length exceeds remaining file bytes.
+constexpr DWORD ED2K_TAG_STRING_MAX = 65535u;
+
+inline BOOL Ed2kTagStringLengthOk(DWORD nLen, ULONGLONG nFileRemaining)
+{
+	if ( nLen > ED2K_TAG_STRING_MAX )
+		return FALSE;
+	return nLen <= nFileRemaining;
+}
+
 // ED2K hashset answer: after nBlocks, payload must be exactly nBlocks MD4 digests.
 constexpr DWORD ED2K_HASHSET_DIGEST_BYTES = 16u;
 
