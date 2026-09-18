@@ -638,9 +638,9 @@ BOOL CDownloadTransferBT::OnPiece(CBTPacket* pPacket)
 
 BOOL CDownloadTransferBT::OnSourceResponse(CBTPacket* pPacket)
 {
-	// pRoot is owned by pPacket->m_pNode — never delete it here.
+	// pRoot is owned by pPacket->m_pNode - never delete it here.
 	const CBENode* pRoot = pPacket->m_pNode.get();
-	if ( pRoot == NULL )
+	if (pRoot == NULL)
 		return TRUE;
 
 	const CBENode* pPeers = pRoot->GetNode( BT_DICT_PEERS );				// "peers"
