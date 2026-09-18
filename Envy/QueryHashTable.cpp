@@ -1,7 +1,7 @@
 //
 // QueryHashTable.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -30,6 +30,7 @@
 #include "G2Packet.h"
 #include "XML.h"
 #include "ZLib.h"
+#include "PacketLengthValidate.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -716,22 +717,33 @@ bool CQueryHashTable::OnPatch(CPacket* pPacket)
 	if ( nSequence == 1 )
 		m_pBuffer->Clear();
 
+	const DWORD nExpected = QhtPatchExpectedBytes( m_nHash, nBits );
+	if ( pPacket->m_nPosition > pPacket->m_nLength )
+		return false;
+	const DWORD nAddend = pPacket->m_nLength - pPacket->m_nPosition;
+	if ( ! QhtPatchCompressedBudgetOk( m_pBuffer->m_nLength, nAddend, nExpected ) )
+	{
+		m_pBuffer->Clear();
+		return false;
+	}
+
 	m_pBuffer->Add(	pPacket->m_pBuffer + pPacket->m_nPosition,
-					pPacket->m_nLength - pPacket->m_nPosition );
+					nAddend );
 
 	if ( nSequence < nMaximum )
 		return true;
 
 	if ( nCompression == 1 )
 	{
-		if ( ! m_pBuffer->Inflate() )
+		// Cap inflate output to the exact expected patch size (zip-bomb guard).
+		if ( ! m_pBuffer->Inflate( nExpected ) )
 		{
 			m_pBuffer->Clear();
 			return false;
 		}
 	}
 
-	if ( m_pBuffer->m_nLength != m_nHash / ( 8 / nBits ) )
+	if ( m_pBuffer->m_nLength != nExpected )
 	{
 		m_pBuffer->Clear();
 		return false;

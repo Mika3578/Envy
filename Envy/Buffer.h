@@ -75,7 +75,7 @@ public:
 	// Use the buffer with the ZLib compression library
 #ifdef ZLIB_H
 	BOOL	Deflate(BOOL bIfSmaller = FALSE);						// Compress the data in this buffer
-	BOOL	Inflate();												// Decompress the data in this buffer in place
+	BOOL	Inflate(DWORD nMaxOutput = 0);							// Decompress the data in this buffer in place (optional output cap)
 	bool	InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* bEndOfStream = NULL);	// Decompress the data in this buffer into another buffer
 	static int Inflate(z_streamp pStream, int nFlush);				// Safe version of inflate()
 	static int Deflate(z_streamp pStream, int nFlush);				// Safe version of deflate()

@@ -411,19 +411,11 @@ BOOL CBuffer::Deflate(BOOL bIfSmaller)
 // Side Effect: This function assumes that all of the data in the buffer needs to be decompressed,
 // existing contents will be replaced by the decompression.
 
-BOOL CBuffer::Inflate()
+BOOL CBuffer::Inflate(DWORD nMaxOutput)
 {
 	DWORD nCompress = 0;	// For size allocated
 
-	// Old method:
-	//auto_array< BYTE > pCompress( CZLib::Decompress( m_pBuffer, m_nLength, &nCompress ) );
-	//if ( ! pCompress.get() ) return FALSE;
-	//
-	// Move the decompressed data from the buffer Decompress returned to this one
-	//m_nLength = 0;					 // Record that there is no memory stored in this buffer
-	//Add( pCompress.get(), nCompress ); // Copy the decompressed data into this buffer
-
-	BYTE* pCompress = CZLib::Decompress2( m_pBuffer, m_nLength, &nCompress );
+	BYTE* pCompress = CZLib::Decompress2( m_pBuffer, m_nLength, &nCompress, nMaxOutput );
 	if ( ! pCompress ) return FALSE;
 
 	if ( m_pBuffer ) free( m_pBuffer );
