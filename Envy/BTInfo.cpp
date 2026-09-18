@@ -22,6 +22,7 @@
 #include "BTInfo.h"
 #include "BENode.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 #include "Download.h"
 #include "Downloads.h"
 #include "DownloadTask.h"
@@ -663,6 +664,9 @@ BOOL CBTInfo::LoadInfoPiece(BYTE *pPiece, DWORD nPieceSize, DWORD nInfoSize, DWO
 {
 	ASSERT( nPieceSize <= MAX_PIECE_SIZE );
 	if ( nPieceSize > MAX_PIECE_SIZE )
+		return FALSE;
+
+	if ( ! BtUtMetadataSizeOk( nInfoSize ) )
 		return FALSE;
 
 	if ( m_pSource.m_nLength == 0 && nInfoPiece == 0 )
