@@ -5,6 +5,7 @@
 		<form method="get" action="">
 			<div id="filters">
 				<input type="hidden" name="filter_set" value="1" />
+				<input type="hidden" name="csrf_token" value="<%= csrf_token %>" />
 				<b><%= text_filter %></b>
 				<input type="checkbox" id="filter_active" name="filter_active" value="1" <%= filter_active %> />
 				<label for="filter_active"><%= text_filteractive %></label>
