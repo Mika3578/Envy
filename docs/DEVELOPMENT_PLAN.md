@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
+- **Changelog Entry:** 2026-09-18 — #76: Remote UI HTML-escapes `CRemote::Add()` substitutions (`Escape`); `AddRaw` for trusted markup; `RemoteHtmlEscape.h` + EnvyTests smoke coverage.
 - **Changelog Entry:** 2026-09-18 — #82 partial: BEP-9 ut_metadata advertised size capped at 32 MiB (`BtUtMetadataSizeOk`) before accepting metadata pieces.
 - **Changelog Entry:** 2026-09-18 — #79: Remote passwords stored with PBKDF2-HMAC-SHA256 (`BCryptDeriveKeyPBKDF2`); legacy SHA1 / sha256-salted verify + migrate on login.
 - **Changelog Entry:** 2026-09-18 — #92 cooperative close: abandon timed-out threads without `TerminateThread` (`EnvyThreadPolicy.h`); completes remaining #92 slice after lock-order.
@@ -107,7 +108,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
   and full validation after merge to `develop`.
 - Hash-focused unit tests integrated in repo and workflows.
 - Audit and core documentation baseline established.
-- Remote CRITICAL/HIGH security items remediated (CSRF, XSS sanitization, CSP hardening, redirects, rate limiter, API input validation).
+- Remote CRITICAL/HIGH security items: CSRF (#77), PBKDF2 passwords (#79), CSPRNG (#78), CSP/redirects/rate limit, and Remote XSS HTML escape on `Add()` (#76). Remaining Remote security follow-ups tracked separately if found.
 - Remote JS security regression tests wired into `code-quality.yml`.
 - Skin engine **P0** input hardening (`SkinEngineP0.h`): StatusbarHeight registration,
   ParseRect `point`/`size`, roundRect validation, LoadFromXML section-failure
