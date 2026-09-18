@@ -51,10 +51,11 @@ BOOL GenerateCryptographicBytes(BYTE* pBuffer, size_t nLength) {
 ```
 
 **Features:**
-- ✅ **Dynamic BCrypt.dll loading** - Maximum compatibility
-- ✅ **Triple-layer security** - Modern → Legacy → Secure failure
-- ✅ **Zero insecure fallbacks** - Security over convenience
-- ✅ **Comprehensive error handling** - Clear failure reporting
+- ✅ **BCryptGenRandom** with correct NTSTATUS success check (`BCRYPT_SUCCESS`) — preferred on Win10+
+- ✅ **Optional CryptGenRandom** only when `m_hCryptProv` was acquired
+- ✅ **Zero insecure fallbacks** — Security over convenience (`rand()` never used)
+- ✅ **Fail closed** — callers must handle FALSE / empty outputs
+- ✅ **Shared header** `Envy/SecureRandom.h` — single CSPRNG implementation (#78)
 
 ### **2. Security-Critical Function Updates**
 

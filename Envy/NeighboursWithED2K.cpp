@@ -1,7 +1,7 @@
 //
 // NeighboursWithED2K.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -23,6 +23,7 @@
 #include "StdAfx.h"
 #include "Settings.h"
 #include "Envy.h"
+#include "SecureRandom.h"
 #include "NeighboursWithED2K.h"
 #include "EDNeighbour.h"
 #include "EDPacket.h"
@@ -82,7 +83,13 @@ void CNeighboursWithED2K::RunGlobalStatsRequests()
 		{
 			pHost->m_tStats = tSecs;
 			pHost->m_tAck = Network.IsFirewalled( CHECK_UDP ) ? 0 : GetTickCount();		// Don't count failures when UDP status is uncertain
-			pHost->m_nKeyValue = 0x55AA0000 + GetRandomNum( 0ui16, _UI16_MAX );
+			WORD nKeyLow = 0;
+			if ( ! TryGetSecureRandomNum< WORD >( nKeyLow, (WORD)0, (WORD)0xFFFF ) )
+			{
+				theApp.Message( MSG_ERROR, L"ED2K UDP status key: secure RNG unavailable" );
+				return;
+			}
+			pHost->m_nKeyValue = 0x55AA0000 + nKeyLow;
 			pHost->m_nUDPPort = pHost->m_nPort + 4;
 
 			theApp.Message( MSG_INFO, L"Sending status request to eDonkey server %s:%u", (LPCTSTR)CString( inet_ntoa( pHost->m_pAddress ) ), pHost->m_nUDPPort );
