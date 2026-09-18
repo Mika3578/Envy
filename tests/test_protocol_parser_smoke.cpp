@@ -11,6 +11,11 @@
 #include "../Envy/EDSourcePacketValidate.h"
 #include "../Envy/PacketLengthValidate.h"
 
+#include <cstdio>
+#include <fstream>
+#include <iterator>
+#include <string>
+
 static bool test_source_body_valid_exact()
 {
 	const DWORD nSourceSize = Ed2kSourceEx2SourceRecordBytes();
@@ -321,6 +326,48 @@ static bool test_bt_ut_metadata_size_over_max()
 	return BtUtMetadataSizeOk( BT_UT_METADATA_MAX + 1 ) == FALSE;
 }
 
+static bool test_bt_source_response_no_delete_packet_owned_root()
+{
+	// Regression: OnSourceResponse must not delete pPacket->m_pNode (double-free),
+	// and must null-check GetNode("peers") before IsType.
+	const char* candidates[] = {
+		"../Envy/DownloadTransferBT.cpp",
+		"../../Envy/DownloadTransferBT.cpp",
+		"Envy/DownloadTransferBT.cpp",
+		"../../../Envy/DownloadTransferBT.cpp"
+	};
+
+	std::ifstream in;
+	for (const char* path : candidates)
+	{
+		in.open(path, std::ios::in | std::ios::binary);
+		if (in)
+			break;
+	}
+	if (!in)
+	{
+		// Distinguish missing source from regression failure.
+		std::fprintf(stderr, "bt_source_response_no_delete: DownloadTransferBT.cpp not found from CWD\n");
+		return false;
+	}
+
+	std::string content((std::istreambuf_iterator<char>(in)),
+		std::istreambuf_iterator<char>());
+
+	const size_t nFn = content.find("OnSourceResponse");
+	if (nFn == std::string::npos)
+		return false;
+
+	const size_t nNext = content.find("\nBOOL ", nFn + 1);
+	const std::string body = content.substr(nFn,
+		(nNext == std::string::npos ? content.size() : nNext) - nFn);
+
+	const bool bNoDelete = body.find("delete pRoot") == std::string::npos;
+	const bool bNullPeers = body.find("pPeers == NULL") != std::string::npos
+		|| body.find("!pPeers") != std::string::npos;
+	return bNoDelete && bNullPeers;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -379,4 +426,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero );
 	suite.add_test( "bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max );
 	suite.add_test( "bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max );
+	suite.add_test( "bt_source_response_no_delete_packet_owned_root", test_bt_source_response_no_delete_packet_owned_root );
 }
