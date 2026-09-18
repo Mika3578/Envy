@@ -1,30 +1,32 @@
 # Envy Development Roadmap
 
 Status: active
-Last updated: 2026-09-15
+Last updated: 2026-09-18
 Scope: Technical itemization of Envy modernization. Strategic sequence is `docs/DEVELOPMENT_PLAN.md`.
 Source of truth: `docs/10_dev/status.md` for current vs planned; `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` for external projects.
+Portability foundations: `docs/20_arch/PORTABILITY_PLAN.md` (Linux/macOS = **planned**, not supported).
 
 **Based on:** Envy code plus reference clients (eMule Community, aMule, and others listed below). Older Examples/ notes for libtorrent, qBittorrent, and Transmission remain valid for BitTorrent.
 
 Canonical context: strategic plan in `docs/DEVELOPMENT_PLAN.md`; status matrix in `docs/10_dev/status.md`. Session notes: `.local/DEV_TRACKER.md` (gitignored).
 
-Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA SecureIdent → P1 IPv6 and core/UI/headless → P1/P2 BitTorrent → P2 DHT research → P3 Kad6**. Envy stays multi-network.
+Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA SecureIdent → P1 IPv6 and core/UI/headless → P1/P2 BitTorrent → P2 DHT research → P3 Kad6**. Envy stays multi-network. Cross-OS work rides on the core/headless track and must not claim support early.
 
 ---
 
 ## Current State Summary
 
-- **Build System:** Visual Studio solution builds (MSVC toolset `v145`), CMake partial (HashLib only)
-- **UI Framework:** MFC/Unicode complete
+- **Build System:** Visual Studio solution builds (MSVC toolset `v145`), CMake partial (HashLib + selected tests). Full-app CMake low priority; portable-slice CMake is the multiplatform foundation (`PORTABILITY_PLAN.md`, D-015).
+- **Platforms:** Windows x64 **supported** (primary); Win32 **legacy** (still CI/release for Stage A); Linux/macOS **planned** (not supported).
+- **UI Framework:** MFC/Unicode complete on Windows; MFC is frontend, not future EnvyCore
 - **G2 / G1 / NMDC:** implemented and in scope to preserve. **ADC/ADCS hub protocol is not implemented** (NMDC-side `ADCGet`/`ADCSND` ≠ ADC hubs). Feature depth vs latest ADC-EXT / gtk-gnutella unverified.
 - **BitTorrent v1:** Solid (DHT, ut_metadata, ut_pex, lt_tex, web seeds, trackers)
 - **BitTorrent v2:** Library-only (Merkle tree + SHA-256); no wire protocol
 - **ED2K:** Core transfers + SourceEx2 (0x83/0x84) present; Hello honesty for AICH/SecureIdent/CryptLayer/Ext Multipacket. Compressed upload send path, AICH C2C, Ext Multipacket handlers, callbacks/buddy, and live eMule/aMule interop still open. **SecureIdent RSA is not implemented** (#75; do not advertise).
 - **Kademlia (active: `Kademlia.cpp` only):** Bootstrap, ping, find_node, HELLO, SEARCH/PUBLISH **wire handlers** present; results not delivered to downloads; FIREWALLED/Buddy/UDP keys absent. Legacy `KadProtocol.cpp` / `KBucket` / `KadStorage` require undefined `ENVY_LEGACY_KADEMLIA` and are **inactive**. Live Kad2 interop **unverified**.
-- **IPv6:** Utilities exist, core connections IPv4-only (`docs/ipv6/PLAN.md`)
-- **Headless / RPC:** not implemented (MFC GUI + limited Remote web UI)
-- **Testing:** HashLib unit tests plus parser/policy/Hello smokes; no live interop harness yet; protocol integration tests require core refactoring
+- **IPv6:** Utilities exist, core connections IPv4-only (`docs/ipv6/PLAN.md`); prefer portable address types in #89
+- **Headless / RPC:** not implemented (MFC GUI + limited Remote web UI); #161
+- **Testing:** HashLib unit tests plus parser/policy/Hello smokes; no live interop harness yet; protocol integration tests require core refactoring (#91)
 
 ---
 
@@ -197,16 +199,23 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 
 ## Phase 7: Core/UI, headless, Modern C++ (FUTURE / P1 architecture)
 
-Incremental only. References: eMule Qt, aMule, aria2-next, Rucio. No rewrite.
+Incremental only. References: eMule Qt, aMule, aria2-next, Rucio. No rewrite. Portability plan: `docs/20_arch/PORTABILITY_PLAN.md`.
 
 | Item | Detail | Priority |
 |------|--------|----------|
-| **EnvyCore extraction** | Protocol/transfer/library behind a stable internal API; keep MFC as first frontend | P1 |
+| **EnvyCore extraction** | Protocol/transfer/library behind a stable internal API; keep MFC as first frontend (#161). New core APIs avoid MFC/Win32 types (D-013). | P1 |
+| **First-party protocol test seam** | Parsers/state machines without MFC windows (#91); feeds EnvyCore | P1 |
 | **Headless / CLI / RPC** | Evaluate daemon + REST or JSON-RPC; Remote/Web is not that API yet | P1 |
+| **Platform abstraction** | Sockets/DNS/FS/threads/RNG/NAT hooks behind portable interfaces; no mass `#ifdef` | P1 (after seam) |
+| **CMake portable slice** | EnvyCore / parsers / HashLib / tests / headless with MSVC+Clang+GCC; no MFC required | P1 |
+| **CMake for full MFC app** | Extend CMake to main app, services, plugins | Low |
+| **Linux x86_64 CI bootstrap** | After portable tests exist; advisory until green | P1/P2 |
+| **macOS ARM64 CI bootstrap** | After Linux path proves useful; advisory until green | P1/P2 |
+| **Win32 Stage B/C** | Evaluate release/CI removal only with evidence (D-014) | Later |
 | **C++20 adoption** | Concepts, ranges, coroutines where beneficial | Low |
 | **Protocol virtual dispatch** | Replace `switch(PROTOCOL_*) + downcast` with virtual methods on transfer/neighbour classes. Keep `/GR-`; do not enable global RTTI. The two C++ `dynamic_cast` ED2K defects (`EDPacket::WriteFile`, `CUploadQueue::StartImpl`) are already replaced with construction-proven `static_cast`. | Low |
 | **Smart pointer migration** | Replace raw `new`/`delete` with `unique_ptr`/`shared_ptr` | Low |
-| **CMake for full project** | Extend CMake to main app, services, plugins | Low |
+| **Future multi-OS desktop GUI** | Qt/wx/etc. evaluation only after headless API; dedicated issue; not started | Deferred |
 
 ---
 
@@ -224,10 +233,11 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
 ### P0/P1 — SecureIdent RSA
 6. Real eMule RSA SecureIdent **after** the ED2K baseline. Not advertised today (`ED2K_VERSION_SECUREID = 0`).
 
-### P1 — IPv6, core/UI, headless
-7. IPv6 address/socket/DNS/host-cache foundation (`docs/ipv6/PLAN.md`). No Kad6 yet.
-8. Incremental `EnvyCore` / MFC split (eMule Qt, aMule, aria2-next).
+### P1 — IPv6, core/UI, headless, portability foundations
+7. IPv6 address/socket/DNS/host-cache foundation (`docs/ipv6/PLAN.md`, #89). Prefer portable address types. No Kad6 yet.
+8. Incremental `EnvyCore` / MFC split (#91 → #161; eMule Qt, aMule, aria2-next).
 9. Evaluate daemon / CLI / REST or JSON-RPC.
+9b. Cross-platform foundations doc + decisions (D-012…D-015); Linux/macOS remain `planned`.
 
 ### P1/P2 — BitTorrent (do not drop)
 10. Compressed ED2K upload (send COMPRESSEDPART) — ED2K quality, can proceed beside BT.

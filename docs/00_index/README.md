@@ -16,7 +16,7 @@
 |---------|----------|-------|
 | **User** | `docs/50_user/` | Guide, installation, configuration, [settings reference](../50_user/reference/COMPLETE_SETTINGS_REFERENCE.md) |
 | **Developer** | `docs/10_dev/` | Build, guide, standards, contributing, status, roadmap |
-| **Architecture** | [architecture](../20_arch/architecture.md) | System design |
+| **Architecture** | [architecture](../20_arch/architecture.md) · [PORTABILITY_PLAN](../20_arch/PORTABILITY_PLAN.md) | System design + cross-platform foundations (Linux/macOS planned) |
 | **Protocols** | `docs/30_protocols/` | ED2K, Kad, BitTorrent, [reference implementations](../30_protocols/REFERENCE_IMPLEMENTATIONS.md) |
 | **Quality** | `docs/40_quality/` | Analysis, performance, security, testing |
 

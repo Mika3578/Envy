@@ -114,6 +114,14 @@ Branch model:
     **forbidden** — work only on existing PRs (CI, reviews, conflicts,
     update-branch, tests, ready-for-review, squash auto-merge, merge).
     No exceptions for “small/quick”, “tooling”, or “simple refactor” PRs.
+14. **EnvyCore portability (new interfaces only).** New APIs that belong
+    to the future portable core must not expose MFC or Win32 types when a
+    reasonable portable abstraction exists (`CString`, `CFile`, MFC
+    containers/sync, `HANDLE`, `HWND`, `SOCKET`, `SOCKADDR_IN`, …). Do
+    **not** mass-migrate historical code. Do not claim Linux/macOS support
+    until those targets compile and have CI evidence. See
+    `docs/20_arch/PORTABILITY_PLAN.md` and D-012…D-015 in
+    `docs/DECISIONS.md`.
 
 ---
 
@@ -140,12 +148,15 @@ There is no `make test` or `cargo test` - all building flows through
 MSBuild.
 
 **Build authority:** `Visual Studio/Envy.sln` is the authoritative build
-definition. Visual Studio 2026, MSBuild, and toolset **v145** are the
-primary path. Existing CMake files (`CMakePresets.json`, partial
-`CMakeLists.txt` trees) are auxiliary or experimental until Phase 5
-migration completes. Do not treat CMake as equivalent to the Visual Studio
-solution, do not modify the solution solely to satisfy CMake, and do not
-add new CMake changes outside a PR explicitly dedicated to CMake work.
+definition for the **full Windows MFC application**. Visual Studio 2026,
+MSBuild, and toolset **v145** are the primary path. CMake remains
+non-authoritative for the full app, but the **portable slice**
+(`EnvyCore`/parsers/HashLib/tests/headless) is an intentional
+multiplatform foundation (D-015). Do not treat CMake as equivalent to the
+Visual Studio solution, do not modify the solution solely to satisfy
+CMake, and do not add new CMake changes outside a PR explicitly dedicated
+to CMake or portable-core work. Details:
+`docs/20_arch/PORTABILITY_PLAN.md`.
 
 ---
 
@@ -244,11 +255,10 @@ When you take on a task you are expected to:
   warning. Fix the warning or document why it must stay.
 - **Don't** add new dependencies to `vcpkg.json` without first
   discussing in `docs/DEVELOPMENT_PLAN.md` (architectural decisions block).
-- **Don't** expand CMake beyond its current auxiliary role. Existing
-  partial CMake files and `CMakePresets.json` are not authoritative;
-  do not add new CMake changes outside a PR explicitly dedicated to
-  CMake work, and do not modify `Visual Studio/Envy.sln` solely to
-  satisfy CMake.
+- **Don't** expand CMake to replace `Visual Studio/Envy.sln` for the full
+  MFC app. Portable-slice CMake (`EnvyCore`/tests/HashLib/headless) is
+  encouraged under D-015; keep that work in dedicated PRs and do not
+  modify the solution solely to satisfy CMake.
 - **Don't** rewrite `MODERNIZATION.md` from scratch. Update the
   checklists, don't reflow the prose.
 - **Don't** translate translated XML files in `Languages/`. Only
