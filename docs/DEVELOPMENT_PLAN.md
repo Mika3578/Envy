@@ -48,8 +48,9 @@
   gate (skip Windows/CodeQL/Remote/C# when unrelated), CodeQL C++ `build-mode: none`
   on PRs with full manual analysis on `develop`/weekly, vcpkg files binary
   cache (Win32 included; `x-gha` is gone upstream), differential Format Check, clang-tidy moved off PRs, EnvyTests after
-  MSBuild. Live required check names are unchanged. `PR Gate` is advisory until
-  a maintainer updates the `Protect develop` ruleset.
+  MSBuild. Live required check names include Format, Documentation, secret-scan,
+  gitleaks, PR Gate, Analyze (c-cpp), and SonarCloud (see `.github/settings.yml`).
+  `PR Gate` is a required CI wait job; it does not replace GitHub review rules.
 - **Changelog Entry:** 2026-09-10 — Safely disabled invalid ED2K/eMule SecureIdent verification (#75): no SecureIdent advertisement, no MD5/non-zero accept path, peers never marked verified without future RSA validation. Documented ED2K SecureIdent RSA roadmap and separate ED2K/Kad interop checklists. SecureIdent remains authentication/trust only — not required for ED2K connectivity.
 - **Changelog Entry:** 2026-09-08 — Restored inbound packet length validation (closed PR #69) on current `develop`: ED2K `ReadBuffer`, BitTorrent extension framing, Gnutella QueryHit `{deflate}`, GGEP `H`/`M` type-byte guards, and ED2K preview frame unsigned bounds. Shared predicates in `PacketLengthValidate.h` with EnvyTests smoke coverage. Documented QueryHit vs G1Packet `{deflate}` -10/-9 sizing as a known inconsistency (functional follow-up, not fixed here).
 - **Changelog Entry:** 2026-05-27 — Documented linear-history workflow for `develop`: squash/rebase merges only, `git pull --ff-only`, feature-branch rebase commands; aligned `.github/settings.yml` with GitHub merge settings.
@@ -69,15 +70,21 @@
 ## Repository Status (develop)
 - Default branch is `develop`.
 - `main` is currently behind `develop`.
-- **Merge policy (GitHub):** merge commits disabled; squash and rebase merges enabled. Prefer squash for PRs.
+- **Merge policy (GitHub):** merge commits disabled; squash and rebase merges
+  enabled globally. Protect develop forces **squash-only** onto `develop`.
 - **History:** `develop` was rewritten to a linear history with no merge commits; the pre-rewrite snapshot is preserved as the immutable tag `backup/develop-before-linear-rewrite` (local mutable backup/rollback branches were removed after the rewrite stabilized).
 - **Local hygiene:** use `git pull --ff-only` on `develop`; rebase feature branches with `git rebase origin/develop` and `git push --force-with-lease`.
-- **Branch protection:** the active `Protect develop` ruleset requires pull requests, linear history, passing checks, and blocks force-pushes/deletions. `.github/settings.yml` mirrors the intended policy for Probot Settings or manual audits.
+- **Branch protection:** the active `Protect develop` ruleset requires pull
+  requests, linear history, signed commits, ≥1 APPROVED review, dismiss-stale
+  approvals, conversation resolution, code scanning (CodeQL+Gitleaks), passing
+  required checks, and blocks force-pushes/deletions. `.github/settings.yml`
+  mirrors the Probot-capable subset; the ruleset is the source of truth.
 - CI uses a two-speed model: change-aware PR jobs plus full integration on
-  `develop` / scheduled analysis. The live `Protect develop` ruleset still
-  requires the eight named contexts listed in `.github/settings.yml`; `PR Gate`
-  is emitted on every PR but is not required until a maintainer updates the
-  ruleset. See `docs/10_dev/agents-and-automation.md`.
+  `develop` / scheduled analysis. The live `Protect develop` ruleset requires
+  the eleven named contexts listed in `.github/settings.yml` (including
+  Documentation Check, gitleaks, PR Gate, and SonarCloud). `PR Gate` waits for
+  classified CI only — it is not a review substitute. See
+  `docs/10_dev/agents-and-automation.md`.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
 ## Canonical Documentation Split
@@ -305,13 +312,13 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - **2026-09-10:** Adopt a two-speed CI: path-aware PR jobs (`if:`, never
   `paths-ignore` on required workflows), CodeQL C++ `build-mode: none` on PRs
   and manual traced builds on `develop`/schedule, vcpkg files binary cache
-  (`x-gha` removed upstream). Keep the eight live required check names until `PR Gate` is promoted in the
-  GitHub ruleset by a maintainer.
+  (`x-gha` removed upstream). Required Protect develop check names are listed
+  in `.github/settings.yml` (including `PR Gate` as a required CI wait).
 - **2026-09-10:** For issue #75, choose safe disable of fake SecureIdent over
   implementing RSA in the same PR. Advertisement stays at version 0 until a
   dedicated RSA SecureIdent workstream lands. ED2K connectivity must not depend
   on SecureIdent.
-- **2026-05-27:** Rewrote `develop` into a linear history with no merge commits while preserving the final tree through backup refs; enforce linear history going forward via the active `Protect develop` ruleset, GitHub merge settings (no merge commits; squash/rebase only), and contributor `git pull --ff-only` hygiene.
+- **2026-05-27:** Rewrote `develop` into a linear history with no merge commits while preserving the final tree through backup refs; enforce linear history going forward via the active `Protect develop` ruleset (squash-only on `develop`), global GitHub merge settings (no merge commits; squash/rebase enabled), and contributor `git pull --ff-only` hygiene.
 - **2026-05-15:** Repository hygiene baseline on `develop` requires explicit branch-state tracking and GitHub label prerequisites (`ci`, `dependencies`) before enforcing CI as mandatory gates.
 - **2026-04-22:** Added IPv6 dual-stack Phase 0 scoping inventory and phased rollout plan under `docs/ipv6/`.
 - **2026-04-22:** Remote web UI must use cryptographic token generation (`crypto.getRandomValues`) and allowlist-based redirect validation for all client-side navigation paths.

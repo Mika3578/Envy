@@ -46,8 +46,8 @@ fast-forward-only and rebase feature branches before opening or updating PRs.
 
 - Merge commits: **disabled**
 - Squash merge: **enabled** (required path onto `develop`)
-- Merge commit: **disabled**
-- Rebase merge: **disabled** (matches squash-only ruleset)
+- Rebase merge: **enabled globally**, but **prohibited** when merging into
+  `develop` by the Protect develop ruleset (squash-only)
 - Require linear history on `develop`: **enabled** via the active `Protect develop` ruleset
 - Force pushes and branch deletions on `develop`: **blocked**
 

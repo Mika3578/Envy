@@ -7,7 +7,8 @@ name: Dependabot auto-merge
 #
 # Dependabot currently owns **vcpkg only** (see .github/dependabot.yml).
 # GitHub Actions updates are owned by Renovate. The github_actions path below
-# is retained as a no-op safety net if Actions were re-enabled by mistake.
+# is retained as a dormant safety net if Actions were re-enabled by mistake
+# (it would enable auto-merge wait, never approve).
 
 on:
   pull_request_target:

@@ -110,7 +110,7 @@ Do not reintroduce mutable `@vN` tags for external actions.
 
 - Parser fuzzers / sanitizers on nightly (out of the PR gate).
 - clang-tidy with a real Windows `compile_commands.json`.
-- Promote `PR Gate` to the single required ruleset context once measured.
+- Make Format Check and CodeQL JS/C# deterministic blocking gates (planned CI hardening; not yet done).
 
 ## Automation reference
 
