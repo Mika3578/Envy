@@ -100,19 +100,29 @@ jobs:
           CLANG_FORMAT_DIFF: clang-format-diff-${{ env.CLANG_FORMAT_MAJOR }}
         run: |
           set -euo pipefail
-          # Prefer the Format Check script from the PR base so a PR cannot
-          # bypass the required check by rewriting format-check.sh alone.
-          # If the script is new on this branch (not yet on base), fall back
-          # to HEAD for bootstrap only.
+          # Prefer Format Check inputs from the PR base so a PR cannot bypass
+          # the required check by rewriting format-check.sh or relaxing
+          # .clang-format on the branch alone. Hunk content still comes from
+          # the HEAD working tree (checkout ref above).
           trusted_script="$(mktemp)"
-          if git cat-file -e "${BASE_SHA}:.github/scripts/format-check.sh" 2>/dev/null; then
-            git show "${BASE_SHA}:.github/scripts/format-check.sh" >"$trusted_script"
-            echo "Using format-check.sh from base ${BASE_SHA}"
-          else
-            git show "${HEAD_SHA}:.github/scripts/format-check.sh" >"$trusted_script"
-            echo "Using format-check.sh from head ${HEAD_SHA} (not present on base yet)"
+          if ! git cat-file -e "${BASE_SHA}:.github/scripts/format-check.sh" 2>/dev/null; then
+            echo "::error::format-check.sh missing on base ${BASE_SHA}; refusing HEAD fallback"
+            exit 1
           fi
-          # Working tree stays at HEAD_SHA for clang-format-diff inputs.
+          git show "${BASE_SHA}:.github/scripts/format-check.sh" >"$trusted_script"
+          echo "Using format-check.sh from base ${BASE_SHA}"
+
+          if ! git cat-file -e "${BASE_SHA}:.clang-format" 2>/dev/null; then
+            echo "::error::.clang-format missing on base ${BASE_SHA}"
+            exit 1
+          fi
+          git show "${BASE_SHA}:.clang-format" >.clang-format
+          echo "Pinned .clang-format from base ${BASE_SHA}"
+          if git cat-file -e "${BASE_SHA}:.clang-format-ignore" 2>/dev/null; then
+            git show "${BASE_SHA}:.clang-format-ignore" >.clang-format-ignore
+            echo "Pinned .clang-format-ignore from base ${BASE_SHA}"
+          fi
+
           bash "$trusted_script"
 
   documentation-check:
