@@ -38,6 +38,7 @@
 #include "Statistics.h"
 #include "Security.h"
 #include "EDClients.h"
+#include "PacketLengthValidate.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -778,7 +779,10 @@ BOOL CDatagrams::OnDatagram(const SOCKADDR_IN* pHost, const BYTE* pBuffer, DWORD
 	if ( nLength >= sizeof( GNUTELLAPACKET ) )
 	{
 		const GNUTELLAPACKET* pG1UDP = (const GNUTELLAPACKET*)pBuffer;
-		if ( nLength == ( sizeof( GNUTELLAPACKET ) + pG1UDP->m_nLength ) )
+		// Reject negative / oversize m_nLength before sizeof+signed math wraps
+		// (e.g. m_nLength=-16 with nLength=7) and before CG1Packet::New Write.
+		if ( G1PacketTotalLengthOk( pG1UDP->m_nLength, Settings.Gnutella.MaximumPacket ) &&
+			 nLength == G1PacketTotalLength( pG1UDP->m_nLength ) )
 		{
 			if ( CG1Packet* pPacket = CG1Packet::New( pG1UDP ) )
 			{
