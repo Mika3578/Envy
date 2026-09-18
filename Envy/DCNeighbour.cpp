@@ -844,6 +844,9 @@ BOOL CDCNeighbour::OnUserInfo(LPSTR szInfo)
 			CChatUser* pUser;
 			if ( ! m_oUsers.Lookup( strNick, pUser ) )
 			{
+				if (!DcHubUserCountOk(static_cast<DWORD>(m_oUsers.GetCount())))
+					return TRUE; // Drop new nick - MyINFO flood / hub DoS
+
 				pUser = new CChatUser;
 				m_oUsers.SetAt( strNick, pUser );
 			}
