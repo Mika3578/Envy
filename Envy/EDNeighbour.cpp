@@ -22,6 +22,7 @@
 #include "EDNeighbour.h"
 #include "EDPacket.h"
 #include "EDClients.h"
+#include "PacketLengthValidate.h"
 #include "Neighbours.h"
 #include "Network.h"
 #include "Statistics.h"
@@ -305,19 +306,23 @@ BOOL CEDNeighbour::OnRejected(CEDPacket* /*pPacket*/)
 BOOL CEDNeighbour::OnServerMessage(CEDPacket* pPacket)
 {
 	// Server message format: <len 2><Message len>
-	// Need at least 2 bytes for the length field
-	if ( pPacket->GetRemaining() < 2 ) return TRUE;
+	// Fail-closed on wire length before ReadEDString (clamp / throw paths).
+	if ( ! Ed2kEdStringHeaderOk( pPacket->GetRemaining() ) )
+		return TRUE;
 
-	// Read the message string with Unicode support if server indicates it
-	CString	strMessage = pPacket->ReadEDString(
-		( m_nTCPFlags & ED2K_SERVER_TCP_UNICODE ) != 0 );
-
-	// Validate message length (prevent buffer overflow attacks)
-	if ( strMessage.GetLength() > 5000 ) // Reasonable limit for server messages
+	const DWORD nMsgPos = pPacket->m_nPosition;
+	const WORD nMsgLen = pPacket->ReadShortLE();
+	if ( ! Ed2kEdStringPayloadOk( pPacket->GetRemaining(), nMsgLen ) ||
+		 ! Ed2kServerMessageLengthOk( nMsgLen ) )
 	{
 		theApp.Message( MSG_WARNING, L"ED2K server message too long from %s", (LPCTSTR)m_sAddress );
 		return TRUE;
 	}
+	pPacket->m_nPosition = nMsgPos;
+
+	// Read the message string with Unicode support if server indicates it
+	CString	strMessage = pPacket->ReadEDString(
+		( m_nTCPFlags & ED2K_SERVER_TCP_UNICODE ) != 0 );
 
 	// Debug logging for server messages
 	#ifdef _DEBUG

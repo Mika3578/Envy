@@ -297,6 +297,13 @@ static bool test_ed2k_ed_string_payload()
 		&& Ed2kEdStringPayloadOk( 0, 1 ) == FALSE;
 }
 
+static bool test_ed2k_server_message_length()
+{
+	return Ed2kServerMessageLengthOk( 0 ) == TRUE
+		&& Ed2kServerMessageLengthOk( ED2K_SERVER_MESSAGE_MAX ) == TRUE
+		&& Ed2kServerMessageLengthOk( static_cast< WORD >( ED2K_SERVER_MESSAGE_MAX + 1 ) ) == FALSE;
+}
+
 static bool test_ed2k_hashset_payload_bounds()
 {
 	const DWORD nExact = 3 * ED2K_HASHSET_DIGEST_BYTES;
@@ -380,6 +387,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_tag_string_bounds", test_ed2k_tag_string_bounds );
 	suite.add_test( "ed2k_ed_string_header", test_ed2k_ed_string_header );
 	suite.add_test( "ed2k_ed_string_payload", test_ed2k_ed_string_payload );
+	suite.add_test( "ed2k_server_message_length", test_ed2k_server_message_length );
 	suite.add_test( "ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds );
 	suite.add_test( "bt_ut_metadata_size_ok", test_bt_ut_metadata_size_ok );
 	suite.add_test( "bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero );

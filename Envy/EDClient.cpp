@@ -2692,8 +2692,14 @@ BOOL CEDClient::OnAskSharedDirsAnswer(CEDPacket* pPacket)
 
 		for ( DWORD i = 0; i < nCount; i++ )
 		{
-			if ( pPacket->GetRemaining() < 2 )
+			if ( ! Ed2kEdStringHeaderOk( pPacket->GetRemaining() ) )
 				break;
+
+			const DWORD nDirPos = pPacket->m_nPosition;
+			const WORD nDirLen = pPacket->ReadShortLE();
+			if ( ! Ed2kEdStringPayloadOk( pPacket->GetRemaining(), nDirLen ) )
+				break;
+			pPacket->m_nPosition = nDirPos;
 
 			// Read directory name
 			CString strDir = pPacket->ReadEDString( m_bEmUnicode );

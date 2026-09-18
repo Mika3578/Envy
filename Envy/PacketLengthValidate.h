@@ -111,6 +111,15 @@ inline BOOL Ed2kEdStringPayloadOk(DWORD nRemainingAfterLen, WORD nLen)
 	return nLen <= nRemainingAfterLen;
 }
 
+// Absolute cap for ED2K server MOTD / server-message wire payload (#81).
+// Matches the historical post-decode 5000 TCHAR guard, applied on wire length.
+constexpr DWORD ED2K_SERVER_MESSAGE_MAX = 5000u;
+
+inline BOOL Ed2kServerMessageLengthOk(WORD nLen)
+{
+	return nLen <= ED2K_SERVER_MESSAGE_MAX;
+}
+
 // ED2K hashset answer: after nBlocks, payload must be exactly nBlocks MD4 digests.
 constexpr DWORD ED2K_HASHSET_DIGEST_BYTES = 16u;
 

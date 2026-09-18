@@ -3,7 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
-- **Changelog Entry:** 2026-09-18 — #81: ED2K `VIEWSHAREDDIRANSWER` consumes WORD-prefixed directory name before `count` (`Ed2kEdStringHeaderOk`/`Ed2kEdStringPayloadOk`); `OnViewSharedDir` fail-closed on oversize dir strings.
+- **Changelog Entry:** 2026-09-18 — #81: ED2K `VIEWSHAREDDIRANSWER` consumes WORD-prefixed directory name before `count`; `OnViewSharedDir` / `OnAskSharedDirsAnswer` / `OnServerMessage` fail-closed via `Ed2kEdString*` + `Ed2kServerMessageLengthOk` (5000-byte MOTD cap).
 - **Changelog Entry:** 2026-09-18 — #81/#82: file-backed ED2K tag key / TAG_STRING lengths checked against remaining `.met` bytes (`Ed2kTagStringLengthOk`) before allocate/Read.
 - **Changelog Entry:** 2026-09-18 — #166 / D-009 P1: Windows Firewall exceptions via WFAS `INetFwPolicy2` (all Domain/Private/Public profiles); drop legacy `INetFwMgr`.
 - **Changelog Entry:** 2026-09-18 — #76: Remote UI HTML-escapes `CRemote::Add()` substitutions (`Escape`); `AddRaw` for trusted markup; `RemoteHtmlEscape.h` + EnvyTests smoke coverage.
