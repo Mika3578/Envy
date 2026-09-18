@@ -1967,6 +1967,9 @@
     <ClInclude Include="SecureIdentPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SecureRandom.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="PacketBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>

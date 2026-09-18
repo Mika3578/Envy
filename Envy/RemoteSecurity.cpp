@@ -8,12 +8,12 @@
 #include "StdAfx.h"
 #include "RemoteSecurity.h"
 #include "Settings.h"
+#include "SecureRandom.h"
 #include <vector>
 #include <sstream>
 #include <iphlpapi.h>  // For GetAdaptersInfo
 #include <ws2tcpip.h>  // For inet_pton
 
-#pragma comment(lib, "bcrypt.lib")  // Link bcrypt library
 #pragma comment(lib, "iphlpapi.lib") // Link IP helper API library
 
 // Session storage
@@ -188,12 +188,18 @@ bool CRemoteSecurity::CreateSession(const IN_ADDR& clientIP, RemoteSession& sess
 {
 	CQuickLock lock(m_sessionLock);
 
-	// Generate cryptographically secure session ID (128 bits = 32 hex chars)
-	session.sessionId = GenerateSecureId(32);
-	session.created = GetTickCount64();
-	session.lastSeen = session.created;
-	session.clientIP = clientIP;
-	session.csrfToken = GenerateCSRFToken();
+	RemoteSession fresh;
+	fresh.created = GetTickCount64();
+	fresh.lastSeen = fresh.created;
+	fresh.clientIP = clientIP;
+
+	// Generate cryptographically secure session ID and CSRF token (fail closed)
+	if (!GenerateSecureId(32, fresh.sessionId) || !GenerateCSRFToken(fresh.csrfToken)) {
+		theApp.Message(MSG_ERROR, L"Remote session creation failed: secure RNG unavailable");
+		return false;
+	}
+
+	session = fresh;
 
 	// Store session
 	m_sessions[session.sessionId] = session;
@@ -376,39 +382,15 @@ void CRemoteSecurity::AddSecurityHeaders(CString& headers, bool isSecureConnecti
 /////////////////////////////////////////////////////////////////////////////
 // Helper Functions
 
-std::string CRemoteSecurity::GenerateSecureId(size_t length)
+bool CRemoteSecurity::GenerateSecureId(size_t length, std::string& out)
 {
-	// Generate cryptographically secure random bytes
-	std::vector<BYTE> bytes(length / 2 + 1); // +1 for rounding
-
-	if (theApp.m_hCryptProv != 0) {
-		if (!CryptGenRandom(theApp.m_hCryptProv, static_cast<DWORD>(bytes.size()), bytes.data())) {
-			// Fallback to less secure method
-			for (size_t i = 0; i < bytes.size(); ++i) {
-				bytes[i] = static_cast<BYTE>(rand() % 256);
-			}
-		}
-	} else {
-		// No crypto provider available, use rand()
-		for (size_t i = 0; i < bytes.size(); ++i) {
-			bytes[i] = static_cast<BYTE>(rand() % 256);
-		}
-	}
-
-	// Convert to hex string
-	std::string result;
-	for (size_t i = 0; i < length / 2; ++i) {
-		char hex[3];
-		sprintf_s(hex, "%02x", bytes[i]);
-		result += hex;
-	}
-
-	return result;
+	// length is hex character count (even); CSPRNG only — fail closed (#78)
+	return SecureRandomHexId(length, out);
 }
 
-std::string CRemoteSecurity::GenerateCSRFToken()
+bool CRemoteSecurity::GenerateCSRFToken(std::string& out)
 {
-	return GenerateSecureId(32); // 128-bit token
+	return GenerateSecureId(32, out); // 128-bit token as 32 hex chars
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -437,14 +419,13 @@ bool CRemoteSecurity::VerifyPassword(const std::string& password, const std::str
 bool CRemoteSecurity::FallbackHashPassword(const std::string& password, std::string& hashOutput)
 {
 	// Fallback to SHA256 with salt (better than SHA1 but not as secure as PBKDF2)
+	// Hash string format unchanged: sha256-salted:<b64-salt>:<b64-hash> (#79 for PBKDF2).
 	const size_t SALT_LENGTH = 16;
 
-	// Generate random salt as hex string then convert to bytes
-	std::string saltHex = GenerateSecureId(SALT_LENGTH * 2);  // Each byte = 2 hex chars
 	std::vector<BYTE> salt(SALT_LENGTH);
-	for (size_t i = 0; i < SALT_LENGTH && i * 2 + 1 < saltHex.length(); ++i) {
-		char hex[3] = { saltHex[i * 2], saltHex[i * 2 + 1], 0 };
-		salt[i] = static_cast<BYTE>(strtoul(hex, nullptr, 16));
+	if (!SecureRandomFill(salt.data(), SALT_LENGTH)) {
+		theApp.Message(MSG_ERROR, L"Remote password salt generation failed: secure RNG unavailable");
+		return false;
 	}
 
 	// Simple hash: SHA256(salt + password)
