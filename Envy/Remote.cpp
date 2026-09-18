@@ -789,12 +789,24 @@ void CRemote::PageLogin()
 		}
 		else if ( strUsername == Settings.Remote.Username && ! strPassword.IsEmpty() )
 		{
-			// Use secure password verification (supports PBKDF2 and legacy SHA1)
-			std::string passwordStr = std::string( CT2A( strPassword ) );
+			// UTF-8 password bytes for PBKDF2 / migration paths (#79)
+			CW2A utf8Password( strPassword, CP_UTF8 );
+			std::string passwordStr( utf8Password );
 			std::string storedHash = std::string( CT2A( Settings.Remote.Password ) );
 
 			if ( CRemoteSecurity::VerifyPassword( passwordStr, storedHash ) )
 			{
+				// Migrate legacy / weak hashes to PBKDF2-SHA256 on successful login
+				if ( CRemoteSecurity::PasswordNeedsRehash( storedHash ) )
+				{
+					std::string newHash;
+					if ( CRemoteSecurity::HashPassword( passwordStr, newHash ) )
+					{
+						Settings.Remote.Password = CString( newHash.c_str() );
+						Settings.Save();
+					}
+				}
+
 				// Success: Create secure session
 				RemoteSession session;
 				if ( CRemoteSecurity::CreateSession( m_pHost.sin_addr, session ) )
