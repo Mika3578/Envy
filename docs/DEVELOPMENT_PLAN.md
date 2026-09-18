@@ -6,6 +6,7 @@
 - **Changelog Entry:** 2026-09-18 — CI polish on #164: Format Check fail-closed + clang-format-diff (changed hunks, clang-format-18 pinned); CodeQL decoupled from classifier; PR Gate rejects neutral/unexpected skip; C# suite simplified to security-and-quality.
 - **Changelog Entry:** 2026-09-18 — CI: CodeQL always emits c-cpp + javascript-typescript + csharp on every PR to `develop` (fixes Code Scanning "configuration not found"); Format Check is blocking (`--Werror`, no `continue-on-error`).
 - **Changelog Entry:** 2026-09-18 — Protect develop docs aligned to live ruleset: ≥1 APPROVED review, dismiss-stale on push, `require_last_push_approval` off, signed commits + force-push block, CodeQL/Gitleaks code scanning, no GitHub Code Quality rule; Dependabot auto-approve removed.
+- **Changelog Entry:** 2026-09-18 — #97: explicit `timeout-minutes` on lightweight Code Quality / version / Copilot setup jobs.
 - **Changelog Entry:** 2026-09-18 — #81/#82: file-backed ED2K tag key / TAG_STRING lengths checked against remaining `.met` bytes (`Ed2kTagStringLengthOk`) before allocate/Read.
 - **Changelog Entry:** 2026-09-18 — #166 / D-009 P1: Windows Firewall exceptions via WFAS `INetFwPolicy2` (all Domain/Private/Public profiles); drop legacy `INetFwMgr`.
 - **Changelog Entry:** 2026-09-18 — #76: Remote UI HTML-escapes `CRemote::Add()` substitutions (`Escape`); `AddRaw` for trusted markup; `RemoteHtmlEscape.h` + EnvyTests smoke coverage.
