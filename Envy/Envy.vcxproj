@@ -1253,6 +1253,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="ChatCore.h" />
     <ClInclude Include="ChatSession.h" />
+    <ClInclude Include="ChatSessionValidate.h" />
     <ClInclude Include="ChatWindows.h" />
     <ClInclude Include="CollectionFile.h" />
     <ClInclude Include="Colors.h" />

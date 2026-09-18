@@ -1643,6 +1643,9 @@
     <ClInclude Include="ChatSession.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ChatSessionValidate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="ChatWindows.h">
       <Filter>Header Files</Filter>
     </ClInclude>
