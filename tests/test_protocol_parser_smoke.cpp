@@ -264,6 +264,22 @@ static bool test_ed2k_preview_acceptable_at_cap()
 	return Ed2kPreviewFrameAcceptable( ED2K_PREVIEW_FRAME_MAX, ED2K_PREVIEW_FRAME_MAX ) == TRUE;
 }
 
+static bool test_ed2k_tag_blob_bounds()
+{
+	return Ed2kTagBlobLengthOk( 100, 100 ) == TRUE
+		&& Ed2kTagBlobLengthOk( 101, 100 ) == FALSE
+		&& Ed2kTagBlobLengthOk( ED2K_TAG_BLOB_MAX + 1, ED2K_TAG_BLOB_MAX + 1 ) == FALSE
+		&& Ed2kTagBlobLengthOk( 0, 0 ) == TRUE;
+}
+
+static bool test_ed2k_hashset_payload_bounds()
+{
+	const DWORD nExact = 3 * ED2K_HASHSET_DIGEST_BYTES;
+	return Ed2kHashsetPayloadFits( 3, nExact ) == TRUE
+		&& Ed2kHashsetPayloadFits( 3, nExact - 1 ) == FALSE
+		&& Ed2kHashsetPayloadFits( 3, nExact + 1 ) == FALSE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -314,4 +330,6 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_preview_acceptable_zero", test_ed2k_preview_acceptable_zero );
 	suite.add_test( "ed2k_preview_acceptable_over_cap", test_ed2k_preview_acceptable_over_cap );
 	suite.add_test( "ed2k_preview_acceptable_at_cap", test_ed2k_preview_acceptable_at_cap );
+	suite.add_test( "ed2k_tag_blob_bounds", test_ed2k_tag_blob_bounds );
+	suite.add_test( "ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds );
 }
