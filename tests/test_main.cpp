@@ -22,6 +22,7 @@ void register_skin_engine_p0_smoke_tests(TestSuite& suite);
 void register_network_interface_selector_smoke_tests(TestSuite& suite);
 void register_remote_base64_smoke_tests(TestSuite& suite);
 void register_secure_random_smoke_tests(TestSuite& suite);
+void register_dc_packet_length_smoke_tests(TestSuite& suite);
 
 int main() {
 	TestSuite suite;
@@ -37,6 +38,7 @@ int main() {
 	register_network_interface_selector_smoke_tests(suite);
 	register_remote_base64_smoke_tests(suite);
 	register_secure_random_smoke_tests(suite);
+	register_dc_packet_length_smoke_tests(suite);
 
 	int failures = suite.run_all_tests();
 

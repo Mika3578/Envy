@@ -28,6 +28,7 @@
 #include "G2Packet.h"
 #include "DCClient.h"
 #include "DCPacket.h"
+#include "DcPacketLengthValidate.h"
 #include "EDPacket.h"
 #include "EDClient.h"
 #include "EDClients.h"
@@ -603,22 +604,35 @@ BOOL CChatSession::Send(CDCPacket* pPacket)
 
 BOOL CChatSession::OnChatMessage(CDCPacket* pPacket)
 {
-	// Note: The message packet has already been validated by the DCClient or DCNeighbour.
+	// Defence in depth: DCClient/DCNeighbour should validate, but still reject
+	// frames that would underflow "nLength - prefix - 1" (#81).
+
+	if ( pPacket->m_nLength == 0 || pPacket->m_pBuffer == nullptr )
+		return TRUE;
 
 	if ( *pPacket->m_pBuffer == '<' )
 	{
-		CString strMsg( UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ 1 ], pPacket->m_nLength - 1 - 1 ) );
+		if ( ! DcChatAnglePayloadLengthOk( pPacket->m_nLength ) )
+			return TRUE;
+		CString strMsg( UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ 1 ],
+			DcChatAnglePayloadBytes( pPacket->m_nLength ) ) );
 		int nPos = strMsg.Find( L'>' );
 		OnChatMessage( strMsg.Left( nPos ), strMsg.Mid( nPos + 2 ) );
 	}
 	else if ( pPacket->Compare( _P("$HubTopic ") ) )
 	{
-		CString strTopic( UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ 10 ], pPacket->m_nLength - 10 - 1 ) );
+		if ( ! DcPrefixedPayloadLengthOk( pPacket->m_nLength, DC_HUBTOPIC_PREFIX_LEN ) )
+			return TRUE;
+		CString strTopic( UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ DC_HUBTOPIC_PREFIX_LEN ],
+			DcPrefixedPayloadBytes( pPacket->m_nLength, DC_HUBTOPIC_PREFIX_LEN ) ) );
 		NotifyMessage( cmtCaption, m_sNick, strTopic );
 	}
 	else if ( pPacket->Compare( _P("$HubName ") ) )
 	{
-		CString strTopic( UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ 9 ], pPacket->m_nLength - 9 - 1 ) );
+		if ( ! DcPrefixedPayloadLengthOk( pPacket->m_nLength, DC_HUBNAME_PREFIX_LEN ) )
+			return TRUE;
+		CString strTopic( UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ DC_HUBNAME_PREFIX_LEN ],
+			DcPrefixedPayloadBytes( pPacket->m_nLength, DC_HUBNAME_PREFIX_LEN ) ) );
 		NotifyMessage( cmtCaption, m_sNick, strTopic );
 	}
 

@@ -21,6 +21,7 @@
 #include "Envy.h"
 #include "DCNeighbour.h"
 #include "DCPacket.h"
+#include "DcPacketLengthValidate.h"
 #include "DCClient.h"
 #include "DCClients.h"
 #include "Neighbours.h"
@@ -780,11 +781,19 @@ BOOL CDCNeighbour::OnHubName(CDCPacket *pPacket)
 	int nHubInfo = pPacket->Find( ' ', 9 );
 	if ( nHubInfo != -1 )
 	{
+		if ( ! DcHubNameDescriptionLengthOk( pPacket->m_nLength, nHubInfo ) )
+			return TRUE;
 		m_sServerName  = UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ 9 ], nHubInfo - 9 );
-		strDescription = UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ nHubInfo + 1 ], pPacket->m_nLength - nHubInfo - 2 ).TrimLeft( L" -" );
+		strDescription = UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ nHubInfo + 1 ],
+			DcHubNameDescriptionBytes( pPacket->m_nLength, nHubInfo ) ).TrimLeft( L" -" );
 	}
 	else
-		m_sServerName = UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ 9 ], pPacket->m_nLength - 9 - 1 );
+	{
+		if ( ! DcPrefixedPayloadLengthOk( pPacket->m_nLength, DC_HUBNAME_PREFIX_LEN ) )
+			return TRUE;
+		m_sServerName = UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ DC_HUBNAME_PREFIX_LEN ],
+			DcPrefixedPayloadBytes( pPacket->m_nLength, DC_HUBNAME_PREFIX_LEN ) );
+	}
 
 	if ( CHostCacheHostPtr pServer = HostCache.DC.Find( &m_pHost.sin_addr ) )
 	{
