@@ -9,7 +9,7 @@
 - **Versioning:** `scripts/auto-version.ps1`, `scripts/bump-version.ps1`, `version.json`
 - **Build:** `build_all.ps1` (local full-matrix build via MSBuild)
 - **AI / review:** CodeRabbit (advisory, `.coderabbit.yaml`), clang-tidy→reviewdog on PRs, `.github/copilot-instructions.md`, `.cursor/rules/`
-- **Dependencies:** Dependabot **vcpkg only**; Renovate for GitHub Actions (`renovate.json5`)
+- **Dependencies:** Dependabot **vcpkg only**; Renovate for GitHub Actions (root `renovate.json`, including `forkProcessing: "enabled"` because this repo is a fork)
 
 ## CI architecture (two-speed)
 
