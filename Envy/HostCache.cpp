@@ -29,6 +29,7 @@
 #include "Security.h"
 #include "VendorCache.h"
 #include "XML.h"
+#include "BootstrapCatalog.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -1151,49 +1152,39 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 			break;	// End of file
 
 		strLine.Trim( L" \t\r\n" );
-		if ( strLine.GetLength() < 10 ) continue;		// Blank or invalid line
 
-		// Trim at whitespace break (Remove any trailing comments)
-		int nTest = strLine.Find( L"\t", 10 );
-		if ( nTest > 0 ) strLine = strLine.Left( nTest );
-		nTest = strLine.Find( L" ", 10 );
-		if ( nTest > 0 ) strLine = strLine.Left( nTest );
-
-		//TCHAR cType = strLine.GetAt( 0 );
-		LPCTSTR szServer = strLine;
-		if ( *szServer == L'#' ) continue;			// Comment line
-		//if ( *szServer == L'X' ) continue;			// ToDo: Handle bad IPs?
-
-		BOOL bPriority = FALSE;
-		if ( *szServer == L'P' || *szServer == L'*' )
-		{
-			bPriority = TRUE;
-			++szServer;
-		}
+		wchar_t cType = 0;
+		bool bParsedPriority = false;
+		const wchar_t* pszHost = NULL;
+		size_t nHost = 0;
+		if ( BootstrapParseServerLine(
+				strLine, static_cast< size_t >( strLine.GetLength() ),
+				&cType, &bParsedPriority, &pszHost, &nHost )
+			!= BootstrapParseStatus::Ok )
+			continue;
 
 		CHostCacheList* pCache = NULL;
-		switch ( *szServer )
+		switch ( BootstrapClassifyServerType( cType ) )
 		{
-		case L'1':
-		case L'L':
+		case BootstrapServerClass::Gnutella1:
 			pCache = &Gnutella1;
 			break;
-		case L'2':
-		case L'G':
+		case BootstrapServerClass::Gnutella2:
 			pCache = &Gnutella2;
 			break;
-		case L' ':	// Legacy
-		case L'E':
+		case BootstrapServerClass::Ed2k:
 			pCache = &eDonkey;
 			break;
-		case L'D':
+		case BootstrapServerClass::Dc:
 			pCache = &DC;
 			break;
-		case L'B':
+		case BootstrapServerClass::BitTorrent:
 			pCache = &BitTorrent;
 			break;
-		case L'K':
+		case BootstrapServerClass::Kademlia:
 			pCache = &Kademlia;
+			break;
+		default:
 			break;
 		}
 
@@ -1203,18 +1194,11 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 		if ( nProtocol != pCache->m_nProtocol && nProtocol != PROTOCOL_ANY )
 			continue;	// Unneeded protocol
 
-		++szServer;
-
-		if ( *szServer == L'P' || *szServer == L'*' )
-		{
-			bPriority = TRUE;
-			++szServer;
-		}
-
-		for ( ; *szServer == L' ' || *szServer == L'\t'; ++szServer );
+		const CString strHost( pszHost, static_cast< int >( nHost ) );
+		const BOOL bPriority = bParsedPriority ? TRUE : FALSE;
 
 		CQuickLock oLock( pCache->m_pSection );
-		if ( CHostCacheHostPtr pServer = pCache->Add( szServer ) )
+		if ( CHostCacheHostPtr pServer = pCache->Add( strHost ) )
 		{
 			pServer->m_bPriority = bPriority;
 			nServers++;

@@ -102,7 +102,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 ### Done (wire surface in `Kademlia.cpp` — not app-complete)
 - BOOTSTRAP_REQ/RES, PING/PONG, FIND_NODE, HELLO handlers
 - Routing table (XOR distance, K=10; no split/LRU/refresh yet)
-- nodes.dat import (v0–3) via `HostCache`
+- nodes.dat import via `HostCache` (**partial**: old format + new-format version 1; eMule-Security currently publishes version 2 — not a complete Kad bootstrap path)
 - Rate limiting, blacklist integration
 - Request tracking, IP endianness
 
@@ -126,6 +126,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 | **UDP hole punching** | NAT traversal for firewalled nodes (historical Kad2; not Ember/eSE overlays) | P0 |
 | **Firewall self-check** | Detect own firewall status via Kademlia | P0 |
 | **Wire EnableKadHello / KadFindValue** | Settings exist but are not read by `Kademlia.cpp` | Medium |
+| **Kad remote nodes.dat bootstrap** | Discovery type + ImportNodes v2/v3 + empty-cache path. Coordinate with #86/#160. Do not advertise Kad complete. | P1 |
 | **Kad6** | Experimental IPv6 overlay (eMule eSE). Distinct from Kad2. | P3 |
 
 ---
@@ -243,6 +244,7 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
 8. Incremental `EnvyCore` / MFC split (#91 → #161; eMule Qt, aMule, aria2-next).
 9. Evaluate daemon / CLI / REST or JSON-RPC.
 10. Cross-platform foundations doc + decisions (D-012…D-015); Linux/macOS remain `planned`.
+10a. Bootstrap remaining work after the 2026-09-18 catalogue refresh: importer caps, Kad `nodes.dat` source type, last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`).
 
 ### P1/P2 — BitTorrent (do not drop)
 11. Compressed ED2K upload (send COMPRESSEDPART) — ED2K quality, can proceed beside BT.

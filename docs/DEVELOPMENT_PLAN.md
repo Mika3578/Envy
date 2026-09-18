@@ -22,6 +22,7 @@
 - **Changelog Entry:** 2026-09-19 — NMDC hub user list + remote file-list browse: bounded `$NickList` merge with `$MyINFO`, hub-user Browse via existing `CHostBrowser` `PROTOCOL_DC`, fail-closed `files.xml.bz2` (transfer-time compressed cap + bounded XML walker in `LoadDC`), owned path/index snapshot for Browse Host tree before `CNetwork` owns hits, skip unhashed TTH on outgoing lists and skip TTH-less incoming File entries. Completion is hub+port not nick-only. ADC hubs / TLS / `$MyINFO` slots remain separate. Live hub interop unverified.
 - **Changelog Entry:** 2026-09-19 — #81: NMDC `$ADCGET`/`$ADCSND` strict asymmetric numeric parse (`DcAdcGetValidate.h`); GET allows `-1` until-EOF; SND requires real length; length-aware tokens reject embedded NUL / `2^64-1`; fail-closed SND vs fixed request (no `min()`).
 
+- **Changelog Entry:** 2026-09-18 — Bootstrap catalogue refresh (PR A): `DefaultServices.dat` / `DefaultServers.dat` audited; static ED2K IPs and dead GWC/hublists removed; HTTPS `server.met` + hublists; gtk-gnutella UHCs; Transmission/libtorrent DHT routers. Kad remote `nodes.dat` not added (partial Kad2; ImportNodes v1-only). See `docs/30_protocols/bootstrap-sources.md`.
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent TCP length-prefix capped at 16 MiB (`BtPacketLengthOk`); oversize clears buffer and closes peer (`PROTOCOL_TOO_LARGE`).
 - **Changelog Entry:** 2026-09-19 — #81: G2 HIT_WRAP / wrapped G1 fail-closed via `G1WrappedPayloadFits` / negative `m_nLength` reject in `CG1Packet::New` + null-check call sites.
 - **Changelog Entry:** 2026-09-19 — #81: G2 compound/frame length checks order-safe (`G2SubpacketPayloadFits` / `G2FrameLengthFits`) in ReadPacket/SkipCompound/ReadBuffer (defense-in-depth).
@@ -185,6 +186,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - C++ modernization across legacy modules.
 - Incremental protocol compatibility and robustness improvements.
 - **P0 ED2K/Kad interoperability baseline** against eMule Community and aMule (live interop unverified; see `docs/10_dev/status.md`).
+- **P1 bootstrap catalogues** — shipped `DefaultServices.dat` / `DefaultServers.dat` refreshed 2026-09-18. Remaining: importer hardening, Kad `nodes.dat` discovery type, last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`).
 
 ### Blocked / At Risk
 - Full CMake parity with Visual Studio build graph.
