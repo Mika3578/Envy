@@ -66,6 +66,17 @@ inline BOOL Ed2kPreviewFrameFits(DWORD nFrameSize, DWORD nRemaining)
 	return nFrameSize <= nRemaining;
 }
 
+// Absolute cap for one ED2K preview image frame (PNG). Previews are thumbnails;
+// multi-MB peer-advertised sizes are treated as abuse (#120).
+constexpr DWORD ED2K_PREVIEW_FRAME_MAX = 4u * 1024u * 1024u;
+
+inline BOOL Ed2kPreviewFrameAcceptable(DWORD nFrameSize, DWORD nRemaining)
+{
+	if ( nFrameSize == 0 || nFrameSize > ED2K_PREVIEW_FRAME_MAX )
+		return FALSE;
+	return Ed2kPreviewFrameFits( nFrameSize, nRemaining );
+}
+
 // Bencode nesting limit for list/dict Decode recursion (stack exhaustion / #82).
 constexpr DWORD BENODE_MAX_DEPTH = 32u;
 

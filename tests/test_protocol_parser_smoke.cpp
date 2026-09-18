@@ -244,6 +244,26 @@ static bool test_parse_int64_bounded_min()
 	return ParseInt64Bounded( "-9223372036854775808", 20, n ) == TRUE && n == INT64_MIN;
 }
 
+static bool test_ed2k_preview_acceptable_normal()
+{
+	return Ed2kPreviewFrameAcceptable( 100, 100 ) == TRUE;
+}
+
+static bool test_ed2k_preview_acceptable_zero()
+{
+	return Ed2kPreviewFrameAcceptable( 0, 100 ) == FALSE;
+}
+
+static bool test_ed2k_preview_acceptable_over_cap()
+{
+	return Ed2kPreviewFrameAcceptable( ED2K_PREVIEW_FRAME_MAX + 1, ED2K_PREVIEW_FRAME_MAX + 1 ) == FALSE;
+}
+
+static bool test_ed2k_preview_acceptable_at_cap()
+{
+	return Ed2kPreviewFrameAcceptable( ED2K_PREVIEW_FRAME_MAX, ED2K_PREVIEW_FRAME_MAX ) == TRUE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -290,4 +310,8 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "parse_int64_bounded_negative", test_parse_int64_bounded_negative );
 	suite.add_test( "parse_int64_bounded_overflow", test_parse_int64_bounded_overflow );
 	suite.add_test( "parse_int64_bounded_min", test_parse_int64_bounded_min );
+	suite.add_test( "ed2k_preview_acceptable_normal", test_ed2k_preview_acceptable_normal );
+	suite.add_test( "ed2k_preview_acceptable_zero", test_ed2k_preview_acceptable_zero );
+	suite.add_test( "ed2k_preview_acceptable_over_cap", test_ed2k_preview_acceptable_over_cap );
+	suite.add_test( "ed2k_preview_acceptable_at_cap", test_ed2k_preview_acceptable_at_cap );
 }

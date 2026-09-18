@@ -4,6 +4,7 @@
 
 - **Last Updated:** 2026-09-18
 - **Changelog Entry:** 2026-09-17 — #82 partial: bencode Decode max depth 32 + overflow-safe `ParseInt64Bounded`/`atoin`. Remaining: ut_metadata, `.met` blobs, hashset payload.
+- **Changelog Entry:** 2026-09-17 — #120: ED2K preview frames capped at 4 MiB and written with a bounded bulk copy (`Ed2kPreviewFrameAcceptable`).
 - **Changelog Entry:** 2026-09-17 — #77: Remote CSRF enforced for mutating query keys (`connect`/`disconnect`, filters, group/queue UI actions); `_method` no longer bypasses CSRF.
 - **Changelog Entry:** 2026-09-17 — #141: listen sockets open before NAT completes (`OnRun` no longer waits on `IsAsyncFindRunning`); `MapPorts` starts after successful bind/listen (D-011).
 - **Changelog Entry:** 2026-09-17 — #78 security: remove weak `rand()` fallbacks for session/CSRF/salt and protocol anti-spoof nonces; single CSPRNG helper (`SecureRandom.h` / `BCryptGenRandom`) with fail-closed contracts. Out of scope: #79 PBKDF2, #77 CSRF policy, #76 XSS.
