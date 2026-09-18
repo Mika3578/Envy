@@ -98,6 +98,18 @@ inline BOOL Ed2kTagStringLengthOk(DWORD nLen, ULONGLONG nFileRemaining)
 	return nLen <= nFileRemaining;
 }
 
+// Absolute cap for speculative unknown-tag STRING skip heuristic (#81).
+// Claims at or above this fall through to INT-sized skip; claims that fit
+// below this but exceed remaining fail-closed (no INT guess / desync).
+constexpr DWORD ED2K_UNKNOWN_TAG_STRING_SKIP_MAX = 1023u;
+
+inline BOOL Ed2kUnknownTagStringSkipOk(DWORD nValueLen, ULONGLONG nRemaining)
+{
+	if ( nValueLen > ED2K_UNKNOWN_TAG_STRING_SKIP_MAX )
+		return FALSE;
+	return nValueLen <= nRemaining;
+}
+
 // ED2K hashset answer: after nBlocks, payload must be exactly nBlocks MD4 digests.
 constexpr DWORD ED2K_HASHSET_DIGEST_BYTES = 16u;
 
