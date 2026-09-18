@@ -160,9 +160,9 @@ static bool test_service_invalid_url()
 static bool test_service_whitespace_endpoint()
 {
 	ServiceRow row{};
-	return ParseService( L"2   http://dkac.trillinux.org/dkac/dkac.php", &row )
+	return ParseService( L"D   https://upd.emule-security.org/server.met", &row )
 		== BootstrapParseStatus::Ok
-		&& row.endpoint == L"http://dkac.trillinux.org/dkac/dkac.php";
+		&& row.endpoint == L"https://upd.emule-security.org/server.met";
 }
 
 static bool test_service_uhc()

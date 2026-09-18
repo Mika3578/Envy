@@ -1155,7 +1155,7 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 
 		wchar_t cType = 0;
 		bool bParsedPriority = false;
-		const wchar_t* pszHost = NULL;
+		const wchar_t* pszHost = nullptr;
 		size_t nHost = 0;
 		if (BootstrapParseServerLine(
 		        strLine, static_cast<size_t>(strLine.GetLength()),
@@ -1180,7 +1180,7 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 		case BootstrapServerClass::BitTorrent:
 			pCache = &BitTorrent;
 			break;
-		case BootstrapServerClass::Kademlia:
+		case BootstrapServerClass::KadNode:
 			pCache = &Kademlia;
 			break;
 		default:

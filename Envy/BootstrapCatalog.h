@@ -42,7 +42,7 @@ enum class BootstrapParseStatus
 
 enum class BootstrapServiceClass
 {
-	Unknown,
+	Unrecognized,
 	MultiGwc,    // M
 	G2Gwc,       // 2
 	G1Gwc,       // 1
@@ -55,25 +55,52 @@ enum class BootstrapServiceClass
 
 enum class BootstrapServerClass
 {
-	Unknown,
+	Unrecognized,
 	Gnutella1,  // 1 or L
 	Gnutella2,  // 2 or G
 	Ed2k,       // E or legacy leading space
 	Dc,         // D
 	BitTorrent, // B
-	Kademlia,   // K
+	KadNode,    // K
 	Blocked     // X
 };
 
-inline bool BootstrapIsHttpOrHttps(const wchar_t* psz, size_t nLen)
+inline bool BootstrapIsSpace(wchar_t c)
 {
-	if (psz == nullptr)
+	return c == L' ' || c == L'\t' || c == L'\r' || c == L'\n';
+}
+
+inline bool BootstrapTrimEdges(const wchar_t* pszLine, size_t nLen, size_t* pnBegin, size_t* pnEnd)
+{
+	if (pszLine == nullptr || nLen == 0 || pnBegin == nullptr || pnEnd == nullptr)
 		return false;
-	if (nLen >= 8 && wcsncmp(psz, L"https://", 8) == 0)
-		return true;
-	if (nLen >= 7 && wcsncmp(psz, L"http://", 7) == 0)
-		return true;
-	return false;
+	size_t nBegin = 0;
+	while (nBegin < nLen && BootstrapIsSpace(pszLine[nBegin]))
+		++nBegin;
+	size_t nEnd = nLen;
+	while (nEnd > nBegin && BootstrapIsSpace(pszLine[nEnd - 1]))
+		--nEnd;
+	if (nBegin >= nEnd)
+		return false;
+	*pnBegin = nBegin;
+	*pnEnd = nEnd;
+	return true;
+}
+
+// Allowlist for catalogue URLs. Live GWC still speaks cleartext; HTTPS is
+// accepted when the cache actually serves it. Not an HTTP client.
+inline bool BootstrapIsWebUrl(const wchar_t* psz, size_t nLen)
+{
+	if (psz == nullptr || nLen < 7)
+		return false;
+	size_t nScheme = 0;
+	if (nLen >= 5 && wcsncmp(psz, L"https", 5) == 0)
+		nScheme = 5;
+	else if (wcsncmp(psz, L"http", 4) == 0)
+		nScheme = 4;
+	else
+		return false;
+	return nLen >= nScheme + 3 && psz[nScheme] == L':' && psz[nScheme + 1] == L'/' && psz[nScheme + 2] == L'/';
 }
 
 inline bool BootstrapLooksLikeHostPort(const wchar_t* psz, size_t nLen)
@@ -109,7 +136,7 @@ inline BootstrapServiceClass BootstrapClassifyServiceType(wchar_t cType)
 	case L'U': return BootstrapServiceClass::GnutellaUdp;
 	case L'X': return BootstrapServiceClass::Blocked;
 	case L'#': return BootstrapServiceClass::Comment;
-	default: return BootstrapServiceClass::Unknown;
+	default: return BootstrapServiceClass::Unrecognized;
 	}
 }
 
@@ -125,9 +152,9 @@ inline BootstrapServerClass BootstrapClassifyServerType(wchar_t cType)
 	case L'E': return BootstrapServerClass::Ed2k;
 	case L'D': return BootstrapServerClass::Dc;
 	case L'B': return BootstrapServerClass::BitTorrent;
-	case L'K': return BootstrapServerClass::Kademlia;
+	case L'K': return BootstrapServerClass::KadNode;
 	case L'X': return BootstrapServerClass::Blocked;
-	default: return BootstrapServerClass::Unknown;
+	default: return BootstrapServerClass::Unrecognized;
 	}
 }
 
@@ -162,18 +189,9 @@ inline BootstrapParseStatus BootstrapParseServiceLine(
 	if (pnEndpoint != nullptr)
 		*pnEndpoint = 0;
 
-	if (pszLine == nullptr || nLen == 0)
-		return BootstrapParseStatus::Skip;
-
 	size_t nBegin = 0;
-	while (nBegin < nLen && (pszLine[nBegin] == L' ' || pszLine[nBegin] == L'\t' ||
-	                         pszLine[nBegin] == L'\r' || pszLine[nBegin] == L'\n'))
-		++nBegin;
-	size_t nEnd = nLen;
-	while (nEnd > nBegin && (pszLine[nEnd - 1] == L' ' || pszLine[nEnd - 1] == L'\t' ||
-	                         pszLine[nEnd - 1] == L'\r' || pszLine[nEnd - 1] == L'\n'))
-		--nEnd;
-	if (nBegin >= nEnd)
+	size_t nEnd = 0;
+	if (!BootstrapTrimEdges(pszLine, nLen, &nBegin, &nEnd))
 		return BootstrapParseStatus::Skip;
 
 	const wchar_t cType = pszLine[nBegin];
@@ -188,7 +206,7 @@ inline BootstrapParseStatus BootstrapParseServiceLine(
 		return BootstrapParseStatus::Invalid;
 
 	const BootstrapServiceClass nClass = BootstrapClassifyServiceType(cType);
-	if (nClass == BootstrapServiceClass::Unknown)
+	if (nClass == BootstrapServiceClass::Unrecognized)
 		return BootstrapParseStatus::Invalid;
 
 	const wchar_t* pszEndpoint = pszLine + nBegin + 2;
@@ -201,17 +219,10 @@ inline BootstrapParseStatus BootstrapParseServiceLine(
 	if (nEndpoint == 0)
 		return BootstrapParseStatus::Invalid;
 
-	if (BootstrapServiceTypeNeedsUrl(nClass))
-	{
-		if (!BootstrapIsHttpOrHttps(pszEndpoint, nEndpoint))
-			return BootstrapParseStatus::Invalid;
-	}
-	else if (nClass == BootstrapServiceClass::GnutellaUdp)
-	{
-		// uhc:host:port / ukhl:host:port / gnutella:host:ip:port variants
-		if (nEndpoint < 5)
-			return BootstrapParseStatus::Invalid;
-	}
+	if (BootstrapServiceTypeNeedsUrl(nClass) && !BootstrapIsWebUrl(pszEndpoint, nEndpoint))
+		return BootstrapParseStatus::Invalid;
+	if (nClass == BootstrapServiceClass::GnutellaUdp && nEndpoint < 5)
+		return BootstrapParseStatus::Invalid;
 
 	if (pcType != nullptr)
 		*pcType = cType;
@@ -240,18 +251,9 @@ inline BootstrapParseStatus BootstrapParseServerLine(
 	if (pnHost != nullptr)
 		*pnHost = 0;
 
-	if (pszLine == nullptr || nLen == 0)
-		return BootstrapParseStatus::Skip;
-
 	size_t nBegin = 0;
-	while (nBegin < nLen && (pszLine[nBegin] == L' ' || pszLine[nBegin] == L'\t' ||
-	                         pszLine[nBegin] == L'\r' || pszLine[nBegin] == L'\n'))
-		++nBegin;
-	size_t nEnd = nLen;
-	while (nEnd > nBegin && (pszLine[nEnd - 1] == L' ' || pszLine[nEnd - 1] == L'\t' ||
-	                         pszLine[nEnd - 1] == L'\r' || pszLine[nEnd - 1] == L'\n'))
-		--nEnd;
-	if (nBegin >= nEnd)
+	size_t nEnd = 0;
+	if (!BootstrapTrimEdges(pszLine, nLen, &nBegin, &nEnd))
 		return BootstrapParseStatus::Skip;
 
 	if (pszLine[nBegin] == L'#')
@@ -292,7 +294,7 @@ inline BootstrapParseStatus BootstrapParseServerLine(
 
 	const wchar_t cType = pszLine[nPos];
 	const BootstrapServerClass nClass = BootstrapClassifyServerType(cType);
-	if (nClass == BootstrapServerClass::Unknown)
+	if (nClass == BootstrapServerClass::Unrecognized)
 		return BootstrapParseStatus::Invalid;
 	++nPos;
 
