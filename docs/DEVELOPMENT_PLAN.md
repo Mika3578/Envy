@@ -58,7 +58,6 @@
 4. Record consequential technical decisions in **Decisions Log**.
 5. Close or refresh **Open Questions** explicitly.
 
-
 ## Repository Status (develop)
 - Default branch is `develop`.
 - `main` is currently behind `develop`.
@@ -72,7 +71,6 @@
   is emitted on every PR but is not required until a maintainer updates the
   ruleset. See `docs/10_dev/agents-and-automation.md`.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
-
 
 ## Canonical Documentation Split
 - `docs/DEVELOPMENT_PLAN.md`: strategic roadmap, major decisions, and sequencing (this file).
