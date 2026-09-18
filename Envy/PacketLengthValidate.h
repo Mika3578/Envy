@@ -77,7 +77,8 @@ inline BOOL Ed2kPreviewFrameAcceptable(DWORD nFrameSize, DWORD nRemaining)
 }
 
 // Absolute cap for ED2K TAG_BLOB values in file-backed .met / collection tags (#82).
-constexpr DWORD ED2K_TAG_BLOB_MAX = 4u * 1024u * 1024u;
+// Same 4 MiB policy as preview frames (thumbnails / metadata blobs, not payloads).
+constexpr DWORD ED2K_TAG_BLOB_MAX = ED2K_PREVIEW_FRAME_MAX;
 
 inline BOOL Ed2kTagBlobLengthOk(DWORD nBlobLen, ULONGLONG nFileRemaining)
 {

@@ -224,39 +224,20 @@ static bool test_ed2k_preview_acceptable_at_cap()
 	return Ed2kPreviewFrameAcceptable( ED2K_PREVIEW_FRAME_MAX, ED2K_PREVIEW_FRAME_MAX ) == TRUE;
 }
 
-static bool test_ed2k_tag_blob_ok()
+static bool test_ed2k_tag_blob_bounds()
 {
-	return Ed2kTagBlobLengthOk( 100, 100 ) == TRUE;
+	return Ed2kTagBlobLengthOk( 100, 100 ) == TRUE
+		&& Ed2kTagBlobLengthOk( 101, 100 ) == FALSE
+		&& Ed2kTagBlobLengthOk( ED2K_TAG_BLOB_MAX + 1, ED2K_TAG_BLOB_MAX + 1 ) == FALSE
+		&& Ed2kTagBlobLengthOk( 0, 0 ) == TRUE;
 }
 
-static bool test_ed2k_tag_blob_over_remaining()
+static bool test_ed2k_hashset_payload_bounds()
 {
-	return Ed2kTagBlobLengthOk( 101, 100 ) == FALSE;
-}
-
-static bool test_ed2k_tag_blob_over_cap()
-{
-	return Ed2kTagBlobLengthOk( ED2K_TAG_BLOB_MAX + 1, ED2K_TAG_BLOB_MAX + 1 ) == FALSE;
-}
-
-static bool test_ed2k_tag_blob_empty_ok()
-{
-	return Ed2kTagBlobLengthOk( 0, 0 ) == TRUE;
-}
-
-static bool test_ed2k_hashset_payload_exact()
-{
-	return Ed2kHashsetPayloadFits( 3, 3 * ED2K_HASHSET_DIGEST_BYTES ) == TRUE;
-}
-
-static bool test_ed2k_hashset_payload_short()
-{
-	return Ed2kHashsetPayloadFits( 3, 3 * ED2K_HASHSET_DIGEST_BYTES - 1 ) == FALSE;
-}
-
-static bool test_ed2k_hashset_payload_long()
-{
-	return Ed2kHashsetPayloadFits( 3, 3 * ED2K_HASHSET_DIGEST_BYTES + 1 ) == FALSE;
+	const DWORD nExact = 3 * ED2K_HASHSET_DIGEST_BYTES;
+	return Ed2kHashsetPayloadFits( 3, nExact ) == TRUE
+		&& Ed2kHashsetPayloadFits( 3, nExact - 1 ) == FALSE
+		&& Ed2kHashsetPayloadFits( 3, nExact + 1 ) == FALSE;
 }
 
 void register_protocol_parser_smoke_tests(TestSuite& suite)
@@ -302,11 +283,6 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_preview_acceptable_zero", test_ed2k_preview_acceptable_zero );
 	suite.add_test( "ed2k_preview_acceptable_over_cap", test_ed2k_preview_acceptable_over_cap );
 	suite.add_test( "ed2k_preview_acceptable_at_cap", test_ed2k_preview_acceptable_at_cap );
-	suite.add_test( "ed2k_tag_blob_ok", test_ed2k_tag_blob_ok );
-	suite.add_test( "ed2k_tag_blob_over_remaining", test_ed2k_tag_blob_over_remaining );
-	suite.add_test( "ed2k_tag_blob_over_cap", test_ed2k_tag_blob_over_cap );
-	suite.add_test( "ed2k_tag_blob_empty_ok", test_ed2k_tag_blob_empty_ok );
-	suite.add_test( "ed2k_hashset_payload_exact", test_ed2k_hashset_payload_exact );
-	suite.add_test( "ed2k_hashset_payload_short", test_ed2k_hashset_payload_short );
-	suite.add_test( "ed2k_hashset_payload_long", test_ed2k_hashset_payload_long );
+	suite.add_test( "ed2k_tag_blob_bounds", test_ed2k_tag_blob_bounds );
+	suite.add_test( "ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds );
 }
