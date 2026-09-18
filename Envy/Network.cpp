@@ -776,8 +776,7 @@ bool CNetwork::PreRun()
 			(LPCTSTR)Settings.Connection.OutHost );
 	}
 
-	// Map ports using NAT UPnP and Control Point UPnP methods and acquire external IP on success
-	MapPorts();
+	// NAT/UPnP starts after bind/listen in OnRun (D-011 / #141). Do not MapPorts here.
 
 	return true;
 }
@@ -792,14 +791,17 @@ void CNetwork::OnRun()
 		{
 			Doze( 100 );
 
-			// Delay thread load at startup or UPnP
-			if ( ! theApp.m_bLive || ( UPnPFinder && UPnPFinder->IsAsyncFindRunning() ) )
+			// Wait for full app init (splash). Never wait on NAT/UPnP before listening.
+			if ( ! theApp.m_bLive )
 			{
 				Sleep( 0 );
 				continue;
 			}
 
-			if ( Settings.Connection.EnableUPnP )
+			const bool bUPnPBusy = ( UPnPFinder && UPnPFinder->IsAsyncFindRunning() );
+
+			// Advance/refresh NAT only after sockets are bound; never block listen/neighbours.
+			if ( Settings.Connection.EnableUPnP && bListen && ! bUPnPBusy )
 			{
 				if ( m_bUPnPPortsForwarded == TRI_FALSE )
 				{
@@ -809,16 +811,14 @@ void CNetwork::OnRun()
 						++m_nUPnPTier;
 						UPnPFinder.Free();
 						MapPorts();
-						continue;
 					}
 				}
-
-				// Refresh UPnP port mappings
-				const DWORD tNow = GetTickCount();
-				if ( tNow > m_tUPnPMap + Settings.Connection.UPnPRefreshTime )
+				else
 				{
-					MapPorts();
-					continue;
+					// Refresh UPnP port mappings
+					const DWORD tNow = GetTickCount();
+					if ( tNow > m_tUPnPMap + Settings.Connection.UPnPRefreshTime )
+						MapPorts();
 				}
 			}
 
@@ -853,6 +853,14 @@ void CNetwork::OnRun()
 
 					Neighbours.IsG2HubCapable( FALSE, TRUE );			// Debug notes?
 					Neighbours.IsG1UltrapeerCapable( FALSE, TRUE );		// Debug notes?
+
+					// Bind first, then start async NAT (D-011 / #141)
+					if ( Settings.Connection.EnableUPnP )
+					{
+						oLock.Unlock();
+						MapPorts();
+						continue;
+					}
 				}
 
 				DiscoveryServices.Execute();
