@@ -11,7 +11,7 @@ This repository now uses a dedicated workflow at
 - `github/codeql-action/init@v4`
 - `languages: csharp`
 - `build-mode: manual`
-- `queries: security-extended,security-and-quality`
+- `queries: security-and-quality` (includes `security-extended` / default)
 - explicit `msbuild` compilation for C# solutions that currently build
 
 ## C# solutions/projects inventory

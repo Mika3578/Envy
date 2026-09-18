@@ -33,8 +33,9 @@ Branch model:
 - Create every work branch from the latest **`origin/develop`**.
 - Never push directly to **`develop`**, **`main`**, or **`legacy`**; land
   changes through a pull request to **`develop`**.
-- Keep **`develop`** history **linear**: merge PRs with **squash** or
-  **rebase** only; ordinary merge commits are not allowed on **`develop`**.
+- Keep **`develop`** history **linear**: merge PRs with **squash** only
+  (Protect develop); ordinary merge or rebase-merge commits are not allowed
+  on **`develop`**.
 - Branch names use `type/short-kebab-summary` (see hard rule 11).
 
 ---
@@ -84,25 +85,29 @@ Branch model:
 12. **Controlled autonomy at the merge gate**. An assistant **may** create a
     work branch, commit/push on that branch, open a **draft** PR, mark the
     PR ready-for-review, address reviews, fix CI, update the branch with
-    `develop`, enable **squash auto-merge**, and let GitHub merge
-    **without** an extra human approval when **all** of the following hold:
-    - low-risk change;
-    - branch up to date with `develop`;
-    - no merge conflicts;
-    - all **required** status checks green;
-    - no unresolved review threads;
-    - sufficient tests for the change;
-    - no unvalidated risky protocol, crypto, authentication, threading,
-      locking, memory-ownership, or undocumented wire-format change.
-    For high-risk areas (ED2K/eMule, Kad/Kademlia, Gnutella/G1,
-    Gnutella2/G2, BitTorrent, NMDC/ADC, Network/NAT, packet parsing,
-    serialization, crypto, authentication, threading, locking, memory
-    lifetime), also require sufficient evidence: a regression test,
-    protocol/spec comparison, comparison with eMule/aMule/Shareaza (or
-    another relevant reference), **or** an explicit
+    `develop`, and enable **squash auto-merge**. GitHub will merge only when
+    the live **Protect develop** ruleset is satisfied, including:
+    - at least one GitHub review **APPROVED** by someone **other than** the
+      PR author (do **not** fake this with a bot/Actions self-approve);
+    - stale approvals are dismissed when new commits are pushed
+      (`require_last_push_approval` remains **off** so a non-author
+      approval — including Copilot when enabled — can satisfy the count);
+    - all review threads resolved and no active **CHANGES_REQUESTED**;
+    - all **required** status checks green; branch up to date with `develop`;
+    - PR not a draft; squash-only on `develop`; signed commits; force pushes
+      blocked; no ruleset bypass.
+    Additionally apply the usual change-quality gates (sufficient tests;
+    no unvalidated risky protocol/crypto/auth/threading/locking/memory or
+    undocumented wire-format change). For high-risk areas (ED2K/eMule,
+    Kad/Kademlia, Gnutella/G1, Gnutella2/G2, BitTorrent, NMDC/ADC,
+    Network/NAT, packet parsing, serialization, crypto, authentication,
+    threading, locking, memory lifetime), also require sufficient evidence:
+    a regression test, protocol/spec comparison, comparison with
+    eMule/aMule/Shareaza (or another relevant reference), **or** an explicit
     `Wire-format impact: none` justification in the PR.
     **Never** bypass GitHub rulesets, required checks, or branch
-    protections. Never push to `main`/`develop`/`legacy` directly.
+    protections (`--admin`, elevated PATs, force-push to protected refs).
+    Never push to `main`/`develop`/`legacy` directly.
 13. **Maximum 3 active development PRs**. Before opening a new PR, count
     open **development** PRs (Dependabot/Renovate PRs do **not** count).
     If **≤ 2**, a new PR is allowed. If **≥ 3**, creating another PR is
