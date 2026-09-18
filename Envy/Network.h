@@ -153,6 +153,8 @@ protected:
 	// Process asynchronous jobs (hits, searches, etc.):
 	void		RunJobs();
 	void		ClearJobs();
+	void		EnqueueJob(CJob oJob);
+	void		FreeJob(CJob& oJob);
 	bool		ProcessQuerySearch(CNetwork::CJob& oJob);	// Handle and destroy query searches
 	bool		ProcessQueryHits(CNetwork::CJob& oJob); 	// Handle and destroy query hits
 

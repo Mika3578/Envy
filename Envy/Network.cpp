@@ -33,6 +33,7 @@
 #include "DiscoveryServices.h"
 #include "UPnPFinder.h"
 #include "Firewall.h"
+#include "NetworkJobValidate.h"
 
 #include "CrawlSession.h"
 #include "SearchManager.h"
@@ -1215,19 +1216,41 @@ BOOL CNetwork::OnPush(const Hashes::Guid& oGUID, CConnection* pConnection)
 void CNetwork::OnQuerySearch(CLocalSearch* pSearch)
 {
 	CQuickLock oLock( m_pJobSection );
-
-	// ToDo: Add overload protection code
-
-	m_oJobs.AddTail( CJob( CJob::Search, pSearch ) );
+	EnqueueJob( CJob( CJob::Search, pSearch ) );
 }
 
 void CNetwork::OnQueryHits(CQueryHit* pHits)
 {
 	CQuickLock oLock( m_pJobSection );
+	EnqueueJob( CJob( CJob::Hit, pHits ) );
+}
 
-	// ToDo: Add overload protection code
+void CNetwork::FreeJob(CJob& oJob)
+{
+	switch ( oJob.GetType() )
+	{
+	case CJob::Search:
+		delete (CLocalSearch*)oJob.GetData();
+		break;
 
-	m_oJobs.AddTail( CJob( CJob::Hit, pHits ) );
+	case CJob::Hit:
+		((CQueryHit*)oJob.GetData())->Delete();
+		break;
+
+	default:
+		ASSERT( FALSE );
+	}
+}
+
+void CNetwork::EnqueueJob(CJob oJob)
+{
+	// Caller holds m_pJobSection. Drop oldest owned search/hit trees when full.
+	while ( ! NetworkJobQueueCountOk( static_cast< DWORD >( m_oJobs.GetCount() ) ) )
+	{
+		CJob oOld = m_oJobs.RemoveHead();
+		FreeJob( oOld );
+	}
+	m_oJobs.AddTail( oJob );
 }
 
 void CNetwork::RunJobs()
@@ -1280,20 +1303,7 @@ void CNetwork::ClearJobs()
 	while ( ! m_oJobs.IsEmpty() )
 	{
 		CJob oJob = m_oJobs.RemoveHead();
-
-		switch ( oJob.GetType() )
-		{
-		case CJob::Search:
-			delete (CLocalSearch*)oJob.GetData();
-			break;
-
-		case CJob::Hit:
-			((CQueryHit*)oJob.GetData())->Delete();
-			break;
-
-		default:
-			ASSERT( FALSE );
-		}
+		FreeJob( oJob );
 	}
 }
 
