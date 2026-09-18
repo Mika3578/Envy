@@ -289,6 +289,16 @@ static bool test_ed2k_hashset_payload_bounds()
 		&& Ed2kHashsetPayloadFits( 3, nExact + 1 ) == FALSE;
 }
 
+static bool test_ed2k_chat_message_bounds()
+{
+	return Ed2kChatMessageLengthOk( 1, 1 ) == TRUE
+		&& Ed2kChatMessageLengthOk( 0, 0 ) == FALSE
+		&& Ed2kChatMessageLengthOk( ED2K_CHAT_MESSAGE_MAX, ED2K_CHAT_MESSAGE_MAX ) == TRUE
+		&& Ed2kChatMessageLengthOk( ED2K_CHAT_MESSAGE_MAX + 1, ED2K_CHAT_MESSAGE_MAX + 1 ) == FALSE
+		&& Ed2kChatMessageLengthOk( 10, 11 ) == FALSE
+		&& Ed2kChatMessageLengthOk( 10, 9 ) == FALSE;
+}
+
 
 static bool test_bt_ut_metadata_size_ok()
 {
@@ -363,6 +373,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_tag_blob_bounds", test_ed2k_tag_blob_bounds );
 	suite.add_test( "ed2k_tag_string_bounds", test_ed2k_tag_string_bounds );
 	suite.add_test( "ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds );
+	suite.add_test( "ed2k_chat_message_bounds", test_ed2k_chat_message_bounds );
 	suite.add_test( "bt_ut_metadata_size_ok", test_bt_ut_metadata_size_ok );
 	suite.add_test( "bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero );
 	suite.add_test( "bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max );
