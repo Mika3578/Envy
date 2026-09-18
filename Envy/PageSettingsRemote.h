@@ -43,11 +43,15 @@ protected:
 	BOOL		m_bOldEnable;
 	CString		m_sOldUsername;
 	CString		m_sOldPassword;
+	BOOL		m_bPasswordDirty;	// Defer PBKDF2 until Apply/OK (#79)
+
+	BOOL CommitRemotePassword();
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);
 	virtual BOOL OnInitDialog();
 	virtual void OnSkinChange();
+	virtual void OnOK();
 	virtual void OnCancel();
 
 	afx_msg void OnNewPassword();

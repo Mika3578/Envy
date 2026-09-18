@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
+- **Changelog Entry:** 2026-09-18 — #79: Remote passwords stored with PBKDF2-HMAC-SHA256 (`BCryptDeriveKeyPBKDF2`); legacy SHA1 / sha256-salted verify + migrate on login.
 - **Changelog Entry:** 2026-09-18 — #92 cooperative close: abandon timed-out threads without `TerminateThread` (`EnvyThreadPolicy.h`); completes remaining #92 slice after lock-order.
 - **Changelog Entry:** 2026-09-18 — #92 lock-order: EDClients before Transfers (`Ed2kLockOrder.h`); remaining #92 item is cooperative thread close without `TerminateThread`.
 - **Changelog Entry:** 2026-09-18 — #121: CryptLayer Hello bits stay 0 (TCP obfuscation unimplemented); peer Hello crypt bits no longer start PUBLICKEY packet crypto (`Ed2kCryptLayerHelloBitsMayStartPacketCrypto`).
