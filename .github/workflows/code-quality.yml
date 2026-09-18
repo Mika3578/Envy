@@ -76,6 +76,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
+          # Pin to PR head so clang-format-diff hunk line numbers match the tip
+          # (default merge ref can shift lines vs base...head hunks).
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
       - name: Install clang-format ${{ env.CLANG_FORMAT_MAJOR }}
@@ -85,12 +88,16 @@ jobs:
           sudo apt-get install -y "clang-format-${CLANG_FORMAT_MAJOR}"
           clang-format-${CLANG_FORMAT_MAJOR} --version
           command -v "clang-format-diff-${CLANG_FORMAT_MAJOR}"
+          command -v "clang-format-${CLANG_FORMAT_MAJOR}"
 
       - name: clang-format-diff on changed hunks
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CLANG_FORMAT_MAJOR: ${{ env.CLANG_FORMAT_MAJOR }}
+          CLANG_FORMAT_BIN: clang-format-${{ env.CLANG_FORMAT_MAJOR }}
+          CLANG_FORMAT_DIFF: clang-format-diff-${{ env.CLANG_FORMAT_MAJOR }}
         run: bash .github/scripts/format-check.sh
 
   documentation-check:

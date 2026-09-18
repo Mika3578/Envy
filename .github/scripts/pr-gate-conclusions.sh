@@ -3,7 +3,8 @@
 # shellcheck shell=bash
 
 is_bad_conclusion() {
-	case "$1" in
+	local conclusion="$1"
+	case "$conclusion" in
 	failure | cancelled | timed_out | action_required | startup_failure | stale)
 		return 0
 		;;
@@ -13,14 +14,19 @@ is_bad_conclusion() {
 	esac
 }
 
-# must_pass: only success is OK (skipped/neutral fail).
+# must_pass: only success is OK (skipped/neutral/empty fail).
 is_ok_must_pass() {
-	[[ "$1" == "success" ]]
+	local conclusion="$1"
+	if [[ "$conclusion" == "success" ]]; then
+		return 0
+	fi
+	return 1
 }
 
-# may_skip: success or skipped OK; neutral fails.
+# may_skip: success or skipped OK; neutral/empty fail.
 is_ok_may_skip() {
-	case "$1" in
+	local conclusion="$1"
+	case "$conclusion" in
 	success | skipped)
 		return 0
 		;;

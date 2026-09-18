@@ -19,7 +19,7 @@ git config user.name "CI"
 printf 'BasedOnStyle: LLVM\nIndentWidth: 4\nColumnLimit: 80\n' >.clang-format
 mkdir -p Envy
 
-# Base: intentionally messy middle line (legacy debt).
+# Base: intentionally messy middle line (legacy debt outside later hunks).
 cat >Envy/Foo.cpp <<'EOF'
 int main() {
 int x = 1;
@@ -30,26 +30,12 @@ git add Envy/Foo.cpp .clang-format
 git commit -q -m base
 BASE=$(git rev-parse HEAD)
 
-# Head A: only touch the return line (keep legacy `int x = 1;` as-is relative to style
-# by changing a different well-formatted aspect — add a blank line after brace via
-# a clean new statement that clang-format accepts).
-cat >Envy/Foo.cpp <<'EOF'
-int main() {
-int x = 1;
-    return x + 0;
-}
-EOF
-git add Envy/Foo.cpp
-git commit -q -m 'clean hunk change'
-HEAD_CLEAN=$(git rev-parse HEAD)
-
 export CLANG_FORMAT_MAJOR=18
 if command -v clang-format-diff-18 >/dev/null 2>&1; then
 	export CLANG_FORMAT_DIFF=clang-format-diff-18
 	export CLANG_FORMAT_BIN=clang-format-18
 else
 	export CLANG_FORMAT_DIFF=clang-format-diff
-	# Derive major from clang-format if possible; otherwise soft-link.
 	if command -v clang-format-18 >/dev/null 2>&1; then
 		export CLANG_FORMAT_BIN=clang-format-18
 	else
@@ -61,14 +47,28 @@ else
 	fi
 fi
 
+# Head A: change only an already-clean return line; legacy `int x = 1;` stays
+# off-hunk with -U0 and must NOT fail the check.
+cat >Envy/Foo.cpp <<'EOF'
+int main() {
+int x = 1;
+    return x + 0;
+}
+EOF
+git add Envy/Foo.cpp
+git commit -q -m 'clean hunk change'
+HEAD_CLEAN=$(git rev-parse HEAD)
+
 set +e
 BASE_SHA=$BASE HEAD_SHA=$HEAD_CLEAN bash "$ROOT/.github/scripts/format-check.sh"
 rc=$?
 set -e
-# Clean-hunk result depends on whether the changed return line needs format;
-# legacy `int x=1` style may still appear in the diff hunk context. Prefer the
-# explicit bad-hunk and no-cpp cases as hard asserts.
-echo "NOTE clean-hunk exit=$rc (informational)"
+if [[ "$rc" -ne 0 ]]; then
+	echo "FAIL legacy off-hunk / clean changed hunk should SUCCESS (rc=$rc)"
+	fail=1
+else
+	echo "OK   legacy off-hunk + clean changed hunk → SUCCESS"
+fi
 
 # Head B: clearly bad new formatting on the changed line.
 cat >Envy/Foo.cpp <<'EOF'
@@ -111,6 +111,19 @@ if [[ "$rc" -eq 0 ]]; then
 	fail=1
 else
 	echo "OK   invalid BASE_SHA → FAILURE (fail-closed)"
+fi
+
+# Missing tool must fail closed.
+set +e
+BASE_SHA=$BASE HEAD_SHA=$HEAD_CLEAN CLANG_FORMAT_DIFF=clang-format-diff-missing-xyz \
+	bash "$ROOT/.github/scripts/format-check.sh"
+rc=$?
+set -e
+if [[ "$rc" -eq 0 ]]; then
+	echo "FAIL expected FAILURE when clang-format-diff is missing"
+	fail=1
+else
+	echo "OK   missing clang-format-diff → FAILURE (fail-closed)"
 fi
 
 exit "$fail"

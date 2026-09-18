@@ -24,6 +24,8 @@ readonly F_REMOTE='Remote/script.js'
 readonly F_CSHARP='Languages/Tools/SkinUpdater/Program.cs'
 readonly F_WORKFLOW='.github/workflows/build.yml'
 readonly F_VCPKG='vcpkg.json'
+readonly F_QUALITY='.github/workflows/code-quality.yml'
+readonly F_CODEQL='.github/workflows/codeql.yml'
 
 # Docs-only: path-aware skips Windows/Remote/deps. CodeQL/Format are not gated here.
 check docs-only "$F_DOCS" docs_only true
@@ -39,12 +41,18 @@ check workflow-win "$F_WORKFLOW" run_windows_build true
 check deps "$F_VCPKG" run_dep_review true
 check deps-win "$F_VCPKG" run_windows_build true
 
+# force_remote via code-quality.yml; CodeQL workflow must NOT force remote JS.
+check force-remote "$F_QUALITY" run_remote_js true
+check codeql-config-remote "$F_CODEQL" run_remote_js false
+
 # Dead CodeQL/Format classifier flags must be gone.
 absent() {
 	local name="$1"
 	local files="$2"
 	local key="$3"
-	if GITHUB_OUTPUT= CLASSIFY_EVENT=pull_request CLASSIFY_FILES="$files" bash .github/scripts/classify-changes.sh | grep -q "^${key}="; then
+	local out
+	out="$(GITHUB_OUTPUT= CLASSIFY_EVENT=pull_request CLASSIFY_FILES="$files" bash .github/scripts/classify-changes.sh)"
+	if grep -q "^${key}=" <<<"$out"; then
 		echo "FAIL $name: unexpected output key $key"
 		fail=1
 	else
