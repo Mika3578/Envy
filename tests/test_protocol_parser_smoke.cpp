@@ -158,6 +158,24 @@ static bool test_g1_deflate_min_compressed_byte()
 	return G1QueryHitDeflateXmlLengthOk( 11 ) == TRUE;
 }
 
+static bool test_g1_queryhit_xml_fits_exact()
+{
+	return G1QueryHitXmlFits( 10, G1_QUERYHIT_GUID_BYTES + 10 ) == TRUE;
+}
+
+static bool test_g1_queryhit_xml_fits_zero()
+{
+	return G1QueryHitXmlFits( 0, 0 ) == TRUE
+		&& G1QueryHitXmlFits( 0, G1_QUERYHIT_GUID_BYTES ) == TRUE;
+}
+
+static bool test_g1_queryhit_xml_oversized()
+{
+	return G1QueryHitXmlFits( 10, G1_QUERYHIT_GUID_BYTES + 9 ) == FALSE
+		&& G1QueryHitXmlFits( 1, G1_QUERYHIT_GUID_BYTES ) == FALSE
+		&& G1QueryHitXmlFits( 1, G1_QUERYHIT_GUID_BYTES - 1 ) == FALSE;
+}
+
 static bool test_ggep_h_length_zero()
 {
 	return GgepItemHasTypeByte( nullptr, 0 ) == FALSE;
@@ -339,6 +357,9 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "g1_deflate_truncated_marker", test_g1_deflate_truncated_marker_only );
 	suite.add_test( "g1_deflate_marker_no_payload", test_g1_deflate_marker_no_payload );
 	suite.add_test( "g1_deflate_min_payload", test_g1_deflate_min_compressed_byte );
+	suite.add_test( "g1_queryhit_xml_fits_exact", test_g1_queryhit_xml_fits_exact );
+	suite.add_test( "g1_queryhit_xml_fits_zero", test_g1_queryhit_xml_fits_zero );
+	suite.add_test( "g1_queryhit_xml_oversized", test_g1_queryhit_xml_oversized );
 
 	suite.add_test( "ggep_h_length_zero", test_ggep_h_length_zero );
 	suite.add_test( "ggep_m_length_zero", test_ggep_m_length_zero );

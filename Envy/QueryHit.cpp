@@ -201,13 +201,17 @@ CQueryHit* CQueryHit::FromG1Packet(CG1Packet* pPacket, int* pnHops)
 		{
 			nXMLSize = pPacket->ReadShortLE();
 			nPublicSize -= 2;
-		//	if ( nPublicSize + nXMLSize + Hashes::Guid::byteCount > pPacket->GetRemaining() )
-		//		theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with invalid size of XML data" );
 		}
 
 		// Skip extra data
 		while ( nPublicSize-- )
 			pPacket->ReadByte();
+
+		if ( ! G1QueryHitXmlFits( nXMLSize, pPacket->GetRemaining() ) )
+		{
+			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with invalid size of XML data" );
+			AfxThrowUserException();
+		}
 
 		BOOL bChat = FALSE;
 		if ( pVendor && pVendor->m_bChatFlag &&
@@ -217,9 +221,6 @@ CQueryHit* CQueryHit::FromG1Packet(CG1Packet* pPacket, int* pnHops)
 			if ( nPeek != GGEP_MAGIC )
 				bChat = ( nPeek & G1_QHD_CHAT ) != 0;
 		}
-
-		if ( pPacket->GetRemaining() < Hashes::Guid::byteCount + nXMLSize )
-			nXMLSize = 0;
 
 		if ( ( nFlags[0] & G1_QHD_GGEP ) && ( nFlags[1] & G1_QHD_GGEP ) )
 		{
@@ -233,14 +234,10 @@ CQueryHit* CQueryHit::FromG1Packet(CG1Packet* pPacket, int* pnHops)
 					if ( pGGEP.Find( GGEP_HEADER_CHAT ) )
 						bChat = TRUE;
 				}
-				if ( pPacket->GetRemaining() < Hashes::Guid::byteCount + nXMLSize )
+				if ( ! G1QueryHitXmlFits( nXMLSize, pPacket->GetRemaining() ) )
 				{
-					nXMLSize = 0;
-					if ( pPacket->GetRemaining() < Hashes::Guid::byteCount )
-					{
-						theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet without GUID" );
-						AfxThrowUserException();
-					}
+					theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with invalid size of XML data after GGEP" );
+					AfxThrowUserException();
 				}
 			}
 			else
