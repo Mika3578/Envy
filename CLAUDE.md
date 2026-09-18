@@ -26,10 +26,11 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
    `.local/DEV_TRACKER.md` (session notes, gitignored).
 3. **Branch & merge gate.** Branch off `develop` using conventional
    `type/short-kebab-summary` names (`feat/`, `fix/`, `docs/`, `ci/`, ...);
-   never use tool- or agent-prefixed branches. You may push your own branch
-   and open **draft** PRs, but never mark ready-for-review, enable
-   auto-merge, or merge without explicit maintainer approval.
-   (See AGENTS.md section 2, rules 11-12.)
+   never use tool- or agent-prefixed branches. You may push, open draft
+   PRs, mark ready-for-review, and enable squash auto-merge under the
+   controlled-autonomy rules in `AGENTS.md` (rules 12–13), including the
+   max-3 development PR cap. Never bypass GitHub protections.
+   (See AGENTS.md section 2, rules 11–13.)
 4. **Reply to the user in the language they used in chat**, but all
    commits, comments, docs, and PR text in **English**.
 

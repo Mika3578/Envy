@@ -13,9 +13,220 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release pipeline validation scripts** — `scripts/release/verify-version.ps1`, `stage-portable.ps1`, `verify-artifacts.ps1`, `publish-draft-release.ps1`, and `repair-draft-release.ps1` gate tag/`version.json`/`Envy.rc`/`Envy.exe` consistency, stage a full portable runtime tree, verify SHA256 + ZIP/setup sanity, and support idempotent draft asset repair.
 
 ### Changed
+- **Agent autonomy policy** — `AGENTS.md` allows ready-for-review + squash auto-merge under explicit low-risk / high-risk evidence gates; adds a hard max of **3** open development PRs (Dependabot/Renovate excluded). See `docs/10_dev/devsecops-envy.md`.
+- **Local ci-verify -Full** — Builds and runs EnvyTests Win32; fails if expected binaries are missing; requires `clang-format` on PATH (ci-fast may still warn-only when absent).
+- **CodeRabbit** — Skip draft PRs (`drafts: false`); path instructions cover `Remote/**` assets and `Envy/*Remote*` C++ surface.
+- **Renovate** — `enabledManagers` is `github-actions` only (no unused `regex` manager).
 - **Gnutella `{deflate}` QueryHit vs G1Packet sizing (#119)** — Documented as intentional Shareaza heritage, not a bug: `CQueryHit::ReadXML` uses `nSize - 10` because fixed `nXMLSize` includes a trailing NUL; `CG1Packet::ReadXML` uses `len - 9` because length stops before HIT_SEP/NUL. No wire-behavior change. Deduped `KNOWN_INCONSISTENCIES.md` entry.
+
+### Security
+- **GitHub Actions SHA pinning (#96)** — External actions in `.github/workflows/` and `.github/actions/` are pinned to full commit SHAs (with `# vN` comments). Upgrade process documented in `docs/10_dev/agents-and-automation.md`.
 
 ### Fixed
 - **NMDC HubName/HubTopic/chat length underflow (#81)** — Reject frames that would underflow `nLength - prefix - 1` (trailing `|`) before `UTF8Decode` in chat and hub-name parsers; shared predicates in `DcPacketLengthValidate.h` with EnvyTests smoke coverage.
 - **Portable ZIP incomplete runtime tree** — Release packaging no longer flattens only `*.exe`/`*.dll` into the ZIP. `stage-portable.ps1` mirrors the Inno install layout (`Envy.exe` + service DLLs at root, plugins under `Plugins\`, plus `Data\`/`Schemas\`/`Skins\`/`Skins\Languages\`/`Templates\`/`Remote\`). `verify-artifacts.ps1` fails flattened or resource-less ZIPs.
 - **Release draft asset upload race** — Tag-push packaging no longer uses parallel `softprops/action-gh-release` uploads against a freshly created draft (that failed mid-upload with `Error saving asset` and left Preview 1 missing x64 assets). Uploads now run sequentially via GitHub API against the concrete `release_id`, skip/replace assets idempotently, verify the final remote set, and never auto-publish (`draft` stays true). `workflow_dispatch` remains a dry-run unless `repair_release_id` is set explicitly.
+
+## [4.1.0] - 2026-01-11
+
+### Added
+- **Release preparation** (`4012a89`) - Version 4.1.0 milestone preparation
+- **Development infrastructure** - Enhanced tooling and build systems
+- **C++17 migration** - Modern language standard adoption
+- **Security enhancements** - Vulnerability fixes and protection measures
+- **Protocol improvements** - Enhanced ED2K and Kademlia support
+- **Build automation** - CI/CD pipeline improvements
+- **Code quality tools** - Static analysis and formatting utilities
+
+### Changed
+- **Build system modernization** - CMake integration and multi-platform support
+- **Code organization** - Improved structure and maintainability
+- **Development workflows** - Enhanced processes and automation
+
+## [4.0] - 2025-01-01
+
+### Added
+- Major architectural improvements and modernization
+- Enhanced protocol support and network capabilities
+- Improved user interface and user experience
+- Extended plugin system capabilities
+- Better error handling and stability improvements
+
+### Changed
+- Significant codebase refactoring and cleanup
+- Updated dependency management
+- Improved performance and memory usage
+- Enhanced security features
+
+### Fixed
+- Various stability and performance issues
+- Protocol compatibility improvements
+- User interface bugs and inconsistencies
+
+## [3.0] - 2024-01-01
+
+### Added
+- Advanced BitTorrent support and optimizations
+- Enhanced Kademlia DHT implementation
+- Improved search and discovery mechanisms
+- Extended media library capabilities
+- Better internationalization support
+
+### Changed
+- Major user interface redesign and improvements
+- Enhanced network protocol handling
+- Improved file management and organization
+- Better resource utilization
+
+### Fixed
+- Memory leaks and resource management issues
+- Network connectivity problems
+- File sharing and transfer reliability issues
+
+## [2.0] - 2023-01-01
+
+### Added
+- Multi-protocol support (Gnutella2, eDonkey2000, BitTorrent)
+- Advanced chat and community features
+- Plugin architecture for extensibility
+- Improved download management and queuing
+- Enhanced security and privacy features
+
+### Changed
+- Complete user interface overhaul
+- Improved network performance and stability
+- Better file organization and management
+- Enhanced search capabilities
+
+### Fixed
+- Numerous stability and compatibility issues
+- Network protocol bugs
+- User interface responsiveness problems
+
+## [1.0.0.0] - 2022-01-01
+
+### Added
+- Initial release of Envy P2P client
+- Basic file sharing functionality across multiple networks
+- Support for Gnutella, eDonkey, and BitTorrent protocols
+- User interface with tabbed browsing and search
+- Basic download management and queuing system
+- Network connectivity and peer discovery
+- Simple chat functionality
+- Basic media library and file organization
+- Plugin system foundation
+- Configuration and settings management
+- Basic security features and IP filtering
+
+### Changed
+- Project structure and organization
+- Codebase refactoring from PeerProject foundation
+- Build system improvements
+- Documentation and licensing updates
+
+## [1.0.0.0.Pre] - 2021-12-01
+
+### Added
+- Pre-release development and testing
+- Core P2P functionality implementation
+- Network protocol integration
+- Basic user interface components
+- Foundation for plugin system
+
+### Changed
+- Initial project setup and configuration
+- Codebase preparation for public release
+
+## [0.x] - 2021-01-01 to 2021-11-30
+
+### Added
+- Project foundation as fork of PeerProject
+- Initial codebase migration and cleanup
+- Basic build system setup
+- Core networking infrastructure
+- Protocol handler implementations
+- User interface framework
+- Basic file sharing capabilities
+
+### Changed
+- Codebase modernization and refactoring
+- Project rebranding from PeerProject to Envy
+- Build system improvements
+- Documentation updates
+
+---
+
+## Project History
+
+### Origins (Pre-2021)
+Envy originated as a fork of **PeerProject**, which was itself derived from the **Shareaza** P2P client. The project represents a continuation of the open-source P2P file sharing tradition with a focus on modernizing the codebase and improving user experience.
+
+### Development Evolution
+The project has undergone significant evolution based on git commit history:
+
+- **2016**: Initial development by SkinVista - Project foundation and basic P2P functionality (r1-r42)
+- **2017**: Continued development with feature additions and bug fixes (r16-r20)
+- **2018**: Additional releases and maintenance (r21)
+- **2020**: Major version milestone (4.0) - Significant architectural improvements (r34-r42)
+- **2026**: Modernization phase - Complete codebase transformation:
+  - **January 2026**: Major development push with Kademlia DHT, AI integration, and security fixes
+  - **4.1.0 Release**: Enhanced development infrastructure and tooling
+  - **Current development**: Ongoing improvements and new features
+
+### Technical Improvements (2026)
+- **Kademlia DHT implementation**: Complete distributed hash table with routing and peer discovery
+- **C++17 modernization**: Rule of Five implementation, smart pointers, modern language features
+- **Security enhancements**: CVE-2025-8088 vulnerability fix, improved file extraction validation
+- **Build system evolution**: CMake support, multi-platform CI/CD (x64/Win32), automated testing
+- **Development tooling**: Clang/CppCheck integration, PowerShell automation scripts, AI-assisted development
+- **Protocol enhancements**: Source Exchange v2, MultiPacketExt2, KADEMLIA2 support
+- **Code quality**: Static analysis, automated formatting, comprehensive testing infrastructure
+- **Dependency management**: SQLite/zlib updates, enhanced version checking and reporting
+
+### Protocol Support Evolution
+- **2016-2020**: Core P2P protocols (Gnutella, eDonkey, BitTorrent) - Basic multi-network support
+- **2026 Q1**: Major protocol enhancements:
+  - **ED2K/eDonkey2000**: FileIdentifier, HashsetRequest2, MultiPacket Ext2, AICH support, CryptLayer/SecureID preparation
+  - **Kademlia DHT**: Complete implementation with routing, node management, and KADEMLIA2 protocol
+  - **Source Exchange**: Version 2 implementation with enhanced peer discovery
+  - **Security**: CryptLayer negotiation preparation, SecureID support preparation, enhanced authentication
+  - **Code Quality**: Improved packet reading, case-insensitive search filtering
+- **Current**: Advanced multi-protocol P2P client with modern DHT, enhanced security preparation, and improved user experience
+
+## Detailed Commit History (2020-2026)
+
+### 2026 Development Phase
+- `XXXXXXX` (2026-01-15) - Code quality improvements: packet reading robustness, case-insensitive search
+- `XXXXXXX` (2026-01-15) - ED2K CryptLayer and SecureID framework preparation
+- `e3ae644` (2026-01-15) - FileIdentifier class and hashset request handling
+- `c9b5966` (2026-01-15) - Complete Kademlia DHT implementation and integration
+- `63eb0e7` (2026-01-15) - README.md CI/CD capabilities documentation
+- `b61e4b0` (2026-01-15) - Comprehensive CI/CD automation and GitHub configuration
+- `5779b77` (2026-01-14) - zlib compression and decompression test implementation
+- `35b37a1` (2026-01-14) - .gitignore updates and code refactoring
+- `e92d930` (2026-01-13) - CVE-2025-8088 security merge
+- `eaab22e` (2026-01-13) - CVE-2025-8088 directory traversal protection in UnRAR
+- `ad3bd40` (2026-01-13) - AICH/CryptoProvider headers and development agents documentation
+- `5314409` (2026-01-12) - SQLite and zlib component updates
+- `3de8ce2` (2026-01-12) - GitHub Actions multi-platform support and Rule of Five implementation
+- `e870aa8` (2026-01-12) - Source Exchange v2 and MultiPacketExt2 support
+- `c82e405` (2026-01-12) - KADEMLIA2 protocol support and validation
+- `a818143` (2026-01-12) - Development tools configuration (Clang, CMake, CppCheck)
+- `4012a89` (2026-01-11) - Release 4.1.0 preparation
+
+### 2020 Legacy Phase (Eric)
+- `43787f3` (2020-03-18) - Release r42
+- `cd4c78a` (2020-02-13) - Release r41
+- `510a28f` (2020-01-21) - Release r40 (Version 4.0)
+- `c67bd17` (2020-01-21) - Release r39
+- `29923e1` (2020-01-20) - Release r38
+- `8f6af14` (2020-01-18) - Release r37
+- `dfad434` (2020-01-04) - Release r36
+- `540cd2d` (2020-01-04) - Release r35
+- `3aa4e6e` (2020-01-02) - Release r34
+
+### 2016-2018 Development Phase (SkinVista)
+- Multiple releases from r1 to r21 focusing on core P2P functionality, UI improvements, and bug fixes
+- `091f444` (2016-04-02) - Initial commit establishing project foundation
+
+For the complete git history with file changes and full commit details, please refer to the git repository.

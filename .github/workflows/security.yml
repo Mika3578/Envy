@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 0
       # gitleaks-action@v2 still ships on Node 20 (no v3 yet); invoke the Go
@@ -44,6 +44,6 @@ jobs:
         run: gitleaks detect --source . --redact --verbose --no-banner --report-format sarif --report-path gitleaks.sarif
       - name: Upload gitleaks SARIF
         if: always() && hashFiles('gitleaks.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
         with:
           sarif_file: gitleaks.sarif
