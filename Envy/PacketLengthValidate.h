@@ -65,6 +65,17 @@ inline BOOL Ed2kPreviewFrameFits(DWORD nFrameSize, DWORD nRemaining)
 	return nFrameSize <= nRemaining;
 }
 
+// Absolute cap for one ED2K preview image frame (PNG). Previews are thumbnails;
+// multi-MB peer-advertised sizes are treated as abuse (#120).
+constexpr DWORD ED2K_PREVIEW_FRAME_MAX = 4u * 1024u * 1024u;
+
+inline BOOL Ed2kPreviewFrameAcceptable(DWORD nFrameSize, DWORD nRemaining)
+{
+	if ( nFrameSize == 0 || nFrameSize > ED2K_PREVIEW_FRAME_MAX )
+		return FALSE;
+	return Ed2kPreviewFrameFits( nFrameSize, nRemaining );
+}
+
 // Absolute cap for ED2K TAG_BLOB values in file-backed .met / collection tags (#82).
 constexpr DWORD ED2K_TAG_BLOB_MAX = 4u * 1024u * 1024u;
 

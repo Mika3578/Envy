@@ -204,6 +204,26 @@ static bool test_ed2k_preview_frame_max_uint_vs_zero()
 	return Ed2kPreviewFrameFits( 0xFFFFFFFFu, 0 ) == FALSE;
 }
 
+static bool test_ed2k_preview_acceptable_normal()
+{
+	return Ed2kPreviewFrameAcceptable( 100, 100 ) == TRUE;
+}
+
+static bool test_ed2k_preview_acceptable_zero()
+{
+	return Ed2kPreviewFrameAcceptable( 0, 100 ) == FALSE;
+}
+
+static bool test_ed2k_preview_acceptable_over_cap()
+{
+	return Ed2kPreviewFrameAcceptable( ED2K_PREVIEW_FRAME_MAX + 1, ED2K_PREVIEW_FRAME_MAX + 1 ) == FALSE;
+}
+
+static bool test_ed2k_preview_acceptable_at_cap()
+{
+	return Ed2kPreviewFrameAcceptable( ED2K_PREVIEW_FRAME_MAX, ED2K_PREVIEW_FRAME_MAX ) == TRUE;
+}
+
 static bool test_ed2k_tag_blob_ok()
 {
 	return Ed2kTagBlobLengthOk( 100, 100 ) == TRUE;
@@ -278,6 +298,10 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_preview_frame_too_large", test_ed2k_preview_frame_exceeds_remaining );
 	suite.add_test( "ed2k_preview_frame_high_bit", test_ed2k_preview_frame_high_bit );
 	suite.add_test( "ed2k_preview_frame_max_uint", test_ed2k_preview_frame_max_uint_vs_zero );
+	suite.add_test( "ed2k_preview_acceptable_normal", test_ed2k_preview_acceptable_normal );
+	suite.add_test( "ed2k_preview_acceptable_zero", test_ed2k_preview_acceptable_zero );
+	suite.add_test( "ed2k_preview_acceptable_over_cap", test_ed2k_preview_acceptable_over_cap );
+	suite.add_test( "ed2k_preview_acceptable_at_cap", test_ed2k_preview_acceptable_at_cap );
 	suite.add_test( "ed2k_tag_blob_ok", test_ed2k_tag_blob_ok );
 	suite.add_test( "ed2k_tag_blob_over_remaining", test_ed2k_tag_blob_over_remaining );
 	suite.add_test( "ed2k_tag_blob_over_cap", test_ed2k_tag_blob_over_cap );
