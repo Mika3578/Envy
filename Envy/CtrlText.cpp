@@ -22,6 +22,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "CtrlText.h"
+#include "TextCtrlViewport.h"
 
 #include "CoolInterface.h"
 #include "Colors.h"
@@ -167,10 +168,17 @@ void CTextCtrl::UpdateScroll(BOOL bFull)
 		CRect rc;
 		GetClientRect( &rc );
 
+		int nMin = 0;
+		int nMax = 0;
+		int nPage = TextCtrlPageLines( rc.Height(), m_nHeight );
+		m_nPosition = TextCtrlClampPosition( m_nPosition, m_nTotal, nPage );
+		TextCtrlScrollRange( m_nTotal, nPage, nMin, nMax, nPage );
+
 		si.fMask	= SIF_POS|SIF_PAGE|SIF_RANGE|SIF_DISABLENOSCROLL;
-		si.nPage	= rc.Height() / m_nHeight;
-		si.nMax		= m_nTotal + si.nPage - 1;
-		si.nMin		= 0;
+		si.nPos		= m_nPosition;
+		si.nMin		= nMin;
+		si.nMax		= nMax;
+		si.nPage	= (UINT)nPage;
 	}
 
 	SetScrollInfo( SB_VERT, &si );
@@ -189,13 +197,16 @@ void CTextCtrl::OnVScroll(UINT nSBCode, UINT /*nPos*/, CScrollBar* /*pScrollBar*
 
 	GetScrollInfo( SB_VERT, &si );
 
+	const int nPage = ( si.nPage > 0 ) ? (int)si.nPage : 1;
+	const int nMaxPos = TextCtrlMaxPosition( m_nTotal, nPage );
+
 	switch ( nSBCode )
 	{
 	case SB_TOP:
-		m_nPosition = 1;
+		m_nPosition = 0;
 		break;
 	case SB_BOTTOM:
-		m_nPosition = m_nTotal;
+		m_nPosition = nMaxPos;
 		break;
 	case SB_LINEUP:
 		m_nPosition--;
@@ -204,18 +215,18 @@ void CTextCtrl::OnVScroll(UINT nSBCode, UINT /*nPos*/, CScrollBar* /*pScrollBar*
 		m_nPosition++;
 		break;
 	case SB_PAGEUP:
-		m_nPosition -= ( si.nPage - 1 );
+		m_nPosition -= ( nPage > 1 ) ? ( nPage - 1 ) : 1;
 		break;
 	case SB_PAGEDOWN:
-		m_nPosition += ( si.nPage - 1 );
+		m_nPosition += ( nPage > 1 ) ? ( nPage - 1 ) : 1;
 		break;
 	case SB_THUMBPOSITION:
 	case SB_THUMBTRACK:
-		m_nPosition = si.nTrackPos;
+		m_nPosition = (int)si.nTrackPos;
 		break;
 	}
 
-	m_nPosition = max( 0, min( m_nTotal, m_nPosition ) );
+	m_nPosition = TextCtrlClampPosition( m_nPosition, m_nTotal, nPage );
 
 	UpdateScroll();
 	Invalidate();
@@ -243,9 +254,10 @@ void CTextCtrl::OnPaint()
 	}
 
 	const int nWidth = rcClient.right - OFFSET;
+	const int nPage = TextCtrlPageLines( rcClient.Height(), m_nHeight );
 
-	BOOL bBottom	= ( m_nPosition >= m_nTotal );
-	BOOL bModified	= m_bProcess;
+	const BOOL bBottom	= TextCtrlIsAtBottom( m_nPosition, m_nTotal, nPage );
+	BOOL bModified		= m_bProcess;
 
 	if ( m_bProcess ) m_nTotal = 0;
 
@@ -260,13 +272,15 @@ void CTextCtrl::OnPaint()
 		}
 	}
 
-	if ( bBottom ) m_nPosition = m_nTotal;
+	m_nPosition = TextCtrlFollowBottom( bBottom, m_nPosition, m_nTotal, nPage );
 	if ( bModified ) UpdateScroll( TRUE );
 	m_bProcess = FALSE;
 
+	// Top-aligned: visual line m_nPosition starts at Y=0; paint messages bottom-up
+	// so CTextLine::Paint (which steps upward) stays unchanged.
 	CRect rcLine( rcClient );
-	rcLine.bottom += ( m_nTotal - m_nPosition ) * m_nHeight;
-	rcLine.top = rcLine.bottom - m_nHeight;		// Note: Consider multi-line wrap and gap elsewhere
+	rcLine.bottom = TextCtrlContentBottomY( m_nTotal, m_nPosition, m_nHeight );
+	rcLine.top = rcLine.bottom - m_nHeight;
 
 	dc.SetBkMode( OPAQUE );
 
@@ -294,10 +308,12 @@ void CTextCtrl::OnPaint()
 		}
 	}
 
-	if ( rcLine.bottom > 0 )
+	const int nContentBottom = TextCtrlContentBottomY( m_nTotal, m_nPosition, m_nHeight );
+	if ( nContentBottom < rcClient.bottom )
 	{
-		rcLine.top = 0;
-		dc.FillSolidRect( &rcLine, Colors.m_crWindow ); 	// m_crBackground[ 0 ]
+		CRect rcFill( rcClient );
+		rcFill.top = max( 0, nContentBottom );
+		dc.FillSolidRect( &rcFill, Colors.m_crWindow ); 	// m_crBackground[ 0 ]
 	}
 
 	dc.SelectObject( pOldFont );
@@ -312,7 +328,7 @@ int CTextCtrl::HitTest(const CPoint& pt) const
 		CRect rcClient;
 		GetClientRect( &rcClient );
 		CRect rcLine( rcClient );
-		rcLine.bottom += ( m_nTotal - m_nPosition ) * m_nHeight;
+		rcLine.bottom = TextCtrlContentBottomY( m_nTotal, m_nPosition, m_nHeight );
 		for ( int nLine = m_pLines.GetCount() - 1; nLine >= 0 && rcLine.bottom > rcClient.top; nLine-- )
 		{
 			CTextLine* pLine = m_pLines.GetAt( nLine );
@@ -472,28 +488,49 @@ void CTextCtrl::OnKeyDown(UINT nChar, UINT /*nRepCnt*/, UINT /*nFlags*/)
 		}
 		InvalidateRect( NULL );
 	}
+
+	switch ( nChar )
+	{
+	case VK_HOME:
+		OnVScroll( SB_TOP, 0, NULL );
+		break;
+	case VK_END:
+		OnVScroll( SB_BOTTOM, 0, NULL );
+		break;
+	case VK_UP:
+		OnVScroll( SB_LINEUP, 0, NULL );
+		break;
+	case VK_DOWN:
+		OnVScroll( SB_LINEDOWN, 0, NULL );
+		break;
+	case VK_PRIOR:
+		OnVScroll( SB_PAGEUP, 0, NULL );
+		break;
+	case VK_NEXT:
+		OnVScroll( SB_PAGEDOWN, 0, NULL );
+		break;
+	}
 }
 
 BOOL CTextCtrl::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
 	int nScroll = zDelta / WHEEL_DELTA * theApp.m_nMouseWheel;
 
+	CRect rc;
+	GetClientRect( &rc );
+	int nPage = TextCtrlPageLines( rc.Height(), m_nHeight );
+
 	if ( theApp.m_nMouseWheel == 20 )	// 20 lines set for rare WHEEL_PAGESCROLL (UINT_MAX)
 	{
 		// Scroll by page is activated
-		SCROLLINFO si = {};
-		si.cbSize	= sizeof( si );
-		si.fMask	= SIF_ALL;
-		GetScrollInfo( SB_VERT, &si );
-
-		nScroll = zDelta / WHEEL_DELTA * ( si.nPage - 1 );
+		nScroll = zDelta / WHEEL_DELTA * ( ( nPage > 1 ) ? ( nPage - 1 ) : 1 );
 	}
 
 	{
 		CQuickLock pLock( m_pSection );
 
 		m_nPosition -= nScroll;
-		m_nPosition = max( 0, min( m_nTotal, m_nPosition ) );
+		m_nPosition = TextCtrlClampPosition( m_nPosition, m_nTotal, nPage );
 	}
 
 	UpdateScroll();

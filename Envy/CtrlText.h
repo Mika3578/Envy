@@ -33,8 +33,8 @@ protected:
 	mutable CCriticalSection	m_pSection;
 
 	CArray< CTextLine* > m_pLines;
-	int					m_nPosition;
-	int					m_nTotal;
+	int					m_nPosition;			// First visible visual line (0-based)
+	int					m_nTotal;				// Total visual lines (wrap-aware)
 	int					m_nHeight;
 //	COLORREF			m_crBackground[4];
 	COLORREF			m_crText[5];
