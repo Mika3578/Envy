@@ -29,8 +29,8 @@ repository:
   default_branch: develop
   allow_squash_merge: true
   allow_merge_commit: false
-  # Match Protect develop (squash only).
-  allow_rebase_merge: false
+  # Global repo default. Protect develop still enforces squash-only via ruleset.
+  allow_rebase_merge: true
   delete_branch_on_merge: true
   enable_automated_security_fixes: true
   enable_vulnerability_alerts: true
@@ -200,11 +200,14 @@ milestones:
 # Probot Settings does NOT model these ruleset-only options — set them on the
 # GitHub ruleset (UI or Rulesets API), not as invented YAML keys here:
 #   - required_review_thread_resolution: true
-#   - require_last_push_approval: true
-#   - allowed_merge_methods: ["squash"] only
+#   - require_last_push_approval: false  (intentional; dismiss-stale is on)
+#   - dismiss_stale_reviews_on_push: true
+#   - allowed_merge_methods: ["squash"] only (develop ruleset)
 #   - required_signatures: true
 #   - bypass_actors: [] (none)
-#   - non_fast_forward / block force pushes (recommended)
+#   - non_fast_forward / block force pushes
+#   - code_scanning: CodeQL + Gitleaks
+#   - no GitHub Code Quality ruleset rule
 branches:
   - name: develop
     protection:

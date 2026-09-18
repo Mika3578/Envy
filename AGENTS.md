@@ -33,8 +33,9 @@ Branch model:
 - Create every work branch from the latest **`origin/develop`**.
 - Never push directly to **`develop`**, **`main`**, or **`legacy`**; land
   changes through a pull request to **`develop`**.
-- Keep **`develop`** history **linear**: merge PRs with **squash** or
-  **rebase** only; ordinary merge commits are not allowed on **`develop`**.
+- Keep **`develop`** history **linear**: merge PRs with **squash** only
+  (Protect develop); ordinary merge or rebase-merge commits are not allowed
+  on **`develop`**.
 - Branch names use `type/short-kebab-summary` (see hard rule 11).
 
 ---
@@ -88,10 +89,13 @@ Branch model:
     the live **Protect develop** ruleset is satisfied, including:
     - at least one GitHub review **APPROVED** by someone **other than** the
       PR author (do **not** fake this with a bot/Actions self-approve);
-    - dismiss-stale / last-push approval rules;
+    - stale approvals are dismissed when new commits are pushed
+      (`require_last_push_approval` remains **off** so a non-author
+      approval — including Copilot when enabled — can satisfy the count);
     - all review threads resolved and no active **CHANGES_REQUESTED**;
     - all **required** status checks green; branch up to date with `develop`;
-    - PR not a draft; squash-only; no ruleset bypass.
+    - PR not a draft; squash-only on `develop`; signed commits; force pushes
+      blocked; no ruleset bypass.
     Additionally apply the usual change-quality gates (sufficient tests;
     no unvalidated risky protocol/crypto/auth/threading/locking/memory or
     undocumented wire-format change). For high-risk areas (ED2K/eMule,

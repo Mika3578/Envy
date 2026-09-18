@@ -3,7 +3,7 @@ name: Dependabot auto-merge
 # May enable GitHub squash auto-merge only. It must NEVER approve a PR and must
 # NEVER call `gh pr merge` without `--auto`. Final merge is gated by the live
 # Protect develop ruleset (required checks + ≥1 APPROVED review + thread
-# resolution + last-push approval). No Dependabot/Actions/bot exception.
+# resolution + dismiss-stale approvals). No Dependabot/Actions/bot exception.
 #
 # Dependabot currently owns **vcpkg only** (see .github/dependabot.yml).
 # GitHub Actions updates are owned by Renovate. The github_actions path below

@@ -39,10 +39,13 @@ secret-scan, gitleaks, PR Gate, Analyze (c-cpp), SonarCloud Code Analysis.
 BLOCK (native GitHub review rules on Protect develop — not replaceable by PR Gate):
 
 - ≥ **1** approving GitHub review (not the PR author; not a self-approve bot)
-- Dismiss stale reviews on new commits
-- Require approval of the most recent push
+- Dismiss stale reviews on new commits (**on**)
+- Require approval of the most recent reviewable push (**off** — intentional)
 - Resolve all review conversations / threads
-- No draft; squash only; linear history; **no bypass actors**
+- Signed commits; force pushes blocked (`non_fast_forward`)
+- Code scanning merge protection: CodeQL + Gitleaks (current thresholds)
+- No GitHub Code Quality ruleset rule (use SonarCloud + CodeQL + CI instead)
+- No draft; squash only on `develop`; linear history; **no bypass actors**
 
 ADVISORY: CodeRabbit, clang-tidy + reviewdog, Snyk (when present), Cursor Bugbot
 (optional / paid — not primary).
@@ -88,16 +91,18 @@ comparison notes.
    (or install from [renovatebot.com](https://github.com/apps/renovate)).
    Config: `renovate.json5`. Suites may show `QUEUED` until the app processes the repo.
 3. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks + **≥1 GitHub APPROVED review** on `Protect develop`.
-4. **Protect develop review knobs** — If the live ruleset still shows
-   `required_approving_review_count: 0` (or stale-review / last-push flags off),
-   a repository admin must edit **Settings → Rules → Protect develop → Restrict updates / Require a pull request**:
+4. **Protect develop (live, verified)** — Source of truth is
+   **Settings → Rules → Protect develop**. Current intended knobs:
    - Required approvals: **1**
    - Dismiss stale pull request approvals when new commits are pushed: **on**
-   - Require approval of the most recent reviewable push: **on**
+   - Require approval of the most recent reviewable push: **off**
    - Require conversation resolution before merging: **on**
    - Allowed merge methods: **squash** only
-   - Bypass list: **empty**
-   Optionally add **Block force pushes** (`non_fast_forward`) if not already present.
+   - Signed commits: **on**; Block force pushes: **on**; Bypass list: **empty**
+   - Code scanning: CodeQL + Gitleaks (do not tighten thresholds until
+     C++/JS/C# analyses are deterministic on every PR)
+   - Require GitHub Code Quality results: **off**
+   - Automatically request Copilot code review: **off**
 5. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 
 Max **3** active development PRs (canonical rule in `AGENTS.md`). If at cap: repair CI,

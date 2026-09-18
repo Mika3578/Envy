@@ -73,8 +73,9 @@ SonarCloud `12526`, GHAS/gitleaks `57789`).
 
 CodeRabbit / reviewdog / Bugbot are **advisory** and must not be the sole
 merge blocker. Native GitHub review policy on Protect develop (≥1 APPROVED,
-dismiss stale, last-push approval, resolve conversations) is separate from
-these advisors and from PR Gate (CI wait only).
+dismiss stale on push, `require_last_push_approval` off, resolve
+conversations, signed commits, force pushes blocked) is separate from these
+advisors and from PR Gate (CI wait only).
 
 See [devsecops-envy.md](devsecops-envy.md) for the full stack map.
 

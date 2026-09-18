@@ -3,8 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
-- **Changelog Entry:** 2026-09-18 — Protect develop docs: target ≥1 APPROVED review + dismiss-stale/last-push policy documented; Dependabot auto-approve removed (live ruleset already required_approving_review_count: 1).
-equired_approving_review_count: 1).
+- **Changelog Entry:** 2026-09-18 — Protect develop docs aligned to live ruleset: ≥1 APPROVED review, dismiss-stale on push, `require_last_push_approval` off, signed commits + force-push block, CodeQL/Gitleaks code scanning, no GitHub Code Quality rule; Dependabot auto-approve removed.
 - **Changelog Entry:** 2026-09-18 — #81/#82: file-backed ED2K tag key / TAG_STRING lengths checked against remaining `.met` bytes (`Ed2kTagStringLengthOk`) before allocate/Read.
 - **Changelog Entry:** 2026-09-18 — #166 / D-009 P1: Windows Firewall exceptions via WFAS `INetFwPolicy2` (all Domain/Private/Public profiles); drop legacy `INetFwMgr`.
 - **Changelog Entry:** 2026-09-18 — #76: Remote UI HTML-escapes `CRemote::Add()` substitutions (`Escape`); `AddRaw` for trusted markup; `RemoteHtmlEscape.h` + EnvyTests smoke coverage.

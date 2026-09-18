@@ -2,7 +2,7 @@ name: PR Gate
 
 # Waits for classified CI checks for this PR. Does NOT approve, does NOT merge,
 # and does NOT replace Protect develop review requirements (≥1 APPROVED,
-# thread resolution, last-push approval).
+# dismiss-stale on push, thread resolution; last-push approval is off).
 
 on:
   pull_request:

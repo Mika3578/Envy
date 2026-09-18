@@ -105,20 +105,23 @@ hold (enforced by the live GitHub ruleset, not by CI alone):
 2. **At least one** GitHub review with state **APPROVED** (not CodeRabbit /
    advisory bots as the sole gate; a real GitHub approval is required).
 3. That approval remains valid for the **current** head: stale approvals are
-   dismissed on new pushes, and approval of the **most recent push** is
-   required.
+   **dismissed on new pushes**. `Require approval of the most recent
+   reviewable push` is **off** (intentional for the solo-maintainer +
+   final-reviewer workflow).
 4. **All review conversations / threads are resolved**.
 5. There is no outstanding **CHANGES_REQUESTED** review.
 6. All **required status checks** are green and the branch is **up to date**
    with `develop` (strict checks).
-7. Merge method is **squash** only; history stays **linear**.
+7. Merge method on `develop` is **squash** only; history stays **linear**;
+   commits must be **signed**; force pushes are blocked.
 8. **No bypass actors** — do not use admin merge, `--admin`, or a PAT to
    override the ruleset.
 
 The declarative template in `.github/settings.yml` mirrors the Probot-capable
-subset of this policy. Ruleset-only knobs (thread resolution, last-push
-approval, squash-only methods, signed commits) are documented there and must
-match the live ruleset.
+subset of this policy. Ruleset-only knobs (thread resolution, squash-only on
+`develop`, signed commits, code scanning, block force pushes) are documented
+there and must match the live ruleset. Global `allow_rebase_merge` may stay
+enabled for other branches; Protect develop still forces squash-only.
 
 ## Pull request checklist
 
