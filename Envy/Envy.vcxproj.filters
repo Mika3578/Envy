@@ -1974,6 +1974,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SecureRandom.h">
+    <ClInclude Include="Ed2kLockOrder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PacketBuffer.h">
