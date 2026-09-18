@@ -189,3 +189,17 @@ inline BOOL BtUtMetadataSizeOk(std::uint64_t nSize)
 {
 	return nSize > 0 && nSize <= BT_UT_METADATA_MAX;
 }
+
+// Cap for CBuffer::UnBZip (DC hublist / file listing .bz2) (#81 zip-bomb).
+// Same magnitude as BT_UT_METADATA_MAX / planned CBUFFER_INFLATE_MAX.
+constexpr DWORD CBUFFER_UNBZIP_MAX = 32u * 1024u * 1024u;
+
+inline BOOL CBufferUnBZipOutputOk(DWORD nOutput)
+{
+	return nOutput > 0 && nOutput <= CBUFFER_UNBZIP_MAX;
+}
+
+inline BOOL CBufferUnBZipInputOk(DWORD nCompressed)
+{
+	return nCompressed > 0 && nCompressed <= CBUFFER_UNBZIP_MAX;
+}

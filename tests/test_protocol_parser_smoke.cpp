@@ -368,6 +368,21 @@ static bool test_bt_source_response_no_delete_packet_owned_root()
 	return bNoDelete && bNullPeers;
 }
 
+
+static bool test_cbuffer_unbzip_bounds()
+{
+	return CBufferUnBZipOutputOk( 1 ) == TRUE
+		&& CBufferUnBZipOutputOk( CBUFFER_UNBZIP_MAX ) == TRUE
+		&& CBufferUnBZipOutputOk( CBUFFER_UNBZIP_MAX + 1 ) == FALSE
+		&& CBufferUnBZipOutputOk( 0 ) == FALSE
+		&& CBufferUnBZipInputOk( 1 ) == TRUE
+		&& CBufferUnBZipInputOk( CBUFFER_UNBZIP_MAX ) == TRUE
+		&& CBufferUnBZipInputOk( CBUFFER_UNBZIP_MAX + 1 ) == FALSE
+		&& CBufferUnBZipInputOk( 0 ) == FALSE;
+}
+
+
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -427,4 +442,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max );
 	suite.add_test( "bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max );
 	suite.add_test( "bt_source_response_no_delete_packet_owned_root", test_bt_source_response_no_delete_packet_owned_root );
+
+	suite.add_test( "cbuffer_unbzip_bounds", test_cbuffer_unbzip_bounds );
+
 }

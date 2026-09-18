@@ -1,7 +1,7 @@
 //
 // CollectionFile.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -23,6 +23,7 @@
 
 #include "ZIPFile.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 #include "XML.h"
 #include "Schema.h"
 #include "SchemaCache.h"
@@ -318,8 +319,8 @@ BOOL CCollectionFile::LoadDC(LPCTSTR pszFile)
 		return FALSE;	// File open error
 
 	UINT nInSize = (UINT)pFile.GetLength();
-	if ( ! nInSize )
-		return FALSE;	// Empty file
+	if ( ! CBufferUnBZipInputOk( nInSize ) )
+		return FALSE;	// Empty or oversized compressed listing
 
 	CBuffer pBuffer;
 	if ( ! pBuffer.EnsureBuffer( nInSize ) )
@@ -329,8 +330,8 @@ BOOL CCollectionFile::LoadDC(LPCTSTR pszFile)
 		return FALSE;	// File read error
 	pBuffer.m_nLength = nInSize;
 
-	if ( ! pBuffer.UnBZip() )
-		return FALSE;	// Decompression error
+	if ( ! pBuffer.UnBZip( CBUFFER_UNBZIP_MAX ) )
+		return FALSE;	// Decompression error / zip-bomb
 
 	augment::auto_ptr< CXMLElement > pXML ( CXMLElement::FromString( pBuffer.ReadString( pBuffer.m_nLength, CP_UTF8 ), TRUE ) );
 	if ( ! pXML.get() )

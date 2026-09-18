@@ -22,6 +22,7 @@
 
 #include "StdAfx.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 //#include "Statistics.h"
 
 #ifdef ZLIB_H
@@ -733,27 +734,49 @@ BOOL CBuffer::BZip()
 	return TRUE;
 }
 
-BOOL CBuffer::UnBZip()
+BOOL CBuffer::UnBZip(DWORD nMaxOutput)
 {
-	// Uncompress to temporary buffer first
+	// Uncompress to temporary buffer first. Cap growth at nMaxOutput to
+	// prevent bzip2 zip-bombs (0 = unlimited, legacy callers).
 	CBuffer pOutBuf;
 	UINT nOutSize = m_nLength * 3;
+	if ( nOutSize < m_nLength )
+		nOutSize = UINT_MAX;	// overflow on huge input guess
+	if ( nMaxOutput > 0 && nOutSize > nMaxOutput )
+		nOutSize = nMaxOutput;
+	if ( nOutSize == 0 )
+		return FALSE;
+
 	for ( ;; )
 	{
 		if ( ! pOutBuf.EnsureBuffer( nOutSize ) )
 			return FALSE;	// Out of memory
 
-		int err = BZ2_bzBuffToBuffDecompress( (char*)pOutBuf.m_pBuffer, &nOutSize,
+		UINT nAvail = nOutSize;
+		int err = BZ2_bzBuffToBuffDecompress( (char*)pOutBuf.m_pBuffer, &nAvail,
 			(char*)m_pBuffer, m_nLength, 0, 0 );
 
 		if ( err == BZ_OK )
 		{
-			pOutBuf.m_nLength = nOutSize;
+			if ( nMaxOutput > 0 && ! CBufferUnBZipOutputOk( nAvail ) )
+				return FALSE;
+			pOutBuf.m_nLength = nAvail;
 			break;
 		}
 
 		if ( err == BZ_OUTBUFF_FULL )
-			nOutSize *= 2;	// Insufficient output buffer
+		{
+			if ( nMaxOutput > 0 && nOutSize >= nMaxOutput )
+				return FALSE;	// Would exceed zip-bomb cap
+			UINT nNext = nOutSize * 2;
+			if ( nNext < nOutSize )
+				nNext = UINT_MAX;
+			if ( nMaxOutput > 0 && nNext > nMaxOutput )
+				nNext = nMaxOutput;
+			if ( nNext <= nOutSize )
+				return FALSE;
+			nOutSize = nNext;
+		}
 		else
 			return FALSE;	// Decompression error
 	}
