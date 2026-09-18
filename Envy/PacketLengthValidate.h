@@ -88,6 +88,10 @@ inline BOOL BencodeDepthOk(DWORD nDepth)
 // Overflow-safe base-10 parse of a length-bounded ASCII integer (bencode 'i' / lengths).
 inline BOOL ParseInt64Bounded(const char* pszString, size_t nLen, __int64& nNum)
 {
+	// Always define the out-param so callers never observe an uninitialized value
+	// if a failure path is mis-analyzed or short-circuit is skipped.
+	nNum = 0;
+
 	if ( pszString == nullptr || nLen == 0 )
 		return FALSE;
 
@@ -103,7 +107,7 @@ inline BOOL ParseInt64Bounded(const char* pszString, size_t nLen, __int64& nNum)
 
 	unsigned __int64 nAbs = 0;
 	const unsigned __int64 nMaxPos = static_cast< unsigned __int64 >( INT64_MAX );
-	const unsigned __int64 nMaxNeg = nMaxPos + 1ull;	// magnitude of INT64_MIN
+	const unsigned __int64 nMaxNeg = nMaxPos + 1ULL;	// magnitude of INT64_MIN
 
 	for ( ; i < nLen; ++i )
 	{
@@ -111,9 +115,9 @@ inline BOOL ParseInt64Bounded(const char* pszString, size_t nLen, __int64& nNum)
 			return FALSE;
 		const unsigned d = static_cast< unsigned >( pszString[ i ] - '0' );
 		const unsigned __int64 nLimit = bNeg ? nMaxNeg : nMaxPos;
-		if ( nAbs > ( nLimit - d ) / 10ull )
+		if ( nAbs > ( nLimit - d ) / 10ULL )
 			return FALSE;
-		nAbs = nAbs * 10ull + d;
+		nAbs = nAbs * 10ULL + d;
 	}
 
 	if ( bNeg )
