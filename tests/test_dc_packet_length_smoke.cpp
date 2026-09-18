@@ -43,17 +43,19 @@ static bool test_dc_hubname_description_bounds()
 
 static bool test_dc_hub_user_count_bounds()
 {
-	return DcHubUserCountOk( 0 ) == TRUE
-		&& DcHubUserCountOk( DC_HUB_USERS_MAX - 1 ) == TRUE
-		&& DcHubUserCountOk( DC_HUB_USERS_MAX ) == FALSE
-		&& DcHubUserCountOk( DC_HUB_USERS_MAX + 1 ) == FALSE;
+	if (DC_HUB_USERS_MAX != 20000u)
+		return false;
+	return DcHubUserCountOk(0) == TRUE
+		&& DcHubUserCountOk(19999u) == TRUE
+		&& DcHubUserCountOk(20000u) == FALSE
+		&& DcHubUserCountOk(20001u) == FALSE;
 }
 
-void register_dc_packet_length_smoke_tests( TestSuite& suite )
+void register_dc_packet_length_smoke_tests(TestSuite& suite)
 {
-	suite.add_test( "dc_hubtopic_prefix_rejects_exact_prefix", test_dc_hubtopic_prefix_rejects_exact_prefix );
-	suite.add_test( "dc_hubname_prefix_rejects_exact_prefix", test_dc_hubname_prefix_rejects_exact_prefix );
-	suite.add_test( "dc_chat_angle_min_length", test_dc_chat_angle_min_length );
-	suite.add_test( "dc_hubname_description_bounds", test_dc_hubname_description_bounds );
-	suite.add_test( "dc_hub_user_count_bounds", test_dc_hub_user_count_bounds );
+	suite.add_test("dc_hubtopic_prefix_rejects_exact_prefix", test_dc_hubtopic_prefix_rejects_exact_prefix);
+	suite.add_test("dc_hubname_prefix_rejects_exact_prefix", test_dc_hubname_prefix_rejects_exact_prefix);
+	suite.add_test("dc_chat_angle_min_length", test_dc_chat_angle_min_length);
+	suite.add_test("dc_hubname_description_bounds", test_dc_hubname_description_bounds);
+	suite.add_test("dc_hub_user_count_bounds", test_dc_hub_user_count_bounds);
 }

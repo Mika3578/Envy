@@ -1,7 +1,7 @@
 //
 // DCNeighbour.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2010 and PeerProject 2010-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -844,8 +844,8 @@ BOOL CDCNeighbour::OnUserInfo(LPSTR szInfo)
 			CChatUser* pUser;
 			if ( ! m_oUsers.Lookup( strNick, pUser ) )
 			{
-				if ( ! DcHubUserCountOk( static_cast< DWORD >( m_oUsers.GetCount() ) ) )
-					return TRUE;	// Drop new nick — MyINFO flood / hub DoS
+				if (!DcHubUserCountOk(static_cast<DWORD>(m_oUsers.GetCount())))
+					return TRUE; // Drop new nick - MyINFO flood / hub DoS
 
 				pUser = new CChatUser;
 				m_oUsers.SetAt( strNick, pUser );
