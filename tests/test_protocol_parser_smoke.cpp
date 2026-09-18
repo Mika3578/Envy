@@ -142,6 +142,20 @@ static bool test_bt_extension_length_with_bencode()
 	return BtExtensionPayloadLengthOk( 2 + 5 ) == TRUE;	// e.g. "d1:ae"
 }
 
+static bool test_g2_subpacket_payload_fits()
+{
+	return G2SubpacketPayloadFits( 100, 50, 8 ) == TRUE
+		&& G2SubpacketPayloadFits( 100, 100, 0 ) == TRUE
+		&& G2SubpacketPayloadFits( 100, 101, 0 ) == FALSE
+		&& G2SubpacketPayloadFits( 100, 0xFFFFFFFA, 8 ) == FALSE;
+}
+
+static bool test_g2_frame_length_fits()
+{
+	return G2FrameLengthFits( 64, 50, 1, 3 ) == TRUE
+		&& G2FrameLengthFits( 10, 0xFFFFFFF0, 1, 3 ) == FALSE;
+}
+
 static bool test_g1_deflate_truncated_marker_only()
 {
 	return G1QueryHitDeflateXmlLengthOk( 9 ) == FALSE;
@@ -335,6 +349,8 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_extension_length_one_not_keepalive", test_bt_extension_length_one_not_keepalive );
 	suite.add_test( "bt_extension_length_min_valid", test_bt_extension_length_min_valid );
 	suite.add_test( "bt_extension_length_bencode", test_bt_extension_length_with_bencode );
+	suite.add_test( "g2_subpacket_payload_fits", test_g2_subpacket_payload_fits );
+	suite.add_test( "g2_frame_length_fits", test_g2_frame_length_fits );
 
 	suite.add_test( "g1_deflate_truncated_marker", test_g1_deflate_truncated_marker_only );
 	suite.add_test( "g1_deflate_marker_no_payload", test_g1_deflate_marker_no_payload );

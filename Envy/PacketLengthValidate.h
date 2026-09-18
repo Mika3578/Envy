@@ -172,3 +172,21 @@ inline BOOL BtUtMetadataSizeOk(std::uint64_t nSize)
 {
 	return nSize > 0 && nSize <= BT_UT_METADATA_MAX;
 }
+
+// Overflow-safe G2 compound sub-packet sizing (#81).
+// Rejects wrap-prone "remaining < body + prefix" checks when body is near DWORD max.
+inline BOOL G2SubpacketPayloadFits(DWORD nRemaining, DWORD nBodyLen, DWORD nPrefixLen)
+{
+	if ( nBodyLen > nRemaining )
+		return FALSE;
+	if ( nPrefixLen > nRemaining - nBodyLen )
+		return FALSE;
+	return TRUE;
+}
+
+// Overflow-safe G2 top-level frame sizing for ReadBuffer (control+len+type+body).
+inline BOOL G2FrameLengthFits(DWORD nBufferLength, DWORD nBodyLen, DWORD nLenLen, DWORD nTypeLen)
+{
+	// Wire layout: 1 control + nLenLen + (nTypeLen+1) type bytes + nBodyLen payload.
+	return G2SubpacketPayloadFits( nBufferLength, nBodyLen, nLenLen + nTypeLen + 2u );
+}
