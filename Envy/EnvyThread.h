@@ -50,7 +50,7 @@ public:
 	static HANDLE BeginThread(LPCSTR pszName, AFX_THREADPROC pfnThreadProc,
 							  LPVOID pParam, int nPriority = THREAD_PRIORITY_NORMAL, UINT nStackSize = 0,
 							  DWORD dwCreateFlags = 0, LPSECURITY_ATTRIBUTES lpSecurityAttrs = NULL, DWORD* pnThreadID = NULL);
-	static void CloseThread(DWORD nThreadID, DWORD dwTimeout = ALMOST_INFINITE);
+	static void CloseThread(DWORD nThreadID, DWORD dwTimeout = ALMOST_INFINITE) noexcept;
 
 protected:
 	typedef struct
