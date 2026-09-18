@@ -1,7 +1,7 @@
 //
 // G1Packet.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -30,6 +30,7 @@
 #include "HostCache.h"
 #include "LibraryMaps.h"
 #include "Network.h"
+#include "PacketLengthValidate.h"
 #include "Security.h"
 #include "Statistics.h"
 #include "VendorCache.h"
@@ -441,11 +442,11 @@ bool CG1Packet::ReadXML(CSchemaPtr& pSchema, CXMLElement*& pXML)
 		p += 9;
 		len -= 9;
 
-		// Deflate data
+		// Deflate data ó cap inflate to block zip-bomb DoS (#81).
 		DWORD nRealSize;
-		pTmp = CZLib::Decompress( p, len, &nRealSize );
-		if ( ! pTmp.get() )
-			return NULL;	// Invalid data
+		pTmp = CZLib::Decompress( p, len, &nRealSize, G1_DEFLATE_XML_INFLATE_MAX );
+		if ( ! pTmp.get() || ! G1DeflateXmlInflateOk( nRealSize ) )
+			return NULL;	// Invalid or abusive inflate
 		p = pTmp.get();
 		len = nRealSize;
 	}
