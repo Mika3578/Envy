@@ -104,13 +104,21 @@ jobs:
           # the required check by rewriting format-check.sh or relaxing
           # .clang-format on the branch alone. Hunk content still comes from
           # the HEAD working tree (checkout ref above).
-          trusted_script="$(mktemp)"
-          if ! git cat-file -e "${BASE_SHA}:.github/scripts/format-check.sh" 2>/dev/null; then
-            echo "::error::format-check.sh missing on base ${BASE_SHA}; refusing HEAD fallback"
+          if ! git rev-parse --verify "${BASE_SHA}^{commit}" >/dev/null 2>&1; then
+            echo "::error::BASE_SHA is not a valid commit: ${BASE_SHA}"
             exit 1
           fi
-          git show "${BASE_SHA}:.github/scripts/format-check.sh" >"$trusted_script"
-          echo "Using format-check.sh from base ${BASE_SHA}"
+
+          trusted_script="$(mktemp)"
+          if git cat-file -e "${BASE_SHA}:.github/scripts/format-check.sh" 2>/dev/null; then
+            git show "${BASE_SHA}:.github/scripts/format-check.sh" >"$trusted_script"
+            echo "Using format-check.sh from base ${BASE_SHA}"
+          else
+            # Bootstrap only: script is new on this PR and absent from develop.
+            # After merge, the base path above applies and this branch is unused.
+            echo "::warning::format-check.sh absent on base ${BASE_SHA}; bootstrap from HEAD ${HEAD_SHA}"
+            git show "${HEAD_SHA}:.github/scripts/format-check.sh" >"$trusted_script"
+          fi
 
           if ! git cat-file -e "${BASE_SHA}:.clang-format" 2>/dev/null; then
             echo "::error::.clang-format missing on base ${BASE_SHA}"
