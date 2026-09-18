@@ -419,6 +419,12 @@ static bool test_qht_patch_compressed_budget()
 		&& QhtPatchCompressedBudgetOk(0, 1, 0) == FALSE
 		&& QhtPatchCompressedBudgetOk(0, 16, 8) == TRUE // tiny table + zlib slack
 		&& QhtPatchCompressedBudgetOk(0, MAXDWORD, MAXDWORD) == TRUE; // MAXDWORD budget branch
+static bool test_ed2k_packed_inflate_ok()
+{
+	return Ed2kPackedInflateOk( 1 ) == TRUE
+		&& Ed2kPackedInflateOk( ED2K_PACKED_INFLATE_MAX ) == TRUE
+		&& Ed2kPackedInflateOk( 0 ) == FALSE
+		&& Ed2kPackedInflateOk( ED2K_PACKED_INFLATE_MAX + 1 ) == FALSE;
 }
 
 void register_protocol_parser_smoke_tests(TestSuite& suite)
@@ -486,4 +492,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 
 	suite.add_test( "qht_patch_expected_bytes", test_qht_patch_expected_bytes );
 	suite.add_test( "qht_patch_compressed_budget", test_qht_patch_compressed_budget );
+	suite.add_test( "ed2k_packed_inflate_ok", test_ed2k_packed_inflate_ok );
 }
