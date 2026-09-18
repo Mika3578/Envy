@@ -51,16 +51,17 @@ After merge to `develop` (and weekly/nightly schedules):
 so required workflows always **start**. A skipped job is a successful required
 check; a workflow skipped with `paths-ignore` can stay **Pending**.
 
-| PR kind | Windows runners | CodeQL C++ | CodeQL JS | CodeQL C# | Remote JS | Format Check |
-| --- | --- | --- | --- | --- | --- | --- |
-| Docs-only | no | always (`none`) | always | always (SkinUpdater) | skip | always (no-op OK) |
-| C++ / build | x64 + Win32 Release | always (`none`) | always | always | skip | always (blocking) |
-| Remote only | no | always | always | always | yes | always (no-op OK) |
-| SkinUpdater C# | no | always | always | always | skip | always (no-op OK) |
+| PR kind | Windows runners | CodeQL C++/JS/C# | Remote JS | Format Check |
+| --- | --- | --- | --- | --- |
+| Docs-only | no | always (own workflows) | skip | always (hunk diff) |
+| C++ / build | x64 + Win32 Release | always | skip | always (hunk diff) |
+| Remote only | no | always | yes | always (hunk diff) |
+| SkinUpdater C# | no | always | skip | always (hunk diff) |
 
-CodeQL languages are **always produced** on every PR to `develop` so Code
-Scanning never reports missing configurations / NEUTRAL. Windows builds,
-Remote JS tests, and Dependency Review stay path-aware.
+CodeQL workflows do **not** depend on `classify-changes` (classifier failure
+must not recreate Code Scanning "configuration not found"). Format Check uses
+LLVM `clang-format-diff` on `base...head` hunks under `Envy/`, `TorrentEnvy/`,
+`HashLib/` with pinned `clang-format-18`.
 
 ### Required `develop` contexts (live ruleset)
 
@@ -88,11 +89,13 @@ See [devsecops-envy.md](devsecops-envy.md) for the full stack map.
   a follow-up if that cache starts evicting again.
 - PR CodeQL C/C++ uses `build-mode: none` (no second MSBuild). `develop` /
   weekly / manual keep `build-mode: manual` after vcpkg restore.
-- PR CodeQL JavaScript/TypeScript and C# always run on every PR (JS:
-  `build-mode: none`; C#: manual SkinUpdater build) so Code Scanning finds
-  all three develop configurations.
-- Format Check is required and **blocking** (`clang-format --dry-run --Werror`
-  without `continue-on-error`); no first-party C/C++ changes → success no-op.
+- PR CodeQL JavaScript/TypeScript and C# always run on every PR without a
+  classify-changes dependency (JS: `build-mode: none`; C#: manual SkinUpdater
+  with `queries: security-and-quality`).
+- Format Check is required and **blocking** via `clang-format-diff-18` on
+  changed hunks only (legacy off-diff lines do not fail). Major version pinned
+  to 18 in CI.
+- PR Gate requires `success` for must_pass checks (rejects `skipped`/`neutral`).
 - Gitleaks and Dependency Review stay. Dependency Review runs when manifests
   change; vcpkg sanity always runs (required name).
 
@@ -120,13 +123,19 @@ Do not reintroduce mutable `@vN` tags for external actions.
 - After CodeQL is complete on every PR for several merges: tighten Protect
   develop Code Scanning thresholds for CodeQL/Gitleaks to the strictest
   supported values (do not change thresholds before that evidence).
+- Evaluate `security-extended` / `security-and-quality` for C++/JS in a
+  measured advisory window before expanding blocking query suites.
+- Before 2026-11-02: migrate or explicitly authorize
+  `pull_request_target` for Dependabot auto-merge (GitHub default will block
+  it on public repos unless policy is set). Current workflow does not
+  checkout/execute PR code.
 
 ## Automation reference
 
 | Area | Tools / config |
 |------|----------------|
 | **Code analysis** | MSVC Code Analysis on `develop`/nightly; CodeQL (`none` on PR C++, manual on `develop`); `.clang-tidy` + reviewdog on PRs (advisory) |
-| **Format / docs** | Differential `Format Check` on changed C/C++ under `Envy/`, `TorrentEnvy/`, or `HashLib/` (blocking); markdown link check when docs change |
+| **Format / docs** | `clang-format-diff-18` on changed hunks under `Envy/`, `TorrentEnvy/`, `HashLib/` (blocking); markdown link check when docs change |
 | **Dependencies** | Dependabot (vcpkg), Renovate (GitHub Actions), dependency review, vcpkg manifest sanity |
 | **AI review** | CodeRabbit (advisory); Qodo/Bugbot optional/manual |
 | **Testing** | `EnvyTests.exe` after PR and `develop` MSBuild; Remote JS tests when `Remote/` changes; local `.\scripts\ci-verify.ps1` |

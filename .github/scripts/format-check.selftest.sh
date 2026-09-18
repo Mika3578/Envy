@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# Self-test for diff-aware format-check.sh (changed hunks only).
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+fail=0
+
+if ! command -v clang-format-diff-18 >/dev/null 2>&1 && ! command -v clang-format-diff >/dev/null 2>&1; then
+	echo "SKIP format-check.selftest: clang-format-diff not installed locally"
+	exit 0
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+git init -q "$TMP/repo"
+cd "$TMP/repo"
+git config user.email "ci@example.com"
+git config user.name "CI"
+printf 'BasedOnStyle: LLVM\nIndentWidth: 4\nColumnLimit: 80\n' >.clang-format
+mkdir -p Envy
+
+# Base: intentionally messy middle line (legacy debt).
+cat >Envy/Foo.cpp <<'EOF'
+int main() {
+int x = 1;
+    return x;
+}
+EOF
+git add Envy/Foo.cpp .clang-format
+git commit -q -m base
+BASE=$(git rev-parse HEAD)
+
+# Head A: only touch the return line (keep legacy `int x = 1;` as-is relative to style
+# by changing a different well-formatted aspect — add a blank line after brace via
+# a clean new statement that clang-format accepts).
+cat >Envy/Foo.cpp <<'EOF'
+int main() {
+int x = 1;
+    return x + 0;
+}
+EOF
+git add Envy/Foo.cpp
+git commit -q -m 'clean hunk change'
+HEAD_CLEAN=$(git rev-parse HEAD)
+
+export CLANG_FORMAT_MAJOR=18
+if command -v clang-format-diff-18 >/dev/null 2>&1; then
+	export CLANG_FORMAT_DIFF=clang-format-diff-18
+	export CLANG_FORMAT_BIN=clang-format-18
+else
+	export CLANG_FORMAT_DIFF=clang-format-diff
+	# Derive major from clang-format if possible; otherwise soft-link.
+	if command -v clang-format-18 >/dev/null 2>&1; then
+		export CLANG_FORMAT_BIN=clang-format-18
+	else
+		mkdir -p "$TMP/bin"
+		ln -sf "$(command -v clang-format)" "$TMP/bin/clang-format-18"
+		export PATH="$TMP/bin:$PATH"
+		export CLANG_FORMAT_BIN=clang-format-18
+		export CLANG_FORMAT_MAJOR=18
+	fi
+fi
+
+set +e
+BASE_SHA=$BASE HEAD_SHA=$HEAD_CLEAN bash "$ROOT/.github/scripts/format-check.sh"
+rc=$?
+set -e
+# Clean-hunk result depends on whether the changed return line needs format;
+# legacy `int x=1` style may still appear in the diff hunk context. Prefer the
+# explicit bad-hunk and no-cpp cases as hard asserts.
+echo "NOTE clean-hunk exit=$rc (informational)"
+
+# Head B: clearly bad new formatting on the changed line.
+cat >Envy/Foo.cpp <<'EOF'
+int main() {
+int x = 1;
+return x+1+2+3+4+5+6+7+8+9+10+11+12+13+14+15+16+17+18+19+20;
+}
+EOF
+git add Envy/Foo.cpp
+git commit -q -m 'bad hunk'
+HEAD_BAD=$(git rev-parse HEAD)
+
+set +e
+BASE_SHA=$BASE HEAD_SHA=$HEAD_BAD bash "$ROOT/.github/scripts/format-check.sh"
+rc=$?
+set -e
+if [[ "$rc" -eq 0 ]]; then
+	echo "FAIL expected FAILURE on badly formatted changed hunk"
+	fail=1
+else
+	echo "OK   bad changed hunk → FAILURE"
+fi
+
+# Docs-only commit: no C++ hunks.
+mkdir -p docs
+echo note >docs/a.md
+git add docs/a.md
+git commit -q -m docs
+HEAD_DOCS=$(git rev-parse HEAD)
+BASE_SHA=$HEAD_BAD HEAD_SHA=$HEAD_DOCS bash "$ROOT/.github/scripts/format-check.sh"
+echo "OK   no C++ hunks → SUCCESS"
+
+# Invalid BASE must fail closed.
+set +e
+BASE_SHA=deadbeef HEAD_SHA=$HEAD_DOCS bash "$ROOT/.github/scripts/format-check.sh"
+rc=$?
+set -e
+if [[ "$rc" -eq 0 ]]; then
+	echo "FAIL expected FAILURE on invalid BASE_SHA"
+	fail=1
+else
+	echo "OK   invalid BASE_SHA → FAILURE (fail-closed)"
+fi
+
+exit "$fail"

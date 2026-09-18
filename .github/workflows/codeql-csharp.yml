@@ -1,5 +1,8 @@
 name: CodeQL C# Manual Build
 
+# Always runs on every PR/push — no classify-changes dependency. Code Scanning
+# on develop expects the csharp configuration on every PR.
+
 on:
   push:
     branches: [main, develop]
@@ -21,16 +24,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
-  changes:
-    name: Classify (csharp)
-    uses: ./.github/workflows/classify-changes.yml
-
   analyze-csharp:
     name: Analyze (csharp)
-    needs: changes
-    # Always run on PRs so Code Scanning finds the csharp configuration that
-    # exists on develop (avoids NEUTRAL "configuration not found").
-    if: always() && needs.changes.result == 'success'
     runs-on: windows-2025-vs2026
     timeout-minutes: 60
 
@@ -50,7 +45,8 @@ jobs:
         with:
           languages: csharp
           build-mode: manual
-          queries: security-extended,security-and-quality
+          # security-and-quality already includes security-extended + default.
+          queries: security-and-quality
 
       - name: Build SkinUpdater solution (Release, Any CPU)
         shell: cmd

@@ -64,49 +64,34 @@ jobs:
 
   lint-check:
     name: Format Check
-    needs: changes
-    runs-on: ubuntu-latest
-    # Always emit on PRs (required ruleset context). No-op success when the
-    # PR has no first-party C/C++ files to check.
+    # Independent of classify-changes: required context must always emit, and a
+    # classifier failure must not suppress formatting.
     if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLANG_FORMAT_MAJOR: "18"
 
     steps:
       - name: Checkout code
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
-      - name: Install clang-format
-        run: sudo apt-get update && sudo apt-get install -y clang-format
-
-      - name: clang-format --dry-run on changed files
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Install clang-format ${{ env.CLANG_FORMAT_MAJOR }}
         run: |
           set -euo pipefail
-          mapfile -t all_files < <(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[].filename')
-          files=$(printf '%s\n' "${all_files[@]}" \
-            | grep -E '\.(cpp|h|cxx|hpp)$' \
-            | grep -E '^(Envy|TorrentEnvy|HashLib)/' \
-            | grep -vE '^(Services|Plugins/PluginWizard|Plugins/RatDVDPlugin|Plugins/SWFPlugin)/' \
-            || true)
-          if [ -z "$files" ]; then
-            echo "No relevant C/C++ files changed."
-            exit 0
-          fi
-          fail=0
-          while IFS= read -r f; do
-            [ -f "$f" ] || continue
-            if ! clang-format --dry-run --Werror "$f" 2>&1; then
-              fail=1
-            fi
-          done <<< "$files"
-          if [ "$fail" -ne 0 ]; then
-            echo "::error::Formatting differences detected. Run clang-format locally on the changed first-party C/C++ files."
-            exit 1
-          fi
-          echo "clang-format dry-run clean."
+          sudo apt-get update
+          sudo apt-get install -y "clang-format-${CLANG_FORMAT_MAJOR}"
+          clang-format-${CLANG_FORMAT_MAJOR} --version
+          command -v "clang-format-diff-${CLANG_FORMAT_MAJOR}"
+
+      - name: clang-format-diff on changed hunks
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash .github/scripts/format-check.sh
 
   documentation-check:
     name: Documentation Check

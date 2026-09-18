@@ -1,5 +1,9 @@
 name: CodeQL Advanced
 
+# CodeQL jobs intentionally do NOT depend on classify-changes. A classifier
+# failure must never suppress language configurations that Protect develop
+# Code Scanning expects on every PR (c-cpp + javascript-typescript).
+
 on:
   push:
     branches: [main, develop]
@@ -26,16 +30,8 @@ env:
   PLATFORM_TOOLSET: v145
 
 jobs:
-  changes:
-    name: Classify (codeql)
-    uses: ./.github/workflows/classify-changes.yml
-
   analyze-cpp:
     name: Analyze (c-cpp)
-    needs: changes
-    # Always run on PRs so Code Scanning finds the c-cpp configuration that
-    # exists on develop (path filters must not skip this language).
-    if: always() && needs.changes.result == 'success'
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'windows-2025-vs2026' }}
     timeout-minutes: 180
     env:
@@ -125,9 +121,6 @@ jobs:
 
   analyze-js:
     name: Analyze (javascript-typescript)
-    needs: changes
-    # Always run on PRs so Code Scanning finds the JS/TS configuration.
-    if: always() && needs.changes.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

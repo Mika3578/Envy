@@ -4,6 +4,10 @@
 # Outputs GitHub Actions flags (true/false) to $GITHUB_OUTPUT when set,
 # otherwise prints them to stdout. Non-PR events force a full run.
 #
+# CodeQL (c-cpp / javascript-typescript / csharp) and Format Check always run
+# on every PR via their own workflows/jobs — they are intentionally NOT gated
+# here (avoids Code Scanning "configuration not found" and false-green format).
+#
 # Optional:
 #   CLASSIFY_FILES   newline-separated path list (skips GitHub API)
 #   CLASSIFY_EVENT   override github.event_name (default: $EVENT_NAME)
@@ -14,8 +18,6 @@ EVENT_NAME="${CLASSIFY_EVENT:-${EVENT_NAME:-${GITHUB_EVENT_NAME:-}}}"
 write_out() {
 	local key="$1"
 	local value="$2"
-	# Always echo to stdout so local self-tests and CI logs can read flags.
-	# GITHUB_OUTPUT is also set on Actions runners, including the lint job.
 	printf '%s=%s\n' "$key" "$value"
 	if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
 		printf '%s=%s\n' "$key" "$value" >>"$GITHUB_OUTPUT"
@@ -33,11 +35,7 @@ emit_all() {
 	write_out workflow "$value"
 	write_out docs_only "false"
 	write_out run_windows_build "$value"
-	write_out run_codeql_cpp "$value"
-	write_out run_codeql_js "$value"
-	write_out run_codeql_csharp "$value"
 	write_out run_remote_js "$value"
-	write_out run_format "$value"
 	write_out run_dep_review "$value"
 	write_out run_docs_check "$value"
 }
@@ -62,6 +60,7 @@ else
 		echo "::error::PR number is missing."
 		exit 1
 	fi
+	# Fail closed: do not use process-substitution mapfile (masks gh api failure).
 	files="$(gh api --paginate "repos/${repo}/pulls/${pr}/files" --jq '.[].filename')"
 fi
 
@@ -76,14 +75,7 @@ if [[ -z "${files//[$'\t\r\n ']/}" ]]; then
 	write_out workflow false
 	write_out docs_only true
 	write_out run_windows_build false
-	# Code Scanning on develop expects c-cpp + javascript-typescript + csharp
-	# configurations on every PR. Always emit all three analyses.
-	write_out run_codeql_cpp true
-	write_out run_codeql_js true
-	write_out run_codeql_csharp true
 	write_out run_remote_js false
-	# Format Check is a required status context; always emit a stable result.
-	write_out run_format true
 	write_out run_dep_review false
 	write_out run_docs_check true
 	exit 0
@@ -99,11 +91,7 @@ workflow=false
 other=false
 
 force_windows=false
-force_codeql_cpp=false
-force_codeql_js=false
-force_codeql_csharp=false
 force_remote=false
-force_format=false
 force_dep_review=false
 force_all_pr=false
 
@@ -115,7 +103,6 @@ match_prefix() {
 
 while IFS= read -r f; do
 	[[ -z "$f" ]] && continue
-	# GitHub API uses forward slashes.
 	f="${f//\\//}"
 
 	classified=false
@@ -130,27 +117,19 @@ while IFS= read -r f; do
 		force_windows=true
 		classified=true
 		;;
-	.github/workflows/codeql.yml | .github/codeql/*)
-		workflow=true
-		force_codeql_cpp=true
-		force_codeql_js=true
-		classified=true
-		;;
+	.github/workflows/codeql.yml | .github/codeql/* | \
 	.github/workflows/codeql-csharp.yml)
 		workflow=true
-		force_codeql_csharp=true
-		csharp=true
 		classified=true
 		;;
 	.github/workflows/code-quality.yml)
 		workflow=true
-		force_format=true
 		force_remote=true
 		classified=true
 		;;
-	.github/workflows/format-check.yml | .clang-format | .clang-format-ignore)
+	.github/workflows/format-check.yml | .clang-format | .clang-format-ignore | \
+	.github/scripts/format-check.sh)
 		workflow=true
-		force_format=true
 		classified=true
 		;;
 	.github/workflows/dependency-review.yml | .github/dependabot.yml)
@@ -170,7 +149,8 @@ while IFS= read -r f; do
 	.github/workflows/classify-changes.yml | \
 	.github/workflows/pr-gate.yml | \
 	.github/scripts/classify-changes.sh | \
-	.github/scripts/pr-gate.sh)
+	.github/scripts/pr-gate.sh | \
+	.github/scripts/pr-gate-conclusions.sh)
 		workflow=true
 		force_all_pr=true
 		classified=true
@@ -261,7 +241,6 @@ while IFS= read -r f; do
 		classified=true
 	fi
 
-	# Translation XML under Languages/ is not C++ and not C# except SkinUpdater.
 	if match_prefix "$f" "Languages/" && ! match_prefix "$f" "Languages/Tools/SkinUpdater/"; then
 		docs=true
 		classified=true
@@ -274,26 +253,18 @@ done <<<"$files"
 
 if [[ "$force_all_pr" == true ]]; then
 	force_windows=true
-	force_codeql_cpp=true
-	force_codeql_js=true
-	force_format=true
 	force_dep_review=true
 	force_remote=true
 fi
 
 run_windows_build=false
-run_codeql_cpp=false
-run_codeql_js=false
-run_codeql_csharp=false
 run_remote_js=false
-run_format=false
 run_dep_review=false
 run_docs_check=false
 
 if [[ "$cpp" == true || "$build" == true || "$force_windows" == true || "$other" == true ]]; then
 	run_windows_build=true
 fi
-# Path-aware Remote JS follows Remote/ changes (or explicit force_remote).
 if [[ "$remote" == true || "$force_remote" == true ]]; then
 	run_remote_js=true
 fi
@@ -314,16 +285,6 @@ if [[ "$cpp" == false && "$build" == false && "$remote" == false && \
 	run_dep_review=false
 fi
 
-# Always produce CodeQL results for every PR language configuration present on
-# develop (c-cpp, javascript-typescript, csharp). Path filters must not skip
-# these or Code Scanning reports "configuration not found" / NEUTRAL.
-run_codeql_cpp=true
-run_codeql_js=true
-run_codeql_csharp=true
-# Format Check is a required context — always schedule (no-op success when
-# no first-party C/C++ files changed).
-run_format=true
-
 echo "Changed files:"
 echo "$files"
 echo "cpp=$cpp build=$build remote=$remote csharp=$csharp dependencies=$dependencies docs=$docs workflow=$workflow other=$other docs_only=$docs_only"
@@ -337,10 +298,6 @@ write_out docs "$docs"
 write_out workflow "$workflow"
 write_out docs_only "$docs_only"
 write_out run_windows_build "$run_windows_build"
-write_out run_codeql_cpp "$run_codeql_cpp"
-write_out run_codeql_js "$run_codeql_js"
-write_out run_codeql_csharp "$run_codeql_csharp"
 write_out run_remote_js "$run_remote_js"
-write_out run_format "$run_format"
 write_out run_dep_review "$run_dep_review"
 write_out run_docs_check "$run_docs_check"
