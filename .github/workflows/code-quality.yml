@@ -31,6 +31,7 @@ jobs:
   static-analysis:
     name: Static Analysis
     runs-on: windows-2025-vs2026
+    timeout-minutes: 120
     # Expensive full-solution code-analysis build. Skip it on pull_request -
     # CodeQL already gates PRs; this runs on push to the integration
     # branches, on the nightly schedule, and on demand.
@@ -137,6 +138,7 @@ jobs:
     name: Documentation Check
     needs: changes
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.event_name == 'pull_request' && needs.changes.outputs.run_docs_check == 'true'
 
     steps:
@@ -171,6 +173,7 @@ jobs:
     name: Remote JS Security Tests
     needs: changes
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: >
       (github.event_name == 'pull_request' && needs.changes.outputs.run_remote_js == 'true') ||
       github.event_name == 'push' ||
