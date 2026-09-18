@@ -1,0 +1,50 @@
+{
+  // Renovate Community Cloud config for Mika3578/Envy
+  // Dependabot retains vcpkg only — do not enable a vcpkg manager here.
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":preserveSemverRanges"
+  ],
+  "labels": ["dependencies", "renovate"],
+  "timezone": "Europe/Paris",
+  "schedule": ["before 8am on Monday"],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "branchConcurrentLimit": 5,
+  "rangeStrategy": "bump",
+  "rebaseWhen": "conflicted",
+  "enabledManagers": ["github-actions", "regex"],
+  "ignorePaths": [
+    "**/Plugins/PluginWizard/**",
+    "**/Services/**"
+  ],
+  "packageRules": [
+    {
+      "description": "Group GitHub Actions minor/patch/digest updates into one PR",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "GitHub Actions (non-major)",
+      "automerge": false
+    },
+    {
+      "description": "Major Actions bumps stay ungrouped and need dashboard approval",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major"],
+      "labels": ["dependencies", "renovate", "major"],
+      "automerge": false,
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Pin third-party Actions to commit digests (supply-chain)",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["dependencies", "security"]
+  }
+}
