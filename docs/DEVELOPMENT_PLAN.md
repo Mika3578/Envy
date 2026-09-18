@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
+- **Changelog Entry:** 2026-09-18 — DevSecOps tooling: `ci-fast`/`ci-verify` scripts, Renovate for Actions (Dependabot vcpkg-only), CodeRabbit + clang-tidy reviewdog advisory; map in `docs/10_dev/devsecops-envy.md`. Merge Queue still pending backlog drain.
 - **Changelog Entry:** 2026-09-17 — #141: listen sockets open before NAT completes (`OnRun` no longer waits on `IsAsyncFindRunning`); `MapPorts` starts after successful bind/listen (D-011).
 - **Changelog Entry:** 2026-09-17 — #78 security: remove weak `rand()` fallbacks for session/CSRF/salt and protocol anti-spoof nonces; single CSPRNG helper (`SecureRandom.h` / `BCryptGenRandom`) with fail-closed contracts. Out of scope: #79 PBKDF2, #77 CSRF policy, #76 XSS.
 - **Changelog Entry:** 2026-09-17 — #140 docs: clarify MiniUPnPc 2.0 SSDP is one discovery receive phase (`searchalltypes=1`), not a strict wall-clock deadline; #142 / P3 covers absolute SSDP and HTTP timeout bounding.
@@ -269,6 +270,7 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-09-18:** DevSecOps stack: Dependabot keeps vcpkg only; Renovate owns GitHub Actions (group non-major, pin digests, Dependency Dashboard). CodeRabbit is the default advisory AI reviewer (free OSS); clang-tidy→reviewdog annotates PR diffs; Cursor Bugbot is optional/paid and not primary. AI reviews stay ADVISORY until measured. Local gates: `scripts/ci-fast.ps1` / `scripts/ci-verify.ps1`. Merge Queue after backlog drain.
 - **2026-09-17:** #140 wording: MiniUPnPc 2.0 targeted discovery is one receive phase for requested ST values, not a strict wall-clock SSDP deadline; absolute SSDP and HTTP timeout bounding → [#142](https://github.com/Mika3578/Envy/issues/142) / P3.
 - **2026-09-17:** #140 P0 runtime PASS (post-squash HEAD): targeted discovery + gateway-only rootdevice fallback; non-IGD devices never receive WAN mapping commands. Remaining MiniUPnPc 2.0 SSDP/HTTP latency → [#142](https://github.com/Mika3578/Envy/issues/142) / P3. Separate backlog: bind/listen must not wait for NAT completion → [#141](https://github.com/Mika3578/Envy/issues/141). Order remains P1 WFAS → P2 ports → P3 MiniUPnPc 2.3.x.
 - **2026-09-17:** SSDP success != usable IGD. #140 uses targeted `upnpDiscoverDevices` with `searchalltypes=1` (one discovery receive phase), filters to explicit IGD/WAN ST, and limits rootdevice fallback to the selected gateway IP with exact LOCATION string dedupe. `UPNP_GetValidIGD` runs once on filtered candidates; results `0`/`3` never issue WAN commands.
