@@ -522,19 +522,26 @@ BOOL CDownloadTransferED2K::OnRankingInfo(CEDPacket* pPacket)
 
 BOOL CDownloadTransferED2K::OnFileComment(CEDPacket* pPacket)
 {
-	BYTE nFileRating;
-	DWORD nLength;
+	if (!Ed2kFileCommentHeaderFits(pPacket->GetRemaining()))
+	{
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
+		Close(TRI_FALSE);
+		return FALSE;
+	}
+
+	const BYTE nFileRating = pPacket->ReadByte();
+	DWORD nLength = pPacket->ReadLongLE();
 	CString strFileComment;
 
-	// Read in the file rating
-	nFileRating = pPacket->ReadByte();
-
-	nLength = pPacket->ReadLongLE();
 	if ( nLength > 0 )
 	{
-		if ( nLength > ED2K_COMMENT_MAX ) nLength = ED2K_COMMENT_MAX;
+		if (!Ed2kFileCommentLengthOk(nLength, pPacket->GetRemaining()))
+		{
+			theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
+			Close(TRI_FALSE);
+			return FALSE;
+		}
 
-		// Read in comment
 		if ( m_pClient && m_pClient->m_bEmUnicode )
 			strFileComment = pPacket->ReadStringUTF8( nLength );
 		else

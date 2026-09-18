@@ -98,6 +98,23 @@ inline BOOL Ed2kTagStringLengthOk(DWORD nLen, ULONGLONG nFileRemaining)
 	return nLen <= nFileRemaining;
 }
 
+// ED2K FileComment: 1-byte rating + DWORD length + comment bytes (#81).
+// Cap matches ED2K_COMMENT_MAX in EDPacket.h.
+constexpr DWORD ED2K_FILE_COMMENT_MAX = 250u;
+
+inline BOOL Ed2kFileCommentHeaderFits(DWORD nRemaining)
+{
+	return nRemaining >= 5u; // rating + length
+}
+
+// After header consumed: claimed length must fit remaining payload (optionally pre-clamped).
+inline BOOL Ed2kFileCommentLengthOk(DWORD nClaimedLen, DWORD nRemainingAfterHeader)
+{
+	if (nClaimedLen > ED2K_FILE_COMMENT_MAX)
+		return FALSE;
+	return nClaimedLen <= nRemainingAfterHeader;
+}
+
 // ED2K hashset answer: after nBlocks, payload must be exactly nBlocks MD4 digests.
 constexpr DWORD ED2K_HASHSET_DIGEST_BYTES = 16u;
 
