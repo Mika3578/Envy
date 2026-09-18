@@ -1,61 +1,36 @@
+# Upgrade / modernization summary (historical archive, November 2024)
+
+> **Historical snapshot (2024-11-05).** Not live architecture or protocol status.
+> Canonical status: [`docs/10_dev/status.md`](../status.md). Canonical sequence: [`docs/DEVELOPMENT_PLAN.md`](../../DEVELOPMENT_PLAN.md).
+> A later corrected summary also exists at [`docs/10_dev/modernization-summary.md`](../modernization-summary.md).
+
 # Envy Project Modernization Summary
-
-**Correction (2026-09-11):** This file is a **historical snapshot** (January 2026). It is not live protocol status. Canonical status: [`docs/10_dev/status.md`](status.md). Canonical sequence: [`docs/DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md).
-
-In particular, **eMule SecureIdent RSA is not implemented**. Claims below that SecureID is “active”, “complete”, or that Envy has an eMule-compatible challenge-response are obsolete (#75: do not advertise; never mark peers verified). BitTorrent v2 below is also overstated: HashLib SHA-256 exists, but `CBTInfo::IsBitTorrentV2()` still returns false.
 
 ## Overview
 
 This document summarizes the comprehensive modernization and upgrade of the Envy P2P client project to meet current development standards and best practices.
 
-**Date**: January 17, 2026 (snapshot); status banner updated 2026-09-11
-**Status**: Historical Phase 2 notes only — see `docs/10_dev/status.md` for current evidence
-**Impact**: CI/docs/tooling modernization landed; protocol claims in this file must be checked against the status matrix
+**Date**: November 5, 2024
+**Branch**: `copilot/upgrade-code-to-latest-standards`
+**Impact**: 27 new files added, 46 files modified
 
 ---
 
 ## 🎯 Objectives Achieved
 
 ### Primary Goals
-🔄 Upgrade codebase to C++20 standard (currently C++17, migration planned)
+✅ Upgrade codebase to latest C++20 standard
 ✅ Integrate AI coding assistant support (GitHub Copilot, Cursor AI)
 ✅ Implement modern CI/CD workflows
 ✅ Establish comprehensive documentation
 ✅ Apply industry best practices
 ✅ Enhance developer experience
-✅ Implement code quality improvements (packet reading, search filtering)
 
 ---
 
 ## 📊 Changes by Category
 
-### 1. BitTorrent Protocol Modernization (Completed January 2026)
-
-#### BitTorrent v2 (BEP-52) Implementation
-- **Files**: `BTInfo.h`, `BTInfo.cpp`, `EnvyFile.h`, `EnvyURL.cpp`
-- **Features**:
-  - SHA-256 info hash support for v2 torrents
-  - Hybrid torrent compatibility (v1+v2)
-  - Magnet link parsing for v2 (`urn:btmh:`)
-  - Metadata version detection
-  - Extended serialization support
-  - Backward compatibility with v1 torrents
-
-#### ED2K SecureIdent (obsolete snapshot)
-
-- **Files**: `EDClient.h`, `EDClient.cpp`, `SecureIdentPolicy.h`
-- **Current (2026-09-11 / #75):** RSA SecureIdent is **not implemented**. Envy does not advertise SecureIdent (`ED2K_VERSION_SECUREID = 0`) and does not mark peers verified. The January 2026 “complete challenge-response” text described a non-eMule MD5/non-zero path that was later disabled.
-- **Follow-up:** real RSA SecureIdent after the ED2K interop baseline (`docs/DEVELOPMENT_PLAN.md`).
-
-#### Kademlia DHT Enhancements
-- **Files**: `Kademlia.cpp`, `Kademlia.h`, `KademliaPlatform.cpp`
-- **Features**:
-  - XOR distance calculation bug fixes
-  - Full indexing implementation
-  - HostCache integration
-  - Node management and routing table operations
-
-### 2. AI Development Tools (5 files)
+### 1. AI Development Tools (5 files)
 
 #### GitHub Copilot Configuration
 - **File**: `.github/copilot-instructions.md`
@@ -69,8 +44,8 @@ This document summarizes the comprehensive modernization and upgrade of the Envy
   - Common pitfalls to avoid
 
 #### Cursor AI Rules
-- **Location**: `.cursor/rules/`
-- **Purpose**: Project-specific guidance for Cursor (naming, MFC patterns, error handling, performance)
+- **File**: `.cursorrules`
+- **Purpose**: Configures Cursor AI with project context
 - **Contents**:
   - Naming conventions
   - Modern C++ features to use
@@ -79,8 +54,15 @@ This document summarizes the comprehensive modernization and upgrade of the Envy
   - Windows-specific considerations
   - Quality standards
 
-#### VS Code Configuration
-- **Status**: Not committed in this repository at the moment (no `.vscode/` folder).
+#### VS Code Configuration (3 files)
+- **Files**: `.vscode/settings.json`, `.vscode/extensions.json`, `.vscode/c_cpp_properties.json`
+- **Purpose**: Optimizes Visual Studio Code for C++ development
+- **Features**:
+  - IntelliSense configuration for C++20
+  - Recommended extensions
+  - Debugging settings
+  - Format on save
+  - Code navigation optimization
 
 ### 2. Build System & CI/CD (6 files)
 
@@ -119,19 +101,27 @@ This document summarizes the comprehensive modernization and upgrade of the Envy
 ### 3. Code Standards (3 files)
 
 #### EditorConfig
-- **Status**: Not committed in this repository at the moment (no `.editorconfig` file).
+- **File**: `.editorconfig`
+- **Purpose**: Consistent formatting across editors
+- **Defines**:
+  - Indentation (tabs, 4 spaces)
+  - Line endings (CRLF for Windows)
+  - Character encoding (UTF-8)
+  - Trim trailing whitespace
+  - File-specific rules
 
 #### Clang-Format
 - **File**: `.clang-format`
 - **Purpose**: C++ code formatting standard
 - **Configuration**:
   - Based on Microsoft style
+  - C++20 standard
   - 120 character line limit
   - Allman brace style
   - Pointer alignment left
 
 #### Modern C++ Guide
-- **File**: `docs/10_dev/modern-cpp-guide.md` (formerly `.github/MODERN_CPP_GUIDE.md`)
+- **File**: `.github/MODERN_CPP_GUIDE.md`
 - **Purpose**: Guide for using modern C++ features
 - **Topics**:
   - Smart pointers
@@ -197,9 +187,8 @@ This document summarizes the comprehensive modernization and upgrade of the Envy
 - Technical discussion standards
 
 #### ROADMAP.md
-- **Canonical**: `docs/10_dev/roadmap.md` / `docs/DEVELOPMENT_PLAN.md`
-- **Pointer**: `.github/ROADMAP.md` → archives under `docs/10_dev/archive/`
-- Current focus areas (see status matrix, not archived checkboxes)
+- **Project future planning**
+- Current focus areas
 - Short/medium/long term goals
 - Technology debt tracking
 - Community priorities
@@ -221,7 +210,7 @@ This document summarizes the comprehensive modernization and upgrade of the Envy
   - Priority indication
 
 #### Pull Request Template
-- **File**: `.github/pull_request_template.md`
+- **File**: `.github/PULL_REQUEST_TEMPLATE.md`
 - **Purpose**: Standardize PR submissions
 - **Sections**:
   - Description and related issues
@@ -244,14 +233,12 @@ This document summarizes the comprehensive modernization and upgrade of the Envy
 - **Purpose**: Support project development
 - **Template**: Ready for sponsor links
 
-### 6. C++ Standard Baseline (C++17) and C++20 Migration Plan
+### 6. C++20 Upgrade (45 files)
 
-#### Current State (Verified)
-Visual Studio project files (`.vcxproj`) are currently configured with:
-- `<LanguageStandard>stdcpp17</LanguageStandard>`
-
-#### Plan
-The project targets C++20 longer-term, but the baseline has not been raised yet. The migration should be incremental and validated in CI.
+#### Project Files Updated
+All Visual Studio project files (`.vcxproj`) updated with:
+- `<LanguageStandard>stdcpp20</LanguageStandard>`
+- Enables modern C++20 features throughout
 
 **Updated Projects**:
 - Main application: Envy
@@ -260,8 +247,8 @@ The project targets C++20 longer-term, but the baseline has not been raised yet.
 - Plugins: All 18 plugin projects
 - Tools: Language tools, repository tools, hash test
 
-**Benefits (once migrated)**:
-- Access to C++20 features (concepts, ranges, etc.)
+**Benefits**:
+- Access to C++20 features (concepts, ranges, coroutines)
 - Better type safety
 - Improved performance
 - Modern standard library features
@@ -311,7 +298,7 @@ The project targets C++20 longer-term, but the baseline has not been raised yet.
 ## 🔧 Technical Details
 
 ### Languages & Technologies
-- **C++17**: Current baseline across projects (C++20 planned)
+- **C++20**: Modern standard across all projects
 - **MFC**: Microsoft Foundation Classes (unchanged)
 - **Win32 API**: Windows platform APIs (unchanged)
 - **GitHub Actions**: CI/CD platform
@@ -320,7 +307,7 @@ The project targets C++20 longer-term, but the baseline has not been raised yet.
 ### Build Configurations
 - **Platforms**: Win32 (x86), x64
 - **Configurations**: Debug, Release
-- **Toolset**: MSVC toolset `v145` (as configured in the `.vcxproj` files)
+- **Toolset**: Visual Studio 2026 (v145)
 
 ### Dependencies
 All bundled, no external setup required:
@@ -331,7 +318,7 @@ All bundled, no external setup required:
 ## 🎓 Best Practices Implemented
 
 ### Code Standards
-✅ Modern C++ (C++17 baseline; adopt newer features as the baseline is raised)
+✅ Modern C++20 features
 ✅ Consistent code formatting
 ✅ Smart pointer usage guidelines
 ✅ RAII patterns
@@ -386,7 +373,7 @@ cd "Visual Studio"
 
 ### With AI Assistants
 - **GitHub Copilot**: Automatically uses `.github/copilot-instructions.md`
-- **Cursor AI**: Uses project rules under `.cursor/rules/`
+- **Cursor AI**: Automatically reads `.cursorrules`
 - **VS Code**: Open folder, extensions will be recommended
 
 ---
@@ -395,7 +382,7 @@ cd "Visual Studio"
 
 ### ✅ Completed
 - [x] All project files compile without errors
-- [x] C++17 baseline confirmed in project files
+- [x] C++20 standard applied to all 45 projects
 - [x] CI/CD workflows configured
 - [x] Documentation is comprehensive
 - [x] AI assistant configurations active
@@ -450,15 +437,15 @@ cd "Visual Studio"
 
 ### Development Resources
 - `.github/copilot-instructions.md` - AI assistant context
-- `docs/10_dev/modern-cpp-guide.md` - Modern C++ patterns
-- `docs/10_dev/roadmap.md` - Future plans (`.github/ROADMAP.md` is a pointer)
+- `.github/MODERN_CPP_GUIDE.md` - Modern C++ patterns
+- `.github/ROADMAP.md` - Future plans
 - `CHANGELOG.md` - Change history
 
 ### Configuration Files
+- `.editorconfig` - Editor settings
 - `.clang-format` - Code formatting
-- `.clang-tidy` - clang-tidy configuration
-- `.cppcheck-suppressions` - cppcheck suppressions
-- `.cursor/rules/*` - Cursor rules and project context
+- `.cursorrules` - Cursor AI config
+- `.vscode/*` - VS Code settings
 
 ---
 
@@ -469,20 +456,13 @@ cd "Visual Studio"
 ✅ Update all documentation
 ✅ Configure CI/CD
 ✅ Setup AI assistants
-- SecureIdent: **not implemented** (safe-disable #75; RSA is a later workstream)
-✅ Kademlia DHT enhancements (code present; live eMule/aMule interop unverified)
-✅ Add BitTorrent v2 **foundation** (HashLib SHA-256; wire/infohash still partial)
-✅ Modernize ED2K search functionality (UDP/TCP GUID tracking)
-✅ Fix vendor cache loading and log spam issues
-✅ Resolve QueryHit duplicate case compilation error
 
 ### Short Term (Next Weeks)
-- [ ] Complete BitTorrent v2 metadata parsing
 - [ ] Monitor CI/CD execution
 - [ ] Address any build issues
 - [ ] Gather developer feedback
-- [ ] Refine protocol documentation
-- [ ] Begin performance baseline establishment
+- [ ] Refine documentation
+- [ ] Begin applying modern C++ patterns
 
 ### Medium Term (Next Months)
 - [ ] Refactor key components with modern C++
@@ -496,7 +476,7 @@ cd "Visual Studio"
 ## 👥 Acknowledgments
 
 This modernization effort represents a significant investment in the project's future:
-- Confirmed C++17 baseline and documented the C++20 migration plan
+- Upgraded to latest C++20 standard
 - Implemented industry best practices
 - Enhanced developer experience with AI tools
 - Established comprehensive documentation
@@ -511,13 +491,13 @@ All changes maintain backward compatibility and respect the project's legacy whi
 For questions about these changes:
 - Read the documentation in this PR
 - Open a [Discussion](https://github.com/Mika3578/Envy/discussions)
-- Review the [Development Guide](guide.md)
-- Check the [Contributing Guide](contributing.md)
+- Review the [DEVELOPMENT.md](../DEVELOPMENT.md) guide
+- Check the [CONTRIBUTING.md](../CONTRIBUTING.md) guide
 
 ---
 
-**Version**: 2.1
-**Last Updated:** 2026-09-11 (historical body January 2026)
-**Status**: Snapshot only — live status is `docs/10_dev/status.md`
+**Version**: 1.0
+**Last Updated**: 2024-11-05
+**Status**: Complete ✅
 
-This document recorded a January 2026 tooling/docs push. Envy remains a multi-network Windows client; do not read the checkboxes above as current protocol completeness.
+This modernization establishes Envy as a well-organized, modern C++ project with excellent developer experience and sustainable development practices.

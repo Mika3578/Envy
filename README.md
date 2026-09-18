@@ -58,7 +58,7 @@ ctest --test-dir build
 - **Session notes (gitignored):** `.local/DEV_TRACKER.md` (`docs/DEV_TRACKER.md` is gitignored and not committed)
 
 ### Contributor and governance docs
-- Contribution guide: `docs/CONTRIBUTING.md`
+- Contribution guide: `.github/CONTRIBUTING.md` (compat pointer: `docs/CONTRIBUTING.md`)
 - PR workflow checklist: `docs/PR_PLAYBOOK.md`
 - Decision log (ADR-lite): `docs/DECISIONS.md`
 - Known limitations: `docs/KNOWN_LIMITATIONS.md`
