@@ -2,7 +2,7 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-18
+- **Last Updated:** 2026-09-19
 - **Changelog Entry:** 2026-09-18 — #82: wire-path ED2K `ED2K_TAG_BLOB` uses `Ed2kTagBlobLengthOk` (4 MiB + remaining), matching `.met` policy.
 - **Changelog Entry:** 2026-09-18 — Format Check: encoding-safe `clang-format-diff-safe` wrapper so ISO-8859 Envy sources do not UnicodeDecodeError under stock clang-format-diff.
 - **Changelog Entry:** 2026-09-18 — #92: remove erroneous `delete pRoot` in BT `OnSourceResponse` (packet-owned `m_pNode`); null-check `GetNode("peers")` and nested peer fields before `IsType`.
@@ -20,6 +20,7 @@
 - **Changelog Entry:** 2026-09-18 — #81: `CEDPacket::Inflate` defaults to 512 KiB (`ED2K_PACKED_INFLATE_MAX` / `Ed2kPackedInflateOk`) for packed C2C/UDP/server paths; 0 no longer means unlimited.
 - **Changelog Entry:** 2026-09-18 — #81/#82: BitTorrent tracker HTTP announce/scrape bodies capped at 32 MiB via `LimitContentLength` + `BtTrackerHttpResponseOk` (closes unused limit API for live tracker downloads).
 - **Changelog Entry:** 2026-09-18 — #81/#82: Discovery GWC/server-list HTTP bodies capped at 32 MiB (`LimitContentLength` + `DiscoveryHttpResponseOk`).
+- **Changelog Entry:** 2026-09-19 — #81/#82: Browse Host HTTP peer `Content-Length` / buffered body capped at 32 MiB (`HostBrowserHttpBodyOk` / `HostBrowserHttpBufferOk`); strict decimal Content-Length; InflateStreamTo output cap on deflate path.
 - **Changelog Entry:** 2026-09-18 — #81/#82: file-backed ED2K tag key / TAG_STRING lengths checked against remaining `.met` bytes (`Ed2kTagStringLengthOk`) before allocate/Read.
 - **Changelog Entry:** 2026-09-18 — #166 / D-009 P1: Windows Firewall exceptions via WFAS `INetFwPolicy2` (all Domain/Private/Public profiles); drop legacy `INetFwMgr`.
 - **Changelog Entry:** 2026-09-18 — #76: Remote UI HTML-escapes `CRemote::Add()` substitutions (`Escape`); `AddRaw` for trusted markup; `RemoteHtmlEscape.h` + EnvyTests smoke coverage.

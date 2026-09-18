@@ -1,7 +1,7 @@
 //
 // Buffer.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -594,7 +594,7 @@ int CBuffer::Deflate(z_streamp pStream, int nFlush)
 //
 // Side Effect: This function allocates a new z_stream structure that gets cleaned up when the stream is finished.
 // Call InflateStreamCleanup() to close the stream and delete the z_stream structure before the stream has finished.
-bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndOfStream)
+bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndOfStream, DWORD nMaxOutput)
 {
 	// Report success if there was nothing to decompress
 	if ( ! m_nLength )
@@ -629,6 +629,24 @@ bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndO
 	{
 		// Limit nLength to the free buffer space or the maximum chunk size
 		UINT nLength = static_cast< UINT >( max( GetBufferFree(), 1024ul ) );	// ZLIB_CHUNK_SIZE Chunk size for ZLib compression/decompression
+
+		// Optional zip-bomb / HTTP body cap: never grow oBuffer past nMaxOutput
+		if ( nMaxOutput != 0 && oBuffer.m_nLength >= nMaxOutput )
+		{
+			// Exact-cap completion is OK when no compressed input remains.
+			if ( pStream->avail_in > 0 )
+			{
+				InflateStreamCleanup( pStream );
+				return false;
+			}
+			break;
+		}
+		if ( nMaxOutput != 0 )
+		{
+			const DWORD nRoom = nMaxOutput - oBuffer.m_nLength;
+			if ( nLength > nRoom )
+				nLength = static_cast< UINT >( nRoom );
+		}
 
 		// Make sure the receiving buffer is large enough to hold at least 1KB
 		if ( ! oBuffer.EnsureBuffer( nLength ) )

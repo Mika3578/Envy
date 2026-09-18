@@ -76,7 +76,7 @@ public:
 #ifdef ZLIB_H
 	BOOL	Deflate(BOOL bIfSmaller = FALSE);						// Compress the data in this buffer
 	BOOL Inflate(DWORD nMaxOutput = 0);                             // Decompress the data in this buffer in place (optional output cap)
-	bool	InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* bEndOfStream = NULL);	// Decompress the data in this buffer into another buffer
+	bool	InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* bEndOfStream = NULL, DWORD nMaxOutput = 0);	// Decompress into oBuffer (optional output cap)
 	static int Inflate(z_streamp pStream, int nFlush);				// Safe version of inflate()
 	static int Deflate(z_streamp pStream, int nFlush);				// Safe version of deflate()
 	static void	InflateStreamCleanup(z_streamp& pStream);			// Stop stream decompression and cleanup
