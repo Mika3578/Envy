@@ -1,13 +1,15 @@
 # Envy Development Agents & Automation
 
-**Last Updated:** 2026-09-10
+**Last Updated:** 2026-09-18
 
 ## What exists today
 
 - **CI/CD:** two-speed GitHub Actions (fast PR gate + full `develop` / scheduled analysis). See [CI architecture](#ci-architecture-two-speed) below.
+- **Local verify:** `scripts/ci-fast.ps1`, `scripts/ci-verify.ps1` (see [devsecops-envy.md](devsecops-envy.md)).
 - **Versioning:** `scripts/auto-version.ps1`, `scripts/bump-version.ps1`, `version.json`
 - **Build:** `build_all.ps1` (local full-matrix build via MSBuild)
-- **AI:** `.github/copilot-instructions.md`, `.cursor/rules/`
+- **AI / review:** CodeRabbit (advisory, `.coderabbit.yaml`), clang-tidy→reviewdog on PRs, `.github/copilot-instructions.md`, `.cursor/rules/`
+- **Dependencies:** Dependabot **vcpkg only**; Renovate for GitHub Actions (`renovate.json`)
 
 ## CI architecture (two-speed)
 
@@ -60,15 +62,19 @@ Workflow/classifier changes conservatively enable the jobs they could affect.
 
 ### Required `develop` contexts (live ruleset)
 
-Do not rename these without a maintainer ruleset update:
+Do not rename these without a maintainer ruleset update. Use the correct
+GitHub App `integration_id` when editing the ruleset (Actions `15368`,
+SonarCloud `12526`, GHAS/gitleaks `57789`).
 
 `Build x64 Release`, `Build Win32 Release`, `Lint build files`,
-`Vcpkg manifest sanity`, `Format Check`, `secret-scan`, `Analyze (c-cpp)`,
-`Analyze (javascript-typescript)`.
+`Vcpkg manifest sanity`, `Format Check`, `Documentation Check`,
+`secret-scan`, `gitleaks`, `PR Gate`, `Analyze (c-cpp)`,
+`SonarCloud Code Analysis`.
 
-`PR Gate` aggregates the jobs that classification said must run. It is **not**
-a live required context yet. After it is stable, a maintainer can require only
-`PR Gate` (plus `secret-scan` if desired) and drop the rest.
+CodeRabbit / reviewdog / Bugbot are **advisory** and must not be the sole
+merge blocker until an explicit measured C5 policy.
+
+See [devsecops-envy.md](devsecops-envy.md) for the full stack map.
 
 ### Caches and CodeQL
 
@@ -90,10 +96,11 @@ a live required context yet. After it is stable, a maintainer can require only
 
 | Area | Tools / config |
 |------|----------------|
-| **Code analysis** | MSVC Code Analysis on `develop`/nightly; CodeQL (`none` on PR C++, manual on `develop`); `.clang-tidy` on `develop`/nightly |
+| **Code analysis** | MSVC Code Analysis on `develop`/nightly; CodeQL (`none` on PR C++, manual on `develop`); `.clang-tidy` + reviewdog on PRs (advisory) |
 | **Format / docs** | Differential `Format Check` on changed C/C++; markdown link check when docs change |
-| **Dependencies** | Dependabot, GitHub dependency review, vcpkg manifest sanity |
-| **Testing** | `EnvyTests.exe` after PR and `develop` MSBuild; Remote JS tests when `Remote/` changes |
+| **Dependencies** | Dependabot (vcpkg), Renovate (GitHub Actions), dependency review, vcpkg manifest sanity |
+| **AI review** | CodeRabbit (advisory); Qodo/Bugbot optional/manual |
+| **Testing** | `EnvyTests.exe` after PR and `develop` MSBuild; Remote JS tests when `Remote/` changes; local `.\scripts\ci-verify.ps1` |
 | **Security** | Gitleaks on every PR, CodeQL, dependency review |
 
 ## Related
