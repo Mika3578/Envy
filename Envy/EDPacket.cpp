@@ -1412,9 +1412,9 @@ BOOL CEDTag::Read(CEDPacket* pPacket, BOOL bUnicode)
 		{
 			DWORD nLenBlob = pPacket->ReadLongLE();
 			// Absolute 4 MiB cap + remaining check (same policy as .met TAG_BLOB / #82).
-			if ( ! Ed2kTagBlobLengthOk( nLenBlob, pPacket->GetRemaining() ) )
+			if (!Ed2kTagBlobLengthOk(nLenBlob, pPacket->GetRemaining()))
 				return FALSE;
-			if ( nLenBlob == 0 )
+			if (nLenBlob == 0)
 				break;
 			m_sValue = pPacket->ReadStringASCII( nLenBlob );
 		}
