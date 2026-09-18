@@ -142,6 +142,14 @@ static bool test_bt_extension_length_with_bencode()
 	return BtExtensionPayloadLengthOk( 2 + 5 ) == TRUE;	// e.g. "d1:ae"
 }
 
+static bool test_bt_packet_length_ok()
+{
+	return BtPacketLengthOk( 1 ) == TRUE
+		&& BtPacketLengthOk( BT_PACKET_LENGTH_MAX ) == TRUE
+		&& BtPacketLengthOk( 0 ) == FALSE
+		&& BtPacketLengthOk( BT_PACKET_LENGTH_MAX + 1 ) == FALSE;
+}
+
 static bool test_g1_deflate_truncated_marker_only()
 {
 	return G1QueryHitDeflateXmlLengthOk( 9 ) == FALSE;
@@ -335,6 +343,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_extension_length_one_not_keepalive", test_bt_extension_length_one_not_keepalive );
 	suite.add_test( "bt_extension_length_min_valid", test_bt_extension_length_min_valid );
 	suite.add_test( "bt_extension_length_bencode", test_bt_extension_length_with_bencode );
+	suite.add_test( "bt_packet_length_ok", test_bt_packet_length_ok );
 
 	suite.add_test( "g1_deflate_truncated_marker", test_g1_deflate_truncated_marker_only );
 	suite.add_test( "g1_deflate_marker_no_payload", test_g1_deflate_marker_no_payload );

@@ -43,6 +43,16 @@ inline BOOL BtIsKeepAliveLength(DWORD nLength)
 	return nLength == 0;
 }
 
+// Absolute cap for a single BitTorrent TCP message length-prefix (#81).
+// Allows large bitfields on huge torrents; rejects multi-GB DoS stalls where
+// ReadBuffer would otherwise wait forever for an unreachable payload.
+constexpr DWORD BT_PACKET_LENGTH_MAX = 16u * 1024u * 1024u;
+
+inline BOOL BtPacketLengthOk(DWORD nLength)
+{
+	return nLength >= 1 && nLength <= BT_PACKET_LENGTH_MAX;
+}
+
 // QueryHit XML "{deflate}" path uses "nSize - 10" (9-byte marker + trailing NUL
 // included in fixed nXMLSize). Require nSize > 10 so subtraction cannot underflow.
 // CG1Packet::ReadXML uses "len - 9" because it measures length until HIT_SEP/NUL
