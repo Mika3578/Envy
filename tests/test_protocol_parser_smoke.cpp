@@ -11,6 +11,7 @@
 #include "../Envy/EDSourcePacketValidate.h"
 #include "../Envy/PacketLengthValidate.h"
 
+#include <cstdio>
 #include <fstream>
 #include <iterator>
 #include <string>
@@ -327,36 +328,44 @@ static bool test_bt_ut_metadata_size_over_max()
 
 static bool test_bt_source_response_no_delete_packet_owned_root()
 {
-	// Regression: OnSourceResponse must not delete pPacket->m_pNode (double-free).
+	// Regression: OnSourceResponse must not delete pPacket->m_pNode (double-free),
+	// and must null-check GetNode("peers") before IsType.
 	const char* candidates[] = {
 		"../Envy/DownloadTransferBT.cpp",
 		"../../Envy/DownloadTransferBT.cpp",
-		"Envy/DownloadTransferBT.cpp"
+		"Envy/DownloadTransferBT.cpp",
+		"../../../Envy/DownloadTransferBT.cpp"
 	};
 
 	std::ifstream in;
-	for ( const char* path : candidates )
+	for (const char* path : candidates)
 	{
-		in.open( path, std::ios::in | std::ios::binary );
-		if ( in )
+		in.open(path, std::ios::in | std::ios::binary);
+		if (in)
 			break;
 	}
-	if ( ! in )
+	if (!in)
+	{
+		// Distinguish missing source from regression failure.
+		std::fprintf(stderr, "bt_source_response_no_delete: DownloadTransferBT.cpp not found from CWD\n");
+		return false;
+	}
+
+	std::string content((std::istreambuf_iterator<char>(in)),
+		std::istreambuf_iterator<char>());
+
+	const size_t nFn = content.find("OnSourceResponse");
+	if (nFn == std::string::npos)
 		return false;
 
-	std::string content( ( std::istreambuf_iterator< char >( in ) ),
-		std::istreambuf_iterator< char >() );
+	const size_t nNext = content.find("\nBOOL ", nFn + 1);
+	const std::string body = content.substr(nFn,
+		(nNext == std::string::npos ? content.size() : nNext) - nFn);
 
-	const size_t nFn = content.find( "OnSourceResponse" );
-	if ( nFn == std::string::npos )
-		return false;
-
-	// Bound search to this function body (next top-level BOOL after the match).
-	const size_t nNext = content.find( "\nBOOL ", nFn + 1 );
-	const std::string body = content.substr( nFn,
-		( nNext == std::string::npos ? content.size() : nNext ) - nFn );
-
-	return body.find( "delete pRoot" ) == std::string::npos;
+	const bool bNoDelete = body.find("delete pRoot") == std::string::npos;
+	const bool bNullPeers = body.find("pPeers == NULL") != std::string::npos
+		|| body.find("!pPeers") != std::string::npos;
+	return bNoDelete && bNullPeers;
 }
 
 void register_protocol_parser_smoke_tests(TestSuite& suite)
