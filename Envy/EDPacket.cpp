@@ -1534,6 +1534,9 @@ BOOL CEDTag::Read(CFile* pFile)
 	}
 	else if ( nLen > 1 )
 	{
+		const ULONGLONG nRemaining = pFile->GetLength() - pFile->GetPosition();
+		if ( ! Ed2kTagStringLengthOk( nLen, nRemaining ) )
+			return FALSE;
 		auto_array< CHAR > psz( new CHAR[ nLen + 1 ] );
 		if ( ! psz.get() )
 			return FALSE;
@@ -1555,6 +1558,11 @@ BOOL CEDTag::Read(CFile* pFile)
 		if ( pFile->Read( &nLen, sizeof( nLen ) ) != sizeof( nLen ) )
 			return FALSE;
 		{
+			const ULONGLONG nRemaining = pFile->GetLength() - pFile->GetPosition();
+			if ( ! Ed2kTagStringLengthOk( nLen, nRemaining ) )
+				return FALSE;
+			if ( nLen == 0 )
+				break;
 			auto_array< CHAR > psz( new CHAR[ nLen ] );
 			if ( ! psz.get() )
 				return FALSE;
