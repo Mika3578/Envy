@@ -1304,6 +1304,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="RemoteBase64.h" />
     <ClInclude Include="SecureRandom.h" />
     <ClInclude Include="Ed2kLockOrder.h" />
+    <ClInclude Include="EnvyThreadPolicy.h" />
     <ClInclude Include="Ed2kHelloCapabilities.h" />
     <ClInclude Include="Ed2kKadSettingsPolicy.h" />
     <ClInclude Include="SkinEngineP0.h" />
