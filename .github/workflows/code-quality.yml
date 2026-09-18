@@ -66,7 +66,9 @@ jobs:
     name: Format Check
     needs: changes
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && needs.changes.outputs.run_format == 'true'
+    # Always emit on PRs (required ruleset context). No-op success when the
+    # PR has no first-party C/C++ files to check.
+    if: github.event_name == 'pull_request'
 
     steps:
       - name: Checkout code
@@ -82,6 +84,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           files=$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[].filename' \
             | grep -E '\.(cpp|h|cxx|hpp)$' \
             | grep -E '^(Envy|TorrentEnvy|HashLib)/' \
@@ -99,9 +102,10 @@ jobs:
             fi
           done <<< "$files"
           if [ "$fail" -ne 0 ]; then
-            echo "::warning::Formatting differences detected. Run clang-format locally."
+            echo "::error::Formatting differences detected. Run clang-format locally on the changed first-party C/C++ files."
+            exit 1
           fi
-        continue-on-error: true
+          echo "clang-format dry-run clean."
 
   documentation-check:
     name: Documentation Check

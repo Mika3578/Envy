@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
+- **Changelog Entry:** 2026-09-18 — CI: CodeQL always emits c-cpp + javascript-typescript + csharp on every PR to `develop` (fixes Code Scanning "configuration not found"); Format Check is blocking (`--Werror`, no `continue-on-error`).
 - **Changelog Entry:** 2026-09-18 — Protect develop docs aligned to live ruleset: ≥1 APPROVED review, dismiss-stale on push, `require_last_push_approval` off, signed commits + force-push block, CodeQL/Gitleaks code scanning, no GitHub Code Quality rule; Dependabot auto-approve removed.
 - **Changelog Entry:** 2026-09-18 — #81/#82: file-backed ED2K tag key / TAG_STRING lengths checked against remaining `.met` bytes (`Ed2kTagStringLengthOk`) before allocate/Read.
 - **Changelog Entry:** 2026-09-18 — #166 / D-009 P1: Windows Firewall exceptions via WFAS `INetFwPolicy2` (all Domain/Private/Public profiles); drop legacy `INetFwMgr`.
@@ -79,12 +80,13 @@
   approvals, conversation resolution, code scanning (CodeQL+Gitleaks), passing
   required checks, and blocks force-pushes/deletions. `.github/settings.yml`
   mirrors the Probot-capable subset; the ruleset is the source of truth.
-- CI uses a two-speed model: change-aware PR jobs plus full integration on
-  `develop` / scheduled analysis. The live `Protect develop` ruleset requires
-  the eleven named contexts listed in `.github/settings.yml` (including
-  Documentation Check, gitleaks, PR Gate, and SonarCloud). `PR Gate` waits for
-  classified CI only — it is not a review substitute. See
-  `docs/10_dev/agents-and-automation.md`.
+- CI uses a two-speed model: change-aware PR jobs for Windows/Remote/deps plus
+  full integration on `develop` / scheduled analysis. Every PR always runs
+  CodeQL Analyze (c-cpp), (javascript-typescript), and (csharp), plus blocking
+  Format Check. The live `Protect develop` ruleset requires the eleven named
+  contexts listed in `.github/settings.yml`. `PR Gate` waits for classified CI
+  (and always for the three CodeQL jobs + Format Check) — it is not a review
+  substitute. See `docs/10_dev/agents-and-automation.md`.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
 ## Canonical Documentation Split

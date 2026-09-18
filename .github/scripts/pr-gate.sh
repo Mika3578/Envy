@@ -27,6 +27,12 @@ add_skip() { may_skip+=("$1"); }
 add_must "Lint build files"
 add_must "secret-scan"
 add_must "Vcpkg manifest sanity"
+# Code Scanning expects all three develop CodeQL configurations on every PR.
+add_must "Analyze (c-cpp)"
+add_must "Analyze (javascript-typescript)"
+add_must "Analyze (csharp)"
+# Required Format Check context — job no-ops to success when no C/C++ files.
+add_must "Format Check"
 
 if [[ "$RUN_WINDOWS_BUILD" == "true" ]]; then
 	add_must "Build x64 Release"
@@ -34,28 +40,6 @@ if [[ "$RUN_WINDOWS_BUILD" == "true" ]]; then
 else
 	add_skip "Build x64 Release"
 	add_skip "Build Win32 Release"
-fi
-
-if [[ "$RUN_CODEQL_CPP" == "true" ]]; then
-	add_must "Analyze (c-cpp)"
-else
-	add_skip "Analyze (c-cpp)"
-fi
-
-if [[ "$RUN_CODEQL_JS" == "true" ]]; then
-	add_must "Analyze (javascript-typescript)"
-else
-	add_skip "Analyze (javascript-typescript)"
-fi
-
-if [[ "$RUN_FORMAT" == "true" ]]; then
-	add_must "Format Check"
-else
-	add_skip "Format Check"
-fi
-
-if [[ "$RUN_CODEQL_CSHARP" == "true" ]]; then
-	add_must "Analyze (csharp)"
 fi
 
 if [[ "$RUN_REMOTE_JS" == "true" ]]; then

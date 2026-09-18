@@ -76,11 +76,14 @@ if [[ -z "${files//[$'\t\r\n ']/}" ]]; then
 	write_out workflow false
 	write_out docs_only true
 	write_out run_windows_build false
-	write_out run_codeql_cpp false
-	write_out run_codeql_js false
-	write_out run_codeql_csharp false
+	# Code Scanning on develop expects c-cpp + javascript-typescript + csharp
+	# configurations on every PR. Always emit all three analyses.
+	write_out run_codeql_cpp true
+	write_out run_codeql_js true
+	write_out run_codeql_csharp true
 	write_out run_remote_js false
-	write_out run_format false
+	# Format Check is a required status context; always emit a stable result.
+	write_out run_format true
 	write_out run_dep_review false
 	write_out run_docs_check true
 	exit 0
@@ -290,21 +293,12 @@ run_docs_check=false
 if [[ "$cpp" == true || "$build" == true || "$force_windows" == true || "$other" == true ]]; then
 	run_windows_build=true
 fi
-if [[ "$cpp" == true || "$build" == true || "$force_codeql_cpp" == true ]]; then
-	run_codeql_cpp=true
-fi
+# Path-aware Remote JS still follows Remote/ changes (or force flags).
 if [[ "$remote" == true || "$force_codeql_js" == true ]]; then
-	run_codeql_js=true
 	run_remote_js=true
 fi
 if [[ "$force_remote" == true ]]; then
 	run_remote_js=true
-fi
-if [[ "$csharp" == true || "$force_codeql_csharp" == true ]]; then
-	run_codeql_csharp=true
-fi
-if [[ "$cpp" == true || "$force_format" == true ]]; then
-	run_format=true
 fi
 if [[ "$dependencies" == true || "$force_dep_review" == true ]]; then
 	run_dep_review=true
@@ -319,13 +313,19 @@ if [[ "$cpp" == false && "$build" == false && "$remote" == false && \
       "$other" == false && "$docs" == true ]]; then
 	docs_only=true
 	run_windows_build=false
-	run_codeql_cpp=false
-	run_codeql_js=false
-	run_codeql_csharp=false
 	run_remote_js=false
-	run_format=false
 	run_dep_review=false
 fi
+
+# Always produce CodeQL results for every PR language configuration present on
+# develop (c-cpp, javascript-typescript, csharp). Path filters must not skip
+# these or Code Scanning reports "configuration not found" / NEUTRAL.
+run_codeql_cpp=true
+run_codeql_js=true
+run_codeql_csharp=true
+# Format Check is a required context — always schedule (no-op success when
+# no first-party C/C++ files changed).
+run_format=true
 
 echo "Changed files:"
 echo "$files"

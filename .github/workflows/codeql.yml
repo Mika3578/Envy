@@ -33,7 +33,9 @@ jobs:
   analyze-cpp:
     name: Analyze (c-cpp)
     needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.run_codeql_cpp == 'true'
+    # Always run on PRs so Code Scanning finds the c-cpp configuration that
+    # exists on develop (path filters must not skip this language).
+    if: always() && needs.changes.result == 'success'
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'windows-2025-vs2026' }}
     timeout-minutes: 180
     env:
@@ -124,7 +126,8 @@ jobs:
   analyze-js:
     name: Analyze (javascript-typescript)
     needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.run_codeql_js == 'true'
+    # Always run on PRs so Code Scanning finds the JS/TS configuration.
+    if: always() && needs.changes.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

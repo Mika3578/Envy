@@ -28,7 +28,9 @@ jobs:
   analyze-csharp:
     name: Analyze (csharp)
     needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.run_codeql_csharp == 'true'
+    # Always run on PRs so Code Scanning finds the csharp configuration that
+    # exists on develop (avoids NEUTRAL "configuration not found").
+    if: always() && needs.changes.result == 'success'
     runs-on: windows-2025-vs2026
     timeout-minutes: 60
 

@@ -3,6 +3,8 @@ name: PR Gate
 # Waits for classified CI checks for this PR. Does NOT approve, does NOT merge,
 # and does NOT replace Protect develop review requirements (≥1 APPROVED,
 # dismiss-stale on push, thread resolution; last-push approval is off).
+# Always requires Analyze (c-cpp|javascript-typescript|csharp) and Format Check
+# so Code Scanning / required contexts stay deterministic.
 
 on:
   pull_request:

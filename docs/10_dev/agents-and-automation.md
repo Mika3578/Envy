@@ -51,14 +51,16 @@ After merge to `develop` (and weekly/nightly schedules):
 so required workflows always **start**. A skipped job is a successful required
 check; a workflow skipped with `paths-ignore` can stay **Pending**.
 
-| PR kind | Windows runners | CodeQL C++ | CodeQL JS | CodeQL C# | Remote JS |
-| --- | --- | --- | --- | --- | --- |
-| Docs-only | no | skip | skip | skip | skip |
-| C++ / build | x64 + Win32 Release | `none` on ubuntu | skip | skip | skip |
-| Remote only | no | skip | yes | skip | yes |
-| SkinUpdater C# | no | skip | skip | yes | skip |
+| PR kind | Windows runners | CodeQL C++ | CodeQL JS | CodeQL C# | Remote JS | Format Check |
+| --- | --- | --- | --- | --- | --- | --- |
+| Docs-only | no | always (`none`) | always | always (SkinUpdater) | skip | always (no-op OK) |
+| C++ / build | x64 + Win32 Release | always (`none`) | always | always | skip | always (blocking) |
+| Remote only | no | always | always | always | yes | always (no-op OK) |
+| SkinUpdater C# | no | always | always | always | skip | always (no-op OK) |
 
-Workflow/classifier changes conservatively enable the jobs they could affect.
+CodeQL languages are **always produced** on every PR to `develop` so Code
+Scanning never reports missing configurations / NEUTRAL. Windows builds,
+Remote JS tests, and Dependency Review stay path-aware.
 
 ### Required `develop` contexts (live ruleset)
 
@@ -86,6 +88,11 @@ See [devsecops-envy.md](devsecops-envy.md) for the full stack map.
   a follow-up if that cache starts evicting again.
 - PR CodeQL C/C++ uses `build-mode: none` (no second MSBuild). `develop` /
   weekly / manual keep `build-mode: manual` after vcpkg restore.
+- PR CodeQL JavaScript/TypeScript and C# always run on every PR (JS:
+  `build-mode: none`; C#: manual SkinUpdater build) so Code Scanning finds
+  all three develop configurations.
+- Format Check is required and **blocking** (`clang-format --dry-run --Werror`
+  without `continue-on-error`); no first-party C/C++ changes → success no-op.
 - Gitleaks and Dependency Review stay. Dependency Review runs when manifests
   change; vcpkg sanity always runs (required name).
 
@@ -110,14 +117,16 @@ Do not reintroduce mutable `@vN` tags for external actions.
 
 - Parser fuzzers / sanitizers on nightly (out of the PR gate).
 - clang-tidy with a real Windows `compile_commands.json`.
-- Make Format Check and CodeQL JS/C# deterministic blocking gates (planned CI hardening; not yet done).
+- After CodeQL is complete on every PR for several merges: tighten Protect
+  develop Code Scanning thresholds for CodeQL/Gitleaks to the strictest
+  supported values (do not change thresholds before that evidence).
 
 ## Automation reference
 
 | Area | Tools / config |
 |------|----------------|
 | **Code analysis** | MSVC Code Analysis on `develop`/nightly; CodeQL (`none` on PR C++, manual on `develop`); `.clang-tidy` + reviewdog on PRs (advisory) |
-| **Format / docs** | Differential `Format Check` on changed C/C++; markdown link check when docs change |
+| **Format / docs** | Differential `Format Check` on changed first-party C/C++ (blocking); markdown link check when docs change |
 | **Dependencies** | Dependabot (vcpkg), Renovate (GitHub Actions), dependency review, vcpkg manifest sanity |
 | **AI review** | CodeRabbit (advisory); Qodo/Bugbot optional/manual |
 | **Testing** | `EnvyTests.exe` after PR and `develop` MSBuild; Remote JS tests when `Remote/` changes; local `.\scripts\ci-verify.ps1` |
