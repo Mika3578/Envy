@@ -70,8 +70,8 @@ SonarCloud `12526`, GHAS/gitleaks `57789`).
 
 `Build x64 Release`, `Build Win32 Release`, `Lint build files`,
 `Vcpkg manifest sanity`, `Format Check`, `Documentation Check`,
-`secret-scan`, `gitleaks`, `PR Gate`, `Analyze (c-cpp)`,
-`SonarCloud Code Analysis`.
+`secret-scan`, `gitleaks` (GHAS check from SARIF upload), `PR Gate`,
+`Analyze (c-cpp)`, `SonarCloud Code Analysis`.
 
 CodeRabbit / reviewdog / Bugbot are **advisory** and must not be the sole
 merge blocker. Native GitHub review policy on Protect develop (≥1 APPROVED,
@@ -126,7 +126,7 @@ Do not reintroduce mutable `@vN` tags for external actions.
 | Area | Tools / config |
 |------|----------------|
 | **Code analysis** | MSVC Code Analysis on `develop`/nightly; CodeQL (`none` on PR C++, manual on `develop`); `.clang-tidy` + reviewdog on PRs (advisory) |
-| **Format / docs** | Differential `Format Check` on changed first-party C/C++ (blocking); markdown link check when docs change |
+| **Format / docs** | Differential `Format Check` on changed C/C++ under `Envy/`, `TorrentEnvy/`, or `HashLib/` (blocking); markdown link check when docs change |
 | **Dependencies** | Dependabot (vcpkg), Renovate (GitHub Actions), dependency review, vcpkg manifest sanity |
 | **AI review** | CodeRabbit (advisory); Qodo/Bugbot optional/manual |
 | **Testing** | `EnvyTests.exe` after PR and `develop` MSBuild; Remote JS tests when `Remote/` changes; local `.\scripts\ci-verify.ps1` |

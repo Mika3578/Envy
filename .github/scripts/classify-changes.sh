@@ -293,11 +293,8 @@ run_docs_check=false
 if [[ "$cpp" == true || "$build" == true || "$force_windows" == true || "$other" == true ]]; then
 	run_windows_build=true
 fi
-# Path-aware Remote JS still follows Remote/ changes (or force flags).
-if [[ "$remote" == true || "$force_codeql_js" == true ]]; then
-	run_remote_js=true
-fi
-if [[ "$force_remote" == true ]]; then
+# Path-aware Remote JS follows Remote/ changes (or explicit force_remote).
+if [[ "$remote" == true || "$force_remote" == true ]]; then
 	run_remote_js=true
 fi
 if [[ "$dependencies" == true || "$force_dep_review" == true ]]; then

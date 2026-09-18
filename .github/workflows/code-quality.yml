@@ -85,7 +85,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          files=$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[].filename' \
+          mapfile -t all_files < <(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[].filename')
+          files=$(printf '%s\n' "${all_files[@]}" \
             | grep -E '\.(cpp|h|cxx|hpp)$' \
             | grep -E '^(Envy|TorrentEnvy|HashLib)/' \
             | grep -vE '^(Services|Plugins/PluginWizard|Plugins/RatDVDPlugin|Plugins/SWFPlugin)/' \
