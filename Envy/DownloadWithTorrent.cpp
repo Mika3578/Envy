@@ -19,6 +19,7 @@
 #include "StdAfx.h"
 #include "Settings.h"
 #include "Envy.h"
+#include "SecureRandom.h"
 #include "DownloadWithTorrent.h"
 #include "Download.h"
 #include "Downloads.h"
@@ -564,10 +565,11 @@ BOOL CDownloadWithTorrent::GenerateTorrentDownloadID()
 	m_pPeerID[ 6 ] = theApp.m_szVersion[3];		// 0
 	m_pPeerID[ 7 ] = '-';
 
-	// Random characters for the rest of the Client ID
-	for ( int nByte = 8; nByte < 20; nByte++ )
+	// Random characters for the rest of the Client ID (CSPRNG — anti-spoof padding)
+	if ( ! GenerateCryptographicBytes( &m_pPeerID[ 8 ], 12 ) )
 	{
-		m_pPeerID[ nByte ] = GetRandomNum( 0ui8, _UI8_MAX );
+		theApp.Message( MSG_ERROR, L"BitTorrent Peer ID: secure RNG unavailable" );
+		return FALSE;
 	}
 	m_pPeerID.validate();
 	return TRUE;

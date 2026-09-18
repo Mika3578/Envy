@@ -358,11 +358,13 @@ struct CompareNums
 	}
 };
 
-// Generate cryptographically secure random bytes
-// Returns TRUE if successful, FALSE if no secure random source available
+// Generate cryptographically secure random bytes (fail closed — never rand()).
+// Implementation: SecureRandomFill via BCryptGenRandom, optional CryptGenRandom.
 BOOL GenerateCryptographicBytes(BYTE* pBuffer, size_t nLength);
 
-// Use with whole numbers only
+// Non-security / cosmetic randomness only. Prefer TryGetSecureRandomNum /
+// GenerateCryptographicBytes for session IDs, CSRF, salts, and anti-spoof nonces.
+// Use with whole numbers only.
 template <typename T>
 inline T GetRandomNum(const T& min, const T& max)
 {
@@ -373,7 +375,7 @@ inline T GetRandomNum(const T& min, const T& max)
 			return static_cast< T >( (double)nRandom  * ( (double)max - (double)min + 1 ) / ( (double)static_cast< T >( -1 ) + 1 ) + min );
 	}
 
-	// Fallback to non-secure method
+	// Cosmetic fallback only — not for security-sensitive values (#78).
 	return static_cast< T >( (double)rand() * ( max - min + 1 ) / ( (double)RAND_MAX + 1 ) + min );
 }
 

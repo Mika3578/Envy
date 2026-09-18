@@ -1,7 +1,7 @@
 //
 // QueryKeys.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2010
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -19,6 +19,7 @@
 #include "StdAfx.h"
 #include "Envy.h"
 #include "QueryKeys.h"
+#include "SecureRandom.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -49,18 +50,35 @@ void CQueryKeys::Alloc()
 
 	for ( DWORD nCount = m_nBits; nCount; nCount-- )
 	{
-		*pMap++ = 1 << GetRandomNum( 0, 31 );
-		*pMap++ = 1 << GetRandomNum( 0, 31 );
+		BYTE nShiftA = 0;
+		BYTE nShiftB = 0;
+		if ( ! TryGetSecureRandomNum( nShiftA, (BYTE)0, (BYTE)31 ) ||
+			 ! TryGetSecureRandomNum( nShiftB, (BYTE)0, (BYTE)31 ) )
+		{
+			delete [] m_pMap;
+			delete [] m_pTable;
+			m_pMap = NULL;
+			m_pTable = NULL;
+			m_nTable = 0;
+			m_nBits = 0;
+			theApp.Message( MSG_ERROR, L"G2 QueryKeys: secure RNG failed during table init" );
+			return;
+		}
+		*pMap++ = 1u << nShiftA;
+		*pMap++ = 1u << nShiftB;
 	}
 
-	BYTE* pFill = (BYTE*)m_pTable;
-
-	for ( DWORD nCount = m_nTable; nCount; nCount-- )
+	// Fill the key table in one CSPRNG call (DWORD[] as bytes ù same wire key width)
+	if ( ! GenerateCryptographicBytes( (BYTE*)m_pTable, m_nTable * sizeof( DWORD ) ) )
 	{
-		*pFill++ = GetRandomNum( 0ui8, _UI8_MAX );
-		*pFill++ = GetRandomNum( 0ui8, _UI8_MAX );
-		*pFill++ = GetRandomNum( 0ui8, _UI8_MAX );
-		*pFill++ = GetRandomNum( 0ui8, _UI8_MAX );
+		delete [] m_pMap;
+		delete [] m_pTable;
+		m_pMap = NULL;
+		m_pTable = NULL;
+		m_nTable = 0;
+		m_nBits = 0;
+		theApp.Message( MSG_ERROR, L"G2 QueryKeys: secure RNG failed during table fill" );
+		return;
 	}
 
 	// ToDo: Add check for invalid (for Shareaza/Envy) zero keys
@@ -79,6 +97,9 @@ DWORD CQueryKeys::Create(DWORD nAddress)
 {
 	if ( ! m_pTable )
 		Alloc();
+
+	if ( ! m_pTable || ! m_pMap )
+		return 0;
 
 	const DWORD* pMap = m_pMap;
 	DWORD nHash = 0;
