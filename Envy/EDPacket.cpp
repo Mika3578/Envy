@@ -1443,7 +1443,7 @@ BOOL CEDTag::Read(CEDPacket* pPacket, BOOL bUnicode)
 		break;
 
 	case ED2K_TAG_UINT64:
-		if ( pPacket->GetRemaining() < 1 ) return FALSE;
+		if ( ! Ed2kTagUint64RemainingOk( pPacket->GetRemaining() ) ) return FALSE;
 		m_nValue = pPacket->ReadInt64();
 		m_nType = ED2K_TAG_INT;
 		break;
