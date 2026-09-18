@@ -16,7 +16,14 @@ set -euo pipefail
 BASE_SHA="${BASE_SHA:?BASE_SHA is required}"
 HEAD_SHA="${HEAD_SHA:?HEAD_SHA is required}"
 CLANG_FORMAT_MAJOR="${CLANG_FORMAT_MAJOR:-18}"
-CLANG_FORMAT_DIFF="${CLANG_FORMAT_DIFF:-clang-format-diff-${CLANG_FORMAT_MAJOR}}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -z "${CLANG_FORMAT_DIFF:-}" ]]; then
+	if [[ -x "${SCRIPT_DIR}/clang-format-diff-safe" ]]; then
+		CLANG_FORMAT_DIFF="${SCRIPT_DIR}/clang-format-diff-safe"
+	else
+		CLANG_FORMAT_DIFF="clang-format-diff-${CLANG_FORMAT_MAJOR}"
+	fi
+fi
 CLANG_FORMAT_BIN="${CLANG_FORMAT_BIN:-clang-format-${CLANG_FORMAT_MAJOR}}"
 
 if ! git rev-parse --verify "${BASE_SHA}^{commit}" >/dev/null 2>&1; then

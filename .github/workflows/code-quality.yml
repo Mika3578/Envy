@@ -98,7 +98,10 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           CLANG_FORMAT_MAJOR: ${{ env.CLANG_FORMAT_MAJOR }}
           CLANG_FORMAT_BIN: clang-format-${{ env.CLANG_FORMAT_MAJOR }}
-          CLANG_FORMAT_DIFF: clang-format-diff-${{ env.CLANG_FORMAT_MAJOR }}
+          # Encoding-safe wrapper: stock clang-format-diff crashes on ISO-8859
+          # Envy sources (copyright 0xA9). Absolute path so format-check.sh
+          # `command -v` accepts it.
+          CLANG_FORMAT_DIFF: ${{ github.workspace }}/.github/scripts/clang-format-diff-safe
         run: |
           set -euo pipefail
           # Prefer Format Check inputs from the PR base so a PR cannot bypass
