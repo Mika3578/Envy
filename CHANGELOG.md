@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Gnutella `{deflate}` QueryHit vs G1Packet sizing (#119)** — Documented as intentional Shareaza heritage, not a bug: `CQueryHit::ReadXML` uses `nSize - 10` because fixed `nXMLSize` includes a trailing NUL; `CG1Packet::ReadXML` uses `len - 9` because length stops before HIT_SEP/NUL. No wire-behavior change. Deduped `KNOWN_INCONSISTENCIES.md` entry.
 
 ### Security
+- **Remote Stored XSS HTML escape (#76)** — `CRemote::Add()` HTML-entity-encodes substitution values via `Escape()` before `<% =key %>` output; peer-controlled filenames/nicks/agents/addresses are no longer injected raw. `AddRaw` reserved for trusted markup (filter `checked` attrs, pre-escaped schema `<option>` lists); `AddText` skin strings unchanged. `RemoteHtmlEscape.h` + EnvyTests smoke coverage.
 - **Remote password PBKDF2-SHA256 (#79)** — New Remote passwords use `BCryptDeriveKeyPBKDF2` (HMAC-SHA256, 100k iterations, 16-byte salt, 32-byte DK) stored as `pbkdf2-sha256:<iters>:<saltB64>:<dkB64>`. Successful login migrates legacy 40-hex SHA1 (UTF-16LE heritage) and intermediate `sha256-salted:` hashes; Settings UI hashes on Apply/OK. Policy helpers in `RemotePasswordPolicy.h` with EnvyTests smoke coverage.
 - **GitHub Actions SHA pinning (#96)** — External actions in `.github/workflows/` and `.github/actions/` are pinned to full commit SHAs (with `# vN` comments). Upgrade process documented in `docs/10_dev/agents-and-automation.md`.
 
