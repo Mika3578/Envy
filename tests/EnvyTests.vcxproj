@@ -192,6 +192,7 @@
     <ClCompile Include="test_envy_thread_policy_smoke.cpp" />
     <ClCompile Include="test_remote_password_policy_smoke.cpp" />
     <ClCompile Include="test_remote_html_escape_smoke.cpp" />
+    <ClCompile Include="test_firewall_wfas_policy_smoke.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />

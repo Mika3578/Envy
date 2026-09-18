@@ -16,12 +16,11 @@
 // (http://www.gnu.org/licenses/agpl.html)
 //
 
-// CFirewall wraps Windows COM components to change Windows Firewall settings, and talk UPnP to a NAT router
-// http://shareaza.sourceforge.net/mediawiki/index.php/Developers.Code.CFirewall
-
+// CFirewall: Windows Firewall with Advanced Security via INetFwPolicy2 (#166).
 
 #include "StdAfx.h"
 #include "Firewall.h"
+#include "FirewallWfasPolicy.h"
 #include "Envy.h"
 
 #ifdef _DEBUG
@@ -37,7 +36,6 @@ namespace
 		theApp.Message( MSG_ERROR, L"Windows Firewall %s failed (HRESULT 0x%08lX).", pszOperation, (DWORD)hr );
 	}
 
-	// Always preserve the real COM HRESULT; never substitute E_NOINTERFACE for a successful hr.
 	BOOL LogFirewallInterfaceFailure( LPCWSTR pszOperation, HRESULT hr, IUnknown* pInterface )
 	{
 		if ( FAILED( hr ) )
@@ -54,9 +52,17 @@ namespace
 		}
 		return TRUE;
 	}
+
+	BOOL ProfileAllowsExceptions( INetFwPolicy2* pPolicy2, NET_FW_PROFILE_TYPE2 nProfile )
+	{
+		VARIANT_BOOL vbBlock = VARIANT_FALSE;
+		const HRESULT hr = pPolicy2->get_BlockAllInboundTraffic( nProfile, &vbBlock );
+		if ( FAILED( hr ) )
+			return FALSE;
+		return vbBlock == VARIANT_FALSE;
+	}
 }
 
-// Make/Delete the WindowsFirewall object
 CFirewall::CFirewall()
 {
 }
@@ -65,292 +71,324 @@ CFirewall::~CFirewall()
 {
 }
 
-BOOL CFirewall::Init()
+CString CFirewall::UPnPRuleGroupName()
 {
-	// CComPtr::operator& asserts if the pointer is already set; clear for re-init.
-	FwManager.Release();
-	Policy.Release();
-	Profile.Release();
-	ServiceList.Release();
-	ProgramList.Release();
-	PortList.Release();
-	Service.Release();
-	Program.Release();
-	Port.Release();
-
-	// Create an instance of the firewall settings manager
-	HRESULT hr = FwManager.CoCreateInstance( __uuidof( NetFwMgr ) );
-	if ( ! LogFirewallInterfaceFailure( L"manager initialization", hr, FwManager ) )
-		return FALSE;
-
-	// Retrieve the local firewall policy
-	hr = FwManager->get_LocalPolicy( &Policy );
-	if ( ! LogFirewallInterfaceFailure( L"local policy query", hr, Policy ) )
-		return FALSE;
-
-	// Retrieve the firewall profile currently in effect
-	hr = Policy->get_CurrentProfile( &Profile );
-	if ( ! LogFirewallInterfaceFailure( L"current profile query", hr, Profile ) )
-		return FALSE;
-
-	// Retrieve the allowed services collection
-	hr = Profile->get_Services( &ServiceList );
-	LogFirewallInterfaceFailure( L"services collection query", hr, ServiceList );
-
-	// Retrieve the authorized application collection
-	hr = Profile->get_AuthorizedApplications( &ProgramList );
-	LogFirewallInterfaceFailure( L"authorized applications query", hr, ProgramList );
-
-	// Retrieve the globally open ports collection
-	hr = Profile->get_GloballyOpenPorts( &PortList );
-	LogFirewallInterfaceFailure( L"open ports collection query", hr, PortList );
-
-	return ServiceList && ProgramList && PortList;
+	// Localized group name resource used by WFAS for UPnP Framework rules.
+	return L"@FirewallAPI.dll,-32752";
 }
 
-// Takes a service type, like NET_FW_SERVICE_UPNP, which is listed in Windows Firewall and can't be removed
-// Makes sure it is checked in Windows Firewall, checking it if necessary
-// Returns true if the service is listed and checked, false if we weren't able to check it
-BOOL CFirewall::SetupService( NET_FW_SERVICE_TYPE service )
+BOOL CFirewall::Init()
 {
-	// Make sure the COM interfaces have been accessed
-	//if ( ! FwManager ) return FALSE;
+	Policy2.Release();
+	Rules.Release();
+	Rule.Release();
 
-	// If the service isn't enabled on the Windows Firewall exceptions list
-	BOOL bEnabled = FALSE;
-	if ( ! IsServiceEnabled( service, &bEnabled ) ) return FALSE;
-	if ( ! bEnabled )
-	{
-		// Check its checkbox
-		if ( ! EnableService( service ) ) return FALSE;
+	HRESULT hr = Policy2.CoCreateInstance( __uuidof( NetFwPolicy2 ) );
+	if ( ! LogFirewallInterfaceFailure( L"WFAS policy initialization", hr, Policy2 ) )
+		return FALSE;
 
-		// Wait for discovery to complete
-		Sleep( 3000 );
-	}
+	hr = Policy2->get_Rules( &Rules );
+	if ( ! LogFirewallInterfaceFailure( L"WFAS rules collection", hr, Rules ) )
+		return FALSE;
 
-	// The service is listed and checked
 	return TRUE;
 }
 
-// Takes a path and file name like "C:\Folder\Program.exe" and a name like "My Program"
-// Makes sure the program is listed in Windows Firewall and its listing is checked, adding and checking it as necessary
-// Returns true if the program is listed and checked, false if we weren't able to do it
-// When bRemove is TRUE, it removes the application from the exception list
+BOOL CFirewall::FindRuleByApplication( const CString& path, INetFwRule** ppRule ) const
+{
+	if ( ppRule == nullptr )
+		return FALSE;
+	*ppRule = nullptr;
+
+	if ( ! Rules )
+		return FALSE;
+
+	CComPtr< IUnknown > pEnumerator;
+	HRESULT hr = Rules->get__NewEnum( &pEnumerator );
+	if ( FAILED( hr ) || ! pEnumerator )
+		return FALSE;
+
+	CComQIPtr< IEnumVARIANT > pEnum( pEnumerator );
+	if ( ! pEnum )
+		return FALSE;
+
+	const CString strWanted( path );
+	for ( ;; )
+	{
+		CComVariant var;
+		ULONG nFetched = 0;
+		hr = pEnum->Next( 1, &var, &nFetched );
+		if ( hr != S_OK || nFetched == 0 )
+			break;
+
+		if ( var.vt != VT_DISPATCH || var.pdispVal == nullptr )
+			continue;
+
+		CComQIPtr< INetFwRule > pRule( var.pdispVal );
+		if ( ! pRule )
+			continue;
+
+		CComBSTR bstrApp;
+		if ( FAILED( pRule->get_ApplicationName( &bstrApp ) ) || bstrApp.Length() == 0 )
+			continue;
+
+		if ( strWanted.CompareNoCase( CString( bstrApp ) ) == 0 )
+		{
+			*ppRule = pRule.Detach();
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+BOOL CFirewall::SetupService( NET_FW_SERVICE_TYPE service )
+{
+	BOOL bEnabled = FALSE;
+	if ( ! IsServiceEnabled( service, &bEnabled ) )
+		return FALSE;
+	if ( ! bEnabled )
+	{
+		if ( ! EnableService( service ) )
+			return FALSE;
+		Sleep( 3000 );
+	}
+	return TRUE;
+}
+
 BOOL CFirewall::SetupProgram( const CString& path, const CString& name, BOOL bRemove )
 {
-	// Make sure the COM interfaces have been accessed
-	//if ( ! FwManager ) return FALSE;
-
-	// If the program isn't on the Windows Firewall exceptions list
 	BOOL bListed = FALSE;
-	if ( ! IsProgramListed( path, &bListed ) ) return FALSE;
+	if ( ! IsProgramListed( path, &bListed ) )
+		return FALSE;
+
 	if ( ! bListed && ! bRemove )
 	{
-		// Add it to the list with a checked checkbox
-		if ( ! AddProgram( path, name ) ) return FALSE;
+		if ( ! AddProgram( path, name ) )
+			return FALSE;
 	}
 	else if ( bListed && bRemove )
 	{
-		if ( ! RemoveProgram( path ) ) return FALSE;
-		return TRUE;
+		return RemoveProgram( path );
 	}
 
-	// If the program is on the list, but its checkbox isn't checked
 	BOOL bEnabled = FALSE;
-	if ( ! IsProgramEnabled( path, &bEnabled ) ) return FALSE;
+	if ( ! IsProgramEnabled( path, &bEnabled ) )
+		return FALSE;
 	if ( ! bEnabled )
 	{
-		// Check the checkbox
-		if ( ! EnableProgram( path ) ) return FALSE;
+		if ( ! EnableProgram( path ) )
+			return FALSE;
 	}
 
-	// The program is listed and checked
 	return TRUE;
 }
 
-// Takes a program path and file name, like "C:\Folder\Program.exe"
-// Determines if it's listed in Windows Firewall
-// Returns true if it works, and writes the answer in listed
 BOOL CFirewall::IsProgramListed( const CString& path, BOOL* listed )
 {
-	if ( ! ProgramList ) return FALSE;	// COM not initialized
+	if ( ! listed )
+		return FALSE;
+	*listed = FALSE;
 
-	// Look for the program in the list
-	// Try to get the interface for the program with the given name
-	Program.Release();
-	HRESULT hr = ProgramList->Item( CComBSTR( path ), &Program );
-	if ( SUCCEEDED( hr ) && Program )
+	Rule.Release();
+	if ( FindRuleByApplication( path, &Rule ) )
 	{
-		// The program is in the list
 		*listed = TRUE;
 		return TRUE;
 	}
 
-	// ProgramList->Item call failed,
-	// The error is not found
-	if ( hr == HRESULT_FROM_WIN32( ERROR_FILE_NOT_FOUND ) )
-	{
-		// The program is not in the list
-		*listed = FALSE;
-		return TRUE;
-	}
-
-	// Some other error occurred, report it
-	return FALSE;
+	*listed = FALSE;
+	return TRUE;	// Query succeeded; program simply not listed
 }
 
-// Takes a service type, like NET_FW_SERVICE_UPNP
-// Determines if the listing for that service in Windows Firewall is checked or unchecked
-// Returns true if it works, and writes the answer in enabled
 BOOL CFirewall::IsServiceEnabled( NET_FW_SERVICE_TYPE service, BOOL* enabled )
 {
-	if ( ! ServiceList )
+	if ( ! enabled )
+		return FALSE;
+	*enabled = FALSE;
+
+	if ( ! Policy2 )
 	{
-		// No COM call ran; E_NOINTERFACE is an explicit sentinel for an unavailable list.
-		LogFirewallHRESULT( L"UPnP service lookup (service list unavailable)", E_NOINTERFACE );
+		LogFirewallHRESULT( L"UPnP rule-group lookup (policy unavailable)", E_NOINTERFACE );
 		return FALSE;
 	}
 
-	// Look for the service in the list
-	Service.Release();
-	HRESULT hr = ServiceList->Item( service, &Service );
-	if ( ! LogFirewallInterfaceFailure( L"UPnP service lookup", hr, Service ) )
-		return FALSE;	// Services can't be removed from the list
+	// Only UPnP is used by Envy today (SSDP / MiniUPnPc companion exception).
+	if ( service != NET_FW_SERVICE_UPNP )
+		return FALSE;
 
+	long nProfiles = 0;
+	HRESULT hr = Policy2->get_CurrentProfileTypes( &nProfiles );
+	if ( FAILED( hr ) || nProfiles == 0 )
+		nProfiles = WFAS_PROFILE_ALL;
 
-	// Find out if the service is enabled
-	VARIANT_BOOL v = VARIANT_FALSE;
-	hr = Service->get_Enabled( &v );
+	VARIANT_BOOL vbEnabled = VARIANT_FALSE;
+	hr = Policy2->get_IsRuleGroupCurrentlyEnabled( CComBSTR( UPnPRuleGroupName() ), &vbEnabled );
 	if ( FAILED( hr ) )
 	{
-		LogFirewallHRESULT( L"UPnP service state query", hr );
-		return FALSE;
+		// Fallback: ask whether the group is enabled on the current profile mask.
+		hr = Policy2->IsRuleGroupEnabled( nProfiles, CComBSTR( UPnPRuleGroupName() ), &vbEnabled );
+		if ( FAILED( hr ) )
+		{
+			LogFirewallHRESULT( L"UPnP rule-group state query", hr );
+			return FALSE;
+		}
 	}
 
-	if ( v == VARIANT_FALSE )
-		*enabled = FALSE;	// The service is on the list, but the checkbox next to it is cleared
-	else
-		*enabled = TRUE;	// The service is on the list and the checkbox is checked
-
+	*enabled = ( vbEnabled != VARIANT_FALSE );
 	return TRUE;
 }
 
-// Takes a program path and file name like "C:\Folder\Program.exe"
-// Determines if the listing for that program in Windows Firewall is checked or unchecked
-// Returns true if it works, and writes the answer in enabled
 BOOL CFirewall::IsProgramEnabled( const CString& path, BOOL* enabled )
 {
-	// First, make sure the program is listed
+	if ( ! enabled )
+		return FALSE;
+	*enabled = FALSE;
+
 	BOOL bListed = FALSE;
-	if ( ! IsProgramListed( path, &bListed ) ) return FALSE;	// This sets the Program interface we can use here
-	if ( ! bListed ) return FALSE;		// The program isn't in the list at all
+	if ( ! IsProgramListed( path, &bListed ) )
+		return FALSE;
+	if ( ! bListed || ! Rule )
+		return FALSE;
 
-	// Find out if the program is enabled
 	VARIANT_BOOL v = VARIANT_FALSE;
-	HRESULT hr = Program->get_Enabled( &v );
-	if ( FAILED( hr ) ) return FALSE;
+	HRESULT hr = Rule->get_Enabled( &v );
+	if ( FAILED( hr ) )
+		return FALSE;
 
-	if ( v == VARIANT_FALSE )
-		*enabled = FALSE;	// The program is on the list, but the checkbox next to it is cleared
-	else
-		*enabled = TRUE;	// The program is on the list and the checkbox is checked
-
+	*enabled = ( v != VARIANT_FALSE );
 	return TRUE;
 }
-
-// This means that all the exceptions such as GloballyOpenPorts, Applications, or Services,
-// which are specified in the profile, are ignored and only locally initiated traffic is allowed
 
 BOOL CFirewall::AreExceptionsAllowed() const
 {
-	if ( ! Profile ) return FALSE;		// COM not initialized
+	if ( ! Policy2 )
+		return FALSE;
 
-	VARIANT_BOOL vbNotAllowed = VARIANT_FALSE;
-	HRESULT hr = Profile->get_ExceptionsNotAllowed( &vbNotAllowed );
-	if ( SUCCEEDED( hr ) && vbNotAllowed != VARIANT_FALSE ) return FALSE;
+	long nTypes = 0;
+	HRESULT hr = Policy2->get_CurrentProfileTypes( &nTypes );
+	if ( FAILED( hr ) )
+	{
+		LogFirewallHRESULT( L"current WFAS profile types query", hr );
+		return FALSE;
+	}
 
-	return TRUE;
+	const BOOL bDomain = ProfileAllowsExceptions( Policy2, NET_FW_PROFILE2_DOMAIN );
+	const BOOL bPrivate = ProfileAllowsExceptions( Policy2, NET_FW_PROFILE2_PRIVATE );
+	const BOOL bPublic = ProfileAllowsExceptions( Policy2, NET_FW_PROFILE2_PUBLIC );
+
+	return WfasExceptionsAllowedForMask( nTypes, bDomain, bPrivate, bPublic );
 }
 
-// Takes a path and file name like "C:\Folder\Program.exe" and a name like "My Program"
-// Lists and checks the program on Windows Firewall, so now it can listed on a socket without a warning popping up
-// Returns false on error
 BOOL CFirewall::AddProgram( const CString& path, const CString& name )
 {
-	HRESULT hr;
+	if ( ! Rules )
+		return FALSE;
 
-	// Create an instance of an authorized application, we'll use this to add our new application
-	Program.Release();
-	hr = Program.CoCreateInstance( __uuidof( NetFwAuthorizedApplication ) );
-	if ( FAILED( hr ) ) return FALSE;
+	Rule.Release();
+	HRESULT hr = Rule.CoCreateInstance( __uuidof( NetFwRule ) );
+	if ( FAILED( hr ) || ! Rule )
+		return FALSE;
 
-	hr = Program->put_ProcessImageFileName( CComBSTR( path ) );	// Set the process image file name
-	if ( FAILED( hr ) ) return FALSE;
+	hr = Rule->put_Name( CComBSTR( name ) );
+	if ( FAILED( hr ) )
+		return FALSE;
 
-	hr = Program->put_Name( CComBSTR( name ) );					// Set the program name
-	if ( FAILED( hr ) ) return FALSE;
+	hr = Rule->put_ApplicationName( CComBSTR( path ) );
+	if ( FAILED( hr ) )
+		return FALSE;
 
-	// Get the program on the Windows Firewall accept list
-	hr = ProgramList->Add( Program );							// Add the application to the collection
-	if ( FAILED( hr ) ) return FALSE;
+	hr = Rule->put_Direction( NET_FW_RULE_DIR_IN );
+	if ( FAILED( hr ) )
+		return FALSE;
+
+	hr = Rule->put_Action( NET_FW_ACTION_ALLOW );
+	if ( FAILED( hr ) )
+		return FALSE;
+
+	hr = Rule->put_Protocol( NET_FW_IP_PROTOCOL_ANY );
+	if ( FAILED( hr ) )
+		return FALSE;
+
+	// Register on Domain/Private/Public so Public-network hosts are covered (#166).
+	hr = Rule->put_Profiles( NET_FW_PROFILE2_ALL );
+	if ( FAILED( hr ) )
+		return FALSE;
+
+	hr = Rule->put_Enabled( VARIANT_TRUE );
+	if ( FAILED( hr ) )
+		return FALSE;
+
+	hr = Rules->Add( Rule );
+	if ( FAILED( hr ) )
+	{
+		LogFirewallHRESULT( L"add application rule", hr );
+		return FALSE;
+	}
 
 	return TRUE;
 }
 
 BOOL CFirewall::RemoveProgram( const CString& path )
 {
-	if ( ! ProgramList ) return FALSE;	// COM not initialized
+	if ( ! Rules )
+		return FALSE;
 
-	HRESULT hr = ProgramList->Remove( CComBSTR( path ) );		// Remove the application to the collection
-	if ( FAILED( hr ) ) return FALSE;
+	Rule.Release();
+	if ( ! FindRuleByApplication( path, &Rule ) || ! Rule )
+		return TRUE;	// Already absent
 
+	CComBSTR bstrName;
+	HRESULT hr = Rule->get_Name( &bstrName );
+	if ( FAILED( hr ) || bstrName.Length() == 0 )
+		return FALSE;
+
+	hr = Rules->Remove( bstrName );
+	if ( FAILED( hr ) )
+	{
+		LogFirewallHRESULT( L"remove application rule", hr );
+		return FALSE;
+	}
+
+	Rule.Release();
 	return TRUE;
 }
 
-// Takes a service type, like NET_FW_SERVICE_UPNP
-// Checks the checkbox next to its listing in Windows Firewall
-// Returns false on error
 BOOL CFirewall::EnableService( NET_FW_SERVICE_TYPE service )
 {
-	if ( ! ServiceList )
+	if ( ! Policy2 )
 	{
-		// No COM call ran; E_NOINTERFACE is an explicit sentinel for an unavailable list.
-		LogFirewallHRESULT( L"UPnP service enable (service list unavailable)", E_NOINTERFACE );
-		return FALSE;	// COM not initialized
+		LogFirewallHRESULT( L"UPnP rule-group enable (policy unavailable)", E_NOINTERFACE );
+		return FALSE;
 	}
 
-	// Look for the service in the list
-	Service.Release();
-	HRESULT hr = ServiceList->Item( service, &Service );
-	if ( ! LogFirewallInterfaceFailure( L"UPnP service lookup before enable", hr, Service ) )
-		return FALSE;	// Services can't be removed from the list
+	if ( service != NET_FW_SERVICE_UPNP )
+		return FALSE;
 
-
-	// Check the box next to the service
-	hr = Service->put_Enabled( VARIANT_TRUE );
+	const HRESULT hr = Policy2->EnableRuleGroup(
+		NET_FW_PROFILE2_ALL,
+		CComBSTR( UPnPRuleGroupName() ),
+		VARIANT_TRUE );
 	if ( FAILED( hr ) )
 	{
-		LogFirewallHRESULT( L"UPnP service enable", hr );
+		LogFirewallHRESULT( L"UPnP rule-group enable", hr );
 		return FALSE;
 	}
 
 	return TRUE;
 }
 
-// Takes a program path and file name like "C:\Folder\Program.exe"
-// Checks the checkbox next to its listing in Windows Firewall
-// Returns false on error
 BOOL CFirewall::EnableProgram( const CString& path )
 {
-	// First, make sure the program is listed
-	BOOL bListed;
-	if ( ! IsProgramListed( path, &bListed ) ) return FALSE;	// This sets the Program interface we can use here
-	if ( ! bListed ) return FALSE;		// The program isn't on the list at all
-	if ( ! Program ) return FALSE;		// COM not initialized
+	BOOL bListed = FALSE;
+	if ( ! IsProgramListed( path, &bListed ) )
+		return FALSE;
+	if ( ! bListed || ! Rule )
+		return FALSE;
 
-	// Check the box next to the program
-	HRESULT hr = Program->put_Enabled( VARIANT_TRUE );
-	if ( FAILED( hr ) ) return FALSE;
+	const HRESULT hr = Rule->put_Enabled( VARIANT_TRUE );
+	if ( FAILED( hr ) )
+		return FALSE;
 
 	return TRUE;
 }

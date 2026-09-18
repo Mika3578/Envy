@@ -1988,6 +1988,9 @@
     <ClInclude Include="RemoteHtmlEscape.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FirewallWfasPolicy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="PacketBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
