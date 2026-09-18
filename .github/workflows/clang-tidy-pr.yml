@@ -1,0 +1,80 @@
+name: clang-tidy PR (advisory)
+
+# Annotates changed C/C++ lines via reviewdog. Never a required merge check.
+# Complements the develop/nightly clang-tidy.yml artifact workflow.
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - Envy/**.cpp
+      - Envy/**.h
+      - TorrentEnvy/**.cpp
+      - TorrentEnvy/**.h
+      - HashLib/**.cpp
+      - HashLib/**.h
+      - .clang-tidy
+      - .github/workflows/clang-tidy-pr.yml
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+concurrency:
+  group: clang-tidy-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  tidy-review:
+    name: clang-tidy reviewdog
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install clang-tidy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy
+
+      # reviewdog/action-setup@v1 (pin commit for supply-chain hygiene)
+      - name: Setup reviewdog
+        uses: reviewdog/action-setup@19ad6fc8b7358ccdc9fd4a25c75dd93eeb097e1e # v1
+        with:
+          reviewdog_version: v0.21.0
+
+      - name: Run clang-tidy on PR diff and annotate
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          mapfile -t files < <(git diff --name-only "$base...$head" -- '*.cpp' '*.h' '*.cxx' '*.hpp' \
+            | grep -E '^(Envy|TorrentEnvy|HashLib)/' \
+            | grep -vE '^(Services|Plugins/PluginWizard|Plugins/RatDVDPlugin|Plugins/SWFPlugin)/' \
+            || true)
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "No relevant C/C++ files in PR diff."
+            exit 0
+          fi
+          echo "Linting ${#files[@]} file(s)"
+          : > clang-tidy.out
+          for f in "${files[@]}"; do
+            [[ -f "$f" ]] || continue
+            # Best-effort compile flags; full compile_commands.json is a follow-up.
+            clang-tidy --quiet "$f" -- -std=c++20 -DWIN32 -D_WINDOWS -D_UNICODE -DUNICODE \
+              >> clang-tidy.out 2>&1 || true
+          done
+          if [[ ! -s clang-tidy.out ]]; then
+            echo "No clang-tidy diagnostics."
+            exit 0
+          fi
+          # Advisory only: never fail the job on findings.
+          reviewdog -f=clang-tidy -name=clang-tidy -reporter=github-pr-review \
+            -filter-mode=added -level=warning -fail-on-error=false < clang-tidy.out \
+            || true

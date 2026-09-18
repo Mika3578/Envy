@@ -1,0 +1,59 @@
+# CodeRabbit configuration for Mika3578/Envy
+# Install the CodeRabbit GitHub App on this public repo for free OSS reviews.
+# Reviews are ADVISORY only — they must never be the sole merge blocker.
+# Merge authority remains: MSVC builds, EnvyTests, Format, PR Gate, CodeQL,
+# gitleaks, Sonar (per develop ruleset).
+
+language: en-US
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: true
+    base_branches:
+      - develop
+      - main
+  path_filters:
+    - "!Services/**"
+    - "!Plugins/PluginWizard/**"
+    - "!Plugins/RatDVDPlugin/**"
+    - "!Plugins/SWFPlugin/**"
+    - "!HashLib/HashLib/**"
+    - "!**/*.png"
+    - "!**/*.jpg"
+    - "!**/*.ico"
+    - "!**/*.gz"
+    - "!Languages/**/*.xml"
+
+  path_instructions:
+    - path: "Envy/**"
+      instructions: |
+        Focus on correctness, memory lifetime, bounds checks, integer overflow,
+        threading/locking, error handling, and security regressions.
+        For protocol/network/crypto/packet paths (G1/G2, ED2K/Kad, BitTorrent,
+        NMDC/ADC, Network/NAT, Remote), flag wire-format or capability honesty
+        risks and missing regression tests. Do not demand style-only rewrites
+        covered by Format Check / .clang-format.
+    - path: "Remote/**"
+      instructions: |
+        Focus on CSRF, XSS, auth/session handling, and HTML/JS injection risks.
+    - path: "tests/**"
+      instructions: |
+        Prefer concrete regression assertions over implementation-detail tests.
+    - path: ".github/workflows/**"
+      instructions: |
+        Prefer pinned action SHAs/digests, least privilege permissions, and no
+        secrets in logs. Do not suggest unrelated CI rewrites.
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: auto
