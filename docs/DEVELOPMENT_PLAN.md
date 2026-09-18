@@ -2,8 +2,9 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-17
+- **Last Updated:** 2026-09-18
 - **Changelog Entry:** 2026-09-17 — #141: listen sockets open before NAT completes (`OnRun` no longer waits on `IsAsyncFindRunning`); `MapPorts` starts after successful bind/listen (D-011).
+- **Changelog Entry:** 2026-09-17 — #78 security: remove weak `rand()` fallbacks for session/CSRF/salt and protocol anti-spoof nonces; single CSPRNG helper (`SecureRandom.h` / `BCryptGenRandom`) with fail-closed contracts. Out of scope: #79 PBKDF2, #77 CSRF policy, #76 XSS.
 - **Changelog Entry:** 2026-09-17 — #140 docs: clarify MiniUPnPc 2.0 SSDP is one discovery receive phase (`searchalltypes=1`), not a strict wall-clock deadline; #142 / P3 covers absolute SSDP and HTTP timeout bounding.
 - **Changelog Entry:** 2026-09-17 — #140 P0 runtime PASS on post-squash HEAD: targeted IGD discovery (single MiniUPnPc receive phase), gateway-only rootdevice fallback, non-IGD devices never receive WAN mapping commands. Known debt: MiniUPnPc 2.0 SSDP/HTTP latency (#142 / P3). Listen-before-NAT delivered as #141. Next: P1 WFAS.
 - **Changelog Entry:** 2026-09-17 — #140 P0 strategy: targeted IGD SSDP (`searchalltypes=1`, one discovery receive phase) + gateway-only rootdevice fallback. SSDP success != usable IGD; discovery fails cleanly when no IGD/WAN service is exposed.

@@ -1,7 +1,7 @@
 //
 // BTTrackerRequest.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -19,6 +19,7 @@
 #include "StdAfx.h"
 #include "Settings.h"
 #include "Envy.h"
+#include "SecureRandom.h"
 #include "BTTrackerRequest.h"
 #include "HttpRequest.h"
 
@@ -884,7 +885,10 @@ DWORD CBTTrackerRequests::Request(CDownload* pDownload, BTTrackerEvent nEvent, D
 
 	for ( ;; )
 	{
-		DWORD nTransactionID = GetRandomNum( 1ui32, _UI32_MAX );
+		DWORD nTransactionID = 0;
+		if ( ! TryGetSecureRandomNum< DWORD >( nTransactionID, (DWORD)1, (DWORD)0xFFFFFFFF ) )
+			return 0;	// CSPRNG failure ï¿½ fail closed (#78)
+
 		if ( m_pTrackerRequests.PLookup( nTransactionID ) == NULL )
 		{
 			pRequest->m_nTransactionID = nTransactionID;

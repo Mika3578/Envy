@@ -17,6 +17,7 @@
 #include "StdAfx.h"
 #include "Settings.h"
 #include "Envy.h"
+#include "SecureRandom.h"
 #include "CoolInterface.h"
 #include <versionhelpers.h>
 #include "BTTrackerRequest.h"
@@ -1839,8 +1840,14 @@ void CEnvyApp::InitResources()
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, Settings.Fonts.Quality,
 		DEFAULT_PITCH|FF_DONTCARE, Settings.Fonts.DefaultFont );
 
-	CryptAcquireContext( &m_hCryptProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT );
+	if ( ! CryptAcquireContext( &m_hCryptProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT ) )
+	{
+		m_hCryptProv = 0;
+		TRACE( _T("CryptAcquireContext failed (err=%lu); security RNG uses BCrypt only\n"),
+			::GetLastError() );
+	}
 
+	// Seeds cosmetic GetRandomNum() fallback only — never used for security tokens (#78).
 	srand( GetTickCount() );
 
 	m_hHookKbd   = SetWindowsHookEx( WH_KEYBOARD, (HOOKPROC)KbdHook, NULL, AfxGetThread()->m_nThreadID );
@@ -4114,58 +4121,16 @@ void CProgressDialog::Progress(LPCTSTR szText, QWORD nCompleted, QWORD nTotal)
 }
 
 /**
- * Generate cryptographically secure random bytes
+ * Generate cryptographically secure random bytes (#78).
  *
- * This function implements P0.2 security requirements by providing
- * cryptographically secure random bytes for all security-critical operations.
- *
- * Priority order:
- * 1. BCryptGenRandom (Windows 10+ preferred method)
- * 2. CryptGenRandom (legacy CryptoAPI fallback)
- * 3. FAIL - No insecure rand() fallback allowed
- *
- * @param pBuffer Buffer to fill with random bytes
- * @param nLength Number of bytes to generate
- * @return TRUE if successful, FALSE if no secure random source available
+ * Delegates to SecureRandomFill:
+ * 1. BCryptGenRandom (BCRYPT_USE_SYSTEM_PREFERRED_RNG) — NTSTATUS checked correctly
+ * 2. CryptGenRandom(theApp.m_hCryptProv) when the provider was acquired
+ * 3. FALSE — never rand()
  */
 BOOL GenerateCryptographicBytes(BYTE* pBuffer, size_t nLength)
 {
-	if (!pBuffer || nLength == 0)
-		return FALSE;
-
-	// First try BCryptGenRandom (modern Windows)
-	static HMODULE hBCrypt = NULL;
-	static BOOL (WINAPI* pBCryptGenRandom)(void*, BYTE*, ULONG, ULONG) = NULL;
-
-	if (!hBCrypt)
-	{
-		hBCrypt = LoadLibraryW(L"bcrypt.dll");
-		if (hBCrypt)
-		{
-			pBCryptGenRandom = (BOOL (WINAPI*)(void*, BYTE*, ULONG, ULONG))GetProcAddress(hBCrypt, "BCryptGenRandom");
-		}
-	}
-
-	if (pBCryptGenRandom)
-	{
-		// Use BCryptGenRandom with BCRYPT_USE_SYSTEM_PREFERRED_RNG flag
-		if (pBCryptGenRandom(NULL, pBuffer, (ULONG)nLength, 0x00000002))
-		{
-			return TRUE;
-		}
-	}
-
-	// Fallback to CryptGenRandom (legacy CryptoAPI)
-	if (theApp.m_hCryptProv != 0)
-	{
-		if (CryptGenRandom(theApp.m_hCryptProv, (DWORD)nLength, pBuffer))
-		{
-			return TRUE;
-		}
-	}
-
-	// No secure random source available - FAIL (no rand() fallback for security)
-	return FALSE;
+	return SecureRandomFill( pBuffer, nLength, theApp.m_hCryptProv );
 }
 
 
