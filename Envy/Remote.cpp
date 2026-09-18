@@ -368,32 +368,40 @@ BOOL CRemote::CheckCookie()
 	// Update session activity
 	CRemoteSecurity::UpdateSessionActivity( sessionIdStr );
 
-	// CSRF protection for state-changing operations
-	CString strMethod = GetKey( L"_method" );  // Check for method override
-	if ( strMethod.IsEmpty() )
-	{
-		// Try to detect from request path (POST-like operations)
-		CString strPath = m_sHandshake.SpanExcluding( L"?&" );
-		if ( strPath.Find( L"newsearch" ) >= 0 ||
-			 strPath.Find( L"newdownload" ) >= 0 ||
-			 strPath.Find( L"modify" ) >= 0 ||
-			 strPath.Find( L"drop" ) >= 0 ||
-			 strPath.Find( L"connect" ) >= 0 ||
-			 strPath.Find( L"disconnect" ) >= 0 )
-		{
-			// State-changing operation - require CSRF token
-			CString strCSRFToken = GetKey( L"csrf_token" );
-			if ( strCSRFToken.IsEmpty() )
-				strCSRFToken = GetKey( L"_token" );  // Alternative parameter name
+	// CSRF for state-changing operations: mutating query keys and/or known
+	// mutating path segments. Path-only matching misses /remote/network?connect=
+	// and similar (#77). Non-empty _method is treated as a POST-like override
+	// and must not bypass CSRF.
+	const bool bMethodOverride = ! GetKey( L"_method" ).IsEmpty();
+	const bool bMutatingQuery =
+		! GetKey( L"connect" ).IsEmpty() ||
+		! GetKey( L"disconnect" ).IsEmpty() ||
+		! GetKey( L"filter_set" ).IsEmpty() ||
+		! GetKey( L"group_select" ).IsEmpty() ||
+		! GetKey( L"group_deselect" ).IsEmpty() ||
+		! GetKey( L"group_exclusive" ).IsEmpty() ||
+		! GetKey( L"queue_expand" ).IsEmpty() ||
+		! GetKey( L"queue_collapse" ).IsEmpty();
 
-			if ( strCSRFToken.IsEmpty() ||
-				 ! CRemoteSecurity::ValidateCSRFToken( sessionIdStr, std::string( CT2A( strCSRFToken ) ) ) )
-			{
-				// CSRF token missing or invalid
-				theApp.Message( MSG_ERROR, L"Remote interface CSRF token validation failed from %s", (LPCTSTR)m_sAddress );
-				m_sRedirect = L"/remote/";
-				return TRUE;  // Redirect to login (forces new CSRF token)
-			}
+	CString strPath = m_sHandshake.SpanExcluding( L"?&" );
+	const bool bMutatingPath =
+		strPath.Find( L"newsearch" ) >= 0 ||
+		strPath.Find( L"newdownload" ) >= 0 ||
+		strPath.Find( L"modify" ) >= 0 ||
+		strPath.Find( L"drop" ) >= 0;
+
+	if ( bMethodOverride || bMutatingQuery || bMutatingPath )
+	{
+		CString strCSRFToken = GetKey( L"csrf_token" );
+		if ( strCSRFToken.IsEmpty() )
+			strCSRFToken = GetKey( L"_token" );
+
+		if ( strCSRFToken.IsEmpty() ||
+			 ! CRemoteSecurity::ValidateCSRFToken( sessionIdStr, std::string( CT2A( strCSRFToken ) ) ) )
+		{
+			theApp.Message( MSG_ERROR, L"Remote interface CSRF token validation failed from %s", (LPCTSTR)m_sAddress );
+			m_sRedirect = L"/remote/";
+			return TRUE;
 		}
 	}
 
@@ -1517,6 +1525,10 @@ void CRemote::PageUploads()
 
 	Prepare();		// Header
 
+	CString strCSRFToken = GetCSRFToken();
+	if ( ! strCSRFToken.IsEmpty() )
+		Add( L"csrf_token", strCSRFToken );
+
 	CString strRandom;
 	strRandom.Format( L"%i", GetRandomNum( 0i32, _I32_MAX ) );
 	Add( L"random", strRandom );
@@ -1539,6 +1551,8 @@ void CRemote::PageUploads()
 		if ( posFile == NULL ) continue;
 
 		Prepare();
+		if ( ! strCSRFToken.IsEmpty() )
+			Add( L"csrf_token", strCSRFToken );
 		Add( L"queue_id", strQueueID );
 		Add( L"queue_caption", pQueue->m_sName );
 		if ( pQueue->m_bExpanded )
@@ -1708,7 +1722,7 @@ void CRemote::PageNetworkNetwork(int nID, bool* pbConnect, LPCTSTR pszName)
 	CString str;
 	str.Format( L"%i", nID );
 
-	// Basic connect/disconnect without CSRF for now
+	// Connect/disconnect mutations require CSRF via CheckCookie (#77).
 	if ( GetKey( L"connect" ) == str )
 	{
 		*pbConnect = TRUE;
