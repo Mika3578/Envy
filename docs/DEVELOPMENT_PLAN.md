@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
+- **Changelog Entry:** 2026-09-18 — #82 partial: BEP-9 ut_metadata advertised size capped at 32 MiB (`BtUtMetadataSizeOk`) before accepting metadata pieces.
 - **Changelog Entry:** 2026-09-18 — #79: Remote passwords stored with PBKDF2-HMAC-SHA256 (`BCryptDeriveKeyPBKDF2`); legacy SHA1 / sha256-salted verify + migrate on login.
 - **Changelog Entry:** 2026-09-18 — #92 cooperative close: abandon timed-out threads without `TerminateThread` (`EnvyThreadPolicy.h`); completes remaining #92 slice after lock-order.
 - **Changelog Entry:** 2026-09-18 — #92 lock-order: EDClients before Transfers (`Ed2kLockOrder.h`); remaining #92 item is cooperative thread close without `TerminateThread`.

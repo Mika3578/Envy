@@ -152,3 +152,12 @@ inline BOOL ParseInt64Bounded(const char* pszString, size_t nLen, __int64& nNum)
 	}
 	return TRUE;
 }
+
+// Absolute cap for BEP-9 ut_metadata total info-dict size (peer-advertised).
+// Matches common client practice; prevents multi-GB metadata DoS (#82).
+constexpr std::uint64_t BT_UT_METADATA_MAX = 32ull * 1024ull * 1024ull;
+
+inline BOOL BtUtMetadataSizeOk(std::uint64_t nSize)
+{
+	return nSize > 0 && nSize <= BT_UT_METADATA_MAX;
+}
