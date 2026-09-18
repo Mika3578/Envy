@@ -522,10 +522,10 @@ BOOL CDownloadTransferED2K::OnRankingInfo(CEDPacket* pPacket)
 
 BOOL CDownloadTransferED2K::OnFileComment(CEDPacket* pPacket)
 {
-	if ( ! Ed2kFileCommentHeaderFits( pPacket->GetRemaining() ) )
+	if (!Ed2kFileCommentHeaderFits(pPacket->GetRemaining()))
 	{
-		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
-		Close( TRI_FALSE );
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
+		Close(TRI_FALSE);
 		return FALSE;
 	}
 
@@ -535,10 +535,10 @@ BOOL CDownloadTransferED2K::OnFileComment(CEDPacket* pPacket)
 
 	if ( nLength > 0 )
 	{
-		if ( ! Ed2kFileCommentLengthOk( nLength, pPacket->GetRemaining() ) )
+		if (!Ed2kFileCommentLengthOk(nLength, pPacket->GetRemaining()))
 		{
-			theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
-			Close( TRI_FALSE );
+			theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
+			Close(TRI_FALSE);
 			return FALSE;
 		}
 
