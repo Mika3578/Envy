@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
+- **Changelog Entry:** 2026-09-18 — #82: wire-path ED2K `ED2K_TAG_BLOB` uses `Ed2kTagBlobLengthOk` (4 MiB + remaining), matching `.met` policy.
 - **Changelog Entry:** 2026-09-18 — CI polish on #164: Format Check fail-closed + clang-format-diff (changed hunks, clang-format-18 pinned); CodeQL decoupled from classifier; PR Gate rejects neutral/unexpected skip; C# suite simplified to security-and-quality.
 - **Changelog Entry:** 2026-09-18 — CI: CodeQL always emits c-cpp + javascript-typescript + csharp on every PR to `develop` (fixes Code Scanning "configuration not found"); Format Check is blocking (`--Werror`, no `continue-on-error`).
 - **Changelog Entry:** 2026-09-18 — Protect develop docs aligned to live ruleset: ≥1 APPROVED review, dismiss-stale on push, `require_last_push_approval` off, signed commits + force-push block, CodeQL/Gitleaks code scanning, no GitHub Code Quality rule; Dependabot auto-approve removed.
