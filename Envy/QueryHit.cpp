@@ -903,10 +903,9 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 	pPacket->Read( pRaw.get(), nSize );
 
 	LPBYTE pszXML = NULL;
-	// Require at least one compressed byte after the 9-byte "{deflate}" marker
-	// so "nSize - 10" cannot underflow. Keep the historical -10 sizing (sibling
-	// G1Packet.cpp uses len-9 after advancing the pointer); do not "fix" that
-	// off-by-one here — memory safety only.
+	// "{deflate}" + compressed bytes + trailing NUL (included in nSize).
+	// Decompress length is nSize - 10 (marker 9 + NUL). Sibling CG1Packet::ReadXML
+	// uses len - 9 because it stops before HIT_SEP/NUL (#119 / Shareaza heritage).
 	if ( G1QueryHitDeflateXmlLengthOk( nSize ) &&
 		 strncmp( (LPCSTR)pRaw.get(), "{deflate}", 9 ) == 0 )
 	{

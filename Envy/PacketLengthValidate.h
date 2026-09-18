@@ -43,11 +43,10 @@ inline BOOL BtIsKeepAliveLength(DWORD nLength)
 	return nLength == 0;
 }
 
-// QueryHit XML "{deflate}" path uses "nSize - 10" (marker 9 + trailing byte).
-// Require enough bytes so that subtraction cannot underflow.
-// Note: G1Packet.cpp uses "len - 9" after advancing past the marker; that
-// off-by-one vs QueryHit is intentional historical behavior and is tracked
-// separately — this predicate only hardens the QueryHit arithmetic.
+// QueryHit XML "{deflate}" path uses "nSize - 10" (9-byte marker + trailing NUL
+// included in fixed nXMLSize). Require nSize > 10 so subtraction cannot underflow.
+// CG1Packet::ReadXML uses "len - 9" because it measures length until HIT_SEP/NUL
+// (separator already excluded). Both are correct for their framing — see #119.
 inline BOOL G1QueryHitDeflateXmlLengthOk(int nSize)
 {
 	return nSize > 10;
