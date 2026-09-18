@@ -113,6 +113,8 @@ inline BOOL Ed2kFileCommentLengthOk(DWORD nClaimedLen, DWORD nRemainingAfterHead
 	if (nClaimedLen > ED2K_FILE_COMMENT_MAX)
 		return FALSE;
 	return nClaimedLen <= nRemainingAfterHeader;
+}
+
 // Wire ED2K_TAG_UINT64 value is a little-endian 64-bit integer (#81).
 constexpr DWORD ED2K_TAG_UINT64_BYTES = 8u;
 
