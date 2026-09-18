@@ -1291,8 +1291,8 @@ void CNetwork::RunJobs()
 
 		oJobLock.Lock();
 
-		if ( bKeep )
-			m_oJobs.AddTail( oJob );	// Go to next iteration
+		if (bKeep)
+			EnqueueJob(oJob); // Cap applies on requeue after unlock window
 	}
 }
 

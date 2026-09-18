@@ -11,10 +11,13 @@
 
 static bool test_network_job_queue_bounds()
 {
+	// Pin expected production cap so bumps to NETWORK_JOB_QUEUE_MAX fail the suite.
+	if (NETWORK_JOB_QUEUE_MAX != 2048u)
+		return false;
 	return NetworkJobQueueCountOk(0) == TRUE
-		&& NetworkJobQueueCountOk(NETWORK_JOB_QUEUE_MAX - 1) == TRUE
-		&& NetworkJobQueueCountOk(NETWORK_JOB_QUEUE_MAX) == FALSE
-		&& NetworkJobQueueCountOk(NETWORK_JOB_QUEUE_MAX + 1) == FALSE;
+		&& NetworkJobQueueCountOk(2047u) == TRUE
+		&& NetworkJobQueueCountOk(2048u) == FALSE
+		&& NetworkJobQueueCountOk(2049u) == FALSE;
 }
 
 void register_network_job_queue_smoke_tests(TestSuite& suite)
