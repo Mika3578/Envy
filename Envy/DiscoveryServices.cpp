@@ -34,6 +34,7 @@
 #include "Kademlia.h"
 #include "VendorCache.h"
 #include "Security.h" // Vendors
+#include "BootstrapCatalog.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -644,11 +645,24 @@ void CDiscoveryServices::AddDefaults()
 			while ( pBuffer.ReadLine( strLine ) )
 			{
 				strLine.Trim( L" \t\r\n" );
-				if ( strLine.GetLength() < 7 ) continue;	// Blank/comment line									// Blank comment line
 
-				const CString strService = strLine.Mid( 2 );
+				wchar_t cType = 0;
+				const wchar_t* pszEndpoint = NULL;
+				size_t nEndpoint = 0;
+				const BootstrapParseStatus nParse = BootstrapParseServiceLine(
+					strLine, static_cast< size_t >( strLine.GetLength() ),
+					&cType, &pszEndpoint, &nEndpoint );
+				if ( nParse == BootstrapParseStatus::Skip )
+					continue;
+				if ( nParse != BootstrapParseStatus::Ok )
+				{
+					theApp.Message( MSG_ERROR, L"Error line in discovery service list: %s", (LPCTSTR)strLine );
+					continue;
+				}
 
-				switch ( strLine.GetAt( 0 ) )
+				const CString strService( pszEndpoint, static_cast< int >( nEndpoint ) );
+
+				switch ( cType )
 				{
 				case 'M':
 					if ( Add( strService, CDiscoveryService::dsWebCache ) )					// Multinetwork service

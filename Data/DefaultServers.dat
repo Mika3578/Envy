@@ -1,30 +1,37 @@
+# Shipped bootstrap catalogue (direct hosts)
+#
+# Bootstrap sources != discovered peers/servers.
+# LoadDefaultServers() injects these only when HostCache for a protocol is
+# empty. Learned DHT nodes, ED2K servers, and G1/G2 hosts persist in
+# HostCache.dat — do not copy them back here.
+#
+# Type prefix:
+#   B  BitTorrent DHT bootstrap router (DNS:port)
+#   E  eDonkey server (IP:port) — do not ship static ED2K IPs; use server.met
+#   K  Kademlia contact (IP:port) — none shipped; see Kad gap notes
+#   D  DC hub
+#   1/L Gnutella peer
+#   2/G G2 hub
+#   P/* priority flag
+#   X  bad IP
+#
+# DHT routers: Transmission (dht.transmissionbt.com:6881), libtorrent
+# (dht.libtorrent.org:25401), plus router.bittorrent.com:6881 still used by
+# current qBittorrent defaults. CDHT::Connect pings HostCache BT entries
+# (including these) when no known node IDs exist — no extra C++ DNS list.
+#
+# Audited 2026-09-18. See docs/30_protocols/bootstrap-sources.md.
 
-E*176.103.48.36:4184	# TV Underground
-E 176.103.50.225:2442	# eDonkey Server No1
-E 176.103.56.135:2442	# eDonkey Server No2
-E 91.226.212.11:2442	# eDonkey Server No3
-E 80.208.228.241:8369	# eMule Security (eMule-Security.org)
-E 195.154.83.5:7111 	# Peerates.net
-# 212.83.184.152:7111	# PeerBooter
-
-# Defunct:
-
-B router.bittorrent.com:6881
-B router.utorrent.com:6881
-B router.bitcomet.com:6881
 B dht.transmissionbt.com:6881
-B dht.aelitis.com:6881	# Vuze
+B router.bittorrent.com:6881
+B dht.libtorrent.org:25401
 
-# P/*	Priority flag
-# E	eDonkey server
-# D	DC++ hub
-# B	BitTorrent node/bootstrap
-# 1/L	Gnutella peer
-# 2/G	G2 hub
-# K	KAD node
-# X	Bad IP
-
-# See http://www.emule-security.org/serverlist/
-# -or http://edk.peerates.net/serveurs/serveurs-actifs
-
-# Updated July.2019 (From Feb.2012)
+# No E lines: ED2K server IPs age faster than the client. Cold-start uses
+# DefaultServices.dat server.met URLs (eMule-Security, shortypower).
+#
+# No K lines: Kad contacts belong in HostCache after a validated nodes.dat
+# import. Remote nodes.dat bootstrap is a follow-up (#86), not a claim of
+# complete Kad support.
+#
+# Dropped 2019 routers: router.utorrent.com, router.bitcomet.com (NXDOMAIN
+# at audit), dht.aelitis.com (Vuze).

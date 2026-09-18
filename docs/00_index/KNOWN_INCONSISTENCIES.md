@@ -30,3 +30,5 @@
 - **EDClient.h comments:** Member `m_bEmSupportsSourceEx2` is commented "Not supported" but SourceEx2 (REQUESTSOURCES2/ANSWERSOURCES2) is implemented in `EDClient.cpp` and advertised; consider updating the comment to "Source Exchange v2".
 
 - **Gnutella `{deflate}` sizing (QueryHit vs G1Packet) — resolved (#119):** Not a functional bug. `CQueryHit::ReadXML` receives a fixed `nXMLSize` that includes a trailing NUL (Shareaza heritage: `{plaintext}` used `nSize - 12` = 11-byte header + NUL; `{deflate}` uses `nSize - 10` = 9-byte marker + NUL). `CG1Packet::ReadXML` measures length until `G1_PACKET_HIT_SEP`/NUL, so `len` already excludes the separator and correctly uses `len - 9`. Keep both arithmetic paths; do not "unify" them.
+
+- **nodes.dat versions:** `docs/10_dev/roadmap.md` and `kad2-compatibility-report.md` previously said HostCache imports nodes.dat v0–3. `CHostCache::ImportNodes` accepts old format (leading count ≠ 0) and new format **version 1 only**; version ≠ 1 returns 0. eMule-Security `nodes.dat` on 2026-09-18 is new-format version 2. Canonical note: `docs/10_dev/status.md` and `docs/30_protocols/bootstrap-sources.md`.

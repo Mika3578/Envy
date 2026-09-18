@@ -502,6 +502,8 @@ const LPCTSTR RT_GZIP = L"GZIP";
 
 // Locations
 #define REGISTRY_KEY			L"Software\\Envy\\Envy"
+// Product website and version-check URLs. Not P2P bootstrap catalogues
+// (those live in Data/DefaultServices.dat and Data/DefaultServers.dat).
 #define WEB_SITE				L"http://getenvy.com/"
 #define UPDATE_URL				L"http://sf.net/p/getenvy/code/HEAD/tree/trunk/release?format=raw"
 #define UPDATE_URL_ALT			L"http://raw.githubusercontent.com/GetEnvy/Envy/master/release"

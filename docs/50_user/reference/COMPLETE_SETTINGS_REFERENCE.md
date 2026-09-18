@@ -576,7 +576,7 @@ This document provides a comprehensive reference of all configurable settings in
 | AutoDiscovery | true | Auto-discover server lists |
 | LearnNewServers | true | Learn new servers from servers |
 | LearnNewServersClient | true | Learn new servers from clients |
-| ServerListURL | Default URL | Server list download URL |
+| ServerListURL | `https://upd.emule-security.org/server.met` | Server list download URL |
 | RequestPipe | 3 | Simultaneous requests per connection |
 | RequestSize | 180000 | Request chunk size |
 | FrameSize | 1024 | Frame size |
