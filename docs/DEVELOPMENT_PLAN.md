@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-18
+- **Changelog Entry:** 2026-09-18 — Align docs/settings with required GitHub review on `Protect develop` (≥1 APPROVED, dismiss stale, last-push approval, thread resolution); remove Dependabot auto-approve; note agent token cannot PATCH rulesets (manual UI step).
 - **Changelog Entry:** 2026-09-18 — DevSecOps finalize: `AGENTS.md` controlled autonomy + max-3 development PR cap; Renovate `enabledManagers` = github-actions only; CodeRabbit `drafts: false` + `Envy/*Remote*` path; `ci-verify.ps1 -Full` builds/runs Win32 EnvyTests and requires clang-format; Merge Queue documented as optional.
 - **Changelog Entry:** 2026-09-18 — #96: pin external GitHub Actions to immutable commit SHAs under `.github/workflows` and `.github/actions` (documented upgrade path in `docs/10_dev/agents-and-automation.md`).
 - **Changelog Entry:** 2026-09-18 — Restored historical `CHANGELOG.md` body truncated by #148 squash (kept current Unreleased; reattached from `## [4.1.0]` onward).
@@ -61,15 +62,18 @@
 ## Repository Status (develop)
 - Default branch is `develop`.
 - `main` is currently behind `develop`.
-- **Merge policy (GitHub):** merge commits disabled; squash and rebase merges enabled. Prefer squash for PRs.
+- **Merge policy (GitHub):** merge commits disabled; squash enabled; rebase disabled to match squash-only `Protect develop`.
 - **History:** `develop` was rewritten to a linear history with no merge commits; the pre-rewrite snapshot is preserved as the immutable tag `backup/develop-before-linear-rewrite` (local mutable backup/rollback branches were removed after the rewrite stabilized).
 - **Local hygiene:** use `git pull --ff-only` on `develop`; rebase feature branches with `git rebase origin/develop` and `git push --force-with-lease`.
-- **Branch protection:** the active `Protect develop` ruleset requires pull requests, linear history, passing checks, and blocks force-pushes/deletions. `.github/settings.yml` mirrors the intended policy for Probot Settings or manual audits.
+- **Branch protection:** the active `Protect develop` ruleset requires pull
+  requests, linear history, passing required checks, squash-only merges, and
+  (target policy) ≥1 approving review with dismiss-stale + last-push approval
+  + resolved review threads. `.github/settings.yml` mirrors the Probot-capable
+  subset; ruleset-only knobs are documented there.
 - CI uses a two-speed model: change-aware PR jobs plus full integration on
-  `develop` / scheduled analysis. The live `Protect develop` ruleset still
-  requires the eight named contexts listed in `.github/settings.yml`; `PR Gate`
-  is emitted on every PR but is not required until a maintainer updates the
-  ruleset. See `docs/10_dev/agents-and-automation.md`.
+  `develop` / scheduled analysis. Required check contexts are listed in
+  `.github/settings.yml` and `docs/10_dev/agents-and-automation.md` (includes
+  `PR Gate`). See those docs for the live list.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
 ## Canonical Documentation Split

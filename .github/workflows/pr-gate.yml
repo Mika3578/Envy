@@ -1,5 +1,9 @@
 name: PR Gate
 
+# Waits for classified CI checks for this PR. Does NOT approve, does NOT merge,
+# and does NOT replace Protect develop review requirements (≥1 APPROVED,
+# thread resolution, last-push approval).
+
 on:
   pull_request:
     branches: [main, develop]

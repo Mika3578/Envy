@@ -32,15 +32,23 @@ These approximate GitHub gates; they do **not** replace CodeQL/Sonar/gitleaks/PR
 
 ## Merge blockers (develop ruleset)
 
-BLOCK: Build x64 Release, Build Win32 Release, Lint build files, Vcpkg manifest sanity,
-Format Check, Documentation Check, secret-scan, gitleaks, PR Gate, Analyze (c-cpp),
-SonarCloud Code Analysis.
+BLOCK (required status checks): Build x64 Release, Build Win32 Release,
+Lint build files, Vcpkg manifest sanity, Format Check, Documentation Check,
+secret-scan, gitleaks, PR Gate, Analyze (c-cpp), SonarCloud Code Analysis.
+
+BLOCK (native GitHub review rules on Protect develop — not replaceable by PR Gate):
+
+- ≥ **1** approving GitHub review (not the PR author; not a self-approve bot)
+- Dismiss stale reviews on new commits
+- Require approval of the most recent push
+- Resolve all review conversations / threads
+- No draft; squash only; linear history; **no bypass actors**
 
 ADVISORY: CodeRabbit, clang-tidy + reviewdog, Snyk (when present), Cursor Bugbot
 (optional / paid — not primary).
 
-Never require CodeRabbit or Bugbot as the sole merge gate until a measured low
-false-positive period and an explicit Fail-on-unresolved policy.
+Never require CodeRabbit or Bugbot as the sole merge gate. PR Gate only waits
+on classified CI checks; it does **not** approve or merge.
 
 ## Dependency automation
 
@@ -79,10 +87,18 @@ comparison notes.
    GitHub → Settings → Applications → Installed GitHub Apps → **Renovate** → Configure → **Mika3578/Envy**
    (or install from [renovatebot.com](https://github.com/apps/renovate)).
    Config: `renovate.json5`. Suites may show `QUEUED` until the app processes the repo.
-3. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks on `Protect develop`.
-4. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
-
-## Agent PR back-pressure
+3. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks + **≥1 GitHub APPROVED review** on `Protect develop`.
+4. **Protect develop review knobs** — If the live ruleset still shows
+   `required_approving_review_count: 0` (or stale-review / last-push flags off),
+   a repository admin must edit **Settings → Rules → Protect develop → Restrict updates / Require a pull request**:
+   - Required approvals: **1**
+   - Dismiss stale pull request approvals when new commits are pushed: **on**
+   - Require approval of the most recent reviewable push: **on**
+   - Require conversation resolution before merging: **on**
+   - Allowed merge methods: **squash** only
+   - Bypass list: **empty**
+   Optionally add **Block force pushes** (`non_fast_forward`) if not already present.
+5. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 
 Max **3** active development PRs (canonical rule in `AGENTS.md`). If at cap: repair CI,
 handle CodeRabbit / reviewdog comments, resolve conflicts, ready-for-review,

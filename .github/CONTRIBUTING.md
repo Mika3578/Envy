@@ -45,8 +45,9 @@ fast-forward-only and rebase feature branches before opening or updating PRs.
 ### Repository merge settings (GitHub)
 
 - Merge commits: **disabled**
-- Squash merge: **enabled** (preferred)
-- Rebase merge: **enabled** (optional)
+- Squash merge: **enabled** (required path onto `develop`)
+- Merge commit: **disabled**
+- Rebase merge: **disabled** (matches squash-only ruleset)
 - Require linear history on `develop`: **enabled** via the active `Protect develop` ruleset
 - Force pushes and branch deletions on `develop`: **blocked**
 
@@ -95,18 +96,37 @@ git push --force-with-lease
 Use `--force-with-lease`, not `--force`, so you do not overwrite someone
 else's pushed work.
 
-### Protected branch policy
+### Protected branch policy (`Protect develop`)
 
-The active `Protect develop` ruleset requires pull requests, linear history,
-passing status checks, and blocks force-pushes and branch deletion. The
-declarative template in `.github/settings.yml` mirrors this intended policy
-for Probot Settings or manual audits.
+Before a pull request can merge into `develop`, **all** of the following must
+hold (enforced by the live GitHub ruleset, not by CI alone):
+
+1. The PR is **not a draft**.
+2. **At least one** GitHub review with state **APPROVED** (not CodeRabbit /
+   advisory bots as the sole gate; a real GitHub approval is required).
+3. That approval remains valid for the **current** head: stale approvals are
+   dismissed on new pushes, and approval of the **most recent push** is
+   required.
+4. **All review conversations / threads are resolved**.
+5. There is no outstanding **CHANGES_REQUESTED** review.
+6. All **required status checks** are green and the branch is **up to date**
+   with `develop` (strict checks).
+7. Merge method is **squash** only; history stays **linear**.
+8. **No bypass actors** — do not use admin merge, `--admin`, or a PAT to
+   override the ruleset.
+
+The declarative template in `.github/settings.yml` mirrors the Probot-capable
+subset of this policy. Ruleset-only knobs (thread resolution, last-push
+approval, squash-only methods, signed commits) are documented there and must
+match the live ruleset.
 
 ## Pull request checklist
 
 - [ ] Builds Release x64 and Release Win32 with toolset v145.
 - [ ] No new compiler warnings (use the CI build log).
 - [ ] CodeQL passes without new HIGH/CRITICAL findings.
+- [ ] At least one GitHub **APPROVED** review from someone other than the PR
+      author; all review threads resolved.
 - [ ] If you touched anything in `Services/` or `Plugins/`, ping a
       CODEOWNER for review.
 - [ ] If you bumped a vcpkg dependency, note the version delta in the

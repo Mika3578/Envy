@@ -1,5 +1,14 @@
 name: Dependabot auto-merge
 
+# May enable GitHub squash auto-merge only. It must NEVER approve a PR and must
+# NEVER call `gh pr merge` without `--auto`. Final merge is gated by the live
+# Protect develop ruleset (required checks + ≥1 APPROVED review + thread
+# resolution + last-push approval). No Dependabot/Actions/bot exception.
+#
+# Dependabot currently owns **vcpkg only** (see .github/dependabot.yml).
+# GitHub Actions updates are owned by Renovate. The github_actions path below
+# is retained as a no-op safety net if Actions were re-enabled by mistake.
+
 on:
   pull_request_target:
     types: [opened, reopened, synchronize]
@@ -24,25 +33,14 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      # Auto-merge minor + patch updates for GitHub Actions only.
-      # vcpkg baseline bumps stay manual because they can change ABI of native
-      # libs (sqlite, openssl) - human review required.
+      # Enable auto-merge for actions minor/patch only (dormant while Actions
+      # are Renovate-owned). Does not approve; does not force-merge.
       - name: Enable auto-merge for actions minor/patch
         if: |
           steps.meta.outputs.package-ecosystem == 'github_actions' &&
           (steps.meta.outputs.update-type == 'version-update:semver-minor' ||
            steps.meta.outputs.update-type == 'version-update:semver-patch')
         run: gh pr merge --auto --squash "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Approve the PR
-        if: |
-          steps.meta.outputs.package-ecosystem == 'github_actions' &&
-          (steps.meta.outputs.update-type == 'version-update:semver-minor' ||
-           steps.meta.outputs.update-type == 'version-update:semver-patch')
-        run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

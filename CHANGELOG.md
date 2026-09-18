@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release pipeline validation scripts** — `scripts/release/verify-version.ps1`, `stage-portable.ps1`, `verify-artifacts.ps1`, `publish-draft-release.ps1`, and `repair-draft-release.ps1` gate tag/`version.json`/`Envy.rc`/`Envy.exe` consistency, stage a full portable runtime tree, verify SHA256 + ZIP/setup sanity, and support idempotent draft asset repair.
 
 ### Changed
+- **Protect develop review policy (docs + settings alignment)** — Document and template ≥1 GitHub APPROVED review, dismiss-stale reviews, last-push approval, and required thread resolution for merges to `develop`. Remove Dependabot `gh pr review --approve`. PR Gate remains CI-only (not a review substitute). Live ruleset update may require a repository admin UI step if the API token cannot PATCH rulesets.
 - **Agent autonomy policy** — `AGENTS.md` allows ready-for-review + squash auto-merge under explicit low-risk / high-risk evidence gates; adds a hard max of **3** open development PRs (Dependabot/Renovate excluded). See `docs/10_dev/devsecops-envy.md`.
 - **Local ci-verify -Full** — Builds and runs EnvyTests Win32; fails if expected binaries are missing; requires `clang-format` on PATH (ci-fast may still warn-only when absent).
 - **CodeRabbit** — Skip draft PRs (`drafts: false`); path instructions cover `Remote/**` assets and `Envy/*Remote*` C++ surface.
