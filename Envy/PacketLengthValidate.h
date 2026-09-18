@@ -115,6 +115,18 @@ inline BOOL Ed2kFileCommentLengthOk(DWORD nClaimedLen, DWORD nRemainingAfterHead
 	return nClaimedLen <= nRemainingAfterHeader;
 }
 
+// Wire ED2K length-prefixed strings (ReadEDString / ReadLongEDString).
+// After consuming the length field, claimed payload must fit remaining.
+inline BOOL Ed2kEdStringPayloadOk(DWORD nRemainingAfterLen, WORD nLen)
+{
+	return nLen <= nRemainingAfterLen;
+}
+
+inline BOOL Ed2kLongEdStringPayloadOk(DWORD nRemainingAfterLen, DWORD nLen)
+{
+	return nLen <= nRemainingAfterLen;
+}
+
 // ED2K hashset answer: after nBlocks, payload must be exactly nBlocks MD4 digests.
 constexpr DWORD ED2K_HASHSET_DIGEST_BYTES = 16u;
 

@@ -297,6 +297,23 @@ static bool test_ed2k_file_comment_bounds()
 		&& Ed2kFileCommentLengthOk(ED2K_FILE_COMMENT_MAX + 1, ED2K_FILE_COMMENT_MAX + 1) == FALSE;
 }
 
+static bool test_ed2k_ed_string_payload()
+{
+	return Ed2kEdStringPayloadOk( 5, 5 ) == TRUE
+		&& Ed2kEdStringPayloadOk( 5, 0 ) == TRUE
+		&& Ed2kEdStringPayloadOk( 5, 6 ) == FALSE
+		&& Ed2kEdStringPayloadOk( 0, 0 ) == TRUE
+		&& Ed2kEdStringPayloadOk( 0, 1 ) == FALSE;
+}
+
+static bool test_ed2k_long_ed_string_payload()
+{
+	return Ed2kLongEdStringPayloadOk( 100, 100 ) == TRUE
+		&& Ed2kLongEdStringPayloadOk( 100, 101 ) == FALSE
+		&& Ed2kLongEdStringPayloadOk( 0, 0 ) == TRUE
+		&& Ed2kLongEdStringPayloadOk( 0, 1 ) == FALSE;
+}
+
 static bool test_ed2k_hashset_payload_bounds()
 {
 	const DWORD nExact = 3 * ED2K_HASHSET_DIGEST_BYTES;
@@ -421,6 +438,8 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_tag_blob_bounds", test_ed2k_tag_blob_bounds );
 	suite.add_test( "ed2k_tag_string_bounds", test_ed2k_tag_string_bounds );
 	suite.add_test( "ed2k_file_comment_bounds", test_ed2k_file_comment_bounds );
+	suite.add_test( "ed2k_ed_string_payload", test_ed2k_ed_string_payload );
+	suite.add_test( "ed2k_long_ed_string_payload", test_ed2k_long_ed_string_payload );
 	suite.add_test( "ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds );
 	suite.add_test( "bt_ut_metadata_size_ok", test_bt_ut_metadata_size_ok );
 	suite.add_test( "bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero );
