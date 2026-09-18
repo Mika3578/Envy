@@ -98,6 +98,19 @@ inline BOOL Ed2kTagStringLengthOk(DWORD nLen, ULONGLONG nFileRemaining)
 	return nLen <= nFileRemaining;
 }
 
+// Wire ED2K WORD-prefixed string (ReadEDString / browse-dir framing).
+// Header: remaining must cover the 2-byte length field.
+// Payload: after consuming the length WORD, claimed nLen must fit remaining.
+inline BOOL Ed2kEdStringHeaderOk(DWORD nRemaining)
+{
+	return nRemaining >= 2u;
+}
+
+inline BOOL Ed2kEdStringPayloadOk(DWORD nRemainingAfterLen, WORD nLen)
+{
+	return nLen <= nRemainingAfterLen;
+}
+
 // ED2K hashset answer: after nBlocks, payload must be exactly nBlocks MD4 digests.
 constexpr DWORD ED2K_HASHSET_DIGEST_BYTES = 16u;
 
