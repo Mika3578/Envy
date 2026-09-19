@@ -11,8 +11,10 @@
 // Legacy UI tokens MAX and NONE remain accepted. Display uses "Unlimited"
 // (IDS_SETTINGS_BANDWIDTH_UNLIMITED) plus the current language string.
 //
-// Uploads.FairUseMode is persisted for old profiles but has no core consumer.
-// Settings.cpp Add() defaults must stay equal to the constants below.
+// Uploads.FairUseMode: when true, each remote IPv4 client may receive at most
+// 10% of an audio/video library file (schema Audio.xsd / Video.xsd). Partials
+// and BitTorrent are not limited. Settings.cpp Add() defaults must stay equal
+// to the constants below.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
@@ -60,7 +62,64 @@ inline bool TransferFairUseModeDefault()
 
 inline bool TransferFairUseModeImplemented()
 {
-	return false;
+	return true;
+}
+
+inline unsigned int TransferFairUseSharePercent()
+{
+	return 10;
+}
+
+inline unsigned int TransferFairUseGrantLimit()
+{
+	return 4096;
+}
+
+// Audio/video library files (including extension-guessed schema). Historical
+// "unknown audio/video" maps to this media class, not to missing metadata.
+inline bool TransferFairUseIsMedia(bool bAudio, bool bVideo)
+{
+	return bAudio || bVideo;
+}
+
+inline bool TransferFairUseApplies(bool bEnabled, bool bMedia, bool bPartial, bool bBitTorrent)
+{
+	return bEnabled && bMedia && !bPartial && !bBitTorrent;
+}
+
+// 10% of nFileSize, overflow-safe. Empty files: 0. Files under 10 bytes: 1.
+inline unsigned long long TransferFairUseMaxBytes(unsigned long long nFileSize)
+{
+	const unsigned int nPercent = TransferFairUseSharePercent();
+	if (nFileSize == 0 || nPercent == 0)
+		return 0;
+	if (nPercent >= 100)
+		return nFileSize;
+
+	const unsigned long long nMax = (nFileSize / 100ull) * nPercent + ((nFileSize % 100ull) * nPercent) / 100ull;
+	return nMax == 0 ? 1ull : nMax;
+}
+
+// Clip [nOffset, nOffset+nLength) so newly granted bytes stay within the 10%
+// cap minus nAlreadyGranted. Returns false when nothing may be sent.
+inline bool TransferFairUseClipRange(unsigned long long& nOffset, unsigned long long& nLength, unsigned long long nFileSize, unsigned long long nAlreadyGranted)
+{
+	if (nFileSize == 0 || nLength == 0 || nOffset >= nFileSize)
+		return false;
+
+	const unsigned long long nToEnd = nFileSize - nOffset;
+	if (nLength > nToEnd)
+		nLength = nToEnd;
+
+	const unsigned long long nMax = TransferFairUseMaxBytes(nFileSize);
+	if (nAlreadyGranted >= nMax)
+		return false;
+
+	const unsigned long long nRemain = nMax - nAlreadyGranted;
+	if (nLength > nRemain)
+		nLength = nRemain;
+
+	return nLength > 0;
 }
 
 inline bool TransferBandwidthSettingIsUnlimited(DWORD nBytesPerSecond)

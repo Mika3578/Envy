@@ -367,7 +367,7 @@ Live Uploads/Downloads limit mapping: [transfer-settings.md](../transfer-setting
 | | ClampdownFactor | Clampdown Factor | Upload reduction factor |
 | | ClampdownFloor | Clampdown Floor | Minimum upload speed floor |
 | | ChunkSize | Chunk Size | Size of upload chunks |
-| | FairUseMode | false | **Not implemented.** Intended 10% unknown audio/video share; no core consumer. Checkbox on Uploads is disabled. Value still persisted. |
+| | FairUseMode | false | **Implemented.** Each remote IPv4 client may receive at most 10% of an audio/video library file (schema Audio/Video). Partials and BitTorrent are not limited. Session ledger (max 4096 host+path entries). Checkbox on Uploads. |
 | | ThrottleMode | false | Upload limiter shape: `false` = Average (soft), `true` = Maximum (strict, never exceed). Not a simple on/off switch. |
 | | QueuePollMin | Queue Poll Min | Minimum queue polling interval |
 | | QueuePollMax | Queue Poll Max | Maximum queue polling interval |

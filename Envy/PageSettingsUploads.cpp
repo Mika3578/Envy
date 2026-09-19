@@ -62,6 +62,7 @@ CUploadsSettingsPage::CUploadsSettingsPage()
 	, m_bSharePartials	( FALSE )
 	, m_bSharePreviews	( FALSE )
 	, m_bThrottleMode	( FALSE )
+	, m_bFairUseMode	( FALSE )
 	, m_nMaxPerHost		( 0ul )
 {
 }
@@ -85,6 +86,7 @@ void CUploadsSettingsPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SHARE_PARTIALS, m_bSharePartials);
 	DDX_Check(pDX, IDC_HUB_UNSHARE, m_bHubUnshare);
 	DDX_Check(pDX, IDC_SHARE_PREVIEW, m_bSharePreviews);
+	DDX_Check(pDX, IDC_FAIRUSE_MODE, m_bFairUseMode);
 	DDX_Text(pDX, IDC_MAX_HOST, m_nMaxPerHost);
 	DDX_Control(pDX, IDC_MAX_HOST_SPIN, m_wndMaxPerHost);
 	DDX_Control(pDX, IDC_AGENT_LIST, m_wndAgentList);
@@ -130,11 +132,12 @@ BOOL CUploadsSettingsPage::OnInitDialog()
 	m_bSharePartials	= Settings.Uploads.SharePartials == true;
 	m_bSharePreviews	= Settings.Uploads.SharePreviews == true;
 	m_bThrottleMode		= Settings.Uploads.ThrottleMode == true;
+	m_bFairUseMode		= Settings.Uploads.FairUseMode == true;
 
 	Settings.SetRange( &Settings.Uploads.MaxPerHost, m_wndMaxPerHost );
 
 	if (CWnd* pFairUse = GetDlgItem(IDC_FAIRUSE_MODE))
-		pFairUse->EnableWindow(FALSE);
+		pFairUse->EnableWindow(TRUE);
 
 	for ( string_set::const_iterator i = Settings.Uploads.BlockAgents.begin();
 		i != Settings.Uploads.BlockAgents.end(); i++ )
@@ -369,6 +372,7 @@ void CUploadsSettingsPage::OnOK()
 	Settings.Uploads.SharePartials	= m_bSharePartials != FALSE;
 	Settings.Uploads.SharePreviews	= m_bSharePreviews != FALSE;
 	Settings.Uploads.ThrottleMode	= m_bThrottleMode != FALSE;
+	Settings.Uploads.FairUseMode	= m_bFairUseMode != FALSE;
 	if (TransferBandwidthTokenIsUnlimited(m_sBandwidthLimit, BandwidthUnlimitedLabel()))
 		Settings.Bandwidth.Uploads = TransferBandwidthUnlimitedValue();
 	else

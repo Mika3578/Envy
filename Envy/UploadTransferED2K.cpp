@@ -536,6 +536,11 @@ BOOL CUploadTransferED2K::StartNextRequest()
 			m_nOffset = iRequested->begin();
 			m_nLength = iRequested->size();
 			m_nPosition = 0;
+			if (!ApplyFairUseLimit())
+			{
+				m_nOffset = SIZE_UNKNOWN;
+				m_nLength = SIZE_UNKNOWN;
+			}
 		}
 		m_oRequested.pop_front();
 	}

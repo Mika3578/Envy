@@ -2736,7 +2736,7 @@
 <!-- Tips displayed when mouse is moved over controls in the dialogs -->
 <controltips>
 	<tip id="IDC_THROTTLE_MODE" text="Mode de limitation de la bande passante d'envoi.{n}Maximum (strict) : la bande passante ne dépassera pas la limite.{n}Moyenne (souple) : le débit mesuré peut brièvement dépasser ou rester sous la limite."/>
-	<tip id="IDC_FAIRUSE_MODE" text="Le mode Fair-Use n'est pas implémenté. La case est désactivée pour ne pas laisser croire à une limite média de 10 %. La valeur registre des anciens profils est conservée."/>
+	<tip id="IDC_FAIRUSE_MODE" text="Lorsque cette option est activée, chaque hôte distant ne peut télécharger que 10 % d'un fichier audio ou vidéo de la bibliothèque. Les téléchargements partiels et BitTorrent ne sont pas limités. Désactivé par défaut."/>
 	<tip id="IDC_MAX_HOST" text="Nombre maximal d'envois simultanés (actifs ou en file) vers une même adresse IPv4 distante. Plage 1–64. Défaut 2. Ce n'est pas une limite de connexions TCP."/>
 	<tip id="IDC_UPLOADS_BANDWIDTH_LIMIT" text="Plafond global d'envoi en octets/s après analyse. Illimité (aussi MAX ou NONE) enregistre 0 : pas de plafond extra au-delà du débit montant de la connexion. S'applique à tous les protocoles ; les points de bande passante des files se partagent ce budget."/>
 	<tip id="IDC_REGEXP" text="Entrez des expression régulières selon la syntaxe de Perl.{n}Les mots-clefs pour la recherche peuvent être spécifiés sous la forme de &lt;n&gt;, où n est un chiffre entre 1 et 9. Si vous voulez entrer tous les mots-clés les uns après les autres, utilisez la balise &lt;_&gt;."/>
@@ -3723,7 +3723,7 @@
 		<control text="Partage limité en mode Hub"/>
 		<control text="Partager les téléch. partiels"/>
 		<control text="Partager les prévisualisations"/>
-		<control text="Mode Fair-Use (non implémenté)"/>
+		<control text="Mode Fair-Use (limite média 10 %)"/>
 		<control text="Envois max. par hôte :"/>
 		<control/>
 		<control/>
