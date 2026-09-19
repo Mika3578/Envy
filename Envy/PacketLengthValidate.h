@@ -212,3 +212,34 @@ inline BOOL CBufferUnBZipInputOk(ULONGLONG nCompressed)
 {
 	return nCompressed > 0 && nCompressed <= CBUFFER_UNBZIP_MAX;
 }
+
+// Gnutella QHT/QRP patch sizing (#81 zip-bomb).
+// Expected decompressed patch bytes = hash entries packed at nBits per entry.
+inline DWORD QhtPatchExpectedBytes(DWORD nHash, BYTE nBits)
+{
+	if (nBits != 1 && nBits != 4 && nBits != 8)
+		return 0;
+	const DWORD nPerByte = 8u / nBits;
+	if ((nHash % nPerByte) != 0)
+		return 0; // Must pack evenly into whole bytes
+	return nHash / nPerByte;
+}
+
+// Compressed fragment accumulation budget before Inflate. Allow 2x expected
+// plus zlib framing slack so tiny valid stored blocks are not rejected.
+inline BOOL QhtPatchCompressedBudgetOk(DWORD nAccumulated, DWORD nAddend, DWORD nExpected)
+{
+	if (nExpected == 0)
+		return FALSE;
+	DWORD nBudget = (nExpected > (MAXDWORD / 2u)) ? MAXDWORD : (nExpected * 2u);
+	const DWORD nSlack = 64u; // zlib header/trailer + stored-block overhead
+	if (nBudget < MAXDWORD - nSlack)
+		nBudget += nSlack;
+	else
+		nBudget = MAXDWORD;
+	if (nAddend > nBudget)
+		return FALSE;
+	if (nAccumulated > nBudget - nAddend)
+		return FALSE;
+	return TRUE;
+}

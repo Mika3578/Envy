@@ -402,6 +402,25 @@ static bool test_cbuffer_unbzip_bounds()
 
 
 
+static bool test_qht_patch_expected_bytes()
+{
+	return QhtPatchExpectedBytes(1024, 1) == 128
+		&& QhtPatchExpectedBytes(1024, 4) == 512
+		&& QhtPatchExpectedBytes(1024, 8) == 1024
+		&& QhtPatchExpectedBytes(1024, 2) == 0
+		&& QhtPatchExpectedBytes(1025, 1) == 0; // not divisible by 8
+}
+
+static bool test_qht_patch_compressed_budget()
+{
+	// 2x + 64 slack: expected=100 => budget=264
+	return QhtPatchCompressedBudgetOk(0, 100, 100) == TRUE
+		&& QhtPatchCompressedBudgetOk(200, 65, 100) == FALSE // 265 > 264
+		&& QhtPatchCompressedBudgetOk(0, 1, 0) == FALSE
+		&& QhtPatchCompressedBudgetOk(0, 16, 8) == TRUE // tiny table + zlib slack
+		&& QhtPatchCompressedBudgetOk(0, MAXDWORD, MAXDWORD) == TRUE; // MAXDWORD budget branch
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -465,4 +484,6 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 
 	suite.add_test("cbuffer_unbzip_bounds", test_cbuffer_unbzip_bounds);
 
+	suite.add_test( "qht_patch_expected_bytes", test_qht_patch_expected_bytes );
+	suite.add_test( "qht_patch_compressed_budget", test_qht_patch_compressed_budget );
 }
