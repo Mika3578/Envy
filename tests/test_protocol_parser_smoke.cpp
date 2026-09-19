@@ -465,9 +465,7 @@ static bool test_bt_mse_ia_length_ok()
 
 static bool test_kad_store_tag_length_ok()
 {
-	return KadStoreTagLengthOk( 0 ) == TRUE
-		&& KadStoreTagLengthOk( static_cast< WORD >( KAD_STORE_TAG_MAX ) ) == TRUE
-		&& KadStoreTagLengthOk( static_cast< WORD >( KAD_STORE_TAG_MAX + 1 ) ) == FALSE;
+	return KadStoreTagLengthOk(0) == TRUE && KadStoreTagLengthOk(static_cast<WORD>(KAD_STORE_TAG_MAX)) == TRUE && KadStoreTagLengthOk(static_cast<WORD>(KAD_STORE_TAG_MAX + 1)) == FALSE;
 }
 
 static bool test_bt_mse_pad_length_ok()
@@ -777,9 +775,9 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test("ed2k_chat_message_bounds", test_ed2k_chat_message_bounds);
 	suite.add_test("bt_ut_metadata_size_ok", test_bt_ut_metadata_size_ok);
 	suite.add_test("bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero);
-	suite.add_test( "bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max );
-	suite.add_test( "bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max );
-	suite.add_test( "kad_store_tag_length_ok", test_kad_store_tag_length_ok );
+	suite.add_test("bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max);
+	suite.add_test("bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max);
+	suite.add_test("kad_store_tag_length_ok", test_kad_store_tag_length_ok);
 	suite.add_test("bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max);
 	suite.add_test("bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max);
 	suite.add_test("bt_mse_ia_length_ok", test_bt_mse_ia_length_ok);
