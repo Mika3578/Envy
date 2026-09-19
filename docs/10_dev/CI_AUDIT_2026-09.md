@@ -307,15 +307,15 @@ Sources (primary first):
 
 ## 11. Quantification (this change set)
 
-| Change | Current | Expected | Feedback | Runner min / PR | Risk |
-| --- | ---: | ---: | ---: | ---: | --- |
-| Skip empty NuGet | ~22 s × 2 Release jobs | ~0 s | −22 s on x64 path | ~−44 s | Low |
-| Failure-only log upload | ~2 s upload on green | 0 on green | negligible | −storage | Low |
-| Docs check always emit | skip possible | always success/fail | stability | ~0 | Low |
-| PR Gate poll 10 s | up to +20 s tail | up to +10 s | −0–10 s wall | 0 | Low |
-| **Combined hypothesis** | ~7.0 min green | **~6.6–6.8 min** | small | ~−1 min | Low |
+| Change | Current (pre) | Expected | Measured on #217 | Feedback | Runner min / PR | Risk |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Skip empty NuGet | ~22 s × 2 Release jobs | ~0 s | **Confirmed** skip &lt;1 s (log) | −~22 s on x64 path | ~−44 s | Low |
+| Failure-only log upload | ~2 s upload on green | 0 on green | No log artifact on green x64 | negligible | −storage | Low |
+| Docs check always emit | skip possible | always success/fail | **pass 1m9s** (full docs path; workflow touch) | stability | ~0 | Low |
+| PR Gate poll 10 s | up to +20 s tail | up to +10 s | Gate wall **6m25s** | −0–10 s wall | 0 | Low |
+| **PR critical path** | #214 Gate **~7.0 min**; x64 **~6.7 min** | ~6.6–6.8 min | #217 Gate **6m25s**; x64 **6m22s** | **~−35 s wall** (one sample) | ~−1 min | Low |
 
-These remain **hypotheses** until several CI runs after merge confirm medians.
+One-sample confirmation only — treat multi-run medians as still pending. Variance across runners can exceed the NuGet saving.
 
 **Not changed:** `/m:1` (PCH reliability), CodeQL PR/push split, required check
 names, Win32 PR builds, Sonar/gitleaks requirements.
