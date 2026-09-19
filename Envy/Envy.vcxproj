@@ -1300,6 +1300,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="EDPacket.h" />
     <ClInclude Include="EDSourcePacketValidate.h" />
     <ClInclude Include="PacketLengthValidate.h" />
+    <ClInclude Include="KadSearchResDelivery.h" />
     <ClInclude Include="DcPacketLengthValidate.h" />
     <ClInclude Include="DcNickList.h" />
     <ClInclude Include="DcBrowse.h" />

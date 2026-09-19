@@ -21,8 +21,13 @@
 #include "GProfile.h"
 #include "Settings.h"
 #include "PacketLengthValidate.h"
+#include "Downloads.h"
+#include "Download.h"
+#include "Transfers.h"
+#include "Hashes.hpp"
 #include <array>
 #include <algorithm>
+#include <vector>
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -1214,28 +1219,9 @@ void CKademlia::OnSearchSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPack
     pResponse->Release();
 }
 
-void CKademlia::OnSearchResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
-    // KADEMLIA2_SEARCH_RES: <TargetID 16><Count 1>[entries...]
-    if (pPacket->GetRemaining() < KAD_ID_SIZE + 1)
-        return;
-
-    KadId targetId;
-    pPacket->Read(targetId, KAD_ID_SIZE);
-    BYTE count = pPacket->ReadByte();
-
-    theApp.Message(MSG_DEBUG, L"Kad2: Search response from %s with %d results",
-        (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), count);
-
-    for (BYTE i = 0; i < count; i++) {
-        KadStoredEntry entry;
-        if (!ReadEntryTags(pPacket, entry))
-            break;
-
-        // TODO: Deliver results to download/search system via callback
-        theApp.Message(MSG_DEBUG, L"Kad2: Search result - source IP %u.%u.%u.%u:%d",
-            (entry.ip >> 24) & 0xFF, (entry.ip >> 16) & 0xFF,
-            (entry.ip >> 8) & 0xFF, entry.ip & 0xFF, entry.udpPort);
-    }
+void CKademlia::OnSearchResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	ProcessSearchResponseDelivery(pHost, pPacket);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1355,38 +1341,58 @@ void CKademlia::OnPublishResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket) 
 //////////////////////////////////////////////////////////////////////
 // Search/Publish initiation (send to closest contacts)
 
-void CKademlia::SearchKeyword(const KadId& keywordHash) {
-    if (!m_bInitialized) return;
+void CKademlia::SearchKeyword(const KadId& keywordHash)
+{
+	if (!m_bInitialized)
+		return;
 
-    std::vector<KadContact> closest;
-    m_routingTable.FindClosestContacts(keywordHash, closest, KAD_K);
+	std::vector<KadContact> closest;
+	m_routingTable.FindClosestContacts(keywordHash, closest, KAD_K);
 
-    if (closest.empty()) {
-        theApp.Message(MSG_DEBUG, L"Kad2: No contacts for keyword search");
-        return;
-    }
+	if (closest.empty())
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: No contacts for keyword search");
+		return;
+	}
 
-    theApp.Message(MSG_DEBUG, L"Kad2: Starting keyword search, querying %d contacts", closest.size());
+	m_outstandingSearches.Expire(GetTickCount());
+	if (!m_outstandingSearches.Register(KadSearchKind::Keyword, keywordHash, GetTickCount()))
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: Outstanding keyword search map full");
+		return;
+	}
 
-    for (const auto& contact : closest)
-        SendSearchKeyRequest(contact, keywordHash);
+	theApp.Message(MSG_DEBUG, L"Kad2: Starting keyword search, querying %d contacts", closest.size());
+
+	for (const auto& contact : closest)
+		SendSearchKeyRequest(contact, keywordHash);
 }
 
-void CKademlia::SearchSource(const KadId& fileHash) {
-    if (!m_bInitialized) return;
+void CKademlia::SearchSource(const KadId& fileHash)
+{
+	if (!m_bInitialized)
+		return;
 
-    std::vector<KadContact> closest;
-    m_routingTable.FindClosestContacts(fileHash, closest, KAD_K);
+	std::vector<KadContact> closest;
+	m_routingTable.FindClosestContacts(fileHash, closest, KAD_K);
 
-    if (closest.empty()) {
-        theApp.Message(MSG_DEBUG, L"Kad2: No contacts for source search");
-        return;
-    }
+	if (closest.empty())
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: No contacts for source search");
+		return;
+	}
 
-    theApp.Message(MSG_DEBUG, L"Kad2: Starting source search, querying %d contacts", closest.size());
+	m_outstandingSearches.Expire(GetTickCount());
+	if (!m_outstandingSearches.Register(KadSearchKind::Source, fileHash, GetTickCount()))
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: Outstanding source search map full");
+		return;
+	}
 
-    for (const auto& contact : closest)
-        SendSearchSourceRequest(contact, fileHash);
+	theApp.Message(MSG_DEBUG, L"Kad2: Starting source search, querying %d contacts", closest.size());
+
+	for (const auto& contact : closest)
+		SendSearchSourceRequest(contact, fileHash);
 }
 
 void CKademlia::PublishKeyword(const KadId& keywordHash, const KadStoredEntry& entry) {
@@ -1472,4 +1478,113 @@ void CKademlia::SendPublishSourceRequest(const KadContact& contact, const KadId&
 
     SendPacket(&addr, pPacket);
     pPacket->Release();
+}
+
+//////////////////////////////////////////////////////////////////////
+// SEARCH_RES → ED2K source delivery
+
+void CKademlia::DeliverSourceCandidate(const BYTE* pFileHash, const KadSourceCandidate& cand)
+{
+	KadEd2kSourceParams params;
+	if (!KadMapSourceCandidateToEd2k(cand, params) || !params.deliverable)
+		return;
+
+	Hashes::Ed2kHash oED2K;
+	memcpy(&oED2K[0], pFileHash, KAD_ID_SIZE);
+	oED2K.validate();
+	if (!oED2K)
+		return;
+
+	Hashes::Guid oGUID;
+	memcpy(&oGUID[0], params.oGUID, KAD_ID_SIZE);
+	oGUID.validate();
+
+	// Look up by stable ED2K hash at delivery time (no retained CDownload*).
+	// AddSourceInternal takes Transfers.m_pSection; hold it for FindByED2K too.
+	CQuickLock oLock(Transfers.m_pSection);
+
+	CDownload* pDownload = Downloads.FindByED2K(oED2K);
+	if (!pDownload)
+		return;
+	if (pDownload->IsCompleted() || pDownload->IsMoving())
+		return;
+
+	pDownload->AddSourceED2K(
+	    params.nClientID,
+	    params.nClientPort,
+	    params.nServerIP,
+	    params.nServerPort,
+	    oGUID);
+}
+
+void CKademlia::ProcessSearchResponseDelivery(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	// KADEMLIA2_SEARCH_RES (eMule/aMule):
+	//   <SenderID 16><TargetID 16><Count 2>
+	//   [ <AnswerID 16><TagCount 1><ED2K tags...> ] * Count
+	// Kind comes from outstanding search context, not from tags alone.
+	const DWORD nRemaining = pPacket->GetRemaining();
+	if (nRemaining < KAD_SEARCH_RES_MIN_HEADER)
+		return;
+
+	const BYTE* pBody = pPacket->m_pBuffer + pPacket->m_nPosition;
+	BYTE senderId[KAD_ID_SIZE];
+	BYTE targetId[KAD_ID_SIZE];
+	WORD nCount = 0;
+	std::vector<KadSourceCandidate> entries;
+
+	if (!KadParseSearchResBody(pBody, nRemaining, senderId, targetId, nCount, &entries))
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: Rejecting malformed SEARCH_RES from %s",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		return;
+	}
+
+	// Consume the body so the packet position stays consistent.
+	pPacket->Seek(nRemaining, CPacket::seekCurrent);
+
+	const DWORD now = GetTickCount();
+	m_outstandingSearches.Expire(now);
+
+	KadOutstandingSearch searchCtx;
+	bool bExpired = false;
+	const bool bHasCtx = m_outstandingSearches.Lookup(targetId, now, searchCtx, bExpired);
+
+	const KadSearchResDisposition disp = KadClassifySearchResponse(
+	    bHasCtx, bExpired, bHasCtx /* target key match */, searchCtx.kind);
+
+	// Peer must have been queried for this search kind (unsolicited IP reject).
+	const KadRequestType expectedReq =
+	    (searchCtx.kind == KadSearchKind::Keyword) ? KAD_REQUEST_SEARCH_KEY : (searchCtx.kind == KadSearchKind::Source) ? KAD_REQUEST_SEARCH_SOURCE
+	                                                                                                                    : KAD_REQUEST_SEARCH_SOURCE;
+	const bool bPeerAsked =
+	    bHasCtx && !bExpired &&
+	    IsRequestOutstanding(0, expectedReq, *pHost);
+
+	if (disp == KadSearchResDisposition::RejectUnsolicited ||
+	    disp == KadSearchResDisposition::RejectExpired ||
+	    disp == KadSearchResDisposition::RejectMismatchedTarget ||
+	    !bPeerAsked)
+	{
+		theApp.Message(MSG_DEBUG,
+		               L"Kad2: Ignoring SEARCH_RES from %s (disp=%u peerAsked=%d count=%u)",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)),
+		               (unsigned)disp, bPeerAsked ? 1 : 0, nCount);
+		return;
+	}
+
+	theApp.Message(MSG_DEBUG, L"Kad2: Search response from %s with %u results (kind=%u)",
+	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), nCount, (unsigned)searchCtx.kind);
+
+	if (disp == KadSearchResDisposition::IgnoreKeywordResults)
+	{
+		// Keyword hits must never become download sources.
+		return;
+	}
+
+	if (disp != KadSearchResDisposition::DeliverSources)
+		return;
+
+	for (const auto& cand : entries)
+		DeliverSourceCandidate(targetId, cand);
 }

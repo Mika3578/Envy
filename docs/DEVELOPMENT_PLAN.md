@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — Kad2 source SEARCH_RES → `AddSourceED2K` (#86 slice): outstanding search context (keyword vs source); inbound eMule/aMule SEARCH_RES parse; HighID types 1/4 only; `KadSearchResDelivery.h` + EnvyTests. Kad2 remains partial/unverified; no capability advertise.
 - **Changelog Entry:** 2026-09-19 — Register `transfer_state_downloading_finished_not_importable` so #242 fail-closed Finished(Downloading) smoke actually runs (22/22 Linux g++).
 - **Changelog Entry:** 2026-09-19 — Reinforce branch naming hard rule 11: forbid `cursor/`/`claude/`/Cloud-runner slug templates; CONTRIBUTING aligned to `type/short-kebab-summary` only.
 - **Changelog Entry:** 2026-09-19 — Debug assert fix: NMDC code-page `Neighbours.Get` paths take `Network.m_pSection` (or copy from live hub); regression from #224.
@@ -330,7 +331,8 @@ to improve authentication and eMule credit-system compatibility.
 - [x] Register `eDonkey.EnableKad` with `Settings.Add` (default `true`) so
   `InitKademlia()` can run; distinct from `EnableKadHello`.
 - [ ] UI checkbox for EnableKad (optional follow-up; registry/settings dump works).
-- [ ] Kad search/source hits → `AddSourceED2K` (separate PR; not #86 routing table).
+- [x] Kad search/source hits → `AddSourceED2K` (HighID SEARCH_RES delivery + tests; keyword excluded; buddy/callback types deferred; app-trigger `SearchSource` and outbound TagList framing still open — not full #86).
+- [ ] Kad routing-table maintenance / FIREWALLED / Buddy / callback (#86 remainder).
 
 ### Future RSA SecureIdent (separate workstream)
 1. Baseline ED2K interoperability with eMule/aMule without SecureIdent.
