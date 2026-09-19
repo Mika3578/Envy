@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — DC hublist bootstrap: default URL `https://dchublist.org/hublist.xml.bz2`; `DefaultServices.dat` H rows refreshed (org/pwiam/ru HTTPS); `CUpdateServersDlg` DC mode (skin `CUpdateHubListDlg`) so Settings > DC++ > Download is not the eDonkey server.met dialog. Parser unchanged (`dchub://` kept, `adc://`/`adcs://` skipped). Not ADC/hublist-complete.
 - **Changelog Entry:** 2026-09-19 — Renovate fork enablement: migrate `renovate.json5` → root `renovate.json` with `forkProcessing: "enabled"` (Mend App API pre-check); Dependabot remains vcpkg-only.
 - **Changelog Entry:** 2026-09-19 — #81: G2 SGP UDP reassembly/inflate capped (64 fragments; byte cap = min(MaximumPacket, 256 KiB) enforced in `Add`/`ToG2Packet`; outbound fragment count fail-closed).
 - **Changelog Entry:** 2026-09-19 — #81: re-enable BitTorrent `SourcesWanted` caps for ut_pex, LTEP source-exchange, tracker HTTP apply, and UDP announce (`BtSourcesWantedAllowsMore`).

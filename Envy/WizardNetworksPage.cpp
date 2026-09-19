@@ -1,7 +1,7 @@
 //
 // WizardNetworksPage.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -142,7 +142,7 @@ LRESULT CWizardNetworksPage::OnWizardNext()
 	if ( m_bEDEnable && HostCache.eDonkey.GetCount() < 3 )
 	{
 		CUpdateServersDlg dlg;
-	//	dlg.m_sURL = Settings.eDonkey.ServerListURL;
+		dlg.m_nMode = UpdateServersDlgMode::eDonkey;
 		dlg.DoModal();
 	}
 
@@ -152,6 +152,7 @@ LRESULT CWizardNetworksPage::OnWizardNext()
 			theApp.OpenImport( Settings.General.DataPath + L"hublist.xml.bz2" ) ) )
 	{
 		CUpdateServersDlg dlg;
+		dlg.m_nMode = UpdateServersDlgMode::DC;
 		dlg.m_sURL = Settings.DC.HubListURL;
 		if ( dlg.DoModal() != IDOK &&
 			MsgBox( IDS_DOWNLOAD_DC_HUBLIST, MB_ICONQUESTION | MB_YESNO ) == IDYES )

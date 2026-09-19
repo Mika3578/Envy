@@ -1973,6 +1973,9 @@
     <ClInclude Include="Ed2kKadSettingsPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DcHublistSources.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="SkinEngineP0.h">
       <Filter>Header Files</Filter>
     </ClInclude>

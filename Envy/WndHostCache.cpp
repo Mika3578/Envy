@@ -690,7 +690,10 @@ void CHostCacheWnd::OnHostcacheFileDownload()
 {
 	CUpdateServersDlg dlg;
 	if ( m_nMode == PROTOCOL_DC )
+	{
+		dlg.m_nMode = UpdateServersDlgMode::DC;
 		dlg.m_sURL = Settings.DC.HubListURL;
+	}
 	//else
 	//	dlg.m_sURL = Settings.eDonkey.ServerListURL;
 	if ( dlg.DoModal() == IDOK )

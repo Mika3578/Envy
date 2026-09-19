@@ -25,6 +25,7 @@
 #include "DlgUpdateServers.h"
 #include "HostCache.h"
 #include "Buffer.h"
+#include "Skin.h"
 #include "PacketLengthValidate.h"
 
 #ifdef _DEBUG
@@ -44,6 +45,7 @@ END_MESSAGE_MAP()
 
 CUpdateServersDlg::CUpdateServersDlg(CWnd* pParent)
 	: CSkinDialog(CUpdateServersDlg::IDD, pParent)
+	, m_nMode( UpdateServersDlgMode::eDonkey )
 {
 }
 
@@ -63,11 +65,19 @@ BOOL CUpdateServersDlg::OnInitDialog()
 {
 	CSkinDialog::OnInitDialog();
 
-	SkinMe( L"CUpdateServersDlg", IDR_MAINFRAME );
+	SkinMe( UpdateServersDlgSkinName( m_nMode ), IDR_MAINFRAME );
 
-	// Define dlg.m_URL = Settings.DC.HubListURL etc. before dlg.DoModal()
+	if ( m_nMode == UpdateServersDlgMode::DC
+		&& ::Skin.GetDialogCaption( UpdateServersDlgDcSkinName() ).IsEmpty() )
+		ApplyDcHublistText();
+
+	// Callers should set m_sURL (and DC mode) before DoModal().
 	if ( m_sURL.GetLength() < 12 )
-		m_sURL = Settings.eDonkey.ServerListURL;
+	{
+		m_sURL = ( m_nMode == UpdateServersDlgMode::DC )
+			? Settings.DC.HubListURL
+			: Settings.eDonkey.ServerListURL;
+	}
 
 	m_wndOK.EnableWindow( IsValidURL() );
 	m_wndProgress.SetRange( 0, 100 );
@@ -76,6 +86,21 @@ BOOL CUpdateServersDlg::OnInitDialog()
 	UpdateData( FALSE );
 
 	return TRUE;
+}
+
+void CUpdateServersDlg::ApplyDcHublistText()
+{
+	CString strTitle;
+	CString strText;
+	::Skin.LoadString( strTitle, IDS_UPDATE_DC_HUBLIST_TITLE );
+	::Skin.LoadString( strText, IDS_UPDATE_DC_HUBLIST_TEXT );
+	if ( ! strTitle.IsEmpty() )
+		SetWindowText( strTitle );
+	if ( ! strText.IsEmpty() )
+	{
+		if ( CWnd* pText = GetDlgItem( IDC_UPDATE_SERVERS_TEXT ) )
+			pText->SetWindowText( strText );
+	}
 }
 
 BOOL CUpdateServersDlg::IsValidURL()

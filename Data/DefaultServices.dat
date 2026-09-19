@@ -47,9 +47,11 @@ D http://www.emule-server.de/server.met/max/server.met
 D https://www.emule-security.org/server.met
 #D https://www.shortypower.org/server.met
 
-H http://dchublist.com/hublist.xml.bz2
-H http://dchublist.ru/hublist.xml.bz2
-H http://tankafett.biz/?do=hublist&get=hublist.xml.bz2
+H https://dchublist.org/hublist.xml.bz2
+H https://hublist.pwiam.com/hublist.xml.bz2
+H https://dchublist.ru/hublist.xml.bz2
+# http://dchublist.com/hublist.xml.bz2  (HTTP 301 to te-home.net; HTTPS cert fails, 2026-09)
+# http://tankafett.biz/?do=hublist&get=hublist.xml.bz2  (timeout / not a bz2 hublist, 2026-09)
 # http://www.hublista.hu/hublist.xml.bz2
 # http://publichublist.com/?do=hublist.xml.bz2
 # http://openhublist.org
@@ -75,4 +77,4 @@ X http://gwc.gofoxy.net:2108/gwc/cgi-bin/fc
 # Test: http://cache.getenvy.com/cachechu/?get=1&net=gnutella2&client=TEST1.0
 # Latest version at http://sourceforge.net/p/getenvy/code/HEAD/tree/trunk/Data/DefaultServices.dat
 #
-# Last updated January 2025
+# Last updated September 2026 (DC hublist URLs only)

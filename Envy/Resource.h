@@ -764,6 +764,7 @@
 #define IDC_URL_URN_TITLE               1671
 #define IDC_URL_URN_VALUE               1672
 #define IDC_URL                         1674
+#define IDC_UPDATE_SERVERS_TEXT         1749
 #define IDC_URN_SHA1                    1675
 #define IDC_URN_TIGER                   1676
 #define IDC_URN_ED2K                    1677
@@ -1583,6 +1584,8 @@
 #define IDS_WIZARD_SHARE_ALREADY        20897
 #define IDS_WIZARD_SHARE_CONFIRM        20898
 #define IDS_WIZARD_YEARS_OLD            20899
+#define IDS_UPDATE_DC_HUBLIST_TITLE     20900
+#define IDS_UPDATE_DC_HUBLIST_TEXT      20901
 #define ID_TAB_HOME                     40001
 #define ID_TAB_CONNECT                  40002
 #define ID_TAB_TRANSFERS                40003
