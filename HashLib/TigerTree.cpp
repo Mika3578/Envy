@@ -677,16 +677,16 @@ namespace
 
 
 CTigerTree::CTigerTree()
-	: m_pNode		( NULL )
-	, m_nNodeCount	( 0 )
-	, m_nHeight		( 0 )
-	, m_nNodeBase	( 0 )
-	, m_nNodePos	( 0 )
-	, m_nBaseUsed	( 0 )
-	, m_nBlockCount	( 0 )
-	, m_nBlockPos	( 0 )
-	, m_pStackBase	( NULL )
-	, m_pStackTop	( NULL )
+    : m_pNode(NULL)
+    , m_nNodeCount(0)
+    , m_nHeight(0)
+    , m_nNodeBase(0)
+    , m_nNodePos(0)
+    , m_nBaseUsed(0)
+    , m_nBlockCount(0)
+    , m_nBlockPos(0)
+    , m_pStackBase(NULL)
+    , m_pStackTop(NULL)
 {
 	InitializeCriticalSection( &m_pSection );
 }
