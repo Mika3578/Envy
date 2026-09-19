@@ -93,12 +93,25 @@ runs:
         Write-Host "Triplet=$triplet"
         & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install --triplet=$triplet
 
+    # Measured 2026-09-19 on windows-2025-vs2026: nuget restore prints
+    # "Nothing to do" and still costs ~22s. Skip unless a packages.config
+    # exists outside third-party trees (Services/, HashLib/HashLib/, and
+    # Plugins/{PluginWizard,RatDVDPlugin,SWFPlugin}).
     - name: Restore NuGet packages (if any)
       shell: pwsh
       run: |
-        if (Test-Path "Visual Studio\Envy.sln") {
-          nuget restore "Visual Studio\Envy.sln" -NonInteractive 2>$null
+        $packages = @(Get-ChildItem -Path . -Recurse -Filter packages.config -File -ErrorAction SilentlyContinue |
+          Where-Object {
+            $_.FullName -notmatch '\\.git\\' -and
+            $_.FullName -notmatch '\\(Services|HashLib\\HashLib)\\' -and
+            $_.FullName -notmatch '\\Plugins\\(PluginWizard|RatDVDPlugin|SWFPlugin)\\'
+          })
+        if ($packages.Count -eq 0) {
+          Write-Host "No first-party packages.config found; skipping nuget restore (~22s saved)."
+          exit 0
         }
+        Write-Host "Found packages.config:$([Environment]::NewLine)$(($packages | ForEach-Object FullName) -join [Environment]::NewLine)"
+        nuget restore "Visual Studio\Envy.sln" -NonInteractive
       continue-on-error: true
 
     - name: Export effective PlatformToolset
@@ -142,15 +155,18 @@ runs:
         )
         "%EXE%"
 
+    # On pull_request, upload logs only after failure (green PRs still paid
+    # ~2s + artifact storage for unused logs). Push/dispatch keep always-on
+    # retention for post-merge triage.
     - name: Upload build logs
-      if: ${{ always() && inputs.upload-logs == 'true' }}
+      if: ${{ always() && inputs.upload-logs == 'true' && (github.event_name != 'pull_request' || failure()) }}
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6
       with:
         name: build-logs-${{ inputs.platform }}-${{ inputs.configuration }}
         path: |
           build-*.log
         if-no-files-found: ignore
-        retention-days: 14
+        retention-days: ${{ github.event_name == 'pull_request' && 7 || 14 }}
 
     - name: Surface build errors to step summary and PR comment
       if: ${{ failure() && github.event_name == 'pull_request' }}
