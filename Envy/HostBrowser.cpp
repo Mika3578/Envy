@@ -197,8 +197,8 @@ BOOL CHostBrowser::Browse()
 			const CStringA sHubIp(inet_ntoa(m_pAddress));
 			std::string sUrl;
 			if (!DcFormatFileListUrl(static_cast<const char*>(sNickUtf8),
-			                        static_cast<const char*>(sHubIp),
-			                        static_cast<unsigned>(m_nPort), sUrl))
+			                         static_cast<const char*>(sHubIp),
+			                         static_cast<unsigned>(m_nPort), sUrl))
 			{
 				theApp.Message(MSG_NOTICE, IDS_BROWSE_CANT_CONNECT_TO, (LPCTSTR)m_sAddress);
 				return FALSE;
@@ -523,8 +523,8 @@ BOOL CHostBrowser::OnNewFile(const CLibraryFile* pFile)
 		}
 
 		if (m_pNotify && DcBrowseShareTreeNeeded(
-		        oHitPaths.IsEmpty() ? NULL : static_cast<const void*>(&oHitPaths),
-		        !oFolders.IsEmpty()))
+		                     oHitPaths.IsEmpty() ? NULL : static_cast<const void*>(&oHitPaths),
+		                     !oFolders.IsEmpty()))
 			m_pNotify->OnDcShareTree(oHitPaths, oHitIndices, oFolders);
 		if (pHits != NULL)
 			OnQueryHits(pHits);
@@ -582,7 +582,7 @@ BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits, CStringList* pFold
 	std::vector<DcFileListEntry> oEntries;
 	std::vector<std::string> oFolderUtf8;
 	const DcFileListStatus nSt = DcParseFileListingXml(
-		reinterpret_cast<const char*>(pBuffer.m_pBuffer), pBuffer.m_nLength, oEntries, &oFolderUtf8);
+	    reinterpret_cast<const char*>(pBuffer.m_pBuffer), pBuffer.m_nLength, oEntries, &oFolderUtf8);
 	if (nSt != dcFileListOk)
 		return FALSE;
 
