@@ -96,9 +96,10 @@
       <AdditionalLibraryDirectories>$(CrashProbeLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>advapi32.lib;dbghelp.lib;rpcrt4.lib;version.lib;winhttp.lib;shell32.lib;user32.lib;ole32.lib;crypt32.lib;wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalDependencies Condition="'$(CrashProbeBackend)'!='sentry'">vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;vcpkg_crashpad_base.lib;$(CrashProbeZlib);%(AdditionalDependencies)</AdditionalDependencies>
-      <!-- Sentry Native's crashpad backend needs the Crashpad static libs plus
-           synchronization.lib (WaitOnAddress / WakeByAddressSingle). -->
-      <AdditionalDependencies Condition="'$(CrashProbeBackend)'=='sentry'">sentry.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;vcpkg_crashpad_base.lib;$(CrashProbeZlib);synchronization.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <!-- Sentry Native vendors Crashpad (crashpad_client / crashpad_util /
+           mini_chromium), not the vcpkg_crashpad_* import names. WaitOnAddress
+           lives in synchronization.lib. Option B / workflow_dispatch only. -->
+      <AdditionalDependencies Condition="'$(CrashProbeBackend)'=='sentry'">sentry.lib;crashpad_client.lib;crashpad_util.lib;mini_chromium.lib;$(CrashProbeZlib);synchronization.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

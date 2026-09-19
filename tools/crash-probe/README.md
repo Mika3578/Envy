@@ -30,6 +30,10 @@ lib directory explicitly. VS 2026 MSBuild vcpkg integration does not reliably
 inject those paths for this standalone project. Link `zs.lib` (debug `zsd.lib`);
 this vcpkg baseline does not install `zlib.lib` on `*-windows-static`.
 
+Product Crashpad links `vcpkg_crashpad_*.lib`. Sentry Native Option B vendors
+Crashpad as `crashpad_client.lib` / `crashpad_util.lib` / `mini_chromium.lib`
+plus `synchronization.lib` (`WaitOnAddress`). Do not mix those import names.
+
 Copy `crashpad_handler.exe` (and any `crashpad_wer*.dll`) next to
 `CrashProbe.exe`, then:
 
