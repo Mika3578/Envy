@@ -415,7 +415,7 @@ static bool test_bt_ut_metadata_size_at_max()
 
 static bool test_bt_ut_metadata_size_over_max()
 {
-	return BtUtMetadataSizeOk( BT_UT_METADATA_MAX + 1 ) == FALSE;
+	return BtUtMetadataSizeOk(BT_UT_METADATA_MAX + 1) == FALSE;
 }
 
 static bool test_bt_mse_ia_length_ok()
@@ -637,37 +637,37 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test("g2_subpacket_payload_fits", test_g2_subpacket_payload_fits);
 	suite.add_test("g2_frame_length_fits", test_g2_frame_length_fits);
 
-	suite.add_test( "g1_deflate_truncated_marker", test_g1_deflate_truncated_marker_only );
-	suite.add_test( "g1_deflate_marker_no_payload", test_g1_deflate_marker_no_payload );
-	suite.add_test( "g1_deflate_min_payload", test_g1_deflate_min_compressed_byte );
+	suite.add_test("g1_deflate_truncated_marker", test_g1_deflate_truncated_marker_only);
+	suite.add_test("g1_deflate_marker_no_payload", test_g1_deflate_marker_no_payload);
+	suite.add_test("g1_deflate_min_payload", test_g1_deflate_min_compressed_byte);
 	suite.add_test("g1_deflate_xml_inflate_ok", test_g1_deflate_xml_inflate_ok);
 	suite.add_test("g1_packet_total_length_ok", test_g1_packet_total_length_ok);
 	suite.add_test("g1_queryhit_xml_fits_exact", test_g1_queryhit_xml_fits_exact);
 	suite.add_test("g1_queryhit_xml_fits_zero", test_g1_queryhit_xml_fits_zero);
 	suite.add_test("g1_queryhit_xml_oversized", test_g1_queryhit_xml_oversized);
 
-	suite.add_test( "ggep_h_length_zero", test_ggep_h_length_zero );
-	suite.add_test( "ggep_m_length_zero", test_ggep_m_length_zero );
-	suite.add_test( "ggep_h_type_byte_present", test_ggep_h_valid_type_byte );
-	suite.add_test( "ggep_h_sha1_sized", test_ggep_h_valid_sha1_sized );
+	suite.add_test("ggep_h_length_zero", test_ggep_h_length_zero);
+	suite.add_test("ggep_m_length_zero", test_ggep_m_length_zero);
+	suite.add_test("ggep_h_type_byte_present", test_ggep_h_valid_type_byte);
+	suite.add_test("ggep_h_sha1_sized", test_ggep_h_valid_sha1_sized);
 
-	suite.add_test( "ed2k_preview_frame_exact", test_ed2k_preview_normal_frame );
-	suite.add_test( "ed2k_preview_frame_too_large", test_ed2k_preview_frame_exceeds_remaining );
-	suite.add_test( "ed2k_preview_frame_high_bit", test_ed2k_preview_frame_high_bit );
-	suite.add_test( "ed2k_preview_frame_max_uint", test_ed2k_preview_frame_max_uint_vs_zero );
-	suite.add_test( "bencode_depth_ok_zero", test_bencode_depth_ok_zero );
-	suite.add_test( "bencode_depth_ok_max", test_bencode_depth_ok_max );
-	suite.add_test( "bencode_depth_over_max", test_bencode_depth_over_max );
-	suite.add_test( "parse_int64_bounded_normal", test_parse_int64_bounded_normal );
-	suite.add_test( "parse_int64_bounded_negative", test_parse_int64_bounded_negative );
-	suite.add_test( "parse_int64_bounded_overflow", test_parse_int64_bounded_overflow );
-	suite.add_test( "parse_int64_bounded_min", test_parse_int64_bounded_min );
-	suite.add_test( "ed2k_preview_acceptable_normal", test_ed2k_preview_acceptable_normal );
-	suite.add_test( "ed2k_preview_acceptable_zero", test_ed2k_preview_acceptable_zero );
-	suite.add_test( "ed2k_preview_acceptable_over_cap", test_ed2k_preview_acceptable_over_cap );
-	suite.add_test( "ed2k_preview_acceptable_at_cap", test_ed2k_preview_acceptable_at_cap );
-	suite.add_test( "ed2k_tag_blob_bounds", test_ed2k_tag_blob_bounds );
-	suite.add_test( "ed2k_tag_string_bounds", test_ed2k_tag_string_bounds );
+	suite.add_test("ed2k_preview_frame_exact", test_ed2k_preview_normal_frame);
+	suite.add_test("ed2k_preview_frame_too_large", test_ed2k_preview_frame_exceeds_remaining);
+	suite.add_test("ed2k_preview_frame_high_bit", test_ed2k_preview_frame_high_bit);
+	suite.add_test("ed2k_preview_frame_max_uint", test_ed2k_preview_frame_max_uint_vs_zero);
+	suite.add_test("bencode_depth_ok_zero", test_bencode_depth_ok_zero);
+	suite.add_test("bencode_depth_ok_max", test_bencode_depth_ok_max);
+	suite.add_test("bencode_depth_over_max", test_bencode_depth_over_max);
+	suite.add_test("parse_int64_bounded_normal", test_parse_int64_bounded_normal);
+	suite.add_test("parse_int64_bounded_negative", test_parse_int64_bounded_negative);
+	suite.add_test("parse_int64_bounded_overflow", test_parse_int64_bounded_overflow);
+	suite.add_test("parse_int64_bounded_min", test_parse_int64_bounded_min);
+	suite.add_test("ed2k_preview_acceptable_normal", test_ed2k_preview_acceptable_normal);
+	suite.add_test("ed2k_preview_acceptable_zero", test_ed2k_preview_acceptable_zero);
+	suite.add_test("ed2k_preview_acceptable_over_cap", test_ed2k_preview_acceptable_over_cap);
+	suite.add_test("ed2k_preview_acceptable_at_cap", test_ed2k_preview_acceptable_at_cap);
+	suite.add_test("ed2k_tag_blob_bounds", test_ed2k_tag_blob_bounds);
+	suite.add_test("ed2k_tag_string_bounds", test_ed2k_tag_string_bounds);
 	suite.add_test("ed2k_unknown_tag_string_skip", test_ed2k_unknown_tag_string_skip);
 	suite.add_test("ed2k_file_comment_bounds", test_ed2k_file_comment_bounds);
 	suite.add_test("ed2k_ed_string_header", test_ed2k_ed_string_header);
@@ -676,12 +676,12 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test("ed2k_ed_string_truncated_prefix_gate", test_ed2k_ed_string_truncated_prefix_gate);
 	suite.add_test("ed2k_server_message_length", test_ed2k_server_message_length);
 	suite.add_test("ed2k_tag_uint64_remaining", test_ed2k_tag_uint64_remaining);
-	suite.add_test( "ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds );
+	suite.add_test("ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds);
 	suite.add_test("ed2k_chat_message_bounds", test_ed2k_chat_message_bounds);
-	suite.add_test( "bt_ut_metadata_size_ok", test_bt_ut_metadata_size_ok );
+	suite.add_test("bt_ut_metadata_size_ok", test_bt_ut_metadata_size_ok);
 	suite.add_test("bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero);
-	suite.add_test( "bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max );
-	suite.add_test( "bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max );
+	suite.add_test("bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max);
+	suite.add_test("bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max);
 	suite.add_test("bt_mse_ia_length_ok", test_bt_mse_ia_length_ok);
 	suite.add_test("bt_mse_pad_length_ok", test_bt_mse_pad_length_ok);
 	suite.add_test("bt_source_response_no_delete_packet_owned_root", test_bt_source_response_no_delete_packet_owned_root);

@@ -739,7 +739,8 @@ bool CBTCrypto::SendResponderCryptoSelect(CBuffer* pOutput)
 	return true;
 }
 
-void CBTCrypto::Encrypt(BYTE* pData, size_t nLength) {
+void CBTCrypto::Encrypt(BYTE* pData, size_t nLength)
+{
 	if (m_nState == MSE_ACTIVE && m_nCryptoMethod == MSE_CRYPTO_RC4)
 		m_rc4Encrypt.Process(pData, nLength);
 }
