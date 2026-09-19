@@ -64,4 +64,9 @@ protected:
 	BOOL	StartNextRequest();
 	BOOL	DispatchNextChunk();
 	BOOL	CheckFinishedRequest();
+	// Build SENDINGPART / SENDINGPART_I64 header (hash + start/end); caller appends payload.
+	CEDPacket* MakeSendingPartPacket(QWORD nOffset, QWORD nEndExclusive, bool bI64) const;
+	// Write COMPRESSEDPART / COMPRESSEDPART_I64 header fields after New().
+	void WriteCompressedPartHeader(CEDPacket* pPacket, QWORD nOffset, DWORD nCompressedTotal, bool bI64) const;
+	void AdvanceUploadPosition(QWORD nSourceBytes, QWORD& nPacketRemain);
 };

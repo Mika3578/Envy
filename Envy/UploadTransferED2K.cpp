@@ -572,6 +572,60 @@ BOOL CUploadTransferED2K::StartNextRequest()
 }
 
 //////////////////////////////////////////////////////////////////////
+// CUploadTransferED2K part packet helpers
+
+CEDPacket* CUploadTransferED2K::MakeSendingPartPacket(QWORD nOffset, QWORD nEndExclusive, bool bI64) const
+{
+	CEDPacket* pPacket;
+	if (bI64)
+	{
+		pPacket = CEDPacket::New(ED2K_C2C_SENDINGPART_I64, ED2K_PROTOCOL_EMULE);
+		if (!pPacket)
+			return NULL;
+		pPacket->Write(m_oED2K);
+		pPacket->WriteLongLE(nOffset & 0x00000000ffffffffull);
+		pPacket->WriteLongLE((nOffset >> 32) & 0xffffffffull);
+		pPacket->WriteLongLE(nEndExclusive & 0x00000000ffffffffull);
+		pPacket->WriteLongLE((nEndExclusive >> 32) & 0xffffffffull);
+	}
+	else
+	{
+		pPacket = CEDPacket::New(ED2K_C2C_SENDINGPART);
+		if (!pPacket)
+			return NULL;
+		pPacket->Write(m_oED2K);
+		pPacket->WriteLongLE((DWORD)nOffset);
+		pPacket->WriteLongLE((DWORD)nEndExclusive);
+	}
+	return pPacket;
+}
+
+void CUploadTransferED2K::WriteCompressedPartHeader(CEDPacket* pPacket, QWORD nOffset,
+                                                    DWORD nCompressedTotal, bool bI64) const
+{
+	ASSERT(pPacket != NULL);
+	pPacket->Write(m_oED2K);
+	if (bI64)
+	{
+		pPacket->WriteLongLE(nOffset & 0x00000000ffffffffull);
+		pPacket->WriteLongLE((nOffset >> 32) & 0xffffffffull);
+	}
+	else
+	{
+		pPacket->WriteLongLE((DWORD)nOffset);
+	}
+	pPacket->WriteLongLE(nCompressedTotal);
+}
+
+void CUploadTransferED2K::AdvanceUploadPosition(QWORD nSourceBytes, QWORD& nPacketRemain)
+{
+	nPacketRemain -= nSourceBytes;
+	m_nPosition += nSourceBytes;
+	m_nUploaded += nSourceBytes;
+	ChargeFairUseBody(nSourceBytes);
+}
+
+//////////////////////////////////////////////////////////////////////
 // CUploadTransferED2K chunk dispatch
 
 BOOL CUploadTransferED2K::DispatchNextChunk()
@@ -659,17 +713,7 @@ BOOL CUploadTransferED2K::DispatchNextChunk()
 							if (!pCompPacket)
 								return FALSE;
 
-							pCompPacket->Write(m_oED2K);
-							if (bI64Offset)
-							{
-								pCompPacket->WriteLongLE(nOffset & 0x00000000ffffffffull);
-								pCompPacket->WriteLongLE((nOffset >> 32) & 0xffffffffull);
-							}
-							else
-							{
-								pCompPacket->WriteLongLE((DWORD)nOffset);
-							}
-							pCompPacket->WriteLongLE(nCompressedTotal);
+							WriteCompressedPartHeader(pCompPacket, nOffset, nCompressedTotal, bI64Offset);
 
 							BYTE* pOut = pCompPacket->WriteGetPointer(nWireChunk);
 							if (!pOut)
@@ -684,10 +728,7 @@ BOOL CUploadTransferED2K::DispatchNextChunk()
 							nRemain -= nWireChunk;
 						}
 
-						nPacket -= nSourceLen;
-						m_nPosition += nSourceLen;
-						m_nUploaded += nSourceLen;
-						ChargeFairUseBody(nSourceLen);
+						AdvanceUploadPosition(nSourceLen, nPacket);
 						bChunkHandled = TRUE;
 					}
 				}
@@ -696,27 +737,9 @@ BOOL CUploadTransferED2K::DispatchNextChunk()
 			if (!bChunkHandled)
 			{
 				// eMule/aMule fallback: SENDINGPART with already-read source bytes.
-				CEDPacket* pPacket;
-				if (bI64Offset)
-				{
-					pPacket = CEDPacket::New(ED2K_C2C_SENDINGPART_I64, ED2K_PROTOCOL_EMULE);
-					if (!pPacket)
-						return FALSE;
-					pPacket->Write(m_oED2K);
-					pPacket->WriteLongLE(nOffset & 0x00000000ffffffffull);
-					pPacket->WriteLongLE((nOffset >> 32) & 0xffffffffull);
-					pPacket->WriteLongLE(nEndExclusive & 0x00000000ffffffffull);
-					pPacket->WriteLongLE((nEndExclusive >> 32) & 0xffffffffull);
-				}
-				else
-				{
-					pPacket = CEDPacket::New(ED2K_C2C_SENDINGPART);
-					if (!pPacket)
-						return FALSE;
-					pPacket->Write(m_oED2K);
-					pPacket->WriteLongLE((DWORD)nOffset);
-					pPacket->WriteLongLE((DWORD)nEndExclusive);
-				}
+				CEDPacket* pPacket = MakeSendingPartPacket(nOffset, nEndExclusive, bI64Offset);
+				if (!pPacket)
+					return FALSE;
 
 				BYTE* pOut = pPacket->WriteGetPointer(nSourceLen);
 				if (!pOut)
@@ -727,10 +750,7 @@ BOOL CUploadTransferED2K::DispatchNextChunk()
 				CopyMemory(pOut, pSource.get(), nSourceLen);
 				Send(pPacket);
 
-				nPacket -= nSourceLen;
-				m_nPosition += nSourceLen;
-				m_nUploaded += nSourceLen;
-				ChargeFairUseBody(nSourceLen);
+				AdvanceUploadPosition(nSourceLen, nPacket);
 				bChunkHandled = TRUE;
 			}
 		}
@@ -739,29 +759,9 @@ BOOL CUploadTransferED2K::DispatchNextChunk()
 			continue;
 
 		// Uncompressed SENDINGPART / SENDINGPART_I64 (peer without compression).
-		CEDPacket* pPacket;
-		if ( bI64Offset )
-		{
-			pPacket = CEDPacket::New( ED2K_C2C_SENDINGPART_I64, ED2K_PROTOCOL_EMULE );
-			if ( ! pPacket )
-				return FALSE;
-
-			pPacket->Write( m_oED2K );
-			pPacket->WriteLongLE(nOffset & 0x00000000ffffffffull);
-			pPacket->WriteLongLE((nOffset >> 32) & 0xffffffffull);
-			pPacket->WriteLongLE(nEndExclusive & 0x00000000ffffffffull);
-			pPacket->WriteLongLE((nEndExclusive >> 32) & 0xffffffffull);
-		}
-		else
-		{
-			pPacket = CEDPacket::New( ED2K_C2C_SENDINGPART );
-			if ( ! pPacket )
-				return FALSE;
-
-			pPacket->Write( m_oED2K );
-			pPacket->WriteLongLE((DWORD)nOffset);
-			pPacket->WriteLongLE((DWORD)nEndExclusive);
-		}
+		CEDPacket* pPacket = MakeSendingPartPacket(nOffset, nEndExclusive, bI64Offset);
+		if (!pPacket)
+			return FALSE;
 
 		if ( ! ReadFile( m_nFileBase + nOffset, pPacket->WriteGetPointer( nChunk ), nChunk, &nChunk ) || nChunk == 0 )
 		{
@@ -771,10 +771,7 @@ BOOL CUploadTransferED2K::DispatchNextChunk()
 
 		Send( pPacket );
 
-		nPacket -= nChunk;
-		m_nPosition += nChunk;
-		m_nUploaded += nChunk;
-		ChargeFairUseBody(nChunk);
+		AdvanceUploadPosition(nChunk, nPacket);
 	}
 
 	return TRUE;
