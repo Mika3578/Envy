@@ -577,8 +577,8 @@ BOOL CGGEPItem::Inflate()
 	ASSERT( m_nLength );
 
 	DWORD nCompressed = 0;
-	auto_array< BYTE > pCompressed(
-		CZLib::Decompress( m_pBuffer, m_nLength, &nCompressed, GGEP_INFLATE_MAX ) );
+	auto_array<BYTE> pCompressed(
+	    CZLib::Decompress(m_pBuffer, m_nLength, &nCompressed, GGEP_INFLATE_MAX));
 
 	if (!pCompressed.get() || !GgepInflateOutputOk(nCompressed))
 		return FALSE;
