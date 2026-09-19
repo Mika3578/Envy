@@ -721,10 +721,23 @@ bool CQueryHashTable::OnPatch(CPacket* pPacket)
 	if (pPacket->m_nPosition > pPacket->m_nLength)
 		return false;
 	const DWORD nAddend = pPacket->m_nLength - pPacket->m_nPosition;
-	if (!QhtPatchCompressedBudgetOk(m_pBuffer->m_nLength, nAddend, nExpected))
+	if (nCompression == 1)
 	{
-		m_pBuffer->Clear();
-		return false;
+		if (!QhtPatchCompressedBudgetOk(m_pBuffer->m_nLength, nAddend, nExpected))
+		{
+			m_pBuffer->Clear();
+			return false;
+		}
+	}
+	else
+	{
+		// Uncompressed patches must not exceed the exact expected size.
+		if (nExpected == 0 || m_pBuffer->m_nLength >= nExpected
+			|| nAddend > nExpected - m_pBuffer->m_nLength)
+		{
+			m_pBuffer->Clear();
+			return false;
+		}
 	}
 
 	m_pBuffer->Add(pPacket->m_pBuffer + pPacket->m_nPosition,
