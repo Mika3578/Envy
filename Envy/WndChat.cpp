@@ -986,6 +986,32 @@ void CChatWnd::DeleteAllUsers()
 	m_wndUsers.DeleteAllItems();
 }
 
+CChatUser* CChatWnd::GetSelectedChatUser()
+{
+	POSITION pos = m_wndUsers.GetFirstSelectedItemPosition();
+	if ( ! pos )
+		return NULL;
+	const int nItem = m_wndUsers.GetNextSelectedItem( pos );
+	if ( nItem < 0 )
+		return NULL;
+	return (CChatUser*)m_wndUsers.GetItemData( nItem );
+}
+
+void CChatWnd::SetComposeText(const CString& sText)
+{
+	m_wndEdit.SetWindowText( sText );
+	const int nLen = sText.GetLength();
+	m_wndEdit.SetSel( nLen, nLen );
+	m_wndEdit.SetFocus();
+}
+
+int CChatWnd::UsersHitTest(CPoint pointScreen)
+{
+	CPoint pt( pointScreen );
+	m_wndUsers.ScreenToClient( &pt );
+	return m_wndUsers.HitTest( pt );
+}
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CChatWnd Legacy  (Obsolete for reference, reimplementation, or deletion)

@@ -38,6 +38,7 @@ public:
 	CStringList		m_oFeatures;	// Remote client supported features
 
 	BOOL			ConnectToMe(const CString& sNick);		// Send $ConnectToMe command
+	BOOL			SendPrivateTo(const CString& sToNick, bool bAction, const CString& sText);
 	void			OnChatOpen(CChatSession* pSession); 	// Chat window was (re)opened
 	CChatUser*		GetUser(const CString& sNick) const;	// Find user
 
@@ -69,6 +70,7 @@ protected:
 	BOOL			OnHubName(CDCPacket* pPacket);			// Got $HubName command
 	BOOL			OnHubTopic(CDCPacket* pPacket);			// Got $HubTopic command
 	BOOL			OnOpList(LPSTR szParams);				// Got $OpList command
+	BOOL			OnNickList(LPSTR szParams);				// Got $NickList command
 	BOOL			OnUserInfo(LPSTR szInfo);				// Got $MyINFO command
 	BOOL			OnUserIP(LPSTR szIP);					// Got $UserIP command
 	BOOL			OnQuit(LPSTR szNick);					// Got $Quit command
