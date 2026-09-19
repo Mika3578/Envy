@@ -22,6 +22,7 @@
 #include "Buffer.h"
 #include "GGEP.h"
 #include "G1Packet.h"
+#include "PacketLengthValidate.h"
 #include "ZLib.h"
 
 #ifdef _DEBUG
@@ -576,9 +577,10 @@ BOOL CGGEPItem::Inflate()
 	ASSERT( m_nLength );
 
 	DWORD nCompressed = 0;
-	auto_array< BYTE > pCompressed( CZLib::Decompress( m_pBuffer, m_nLength, &nCompressed ) );
+	auto_array<BYTE> pCompressed(
+	    CZLib::Decompress(m_pBuffer, m_nLength, &nCompressed, GGEP_INFLATE_MAX));
 
-	if ( ! pCompressed.get() )
+	if (!pCompressed.get() || !GgepInflateOutputOk(nCompressed))
 		return FALSE;
 
 	delete [] m_pBuffer;
