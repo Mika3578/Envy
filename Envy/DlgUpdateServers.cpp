@@ -75,7 +75,9 @@ BOOL CUpdateServersDlg::OnInitDialog()
 	else
 		SkinMe(UpdateServersDlgSkinName(m_nMode), IDR_MAINFRAME);
 
-	if (bDcMode && !bHasDcSkinCaption && !bHasEd2kSkinCaption)
+	// When the DC skin caption is missing (or SkinMe could not apply DC text),
+	// force hublist title/body so the dialog never keeps eDonkey Server.met copy.
+	if (bDcMode && !bHasDcSkinCaption)
 		ApplyDcHublistText();
 
 	// Callers should set m_sURL (and DC mode) before DoModal().
