@@ -107,7 +107,7 @@ public:
 	BOOL				Deflate();
 	// Unzip packed protocol packets. nMaxOutput 0 (or omitted) uses
 	// ED2K_PACKED_INFLATE_MAX (512 KiB); there is no unlimited packed inflate.
-	BOOL				Inflate(DWORD nMaxOutput = ED2K_PACKED_INFLATE_MAX);
+	BOOL Inflate(DWORD nMaxOutput = ED2K_PACKED_INFLATE_MAX);
 
 	virtual void		Reset();
 	virtual	void		ToBuffer(CBuffer* pBuffer, bool bTCP = true);
