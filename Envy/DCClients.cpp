@@ -196,9 +196,11 @@ BOOL CDCClients::ConnectTo(const IN_ADDR* pAddress, WORD nPort, CDCNeighbour* pH
 		return pClient->ConnectTo( pAddress, nPort );
 	}
 
-	// Create new one
+	// Create new one (caller must hold Network when using Neighbours; we already
+	// have the live hub — copy its NMDC code page without a Neighbours lookup).
 	if ( CDCClient* pClient = new CDCClient( &pHub->m_pHost.sin_addr, ntohs( pHub->m_pHost.sin_port ), pHub->m_sNick, sRemoteNick ) )
 	{
+		pClient->m_nCodePage = pHub->m_nCodePage;
 		return pClient->ConnectTo( pAddress, nPort );
 	}
 
@@ -232,7 +234,18 @@ BOOL CDCClients::Connect(const IN_ADDR* pHubAddress, WORD nHubPort, const CStrin
 	}
 
 	if ( ! pClient )
+	{
 		pClient = new CDCClient( pHubAddress, nHubPort, NULL, sRemoteNick );
+		if ( pClient )
+		{
+			// Network.m_pSection is held above — safe to resolve live hub encoding.
+			if ( CNeighbour* pNeighbour = Neighbours.Get( *pHubAddress ) )
+			{
+				if ( pNeighbour->m_nProtocol == PROTOCOL_DC )
+					pClient->m_nCodePage = static_cast< CDCNeighbour* >( pNeighbour )->m_nCodePage;
+			}
+		}
+	}
 	if ( ! pClient )
 		return FALSE;	// Out of memory
 

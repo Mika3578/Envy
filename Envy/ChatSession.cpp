@@ -38,6 +38,7 @@
 #include "EDClient.h"
 #include "EDClients.h"
 #include "Network.h"
+#include "HostCache.h"
 #include "Transfers.h"
 #include "ImageFile.h"
 #include "Buffer.h"
@@ -612,10 +613,21 @@ namespace
 UINT ChatSessionDcCodePage(const SOCKADDR_IN& host)
 {
 	UINT nCodePage = Settings.DC.CodePage;
-	if (CNeighbour* pNeighbour = Neighbours.Get(host.sin_addr))
+	if (CHostCacheHostPtr pServer = HostCache.DC.Find(&host.sin_addr))
 	{
-		if (pNeighbour->m_nProtocol == PROTOCOL_DC)
-			nCodePage = static_cast<CDCNeighbour*>(pNeighbour)->m_nCodePage;
+		if (pServer->m_nCodePage != 0)
+			return pServer->m_nCodePage;
+	}
+
+	// Neighbours.Get requires Network.m_pSection; chat RX may not hold it.
+	CSingleLock pLock(&Network.m_pSection);
+	if (pLock.Lock(250))
+	{
+		if (CNeighbour* pNeighbour = Neighbours.Get(host.sin_addr))
+		{
+			if (pNeighbour->m_nProtocol == PROTOCOL_DC)
+				nCodePage = static_cast<CDCNeighbour*>(pNeighbour)->m_nCodePage;
+		}
 	}
 	return nCodePage;
 }

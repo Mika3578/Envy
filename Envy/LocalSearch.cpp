@@ -717,10 +717,19 @@ void CLocalSearch::AddHitDC(CDCPacket* pPacket, CSchemaMap& /*pSchemas*/, CLibra
 		if (pServer->m_nCodePage != 0)
 			nCodePage = pServer->m_nCodePage;
 	}
-	else if (CNeighbour* pNeighbour = Neighbours.Get(m_pEndpoint.sin_addr))
+	else
 	{
-		if (pNeighbour->m_nProtocol == PROTOCOL_DC)
-			nCodePage = static_cast<CDCNeighbour*>(pNeighbour)->m_nCodePage;
+		// Library may already be held (ExecuteSharedFiles); Library ? Network
+		// matches DispatchPacket. Timed lock avoids stalling hit assembly.
+		CSingleLock oNetworkLock(&Network.m_pSection);
+		if (oNetworkLock.Lock(250))
+		{
+			if (CNeighbour* pNeighbour = Neighbours.Get(m_pEndpoint.sin_addr))
+			{
+				if (pNeighbour->m_nProtocol == PROTOCOL_DC)
+					nCodePage = static_cast<CDCNeighbour*>(pNeighbour)->m_nCodePage;
+			}
+		}
 	}
 
 	CBuffer pAnswer;
