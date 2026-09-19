@@ -512,7 +512,7 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 		WORD padDLen;
 		memcpy(&padDLen, padDLenBuf, 2);
 
-		if ( ! BtMsePadLengthOk( padDLen ) )
+		if (!BtMsePadLengthOk(padDLen))
 		{
 			theApp.Message(MSG_WARNING, L"[BT-MSE] Pad_D length exceeds MSE_PAD_MAX_LEN");
 			m_nState = MSE_FAILED;
@@ -633,7 +633,7 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 		WORD padCLen;
 		memcpy(&padCLen, padCLenBuf, 2);
 
-		if ( ! BtMsePadLengthOk( padCLen ) )
+		if (!BtMsePadLengthOk(padCLen))
 		{
 			theApp.Message(MSG_WARNING, L"[BT-MSE] Pad_C length exceeds MSE_PAD_MAX_LEN");
 			m_nState = MSE_FAILED;

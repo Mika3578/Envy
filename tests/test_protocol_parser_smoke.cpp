@@ -457,9 +457,7 @@ static bool test_bt_ut_metadata_size_over_max()
 
 static bool test_bt_mse_pad_length_ok()
 {
-	return BtMsePadLengthOk( 0 ) == TRUE
-		&& BtMsePadLengthOk( BT_MSE_PAD_MAX ) == TRUE
-		&& BtMsePadLengthOk( static_cast< WORD >( BT_MSE_PAD_MAX + 1 ) ) == FALSE;
+	return BtMsePadLengthOk(0) == TRUE && BtMsePadLengthOk(BT_MSE_PAD_MAX) == TRUE && BtMsePadLengthOk(static_cast<WORD>(BT_MSE_PAD_MAX + 1)) == FALSE;
 }
 
 static bool test_bt_source_response_no_delete_packet_owned_root()
@@ -763,7 +761,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero );
 	suite.add_test( "bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max );
 	suite.add_test( "bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max );
-	suite.add_test( "bt_mse_pad_length_ok", test_bt_mse_pad_length_ok );
+	suite.add_test("bt_mse_pad_length_ok", test_bt_mse_pad_length_ok);
 	suite.add_test( "bt_source_response_no_delete_packet_owned_root", test_bt_source_response_no_delete_packet_owned_root );
 
 	suite.add_test("cbuffer_unbzip_bounds", test_cbuffer_unbzip_bounds);
