@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-18
+- **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #81/#82: Browse Host HTTP peer `Content-Length` / buffered body capped at 32 MiB (`HostBrowserHttpBodyOk` / `HostBrowserHttpBufferOk`); strict decimal Content-Length; InflateStreamTo output cap on deflate path.
 - **Changelog Entry:** 2026-09-18 — #82: wire-path ED2K `ED2K_TAG_BLOB` uses `Ed2kTagBlobLengthOk` (4 MiB + remaining), matching `.met` policy.
 - **Changelog Entry:** 2026-09-18 — Format Check: encoding-safe `clang-format-diff-safe` wrapper so ISO-8859 Envy sources do not UnicodeDecodeError under stock clang-format-diff.
 - **Changelog Entry:** 2026-09-18 — #92: remove erroneous `delete pRoot` in BT `OnSourceResponse` (packet-owned `m_pNode`); null-check `GetNode("peers")` and nested peer fields before `IsType`.
