@@ -27,7 +27,7 @@ Canonical companions:
 | Headless / EnvyCore | Not extracted; planned under #161 |
 | Protocol test seam | Planned under #91 (parsers/state machines without MFC windows) |
 | IPv6 | Helpers exist; core connection path still IPv4-centric (#89, `docs/ipv6/`) |
-| Remote/Web | Limited control surface; not a portable headless API |
+| Remote/Web | Limited HTML control surface on the P2P HTTP port; not a portable headless API (`docs/20_arch/remote-api.md`) |
 
 Network code still depends heavily on Winsock / Win32 / MFC synchronization (`WSAStartup`, async DNS tied to `HWND` patterns, `SOCKADDR_IN`, `HANDLE`, SEH). That is expected for the current product; it is **debt to bound**, not something this plan rewrites now.
 

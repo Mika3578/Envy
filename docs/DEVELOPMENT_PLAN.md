@@ -7,6 +7,7 @@
 - **Changelog Entry:** 2026-09-19 — Debug assert fix: NMDC code-page `Neighbours.Get` paths take `Network.m_pSection` (or copy from live hub); regression from #224.
 - **Changelog Entry:** 2026-09-19 — #234: SonarCloud develop QG remediation — job-scoped GHA permissions, Remote CSP/label alignment, `.sonarcloud.properties` third-party exclusions (`docs/10_dev/sonarcloud-exclusions.md`).
 - **Changelog Entry:** 2026-09-19 — #224: NMDC text uses per-hub/settings code page (`DcNmdcText.h`, default CP_ACP; invalid pages fall back to ACP); HostCache ser v2 `m_nCodePage` + `SetNmdcCodePage` (favorites UI later); ADC unchanged.
+- **Changelog Entry:** 2026-09-19 — Remote API / *arr / Torznab audit: native REST vs qBit subset vs Torznab client; D-017 http.sys inbound + WinINet outbound; D-018 first *arr adapter is a qBittorrent Web API v2 **subset** (not a compatibility claim). `TransferState.h` + EnvyTests; docs `20_arch/AUDIT_REMOTE_API_2026-09.md`, `remote-api.md`, `arr-integration.md`, `torznab.md`, `docs/api/openapi.yaml` (planned).
 - **Changelog Entry:** 2026-09-19 — Uploads Fair-Use is live: `Uploads.FairUseMode` (default off) clips each remote IPv4 client to 10% of an audio/video library file; checkbox bound; HTTP/ED2K/DC consumers; GET/ED2K/DC reserve then charge body bytes; unused reservation rolls back on `ClearRequest`/`Close` (keep-alive HEAD does not burn quota); BitTorrent and partials excluded.
 - **Changelog Entry:** 2026-09-19 — Transfer settings foundation: Uploads page labels match the core (`Unlimited`, throttle Average/Maximum, max uploads per host); `TransferSettingsLimits.h` + EnvyTests; mapping in `docs/50_user/transfer-settings.md`.
 - **Changelog Entry:** 2026-09-19 — Cloud Agent Linux env: add `.cursor/environment.json` installing clang-format-18/clang-tidy (CI-aligned) + cppcheck (local extra) + `Remote/tests` npm deps (MFC/HashLib remain Windows-only).
@@ -255,7 +256,7 @@ Do not mix with metric validation P0. Remaining backlog from the 2026-09 skin di
 
 ### P1 — Headless / API
 
-Evaluate an Envy daemon, CLI, REST or JSON-RPC, remote-control API, interop-test automation, and running without a GUI. References: aMule, eMule Qt, aria2-next, Rucio. Today: MFC GUI plus limited Remote web UI (`docs/API.md`).
+Native versioned REST `/api/v1` (D-017/D-018, 2026-09-19 audit). HTML Remote is not that API. First *arr on-ramp is a **qBittorrent Web API v2 subset**, after transfer services exist — never labelled “qBittorrent-compatible” until tests pass. Torznab is a separate **client**. Tracked: #161 plus [#239](https://github.com/Mika3578/Envy/issues/239) native `/api/v1`, [#240](https://github.com/Mika3578/Envy/issues/240) qBit subset, [#241](https://github.com/Mika3578/Envy/issues/241) Torznab. Today: MFC GUI plus limited Remote web UI.
 
 ### P1/P2 — BitTorrent modernization
 
@@ -369,11 +370,12 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 ## Backlog
 - [ ] Replace unsafe string operations in first-party code (incremental: bounded keyword copy in legacy Kad publish packet builder completed)
 - Consolidate duplicate roadmap/status markdown into canonical set
-- Document remote API implementation status endpoint-by-endpoint
+- [x] Document remote API implementation status endpoint-by-endpoint — 2026-09-19 audit (`docs/20_arch/AUDIT_REMOTE_API_2026-09.md`); OpenAPI remains `planned` until routes are served
 - Add long-running memory/regression test scenario
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-09-19:** Remote automation (D-017, D-018): native REST `/api/v1` as source of truth; inbound API on Windows HTTP Server API (`http.sys`) dedicated port, not `CRemote`/P2P HTTP; outbound Torznab via `CHttpRequest`; first *arr adapter is a qBittorrent Web API v2 **subset**. Details: `docs/20_arch/AUDIT_REMOTE_API_2026-09.md`.
 - **2026-09-18:** Adopt cross-platform foundations (D-012…D-015): EnvyCore + platform abstraction + retained MFC Windows frontend; Linux/macOS `planned` not `supported`; Win32 legacy Stage A only; CMake portable slice prioritized over full-app CMake. Canonical doc: `docs/20_arch/PORTABILITY_PLAN.md`. Open question #1 resolved toward multi-OS **as a long-term target**, with Windows-first delivery.
 - **2026-09-17:** #140 wording: MiniUPnPc 2.0 targeted discovery is one receive phase for requested ST values, not a strict wall-clock SSDP deadline; absolute SSDP and HTTP timeout bounding → [#142](https://github.com/Mika3578/Envy/issues/142) / P3.
 - **2026-09-18:** #166 / D-009 P1 delivered: WFAS `INetFwPolicy2` replaces `INetFwMgr`; application rules on all profiles; UPnP via rule-group enable. Next: P2 LocalPort/ExternalPort.
@@ -411,6 +413,6 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 1. ~~Should this project explicitly remain Windows-only, or is cross-platform parity still a target?~~ **Resolved 2026-09-18 (D-012):** long-term multi-OS via EnvyCore; Windows remains the only supported product OS until Linux/macOS meet support criteria in `PORTABILITY_PLAN.md`. Headless/API still proceeds on Windows first (#161).
 2. What is the acceptable backward-compatibility policy for legacy protocols/features? Working default: preserve G1/G2/DC/BitTorrent; ED2K/Kad changes must remain eMule/aMule-compatible unless versioned as optional Envy extensions.
 3. Which dependency update cadence (monthly/quarterly) is realistic for maintainers?
-4. Should remote API documentation be strict contract-first or implementation-first?
-5. REST versus JSON-RPC for a future Envy daemon API (evaluate against aMule EC, eMule Qt, and aria2-next; no choice yet).
+4. ~~Should remote API documentation be strict contract-first or implementation-first?~~ **Resolved 2026-09-19:** OpenAPI describes **implemented** routes plus explicitly `planned` ones (`x-envy-status`). No fictional served surface. See `docs/api/openapi.yaml`.
+5. ~~REST versus JSON-RPC for a future Envy daemon API?~~ **Resolved 2026-09-19 (D-017/D-018):** native **REST** `/api/v1` (OpenAPI). qBittorrent-shaped REST subset for *arr. Transmission JSON-RPC is not the first adapter. aria2 JSON-RPC is a reference only.
 6. When is Win32 Stage B (drop from user releases) justified relative to Preview/stable channels?

@@ -201,6 +201,7 @@
     <ClCompile Include="test_textctrl_viewport_smoke.cpp" />
     <ClCompile Include="test_bootstrap_catalog_smoke.cpp" />
     <ClCompile Include="test_transfer_settings_limits_smoke.cpp" />
+    <ClCompile Include="test_transfer_state_smoke.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />

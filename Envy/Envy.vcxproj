@@ -1320,6 +1320,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="Ed2kKadSettingsPolicy.h" />
     <ClInclude Include="DcHublistSources.h" />
     <ClInclude Include="TransferSettingsLimits.h" />
+    <ClInclude Include="TransferState.h" />
     <ClInclude Include="SkinEngineP0.h" />
     <ClInclude Include="EDPartImporter.h" />
     <ClInclude Include="Emoticons.h" />

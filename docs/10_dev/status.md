@@ -39,7 +39,9 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 | SecureIdent RSA | not implemented | eMule Community (secondary: aMule) | implemented |
 | IPv6 | partial | eMule AI, eMule Qt, eMule eSE | dual-stack |
 | Headless daemon | not implemented | aMule, eMule Qt, aria2-next | planned |
-| REST / JSON-RPC | partial (Remote web UI) | eMule Qt, aria2-next | planned |
+| REST / JSON-RPC | not implemented (HTML Remote is not this API) | eMule Qt, aria2-next | planned (`/api/v1`, D-017) |
+| qBittorrent Web API subset (*arr) | not implemented | Radarr QBittorrentProxyV2 | planned (D-018; subset only) |
+| Torznab client | not implemented | Prowlarr, Jackett | planned |
 | BitTorrent v1 | implemented | BEPs, aria2-next, libtorrent | preserve / extend |
 | BitTorrent v2 | partial | BEP 52, aria2-next | implemented |
 | Gnutella (G1) | implemented | Envy / Shareaza lineage | preserve |
@@ -91,8 +93,8 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 
 - Envy is an MFC desktop monolith (`docs/ARCHITECTURE.md`). There is no Envy daemon/CLI.
 - MFC is the **Windows frontend**, not the long-term portable core.
-- Remote/Web exists (`Remote/`) with a design-level API note (`docs/API.md`); endpoint-by-endpoint live verification is incomplete.
-- Headless daemon, CLI, and REST/JSON-RPC are **planned** (P1), inspired by aMule, eMule Qt, aria2-next, and Rucio. Migration must be incremental (#91, #161).
+- Remote/Web exists (`Remote/`) as a **partial** HTML control UI on the P2P HTTP port (`docs/API.md`). JSON `/api/*` in `Remote/api-specification.md` is **not served**. Native `/api/v1` is **planned** (D-017). `TransferState.h` is a mapping helper only.
+- Headless daemon, CLI, and REST/JSON-RPC are **planned** (P1), inspired by aMule, eMule Qt, aria2-next, and Rucio. Migration must be incremental (#91, #161). See `docs/20_arch/AUDIT_REMOTE_API_2026-09.md`.
 - Cross-OS product ports are **planned** only; see `docs/20_arch/PORTABILITY_PLAN.md`. Do not document Linux/macOS as supported.
 
 ### Platforms / portability

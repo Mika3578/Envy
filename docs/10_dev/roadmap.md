@@ -211,7 +211,9 @@ Incremental only. References: eMule Qt, aMule, aria2-next, Rucio. No rewrite. Po
 |------|--------|----------|
 | **EnvyCore extraction** | Protocol/transfer/library behind a stable internal API; keep MFC as first frontend (#161). New core APIs avoid MFC/Win32 types (D-013). | P1 |
 | **First-party protocol test seam** | Parsers/state machines without MFC windows (#91); feeds EnvyCore | P1 |
-| **Headless / CLI / RPC** | Evaluate daemon + REST or JSON-RPC; Remote/Web is not that API yet | P1 |
+| **Headless / CLI / RPC** | Native REST `/api/v1` (D-017); HTML Remote is not that API. Audit: `docs/20_arch/AUDIT_REMOTE_API_2026-09.md` | P1 |
+| **\*arr download client** | qBittorrent Web API v2 **subset** after native transfers (D-018). Not “qBittorrent-compatible” until tests | P1/P2 |
+| **Torznab client** | caps + search consumer for Prowlarr/Jackett; not a Torznab server | P2 |
 | **Platform abstraction** | Sockets/DNS/FS/threads/RNG/NAT hooks behind portable interfaces; no mass `#ifdef` | P1 (after seam) |
 | **CMake portable slice** | EnvyCore / parsers / HashLib / tests / headless with MSVC+Clang+GCC; no MFC required | P1 |
 | **CMake for full MFC app** | Extend CMake to main app, services, plugins | Low |

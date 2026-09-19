@@ -10,6 +10,7 @@
 | [status](../10_dev/status.md) | Current implementation state (canonical matrix) |
 | [architecture](../20_arch/architecture.md) | System design |
 | [PORTABILITY_PLAN](../20_arch/PORTABILITY_PLAN.md) | Cross-platform foundations (planned OS targets; EnvyCore / platform / UI) |
+| [remote-api](../20_arch/remote-api.md) | Native API / *arr subset / Torznab client (planned); audit 2026-09 |
 
 ## Planning
 - [roadmap](../10_dev/roadmap.md) · [DEVELOPMENT_PLAN](../DEVELOPMENT_PLAN.md) · [modernization-summary](../10_dev/modernization-summary.md) (historical snapshot)

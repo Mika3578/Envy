@@ -35,3 +35,7 @@
 
 - **HostCache DNS-only BT routers:** shipped `DefaultServers.dat` `B` rows are hostnames. `CHostCacheList::Add` keeps `m_pAddress = INADDR_ANY` until a later resolve. The map is a `std::multimap`, so multiple `0.0.0.0` keys coexist; DHT bootstrap walks `m_HostsTime`. Canonical note: `docs/30_protocols/bootstrap-sources.md`. Do not treat this as a reason to hard-code DHT DNS in C++ (D-012).
 - **Uploads `MaxPerHost` accept vs enforce counts:** `CUploads::AllowMoreTo` treats `nCount <= MaxPerHost` as OK (so `MaxPerHost+1` uploading+queued can be allowed). `CanUploadFileTo` uses `nCount < MaxPerHost`. `EnforcePerHostLimit` also counts `upsPreQueue`. Documented in `docs/50_user/transfer-settings.md`; engine not changed in the transfer-settings foundation PR.
+
+- **Remote `BindAddress` unused:** `Settings.Remote.BindAddress` defaults to `127.0.0.1` (`Settings.cpp`) but no listener binds it. HTML Remote is multiplexed on the P2P HTTP accept path (`CUploads::OnAccept` → `CRemote`). Access control is `CRemoteSecurity::IsRemoteAccessAllowed` (IPv4 only; `::1` is not loopback). Canonical: `docs/20_arch/AUDIT_REMOTE_API_2026-09.md`. Follow-up is a dedicated API port (D-017), not silently trusting this setting.
+
+- **`Remote/api-specification.md` vs C++:** The JSON `/api/downloads` family is design-only. `CRemote::PageSwitch` serves `/remote/*` HTML. Do not treat the spec or `envy-modern.js` as a live contract.
