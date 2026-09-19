@@ -2693,15 +2693,21 @@ BOOL CEDClient::OnAskSharedDirsAnswer(CEDPacket* pPacket)
 		// Read number of directories
 		DWORD nCount = pPacket->ReadLongLE();
 
-		for ( DWORD i = 0; i < nCount; i++ )
+		for (DWORD i = 0; i < nCount; i++)
 		{
 			if (!Ed2kEdStringHeaderOk(pPacket->GetRemaining()))
+			{
+				theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 				break;
+			}
 
 			const DWORD nDirPos = pPacket->m_nPosition;
 			const WORD nDirLen = pPacket->ReadShortLE();
 			if (!Ed2kEdStringPayloadOk(nDirLen, pPacket->GetRemaining()))
+			{
+				theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 				break;
+			}
 			pPacket->m_nPosition = nDirPos;
 
 			// Read directory name
