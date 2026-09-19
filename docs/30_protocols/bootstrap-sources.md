@@ -26,7 +26,7 @@ Status vocabulary: catalogue refresh is **implemented** for the shipped files; r
 | Gnutella2 | implemented (bootstrap) | Independent GWCs (jayl.de, bj.ddns.net, 4octets, trillinux). |
 | DC NMDC | implemented (hublist) | Three HTTPS hublists. `adc://` / `adcs://` skipped until #163. |
 | ADC/ADCS | not implemented | Hublist rows are ignored; do not treat import as ADC support. |
-| BitTorrent DHT | implemented (bootstrap) | `DefaultServers.dat` `B` DNS routers loaded into HostCache. `CDHT::Connect` inserts cached node IDs; if none exist it still resolves `router.bittorrent.com:6881` (same name as the catalogue, not a second IP list). Successful nodes persist in `HostCache.dat`. |
+| BitTorrent DHT | implemented (bootstrap) | `DefaultServers.dat` `B` DNS routers loaded into HostCache. `CDHT::Connect` inserts cached node IDs; if none exist it pings up to 8 HostCache BT catalogue hosts (no extra C++ DNS list). Successful nodes persist in `HostCache.dat`. |
 
 ## Shipped sources (audited 2026-09-18)
 
@@ -92,12 +92,10 @@ Justified runtime / product URLs, **not** P2P bootstrap:
 - `WEB_SITE`, `UPDATE_URL`, `UPDATE_URL_ALT` in `Envy.h` - website and version check
 - Schema `xmlns` and `getenvy.com` copyright comments
 - `BitTorrent.DefaultTracker` - torrent tracker default, not DHT bootstrap
-- `CDHT::Connect` in `Envy/BTPacket.cpp` still resolves `router.bittorrent.com:6881` when HostCache has no DHT node IDs. This is the same cold-start name as Transmission/qBittorrent and as the shipped `B` catalogue row. Expanding that call to ping all catalogue routers requires editing `BTPacket.cpp`, which is ISO-8859-1 (`©` byte 0xA9). GitHub Format Check runs `clang-format-diff-18` in UTF-8 and fails on that file. Do not grow a C++ IP list here; ping HostCache `B` hosts in a follow-up once Format Check can handle Latin-1 sources or the file is encoding-migrated.
 
 ## Follow-ups (not this slice)
 
 - Parser hardening for `server.met` / `nodes.dat` / hublist BZip2 / GWC (size, inflate, entry caps) — P0 potential; see #82 and related importer PRs
-- Ping HostCache `B` catalogue routers from `CDHT::Connect` once Format Check can handle ISO-8859-1 `BTPacket.cpp` (or that file is encoding-migrated). Do not add a C++ IP list.
 - Kad remote `nodes.dat` type + ImportNodes v2/v3 — only with #86/#160; do not announce Kad complete
 - Last-known-good remote catalogue (async, ETag, atomic replace, never block startup)
 - Scheduled GitHub workflow that **reports** source health and never auto-merges `develop`
