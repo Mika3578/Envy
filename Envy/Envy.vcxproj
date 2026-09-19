@@ -1344,6 +1344,7 @@ call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)
     <ClInclude Include="KadNodesDat.h" />
     <ClInclude Include="Ed2kHelloCapabilities.h" />
     <ClInclude Include="Ed2kCompressedUpload.h" />
+    <ClInclude Include="Ed2kLowIdCallback.h" />
     <ClInclude Include="Ed2kKadSettingsPolicy.h" />
     <ClInclude Include="DcHublistSources.h" />
     <ClInclude Include="TransferSettingsLimits.h" />
