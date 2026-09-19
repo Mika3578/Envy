@@ -694,7 +694,7 @@ BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 				QWORD nOffset = m_nInflateOffset + m_nInflateWritten;
 				QWORD nLength = BUFFER_SIZE - m_pInflatePtr->avail_out;
 
-				if ( ! AcceptCompressedPartChunk( nLength ) )
+				if (!AcceptCompressedPartChunk(nLength))
 					return FALSE;
 
 				m_pDownload->SubmitData( nOffset, pBuffer.get(), nLength );
@@ -1040,18 +1040,19 @@ bool CDownloadTransferED2K::SendFragmentRequests()
 
 BOOL CDownloadTransferED2K::AcceptCompressedPartChunk(QWORD nChunkLength)
 {
-	const QWORD nFileSize = ( m_pDownload->m_nSize == SIZE_UNKNOWN )
-		? ~0ull : m_pDownload->m_nSize;
+	const QWORD nFileSize = (m_pDownload->m_nSize == SIZE_UNKNOWN)
+	                            ? ~0ull
+	                            : m_pDownload->m_nSize;
 	const QWORD nMaxUncompressed = Ed2kCompressedPartInflateBudget(
-		nFileSize, m_nInflateOffset );
-	if ( Ed2kCompressedPartInflateOk( m_nInflateWritten + nChunkLength, nMaxUncompressed ) )
+	    nFileSize, m_nInflateOffset);
+	if (Ed2kCompressedPartInflateOk(m_nInflateWritten + nChunkLength, nMaxUncompressed))
 		return TRUE;
 
-	CBuffer::InflateStreamCleanup( m_pInflatePtr );
+	CBuffer::InflateStreamCleanup(m_pInflatePtr);
 	m_pInflateBuffer->Clear();
-	theApp.Message( MSG_ERROR, IDS_DOWNLOAD_INFLATE_ERROR,
-		(LPCTSTR)m_pDownload->GetDisplayName() );
-	Close( TRI_FALSE );
+	theApp.Message(MSG_ERROR, IDS_DOWNLOAD_INFLATE_ERROR,
+	               (LPCTSTR)m_pDownload->GetDisplayName());
+	Close(TRI_FALSE);
 	return FALSE;
 }
 
@@ -1279,7 +1280,7 @@ BOOL CDownloadTransferED2K::OnCompressedPart64(CEDPacket* pPacket)
 				QWORD nOffset = m_nInflateOffset + m_nInflateWritten;
 				QWORD nLength = BUFFER_SIZE - m_pInflatePtr->avail_out;
 
-				if ( ! AcceptCompressedPartChunk( nLength ) )
+				if (!AcceptCompressedPartChunk(nLength))
 					return FALSE;
 
 				m_pDownload->SubmitData( nOffset, pBuffer.get(), nLength );
