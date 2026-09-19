@@ -2,7 +2,7 @@
 // DcAdcGetValidate.h
 //
 // Pure NMDC $ADCGET / $ADCSND offset and length token predicates.
-// Shared by CDCClient / CDownloadTransferDC and EnvyTests.
+// Shared by CDCClient / CDownloadTransferDC and EnvyTests (#81 / PR).
 //
 // NMDC 1.5: $ADCGET length may be exactly "-1" (until end of file).
 // $ADCSND must announce a real non-negative byte count (-1 is invalid).
