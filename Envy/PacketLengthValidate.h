@@ -52,10 +52,47 @@ inline BOOL G1QueryHitDeflateXmlLengthOk(int nSize)
 	return nSize > 10;
 }
 
+// Cap for G1 QueryHit/G1Packet "{deflate}" XML inflate output (#81 zip-bomb).
+// Aligns with Settings.Gnutella.MaximumPacket upper bound (256 KiB).
+constexpr DWORD G1_DEFLATE_XML_INFLATE_MAX = 256u * 1024u;
+
+inline BOOL G1DeflateXmlInflateOk(DWORD nOutput)
+{
+	return nOutput > 0 && nOutput <= G1_DEFLATE_XML_INFLATE_MAX;
+}
+
+// G1 framing (TCP + UDP): payload length is a signed LONG on the wire (#81).
+// Reject negative payloads and overflow when adding the fixed header size
+// before comparing against Settings.Gnutella.MaximumPacket.
+constexpr DWORD G1_PACKET_HEADER_BYTES = 23u; // sizeof(GNUTELLAPACKET)
+
+inline BOOL G1PacketTotalLengthOk(LONG nPayloadLength, DWORD nMaxTotal)
+{
+	if (nPayloadLength < 0)
+		return FALSE;
+	if (nMaxTotal <= G1_PACKET_HEADER_BYTES)
+		return FALSE;
+	// Legacy ProcessPackets rejects when total >= MaximumPacket (strict <).
+	return static_cast<DWORD>(nPayloadLength) < (nMaxTotal - G1_PACKET_HEADER_BYTES);
+}
+
+inline DWORD G1PacketTotalLength(LONG nPayloadLength)
+{
+	return G1_PACKET_HEADER_BYTES + static_cast<DWORD>(nPayloadLength);
+}
 // GGEP item must expose at least one payload byte before m_pBuffer[0].
 inline BOOL GgepItemHasTypeByte(const BYTE* pBuffer, DWORD nLength)
 {
 	return pBuffer != nullptr && nLength >= 1;
+}
+
+// Absolute cap for GGEP DEFLATE inflate output (#81 zip-bomb).
+// Aligns with Settings.Gnutella.MaximumPacket upper bound (256 KB).
+constexpr DWORD GGEP_INFLATE_MAX = 256u * 1024u;
+
+inline BOOL GgepInflateOutputOk(DWORD nOutput)
+{
+	return nOutput > 0 && nOutput <= GGEP_INFLATE_MAX;
 }
 
 // ED2K preview frame size vs remaining packet bytes — compare unsigned so a
@@ -118,9 +155,9 @@ inline BOOL Ed2kFileCommentLengthOk(DWORD nClaimedLen, DWORD nRemainingAfterHead
 // Wire ED2K_TAG_UINT64 value is a little-endian 64-bit integer (#81).
 constexpr DWORD ED2K_TAG_UINT64_BYTES = 8u;
 
-inline BOOL Ed2kTagUint64RemainingOk(DWORD nRemaining)
+inline BOOL Ed2kTagUint64RemainingOk(ULONGLONG nBytesRemaining)
 {
-	return nRemaining >= ED2K_TAG_UINT64_BYTES;
+	return nBytesRemaining >= ED2K_TAG_UINT64_BYTES;
 }
 
 // ED2K hashset answer: after nBlocks, payload must be exactly nBlocks MD4 digests.
@@ -196,4 +233,129 @@ constexpr std::uint64_t BT_UT_METADATA_MAX = 32ull * 1024ull * 1024ull;
 inline BOOL BtUtMetadataSizeOk(std::uint64_t nSize)
 {
 	return nSize > 0 && nSize <= BT_UT_METADATA_MAX;
+}
+
+// Cap for CBuffer::UnBZip (DC hublist / file listing .bz2) (#81 zip-bomb).
+// Same magnitude as BT_UT_METADATA_MAX / CBUFFER_INFLATE_MAX.
+constexpr DWORD CBUFFER_UNBZIP_MAX = 32u * 1024u * 1024u;
+
+inline BOOL CBufferUnBZipOutputOk(DWORD nOutput)
+{
+	return nOutput > 0 && nOutput <= CBUFFER_UNBZIP_MAX;
+}
+
+inline BOOL CBufferUnBZipInputOk(ULONGLONG nCompressed)
+{
+	return nCompressed > 0 && nCompressed <= CBUFFER_UNBZIP_MAX;
+}
+
+// Cap for CBuffer::Inflate / Ungzip when callers pass nMaxOutput=0 (#81 zip-bomb).
+constexpr DWORD CBUFFER_INFLATE_MAX = 32u * 1024u * 1024u;
+
+inline BOOL CBufferInflateOutputOk(DWORD nOutput)
+{
+	return nOutput > 0 && nOutput <= CBUFFER_INFLATE_MAX;
+}
+
+// Alias for InflateStreamTo backlog checks (Neighbour G1/G2 deflate, HostBrowser).
+constexpr DWORD CBUFFER_INFLATE_STREAM_MAX = CBUFFER_INFLATE_MAX;
+
+inline BOOL CBufferInflateStreamOutputOk(DWORD nOutputLength)
+{
+	return nOutputLength <= CBUFFER_INFLATE_STREAM_MAX;
+}
+
+// Gnutella QHT/QRP patch sizing (#81 zip-bomb).
+// Expected decompressed patch bytes = hash entries packed at nBits per entry.
+inline DWORD QhtPatchExpectedBytes(DWORD nHash, BYTE nBits)
+{
+	if (nBits != 1 && nBits != 4 && nBits != 8)
+		return 0;
+	const DWORD nPerByte = 8u / nBits;
+	if ((nHash % nPerByte) != 0)
+		return 0; // Must pack evenly into whole bytes
+	return nHash / nPerByte;
+}
+
+// Compressed fragment accumulation budget before Inflate. Allow 2x expected
+// plus zlib framing slack so tiny valid stored blocks are not rejected.
+inline BOOL QhtPatchCompressedBudgetOk(DWORD nAccumulated, DWORD nAddend, DWORD nExpected)
+{
+	if (nExpected == 0)
+		return FALSE;
+	DWORD nBudget = (nExpected > (MAXDWORD / 2u)) ? MAXDWORD : (nExpected * 2u);
+	const DWORD nSlack = 64u; // zlib header/trailer + stored-block overhead
+	if (nBudget < MAXDWORD - nSlack)
+		nBudget += nSlack;
+	else
+		nBudget = MAXDWORD;
+	if (nAddend > nBudget)
+		return FALSE;
+	if (nAccumulated > nBudget - nAddend)
+		return FALSE;
+	return TRUE;
+}
+
+// Cap for ED2K EMULE/KAD/REVCONNECT packed-protocol inflate (#81 zip-bomb).
+// New hard cap for EMULE/KAD/REVCONNECT packed inflate (was unlimited when nMaxOutput=0).
+constexpr DWORD ED2K_PACKED_INFLATE_MAX = 512u * 1024u;
+
+inline BOOL Ed2kPackedInflateOk(DWORD nOutput)
+{
+	return nOutput > 0 && nOutput <= ED2K_PACKED_INFLATE_MAX;
+}
+
+// Cap for BitTorrent tracker HTTP announce/scrape response bodies (#81/#82).
+// LimitContentLength stops OnRun from buffering multi-GB gzip/deflate or plain bodies.
+constexpr DWORD BT_TRACKER_HTTP_RESPONSE_MAX = 32u * 1024u * 1024u;
+
+inline BOOL BtTrackerHttpResponseOk(DWORD nLength)
+{
+	return nLength > 0 && nLength <= BT_TRACKER_HTTP_RESPONSE_MAX;
+}
+
+// Cap for Discovery GWC / server-list HTTP response bodies (#81/#82).
+// LimitContentLength stops OnRun from buffering multi-GB hostile discovery URLs.
+constexpr DWORD DISCOVERY_HTTP_RESPONSE_MAX = 32u * 1024u * 1024u;
+
+inline BOOL DiscoveryHttpResponseOk(DWORD nLength)
+{
+	return nLength > 0 && nLength <= DISCOVERY_HTTP_RESPONSE_MAX;
+}
+
+// Cap for Browse Host HTTP response bodies (peer Content-Length / buffered body) (#81/#82).
+constexpr std::uint64_t HOST_BROWSER_HTTP_BODY_MAX = 32ull * 1024ull * 1024ull;
+
+inline BOOL HostBrowserHttpBodyOk(std::uint64_t nLength)
+{
+	// SIZE_UNKNOWN is ~0ull in Envy StdAfx; keep this header MFC-free.
+	return nLength > 0 && nLength != ~0ull && nLength <= HOST_BROWSER_HTTP_BODY_MAX;
+}
+
+inline BOOL HostBrowserHttpBufferOk(std::uint64_t nBuffered)
+{
+	return nBuffered <= HOST_BROWSER_HTTP_BODY_MAX;
+}
+
+// Max uncompressed bytes for one ED2K COMPRESSEDPART stream (#81 zip-bomb).
+// Wire "size" is compressed length; expansion must not exceed one ED2K part
+// (9500 KiB, same as HashLib ED2K_PART_SIZE).
+constexpr std::uint64_t ED2K_COMPRESSEDPART_INFLATE_MAX = 9500ULL * 1024ULL;
+
+// nFileSize == ~0ULL means SIZE_UNKNOWN (no remaining-size clamp). Keep MFC-free.
+inline std::uint64_t Ed2kCompressedPartInflateBudget(std::uint64_t nFileSize,
+                                                     std::uint64_t nInflateOffset)
+{
+	if (nFileSize == ~0ULL)
+		return ED2K_COMPRESSEDPART_INFLATE_MAX;
+	if (nInflateOffset >= nFileSize)
+		return 0;
+	const std::uint64_t nRemain = nFileSize - nInflateOffset;
+	return nRemain < ED2K_COMPRESSEDPART_INFLATE_MAX ? nRemain
+	                                                 : ED2K_COMPRESSEDPART_INFLATE_MAX;
+}
+
+inline BOOL Ed2kCompressedPartInflateOk(std::uint64_t nWrittenAfter, std::uint64_t nMaxUncompressed)
+{
+	return nWrittenAfter <= nMaxUncompressed;
 }

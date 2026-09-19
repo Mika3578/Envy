@@ -1643,6 +1643,9 @@
     <ClInclude Include="ChatSession.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ChatSessionValidate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="ChatWindows.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1956,6 +1959,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DcPacketLengthValidate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NetworkJobValidate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Ed2kHelloCapabilities.h">
