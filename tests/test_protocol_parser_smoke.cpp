@@ -483,10 +483,67 @@ static bool test_ggep_inflate_output_ok()
 
 static bool test_ed2k_compressedpart_inflate_ok()
 {
-	return Ed2kCompressedPartInflateOk( 0, ED2K_COMPRESSEDPART_INFLATE_MAX ) == TRUE
-		&& Ed2kCompressedPartInflateOk( ED2K_COMPRESSEDPART_INFLATE_MAX, ED2K_COMPRESSEDPART_INFLATE_MAX ) == TRUE
-		&& Ed2kCompressedPartInflateOk( ED2K_COMPRESSEDPART_INFLATE_MAX + 1, ED2K_COMPRESSEDPART_INFLATE_MAX ) == FALSE
+	const std::uint64_t nPart = ED2K_COMPRESSEDPART_INFLATE_MAX;
+	const bool bPred =
+		Ed2kCompressedPartInflateOk( 0, nPart ) == TRUE
+		&& Ed2kCompressedPartInflateOk( nPart, nPart ) == TRUE
+		&& Ed2kCompressedPartInflateOk( nPart + 1, nPart ) == FALSE
 		&& Ed2kCompressedPartInflateOk( 100, 50 ) == FALSE;
+	// Accounting decision shared by AcceptCompressedPartChunk (EOF => 0).
+	const bool bBudget =
+		Ed2kCompressedPartInflateBudget( ~0ull, 0 ) == nPart
+		&& Ed2kCompressedPartInflateBudget( nPart, 0 ) == nPart
+		&& Ed2kCompressedPartInflateBudget( 100, 40 ) == 60
+		&& Ed2kCompressedPartInflateBudget( 100, 100 ) == 0
+		&& Ed2kCompressedPartInflateBudget( 100, 101 ) == 0
+		&& Ed2kCompressedPartInflateOk( 1, Ed2kCompressedPartInflateBudget( 100, 100 ) ) == FALSE;
+	return bPred && bBudget;
+}
+
+static bool test_ed2k_compressedpart_accept_before_submit()
+{
+	// Call-site regression: both COMPRESSEDPART handlers must gate SubmitData.
+	const char* candidates[] = {
+		"../Envy/DownloadTransferED2K.cpp",
+		"../../Envy/DownloadTransferED2K.cpp",
+		"Envy/DownloadTransferED2K.cpp",
+		"../../../Envy/DownloadTransferED2K.cpp"
+	};
+
+	std::ifstream in;
+	for ( const char* path : candidates )
+	{
+		in.open( path, std::ios::in | std::ios::binary );
+		if ( in )
+			break;
+	}
+	if ( !in )
+	{
+		std::fprintf( stderr, "ed2k_compressedpart_accept: DownloadTransferED2K.cpp not found from CWD\n" );
+		return false;
+	}
+
+	std::string content( ( std::istreambuf_iterator<char>( in ) ),
+		std::istreambuf_iterator<char>() );
+
+	auto handler_gates_submit = [ &content ]( const char* szFn ) -> bool
+	{
+		const size_t nFn = content.find( szFn );
+		if ( nFn == std::string::npos )
+			return false;
+		const size_t nNext = content.find( "\nBOOL ", nFn + 1 );
+		const std::string body = content.substr( nFn,
+			( nNext == std::string::npos ? content.size() : nNext ) - nFn );
+		const size_t nAccept = body.find( "AcceptCompressedPartChunk" );
+		const size_t nSubmit = body.find( "SubmitData" );
+		return nAccept != std::string::npos
+			&& nSubmit != std::string::npos
+			&& nAccept < nSubmit;
+	};
+
+	return handler_gates_submit( "OnCompressedPart(" )
+		&& handler_gates_submit( "OnCompressedPart64(" );
+}
 
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
@@ -561,4 +618,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "cbuffer_inflate_stream_output_ok", test_cbuffer_inflate_stream_output_ok );
 	suite.add_test( "ggep_inflate_output_ok", test_ggep_inflate_output_ok );
 	suite.add_test( "ed2k_compressedpart_inflate_ok", test_ed2k_compressedpart_inflate_ok );
+	suite.add_test( "ed2k_compressedpart_accept_before_submit", test_ed2k_compressedpart_accept_before_submit );
 }

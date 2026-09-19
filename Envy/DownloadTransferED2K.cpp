@@ -1040,13 +1040,10 @@ bool CDownloadTransferED2K::SendFragmentRequests()
 
 BOOL CDownloadTransferED2K::AcceptCompressedPartChunk(QWORD nChunkLength)
 {
-	QWORD nMaxUncompressed = ED2K_COMPRESSEDPART_INFLATE_MAX;
-	if ( m_pDownload->m_nSize != SIZE_UNKNOWN &&
-		 m_pDownload->m_nSize > m_nInflateOffset )
-	{
-		nMaxUncompressed = min( nMaxUncompressed,
-			m_pDownload->m_nSize - m_nInflateOffset );
-	}
+	const QWORD nFileSize = ( m_pDownload->m_nSize == SIZE_UNKNOWN )
+		? ~0ull : m_pDownload->m_nSize;
+	const QWORD nMaxUncompressed = Ed2kCompressedPartInflateBudget(
+		nFileSize, m_nInflateOffset );
 	if ( Ed2kCompressedPartInflateOk( m_nInflateWritten + nChunkLength, nMaxUncompressed ) )
 		return TRUE;
 
