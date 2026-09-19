@@ -188,7 +188,7 @@ void CDHT::Connect()
 
 		if (nCount == 0 && nBoot == 0)
 		{
-			HostCache.LoadDefaultServers(PROTOCOL_BT);
+			HostCache.CheckMinimumServers(PROTOCOL_BT);
 			CQuickLock oLock(HostCache.BitTorrent.m_pSection);
 			for (CHostCacheIterator i = HostCache.BitTorrent.Begin();
 			     i != HostCache.BitTorrent.End() && nBoot < BootstrapDhtRouterPingCap; ++i)
