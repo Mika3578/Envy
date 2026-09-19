@@ -19,6 +19,7 @@
 - **Changelog Entry:** 2026-09-18 — Protect develop docs aligned to live ruleset: ≥1 APPROVED review, dismiss-stale on push, `require_last_push_approval` off, signed commits + force-push block, CodeQL/Gitleaks code scanning, no GitHub Code Quality rule; Dependabot auto-approve removed.
 - **Changelog Entry:** 2026-09-18 — #97: explicit `timeout-minutes` on lightweight Code Quality / version / Copilot setup jobs.
 - **Changelog Entry:** 2026-09-18 — #81: ED2K FileComment header/length fail-closed vs remaining (`Ed2kFileCommentLengthOk`).
+- **Changelog Entry:** 2026-09-18 — #81: wire `ED2K_TAG_UINT64` remaining check fixed (need 8 bytes, not 1) via `Ed2kTagUint64RemainingOk`.
 - **Changelog Entry:** 2026-09-18 — #81: `CNetwork::m_oJobs` capped at 2048 (`NetworkJobQueueCountOk`); drop oldest owned search/hit on overflow.
 - **Changelog Entry:** 2026-09-18 — #81: `CChatSession` undelivered message queue capped at 1024 (`ChatSessionQueueCountOk`); drop oldest on overflow.
 - **Changelog Entry:** 2026-09-18 — #81: NMDC hub `m_oUsers` capped at 20,000 new `$MyINFO` nick inserts (`DcHubUserCountOk`) to stop MyINFO flood DoS.

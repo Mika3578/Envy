@@ -152,6 +152,14 @@ inline BOOL Ed2kFileCommentLengthOk(DWORD nClaimedLen, DWORD nRemainingAfterHead
 	return nClaimedLen <= nRemainingAfterHeader;
 }
 
+// Wire ED2K_TAG_UINT64 value is a little-endian 64-bit integer (#81).
+constexpr DWORD ED2K_TAG_UINT64_BYTES = 8u;
+
+inline BOOL Ed2kTagUint64RemainingOk(ULONGLONG nBytesRemaining)
+{
+	return nBytesRemaining >= ED2K_TAG_UINT64_BYTES;
+}
+
 // ED2K hashset answer: after nBlocks, payload must be exactly nBlocks MD4 digests.
 constexpr DWORD ED2K_HASHSET_DIGEST_BYTES = 16u;
 
