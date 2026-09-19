@@ -6,7 +6,7 @@ Status: audit (evidence-based). Not a compatibility claim.
 - **Fork:** `Mika3578/Envy`
 - **Base (original audit):** `origin/develop` `a47d42e7f21eefa269e3e59de41c32fa65d1e7be` (`feat(uploads): transfer settings foundation + Fair-Use 10% limit (#227)`)
 - **Base (reverified):** `origin/develop` `93f623ca0251aa9dddaa751633361dbe7e689088` after `#248` (NMDC Network lock). Remote/API inventory unchanged (**code**).
-- **This work branch:** `cursor/remote-api-architecture-2f11`
+- **This work branch:** historical PR branch name retained for audit traceability only; new work must use `type/short-kebab-summary` (`AGENTS.md` hard rule 11 — no tool prefixes).
 
 Evidence classes used below:
 

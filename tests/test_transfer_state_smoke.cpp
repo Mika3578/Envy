@@ -190,6 +190,13 @@ static bool test_metadata_finished_is_error_not_importable()
 	       !QBittorrentStateMeansArrCompleted(MapTransferStateToQBittorrentFinished(TransferState::Metadata));
 }
 
+static bool test_downloading_finished_is_error_not_importable()
+{
+	// Fail-closed: Finished helper must not advertise *UP/importable for in-progress.
+	return std::strcmp(MapTransferStateToQBittorrentFinished(TransferState::Downloading), "error") == 0 &&
+	       !QBittorrentStateMeansArrCompleted(MapTransferStateToQBittorrentFinished(TransferState::Downloading));
+}
+
 void register_transfer_state_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("transfer_state_idle_queued", test_idle_is_queued);

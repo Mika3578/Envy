@@ -208,7 +208,7 @@ inline const char* MapTransferStateToQBittorrentFinished(TransferState nState)
 	case TransferState::Moving:
 		return "moving";
 	case TransferState::Downloading:
-		return "uploading";
+		return "error";
 	case TransferState::Metadata:
 		return "error";
 	case TransferState::Unknown:
