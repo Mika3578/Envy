@@ -17,13 +17,17 @@ distributed under those terms.
    - Components "MFC for v145", "ATL for v145", "C++ Spectre-mitigated libs (v145)"
    - "C++ CMake tools for Windows"
    - "Windows 10/11 SDK (latest)"
-2. Clone with submodules and bootstrap vcpkg:
+2. Clone, bootstrap vcpkg **and restore the root manifest** (Crashpad):
    ```
    git clone https://github.com/mika3578/envy.git
    cd envy
    git clone https://github.com/microsoft/vcpkg.git
-   .\vcpkg\bootstrap-vcpkg.bat
+   .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+   .\scripts\bootstrap-vcpkg.cmd
    ```
+   `bootstrap-vcpkg.cmd` is the local equivalent of CI’s
+   `vcpkg install --triplet=…` step. Visual Studio does **not** restore
+   `vcpkg_installed\` before `PreBuildEvent`. See `docs/10_dev/build.md`.
 3. Open `Visual Studio\Envy.sln` and build (Ctrl+Shift+B).
 
 If you migrated from VS 2017/2019: run `Visual Studio\SetVS2026.bat` once

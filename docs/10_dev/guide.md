@@ -22,6 +22,7 @@ This guide provides comprehensive information for developers working on the Envy
 - **Windows SDK** 10.0.x (projects target `10.0`)
 - **CMake** 3.20+ (optional; incomplete, HashLib only)
 - **Git** 2.30+
+- **vcpkg** for the root manifest (`scripts/bootstrap-vcpkg.cmd` before the first `.sln` build; see [build.md](build.md))
 
 ### Initial Setup
 
@@ -31,11 +32,16 @@ This guide provides comprehensive information for developers working on the Envy
    cd Envy
    ```
 
-2. **Open in Visual Studio:**
+2. **Restore vcpkg** (Crashpad / `vcpkg_installed`; not optional on a fresh checkout):
+   ```bat
+   scripts\bootstrap-vcpkg.cmd
+   ```
+
+3. **Open in Visual Studio:**
    - Open `Visual Studio\Envy.sln`
    - Select your preferred configuration (Debug/Release, x64/Win32)
 
-3. **Build the project:**
+4. **Build the project:**
    - Build → Build Solution (Ctrl+Shift+B)
 
 ### Recommended Tools

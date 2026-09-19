@@ -26,12 +26,14 @@ This is **preview** software. Some P2P protocol functionality is still under dev
 - Windows 10/11 development environment
 - Visual Studio with C++ + MFC/ATL workloads
 - MSVC platform toolset `v145` (as referenced by project files)
+- vcpkg (root `vcpkg.json` / Crashpad). Restore with `scripts/bootstrap-vcpkg.cmd` before the first Visual Studio build — see `docs/10_dev/build.md`
 - Optional: CMake 3.20+ (currently partial build support)
 
 ### Build (Authoritative path)
-1. Open `Visual Studio/Envy.sln`.
-2. Select `Debug` or `Release`, and `Win32` or `x64`.
-3. Build solution.
+1. Restore vcpkg: `scripts/bootstrap-vcpkg.cmd` (x64) or `-Triplet x86-windows-static` (Win32).
+2. Open `Visual Studio/Envy.sln`.
+3. Select `Debug` or `Release`, and `Win32` or `x64`.
+4. Build solution.
 
 ### Build (Partial CMake path)
 ```bash

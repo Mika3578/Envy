@@ -40,4 +40,4 @@
 
 - **`Remote/api-specification.md` vs C++:** The JSON `/api/downloads` family is design-only. `CRemote::PageSwitch` serves `/remote/*` HTML. Do not treat the spec or `envy-modern.js` as a live contract.
 
-- **#90 / PR #243 crash reporter:** `develop` still ships BugTrap until this PR merges. PR #243 now uses Crashpad (`CrashPadHost` + `crashpad_handler.exe`), not in-process `MiniDumpWriteDump`. Canonical: `docs/10_dev/crash-reporting.md`.
+- **#90 / PR #243 crash reporter:** `develop` ships Crashpad (`CrashPadHost` + `crashpad_handler.exe` from vcpkg), not BugTrap and not in-process `MiniDumpWriteDump`. Local Visual Studio builds must restore `vcpkg_installed` first (`scripts/bootstrap-vcpkg.cmd`); CI already does. Canonical: `docs/10_dev/crash-reporting.md`, `docs/10_dev/build.md`.

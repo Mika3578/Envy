@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — Local Debug x64 bootstrap: `scripts/bootstrap-vcpkg.ps1` mirrors CI `vcpkg install` because VS/MSBuild does not restore `vcpkg_installed` before `PreBuildEvent` (Crashpad copy). `EnvyOM.h` remains MIDL-generated. Installer `Main.iss` code 2 on a failed Envy build is a cascade (ISCC present, missing payload).
 - **Changelog Entry:** 2026-09-19 — HashLib `CTigerTree` warning cleanup (#84 slice): constructor init order matches `TigerTree.h` (C5038); drop `register` in `CTigerTree::Tiger` (C5033). No Tiger/TTH algorithm or wire-format change. EnvyTests: constructor + identical-input/incremental/empty-file root stability.
 - **Changelog Entry:** 2026-09-19 — #255 review follow-up: C2C CALLBACK known-file gate includes incomplete downloads; clear consume guard when `EDClients.PushTo` fails.
 - **Changelog Entry:** 2026-09-19 — Kad2 routing × firewall rebase: `CollectFirewallCheckCandidates` walks the zone tree (`ForEachContact`); `SendFirewalledRequest` uses `KadContactGetSockAddr` (no `GetSockAddr` / `KAD_BUCKET_COUNT` / `buckets`).
