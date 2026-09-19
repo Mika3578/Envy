@@ -610,6 +610,10 @@ bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndO
 	if ( ! m_nLength )
 		return true;
 
+	// nMaxOutput 0 => default zip-bomb cap (Neighbour G1/G2 Content-Encoding: deflate).
+	if (nMaxOutput == 0)
+		nMaxOutput = CBUFFER_INFLATE_STREAM_MAX;
+
 	// Check if a z_stream structure has been allocated
 	if ( ! pStream )
 	{
@@ -640,8 +644,8 @@ bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndO
 		// Limit nLength to the free buffer space or the maximum chunk size
 		UINT nLength = static_cast< UINT >( max( GetBufferFree(), 1024ul ) );	// ZLIB_CHUNK_SIZE Chunk size for ZLib compression/decompression
 
-		// Optional zip-bomb / HTTP body cap: never grow oBuffer past nMaxOutput
-		if (nMaxOutput != 0 && oBuffer.m_nLength >= nMaxOutput)
+		// Zip-bomb / HTTP body cap: never grow oBuffer past nMaxOutput
+		if (oBuffer.m_nLength >= nMaxOutput)
 		{
 			// Exact-cap completion is OK when no compressed input remains.
 			if (pStream->avail_in > 0)
@@ -651,11 +655,15 @@ bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndO
 			}
 			break;
 		}
-		if (nMaxOutput != 0)
 		{
 			const DWORD nRoom = nMaxOutput - oBuffer.m_nLength;
 			if (nLength > nRoom)
 				nLength = static_cast<UINT>(nRoom);
+		}
+		if (nLength == 0)
+		{
+			InflateStreamCleanup(pStream);
+			return false;
 		}
 
 		// Make sure the receiving buffer is large enough to hold at least 1KB
