@@ -638,35 +638,38 @@ BOOL CDownloadTransferBT::OnPiece(CBTPacket* pPacket)
 
 BOOL CDownloadTransferBT::OnSourceResponse(CBTPacket* pPacket)
 {
+	// pRoot is owned by pPacket->m_pNode - never delete it here.
 	const CBENode* pRoot = pPacket->m_pNode.get();
+	if (pRoot == NULL)
+		return TRUE;
 
 	const CBENode* pPeers = pRoot->GetNode( BT_DICT_PEERS );				// "peers"
-	if ( ! pPeers->IsType( CBENode::beList ) )
-	{
-		delete pRoot;
+	if (pPeers == NULL || !pPeers->IsType(CBENode::beList))
 		return TRUE;
-	}
 
 	int nCount = 0;
 
 	for ( int nPeer = 0; nPeer < pPeers->GetCount(); nPeer++ )
 	{
 		const CBENode* pPeer = pPeers->GetNode( nPeer );
-		if ( ! pPeer->IsType( CBENode::beDict ) ) continue;
+		if (pPeer == NULL || !pPeer->IsType(CBENode::beDict))
+			continue;
 
 		const CBENode* pURL = pPeer->GetNode( BT_DICT_PEER_URL );			// "url"
 
-		if ( pURL->IsType( CBENode::beString ) )
+		if (pURL != NULL && pURL->IsType(CBENode::beString))
 		{
 			nCount += m_pDownload->AddSourceURL( pURL->GetString() );
 		}
 		else
 		{
 			const CBENode* pIP = pPeer->GetNode( BT_DICT_PEER_IP );			// "ip"
-			if ( ! pIP->IsType( CBENode::beString ) ) continue;
+			if (pIP == NULL || !pIP->IsType(CBENode::beString))
+				continue;
 
 			const CBENode* pPort = pPeer->GetNode( BT_DICT_PEER_PORT );		// "port"
-			if ( ! pPort->IsType( CBENode::beInt ) ) continue;
+			if (pPort == NULL || !pPort->IsType(CBENode::beInt))
+				continue;
 
 			SOCKADDR_IN saPeer = {};
 			if ( ! Network.Resolve( pIP->GetString(), (int)pPort->GetInt(), &saPeer ) ) continue;
@@ -675,7 +678,7 @@ BOOL CDownloadTransferBT::OnSourceResponse(CBTPacket* pPacket)
 				(LPCTSTR)m_sAddress, (LPCTSTR)CString( inet_ntoa( saPeer.sin_addr ) ), htons( saPeer.sin_port ) );
 
 			const CBENode* pID = pPeer->GetNode( BT_DICT_PEER_ID );			// "peer id"
-			if ( ! pID->IsType( CBENode::beString ) || pID->m_nValue != Hashes::BtGuid::byteCount )
+			if (pID == NULL || !pID->IsType(CBENode::beString) || pID->m_nValue != Hashes::BtGuid::byteCount)
 			{
 				nCount += m_pDownload->AddSourceBT( Hashes::BtGuid(), &saPeer.sin_addr, htons( saPeer.sin_port ) );
 			}

@@ -201,64 +201,68 @@ CQueryHit* CQueryHit::FromG1Packet(CG1Packet* pPacket, int* pnHops)
 		{
 			nXMLSize = pPacket->ReadShortLE();
 			nPublicSize -= 2;
-		//	if ( nPublicSize + nXMLSize + Hashes::Guid::byteCount > pPacket->GetRemaining() )
-		//		theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with invalid size of XML data" );
 		}
 
 		// Skip extra data
-		while ( nPublicSize-- )
+		while (nPublicSize--)
 			pPacket->ReadByte();
 
 		BOOL bChat = FALSE;
-		if ( pVendor && pVendor->m_bChatFlag &&
-			 pPacket->GetRemaining() >= Hashes::Guid::byteCount + nXMLSize + 1u )
+		if (pVendor && pVendor->m_bChatFlag &&
+		    pPacket->GetRemaining() >= Hashes::Guid::byteCount + nXMLSize + 1u)
 		{
 			BYTE nPeek = pPacket->PeekByte();
-			if ( nPeek != GGEP_MAGIC )
-				bChat = ( nPeek & G1_QHD_CHAT ) != 0;
+			if (nPeek != GGEP_MAGIC)
+				bChat = (nPeek & G1_QHD_CHAT) != 0;
 		}
 
-		if ( pPacket->GetRemaining() < Hashes::Guid::byteCount + nXMLSize )
-			nXMLSize = 0;
-
-		if ( ( nFlags[0] & G1_QHD_GGEP ) && ( nFlags[1] & G1_QHD_GGEP ) )
+		if ((nFlags[0] & G1_QHD_GGEP) && (nFlags[1] & G1_QHD_GGEP))
 		{
 			CGGEPBlock pGGEP;
-			if ( pGGEP.ReadFromPacket( pPacket ) )
+			if (pGGEP.ReadFromPacket(pPacket))
 			{
-				if ( Settings.Gnutella1.EnableGGEP )
+				if (Settings.Gnutella1.EnableGGEP)
 				{
-					if ( pGGEP.Find( GGEP_HEADER_BROWSE_HOST ) )
+					if (pGGEP.Find(GGEP_HEADER_BROWSE_HOST))
 						bBrowseHost = TRUE;
-					if ( pGGEP.Find( GGEP_HEADER_CHAT ) )
+					if (pGGEP.Find(GGEP_HEADER_CHAT))
 						bChat = TRUE;
-				}
-				if ( pPacket->GetRemaining() < Hashes::Guid::byteCount + nXMLSize )
-				{
-					nXMLSize = 0;
-					if ( pPacket->GetRemaining() < Hashes::Guid::byteCount )
-					{
-						theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet without GUID" );
-						AfxThrowUserException();
-					}
 				}
 			}
 			else
 			{
-				theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with malformed GGEP (main part)" );
+				theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with malformed GGEP (main part)");
 				AfxThrowUserException();
 			}
 		}
 
-		if ( nXMLSize > 0 )
+		// Validate XML vs remaining after optional chat/GGEP prefix bytes are
+		// accounted for. XML+GUID live at the packet end; GGEP ReadFromPacket
+		// leaves the cursor after the GGEP block. A lone chat flag byte (when
+		// present and not GGEP) precedes XML and must not inflate capacity.
 		{
-			pPacket->Seek( Hashes::Guid::byteCount + nXMLSize, CG1Packet::seekEnd );
-			pXML = ReadXML( pPacket, nXMLSize );
-			if ( ! pXML && nXMLSize > 4 )
-				theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Invalid compressed metadata.  Vendor: %s", ( pVendor ) ? pVendor->m_sName : L"?" );
+			DWORD nRemForXml = pPacket->GetRemaining();
+			if (bChat && !((nFlags[0] & G1_QHD_GGEP) && (nFlags[1] & G1_QHD_GGEP)) &&
+			    nRemForXml > 0)
+			{
+				--nRemForXml;
+			}
+			if (!G1QueryHitXmlFits(nXMLSize, nRemForXml))
+			{
+				theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with invalid size of XML data");
+				AfxThrowUserException();
+			}
 		}
 
-		if ( ! nPort || Network.IsFirewalledAddress( (IN_ADDR*)&nAddress ) )
+		if (nXMLSize > 0)
+		{
+			pPacket->Seek(Hashes::Guid::byteCount + nXMLSize, CG1Packet::seekEnd);
+			pXML = ReadXML(pPacket, nXMLSize);
+			if (!pXML && nXMLSize > 4)
+				theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Invalid compressed metadata.  Vendor: %s", (pVendor) ? pVendor->m_sName : L"?");
+		}
+
+		if (!nPort || Network.IsFirewalledAddress((IN_ADDR*)&nAddress))
 		{
 			nFlags[0] |= G1_QHD_PUSH;
 			nFlags[1] |= G1_QHD_PUSH;
@@ -266,19 +270,19 @@ CQueryHit* CQueryHit::FromG1Packet(CG1Packet* pPacket, int* pnHops)
 
 		// Read client ID
 		Hashes::Guid oClientID;
-		pPacket->Seek( Hashes::Guid::byteCount, CG1Packet::seekEnd );
-		pPacket->Read( oClientID );
+		pPacket->Seek(Hashes::Guid::byteCount, CG1Packet::seekEnd);
+		pPacket->Read(oClientID);
 
 		DWORD nIndex = 0;
-		for ( CQueryHit* pHit = pFirstHit; pHit; pHit = pHit->m_pNext, nIndex++ )
+		for (CQueryHit* pHit = pFirstHit; pHit; pHit = pHit->m_pNext, nIndex++)
 		{
-			pHit->ParseAttributes( oClientID, pVendor, nFlags, bChat, bBrowseHost );
+			pHit->ParseAttributes(oClientID, pVendor, nFlags, bChat, bBrowseHost);
 			pHit->Resolve();
 
-			if ( pXML )
-				pHit->ParseXML( pXML, nIndex );
+			if (pXML)
+				pHit->ParseXML(pXML, nIndex);
 
-			if ( ! pHit->m_bBogus && ! pHit->CheckValid() )
+			if (!pHit->m_bBogus && !pHit->CheckValid())
 				pHit->m_bBogus = TRUE;
 		}
 	}
@@ -909,11 +913,12 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 	if ( G1QueryHitDeflateXmlLengthOk( nSize ) &&
 		 strncmp( (LPCSTR)pRaw.get(), "{deflate}", 9 ) == 0 )
 	{
-		// Deflate data
+		// Deflate data — cap inflate to block zip-bomb DoS (#81).
 		DWORD nRealSize = 0;
-		auto_array< BYTE > pText( CZLib::Decompress( pRaw.get() + 9, nSize - 10, &nRealSize ) );
-		if ( ! pText.get() )
-			return NULL;	// Invalid data
+		auto_array<BYTE> pText(CZLib::Decompress(
+		    pRaw.get() + 9, nSize - 10, &nRealSize, G1_DEFLATE_XML_INFLATE_MAX));
+		if (!pText.get() || !G1DeflateXmlInflateOk(nRealSize))
+			return NULL; // Invalid or abusive inflate
 		pRaw = pText;
 
 		pszXML = pRaw.get();

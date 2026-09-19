@@ -1,7 +1,7 @@
 //
 // Buffer.cpp
 //
-// This file is part of Envy (getenvy.com) ÔøΩ 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -22,6 +22,7 @@
 
 #include "StdAfx.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 //#include "Statistics.h"
 
 #ifdef ZLIB_H
@@ -410,22 +411,20 @@ BOOL CBuffer::Deflate(BOOL bIfSmaller)
 // Side Effect: This function assumes that all of the data in the buffer needs to be decompressed,
 // existing contents will be replaced by the decompression.
 
-BOOL CBuffer::Inflate()
+BOOL CBuffer::Inflate(DWORD nMaxOutput)
 {
 	DWORD nCompress = 0;	// For size allocated
 
-	// Old method:
-	//auto_array< BYTE > pCompress( CZLib::Decompress( m_pBuffer, m_nLength, &nCompress ) );
-	//if ( ! pCompress.get() ) return FALSE;
-	//
-	// Move the decompressed data from the buffer Decompress returned to this one
-	//m_nLength = 0;					 // Record that there is no memory stored in this buffer
-	//Add( pCompress.get(), nCompress ); // Copy the decompressed data into this buffer
+	// nMaxOutput 0 => default zip-bomb cap (GGEP/datagram/legacy callers).
+	if (nMaxOutput == 0)
+		nMaxOutput = CBUFFER_INFLATE_MAX;
 
-	BYTE* pCompress = CZLib::Decompress2( m_pBuffer, m_nLength, &nCompress );
-	if ( ! pCompress ) return FALSE;
+	BYTE* pCompress = CZLib::Decompress2(m_pBuffer, m_nLength, &nCompress, nMaxOutput);
+	if (!pCompress)
+		return FALSE;
 
-	if ( m_pBuffer ) free( m_pBuffer );
+	if (m_pBuffer)
+		free(m_pBuffer);
 	m_pBuffer = pCompress;
 	m_nBuffer = m_nLength = nCompress;
 
@@ -434,10 +433,14 @@ BOOL CBuffer::Inflate()
 
 // If the contents of this buffer are between headers and compressed with gzip, this method can remove all that
 // Returns false on error
-BOOL CBuffer::Ungzip()
+BOOL CBuffer::Ungzip(DWORD nMaxOutput)
 {
 	// Make sure there are at least 10 bytes in this buffer
 	if ( m_nLength < 10 ) return FALSE;
+
+	// nMaxOutput 0 => default zip-bomb cap (matches Inflate).
+	if (nMaxOutput == 0)
+		nMaxOutput = CBUFFER_INFLATE_MAX;
 
 	// Make sure the first 3 bytes are not 1f8b08
 	if ( m_pBuffer[0] != 0x1F || m_pBuffer[1] != 0x8B || m_pBuffer[2] != 8 ) return FALSE;
@@ -499,7 +502,13 @@ BOOL CBuffer::Ungzip()
 	// Guess that inflating the data won't make it more than 6 times as big
 	CBuffer pOutput;
 	DWORD nLength = m_nLength * 6;
-	for ( ;; )
+	if (nLength < m_nLength)
+		nLength = UINT_MAX;
+	if (nMaxOutput > 0 && (nLength == 0 || nLength > nMaxOutput))
+		nLength = nMaxOutput;
+	if (nLength == 0)
+		return FALSE;
+	for (;;)
 	{
 		if ( ! pOutput.EnsureBuffer( nLength ) )
 			return FALSE;				// Out of memory
@@ -537,10 +546,25 @@ BOOL CBuffer::Ungzip()
 			inflateEnd( pStream );
 			return TRUE;
 		}
-		else if ( Z_BUF_ERROR == nRes ) // Buffer too small
+		else if (Z_BUF_ERROR == nRes) // Buffer too small
 		{
-			nLength *= 2;
-			inflateEnd( pStream );
+			if (nMaxOutput > 0 && nLength >= nMaxOutput)
+			{
+				inflateEnd(pStream);
+				return FALSE; // Would exceed zip-bomb cap
+			}
+			DWORD nNext = nLength * 2;
+			if (nNext < nLength)
+				nNext = UINT_MAX;
+			if (nMaxOutput > 0 && nNext > nMaxOutput)
+				nNext = nMaxOutput;
+			if (nNext <= nLength)
+			{
+				inflateEnd(pStream);
+				return FALSE;
+			}
+			nLength = nNext;
+			inflateEnd(pStream);
 		}
 		else	// The inflate call returned something else
 		{
@@ -580,11 +604,15 @@ int CBuffer::Deflate(z_streamp pStream, int nFlush)
 //
 // Side Effect: This function allocates a new z_stream structure that gets cleaned up when the stream is finished.
 // Call InflateStreamCleanup() to close the stream and delete the z_stream structure before the stream has finished.
-bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndOfStream)
+bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndOfStream, DWORD nMaxOutput)
 {
 	// Report success if there was nothing to decompress
 	if ( ! m_nLength )
 		return true;
+
+	// nMaxOutput 0 => default zip-bomb cap (Neighbour G1/G2 Content-Encoding: deflate).
+	if (nMaxOutput == 0)
+		nMaxOutput = CBUFFER_INFLATE_STREAM_MAX;
 
 	// Check if a z_stream structure has been allocated
 	if ( ! pStream )
@@ -615,6 +643,28 @@ bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndO
 	{
 		// Limit nLength to the free buffer space or the maximum chunk size
 		UINT nLength = static_cast< UINT >( max( GetBufferFree(), 1024ul ) );	// ZLIB_CHUNK_SIZE Chunk size for ZLib compression/decompression
+
+		// Zip-bomb / HTTP body cap: never grow oBuffer past nMaxOutput
+		if (oBuffer.m_nLength >= nMaxOutput)
+		{
+			// Exact-cap completion is OK when no compressed input remains.
+			if (pStream->avail_in > 0)
+			{
+				InflateStreamCleanup(pStream);
+				return false;
+			}
+			break;
+		}
+		{
+			const DWORD nRoom = nMaxOutput - oBuffer.m_nLength;
+			if (nLength > nRoom)
+				nLength = static_cast<UINT>(nRoom);
+		}
+		if (nLength == 0)
+		{
+			InflateStreamCleanup(pStream);
+			return false;
+		}
 
 		// Make sure the receiving buffer is large enough to hold at least 1KB
 		if ( ! oBuffer.EnsureBuffer( nLength ) )
@@ -733,27 +783,71 @@ BOOL CBuffer::BZip()
 	return TRUE;
 }
 
-BOOL CBuffer::UnBZip()
+BOOL CBuffer::LoadFromBZipFile(CFile& pFile, DWORD nMaxOutput)
 {
-	// Uncompress to temporary buffer first
+	// Read a .bz2 file into this buffer and decompress with zip-bomb caps.
+	// nMaxOutput 0 => CBUFFER_UNBZIP_MAX (hublist / DC file listing).
+	if (nMaxOutput == 0)
+		nMaxOutput = CBUFFER_UNBZIP_MAX;
+
+	const ULONGLONG nInSize64 = pFile.GetLength();
+	if (!CBufferUnBZipInputOk(nInSize64))
+		return FALSE; // Empty or oversized compressed input
+
+	const UINT nInSize = (UINT)nInSize64;
+	if (!EnsureBuffer(nInSize))
+		return FALSE; // Out of memory
+
+	if (pFile.Read(GetData(), nInSize) != nInSize)
+		return FALSE; // File read error
+	m_nLength = nInSize;
+
+	return UnBZip(nMaxOutput);
+}
+
+BOOL CBuffer::UnBZip(DWORD nMaxOutput)
+{
+	// Uncompress to temporary buffer first. Cap growth at nMaxOutput to
+	// prevent bzip2 zip-bombs (0 = unlimited, legacy callers).
 	CBuffer pOutBuf;
 	UINT nOutSize = m_nLength * 3;
+	if (nOutSize < m_nLength)
+		nOutSize = UINT_MAX; // overflow on huge input guess
+	if (nMaxOutput > 0 && nOutSize > nMaxOutput)
+		nOutSize = nMaxOutput;
+	if (nOutSize == 0)
+		return FALSE;
+
 	for ( ;; )
 	{
 		if ( ! pOutBuf.EnsureBuffer( nOutSize ) )
 			return FALSE;	// Out of memory
 
-		int err = BZ2_bzBuffToBuffDecompress( (char*)pOutBuf.m_pBuffer, &nOutSize,
-			(char*)m_pBuffer, m_nLength, 0, 0 );
+		UINT nAvail = nOutSize;
+		int err = BZ2_bzBuffToBuffDecompress((char*)pOutBuf.m_pBuffer, &nAvail,
+		                                     (char*)m_pBuffer, m_nLength, 0, 0);
 
 		if ( err == BZ_OK )
 		{
-			pOutBuf.m_nLength = nOutSize;
+			if (nMaxOutput > 0 && (nAvail == 0 || nAvail > nMaxOutput))
+				return FALSE;
+			pOutBuf.m_nLength = nAvail;
 			break;
 		}
 
 		if ( err == BZ_OUTBUFF_FULL )
-			nOutSize *= 2;	// Insufficient output buffer
+		{
+			if (nMaxOutput > 0 && nOutSize >= nMaxOutput)
+				return FALSE; // Would exceed zip-bomb cap
+			UINT nNext = nOutSize * 2;
+			if (nNext < nOutSize)
+				nNext = UINT_MAX;
+			if (nMaxOutput > 0 && nNext > nMaxOutput)
+				nNext = nMaxOutput;
+			if (nNext <= nOutSize)
+				return FALSE;
+			nOutSize = nNext;
+		}
 		else
 			return FALSE;	// Decompression error
 	}

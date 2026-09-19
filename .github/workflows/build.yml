@@ -83,6 +83,18 @@ jobs:
         shell: bash
         run: bash .github/scripts/classify-changes.selftest.sh
 
+      - name: PR Gate conclusions self-test
+        shell: bash
+        run: bash .github/scripts/pr-gate-conclusions.selftest.sh
+
+      - name: Format-check self-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y clang-format-18
+          bash .github/scripts/format-check.selftest.sh
+
   build-x64-release:
     name: Build x64 Release
     needs: changes
