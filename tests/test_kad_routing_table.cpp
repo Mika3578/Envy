@@ -417,6 +417,18 @@ static bool test_observe_alive_by_endpoint()
 	return found.lastSeen == 77 && !found.verified;
 }
 
+// First CollectMaintenance only arms nextBigTimer = now + KAD_ZONE_REFRESH_START_MS
+// (aMule StartTimer). The second call at that deadline may refresh.
+static bool ArmThenCollect(Kad2RoutingTable& table, uint64_t tArm, const KadId& entropy, KadMaintenanceAction& action)
+{
+	KadMaintenanceAction arm;
+	table.CollectMaintenance(tArm, entropy, arm);
+	if (arm.refresh)
+		return false;
+	table.CollectMaintenance(tArm + KAD_ZONE_REFRESH_START_MS, entropy, action);
+	return true;
+}
+
 static bool test_refresh_fresh_leaf_skipped()
 {
 	Kad2RoutingTable table = TableWithLocalZero();
@@ -443,8 +455,7 @@ static bool test_refresh_stale_leaf_target_in_zone()
 	KadId entropy;
 	FillId(entropy, 0x3C);
 	KadMaintenanceAction action;
-	table.CollectMaintenance(KAD_ZONE_REFRESH_INTERVAL_MS, entropy, action);
-	if (!action.refresh)
+	if (!ArmThenCollect(table, 1000, entropy, action) || !action.refresh)
 		return false;
 	KadId local;
 	ZeroId(local);
@@ -458,16 +469,17 @@ static bool test_refresh_timestamp_and_bound()
 		return false;
 	KadId entropy;
 	ZeroId(entropy);
+	const uint64_t tArm = 1000;
 	KadMaintenanceAction first;
-	table.CollectMaintenance(KAD_ZONE_REFRESH_INTERVAL_MS, entropy, first);
-	if (!first.refresh)
+	if (!ArmThenCollect(table, tArm, entropy, first) || !first.refresh)
 		return false;
+	const uint64_t tFire = tArm + KAD_ZONE_REFRESH_START_MS;
 	std::vector<KadLeafInfo> leaves;
 	table.GetLeaves(leaves);
-	if (leaves.empty() || leaves[0].lastRefresh != KAD_ZONE_REFRESH_INTERVAL_MS)
+	if (leaves.empty() || leaves[0].lastRefresh != tFire)
 		return false;
 	KadMaintenanceAction second;
-	table.CollectMaintenance(KAD_ZONE_REFRESH_INTERVAL_MS + 1000, entropy, second);
+	table.CollectMaintenance(tFire + 1000, entropy, second);
 	return !second.refresh;
 }
 
@@ -483,11 +495,55 @@ static bool test_refresh_second_zone_later()
 		return false;
 	KadId entropy;
 	ZeroId(entropy);
+	const uint64_t tArm = 1000;
 	KadMaintenanceAction a;
-	table.CollectMaintenance(KAD_ZONE_REFRESH_INTERVAL_MS, entropy, a);
+	if (!ArmThenCollect(table, tArm, entropy, a) || !a.refresh)
+		return false;
 	KadMaintenanceAction b;
-	table.CollectMaintenance(KAD_ZONE_REFRESH_INTERVAL_MS + KAD_ZONE_REFRESH_MIN_GAP_MS, entropy, b);
-	return a.refresh && b.refresh;
+	table.CollectMaintenance(tArm + KAD_ZONE_REFRESH_START_MS + KAD_ZONE_REFRESH_MIN_GAP_MS, entropy, b);
+	return b.refresh;
+}
+
+static bool test_prefix_deep_shift_safe()
+{
+	KadId prefix;
+	ZeroId(prefix);
+	if (KadPrefixInteger(prefix, 40) != 0)
+		return false;
+	KadIdSetBit(prefix, 0, 1);
+	if (KadPrefixInteger(prefix, 40) != 0xFFFFFFFFu)
+		return false;
+	ZeroId(prefix);
+	KadIdSetBit(prefix, 39, 1);
+	if (KadPrefixInteger(prefix, 40) != 1u)
+		return false;
+	KadId p2;
+	KadIndexToPrefix(p2, 10, 5);
+	if (KadPrefixInteger(p2, 10) != 5u)
+		return false;
+	KadId p40;
+	KadIndexToPrefix(p40, 40, 5);
+	return KadPrefixInteger(p40, 40) == 5u;
+}
+
+static bool test_id_in_zone_level_40()
+{
+	KadId local, contact, prefix, outsider;
+	ZeroId(local);
+	ZeroId(contact);
+	ZeroId(prefix);
+	ZeroId(outsider);
+	KadIdSetBit(prefix, 39, 1);
+	KadIdSetBit(contact, 39, 1);
+	if (!KadIdInZone(local, contact, 40, prefix))
+		return false;
+	KadIdSetBit(outsider, 38, 1);
+	if (KadIdInZone(local, outsider, 40, prefix))
+		return false;
+	KadId target, suffix;
+	FillId(suffix, 0x3C);
+	KadMakeRefreshTarget(target, local, 40, prefix, suffix);
+	return KadIdInZone(local, target, 40, prefix);
 }
 
 static bool test_subnet_two_ok_third_rejected()
@@ -694,6 +750,8 @@ void register_kad_routing_table_tests(TestSuite& suite)
 	suite.add_test("kad_refresh_stale_target_in_zone", test_refresh_stale_leaf_target_in_zone);
 	suite.add_test("kad_refresh_timestamp_bound", test_refresh_timestamp_and_bound);
 	suite.add_test("kad_refresh_second_zone_later", test_refresh_second_zone_later);
+	suite.add_test("kad_prefix_deep_shift_safe", test_prefix_deep_shift_safe);
+	suite.add_test("kad_id_in_zone_level_40", test_id_in_zone_level_40);
 	suite.add_test("kad_subnet_two_ok_third_rejected", test_subnet_two_ok_third_rejected);
 	suite.add_test("kad_subnet_other_slash24", test_subnet_other_slash24_accepted);
 	suite.add_test("kad_subnet_duplicate_id", test_subnet_duplicate_id_does_not_inflate);

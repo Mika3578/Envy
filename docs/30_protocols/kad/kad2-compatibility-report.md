@@ -347,7 +347,7 @@ Envy now uses a binary **routing-zone tree** over 128-bit XOR distance from the 
 | --- | --- | --- |
 | Zone tree | `KadRoutingZone` + leaf `KadRoutingBin` (`std::unique_ptr` children) | `CRoutingZone` + leaf `CRoutingBin` |
 | Leaf capacity | `KAD_K = 10` | `K = 10` (`Defines.h`) |
-| Split rule | `level < 127` AND `size == K` AND (`zoneIndex < KK` OR `level < KBASE`); `KBASE=4`, `KK=5`; also `m_zoneCount + 2 <= 1024` | `CRoutingZone::CanSplit()` — same level/KK/KBASE/K test (`RoutingZone.cpp`) |
+| Split rule | `level < 127` AND `size == K` AND (`prefixInteger` < KK OR `level < KBASE`); `KBASE=4`, `KK=5`; also `m_zoneCount + 2 <= 1024`. `prefixInteger` is the 128-bit XOR prefix interpreted as an integer (saturates at `UINT32_MAX`; never shifts a uint32 by ≥ 32) | `CRoutingZone::CanSplit()` — same level/KK/KBASE/K test (`RoutingZone.cpp`); aMule stores `uint32 m_uZoneIndex` |
 | Redistribute | next XOR bit at `zone.level` (`KadDistanceBit`) | `GetDistance().GetBitNumber(m_level)` |
 | Max depth | 127 (`KAD_MAX_LEVEL`) | 127 |
 | Closest contacts | gather + sort by full 128-bit XOR (not traversal order) | `GetClosestTo` / distance map |
@@ -365,9 +365,10 @@ Bootstrap HostCache entries are **not** inserted into leaves. `CKademlia::Bootst
 | BOOTSTRAP_RES responder | `Observed` | no | alive |
 | FIND_NODE listed contacts | `Candidate` | no | insert only |
 | Valid FIND_NODE_RES / PONG from a known endpoint | `ObserveAliveByEndpoint` | no | alive |
-| HELLO_RES | `Observed` + `markVerified` | **yes** | alive |
+| HELLO_RES matching an outstanding HELLO_REQ | `Observed` + `markVerified` | **yes** | alive |
+| Unsolicited HELLO_RES | ignored | no | no |
 
-`verified` means IP/ID confirmed by **HELLO_RES** (or `MarkContactVerified`). nodes.dat “verified” bits and third-party listings are not live-verified. Malformed packets do not refresh a contact.
+`verified` means IP/ID confirmed by **HELLO_RES that matches an outstanding HELLO_REQ** (or `MarkContactVerified`). Unsolicited HELLO_RES does not verify. nodes.dat “verified” bits and third-party listings are not live-verified. Malformed packets do not refresh a contact. FIND_NODE_RES is fail-closed: truncated contact lists are dropped before outstanding-request consume / `ObserveAliveByEndpoint`; a matching TargetID is required.
 
 ### LRU, types, replacement
 
@@ -379,7 +380,7 @@ Timing uses injected `uint64_t` milliseconds and wrap-safe `KadElapsedAtLeast`. 
 
 ### Stale-zone refresh
 
-Reference: aMule/eMule `CRoutingZone::OnBigTimer` / `RandomLookup` — refresh when `zoneIndex < KK || level < KBASE || remaining >= 0.8*K`. Interval 1 hour (`KAD_ZONE_REFRESH_INTERVAL_MS`); first big timer ~10s; global gap 10s; at most one FIND_NODE refresh and one HELLO ping per `OnTimer` cycle.
+Reference: aMule/eMule `CRoutingZone::OnBigTimer` / `RandomLookup` — refresh when `prefixInteger < KK || level < KBASE || remaining >= 0.8*K`. Interval 1 hour (`KAD_ZONE_REFRESH_INTERVAL_MS`); first `CollectMaintenance` on a leaf **arms** `nextBigTimer = now + 10s` (`KAD_ZONE_REFRESH_START_MS`, aMule `StartTimer`) and does not treat `lastRefresh == 0` as immediately stale; global gap 10s; at most one FIND_NODE refresh and one HELLO ping per `OnTimer` cycle.
 
 Refresh targets are generated **inside the stale leaf’s ID range** (`KadMakeRefreshTarget` / `KadIdInZone`) and sent with existing `SendFindNodeRequest(contact, targetId)` (`KADEMLIA2_REQ` unchanged).
 
@@ -405,7 +406,7 @@ Search-response `/24` caps (per FIND_NODE reply) are **not** in this PR.
 
 ### Tests
 
-`tests/test_kad_routing_table.cpp` — XOR distance/order, split/redistribute, unsplittable replacement, LRU, refresh target-in-zone + bounded work, `/24` diversity + byte order, LAN exception, adversarial `/24` flood and max depth.
+`tests/test_kad_routing_table.cpp` — XOR distance/order, split/redistribute, unsplittable replacement, LRU, refresh arm-then-fire (`+10s`) + target-in-zone + bounded work, 128-bit prefix / level-40 in-zone (no uint32 shift), `/24` diversity + byte order, LAN exception, adversarial `/24` flood and max depth.
 
 **Wire-format impact: none** — Kad2 packet formats are unchanged; this slice changes local routing-table maintenance.
 

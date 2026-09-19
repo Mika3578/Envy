@@ -255,7 +255,7 @@
 
 **eMule:** Division de buckets quand pleins (si bucket contient notre ID)
 
-**Envy (2026-09-19):** XOR zone tree with aMule/eMule `CanSplit` (`level < 127 && size == K && (zoneIndex < KK || level < KBASE)`). See `Envy/KadRoutingTable.h`.
+**Envy (2026-09-19):** XOR zone tree with aMule/eMule `CanSplit` (`level < 127 && size == K && (prefixInteger < KK || level < KBASE)`). Zone prefix is 128-bit (no uint32 shift UB). See `Envy/KadRoutingTable.h`.
 
 **Impact:** Table de routage moins optimale
 

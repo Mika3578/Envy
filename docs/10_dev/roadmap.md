@@ -101,7 +101,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 
 ### Done (wire surface in `Kademlia.cpp` — not app-complete)
 - BOOTSTRAP_REQ/RES, PING/PONG, FIND_NODE, HELLO handlers
-- Routing table — XOR zone tree (`Envy/KadRoutingTable.h`): `CanSplit` (K=10, KBASE=4, KK=5, max depth 127), LRU/type liveness, 1-slot replacement cache, stale-zone FIND_NODE refresh, `/24` diversity (2/bin, 10 global, 1 IP). Local tests only; live DHT evidence remains #160.
+- Routing table — XOR zone tree (`Envy/KadRoutingTable.h`): `CanSplit` (K=10, KBASE=4, KK=5, max depth 127, 128-bit `zonePrefix`), LRU/type liveness, 1-slot replacement cache, stale-zone FIND_NODE refresh (arm +10s then 1h), `/24` diversity (2/bin, 10 global, 1 IP). HELLO_RES verify requires outstanding HELLO_REQ. Local tests only; live DHT evidence remains #160.
 - nodes.dat import via `HostCache` (**implemented** for local files: legacy v0 + new-format v1/v2/v3; v3 bootstrap edition bounded). Remote HTTP `nodes.dat` is not wired. Not a complete Kad bootstrap/interop claim.
 - Rate limiting, blacklist integration
 - Request tracking, IP endianness

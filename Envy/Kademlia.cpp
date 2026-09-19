@@ -222,7 +222,7 @@ void CKademlia::SendFindNodeRequest(const KadContact& contact, const KadId& targ
 
     sockaddr_in addr;
     KadContactGetSockAddr(contact, addr);
-    DWORD requestId = AddOutstandingRequest(KAD_REQUEST_FIND_NODE, addr);
+    DWORD requestId = AddOutstandingRequest(KAD_REQUEST_FIND_NODE, addr, targetId);
 
     theApp.Message(MSG_DEBUG, L"Kad2: Sent find node request to %s (ID: %u)",
         (LPCTSTR)CString(inet_ntoa(addr.sin_addr)), requestId);
@@ -624,34 +624,31 @@ void CKademlia::OnFindNodeRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket) 
 }
 
 void CKademlia::OnFindNodeResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
-    // Check if this response matches an outstanding request
-    if (!IsRequestOutstanding(0, KAD_REQUEST_FIND_NODE, *pHost)) {
-        theApp.Message(MSG_DEBUG, L"Kad2: Ignoring unsolicited find node response from %s",
-            (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
-        return;
-    }
-
     // KADEMLIA2_RES format: <TargetID(16)><Count(1)><contacts...>
-    // Minimum size check: TargetID(16) + Count(1)
     if (pPacket->GetRemaining() < (KAD_ID_SIZE + 1)) {
         theApp.Message(MSG_DEBUG, L"Kad2: Find node response too small");
         return;
     }
 
-    // Read target ID (16 bytes)
-    if (pPacket->GetRemaining() < KAD_ID_SIZE) return;
     KadId targetId;
     pPacket->Read(targetId, KAD_ID_SIZE);
-
-    // Read contact count (1 byte)
     BYTE contactCount = pPacket->ReadByte();
+
+    const size_t recordSize = KAD_ID_SIZE + 4 + 2 + 2 + 1;
+    if (pPacket->GetRemaining() < contactCount * recordSize) {
+        theApp.Message(MSG_DEBUG, L"Kad2: Find node response truncated from %s",
+            (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+        return;
+    }
+
+    if (!IsRequestOutstanding(0, KAD_REQUEST_FIND_NODE, *pHost, targetId)) {
+        theApp.Message(MSG_DEBUG, L"Kad2: Ignoring unsolicited find node response from %s",
+            (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+        return;
+    }
 
     theApp.Message(MSG_DEBUG, L"Kad2: Find node response from %s with %d contacts (accepted)",
         (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), contactCount);
-
-    // KADEMLIA2_RES does not carry the responder ID. Valid outstanding response
-    // still proves liveness of the known endpoint (not verified).
-    m_routingTable.ObserveAliveByEndpoint(ntohl(pHost->sin_addr.s_addr), ntohs(pHost->sin_port), KadNowMs());
 
     // Read contacts: each <ID(16)><IP(4)><UDP(2)><TCP(2)><Ver(1)>
     int contactsAdded = 0;
@@ -676,7 +673,8 @@ void CKademlia::OnFindNodeResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
         theApp.Message(MSG_DEBUG, L"Kad2: Find node response added %d contacts", contactsAdded);
     }
 
-    // Don't add responder to routing table - we don't know their ID from this packet format
+    // Valid, fully parsed outstanding FIND_NODE_RES proves endpoint liveness (not verified).
+    m_routingTable.ObserveAliveByEndpoint(ntohl(pHost->sin_addr.s_addr), ntohs(pHost->sin_port), KadNowMs());
 }
 
 void CKademlia::SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
@@ -782,6 +780,12 @@ void CKademlia::OnHelloResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
         return;
     }
 
+    if (!IsRequestOutstanding(0, KAD_REQUEST_HELLO, *pHost)) {
+        theApp.Message(MSG_DEBUG, L"Kad2: Ignoring unsolicited hello response from %s",
+            (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+        return;
+    }
+
     KadId targetId;
     pPacket->Read(targetId, KAD_ID_SIZE);
     WORD tcpPort = pPacket->ReadShortLE();
@@ -829,6 +833,7 @@ void CKademlia::SendHelloRequest(const SOCKADDR_IN* pTarget) {
     pPacket->WriteShortLE(4672); // Default eMule UDP port
 
     SendPacket(pTarget, pPacket);
+    AddOutstandingRequest(KAD_REQUEST_HELLO, *pTarget);
 }
 
 void CKademlia::SendHelloResponse(const SOCKADDR_IN* pTarget) {
@@ -914,16 +919,37 @@ DWORD CKademlia::AddOutstandingRequest(KadRequestType type, const SOCKADDR_IN& t
     return requestId;
 }
 
-bool CKademlia::IsRequestOutstanding(DWORD requestId, KadRequestType expectedType, const SOCKADDR_IN& fromAddr) {
-    // For now, we accept any response from the same IP as valid
-    // In a full implementation, we'd track specific request IDs
+DWORD CKademlia::AddOutstandingRequest(KadRequestType type, const SOCKADDR_IN& targetAddr, const KadId& kadTarget) {
+    DWORD requestId = AddOutstandingRequest(type, targetAddr);
+    auto it = m_outstandingRequests.find(requestId);
+    if (it != m_outstandingRequests.end()) {
+        memcpy(it->second.targetId, kadTarget, KAD_ID_SIZE);
+        it->second.hasTargetId = true;
+    }
+    return requestId;
+}
 
+bool CKademlia::IsRequestOutstanding(DWORD requestId, KadRequestType expectedType, const SOCKADDR_IN& fromAddr) {
+    return MatchOutstandingRequest(requestId, expectedType, fromAddr, nullptr);
+}
+
+bool CKademlia::IsRequestOutstanding(DWORD requestId, KadRequestType expectedType, const SOCKADDR_IN& fromAddr, const KadId& kadTarget) {
+    return MatchOutstandingRequest(requestId, expectedType, fromAddr, kadTarget);
+}
+
+bool CKademlia::MatchOutstandingRequest(DWORD requestId, KadRequestType expectedType, const SOCKADDR_IN& fromAddr, const unsigned char* targetId) {
+    (void)requestId;
     auto it = m_outstandingRequests.begin();
     while (it != m_outstandingRequests.end()) {
         if (it->second.targetAddr.sin_addr.s_addr == fromAddr.sin_addr.s_addr &&
             it->second.targetAddr.sin_port == fromAddr.sin_port &&
             it->second.type == expectedType) {
-            // Found matching request, remove it
+            if (targetId != nullptr) {
+                if (!it->second.hasTargetId || memcmp(it->second.targetId, targetId, KAD_ID_SIZE) != 0) {
+                    ++it;
+                    continue;
+                }
+            }
             m_outstandingRequests.erase(it);
             return true;
         }

@@ -7,7 +7,9 @@
 // Zone model (aMule CRoutingZone / eMule Community RoutingZone.cpp):
 //   * Binary tree of zones over 128-bit XOR distance from the local Kad ID.
 //   * Leaves hold a routing bin of at most KAD_K (10) contacts.
-//   * CanSplit: level < 127 AND size == K AND (zoneIndex < KK OR level < KBASE).
+//   * CanSplit: level < 127 AND size == K AND (prefixInteger < KK OR level < KBASE).
+//   * Zone identity is a 128-bit XOR prefix (not a uint32 zoneIndex) so depth >= 32
+//     never shifts a 32-bit index (UB). prefixInteger saturates at UINT32_MAX.
 //   * Unsplittable full leaves use LRU + bounded replacement (1 slot).
 //   * Subnet caps: 2 contacts per /24 per bin, 10 per /24 globally, 1 Kad ID per IP
 //     (LAN excepted when allowLan is set). aMule CRoutingBin::AddContact /
@@ -305,40 +307,93 @@ inline bool KadContactIsHealthyVerified(const KadContact& c, uint64_t nowMs)
 	return true;
 }
 
-// Fill XOR-distance prefix from zoneIndex (top `level` bits) and suffix for the rest.
-inline void KadMakeZoneDistance(KadId& distance, uint32_t level, uint32_t zoneIndex, const KadId& suffix)
+// Integer value of the first `level` XOR-prefix bits (MSB first). Saturates at UINT32_MAX
+// if the value does not fit in 32 bits. Never shifts a uint32 by >= 32 (UB).
+inline uint32_t KadPrefixInteger(const KadId& prefix, uint32_t level)
 {
-	KadIdCopy(distance, suffix);
+	if (level == 0)
+		return 0;
+	uint32_t got = 0;
 	for (uint32_t i = 0; i < level && i < static_cast<uint32_t>(KAD_ID_BITS); ++i)
 	{
-		const int bit = static_cast<int>((zoneIndex >> (level - 1 - i)) & 1u);
-		KadIdSetBit(distance, i, bit);
+		const uint32_t remain = level - 1 - i;
+		if (KadDistanceBit(prefix, i) == 0)
+			continue;
+		if (remain >= 32)
+			return 0xFFFFFFFFu;
+		const uint32_t add = 1u << remain;
+		if (got > 0xFFFFFFFFu - add)
+			return 0xFFFFFFFFu;
+		got += add;
+	}
+	return got;
+}
+
+inline void KadIndexToPrefix(KadId& prefix, uint32_t level, uint32_t zoneIndex)
+{
+	std::memset(prefix, 0, KAD_ID_SIZE);
+	for (uint32_t i = 0; i < level && i < static_cast<uint32_t>(KAD_ID_BITS); ++i)
+	{
+		const uint32_t remain = level - 1 - i;
+		const int bit = (remain < 32) ? static_cast<int>((zoneIndex >> remain) & 1u) : 0;
+		KadIdSetBit(prefix, i, bit);
 	}
 }
 
-inline void KadMakeRefreshTarget(KadId& out, const KadId& localId, uint32_t level, uint32_t zoneIndex, const KadId& suffix)
+// Fill XOR-distance prefix from the zone's 128-bit prefix (top `level` bits) and suffix for the rest.
+inline void KadMakeZoneDistance(KadId& distance, uint32_t level, const KadId& prefix, const KadId& suffix)
+{
+	KadIdCopy(distance, suffix);
+	for (uint32_t i = 0; i < level && i < static_cast<uint32_t>(KAD_ID_BITS); ++i)
+		KadIdSetBit(distance, i, KadDistanceBit(prefix, i));
+}
+
+inline void KadMakeZoneDistance(KadId& distance, uint32_t level, uint32_t zoneIndex, const KadId& suffix)
+{
+	KadId prefix{};
+	KadIndexToPrefix(prefix, level, zoneIndex);
+	KadMakeZoneDistance(distance, level, prefix, suffix);
+}
+
+inline void KadMakeRefreshTarget(KadId& out, const KadId& localId, uint32_t level, const KadId& prefix, const KadId& suffix)
 {
 	KadId distance;
-	KadMakeZoneDistance(distance, level, zoneIndex, suffix);
+	KadMakeZoneDistance(distance, level, prefix, suffix);
 	KadIdXor(out, localId, distance);
 	if (KadIdEqual(out, localId))
 	{
 		KadId tweaked;
 		KadIdCopy(tweaked, suffix);
 		tweaked[KAD_ID_SIZE - 1] = static_cast<unsigned char>(tweaked[KAD_ID_SIZE - 1] ^ 0x01);
-		KadMakeZoneDistance(distance, level, zoneIndex, tweaked);
+		KadMakeZoneDistance(distance, level, prefix, tweaked);
 		KadIdXor(out, localId, distance);
 	}
 }
 
-inline bool KadIdInZone(const KadId& localId, const KadId& contactId, uint32_t level, uint32_t zoneIndex)
+inline void KadMakeRefreshTarget(KadId& out, const KadId& localId, uint32_t level, uint32_t zoneIndex, const KadId& suffix)
+{
+	KadId prefix{};
+	KadIndexToPrefix(prefix, level, zoneIndex);
+	KadMakeRefreshTarget(out, localId, level, prefix, suffix);
+}
+
+inline bool KadIdInZone(const KadId& localId, const KadId& contactId, uint32_t level, const KadId& prefix)
 {
 	KadId distance;
 	KadIdXor(distance, localId, contactId);
-	uint32_t got = 0;
 	for (uint32_t i = 0; i < level && i < static_cast<uint32_t>(KAD_ID_BITS); ++i)
-		got = (got << 1) | static_cast<uint32_t>(KadDistanceBit(distance, i));
-	return got == zoneIndex;
+	{
+		if (KadDistanceBit(distance, i) != KadDistanceBit(prefix, i))
+			return false;
+	}
+	return true;
+}
+
+inline bool KadIdInZone(const KadId& localId, const KadId& contactId, uint32_t level, uint32_t zoneIndex)
+{
+	KadId prefix{};
+	KadIndexToPrefix(prefix, level, zoneIndex);
+	return KadIdInZone(localId, contactId, level, prefix);
 }
 
 struct KadRoutingBin
@@ -356,7 +411,7 @@ struct KadRoutingBin
 struct KadRoutingZone
 {
 	uint32_t level = 0;
-	uint32_t zoneIndex = 0;
+	KadId zonePrefix{};
 	std::unique_ptr<KadRoutingBin> bin;
 	std::unique_ptr<KadRoutingZone> children[2];
 
@@ -592,7 +647,7 @@ public:
 		            {
 			KadLeafInfo info;
 			info.level = z.level;
-			info.zoneIndex = z.zoneIndex;
+			info.zoneIndex = KadPrefixInteger(z.zonePrefix, z.level);
 			info.contacts = z.bin->contacts.size();
 			info.replacement = z.bin->replacement ? 1 : 0;
 			info.lastRefresh = z.bin->lastRefresh;
@@ -656,6 +711,15 @@ public:
 			}
 		}
 
+		// aMule StartTimer: arm even when the global refresh gap has not elapsed.
+		for (KadRoutingZone* leaf : leaves)
+		{
+			if (!leaf || !leaf->IsLeaf())
+				continue;
+			if (leaf->bin->nextBigTimer == 0)
+				leaf->bin->nextBigTimer = nowMs + KAD_ZONE_REFRESH_START_MS;
+		}
+
 		if (!refreshTaken && KadElapsedAtLeast(nowMs, m_lastGlobalRefresh, KAD_ZONE_REFRESH_MIN_GAP_MS))
 		{
 			for (KadRoutingZone* leaf : leaves)
@@ -667,8 +731,8 @@ public:
 				if (!ShouldRandomLookup(*leaf))
 					continue;
 
-				KadMakeRefreshTarget(action.refreshTarget, ownId, leaf->level, leaf->zoneIndex, entropy);
-				if (!KadIdInZone(ownId, action.refreshTarget, leaf->level, leaf->zoneIndex))
+				KadMakeRefreshTarget(action.refreshTarget, ownId, leaf->level, leaf->zonePrefix, entropy);
+				if (!KadIdInZone(ownId, action.refreshTarget, leaf->level, leaf->zonePrefix))
 					continue;
 
 				KadContact peer;
@@ -705,7 +769,7 @@ private:
 	{
 		m_root = std::make_unique<KadRoutingZone>();
 		m_root->level = 0;
-		m_root->zoneIndex = 0;
+		std::memset(m_root->zonePrefix, 0, KAD_ID_SIZE);
 		m_root->bin = std::make_unique<KadRoutingBin>();
 		m_zoneCount = 1;
 		m_lastGlobalRefresh = 0;
@@ -778,7 +842,7 @@ private:
 			return false;
 		if (zone.bin->contacts.size() != static_cast<size_t>(KAD_K))
 			return false;
-		return (zone.zoneIndex < KAD_KK || zone.level < KAD_KBASE);
+		return (KadPrefixInteger(zone.zonePrefix, zone.level) < KAD_KK || zone.level < KAD_KBASE);
 	}
 
 	bool Split(KadRoutingZone& zone)
@@ -790,8 +854,10 @@ private:
 		auto right = std::make_unique<KadRoutingZone>();
 		left->level = zone.level + 1;
 		right->level = zone.level + 1;
-		left->zoneIndex = zone.zoneIndex << 1;
-		right->zoneIndex = (zone.zoneIndex << 1) + 1;
+		KadIdCopy(left->zonePrefix, zone.zonePrefix);
+		KadIdCopy(right->zonePrefix, zone.zonePrefix);
+		KadIdSetBit(left->zonePrefix, zone.level, 0);
+		KadIdSetBit(right->zonePrefix, zone.level, 1);
 		left->bin = std::make_unique<KadRoutingBin>();
 		right->bin = std::make_unique<KadRoutingBin>();
 		left->bin->lastRefresh = zone.bin->lastRefresh;
@@ -1027,13 +1093,13 @@ private:
 	bool BigTimerDue(const KadRoutingZone& zone, uint64_t nowMs) const
 	{
 		if (zone.bin->nextBigTimer == 0)
-			return KadElapsedAtLeast(nowMs, zone.bin->lastRefresh, KAD_ZONE_REFRESH_INTERVAL_MS);
+			return false;
 		return nowMs >= zone.bin->nextBigTimer;
 	}
 
 	static bool ShouldRandomLookup(const KadRoutingZone& zone)
 	{
-		if (zone.zoneIndex < KAD_KK || zone.level < KAD_KBASE)
+		if (KadPrefixInteger(zone.zonePrefix, zone.level) < KAD_KK || zone.level < KAD_KBASE)
 			return true;
 		return zone.bin->Remaining() >= static_cast<size_t>(KAD_K * 4 / 5);
 	}
