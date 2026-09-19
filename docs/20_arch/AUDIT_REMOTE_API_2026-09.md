@@ -417,7 +417,7 @@ Accidental probe issue [#238](https://github.com/Mika3578/Envy/issues/238) (`tes
 
 ## Blockers
 
-- Full `EnvyTests` / MSBuild not runnable on this Linux Cloud Agent (Windows/MSVC). Linux `g++ -std=c++20` ran `test_transfer_state_smoke.cpp`: **21 passed / 0 failed** (reverified after `#248` rebase).
+- Full `EnvyTests` / MSBuild not runnable on this Linux Cloud Agent (Windows/MSVC). Linux `g++ -std=c++20` ran `test_transfer_state_smoke.cpp`: **22 passed / 0 failed** (includes fail-closed `Finished(Downloading)` registration after `#242`).
 - Amazon Q review claimed paused-vs-completed priority was unverifiable. **Rejected:** `CDownload::GetDownloadStatus()` tests `IsPaused()` at `Download.cpp:382` before `IsCompleted()` at `Download.cpp:389`. `test_transfer_state_paused_wins` encodes that order.
 - Live Radarr/Prowlarr/Jackett not in this environment.
 - Accidental issue #238 cannot be closed with this integration token (create-only). Maintainer should close it as not planned.

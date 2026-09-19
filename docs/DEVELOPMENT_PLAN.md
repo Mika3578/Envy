@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — Register `transfer_state_downloading_finished_not_importable` so #242 fail-closed Finished(Downloading) smoke actually runs (22/22 Linux g++).
 - **Changelog Entry:** 2026-09-19 — Reinforce branch naming hard rule 11: forbid `cursor/`/`claude/`/Cloud-runner slug templates; CONTRIBUTING aligned to `type/short-kebab-summary` only.
 - **Changelog Entry:** 2026-09-19 — Debug assert fix: NMDC code-page `Neighbours.Get` paths take `Network.m_pSection` (or copy from live hub); regression from #224.
 - **Changelog Entry:** 2026-09-19 — #234: SonarCloud develop QG remediation — job-scoped GHA permissions, Remote CSP/label alignment, `.sonarcloud.properties` third-party exclusions (`docs/10_dev/sonarcloud-exclusions.md`).
