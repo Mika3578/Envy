@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Crash reports stay local (#90)** — No automatic dump upload, no BugTrap registry export, no crash-time networking. Minidumps can still contain private memory fragments; sharing a `.dmp` is opt-in.
 
 ### Removed
-- **BugTrap** — Vendored `Services/BugTrap` tree, prebuilt `BugTrapU` libraries, bundled `dbghelp.dll` / `dbghelp.64.dll`, installer copy into `{sys}`, and Debug-only `BT_*` integration.
+- **BugTrap** — Vendored `Services/BugTrap` tree, prebuilt `BugTrapU` libraries, bundled `dbghelp.dll` / `dbghelp.64.dll`, `Envy/PreBuild.cmd` copies, installer copy into `{sys}`, and Debug-only `BT_*` integration.
 
 ### Fixed
 - **ED2K compressed upload parts (#87)** — `CUploadTransferED2K::DispatchNextChunk()` can emit `ED2K_C2C_COMPRESSEDPART` / `COMPRESSEDPART_I64` when the peer negotiated compression version 1 (`m_bEmDeflate`), using zlib `compress2` with eMule/aMule layout (`<hash><start><compressed-total><data>`) and benefit fallback to `SENDINGPART` when compression fails or does not shrink. Logical upload position advances by uncompressed source bytes. Helpers/tests: `Ed2kCompressedUpload.h`, `tests/test_ed2k_compressed_upload_smoke.cpp`. Does **not** claim full ED2K/eMule compatibility; live interop remains `#160`. Remaining #87: AICH C2C, callbacks/LowID, multipacket, SecureIdent.

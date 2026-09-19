@@ -54,6 +54,8 @@ private fragments**. Treat dumps as sensitive.
 Production and tests load **system** `dbghelp.dll` from `%SystemRoot%\System32`
 (`LoadLibraryEx` + `LOAD_LIBRARY_SEARCH_SYSTEM32`). ENVY does not ship
 DbgHelp. `MiniDumpWriteDump` is resolved at init, not during the crash.
+`Envy/PreBuild.cmd` no longer copies BugTrap or bundled DbgHelp next to
+`Envy.exe`.
 
 ## Symbols
 
