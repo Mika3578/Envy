@@ -677,16 +677,16 @@ namespace
 
 
 CTigerTree::CTigerTree()
-	: m_pNode		( NULL )
-	, m_nNodeCount	( 0 )
-	, m_nNodeBase	( 0 )
-	, m_nNodePos	( 0 )
-	, m_nHeight		( 0 )
-	, m_nBlockCount	( 0 )
-	, m_nBlockPos	( 0 )
-	, m_nBaseUsed	( 0 )
-	, m_pStackBase	( NULL )
-	, m_pStackTop	( NULL )
+    : m_pNode(NULL)
+    , m_nNodeCount(0)
+    , m_nHeight(0)
+    , m_nNodeBase(0)
+    , m_nNodePos(0)
+    , m_nBaseUsed(0)
+    , m_nBlockCount(0)
+    , m_nBlockPos(0)
+    , m_pStackBase(NULL)
+    , m_pStackTop(NULL)
 {
 	InitializeCriticalSection( &m_pSection );
 }
@@ -1306,7 +1306,7 @@ uint32 CTigerTree::GetBlockCount() const
 
 void CTigerTree::Tiger(LPCVOID pInput, uint64 nInput, uint64* pOutput, uint64* pInput1, uint64* pInput2)
 {
-	register uint64 i, j = 0;
+	uint64 i, j = 0;
 	uint8 pTemp[64];
 
 	pOutput[0] = 0x0123456789ABCDEF;

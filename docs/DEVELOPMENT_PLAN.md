@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — HashLib `CTigerTree` warning cleanup (#84 slice): constructor init order matches `TigerTree.h` (C5038); drop `register` in `CTigerTree::Tiger` (C5033). No Tiger/TTH algorithm or wire-format change. EnvyTests: constructor + identical-input/incremental/empty-file root stability.
 - **Changelog Entry:** 2026-09-19 — #255 review follow-up: C2C CALLBACK known-file gate includes incomplete downloads; clear consume guard when `EDClients.PushTo` fails.
 - **Changelog Entry:** 2026-09-19 — Kad2 routing × firewall rebase: `CollectFirewallCheckCandidates` walks the zone tree (`ForEachContact`); `SendFirewalledRequest` uses `KadContactGetSockAddr` (no `GetSockAddr` / `KAD_BUCKET_COUNT` / `buckets`).
 - **Changelog Entry:** 2026-09-19 — Kad2 routing review: 128-bit `zonePrefix` (no uint32 shift UB at depth ≥ 32); first zone refresh arms `+10s` then fires; HELLO_RES requires outstanding HELLO_REQ; FIND_NODE_RES matches TargetID and is fail-closed on truncated contact lists before liveness.

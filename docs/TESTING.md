@@ -31,6 +31,13 @@ ctest --test-dir build
 - Optional `workflow_dispatch` workflow: `ED2K interop harness` (self-test + dry-run only on GitHub-hosted runners).
 - Details: `tools/interop/README.md`. This is **not** a claim that ENVY is fully interoperable.
 
+## HashLib Tiger/TTH regression
+- `tests/test_hashlib.cpp` now also covers `CTigerTree`: default constructor
+  (unavailable, height 0, no root), identical-input root stability,
+  incremental vs single-buffer hashing, and empty-file root stability.
+  There is no in-repo golden TTH digest; these tests do not invent one.
+  HashLib/EnvyTests still require Windows MSVC.
+
 ## Coverage Targets (Proposed)
 - Hashing/core utilities: maintain high coverage.
 - Protocol handlers: add targeted unit tests for packet parse/serialize logic.
