@@ -172,6 +172,18 @@ static bool test_g1_deflate_xml_inflate_ok()
 		&& G1DeflateXmlInflateOk( G1_DEFLATE_XML_INFLATE_MAX + 1 ) == FALSE;
 }
 
+static bool test_g1_packet_total_length_ok()
+{
+	const DWORD nMax = 64u * 1024u;
+	return G1PacketTotalLengthOk( 0, nMax ) == TRUE
+		&& G1PacketTotalLengthOk( -1, nMax ) == FALSE
+		&& G1PacketTotalLengthOk( static_cast< LONG >( nMax - G1_PACKET_HEADER_BYTES - 1 ), nMax ) == TRUE
+		&& G1PacketTotalLengthOk( static_cast< LONG >( nMax - G1_PACKET_HEADER_BYTES ), nMax ) == FALSE
+		&& G1PacketTotalLengthOk( 1, G1_PACKET_HEADER_BYTES ) == FALSE
+		&& G1PacketTotalLengthOk( 0x7FFFFFFFL, nMax ) == FALSE
+		&& G1PacketTotalLength( 10 ) == G1_PACKET_HEADER_BYTES + 10;
+}
+
 static bool test_ggep_h_length_zero()
 {
 	return GgepItemHasTypeByte( nullptr, 0 ) == FALSE;
@@ -581,6 +593,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "g1_deflate_marker_no_payload", test_g1_deflate_marker_no_payload );
 	suite.add_test( "g1_deflate_min_payload", test_g1_deflate_min_compressed_byte );
 	suite.add_test( "g1_deflate_xml_inflate_ok", test_g1_deflate_xml_inflate_ok );
+	suite.add_test( "g1_packet_total_length_ok", test_g1_packet_total_length_ok );
 
 	suite.add_test( "ggep_h_length_zero", test_ggep_h_length_zero );
 	suite.add_test( "ggep_m_length_zero", test_ggep_m_length_zero );

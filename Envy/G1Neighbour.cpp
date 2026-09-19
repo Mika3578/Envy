@@ -50,6 +50,10 @@
 #include "Statistics.h"
 #include "GProfile.h"
 #include "GGEP.h"
+#include "PacketLengthValidate.h"
+
+static_assert(sizeof(GNUTELLAPACKET) == G1_PACKET_HEADER_BYTES,
+              "G1_PACKET_HEADER_BYTES must match packed GNUTELLAPACKET");
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -289,18 +293,14 @@ BOOL CG1Neighbour::ProcessPackets(CBuffer* pInput)
 		GNUTELLAPACKET* pPacket = (GNUTELLAPACKET*)pInput->m_pBuffer;	// Hopefully a packet starts right there
 		if ( pInput->m_nLength < sizeof( *pPacket ) ) break;			// If there aren't enough bytes in the buffer for a packet, leave the loop
 
-		// Calculate how big this packet is
-		DWORD nLength =
-			sizeof( *pPacket ) +								// The size of a Gnutella packet header, which is the same for all Gnutella packets,
-			pPacket->m_nLength; 								// plus the length written in the packet
-
-		// If the length written in the packet is negative or too big
-		if ( pPacket->m_nLength < 0 || nLength >= Settings.Gnutella.MaximumPacket )
+		// Calculate how big this packet is (payload is signed LONG on the wire).
+		if (!G1PacketTotalLengthOk(pPacket->m_nLength, Settings.Gnutella.MaximumPacket))
 		{
 			// Close our connection to this remote computer
 			Close( IDS_PROTOCOL_TOO_LARGE );
 			return FALSE;
 		}
+		const DWORD nLength = G1PacketTotalLength(pPacket->m_nLength);
 
 		// If the whole packet hasn't arrived in the buffer yet, leave the loop
 		if ( pInput->m_nLength < nLength ) break;
