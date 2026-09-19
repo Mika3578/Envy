@@ -49,28 +49,28 @@ static char THIS_FILE[] = __FILE__;
 
 namespace
 {
-	// HTTP Content-Length must be a single unsigned decimal; reject "1junk" / "1 2".
-	BOOL ParseHttpContentLengthDecimal(const CString& strValue, QWORD& nLength)
-	{
-		CString s( strValue );
-		s.Trim();
-		if ( s.IsEmpty() )
-			return FALSE;
+// HTTP Content-Length must be a single unsigned decimal; reject "1junk" / "1 2".
+BOOL ParseHttpContentLengthDecimal(const CString& strValue, QWORD& nLength)
+{
+	CString s(strValue);
+	s.Trim();
+	if (s.IsEmpty())
+		return FALSE;
 
-		QWORD n = 0;
-		for ( int i = 0; i < s.GetLength(); ++i )
-		{
-			const TCHAR ch = s.GetAt( i );
-			if ( ch < _T('0') || ch > _T('9') )
-				return FALSE;
-			const QWORD d = static_cast< QWORD >( ch - _T('0') );
-			if ( n > ( ~0ull - d ) / 10ull )
-				return FALSE;
-			n = n * 10ull + d;
-		}
-		nLength = n;
-		return TRUE;
+	QWORD n = 0;
+	for (int i = 0; i < s.GetLength(); ++i)
+	{
+		const TCHAR ch = s.GetAt(i);
+		if (ch < _T('0') || ch > _T('9'))
+			return FALSE;
+		const QWORD d = static_cast<QWORD>(ch - _T('0'));
+		if (n > (~0ull - d) / 10ull)
+			return FALSE;
+		n = n * 10ull + d;
 	}
+	nLength = n;
+	return TRUE;
+}
 }
 
 
@@ -356,9 +356,9 @@ void CHostBrowser::OnDropped()
 			{
 				// m_nReceived already counts prior ReadContent; GetInputLength is only residual.
 				const QWORD nTotal = m_nReceived + GetInputLength();
-				if ( ! HostBrowserHttpBodyOk( nTotal ) )
+				if (!HostBrowserHttpBodyOk(nTotal))
 				{
-					theApp.Message( MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress );
+					theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
 					Stop();
 					return;
 				}
@@ -706,9 +706,9 @@ BOOL CHostBrowser::OnHeaderLine(CString& strHeader, CString& strValue)
 	else if ( strHeader.CompareNoCase( L"Content-Length" ) == 0 )
 	{
 		QWORD nLength = 0;
-		if ( ! ParseHttpContentLengthDecimal( strValue, nLength ) || ! HostBrowserHttpBodyOk( nLength ) )
+		if (!ParseHttpContentLengthDecimal(strValue, nLength) || !HostBrowserHttpBodyOk(nLength))
 		{
-			theApp.Message( MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress );
+			theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
 			Stop();
 			return FALSE;
 		}
@@ -725,8 +725,8 @@ BOOL CHostBrowser::OnHeadersComplete()
 	if ( m_nState == hbsContent )
 		return TRUE;
 
-	if ( m_nProtocol == PROTOCOL_ANY || m_nLength == 0 ||
-		( m_nLength != SIZE_UNKNOWN && ! HostBrowserHttpBodyOk( m_nLength ) ) )
+	if (m_nProtocol == PROTOCOL_ANY || m_nLength == 0 ||
+	    (m_nLength != SIZE_UNKNOWN && !HostBrowserHttpBodyOk(m_nLength)))
 	{
 		theApp.Message( MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress );
 		Stop();
@@ -760,19 +760,19 @@ BOOL CHostBrowser::ReadContent()
 			DWORD nVolume = min( DWORD( m_nLength - m_nReceived ), pInput->m_nLength );
 
 			// Close-delimited bodies: refuse if residual input alone would exceed the cap.
-			if ( m_nLength == SIZE_UNKNOWN &&
-				! HostBrowserHttpBufferOk( m_nReceived + pInput->m_nLength ) )
+			if (m_nLength == SIZE_UNKNOWN &&
+			    !HostBrowserHttpBufferOk(m_nReceived + pInput->m_nLength))
 			{
-				theApp.Message( MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress );
+				theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
 				Stop();
 				return FALSE;
 			}
 
 			if ( ! m_bDeflate )
 			{
-				if ( ! HostBrowserHttpBufferOk( (QWORD)m_pBuffer->m_nLength + nVolume ) )
+				if (!HostBrowserHttpBufferOk((QWORD)m_pBuffer->m_nLength + nVolume))
 				{
-					theApp.Message( MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress );
+					theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
 					Stop();
 					return FALSE;
 				}
@@ -783,10 +783,10 @@ BOOL CHostBrowser::ReadContent()
 			{
 				m_nReceived += nVolume;
 				// Cap inflate before allocation; InflateStreamTo fail-closes past nMaxOutput.
-				if ( ! pInput->InflateStreamTo( *m_pBuffer, m_pInflate, NULL,
-					static_cast< DWORD >( HOST_BROWSER_HTTP_BODY_MAX ) ) )
+				if (!pInput->InflateStreamTo(*m_pBuffer, m_pInflate, NULL,
+				                             static_cast<DWORD>(HOST_BROWSER_HTTP_BODY_MAX)))
 				{
-					theApp.Message( MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress );
+					theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
 					Stop();
 					return FALSE;
 				}

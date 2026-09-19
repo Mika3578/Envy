@@ -631,21 +631,21 @@ bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndO
 		UINT nLength = static_cast< UINT >( max( GetBufferFree(), 1024ul ) );	// ZLIB_CHUNK_SIZE Chunk size for ZLib compression/decompression
 
 		// Optional zip-bomb / HTTP body cap: never grow oBuffer past nMaxOutput
-		if ( nMaxOutput != 0 && oBuffer.m_nLength >= nMaxOutput )
+		if (nMaxOutput != 0 && oBuffer.m_nLength >= nMaxOutput)
 		{
 			// Exact-cap completion is OK when no compressed input remains.
-			if ( pStream->avail_in > 0 )
+			if (pStream->avail_in > 0)
 			{
-				InflateStreamCleanup( pStream );
+				InflateStreamCleanup(pStream);
 				return false;
 			}
 			break;
 		}
-		if ( nMaxOutput != 0 )
+		if (nMaxOutput != 0)
 		{
 			const DWORD nRoom = nMaxOutput - oBuffer.m_nLength;
-			if ( nLength > nRoom )
-				nLength = static_cast< UINT >( nRoom );
+			if (nLength > nRoom)
+				nLength = static_cast<UINT>(nRoom);
 		}
 
 		// Make sure the receiving buffer is large enough to hold at least 1KB
