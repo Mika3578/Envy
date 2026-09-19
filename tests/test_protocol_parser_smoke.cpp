@@ -11,6 +11,7 @@
 #include "../Envy/EDSourcePacketValidate.h"
 #include "../Envy/PacketLengthValidate.h"
 
+#include <array>
 #include <cstdio>
 #include <fstream>
 #include <iterator>
@@ -481,6 +482,75 @@ static bool test_ggep_inflate_output_ok()
 		&& GgepInflateOutputOk( GGEP_INFLATE_MAX + 1 ) == FALSE;
 }
 
+static bool test_ed2k_compressedpart_inflate_ok()
+{
+	const std::uint64_t nPart = ED2K_COMPRESSEDPART_INFLATE_MAX;
+	const bool bPred =
+		Ed2kCompressedPartInflateOk( 0, nPart ) == TRUE
+		&& Ed2kCompressedPartInflateOk( nPart, nPart ) == TRUE
+		&& Ed2kCompressedPartInflateOk( nPart + 1, nPart ) == FALSE
+		&& Ed2kCompressedPartInflateOk( 100, 50 ) == FALSE;
+	// Accounting decision shared by AcceptCompressedPartChunk (EOF => 0).
+	const bool bBudget =
+		Ed2kCompressedPartInflateBudget( ~0ULL, 0 ) == nPart
+		&& Ed2kCompressedPartInflateBudget( nPart, 0 ) == nPart
+		&& Ed2kCompressedPartInflateBudget( 100, 40 ) == 60
+		&& Ed2kCompressedPartInflateBudget( 100, 100 ) == 0
+		&& Ed2kCompressedPartInflateBudget( 100, 101 ) == 0
+		&& Ed2kCompressedPartInflateOk( 1, Ed2kCompressedPartInflateBudget( 100, 100 ) ) == FALSE;
+	return bPred && bBudget;
+}
+
+static bool test_ed2k_compressedpart_accept_before_submit()
+{
+	// Call-site regression: drain helper gates SubmitData; both handlers call it.
+	const std::array<const char*, 4> candidates = {
+		"../Envy/DownloadTransferED2K.cpp",
+		"../../Envy/DownloadTransferED2K.cpp",
+		"Envy/DownloadTransferED2K.cpp",
+		"../../../Envy/DownloadTransferED2K.cpp"
+	};
+
+	std::ifstream in;
+	for ( const char* path : candidates )
+	{
+		in.open( path, std::ios::in | std::ios::binary );
+		if ( in )
+			break;
+	}
+	if ( !in )
+		return false;
+
+	std::string content( ( std::istreambuf_iterator<char>( in ) ),
+		std::istreambuf_iterator<char>() );
+
+	auto fn_body = [ &content ]( const char* szFn )
+	{
+		const size_t nFn = content.find( szFn );
+		if ( nFn == std::string::npos )
+			return std::string();
+		const size_t nNext = content.find( "\nBOOL ", nFn + 1 );
+		return content.substr( nFn,
+			( nNext == std::string::npos ? content.size() : nNext ) - nFn );
+	};
+
+	const std::string drain = fn_body( "CDownloadTransferED2K::DrainCompressedPartInflate(" );
+	const size_t nAccept = drain.find( "AcceptCompressedPartChunk" );
+	const size_t nSubmit = drain.find( "SubmitData" );
+	const bool bDrainGates = !drain.empty()
+		&& nAccept != std::string::npos
+		&& nSubmit != std::string::npos
+		&& nAccept < nSubmit;
+
+	const std::string part32 = fn_body( "CDownloadTransferED2K::OnCompressedPart(" );
+	const std::string part64 = fn_body( "CDownloadTransferED2K::OnCompressedPart64(" );
+	const bool bHandlersCallDrain =
+		part32.find( "DrainCompressedPartInflate" ) != std::string::npos
+		&& part64.find( "DrainCompressedPartInflate" ) != std::string::npos;
+
+	return bDrainGates && bHandlersCallDrain;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -553,4 +623,6 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "cbuffer_inflate_output_ok", test_cbuffer_inflate_output_ok );
 	suite.add_test( "cbuffer_inflate_stream_output_ok", test_cbuffer_inflate_stream_output_ok );
 	suite.add_test( "ggep_inflate_output_ok", test_ggep_inflate_output_ok );
+	suite.add_test( "ed2k_compressedpart_inflate_ok", test_ed2k_compressedpart_inflate_ok );
+	suite.add_test( "ed2k_compressedpart_accept_before_submit", test_ed2k_compressedpart_accept_before_submit );
 }
