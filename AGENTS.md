@@ -186,12 +186,29 @@ When you take on a task you are expected to:
    anything new.
 5. **Tick the checkboxes** in the PR template that genuinely apply -
    don't blanket-check them.
-6. **Cite file:line** in chat replies when discussing code:
+6. **CI wait (no arbitrary sleeps).** After any push tied to a PR, never
+   use `sleep`, fixed timeouts, or “wait N minutes then poll” for GitHub
+   Actions. Requires a recent GitHub CLI (`gh` ≥ 2.53 for
+   `pr checks --watch/--fail-fast/--required/--interval`; ≥ 2.72 for
+   `run watch --compact`). Attach to required checks immediately:
+   `gh pr checks <PR> --repo Mika3578/Envy --required --watch --fail-fast --interval 5`
+   Resume as soon as that command returns. On failure, inspect the linked
+   check. For GitHub Actions, identify the failed run/job from
+   `gh pr checks` output and fetch logs with
+   `gh run view <RUN_ID> --log-failed` (statuses alone are not enough);
+   for external checks (e.g. SonarCloud), use the linked provider’s
+   diagnostics, then fix, push once, and watch again. On success:
+   immediately verify review threads, ruleset, and squash auto-merge —
+   do not insert idle delays. For a single Actions workflow:
+   `gh run watch <RUN_ID> --compact --exit-status --interval 3`.
+   Long unattended babysitting may use a Cursor Cloud Agent `/babysit`
+   when available; do not replace `gh pr checks --watch` with shell sleeps.
+7. **Cite file:line** in chat replies when discussing code:
    `Envy/Buffer.cpp:782`, never paraphrased.
-7. **Never edit a vendored third-party file** to suppress a warning -
+8. **Never edit a vendored third-party file** to suppress a warning -
    either fix it upstream (vcpkg port), add a `/wd<num>` per-project,
    or leave the warning.
-8. **Cluster mechanical edits**. If you are going to rewrite a token
+9. **Cluster mechanical edits**. If you are going to rewrite a token
    across N files, write a Python/PowerShell script under
    `Visual Studio/` (or a tmp script you delete), run it, commit the
    resulting diff. Don't hand-edit 40 files.
