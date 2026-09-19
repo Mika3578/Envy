@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — Transfer settings foundation: Uploads page labels match the core (`Unlimited`, throttle Average/Maximum, max uploads per host); Fair-Use checkbox disabled (no backend); `TransferSettingsLimits.h` + EnvyTests; mapping in `docs/50_user/transfer-settings.md`.
 - **Changelog Entry:** 2026-09-19 — Cloud Agent Linux env: add `.cursor/environment.json` installing clang-format-18/clang-tidy (CI-aligned) + cppcheck (local extra) + `Remote/tests` npm deps (MFC/HashLib remain Windows-only).
 - **Changelog Entry:** 2026-09-19 — `CTextCtrl` System/Network log: top-aligned short journals, conventional scroll + follow-bottom only when already at end (`TextCtrlViewport.h` + EnvyTests); see `docs/10_dev/textctrl-log-ui-checklist.md`.
 - **Changelog Entry:** 2026-09-19 — CI: always-emit required `Build x64 Release` / `Build Win32 Release` on PRs (ubuntu no-op when `run_windows_build=false`; same pattern as Documentation Check) so Protect develop does not block on SKIPPED Builds.
@@ -190,6 +191,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - Incremental protocol compatibility and robustness improvements.
 - **P0 ED2K/Kad interoperability baseline** against eMule Community and aMule (live interop unverified; see `docs/10_dev/status.md`).
 - **Bootstrap catalogues** — shipped `DefaultServices.dat` / `DefaultServers.dat` refreshed 2026-09-18. Remaining: importer hardening (P0 potential); Kad `nodes.dat` discovery type + `ImportNodes` v2/v3 + empty-cache path (#86/#160); last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`). Do not restore C++ DHT DNS constants when the catalogue is missing (D-012).
+- Transfer settings UX: first slice (labels + validation + mapping) in `docs/50_user/transfer-settings.md`; no fake capabilities.
 
 ### Blocked / At Risk
 - Full CMake parity with Visual Studio build graph.
