@@ -22,6 +22,7 @@
 #include <windows.h>
 
 #include "../HashLib/HashLib.h"
+#include <array>
 #include <cstring>
 #include <cstdio>
 #include <vector>
@@ -416,61 +417,46 @@ static bool test_ed2k_incremental() {
 // external TTH vectors here.
 // ---------------------------------------------------------------------------
 
-static bool tiger_hash_file(CTigerTree& tree, const void* data, uint64 len)
+static bool tiger_hash_file(CTigerTree& tree, const uint8* data, uint64 len)
 {
 	// Default Library.TigerHeight is 9 (Settings.cpp).
 	tree.BeginFile(9, len);
 	if (len > 0)
 		tree.AddToFile(data, static_cast<uint32>(len));
-	if (!tree.FinishFile()) {
-		std::printf("TigerTree FinishFile failed (len=%llu)\n",
-			static_cast<unsigned long long>(len));
+	return tree.FinishFile() != FALSE;
+}
+
+static bool tiger_roots_equal(const CTigerTree& a, const CTigerTree& b)
+{
+	std::array<uint8, 24> h1{};
+	std::array<uint8, 24> h2{};
+	if (!a.GetRoot(h1.data()) || !b.GetRoot(h2.data()))
 		return false;
-	}
-	return true;
+	return hash_eq(h1.data(), h2.data(), h1.size());
 }
 
 static bool test_tigertree_constructor()
 {
 	CTigerTree tree;
-	if (tree.IsAvailable()) {
-		std::printf("TigerTree default constructor reported a tree as available\n");
+	if (tree.IsAvailable())
 		return false;
-	}
-	if (tree.GetHeight() != 0 || tree.GetBlockCount() != 0) {
-		std::printf("TigerTree default constructor left non-zero height/block count\n");
+	if (tree.GetHeight() != 0 || tree.GetBlockCount() != 0)
 		return false;
-	}
-	uint8 root[24];
-	if (tree.GetRoot(root)) {
-		std::printf("TigerTree default constructor produced a root hash\n");
-		return false;
-	}
-	return true;
+	std::array<uint8, 24> root{};
+	return tree.GetRoot(root.data()) == FALSE;
 }
 
 static bool test_tigertree_consistency()
 {
 	std::vector<uint8> data(1024 * 100, 0xAB);
 
-	CTigerTree t1, t2;
-	if (!tiger_hash_file(t1, data.data(), data.size()))
+	CTigerTree first;
+	CTigerTree second;
+	if (!tiger_hash_file(first, data.data(), data.size()))
 		return false;
-	if (!tiger_hash_file(t2, data.data(), data.size()))
+	if (!tiger_hash_file(second, data.data(), data.size()))
 		return false;
-
-	uint8 h1[24], h2[24];
-	if (!t1.GetRoot(h1) || !t2.GetRoot(h2)) {
-		std::printf("TigerTree GetRoot failed after hashing identical buffers\n");
-		return false;
-	}
-	if (!hash_eq(h1, h2, 24)) {
-		std::printf("TigerTree consistency failure\n");
-		print_hex("first ", h1, 24);
-		print_hex("second", h2, 24);
-		return false;
-	}
-	return true;
+	return tiger_roots_equal(first, second);
 }
 
 static bool test_tigertree_incremental()
@@ -486,49 +472,25 @@ static bool test_tigertree_incremental()
 	chunked.BeginFile(9, total);
 	size_t off = 0;
 	while (off < total) {
-		uint32 chunk = static_cast<uint32>(std::min<size_t>(4096, total - off));
-		chunked.AddToFile(data.data() + off, chunk);
-		off += chunk;
+		const auto nChunk = static_cast<uint32>(std::min<size_t>(4096, total - off));
+		chunked.AddToFile(data.data() + off, nChunk);
+		off += nChunk;
 	}
-	if (!chunked.FinishFile()) {
-		std::printf("TigerTree incremental FinishFile failed\n");
+	if (!chunked.FinishFile())
 		return false;
-	}
-
-	uint8 h1[24], h2[24];
-	if (!full.GetRoot(h1) || !chunked.GetRoot(h2)) {
-		std::printf("TigerTree GetRoot failed on incremental compare\n");
-		return false;
-	}
-	if (!hash_eq(h1, h2, 24)) {
-		std::printf("TigerTree incremental mismatch\n");
-		print_hex("full    ", h1, 24);
-		print_hex("chunked ", h2, 24);
-		return false;
-	}
-	return true;
+	return tiger_roots_equal(full, chunked);
 }
 
 static bool test_tigertree_empty_file()
 {
 	CTigerTree empty;
-	if (!tiger_hash_file(empty, "", 0))
+	if (!tiger_hash_file(empty, nullptr, 0))
 		return false;
-	uint8 root[24];
-	if (!empty.GetRoot(root)) {
-		std::printf("TigerTree empty-file GetRoot failed\n");
-		return false;
-	}
 
 	CTigerTree again;
 	if (!tiger_hash_file(again, nullptr, 0))
 		return false;
-	uint8 root2[24];
-	if (!again.GetRoot(root2) || !hash_eq(root, root2, 24)) {
-		std::printf("TigerTree empty-file roots are not stable\n");
-		return false;
-	}
-	return true;
+	return tiger_roots_equal(empty, again);
 }
 
 // ---------------------------------------------------------------------------
