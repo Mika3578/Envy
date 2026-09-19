@@ -153,6 +153,35 @@ class ProcessIsolationTests(unittest.TestCase):
                 foreign.terminate()
                 foreign.wait(timeout=5)
 
+    def test_signal_skips_when_pid_missing(self) -> None:
+        from envy_interop.process import OwnedProcess
+
+        class Dummy:
+            pid = None
+
+            def terminate(self):
+                raise AssertionError("should not terminate")
+
+            def kill(self):
+                raise AssertionError("should not kill")
+
+            def poll(self):
+                return 0
+
+        mgr = ProcessManager()
+        owned = OwnedProcess(
+            name="gone",
+            argv=["x"],
+            cwd=Path("."),
+            proc=Dummy(),
+            stdout_path=Path("x"),
+            stderr_path=Path("y"),
+            started_monotonic=0.0,
+            launch_pid=0,
+        )
+        mgr._signal(owned, graceful=True)
+        mgr._signal(owned, graceful=False)
+
     def test_unicode_and_spaces_cwd(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             cwd = Path(tmp) / "my files" / "用户"

@@ -29,6 +29,7 @@ class OwnedProcess:
     stdout_path: Path
     stderr_path: Path
     started_monotonic: float
+    launch_pid: int = 0
     stdout_handle: object = field(repr=False, default=None)
     stderr_handle: object = field(repr=False, default=None)
     exit_code: Optional[int] = None
@@ -36,6 +37,9 @@ class OwnedProcess:
 
     @property
     def pid(self) -> Optional[int]:
+        # Prefer the pid captured at spawn; do not re-read a possibly-cleared Popen.pid.
+        if self.launch_pid:
+            return self.launch_pid
         return self.proc.pid
 
     def poll(self) -> Optional[int]:
@@ -115,7 +119,8 @@ class ProcessManager:
         if proc.pid is None:
             self._close_handles(owned)
             raise ProcessError(f"{name} spawned without a pid")
-        self._owned[int(proc.pid)] = owned
+        owned.launch_pid = int(proc.pid)
+        self._owned[owned.launch_pid] = owned
         return owned
 
     def wait_running(self, owned: OwnedProcess, timeout_sec: float) -> None:
@@ -142,7 +147,8 @@ class ProcessManager:
         raise ProcessError(f"{owned.name} did not exit within {timeout_sec}s")
 
     def terminate_owned(self, owned: OwnedProcess, timeout_sec: float) -> Optional[int]:
-        if owned.pid not in self._owned:
+        pid = owned.launch_pid or owned.pid
+        if pid is None or int(pid) not in self._owned:
             raise ProcessError("refusing to signal a process this harness did not start")
         if owned.poll() is not None:
             self._close_handles(owned)
@@ -165,8 +171,12 @@ class ProcessManager:
                 pass
 
     def _signal(self, owned: OwnedProcess, *, graceful: bool) -> None:
-        pid = owned.pid
-        if pid is None:
+        raw_pid = owned.launch_pid or owned.pid
+        if raw_pid is None:
+            return
+        try:
+            pid = int(raw_pid)
+        except (TypeError, ValueError):
             return
         try:
             if os.name == "posix":
@@ -182,7 +192,7 @@ class ProcessManager:
                     owned.proc.terminate()
                 else:
                     owned.proc.kill()
-        except OSError:
+        except (OSError, TypeError):
             return
 
     def _close_handles(self, owned: OwnedProcess) -> None:
@@ -200,8 +210,9 @@ class ProcessManager:
 
     def forget(self, owned: OwnedProcess) -> None:
         self._close_handles(owned)
-        if owned.pid in self._owned:
-            del self._owned[owned.pid]
+        key = owned.launch_pid or owned.pid
+        if key in self._owned:
+            del self._owned[key]
 
 
 def python_sleeper_argv(seconds: float) -> List[str]:
