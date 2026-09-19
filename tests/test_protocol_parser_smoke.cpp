@@ -437,6 +437,14 @@ static bool test_bt_tracker_http_response_bounds()
 		&& BtTrackerHttpResponseOk( 0 ) == FALSE;
 }
 
+static bool test_discovery_http_response_bounds()
+{
+	return DiscoveryHttpResponseOk( 1 ) == TRUE
+		&& DiscoveryHttpResponseOk( DISCOVERY_HTTP_RESPONSE_MAX ) == TRUE
+		&& DiscoveryHttpResponseOk( DISCOVERY_HTTP_RESPONSE_MAX + 1 ) == FALSE
+		&& DiscoveryHttpResponseOk( 0 ) == FALSE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -504,4 +512,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "qht_patch_compressed_budget", test_qht_patch_compressed_budget );
 	suite.add_test( "ed2k_packed_inflate_ok", test_ed2k_packed_inflate_ok );
 	suite.add_test( "bt_tracker_http_response_bounds", test_bt_tracker_http_response_bounds );
+	suite.add_test( "discovery_http_response_bounds", test_discovery_http_response_bounds );
 }
