@@ -4,7 +4,8 @@ Status: audit (evidence-based). Not a compatibility claim.
 
 - **Date:** 2026-09-19
 - **Fork:** `Mika3578/Envy`
-- **Base:** `origin/develop` `a47d42e7f21eefa269e3e59de41c32fa65d1e7be` (`feat(uploads): transfer settings foundation + Fair-Use 10% limit (#227)`)
+- **Base (original audit):** `origin/develop` `a47d42e7f21eefa269e3e59de41c32fa65d1e7be` (`feat(uploads): transfer settings foundation + Fair-Use 10% limit (#227)`)
+- **Base (reverified):** `origin/develop` `93f623ca0251aa9dddaa751633361dbe7e689088` after `#248` (NMDC Network lock). Remote/API inventory unchanged (**code**).
 - **This work branch:** `cursor/remote-api-architecture-2f11`
 
 Evidence classes used below:
@@ -28,8 +29,8 @@ Do not read “a class/route exists” as “supported”.
 | Item | Verified value |
 | --- | --- |
 | Default branch | `develop` |
-| HEAD used for this audit | `a47d42e` |
-| Open development PRs | 1 (`#237` NMDC encoding) — under the max-3 cap |
+| HEAD used for this audit | original `a47d42e`; reverified on `93f623c` |
+| Open development PRs | 2 (`#242` this audit, `#243` Crashpad draft) — under the max-3 cap |
 | Live rulesets | `Protect develop` (`16457466`), `Protect main` (`16457407`) |
 | CI | Two-speed Actions (`build.yml`, `pr-gate.yml`, CodeQL, Format, Documentation, …) |
 | Tests | `tests/EnvyTests` smoke suite (MSVC); Remote JS tests under `Remote/tests` |
@@ -416,6 +417,8 @@ Accidental probe issue [#238](https://github.com/Mika3578/Envy/issues/238) (`tes
 
 ## Blockers
 
-- Full `EnvyTests` / MSBuild not runnable on this Linux Cloud Agent (Windows/MSVC). Linux compiles the new header tests with g++.
+- Full `EnvyTests` / MSBuild not runnable on this Linux Cloud Agent (Windows/MSVC). Linux `g++ -std=c++20` ran `test_transfer_state_smoke.cpp`: **21 passed / 0 failed** (reverified after `#248` rebase).
+- Amazon Q review claimed paused-vs-completed priority was unverifiable. **Rejected:** `CDownload::GetDownloadStatus()` tests `IsPaused()` at `Download.cpp:382` before `IsCompleted()` at `Download.cpp:389`. `test_transfer_state_paused_wins` encodes that order.
 - Live Radarr/Prowlarr/Jackett not in this environment.
-- Accidental issue #238 cannot be closed with this integration token (create-only).
+- Accidental issue #238 cannot be closed with this integration token (create-only). Maintainer should close it as not planned.
+- Protect develop still requires a non-author GitHub **APPROVED** review. Bot comments are not that review.
