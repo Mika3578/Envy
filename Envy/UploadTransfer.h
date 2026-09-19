@@ -43,11 +43,14 @@ public:
 
 	QWORD			m_nFileBase;	// Base offset in requested file
 	BOOL			m_bFilePartial;	// Partial file flag
+	BOOL m_bFairUseMedia;           // Audio/video library file (Fair-Use 10% cap)
 	CString			m_sFileTags;	// File sharing tags
 
 	BOOL			m_bLive;		// Live connection tag
 	DWORD			m_nRequests;	// Request count
 	QWORD			m_nUploaded;	// Bytes uploaded
+	QWORD m_nFairUseReserved;       // Bytes reserved on host+path ledger (not yet all sent)
+	QWORD m_nFairUseSent;           // Body bytes charged against that reservation
 	DWORD			m_tContent;		// Send start timestamp
 
 	BOOL			m_bPriority;	// User unlimited upload
@@ -93,6 +96,9 @@ protected:
 	void			StartSending(int nState);
 	void			AllocateBaseFile();
 	void			AttachFile(CFragmentedFile* pFile);
+	BOOL ApplyFairUseLimit(BOOL bReserve = TRUE); // Clip range; GET/ED2K/DC reserve, HEAD does not
+	void ChargeFairUseBody(QWORD nBytes);         // Count payload bytes toward the reservation
+	void ReleaseFairUseReservation();             // Roll back unused reserved bytes (ClearRequest/Close)
 
 	virtual BOOL	IsFileOpen() const;
 	virtual BOOL	OpenFile();

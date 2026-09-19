@@ -40,6 +40,15 @@ public:
 protected:
 	CList< CUploadTransfer* >	m_pList;
 
+	struct FairUseGrant
+	{
+		DWORD nAddr;
+		CString sPath;
+		QWORD nGranted;
+		DWORD tLast;
+	};
+	CList<FairUseGrant> m_oFairUse;
+
 public:
 	void		Clear(BOOL bMessage = TRUE);
 	DWORD		GetCount(CUploadTransfer* pExcept, int nState = -1) const;
@@ -48,6 +57,9 @@ public:
 	BOOL		AllowMoreTo(const IN_ADDR* pAddress) const;
 	BOOL		CanUploadFileTo(const IN_ADDR* pAddress, const CEnvyFile* pFile) const;
 	BOOL		EnforcePerHostLimit(CUploadTransfer* pUpload, BOOL bRequest = FALSE);
+	QWORD GetFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath) const;
+	void AddFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath, QWORD nBytes);
+	void SubtractFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath, QWORD nBytes);
 
 	void		OnRun();
 	DWORD		GetBandwidth() const;

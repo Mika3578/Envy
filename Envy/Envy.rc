@@ -580,7 +580,7 @@ BEGIN
 	CONTROL			"Share new partial downloads",IDC_SHARE_PARTIALS,"Button",BS_AUTOCHECKBOX|BS_FLAT|WS_TABSTOP,15,32,124,10
 	CONTROL			"Share preview files",IDC_SHARE_PREVIEW,"Button",BS_AUTOCHECKBOX|BS_FLAT|WS_TABSTOP,15,46,124,10
 	CONTROL			"Fair-Use mode (10% media limit)",IDC_FAIRUSE_MODE,"Button",BS_AUTOCHECKBOX|BS_FLAT|WS_TABSTOP,15,60,124,10
-	LTEXT			"Limit per unique host:",IDC_STATIC,15,80,90,12,SS_CENTERIMAGE
+	LTEXT			"Max uploads per host:",IDC_STATIC,15,80,90,12,SS_CENTERIMAGE
 	EDITTEXT		IDC_MAX_HOST,104,80,30,12,ES_AUTOHSCROLL|ES_NUMBER
 	CONTROL			"Spin1",IDC_MAX_HOST_SPIN,"msctls_updown32",UDS_SETBUDDYINT|UDS_AUTOBUDDY|UDS_ALIGNRIGHT|UDS_ARROWKEYS|UDS_NOTHOUSANDS,134,80,8,12
 	GROUPBOX		"&User-Agent Filter:",IDC_STATIC,152,5,124,40,WS_GROUP
@@ -590,7 +590,7 @@ BEGIN
 	GROUPBOX		"&Bandwidth:",IDC_STATIC,152,48,124,53,WS_GROUP
 	LTEXT			"Limit:",IDC_STATIC,160,62,40,12,SS_CENTERIMAGE
 	COMBOBOX		IDC_UPLOADS_BANDWIDTH_LIMIT,198,62,70,72,CBS_DROPDOWN|WS_VSCROLL|WS_TABSTOP
-	LTEXT			"Mode:",IDC_STATIC,160,80,40,12,SS_CENTERIMAGE
+	LTEXT			"Throttle:",IDC_STATIC,160,80,40,12,SS_CENTERIMAGE
 	COMBOBOX		IDC_THROTTLE_MODE,198,80,70,45,CBS_DROPDOWNLIST|WS_VSCROLL|WS_TABSTOP
 	GROUPBOX		"&Queues:",IDC_STATIC,6,104,270,110,WS_GROUP
 	CONTROL			"List1",IDC_QUEUES,"SysListView32",LVS_REPORT|LVS_SHAREIMAGELISTS|WS_BORDER|WS_TABSTOP,15,118,254,70
@@ -4499,8 +4499,9 @@ BEGIN
 	IDS_SETTINGS_FILEPATH_NOT_SAME	"The complete and incomplete folders should not be the same"
 	IDS_SETTINGS_FILEPATH_TOO_LONG	"Windows doesn't support file paths longer than 256 characters.\nPlease select a folder with a shorter path."
 	IDS_SETTINGS_INCOMPLETE_LIBRARY "The incomplete files folder should not be in the library, as it would reduce performance. Incomplete files may be shared directly from the transfers window."
-	IDS_SETTINGS_NEED_BANDWIDTH "Please type the bandwidth limit you wish to set in the form ""123 kb/s"" for kilobits per second, or ""123 KB/s"" for kilobytes per second."
+	IDS_SETTINGS_NEED_BANDWIDTH "Please type the bandwidth limit you wish to set in the form ""123 kb/s"" for kilobits per second, or ""123 KB/s"" for kilobytes per second. Use Unlimited (or MAX) for no cap."
 	IDS_SETTINGS_WARN_QUEUELIMIT "The eDonkey network uses large queues with long wait times. By limiting the maximum queue position you will accept so strictly, you may have trouble getting downloads to begin.\nAre you sure you want to limit what queue positions you will accept?"
+	IDS_SETTINGS_BANDWIDTH_UNLIMITED	"Unlimited"
 	IDS_SELECT_ED2K_TEMP_FOLDER	"Select the eDonkey/eMule temp folder:"
 //	IDS_SHAREMONKEY_MESSAGE		"Please note: ShareMonkey.com is defunct.\n\nThis option uses services provided by ShareMonkey.com for recognizing information about selected files.\n\nEnvy will transmit file details and your location in order to query the ShareMonkey database.\nIf you are concerned about privacy, you may wish to consult ShareMonkey.com policies.\n\nWould you like to proceed?"
 	IDS_SKIN_DELETE				"Are you sure you want to delete the ""%s"" skin?\n\nThis cannot be undone."

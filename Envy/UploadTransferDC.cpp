@@ -207,6 +207,7 @@ BOOL CUploadTransferDC::OnWrite()
 
 			m_nPosition += nRead;
 			m_nUploaded += nRead;
+			ChargeFairUseBody(nRead);
 
 			Statistics.Current.Uploads.Volume += ( nRead / 1024 );
 		}
@@ -400,6 +401,15 @@ BOOL CUploadTransferDC::RequestFile(CLibraryFile* pFile, QWORD nOffset, QWORD nL
 		theApp.Message( MSG_ERROR, IDS_UPLOAD_BAD_RANGE, (LPCTSTR)m_sAddress, (LPCTSTR)m_sName );
 
 		m_pClient->SendCommand( FILE_NOT_AVAILABLE );
+
+		return TRUE;
+	}
+
+	if (!ApplyFairUseLimit())
+	{
+		theApp.Message(MSG_ERROR, IDS_UPLOAD_BAD_RANGE, (LPCTSTR)m_sAddress, (LPCTSTR)m_sName);
+
+		m_pClient->SendCommand(FILE_NOT_AVAILABLE);
 
 		return TRUE;
 	}

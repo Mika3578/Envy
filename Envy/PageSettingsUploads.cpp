@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "PageSettingsUploads.h"
+#include "TransferSettingsLimits.h"
 #include "Transfers.h"
 #include "UploadQueue.h"
 #include "UploadQueues.h"
@@ -66,6 +67,15 @@ CUploadsSettingsPage::CUploadsSettingsPage()
 {
 }
 
+static CString BandwidthUnlimitedLabel()
+{
+	CString str;
+	LoadString(str, IDS_SETTINGS_BANDWIDTH_UNLIMITED);
+	if (str.IsEmpty())
+		str = TransferBandwidthUnlimitedDisplayToken();
+	return str;
+}
+
 CUploadsSettingsPage::~CUploadsSettingsPage()
 {
 }
@@ -76,6 +86,7 @@ void CUploadsSettingsPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SHARE_PARTIALS, m_bSharePartials);
 	DDX_Check(pDX, IDC_HUB_UNSHARE, m_bHubUnshare);
 	DDX_Check(pDX, IDC_SHARE_PREVIEW, m_bSharePreviews);
+	DDX_Check(pDX, IDC_FAIRUSE_MODE, m_bFairUseMode);
 	DDX_Text(pDX, IDC_MAX_HOST, m_nMaxPerHost);
 	DDX_Control(pDX, IDC_MAX_HOST_SPIN, m_wndMaxPerHost);
 	DDX_Control(pDX, IDC_AGENT_LIST, m_wndAgentList);
@@ -116,7 +127,7 @@ BOOL CUploadsSettingsPage::OnInitDialog()
 	CLiveList::Sort( &m_wndQueues, 4, FALSE );
 	//CLiveList::Sort( &m_wndQueues, 4, FALSE );	// Repeat workaround
 
-	m_nMaxPerHost		= Settings.Uploads.MaxPerHost;
+	m_nMaxPerHost = TransferMaxPerHostClamp(Settings.Uploads.MaxPerHost);
 	m_bHubUnshare		= Settings.Uploads.HubUnshare == true;
 	m_bSharePartials	= Settings.Uploads.SharePartials == true;
 	m_bSharePreviews	= Settings.Uploads.SharePreviews == true;
@@ -124,6 +135,9 @@ BOOL CUploadsSettingsPage::OnInitDialog()
 	m_bFairUseMode		= Settings.Uploads.FairUseMode == true;
 
 	Settings.SetRange( &Settings.Uploads.MaxPerHost, m_wndMaxPerHost );
+
+	if (CWnd* pFairUse = GetDlgItem(IDC_FAIRUSE_MODE))
+		pFairUse->EnableWindow(TRUE);
 
 	for ( string_set::const_iterator i = Settings.Uploads.BlockAgents.begin();
 		i != Settings.Uploads.BlockAgents.end(); i++ )
@@ -141,11 +155,11 @@ BOOL CUploadsSettingsPage::OnInitDialog()
 
 	m_bQueuesChanged = FALSE;
 
-	// Update value in limit combo box
-	if ( Settings.Bandwidth.Uploads )
-		m_sBandwidthLimit = Settings.SmartSpeed( Settings.Bandwidth.Uploads );
+	// Update value in limit combo box (0 = unlimited)
+	if (TransferBandwidthSettingIsUnlimited(Settings.Bandwidth.Uploads))
+		m_sBandwidthLimit = BandwidthUnlimitedLabel();
 	else
-		m_sBandwidthLimit = L"MAX";
+		m_sBandwidthLimit = Settings.SmartSpeed(Settings.Bandwidth.Uploads);
 
 	UpdateData( FALSE );
 
@@ -350,13 +364,20 @@ void CUploadsSettingsPage::OnOK()
 
 	DWORD nOldLimit = Settings.Bandwidth.Uploads;
 
-	Settings.Uploads.MaxPerHost		= m_nMaxPerHost;
+	Settings.Uploads.MaxPerHost = TransferMaxPerHostClamp(m_nMaxPerHost);
+	m_nMaxPerHost = Settings.Uploads.MaxPerHost;
+	Settings.Normalize(&Settings.Uploads.MaxPerHost);
+	m_nMaxPerHost = Settings.Uploads.MaxPerHost;
 	Settings.Uploads.HubUnshare		= m_bHubUnshare != FALSE;
 	Settings.Uploads.SharePartials	= m_bSharePartials != FALSE;
 	Settings.Uploads.SharePreviews	= m_bSharePreviews != FALSE;
 	Settings.Uploads.ThrottleMode	= m_bThrottleMode != FALSE;
 	Settings.Uploads.FairUseMode	= m_bFairUseMode != FALSE;
-	Settings.Bandwidth.Uploads		= static_cast< DWORD >( Settings.ParseVolume( m_sBandwidthLimit ) );
+	if (TransferBandwidthTokenIsUnlimited(m_sBandwidthLimit, BandwidthUnlimitedLabel()))
+		Settings.Bandwidth.Uploads = TransferBandwidthUnlimitedValue();
+	else
+		Settings.Bandwidth.Uploads = TransferBandwidthBytesToSetting(
+		    Settings.ParseVolume(m_sBandwidthLimit));
 
 	// Warn the user about the effects of upload limiting
 	if ( ! Settings.Live.UploadLimitWarning && Settings.Bandwidth.Uploads > 0 && Settings.Bandwidth.Uploads != nOldLimit )
@@ -392,6 +413,7 @@ void CUploadsSettingsPage::OnOK()
 	UploadQueues.Validate();
 
 	UpdateQueues();
+	UpdateData(FALSE);
 }
 
 void CUploadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
@@ -402,11 +424,11 @@ void CUploadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 
 	// Update the bandwidth limit combo values
 
-	// Update speed units
-	if ( Settings.Bandwidth.Uploads )
-		m_sBandwidthLimit = Settings.SmartSpeed( Settings.Bandwidth.Uploads );
+	// Update speed units (0 = unlimited)
+	if (TransferBandwidthSettingIsUnlimited(Settings.Bandwidth.Uploads))
+		m_sBandwidthLimit = BandwidthUnlimitedLabel();
 	else
-		m_sBandwidthLimit = L"MAX";
+		m_sBandwidthLimit = Settings.SmartSpeed(Settings.Bandwidth.Uploads);
 
 	// Remove any existing strings
 	m_wndBandwidthLimit.ResetContent();
@@ -429,7 +451,7 @@ void CUploadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 			m_wndBandwidthLimit.AddString( strSpeed );
 		}
 	}
-	m_wndBandwidthLimit.AddString( L"MAX" );
+	m_wndBandwidthLimit.AddString(BandwidthUnlimitedLabel());
 
 	UpdateData( FALSE );
 
@@ -439,7 +461,5 @@ void CUploadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 
 bool CUploadsSettingsPage::IsLimited(CString& strText) const
 {
-	return ! ( strText.IsEmpty() ||
-		( _tcsistr( strText, L"MAX" ) != NULL ) ||
-		( _tcsistr( strText, L"NONE" ) != NULL ) );
+	return !TransferBandwidthTokenIsUnlimited(strText, BandwidthUnlimitedLabel());
 }

@@ -27,6 +27,7 @@
 #include "UploadTransferHTTP.h"
 #include "UploadTransferED2K.h"
 #include "UploadTransferBT.h"
+#include "TransferSettingsLimits.h"
 
 #include "Buffer.h"
 #include "Transfers.h"
@@ -71,6 +72,8 @@ void CUploads::Clear(BOOL bMessage)
 	{
 		GetNext( pos )->Remove( bMessage );
 	}
+
+	m_oFairUse.RemoveAll();
 
 	ASSERT( GetCount( NULL, -1 ) == 0 );
 }
@@ -301,6 +304,86 @@ BOOL CUploads::EnforcePerHostLimit(CUploadTransfer* pUpload, BOOL bRequest)
 	}
 
 	return FALSE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CUploads Fair-Use (10% audio/video per remote host)
+
+QWORD CUploads::GetFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath) const
+{
+	if (pAddress == NULL)
+		return 0;
+
+	const DWORD nAddr = pAddress->s_addr;
+	const LPCTSTR psz = (pszPath && *pszPath) ? pszPath : L"";
+
+	for (POSITION pos = m_oFairUse.GetHeadPosition(); pos;)
+	{
+		const FairUseGrant& pGrant = m_oFairUse.GetNext(pos);
+		if (pGrant.nAddr == nAddr && pGrant.sPath.CompareNoCase(psz) == 0)
+			return pGrant.nGranted;
+	}
+
+	return 0;
+}
+
+void CUploads::AddFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath, QWORD nBytes)
+{
+	if (pAddress == NULL || nBytes == 0)
+		return;
+
+	const DWORD nAddr = pAddress->s_addr;
+	const LPCTSTR psz = (pszPath && *pszPath) ? pszPath : L"";
+
+	for (POSITION pos = m_oFairUse.GetHeadPosition(); pos;)
+	{
+		FairUseGrant& pGrant = m_oFairUse.GetNext(pos);
+		if (pGrant.nAddr == nAddr && pGrant.sPath.CompareNoCase(psz) == 0)
+		{
+			if (pGrant.nGranted > ~0ull - nBytes)
+				pGrant.nGranted = ~0ull;
+			else
+				pGrant.nGranted += nBytes;
+			pGrant.tLast = GetTickCount();
+			return;
+		}
+	}
+
+	while (m_oFairUse.GetCount() >= (INT_PTR)TransferFairUseGrantLimit())
+		m_oFairUse.RemoveHead();
+
+	FairUseGrant pGrant;
+	pGrant.nAddr = nAddr;
+	pGrant.sPath = psz;
+	pGrant.nGranted = nBytes;
+	pGrant.tLast = GetTickCount();
+	m_oFairUse.AddTail(pGrant);
+}
+
+void CUploads::SubtractFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath, QWORD nBytes)
+{
+	if (pAddress == NULL || nBytes == 0)
+		return;
+
+	const DWORD nAddr = pAddress->s_addr;
+	const LPCTSTR psz = (pszPath && *pszPath) ? pszPath : L"";
+
+	for (POSITION pos = m_oFairUse.GetHeadPosition(); pos;)
+	{
+		POSITION posHere = pos;
+		FairUseGrant& pGrant = m_oFairUse.GetNext(pos);
+		if (pGrant.nAddr == nAddr && pGrant.sPath.CompareNoCase(psz) == 0)
+		{
+			if (nBytes >= pGrant.nGranted)
+				m_oFairUse.RemoveAt(posHere);
+			else
+			{
+				pGrant.nGranted -= nBytes;
+				pGrant.tLast = GetTickCount();
+			}
+			return;
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////

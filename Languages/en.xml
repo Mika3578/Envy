@@ -2800,7 +2800,10 @@
 <!-- Tips displayed when mouse is moved over controls in Settings dialog -->
 <controltips>
 	<tip id="IDC_REGEXP" text="Enter regular expressions in perl syntax.{n}All search keywords can be listed in order with the &lt;%&gt; tag.{n}Individual keywords can be specified with &lt;1&gt;, numbers 1 through 9."/>
-	<tip id="IDC_THROTTLE_MODE" text="In maximum mode bandwidth won't ever exceed the specified value.{n}In average mode it will fluctuate around the value to both sides."/>
+	<tip id="IDC_THROTTLE_MODE" text="Throttle mode for the upload cap.{n}Maximum (strict): bandwidth will not exceed the specified value.{n}Average (soft): measured rate may briefly go above or below the value."/>
+	<tip id="IDC_FAIRUSE_MODE" text="When enabled, each remote host may download at most 10% of an audio or video library file. Quota is counted from bytes actually sent; HTTP HEAD does not consume it. Partial downloads and BitTorrent are not limited. Default is off."/>
+	<tip id="IDC_MAX_HOST" text="Maximum simultaneous upload transfers (active or queued) allowed to one remote IPv4 address. Range 1–64. Default 2. This is not a TCP connection cap."/>
+	<tip id="IDC_UPLOADS_BANDWIDTH_LIMIT" text="Global upload speed cap in bytes/second after parsing. Unlimited (also MAX or NONE) stores 0 and means no extra cap beyond the connection uplink. Applies across protocols; queue bandwidth points split this budget."/>
 	<tip id="IDC_SHARE_PARTIALS" text="This setting has no effect on current downloads, or torrents, or with eDonkey hash and eDonkey network enabled. However, this setting is not ignored if the download is paused.{n}{n}ATTENTION: Use this option only if necessary, if you abuse the option you may be banned."/>
 	<tip id="IDC_TIP_SHADOW" text="Toggle drop shadow effect under advanced tooltips."/>
 </controltips>
@@ -3406,8 +3409,9 @@
 	<string id="20674" text="The complete and incomplete folders should not be the same"/>
 	<string id="20675" text="Windows doesn't support paths longer than 256 characters.\nPlease select a folder with a shorter path."/>
 	<string id="20676" text="The incomplete files folder should not be in the library, as it would reduce performance. Incomplete files may be shared directly from the transfers window."/>
-	<string id="20677" text="Please type the bandwidth limit you wish to set in the form &quot;123 kb/s&quot; for kilobits per second, or &quot;123 KB/s&quot; for kilobytes per second."/>
+	<string id="20677" text="Please type the bandwidth limit you wish to set in the form &quot;123 kb/s&quot; for kilobits per second, or &quot;123 KB/s&quot; for kilobytes per second. Use Unlimited (or MAX) for no cap."/>
 	<string id="20678" text="The eDonkey network uses large queues with long wait times. By limiting the maximum queue position you will accept so strictly, you may have trouble getting downloads to begin.\nAre you sure you want to limit what queue positions you will accept?"/>
+	<string id="20679" text="Unlimited"/>
 	<string id="20680" text="Envy Settings"/>
 	<string id="20682" text="Remote access is disabled."/>
 	<string id="20684" text="Username/password required."/>
@@ -3832,7 +3836,7 @@
 		<control text="Share new partial downloads"/>
 		<control text="Share preview files"/>
 		<control text="Fair-Use mode (10% media limit)"/>
-		<control text="Limit per unique host:"/>
+		<control text="Max uploads per host:"/>
 		<control/>
 		<control/>
 		<control text="_User-Agent Filter:"/>
@@ -3842,8 +3846,8 @@
 		<control text="_Bandwidth:"/>
 		<control text="Limit:"/>
 		<control/>
-		<control text="Mode:"/>
-		<control text="Average|Maximum/Strict"/>
+		<control text="Throttle:"/>
+		<control text="Average (soft)|Maximum (strict)"/>
 		<control text="_Queues:"/>
 		<control/>
 		<control text="_New..."/>

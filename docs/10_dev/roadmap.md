@@ -262,6 +262,18 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
 16. Kad6 / eSE-style overlay only after IPv6 + Kad2 interop.
 17. HTTPS trackers, LPD, remaining low-priority opcodes.
 
+### Transfer settings UX (after this foundation)
+
+Do not mix with protocol P0 work. Sequence after the foundation PR:
+
+1. Prove and fix `MaxPerHost` allow vs enforce off-by-one (`AllowMoreTo` / `CanUploadFileTo`).
+2. Simple-mode summary of the two global caps + existing download MaxFiles/MaxTransfers (no new preferences).
+3. Queue overlap preview / criteria docs (keep Small/Large/Partial/eDonkey queues).
+4. Label `BitTorrent.UploadCount` as BT-only if shown near upload queues.
+5. Bind / IPv6 / VPN leak UI — blocked until the core exists.
+
+See `docs/50_user/transfer-settings.md`.
+
 ---
 
 ## Development Principles

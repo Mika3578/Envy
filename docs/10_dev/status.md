@@ -103,6 +103,14 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 - vcpkg manifest currently `supports` Windows only; non-Windows dependency strategy follows portable-slice work.
 - Authoritative full app build remains `Visual Studio/Envy.sln`; CMake portable slice is the multiplatform foundation (D-015).
 
+### Transfer settings UI
+
+- Settings → Internet → Uploads mapping is documented in `docs/50_user/transfer-settings.md`.
+- Global upload/download caps are **implemented** (`Bandwidth.Uploads` / `Downloads`, `0` = unlimited).
+- `Uploads.FairUseMode` is **implemented** (opt-in 10% audio/video per remote IPv4 client; charged from body bytes, HEAD/aborts roll back).
+- Simple-mode activity caps and per-protocol bandwidth UI are **planned** only where a backend already exists.
+- Status: **partial**. Do not claim a complete qBittorrent-style transfer pane.
+
 ### BitTorrent
 
 - v1: DHT, magnet, PEX, LTEP, web seeds, trackers, MSE/PE (`Envy/BTCrypto.*`) are present per `docs/10_dev/roadmap.md` / CHANGELOG. DHT catalogue routers live in `DefaultServers.dat`; `CDHT::Connect` sends BEP 5 `find_node` to HostCache BitTorrent hosts when no node IDs are cached; known node IDs persist in `HostCache.dat`.
@@ -139,3 +147,4 @@ These remain useful for opcodes and archaeology; they over-claim completeness:
 - `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` — external projects
 - `docs/KNOWN_LIMITATIONS.md`
 - `docs/DECISIONS.md` (D-008, D-012…D-015)
+- `docs/50_user/transfer-settings.md` — Uploads/Downloads limit mapping (partial; no fake capabilities)
