@@ -590,6 +590,12 @@ This document provides a comprehensive reference of all configurable settings in
 | LargeFileSupport | true | Support 64-bit file sizes |
 | Endgame | true | Enable endgame mode |
 
+### Direct Connect Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| HubListURL | `https://dchublist.org/hublist.xml.bz2` | NMDC hublist download URL. `adc://` / `adcs://` rows are skipped (#163). |
+
 ### 🧲 BitTorrent Settings
 
 | Setting | Default | Description |

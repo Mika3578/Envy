@@ -2,7 +2,7 @@
 
 > **Opcode/format match only (January 2026).** This is not live DHT interoperability. Canonical status: [`docs/10_dev/status.md`](../../10_dev/status.md) (`partial / unverified`). Ember/eSE overlays are **not** Kad2. Preferred live references: [eMule Community](https://github.com/irwir/eMule), [aMule](https://github.com/amule-project/amule) — see [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md).
 
-**Date:** January 16, 2026 (banner 2026-09-11)
+**Date:** 2026-09-18 (original opcode survey January 16, 2026; banner 2026-09-11)
 **Reference Implementations:**
 - eMule (Examples/eMule/srchybrid; prefer https://github.com/irwir/eMule)
 - aMule (Examples/aMule; prefer https://github.com/amule-project/amule)
