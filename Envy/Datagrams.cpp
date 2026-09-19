@@ -781,8 +781,8 @@ BOOL CDatagrams::OnDatagram(const SOCKADDR_IN* pHost, const BYTE* pBuffer, DWORD
 		const GNUTELLAPACKET* pG1UDP = (const GNUTELLAPACKET*)pBuffer;
 		// Reject negative / oversize m_nLength before sizeof+signed math wraps
 		// (e.g. m_nLength=-16 with nLength=7) and before CG1Packet::New Write.
-		if ( G1PacketTotalLengthOk( pG1UDP->m_nLength, Settings.Gnutella.MaximumPacket ) &&
-			 nLength == G1PacketTotalLength( pG1UDP->m_nLength ) )
+		if (G1PacketTotalLengthOk(pG1UDP->m_nLength, Settings.Gnutella.MaximumPacket) &&
+		    nLength == G1PacketTotalLength(pG1UDP->m_nLength))
 		{
 			if ( CG1Packet* pPacket = CG1Packet::New( pG1UDP ) )
 			{
