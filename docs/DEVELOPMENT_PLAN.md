@@ -2,8 +2,46 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-18
-- **Changelog Entry:** 2026-09-18 — #81/#82: Update Servers dialog HTTP bodies capped at 32 MiB (`LimitContentLength` + `UpdateServersHttpResponseOk`).
+- **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #81/#82: Update Servers dialog HTTP bodies capped at 32 MiB (`LimitContentLength` + `UpdateServersHttpResponseOk`).
+- **Changelog Entry:** 2026-09-19 — #81: Kademlia store-entry tags capped at 4 KiB (`KadStoreTagLengthOk`) in `ReadEntryTags`.
+- **Changelog Entry:** 2026-09-19 — #81: BitTorrent MSE responder `len(IA)` capped at 96 (`BtMseIaLengthOk`); partial IA waits in `MSE_AWAITING_IA` before crypto_select (RC4 desync fix).
+- **Changelog Entry:** 2026-09-19 — #81: BitTorrent MSE receive Pad_C/Pad_D capped at 512 (`BtMsePadLengthOk` / `MSE_PAD_MAX_LEN`); pad length fields decoded/encoded big-endian.
+- **Changelog Entry:** 2026-09-19 — #81: NMDC `$ADCGET`/`$ADCSND` strict asymmetric numeric parse (`DcAdcGetValidate.h`); GET allows `-1` until-EOF; SND requires real length; length-aware tokens reject embedded NUL / `2^64-1`; fail-closed SND vs fixed request (no `min()`).
+- **Changelog Entry:** 2026-09-19 — #81: BitTorrent TCP length-prefix capped at 16 MiB (`BtPacketLengthOk`); oversize clears buffer and closes peer (`PROTOCOL_TOO_LARGE`).
+- **Changelog Entry:** 2026-09-19 — #81: G2 HIT_WRAP / wrapped G1 fail-closed via `G1WrappedPayloadFits` / negative `m_nLength` reject in `CG1Packet::New` + null-check call sites.
+- **Changelog Entry:** 2026-09-19 — #81: G2 compound/frame length checks order-safe (`G2SubpacketPayloadFits` / `G2FrameLengthFits`) in ReadPacket/SkipCompound/ReadBuffer (defense-in-depth).
+- **Changelog Entry:** 2026-09-19 — #81: G1 QueryHit QHD `nXMLSize` fail-closed via `G1QueryHitXmlFits` (must leave trailing GUID, including zero-length XML); no soft clamp to 0.
+- **Changelog Entry:** 2026-09-19 — #81: ED2K `VIEWSHAREDDIRANSWER` consumes WORD-prefixed directory name before `count`; `OnViewSharedDir` / `OnAskSharedDirsAnswer` / `OnServerMessage` fail-closed via `Ed2kEdString*` + `Ed2kServerMessageLengthOk` (5000-byte MOTD cap).
+- **Changelog Entry:** 2026-09-19 — #81: ED2K chat `MESSAGE` length checks centralized in `Ed2kChatMessageLengthOk` (+ EnvyTests); valid-frame wire behavior unchanged, malformed lengths rejected; outgoing `SendPrivateMessage` clamps by encoded byte length.
+- **Changelog Entry:** 2026-09-19 — #81: unknown ED2K tag skip fail-closed when STRING length claim exceeds remaining (`Ed2kUnknownTagStringSkipOk`); INT fallback only above skip-max.
+- **Changelog Entry:** 2026-09-19 — #81: `CEDPacket::ReadEDString` / `ReadLongEDString` fail-closed when length prefix exceeds remaining (`Ed2kEdStringPayloadOk` / `Ed2kLongEdStringPayloadOk`).
+- **Changelog Entry:** 2026-09-19 — #81: G1 TCP framing uses overflow-safe `G1PacketTotalLengthOk` for signed payload length vs `MaximumPacket`.
+- **Changelog Entry:** 2026-09-19 — #81: G1 UDP datagram path uses overflow-safe G1PacketTotalLengthOk (rejects negative m_nLength wrap before CG1Packet::New).
+- **Changelog Entry:** 2026-09-19 — Agent workflow: after every PR push use `gh pr checks --required --watch --fail-fast --interval 5` (no arbitrary CI sleeps); see `AGENTS.md` §5 and `.cursor/rules/08-dev-workflow.mdc`.
+- **Changelog Entry:** 2026-09-19 — #81: ED2K `COMPRESSEDPART` / `COMPRESSEDPART_I64` stream inflate capped at one part or the remaining file size, whichever is smaller (`ED2K_COMPRESSEDPART_INFLATE_MAX` / `Ed2kCompressedPartInflateBudget` / `Ed2kCompressedPartInflateOk`) before `SubmitData`; `CEDClient::OnPacket` propagates inflate rejection.
+- **Changelog Entry:** 2026-09-19 — #81: GGEP DEFLATE inflate capped at 256 KiB (`GGEP_INFLATE_MAX` / `GgepInflateOutputOk`).
+- **Changelog Entry:** 2026-09-19 — #81: `CBuffer::InflateStreamTo` default `nMaxOutput=0` to `CBUFFER_INFLATE_STREAM_MAX` (32 MiB) for Neighbour G1/G2 deflate backlog; G1/G2/ED/DC `OnRead` fail-closes on inflate error; `CBufferInflateStreamOutputOk` smoke coverage.
+- **Changelog Entry:** 2026-09-19 — #81: `CBuffer::Inflate`/`Ungzip` default `nMaxOutput=0` to `CBUFFER_INFLATE_MAX` (32 MiB); `CBufferInflateOutputOk` smoke coverage.
+- **Changelog Entry:** 2026-09-19 — #81/#82: Browse Host HTTP peer `Content-Length` / buffered body capped at 32 MiB (`HostBrowserHttpBodyOk` / `HostBrowserHttpBufferOk`); strict decimal Content-Length; InflateStreamTo output cap on deflate path.
+- **Changelog Entry:** 2026-09-18 — #82: wire-path ED2K `ED2K_TAG_BLOB` uses `Ed2kTagBlobLengthOk` (4 MiB + remaining), matching `.met` policy.
+- **Changelog Entry:** 2026-09-18 — Format Check: encoding-safe `clang-format-diff-safe` wrapper so ISO-8859 Envy sources do not UnicodeDecodeError under stock clang-format-diff.
+- **Changelog Entry:** 2026-09-18 — #92: remove erroneous `delete pRoot` in BT `OnSourceResponse` (packet-owned `m_pNode`); null-check `GetNode("peers")` and nested peer fields before `IsType`.
+- **Changelog Entry:** 2026-09-18 — CI polish on #164: Format Check fail-closed + clang-format-diff (changed hunks, clang-format-18 pinned); CodeQL decoupled from classifier; PR Gate rejects neutral/unexpected skip; C# suite simplified to security-and-quality.
+- **Changelog Entry:** 2026-09-18 — CI: CodeQL always emits c-cpp + javascript-typescript + csharp on every PR to `develop` (fixes Code Scanning "configuration not found"); Format Check is blocking (`--Werror`, no `continue-on-error`).
+- **Changelog Entry:** 2026-09-18 — Protect develop docs aligned to live ruleset: ≥1 APPROVED review, dismiss-stale on push, `require_last_push_approval` off, signed commits + force-push block, CodeQL/Gitleaks code scanning, no GitHub Code Quality rule; Dependabot auto-approve removed.
+- **Changelog Entry:** 2026-09-18 — #97: explicit `timeout-minutes` on lightweight Code Quality / version / Copilot setup jobs.
+- **Changelog Entry:** 2026-09-18 — #81: ED2K FileComment header/length fail-closed vs remaining (`Ed2kFileCommentLengthOk`).
+- **Changelog Entry:** 2026-09-18 — #81: wire `ED2K_TAG_UINT64` remaining check fixed (need 8 bytes, not 1) via `Ed2kTagUint64RemainingOk`.
+- **Changelog Entry:** 2026-09-18 — #81: `CNetwork::m_oJobs` capped at 2048 (`NetworkJobQueueCountOk`); drop oldest owned search/hit on overflow.
+- **Changelog Entry:** 2026-09-18 — #81: `CChatSession` undelivered message queue capped at 1024 (`ChatSessionQueueCountOk`); drop oldest on overflow.
+- **Changelog Entry:** 2026-09-18 — #81: NMDC hub `m_oUsers` capped at 20,000 new `$MyINFO` nick inserts (`DcHubUserCountOk`) to stop MyINFO flood DoS.
+- **Changelog Entry:** 2026-09-18 — #81: hublist / DC `.bz2` loaders use `LoadFromBZipFile` / `UnBZip(CBUFFER_UNBZIP_MAX)` (32 MiB); legacy `UnBZip()` with nMaxOutput=0 stays unlimited.
+- **Changelog Entry:** 2026-09-18 — #81: G1 `{deflate}` XML inflate capped at 256 KiB (`G1_DEFLATE_XML_INFLATE_MAX` / `G1DeflateXmlInflateOk`) in QueryHit and G1Packet readers.
+- **Changelog Entry:** 2026-09-18 — #81: Gnutella QHT/QRP patch compressed budget + Inflate output cap to expected patch size (`QhtPatchCompressedBudgetOk`).
+- **Changelog Entry:** 2026-09-18 — #81: `CEDPacket::Inflate` defaults to 512 KiB (`ED2K_PACKED_INFLATE_MAX` / `Ed2kPackedInflateOk`) for packed C2C/UDP/server paths; 0 no longer means unlimited.
+- **Changelog Entry:** 2026-09-18 — #81/#82: BitTorrent tracker HTTP announce/scrape bodies capped at 32 MiB via `LimitContentLength` + `BtTrackerHttpResponseOk` (closes unused limit API for live tracker downloads).
+- **Changelog Entry:** 2026-09-18 — #81/#82: Discovery GWC/server-list HTTP bodies capped at 32 MiB (`LimitContentLength` + `DiscoveryHttpResponseOk`).
 - **Changelog Entry:** 2026-09-18 — #81/#82: file-backed ED2K tag key / TAG_STRING lengths checked against remaining `.met` bytes (`Ed2kTagStringLengthOk`) before allocate/Read.
 - **Changelog Entry:** 2026-09-18 — #166 / D-009 P1: Windows Firewall exceptions via WFAS `INetFwPolicy2` (all Domain/Private/Public profiles); drop legacy `INetFwMgr`.
 - **Changelog Entry:** 2026-09-18 — #76: Remote UI HTML-escapes `CRemote::Add()` substitutions (`Escape`); `AddRaw` for trusted markup; `RemoteHtmlEscape.h` + EnvyTests smoke coverage.
@@ -48,8 +86,9 @@
   gate (skip Windows/CodeQL/Remote/C# when unrelated), CodeQL C++ `build-mode: none`
   on PRs with full manual analysis on `develop`/weekly, vcpkg files binary
   cache (Win32 included; `x-gha` is gone upstream), differential Format Check, clang-tidy moved off PRs, EnvyTests after
-  MSBuild. Live required check names are unchanged. `PR Gate` is advisory until
-  a maintainer updates the `Protect develop` ruleset.
+  MSBuild. Live required check names include Format, Documentation, secret-scan,
+  gitleaks, PR Gate, Analyze (c-cpp), and SonarCloud (see `.github/settings.yml`).
+  `PR Gate` is a required CI wait job; it does not replace GitHub review rules.
 - **Changelog Entry:** 2026-09-10 — Safely disabled invalid ED2K/eMule SecureIdent verification (#75): no SecureIdent advertisement, no MD5/non-zero accept path, peers never marked verified without future RSA validation. Documented ED2K SecureIdent RSA roadmap and separate ED2K/Kad interop checklists. SecureIdent remains authentication/trust only — not required for ED2K connectivity.
 - **Changelog Entry:** 2026-09-08 — Restored inbound packet length validation (closed PR #69) on current `develop`: ED2K `ReadBuffer`, BitTorrent extension framing, Gnutella QueryHit `{deflate}`, GGEP `H`/`M` type-byte guards, and ED2K preview frame unsigned bounds. Shared predicates in `PacketLengthValidate.h` with EnvyTests smoke coverage. Documented QueryHit vs G1Packet `{deflate}` -10/-9 sizing as a known inconsistency (functional follow-up, not fixed here).
 - **Changelog Entry:** 2026-05-27 — Documented linear-history workflow for `develop`: squash/rebase merges only, `git pull --ff-only`, feature-branch rebase commands; aligned `.github/settings.yml` with GitHub merge settings.
@@ -69,15 +108,22 @@
 ## Repository Status (develop)
 - Default branch is `develop`.
 - `main` is currently behind `develop`.
-- **Merge policy (GitHub):** merge commits disabled; squash and rebase merges enabled. Prefer squash for PRs.
+- **Merge policy (GitHub):** merge commits disabled; squash and rebase merges
+  enabled globally. Protect develop forces **squash-only** onto `develop`.
 - **History:** `develop` was rewritten to a linear history with no merge commits; the pre-rewrite snapshot is preserved as the immutable tag `backup/develop-before-linear-rewrite` (local mutable backup/rollback branches were removed after the rewrite stabilized).
 - **Local hygiene:** use `git pull --ff-only` on `develop`; rebase feature branches with `git rebase origin/develop` and `git push --force-with-lease`.
-- **Branch protection:** the active `Protect develop` ruleset requires pull requests, linear history, passing checks, and blocks force-pushes/deletions. `.github/settings.yml` mirrors the intended policy for Probot Settings or manual audits.
-- CI uses a two-speed model: change-aware PR jobs plus full integration on
-  `develop` / scheduled analysis. The live `Protect develop` ruleset still
-  requires the eight named contexts listed in `.github/settings.yml`; `PR Gate`
-  is emitted on every PR but is not required until a maintainer updates the
-  ruleset. See `docs/10_dev/agents-and-automation.md`.
+- **Branch protection:** the active `Protect develop` ruleset requires pull
+  requests, linear history, signed commits, ≥1 APPROVED review, dismiss-stale
+  approvals, conversation resolution, code scanning (CodeQL+Gitleaks), passing
+  required checks, and blocks force-pushes/deletions. `.github/settings.yml`
+  mirrors the Probot-capable subset; the ruleset is the source of truth.
+- CI uses a two-speed model: change-aware PR jobs for Windows/Remote/deps plus
+  full integration on `develop` / scheduled analysis. Every PR always runs
+  CodeQL Analyze (c-cpp), (javascript-typescript), and (csharp), plus blocking
+  Format Check. The live `Protect develop` ruleset requires the eleven named
+  contexts listed in `.github/settings.yml`. `PR Gate` waits for classified CI
+  (and always for the three CodeQL jobs + Format Check) — it is not a review
+  substitute. See `docs/10_dev/agents-and-automation.md`.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
 ## Canonical Documentation Split
@@ -305,13 +351,13 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - **2026-09-10:** Adopt a two-speed CI: path-aware PR jobs (`if:`, never
   `paths-ignore` on required workflows), CodeQL C++ `build-mode: none` on PRs
   and manual traced builds on `develop`/schedule, vcpkg files binary cache
-  (`x-gha` removed upstream). Keep the eight live required check names until `PR Gate` is promoted in the
-  GitHub ruleset by a maintainer.
+  (`x-gha` removed upstream). Required Protect develop check names are listed
+  in `.github/settings.yml` (including `PR Gate` as a required CI wait).
 - **2026-09-10:** For issue #75, choose safe disable of fake SecureIdent over
   implementing RSA in the same PR. Advertisement stays at version 0 until a
   dedicated RSA SecureIdent workstream lands. ED2K connectivity must not depend
   on SecureIdent.
-- **2026-05-27:** Rewrote `develop` into a linear history with no merge commits while preserving the final tree through backup refs; enforce linear history going forward via the active `Protect develop` ruleset, GitHub merge settings (no merge commits; squash/rebase only), and contributor `git pull --ff-only` hygiene.
+- **2026-05-27:** Rewrote `develop` into a linear history with no merge commits while preserving the final tree through backup refs; enforce linear history going forward via the active `Protect develop` ruleset (squash-only on `develop`), global GitHub merge settings (no merge commits; squash/rebase enabled), and contributor `git pull --ff-only` hygiene.
 - **2026-05-15:** Repository hygiene baseline on `develop` requires explicit branch-state tracking and GitHub label prerequisites (`ci`, `dependencies`) before enforcing CI as mandatory gates.
 - **2026-04-22:** Added IPv6 dual-stack Phase 0 scoping inventory and phased rollout plan under `docs/ipv6/`.
 - **2026-04-22:** Remote web UI must use cryptographic token generation (`crypto.getRandomValues`) and allowlist-based redirect validation for all client-side navigation paths.

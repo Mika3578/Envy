@@ -511,8 +511,11 @@ void CBTPacket::ToBuffer(CBuffer* pBuffer, bool /*bTCP*/)
 //////////////////////////////////////////////////////////////////////
 // CBTPacket unserialize
 
-CBTPacket* CBTPacket::ReadBuffer(CBuffer* pBuffer)
+CBTPacket* CBTPacket::ReadBuffer(CBuffer* pBuffer, BOOL* pbProtocolError)
 {
+	if (pbProtocolError)
+		*pbProtocolError = FALSE;
+
 	DWORD nLength = (DWORD) - 1;
 	bool bKeepAlive = false;
 	bool bValid = true;
@@ -525,6 +528,14 @@ CBTPacket* CBTPacket::ReadBuffer(CBuffer* pBuffer)
 		else
 		{
 			nLength = transformFromBE( pBuffer->ReadDWORD() );
+			// Reject oversize length-prefix before waiting for a multi-GB body.
+			if (nLength != 0 && !BtPacketLengthOk(nLength))
+			{
+				pBuffer->Clear();
+				if (pbProtocolError)
+					*pbProtocolError = TRUE;
+				return NULL;
+			}
 			if ( pBuffer->m_nLength - sizeof( DWORD ) < nLength )
 				bValid = false;
 		}

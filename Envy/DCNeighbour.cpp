@@ -139,7 +139,8 @@ BOOL CDCNeighbour::ConnectTo(const IN_ADDR* pAddress, WORD nPort, BOOL bAutomati
 
 BOOL CDCNeighbour::OnRead()
 {
-	CNeighbour::OnRead();
+	if (!CNeighbour::OnRead())
+		return FALSE;
 
 	return ProcessPackets();
 }
@@ -844,6 +845,9 @@ BOOL CDCNeighbour::OnUserInfo(LPSTR szInfo)
 			CChatUser* pUser;
 			if ( ! m_oUsers.Lookup( strNick, pUser ) )
 			{
+				if (!DcHubUserCountOk(static_cast<DWORD>(m_oUsers.GetCount())))
+					return TRUE; // Drop new nick - MyINFO flood / hub DoS
+
 				pUser = new CChatUser;
 				m_oUsers.SetAt( strNick, pUser );
 			}

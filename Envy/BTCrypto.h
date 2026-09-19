@@ -30,13 +30,14 @@ enum MseState {
 	MSE_SENT_CRYPTO,       // Initiator: sent crypto_provide + IA
 	MSE_AWAITING_CRYPTO,   // Initiator: waiting for crypto_select
 
-	MSE_AWAITING_YA,       // Responder: waiting for initiator DH key
-	MSE_SENT_YB,           // Responder: sent DH public key
-	MSE_AWAITING_HASH,     // Responder: waiting for hash verification
-	MSE_SENT_SELECT,       // Responder: sent crypto_select
+	MSE_AWAITING_YA,   // Responder: waiting for initiator DH key
+	MSE_SENT_YB,       // Responder: sent DH public key
+	MSE_AWAITING_HASH, // Responder: waiting for hash verification
+	MSE_AWAITING_IA,   // Responder: len(IA) consumed, waiting for IA bytes
+	MSE_SENT_SELECT,   // Responder: sent crypto_select
 
-	MSE_ACTIVE,            // Encryption active
-	MSE_PLAINTEXT,         // Fell back to plaintext
+	MSE_ACTIVE,    // Encryption active
+	MSE_PLAINTEXT, // Fell back to plaintext
 	MSE_FAILED
 };
 
@@ -96,28 +97,30 @@ public:
 	void SetInfoHash(const Hashes::BtHash& infoHash);
 
 private:
-	MseState    m_nState;
-	DWORD       m_nCryptoMethod;
-	bool        m_bInitiator;
+	MseState m_nState;
+	DWORD m_nCryptoMethod;
+	bool m_bInitiator;
 
 	Hashes::BtHash m_oInfoHash;
-	bool        m_bHasInfoHash;
+	bool m_bHasInfoHash;
 
 	// DH key exchange
-	BYTE        m_privateKey[MSE_DH_KEY_LEN];
-	BYTE        m_publicKey[MSE_DH_KEY_LEN];
-	BYTE        m_sharedSecret[MSE_DH_KEY_LEN];
+	BYTE m_privateKey[MSE_DH_KEY_LEN];
+	BYTE m_publicKey[MSE_DH_KEY_LEN];
+	BYTE m_sharedSecret[MSE_DH_KEY_LEN];
 
 	// RC4 contexts
-	CRC4        m_rc4Encrypt;
-	CRC4        m_rc4Decrypt;
+	CRC4 m_rc4Encrypt;
+	CRC4 m_rc4Decrypt;
 
 	// Scratch buffer for handshake processing
-	size_t      m_nPadALen;
+	size_t m_nPadALen;
+	WORD m_nPendingIaLen; // Responder: IA bytes still owed after len(IA)
 
 	void GenerateDHKeyPair();
 	void ComputeSharedSecret(const BYTE* pPeerKey);
 	void DeriveRC4Keys();
+	bool SendResponderCryptoSelect(CBuffer* pOutput);
 	void HashSHA1(const BYTE* pData, size_t nLen, BYTE* pHash);
 	void HashSHA1Two(const BYTE* p1, size_t n1, const BYTE* p2, size_t n2, BYTE* pHash);
 };
