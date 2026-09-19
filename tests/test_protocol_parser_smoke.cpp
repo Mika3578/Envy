@@ -319,6 +319,38 @@ static bool test_ed2k_file_comment_bounds()
 		&& Ed2kFileCommentLengthOk(ED2K_FILE_COMMENT_MAX + 1, ED2K_FILE_COMMENT_MAX + 1) == FALSE;
 }
 
+static bool test_ed2k_ed_string_payload()
+{
+	// Mirrors ReadEDString after ReadShortLE: Ed2kEdStringPayloadOk(nLen, remaining).
+	return Ed2kEdStringPayloadOk( 5, 5 ) == TRUE
+		&& Ed2kEdStringPayloadOk( 0, 5 ) == TRUE
+		&& Ed2kEdStringPayloadOk( 6, 5 ) == FALSE
+		&& Ed2kEdStringPayloadOk( 0, 0 ) == TRUE
+		&& Ed2kEdStringPayloadOk( 1, 0 ) == FALSE;
+}
+
+static bool test_ed2k_long_ed_string_payload()
+{
+	// Mirrors ReadLongEDString after ReadLongLE: Ed2kLongEdStringPayloadOk(nLen, remaining).
+	return Ed2kLongEdStringPayloadOk( 100, 100 ) == TRUE
+		&& Ed2kLongEdStringPayloadOk( 101, 100 ) == FALSE
+		&& Ed2kLongEdStringPayloadOk( 0, 0 ) == TRUE
+		&& Ed2kLongEdStringPayloadOk( 1, 0 ) == FALSE;
+}
+
+static bool test_ed2k_ed_string_truncated_prefix_gate()
+{
+	// Simulate a WORD-prefixed string claiming 4 bytes when only 3 remain after the prefix.
+	const WORD nClaimed = 4;
+	const DWORD nRemainingAfterPrefix = 3;
+	const bool bWouldThrow = Ed2kEdStringPayloadOk( nClaimed, nRemainingAfterPrefix ) == FALSE;
+	const bool bExactOk = Ed2kEdStringPayloadOk( 3, 3 ) == TRUE;
+	const DWORD nLongClaimed = 8;
+	const DWORD nLongRemaining = 7;
+	const bool bLongWouldThrow = Ed2kLongEdStringPayloadOk( nLongClaimed, nLongRemaining ) == FALSE;
+	return bWouldThrow && bExactOk && bLongWouldThrow;
+}
+
 static bool test_ed2k_tag_uint64_remaining()
 {
 	return Ed2kTagUint64RemainingOk( ED2K_TAG_UINT64_BYTES ) == TRUE
@@ -628,6 +660,9 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_tag_blob_bounds", test_ed2k_tag_blob_bounds );
 	suite.add_test( "ed2k_tag_string_bounds", test_ed2k_tag_string_bounds );
 	suite.add_test( "ed2k_file_comment_bounds", test_ed2k_file_comment_bounds );
+	suite.add_test( "ed2k_ed_string_payload", test_ed2k_ed_string_payload );
+	suite.add_test( "ed2k_long_ed_string_payload", test_ed2k_long_ed_string_payload );
+	suite.add_test( "ed2k_ed_string_truncated_prefix_gate", test_ed2k_ed_string_truncated_prefix_gate );
 	suite.add_test( "ed2k_tag_uint64_remaining", test_ed2k_tag_uint64_remaining );
 	suite.add_test( "ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds );
 	suite.add_test( "bt_ut_metadata_size_ok", test_bt_ut_metadata_size_ok );
