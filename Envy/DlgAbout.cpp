@@ -137,7 +137,7 @@ void CAboutDlg::OnLButtonDown(UINT nFlags, CPoint point)
 
 void CAboutDlg::OnRButtonDown(UINT /*nFlags*/, CPoint point)
 {
-	// Shift+Right-click on the web link to force a crash (Crashpad dump)
+	// Shift+Rightclick on link for BugTrap crash testing
 
 //#ifdef _DEBUG
 	if ( ! ( GetAsyncKeyState( VK_SHIFT ) & 0x8000 ) )
