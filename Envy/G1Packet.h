@@ -1,7 +1,7 @@
 //
 // G1Packet.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -132,6 +132,15 @@ public:
 	{
 		// Get a blank packet from the pool
 		CG1Packet* pPacket = (CG1Packet*)POOL.New();
+
+		// Reject negative payload before (DWORD) cast -> Write.
+		// Absolute oversize for wrapped G2->G1 is enforced in SeekToWrapped /
+		// G1WrappedPayloadFits; HostBrowser allows up to MaximumPacket*8 here.
+		if (pSource == nullptr || pSource->m_nLength < 0)
+		{
+			pPacket->Release();
+			return NULL;
+		}
 
 		// Fill it with information from the given Gnutella packet header structure
 		pPacket->m_oGUID = pSource->m_oGUID;

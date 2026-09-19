@@ -1152,6 +1152,7 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 		{
 			if ( ! bWrapped ) return FALSE;
 			pPacket = CG1Packet::New( (GNUTELLAPACKET*)( pPacket->m_pBuffer + pPacket->m_nPosition ) );
+			if (pPacket == NULL) return FALSE;
 			pOrigin->Send( pPacket, TRUE, TRUE );
 		}
 		else if ( pOrigin->m_nProtocol == PROTOCOL_G2 && pPacket->m_nProtocol == PROTOCOL_G1 )

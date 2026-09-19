@@ -459,3 +459,27 @@ inline BOOL G2FrameLengthFits(DWORD nBufferLength, DWORD nBodyLen, DWORD nLenLen
 		return FALSE;
 	return 2u <= (nRemaining - nTypeLen);
 }
+
+// G2 HIT_WRAP / routing embeds a GNUTELLAPACKET (#81).
+// m_nLength is signed LONG — negative values must not enter unsigned
+// "remaining >= header + length" math or (DWORD) cast before Write.
+// Absolute payload ceiling matches Settings.Gnutella.MaximumPacket (256 KiB)
+// for wrapped G2->G1 conversion; CG1Packet::New only rejects negatives so
+// HostBrowser may still use MaximumPacket*8.
+constexpr DWORD G1_WRAPPED_PAYLOAD_MAX = 256u * 1024u;
+
+inline BOOL G1WrappedPayloadLengthOk(LONG nPayloadLen)
+{
+	if (nPayloadLen < 0)
+		return FALSE;
+	return static_cast<DWORD>(nPayloadLen) <= G1_WRAPPED_PAYLOAD_MAX;
+}
+
+inline BOOL G1WrappedPayloadFits(DWORD nRemaining, LONG nPayloadLen)
+{
+	if (!G1WrappedPayloadLengthOk(nPayloadLen))
+		return FALSE;
+	if (nRemaining < G1_PACKET_HEADER_BYTES)
+		return FALSE;
+	return static_cast<DWORD>(nPayloadLen) <= (nRemaining - G1_PACKET_HEADER_BYTES);
+}
