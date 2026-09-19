@@ -224,6 +224,29 @@ struct PendingReport
 	CrashReportMetadata meta;
 };
 
+// When the fixed scan buffer is full, keep the newest entries by mtime so
+// retention/prune and the startup prompt still see recent reports.
+PendingReport* AllocPendingSlot(PendingReport* pOut, size_t nMax, size_t* pnCount,
+                                unsigned long long mtimeUtc)
+{
+	if (*pnCount < nMax)
+	{
+		PendingReport* pItem = &pOut[(*pnCount)++];
+		ZeroMemory(pItem, sizeof(*pItem));
+		return pItem;
+	}
+	size_t oldest = 0;
+	for (size_t i = 1; i < nMax; ++i)
+	{
+		if (pOut[i].mtimeUtc < pOut[oldest].mtimeUtc)
+			oldest = i;
+	}
+	if (mtimeUtc <= pOut[oldest].mtimeUtc)
+		return nullptr;
+	ZeroMemory(&pOut[oldest], sizeof(pOut[oldest]));
+	return &pOut[oldest];
+}
+
 BOOL FindPendingReports(PendingReport* pOut, size_t nMax, size_t* pnCount)
 {
 	if (pnCount != nullptr)
@@ -268,16 +291,15 @@ BOOL FindPendingReports(PendingReport* pOut, size_t nMax, size_t* pnCount)
 				continue;
 			if (attr.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 				continue;
-			if (nCount >= nMax)
-				continue;
-			PendingReport* pItem = &pOut[nCount++];
-			ZeroMemory(pItem, sizeof(*pItem));
-			CrashReportCopyTrunc(pItem->baseName, _countof(pItem->baseName), fd.cFileName);
-			CrashReportCopyTrunc(pItem->dumpName, _countof(pItem->dumpName), fd.cFileName);
-			pItem->hasDump = TRUE;
 			ULARGE_INTEGER writeTime;
 			writeTime.LowPart = attr.ftLastWriteTime.dwLowDateTime;
 			writeTime.HighPart = attr.ftLastWriteTime.dwHighDateTime;
+			PendingReport* pItem = AllocPendingSlot(pOut, nMax, &nCount, writeTime.QuadPart);
+			if (pItem == nullptr)
+				continue;
+			CrashReportCopyTrunc(pItem->baseName, _countof(pItem->baseName), fd.cFileName);
+			CrashReportCopyTrunc(pItem->dumpName, _countof(pItem->dumpName), fd.cFileName);
+			pItem->hasDump = TRUE;
 			pItem->mtimeUtc = writeTime.QuadPart;
 			ULARGE_INTEGER fileSize;
 			fileSize.LowPart = attr.nFileSizeLow;
@@ -347,18 +369,17 @@ BOOL FindPendingReports(PendingReport* pOut, size_t nMax, size_t* pnCount)
 				break;
 			}
 		}
-		if (pItem == nullptr)
-		{
-			if (nCount >= nMax)
-				continue;
-			pItem = &pOut[nCount++];
-			ZeroMemory(pItem, sizeof(*pItem));
-			CrashReportCopyTrunc(pItem->baseName, _countof(pItem->baseName), szBase);
-		}
-
 		ULARGE_INTEGER writeTime;
 		writeTime.LowPart = fd.ftLastWriteTime.dwLowDateTime;
 		writeTime.HighPart = fd.ftLastWriteTime.dwHighDateTime;
+		if (pItem == nullptr)
+		{
+			pItem = AllocPendingSlot(pOut, nMax, &nCount, writeTime.QuadPart);
+			if (pItem == nullptr)
+				continue;
+			CrashReportCopyTrunc(pItem->baseName, _countof(pItem->baseName), szBase);
+		}
+
 		if (writeTime.QuadPart > pItem->mtimeUtc)
 			pItem->mtimeUtc = writeTime.QuadPart;
 
