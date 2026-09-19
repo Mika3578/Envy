@@ -1,4 +1,7 @@
 <link rel="stylesheet" type="text/css" href="downloads-modern.css" media="screen">
+<!-- Same asset model as head-modern (Envy-modern.css / envy-modern.js): served when
+     the Remote host exposes the Remote/ tree as static files. Built-in
+     ResourceRequest() still only maps banner/favicon RC resources (#234 follow-up). -->
 <!-- Modern Downloads Page -->
 <div class="content-area">
     <h1 class="page-title">Downloads</h1>
@@ -109,4 +112,4 @@
         </div>
     </div>
 </div>
-<script src="downloads-modern.js"></script>
+<script src="downloads-modern.js" defer></script>

@@ -240,3 +240,12 @@
         width: 100%;
     }
 }
+
+.alert-flush {
+	margin: 0;
+}
+
+progress[data-progress-id] {
+	width: 100%;
+	height: 0.75rem;
+}

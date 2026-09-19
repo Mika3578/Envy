@@ -3,72 +3,18 @@
     let selectedDownloads = new Set();
     let downloadsData = [];
 
-    // Initialize
-    loadDownloads();
-
-    // Event listeners
-    document.getElementById('select-all').addEventListener('change', toggleSelectAll);
-    document.addEventListener('change', handleCheckboxChange);
-    document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('priority-select')) {
-            const id = e.target.getAttribute('data-download-id');
-            if (id) {
-                changePriority(id, e.target.value);
-            }
-        }
-    });
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('[data-action]');
-        if (!btn) {
-            return;
-        }
-        const action = btn.getAttribute('data-action');
-        const id = btn.getAttribute('data-id');
-        switch (action) {
-            case 'refresh-page':
-                refreshPage();
-                break;
-            case 'select-all':
-                selectAll();
-                break;
-            case 'clear-selected':
-                clearSelected();
-                break;
-            case 'start-selected':
-                startSelected();
-                break;
-            case 'pause-selected':
-                pauseSelected();
-                break;
-            case 'cancel-selected':
-                cancelSelected();
-                break;
-            case 'move-selected':
-                moveSelected();
-                break;
-            case 'start-download':
-                if (id) startDownload(id);
-                break;
-            case 'pause-download':
-                if (id) pauseDownload(id);
-                break;
-            case 'cancel-download':
-                if (id) cancelDownload(id);
-                break;
-            default:
-                break;
-        }
-    });
-
     // Functions
     function loadDownloads() {
         showLoadingState();
 
         EnvyRemote.ajaxRequest('/api/downloads')
-            .then(data => {
-                downloadsData = data.downloads || [];
+            .then(payload => {
+                const body = (payload && payload.data && typeof payload.data === 'object')
+                    ? payload.data
+                    : (payload || {});
+                downloadsData = body.downloads || [];
                 renderDownloadsTable(downloadsData);
-                updateStatistics(data.stats);
+                updateStatistics(body.stats);
                 hideLoadingState();
             })
             .catch(error => {
@@ -125,21 +71,19 @@
         sizeTd.setAttribute('data-sort-value', String(download.size ?? 0));
         sizeTd.textContent = formatBytes(download.size);
 
+        const clamped = Math.max(0, Math.min(100, progressPercent));
         const progressTd = document.createElement('td');
         progressTd.className = 'progress-cell';
         const progressContainer = document.createElement('div');
         progressContainer.className = 'progress-container';
-        const progress = document.createElement('div');
-        progress.className = 'progress';
-        const progressBar = document.createElement('div');
-        progressBar.className = 'progress-bar';
-        progressBar.style.width = `${Math.max(0, Math.min(100, progressPercent))}%`;
-        progressBar.setAttribute('data-progress-id', id);
-        progress.appendChild(progressBar);
+        const progressEl = document.createElement('progress');
+        progressEl.max = 100;
+        progressEl.value = clamped;
+        progressEl.setAttribute('data-progress-id', id);
         const progressText = document.createElement('span');
         progressText.className = 'progress-text';
-        progressText.textContent = `${Math.max(0, Math.min(100, progressPercent))}%`;
-        progressContainer.appendChild(progress);
+        progressText.textContent = `${clamped}%`;
+        progressContainer.appendChild(progressEl);
         progressContainer.appendChild(progressText);
         progressTd.appendChild(progressContainer);
 
@@ -300,8 +244,7 @@
         td.colSpan = 9;
         td.className = 'text-center';
         const alert = document.createElement('div');
-        alert.className = 'alert alert-error';
-        alert.style.margin = '0';
+        alert.className = 'alert alert-error alert-flush';
         alert.textContent = String(message || '');
         td.appendChild(alert);
         tr.appendChild(td);
@@ -343,8 +286,18 @@
         alert('Priority change feature coming soon!');
     };
 
+    function csrfHeaders() {
+        const token = (window.EnvySecurity && typeof window.EnvySecurity.getCSRFToken === 'function')
+            ? window.EnvySecurity.getCSRFToken()
+            : '';
+        return token ? { 'X-CSRF-Token': token } : {};
+    }
+
     window.startDownload = function(id) {
-        EnvyRemote.ajaxRequest(`/api/downloads/${id}/start`, { method: 'POST' })
+        EnvyRemote.ajaxRequest(`/api/downloads/${id}/start`, {
+            method: 'POST',
+            headers: csrfHeaders()
+        })
             .then(() => {
                 EnvyRemote.showNotification('Download started', 'success');
                 loadDownloads();
@@ -355,7 +308,10 @@
     };
 
     window.pauseDownload = function(id) {
-        EnvyRemote.ajaxRequest(`/api/downloads/${id}/pause`, { method: 'POST' })
+        EnvyRemote.ajaxRequest(`/api/downloads/${id}/pause`, {
+            method: 'POST',
+            headers: csrfHeaders()
+        })
             .then(() => {
                 EnvyRemote.showNotification('Download paused', 'success');
                 loadDownloads();
@@ -367,7 +323,10 @@
 
     window.cancelDownload = function(id) {
         if (confirm('Are you sure you want to cancel this download?')) {
-            EnvyRemote.ajaxRequest(`/api/downloads/${id}/cancel`, { method: 'DELETE' })
+            EnvyRemote.ajaxRequest(`/api/downloads/${id}/cancel`, {
+                method: 'DELETE',
+                headers: csrfHeaders()
+            })
                 .then(() => {
                     EnvyRemote.showNotification('Download cancelled', 'success');
                     loadDownloads();
@@ -381,6 +340,7 @@
     window.changePriority = function(id, priority) {
         EnvyRemote.ajaxRequest(`/api/downloads/${id}/priority`, {
             method: 'PUT',
+            headers: csrfHeaders(),
             body: { priority }
         })
         .then(() => {
@@ -395,6 +355,90 @@
         loadDownloads();
     };
 
-    // Auto-refresh every 30 seconds
-    setInterval(loadDownloads, 30000);
+    function wireDownloadsPage() {
+        const selectAll = document.getElementById('select-all');
+        if (!selectAll || typeof EnvyRemote === 'undefined') {
+            return false;
+        }
+        selectAll.addEventListener('change', toggleSelectAll);
+        document.addEventListener('change', handleCheckboxChange);
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('priority-select')) {
+                const id = e.target.getAttribute('data-download-id');
+                if (id) {
+                    changePriority(id, e.target.value);
+                }
+            }
+        });
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) {
+                return;
+            }
+            const action = btn.getAttribute('data-action');
+            const id = btn.getAttribute('data-id');
+            switch (action) {
+                case 'refresh-page':
+                    refreshPage();
+                    break;
+                case 'select-all':
+                    selectAllFn();
+                    break;
+                case 'clear-selected':
+                    clearSelected();
+                    break;
+                case 'start-selected':
+                    startSelected();
+                    break;
+                case 'pause-selected':
+                    pauseSelected();
+                    break;
+                case 'cancel-selected':
+                    cancelSelected();
+                    break;
+                case 'move-selected':
+                    moveSelected();
+                    break;
+                case 'start-download':
+                    if (id) startDownload(id);
+                    break;
+                case 'pause-download':
+                    if (id) pauseDownload(id);
+                    break;
+                case 'cancel-download':
+                    if (id) cancelDownload(id);
+                    break;
+                default:
+                    break;
+            }
+        });
+        loadDownloads();
+        setInterval(loadDownloads, 30000);
+        return true;
+    }
+
+    // window.selectAll conflicts with HTMLSelectElement; keep API name via alias.
+    function selectAllFn() {
+        window.selectAll();
+    }
+
+    let readyAttempts = 0;
+    function startWhenReady() {
+        if (wireDownloadsPage()) {
+            return;
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function onReady() {
+                document.removeEventListener('DOMContentLoaded', onReady);
+                startWhenReady();
+            });
+            return;
+        }
+        // Defer behind head-modern envy-modern.js (defer) if still missing.
+        if (readyAttempts++ < 50) {
+            setTimeout(startWhenReady, 20);
+        }
+    }
+
+    startWhenReady();
 })();
