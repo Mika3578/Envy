@@ -459,9 +459,9 @@ BOOL CDownloadTransferDC::StartNextFragment()
 	m_nPosition = 0;
 
 	CString strName;
-	if ( DcIsFileListDownloadNameW( m_pDownload->m_sName ) )
+	if (DcIsFileListDownloadNameW(m_pDownload->m_sName))
 		strName = DC_FILELIST_ADCGET_NAME_W;
-	else if ( m_pDownload->m_oTiger )
+	else if (m_pDownload->m_oTiger)
 		strName = L"TTH/" + m_pDownload->m_oTiger.toString();
 	else
 		strName = m_pSource->m_sName;

@@ -84,8 +84,8 @@ BOOL CDCNeighbour::ConnectToMe(const CString& sNick)
 	strRequest.Format( L"$ConnectToMe %s %s|",
 		(LPCTSTR)DCClients.CreateNick( sNick ), (LPCTSTR)HostToString( &Network.m_pHost ) );
 
-	theApp.Message( MSG_DEBUG, L"DC $ConnectToMe for %s via hub %s",
-		(LPCTSTR)sNick, (LPCTSTR)m_sAddress );
+	theApp.Message(MSG_DEBUG, L"DC $ConnectToMe for %s via hub %s",
+	               (LPCTSTR)sNick, (LPCTSTR)m_sAddress);
 
 	if ( CDCPacket* pPacket = CDCPacket::New() )
 	{
@@ -100,27 +100,27 @@ BOOL CDCNeighbour::ConnectToMe(const CString& sNick)
 BOOL CDCNeighbour::SendPrivateTo(const CString& sToNick, bool bAction, const CString& sText)
 {
 	// $To: target From: mynick$<mynick> message|
-	if ( m_nState != nrsConnected || ! m_bNickValid || m_sNick.IsEmpty() )
+	if (m_nState != nrsConnected || !m_bNickValid || m_sNick.IsEmpty())
 		return FALSE;
-	if ( sToNick.IsEmpty() || sText.IsEmpty() )
+	if (sToNick.IsEmpty() || sText.IsEmpty())
 		return FALSE;
-	if ( sToNick.Find( L'|' ) >= 0 || sText.Find( L'|' ) >= 0 )
+	if (sToNick.Find(L'|') >= 0 || sText.Find(L'|') >= 0)
 		return FALSE;
-	if ( GetUser( sToNick ) == NULL )
+	if (GetUser(sToNick) == NULL)
 		return FALSE;
 
 	CString strBody = sText;
-	if ( bAction )
+	if (bAction)
 		strBody = L"/me " + sText;
 
 	CString strRequest;
-	strRequest.Format( L"$To: %s From: %s$<%s> %s|",
-		(LPCTSTR)sToNick, (LPCTSTR)m_sNick, (LPCTSTR)m_sNick, (LPCTSTR)strBody );
+	strRequest.Format(L"$To: %s From: %s$<%s> %s|",
+	                  (LPCTSTR)sToNick, (LPCTSTR)m_sNick, (LPCTSTR)m_sNick, (LPCTSTR)strBody);
 
-	if ( CDCPacket* pPacket = CDCPacket::New() )
+	if (CDCPacket* pPacket = CDCPacket::New())
 	{
-		pPacket->WriteString( strRequest, FALSE );
-		return Send( pPacket );
+		pPacket->WriteString(strRequest, FALSE);
+		return Send(pPacket);
 	}
 	return FALSE;
 }
@@ -353,8 +353,8 @@ BOOL CDCNeighbour::OnPacket(CDCPacket* pPacket)
 		return OnSupports( szParams );
 	if ( strcmp( szCommand, "$OpList" ) == 0 )			// $OpList operator1$$operator2|
 		return OnOpList( szParams );
-	if ( strcmp( szCommand, "$NickList" ) == 0 )		// $NickList user1$$user2|
-		return OnNickList( szParams );
+	if (strcmp(szCommand, "$NickList") == 0) // $NickList user1$$user2|
+		return OnNickList(szParams);
 	if ( strcmp( szCommand, "$ConnectToMe" ) == 0 )		// $ConnectToMe SenderNick RemoteNick SenderIp:SenderPort|
 		return OnConnectToMe( szParams );
 	if ( strcmp( szCommand, "$RevConnectToMe" ) == 0 )	// $RevConnectToMe
@@ -863,15 +863,15 @@ BOOL CDCNeighbour::OnNickList(LPSTR szParams)
 	// Nick-only snapshot. $MyINFO remains authoritative for metadata.
 	// $NickList user1$$user2$$|
 
-	if ( szParams == NULL || *szParams == 0 )
+	if (szParams == NULL || *szParams == 0)
 		return TRUE;
 
-	const size_t nLen = strnlen( szParams, static_cast< size_t >( DC_NICKLIST_PAYLOAD_MAX ) + 1 );
-	if ( ! DcNickListPayloadOk( nLen ) )
+	const size_t nLen = strnlen(szParams, static_cast<size_t>(DC_NICKLIST_PAYLOAD_MAX) + 1);
+	if (!DcNickListPayloadOk(nLen))
 		return TRUE;
 
-	DcParseNickList( szParams, nLen, [ this ]( const char* p, size_t nTok ) -> BOOL
-	{
+	DcParseNickList(szParams, nLen, [this](const char* p, size_t nTok) -> BOOL
+	                {
 		if ( ! DcHubUserCountOk( static_cast< DWORD >( m_oUsers.GetCount() ) ) )
 			return FALSE;
 
@@ -888,11 +888,10 @@ BOOL CDCNeighbour::OnNickList(LPSTR szParams)
 		pUser->m_sNick = strNick;
 		m_oUsers.SetAt( strNick, pUser );
 		ChatCore.OnAddUser( this, new CChatUser( *pUser ) );
-		return TRUE;
-	} );
+		return TRUE; });
 
-	if ( m_nNodeType == ntHub )
-		HostCache.DC.Add( &m_pHost.sin_addr, htons( m_pHost.sin_port ), 0, 0, 0, GetUserCount() );
+	if (m_nNodeType == ntHub)
+		HostCache.DC.Add(&m_pHost.sin_addr, htons(m_pHost.sin_port), 0, 0, 0, GetUserCount());
 
 	return TRUE;
 }
@@ -909,12 +908,12 @@ BOOL CDCNeighbour::OnUserInfo(LPSTR szInfo)
 		{
 			*szDescription++ = 0;
 
-			const size_t nNickLen = strnlen( szNick, static_cast< size_t >( DC_NICK_BYTES_MAX ) + 1 );
-			if ( ! DcNickBytesOk( szNick, nNickLen ) )
+			const size_t nNickLen = strnlen(szNick, static_cast<size_t>(DC_NICK_BYTES_MAX) + 1);
+			if (!DcNickBytesOk(szNick, nNickLen))
 				return TRUE;
 
-			CString strNick( UTF8Decode( szNick, static_cast< int >( nNickLen ) ) );
-			if ( strNick.IsEmpty() )
+			CString strNick(UTF8Decode(szNick, static_cast<int>(nNickLen)));
+			if (strNick.IsEmpty())
 				return TRUE;
 
 			CChatUser* pUser;
@@ -1019,10 +1018,10 @@ BOOL CDCNeighbour::OnQuit(LPSTR szNick)
 	// User leave hub
 	// $Quit nick|
 
-	if ( szNick && *szNick )
+	if (szNick && *szNick)
 	{
 		CString strNick = UTF8Decode( szNick );
-		if ( strNick.IsEmpty() )
+		if (strNick.IsEmpty())
 			return TRUE;
 		CChatUser* pUser;
 		if ( m_oUsers.Lookup( strNick, pUser ) )
@@ -1100,8 +1099,8 @@ BOOL CDCNeighbour::OnRevConnectToMe(LPSTR szParams)
 
 			if ( m_bNickValid && m_sNick == strNick )
 			{
-				theApp.Message( MSG_DEBUG, L"DC $RevConnectToMe from %s via hub %s",
-					(LPCTSTR)strRemoteNick, (LPCTSTR)m_sAddress );
+				theApp.Message(MSG_DEBUG, L"DC $RevConnectToMe from %s via hub %s",
+				               (LPCTSTR)strRemoteNick, (LPCTSTR)m_sAddress);
 				ConnectToMe( strRemoteNick );
 			}
 		}

@@ -94,7 +94,7 @@ protected:
 	BOOL			OnPacket(CG2Packet* pPacket);
 	void			OnProfilePacket(CG2Packet* pPacket);
 	BOOL			LoadDC(LPCTSTR pszFile, CQueryHit*& pHits);
-	BOOL			LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const CString& sPath, DWORD nDepth, DWORD& nEntries);
+	BOOL LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const CString& sPath, DWORD nDepth, DWORD& nEntries);
 
 	virtual BOOL	OnRun();
 	virtual BOOL	OnRead();

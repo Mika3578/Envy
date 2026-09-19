@@ -62,9 +62,9 @@ protected:
 	afx_msg void OnUpdateChatPrivateMessage(CCmdUI* pCmdUI);
 	afx_msg void OnChatPrivateMessage();
 
-	BOOL	CanBrowseSelectedDcUser();
-	void	BrowseSelectedDcUser();
-	BOOL	CanMessageSelectedDcUser();
+	BOOL CanBrowseSelectedDcUser();
+	void BrowseSelectedDcUser();
+	BOOL CanMessageSelectedDcUser();
 
 	DECLARE_MESSAGE_MAP()
 };

@@ -42,8 +42,8 @@
 #include "DcBrowse.h"
 #include "DcFileListValidate.h"
 
-static_assert( DC_FILELIST_BYTES_MAX == CBUFFER_UNBZIP_MAX,
-	"DC file-list cap must match CBuffer UnBZip cap" );
+static_assert(DC_FILELIST_BYTES_MAX == CBUFFER_UNBZIP_MAX,
+              "DC file-list cap must match CBuffer UnBZip cap");
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -179,9 +179,9 @@ BOOL CHostBrowser::Browse()
 	{
 		CQuickLock oTransfersLock( Transfers.m_pSection );
 
-		if ( m_sNick.IsEmpty() || m_nPort == 0 || m_pAddress.s_addr == INADDR_NONE )
+		if (m_sNick.IsEmpty() || m_nPort == 0 || m_pAddress.s_addr == INADDR_NONE)
 		{
-			theApp.Message( MSG_NOTICE, IDS_BROWSE_CANT_CONNECT_TO, (LPCTSTR)m_sAddress );
+			theApp.Message(MSG_NOTICE, IDS_BROWSE_CANT_CONNECT_TO, (LPCTSTR)m_sAddress);
 			return FALSE;
 		}
 
@@ -194,17 +194,17 @@ BOOL CHostBrowser::Browse()
 		oURL.m_sName.Format( L"Files of %s.xml.bz2", (LPCTSTR)SafeFilename( m_sNick ) );
 		oURL.m_sURL.Format( L"dchub://%s@%s:%u/files.xml.bz2", (LPCTSTR)URLEncode( m_sNick ), (LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort );
 
-		theApp.Message( MSG_INFO, L"DC file list request started (nick=%s hub=%s:%u)",
-			(LPCTSTR)m_sNick, (LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort );
+		theApp.Message(MSG_INFO, L"DC file list request started (nick=%s hub=%s:%u)",
+		               (LPCTSTR)m_sNick, (LPCTSTR)CString(inet_ntoa(m_pAddress)), m_nPort);
 
-		if ( Downloads.Add( oURL ) == NULL )
+		if (Downloads.Add(oURL) == NULL)
 			return FALSE;
 
 		m_nState = hbsConnecting;
-		m_nHits  = 0;
+		m_nHits = 0;
 		delete m_pProfile;
 		m_pProfile = NULL;
-		if ( m_pNotify )
+		if (m_pNotify)
 			m_pNotify->UpdateMessages();
 		return TRUE;
 	}
@@ -481,7 +481,7 @@ BOOL CHostBrowser::OnNewFile(const CLibraryFile* pFile)
 {
 	//CQuickLock oTransfersLock( Transfers.m_pSection );
 
-	if ( m_nProtocol != PROTOCOL_DC || m_sNick.IsEmpty() )
+	if (m_nProtocol != PROTOCOL_DC || m_sNick.IsEmpty())
 		return FALSE;
 
 	CString strName;
@@ -489,8 +489,8 @@ BOOL CHostBrowser::OnNewFile(const CLibraryFile* pFile)
 	if ( strName.CompareNoCase( pFile->m_sName ) != 0 )
 		return FALSE;
 
-	theApp.Message( MSG_INFO, L"DC file list received (nick=%s hub=%s:%u)",
-		(LPCTSTR)m_sNick, (LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort );
+	theApp.Message(MSG_INFO, L"DC file list received (nick=%s hub=%s:%u)",
+	               (LPCTSTR)m_sNick, (LPCTSTR)CString(inet_ntoa(m_pAddress)), m_nPort);
 
 	CQueryHit* pHits = NULL;
 
@@ -499,17 +499,17 @@ BOOL CHostBrowser::OnNewFile(const CLibraryFile* pFile)
 		if ( pHits != NULL )
 			OnQueryHits( pHits );
 
-		theApp.Message( MSG_INFO, L"DC browse completed (nick=%s files=%u)",
-			(LPCTSTR)m_sNick, m_nHits );
+		theApp.Message(MSG_INFO, L"DC browse completed (nick=%s files=%u)",
+		               (LPCTSTR)m_sNick, m_nHits);
 
 		DeleteFileEx( pFile->GetPath(), TRUE, TRUE, TRUE );
-		Stop( TRUE );
+		Stop(TRUE);
 		return TRUE;
 	}
 
-	theApp.Message( MSG_ERROR, L"DC file list rejected (invalid) nick=%s", (LPCTSTR)m_sNick );
-	DeleteFileEx( pFile->GetPath(), TRUE, TRUE, TRUE );
-	Stop( FALSE );
+	theApp.Message(MSG_ERROR, L"DC file list rejected (invalid) nick=%s", (LPCTSTR)m_sNick);
+	DeleteFileEx(pFile->GetPath(), TRUE, TRUE, TRUE);
+	Stop(FALSE);
 	return TRUE;
 }
 
@@ -520,14 +520,14 @@ BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits)
 		return FALSE;	// File open error
 
 	const ULONGLONG nCompressed = pFile.GetLength();
-	if ( ! DcFileListCompressedOk( nCompressed ) )
+	if (!DcFileListCompressedOk(nCompressed))
 		return FALSE;
 
 	CBuffer pBuffer;
 	if (!pBuffer.LoadFromBZipFile(pFile, CBUFFER_UNBZIP_MAX))
 		return FALSE; // Empty/oversized/read/decompress error
 
-	if ( pBuffer.m_nLength == 0 || ! DcFileListUncompressedOk( pBuffer.m_nLength ) )
+	if (pBuffer.m_nLength == 0 || !DcFileListUncompressedOk(pBuffer.m_nLength))
 		return FALSE;
 
 	augment::auto_ptr< CXMLElement > pXML ( CXMLElement::FromString( pBuffer.ReadString( pBuffer.m_nLength, CP_UTF8 ), TRUE ) );
@@ -540,9 +540,9 @@ BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits)
 		return FALSE;	// Invalid XML file format
 
 	DWORD nEntries = 0;
-	if ( ! LoadDCDirectory( pXML.get(), pHits, CString(), 1, nEntries ) )
+	if (!LoadDCDirectory(pXML.get(), pHits, CString(), 1, nEntries))
 	{
-		for ( CQueryHit* pHit = pHits; pHit; )
+		for (CQueryHit* pHit = pHits; pHit;)
 		{
 			CQueryHit* pNext = pHit->m_pNext;
 			pHit->m_pNext = NULL;
@@ -557,7 +557,7 @@ BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits)
 
 BOOL CHostBrowser::LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const CString& sPath, DWORD nDepth, DWORD& nEntries)
 {
-	if ( ! DcFileListDepthOk( nDepth ) )
+	if (!DcFileListDepthOk(nDepth))
 		return FALSE;
 
 	for ( POSITION pos = pRoot->GetElementIterator(); pos; )
@@ -565,50 +565,50 @@ BOOL CHostBrowser::LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const 
 		CXMLElement* pElement = pRoot->GetNextElement( pos );
 		if ( pElement->IsNamed( L"Directory" ) )
 		{
-			CString strName = pElement->GetAttributeValue( L"Name" );
-			if ( ! DcFileListNameCharsOk( strName, static_cast< size_t >( strName.GetLength() ) ) )
+			CString strName = pElement->GetAttributeValue(L"Name");
+			if (!DcFileListNameCharsOk(strName, static_cast<size_t>(strName.GetLength())))
 				return FALSE;
 
 			CString strChild = sPath;
-			if ( ! strChild.IsEmpty() )
+			if (!strChild.IsEmpty())
 				strChild += L'\\';
 			strChild += strName;
-			if ( strChild.GetLength() > static_cast< int >( DC_FILELIST_PATH_MAX ) )
+			if (strChild.GetLength() > static_cast<int>(DC_FILELIST_PATH_MAX))
 				return FALSE;
 
-			if ( ! LoadDCDirectory( pElement, pHits, strChild, nDepth + 1, nEntries ) )
+			if (!LoadDCDirectory(pElement, pHits, strChild, nDepth + 1, nEntries))
 				return FALSE;
 		}
 		else if ( pElement->IsNamed( L"File" ) )
 		{
-			if ( ! DcFileListEntryCountOk( nEntries ) )
+			if (!DcFileListEntryCountOk(nEntries))
 				return FALSE;
 
 			CString strName = pElement->GetAttributeValue( L"Name" );
-			if ( ! DcFileListNameCharsOk( strName, static_cast< size_t >( strName.GetLength() ) ) )
+			if (!DcFileListNameCharsOk(strName, static_cast<size_t>(strName.GetLength())))
 				return FALSE;
 
 			std::uint64_t nSize = 0;
-			if ( ! DcFileListParseSize( pElement->GetAttributeValue( L"Size" ), nSize ) )
+			if (!DcFileListParseSize(pElement->GetAttributeValue(L"Size"), nSize))
 				return FALSE;
 
-			CString strTiger = pElement->GetAttributeValue( L"TTH" );
-			if ( ! DcFileListTthOk( strTiger ) )
+			CString strTiger = pElement->GetAttributeValue(L"TTH");
+			if (!DcFileListTthOk(strTiger))
 				return FALSE;
 
 			CString strDisplay = sPath;
-			if ( ! strDisplay.IsEmpty() )
+			if (!strDisplay.IsEmpty())
 				strDisplay += L'\\';
 			strDisplay += strName;
 
 			if ( CQueryHit* pHit = new CQueryHit( PROTOCOL_DC ) )
 			{
-				pHit->m_sName		= strDisplay;
+				pHit->m_sName = strDisplay;
 				pHit->m_nSize		= nSize;
 				pHit->m_bSize		= TRUE;
 				pHit->m_bChat		= TRUE;
 				pHit->m_bBrowseHost	= TRUE;
-				if ( ! pHit->m_oTiger.fromString( strTiger ) )
+				if (!pHit->m_oTiger.fromString(strTiger))
 				{
 					delete pHit;
 					return FALSE;

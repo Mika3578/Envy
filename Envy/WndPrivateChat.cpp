@@ -44,17 +44,17 @@ IMPLEMENT_DYNAMIC(CPrivateChatWnd, CChatWnd)
 
 BEGIN_MESSAGE_MAP(CPrivateChatWnd, CChatWnd)
 	ON_WM_DESTROY()
-	ON_WM_CONTEXTMENU()
-	ON_NOTIFY(NM_DBLCLK, IDC_CHAT_USERS, &CPrivateChatWnd::OnUsersDblClk)
-	ON_UPDATE_COMMAND_UI(ID_CHAT_CONNECT, &CPrivateChatWnd::OnUpdateChatConnect)
+    ON_WM_CONTEXTMENU()
+    ON_NOTIFY(NM_DBLCLK, IDC_CHAT_USERS, &CPrivateChatWnd::OnUsersDblClk)
+    ON_UPDATE_COMMAND_UI(ID_CHAT_CONNECT, &CPrivateChatWnd::OnUpdateChatConnect)
 	ON_COMMAND(ID_CHAT_CONNECT, &CPrivateChatWnd::OnChatConnect)
 	ON_UPDATE_COMMAND_UI(ID_CHAT_DISCONNECT, &CPrivateChatWnd::OnUpdateChatDisconnect)
 	ON_COMMAND(ID_CHAT_DISCONNECT, &CPrivateChatWnd::OnChatDisconnect)
 	ON_UPDATE_COMMAND_UI(ID_CHAT_BROWSE, &CPrivateChatWnd::OnUpdateChatBrowse)
 	ON_COMMAND(ID_CHAT_BROWSE, &CPrivateChatWnd::OnChatBrowse)
-	ON_UPDATE_COMMAND_UI(ID_SEARCH_CHAT, &CPrivateChatWnd::OnUpdateChatPrivateMessage)
-	ON_COMMAND(ID_SEARCH_CHAT, &CPrivateChatWnd::OnChatPrivateMessage)
-	ON_UPDATE_COMMAND_UI(ID_CHAT_PRIORITY, &CPrivateChatWnd::OnUpdateChatPriority)
+    ON_UPDATE_COMMAND_UI(ID_SEARCH_CHAT, &CPrivateChatWnd::OnUpdateChatPrivateMessage)
+    ON_COMMAND(ID_SEARCH_CHAT, &CPrivateChatWnd::OnChatPrivateMessage)
+    ON_UPDATE_COMMAND_UI(ID_CHAT_PRIORITY, &CPrivateChatWnd::OnUpdateChatPriority)
 	ON_COMMAND(ID_CHAT_PRIORITY, &CPrivateChatWnd::OnChatPriority)
 END_MESSAGE_MAP()
 
@@ -200,28 +200,27 @@ BOOL CPrivateChatWnd::OnLocalCommand(const CString& sCommand, const CString& sAr
 		PostMessage( WM_COMMAND, ID_CHAT_DISCONNECT );
 	else if ( sCommand.CompareNoCase( L"/browse" ) == 0 )
 		PostMessage( WM_COMMAND, ID_CHAT_BROWSE );
-	else if ( sCommand.CompareNoCase( L"/msg" ) == 0 )
+	else if (sCommand.CompareNoCase(L"/msg") == 0)
 	{
-		CString sNick = sArgs.SpanExcluding( L" \t" );
-		CString sText = sArgs.Mid( sNick.GetLength() ).Trim();
-		if ( sNick.IsEmpty() || sText.IsEmpty() )
+		CString sNick = sArgs.SpanExcluding(L" \t");
+		CString sText = sArgs.Mid(sNick.GetLength()).Trim();
+		if (sNick.IsEmpty() || sText.IsEmpty())
 			return TRUE;
-		if ( m_pSession && m_pSession->m_nProtocol == PROTOCOL_DC )
+		if (m_pSession && m_pSession->m_nProtocol == PROTOCOL_DC)
 		{
-			CSingleLock pLock( &Network.m_pSection );
-			if ( pLock.Lock( 250 ) )
+			CSingleLock pLock(&Network.m_pSection);
+			if (pLock.Lock(250))
 			{
-				if ( CNeighbour* pNeighbour = Neighbours.Get( m_pSession->m_pHost.sin_addr ) )
+				if (CNeighbour* pNeighbour = Neighbours.Get(m_pSession->m_pHost.sin_addr))
 				{
-					if ( pNeighbour->m_nProtocol == PROTOCOL_DC
-						&& static_cast< CDCNeighbour* >( pNeighbour )->SendPrivateTo( sNick, false, sText ) )
+					if (pNeighbour->m_nProtocol == PROTOCOL_DC && static_cast<CDCNeighbour*>(pNeighbour)->SendPrivateTo(sNick, false, sText))
 					{
-						CChatWnd::OnMessage( false, GetChatID(), true, MyProfile.GetNick(), sNick, sText );
+						CChatWnd::OnMessage(false, GetChatID(), true, MyProfile.GetNick(), sNick, sText);
 						return TRUE;
 					}
 				}
 			}
-			CChatWnd::OnStatusMessage( 1, LoadString( IDS_CHAT_NOT_CONNECTED_1 ) );
+			CChatWnd::OnStatusMessage(1, LoadString(IDS_CHAT_NOT_CONNECTED_1));
 			return TRUE;
 		}
 		return TRUE;
@@ -266,17 +265,17 @@ void CPrivateChatWnd::OnChatDisconnect()
 
 void CPrivateChatWnd::OnContextMenu(CWnd* pWnd, CPoint point)
 {
-	if ( pWnd && m_wndUsers.GetSafeHwnd() && pWnd->GetSafeHwnd() == m_wndUsers.GetSafeHwnd() )
+	if (pWnd && m_wndUsers.GetSafeHwnd() && pWnd->GetSafeHwnd() == m_wndUsers.GetSafeHwnd())
 	{
-		if ( point.x == -1 && point.y == -1 )
-			ClientToScreen( &point );
-		const int nItem = UsersHitTest( point );
-		if ( nItem >= 0 )
-			m_wndUsers.SetItemState( nItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED );
-		Skin.TrackPopupMenu( L"CPrivateChatWnd.Users", point );
+		if (point.x == -1 && point.y == -1)
+			ClientToScreen(&point);
+		const int nItem = UsersHitTest(point);
+		if (nItem >= 0)
+			m_wndUsers.SetItemState(nItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+		Skin.TrackPopupMenu(L"CPrivateChatWnd.Users", point);
 		return;
 	}
-	CChatWnd::OnContextMenu( pWnd, point );
+	CChatWnd::OnContextMenu(pWnd, point);
 }
 
 void CPrivateChatWnd::OnUsersDblClk(NMHDR* /*pNMHDR*/, LRESULT* pResult)
@@ -287,12 +286,12 @@ void CPrivateChatWnd::OnUsersDblClk(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 
 BOOL CPrivateChatWnd::CanMessageSelectedDcUser()
 {
-	if ( ! m_pSession || m_pSession->m_nProtocol != PROTOCOL_DC )
+	if (!m_pSession || m_pSession->m_nProtocol != PROTOCOL_DC)
 		return FALSE;
-	if ( m_pSession->GetConnectedState() != TRI_TRUE )
+	if (m_pSession->GetConnectedState() != TRI_TRUE)
 		return FALSE;
 	CChatUser* pUser = GetSelectedChatUser();
-	return pUser && pUser->m_bType != cutMe && ! pUser->m_sNick.IsEmpty();
+	return pUser && pUser->m_bType != cutMe && !pUser->m_sNick.IsEmpty();
 }
 
 BOOL CPrivateChatWnd::CanBrowseSelectedDcUser()
@@ -303,41 +302,41 @@ BOOL CPrivateChatWnd::CanBrowseSelectedDcUser()
 void CPrivateChatWnd::BrowseSelectedDcUser()
 {
 	CChatUser* pUser = GetSelectedChatUser();
-	if ( ! CanBrowseSelectedDcUser() || ! pUser )
+	if (!CanBrowseSelectedDcUser() || !pUser)
 		return;
-	new CBrowseHostWnd( PROTOCOL_DC, &m_pSession->m_pHost, FALSE, Hashes::Guid(), pUser->m_sNick );
+	new CBrowseHostWnd(PROTOCOL_DC, &m_pSession->m_pHost, FALSE, Hashes::Guid(), pUser->m_sNick);
 }
 
 void CPrivateChatWnd::OnUpdateChatPrivateMessage(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable( CanMessageSelectedDcUser() );
+	pCmdUI->Enable(CanMessageSelectedDcUser());
 }
 
 void CPrivateChatWnd::OnChatPrivateMessage()
 {
-	if ( ! CanMessageSelectedDcUser() )
+	if (!CanMessageSelectedDcUser())
 		return;
 	CChatUser* pUser = GetSelectedChatUser();
-	if ( pUser )
-		SetComposeText( L"/msg " + pUser->m_sNick + L" " );
+	if (pUser)
+		SetComposeText(L"/msg " + pUser->m_sNick + L" ");
 }
 
 void CPrivateChatWnd::OnUpdateChatBrowse(CCmdUI* pCmdUI)
 {
-	if ( m_pSession && m_pSession->m_nProtocol == PROTOCOL_DC )
-		pCmdUI->Enable( CanBrowseSelectedDcUser() );
+	if (m_pSession && m_pSession->m_nProtocol == PROTOCOL_DC)
+		pCmdUI->Enable(CanBrowseSelectedDcUser());
 	else
-		pCmdUI->Enable( m_pSession != NULL );
+		pCmdUI->Enable(m_pSession != NULL);
 }
 
 void CPrivateChatWnd::OnChatBrowse()
 {
-	if ( m_pSession && m_pSession->m_nProtocol == PROTOCOL_DC )
+	if (m_pSession && m_pSession->m_nProtocol == PROTOCOL_DC)
 	{
 		BrowseSelectedDcUser();
 		return;
 	}
-	if ( m_pSession )
+	if (m_pSession)
 		new CBrowseHostWnd( m_pSession->m_nProtocol,
 			&m_pSession->m_pHost, FALSE, m_pSession->m_oGUID, m_pSession->m_sNick );
 }

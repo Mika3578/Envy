@@ -107,9 +107,9 @@ protected:
 	CArray< CString >	m_pHistory;
 	CString				m_sCaption;
 
-	CChatUser*	GetSelectedChatUser();
-	void		SetComposeText(const CString& sText);
-	int			UsersHitTest(CPoint pointScreen);
+	CChatUser* GetSelectedChatUser();
+	void SetComposeText(const CString& sText);
+	int UsersHitTest(CPoint pointScreen);
 
 public:
 //	CChatFrame*	m_pFrame;
