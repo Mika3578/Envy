@@ -34,8 +34,8 @@ public:
 	enum { IDD = IDD_UPDATE_SERVERS };
 
 public:
-	CString					m_sURL;
-	UpdateServersDlgMode	m_nMode;
+	CString m_sURL;
+	UpdateServersDlgMode m_nMode;
 
 protected:
 	CEdit			m_wndURL;
@@ -44,7 +44,7 @@ protected:
 	CHttpRequest	m_pRequest;
 
 	BOOL			IsValidURL();
-	void			ApplyDcHublistText();
+	void ApplyDcHublistText();
 
 	virtual void	DoDataExchange(CDataExchange* pDX);
 	virtual BOOL	OnInitDialog();

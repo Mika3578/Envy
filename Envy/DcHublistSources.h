@@ -36,11 +36,11 @@ inline LPCTSTR UpdateServersDlgDcSkinName()
 	return L"CUpdateHubListDlg";
 }
 
-inline LPCTSTR UpdateServersDlgSkinName( UpdateServersDlgMode nMode )
+inline LPCTSTR UpdateServersDlgSkinName(UpdateServersDlgMode nMode)
 {
-	return ( nMode == UpdateServersDlgMode::DC )
-		? UpdateServersDlgDcSkinName()
-		: UpdateServersDlgEd2kSkinName();
+	return (nMode == UpdateServersDlgMode::DC)
+	           ? UpdateServersDlgDcSkinName()
+	           : UpdateServersDlgEd2kSkinName();
 }
 
 // English STRINGTABLE fallbacks. Must stay in sync with Envy.rc.
@@ -54,14 +54,12 @@ inline LPCTSTR DcHublistDialogTextEn()
 	return L"You can download a public DC++ hub list to update the hub cache.\nHub list URL:";
 }
 
-inline bool DcHublistDialogTitleLooksLikeHublist( LPCTSTR pszTitle )
+inline bool DcHublistDialogTitleLooksLikeHublist(LPCTSTR pszTitle)
 {
-	if ( ! pszTitle || ! *pszTitle )
+	if (!pszTitle || !*pszTitle)
 		return false;
-	if ( wcsstr( pszTitle, L"Server.met" ) != nullptr
-		|| wcsstr( pszTitle, L"server.met" ) != nullptr )
+	if (wcsstr(pszTitle, L"Server.met") != nullptr || wcsstr(pszTitle, L"server.met") != nullptr)
 		return false;
-	return wcsstr( pszTitle, L"DC++" ) != nullptr
-		|| wcsstr( pszTitle, L"Hub List" ) != nullptr
-		|| wcsstr( pszTitle, L"hub list" ) != nullptr;
+	return wcsstr(pszTitle, L"DC++") != nullptr || wcsstr(pszTitle, L"Hub List") != nullptr ||
+	       wcsstr(pszTitle, L"hub list") != nullptr;
 }
