@@ -254,46 +254,150 @@ static bool test_shipped_catalogue_no_getenvy_gwc()
 		&& wcsstr( kShippedServices, L"tankafett.biz" ) == nullptr;
 }
 
-static bool test_optional_data_file_if_present()
+static std::string ParentDir( const std::string& path )
 {
-	const char* paths[] = {
-		"Data/DefaultServices.dat",
-		"../Data/DefaultServices.dat",
-		"../../Data/DefaultServices.dat",
-		"../../../Data/DefaultServices.dat"
+	const size_t n = path.find_last_of( "/\\" );
+	return n == std::string::npos ? std::string() : path.substr( 0, n );
+}
+
+static bool LoadRepoDataFile( const char* name, std::wstring* wide )
+{
+	if ( ! name || ! wide )
+		return false;
+	const std::string srcDir = ParentDir( __FILE__ );
+	const std::string paths[] = {
+		std::string( "Data/" ) + name,
+		std::string( "../Data/" ) + name,
+		std::string( "../../Data/" ) + name,
+		std::string( "../../../Data/" ) + name,
+		srcDir + "/../Data/" + name
 	};
 	FILE* fp = nullptr;
-	for ( const char* path : paths )
+	for ( const std::string& path : paths )
 	{
-		fp = fopen( path, "rb" );
+		fp = fopen( path.c_str(), "rb" );
 		if ( fp )
 			break;
 	}
 	if ( ! fp )
-		return true;	// parser tests above still run; file may be absent from test cwd
-
+		return false;
 	std::string bytes;
 	char buf[ 4096 ];
 	size_t nRead;
 	while ( ( nRead = fread( buf, 1, sizeof( buf ), fp ) ) > 0 )
 		bytes.append( buf, nRead );
 	fclose( fp );
-
-	std::wstring wide;
-	wide.reserve( bytes.size() );
+	wide->clear();
+	wide->reserve( bytes.size() );
 	for ( unsigned char ch : bytes )
-		wide.push_back( static_cast< wchar_t >( ch ) );
+		wide->push_back( static_cast< wchar_t >( ch ) );
+	return true;
+}
 
+static bool test_shipped_default_services_dat()
+{
+	std::wstring wide;
+	if ( ! LoadRepoDataFile( "DefaultServices.dat", &wide ) )
+		return false;
 	int nWeb = 0, nG2 = 0, nG1 = 0, nMet = 0, nHub = 0;
 	CountServices( wide.c_str(), &nWeb, &nG2, &nG1, &nMet, &nHub );
-	const bool bMinima = nWeb >= BootstrapMinWebCaches
+	return nWeb >= BootstrapMinWebCaches
 		&& nG2 >= BootstrapMinG2Services
 		&& nG1 >= BootstrapMinG1Services
 		&& nMet >= BootstrapMinEd2kMet
-		&& nHub >= BootstrapMinDcHublists;
-	const bool bHttpsMet = wide.find( L"https://upd.emule-security.org/server.met" ) != std::wstring::npos;
-	const bool bNoStaticEd2k = wide.find( L"176.103.48.36" ) == std::wstring::npos;
-	return bMinima && bHttpsMet && bNoStaticEd2k;
+		&& nHub >= BootstrapMinDcHublists
+		&& wide.find( L"https://upd.emule-security.org/server.met" ) != std::wstring::npos
+		&& wide.find( L"176.103.48.36" ) == std::wstring::npos;
+}
+
+static bool test_shipped_default_servers_dat()
+{
+	std::wstring wide;
+	if ( ! LoadRepoDataFile( "DefaultServers.dat", &wide ) )
+		return false;
+	int nBt = 0;
+	const wchar_t* p = wide.c_str();
+	while ( p && *p )
+	{
+		const wchar_t* eol = wcschr( p, L'\n' );
+		const size_t nLine = eol ? static_cast< size_t >( eol - p ) : wcslen( p );
+		std::wstring line( p, nLine );
+		if ( ! line.empty() && line.back() == L'\r' )
+			line.pop_back();
+		wchar_t cType = 0;
+		bool bPri = false;
+		const wchar_t* psz = nullptr;
+		size_t n = 0;
+		if ( BootstrapParseServerLine( line.c_str(), line.size(), &cType, &bPri, &psz, &n )
+			== BootstrapParseStatus::Ok
+			&& BootstrapClassifyServerType( cType ) == BootstrapServerClass::BitTorrent )
+			++nBt;
+		p = eol ? eol + 1 : p + nLine;
+		if ( ! eol )
+			break;
+	}
+	return nBt >= 3
+		&& wide.find( L"dht.transmissionbt.com:6881" ) != std::wstring::npos
+		&& wide.find( L"dht.libtorrent.org:25401" ) != std::wstring::npos;
+}
+
+static bool test_service_https_scheme_case()
+{
+	ServiceRow row{};
+	return ParseService( L"D HTTPS://upd.emule-security.org/server.met", &row )
+		== BootstrapParseStatus::Ok
+		&& row.endpoint == L"HTTPS://upd.emule-security.org/server.met";
+}
+
+static bool test_server_tab_separator()
+{
+	ServerRow row{};
+	return ParseServer( L"B\tdht.libtorrent.org:25401", &row )
+		== BootstrapParseStatus::Ok
+		&& row.type == L'B'
+		&& row.host == L"dht.libtorrent.org:25401";
+}
+
+static bool test_server_trailing_note()
+{
+	ServerRow row{};
+	return ParseServer( L"B dht.libtorrent.org:25401 seen-time", &row )
+		== BootstrapParseStatus::Ok
+		&& row.host == L"dht.libtorrent.org:25401";
+}
+
+static bool test_server_port_range()
+{
+	return ParseServer( L"B router.bittorrent.com:0", nullptr ) == BootstrapParseStatus::Invalid
+		&& ParseServer( L"B router.bittorrent.com:65536", nullptr ) == BootstrapParseStatus::Invalid
+		&& ParseServer( L"B router.bittorrent.com:6881", nullptr ) == BootstrapParseStatus::Ok;
+}
+
+static bool test_dht_boot_slot_cap_and_dns_budget()
+{
+	BootstrapDhtBootSlot oSlots[ BootstrapDhtRouterPingCap ] = {};
+	int nBoot = 0;
+	for ( int i = 0; i < BootstrapDhtRouterPingCap; ++i )
+	{
+		if ( ! BootstrapDhtAppendBootSlot( oSlots, BootstrapDhtRouterPingCap, &nBoot,
+			0ul, 6881, true ) )
+			return false;
+	}
+	if ( BootstrapDhtAppendBootSlot( oSlots, BootstrapDhtRouterPingCap, &nBoot, 0ul, 6881, true ) )
+		return false;
+	if ( nBoot != BootstrapDhtRouterPingCap )
+		return false;
+	if ( BootstrapDhtUseStoredAddr( oSlots[ 0 ].nAddr ) )
+		return false;
+	if ( ! BootstrapDhtTryBlockingResolve( 0ul, true, 0 ) )
+		return false;
+	if ( BootstrapDhtTryBlockingResolve( 0ul, true, BootstrapDhtBlockingResolveCap ) )
+		return false;
+	if ( ! BootstrapDhtUseStoredAddr( 0x7f000001ul ) )
+		return false;
+	if ( BootstrapDhtTryBlockingResolve( 0x7f000001ul, true, 0 ) )
+		return false;
+	return true;
 }
 
 void register_bootstrap_catalog_smoke_tests( TestSuite& suite )
@@ -315,5 +419,11 @@ void register_bootstrap_catalog_smoke_tests( TestSuite& suite )
 	suite.add_test( "bootstrap_shipped_catalogue_meets_minima", test_shipped_catalogue_meets_minima );
 	suite.add_test( "bootstrap_shipped_catalogue_no_static_ed2k_ip", test_shipped_catalogue_no_static_ed2k_ip );
 	suite.add_test( "bootstrap_shipped_catalogue_no_getenvy_gwc", test_shipped_catalogue_no_getenvy_gwc );
-	suite.add_test( "bootstrap_optional_data_file_if_present", test_optional_data_file_if_present );
+	suite.add_test( "bootstrap_shipped_default_services_dat", test_shipped_default_services_dat );
+	suite.add_test( "bootstrap_shipped_default_servers_dat", test_shipped_default_servers_dat );
+	suite.add_test( "bootstrap_service_https_scheme_case", test_service_https_scheme_case );
+	suite.add_test( "bootstrap_server_tab_separator", test_server_tab_separator );
+	suite.add_test( "bootstrap_server_trailing_note", test_server_trailing_note );
+	suite.add_test( "bootstrap_server_port_range", test_server_port_range );
+	suite.add_test( "bootstrap_dht_boot_slot_cap_and_dns_budget", test_dht_boot_slot_cap_and_dns_budget );
 }

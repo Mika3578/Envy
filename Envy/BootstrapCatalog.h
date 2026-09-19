@@ -30,8 +30,10 @@ constexpr int BootstrapMinG1Services = 2;
 constexpr int BootstrapMinEd2kMet = 2;
 constexpr int BootstrapMinDcHublists = 2;
 
-// Cap DHT cold-start pings of catalogue routers (not a protocol limit).
+// Cap HostCache BT hosts copied for DHT cold-start (not a protocol limit).
 constexpr int BootstrapDhtRouterPingCap = 8;
+// Cap blocking gethostbyname calls on the network thread during Connect.
+constexpr int BootstrapDhtBlockingResolveCap = 3;
 
 enum class BootstrapParseStatus
 {
@@ -70,6 +72,14 @@ inline bool BootstrapIsSpace(wchar_t c)
 	return c == L' ' || c == L'\t' || c == L'\r' || c == L'\n';
 }
 
+// ASCII A-Z only. Catalogue URLs are ASCII; non-ASCII wchar_t values compare as-is.
+inline wchar_t BootstrapFoldAscii(wchar_t c)
+{
+	if (c >= L'A' && c <= L'Z')
+		return static_cast<wchar_t>(c - L'A' + L'a');
+	return c;
+}
+
 inline bool BootstrapTrimEdges(const wchar_t* pszLine, size_t nLen, size_t* pnBegin, size_t* pnEnd)
 {
 	if (pszLine == nullptr || nLen == 0 || pnBegin == nullptr || pnEnd == nullptr)
@@ -88,15 +98,20 @@ inline bool BootstrapTrimEdges(const wchar_t* pszLine, size_t nLen, size_t* pnBe
 }
 
 // Allowlist for catalogue URLs. Live GWC still speaks cleartext; HTTPS is
-// accepted when the cache actually serves it. Not an HTTP client.
+// accepted when the cache actually serves it. Scheme match is ASCII
+// case-insensitive (same as CDiscoveryServices::CheckWebCacheValid).
 inline bool BootstrapIsWebUrl(const wchar_t* psz, size_t nLen)
 {
 	if (psz == nullptr || nLen < 7)
 		return false;
+	wchar_t szFold[5] = {};
+	const size_t nFold = nLen >= 5 ? 5 : nLen;
+	for (size_t i = 0; i < nFold; ++i)
+		szFold[i] = BootstrapFoldAscii(psz[i]);
 	size_t nScheme = 0;
-	if (nLen >= 5 && wcsncmp(psz, L"https", 5) == 0)
+	if (nLen >= 5 && wcsncmp(szFold, L"https", 5) == 0)
 		nScheme = 5;
-	else if (wcsncmp(psz, L"http", 4) == 0)
+	else if (nLen >= 4 && wcsncmp(szFold, L"http", 4) == 0)
 		nScheme = 4;
 	else
 		return false;
@@ -115,12 +130,16 @@ inline bool BootstrapLooksLikeHostPort(const wchar_t* psz, size_t nLen)
 	}
 	if (pColon == nullptr || pColon == psz || pColon + 1 >= psz + nLen)
 		return false;
+	unsigned int nPort = 0;
 	for (const wchar_t* p = pColon + 1; p < psz + nLen; ++p)
 	{
 		if (*p < L'0' || *p > L'9')
 			return false;
+		nPort = nPort * 10u + static_cast<unsigned int>(*p - L'0');
+		if (nPort > 65535u)
+			return false;
 	}
-	return true;
+	return nPort >= 1u && nPort <= 65535u;
 }
 
 inline BootstrapServiceClass BootstrapClassifyServiceType(wchar_t cType)
@@ -148,7 +167,6 @@ inline BootstrapServerClass BootstrapClassifyServerType(wchar_t cType)
 	case L'L': return BootstrapServerClass::Gnutella1;
 	case L'2':
 	case L'G': return BootstrapServerClass::Gnutella2;
-	case L' ':
 	case L'E': return BootstrapServerClass::Ed2k;
 	case L'D': return BootstrapServerClass::Dc;
 	case L'B': return BootstrapServerClass::BitTorrent;
@@ -259,29 +277,6 @@ inline BootstrapParseStatus BootstrapParseServerLine(
 	if (pszLine[nBegin] == L'#')
 		return BootstrapParseStatus::Skip;
 
-	// Strip trailing comments (tab or space after the host token).
-	for (size_t i = nBegin + 1; i < nEnd; ++i)
-	{
-		if (pszLine[i] == L'\t')
-		{
-			nEnd = i;
-			break;
-		}
-	}
-	// Space comment only after a host:port token (avoid splitting the host).
-	for (size_t i = nBegin + 1; i + 1 < nEnd; ++i)
-	{
-		if (pszLine[i] == L' ' && pszLine[i + 1] == L'#')
-		{
-			nEnd = i;
-			break;
-		}
-	}
-	while (nEnd > nBegin && (pszLine[nEnd - 1] == L' ' || pszLine[nEnd - 1] == L'\t'))
-		--nEnd;
-	if (nBegin >= nEnd)
-		return BootstrapParseStatus::Skip;
-
 	bool bPriority = false;
 	size_t nPos = nBegin;
 	if (pszLine[nPos] == L'P' || pszLine[nPos] == L'*')
@@ -308,8 +303,11 @@ inline BootstrapParseStatus BootstrapParseServerLine(
 	if (nPos >= nEnd)
 		return BootstrapParseStatus::Invalid;
 
-	const wchar_t* pszHost = pszLine + nPos;
-	const size_t nHost = nEnd - nPos;
+	const size_t nHostBegin = nPos;
+	while (nPos < nEnd && pszLine[nPos] != L' ' && pszLine[nPos] != L'\t')
+		++nPos;
+	const wchar_t* pszHost = pszLine + nHostBegin;
+	const size_t nHost = nPos - nHostBegin;
 	if (!BootstrapLooksLikeHostPort(pszHost, nHost))
 		return BootstrapParseStatus::Invalid;
 
@@ -324,14 +322,6 @@ inline BootstrapParseStatus BootstrapParseServerLine(
 	return BootstrapParseStatus::Ok;
 }
 
-// ASCII A-Z only. Catalogue URLs are ASCII; non-ASCII wchar_t values compare as-is.
-inline wchar_t BootstrapFoldAscii(wchar_t c)
-{
-	if (c >= L'A' && c <= L'Z')
-		return static_cast<wchar_t>(c - L'A' + L'a');
-	return c;
-}
-
 inline bool BootstrapWideEqualsNoCase(const wchar_t* a, size_t na, const wchar_t* b, size_t nb)
 {
 	if (a == nullptr || b == nullptr || na != nb)
@@ -342,4 +332,40 @@ inline bool BootstrapWideEqualsNoCase(const wchar_t* a, size_t na, const wchar_t
 			return false;
 	}
 	return true;
+}
+
+struct BootstrapDhtBootSlot
+{
+	unsigned long nAddr;
+	unsigned short nPort;
+	bool bHasName;
+};
+
+inline bool BootstrapDhtAppendBootSlot(
+	BootstrapDhtBootSlot* pSlots,
+	int nCap,
+	int* pnBoot,
+	unsigned long nAddr,
+	unsigned short nPort,
+	bool bHasName)
+{
+	if (pSlots == nullptr || pnBoot == nullptr || nCap <= 0)
+		return false;
+	if (*pnBoot < 0 || *pnBoot >= nCap)
+		return false;
+	pSlots[*pnBoot].nAddr = nAddr;
+	pSlots[*pnBoot].nPort = nPort;
+	pSlots[*pnBoot].bHasName = bHasName;
+	++(*pnBoot);
+	return true;
+}
+
+inline bool BootstrapDhtUseStoredAddr(unsigned long nAddr)
+{
+	return nAddr != 0ul;
+}
+
+inline bool BootstrapDhtTryBlockingResolve(unsigned long nAddr, bool bHasName, int nDnsUsed)
+{
+	return nAddr == 0ul && bHasName && nDnsUsed >= 0 && nDnsUsed < BootstrapDhtBlockingResolveCap;
 }

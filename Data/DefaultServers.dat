@@ -18,8 +18,8 @@
 # DHT routers: Transmission (dht.transmissionbt.com:6881), libtorrent
 # (dht.libtorrent.org:25401), plus router.bittorrent.com:6881 still used by
 # current qBittorrent defaults. LoadDefaultServers injects these into
-# HostCache. CDHT::Connect pings those HostCache BT hosts when no node
-# IDs are cached (no extra C++ DNS list).
+# HostCache. CDHT::Connect sends BEP 5 find_node to HostCache BT hosts when
+# no node IDs are cached (no extra C++ DNS list).
 #
 # Audited 2026-09-18. See docs/30_protocols/bootstrap-sources.md.
 

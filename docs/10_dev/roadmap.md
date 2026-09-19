@@ -229,7 +229,9 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
 7. IPv6 address/socket/DNS/host-cache foundation (`docs/ipv6/PLAN.md`). No Kad6 yet.
 8. Incremental `EnvyCore` / MFC split (eMule Qt, aMule, aria2-next).
 9. Evaluate daemon / CLI / REST or JSON-RPC.
-9a. Bootstrap remaining work after the 2026-09-18 catalogue refresh: importer caps, Kad `nodes.dat` source type, last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`).
+
+### P1 — Bootstrap follow-ups
+9a. After the 2026-09-18 catalogue refresh: importer caps, Kad `nodes.dat` source type, last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`).
 
 ### P1/P2 — BitTorrent (do not drop)
 10. Compressed ED2K upload (send COMPRESSEDPART) — ED2K quality, can proceed beside BT.
