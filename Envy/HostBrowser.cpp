@@ -23,6 +23,7 @@
 #include "WndBrowseHost.h"
 #include "Network.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 #include "G1Packet.h"
 #include "G2Packet.h"
 #include "EDPacket.h"
@@ -449,20 +450,9 @@ BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits)
 	if ( ! pFile.Open( pszFile, CFile::modeRead | CFile::shareDenyWrite ) )
 		return FALSE;	// File open error
 
-	UINT nInSize = (UINT)pFile.GetLength();
-	if ( ! nInSize )
-		return FALSE;	// Empty file
-
 	CBuffer pBuffer;
-	if ( ! pBuffer.EnsureBuffer( nInSize ) )
-		return FALSE;	// Out of memory
-
-	if ( pFile.Read( pBuffer.GetData(), nInSize ) != nInSize )
-		return FALSE;	// File read error
-	pBuffer.m_nLength = nInSize;
-
-	if ( ! pBuffer.UnBZip() )
-		return FALSE;	// Decompression error
+	if (!pBuffer.LoadFromBZipFile(pFile, CBUFFER_UNBZIP_MAX))
+		return FALSE; // Empty/oversized/read/decompress error
 
 	augment::auto_ptr< CXMLElement > pXML ( CXMLElement::FromString( pBuffer.ReadString( pBuffer.m_nLength, CP_UTF8 ), TRUE ) );
 	if ( ! pXML.get() )

@@ -1,7 +1,7 @@
 //
 // Buffer.h
 //
-// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -87,7 +87,8 @@ public:
 	// Use the buffer with the BZLib compression library
 #ifdef _BZLIB_H
 	BOOL	BZip();													// Compress buffer in-place using BZLib
-	BOOL	UnBZip();												// Uncompress buffer in-place using BZLib
+	BOOL UnBZip(DWORD nMaxOutput = 0);                              // Uncompress in place (optional zip-bomb output cap)
+	BOOL LoadFromBZipFile(CFile& pFile, DWORD nMaxOutput = 0);      // Read file + UnBZip with caps
 #endif // BZLIB
 
 	// Read and write a DIME message in the buffer

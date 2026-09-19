@@ -1,7 +1,7 @@
 //
 // Buffer.cpp
 //
-// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -22,6 +22,7 @@
 
 #include "StdAfx.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 //#include "Statistics.h"
 
 #ifdef ZLIB_H
@@ -733,27 +734,71 @@ BOOL CBuffer::BZip()
 	return TRUE;
 }
 
-BOOL CBuffer::UnBZip()
+BOOL CBuffer::LoadFromBZipFile(CFile& pFile, DWORD nMaxOutput)
 {
-	// Uncompress to temporary buffer first
+	// Read a .bz2 file into this buffer and decompress with zip-bomb caps.
+	// nMaxOutput 0 => CBUFFER_UNBZIP_MAX (hublist / DC file listing).
+	if (nMaxOutput == 0)
+		nMaxOutput = CBUFFER_UNBZIP_MAX;
+
+	const ULONGLONG nInSize64 = pFile.GetLength();
+	if (!CBufferUnBZipInputOk(nInSize64))
+		return FALSE; // Empty or oversized compressed input
+
+	const UINT nInSize = (UINT)nInSize64;
+	if (!EnsureBuffer(nInSize))
+		return FALSE; // Out of memory
+
+	if (pFile.Read(GetData(), nInSize) != nInSize)
+		return FALSE; // File read error
+	m_nLength = nInSize;
+
+	return UnBZip(nMaxOutput);
+}
+
+BOOL CBuffer::UnBZip(DWORD nMaxOutput)
+{
+	// Uncompress to temporary buffer first. Cap growth at nMaxOutput to
+	// prevent bzip2 zip-bombs (0 = unlimited, legacy callers).
 	CBuffer pOutBuf;
 	UINT nOutSize = m_nLength * 3;
+	if (nOutSize < m_nLength)
+		nOutSize = UINT_MAX; // overflow on huge input guess
+	if (nMaxOutput > 0 && nOutSize > nMaxOutput)
+		nOutSize = nMaxOutput;
+	if (nOutSize == 0)
+		return FALSE;
+
 	for ( ;; )
 	{
 		if ( ! pOutBuf.EnsureBuffer( nOutSize ) )
 			return FALSE;	// Out of memory
 
-		int err = BZ2_bzBuffToBuffDecompress( (char*)pOutBuf.m_pBuffer, &nOutSize,
-			(char*)m_pBuffer, m_nLength, 0, 0 );
+		UINT nAvail = nOutSize;
+		int err = BZ2_bzBuffToBuffDecompress((char*)pOutBuf.m_pBuffer, &nAvail,
+		                                     (char*)m_pBuffer, m_nLength, 0, 0);
 
 		if ( err == BZ_OK )
 		{
-			pOutBuf.m_nLength = nOutSize;
+			if (nMaxOutput > 0 && (nAvail == 0 || nAvail > nMaxOutput))
+				return FALSE;
+			pOutBuf.m_nLength = nAvail;
 			break;
 		}
 
 		if ( err == BZ_OUTBUFF_FULL )
-			nOutSize *= 2;	// Insufficient output buffer
+		{
+			if (nMaxOutput > 0 && nOutSize >= nMaxOutput)
+				return FALSE; // Would exceed zip-bomb cap
+			UINT nNext = nOutSize * 2;
+			if (nNext < nOutSize)
+				nNext = UINT_MAX;
+			if (nMaxOutput > 0 && nNext > nMaxOutput)
+				nNext = nMaxOutput;
+			if (nNext <= nOutSize)
+				return FALSE;
+			nOutSize = nNext;
+		}
 		else
 			return FALSE;	// Decompression error
 	}
