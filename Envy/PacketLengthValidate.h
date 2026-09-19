@@ -243,3 +243,12 @@ inline BOOL QhtPatchCompressedBudgetOk(DWORD nAccumulated, DWORD nAddend, DWORD 
 		return FALSE;
 	return TRUE;
 }
+
+// Cap for ED2K EMULE/KAD/REVCONNECT packed-protocol inflate (#81 zip-bomb).
+// New hard cap for EMULE/KAD/REVCONNECT packed inflate (was unlimited when nMaxOutput=0).
+constexpr DWORD ED2K_PACKED_INFLATE_MAX = 512u * 1024u;
+
+inline BOOL Ed2kPackedInflateOk(DWORD nOutput)
+{
+	return nOutput > 0 && nOutput <= ED2K_PACKED_INFLATE_MAX;
+}

@@ -227,10 +227,8 @@ BOOL CEDNeighbour::ProcessPackets(CBuffer* pInput)
 			// Server packets can arrive with ED2K_PROTOCOL_EMULE_PACKED (0xD4)
 			if ( pPacket->m_nEdProtocol == ED2K_PROTOCOL_EMULE_PACKED )
 			{
-				// Use 512 KB cap for server packets to prevent zip-bomb attacks while allowing
-				// typical search results and control traffic (most ED2K server responses are < 100 KB)
-				const DWORD MAX_SERVER_PACKET_SIZE = 512 * 1024;	// 512 KB
-				if ( ! pPacket->Inflate( MAX_SERVER_PACKET_SIZE ) )
+				// Inflate uses ED2K_PACKED_INFLATE_MAX (512 KiB) by default.
+				if (!pPacket->Inflate())
 				{
 					// Inflation failed or exceeded size cap - discard packet safely
 					pPacket->Release();

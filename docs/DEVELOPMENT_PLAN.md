@@ -17,6 +17,7 @@
 - **Changelog Entry:** 2026-09-18 — #81: hublist / DC `.bz2` loaders use `LoadFromBZipFile` / `UnBZip(CBUFFER_UNBZIP_MAX)` (32 MiB); legacy `UnBZip()` with nMaxOutput=0 stays unlimited.
 - **Changelog Entry:** 2026-09-18 — #81: G1 `{deflate}` XML inflate capped at 256 KiB (`G1_DEFLATE_XML_INFLATE_MAX` / `G1DeflateXmlInflateOk`) in QueryHit and G1Packet readers.
 - **Changelog Entry:** 2026-09-18 — #81: Gnutella QHT/QRP patch compressed budget + Inflate output cap to expected patch size (`QhtPatchCompressedBudgetOk`).
+- **Changelog Entry:** 2026-09-18 — #81: `CEDPacket::Inflate` defaults to 512 KiB (`ED2K_PACKED_INFLATE_MAX` / `Ed2kPackedInflateOk`) for packed C2C/UDP/server paths; 0 no longer means unlimited.
 - **Changelog Entry:** 2026-09-18 — #81/#82: file-backed ED2K tag key / TAG_STRING lengths checked against remaining `.met` bytes (`Ed2kTagStringLengthOk`) before allocate/Read.
 - **Changelog Entry:** 2026-09-18 — #166 / D-009 P1: Windows Firewall exceptions via WFAS `INetFwPolicy2` (all Domain/Private/Public profiles); drop legacy `INetFwMgr`.
 - **Changelog Entry:** 2026-09-18 — #76: Remote UI HTML-escapes `CRemote::Add()` substitutions (`Escape`); `AddRaw` for trusted markup; `RemoteHtmlEscape.h` + EnvyTests smoke coverage.
