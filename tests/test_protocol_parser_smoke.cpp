@@ -163,6 +163,14 @@ static bool test_g1_deflate_min_compressed_byte()
 	return G1QueryHitDeflateXmlLengthOk( 11 ) == TRUE;
 }
 
+static bool test_g1_deflate_xml_inflate_ok()
+{
+	return G1DeflateXmlInflateOk( 1 ) == TRUE
+		&& G1DeflateXmlInflateOk( G1_DEFLATE_XML_INFLATE_MAX ) == TRUE
+		&& G1DeflateXmlInflateOk( 0 ) == FALSE
+		&& G1DeflateXmlInflateOk( G1_DEFLATE_XML_INFLATE_MAX + 1 ) == FALSE;
+}
+
 static bool test_ggep_h_length_zero()
 {
 	return GgepItemHasTypeByte( nullptr, 0 ) == FALSE;
@@ -423,6 +431,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "g1_deflate_truncated_marker", test_g1_deflate_truncated_marker_only );
 	suite.add_test( "g1_deflate_marker_no_payload", test_g1_deflate_marker_no_payload );
 	suite.add_test( "g1_deflate_min_payload", test_g1_deflate_min_compressed_byte );
+	suite.add_test( "g1_deflate_xml_inflate_ok", test_g1_deflate_xml_inflate_ok );
 
 	suite.add_test( "ggep_h_length_zero", test_ggep_h_length_zero );
 	suite.add_test( "ggep_m_length_zero", test_ggep_m_length_zero );

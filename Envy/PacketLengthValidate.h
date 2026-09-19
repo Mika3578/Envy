@@ -52,6 +52,15 @@ inline BOOL G1QueryHitDeflateXmlLengthOk(int nSize)
 	return nSize > 10;
 }
 
+// Cap for G1 QueryHit/G1Packet "{deflate}" XML inflate output (#81 zip-bomb).
+// Aligns with Settings.Gnutella.MaximumPacket upper bound (256 KiB).
+constexpr DWORD G1_DEFLATE_XML_INFLATE_MAX = 256u * 1024u;
+
+inline BOOL G1DeflateXmlInflateOk(DWORD nOutput)
+{
+	return nOutput > 0 && nOutput <= G1_DEFLATE_XML_INFLATE_MAX;
+}
+
 // GGEP item must expose at least one payload byte before m_pBuffer[0].
 inline BOOL GgepItemHasTypeByte(const BYTE* pBuffer, DWORD nLength)
 {
