@@ -32,6 +32,7 @@ jobs:
   version-management:
     name: Version Management
     runs-on: windows-2025
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code

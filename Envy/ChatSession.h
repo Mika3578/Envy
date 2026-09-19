@@ -92,8 +92,10 @@ protected:
 	void	StatusMessage(MessageType bType, UINT nID, ...);
 	void	NotifyMessage(MessageType bType, const CString& sFrom, const CString& sMessage = CString(), HBITMAP hBitmap = NULL);
 //	BOOL	SendAwayMessage(const CString& strText);
-	void	ProcessMessages();
-	void	ClearMessages();
+	void ProcessMessages();
+	void ClearMessages();
+	void EnqueueMessage(MSG& oMsg);
+	void FreeQueueMessage(MSG& oMsg);
 
 	// G1/G2
 	BOOL	ReadHandshake();

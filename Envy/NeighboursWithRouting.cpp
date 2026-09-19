@@ -193,7 +193,7 @@ int CNeighboursWithRouting::RouteQuery(const CQuerySearch* pSearch, CPacket* pPa
 						// Determine if we can turn it into a Gnutella packet, and do it if possible (do)
 						if ( ! pG2Q1->SeekToWrapped() ) break;
 						pG1 = CG1Packet::New( (GNUTELLAPACKET*)( pG2Q1->m_pBuffer + pG2Q1->m_nPosition ) );
-						if ( pG1 == NULL ) break;
+						if (pG1 == NULL) break;
 					}
 					else	// This is a Gnutella2 Q2 packet
 					{

@@ -25,7 +25,6 @@
 #include "Packet.h"
 #include "GGEP.h"
 #include "Schema.h"
-#include "PacketLengthValidate.h"
 
 class CEnvyFile;		// Compilation Fix
 
@@ -134,8 +133,10 @@ public:
 		// Get a blank packet from the pool
 		CG1Packet* pPacket = (CG1Packet*)POOL.New();
 
-				// Reject negative / oversize payload before (DWORD) cast -> Write.
-		if ( pSource == nullptr || ! G1WrappedPayloadLengthOk( pSource->m_nLength ) )
+		// Reject negative payload before (DWORD) cast -> Write.
+		// Absolute oversize for wrapped G2->G1 is enforced in SeekToWrapped /
+		// G1WrappedPayloadFits; HostBrowser allows up to MaximumPacket*8 here.
+		if (pSource == nullptr || pSource->m_nLength < 0)
 		{
 			pPacket->Release();
 			return NULL;
