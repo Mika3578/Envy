@@ -44,6 +44,6 @@ Sent once after login when `Network.m_pHost` IPv4 is still 0 and the peer is eMu
 - `BUDDYPING` / `BUDDYPONG`
 - `FWCHECKUDPREQ` / Kad firewall state
 - Direct UDP callback
-- Live HighID↔LowID interop scenarios in #160 (PUBLICIP, server callback, Buddy CALLBACK)
+- Live HighID↔LowID interop scenarios via the opt-in harness (`tools/interop/`, #160) — PUBLICIP, server callback, Buddy CALLBACK (not required CI)
 
 Do not claim complete LowID, firewalled, or eMule compatibility from this slice alone.
