@@ -48,16 +48,38 @@ inline BOOL DcBrowseHubIpOk(const char* pszIp)
 {
 	if (pszIp == NULL || *pszIp == 0)
 		return FALSE;
-	const size_t n = strlen(pszIp);
-	if (n < 7 || n > 15)
-		return FALSE;
-	for (size_t i = 0; i < n; ++i)
+	unsigned nOctets = 0;
+	const char* p = pszIp;
+	while (*p)
 	{
-		const char c = pszIp[i];
-		if ((c < '0' || c > '9') && c != '.')
+		if (nOctets >= 4)
+			return FALSE;
+		if (*p < '0' || *p > '9')
+			return FALSE;
+		unsigned nVal = 0;
+		int nDigits = 0;
+		while (*p >= '0' && *p <= '9')
+		{
+			if (++nDigits > 3)
+				return FALSE;
+			nVal = nVal * 10u + static_cast<unsigned>(*p - '0');
+			if (nVal > 255)
+				return FALSE;
+			++p;
+		}
+		if (nDigits == 0)
+			return FALSE;
+		++nOctets;
+		if (*p == '.')
+		{
+			++p;
+			if (*p == 0)
+				return FALSE;
+		}
+		else if (*p != 0)
 			return FALSE;
 	}
-	return TRUE;
+	return nOctets == 4;
 }
 
 // Percent-encode a UTF-8 nick for the dchub:// userinfo (must encode '@').

@@ -191,8 +191,9 @@ BOOL CHostBrowser::Browse()
 		oURL.m_pServerAddress	= m_pAddress;
 		oURL.m_nServerPort		= m_nPort;
 		oURL.m_sLogin			= m_sNick;
-		oURL.m_sName.Format( L"Files of %s.xml.bz2", (LPCTSTR)SafeFilename( m_sNick ) );
+		oURL.m_sName			= MakeDcFileListDownloadName();
 		oURL.m_sURL.Format( L"dchub://%s@%s:%u/files.xml.bz2", (LPCTSTR)URLEncode( m_sNick ), (LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort );
+		m_sFileListUrl = oURL.m_sURL;
 
 		theApp.Message(MSG_INFO, L"DC file list request started (nick=%s hub=%s:%u)",
 		               (LPCTSTR)m_sNick, (LPCTSTR)CString(inet_ntoa(m_pAddress)), m_nPort);
@@ -484,20 +485,26 @@ BOOL CHostBrowser::OnNewFile(const CLibraryFile* pFile)
 	if (m_nProtocol != PROTOCOL_DC || m_sNick.IsEmpty())
 		return FALSE;
 
-	CString strName;
-	strName.Format( L"Files of %s.xml.bz2", (LPCTSTR)SafeFilename( m_sNick ) );
-	if ( strName.CompareNoCase( pFile->m_sName ) != 0 )
+	if ( MakeDcFileListDownloadName().CompareNoCase( pFile->m_sName ) != 0 )
+		return FALSE;
+	if ( ! m_sFileListUrl.IsEmpty() && ! pFile->m_sURL.IsEmpty() &&
+		 m_sFileListUrl.CompareNoCase( pFile->m_sURL ) != 0 )
 		return FALSE;
 
 	theApp.Message(MSG_INFO, L"DC file list received (nick=%s hub=%s:%u)",
 	               (LPCTSTR)m_sNick, (LPCTSTR)CString(inet_ntoa(m_pAddress)), m_nPort);
 
 	CQueryHit* pHits = NULL;
+	CStringList oFolders;
 
-	if ( LoadDC( pFile->GetPath(), pHits ) )
+	if ( LoadDC( pFile->GetPath(), pHits, &oFolders ) )
 	{
 		if ( pHits != NULL )
+		{
 			OnQueryHits( pHits );
+			if ( m_pNotify )
+				m_pNotify->OnDcShareTree( pHits, oFolders );
+		}
 
 		theApp.Message(MSG_INFO, L"DC browse completed (nick=%s files=%u)",
 		               (LPCTSTR)m_sNick, m_nHits);
@@ -513,7 +520,17 @@ BOOL CHostBrowser::OnNewFile(const CLibraryFile* pFile)
 	return TRUE;
 }
 
-BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits)
+CString CHostBrowser::MakeDcFileListDownloadName() const
+{
+	CString strName;
+	strName.Format( L"Files of %s %s_%u.xml.bz2",
+		(LPCTSTR)SafeFilename( m_sNick ),
+		(LPCTSTR)CString( inet_ntoa( m_pAddress ) ),
+		m_nPort );
+	return strName;
+}
+
+BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits, CStringList* pFolders)
 {
 	CFile pFile;
 	if ( ! pFile.Open( pszFile, CFile::modeRead | CFile::shareDenyWrite ) )
@@ -540,7 +557,7 @@ BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits)
 		return FALSE;	// Invalid XML file format
 
 	DWORD nEntries = 0;
-	if (!LoadDCDirectory(pXML.get(), pHits, CString(), 1, nEntries))
+	if (!LoadDCDirectory(pXML.get(), pHits, CString(), 1, nEntries, pFolders))
 	{
 		for (CQueryHit* pHit = pHits; pHit;)
 		{
@@ -555,7 +572,7 @@ BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits)
 	return TRUE;
 }
 
-BOOL CHostBrowser::LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const CString& sPath, DWORD nDepth, DWORD& nEntries)
+BOOL CHostBrowser::LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const CString& sPath, DWORD nDepth, DWORD& nEntries, CStringList* pFolders)
 {
 	if (!DcFileListDepthOk(nDepth))
 		return FALSE;
@@ -573,10 +590,16 @@ BOOL CHostBrowser::LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const 
 			if (!strChild.IsEmpty())
 				strChild += L'\\';
 			strChild += strName;
-			if (strChild.GetLength() > static_cast<int>(DC_FILELIST_PATH_MAX))
+			if (!DcFileListJoinedPathOk(static_cast<size_t>(sPath.GetLength()),
+			                            static_cast<size_t>(strName.GetLength()),
+			                            !sPath.IsEmpty()) ||
+			    strChild.GetLength() > static_cast<int>(DC_FILELIST_PATH_MAX))
 				return FALSE;
 
-			if (!LoadDCDirectory(pElement, pHits, strChild, nDepth + 1, nEntries))
+			if (pFolders)
+				pFolders->AddTail(strChild);
+
+			if (!LoadDCDirectory(pElement, pHits, strChild, nDepth + 1, nEntries, pFolders))
 				return FALSE;
 		}
 		else if ( pElement->IsNamed( L"File" ) )
@@ -596,10 +619,17 @@ BOOL CHostBrowser::LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const 
 			if (!DcFileListTthOk(strTiger))
 				return FALSE;
 
+			if (!DcFileListJoinedPathOk(static_cast<size_t>(sPath.GetLength()),
+			                            static_cast<size_t>(strName.GetLength()),
+			                            !sPath.IsEmpty()))
+				return FALSE;
+
 			CString strDisplay = sPath;
 			if (!strDisplay.IsEmpty())
 				strDisplay += L'\\';
 			strDisplay += strName;
+			if (strDisplay.GetLength() > static_cast<int>(DC_FILELIST_PATH_MAX))
+				return FALSE;
 
 			if ( CQueryHit* pHit = new CQueryHit( PROTOCOL_DC ) )
 			{
@@ -608,6 +638,7 @@ BOOL CHostBrowser::LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const 
 				pHit->m_bSize		= TRUE;
 				pHit->m_bChat		= TRUE;
 				pHit->m_bBrowseHost	= TRUE;
+				pHit->m_nIndex		= nEntries + 1;
 				if (!pHit->m_oTiger.fromString(strTiger))
 				{
 					delete pHit;

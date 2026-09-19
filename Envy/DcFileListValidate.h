@@ -63,6 +63,24 @@ inline BOOL DcFileListEntryCountOk(DWORD nEntries)
 	return nEntries < DC_FILELIST_ENTRIES_MAX;
 }
 
+inline BOOL DcFileListJoinedPathOk(size_t nParent, size_t nName, BOOL bNeedSep)
+{
+	size_t n = nParent;
+	if (bNeedSep && nParent > 0)
+	{
+		if (n == static_cast<size_t>(-1))
+			return FALSE;
+		++n;
+	}
+	if (nName > static_cast<size_t>(-1) - n)
+		return FALSE;
+	n += nName;
+	return n > 0 && n <= DC_FILELIST_PATH_MAX;
+}
+
+// Hostile listings can prefix many PI/comment blocks; skip them iteratively.
+constexpr DWORD DC_FILELIST_PROLOG_MAX = 64u;
+
 inline BOOL DcFileListTthOk(const wchar_t* pszTth, size_t nLen)
 {
 	if (pszTth == NULL || nLen != DC_FILELIST_TTH_LEN)
@@ -238,30 +256,39 @@ struct Attrs
 inline DcFileListStatus ParseOpenTag(const char*& p, const char* pEnd,
                                      const char*& pTag, size_t& nTag, Attrs& o)
 {
-	o = {};
-	SkipWs(p, pEnd);
-	if (p >= pEnd || *p != '<')
-		return dcFileListMalformed;
-	++p;
-	if (p < pEnd && *p == '/')
-		return dcFileListMalformed;
-	if (p < pEnd && *p == '?')
+	DWORD nProlog = 0;
+	for (;;)
 	{
-		while (p + 1 < pEnd && !(p[0] == '?' && p[1] == '>'))
-			++p;
-		if (p + 1 >= pEnd)
-			return dcFileListTruncated;
-		p += 2;
-		return ParseOpenTag(p, pEnd, pTag, nTag, o);
-	}
-	if (p < pEnd && *p == '!')
-	{
-		while (p < pEnd && *p != '>')
-			++p;
-		if (p >= pEnd)
-			return dcFileListTruncated;
+		o = {};
+		SkipWs(p, pEnd);
+		if (p >= pEnd || *p != '<')
+			return dcFileListMalformed;
 		++p;
-		return ParseOpenTag(p, pEnd, pTag, nTag, o);
+		if (p < pEnd && *p == '/')
+			return dcFileListMalformed;
+		if (p < pEnd && *p == '?')
+		{
+			if (++nProlog > DC_FILELIST_PROLOG_MAX)
+				return dcFileListTooMany;
+			while (p + 1 < pEnd && !(p[0] == '?' && p[1] == '>'))
+				++p;
+			if (p + 1 >= pEnd)
+				return dcFileListTruncated;
+			p += 2;
+			continue;
+		}
+		if (p < pEnd && *p == '!')
+		{
+			if (++nProlog > DC_FILELIST_PROLOG_MAX)
+				return dcFileListTooMany;
+			while (p < pEnd && *p != '>')
+				++p;
+			if (p >= pEnd)
+				return dcFileListTruncated;
+			++p;
+			continue;
+		}
+		break;
 	}
 	pTag = p;
 	while (p < pEnd && *p != ' ' && *p != '\t' && *p != '>' && *p != '/')

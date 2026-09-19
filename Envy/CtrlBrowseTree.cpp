@@ -22,6 +22,7 @@
 #include "CtrlBrowseTree.h"
 
 #include "G2Packet.h"
+#include "QueryHit.h"
 #include "CoolInterface.h"
 #include "Colors.h"
 #include "Images.h"
@@ -843,6 +844,77 @@ void CBrowseTreeCtrl::OnTreePacket(CG2Packet* pPacket)
 	PostMessage( WM_UPDATE );
 }
 
+static CBrowseTreeItem* DcFindChildFolder(CBrowseTreeItem* pParent, LPCTSTR pszName)
+{
+	if ( pParent == NULL || pszName == NULL )
+		return NULL;
+	CBrowseTreeItem** ppChild = pParent->m_pList;
+	for ( int nIndex = pParent->m_nCount; nIndex; --nIndex, ++ppChild )
+	{
+		if ( _tcsicoll( (*ppChild)->m_sText, pszName ) == 0 )
+			return *ppChild;
+	}
+	return NULL;
+}
+
+static CBrowseTreeItem* DcFindOrAddFolder(CBrowseTreeItem* pParent, LPCTSTR pszName, BOOL bExpand)
+{
+	if ( CBrowseTreeItem* pExisting = DcFindChildFolder( pParent, pszName ) )
+		return pExisting;
+	CBrowseTreeItem* pChild = pParent->Add( pszName );
+	pChild->m_sText = pszName;
+	pChild->m_bExpanded = bExpand;
+	return pChild;
+}
+
+static CBrowseTreeItem* DcEnsureFolderPath(CBrowseTreeItem* pRoot, const CString& sPath)
+{
+	CBrowseTreeItem* pItem = pRoot;
+	BOOL bTop = TRUE;
+	for ( int nStart = 0; nStart < sPath.GetLength(); )
+	{
+		const int nSlash = sPath.Find( L'\\', nStart );
+		const CString sPart = ( nSlash < 0 ) ? sPath.Mid( nStart ) : sPath.Mid( nStart, nSlash - nStart );
+		if ( ! sPart.IsEmpty() )
+		{
+			pItem = DcFindOrAddFolder( pItem, sPart, bTop );
+			bTop = FALSE;
+		}
+		if ( nSlash < 0 )
+			break;
+		nStart = nSlash + 1;
+	}
+	return pItem;
+}
+
+void CBrowseTreeCtrl::BuildFromDcListing(const CQueryHit* pHits, const CStringList* pFolders)
+{
+	CSingleLock lRoot( &m_csRoot, TRUE );
+
+	Clear( FALSE );
+
+	if ( pFolders )
+	{
+		for ( POSITION pos = pFolders->GetHeadPosition(); pos; )
+			DcEnsureFolderPath( m_pRoot, pFolders->GetNext( pos ) );
+	}
+
+	for ( const CQueryHit* pHit = pHits; pHit; pHit = pHit->m_pNext )
+	{
+		if ( pHit->m_nIndex == 0 || pHit->m_sName.IsEmpty() )
+			continue;
+		const int nSlash = pHit->m_sName.ReverseFind( L'\\' );
+		if ( nSlash < 0 )
+			continue;
+		CBrowseTreeItem* pFolder = DcEnsureFolderPath( m_pRoot, pHit->m_sName.Left( nSlash ) );
+		if ( pFolder && pFolder != m_pRoot )
+			pFolder->AddFileIndex( pHit->m_nIndex );
+	}
+
+	m_nTotal = m_pRoot->GetChildCount();
+	PostMessage( WM_UPDATE );
+}
+
 void CBrowseTreeCtrl::OnTreePacket(CG2Packet* pPacket, DWORD nFinish, CBrowseTreeItem* pItem)
 {
 	BOOL bCompound;
@@ -919,6 +991,7 @@ CBrowseTreeItem::CBrowseTreeItem(CBrowseTreeItem* pParent)
 	, m_pSchema		( NULL )
 	, m_pFiles		( NULL )
 	, m_nFiles		( 0 )
+	, m_nFileBuffer	( 0 )
 {
 }
 
@@ -1190,4 +1263,21 @@ void CBrowseTreeItem::AddXML(const CXMLElement* pXML)
 			m_sText = L"--";
 		}
 	}
+}
+
+void CBrowseTreeItem::AddFileIndex(DWORD nIndex)
+{
+	if ( nIndex == 0 )
+		return;
+	if ( m_nFiles >= m_nFileBuffer )
+	{
+		const DWORD nNew = m_nFileBuffer ? ( m_nFileBuffer * 2 ) : 4;
+		DWORD* pFiles = new DWORD[ nNew ];
+		if ( m_nFiles && m_pFiles )
+			CopyMemory( pFiles, m_pFiles, m_nFiles * sizeof( DWORD ) );
+		delete [] m_pFiles;
+		m_pFiles = pFiles;
+		m_nFileBuffer = nNew;
+	}
+	m_pFiles[ m_nFiles++ ] = nIndex;
 }

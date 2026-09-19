@@ -90,8 +90,13 @@ static bool test_nicklist_illegal_nick_skipped()
 
 static bool test_nicklist_payload_cap()
 {
-	return DcNickListPayloadOk(DC_NICKLIST_PAYLOAD_MAX) == TRUE && DcNickListPayloadOk(DC_NICKLIST_PAYLOAD_MAX + 1) == FALSE && DcParseNickList("x", DC_NICKLIST_PAYLOAD_MAX + 1, [](const char*, size_t)
-	                                                                                                                                            { return TRUE; }) == FALSE;
+	if (DcNickListPayloadOk(DC_NICKLIST_PAYLOAD_MAX) != TRUE)
+		return false;
+	if (DcNickListPayloadOk(DC_NICKLIST_PAYLOAD_MAX + 1) != FALSE)
+		return false;
+	std::string sOver(DC_NICKLIST_PAYLOAD_MAX + 1, 'x');
+	return DcParseNickList(sOver.c_str(), sOver.size(), [](const char*, size_t)
+	                       { return TRUE; }) == FALSE;
 }
 
 static bool test_nicklist_user_cap()
@@ -105,13 +110,13 @@ static bool test_nicklist_user_cap()
 		sList += "$$";
 	}
 	DWORD nKept = 0;
-	DcParseNickList(sList.c_str(), sList.size(), [&](const char*, size_t)
-	                {
+	const BOOL bOk = DcParseNickList(sList.c_str(), sList.size(), [&](const char*, size_t)
+	                                 {
 		if ( nKept >= 3 )
 			return FALSE;
 		++nKept;
 		return TRUE; });
-	return nKept == 3;
+	return bOk == TRUE && nKept == 3;
 }
 
 static bool test_nicklist_duplicate_tokens()
@@ -210,12 +215,12 @@ static bool test_browse_url_special_nick()
 static bool test_browse_rejects_bad_target()
 {
 	std::string sUrl;
-	return DcFormatFileListUrl("", "10.0.0.1", 411, sUrl) == FALSE && DcFormatFileListUrl("alice", "bad host", 411, sUrl) == FALSE && DcFormatFileListUrl("alice", "10.0.0.1", 0, sUrl) == FALSE && DcFormatFileListUrl("alice", "10.0.0.1", 70000, sUrl) == FALSE;
+	return DcFormatFileListUrl("", "10.0.0.1", 411, sUrl) == FALSE && DcFormatFileListUrl("alice", "bad host", 411, sUrl) == FALSE && DcFormatFileListUrl("alice", "10.0.0.1", 0, sUrl) == FALSE && DcFormatFileListUrl("alice", "10.0.0.1", 70000, sUrl) == FALSE && DcFormatFileListUrl("alice", "999.999.999.999", 411, sUrl) == FALSE && DcBrowseHubIpOk("10.0.0.1") == TRUE && DcBrowseHubIpOk("1.2.3") == FALSE;
 }
 
 static bool test_filelist_download_name()
 {
-	return DcIsFileListDownloadNameW(L"files.xml.bz2") == TRUE && DcIsFileListDownloadNameW(L"files.xml") == TRUE && DcIsFileListDownloadNameW(L"Files of alice.xml.bz2") == TRUE && DcIsFileListDownloadNameW(L"music.mp3") == FALSE && DcIsFileListDownloadNameW(L"") == FALSE;
+	return DcIsFileListDownloadNameW(L"files.xml.bz2") == TRUE && DcIsFileListDownloadNameW(L"files.xml") == TRUE && DcIsFileListDownloadNameW(L"Files of alice.xml.bz2") == TRUE && DcIsFileListDownloadNameW(L"Files of alice 10.0.0.1_411.xml.bz2") == TRUE && DcIsFileListDownloadNameW(L"music.mp3") == FALSE && DcIsFileListDownloadNameW(L"") == FALSE;
 }
 
 static const char* kTth = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
@@ -346,6 +351,33 @@ static bool test_filelist_tth_predicate()
 	return DcFileListTthOk(L"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == TRUE && DcFileListTthOk(L"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") == TRUE && DcFileListTthOk(L"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") == FALSE && DcFileListTthOk(L"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=") == FALSE && DcFileListTthOk(L"") == FALSE;
 }
 
+static bool test_filelist_joined_path_cap()
+{
+	return DcFileListJoinedPathOk(0, 5, FALSE) == TRUE && DcFileListJoinedPathOk(DC_FILELIST_PATH_MAX, 1, TRUE) == FALSE && DcFileListJoinedPathOk(DC_FILELIST_PATH_MAX - 1, 1, FALSE) == TRUE && DcFileListJoinedPathOk(10, 5, TRUE) == TRUE;
+}
+
+static bool test_filelist_prolog_iterative()
+{
+	std::string sXml;
+	sXml.reserve(256);
+	for (int i = 0; i < 8; ++i)
+		sXml += "<?x?>";
+	sXml += "<FileListing Version=\"1\">";
+	sXml += FileTag("a.mp3", "1", kTth);
+	sXml += "</FileListing>";
+	std::vector<DcFileListEntry> o;
+	if (DcParseFileListingXml(sXml.c_str(), sXml.size(), o) != dcFileListOk || o.size() != 1)
+		return false;
+	std::string sMany;
+	for (DWORD i = 0; i < DC_FILELIST_PROLOG_MAX + 2; ++i)
+		sMany += "<?x?>";
+	sMany += "<FileListing Version=\"1\">";
+	sMany += FileTag("a.mp3", "1", kTth);
+	sMany += "</FileListing>";
+	o.clear();
+	return DcParseFileListingXml(sMany.c_str(), sMany.size(), o) == dcFileListTooMany;
+}
+
 void register_dc_user_file_browse_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("dc_nicklist_nominal", test_nicklist_nominal);
@@ -379,4 +411,6 @@ void register_dc_user_file_browse_smoke_tests(TestSuite& suite)
 	suite.add_test("dc_filelist_entry_cap", test_filelist_entry_cap);
 	suite.add_test("dc_filelist_uncompressed_cap", test_filelist_uncompressed_cap);
 	suite.add_test("dc_filelist_tth_predicate", test_filelist_tth_predicate);
+	suite.add_test("dc_filelist_joined_path_cap", test_filelist_joined_path_cap);
+	suite.add_test("dc_filelist_prolog_iterative", test_filelist_prolog_iterative);
 }
