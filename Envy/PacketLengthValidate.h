@@ -221,6 +221,14 @@ inline BOOL CBufferInflateOutputOk(DWORD nOutput)
 	return nOutput > 0 && nOutput <= CBUFFER_INFLATE_MAX;
 }
 
+// Alias for InflateStreamTo backlog checks (Neighbour G1/G2 deflate, HostBrowser).
+constexpr DWORD CBUFFER_INFLATE_STREAM_MAX = CBUFFER_INFLATE_MAX;
+
+inline BOOL CBufferInflateStreamOutputOk(DWORD nOutputLength)
+{
+	return nOutputLength <= CBUFFER_INFLATE_STREAM_MAX;
+}
+
 // Gnutella QHT/QRP patch sizing (#81 zip-bomb).
 // Expected decompressed patch bytes = hash entries packed at nBits per entry.
 inline DWORD QhtPatchExpectedBytes(DWORD nHash, BYTE nBits)
