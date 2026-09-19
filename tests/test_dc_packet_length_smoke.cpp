@@ -56,36 +56,19 @@ static bool test_dc_hub_user_count_bounds()
 static bool test_dc_adc_offset_rejects_sign_and_junk()
 {
 	ULONGLONG n = 0;
-	return DcParseAdcOffsetToken( "0", &n ) != FALSE && n == 0
-		&& DcParseAdcOffsetToken( "42", &n ) != FALSE && n == 42
-		&& DcParseAdcOffsetToken( "-1", &n ) == FALSE
-		&& DcParseAdcOffsetToken( "123x", &n ) == FALSE
-		&& DcParseAdcOffsetToken( "", &n ) == FALSE
-		&& DcParseAdcOffsetToken( "+", &n ) == FALSE
-		&& DcParseAdcOffsetToken( "01", &n ) != FALSE && n == 1;
+	return DcParseAdcOffsetToken("0", &n) != FALSE && n == 0 && DcParseAdcOffsetToken("42", &n) != FALSE && n == 42 && DcParseAdcOffsetToken("-1", &n) == FALSE && DcParseAdcOffsetToken("123x", &n) == FALSE && DcParseAdcOffsetToken("", &n) == FALSE && DcParseAdcOffsetToken("+", &n) == FALSE && DcParseAdcOffsetToken("01", &n) != FALSE && n == 1;
 }
 
 static bool test_dc_adcget_length_allows_until_end_only()
 {
 	ULONGLONG n = 0;
-	return DcParseAdcGetLengthToken( "-1", &n ) != FALSE && n == DC_ADC_LENGTH_UNTIL_END
-		&& DcParseAdcGetLengthToken( "0", &n ) != FALSE && n == 0
-		&& DcParseAdcGetLengthToken( "100", &n ) != FALSE && n == 100
-		&& DcParseAdcGetLengthToken( "-2", &n ) == FALSE
-		&& DcParseAdcGetLengthToken( "123x", &n ) == FALSE
-		&& DcParseAdcGetLengthToken( "", &n ) == FALSE
-		&& DcParseAdcGetLengthToken( "-1x", &n ) == FALSE
-		&& DcParseAdcGetLengthToken( "--1", &n ) == FALSE;
+	return DcParseAdcGetLengthToken("-1", &n) != FALSE && n == DC_ADC_LENGTH_UNTIL_END && DcParseAdcGetLengthToken("0", &n) != FALSE && n == 0 && DcParseAdcGetLengthToken("100", &n) != FALSE && n == 100 && DcParseAdcGetLengthToken("-2", &n) == FALSE && DcParseAdcGetLengthToken("123x", &n) == FALSE && DcParseAdcGetLengthToken("", &n) == FALSE && DcParseAdcGetLengthToken("-1x", &n) == FALSE && DcParseAdcGetLengthToken("--1", &n) == FALSE;
 }
 
 static bool test_dc_adcsnd_length_rejects_until_end()
 {
 	ULONGLONG n = 0;
-	return DcParseAdcSndLengthToken( "-1", &n ) == FALSE
-		&& DcParseAdcSndLengthToken( "0", &n ) != FALSE && n == 0
-		&& DcParseAdcSndLengthToken( "4096", &n ) != FALSE && n == 4096
-		&& DcParseAdcSndLengthToken( "123x", &n ) == FALSE
-		&& DcParseAdcSndLengthToken( "", &n ) == FALSE;
+	return DcParseAdcSndLengthToken("-1", &n) == FALSE && DcParseAdcSndLengthToken("0", &n) != FALSE && n == 0 && DcParseAdcSndLengthToken("4096", &n) != FALSE && n == 4096 && DcParseAdcSndLengthToken("123x", &n) == FALSE && DcParseAdcSndLengthToken("", &n) == FALSE;
 }
 
 static bool test_dc_adc_u64_overflow_reject()
@@ -94,24 +77,12 @@ static bool test_dc_adc_u64_overflow_reject()
 	const char kEmbeddedNul[] = { '1', '2', '3', '\0', 'x' };
 	// 2^64 == 18446744073709551616 — one past max ULONGLONG
 	// 2^64-1 is reserved as until-end sentinel; reject all-digits smuggle.
-	return DcParseUnsignedDecimalU64( "18446744073709551616", &n ) == FALSE
-		&& DcParseUnsignedDecimalU64( "18446744073709551615", &n ) == FALSE
-		&& DcParseUnsignedDecimalU64( "18446744073709551614", &n ) != FALSE
-		&& n == ( DC_ADC_LENGTH_UNTIL_END - 1ull )
-		&& DcParseAdcOffsetToken( kEmbeddedNul, sizeof( kEmbeddedNul ), &n ) == FALSE
-		&& DcParseAdcGetLengthToken( kEmbeddedNul, sizeof( kEmbeddedNul ), &n ) == FALSE
-		&& DcParseAdcSndLengthToken( kEmbeddedNul, sizeof( kEmbeddedNul ), &n ) == FALSE
-		&& DcParseAdcGetLengthToken( "-1", 2, &n ) != FALSE && n == DC_ADC_LENGTH_UNTIL_END;
+	return DcParseUnsignedDecimalU64("18446744073709551616", &n) == FALSE && DcParseUnsignedDecimalU64("18446744073709551615", &n) == FALSE && DcParseUnsignedDecimalU64("18446744073709551614", &n) != FALSE && n == (DC_ADC_LENGTH_UNTIL_END - 1ull) && DcParseAdcOffsetToken(kEmbeddedNul, sizeof(kEmbeddedNul), &n) == FALSE && DcParseAdcGetLengthToken(kEmbeddedNul, sizeof(kEmbeddedNul), &n) == FALSE && DcParseAdcSndLengthToken(kEmbeddedNul, sizeof(kEmbeddedNul), &n) == FALSE && DcParseAdcGetLengthToken("-1", 2, &n) != FALSE && n == DC_ADC_LENGTH_UNTIL_END;
 }
 
 static bool test_dc_adcsnd_length_matches_request()
 {
-	return DcAdcSndLengthMatchesRequest( 100, 100 ) != FALSE
-		&& DcAdcSndLengthMatchesRequest( 100, 99 ) == FALSE
-		&& DcAdcSndLengthMatchesRequest( 100, 101 ) == FALSE
-		&& DcAdcSndLengthMatchesRequest( DC_ADC_LENGTH_UNTIL_END, 50 ) != FALSE
-		&& DcAdcSndLengthMatchesRequest( DC_ADC_LENGTH_UNTIL_END, DC_ADC_LENGTH_UNTIL_END ) == FALSE
-		&& DcAdcSndLengthMatchesRequest( 100, DC_ADC_LENGTH_UNTIL_END ) == FALSE;
+	return DcAdcSndLengthMatchesRequest(100, 100) != FALSE && DcAdcSndLengthMatchesRequest(100, 99) == FALSE && DcAdcSndLengthMatchesRequest(100, 101) == FALSE && DcAdcSndLengthMatchesRequest(DC_ADC_LENGTH_UNTIL_END, 50) != FALSE && DcAdcSndLengthMatchesRequest(DC_ADC_LENGTH_UNTIL_END, DC_ADC_LENGTH_UNTIL_END) == FALSE && DcAdcSndLengthMatchesRequest(100, DC_ADC_LENGTH_UNTIL_END) == FALSE;
 }
 
 void register_dc_packet_length_smoke_tests(TestSuite& suite)
