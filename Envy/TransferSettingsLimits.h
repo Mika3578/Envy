@@ -13,8 +13,10 @@
 //
 // Uploads.FairUseMode: when true, each remote IPv4 client may receive at most
 // 10% of an audio/video library file (schema Audio.xsd / Video.xsd). Partials
-// and BitTorrent are not limited. Settings.cpp Add() defaults must stay equal
-// to the constants below.
+// and BitTorrent are not limited. Quota is reserved on GET/ED2K/DC accept,
+// charged from body bytes, and unused reservation is rolled back on the next
+// request or close (HTTP HEAD clips advertised range but does not reserve).
+// Settings.cpp Add() defaults must stay equal to the constants below.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
@@ -120,6 +122,29 @@ inline bool TransferFairUseClipRange(unsigned long long& nOffset, unsigned long 
 		nLength = nRemain;
 
 	return nLength > 0;
+}
+
+// Saturating add for Fair-Use ledger / in-flight reservation counters.
+inline unsigned long long TransferFairUseSaturatingAdd(unsigned long long nLeft, unsigned long long nRight)
+{
+	if (nLeft > ~0ull - nRight)
+		return ~0ull;
+	return nLeft + nRight;
+}
+
+// New sent total after nBodyBytes of payload (never exceeds nReserved).
+inline unsigned long long TransferFairUseChargeBody(unsigned long long nReserved, unsigned long long nAlreadySent, unsigned long long nBodyBytes)
+{
+	if (nReserved <= nAlreadySent || nBodyBytes == 0)
+		return nAlreadySent;
+	const unsigned long long nRemain = nReserved - nAlreadySent;
+	return nAlreadySent + (nBodyBytes < nRemain ? nBodyBytes : nRemain);
+}
+
+// Reservation bytes not yet converted by body payload (rolled back on abort/HEAD).
+inline unsigned long long TransferFairUseUnused(unsigned long long nReserved, unsigned long long nSent)
+{
+	return nReserved > nSent ? nReserved - nSent : 0;
 }
 
 inline bool TransferBandwidthSettingIsUnlimited(DWORD nBytesPerSecond)

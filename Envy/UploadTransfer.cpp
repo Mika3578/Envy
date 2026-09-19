@@ -415,6 +415,10 @@ BOOL CUploadTransfer::HashesFromURN(LPCTSTR pszURN)
 
 void CUploadTransfer::ClearRequest()
 {
+	// Must run before m_sPath is cleared so unused HEAD/abort quota
+	// is rolled back on HTTP keep-alive, not only on Close.
+	ReleaseFairUseReservation();
+
 	m_sName.Empty();
 	m_sPath.Empty();
 	m_sFileTags.Empty();
@@ -534,7 +538,7 @@ void CUploadTransfer::AllocateBaseFile()
 	m_pBaseFile = UploadFiles.GetFile( this, m_oSHA1, m_sName, m_sPath, m_nSize );
 }
 
-BOOL CUploadTransfer::ApplyFairUseLimit()
+BOOL CUploadTransfer::ApplyFairUseLimit(BOOL bReserve)
 {
 	if (!TransferFairUseApplies(Settings.Uploads.FairUseMode != false,
 	                            m_bFairUseMedia != FALSE, m_bFilePartial != FALSE,
@@ -559,37 +563,27 @@ BOOL CUploadTransfer::ApplyFairUseLimit()
 
 	m_nOffset = nOffset;
 	m_nLength = nLength;
-	// Reserve now so concurrent requests cannot each take a full 10%. Unused
-	// reservation is rolled back in Close / ReleaseFairUseReservation so HEAD
-	// and aborted transfers do not burn the quota.
+	if (!bReserve)
+		return TRUE;
+
+	// Reserve now so concurrent GETs cannot each take a full 10%. Unused
+	// reservation is rolled back in ClearRequest / Close. HTTP HEAD clips
+	// the advertised range but does not reserve or consume quota.
 	Uploads.AddFairUseGranted(&m_pHost.sin_addr, m_sPath, nLength);
-	if (m_nFairUseReserved > ~0ull - nLength)
-		m_nFairUseReserved = ~0ull;
-	else
-		m_nFairUseReserved += nLength;
+	m_nFairUseReserved = TransferFairUseSaturatingAdd(m_nFairUseReserved, nLength);
 	return TRUE;
 }
 
 void CUploadTransfer::ChargeFairUseBody(QWORD nBytes)
 {
-	if (nBytes == 0 || m_nFairUseReserved <= m_nFairUseSent)
-		return;
-
-	const QWORD nRemain = m_nFairUseReserved - m_nFairUseSent;
-	m_nFairUseSent += (nBytes < nRemain) ? nBytes : nRemain;
+	m_nFairUseSent = TransferFairUseChargeBody(m_nFairUseReserved, m_nFairUseSent, nBytes);
 }
 
 void CUploadTransfer::ReleaseFairUseReservation()
 {
-	if (m_nFairUseReserved <= m_nFairUseSent)
-	{
-		m_nFairUseReserved = 0;
-		m_nFairUseSent = 0;
-		return;
-	}
-
-	const QWORD nUnused = m_nFairUseReserved - m_nFairUseSent;
-	Uploads.SubtractFairUseGranted(&m_pHost.sin_addr, m_sPath, nUnused);
+	const QWORD nUnused = TransferFairUseUnused(m_nFairUseReserved, m_nFairUseSent);
+	if (nUnused != 0)
+		Uploads.SubtractFairUseGranted(&m_pHost.sin_addr, m_sPath, nUnused);
 	m_nFairUseReserved = 0;
 	m_nFairUseSent = 0;
 }

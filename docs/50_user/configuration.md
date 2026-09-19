@@ -43,7 +43,7 @@ See [transfer-settings.md](transfer-settings.md) for the live Uploads page mappi
 - **Throttle**: Average (soft) vs Maximum (strict) — not a generic “mode”.
 - **Max uploads per host**: Simultaneous upload transfers per IPv4 address (`Uploads.MaxPerHost`, default **2**, range 1–64).
 - **Queues**: Historical Small/Large/Partial/eDonkey rules; drag reorders immediately. Do not delete.
-- **Fair-Use**: opt-in 10% audio/video limit per remote host (`Uploads.FairUseMode`).
+- **Fair-Use**: opt-in 10% audio/video limit per remote host (`Uploads.FairUseMode`); charged from bytes sent (HTTP HEAD does not consume quota).
 
 ## 🔌 Connection Settings
 

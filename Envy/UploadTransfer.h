@@ -96,9 +96,9 @@ protected:
 	void			StartSending(int nState);
 	void			AllocateBaseFile();
 	void			AttachFile(CFragmentedFile* pFile);
-	BOOL ApplyFairUseLimit();             // Clip range + reserve; charge body later / roll back on close
-	void ChargeFairUseBody(QWORD nBytes); // Count payload bytes toward the reservation
-	void ReleaseFairUseReservation();     // Roll back unused reserved bytes on close/cancel
+	BOOL ApplyFairUseLimit(BOOL bReserve = TRUE); // Clip range; GET/ED2K/DC reserve, HEAD does not
+	void ChargeFairUseBody(QWORD nBytes);         // Count payload bytes toward the reservation
+	void ReleaseFairUseReservation();             // Roll back unused reserved bytes (ClearRequest/Close)
 
 	virtual BOOL	IsFileOpen() const;
 	virtual BOOL	OpenFile();

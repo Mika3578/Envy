@@ -785,7 +785,7 @@ BOOL CUploadTransferHTTP::RequestSharedFile(CLibraryFile* pFile, CSingleLock& oL
 		return TRUE;
 	}
 
-	if (!ApplyFairUseLimit())
+	if (!ApplyFairUseLimit(!m_bHead))
 	{
 		oLibraryLock.Unlock();
 		SendResponse(IDR_HTML_BADRANGE);

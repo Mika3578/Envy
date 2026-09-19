@@ -193,6 +193,33 @@ static bool test_fair_use_clip_past_eof_denied()
 	return TransferFairUseClipRange(nOffset, nLength, 1000, 0) == false;
 }
 
+static bool test_fair_use_saturating_add()
+{
+	return TransferFairUseSaturatingAdd(0, 0) == 0 && TransferFairUseSaturatingAdd(40, 60) == 100 && TransferFairUseSaturatingAdd(~0ull, 1) == ~0ull && TransferFairUseSaturatingAdd(~0ull - 5ull, 5) == ~0ull && TransferFairUseSaturatingAdd(~0ull - 5ull, 6) == ~0ull;
+}
+
+static bool test_fair_use_charge_body_and_unused()
+{
+	// HEAD / no body: reservation stays unused and can roll back in full.
+	if (TransferFairUseChargeBody(100, 0, 0) != 0)
+		return false;
+	if (TransferFairUseUnused(100, 0) != 100)
+		return false;
+
+	// Partial GET then abort: only sent bytes stay charged.
+	const unsigned long long nAfter40 = TransferFairUseChargeBody(100, 0, 40);
+	if (nAfter40 != 40 || TransferFairUseUnused(100, nAfter40) != 60)
+		return false;
+
+	// Complete GET: unused is 0 (nothing to roll back).
+	const unsigned long long nAfter100 = TransferFairUseChargeBody(100, nAfter40, 80);
+	if (nAfter100 != 100 || TransferFairUseUnused(100, nAfter100) != 0)
+		return false;
+
+	// Extra body bytes cannot exceed the reservation.
+	return TransferFairUseChargeBody(100, 100, 50) == 100 && TransferFairUseUnused(40, 40) == 0 && TransferFairUseUnused(0, 0) == 0;
+}
+
 static bool test_throttle_mode_default_average()
 {
 	return TransferThrottleModeDefault() == false;
@@ -293,6 +320,10 @@ void register_transfer_settings_limits_smoke_tests(TestSuite& suite)
 	               test_fair_use_clip_keeps_requested_offset);
 	suite.add_test("transfer_fair_use_clip_past_eof_denied",
 	               test_fair_use_clip_past_eof_denied);
+	suite.add_test("transfer_fair_use_saturating_add",
+	               test_fair_use_saturating_add);
+	suite.add_test("transfer_fair_use_charge_body_and_unused",
+	               test_fair_use_charge_body_and_unused);
 	suite.add_test("transfer_throttle_mode_default_average",
 	               test_throttle_mode_default_average);
 	suite.add_test("transfer_bandwidth_absent_key_loads_unlimited",
