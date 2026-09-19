@@ -261,3 +261,12 @@ inline BOOL BtTrackerHttpResponseOk(DWORD nLength)
 {
 	return nLength > 0 && nLength <= BT_TRACKER_HTTP_RESPONSE_MAX;
 }
+
+// Cap for Discovery GWC / server-list HTTP response bodies (#81/#82).
+// LimitContentLength stops OnRun from buffering multi-GB hostile discovery URLs.
+constexpr DWORD DISCOVERY_HTTP_RESPONSE_MAX = 32u * 1024u * 1024u;
+
+inline BOOL DiscoveryHttpResponseOk(DWORD nLength)
+{
+	return nLength > 0 && nLength <= DISCOVERY_HTTP_RESPONSE_MAX;
+}
