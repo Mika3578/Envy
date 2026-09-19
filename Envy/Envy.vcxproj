@@ -1741,7 +1741,7 @@ call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)
        then restore is BeforeTargets=ClCompile/Midl — after PreBuildEvent.
        CI runs `vcpkg install` first. Fail closed with the same bootstrap hint. -->
   <Target Name="CheckVcpkgInstalled" BeforeTargets="PreBuildEvent">
-    <Error Condition="'$(EnvyVcpkgInstalled)' != '' AND !Exists('$(EnvyVcpkgInstalled)\.')" Text="Missing $(EnvyVcpkgInstalled). Visual Studio does not restore the root vcpkg.json manifest before PreBuildEvent (Crashpad handler copy). From the repository root run: scripts\bootstrap-vcpkg.cmd -Triplet $(VcpkgTriplet)   or   vcpkg install --triplet=$(VcpkgTriplet)  (same step CI runs before MSBuild). See docs/10_dev/build.md." />
+    <Error Condition="'$(EnvyVcpkgInstalled)' != '' AND !Exists('$(EnvyVcpkgInstalled)\.')" Text="Missing $(EnvyVcpkgInstalled). Visual Studio does not restore the root vcpkg.json manifest before PreBuildEvent (Crashpad handler copy). From the repository root run: scripts\bootstrap-vcpkg.cmd -Triplet $(VcpkgTriplet)   or   vcpkg install --triplet=$(VcpkgTriplet)  (same step CI runs before MSBuild). Verify with scripts\bootstrap-vcpkg.cmd -CheckOnly. See docs/10_dev/build.md." />
   </Target>
   <ProjectExtensions>
     <VisualStudio>
