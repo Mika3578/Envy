@@ -560,8 +560,15 @@ inline BOOL CrashReportParseKey(const wchar_t* line, const wchar_t* key, wchar_t
 {
 	if (line == nullptr || key == nullptr)
 		return FALSE;
-	const size_t nKey = wcslen(key);
-	if (wcsncmp(line, key, nKey) != 0 || line[nKey] != L'=')
+	const size_t nKey = wcsnlen(key, CRASH_REPORT_FIELD_MAX);
+	if (nKey == 0 || nKey >= CRASH_REPORT_FIELD_MAX)
+		return FALSE;
+	const size_t nLine = wcsnlen(line, CRASH_REPORT_FIELD_MAX + 64);
+	if (nLine <= nKey)
+		return FALSE;
+	if (wcsncmp(line, key, nKey) != 0)
+		return FALSE;
+	if (line[nKey] != L'=')
 		return FALSE;
 	return CrashReportSanitizeField(line + nKey + 1, dest, cch);
 }

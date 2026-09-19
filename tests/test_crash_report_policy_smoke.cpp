@@ -70,13 +70,13 @@ static bool test_invalid_destination()
 		return false;
 	if (CrashReportJoinPath(L"", L"Envy-x.dmp", path, _countof(path)))
 		return false;
-	if (CrashReportJoinPath(L"C:\\tmp", L"..\\evil.dmp", path, _countof(path)))
+	if (CrashReportJoinPath(L"C:\\EnvyCrashUnit", L"..\\evil.dmp", path, _countof(path)))
 		return false;
-	if (CrashReportJoinPath(L"C:\\tmp", L"sub\\file.dmp", path, _countof(path)))
+	if (CrashReportJoinPath(L"C:\\EnvyCrashUnit", L"sub\\file.dmp", path, _countof(path)))
 		return false;
-	if (CrashReportJoinPath(L"C:\\tmp", L"file.dmp.", path, _countof(path)))
+	if (CrashReportJoinPath(L"C:\\EnvyCrashUnit", L"file.dmp.", path, _countof(path)))
 		return false;
-	if (!CrashReportJoinPath(L"C:\\tmp", L"Envy-ok.dmp", path, _countof(path)))
+	if (!CrashReportJoinPath(L"C:\\EnvyCrashUnit", L"Envy-ok.dmp", path, _countof(path)))
 		return false;
 	return wcsstr(path, L"Envy-ok.dmp") != nullptr;
 }
@@ -168,9 +168,9 @@ static bool test_metadata_rejects_paths_and_registry()
 
 static bool test_privacy_credentials_and_ips()
 {
-	if (!CrashReportLooksLikeCredentialUrl(L"https://user:passkey@tracker.example/announce"))
+	if (!CrashReportLooksLikeCredentialUrl(L"https://alice:s3cret@tracker.example/announce"))
 		return false;
-	if (!CrashReportLooksPrivate(L"udp://peer:pass@1.2.3.4:6969/announce"))
+	if (!CrashReportLooksPrivate(L"udp://alice:s3cret@203.0.113.50:6969/announce"))
 		return false;
 	if (!CrashReportLooksPrivate(L"passkey=abcdef"))
 		return false;
@@ -341,8 +341,7 @@ int crash_dump_child_main()
 	CrashDumpWin::Configure(&cfg);
 	SetUnhandledExceptionFilter(&CrashDumpWin::UnhandledExceptionFilter);
 
-	volatile int* pNull = nullptr;
-	*pNull = 1;
+	RaiseException(EXCEPTION_ACCESS_VIOLATION, EXCEPTION_NONCONTINUABLE, 0, nullptr);
 	return 3;
 }
 
