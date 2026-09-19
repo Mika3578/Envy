@@ -427,7 +427,7 @@ BOOL CBuffer::Inflate(DWORD nMaxOutput)
 
 // If the contents of this buffer are between headers and compressed with gzip, this method can remove all that
 // Returns false on error
-BOOL CBuffer::Ungzip()
+BOOL CBuffer::Ungzip(DWORD nMaxOutput)
 {
 	// Make sure there are at least 10 bytes in this buffer
 	if ( m_nLength < 10 ) return FALSE;
@@ -492,7 +492,13 @@ BOOL CBuffer::Ungzip()
 	// Guess that inflating the data won't make it more than 6 times as big
 	CBuffer pOutput;
 	DWORD nLength = m_nLength * 6;
-	for ( ;; )
+	if (nLength < m_nLength)
+		nLength = UINT_MAX;
+	if (nMaxOutput > 0 && (nLength == 0 || nLength > nMaxOutput))
+		nLength = nMaxOutput;
+	if (nLength == 0)
+		return FALSE;
+	for (;;)
 	{
 		if ( ! pOutput.EnsureBuffer( nLength ) )
 			return FALSE;				// Out of memory
@@ -530,10 +536,25 @@ BOOL CBuffer::Ungzip()
 			inflateEnd( pStream );
 			return TRUE;
 		}
-		else if ( Z_BUF_ERROR == nRes ) // Buffer too small
+		else if (Z_BUF_ERROR == nRes) // Buffer too small
 		{
-			nLength *= 2;
-			inflateEnd( pStream );
+			if (nMaxOutput > 0 && nLength >= nMaxOutput)
+			{
+				inflateEnd(pStream);
+				return FALSE; // Would exceed zip-bomb cap
+			}
+			DWORD nNext = nLength * 2;
+			if (nNext < nLength)
+				nNext = UINT_MAX;
+			if (nMaxOutput > 0 && nNext > nMaxOutput)
+				nNext = nMaxOutput;
+			if (nNext <= nLength)
+			{
+				inflateEnd(pStream);
+				return FALSE;
+			}
+			nLength = nNext;
+			inflateEnd(pStream);
 		}
 		else	// The inflate call returned something else
 		{
