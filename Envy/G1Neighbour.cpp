@@ -291,13 +291,13 @@ BOOL CG1Neighbour::ProcessPackets(CBuffer* pInput)
 		if ( pInput->m_nLength < sizeof( *pPacket ) ) break;			// If there aren't enough bytes in the buffer for a packet, leave the loop
 
 		// Calculate how big this packet is (payload is signed LONG on the wire).
-		if ( ! G1PacketTotalLengthOk( pPacket->m_nLength, Settings.Gnutella.MaximumPacket ) )
+		if (!G1PacketTotalLengthOk(pPacket->m_nLength, Settings.Gnutella.MaximumPacket))
 		{
 			// Close our connection to this remote computer
 			Close( IDS_PROTOCOL_TOO_LARGE );
 			return FALSE;
 		}
-		const DWORD nLength = G1PacketTotalLength( pPacket->m_nLength );
+		const DWORD nLength = G1PacketTotalLength(pPacket->m_nLength);
 
 		// If the whole packet hasn't arrived in the buffer yet, leave the loop
 		if ( pInput->m_nLength < nLength ) break;

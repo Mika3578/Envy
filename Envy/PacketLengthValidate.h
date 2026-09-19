@@ -64,7 +64,7 @@ inline BOOL G1DeflateXmlInflateOk(DWORD nOutput)
 // G1 TCP framing: payload length is a signed LONG on the wire (#81).
 // Reject negative payloads and overflow when adding the fixed header size
 // before comparing against Settings.Gnutella.MaximumPacket.
-constexpr DWORD G1_PACKET_HEADER_BYTES = 23u;	// sizeof(GNUTELLAPACKET)
+constexpr DWORD G1_PACKET_HEADER_BYTES = 23u; // sizeof(GNUTELLAPACKET)
 
 inline BOOL G1PacketTotalLengthOk(LONG nPayloadLength, DWORD nMaxTotal)
 {
