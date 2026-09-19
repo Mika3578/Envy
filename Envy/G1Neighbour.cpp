@@ -154,7 +154,7 @@ CG1Neighbour::~CG1Neighbour()
 BOOL CG1Neighbour::OnRead()
 {
 	// Read in data the remote computer sent, and decompress it
-	if ( ! CNeighbour::OnRead() )	// Call CNeighbour's OnRead, which calls CConnection's OnRead
+	if (!CNeighbour::OnRead()) // Call CNeighbour's OnRead, which calls CConnection's OnRead
 		return FALSE;
 
 	// Have ProcessPackets look at the packets we got, and return the result it returns

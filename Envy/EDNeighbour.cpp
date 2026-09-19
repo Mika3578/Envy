@@ -198,7 +198,7 @@ void CEDNeighbour::OnDropped()
 
 BOOL CEDNeighbour::OnRead()
 {
-	if ( ! CNeighbour::OnRead() )
+	if (!CNeighbour::OnRead())
 		return FALSE;
 
 	return ProcessPackets();

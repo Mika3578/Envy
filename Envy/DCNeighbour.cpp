@@ -139,7 +139,7 @@ BOOL CDCNeighbour::ConnectTo(const IN_ADDR* pAddress, WORD nPort, BOOL bAutomati
 
 BOOL CDCNeighbour::OnRead()
 {
-	if ( ! CNeighbour::OnRead() )
+	if (!CNeighbour::OnRead())
 		return FALSE;
 
 	return ProcessPackets();

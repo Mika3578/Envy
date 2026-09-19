@@ -111,7 +111,7 @@ CG2Neighbour::~CG2Neighbour()
 
 BOOL CG2Neighbour::OnRead()
 {
-	if ( ! CNeighbour::OnRead() )
+	if (!CNeighbour::OnRead())
 		return FALSE;
 
 	return ProcessPackets();
