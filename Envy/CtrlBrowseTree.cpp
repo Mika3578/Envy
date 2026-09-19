@@ -844,40 +844,40 @@ void CBrowseTreeCtrl::OnTreePacket(CG2Packet* pPacket)
 	PostMessage( WM_UPDATE );
 }
 
-static CBrowseTreeItem* DcFindChildFolder(CBrowseTreeItem* pParent, LPCTSTR pszName)
+static CBrowseTreeItem* DcEnsureFolderPath(CBrowseTreeItem* pRoot, const CString& sPath, CMapStringToPtr& oByPath)
 {
-	if (pParent == NULL || pszName == NULL)
-		return NULL;
-	CBrowseTreeItem** ppChild = pParent->m_pList;
-	for (int nIndex = pParent->m_nCount; nIndex; --nIndex, ++ppChild)
-	{
-		if (_tcsicoll((*ppChild)->m_sText, pszName) == 0)
-			return *ppChild;
-	}
-	return NULL;
-}
+	if (pRoot == NULL || sPath.IsEmpty())
+		return pRoot;
 
-static CBrowseTreeItem* DcFindOrAddFolder(CBrowseTreeItem* pParent, LPCTSTR pszName, BOOL bExpand)
-{
-	if (CBrowseTreeItem* pExisting = DcFindChildFolder(pParent, pszName))
-		return pExisting;
-	CBrowseTreeItem* pChild = pParent->Add(pszName);
-	pChild->m_sText = pszName;
-	pChild->m_bExpanded = bExpand;
-	return pChild;
-}
+	void* pCached = NULL;
+	if (oByPath.Lookup(sPath, pCached) && pCached)
+		return static_cast<CBrowseTreeItem*>(pCached);
 
-static CBrowseTreeItem* DcEnsureFolderPath(CBrowseTreeItem* pRoot, const CString& sPath)
-{
 	CBrowseTreeItem* pItem = pRoot;
 	BOOL bTop = TRUE;
+	CString sAccum;
 	for (int nStart = 0; nStart < sPath.GetLength();)
 	{
 		const int nSlash = sPath.Find(L'\\', nStart);
 		const CString sPart = (nSlash < 0) ? sPath.Mid(nStart) : sPath.Mid(nStart, nSlash - nStart);
 		if (!sPart.IsEmpty())
 		{
-			pItem = DcFindOrAddFolder(pItem, sPart, bTop);
+			if (!sAccum.IsEmpty())
+				sAccum += L'\\';
+			sAccum += sPart;
+
+			void* pNext = NULL;
+			if (oByPath.Lookup(sAccum, pNext) && pNext)
+			{
+				pItem = static_cast<CBrowseTreeItem*>(pNext);
+			}
+			else
+			{
+				pItem = pItem->Add(sPart);
+				pItem->m_sText = sPart;
+				pItem->m_bExpanded = bTop;
+				oByPath.SetAt(sAccum, pItem);
+			}
 			bTop = FALSE;
 		}
 		if (nSlash < 0)
@@ -893,10 +893,12 @@ void CBrowseTreeCtrl::BuildFromDcListing(const CQueryHit* pHits, const CStringLi
 
 	Clear(FALSE);
 
+	CMapStringToPtr oByPath;
+
 	if (pFolders)
 	{
 		for (POSITION pos = pFolders->GetHeadPosition(); pos;)
-			DcEnsureFolderPath(m_pRoot, pFolders->GetNext(pos));
+			DcEnsureFolderPath(m_pRoot, pFolders->GetNext(pos), oByPath);
 	}
 
 	for (const CQueryHit* pHit = pHits; pHit; pHit = pHit->m_pNext)
@@ -905,9 +907,12 @@ void CBrowseTreeCtrl::BuildFromDcListing(const CQueryHit* pHits, const CStringLi
 			continue;
 		const int nSlash = pHit->m_sName.ReverseFind(L'\\');
 		if (nSlash < 0)
+		{
+			m_pRoot->AddFileIndex(pHit->m_nIndex);
 			continue;
-		CBrowseTreeItem* pFolder = DcEnsureFolderPath(m_pRoot, pHit->m_sName.Left(nSlash));
-		if (pFolder && pFolder != m_pRoot)
+		}
+		CBrowseTreeItem* pFolder = DcEnsureFolderPath(m_pRoot, pHit->m_sName.Left(nSlash), oByPath);
+		if (pFolder)
 			pFolder->AddFileIndex(pHit->m_nIndex);
 	}
 

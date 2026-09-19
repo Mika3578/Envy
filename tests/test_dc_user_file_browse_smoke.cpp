@@ -378,6 +378,53 @@ static bool test_filelist_prolog_iterative()
 	return DcParseFileListingXml(sMany.c_str(), sMany.size(), o) == dcFileListTooMany;
 }
 
+static bool test_filelist_dirs_only()
+{
+	const char* psz = "<FileListing Version=\"1\"><Directory Name=\"EmptyA\"/><Directory Name=\"EmptyB\"><Directory Name=\"Nested\"/></Directory></FileListing>";
+	std::vector<DcFileListEntry> o;
+	return DcParseFileListingXml(psz, strlen(psz), o) == dcFileListOk && o.empty();
+}
+
+static bool test_filelist_failure_clears_partial()
+{
+	const std::string sXml = std::string("<FileListing Version=\"1\">") + FileTag("ok.mp3", "1", kTth) + FileTag("bad.mp3", "1", "NOT_A_VALID_TTH____________") + "</FileListing>";
+	std::vector<DcFileListEntry> o;
+	return DcParseFileListingXml(sXml.c_str(), sXml.size(), o) == dcFileListBadTth && o.empty();
+}
+
+static bool test_filelist_truncated_clears_partial()
+{
+	const std::string sXml = std::string("<FileListing Version=\"1\">") + FileTag("a.mp3", "1", kTth);
+	std::vector<DcFileListEntry> o;
+	const DcFileListStatus n = DcParseFileListingXml(sXml.c_str(), sXml.size(), o);
+	return (n == dcFileListTruncated || n == dcFileListMalformed) && o.empty();
+}
+
+static bool test_browse_tree_notify()
+{
+	static const char szHit = 0;
+	return DcBrowseShareTreeNeeded(NULL, FALSE) == FALSE && DcBrowseShareTreeNeeded(NULL, TRUE) == TRUE && DcBrowseShareTreeNeeded(&szHit, FALSE) == TRUE;
+}
+
+static bool test_filelist_parent_path()
+{
+	const char* psz = "FolderA\\FolderB\\file.ext";
+	const char* pParent = NULL;
+	size_t nParent = 0;
+	const char* pFile = NULL;
+	size_t nFile = 0;
+	if (!DcFileListSplitParentUtf8(psz, strlen(psz), pParent, nParent, pFile, nFile))
+		return false;
+	if (nParent != strlen("FolderA\\FolderB") || strncmp(pParent, "FolderA\\FolderB", nParent) != 0)
+		return false;
+	if (nFile != 8 || strncmp(pFile, "file.ext", 8) != 0)
+		return false;
+	const char* pszRoot = "root.mp3";
+	if (!DcFileListSplitParentUtf8(pszRoot, strlen(pszRoot), pParent, nParent, pFile, nFile))
+		return false;
+	return nParent == 0 && nFile == 8 && strncmp(pFile, "root.mp3", 8) == 0;
+}
+
 void register_dc_user_file_browse_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("dc_nicklist_nominal", test_nicklist_nominal);
@@ -413,4 +460,9 @@ void register_dc_user_file_browse_smoke_tests(TestSuite& suite)
 	suite.add_test("dc_filelist_tth_predicate", test_filelist_tth_predicate);
 	suite.add_test("dc_filelist_joined_path_cap", test_filelist_joined_path_cap);
 	suite.add_test("dc_filelist_prolog_iterative", test_filelist_prolog_iterative);
+	suite.add_test("dc_filelist_dirs_only", test_filelist_dirs_only);
+	suite.add_test("dc_filelist_failure_clears_partial", test_filelist_failure_clears_partial);
+	suite.add_test("dc_filelist_truncated_clears_partial", test_filelist_truncated_clears_partial);
+	suite.add_test("dc_browse_tree_notify", test_browse_tree_notify);
+	suite.add_test("dc_filelist_parent_path", test_filelist_parent_path);
 }

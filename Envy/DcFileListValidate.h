@@ -392,6 +392,8 @@ inline DcFileListStatus WalkDir(const char*& p, const char* pEnd,
 
 		if (MatchName(pTag, pTag + nTag, "Directory"))
 		{
+			if (!DcFileListEntryCountOk(nEntries))
+				return dcFileListTooMany;
 			if (!DcFileListNameUtf8Ok(o.pName, o.nName))
 				return (o.pName && o.nName == 2 && o.pName[0] == '.' && o.pName[1] == '.')
 				           ? dcFileListTraversal
@@ -402,6 +404,7 @@ inline DcFileListStatus WalkDir(const char*& p, const char* pEnd,
 			if (!sPath.empty())
 				sPath.push_back('\\');
 			sPath.append(o.pName, o.nName);
+			++nEntries;
 			if (!o.bSelfClose)
 			{
 				const DcFileListStatus nChild = WalkDir(p, pEnd, oOut, sPath, nDepth + 1, nEntries);
@@ -477,11 +480,46 @@ inline DcFileListStatus DcParseFileListingXml(const char* pXml, size_t nLen,
 	DWORD nEntries = 0;
 	const DcFileListStatus nWalk = DcFileListDetail::WalkDir(p, pEnd, oOut, sPath, 1, nEntries);
 	if (nWalk != dcFileListOk)
+	{
+		oOut.clear();
 		return nWalk;
+	}
 	if (!DcFileListDetail::IsCloseTag(p, pEnd, "FileListing"))
+	{
+		oOut.clear();
 		return dcFileListTruncated;
+	}
 	DcFileListDetail::SkipWs(p, pEnd);
 	if (p != pEnd)
+	{
+		oOut.clear();
 		return dcFileListMalformed;
+	}
 	return dcFileListOk;
+}
+
+// Display name "Folder\\file.ext" as used by CHostBrowser::LoadDCDirectory.
+// nParent == 0 means the file sits on the FileListing root.
+inline BOOL DcFileListSplitParentUtf8(const char* pszFull, size_t nLen,
+                                      const char*& pParent, size_t& nParent,
+                                      const char*& pFile, size_t& nFile)
+{
+	pParent = pszFull;
+	nParent = 0;
+	pFile = pszFull;
+	nFile = nLen;
+	if (pszFull == NULL || nLen == 0)
+		return FALSE;
+	size_t nSlash = nLen;
+	for (size_t i = 0; i < nLen; ++i)
+	{
+		if (pszFull[i] == '\\')
+			nSlash = i;
+	}
+	if (nSlash == nLen)
+		return TRUE;
+	nParent = nSlash;
+	pFile = pszFull + nSlash + 1;
+	nFile = nLen - nSlash - 1;
+	return nFile > 0;
 }

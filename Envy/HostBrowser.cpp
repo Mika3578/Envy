@@ -499,12 +499,13 @@ BOOL CHostBrowser::OnNewFile(const CLibraryFile* pFile)
 
 	if (LoadDC(pFile->GetPath(), pHits, &oFolders))
 	{
-		if ( pHits != NULL )
-		{
-			OnQueryHits( pHits );
-			if (m_pNotify)
-				m_pNotify->OnDcShareTree(pHits, oFolders);
-		}
+		// Copy folder paths and file indices into the Browse Host tree while
+		// this thread still owns pHits. OnQueryHits enqueues the chain on
+		// CNetwork, which may delete it before a later traversal finishes.
+		if (m_pNotify && DcBrowseShareTreeNeeded(pHits, !oFolders.IsEmpty()))
+			m_pNotify->OnDcShareTree(pHits, oFolders);
+		if (pHits != NULL)
+			OnQueryHits(pHits);
 
 		theApp.Message(MSG_INFO, L"DC browse completed (nick=%s files=%u)",
 		               (LPCTSTR)m_sNick, m_nHits);
@@ -567,6 +568,8 @@ BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits, CStringList* pFold
 			pHit = pNext;
 		}
 		pHits = NULL;
+		if (pFolders)
+			pFolders->RemoveAll();
 		return FALSE;
 	}
 	return TRUE;
@@ -582,6 +585,9 @@ BOOL CHostBrowser::LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const 
 		CXMLElement* pElement = pRoot->GetNextElement( pos );
 		if ( pElement->IsNamed( L"Directory" ) )
 		{
+			if (!DcFileListEntryCountOk(nEntries))
+				return FALSE;
+
 			CString strName = pElement->GetAttributeValue(L"Name");
 			if (!DcFileListNameCharsOk(strName, static_cast<size_t>(strName.GetLength())))
 				return FALSE;
@@ -598,6 +604,7 @@ BOOL CHostBrowser::LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const 
 
 			if (pFolders)
 				pFolders->AddTail(strChild);
+			++nEntries;
 
 			if (!LoadDCDirectory(pElement, pHits, strChild, nDepth + 1, nEntries, pFolders))
 				return FALSE;
