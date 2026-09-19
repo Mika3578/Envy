@@ -36,7 +36,7 @@ public:
 
 public:
 	Hashes::Guid	m_oGUID;							// GUID to identify callback connections
-	UINT			m_nCodePage;							// NMDC text code page for this peer (from hub)
+	UINT m_nCodePage;                                   // NMDC text code page for this peer (from hub)
 
 	virtual BOOL	ConnectTo(const IN_ADDR* pAddress, WORD nPort);
 	virtual void	AttachTo(CConnection* pConnection);

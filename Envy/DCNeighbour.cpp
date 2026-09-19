@@ -44,33 +44,34 @@ static char THIS_FILE[] = __FILE__;
 #define new DEBUG_NEW
 #endif	// Debug
 
-namespace {
+namespace
+{
 
 CString DcDecodeText(LPCSTR ps, int nLen, UINT nCodePage)
 {
-	return CString( DecodeNmdcText( ps, nLen, nCodePage ).c_str() );
+	return CString(DecodeNmdcText(ps, nLen, nCodePage).c_str());
 }
 
 CString DcDecodeText(LPCSTR ps, UINT nCodePage)
 {
-	return CString( DecodeNmdcText( ps, nCodePage ).c_str() );
+	return CString(DecodeNmdcText(ps, nCodePage).c_str());
 }
 
 void DcWriteText(CDCPacket* pPacket, LPCTSTR psz, UINT nCodePage)
 {
-	const std::string bytes = EncodeNmdcText( psz, nCodePage );
-	if ( ! bytes.empty() )
-		pPacket->Write( bytes.data(), static_cast< DWORD >( bytes.size() ) );
+	const std::string bytes = EncodeNmdcText(psz, nCodePage);
+	if (!bytes.empty())
+		pPacket->Write(bytes.data(), static_cast<DWORD>(bytes.size()));
 }
 
 } // namespace
 
 
 CDCNeighbour::CDCNeighbour()
-	: CNeighbour	( PROTOCOL_DC )
-	, m_bExtended	( FALSE )
-	, m_bNickValid	( FALSE )
-	, m_nCodePage	( 0 )
+    : CNeighbour(PROTOCOL_DC)
+    , m_bExtended(FALSE)
+    , m_bNickValid(FALSE)
+    , m_nCodePage(0)
 {
 	m_nNodeType = ntHub;
 
@@ -114,7 +115,7 @@ BOOL CDCNeighbour::ConnectToMe(const CString& sNick)
 
 	if ( CDCPacket* pPacket = CDCPacket::New() )
 	{
-		DcWriteText( pPacket, strRequest, m_nCodePage );
+		DcWriteText(pPacket, strRequest, m_nCodePage);
 
 		Send( pPacket );
 	}
@@ -177,9 +178,9 @@ BOOL CDCNeighbour::ConnectTo(const IN_ADDR* pAddress, WORD nPort, BOOL bAutomati
 	CString strHost( inet_ntoa( *pAddress ) );
 
 	m_nCodePage = Settings.DC.CodePage;
-	if ( CHostCacheHostPtr pServer = HostCache.DC.Find( pAddress ) )
+	if (CHostCacheHostPtr pServer = HostCache.DC.Find(pAddress))
 	{
-		if ( pServer->m_nCodePage != 0 )
+		if (pServer->m_nCodePage != 0)
 			m_nCodePage = pServer->m_nCodePage;
 	}
 
@@ -312,7 +313,7 @@ BOOL CDCNeighbour::SendUserInfo()
 
 	if ( CDCPacket* pPacket = CDCPacket::New() )
 	{
-		DcWriteText( pPacket, strInfo, m_nCodePage );
+		DcWriteText(pPacket, strInfo, m_nCodePage);
 
 		return Send( pPacket );
 	}
@@ -640,7 +641,7 @@ BOOL CDCNeighbour::OnChat(CDCPacket* pPacket)
 	if ( LPCSTR szMessage = strchr( (LPCSTR)pPacket->m_pBuffer, '>' ) )
 	{
 		int nNickLen = szMessage - (LPCSTR)pPacket->m_pBuffer - 1;
-		CString sNick( DcDecodeText( (LPCSTR)&pPacket->m_pBuffer[ 1 ], nNickLen, m_nCodePage ) );
+		CString sNick(DcDecodeText((LPCSTR)&pPacket->m_pBuffer[1], nNickLen, m_nCodePage));
 
 		if ( nNickLen > 0 && m_sNick != sNick )
 			ChatCore.OnMessage( this, pPacket );
@@ -682,7 +683,7 @@ BOOL CDCNeighbour::OnQuery(CDCPacket* pPacket)
 	// $Search SenderIP:SenderPort (T|F)?(T|F)?Size?Type?String|
 	// $Search Hub:Nick (T|F)?(T|F)?Size?Type?String|
 
-	CQuerySearchPtr pSearch = CQuerySearch::FromPacket( pPacket, NULL, TRUE, m_nCodePage );
+	CQuerySearchPtr pSearch = CQuerySearch::FromPacket(pPacket, NULL, TRUE, m_nCodePage);
 	if ( ! pSearch || pSearch->m_bDropMe )
 	{
 		if ( ! pSearch )
@@ -729,13 +730,13 @@ BOOL CDCNeighbour::OnLock(LPSTR szParams)
 			// Good way
 			*szUserAgent = 0;
 			szUserAgent += 4;
-			m_sUserAgent = DcDecodeText( szUserAgent, m_nCodePage );
+			m_sUserAgent = DcDecodeText(szUserAgent, m_nCodePage);
 		}
 		else if ( LPSTR szUserAgentAlt = strchr( szParams, ' ' ) )
 		{
 			// Bad way
 			*szUserAgentAlt++ = 0;
-			m_sUserAgent = DcDecodeText( szUserAgentAlt, m_nCodePage );
+			m_sUserAgent = DcDecodeText(szUserAgentAlt, m_nCodePage);
 		}
 
 		if ( m_nState < nrsHandshake2 )
@@ -774,7 +775,7 @@ BOOL CDCNeighbour::OnLock(LPSTR szParams)
 		if ( CDCPacket* pPacket = CDCPacket::New() )
 		{
 			pPacket->Write( _P("$ValidateNick ") );
-			DcWriteText( pPacket, m_sNick, m_nCodePage );
+			DcWriteText(pPacket, m_sNick, m_nCodePage);
 			pPacket->Write( _P("|") );
 			Send( pPacket );
 		}
@@ -811,7 +812,7 @@ BOOL CDCNeighbour::OnHello(LPSTR szNick)
 	m_nState = nrsConnected;
 
 	m_bNickValid = TRUE;
-	m_sNick = DcDecodeText( szNick, m_nCodePage );
+	m_sNick = DcDecodeText(szNick, m_nCodePage);
 
 	if ( CHostCacheHostPtr pServer = HostCache.DC.Find( &m_pHost.sin_addr ) )
 	{
@@ -849,16 +850,17 @@ BOOL CDCNeighbour::OnHubName(CDCPacket *pPacket)
 	{
 		if ( ! DcHubNameDescriptionLengthOk( pPacket->m_nLength, nHubInfo ) )
 			return TRUE;
-		m_sServerName  = DcDecodeText( (LPCSTR)&pPacket->m_pBuffer[ 9 ], nHubInfo - 9, m_nCodePage );
-		strDescription = DcDecodeText( (LPCSTR)&pPacket->m_pBuffer[ nHubInfo + 1 ],
-			static_cast< int >( DcHubNameDescriptionBytes( pPacket->m_nLength, nHubInfo ) ), m_nCodePage ).TrimLeft( L" -" );
+		m_sServerName = DcDecodeText((LPCSTR)&pPacket->m_pBuffer[9], nHubInfo - 9, m_nCodePage);
+		strDescription = DcDecodeText((LPCSTR)&pPacket->m_pBuffer[nHubInfo + 1],
+		                              static_cast<int>(DcHubNameDescriptionBytes(pPacket->m_nLength, nHubInfo)), m_nCodePage)
+		                     .TrimLeft(L" -");
 	}
 	else
 	{
 		if ( ! DcPrefixedPayloadLengthOk( pPacket->m_nLength, DC_HUBNAME_PREFIX_LEN ) )
 			return TRUE;
-		m_sServerName = DcDecodeText( (LPCSTR)&pPacket->m_pBuffer[ DC_HUBNAME_PREFIX_LEN ],
-			static_cast< int >( DcPrefixedPayloadBytes( pPacket->m_nLength, DC_HUBNAME_PREFIX_LEN ) ), m_nCodePage );
+		m_sServerName = DcDecodeText((LPCSTR)&pPacket->m_pBuffer[DC_HUBNAME_PREFIX_LEN],
+		                             static_cast<int>(DcPrefixedPayloadBytes(pPacket->m_nLength, DC_HUBNAME_PREFIX_LEN)), m_nCodePage);
 	}
 
 	if ( CHostCacheHostPtr pServer = HostCache.DC.Find( &m_pHost.sin_addr ) )
@@ -910,7 +912,7 @@ BOOL CDCNeighbour::OnNickList(LPSTR szParams)
 		if ( ! DcHubUserCountOk( static_cast< DWORD >( m_oUsers.GetCount() ) ) )
 			return FALSE;
 
-		CString strNick = DcDecodeText( p, static_cast< int >( nTok ), m_nCodePage );
+		CString strNick = DcDecodeText(p, static_cast<int>(nTok), m_nCodePage);
 		if ( strNick.IsEmpty() )
 			return TRUE;
 
@@ -947,8 +949,8 @@ BOOL CDCNeighbour::OnUserInfo(LPSTR szInfo)
 			if (!DcNickBytesOk(szNick, nNickLen))
 				return TRUE;
 
-			CString strNick( DcDecodeText( szNick, static_cast< int >( nNickLen ), m_nCodePage ) );
-			if ( strNick.IsEmpty() )
+			CString strNick(DcDecodeText(szNick, static_cast<int>(nNickLen), m_nCodePage));
+			if (strNick.IsEmpty())
 				return TRUE;
 
 			CChatUser* pUser;
@@ -1003,14 +1005,14 @@ BOOL CDCNeighbour::OnUserInfo(LPSTR szInfo)
 							}
 						}
 
-						pUser->m_sUserAgent = DcDecodeText( szVendor, m_nCodePage );
+						pUser->m_sUserAgent = DcDecodeText(szVendor, m_nCodePage);
 						if ( ! sVersion.IsEmpty() )
-							pUser->m_sUserAgent += L" " + DcDecodeText( sVersion, m_nCodePage );
+							pUser->m_sUserAgent += L" " + DcDecodeText(sVersion, m_nCodePage);
 					}
 				}
 			}
 
-			pUser->m_sDescription = DcDecodeText( szDescription, m_nCodePage );
+			pUser->m_sDescription = DcDecodeText(szDescription, m_nCodePage);
 
 			if ( m_nNodeType == ntHub )
 				HostCache.DC.Add( &m_pHost.sin_addr, htons( m_pHost.sin_port ), 0, 0, 0, GetUserCount() );
@@ -1034,7 +1036,7 @@ BOOL CDCNeighbour::OnUserIP(LPSTR szIP)
 		{
 			*szAddress++ = 0;
 
-			CString strNick( DcDecodeText( szMyNick, m_nCodePage ) );
+			CString strNick(DcDecodeText(szMyNick, m_nCodePage));
 
 			if ( m_bNickValid && m_sNick == strNick )
 			{
@@ -1055,8 +1057,8 @@ BOOL CDCNeighbour::OnQuit(LPSTR szNick)
 
 	if (szNick && *szNick)
 	{
-		CString strNick = DcDecodeText( szNick, m_nCodePage );
-		if ( strNick.IsEmpty() )
+		CString strNick = DcDecodeText(szNick, m_nCodePage);
+		if (strNick.IsEmpty())
 			return TRUE;
 		CChatUser* pUser;
 		if ( m_oUsers.Lookup( strNick, pUser ) )
@@ -1098,8 +1100,8 @@ BOOL CDCNeighbour::OnConnectToMe(LPSTR szParams)
 				szSenderNick = "";
 			}
 
-			CString strMyNick( DcDecodeText( szMyNick, m_nCodePage ) );
-			CString strSenderNick( DcDecodeText( szSenderNick, m_nCodePage ) );
+			CString strMyNick(DcDecodeText(szMyNick, m_nCodePage));
+			CString strSenderNick(DcDecodeText(szSenderNick, m_nCodePage));
 
 			if ( LPSTR szPort = strchr( szAddress, ':' ) )
 			{
@@ -1129,8 +1131,8 @@ BOOL CDCNeighbour::OnRevConnectToMe(LPSTR szParams)
 		{
 			*szMyNick++ = 0;
 
-			CString strNick( DcDecodeText( szMyNick, m_nCodePage ) );
-			CString strRemoteNick( DcDecodeText( szRemoteNick, m_nCodePage ) );
+			CString strNick(DcDecodeText(szMyNick, m_nCodePage));
+			CString strRemoteNick(DcDecodeText(szRemoteNick, m_nCodePage));
 
 			if ( m_bNickValid && m_sNick == strNick )
 			{
@@ -1158,7 +1160,7 @@ BOOL CDCNeighbour::OnForceMove(LPSTR szParams)
 			nPort = atoi( szPort );
 		}
 
-		Network.ConnectTo( DcDecodeText( szAddress, m_nCodePage ), nPort, PROTOCOL_DC );
+		Network.ConnectTo(DcDecodeText(szAddress, m_nCodePage), nPort, PROTOCOL_DC);
 	}
 
 	return TRUE;
@@ -1180,7 +1182,7 @@ BOOL CDCNeighbour::OnValidateDenide()
 	if ( CDCPacket* pPacket = CDCPacket::New() )
 	{
 		pPacket->Write( _P("$ValidateNick ") );
-		DcWriteText( pPacket, m_sNick, m_nCodePage );
+		DcWriteText(pPacket, m_sNick, m_nCodePage);
 		pPacket->Write( _P("|") );
 		Send( pPacket );
 	}

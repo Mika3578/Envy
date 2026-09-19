@@ -20,7 +20,7 @@
 // 0 means "use the Windows ANSI code page" (DC++ default when hub encoding is blank).
 inline UINT DcResolveNmdcCodePage(UINT nCodePage)
 {
-	return nCodePage == 0 ? static_cast< UINT >( CP_ACP ) : nCodePage;
+	return nCodePage == 0 ? static_cast<UINT>(CP_ACP) : nCodePage;
 }
 
 // Decode nInput bytes (not necessarily NUL-terminated) with the hub code page.
@@ -28,31 +28,31 @@ inline UINT DcResolveNmdcCodePage(UINT nCodePage)
 inline std::wstring DecodeNmdcText(__in_bcount(nInput) LPCSTR psInput, __in int nInput, __in UINT nCodePage)
 {
 	std::wstring strWide;
-	if ( psInput == nullptr || nInput <= 0 )
+	if (psInput == nullptr || nInput <= 0)
 		return strWide;
 
-	const UINT cp = DcResolveNmdcCodePage( nCodePage );
-	int nWide = ::MultiByteToWideChar( cp, 0, psInput, nInput, nullptr, 0 );
-	if ( nWide <= 0 )
+	const UINT cp = DcResolveNmdcCodePage(nCodePage);
+	int nWide = ::MultiByteToWideChar(cp, 0, psInput, nInput, nullptr, 0);
+	if (nWide <= 0)
 		return strWide;
 
-	strWide.resize( static_cast< size_t >( nWide ) );
-	nWide = ::MultiByteToWideChar( cp, 0, psInput, nInput, &strWide[0], nWide );
-	if ( nWide <= 0 )
+	strWide.resize(static_cast<size_t>(nWide));
+	nWide = ::MultiByteToWideChar(cp, 0, psInput, nInput, &strWide[0], nWide);
+	if (nWide <= 0)
 	{
 		strWide.clear();
 		return strWide;
 	}
-	strWide.resize( static_cast< size_t >( nWide ) );
+	strWide.resize(static_cast<size_t>(nWide));
 	return strWide;
 }
 
 // Decode a NUL-terminated C string (legacy strchr-split NMDC fields).
 inline std::wstring DecodeNmdcText(__in LPCSTR psInput, __in UINT nCodePage)
 {
-	if ( psInput == nullptr || *psInput == 0 )
+	if (psInput == nullptr || *psInput == 0)
 		return std::wstring();
-	return DecodeNmdcText( psInput, static_cast< int >( strlen(psInput)), nCodePage );
+	return DecodeNmdcText(psInput, static_cast<int>(strlen(psInput)), nCodePage);
 }
 
 // Encode Unicode to the hub code page.
@@ -61,28 +61,28 @@ inline std::wstring DecodeNmdcText(__in LPCSTR psInput, __in UINT nCodePage)
 inline std::string EncodeNmdcText(__in LPCWSTR pszString, __in UINT nCodePage)
 {
 	std::string strBytes;
-	if ( pszString == nullptr || *pszString == 0 )
+	if (pszString == nullptr || *pszString == 0)
 		return strBytes;
 
-	const UINT cp = DcResolveNmdcCodePage( nCodePage );
-	const int nWide = static_cast< int >( wcslen( pszString ) );
+	const UINT cp = DcResolveNmdcCodePage(nCodePage);
+	const int nWide = static_cast<int>(wcslen(pszString));
 	BOOL bUsedDefault = FALSE;
 	// lpDefaultChar "?" — deterministic substitution when a glyph is missing in the code page.
 	// (UTF-8 ignores lpDefaultChar; every Unicode scalar is representable.)
-	const char* pszDefault = ( cp == CP_UTF8 ) ? nullptr : "?";
-	BOOL* pbUsed = ( cp == CP_UTF8 ) ? nullptr : &bUsedDefault;
+	const char* pszDefault = (cp == CP_UTF8) ? nullptr : "?";
+	BOOL* pbUsed = (cp == CP_UTF8) ? nullptr : &bUsedDefault;
 
-	int nByte = ::WideCharToMultiByte( cp, 0, pszString, nWide, nullptr, 0, pszDefault, pbUsed );
-	if ( nByte <= 0 )
+	int nByte = ::WideCharToMultiByte(cp, 0, pszString, nWide, nullptr, 0, pszDefault, pbUsed);
+	if (nByte <= 0)
 		return strBytes;
 
-	strBytes.resize( static_cast< size_t >( nByte ) );
-	nByte = ::WideCharToMultiByte( cp, 0, pszString, nWide, &strBytes[0], nByte, pszDefault, pbUsed );
-	if ( nByte <= 0 )
+	strBytes.resize(static_cast<size_t>(nByte));
+	nByte = ::WideCharToMultiByte(cp, 0, pszString, nWide, &strBytes[0], nByte, pszDefault, pbUsed);
+	if (nByte <= 0)
 	{
 		strBytes.clear();
 		return strBytes;
 	}
-	strBytes.resize( static_cast< size_t >( nByte ) );
+	strBytes.resize(static_cast<size_t>(nByte));
 	return strBytes;
 }

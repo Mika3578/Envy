@@ -736,9 +736,9 @@ CDCPacket* CQuerySearch::ToDCPacket(UINT nNmdcCodePage) const
 		nType,
 		(LPCTSTR)( m_oTiger ? ( L"TTH:" + m_oTiger.toString() ) : strSearch ) );
 
-	const std::string bytes = EncodeNmdcText( strQuery, nNmdcCodePage );
-	if ( ! bytes.empty() )
-		pPacket->Write( bytes.data(), static_cast< DWORD >( bytes.size() ) );
+	const std::string bytes = EncodeNmdcText(strQuery, nNmdcCodePage);
+	if (!bytes.empty())
+		pPacket->Write(bytes.data(), static_cast<DWORD>(bytes.size()));
 
 	return pPacket;
 }
@@ -770,7 +770,7 @@ CQuerySearchPtr CQuerySearch::FromPacket(CPacket* pPacket, const SOCKADDR_IN* pE
 		else if ( pPacket->m_nProtocol == PROTOCOL_DC )
 		{
 			pSearch->m_nProtocol = PROTOCOL_DC; 	// Display convenience
-			if ( pSearch->ReadDCPacket( (CDCPacket*)pPacket, pEndpoint, nNmdcCodePage ) )
+			if (pSearch->ReadDCPacket((CDCPacket*)pPacket, pEndpoint, nNmdcCodePage))
 				return pSearch;
 		}
 		else if ( pPacket->m_nProtocol == PROTOCOL_ED2K )
@@ -1248,7 +1248,7 @@ BOOL CQuerySearch::ReadDCPacket(CDCPacket* pPacket, const SOCKADDR_IN* pEndpoint
 	{
 		// Passive user request (send answer via TCP)
 		m_bUDP = FALSE;
-		m_sUserNick = CString( DecodeNmdcText( szPort, nNmdcCodePage ).c_str() );
+		m_sUserNick = CString(DecodeNmdcText(szPort, nNmdcCodePage).c_str());
 	}
 	else
 	{
@@ -1293,7 +1293,7 @@ BOOL CQuerySearch::ReadDCPacket(CDCPacket* pPacket, const SOCKADDR_IN* pEndpoint
 	}
 	else	// Keywords search
 	{
-		m_sSearch = CString( DecodeNmdcText( szString, nNmdcCodePage ).c_str() );
+		m_sSearch = CString(DecodeNmdcText(szString, nNmdcCodePage).c_str());
 		m_sSearch.Replace( L'$', L' ' );
 
 		switch ( nType )

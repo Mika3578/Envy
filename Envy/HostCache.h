@@ -50,7 +50,7 @@ public:
 	CString		m_sDescription;		// Host description
 	CString		m_sUser;			// User name on this server (DC)
 	CString		m_sPass;			// User password on this server (DC)
-	DWORD		m_nCodePage;		// NMDC text code page (0 = inherit Settings.DC.CodePage). Unused for non-DC.
+	DWORD m_nCodePage;              // NMDC text code page (0 = inherit Settings.DC.CodePage). Unused for non-DC.
 	CString		m_sCountry; 		// Country code
 
 	// Attributes: Contact Times

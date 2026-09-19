@@ -867,13 +867,13 @@ CQueryHit* CQueryHit::FromDCPacket(CDCPacket* pPacket, UINT nNmdcCodePage)
 
 
 	UINT nCodePage = nNmdcCodePage;
-	if ( nCodePage == 0 )
+	if (nCodePage == 0)
 		nCodePage = Settings.DC.CodePage;
-	if ( pHubAddress.s_addr != INADDR_NONE && pHubAddress.s_addr != 0 )
+	if (pHubAddress.s_addr != INADDR_NONE && pHubAddress.s_addr != 0)
 	{
-		if ( CHostCacheHostPtr pServer = HostCache.DC.Find( &pHubAddress ) )
+		if (CHostCacheHostPtr pServer = HostCache.DC.Find(&pHubAddress))
 		{
-			if ( pServer->m_nCodePage != 0 )
+			if (pServer->m_nCodePage != 0)
 				nCodePage = pServer->m_nCodePage;
 		}
 	}
@@ -882,13 +882,13 @@ CQueryHit* CQueryHit::FromDCPacket(CDCPacket* pPacket, UINT nNmdcCodePage)
 	if ( ! pHit )
 		return FALSE;	// Out of memory
 
-	pHit->m_sName		= CString( DecodeNmdcText( szNameOnly, nCodePage ).c_str() );
+	pHit->m_sName = CString(DecodeNmdcText(szNameOnly, nCodePage).c_str());
 	pHit->m_nSize		= nSize;
 	pHit->m_bSize		= TRUE;
 	pHit->m_oTiger		= oTiger;
 	pHit->m_bChat		= TRUE;
 	pHit->m_bBrowseHost	= TRUE;
-	pHit->m_sNick		= CString( DecodeNmdcText( szNick, nCodePage ).c_str() );
+	pHit->m_sNick = CString(DecodeNmdcText(szNick, nCodePage).c_str());
 	pHit->m_nUpSlots	= nTotalSlots;
 	pHit->m_nUpQueue	= nTotalSlots - nFreeSlots;
 	pHit->m_bBusy		= nFreeSlots ? TRI_FALSE : TRI_TRUE;

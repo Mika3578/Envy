@@ -43,18 +43,18 @@ static char THIS_FILE[] = __FILE__;
 #endif	// Debug
 
 CDCClient::CDCClient(const IN_ADDR* pHubAddress, WORD nHubPort, LPCTSTR szNick, LPCTSTR szRemoteNick)
-	: CTransfer				( PROTOCOL_DC )
-	, m_sNick				( DCClients.CreateNick( szNick ) )
-	, m_bExtended			( FALSE )
-	, m_pDownloadTransfer	( NULL )
-	, m_pUploadTransfer		( NULL )
-	, m_bDirection			( TRI_UNKNOWN )
-	, m_bNumberSent			( FALSE )
-	, m_nNumber				( GenerateNumber() )
-	, m_nRemoteNumber		( -1 )
-	, m_bLogin				( FALSE )
-	, m_bKey				( FALSE )
-	, m_nCodePage			( Settings.DC.CodePage )
+    : CTransfer(PROTOCOL_DC)
+    , m_sNick(DCClients.CreateNick(szNick))
+    , m_bExtended(FALSE)
+    , m_pDownloadTransfer(NULL)
+    , m_pUploadTransfer(NULL)
+    , m_bDirection(TRI_UNKNOWN)
+    , m_bNumberSent(FALSE)
+    , m_nNumber(GenerateNumber())
+    , m_nRemoteNumber(-1)
+    , m_bLogin(FALSE)
+    , m_bKey(FALSE)
+    , m_nCodePage(Settings.DC.CodePage)
 {
 	TRACE( "[DC++] Creating client 0x%08x\n", (LPVOID)this );
 
@@ -65,17 +65,17 @@ CDCClient::CDCClient(const IN_ADDR* pHubAddress, WORD nHubPort, LPCTSTR szNick, 
 	m_pServer.sin_family = AF_INET;
 	if ( pHubAddress ) m_pServer.sin_addr = *pHubAddress;
 	if ( nHubPort ) m_pServer.sin_port = htons( nHubPort );
-	if ( pHubAddress )
+	if (pHubAddress)
 	{
-		if ( CHostCacheHostPtr pServer = HostCache.DC.Find( pHubAddress ) )
+		if (CHostCacheHostPtr pServer = HostCache.DC.Find(pHubAddress))
 		{
-			if ( pServer->m_nCodePage != 0 )
+			if (pServer->m_nCodePage != 0)
 				m_nCodePage = pServer->m_nCodePage;
 		}
-		else if ( CNeighbour* pNeighbour = Neighbours.Get( *pHubAddress ) )
+		else if (CNeighbour* pNeighbour = Neighbours.Get(*pHubAddress))
 		{
-			if ( pNeighbour->m_nProtocol == PROTOCOL_DC )
-				m_nCodePage = static_cast< CDCNeighbour* >( pNeighbour )->m_nCodePage;
+			if (pNeighbour->m_nProtocol == PROTOCOL_DC)
+				m_nCodePage = static_cast<CDCNeighbour*>(pNeighbour)->m_nCodePage;
 		}
 	}
 
@@ -480,7 +480,7 @@ BOOL CDCClient::OnMyNick(const std::string& strParams)
 {
 	// $MyNick RemoteNick|
 
-	m_sRemoteNick = CString( DecodeNmdcText( strParams.c_str(), m_nCodePage ).c_str() );
+	m_sRemoteNick = CString(DecodeNmdcText(strParams.c_str(), m_nCodePage).c_str());
 	DCClients.CreateGUID( m_sRemoteNick, m_oGUID );
 
 	return ! DCClients.Merge( this );
@@ -833,7 +833,7 @@ BOOL CDCClient::Greetings()
 	ASSERT( ! m_sNick.IsEmpty() );
 
 	Write( _P("$MyNick ") );
-	Write( m_sNick, m_nCodePage );
+	Write(m_sNick, m_nCodePage);
 	Write( _P("|") );
 
 	std::string sLock = GenerateLock();

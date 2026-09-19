@@ -357,7 +357,7 @@ BOOL CManagedSearch::ExecuteNeighbours(const DWORD tTicks, const DWORD tSecs)
 			m_pSearch->m_pMyHub = pDCNeighbour->m_pHost;
 			m_pSearch->m_sMyHub = pDCNeighbour->m_sServerName;
 			m_pSearch->m_sMyNick = pDCNeighbour->m_sNick;
-			pPacket = m_pSearch->ToDCPacket( pDCNeighbour->m_nCodePage );
+			pPacket = m_pSearch->ToDCPacket(pDCNeighbour->m_nCodePage);
 		}
 
 		// Try to send the search

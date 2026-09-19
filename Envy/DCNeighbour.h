@@ -35,7 +35,7 @@ public:
 	CString			m_sNick;		// User nick on this hub
 	BOOL			m_bNickValid;	// User nick was accepted
 	BOOL			m_bExtended;	// Using extended protocol
-	UINT			m_nCodePage;	// NMDC text code page (0 = CP_ACP via DcResolveNmdcCodePage)
+	UINT m_nCodePage;               // NMDC text code page (0 = CP_ACP via DcResolveNmdcCodePage)
 	CStringList		m_oFeatures;	// Remote client supported features
 
 	BOOL			ConnectToMe(const CString& sNick);		// Send $ConnectToMe command

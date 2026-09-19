@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #224: NMDC text uses per-hub/settings code page (`DcNmdcText.h`, default CP_ACP); HostCache ser v2 `m_nCodePage`; ADC unchanged.
 - **Changelog Entry:** 2026-09-19 — Uploads Fair-Use is live: `Uploads.FairUseMode` (default off) clips each remote IPv4 client to 10% of an audio/video library file; checkbox bound; HTTP/ED2K/DC consumers; GET/ED2K/DC reserve then charge body bytes; unused reservation rolls back on `ClearRequest`/`Close` (keep-alive HEAD does not burn quota); BitTorrent and partials excluded.
 - **Changelog Entry:** 2026-09-19 — Transfer settings foundation: Uploads page labels match the core (`Unlimited`, throttle Average/Maximum, max uploads per host); `TransferSettingsLimits.h` + EnvyTests; mapping in `docs/50_user/transfer-settings.md`.
 - **Changelog Entry:** 2026-09-19 — Cloud Agent Linux env: add `.cursor/environment.json` installing clang-format-18/clang-tidy (CI-aligned) + cppcheck (local extra) + `Remote/tests` npm deps (MFC/HashLib remain Windows-only).
@@ -28,7 +29,6 @@
 - **Changelog Entry:** 2026-09-18 — Bootstrap catalogue refresh (PR A): `DefaultServices.dat` / `DefaultServers.dat` audited; static ED2K IPs and dead GWC/hublists removed; HTTPS `server.met` + hublists; gtk-gnutella UHCs; Transmission/libtorrent DHT routers. Kad remote `nodes.dat` not added (partial Kad2; ImportNodes v1-only). See `docs/30_protocols/bootstrap-sources.md`.
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent TCP length-prefix capped at 16 MiB (`BtPacketLengthOk`); oversize clears buffer and closes peer (`PROTOCOL_TOO_LARGE`).
 - **Changelog Entry:** 2026-09-19 — #81: G2 HIT_WRAP / wrapped G1 fail-closed via `G1WrappedPayloadFits` / negative `m_nLength` reject in `CG1Packet::New` + null-check call sites.
-- **Changelog Entry:** 2026-09-19 — #224: NMDC text uses per-hub/settings code page (`DcNmdcText.h`, default CP_ACP); HostCache ser v2 `m_nCodePage`; ADC unchanged.
 - **Changelog Entry:** 2026-09-19 — #81: G2 compound/frame length checks order-safe (`G2SubpacketPayloadFits` / `G2FrameLengthFits`) in ReadPacket/SkipCompound/ReadBuffer (defense-in-depth).
 - **Changelog Entry:** 2026-09-19 — #81: G1 QueryHit QHD `nXMLSize` fail-closed via `G1QueryHitXmlFits` (must leave trailing GUID, including zero-length XML); no soft clamp to 0.
 - **Changelog Entry:** 2026-09-19 — #81: ED2K `VIEWSHAREDDIRANSWER` consumes WORD-prefixed directory name before `count`; `OnViewSharedDir` / `OnAskSharedDirsAnswer` / `OnServerMessage` fail-closed via `Ed2kEdString*` + `Ed2kServerMessageLengthOk` (5000-byte MOTD cap).

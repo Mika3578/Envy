@@ -130,12 +130,13 @@ public:
 	CG1Packet*				ToG1Packet(DWORD nTTL = 0) const;
 	CG2Packet*				ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey) const;
 	CEDPacket*				ToEDPacket(BOOL bUDP, DWORD nServerFlags = 0) const;
-	CDCPacket*				ToDCPacket(UINT nNmdcCodePage = 0) const;
+	CDCPacket* ToDCPacket(UINT nNmdcCodePage = 0) const;
+
 private:
 	BOOL					ReadG1Packet(CG1Packet* pPacket, const SOCKADDR_IN* pEndpoint = NULL);
 	void					ReadGGEP(CG1Packet* pPacket);
 	BOOL					ReadG2Packet(CG2Packet* pPacket, const SOCKADDR_IN* pEndpoint = NULL);
-	BOOL					ReadDCPacket(CDCPacket* pPacket, const SOCKADDR_IN* pEndpoint = NULL, UINT nNmdcCodePage = 0);
+	BOOL ReadDCPacket(CDCPacket* pPacket, const SOCKADDR_IN* pEndpoint = NULL, UINT nNmdcCodePage = 0);
 
 public:
 	CString					GetSearch() const;
@@ -170,7 +171,7 @@ private:
 
 // Utilities
 public:
-	static CQuerySearchPtr	FromPacket(CPacket* pPacket, const SOCKADDR_IN* pEndpoint = NULL, BOOL bGUID = FALSE, UINT nNmdcCodePage = 0);
+	static CQuerySearchPtr FromPacket(CPacket* pPacket, const SOCKADDR_IN* pEndpoint = NULL, BOOL bGUID = FALSE, UINT nNmdcCodePage = 0);
 	static CSearchWnd*		OpenWindow(CQuerySearch* pSearch);
 	static BOOL 			WordMatch(LPCTSTR pszString, LPCTSTR pszFind, bool* bReject = NULL);
 	static BOOL 			NumberMatch(const CString& strValue, const CString& strRange);
