@@ -43,7 +43,7 @@ public:
 
 	QWORD			m_nFileBase;	// Base offset in requested file
 	BOOL			m_bFilePartial;	// Partial file flag
-	BOOL			m_bFairUseMedia;	// Audio/video library file (Fair-Use 10% cap)
+	BOOL m_bFairUseMedia;           // Audio/video library file (Fair-Use 10% cap)
 	CString			m_sFileTags;	// File sharing tags
 
 	BOOL			m_bLive;		// Live connection tag
@@ -94,7 +94,7 @@ protected:
 	void			StartSending(int nState);
 	void			AllocateBaseFile();
 	void			AttachFile(CFragmentedFile* pFile);
-	BOOL			ApplyFairUseLimit();	// Clip range to 10% per host when Fair-Use is on
+	BOOL ApplyFairUseLimit(); // Clip range to 10% per host when Fair-Use is on
 
 	virtual BOOL	IsFileOpen() const;
 	virtual BOOL	OpenFile();

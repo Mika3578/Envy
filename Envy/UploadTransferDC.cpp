@@ -406,9 +406,9 @@ BOOL CUploadTransferDC::RequestFile(CLibraryFile* pFile, QWORD nOffset, QWORD nL
 
 	if (!ApplyFairUseLimit())
 	{
-		theApp.Message( MSG_ERROR, IDS_UPLOAD_BAD_RANGE, (LPCTSTR)m_sAddress, (LPCTSTR)m_sName );
+		theApp.Message(MSG_ERROR, IDS_UPLOAD_BAD_RANGE, (LPCTSTR)m_sAddress, (LPCTSTR)m_sName);
 
-		m_pClient->SendCommand( FILE_NOT_AVAILABLE );
+		m_pClient->SendCommand(FILE_NOT_AVAILABLE);
 
 		return TRUE;
 	}

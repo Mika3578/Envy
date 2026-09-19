@@ -42,12 +42,12 @@ protected:
 
 	struct FairUseGrant
 	{
-		DWORD	nAddr;
-		CString	sPath;
-		QWORD	nGranted;
-		DWORD	tLast;
+		DWORD nAddr;
+		CString sPath;
+		QWORD nGranted;
+		DWORD tLast;
 	};
-	CList< FairUseGrant >	m_oFairUse;
+	CList<FairUseGrant> m_oFairUse;
 
 public:
 	void		Clear(BOOL bMessage = TRUE);
@@ -57,8 +57,8 @@ public:
 	BOOL		AllowMoreTo(const IN_ADDR* pAddress) const;
 	BOOL		CanUploadFileTo(const IN_ADDR* pAddress, const CEnvyFile* pFile) const;
 	BOOL		EnforcePerHostLimit(CUploadTransfer* pUpload, BOOL bRequest = FALSE);
-	QWORD		GetFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath) const;
-	void		AddFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath, QWORD nBytes);
+	QWORD GetFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath) const;
+	void AddFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath, QWORD nBytes);
 
 	void		OnRun();
 	DWORD		GetBandwidth() const;

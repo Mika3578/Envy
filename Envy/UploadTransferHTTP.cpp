@@ -781,14 +781,14 @@ BOOL CUploadTransferHTTP::RequestSharedFile(CLibraryFile* pFile, CSingleLock& oL
 	{
 		oLibraryLock.Unlock();
 		SendResponse( IDR_HTML_BADRANGE );
-		theApp.Message( MSG_ERROR, IDS_UPLOAD_BAD_RANGE, (LPCTSTR)m_sAddress, (LPCTSTR)m_sName );
+		theApp.Message(MSG_ERROR, IDS_UPLOAD_BAD_RANGE, (LPCTSTR)m_sAddress, (LPCTSTR)m_sName);
 		return TRUE;
 	}
 
 	if (!ApplyFairUseLimit())
 	{
 		oLibraryLock.Unlock();
-		SendResponse( IDR_HTML_BADRANGE );
+		SendResponse(IDR_HTML_BADRANGE);
 		theApp.Message( MSG_ERROR, IDS_UPLOAD_BAD_RANGE, (LPCTSTR)m_sAddress, (LPCTSTR)m_sName );
 		return TRUE;
 	}

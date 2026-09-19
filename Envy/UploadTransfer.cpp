@@ -45,24 +45,24 @@ static char THIS_FILE[] = __FILE__;
 // CUploadTransfer construction
 
 CUploadTransfer::CUploadTransfer(PROTOCOLID nProtocol)
-	: CTransfer			( nProtocol )
-	, m_pQueue			( NULL )
-	, m_pBaseFile		( NULL )
-	, m_nFileBase		( 0 )
-	, m_bFilePartial	( FALSE )
-	, m_bFairUseMedia	( FALSE )
-	, m_bStopTransfer	( FALSE )
-	, m_bPriority		( FALSE )
-	, m_bLive			( TRUE )
-	, m_nUserRating		( urNew )
-	, m_nRequests		( 0 )
-	, m_nUploaded		( 0 )
-	, m_tContent		( 0 )
-	, m_tRotateTime		( 0 )
-	, m_tAverageTime	( 0 )
-	, m_nAveragePos		( 0 )
-	, m_tRatingTime		( 0 )
-	, m_nMaxRate		( 0 )
+    : CTransfer(nProtocol)
+    , m_pQueue(NULL)
+    , m_pBaseFile(NULL)
+    , m_nFileBase(0)
+    , m_bFilePartial(FALSE)
+    , m_bFairUseMedia(FALSE)
+    , m_bStopTransfer(FALSE)
+    , m_bPriority(FALSE)
+    , m_bLive(TRUE)
+    , m_nUserRating(urNew)
+    , m_nRequests(0)
+    , m_nUploaded(0)
+    , m_tContent(0)
+    , m_tRotateTime(0)
+    , m_tAverageTime(0)
+    , m_nAveragePos(0)
+    , m_tRatingTime(0)
+    , m_nMaxRate(0)
 {
 	m_nProtocol			= nProtocol;
 	m_nBandwidth		= Settings.Bandwidth.Request;
@@ -418,7 +418,7 @@ void CUploadTransfer::ClearRequest()
 	m_nSize			= 0;
 	m_nFileBase		= 0;
 	m_bFilePartial	= FALSE;
-	m_bFairUseMedia	= FALSE;
+	m_bFairUseMedia = FALSE;
 
 	m_nLength		= SIZE_UNKNOWN;
 	m_nOffset		= SIZE_UNKNOWN;
@@ -447,7 +447,7 @@ BOOL CUploadTransfer::RequestComplete(const CLibraryFile* pFile)
 	m_sFileTags	= pFile->m_sShareTags;
 	m_bFilePartial = FALSE;
 	m_bFairUseMedia = pFile->IsSchemaURI(CSchema::uriAudio) ||
-					  pFile->IsSchemaURI(CSchema::uriVideo);
+	                  pFile->IsSchemaURI(CSchema::uriVideo);
 
 	m_oSHA1 = pFile->m_oSHA1;
 	m_oTiger = pFile->m_oTiger;
@@ -533,8 +533,8 @@ void CUploadTransfer::AllocateBaseFile()
 BOOL CUploadTransfer::ApplyFairUseLimit()
 {
 	if (!TransferFairUseApplies(Settings.Uploads.FairUseMode != false,
-			m_bFairUseMedia != FALSE, m_bFilePartial != FALSE,
-			m_nProtocol == PROTOCOL_BT))
+	                            m_bFairUseMedia != FALSE, m_bFilePartial != FALSE,
+	                            m_nProtocol == PROTOCOL_BT))
 		return TRUE;
 
 	if (m_nSize == 0 || m_nSize == SIZE_UNKNOWN)
