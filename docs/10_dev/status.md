@@ -107,7 +107,7 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 
 - Settings → Internet → Uploads mapping is documented in `docs/50_user/transfer-settings.md`.
 - Global upload/download caps are **implemented** (`Bandwidth.Uploads` / `Downloads`, `0` = unlimited).
-- `Uploads.FairUseMode` is **not implemented** (control disabled).
+- `Uploads.FairUseMode` is **implemented** (opt-in 10% audio/video per remote IPv4 client).
 - Simple-mode activity caps and per-protocol bandwidth UI are **planned** only where a backend already exists.
 - Status: **partial**. Do not claim a complete qBittorrent-style transfer pane.
 

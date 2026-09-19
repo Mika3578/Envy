@@ -1,6 +1,6 @@
 # Transfer settings (Uploads / Downloads)
 
-Status: **partial** (foundation PR — terminology, validation, mapping)
+Status: **partial** (foundation + Fair-Use)
 Last updated: 2026-09-19
 Scope: Settings → Internet → Uploads (`CUploadsSettingsPage`) and the shared
 bandwidth-limit token used on Settings → Internet → Downloads.
@@ -32,7 +32,7 @@ load the defaults below.
 | Limit sharing in hub mode | `Uploads.HubUnshare` | true | bool | — | `CUploads::GetBandwidthLimit` scales by `Bandwidth.HubUploads` % when G2 hub or G1 ultrapeer | G1/G2 hub role; the scaled cap then applies to all upload queues | registry `Uploads\HubUnshare` | — | implemented |
 | Share new partial downloads | `Uploads.SharePartials` | true | bool | — | `CDownload` constructor `m_bShared`; ignored for many live ED2K/BT cases (see tooltip) | HTTP/Gnutella path; ED2K/BT often ignore | registry | — | partial (documented caveats) |
 | Share preview files | `Uploads.SharePreviews` | true | bool | — | `CEDClient` preview send; `CLocalSearch` preview advertisement | ED2K + Gnutella browse/search | registry | — | implemented |
-| Fair-Use mode | `Uploads.FairUseMode` | false | bool | — | **none** | — | registry (kept for old profiles) | — | **not implemented** (checkbox disabled) |
+| Fair-Use mode | `Uploads.FairUseMode` | false | bool | — | `CUploadTransfer::ApplyFairUseLimit` clips HTTP/ED2K/DC library ranges; `CUploads` host+path ledger | HTTP, ED2K, DC library A/V; **not** BT, **not** partials | registry `Uploads\FairUseMode` | off = no clip | **implemented** (opt-in) |
 | Max uploads per host | `Uploads.MaxPerHost` | **2** (not 64) | count | 1–64 | `CUploads::AllowMoreTo` / `CanUploadFileTo` / `EnforcePerHostLimit`; HTTP `X-PerHost` | all upload transfers (HTTP, ED2K, DC, BT upload objects in `CUploads`) | registry; load + Apply clamp | 0 and &gt;64 clamped to 1..64 | implemented |
 | User-Agent filter | `Uploads.BlockAgents` | `Mozilla`, `Foxy` | substring set | — | `Security.cpp` agent match | HTTP-style User-Agent | registry pipe list | empty = no extra blocks | implemented |
 | Bandwidth Limit combo | `Bandwidth.Uploads` | **0** | bytes/s | 0 or parsed volume | `CUploads::GetBandwidthLimit`; queue point split; `CConnection::OnWrite` meter | global (all protocols sharing `Uploads` limiter) | registry `Bandwidth\Uploads` | **0 / Unlimited / MAX / NONE = unlimited** (no extra cap beyond `Connection.OutSpeed`) | implemented |
@@ -55,7 +55,7 @@ load the defaults below.
 ### Immediate vs Apply
 
 - Queue New / Edit / Delete / drag-and-drop call `UploadQueues.Save()` immediately (French skin text “(Effet immédiat)” refers to **queue reordering**, not the bandwidth combo).
-- Hub unshare, partials, previews, max-per-host, agent filter, bandwidth, throttle apply on **Apply/OK**.
+- Hub unshare, partials, previews, Fair-Use, max-per-host, agent filter, bandwidth, throttle apply on **Apply/OK**.
 
 ---
 
@@ -66,13 +66,13 @@ load the defaults below.
 | `MaxPerHost = 2` | Historical Shareaza/Envy default. 64 is the **maximum**, not the default. Raising it increases per-IP upload slots and can hurt fairness. |
 | `Bandwidth.Uploads = 0` | Unlimited extra cap; effective send rate still bounded by `Connection.OutSpeed`. |
 | `ThrottleMode = false` | Average/soft limiter (Shareaza heritage). Strict mode is opt-in. |
-| `FairUseMode = false` | Unused. |
+| `FairUseMode = false` | Opt-in. When true, each IPv4 client is clipped to 10% of each audio/video library file (schema Audio.xsd / Video.xsd, including extension-guessed schema). Ledger is in-memory (cleared on `CUploads::Clear` / process exit; max 4096 host+path keys). |
 
 ---
 
 ## Inconsistencies found (this audit)
 
-1. **Fair-Use checkbox had no `DDX` and no core reader** — decorative UI. Now disabled; value still persisted.
+1. **Fair-Use is now bound** — checkbox + DDX + `ApplyFairUseLimit` on HTTP/ED2K/DC complete library files. Historical comment “unknown audio/video” is implemented as audio/video schema files (not “missing metadata”, which would skip almost every scanned MP3).
 2. **`MAX` was a hardcoded English combo token** — French UI showed `MAX`. Display is now localized `Unlimited` / `Illimité`; `MAX`/`NONE` still parse as unlimited.
 3. **`ParseVolume("MAX")` returned 0 only because parsing failed** — same as garbage text. Unlimited tokens are now recognized explicitly; unknown text still fails validation when the field is “limited”.
 4. **`static_cast<DWORD>(ParseVolume(...))` truncated QWORD** — overflow now clamps to `DWORD` max.
@@ -80,7 +80,7 @@ load the defaults below.
 6. **`AllowMoreTo` uses `nCount <= MaxPerHost`** while **`CanUploadFileTo` uses `nCount < MaxPerHost`** — off-by-one between accept paths. **Not changed** (queue/engine risk). Follow-up.
 7. **SharePartials** does not mean “always share incomplete files on every network” (tooltip).
 8. **Queue order is first-match** (`SelectQueue`). Overlaps are deterministic (list order / drag priority) but easy to misconfigure. Engine unchanged.
-9. Docs previously described Fair-Use as a live 10% media limit and ThrottleMode as a generic “enable throttling” bit.
+9. Docs previously described ThrottleMode as a generic “enable throttling” bit.
 
 ---
 
@@ -136,8 +136,10 @@ Keep Small/Large/Partial/eDonkey queues. Do not delete them for a “modern” s
 
 `tests/test_transfer_settings_limits_smoke.cpp` covers defaults, unlimited tokens
 (including legacy `MAX`/`NONE` and a localized `Illimité`), DWORD overflow,
-MaxPerHost clamp (0, 1, 64, 65, negative), absent-key fallback, and
-Fair-Use-not-implemented.
+MaxPerHost clamp (0, 1, 64, 65, negative), absent-key fallback, Fair-Use
+opt-in default, 10% max-bytes, and range clip (first request, remaining,
+offset preserved, EOF deny).
 
 Live MFC Apply/immediate queue save is not executed in EnvyTests (no dialog
-host). Wire-format impact: **none**.
+host). Wire-format impact: **none** (HTTP 206 / existing ED2K-DC part frames;
+shorter ranges only).

@@ -35,5 +35,3 @@
 
 - **HostCache DNS-only BT routers:** shipped `DefaultServers.dat` `B` rows are hostnames. `CHostCacheList::Add` keeps `m_pAddress = INADDR_ANY` until a later resolve. The map is a `std::multimap`, so multiple `0.0.0.0` keys coexist; DHT bootstrap walks `m_HostsTime`. Canonical note: `docs/30_protocols/bootstrap-sources.md`. Do not treat this as a reason to hard-code DHT DNS in C++ (D-012).
 - **Uploads `MaxPerHost` accept vs enforce counts:** `CUploads::AllowMoreTo` treats `nCount <= MaxPerHost` as OK (so `MaxPerHost+1` uploading+queued can be allowed). `CanUploadFileTo` uses `nCount < MaxPerHost`. `EnforcePerHostLimit` also counts `upsPreQueue`. Documented in `docs/50_user/transfer-settings.md`; engine not changed in the transfer-settings foundation PR.
-
-- **Uploads FairUseMode:** Registry/UI remnant (`Uploads.FairUseMode`). No core consumer. Uploads checkbox is disabled as of the transfer-settings foundation PR. Do not document as a live 10% media limit.

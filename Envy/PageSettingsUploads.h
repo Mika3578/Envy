@@ -46,6 +46,7 @@ public:
 	BOOL			m_bSharePartials;
 	BOOL			m_bSharePreviews;
 	BOOL			m_bThrottleMode;
+	BOOL			m_bFairUseMode;
 	DWORD			m_nMaxPerHost;
 	CString			m_sBandwidthLimit;
 

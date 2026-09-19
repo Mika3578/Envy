@@ -2787,7 +2787,7 @@
 <controlTips>
 	<tip id="IDC_REGEXP" text="Enter regular expressions in perl syntax.{n}All search keywords can be listed in order with the &lt;%&gt; tag.{n}Individual keywords can be specified with &lt;1&gt;, numbers 1 through 9."/>
 	<tip id="IDC_THROTTLE_MODE" text="Throttle mode for the upload cap.{n}Maximum (strict): bandwidth will not exceed the specified value.{n}Average (soft): measured rate may briefly go above or below the value."/>
-	<tip id="IDC_FAIRUSE_MODE" text="Fair-Use mode is not implemented. The checkbox is disabled so it cannot be mistaken for a live 10% media limit. The registry value is still stored for old profiles."/>
+	<tip id="IDC_FAIRUSE_MODE" text="When enabled, each remote host may download at most 10% of an audio or video library file. Partial downloads and BitTorrent are not limited. Default is off."/>
 	<tip id="IDC_MAX_HOST" text="Maximum simultaneous upload transfers (active or queued) allowed to one remote IPv4 address. Range 1–64. Default 2. This is not a TCP connection cap."/>
 	<tip id="IDC_UPLOADS_BANDWIDTH_LIMIT" text="Global upload speed cap in bytes/second after parsing. Unlimited (also MAX or NONE) stores 0 and means no extra cap beyond the connection uplink. Applies across protocols; queue bandwidth points split this budget."/>
 	<tip id="IDC_SHARE_PARTIALS" text="This setting has no effect on current downloads, or torrents, or with eDonkey hash and eDonkey network enabled. However, this setting is not ignored if the download is paused.{n}{n}ATTENTION: Use this option only if necessary, if you abuse the option you may be banned."/>

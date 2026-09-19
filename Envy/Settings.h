@@ -649,7 +649,7 @@ public:
 		DWORD		ClampdownFactor;
 		DWORD		ClampdownFloor;
 		DWORD		ChunkSize;
-		bool		FairUseMode;			// Not implemented (no core consumer). Persisted for old profiles.
+		bool		FairUseMode;			// Limit audio/video library files to 10% per remote IPv4 client
 		bool		ThrottleMode;			// false = Average (soft) limit, true = Maximum (strict) never-exceed
 		DWORD		QueuePollMin;
 		DWORD		QueuePollMax;
