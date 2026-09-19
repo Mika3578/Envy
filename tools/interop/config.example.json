@@ -1,0 +1,20 @@
+{
+  "envy_exe": "",
+  "emule_exe": "",
+  "amule_exe": "",
+  "work_dir": "",
+  "artifact_dir": "",
+  "envy_tcp_port": 4662,
+  "reference_tcp_port": 4663,
+  "startup_timeout_sec": 30,
+  "scenario_timeout_sec": 120,
+  "shutdown_timeout_sec": 15,
+  "allow_external_network": false,
+  "enable_pcap": false,
+  "live": false,
+  "dry_run": true,
+  "cleanup": true,
+  "reference_client": "none",
+  "reference_version": "",
+  "scenarios": ["phase1"]
+}

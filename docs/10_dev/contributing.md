@@ -106,7 +106,7 @@ git commit -m "Changes"
 - **Protocol fixes**: ED2K/Kad interop with eMule Community and aMule (P0); RSA SecureIdent only after that baseline
 - **Security**: Vulnerability fixes, input validation
 - **Performance**: Memory usage, CPU optimization
-- **Testing**: Unit tests, live interop tests
+- **Testing**: Unit tests; opt-in live interop harness (`tools/interop/`, #160)
 
 ### Medium Priority
 - **UI improvements**: Modern Windows features, accessibility

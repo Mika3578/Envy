@@ -21,6 +21,14 @@ ctest --test-dir build
 - Register test entry in the existing test framework/main.
 - Prefer deterministic tests that avoid network flakiness.
 - For protocol logic, isolate parser/state transitions from live network where possible.
+- Live eMule/aMule runs belong in the opt-in harness (`tools/interop/`), not in EnvyTests.
+
+## ED2K live interop harness (#160)
+- Command: `python3 tools/interop/run.py --dry-run` (default) or `--self-test`.
+- Live: `python3 tools/interop/run.py --live --envy-exe <path> [--emule-exe <path>|--amule-exe <path>]`.
+- Results are PASS/FAIL/SKIP/NOT_IMPLEMENTED. Future compressed-transfer, LowID, and Kad rows stay NOT_IMPLEMENTED.
+- Required CI never needs eMule/aMule binaries or the public P2P network.
+- Details: `tools/interop/README.md`. This is **not** a claim that ENVY is fully interoperable.
 
 ## Coverage Targets (Proposed)
 - Hashing/core utilities: maintain high coverage.

@@ -242,6 +242,7 @@ while IFS= read -r f; do
 	if match_prefix "$f" "docs/" || \
 	   match_prefix "$f" "Templates/" || \
 	   match_prefix "$f" ".github/ISSUE_TEMPLATE/" || \
+	   match_prefix "$f" "tools/interop/" || \
 	   [[ "$f" == .github/*.md ]]; then
 		docs=true
 		classified=true

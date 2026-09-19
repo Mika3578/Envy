@@ -441,6 +441,11 @@ Plugins/ZIPBuilder/ZIPBuilder.h
 /references/
 /.envy.local.*
 
+# Interop harness run artifacts (raw captures / logs — never commit)
+tools/interop/artifacts/
+**/__pycache__/
+*.py[cod]
+
 # Volatile development records
 /DEV_TRACKER.md
 /docs/DEV_TRACKER.md
