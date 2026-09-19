@@ -23,6 +23,7 @@
 #include "Datagrams.h"
 #include "G2Packet.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -77,6 +78,16 @@ void CDatagramOut::Create(const SOCKADDR_IN* pHost, CG2Packet* pPacket, WORD nSe
 	m_nPacket	= Settings.Gnutella2.UdpMTU;
 	m_nCount	= (BYTE)( ( m_pBuffer->m_nLength + m_nPacket - 1 ) / m_nPacket );
 	m_nAcked	= m_nCount;
+
+	// Keep outbound fragmentation within the receive-side fragment budget so
+	// peers that enforce G2_SGP_FRAGMENT_MAX still accept our UDP SGP frames.
+	if (!G2SgpFragmentCountOk(m_nCount))
+	{
+		m_pBuffer->Clear();
+		m_nCount = 0;
+		m_nAcked = 0;
+		return;
+	}
 
 	SGP_HEADER pHeader;
 

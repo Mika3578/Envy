@@ -725,7 +725,7 @@ static bool test_bt_sources_wanted_allows_more()
 
 static bool test_g2_sgp_reassembly_bounds()
 {
-	return G2SgpFragmentCountOk(1) == TRUE && G2SgpFragmentCountOk(G2_SGP_FRAGMENT_MAX) == TRUE && G2SgpFragmentCountOk(0) == FALSE && G2SgpFragmentCountOk(static_cast<BYTE>(G2_SGP_FRAGMENT_MAX + 1)) == FALSE && G2SgpReassembledBytesOk(1) == TRUE && G2SgpReassembledBytesOk(G2_SGP_REASSEMBLED_MAX) == TRUE && G2SgpReassembledBytesOk(0) == FALSE && G2SgpReassembledBytesOk(G2_SGP_REASSEMBLED_MAX + 1) == FALSE;
+	return G2SgpFragmentCountOk(1) == TRUE && G2SgpFragmentCountOk(G2_SGP_FRAGMENT_MAX) == TRUE && G2SgpFragmentCountOk(0) == FALSE && G2SgpFragmentCountOk(static_cast<BYTE>(G2_SGP_FRAGMENT_MAX + 1)) == FALSE && G2SgpReassembledBytesOk(1) == TRUE && G2SgpReassembledBytesOk(G2_SGP_REASSEMBLED_MAX) == TRUE && G2SgpReassembledBytesOk(0) == FALSE && G2SgpReassembledBytesOk(G2_SGP_REASSEMBLED_MAX + 1) == FALSE && G2SgpEffectiveByteCap(0) == G2_SGP_REASSEMBLED_MAX && G2SgpEffectiveByteCap(G2_SGP_REASSEMBLED_MAX + 1) == G2_SGP_REASSEMBLED_MAX && G2SgpEffectiveByteCap(64u * 1024u) == 64u * 1024u && G2SgpReassembledBytesOk(64u * 1024u, 64u * 1024u) == TRUE && G2SgpReassembledBytesOk(64u * 1024u + 1, 64u * 1024u) == FALSE;
 }
 
 void register_protocol_parser_smoke_tests(TestSuite& suite)

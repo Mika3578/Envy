@@ -18,6 +18,7 @@
 
 #include "StdAfx.h"
 #include "Envy.h"
+#include "Settings.h"
 #include "Datagram.h"
 #include "Datagrams.h"
 #include "Buffer.h"
@@ -80,15 +81,38 @@ void CDatagramIn::Create(const SOCKADDR_IN* pHost, BYTE nFlags, WORD nSequence, 
 
 BOOL CDatagramIn::Add(BYTE nPart, LPCVOID pData, DWORD nLength)
 {
-	if ( nPart < 1 || nPart > m_nCount ) return FALSE;
-	if ( m_nLeft == 0 ) return FALSE;
+	if (nPart < 1 || nPart > m_nCount)
+		return FALSE;
+	if (m_nLeft == 0)
+		return FALSE;
 
-	if ( m_pLocked[ nPart - 1 ] == FALSE )
+	const DWORD nCap = G2SgpEffectiveByteCap(Settings.Gnutella.MaximumPacket);
+	if (nLength > nCap)
+		return FALSE;
+
+	if (m_pLocked[nPart - 1] == FALSE)
 	{
-		m_pLocked[ nPart - 1 ] = TRUE;
-		m_pBuffer[ nPart - 1 ]->Add( pData, nLength );
+		// Enforce cumulative reassembly budget before allocating into the part buffer.
+		DWORD nTotal = nLength;
+		for (int i = 0; i < m_nCount; i++)
+		{
+			if (i == (int)nPart - 1)
+				continue;
+			if (!m_pLocked[i] || m_pBuffer[i] == NULL)
+				continue;
+			const DWORD nPartLen = m_pBuffer[i]->m_nLength;
+			if (nPartLen > nCap - nTotal)
+				return FALSE;
+			nTotal += nPartLen;
+		}
+		if (nTotal > nCap)
+			return FALSE;
 
-		if ( --m_nLeft == 0 ) return TRUE;
+		m_pLocked[nPart - 1] = TRUE;
+		m_pBuffer[nPart - 1]->Add(pData, nLength);
+
+		if (--m_nLeft == 0)
+			return TRUE;
 	}
 
 	return FALSE;
@@ -99,36 +123,37 @@ BOOL CDatagramIn::Add(BYTE nPart, LPCVOID pData, DWORD nLength)
 
 CG2Packet* CDatagramIn::ToG2Packet()
 {
+	const DWORD nCap = G2SgpEffectiveByteCap(Settings.Gnutella.MaximumPacket);
 	DWORD nTotal = 0;
 	for (int nPart = 0; nPart < m_nCount; nPart++)
 	{
 		if (m_pBuffer[nPart] == NULL)
 			return NULL;
 		const DWORD nPartLen = m_pBuffer[nPart]->m_nLength;
-		if (nPartLen > G2_SGP_REASSEMBLED_MAX - nTotal)
+		if (nPartLen > nCap - nTotal)
 			return NULL;
 		nTotal += nPartLen;
-		if (!G2SgpReassembledBytesOk(nTotal))
+		if (!G2SgpReassembledBytesOk(nTotal, nCap))
 			return NULL;
 	}
 
-	if ( m_nCount != 1 )
+	if (m_nCount != 1)
 	{
-		for ( int nPart = 1; nPart < m_nCount; nPart++ )
+		for (int nPart = 1; nPart < m_nCount; nPart++)
 		{
-			m_pBuffer[0]->AddBuffer( m_pBuffer[ nPart ] );
+			m_pBuffer[0]->AddBuffer(m_pBuffer[nPart]);
 		}
 	}
 
 	if (m_bCompressed)
 	{
-		if (!m_pBuffer[0]->Inflate(G2_SGP_INFLATE_MAX))
+		if (!m_pBuffer[0]->Inflate(nCap))
 			return NULL;
 	}
-	else if (!G2SgpReassembledBytesOk(m_pBuffer[0]->m_nLength))
+	else if (!G2SgpReassembledBytesOk(m_pBuffer[0]->m_nLength, nCap))
 	{
 		return NULL;
 	}
 
-	return CG2Packet::ReadBuffer( m_pBuffer[0] );
+	return CG2Packet::ReadBuffer(m_pBuffer[0]);
 }

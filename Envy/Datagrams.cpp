@@ -408,6 +408,23 @@ BOOL CDatagrams::Send(const SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease,
 	m_pBufferFree = m_pBufferFree->m_pNext;
 	m_nBufferFree--;
 
+	if (pDG->m_nCount == 0)
+	{
+		// Fragment count exceeded G2_SGP_FRAGMENT_MAX — reclaim and fail closed.
+		if (pDG->m_pBuffer)
+		{
+			pDG->m_pBuffer->m_pNext = m_pBufferFree;
+			m_pBufferFree = pDG->m_pBuffer;
+			m_pBufferFree->Clear();
+			pDG->m_pBuffer = NULL;
+			m_nBufferFree++;
+		}
+		pDG->m_pNextHash = m_pOutputFree;
+		m_pOutputFree = pDG;
+		if (bRelease) pPacket->Release();
+		return FALSE;
+	}
+
 	pDG->m_pToken		= pToken;
 	pDG->m_pNextTime	= NULL;
 	pDG->m_pPrevTime	= m_pOutputFirst;
