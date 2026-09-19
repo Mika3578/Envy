@@ -703,9 +703,14 @@ static bool test_g1_wrapped_payload_ok()
 	       G1WrappedPayloadFits(G1_PACKET_HEADER_BYTES, 0) == TRUE;
 }
 
+static bool test_update_servers_http_response_bounds()
+{
+	return UpdateServersHttpResponseOk(1) == TRUE && UpdateServersHttpResponseOk(UPDATE_SERVERS_HTTP_RESPONSE_MAX) == TRUE && UpdateServersHttpResponseOk(UPDATE_SERVERS_HTTP_RESPONSE_MAX + 1) == FALSE && UpdateServersHttpResponseOk(0) == FALSE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
-	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
+	suite.add_test("ed2k_source_body_exact_fit", test_source_body_valid_exact);
 	suite.add_test( "ed2k_source_body_empty", test_source_body_valid_empty );
 	suite.add_test( "ed2k_source_body_truncated", test_source_body_truncated );
 	suite.add_test( "ed2k_source_body_count_overflow", test_source_body_count_overflow );
@@ -789,9 +794,10 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_packed_inflate_ok", test_ed2k_packed_inflate_ok );
 	suite.add_test( "bt_tracker_http_response_bounds", test_bt_tracker_http_response_bounds );
 	suite.add_test( "discovery_http_response_bounds", test_discovery_http_response_bounds );
+	suite.add_test("update_servers_http_response_bounds", test_update_servers_http_response_bounds);
 	suite.add_test( "host_browser_http_body_bounds", test_host_browser_http_body_bounds );
 	suite.add_test( "cbuffer_inflate_output_ok", test_cbuffer_inflate_output_ok );
-	suite.add_test( "cbuffer_inflate_stream_output_ok", test_cbuffer_inflate_stream_output_ok );
+	suite.add_test("cbuffer_inflate_stream_output_ok", test_cbuffer_inflate_stream_output_ok);
 	suite.add_test( "ggep_inflate_output_ok", test_ggep_inflate_output_ok );
 	suite.add_test( "ed2k_compressedpart_inflate_ok", test_ed2k_compressedpart_inflate_ok );
 	suite.add_test( "ed2k_compressedpart_accept_before_submit", test_ed2k_compressedpart_accept_before_submit );

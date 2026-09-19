@@ -3,7 +3,11 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+<<<<<<< HEAD
+- **Changelog Entry:** 2026-09-19 — #81/#82: Update Servers dialog HTTP bodies capped at 32 MiB (`LimitContentLength` + `UpdateServersHttpResponseOk`).
+=======
 - **Changelog Entry:** 2026-09-19 — CI audit (`docs/10_dev/CI_AUDIT_2026-09.md`): measured ~7 min PR critical path (Build x64 ∥ CodeQL c-cpp); skip empty NuGet (~22s/job), failure-only PR build logs, always-emit Documentation Check; PR Gate keeps `POLL_SEC` script default 15s (no 10s override — API quota); Protect develop + Protect main API snapshots; live Protect develop approval-count drift (API 0 vs intended 1).
+>>>>>>> origin/develop
 - **Changelog Entry:** 2026-09-19 — #81: Kademlia store-entry tags capped at 4 KiB (`KadStoreTagLengthOk`) in `ReadEntryTags`.
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent MSE responder `len(IA)` capped at 96 (`BtMseIaLengthOk`); partial IA waits in `MSE_AWAITING_IA` before crypto_select (RC4 desync fix).
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent MSE receive Pad_C/Pad_D capped at 512 (`BtMsePadLengthOk` / `MSE_PAD_MAX_LEN`); pad length fields decoded/encoded big-endian.
