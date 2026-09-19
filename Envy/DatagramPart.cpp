@@ -63,7 +63,7 @@ CDatagramOut::~CDatagramOut()
 //////////////////////////////////////////////////////////////////////
 // CDatagramOut create
 
-void CDatagramOut::Create(const SOCKADDR_IN* pHost, CG2Packet* pPacket, WORD nSequence, CBuffer* pBuffer, BOOL bAck)
+BOOL CDatagramOut::Create(const SOCKADDR_IN* pHost, CG2Packet* pPacket, WORD nSequence, CBuffer* pBuffer, BOOL bAck)
 {
 	ASSERT( m_pBuffer == NULL );
 
@@ -86,7 +86,7 @@ void CDatagramOut::Create(const SOCKADDR_IN* pHost, CG2Packet* pPacket, WORD nSe
 		m_pBuffer->Clear();
 		m_nCount = 0;
 		m_nAcked = 0;
-		return;
+		return FALSE;
 	}
 
 	SGP_HEADER pHeader;
@@ -119,6 +119,7 @@ void CDatagramOut::Create(const SOCKADDR_IN* pHost, CG2Packet* pPacket, WORD nSe
 	ZeroMemory( m_pLocked, sizeof( DWORD ) * m_nCount );
 
 	m_tSent = GetTickCount();
+	return TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////
