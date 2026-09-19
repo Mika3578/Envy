@@ -1011,7 +1011,10 @@ int CHostCache::ImportNodes(CFile* pFile)
 
 	uint8_t ownId[Hashes::Guid::byteCount];
 	ZeroMemory(ownId, sizeof(ownId));
-	CopyMemory(ownId, &MyProfile.oGUID[0], Hashes::Guid::byteCount);
+	{
+		const Hashes::Guid oSelf = MyProfile.oGUID;
+		CopyMemory(ownId, &oSelf[0], Hashes::Guid::byteCount);
+	}
 
 	KadNodesDatContact oParsed[KadNodesDatNormalImportCap];
 	const KadNodesDatResult oResult = KadNodesDatParse(
