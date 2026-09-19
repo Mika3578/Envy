@@ -644,9 +644,9 @@ BOOL CDCClient::OnADCGet(const std::string& strParams)
 	}
 	ULONGLONG nOffset = 0;
 	ULONGLONG nLength = 0;
-	if ( ! DcParseAdcOffsetToken( strOffset.c_str(), &nOffset ) )
+	if (!DcParseAdcOffsetToken(strOffset.c_str(), &nOffset))
 		return FALSE;	// Invalid command
-	if ( ! DcParseAdcGetLengthToken( strLength.c_str(), &nLength ) )
+	if (!DcParseAdcGetLengthToken(strLength.c_str(), &nLength))
 		return FALSE;	// Invalid command
 
 	if ( CanUpload() )
@@ -703,9 +703,9 @@ BOOL CDCClient::OnADCSnd(const std::string& strParams)
 
 	ULONGLONG nOffset = 0;
 	ULONGLONG nLength = 0;
-	if ( ! DcParseAdcOffsetToken( strOffset.c_str(), &nOffset ) )
+	if (!DcParseAdcOffsetToken(strOffset.c_str(), &nOffset))
 		return FALSE;	// Invalid command
-	if ( ! DcParseAdcSndLengthToken( strLength.c_str(), &nLength ) )
+	if (!DcParseAdcSndLengthToken(strLength.c_str(), &nLength))
 		return FALSE;	// Invalid command
 
 	if ( CanDownload() )	// Start downloading...
