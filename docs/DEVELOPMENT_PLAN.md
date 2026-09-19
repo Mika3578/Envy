@@ -4,7 +4,7 @@
 
 - **Last Updated:** 2026-09-19
 - **Changelog Entry:** 2026-09-19 — CI: always-emit required `Build x64 Release` / `Build Win32 Release` on PRs (ubuntu no-op when `run_windows_build=false`; same pattern as Documentation Check) so Protect develop does not block on SKIPPED Builds.
-- **Changelog Entry:** 2026-09-19 — Cross-platform foundations: document EnvyCore interface rule / platform / UI target, D-012…D-015, Win32 legacy policy (no removal), CMake portable-slice priority; Linux/macOS remain `planned` not `supported` (`docs/20_arch/PORTABILITY_PLAN.md`); trackers #177–#180 (do not duplicate #91/#161/#89).
+- **Changelog Entry:** 2026-09-19 — Cross-platform foundations: document EnvyCore / platform / UI target, D-012…D-015, Win32 legacy policy (no removal), CMake portable-slice priority; Linux/macOS remain `planned` not `supported` (`docs/20_arch/PORTABILITY_PLAN.md`); trackers #177–#180 (do not duplicate #91/#161/#89).
 - **Changelog Entry:** 2026-09-19 — DC hublist bootstrap: default URL `https://dchublist.org/hublist.xml.bz2`; `DefaultServices.dat` H rows refreshed (org/pwiam/ru HTTPS); `CUpdateServersDlg` DC mode (skin `CUpdateHubListDlg`) so Settings > DC++ > Download is not the eDonkey server.met dialog. Parser unchanged (`dchub://` kept, `adc://`/`adcs://` skipped). Not ADC/hublist-complete.
 - **Changelog Entry:** 2026-09-19 — CI: required PR workflows also listen for `ready_for_review`; Format Check can run on `workflow_dispatch` against `origin/develop`.
 - **Changelog Entry:** 2026-09-19 — Renovate fork enablement: migrate `renovate.json5` → root `renovate.json` with `forkProcessing: "enabled"` (Mend App API pre-check); Dependabot remains vcpkg-only.
