@@ -5,8 +5,10 @@
 This document provides a comprehensive reference of all configurable settings in Envy P2P client, organized by category with default values and detailed explanations.
 
 **Version:** Envy 4.0+
-**Last Updated:** January 18, 2026
+**Last Updated:** 2026-09-19
 **Settings Version:** Internal Version (SmartVersion)
+
+Live Uploads/Downloads limit mapping: [transfer-settings.md](../transfer-settings.md).
 
 ---
 
@@ -134,8 +136,8 @@ This document provides a comprehensive reference of all configurable settings in
 | | PeerIn | Peer Download Limit | Download limit for peer connections |
 | | PeerOut | Peer Upload Limit | Upload limit for peer connections |
 | | UdpOut | UDP Upload Limit | Upload limit for UDP traffic |
-| | Downloads | Download Limit | Total download speed limit (Bytes/s) |
-| | Uploads | Upload Limit | Total upload speed limit (Bytes/s) |
+| | Downloads | 0 (unlimited) | Total download speed cap (bytes/s). `0` / UI Unlimited (legacy MAX/NONE) means no extra cap. See [transfer-settings.md](../transfer-settings.md). |
+| | Uploads | 0 (unlimited) | Total upload speed cap (bytes/s). Same unlimited encoding. |
 | | HubUploads | Hub Upload Limit | Additional upload limit for hubs |
 
 ---
@@ -359,14 +361,14 @@ This document provides a comprehensive reference of all configurable settings in
 | Category | Setting | Default | Description |
 |----------|---------|---------|-------------|
 | **Uploads** | BlockAgents | Blocked Agents | List of blocked user agents |
-| | MaxPerHost | Max Per Host | Maximum uploads per remote client |
+| | MaxPerHost | 2 (range 1–64) | Simultaneous **upload transfers** (active or queued) per remote IPv4 address. Not a TCP connection cap. |
 | | FreeBandwidthValue | Free Bandwidth Value | Bandwidth threshold for free uploads |
 | | FreeBandwidthFactor | Free Bandwidth Factor | Bandwidth factor for free uploads |
 | | ClampdownFactor | Clampdown Factor | Upload reduction factor |
 | | ClampdownFloor | Clampdown Floor | Minimum upload speed floor |
 | | ChunkSize | Chunk Size | Size of upload chunks |
-| | FairUseMode | Fair Use Mode | Limit unknown audio/video to 10% share |
-| | ThrottleMode | Throttle Mode | Enable upload throttling |
+| | FairUseMode | false | **Not implemented.** Intended 10% unknown audio/video share; no core consumer. Checkbox on Uploads is disabled. Value still persisted. |
+| | ThrottleMode | false | Upload limiter shape: `false` = Average (soft), `true` = Maximum (strict, never exceed). Not a simple on/off switch. |
 | | QueuePollMin | Queue Poll Min | Minimum queue polling interval |
 | | QueuePollMax | Queue Poll Max | Maximum queue polling interval |
 | | RotateChunkLimit | Rotate Chunk Limit | Limit for chunk rotation |

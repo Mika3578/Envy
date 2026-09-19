@@ -1,7 +1,7 @@
 # Envy implementation status
 
 Status: active
-Last updated: 2026-09-15
+Last updated: 2026-09-19
 Scope: Evidence-based protocol and architecture status for Envy on `develop`.
 Source of truth: Envy source under `Envy/`, tests under `tests/`, and the documents linked below. External projects are references only.
 
@@ -86,6 +86,14 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 - Remote/Web exists (`Remote/`) with a design-level API note (`docs/API.md`); endpoint-by-endpoint live verification is incomplete.
 - Headless daemon, CLI, and REST/JSON-RPC are **planned** (P1), inspired by aMule, eMule Qt, aria2-next, and Rucio. Migration must be incremental.
 
+### Transfer settings UI
+
+- Settings → Internet → Uploads mapping is documented in `docs/50_user/transfer-settings.md`.
+- Global upload/download caps are **implemented** (`Bandwidth.Uploads` / `Downloads`, `0` = unlimited).
+- `Uploads.FairUseMode` is **not implemented** (control disabled).
+- Simple-mode activity caps and per-protocol bandwidth UI are **planned** only where a backend already exists.
+- Status: **partial**. Do not claim a complete qBittorrent-style transfer pane.
+
 ### BitTorrent
 
 - v1: DHT, magnet, PEX, LTEP, web seeds, trackers, MSE/PE (`Envy/BTCrypto.*`) are present per `docs/10_dev/roadmap.md` / CHANGELOG.
@@ -118,3 +126,4 @@ These remain useful for opcodes and archaeology; they over-claim completeness:
 - `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` — external projects
 - `docs/KNOWN_LIMITATIONS.md`
 - `docs/DECISIONS.md` (D-008)
+- `docs/50_user/transfer-settings.md` — Uploads/Downloads limit mapping (partial; no fake capabilities)
