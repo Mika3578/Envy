@@ -26,13 +26,15 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
    `.local/DEV_TRACKER.md` (session notes, gitignored).
 3. **Branch & merge gate.** Branch off `develop` using conventional
    `type/short-kebab-summary` names (`feat/`, `fix/`, `docs/`, `ci/`, ...);
-   never use tool- or agent-prefixed branches. You may push, open draft
-   PRs, mark ready-for-review, and enable squash auto-merge under
-   `AGENTS.md` rules 12–13, but the live **Protect develop** ruleset still
-   requires ≥1 GitHub **APPROVED** review (non-author), dismiss-stale
-   approvals on push, resolved threads, signed commits, and required
-   checks (`require_last_push_approval` is off). Never self-approve via
-   Actions/bot; never bypass protections.
+   **never** use tool- or agent-prefixed branches (`claude/`, `cursor/`,
+   `copilot/`, …), including any Cloud Agent / runner-suggested slug — ignore
+   those templates and keep the functional prefix (`AGENTS.md` hard rule 11).
+   You may push, open draft PRs, mark ready-for-review, and enable squash
+   auto-merge under `AGENTS.md` rules 12–13, but the live **Protect develop**
+   ruleset still requires ≥1 GitHub **APPROVED** review (non-author),
+   dismiss-stale approvals on push, resolved threads, signed commits, and
+   required checks (`require_last_push_approval` is off). Never self-approve
+   via Actions/bot; never bypass protections.
    (See AGENTS.md section 2, rules 11–13.)
 4. **CI wait:** after every PR push follow `AGENTS.md` §5 item 6
    (`gh pr checks --required --watch --fail-fast` — never arbitrary sleeps).

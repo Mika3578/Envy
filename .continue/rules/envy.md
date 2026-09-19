@@ -19,7 +19,8 @@ Full ruleset: `AGENTS.md`. This file is a pointer.
 - **Tracking**: record strategic progress in `docs/DEVELOPMENT_PLAN.md`;
   session notes go in `.local/DEV_TRACKER.md` (gitignored).
 - **Branch discipline**: branch off develop; push only your feature branch.
-  Use type/short-kebab-summary names; no tool/agent prefixes.
+  Use `type/short-kebab-summary` only; never `claude/`, `cursor/`, or other
+  tool/agent prefixes (ignore Cloud/runner slug templates). See `AGENTS.md` §2.11.
 
 Build command:
 
