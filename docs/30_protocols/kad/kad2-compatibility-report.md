@@ -2,18 +2,18 @@
 
 > **Opcode/format match only (January 2026).** This is not live DHT interoperability. Canonical status: [`docs/10_dev/status.md`](../../10_dev/status.md) (`partial / unverified`). Ember/eSE overlays are **not** Kad2. Preferred live references: [eMule Community](https://github.com/irwir/eMule), [aMule](https://github.com/amule-project/amule) — see [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md).
 
-**Date:** 2026-09-18 (original opcode survey January 16, 2026; banner 2026-09-11)
+**Date:** 2026-09-19 (routing-table maintenance slice; original opcode survey January 16, 2026; banner 2026-09-11)
 **Reference Implementations:**
 - eMule (Examples/eMule/srchybrid; prefer https://github.com/irwir/eMule)
 - aMule (Examples/aMule; prefer https://github.com/amule-project/amule)
 - Shareaza (Examples/shareaza) - No Kad2 implementation found
 - MLDonkey (Examples/mldonkey) - No Kad2 implementation found
 
-**Envy Implementation:** `Envy/Kademlia.h`, `Envy/Kademlia.cpp`, `Envy/EDPacket.h`
+**Envy Implementation:** `Envy/KadRoutingTable.h`, `Envy/KadNodesDat.h`, `Envy/Kademlia.h`, `Envy/Kademlia.cpp`, `Envy/EDPacket.h`
 
 ## Executive Summary
 
-**Wire/opcode comparison only.** Several Kad2 opcodes and packet shapes in Envy match eMule/aMule sources inspected at the time. That is **not** a claim that Envy is a fully functional Kad2 peer on the live network (routing-table maintenance, firewalled/Buddy, and live interop remain open — `docs/10_dev/roadmap.md`).
+**Wire/opcode comparison plus local routing-table maintenance.** Several Kad2 opcodes and packet shapes in Envy match eMule/aMule sources inspected at the time. Local XOR zone-tree maintenance (split / LRU / refresh / `/24` diversity) is implemented in `Envy/KadRoutingTable.h` with EnvyTests. That is **not** a claim that Envy is a fully functional Kad2 peer on the live network (firewall/Buddy/callback, UDP keys, and live interop remain open — `docs/10_dev/roadmap.md`). Status remains **partial / unverified**.
 
 Shareaza and MLDonkey were not used as Kad2 references.
 
@@ -272,7 +272,7 @@ When the #160 eMule/aMule harness lands, add opt-in scenarios:
 - `Examples/eMule/srchybrid/kademlia/kademlia/Defines.h:42` - `#define K 10u`
 - `Examples/aMule/src/kademlia/kademlia/Defines.h:47` - `const unsigned int K = 10;`
 
-**Envy:** `Envy/Kademlia.h:29-31`
+**Envy:** `Envy/KadRoutingTable.h` (`KAD_K`, `KAD_ID_BITS`, `KAD_KBASE`, `KAD_KK`)
 
 ---
 
@@ -281,7 +281,7 @@ When the #160 eMule/aMule harness lands, add opt-in scenarios:
 ### Storage Format
 
 **eMule/aMule:** IPs stored in network byte order in packets, converted to host order when reading
-**Envy:** IPs stored in host order in `KadContact.ip`, converted to network order in `GetSockAddr()`
+**Envy:** IPs stored in host order in `KadContact.ip` (first octet in the high byte), converted to network order in `KadContactGetSockAddr()` (`Envy/Kademlia.h`)
 
 **Packet Payload:**
 - All implementations use host-order Little Endian in packet payloads
@@ -333,6 +333,84 @@ Endianness (from eMule `WriteUInt32(GetIPAddress())` / `ReadUInt32`+`ntohl`, aMu
 
 ---
 
+## Routing-table maintenance (local, 2026-09-19)
+
+**Status:** implemented in production code + deterministic EnvyTests. **Not** live DHT evidence. Kad capability nibble stays 0. Firewall/Buddy/callback are out of this slice.
+
+Previous Envy model used a fixed `KadBucket[128]` array indexed by the highest XOR-distance bit. A full bucket returned false from `AddContact()`; there was no split, replacement, zone refresh, or `/24` diversity.
+
+### Representation
+
+Envy now uses a binary **routing-zone tree** over 128-bit XOR distance from the local Kad ID (`Envy/KadRoutingTable.h`, class `Kad2RoutingTable`), not a fake `Split()` on a fixed array.
+
+| Concept | Envy | aMule / eMule Community |
+| --- | --- | --- |
+| Zone tree | `KadRoutingZone` + leaf `KadRoutingBin` (`std::unique_ptr` children) | `CRoutingZone` + leaf `CRoutingBin` |
+| Leaf capacity | `KAD_K = 10` | `K = 10` (`Defines.h`) |
+| Split rule | `level < 127` AND `size == K` AND (`zoneIndex < KK` OR `level < KBASE`); `KBASE=4`, `KK=5`; also `m_zoneCount + 2 <= 1024` | `CRoutingZone::CanSplit()` — same level/KK/KBASE/K test (`RoutingZone.cpp`) |
+| Redistribute | next XOR bit at `zone.level` (`KadDistanceBit`) | `GetDistance().GetBitNumber(m_level)` |
+| Max depth | 127 (`KAD_MAX_LEVEL`) | 127 |
+| Closest contacts | gather + sort by full 128-bit XOR (not traversal order) | `GetClosestTo` / distance map |
+| FindContact | copy-out (`KadContact&`) — no pointers into bins | raw `CContact*` |
+
+Bootstrap HostCache entries are **not** inserted into leaves. `CKademlia::Bootstrap()` only sends BOOTSTRAP_REQ / FIND_NODE; contacts enter through normal `UpdateContact()` after packet validation.
+
+### Contact sources and `verified`
+
+`AddContact()` does not infer trust. Callers pass `KadContactUpdate`:
+
+| Event | Source | `verified` | LRU / `lastSeen` |
+| --- | --- | --- | --- |
+| BOOTSTRAP_RES listed contacts | `Candidate` | no | insert only |
+| BOOTSTRAP_RES responder | `Observed` | no | alive |
+| FIND_NODE listed contacts | `Candidate` | no | insert only |
+| Valid FIND_NODE_RES / PONG from a known endpoint | `ObserveAliveByEndpoint` | no | alive |
+| HELLO_RES | `Observed` + `markVerified` | **yes** | alive |
+
+`verified` means IP/ID confirmed by **HELLO_RES** (or `MarkContactVerified`). nodes.dat “verified” bits and third-party listings are not live-verified. Malformed packets do not refresh a contact.
+
+### LRU, types, replacement
+
+Reference: aMule `CContact::UpdateType` / `CheckingType` (`Contact.cpp`), `CRoutingBin::SetAlive` / `PushToBottom` (front = oldest). Types 0–2 live by age, 3 new, 4 dead. Expire windows: type2 1h, type1 90m, type0 2h, checking +2m, min 10s between type steps.
+
+When a full leaf **cannot** split, current aMule/eMule `CRoutingZone::Add` returns false. Envy keeps that default for a healthy verified incumbent vs an unverified newcomer, and adds a **1-slot replacement cache** (`KAD_REPLACEMENT_CACHE`) so a stale/dead incumbent can be replaced. The cache is overwritten, never grown.
+
+Timing uses injected `uint64_t` milliseconds and wrap-safe `KadElapsedAtLeast`. Production `CKademlia` uses `GetTickCount64()`. Tests inject timestamps; no `Sleep()`.
+
+### Stale-zone refresh
+
+Reference: aMule/eMule `CRoutingZone::OnBigTimer` / `RandomLookup` — refresh when `zoneIndex < KK || level < KBASE || remaining >= 0.8*K`. Interval 1 hour (`KAD_ZONE_REFRESH_INTERVAL_MS`); first big timer ~10s; global gap 10s; at most one FIND_NODE refresh and one HELLO ping per `OnTimer` cycle.
+
+Refresh targets are generated **inside the stale leaf’s ID range** (`KadMakeRefreshTarget` / `KadIdInZone`) and sent with existing `SendFindNodeRequest(contact, targetId)` (`KADEMLIA2_REQ` unchanged).
+
+### Subnet diversity / eclipse resistance
+
+Reference: aMule `CRoutingBin::AddContact` / `CheckGlobalIPLimits` / `AdjustGlobalTracking`:
+
+- 2 contacts per IPv4 `/24` **per leaf** (`KAD_MAX_CONTACTS_SUBNET_BIN`)
+- 10 contacts per `/24` **globally** (`MAX_CONTACTS_SUBNET` / `KAD_MAX_CONTACTS_SUBNET_GLOBAL`)
+- 1 Kad ID per IP (`MAX_CONTACTS_IP`)
+- LAN excepted when `allowLan` (`Settings.Experimental.LAN_Mode`)
+
+Mask is host-order `ip & 0xFFFFFF00` (first octet in the high byte). Duplicate Kad IDs update in place and do not inflate counts. Removal decrements.
+
+Search-response `/24` caps (per FIND_NODE reply) are **not** in this PR.
+
+### Security bounds
+
+- Contacts ≤ 2048, zones ≤ 1024, depth ≤ 127, replacement ≤ 1 per leaf
+- Iterative leaf walk with a 128-step guard (no unbounded recursion from peer IDs)
+- Local Kad ID and zero ID rejected; multicast/broadcast/port 0 rejected; `Security.IsDenied` at the `CKademlia::UpdateContact` boundary
+- Same Kad ID + same endpoint: update; same ID + different endpoint: verified incumbent wins; different IDs + same endpoint: reject
+
+### Tests
+
+`tests/test_kad_routing_table.cpp` — XOR distance/order, split/redistribute, unsplittable replacement, LRU, refresh target-in-zone + bounded work, `/24` diversity + byte order, LAN exception, adversarial `/24` flood and max depth.
+
+**Wire-format impact: none** — Kad2 packet formats are unchanged; this slice changes local routing-table maintenance.
+
+---
+
 ## Known Differences (Acceptable)
 
 ### 1. FIND_NODE Type Validation
@@ -380,7 +458,7 @@ Endianness (from eMule `WriteUInt32(GetIPAddress())` / `ReadUInt32`+`ntohl`, aMu
 
 ## Conclusion
 
-Opcode values, BOOTSTRAP/PING/PONG/FIND_NODE layouts, IP endianness notes, and request tracking matched the inspected eMule/aMule sources. `HostCache::ImportNodes` now parses legacy v0 plus new-format v1/v2/v3 via `KadNodesDat.h`. That is **not** live DHT interoperability (`docs/10_dev/status.md`: partial / unverified).
+Opcode values, BOOTSTRAP/PING/PONG/FIND_NODE layouts, IP endianness notes, and request tracking matched the inspected eMule/aMule sources. Local routing-table maintenance (zone split, LRU/type liveness, bounded replacement, stale-zone FIND_NODE refresh, `/24` diversity) is implemented in `KadRoutingTable.h` with EnvyTests. `HostCache::ImportNodes` parses legacy v0 plus new-format v1/v2/v3 via `KadNodesDat.h`. That is **not** live DHT interoperability (`docs/10_dev/status.md`: partial / unverified).
 
 **Verified Compatibility:**
 - ⚠️ **eMule (srchybrid)** — opcode/format match only
@@ -429,4 +507,6 @@ Intentional scope limits (restrictive FIND_NODE type validation, no tag lists ye
 - **aMule Source:** `Examples/aMule/src/kademlia/net/KademliaUDPListener.cpp`
 - **aMule Opcodes:** `Examples/aMule/src/include/protocol/kad2/Client2Client/UDP.h`
 - **aMule Constants:** `Examples/aMule/src/kademlia/kademlia/Defines.h`
-- **Envy Implementation:** `Envy/Kademlia.h`, `Envy/Kademlia.cpp`, `Envy/EDPacket.h`
+- **Envy Implementation:** `Envy/KadRoutingTable.h`, `Envy/Kademlia.h`, `Envy/Kademlia.cpp`, `Envy/EDPacket.h`
+- **aMule routing:** `src/kademlia/routing/RoutingZone.cpp`, `RoutingBin.cpp`, `Contact.cpp`
+- **eMule Community routing:** `kademlia/routing/RoutingZone.cpp` (`CanSplit`, `OnBigTimer`, `RandomLookup`)

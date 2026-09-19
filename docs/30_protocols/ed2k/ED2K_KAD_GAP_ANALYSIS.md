@@ -249,11 +249,13 @@
 
 ## 🔴 Comportements de Table de Routage
 
+> **2026-09-19:** The four items below landed in `Envy/KadRoutingTable.h` (zone split, LRU/type liveness, stale-zone FIND_NODE refresh, `/24` diversity) with EnvyTests. Keep this section as a historical snapshot; canonical status is `docs/10_dev/status.md`. Firewall/Buddy/callback remain open.
+
 ### 1. Bucket Splitting
 
 **eMule:** Division de buckets quand pleins (si bucket contient notre ID)
 
-**Envy:** Pas de splitting - `Envy/Kademlia.cpp:97-123` (ajout simple)
+**Envy (2026-09-19):** XOR zone tree with aMule/eMule `CanSplit` (`level < 127 && size == K && (zoneIndex < KK || level < KBASE)`). See `Envy/KadRoutingTable.h`.
 
 **Impact:** Table de routage moins optimale
 
@@ -269,7 +271,7 @@
 
 **eMule:** Remplacement LRU quand bucket plein
 
-**Envy:** Rejet si bucket plein - `Envy/Kademlia.cpp:56-61`
+**Envy (2026-09-19):** LRU list (front oldest) + type 0–4 liveness; 1-slot replacement cache when a full leaf cannot split. Healthy verified contacts are not evicted by unverified candidates.
 
 **Impact:** Contacts récents peuvent être perdus
 
@@ -284,7 +286,7 @@
 
 **eMule:** Refresh périodique des buckets (15 minutes)
 
-**Envy:** Pas de refresh automatique
+**Envy (2026-09-19):** Bounded stale-zone FIND_NODE refresh (1h zone interval, 10s global gap, one refresh per `OnTimer` cycle). Target IDs are generated inside the stale leaf range.
 
 **Impact:** Buckets peuvent devenir obsolètes
 
@@ -316,7 +318,7 @@
 
 **eMule:** Limite le nombre de contacts depuis même /24 subnet
 
-**Envy:** Pas de protection
+**Envy (2026-09-19):** 2 contacts per `/24` per leaf, 10 globally, 1 Kad ID per IP; LAN excepted when `allowLan`. Host-order mask `ip & 0xFFFFFF00`.
 
 **Impact:** Vulnérable aux attaques Eclipse
 

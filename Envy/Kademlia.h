@@ -17,22 +17,14 @@
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <array>
 #include <vector>
 #include <list>
 #include <map>
 #include <unordered_map>
+#include "KadRoutingTable.h"
 #include "KadSearchResDelivery.h"
 #include "KadFirewallCheck.h"
-
-// Kademlia node ID is 128-bit (16 bytes) for eDonkey2000
-#define KAD_ID_SIZE 16
-typedef unsigned char KadId[KAD_ID_SIZE];
-
-// Kademlia routing table constants
-#define KAD_K 10                         // Bucket size (number of nodes per bucket) - eMule uses 10
-#define KAD_ID_BITS 128                  // ID size in bits
-#define KAD_BUCKET_COUNT (KAD_ID_BITS)   // Number of buckets
-#define KAD_MAX_CONTACTS 500             // Maximum contacts in routing table
 
 // Kad2 protocol constants
 #define KAD2_UDP_PORT 4672               // Default Kad UDP port
@@ -43,54 +35,13 @@ typedef unsigned char KadId[KAD_ID_SIZE];
 #define KAD2_MAX_OUTSTANDING_REQUESTS 10 // Maximum outstanding requests
 #define KADEMLIA_VERSION 8               // Kad protocol version (eMule compatible)
 
-// Kad2 node contact information
-#pragma pack(push, 1)
-struct KadContact {
-    KadId id;                    // Node ID (16 bytes)
-    DWORD ip;                    // IPv4 address
-    WORD udpPort;                // UDP port
-    WORD tcpPort;                // TCP port (usually same as UDP)
-    DWORD lastSeen;              // Last contact time (tick count)
-    BYTE version;                // Kad version
-
-    // Comparison operator for binary search support
-    bool operator<(const KadContact& other) const {
-        return memcmp(id, other.id, KAD_ID_SIZE) < 0;
-    }
-
-    // Comparison with KadId for binary search
-    friend bool operator<(const KadContact& contact, const KadId& id) {
-        return memcmp(contact.id, id, KAD_ID_SIZE) < 0;
-    }
-
-    friend bool operator<(const KadId& id, const KadContact& contact) {
-        return memcmp(id, contact.id, KAD_ID_SIZE) < 0;
-    }
-    BOOL verified;               // Contact verified via ping/pong
-
-    KadContact() {
-        memset(this, 0, sizeof(KadContact));
-    }
-
-    KadContact(const KadId& nodeId, DWORD nodeIp, WORD nodeUdpPort, WORD nodeTcpPort = 0) {
-        memcpy(id, nodeId, KAD_ID_SIZE);
-        ip = nodeIp;
-        udpPort = nodeUdpPort;
-        tcpPort = nodeTcpPort ? nodeTcpPort : nodeUdpPort;
-        lastSeen = GetTickCount();
-        version = 0;
-        verified = FALSE;
-    }
-
-    // Get sockaddr_in for network operations
-    void GetSockAddr(sockaddr_in& addr) const {
-        memset(&addr, 0, sizeof(sockaddr_in));
-        addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = htonl(ip);  // Convert host order to network order
-        addr.sin_port = htons(udpPort);
-    }
-};
-#pragma pack(pop)
+inline void KadContactGetSockAddr(const KadContact& contact, sockaddr_in& addr)
+{
+	memset(&addr, 0, sizeof(sockaddr_in));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(contact.ip);
+	addr.sin_port = htons(contact.udpPort);
+}
 
 // Kad2 request tracking
 enum KadRequestType {
@@ -144,41 +95,6 @@ struct KadOutstandingRequest {
         type(t), sentTime(GetTickCount()), targetAddr(addr) {}
 };
 
-// Kad2 routing table bucket
-class KadBucket {
-public:
-    std::list<KadContact> contacts;
-    DWORD lastRefresh;
-
-    KadBucket() : lastRefresh(0) {}
-
-    bool AddContact(const KadContact& contact);
-    bool RemoveContact(const KadId& id);
-    const KadContact* FindContact(const KadId& id) const;
-    size_t GetContactCount() const { return contacts.size(); }
-    bool IsFull() const { return contacts.size() >= KAD_K; }
-};
-
-// Kad2 routing table (eMule-compatible)
-class Kad2RoutingTable {
-public:
-    KadBucket buckets[KAD_BUCKET_COUNT];
-    KadId ownId;
-
-    Kad2RoutingTable();
-    ~Kad2RoutingTable();
-
-    bool Initialize(const KadId& nodeId);
-    bool AddContact(const KadContact& contact);
-    bool RemoveContact(const KadId& id);
-    const KadContact* FindContact(const KadId& id) const;
-    void FindClosestContacts(const KadId& targetId, std::vector<KadContact>& results, int maxCount = KAD_K);
-    size_t GetTotalContacts() const;
-    void GetContactsForBootstrap(std::vector<KadContact>& results, int maxCount = 20);
-    size_t GetContactCount() const { return buckets[0].GetContactCount(); } // For compatibility
-    void MarkContactVerified(const KadId& id);
-};
-
 // CKademlia Kad2 implementation class
 class CKademlia {
 public:
@@ -210,8 +126,9 @@ public:
     // Send bootstrap request to specific contact
     void SendBootstrapRequest(const KadContact& contact);
 
-    // Send find node request to specific contact
+    // Send find node request to specific contact (random target, or an explicit zone target)
     void SendFindNodeRequest(const KadContact& contact);
+    void SendFindNodeRequest(const KadContact& contact, const KadId& targetId);
 
     // Send hello request to specific host
     void SendHelloRequest(const SOCKADDR_IN* pTarget);
@@ -286,7 +203,7 @@ private:
 
     // Utility methods
     void SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
-    bool UpdateContact(const KadContact& contact);
+    bool UpdateContact(const KadContact& contact, KadContactSource source = KadContactSource::Candidate, bool markVerified = false);
     void GenerateOwnKadId();
     void LogKadStatus();
 
@@ -300,6 +217,7 @@ private:
     bool m_bInitialized;
     KadId m_ownId;
     Kad2RoutingTable m_routingTable;
+    CCriticalSection m_pKadSection;
     DWORD m_lastBootstrapTime;
     DWORD m_lastTimerCall;
 

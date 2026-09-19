@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release pipeline validation scripts** — `scripts/release/verify-version.ps1`, `stage-portable.ps1`, `verify-artifacts.ps1`, `publish-draft-release.ps1`, and `repair-draft-release.ps1` gate tag/`version.json`/`Envy.rc`/`Envy.exe` consistency, stage a full portable runtime tree, verify SHA256 + ZIP/setup sanity, and support idempotent draft asset repair.
 
 ### Fixed
+- **Kad2 routing-table maintenance (#86 slice)** — Replaced the fixed 128 XOR-distance bucket array with an aMule/eMule-style zone tree (`Envy/KadRoutingTable.h`): split when a full leaf may split (`CanSplit`: level < 127 and K=10 and (`zoneIndex` < KK or level < KBASE)), LRU + type liveness, 1-slot replacement cache (verified healthy contacts kept; stale/dead replaced), bounded stale-zone FIND_NODE refresh, and `/24` diversity (2 per leaf / 10 global / 1 Kad ID per IP). `verified` is HELLO_RES only. Packet formats unchanged; ED2K Hello Kad nibble stays 0; Kad2 remains partial/unverified. Tests: `tests/test_kad_routing_table.cpp`. Firewall/Buddy/callback not in this slice.
 - **TransferState smoke registration** — Register `transfer_state_downloading_finished_not_importable` so the fail-closed `MapTransferStateToQBittorrentFinished(Downloading) → error` assertion from #242 actually runs in EnvyTests (22/22 on Linux g++).
 
 ### Changed

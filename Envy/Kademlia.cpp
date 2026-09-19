@@ -26,6 +26,7 @@
 #include "Transfers.h"
 #include "Hashes.hpp"
 #include "KadFirewallCheck.h"
+#include "Security.h"
 #include <array>
 #include <algorithm>
 #include <vector>
@@ -41,179 +42,12 @@ CKademlia Kademlia;
 
 // Helper function to check if KadID is all zeros
 static bool IsZeroId(const KadId& id) {
-    for (int i = 0; i < KAD_ID_SIZE; i++) {
-        if (id[i] != 0) return false;
-    }
-    return true;
+    return KadIdIsZero(id);
 }
 
-// KadBucket implementation
-bool KadBucket::AddContact(const KadContact& contact) {
-    // Use binary search for better performance (assuming contacts are sorted by ID)
-    auto it = std::lower_bound(contacts.begin(), contacts.end(), contact,
-        [](const KadContact& a, const KadContact& b) {
-            return memcmp(a.id, b.id, KAD_ID_SIZE) < 0;
-        });
-
-    if (it != contacts.end() && memcmp(it->id, contact.id, KAD_ID_SIZE) == 0) {
-        // Update existing contact
-        *it = contact;
-        it->lastSeen = GetTickCount();
-        return true;
-    }
-
-    // Add new contact if bucket not full
-    if (contacts.size() < (size_t)KAD_K) {
-        contacts.insert(it, contact);
-        return true;
-    }
-
-    return false; // Bucket full
-}
-
-bool KadBucket::RemoveContact(const KadId& id) {
-    // Binary search for removal
-    auto it = std::lower_bound(contacts.begin(), contacts.end(), id,
-        [](const KadContact& contact, const KadId& targetId) {
-            return memcmp(contact.id, targetId, KAD_ID_SIZE) < 0;
-        });
-
-    if (it != contacts.end() && memcmp(it->id, id, KAD_ID_SIZE) == 0) {
-        contacts.erase(it);
-        return true;
-    }
-    return false;
-}
-
-const KadContact* KadBucket::FindContact(const KadId& id) const {
-    // Binary search for better performance
-    auto it = std::lower_bound(contacts.begin(), contacts.end(), id,
-        [](const KadContact& contact, const KadId& targetId) {
-            return memcmp(contact.id, targetId, KAD_ID_SIZE) < 0;
-        });
-
-    if (it != contacts.end() && memcmp(it->id, id, KAD_ID_SIZE) == 0) {
-        return &(*it);
-    }
-    return nullptr;
-}
-
-// Kad2RoutingTable implementation
-Kad2RoutingTable::Kad2RoutingTable() {
-    memset(ownId, 0, KAD_ID_SIZE);
-}
-
-Kad2RoutingTable::~Kad2RoutingTable() {
-    // Nothing to clean up
-}
-
-bool Kad2RoutingTable::Initialize(const KadId& nodeId) {
-    memcpy(ownId, nodeId, KAD_ID_SIZE);
-    return true;
-}
-
-bool Kad2RoutingTable::AddContact(const KadContact& contact) {
-    // Don't add ourselves
-    if (memcmp(contact.id, ownId, KAD_ID_SIZE) == 0) {
-        return false;
-    }
-
-    // Calculate bucket index based on XOR distance
-    unsigned char distance[KAD_ID_SIZE];
-    for (int i = 0; i < KAD_ID_SIZE; i++) {
-        distance[i] = ownId[i] ^ contact.id[i];
-    }
-
-    // Find the bucket (highest bit set in distance)
-    int bucketIndex = 0;
-    for (int i = 0; i < KAD_ID_BITS; i++) {
-        if (distance[i / 8] & (0x80 >> (i % 8))) {
-            bucketIndex = KAD_ID_BITS - 1 - i;
-            break;
-        }
-    }
-
-    if (bucketIndex >= KAD_BUCKET_COUNT) {
-        bucketIndex = KAD_BUCKET_COUNT - 1;
-    }
-
-    return buckets[bucketIndex].AddContact(contact);
-}
-
-bool Kad2RoutingTable::RemoveContact(const KadId& id) {
-    for (int i = 0; i < KAD_BUCKET_COUNT; i++) {
-        if (buckets[i].RemoveContact(id)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-const KadContact* Kad2RoutingTable::FindContact(const KadId& id) const {
-    for (int i = 0; i < KAD_BUCKET_COUNT; i++) {
-        const KadContact* contact = buckets[i].FindContact(id);
-        if (contact) {
-            return contact;
-        }
-    }
-    return nullptr;
-}
-
-void Kad2RoutingTable::MarkContactVerified(const KadId& id) {
-    // Find the contact and mark it as verified
-    for (int i = 0; i < KAD_BUCKET_COUNT; i++) {
-        for (auto& contact : buckets[i].contacts) {
-            if (memcmp(contact.id, id, KAD_ID_SIZE) == 0) {
-                contact.verified = TRUE;
-                contact.lastSeen = GetTickCount();
-                return;
-            }
-        }
-    }
-}
-
-void Kad2RoutingTable::FindClosestContacts(const KadId& targetId, std::vector<KadContact>& results, int maxCount) {
-    // Simple implementation: collect contacts from all buckets and sort by XOR distance
-    std::vector<std::pair<std::array<unsigned char, KAD_ID_SIZE>, const KadContact*>> candidates;
-
-    for (int i = 0; i < KAD_BUCKET_COUNT; i++) {
-        for (const auto& contact : buckets[i].contacts) {
-            std::array<unsigned char, KAD_ID_SIZE> distance;
-            for (int j = 0; j < KAD_ID_SIZE; j++) {
-                distance[j] = targetId[j] ^ contact.id[j];
-            }
-            candidates.push_back(std::make_pair(distance, &contact));
-        }
-    }
-
-    // Sort by XOR distance (lexicographical comparison)
-    std::sort(candidates.begin(), candidates.end(),
-        [](const std::pair<std::array<unsigned char, KAD_ID_SIZE>, const KadContact*>& a,
-           const std::pair<std::array<unsigned char, KAD_ID_SIZE>, const KadContact*>& b) {
-            return memcmp(a.first.data(), b.first.data(), KAD_ID_SIZE) < 0;
-        });
-
-    // Take the closest contacts
-    for (size_t i = 0; i < candidates.size() && results.size() < (size_t)maxCount; i++) {
-        results.push_back(*candidates[i].second);
-    }
-}
-
-size_t Kad2RoutingTable::GetTotalContacts() const {
-    size_t total = 0;
-    for (int i = 0; i < KAD_BUCKET_COUNT; i++) {
-        total += buckets[i].GetContactCount();
-    }
-    return total;
-}
-
-void Kad2RoutingTable::GetContactsForBootstrap(std::vector<KadContact>& results, int maxCount) {
-    for (int i = 0; i < KAD_BUCKET_COUNT; i++) {
-        for (const auto& contact : buckets[i].contacts) {
-            if (results.size() >= (size_t)maxCount) return;
-            results.push_back(contact);
-        }
-    }
+static uint64_t KadNowMs()
+{
+	return GetTickCount64();
 }
 
 // CKademlia implementation
@@ -233,6 +67,7 @@ CKademlia::~CKademlia() {
 }
 
 bool CKademlia::Init() {
+    CSingleLock oLock(&m_pKadSection, TRUE);
     if (m_bInitialized) return true;
 
     // Generate our own Kad ID (use MyProfile GUID as base for now)
@@ -253,13 +88,14 @@ bool CKademlia::Init() {
 	               m_ownId[0], m_ownId[1], m_ownId[2], m_ownId[3]);
 	theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall-check started (state unknown)");
 
-	// Bootstrap immediately
+	oLock.Unlock();
 	Bootstrap();
 
 	return true;
 }
 
 void CKademlia::Stop() {
+    CSingleLock oLock(&m_pKadSection, TRUE);
     if (!m_bInitialized) return;
 
     m_bInitialized = false;
@@ -355,7 +191,7 @@ void CKademlia::SendBootstrapRequest(const KadContact& contact) {
 
     // Send packet and track the request
     sockaddr_in addr;
-    contact.GetSockAddr(addr);
+    KadContactGetSockAddr(contact, addr);
     DWORD requestId = AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, addr);
 
     theApp.Message(MSG_DEBUG, L"Kad2: Sent bootstrap request to %s (ID: %u)",
@@ -366,31 +202,26 @@ void CKademlia::SendBootstrapRequest(const KadContact& contact) {
 }
 
 void CKademlia::SendFindNodeRequest(const KadContact& contact) {
+    KadId targetId;
+    if (!GenerateCryptographicBytes(targetId, KAD_ID_SIZE)) {
+        theApp.Message(MSG_ERROR, L"Kademlia: Failed to generate secure random bytes for target ID");
+        memset(targetId, 0, KAD_ID_SIZE);
+    }
+    SendFindNodeRequest(contact, targetId);
+}
+
+void CKademlia::SendFindNodeRequest(const KadContact& contact, const KadId& targetId) {
     if (!m_bInitialized) return;
 
-    // Create find node request: <Type(1)><TargetID(16)><ReceiverID(16)>
     CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_REQ, ED2K_PROTOCOL_KAD);
     if (!pPacket) return;
 
-    // Add search type (1 byte) - KADEMLIA_FIND_NODE for node search
     pPacket->WriteByte(KADEMLIA_FIND_NODE);
-
-    // Add target ID (16 bytes) - use cryptographically secure random ID for node discovery (P0.2 security requirement)
-    KadId targetId;
-    if (!GenerateCryptographicBytes(targetId, KAD_ID_SIZE)) {
-        // Critical security failure - cannot generate secure target ID
-        theApp.Message(MSG_ERROR, L"Kademlia: Failed to generate secure random bytes for target ID");
-        // Set to zero as fallback (not secure but prevents using rand())
-        memset(targetId, 0, KAD_ID_SIZE);
-    }
     pPacket->Write(targetId, KAD_ID_SIZE);
-
-    // Add receiver ID (16 bytes) - target node's ID
     pPacket->Write(contact.id, KAD_ID_SIZE);
 
-    // Send packet and track the request
     sockaddr_in addr;
-    contact.GetSockAddr(addr);
+    KadContactGetSockAddr(contact, addr);
     DWORD requestId = AddOutstandingRequest(KAD_REQUEST_FIND_NODE, addr);
 
     theApp.Message(MSG_DEBUG, L"Kad2: Sent find node request to %s (ID: %u)",
@@ -403,13 +234,14 @@ void CKademlia::SendFindNodeRequest(const KadContact& contact) {
 void CKademlia::OnTimer() {
     if (!m_bInitialized) return;
 
+    CSingleLock oLock(&m_pKadSection, TRUE);
     DWORD now = GetTickCount();
     if (now - m_lastTimerCall < 5000) return; // Call at most every 5 seconds
 
     m_lastTimerCall = now;
 
-    // Clean up expired requests
     CleanupExpiredRequests();
+
 
 	const WORD tcpPort = (WORD)Settings.Connection.InPort;
 	if (tcpPort != m_lastFirewallTcpPort)
@@ -427,27 +259,49 @@ void CKademlia::OnTimer() {
 	}
 	MaybeStartFirewallChecks();
 
-	// Periodic maintenance
 	LogKadStatus();
 
-	// Clean up expired DHT entries every 5 minutes
 	if (now - m_lastStoreCleanup > 5 * 60 * 1000)
 	{
 		CleanupExpiredEntries();
 		m_lastStoreCleanup = now;
 	}
 
-	// Re-bootstrap if we have very few contacts
-	if (m_routingTable.GetTotalContacts() < 5)
+	KadId entropy{};
+	if (!GenerateCryptographicBytes(entropy, KAD_ID_SIZE))
+		memset(entropy, 0, KAD_ID_SIZE);
+
+	KadMaintenanceAction action;
+	m_routingTable.CollectMaintenance(KadNowMs(), entropy, action);
+
+	const bool needBootstrap = m_routingTable.GetTotalContacts() < 5;
+	KadContact pingContact = action.pingContact;
+	KadContact refreshPeer = action.refreshPeer;
+	KadId refreshTarget;
+	KadIdCopy(refreshTarget, action.refreshTarget);
+	const bool doPing = action.ping;
+	const bool doRefresh = action.refresh;
+	oLock.Unlock();
+
+	if (doPing)
 	{
-		Bootstrap();
+		sockaddr_in addr;
+		KadContactGetSockAddr(pingContact, addr);
+		SendHelloRequest(&addr);
 	}
+	if (doRefresh)
+		SendFindNodeRequest(refreshPeer, refreshTarget);
+
+	if (needBootstrap)
+		Bootstrap();
 }
 
 BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
     if (!m_bInitialized || !pHost || !pPacket) {
         return FALSE;
     }
+
+    CSingleLock oLock(&m_pKadSection, TRUE);
 
     // Route packet based on opcode
     switch (pPacket->m_nType) {
@@ -627,10 +481,9 @@ void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket
         contact.udpPort = pPacket->ReadShortLE();
         contact.tcpPort = pPacket->ReadShortLE();
         contact.version = pPacket->ReadByte();
-        contact.verified = FALSE;
+        contact.verified = false;
 
-        // Add to routing table
-        if (UpdateContact(contact)) {
+        if (UpdateContact(contact, KadContactSource::Candidate, false)) {
             contactsAdded++;
         }
     }
@@ -641,7 +494,7 @@ void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket
     KadContact responderContact(responderId, ntohl(pHost->sin_addr.s_addr),  // Convert to host order
                                ntohs(pHost->sin_port), responderTcpPort);
     responderContact.version = responderKadVersion;
-    UpdateContact(responderContact);
+    UpdateContact(responderContact, KadContactSource::Observed, false);
 }
 
 void CKademlia::OnPing(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
@@ -674,7 +527,8 @@ void CKademlia::OnPong(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
     theApp.Message(MSG_DEBUG, L"Kad2: Pong from %s (observed port: %d)",
         (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), observedPort);
 
-    // Don't add contact - we don't have the responder's ID in PONG
+    // PONG has no Kad ID; refresh LRU only if this endpoint is already a contact.
+    m_routingTable.ObserveAliveByEndpoint(ntohl(pHost->sin_addr.s_addr), ntohs(pHost->sin_port), KadNowMs());
 }
 
 void CKademlia::OnFindNodeRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
@@ -795,6 +649,10 @@ void CKademlia::OnFindNodeResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
     theApp.Message(MSG_DEBUG, L"Kad2: Find node response from %s with %d contacts (accepted)",
         (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), contactCount);
 
+    // KADEMLIA2_RES does not carry the responder ID. Valid outstanding response
+    // still proves liveness of the known endpoint (not verified).
+    m_routingTable.ObserveAliveByEndpoint(ntohl(pHost->sin_addr.s_addr), ntohs(pHost->sin_port), KadNowMs());
+
     // Read contacts: each <ID(16)><IP(4)><UDP(2)><TCP(2)><Ver(1)>
     int contactsAdded = 0;
     for (BYTE i = 0; i < contactCount; i++) {
@@ -807,10 +665,9 @@ void CKademlia::OnFindNodeResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
         contact.udpPort = pPacket->ReadShortLE();
         contact.tcpPort = pPacket->ReadShortLE();
         contact.version = pPacket->ReadByte();
-        contact.verified = FALSE;
+        contact.verified = false;
 
-        // Add to routing table
-        if (UpdateContact(contact)) {
+        if (UpdateContact(contact, KadContactSource::Candidate, false)) {
             contactsAdded++;
         }
     }
@@ -828,24 +685,31 @@ void CKademlia::SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
     Datagrams.Send(pHost, pPacket, FALSE);
 }
 
-bool CKademlia::UpdateContact(const KadContact& contact) {
-    // Don't add ourselves
+bool CKademlia::UpdateContact(const KadContact& contact, KadContactSource source, bool markVerified) {
     if (memcmp(contact.id, m_ownId, KAD_ID_SIZE) == 0) {
         return false;
     }
 
-    // Don't add unknown/invalid node IDs (all-zero)
     if (IsZeroId(contact.id)) {
         return false;
     }
 
-    // Don't add invalid IPs
     if (contact.ip == 0 || contact.ip == INADDR_NONE || contact.ip == INADDR_ANY) {
         return false;
     }
 
-    // Don't add loopback/private IPs for Kad (unless in LAN mode)
-    if (!Settings.Experimental.LAN_Mode) {
+    if (contact.udpPort == 0) {
+        return false;
+    }
+
+    IN_ADDR addr;
+    addr.s_addr = htonl(contact.ip);
+    if (Security.IsDenied(&addr)) {
+        return false;
+    }
+
+    const bool allowLan = Settings.Experimental.LAN_Mode != FALSE;
+    if (!allowLan) {
         if ((contact.ip & 0xFF000000) == 0x7F000000 ||  // 127.x.x.x
             (contact.ip & 0xFF000000) == 0x0A000000 ||  // 10.x.x.x
             (contact.ip & 0xFFF00000) == 0xAC100000 ||  // 172.16.x.x - 172.31.x.x
@@ -854,12 +718,20 @@ bool CKademlia::UpdateContact(const KadContact& contact) {
         }
     }
 
-    return m_routingTable.AddContact(contact);
+    KadContactUpdate upd;
+    upd.source = source;
+    upd.markVerified = markVerified;
+    upd.markAlive = (source == KadContactSource::Observed);
+    upd.nowMs = KadNowMs();
+    upd.allowLan = allowLan;
+
+    CSingleLock oLock(&m_pKadSection, TRUE);
+    return m_routingTable.AddContact(contact, upd);
 }
 
 void CKademlia::MarkContactVerified(const KadId& id) {
-    // Mark a contact as verified in the routing table
-    m_routingTable.MarkContactVerified(id);
+    CSingleLock oLock(&m_pKadSection, TRUE);
+    m_routingTable.MarkContactVerified(id, KadNowMs());
 }
 
 void CKademlia::LogKadStatus() {
@@ -920,14 +792,14 @@ void CKademlia::OnHelloResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
     // Store/update contact information
     KadContact contact;
     memcpy(contact.id, targetId, KAD_ID_SIZE);
-    contact.ip = pHost->sin_addr.s_addr;
+    contact.ip = ntohl(pHost->sin_addr.s_addr);
     contact.tcpPort = tcpPort;
     contact.udpPort = udpPort;
-    contact.lastSeen = GetTickCount();
+    contact.version = version;
+    contact.lastSeen = KadNowMs();
 
-    // Add to our routing table and mark as verified (successful hello response)
-    if (UpdateContact(contact)) {
-        // Mark contact as verified since we received a valid hello response
+    // HELLO_RES is the event that marks a contact IP-verified.
+    if (UpdateContact(contact, KadContactSource::Observed, true)) {
         MarkContactVerified(contact.id);
     }
 
@@ -1387,6 +1259,7 @@ void CKademlia::SearchKeyword(const KadId& keywordHash)
 	if (!m_bInitialized)
 		return;
 
+	CSingleLock oLock(&m_pKadSection, TRUE);
 	std::vector<KadContact> closest;
 	m_routingTable.FindClosestContacts(keywordHash, closest, KAD_K);
 
@@ -1414,6 +1287,7 @@ void CKademlia::SearchSource(const KadId& fileHash)
 	if (!m_bInitialized)
 		return;
 
+	CSingleLock oLock(&m_pKadSection, TRUE);
 	std::vector<KadContact> closest;
 	m_routingTable.FindClosestContacts(fileHash, closest, KAD_K);
 
@@ -1439,6 +1313,7 @@ void CKademlia::SearchSource(const KadId& fileHash)
 void CKademlia::PublishKeyword(const KadId& keywordHash, const KadStoredEntry& entry) {
     if (!m_bInitialized) return;
 
+    CSingleLock oLock(&m_pKadSection, TRUE);
     std::vector<KadContact> closest;
     m_routingTable.FindClosestContacts(keywordHash, closest, KAD_K);
 
@@ -1451,6 +1326,7 @@ void CKademlia::PublishKeyword(const KadId& keywordHash, const KadStoredEntry& e
 void CKademlia::PublishSource(const KadId& fileHash, const KadStoredEntry& entry) {
     if (!m_bInitialized) return;
 
+    CSingleLock oLock(&m_pKadSection, TRUE);
     std::vector<KadContact> closest;
     m_routingTable.FindClosestContacts(fileHash, closest, KAD_K);
 
@@ -1470,7 +1346,7 @@ void CKademlia::SendSearchKeyRequest(const KadContact& contact, const KadId& tar
     pPacket->Write(targetId, KAD_ID_SIZE);
 
     sockaddr_in addr;
-    contact.GetSockAddr(addr);
+    KadContactGetSockAddr(contact, addr);
     AddOutstandingRequest(KAD_REQUEST_SEARCH_KEY, addr);
 
     SendPacket(&addr, pPacket);
@@ -1484,7 +1360,7 @@ void CKademlia::SendSearchSourceRequest(const KadContact& contact, const KadId& 
     pPacket->Write(targetId, KAD_ID_SIZE);
 
     sockaddr_in addr;
-    contact.GetSockAddr(addr);
+    KadContactGetSockAddr(contact, addr);
     AddOutstandingRequest(KAD_REQUEST_SEARCH_SOURCE, addr);
 
     SendPacket(&addr, pPacket);
@@ -1499,7 +1375,7 @@ void CKademlia::SendPublishKeyRequest(const KadContact& contact, const KadId& ta
     WriteEntryTags(pPacket, entry);
 
     sockaddr_in addr;
-    contact.GetSockAddr(addr);
+    KadContactGetSockAddr(contact, addr);
     AddOutstandingRequest(KAD_REQUEST_PUBLISH_KEY, addr);
 
     SendPacket(&addr, pPacket);
@@ -1514,7 +1390,7 @@ void CKademlia::SendPublishSourceRequest(const KadContact& contact, const KadId&
     WriteEntryTags(pPacket, entry);
 
     sockaddr_in addr;
-    contact.GetSockAddr(addr);
+    KadContactGetSockAddr(contact, addr);
     AddOutstandingRequest(KAD_REQUEST_PUBLISH_SOURCE, addr);
 
     SendPacket(&addr, pPacket);

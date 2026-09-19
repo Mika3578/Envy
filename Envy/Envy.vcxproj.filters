@@ -1976,6 +1976,9 @@
     <ClInclude Include="KadFirewallCheck.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="KadRoutingTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="PacketLengthValidate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
