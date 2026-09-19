@@ -27,6 +27,7 @@
 #include "Datagrams.h"
 #include "EDClient.h"
 #include "EDPacket.h"
+#include "Ed2kCompressedUpload.h"
 
 #include "Buffer.h"
 #include "Library.h"
@@ -592,104 +593,189 @@ BOOL CUploadTransferED2K::DispatchNextChunk()
 	while ( nPacket )
 	{
 		QWORD nChunk = min( nPacket, (QWORD)Settings.eDonkey.FrameSize );		// 10 KB limit for eMule (~512 others)
-		const QWORD nOffset   = m_nOffset + m_nPosition;
-		const bool bI64Offset = ( nOffset & 0xffffffff00000000 ) ||
-								( ( nOffset + nChunk ) & 0xffffffff00000000 );
 
-#if 1
-		// Use packet form
+		if (m_nOffset > (SIZE_UNKNOWN - m_nPosition))
+			return FALSE;
+		const QWORD nOffset = m_nOffset + m_nPosition;
+
+		QWORD nEndExclusive = 0;
+		if (!Ed2kCompressedUploadEndOk(nOffset, nChunk, &nEndExclusive))
+			return FALSE;
+
+		const bool bI64Offset = Ed2kCompressedUploadNeedsI64(nOffset, nEndExclusive) != FALSE;
+
+		// Peer Hello/MuleInfo compression version only — never our advertise bit.
+		const DWORD nPeerCompVer = m_pClient ? (DWORD)m_pClient->m_bEmDeflate : 0u;
+		BOOL bChunkHandled = FALSE;
+
+		if (Ed2kShouldAttemptCompressedUpload(nPeerCompVer, nOffset, nChunk) &&
+		    Ed2kCompressedUploadFilenameAllows(m_sName) &&
+		    nChunk > 0 && nChunk <= 0xFFFFFFFFull)
+		{
+			const DWORD nSourceLen = (DWORD)nChunk;
+			auto_array<BYTE> pSource(new BYTE[nSourceLen]);
+			if (!pSource.get())
+				return FALSE;
+
+			QWORD nRead = nSourceLen;
+			if (!ReadFile(m_nFileBase + nOffset, pSource.get(), nSourceLen, &nRead) ||
+			    nRead != nSourceLen)
+			{
+				// Incomplete read — do not send a truncated COMPRESSEDPART stream.
+				return FALSE;
+			}
+
+			const uLong nZBound = compressBound(nSourceLen);
+			DWORD nSuggest = 0;
+			if (Ed2kCompressedUploadSuggestBound(nSourceLen, (QWORD)nZBound, &nSuggest))
+			{
+				auto_array<BYTE> pCompressed(new BYTE[nSuggest]);
+				if (pCompressed.get())
+				{
+					uLongf nNewSize = nSuggest;
+					const int nLevel = (int)Settings.Connection.ZLibCompressionLevel;
+					const int nZ = compress2(pCompressed.get(), &nNewSize, pSource.get(),
+					                         nSourceLen, nLevel);
+
+					if (nZ == Z_OK &&
+					    nNewSize <= 0xFFFFFFFFull &&
+					    Ed2kCompressedUploadBeneficial(nSourceLen, (DWORD)nNewSize))
+					{
+						const DWORD nCompressedTotal = (DWORD)nNewSize;
+						DWORD nRemain = nCompressedTotal;
+						DWORD nWireChunk = Ed2kCompressedUploadWireChunkSize(nCompressedTotal);
+						DWORD nWirePos = 0;
+
+						while (nRemain)
+						{
+							if (nRemain < nWireChunk * 2)
+								nWireChunk = nRemain;
+							if (nWireChunk == 0)
+								break;
+
+							CEDPacket* pCompPacket = CEDPacket::New(
+							    Ed2kCompressedUploadOpcode(bI64Offset),
+							    ED2K_PROTOCOL_EMULE);
+							if (!pCompPacket)
+								return FALSE;
+
+							pCompPacket->Write(m_oED2K);
+							if (bI64Offset)
+							{
+								pCompPacket->WriteLongLE(nOffset & 0x00000000ffffffffull);
+								pCompPacket->WriteLongLE((nOffset >> 32) & 0xffffffffull);
+							}
+							else
+							{
+								pCompPacket->WriteLongLE((DWORD)nOffset);
+							}
+							pCompPacket->WriteLongLE(nCompressedTotal);
+
+							BYTE* pOut = pCompPacket->WriteGetPointer(nWireChunk);
+							if (!pOut)
+							{
+								pCompPacket->Release();
+								return FALSE;
+							}
+							CopyMemory(pOut, pCompressed.get() + nWirePos, nWireChunk);
+							Send(pCompPacket);
+
+							nWirePos += nWireChunk;
+							nRemain -= nWireChunk;
+						}
+
+						nPacket -= nSourceLen;
+						m_nPosition += nSourceLen;
+						m_nUploaded += nSourceLen;
+						ChargeFairUseBody(nSourceLen);
+						bChunkHandled = TRUE;
+					}
+				}
+			}
+
+			if (!bChunkHandled)
+			{
+				// eMule/aMule fallback: SENDINGPART with already-read source bytes.
+				CEDPacket* pPacket;
+				if (bI64Offset)
+				{
+					pPacket = CEDPacket::New(ED2K_C2C_SENDINGPART_I64, ED2K_PROTOCOL_EMULE);
+					if (!pPacket)
+						return FALSE;
+					pPacket->Write(m_oED2K);
+					pPacket->WriteLongLE(nOffset & 0x00000000ffffffffull);
+					pPacket->WriteLongLE((nOffset >> 32) & 0xffffffffull);
+					pPacket->WriteLongLE(nEndExclusive & 0x00000000ffffffffull);
+					pPacket->WriteLongLE((nEndExclusive >> 32) & 0xffffffffull);
+				}
+				else
+				{
+					pPacket = CEDPacket::New(ED2K_C2C_SENDINGPART);
+					if (!pPacket)
+						return FALSE;
+					pPacket->Write(m_oED2K);
+					pPacket->WriteLongLE((DWORD)nOffset);
+					pPacket->WriteLongLE((DWORD)nEndExclusive);
+				}
+
+				BYTE* pOut = pPacket->WriteGetPointer(nSourceLen);
+				if (!pOut)
+				{
+					pPacket->Release();
+					return FALSE;
+				}
+				CopyMemory(pOut, pSource.get(), nSourceLen);
+				Send(pPacket);
+
+				nPacket -= nSourceLen;
+				m_nPosition += nSourceLen;
+				m_nUploaded += nSourceLen;
+				ChargeFairUseBody(nSourceLen);
+				bChunkHandled = TRUE;
+			}
+		}
+
+		if (bChunkHandled)
+			continue;
+
+		// Uncompressed SENDINGPART / SENDINGPART_I64 (peer without compression).
 		CEDPacket* pPacket;
 		if ( bI64Offset )
 		{
 			pPacket = CEDPacket::New( ED2K_C2C_SENDINGPART_I64, ED2K_PROTOCOL_EMULE );
 			if ( ! pPacket )
-				return FALSE;	// Out of memory
+				return FALSE;
 
 			pPacket->Write( m_oED2K );
-			pPacket->WriteLongLE( nOffset & 0x00000000ffffffff );
-			pPacket->WriteLongLE( ( nOffset & 0xffffffff00000000 ) >> 32 );
-			pPacket->WriteLongLE( ( nOffset + nChunk ) & 0x00000000ffffffff );
-			pPacket->WriteLongLE( ( ( nOffset + nChunk ) & 0xffffffff00000000 ) >> 32 );
+			pPacket->WriteLongLE(nOffset & 0x00000000ffffffffull);
+			pPacket->WriteLongLE((nOffset >> 32) & 0xffffffffull);
+			pPacket->WriteLongLE(nEndExclusive & 0x00000000ffffffffull);
+			pPacket->WriteLongLE((nEndExclusive >> 32) & 0xffffffffull);
 		}
 		else
 		{
 			pPacket = CEDPacket::New( ED2K_C2C_SENDINGPART );
 			if ( ! pPacket )
-				return FALSE;	// Out of memory
+				return FALSE;
 
 			pPacket->Write( m_oED2K );
-			pPacket->WriteLongLE( nOffset );
-			pPacket->WriteLongLE( nOffset + nChunk );
+			pPacket->WriteLongLE((DWORD)nOffset);
+			pPacket->WriteLongLE((DWORD)nEndExclusive);
 		}
 
 		if ( ! ReadFile( m_nFileBase + nOffset, pPacket->WriteGetPointer( nChunk ), nChunk, &nChunk ) || nChunk == 0 )
 		{
-			// File error
 			pPacket->Release();
 			return FALSE;
 		}
 
 		Send( pPacket );
 
-#else	// Unused:
-//		// Raw write
-//		CBuffer pBuffer;
-//		if ( bI64Offset )
-//		{
-//			if ( ! pBuffer.EnsureBuffer( sizeof( ED2K_PART_HEADER_I64 ) + nChunk ) )
-//				return FALSE;	// Out of memory
-//
-//			ED2K_PART_HEADER_I64* pHeader = (ED2K_PART_HEADER_I64*)( pBuffer.m_pBuffer + pBuffer.m_nLength );
-//
-//			// SetFilePointer( hFile, m_nFileBase + nOffset, NULL, FILE_BEGIN );
-//			// ReadFile( hFile, &pHeader[1], nChunk, &nChunk, NULL );
-//
-//			if ( ! ReadFile( m_nFileBase + nOffset, &pHeader[1], nChunk, &nChunk ) || nChunk == 0 )
-//				return FALSE;	// File error
-//
-//			pHeader->nProtocol	= ED2K_PROTOCOL_EMULE;
-//			pHeader->nType		= ED2K_C2C_SENDINGPART_I64;
-//			pHeader->nLength	= (DWORD)( 1 + m_oED2K.byteCount + 16 + nChunk );
-//			CopyMemory( &*pHeader->pMD4.begin(), &*m_oED2K.begin(), m_oED2K.byteCount );
-//			pHeader->nOffset1	= nOffset;
-//			pHeader->nOffset2	= nOffset + nChunk;
-//
-//			pBuffer.m_nLength += (DWORD)( sizeof( ED2K_PART_HEADER_I64 ) + nChunk );
-//		}
-//		else
-//		{
-//			if ( ! pBuffer.EnsureBuffer( sizeof( ED2K_PART_HEADER ) + nChunk ) )
-//				return FALSE;	// Out of memory
-//
-//			ED2K_PART_HEADER* pHeader = (ED2K_PART_HEADER*)( pBuffer.m_pBuffer + pBuffer.m_nLength );
-//
-//			// SetFilePointer( hFile, m_nFileBase + nOffset, NULL, FILE_BEGIN );
-//			// ReadFile( hFile, &pHeader[1], nChunk, &nChunk, NULL );
-//
-//			if ( ! ReadFile( m_nFileBase + nOffset, &pHeader[1], nChunk, &nChunk ) || nChunk == 0 )
-//				return FALSE;	// File error
-//
-//			pHeader->nProtocol	= ED2K_PROTOCOL_EDONKEY;
-//			pHeader->nType		= ED2K_C2C_SENDINGPART;
-//			pHeader->nLength	= (DWORD)( 1 + m_oED2K.byteCount + 8 + nChunk );
-//			CopyMemory( &*pHeader->pMD4.begin(), &*m_oED2K.begin(), m_oED2K.byteCount );
-//			pHeader->nOffset1	= (DWORD)nOffset;
-//			pHeader->nOffset2	= (DWORD)( nOffset + nChunk );
-//
-//			pBuffer.m_nLength += (DWORD)( sizeof( ED2K_PART_HEADER ) + nChunk );
-//		}
-//
-//		m_pClient->Write( &pBuffer );
-#endif // 0
-
 		nPacket -= nChunk;
-
 		m_nPosition += nChunk;
 		m_nUploaded += nChunk;
 		ChargeFairUseBody(nChunk);
 	}
-
-	//m_pClient->Send( NULL );
 
 	return TRUE;
 }
