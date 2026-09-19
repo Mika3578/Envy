@@ -507,12 +507,12 @@ BOOL CEDPacket::Inflate(DWORD nMaxOutput)
 		return TRUE;
 
 	// Treat 0 as the shared packed-protocol cap (no unlimited inflate).
-	if ( nMaxOutput == 0 || nMaxOutput > ED2K_PACKED_INFLATE_MAX )
+	if (nMaxOutput == 0 || nMaxOutput > ED2K_PACKED_INFLATE_MAX)
 		nMaxOutput = ED2K_PACKED_INFLATE_MAX;
 
 	DWORD nOutput = 0;
-	auto_array< BYTE > pOutput( CZLib::Decompress( m_pBuffer, m_nLength, &nOutput, nMaxOutput ) );
-	if ( ! pOutput.get() || ! Ed2kPackedInflateOk( nOutput ) )
+	auto_array<BYTE> pOutput(CZLib::Decompress(m_pBuffer, m_nLength, &nOutput, nMaxOutput));
+	if (!pOutput.get() || !Ed2kPackedInflateOk(nOutput))
 		return FALSE;
 
 	switch ( m_nEdProtocol )

@@ -419,6 +419,8 @@ static bool test_qht_patch_compressed_budget()
 		&& QhtPatchCompressedBudgetOk(0, 1, 0) == FALSE
 		&& QhtPatchCompressedBudgetOk(0, 16, 8) == TRUE // tiny table + zlib slack
 		&& QhtPatchCompressedBudgetOk(0, MAXDWORD, MAXDWORD) == TRUE; // MAXDWORD budget branch
+}
+
 static bool test_ed2k_packed_inflate_ok()
 {
 	return Ed2kPackedInflateOk( 1 ) == TRUE

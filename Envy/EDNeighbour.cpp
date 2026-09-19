@@ -228,7 +228,7 @@ BOOL CEDNeighbour::ProcessPackets(CBuffer* pInput)
 			if ( pPacket->m_nEdProtocol == ED2K_PROTOCOL_EMULE_PACKED )
 			{
 				// Inflate uses ED2K_PACKED_INFLATE_MAX (512 KiB) by default.
-				if ( ! pPacket->Inflate() )
+				if (!pPacket->Inflate())
 				{
 					// Inflation failed or exceeded size cap - discard packet safely
 					pPacket->Release();
