@@ -294,7 +294,7 @@ public:
 	int					Import(LPCTSTR pszFile, BOOL bFreshOnly = FALSE);
 	int					ImportHubList(CFile* pFile);	// Import DC++ hub list .xml.bz2 file
 	int					ImportMET(CFile* pFile);		// Import eDonkey2000 servers .met file
-	int				ImportNodes(CFile* pFile);		// Import Kademlia nodes .dat file
+	int ImportNodes(CFile* pFile);                      // Import Kademlia nodes.dat (v0–v3)
 	//int				ImportCache(CFile* pFile);		// ToDo: Support custom G2/Gnutella import/export .xml/.dat
 
 	bool				CheckMinimumServers(PROTOCOLID nProtocol);

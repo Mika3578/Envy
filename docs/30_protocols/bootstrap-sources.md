@@ -14,14 +14,14 @@ Scope: Cold-start catalogues shipped with Envy. Not a claim that every protocol 
 
 Do not copy B back into A. Do not compile bootstrap IPs into `.cpp` / `.h`. The old `CDiscoveryServices::AddDefaults()` built-in string list is **commented out**; if the data files are missing, Envy does not invent a second C++ list.
 
-Status vocabulary: catalogue refresh is **implemented** for the shipped files; remote last-known-good is **planned**; Kad remote `nodes.dat` is **planned** and does **not** make Kad2 complete.
+Status vocabulary: catalogue refresh is **implemented** for the shipped files; remote last-known-good is **planned**; local Kad `nodes.dat` v1/v2/v3 parsing is **implemented**; remote Kad `nodes.dat` download is **planned** and does **not** make Kad2 complete.
 
 ## Cold-start by protocol
 
 | Network | Status | Cold-start path |
 | --- | --- | --- |
 | ED2K | implemented (list download) | `DefaultServices.dat` `D` URLs → `server.met` import into HostCache. No static server IPs. |
-| Kad2 | partial | `HostCache.Kademlia` only. Empty cache → `CKademlia::Bootstrap()` exits. No shipped `K` hosts. Remote `nodes.dat` not wired (ImportNodes accepts old format and new-format version 1 only; eMule-Security currently publishes version 2). See #86 / #160. |
+| Kad2 | partial | Empty `HostCache.Kademlia` → import local `DataPath\nodes.dat` (and optional eMule/aMule `nodes.dat`). Parser accepts legacy v0 + new-format v1/v2/v3 (`Envy/KadNodesDat.h`). v3 edition 1 contributes at most 50 XOR-closest contacts. No shipped `K` hosts. Remote HTTP `nodes.dat` not wired. `CKademlia::Bootstrap()` still needs imported contacts; Kad2 remains partial / unverified. See #86 / #160. |
 | Gnutella 1 | implemented (bootstrap) | gtk-gnutella UHCs (`U uhc:…`) plus multi-network GWCs. |
 | Gnutella2 | implemented (bootstrap) | Independent GWCs (jayl.de, bj.ddns.net, 4octets, trillinux). |
 | DC NMDC | implemented (hublist) | Three HTTPS hublists. `adc://` / `adcs://` skipped until #163. |
@@ -97,8 +97,8 @@ Justified runtime / product URLs, **not** P2P bootstrap:
 
 ## Follow-ups (not this slice)
 
-- Parser hardening for `server.met` / `nodes.dat` / hublist BZip2 / GWC (size, inflate, entry caps) — P0 potential; see #82 and related importer PRs
-- Kad remote `nodes.dat` type + ImportNodes v2/v3 + empty-cache path — only with #86/#160; do not announce Kad complete
+- Parser hardening for `server.met` / hublist BZip2 / GWC (size, inflate, entry caps) — P0 potential; see #82 and related importer PRs
+- Kad **remote** `nodes.dat` discovery type (HTTPS, size/timeout cap, atomic replace). Local v1/v2/v3 parsing is implemented; do not announce Kad complete (#86 / #160)
 - Last-known-good remote catalogue (async, ETag, atomic replace, never block startup)
 - Scheduled GitHub workflow that **reports** source health and never auto-merges `develop`
 
