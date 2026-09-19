@@ -1759,7 +1759,7 @@ void CKademlia::SendFirewalledRequest(const KadContact& contact)
 		return;
 
 	sockaddr_in addr;
-	contact.GetSockAddr(addr);
+	KadContactGetSockAddr(contact, addr);
 
 	KadFwPeerCandidate peer;
 	peer.ipHost = contact.ip;
@@ -1767,7 +1767,7 @@ void CKademlia::SendFirewalledRequest(const KadContact& contact)
 	peer.tcpPort = contact.tcpPort;
 	peer.version = contact.version;
 	peer.verified = contact.verified != FALSE;
-	peer.lastSeen = contact.lastSeen;
+	peer.lastSeen = static_cast<DWORD>(contact.lastSeen);
 
 	if (!m_firewall.BeginOutboundCheck(peer, GetTickCount()))
 		return;
@@ -1794,21 +1794,20 @@ void CKademlia::CollectFirewallCheckCandidates(
 
 	KadFwPeerCandidate raw[KAD_FW_MAX_CANDIDATES * 2];
 	const size_t rawMax = KAD_FW_MAX_CANDIDATES * 2;
+	std::vector<KadContact> contacts;
+	m_routingTable.GetContactsForBootstrap(contacts, static_cast<int>(rawMax));
 	size_t nRaw = 0;
-	for (int b = 0; b < KAD_BUCKET_COUNT && nRaw < rawMax; ++b)
+	for (const auto& contact : contacts)
 	{
-		for (const auto& contact : m_routingTable.buckets[b].contacts)
-		{
-			if (nRaw >= rawMax)
-				break;
-			raw[nRaw].ipHost = contact.ip;
-			raw[nRaw].udpPort = contact.udpPort;
-			raw[nRaw].tcpPort = contact.tcpPort;
-			raw[nRaw].version = contact.version;
-			raw[nRaw].verified = contact.verified != FALSE;
-			raw[nRaw].lastSeen = contact.lastSeen;
-			++nRaw;
-		}
+		if (nRaw >= rawMax)
+			break;
+		raw[nRaw].ipHost = contact.ip;
+		raw[nRaw].udpPort = contact.udpPort;
+		raw[nRaw].tcpPort = contact.tcpPort;
+		raw[nRaw].version = contact.version;
+		raw[nRaw].verified = contact.verified != FALSE;
+		raw[nRaw].lastSeen = static_cast<DWORD>(contact.lastSeen);
+		++nRaw;
 	}
 
 	outCount = KadSelectFirewallCheckPeers(raw, nRaw, out, outMax);

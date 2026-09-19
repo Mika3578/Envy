@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — Kad2 routing × firewall rebase: `CollectFirewallCheckCandidates` walks the zone tree (`ForEachContact`); `SendFirewalledRequest` uses `KadContactGetSockAddr` (no `GetSockAddr` / `KAD_BUCKET_COUNT` / `buckets`).
 - **Changelog Entry:** 2026-09-19 — Kad2 routing review: 128-bit `zonePrefix` (no uint32 shift UB at depth ≥ 32); first zone refresh arms `+10s` then fires; HELLO_RES requires outstanding HELLO_REQ; FIND_NODE_RES matches TargetID and is fail-closed on truncated contact lists before liveness.
 - **Changelog Entry:** 2026-09-19 — Kad2 routing-table maintenance (#86 slice): XOR zone tree with aMule/eMule `CanSplit` (K=10, KBASE=4, KK=5, max depth 127), LRU/type liveness, bounded replacement cache, stale-zone FIND_NODE refresh, /24 diversity (2 per bin / 10 global, 1 IP). `KadRoutingTable.h` + EnvyTests. Kad2 remains partial/unverified; no capability advertise; UDP firewall/Buddy/callback still open.
 - **Changelog Entry:** 2026-09-19 — Kad2 TCP firewall-detection baseline (#86 phase 1): `FIREWALLED_REQ`/`RES` exact framing, bounded outbound checks, public-IP consensus (2 independent peers), TCP Open only after 2 ACKs (UDP 0x59 or C2C 0xA8). UDP tester / Buddy / callback deferred. Kad2 remains partial/unverified; Hello Kad nibble stays 0. `KadFirewallCheck.h` + EnvyTests.
