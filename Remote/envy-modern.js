@@ -233,11 +233,16 @@
         };
 
         const finalOptions = { ...defaultOptions, ...options };
+        // Merge headers so callers can add CSRF without dropping Accept/Content-Type.
+        finalOptions.headers = {
+            ...defaultOptions.headers,
+            ...(options.headers || {})
+        };
 
         // Handle FormData
         if (finalOptions.body instanceof FormData) {
             delete finalOptions.headers['Content-Type'];
-        } else if (typeof finalOptions.body === 'object') {
+        } else if (typeof finalOptions.body === 'object' && finalOptions.body !== null) {
             finalOptions.body = JSON.stringify(finalOptions.body);
         }
 
