@@ -56,19 +56,19 @@ static bool test_dc_hub_user_count_bounds()
 static bool test_dc_adc_offset_rejects_sign_and_junk()
 {
 	ULONGLONG n = 0;
-	return DcParseAdcOffsetToken("0", 1, &n) != FALSE && n == 0 && DcParseAdcOffsetToken("42", 2, &n) != FALSE && n == 42 && DcParseAdcOffsetToken("-1", 2, &n) == FALSE && DcParseAdcOffsetToken("123x", 4, &n) == FALSE && DcParseAdcOffsetToken("", 0, &n) == FALSE && DcParseAdcOffsetToken("+", 1, &n) == FALSE && DcParseAdcOffsetToken("01", 2, &n) != FALSE && n == 1;
+	return DcParseAdcOffsetToken("0", 1, &n) != FALSE && n == 0 && DcParseAdcOffsetToken("42", 2, &n) != FALSE && n == 42 && DcParseAdcOffsetToken("-1", 2, &n) == FALSE && DcParseAdcOffsetToken("123x", 4, &n) == FALSE && DcParseAdcOffsetToken("0|", 1, &n) != FALSE && n == 0 && DcParseAdcOffsetToken("", 0, &n) == FALSE && DcParseAdcOffsetToken("+", 1, &n) == FALSE && DcParseAdcOffsetToken("01", 2, &n) != FALSE && n == 1;
 }
 
 static bool test_dc_adcget_length_allows_until_end_only()
 {
 	ULONGLONG n = 0;
-	return DcParseAdcGetLengthToken("-1", 2, &n) != FALSE && n == DC_ADC_LENGTH_UNTIL_END && DcParseAdcGetLengthToken("0", 1, &n) != FALSE && n == 0 && DcParseAdcGetLengthToken("100", 3, &n) != FALSE && n == 100 && DcParseAdcGetLengthToken("-2", 2, &n) == FALSE && DcParseAdcGetLengthToken("123x", 4, &n) == FALSE && DcParseAdcGetLengthToken("", 0, &n) == FALSE && DcParseAdcGetLengthToken("-1x", 3, &n) == FALSE && DcParseAdcGetLengthToken("--1", 3, &n) == FALSE;
+	return DcParseAdcGetLengthToken("-1", 2, &n) != FALSE && n == DC_ADC_LENGTH_UNTIL_END && DcParseAdcGetLengthToken("0", 1, &n) != FALSE && n == 0 && DcParseAdcGetLengthToken("100", 3, &n) != FALSE && n == 100 && DcParseAdcGetLengthToken("100x", 3, &n) != FALSE && n == 100 && DcParseAdcGetLengthToken("-2", 2, &n) == FALSE && DcParseAdcGetLengthToken("123x", 4, &n) == FALSE && DcParseAdcGetLengthToken("", 0, &n) == FALSE && DcParseAdcGetLengthToken("-1x", 3, &n) == FALSE && DcParseAdcGetLengthToken("--1", 3, &n) == FALSE;
 }
 
 static bool test_dc_adcsnd_length_rejects_until_end()
 {
 	ULONGLONG n = 0;
-	return DcParseAdcSndLengthToken("-1", 2, &n) == FALSE && DcParseAdcSndLengthToken("0", 1, &n) != FALSE && n == 0 && DcParseAdcSndLengthToken("4096", 4, &n) != FALSE && n == 4096 && DcParseAdcSndLengthToken("123x", 4, &n) == FALSE && DcParseAdcSndLengthToken("", 0, &n) == FALSE;
+	return DcParseAdcSndLengthToken("-1", 2, &n) == FALSE && DcParseAdcSndLengthToken("0", 1, &n) != FALSE && n == 0 && DcParseAdcSndLengthToken("4096", 4, &n) != FALSE && n == 4096 && DcParseAdcSndLengthToken("4096|", 4, &n) != FALSE && n == 4096 && DcParseAdcSndLengthToken("123x", 4, &n) == FALSE && DcParseAdcSndLengthToken("", 0, &n) == FALSE;
 }
 
 static bool test_dc_adc_u64_overflow_reject()
