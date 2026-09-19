@@ -44,8 +44,8 @@ END_MESSAGE_MAP()
 // CUpdateServersDlg dialog
 
 CUpdateServersDlg::CUpdateServersDlg(CWnd* pParent)
-	: CSkinDialog(CUpdateServersDlg::IDD, pParent)
-	, m_nMode(UpdateServersDlgMode::eDonkey)
+    : CSkinDialog(CUpdateServersDlg::IDD, pParent)
+    , m_nMode(UpdateServersDlgMode::eDonkey)
 {
 }
 
