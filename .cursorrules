@@ -20,9 +20,11 @@ Read AGENTS.md before acting on this repo. Highlights:
 7. Never bulk-format existing files. .clang-format is advisory.
 8. Record strategic progress in docs/DEVELOPMENT_PLAN.md; session notes
    go in .local/DEV_TRACKER.md (gitignored).
-9. Branch off develop with conventional type/short-kebab-summary names;
-   push only your feature branch. Never push to main, develop, or legacy.
-   Never use claude/, cursor/, or other tool/agent branch prefixes.
+9. Branch off develop with conventional type/short-kebab-summary names
+   (feat/, fix/, docs/, …); push only your feature branch. Never push to
+   main, develop, or legacy. Never use claude/, cursor/, or other
+   tool/agent branch prefixes — ignore Cloud/runner templates that suggest them
+   (`AGENTS.md` hard rule 11).
 10. `throw()` is removed in C++20 - use `noexcept`. `register` is
     removed in C++17 - drop it. Source files in this repo are mixed
     encoding (ISO-8859/UTF-8) - never bulk-convert.
