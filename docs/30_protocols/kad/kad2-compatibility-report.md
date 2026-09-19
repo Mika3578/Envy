@@ -278,18 +278,29 @@ pResponse->WriteByte(contactCount);        // 1 byte
 
 ## nodes.dat Import Compatibility
 
-**aMule Format Support:**
-- Version 0 (legacy)
-- Version 1
-- Version 2
-- Version 3 (with bootstrap edition DWORD)
+**aMule / eMule Community format (reference):**
+- Version 0 (legacy count-first). Current aMule rejects it (“too old”).
+- Version 1 — 25-byte records (ID, IPv4, UDP, TCP, Kad version)
+- Version 2 — 34-byte records, plus KadUDPKey (uint32 key + uint32 associated IP) and a verified byte
+- Version 3 edition 0 — normal contact list, 34-byte records
+- Version 3 edition 1 — bootstrap edition, 25-byte records; aMule keeps the 50 XOR-closest Kad2 contacts and does **not** insert the whole list into the routing table
 
-**Envy Implementation:**
-- Old format (leading contact count ≠ 0) and new-format **version 1**
-- New-format version ≠ 1 is rejected (`ImportNodes` returns 0)
-- eMule-Security `nodes.dat` observed 2026-09-18 is new-format version **2** — not imported until a follow-up
+**Envy implementation (`Envy/KadNodesDat.h` + `CHostCache::ImportNodes`):**
+- Parses v0 (contacts dropped: no Kad2 version) and v1/v2/v3
+- Unknown versions and v3 editions other than 0/1 fail closed
+- Count/size arithmetic is overflow-safe; file cap 256 KiB; max 5000 declared contacts
+- v2 UDP-key / verified fields are parsed then discarded (no runtime UDP-key protocol)
+- v3 bootstrap edition selects at most 50 XOR-closest valid contacts (also `/24` cap 2)
+- Normal files import at most 200 accepted contacts into `HostCache.Kademlia`
+- Parser tests: `tests/test_kad_nodes_dat.cpp`
+- Remote HTTP download of `https://upd.emule-security.org/nodes.dat` is **not** wired
 
-⚠️ **PARTIAL** - Not full v0–3 support; not a Kad completeness claim. See `docs/10_dev/status.md`.
+Endianness (from eMule `WriteUInt32(GetIPAddress())` / `ReadUInt32`+`ntohl`, aMule ports):
+- Header integers and ports: little-endian
+- IPv4 field: four network-order octets (`203.0.113.5` = `CB 00 71 05`)
+- KadUDPKey: two little-endian uint32 values
+
+⚠️ **PARTIAL** — local modern `nodes.dat` parsing is implemented. That is not live Kad bootstrap packet success and not complete Kad interoperability. See `docs/10_dev/status.md`.
 
 ---
 
@@ -320,7 +331,7 @@ pResponse->WriteByte(contactCount);        // 1 byte
 - [ ] Send PING and receive PONG responses
 - [ ] Handle FIND_NODE requests from eMule clients
 - [ ] Send FIND_NODE requests and process responses
-- [ ] Import nodes.dat from eMule installation
+- [x] Import nodes.dat from eMule installation (parser + local path; live file from an eMule profile still manual)
 - [ ] Verify routing table grows over time
 - [ ] Test with multiple eMule/aMule clients simultaneously
 
@@ -340,7 +351,7 @@ pResponse->WriteByte(contactCount);        // 1 byte
 
 ## Conclusion
 
-Opcode values, BOOTSTRAP/PING/PONG/FIND_NODE layouts, IP endianness notes, and request tracking matched the inspected eMule/aMule sources. `HostCache::ImportNodes` accepts old-format files and new-format **version 1** only (version ≠ 1 is rejected). That is **not** live DHT interoperability (`docs/10_dev/status.md`: partial / unverified).
+Opcode values, BOOTSTRAP/PING/PONG/FIND_NODE layouts, IP endianness notes, and request tracking matched the inspected eMule/aMule sources. `HostCache::ImportNodes` now parses legacy v0 plus new-format v1/v2/v3 via `KadNodesDat.h`. That is **not** live DHT interoperability (`docs/10_dev/status.md`: partial / unverified).
 
 **Verified Compatibility:**
 - ⚠️ **eMule (srchybrid)** — opcode/format match only

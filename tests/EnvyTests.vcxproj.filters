@@ -77,6 +77,9 @@
     <ClCompile Include="test_bootstrap_catalog_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_kad_nodes_dat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_transfer_settings_limits_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
