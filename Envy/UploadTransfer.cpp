@@ -26,8 +26,10 @@
 #include "UploadQueues.h"
 #include "UploadTransfer.h"
 #include "UploadTransferHTTP.h"
+#include "TransferSettingsLimits.h"
 
 #include "SharedFile.h"
+#include "Schema.h"
 #include "Download.h"
 #include "Downloads.h"
 #include "Transfers.h"	// Lock
@@ -43,23 +45,26 @@ static char THIS_FILE[] = __FILE__;
 // CUploadTransfer construction
 
 CUploadTransfer::CUploadTransfer(PROTOCOLID nProtocol)
-	: CTransfer			( nProtocol )
-	, m_pQueue			( NULL )
-	, m_pBaseFile		( NULL )
-	, m_nFileBase		( 0 )
-	, m_bFilePartial	( FALSE )
-	, m_bStopTransfer	( FALSE )
-	, m_bPriority		( FALSE )
-	, m_bLive			( TRUE )
-	, m_nUserRating		( urNew )
-	, m_nRequests		( 0 )
-	, m_nUploaded		( 0 )
-	, m_tContent		( 0 )
-	, m_tRotateTime		( 0 )
-	, m_tAverageTime	( 0 )
-	, m_nAveragePos		( 0 )
-	, m_tRatingTime		( 0 )
-	, m_nMaxRate		( 0 )
+    : CTransfer(nProtocol)
+    , m_pQueue(NULL)
+    , m_pBaseFile(NULL)
+    , m_nFileBase(0)
+    , m_bFilePartial(FALSE)
+    , m_bFairUseMedia(FALSE)
+    , m_bStopTransfer(FALSE)
+    , m_bPriority(FALSE)
+    , m_bLive(TRUE)
+    , m_nUserRating(urNew)
+    , m_nRequests(0)
+    , m_nUploaded(0)
+    , m_nFairUseReserved(0)
+    , m_nFairUseSent(0)
+    , m_tContent(0)
+    , m_tRotateTime(0)
+    , m_tAverageTime(0)
+    , m_nAveragePos(0)
+    , m_tRatingTime(0)
+    , m_nMaxRate(0)
 {
 	m_nProtocol			= nProtocol;
 	m_nBandwidth		= Settings.Bandwidth.Request;
@@ -101,6 +106,8 @@ void CUploadTransfer::Close(UINT nError)
 
 	if ( m_nState == upsNull ) return;
 	m_nState = upsNull;
+
+	ReleaseFairUseReservation();
 
 	CTransfer::Close( nError );
 	UploadQueues.Dequeue( this );
@@ -408,6 +415,10 @@ BOOL CUploadTransfer::HashesFromURN(LPCTSTR pszURN)
 
 void CUploadTransfer::ClearRequest()
 {
+	// Must run before m_sPath is cleared so unused HEAD/abort quota
+	// is rolled back on HTTP keep-alive, not only on Close.
+	ReleaseFairUseReservation();
+
 	m_sName.Empty();
 	m_sPath.Empty();
 	m_sFileTags.Empty();
@@ -415,6 +426,7 @@ void CUploadTransfer::ClearRequest()
 	m_nSize			= 0;
 	m_nFileBase		= 0;
 	m_bFilePartial	= FALSE;
+	m_bFairUseMedia = FALSE;
 
 	m_nLength		= SIZE_UNKNOWN;
 	m_nOffset		= SIZE_UNKNOWN;
@@ -442,6 +454,8 @@ BOOL CUploadTransfer::RequestComplete(const CLibraryFile* pFile)
 	m_nSize	= pFile->GetSize();
 	m_sFileTags	= pFile->m_sShareTags;
 	m_bFilePartial = FALSE;
+	m_bFairUseMedia = pFile->IsSchemaURI(CSchema::uriAudio) ||
+	                  pFile->IsSchemaURI(CSchema::uriVideo);
 
 	m_oSHA1 = pFile->m_oSHA1;
 	m_oTiger = pFile->m_oTiger;
@@ -471,6 +485,7 @@ BOOL CUploadTransfer::RequestPartial(CDownload* pDownload)
 	m_nSize	= pDownload->m_nSize;
 	m_sFileTags.Empty();
 	m_bFilePartial = TRUE;
+	m_bFairUseMedia = FALSE;
 
 	// Try to get existing file object from download
 	augment::auto_ptr< CFragmentedFile > pFile( pDownload->GetFile() );
@@ -521,6 +536,56 @@ void CUploadTransfer::StartSending(int nState)
 void CUploadTransfer::AllocateBaseFile()
 {
 	m_pBaseFile = UploadFiles.GetFile( this, m_oSHA1, m_sName, m_sPath, m_nSize );
+}
+
+BOOL CUploadTransfer::ApplyFairUseLimit(BOOL bReserve)
+{
+	if (!TransferFairUseApplies(Settings.Uploads.FairUseMode != false,
+	                            m_bFairUseMedia != FALSE, m_bFilePartial != FALSE,
+	                            m_nProtocol == PROTOCOL_BT))
+		return TRUE;
+
+	if (m_nSize == 0 || m_nSize == SIZE_UNKNOWN)
+		return TRUE;
+
+	QWORD nOffset = (m_nOffset == SIZE_UNKNOWN) ? 0 : m_nOffset;
+	QWORD nLength = m_nLength;
+	if (nLength == SIZE_UNKNOWN)
+	{
+		if (nOffset >= m_nSize)
+			return FALSE;
+		nLength = m_nSize - nOffset;
+	}
+
+	const QWORD nGranted = Uploads.GetFairUseGranted(&m_pHost.sin_addr, m_sPath);
+	if (!TransferFairUseClipRange(nOffset, nLength, m_nSize, nGranted))
+		return FALSE;
+
+	m_nOffset = nOffset;
+	m_nLength = nLength;
+	if (!bReserve)
+		return TRUE;
+
+	// Reserve now so concurrent GETs cannot each take a full 10%. Unused
+	// reservation is rolled back in ClearRequest / Close. HTTP HEAD clips
+	// the advertised range but does not reserve or consume quota.
+	Uploads.AddFairUseGranted(&m_pHost.sin_addr, m_sPath, nLength);
+	m_nFairUseReserved = TransferFairUseSaturatingAdd(m_nFairUseReserved, nLength);
+	return TRUE;
+}
+
+void CUploadTransfer::ChargeFairUseBody(QWORD nBytes)
+{
+	m_nFairUseSent = TransferFairUseChargeBody(m_nFairUseReserved, m_nFairUseSent, nBytes);
+}
+
+void CUploadTransfer::ReleaseFairUseReservation()
+{
+	const QWORD nUnused = TransferFairUseUnused(m_nFairUseReserved, m_nFairUseSent);
+	if (nUnused != 0)
+		Uploads.SubtractFairUseGranted(&m_pHost.sin_addr, m_sPath, nUnused);
+	m_nFairUseReserved = 0;
+	m_nFairUseSent = 0;
 }
 
 BOOL CUploadTransfer::IsFileOpen() const

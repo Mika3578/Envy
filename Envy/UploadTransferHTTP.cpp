@@ -781,6 +781,14 @@ BOOL CUploadTransferHTTP::RequestSharedFile(CLibraryFile* pFile, CSingleLock& oL
 	{
 		oLibraryLock.Unlock();
 		SendResponse( IDR_HTML_BADRANGE );
+		theApp.Message(MSG_ERROR, IDS_UPLOAD_BAD_RANGE, (LPCTSTR)m_sAddress, (LPCTSTR)m_sName);
+		return TRUE;
+	}
+
+	if (!ApplyFairUseLimit(!m_bHead))
+	{
+		oLibraryLock.Unlock();
+		SendResponse(IDR_HTML_BADRANGE);
 		theApp.Message( MSG_ERROR, IDS_UPLOAD_BAD_RANGE, (LPCTSTR)m_sAddress, (LPCTSTR)m_sName );
 		return TRUE;
 	}
@@ -1263,6 +1271,7 @@ BOOL CUploadTransferHTTP::OnWrite()
 
 		m_nPosition += nPacket;
 		m_nUploaded += nPacket;
+		ChargeFairUseBody(nPacket);
 
 		Statistics.Current.Uploads.Volume += ( nPacket / 1024 );
 	}

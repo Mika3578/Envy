@@ -37,10 +37,13 @@ For power users:
 
 ### Uploads
 
-- **Bandwidth Limit**: Maximum upload speed
-- **Queue Management**: How many uploads to allow
-- **Share Limits**: Maximum shares per user
-- **Prioritization**: Favorite users get priority
+See [transfer-settings.md](transfer-settings.md) for the live Uploads page mapping.
+
+- **Bandwidth Limit**: Global upload cap (`Bandwidth.Uploads`). **Unlimited** (stores `0`; legacy UI token `MAX` still accepted). Effective send rate is still bounded by the connection uplink.
+- **Throttle**: Average (soft) vs Maximum (strict) — not a generic “mode”.
+- **Max uploads per host**: Simultaneous upload transfers per IPv4 address (`Uploads.MaxPerHost`, default **2**, range 1–64).
+- **Queues**: Historical Small/Large/Partial/eDonkey rules; drag reorders immediately. Do not delete.
+- **Fair-Use**: opt-in 10% audio/video limit per remote host (`Uploads.FairUseMode`); charged from bytes sent (HTTP HEAD does not consume quota).
 
 ## 🔌 Connection Settings
 
@@ -66,18 +69,20 @@ For power users:
 
 ### Bandwidth Management
 
-- **Global Limits**:
-  - Download speed cap
-  - Upload speed cap
-  - Apply to all networks
+- **Global limits (implemented):**
+  - Download cap: Settings → Downloads (`Bandwidth.Downloads`, `0` = unlimited)
+  - Upload cap: Settings → Uploads (`Bandwidth.Uploads`, `0` = unlimited)
+  - Physical uplink/downlink: Settings → Connection (`Connection.OutSpeed` / `InSpeed`)
 
-- **Per-Network Limits**:
-  - Different speeds for different protocols
-  - Prioritize certain networks
+- **Per-neighbour G1/G2 pipes (implemented, Advanced — not on the Uploads page):**
+  - `Bandwidth.HubIn/Out`, `LeafIn/Out`, `PeerIn/Out`, `UdpOut`
+  - These are not a full per-protocol (BT vs ED2K vs HTTP) byte budget
 
-- **Throttling**:
-  - Time-based limits (day/night)
-  - Application priority settings
+- **Scheduler (implemented separately):**
+  - Can overwrite `Bandwidth.Uploads` / `Downloads` on a timetable
+  - Not shown as “alt-speed” on the Uploads page
+
+- **Not implemented as transfer settings:** VPN leak protection, bind-interface picker, IPv6 dual-stack, per-torrent connection caps in the qBittorrent sense.
 
 ## 🔒 Security Settings
 

@@ -108,7 +108,7 @@ The Downloads tab shows:
 
 - **Interface**: Language, theme, and layout
 - **Downloads**: Speed limits, save locations
-- **Uploads**: Bandwidth allocation, queue management
+- **Uploads**: Bandwidth allocation, queue management ([mapping](transfer-settings.md))
 - **Security**: Content filtering, privacy options
 
 ### Network Settings

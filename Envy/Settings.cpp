@@ -24,6 +24,7 @@
 #include "Skin.h"
 #include "Ed2kKadSettingsPolicy.h"
 #include "DcHublistSources.h"
+#include "TransferSettingsLimits.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -636,7 +637,7 @@ void CSettings::Load()
 	Add( L"Uploads", L"ClampdownFloor", &Uploads.ClampdownFloor, 8*128, 128, 0, 4096, L" Kb/s" );
 	Add( L"Uploads", L"ClearDelay", &Uploads.ClearDelay, 60*1000, 1000, 1, 1800, L" s" );
 	Add( L"Uploads", L"DynamicPreviews", &Uploads.DynamicPreviews, true );
-	Add( L"Uploads", L"FairUseMode", &Uploads.FairUseMode, false );	// ToDo: Implement this
+	Add(L"Uploads", L"FairUseMode", &Uploads.FairUseMode, false); // 10% audio/video per remote client
 	Add( L"Uploads", L"FilterMask", &Uploads.FilterMask, 0xFFFFFFFD );
 	Add( L"Uploads", L"FreeBandwidthFactor", &Uploads.FreeBandwidthFactor, 8, 1, 0, 99, L"%" );
 	Add( L"Uploads", L"FreeBandwidthValue", &Uploads.FreeBandwidthValue, 20*128, 128, 0, 4096, L" Kb/s" );
