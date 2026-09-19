@@ -13,6 +13,15 @@ Use this file to record decisions that affect architecture, protocol compatibili
 - **Consequences:** ED2K/Kad P0 targets eMule Community and aMule. Kad6 and Ember crypto stay P3/P2 research. BitTorrent/G1/G2/DC are preserved.
 - **References:** `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`, `docs/DEVELOPMENT_PLAN.md`, `docs/10_dev/status.md`.
 
+### Decision: Cross-platform foundations
+- **Date:** 2026-09-18
+- **Status:** accepted
+- **ID:** D-012…D-015 in `docs/DECISIONS.md`
+- **Context:** Envy is a Windows MFC monolith; future multi-OS work must not start as a rewrite or claim unsupported platforms.
+- **Decision:** Target EnvyCore + platform abstraction + retained MFC Windows frontend. Linux/macOS are **planned** not supported. New EnvyCore APIs avoid MFC/Win32 types. Win32 stays in CI (Stage A). CMake portable slice is foundational; full-app CMake stays low priority.
+- **Consequences:** #91/#161/#89 proceed Windows-first under the portability plan; no required Linux/macOS CI until portable code exists; no Win32 removal without evidence.
+- **References:** `docs/20_arch/PORTABILITY_PLAN.md`, `docs/ARCHITECTURE.md`.
+
 ## Template
 
 ### Decision: <short title>

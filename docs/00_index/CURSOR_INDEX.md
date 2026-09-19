@@ -9,10 +9,11 @@
 | [contributing](../10_dev/contributing.md) | How to contribute |
 | [status](../10_dev/status.md) | Current implementation state (canonical matrix) |
 | [architecture](../20_arch/architecture.md) | System design |
+| [PORTABILITY_PLAN](../20_arch/PORTABILITY_PLAN.md) | Cross-platform foundations (planned OS targets; EnvyCore / platform / UI) |
 
 ## Planning
 - [roadmap](../10_dev/roadmap.md) · [DEVELOPMENT_PLAN](../DEVELOPMENT_PLAN.md) · [modernization-summary](../10_dev/modernization-summary.md) (historical snapshot)
-- [REFERENCE_IMPLEMENTATIONS](../30_protocols/REFERENCE_IMPLEMENTATIONS.md) · [DECISIONS](../DECISIONS.md) (D-008)
+- [REFERENCE_IMPLEMENTATIONS](../30_protocols/REFERENCE_IMPLEMENTATIONS.md) · [DECISIONS](../DECISIONS.md) (D-008, D-012…D-015) · [PORTABILITY_PLAN](../20_arch/PORTABILITY_PLAN.md)
 
 ## Protocols
 - **ED2K:** [README](../30_protocols/ed2k/README.md) · [gap analysis](../30_protocols/ed2k/ED2K_KAD_GAP_ANALYSIS.md) · [search fixes](../30_protocols/ed2k/ED2K_SEARCH_FIXES.md)

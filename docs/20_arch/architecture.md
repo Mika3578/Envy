@@ -6,6 +6,8 @@ This document provides an overview of the Envy P2P client's system architecture 
 
 Envy is a multi-network peer-to-peer file sharing application supporting BitTorrent, Gnutella2 (G2), Gnutella, eDonkey2000/Kad, and Direct Connect. It uses C++ (C++20 target) with MFC for the Windows desktop environment. External P2P projects are interoperability/architecture references, not replacements — `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`.
 
+**Cross-platform:** long-term target via `EnvyCore` + platform abstraction; Linux/macOS are **planned**, not supported. Canonical plan: [`PORTABILITY_PLAN.md`](PORTABILITY_PLAN.md). Root overview: `docs/ARCHITECTURE.md`.
+
 ## 🧩 Core Components
 
 ### Network Layer
