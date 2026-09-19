@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GitHub Actions SHA pinning (#96)** — External actions in `.github/workflows/` and `.github/actions/` are pinned to full commit SHAs (with `# vN` comments). Upgrade process documented in `docs/10_dev/agents-and-automation.md`.
 
 ### Fixed
+- **CBuffer Inflate/Ungzip default output cap (#81)** — `CBuffer::Inflate`/`Ungzip` with `nMaxOutput=0` now apply `CBUFFER_INFLATE_MAX` (32 MiB) via `Decompress2` / growth clamps (`CBufferInflateOutputOk`); closes unlimited datagram/legacy CBuffer inflate zip-bombs while callers may still pass an explicit smaller cap. (GGEP still uses uncapped `CZLib::Decompress` — see #195.)
 - **ED2K FileComment length guards (#81)** — `OnFileComment` requires rating+length header and rejects claimed comment lengths above `ED2K_FILE_COMMENT_MAX` or remaining payload (`Ed2kFileCommentHeaderFits` / `Ed2kFileCommentLengthOk`); fail-closed instead of clamp-then-truncate.
 - **ED2K wire TAG_BLOB absolute size cap (#82)** — Packet-path `CEDTag::Read` now uses `Ed2kTagBlobLengthOk` (4 MiB + remaining) instead of remaining-only checks, matching `.met` / collection TAG_BLOB policy. Oversized peer-advertised blobs fail closed.
 - **BitTorrent source-response double-free (#92)** — `CDownloadTransferBT::OnSourceResponse` no longer `delete`s `pPacket->m_pNode` when `peers` is missing/non-list (packet owns the node); null-guard `pRoot`/`pPeers` and nested peer nodes before `IsType`.
