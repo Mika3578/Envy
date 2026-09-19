@@ -135,6 +135,19 @@ inline BOOL Ed2kTagStringLengthOk(DWORD nLen, ULONGLONG nFileRemaining)
 	return nLen <= nFileRemaining;
 }
 
+// Absolute cap for speculative unknown-tag STRING skip heuristic (#81).
+// Claims *above* this fall through to INT-sized skip; claims at or below
+// that fit remaining use STRING skip; claims at or below that exceed
+// remaining fail-closed (no INT guess / desync).
+constexpr DWORD ED2K_UNKNOWN_TAG_STRING_SKIP_MAX = 1023u;
+
+inline BOOL Ed2kUnknownTagStringSkipOk(DWORD nValueLen, ULONGLONG nRemaining)
+{
+	if (nValueLen > ED2K_UNKNOWN_TAG_STRING_SKIP_MAX)
+		return FALSE;
+	return nValueLen <= nRemaining;
+}
+
 // ED2K FileComment: 1-byte rating + DWORD length + comment bytes (#81).
 // Cap matches ED2K_COMMENT_MAX in EDPacket.h.
 constexpr DWORD ED2K_FILE_COMMENT_MAX = 250u;
@@ -172,6 +185,7 @@ inline BOOL Ed2kTagUint64RemainingOk(ULONGLONG nBytesRemaining)
 {
 	return nBytesRemaining >= ED2K_TAG_UINT64_BYTES;
 }
+
 
 // ED2K hashset answer: after nBlocks, payload must be exactly nBlocks MD4 digests.
 constexpr DWORD ED2K_HASHSET_DIGEST_BYTES = 16u;
