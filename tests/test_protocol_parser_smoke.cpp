@@ -177,6 +177,7 @@ static bool test_g1_packet_total_length_ok()
 	const DWORD nMax = 64u * 1024u;
 	return G1PacketTotalLengthOk( 0, nMax ) == TRUE
 		&& G1PacketTotalLengthOk( -1, nMax ) == FALSE
+		&& G1PacketTotalLengthOk( -16, nMax ) == FALSE
 		&& G1PacketTotalLengthOk( static_cast< LONG >( nMax - G1_PACKET_HEADER_BYTES - 1 ), nMax ) == TRUE
 		&& G1PacketTotalLengthOk( static_cast< LONG >( nMax - G1_PACKET_HEADER_BYTES ), nMax ) == FALSE
 		&& G1PacketTotalLengthOk( 1, G1_PACKET_HEADER_BYTES ) == FALSE

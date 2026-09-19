@@ -4,6 +4,7 @@
 
 - **Last Updated:** 2026-09-19
 - **Changelog Entry:** 2026-09-19 — #81: G1 TCP framing uses overflow-safe `G1PacketTotalLengthOk` for signed payload length vs `MaximumPacket`.
+- **Changelog Entry:** 2026-09-19 — #81: G1 UDP datagram path uses overflow-safe G1PacketTotalLengthOk (rejects negative m_nLength wrap before CG1Packet::New).
 - **Changelog Entry:** 2026-09-19 — Agent workflow: after every PR push use `gh pr checks --required --watch --fail-fast --interval 5` (no arbitrary CI sleeps); see `AGENTS.md` §5 and `.cursor/rules/08-dev-workflow.mdc`.
 - **Changelog Entry:** 2026-09-19 — #81: ED2K `COMPRESSEDPART` / `COMPRESSEDPART_I64` stream inflate capped at one part or the remaining file size, whichever is smaller (`ED2K_COMPRESSEDPART_INFLATE_MAX` / `Ed2kCompressedPartInflateBudget` / `Ed2kCompressedPartInflateOk`) before `SubmitData`; `CEDClient::OnPacket` propagates inflate rejection.
 - **Changelog Entry:** 2026-09-19 — #81: GGEP DEFLATE inflate capped at 256 KiB (`GGEP_INFLATE_MAX` / `GgepInflateOutputOk`).
