@@ -431,15 +431,17 @@ void CKademlia::OnTimer() {
 	LogKadStatus();
 
 	// Clean up expired DHT entries every 5 minutes
-	if (now - m_lastStoreCleanup > 5 * 60 * 1000) {
-        CleanupExpiredEntries();
-        m_lastStoreCleanup = now;
-    }
+	if (now - m_lastStoreCleanup > 5 * 60 * 1000)
+	{
+		CleanupExpiredEntries();
+		m_lastStoreCleanup = now;
+	}
 
-    // Re-bootstrap if we have very few contacts
-    if (m_routingTable.GetTotalContacts() < 5) {
-        Bootstrap();
-    }
+	// Re-bootstrap if we have very few contacts
+	if (m_routingTable.GetTotalContacts() < 5)
+	{
+		Bootstrap();
+	}
 }
 
 BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {

@@ -235,14 +235,14 @@ public:
 	// Search for file sources in DHT
 	void SearchSource(const KadId& fileHash);
 
-    // Publish a keyword entry to DHT
-    void PublishKeyword(const KadId& keywordHash, const KadStoredEntry& entry);
+	// Publish a keyword entry to DHT
+	void PublishKeyword(const KadId& keywordHash, const KadStoredEntry& entry);
 
-    // Publish a source entry to DHT
-    void PublishSource(const KadId& fileHash, const KadStoredEntry& entry);
+	// Publish a source entry to DHT
+	void PublishSource(const KadId& fileHash, const KadStoredEntry& entry);
 
-    // Get total stored DHT entries
-    size_t GetStoredEntryCount() const;
+	// Get total stored DHT entries
+	size_t GetStoredEntryCount() const;
 
 	// Copy own Kad ID (16 bytes). Returns false when not initialized.
 	bool GetOwnKadId(KadId& outId) const
