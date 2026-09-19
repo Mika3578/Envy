@@ -1968,6 +1968,8 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DcFileListValidate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="DcAdcGetValidate.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -359,8 +359,7 @@ void CSettings::Load()
 	Add( L"Connection", L"MulticastTTL", &Connection.MulticastTTL, 1, 1, 0, 255 );
 	Add( L"Connection", L"ZLibCompressionLevel", &Connection.ZLibCompressionLevel, 2, 1, 0, 9 );
 
-	Add( L"Bandwidth", L"Downloads", &Bandwidth.Downloads, TransferBandwidthUnlimitedValue() );	// 0 = unlimited (bytes/s)
-	Add( L"Bandwidth", L"HubIn", &Bandwidth.HubIn, 0, 128, 0, 8192, L" Kb/s" );
+	Add( L"Bandwidth", L"Downloads", &Bandwidth.Downloads, 0 );
 	Add( L"Bandwidth", L"HubIn", &Bandwidth.HubIn, 0, 128, 0, 8192, L" Kb/s" );
 	Add( L"Bandwidth", L"HubOut", &Bandwidth.HubOut, 0, 128, 0, 8192, L" Kb/s" );
 	Add( L"Bandwidth", L"HubUploads", &Bandwidth.HubUploads, 50, 1, 1, 90, L" %" );
@@ -370,7 +369,7 @@ void CSettings::Load()
 	Add( L"Bandwidth", L"PeerOut", &Bandwidth.PeerOut, 0, 128, 0, 8192, L" Kb/s" );
 	Add( L"Bandwidth", L"Request", &Bandwidth.Request, 32*128, 128, 0, 8192, L" Kb/s" );
 	Add( L"Bandwidth", L"UdpOut", &Bandwidth.UdpOut, 0, 128, 0, 8192, L" Kb/s" );
-	Add( L"Bandwidth", L"Uploads", &Bandwidth.Uploads, TransferBandwidthUnlimitedValue() );	// 0 = unlimited (bytes/s)
+	Add( L"Bandwidth", L"Uploads", &Bandwidth.Uploads, 0 );
 
 	Add( L"Community", L"AwayMessageIdleTime", &Community.AwayMessageIdleTime, 20*60, 60, 5, 60, L" m" );
 	Add( L"Community", L"ChatAllNetworks", &Community.ChatAllNetworks, true );
@@ -638,13 +637,13 @@ void CSettings::Load()
 	Add( L"Uploads", L"ClampdownFloor", &Uploads.ClampdownFloor, 8*128, 128, 0, 4096, L" Kb/s" );
 	Add( L"Uploads", L"ClearDelay", &Uploads.ClearDelay, 60*1000, 1000, 1, 1800, L" s" );
 	Add( L"Uploads", L"DynamicPreviews", &Uploads.DynamicPreviews, true );
-	Add( L"Uploads", L"FairUseMode", &Uploads.FairUseMode, TransferFairUseModeDefault() );	// Persisted only; no core consumer
+	Add( L"Uploads", L"FairUseMode", &Uploads.FairUseMode, false );	// ToDo: Implement this
 	Add( L"Uploads", L"FilterMask", &Uploads.FilterMask, 0xFFFFFFFD );
 	Add( L"Uploads", L"FreeBandwidthFactor", &Uploads.FreeBandwidthFactor, 8, 1, 0, 99, L"%" );
 	Add( L"Uploads", L"FreeBandwidthValue", &Uploads.FreeBandwidthValue, 20*128, 128, 0, 4096, L" Kb/s" );
 	Add( L"Uploads", L"HubUnshare", &Uploads.HubUnshare, true );
 	Add( L"Uploads", L"History", &Uploads.History, 30, 1, 1, 500, L" Max" );
-	Add( L"Uploads", L"MaxPerHost", &Uploads.MaxPerHost, TransferMaxPerHostDefault(), 1, TransferMaxPerHostMin(), TransferMaxPerHostMax() );
+	Add( L"Uploads", L"MaxPerHost", &Uploads.MaxPerHost, 2, 1, 1, 64 );
 	Add( L"Uploads", L"PreviewQuality", &Uploads.PreviewQuality, 80, 1, 5, 100, L"%" );
 	Add( L"Uploads", L"PreviewTransfers", &Uploads.PreviewTransfers, 3, 1, 1, 64 );
 	Add( L"Uploads", L"QueuePollMax", &Uploads.QueuePollMax, 120*1000, 1000, 30, 180, L" s" );
@@ -656,7 +655,7 @@ void CSettings::Load()
 	Add( L"Uploads", L"SharePartials", &Uploads.SharePartials, true );
 	Add( L"Uploads", L"SharePreviews", &Uploads.SharePreviews, true );
 	Add( L"Uploads", L"ShareTiger", &Uploads.ShareTiger, true );
-	Add( L"Uploads", L"ThrottleMode", &Uploads.ThrottleMode, TransferThrottleModeDefault() );	// false=Average (soft), true=Maximum (strict)
+	Add( L"Uploads", L"ThrottleMode", &Uploads.ThrottleMode, false );
 
 	Add( L"IRC", L"Colors[0]", &IRC.Colors[0], RGB(254,254,252) );		// ID_COLOR_CHATWINDOW
 	Add( L"IRC", L"Colors[1]", &IRC.Colors[1], RGB(0,0,0) );			// ID_COLOR_TEXT

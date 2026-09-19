@@ -59,8 +59,8 @@ CDownloadsSettingsPage::CDownloadsSettingsPage()
 static CString BandwidthUnlimitedLabel()
 {
 	CString str;
-	LoadString( str, IDS_SETTINGS_BANDWIDTH_UNLIMITED );
-	if ( str.IsEmpty() )
+	LoadString(str, IDS_SETTINGS_BANDWIDTH_UNLIMITED);
+	if (str.IsEmpty())
 		str = TransferBandwidthUnlimitedDisplayToken();
 	return str;
 }
@@ -123,7 +123,7 @@ BOOL CDownloadsSettingsPage::OnInitDialog()
 	m_bDownloadsChanged = FALSE;
 
 	// Update the text in the bandwidth limit combo
-	if ( TransferBandwidthSettingIsUnlimited( Settings.Bandwidth.Downloads ) )
+	if (TransferBandwidthSettingIsUnlimited(Settings.Bandwidth.Downloads))
 		m_sBandwidthLimit = BandwidthUnlimitedLabel();
 	else
 		m_sBandwidthLimit = Settings.SmartSpeed( Settings.Bandwidth.Downloads );
@@ -263,10 +263,10 @@ void CDownloadsSettingsPage::OnOK()
 	Settings.Downloads.MaxTransfers			= m_nMaxDownTransfers;
 	Settings.Downloads.MaxFileTransfers		= m_nMaxFileTransfers;
 	Settings.Downloads.QueueLimit			= nQueueLimit;
-	Settings.Bandwidth.Downloads			= TransferBandwidthTokenIsUnlimited(
-		m_sBandwidthLimit, BandwidthUnlimitedLabel() )
-		? TransferBandwidthUnlimitedValue()
-		: TransferBandwidthBytesToSetting( Settings.ParseVolume( m_sBandwidthLimit ) );
+	Settings.Bandwidth.Downloads = TransferBandwidthTokenIsUnlimited(
+	                                   m_sBandwidthLimit, BandwidthUnlimitedLabel())
+	                                   ? TransferBandwidthUnlimitedValue()
+	                                   : TransferBandwidthBytesToSetting(Settings.ParseVolume(m_sBandwidthLimit));
 	Settings.Connection.RequireForTransfers	= m_bRequireConnect != FALSE;
 
 	// Normalize data
@@ -334,10 +334,10 @@ void CDownloadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 		// Update the bandwidth limit combo values
 
 		// Update speed units
-		if ( TransferBandwidthSettingIsUnlimited( Settings.Bandwidth.Downloads ) )
+		if (TransferBandwidthSettingIsUnlimited(Settings.Bandwidth.Downloads))
 			m_sBandwidthLimit = BandwidthUnlimitedLabel();
 		else
-			m_sBandwidthLimit = Settings.SmartSpeed( Settings.Bandwidth.Downloads );
+			m_sBandwidthLimit = Settings.SmartSpeed(Settings.Bandwidth.Downloads);
 
 		// Remove any existing strings
 		m_wndBandwidthLimit.ResetContent();
@@ -360,7 +360,7 @@ void CDownloadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 				m_wndBandwidthLimit.AddString( strSpeed );
 			}
 		}
-		m_wndBandwidthLimit.AddString( BandwidthUnlimitedLabel() );
+		m_wndBandwidthLimit.AddString(BandwidthUnlimitedLabel());
 
 		// Update the queue limit combo values
 
@@ -374,14 +374,14 @@ void CDownloadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 			m_wndQueueLimit.AddString( L"2000" );
 			m_wndQueueLimit.AddString( L"5000" );
 			m_wndQueueLimit.AddString( L"10000" );
-			m_wndQueueLimit.AddString( BandwidthUnlimitedLabel() );
+			m_wndQueueLimit.AddString(BandwidthUnlimitedLabel());
 		}
 		else
 		{
 			m_wndQueueLimit.AddString( L"5" );
 			m_wndQueueLimit.AddString( L"10" );
 			m_wndQueueLimit.AddString( L"20" );
-			m_wndQueueLimit.AddString( BandwidthUnlimitedLabel() );
+			m_wndQueueLimit.AddString(BandwidthUnlimitedLabel());
 		}
 
 		UpdateData( FALSE );
@@ -402,5 +402,5 @@ void CDownloadsSettingsPage::OnCbnDropdownAntivirus()
 
 bool CDownloadsSettingsPage::IsLimited(CString& strText) const
 {
-	return ! TransferBandwidthTokenIsUnlimited( strText, BandwidthUnlimitedLabel() );
+	return !TransferBandwidthTokenIsUnlimited(strText, BandwidthUnlimitedLabel());
 }
