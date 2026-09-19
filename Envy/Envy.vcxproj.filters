@@ -2000,6 +2000,9 @@
     <ClInclude Include="Ed2kCompressedUpload.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Ed2kLowIdCallback.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Ed2kKadSettingsPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>

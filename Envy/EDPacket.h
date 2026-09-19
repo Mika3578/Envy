@@ -284,10 +284,10 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define ED2K_C2C_PEERCACHE_QUERY		0x94	// *DEPRECATED*
 #define ED2K_C2C_PEERCACHE_ANSWER		0x95	// *DEPRECATED*
 #define ED2K_C2C_PEERCACHE_ACK			0x96	// *DEPRECATED*
-#define ED2K_C2C_PUBLICIP_REQ			0x97
-#define ED2K_C2C_PUBLICIP_ANSWER		0x98
-#define ED2K_C2C_CALLBACK				0x99	// <HASH 16><HASH 16><uint 16>
-#define ED2K_C2C_REASKCALLBACKTCP		0x9A
+#define ED2K_C2C_PUBLICIP_REQ			0x97	// (null) — answer with peer's observed IPv4
+#define ED2K_C2C_PUBLICIP_ANSWER		0x98	// <IPv4 4> (LE dword / sockaddr s_addr form)
+#define ED2K_C2C_CALLBACK				0x99	// <KadCheck 16><FileHash 16><IP 4><TCPPort 2> (Buddy→LowID)
+#define ED2K_C2C_REASKCALLBACKTCP		0x9A	// Buddy-only reask relay (phase 2; not handled)
 #define ED2K_C2C_AICHREQUEST			0x9B	// *DEPRECATED* <HASH 16><uint16><HASH aichhashlen>
 #define ED2K_C2C_AICHANSWER				0x9C	// *DEPRECATED* <HASH 16><uint16><HASH aichhashlen> <data>
 #define ED2K_C2C_AICHFILEHASHANS		0x9D

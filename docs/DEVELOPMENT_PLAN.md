@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #87 phase-1 LowID/callback baseline: `PUBLICIP_REQ`/`ANSWER` (0x97/0x98) and C2C `CALLBACK` (0x99, 38-byte Buddy layout) with bounded state (`Ed2kLowIdCallback.h`); classic server push preserved; `REASKCALLBACKTCP`/Buddy/FWCHECK deferred. Not complete firewalled support.
 - **Changelog Entry:** 2026-09-19 — #160/#253: record binary identity + process exits; Hello evidence fields; opt-in `workflow_dispatch` harness job (never required, never live on GitHub-hosted runners).
 - **Changelog Entry:** 2026-09-19 — #160/#253: interop isolation refuses OS temp roots by path components (`python:S5443`); no ED2K/Kad production protocol changes.
 - **Changelog Entry:** 2026-09-19 — #160 phase 1: opt-in ENVY ↔ eMule/aMule interop harness (`tools/interop/`) with dry-run CI self-tests; live reference binaries remain operator-provided; no ED2K/Kad production protocol changes.
@@ -330,14 +331,19 @@ to improve authentication and eMule credit-system compatibility.
 - [x] Ignore inbound SecureIdent packets without dropping ED2K connections.
 - [x] Keep ED2K transfer independent of SecureIdent.
 
-### Current (#87 — honest Hello advertising)
+### Current (#87 — honest Hello advertising + LowID callback baseline)
 - [x] AICH: local hash support may exist; **do not advertise** AICH FeatureVersions
   until C2C request/answer handlers are implemented (`Ed2kAichAdvertisedVersion() = 0`).
 - [x] CryptLayer Hello bits (SUPPORTS/REQUESTS/REQUIRES) stay **0** until TCP
   protocol-obfuscation interop with eMule/aMule is proven; packet PUBLICKEY
   crypto is not treated as equivalent to MiscOptions2 crypt bits.
 - [x] CryptLayer Hello bit alignment (separate PR after obfuscation audit — #121).
-- [ ] Live Hello capture vs eMule Community / aMule (validation after merge).
+- [x] Phase-1 PUBLICIP_REQ/ANSWER + C2C CALLBACK baseline (`Ed2kLowIdCallback.h`,
+  `CEDClient` handlers). Classic server callback unchanged. **Partial** only —
+  not Buddy / REASKCALLBACKTCP / FWCHECK / complete LowID.
+- [ ] REASKCALLBACKTCP + Buddy bond (phase 2).
+- [ ] BUDDYPING / BUDDYPONG / FWCHECKUDPREQ (phase 2 / Kad).
+- [ ] Live Hello / LowID capture vs eMule Community / aMule (#160).
 
 ### Current (#124 — EnableKad settings binding)
 - [x] Register `eDonkey.EnableKad` with `Settings.Add` (default `true`) so

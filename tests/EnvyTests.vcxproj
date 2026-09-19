@@ -206,6 +206,7 @@
     <ClCompile Include="test_kad_search_res_delivery_smoke.cpp" />
     <ClCompile Include="test_transfer_state_smoke.cpp" />
     <ClCompile Include="test_crash_report_policy_smoke.cpp" />
+    <ClCompile Include="test_ed2k_lowid_callback_smoke.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />
