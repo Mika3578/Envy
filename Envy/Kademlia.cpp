@@ -1554,12 +1554,14 @@ void CKademlia::ProcessSearchResponseDelivery(const SOCKADDR_IN* pHost, CEDPacke
 	    bHasCtx, bExpired, bHasCtx /* target key match */, searchCtx.kind);
 
 	// Peer must have been queried for this search kind (unsolicited IP reject).
-	const KadRequestType expectedReq =
-	    (searchCtx.kind == KadSearchKind::Keyword) ? KAD_REQUEST_SEARCH_KEY : (searchCtx.kind == KadSearchKind::Source) ? KAD_REQUEST_SEARCH_SOURCE
-	                                                                                                                    : KAD_REQUEST_SEARCH_SOURCE;
-	const bool bPeerAsked =
-	    bHasCtx && !bExpired &&
-	    IsRequestOutstanding(0, expectedReq, *pHost);
+	bool bPeerAsked = false;
+	if (bHasCtx && !bExpired)
+	{
+		if (searchCtx.kind == KadSearchKind::Keyword)
+			bPeerAsked = IsRequestOutstanding(0, KAD_REQUEST_SEARCH_KEY, *pHost);
+		else if (searchCtx.kind == KadSearchKind::Source)
+			bPeerAsked = IsRequestOutstanding(0, KAD_REQUEST_SEARCH_SOURCE, *pHost);
+	}
 
 	if (disp == KadSearchResDisposition::RejectUnsolicited ||
 	    disp == KadSearchResDisposition::RejectExpired ||
