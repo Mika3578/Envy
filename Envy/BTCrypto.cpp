@@ -254,13 +254,13 @@ void CBigInt768::ModPow(const CBigInt768& base, const BYTE* exp, size_t expLen,
 //////////////////////////////////////////////////////////////////////
 // CBTCrypto
 
-CBTCrypto::CBTCrypto() :
-	m_nState(MSE_IDLE),
-	m_nCryptoMethod(0),
-	m_bInitiator(false),
-	m_bHasInfoHash(false),
-	m_nPadALen(0),
-	m_nPendingIaLen(0)
+CBTCrypto::CBTCrypto()
+    : m_nState(MSE_IDLE)
+    , m_nCryptoMethod(0)
+    , m_bInitiator(false)
+    , m_bHasInfoHash(false)
+    , m_nPadALen(0)
+    , m_nPendingIaLen(0)
 {
 	memset(m_privateKey, 0, sizeof(m_privateKey));
 	memset(m_publicKey, 0, sizeof(m_publicKey));
@@ -676,7 +676,7 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 		}
 
 		// Stall in MSE_AWAITING_IA — RC4 already advanced past len(IA).
-		if ( iaLen > 0 && pInput->m_nLength < iaLen )
+		if (iaLen > 0 && pInput->m_nLength < iaLen)
 		{
 			m_nPendingIaLen = iaLen;
 			m_nState = MSE_AWAITING_IA;
@@ -684,22 +684,22 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 		}
 
 		// IA (initial payload) stays in the buffer for BT handshake processing
-		if ( iaLen > 0 )
-			m_rc4Decrypt.Process( pInput->m_pBuffer, iaLen );
+		if (iaLen > 0 && pInput->m_nLength >= iaLen)
+			m_rc4Decrypt.Process(pInput->m_pBuffer, iaLen);
 
-		return SendResponderCryptoSelect( pOutput );
+		return SendResponderCryptoSelect(pOutput);
 	}
 
 	case MSE_AWAITING_IA:
 	{
-		if ( pInput->m_nLength < m_nPendingIaLen )
+		if (pInput->m_nLength < m_nPendingIaLen)
 			return true;
 
-		if ( m_nPendingIaLen > 0 )
-			m_rc4Decrypt.Process( pInput->m_pBuffer, m_nPendingIaLen );
+		if (m_nPendingIaLen > 0)
+			m_rc4Decrypt.Process(pInput->m_pBuffer, m_nPendingIaLen);
 		m_nPendingIaLen = 0;
 
-		return SendResponderCryptoSelect( pOutput );
+		return SendResponderCryptoSelect(pOutput);
 	}
 
 	default:
@@ -709,31 +709,34 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 
 bool CBTCrypto::SendResponderCryptoSelect(CBuffer* pOutput)
 {
-		// Send response: encrypted [VC(8) + crypto_select(4) + len(Pad_D)(2) + Pad_D]
-		BYTE block[16];
+	// Send response: encrypted [VC(8) + crypto_select(4) + len(Pad_D)(2) + Pad_D]
+	BYTE block[16];
 
-		memcpy(block, MSE_VC, MSE_VC_LEN);
-		m_rc4Encrypt.Process(block, MSE_VC_LEN);
-		pOutput->Add(block, MSE_VC_LEN);
+	memcpy(block, MSE_VC, MSE_VC_LEN);
+	m_rc4Encrypt.Process(block, MSE_VC_LEN);
+	pOutput->Add(block, MSE_VC_LEN);
 
-		memcpy(block, &m_nCryptoMethod, 4);
-		m_rc4Encrypt.Process(block, 4);
-		pOutput->Add(block, 4);
+	memcpy(block, &m_nCryptoMethod, 4);
+	m_rc4Encrypt.Process(block, 4);
+	pOutput->Add(block, 4);
 
-		WORD padDLen = 0;
-	    BtMseBeWordToWire(padDLen, block);
-	    m_rc4Encrypt.Process(block, 2);
-		pOutput->Add(block, 2);
+	WORD padDLen = 0;
+	BtMseBeWordToWire(padDLen, block);
+	m_rc4Encrypt.Process(block, 2);
+	pOutput->Add(block, 2);
 
-		if (m_nCryptoMethod == MSE_CRYPTO_RC4) {
-			m_nState = MSE_ACTIVE;
-			theApp.Message(MSG_DEBUG, L"[BT-MSE] Responder handshake complete (RC4)");
-		} else {
-			m_nState = MSE_PLAINTEXT;
-			theApp.Message(MSG_DEBUG, L"[BT-MSE] Responder handshake complete (plaintext)");
-		}
+	if (m_nCryptoMethod == MSE_CRYPTO_RC4)
+	{
+		m_nState = MSE_ACTIVE;
+		theApp.Message(MSG_DEBUG, L"[BT-MSE] Responder handshake complete (RC4)");
+	}
+	else
+	{
+		m_nState = MSE_PLAINTEXT;
+		theApp.Message(MSG_DEBUG, L"[BT-MSE] Responder handshake complete (plaintext)");
+	}
 
-		return true;
+	return true;
 }
 
 void CBTCrypto::Encrypt(BYTE* pData, size_t nLength) {
