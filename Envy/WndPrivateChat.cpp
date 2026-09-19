@@ -48,24 +48,24 @@ BEGIN_MESSAGE_MAP(CPrivateChatWnd, CChatWnd)
     ON_NOTIFY(NM_DBLCLK, IDC_CHAT_USERS, &CPrivateChatWnd::OnUsersDblClk)
     ON_UPDATE_COMMAND_UI(ID_CHAT_CONNECT, &CPrivateChatWnd::OnUpdateChatConnect)
     ON_COMMAND(ID_CHAT_CONNECT, &CPrivateChatWnd::OnChatConnect)
-	ON_UPDATE_COMMAND_UI(ID_CHAT_DISCONNECT, &CPrivateChatWnd::OnUpdateChatDisconnect)
-	ON_COMMAND(ID_CHAT_DISCONNECT, &CPrivateChatWnd::OnChatDisconnect)
-	ON_UPDATE_COMMAND_UI(ID_CHAT_BROWSE, &CPrivateChatWnd::OnUpdateChatBrowse)
-	ON_COMMAND(ID_CHAT_BROWSE, &CPrivateChatWnd::OnChatBrowse)
+    ON_UPDATE_COMMAND_UI(ID_CHAT_DISCONNECT, &CPrivateChatWnd::OnUpdateChatDisconnect)
+    ON_COMMAND(ID_CHAT_DISCONNECT, &CPrivateChatWnd::OnChatDisconnect)
+    ON_UPDATE_COMMAND_UI(ID_CHAT_BROWSE, &CPrivateChatWnd::OnUpdateChatBrowse)
+    ON_COMMAND(ID_CHAT_BROWSE, &CPrivateChatWnd::OnChatBrowse)
     ON_UPDATE_COMMAND_UI(ID_SEARCH_CHAT, &CPrivateChatWnd::OnUpdateChatPrivateMessage)
     ON_COMMAND(ID_SEARCH_CHAT, &CPrivateChatWnd::OnChatPrivateMessage)
     ON_UPDATE_COMMAND_UI(ID_CHAT_PRIORITY, &CPrivateChatWnd::OnUpdateChatPriority)
     ON_COMMAND(ID_CHAT_PRIORITY, &CPrivateChatWnd::OnChatPriority)
-END_MESSAGE_MAP()
+    END_MESSAGE_MAP()
 
-/////////////////////////////////////////////////////////////////////////////
-// CPrivateChatWnd construction
+    /////////////////////////////////////////////////////////////////////////////
+    // CPrivateChatWnd construction
 
-CPrivateChatWnd::CPrivateChatWnd()
-	: m_pSession ( NULL )
-{
-	Create( IDR_CHATFRAME, TRUE );
-}
+    CPrivateChatWnd::CPrivateChatWnd()
+        : m_pSession(NULL)
+    {
+	    Create(IDR_CHATFRAME, TRUE);
+    }
 
 CPrivateChatWnd::~CPrivateChatWnd()
 {
