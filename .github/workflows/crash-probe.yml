@@ -91,6 +91,16 @@ jobs:
           $triplet = if ("${{ matrix.platform }}" -eq "x64") { "x64-windows-static" } else { "x86-windows-static" }
           echo "VCPKG_TARGET_TRIPLET=$triplet" >> $env:GITHUB_ENV
           & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install --triplet=$triplet --x-manifest-root="$env:GITHUB_WORKSPACE/tools/crash-probe"
+          $installed = Join-Path $env:GITHUB_WORKSPACE "tools/crash-probe/vcpkg_installed/$triplet"
+          $lib = Join-Path $installed "lib"
+          Write-Host "=== $lib ==="
+          if (Test-Path $lib) {
+            Get-ChildItem -LiteralPath $lib -File | ForEach-Object { Write-Host $_.Name }
+          } else {
+            Write-Host "lib directory missing"
+          }
+          Get-ChildItem -Path $installed -Recurse -Filter "*.lib" -ErrorAction SilentlyContinue |
+            ForEach-Object { Write-Host $_.FullName }
 
       - name: Build CrashProbe
         shell: cmd
