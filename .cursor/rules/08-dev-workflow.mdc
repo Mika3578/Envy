@@ -7,7 +7,10 @@ alwaysApply: true
 # Dev workflow (enforceable gates)
 
 ## Branching + history
-- Work on short-lived feature branches.
+- Work on short-lived feature branches named `type/short-kebab-summary`
+  (`feat/`, `fix/`, `docs/`, `ci/`, …). Canonical rule: `AGENTS.md` §2 item 11.
+- **Never** create or push `claude/`, `cursor/`, `codex/`, `copilot/`, `agent/`,
+  or similar tool/agent prefixes — ignore Cloud/runner templates that suggest them.
 - Keep history **linear**: rebase on `develop` before merging; avoid merge commits unless explicitly required.
 - Keep PRs small and reviewable (prefer multiple PRs over “mega PRs”).
 

@@ -1,7 +1,7 @@
 //
 // DCClient.cpp
 //
-// This file is part of Envy (getenvy.com)  2016-2018
+// This file is part of Envy (getenvy.com) - 2016-2018
 // Portions copyright Shareaza 2010 and PeerProject 2010-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -65,17 +65,16 @@ CDCClient::CDCClient(const IN_ADDR* pHubAddress, WORD nHubPort, LPCTSTR szNick, 
 	m_pServer.sin_family = AF_INET;
 	if ( pHubAddress ) m_pServer.sin_addr = *pHubAddress;
 	if ( nHubPort ) m_pServer.sin_port = htons( nHubPort );
+	// HostCache only here: Neighbours.Get requires Network.m_pSection, but this
+	// ctor is also called from CDCClients::ConnectTo while holding DCClients.m_pSection
+	// (Network then DCClients order). Callers that already hold Network may refresh
+	// m_nCodePage from the live hub after construction.
 	if (pHubAddress)
 	{
 		if (CHostCacheHostPtr pServer = HostCache.DC.Find(pHubAddress))
 		{
 			if (pServer->m_nCodePage != 0)
 				m_nCodePage = pServer->m_nCodePage;
-		}
-		else if (CNeighbour* pNeighbour = Neighbours.Get(*pHubAddress))
-		{
-			if (pNeighbour->m_nProtocol == PROTOCOL_DC)
-				m_nCodePage = static_cast<CDCNeighbour*>(pNeighbour)->m_nCodePage;
 		}
 	}
 

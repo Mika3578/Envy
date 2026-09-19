@@ -36,7 +36,9 @@ Branch model:
 - Keep **`develop`** history **linear**: merge PRs with **squash** only
   (Protect develop); ordinary merge or rebase-merge commits are not allowed
   on **`develop`**.
-- Branch names use `type/short-kebab-summary` (see hard rule 11).
+- Branch names use `type/short-kebab-summary` (see hard rule 11). Never
+  `cursor/`, `claude/`, or other tool/agent prefixes — including Cloud Agent
+  suggested names.
 
 ---
 
@@ -73,15 +75,23 @@ Branch model:
 10. **Never skip git hooks** (`--no-verify`, `--no-gpg-sign`) and never
     force-push to `main` or `develop`. Always create new commits rather
     than amending.
-11. **Branch naming**. Use functional `type/short-kebab-summary` names
-    branched off `develop`. Allowed prefixes include `feat/`, `fix/`,
-    `docs/`, `refactor/`, `perf/`, `test/`, `build/`, `ci/`, `chore/`,
-    and `hotfix/`. Examples: `fix/ed2k-source-validation`,
-    `docs/align-development-rules`, `ci/add-pr-quick-checks`,
-    `security/configure-scorecard`. Never create or push tool- or
-    agent-prefixed branches such as `claude/`, `cursor/`, `codex/`,
-    `aider/`, `copilot/`, or `agent/`; the name must describe the change,
-    not the tool that produced it.
+11. **Branch naming (hard — no exceptions for agents or Cloud runs).**
+    Use functional `type/short-kebab-summary` names branched off `develop`.
+    Allowed prefixes: `feat/`, `fix/`, `docs/`, `refactor/`, `perf/`,
+    `test/`, `build/`, `ci/`, `chore/`, `hotfix/`, and `security/`.
+    Examples: `fix/ed2k-source-validation`, `docs/align-development-rules`,
+    `ci/add-pr-quick-checks`, `security/configure-scorecard`.
+    **Forbidden** (do not create, push, or open PRs from these):
+    - Tool / agent prefixes: `claude/`, `cursor/`, `codex/`, `aider/`,
+      `copilot/`, `agent/`, `ai/`, `bot/`
+    - Cloud/run ID suffixes or slug templates that replace the functional
+      prefix (e.g. `cursor/fix-foo-9d34`, `claude/fix-bar`). If an
+      external runner suggests a tool-prefixed name, **ignore it** and use
+      `type/short-kebab-summary` only.
+    - Ticket-only or opaque IDs as the whole name (`fix/9d34`, `feat/abc123`)
+      unless the repo already requires a tracker ID in the summary segment.
+    The branch name describes **the change**, never the tool that produced it.
+    Human CONTRIBUTING text must match this rule (no `claude/` exception).
 12. **Controlled autonomy at the merge gate**. An assistant **may** create a
     work branch, commit/push on that branch, open a **draft** PR, mark the
     PR ready-for-review, address reviews, fix CI, update the branch with

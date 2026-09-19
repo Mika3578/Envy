@@ -34,8 +34,10 @@ to retarget every project to v145.
 - `main` - stable, releases tagged `v*` from here.
 - `develop` - integration branch (default).
 - `legacy` - frozen pre-modernization snapshot for historical builds.
-- Feature branches : `feature/<short-name>` or `claude/<short-name>` for
-  AI-assisted work.
+- Feature branches: `type/short-kebab-summary` only (`feat/`, `fix/`,
+  `docs/`, `ci/`, …). See `AGENTS.md` hard rule 11. **Never** tool/agent
+  prefixes (`claude/`, `cursor/`, `copilot/`, …) — including AI/Cloud Agent
+  runs.
 
 ## Git workflow (linear history)
 
