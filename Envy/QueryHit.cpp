@@ -204,58 +204,65 @@ CQueryHit* CQueryHit::FromG1Packet(CG1Packet* pPacket, int* pnHops)
 		}
 
 		// Skip extra data
-		while ( nPublicSize-- )
+		while (nPublicSize--)
 			pPacket->ReadByte();
 
-		if (!G1QueryHitXmlFits(nXMLSize, pPacket->GetRemaining()))
-		{
-			theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with invalid size of XML data");
-			AfxThrowUserException();
-		}
-
 		BOOL bChat = FALSE;
-		if ( pVendor && pVendor->m_bChatFlag &&
-			 pPacket->GetRemaining() >= Hashes::Guid::byteCount + nXMLSize + 1u )
+		if (pVendor && pVendor->m_bChatFlag &&
+		    pPacket->GetRemaining() >= Hashes::Guid::byteCount + nXMLSize + 1u)
 		{
 			BYTE nPeek = pPacket->PeekByte();
-			if ( nPeek != GGEP_MAGIC )
-				bChat = ( nPeek & G1_QHD_CHAT ) != 0;
+			if (nPeek != GGEP_MAGIC)
+				bChat = (nPeek & G1_QHD_CHAT) != 0;
 		}
 
-		if ( ( nFlags[0] & G1_QHD_GGEP ) && ( nFlags[1] & G1_QHD_GGEP ) )
+		if ((nFlags[0] & G1_QHD_GGEP) && (nFlags[1] & G1_QHD_GGEP))
 		{
 			CGGEPBlock pGGEP;
-			if ( pGGEP.ReadFromPacket( pPacket ) )
+			if (pGGEP.ReadFromPacket(pPacket))
 			{
-				if ( Settings.Gnutella1.EnableGGEP )
+				if (Settings.Gnutella1.EnableGGEP)
 				{
-					if ( pGGEP.Find( GGEP_HEADER_BROWSE_HOST ) )
+					if (pGGEP.Find(GGEP_HEADER_BROWSE_HOST))
 						bBrowseHost = TRUE;
-					if ( pGGEP.Find( GGEP_HEADER_CHAT ) )
+					if (pGGEP.Find(GGEP_HEADER_CHAT))
 						bChat = TRUE;
-				}
-				if (!G1QueryHitXmlFits(nXMLSize, pPacket->GetRemaining()))
-				{
-					theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with invalid size of XML data after GGEP");
-					AfxThrowUserException();
 				}
 			}
 			else
 			{
-				theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with malformed GGEP (main part)" );
+				theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with malformed GGEP (main part)");
 				AfxThrowUserException();
 			}
 		}
 
-		if ( nXMLSize > 0 )
+		// Validate XML vs remaining after optional chat/GGEP prefix bytes are
+		// accounted for. XML+GUID live at the packet end; GGEP ReadFromPacket
+		// leaves the cursor after the GGEP block. A lone chat flag byte (when
+		// present and not GGEP) precedes XML and must not inflate capacity.
 		{
-			pPacket->Seek( Hashes::Guid::byteCount + nXMLSize, CG1Packet::seekEnd );
-			pXML = ReadXML( pPacket, nXMLSize );
-			if ( ! pXML && nXMLSize > 4 )
-				theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Invalid compressed metadata.  Vendor: %s", ( pVendor ) ? pVendor->m_sName : L"?" );
+			DWORD nRemForXml = pPacket->GetRemaining();
+			if (bChat && !((nFlags[0] & G1_QHD_GGEP) && (nFlags[1] & G1_QHD_GGEP)) &&
+			    nRemForXml > 0)
+			{
+				--nRemForXml;
+			}
+			if (!G1QueryHitXmlFits(nXMLSize, nRemForXml))
+			{
+				theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with invalid size of XML data");
+				AfxThrowUserException();
+			}
 		}
 
-		if ( ! nPort || Network.IsFirewalledAddress( (IN_ADDR*)&nAddress ) )
+		if (nXMLSize > 0)
+		{
+			pPacket->Seek(Hashes::Guid::byteCount + nXMLSize, CG1Packet::seekEnd);
+			pXML = ReadXML(pPacket, nXMLSize);
+			if (!pXML && nXMLSize > 4)
+				theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Invalid compressed metadata.  Vendor: %s", (pVendor) ? pVendor->m_sName : L"?");
+		}
+
+		if (!nPort || Network.IsFirewalledAddress((IN_ADDR*)&nAddress))
 		{
 			nFlags[0] |= G1_QHD_PUSH;
 			nFlags[1] |= G1_QHD_PUSH;
@@ -263,19 +270,19 @@ CQueryHit* CQueryHit::FromG1Packet(CG1Packet* pPacket, int* pnHops)
 
 		// Read client ID
 		Hashes::Guid oClientID;
-		pPacket->Seek( Hashes::Guid::byteCount, CG1Packet::seekEnd );
-		pPacket->Read( oClientID );
+		pPacket->Seek(Hashes::Guid::byteCount, CG1Packet::seekEnd);
+		pPacket->Read(oClientID);
 
 		DWORD nIndex = 0;
-		for ( CQueryHit* pHit = pFirstHit; pHit; pHit = pHit->m_pNext, nIndex++ )
+		for (CQueryHit* pHit = pFirstHit; pHit; pHit = pHit->m_pNext, nIndex++)
 		{
-			pHit->ParseAttributes( oClientID, pVendor, nFlags, bChat, bBrowseHost );
+			pHit->ParseAttributes(oClientID, pVendor, nFlags, bChat, bBrowseHost);
 			pHit->Resolve();
 
-			if ( pXML )
-				pHit->ParseXML( pXML, nIndex );
+			if (pXML)
+				pHit->ParseXML(pXML, nIndex);
 
-			if ( ! pHit->m_bBogus && ! pHit->CheckValid() )
+			if (!pHit->m_bBogus && !pHit->CheckValid())
 				pHit->m_bBogus = TRUE;
 		}
 	}
