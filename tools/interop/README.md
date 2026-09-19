@@ -99,7 +99,10 @@ Each run creates `scratch/<run-id>/` under the artifact/work directory:
 - `incoming/`
 
 Default `--cleanup` deletes **only** that owned scratch tree. Cleanup refuses
-home directories, `C:\Users`, `/tmp`, and any path not under the owned root.
+home directories, `C:\Users`, the process temp directory, POSIX temp roots
+matched by path components (`tmp` under `/` or `/var`; never opened as scratch),
+and any path not under the owned root. Children of the process temp directory
+remain deletable when they are the owned scratch tree.
 
 **Limitations**
 

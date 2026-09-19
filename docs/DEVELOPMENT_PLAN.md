@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #160/#253: interop isolation refuses OS temp roots by path components (`python:S5443`); no ED2K/Kad production protocol changes.
 - **Changelog Entry:** 2026-09-19 — #160 phase 1: opt-in ENVY ↔ eMule/aMule interop harness (`tools/interop/`) with dry-run CI self-tests; live reference binaries remain operator-provided; no ED2K/Kad production protocol changes.
 - **Changelog Entry:** 2026-09-19 — Kad `nodes.dat` import copies the profile GUID through a local `Hashes::Guid` (`CGuarded` has no `operator[]`).
 - **Changelog Entry:** 2026-09-19 — Kad `nodes.dat` review hardening: drop all legacy v0 contacts (no Kad2 version); bound XOR-closest insert to `nMaxOut`; copy Kad IDs with `Hashes::Guid::byteCount`.

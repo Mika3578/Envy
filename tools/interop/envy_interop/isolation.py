@@ -11,7 +11,7 @@ import shutil
 import stat
 import tempfile
 from pathlib import Path
-from typing import Set
+from typing import Sequence, Set
 
 
 class IsolationError(ValueError):
@@ -24,6 +24,39 @@ def _is_windows() -> bool:
 
 def home_path() -> Path:
     return Path.home().resolve()
+
+
+def parts_are_well_known_temp_root(parts: Sequence[str]) -> bool:
+    """True for exact OS temp roots such as POSIX tmp or Windows Temp.
+
+    Matched on path components so cleanup can refuse those roots without
+    constructing world-writable temp-root Path literals (python:S5443).
+    Children of those roots are not matched; owned scratch under the process
+    temp directory remains deletable.
+    """
+    if not parts:
+        return False
+    lowered = tuple(str(part).lower() for part in parts)
+    last = lowered[-1]
+    if last == "tmp":
+        if len(lowered) == 2:
+            return True
+        if len(lowered) == 3 and lowered[1] == "var":
+            return True
+        return False
+    if last == "temp":
+        if len(lowered) == 2:
+            return True
+        if len(lowered) >= 2 and lowered[-2] == "windows":
+            return True
+    return False
+
+
+def is_well_known_temp_root(path: Path) -> bool:
+    try:
+        return parts_are_well_known_temp_root(resolve_strict(path).parts)
+    except IsolationError:
+        return False
 
 
 def forbidden_cleanup_roots() -> Set[Path]:
@@ -47,9 +80,12 @@ def forbidden_cleanup_roots() -> Set[Path]:
             roots.add(users.resolve())
     else:
         roots.add(Path("/home").resolve())
-        roots.add(Path("/tmp").resolve())
-        roots.add(Path("/var/tmp").resolve())
     return roots
+
+
+def _is_protected_cleanup_target(path: Path) -> bool:
+    resolved = resolve_strict(path)
+    return resolved in forbidden_cleanup_roots() or parts_are_well_known_temp_root(resolved.parts)
 
 
 def resolve_strict(path: Path) -> Path:
@@ -69,7 +105,7 @@ def is_relative_to(path: Path, root: Path) -> bool:
 
 def assert_not_profile_root(path: Path, *, what: str) -> Path:
     resolved = resolve_strict(path)
-    if resolved in forbidden_cleanup_roots():
+    if _is_protected_cleanup_target(resolved):
         raise IsolationError(f"{what} resolves to a protected root: {resolved}")
     if resolved == home_path():
         raise IsolationError(f"{what} must not be the user home directory")
@@ -143,7 +179,7 @@ def safe_rmtree(path: Path, *, owned_root: Path) -> None:
     """Delete path only when it is inside owned_root (inclusive)."""
     target = resolve_strict(path)
     root = resolve_strict(owned_root)
-    if target in forbidden_cleanup_roots():
+    if _is_protected_cleanup_target(target):
         raise IsolationError(f"refusing to delete protected path: {target}")
     if not (target == root or is_relative_to(target, root)):
         raise IsolationError(f"refusing to delete {target} (not under {root})")

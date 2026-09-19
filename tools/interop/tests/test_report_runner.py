@@ -121,7 +121,7 @@ class ReportTests(unittest.TestCase):
             mode="dry-run",
             reference_client="none",
             reference_version="",
-            artifact_dir="/tmp/run",
+            artifact_dir="artifacts/run",
             network_class="none",
         )
         payload["scenarios"] = [

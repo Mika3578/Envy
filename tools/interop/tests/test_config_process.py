@@ -15,7 +15,13 @@ if str(_INTEROP_ROOT) not in sys.path:
 
 
 from envy_interop.config import ConfigError, HarnessConfig, merge_config, validate_live_executables
-from envy_interop.isolation import IsolationError, IsolationRoot, is_relative_to, safe_rmtree
+from envy_interop.isolation import (
+    IsolationError,
+    IsolationRoot,
+    is_relative_to,
+    parts_are_well_known_temp_root,
+    safe_rmtree,
+)
 from envy_interop.process import ProcessError, ProcessManager, python_exit_argv, python_sleeper_argv
 from envy_interop.sanitizer import sanitize_text
 
@@ -200,6 +206,20 @@ class ProcessIsolationTests(unittest.TestCase):
     def test_safe_cleanup_refuses_home(self) -> None:
         with self.assertRaises(IsolationError):
             safe_rmtree(Path.home(), owned_root=Path.home() / "not-the-same")
+
+    def test_safe_cleanup_refuses_process_temp_root(self) -> None:
+        tmp_root = Path(tempfile.gettempdir()).resolve()
+        with self.assertRaises(IsolationError):
+            safe_rmtree(tmp_root, owned_root=tmp_root)
+
+    def test_well_known_temp_roots_match_components_only(self) -> None:
+        self.assertTrue(parts_are_well_known_temp_root(("/", "tmp")))
+        self.assertTrue(parts_are_well_known_temp_root(("/", "var", "tmp")))
+        self.assertTrue(parts_are_well_known_temp_root(("C:\\", "Windows", "Temp")))
+        self.assertTrue(parts_are_well_known_temp_root(("C:\\", "Temp")))
+        self.assertFalse(parts_are_well_known_temp_root(("/", "tmp", "child")))
+        self.assertFalse(parts_are_well_known_temp_root(("/", "home")))
+        self.assertFalse(parts_are_well_known_temp_root(()))
 
     def test_safe_cleanup_owned_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
