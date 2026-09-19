@@ -707,7 +707,7 @@ STYLE DS_SHELLFONT|DS_MODALFRAME|WS_POPUP|WS_CAPTION|WS_SYSMENU
 CAPTION "Download Server List File"
 FONT 8, "MS Shell Dlg"
 BEGIN
-	LTEXT			"You can download a file from the web to refresh your local list of servers.\nSuch as eDonkey server.met, DC++ hublist.xml.bz2, etc.",IDC_STATIC,10,10,270,20
+	LTEXT			"You can download a file from the web to refresh your local list of servers.\nSuch as eDonkey server.met, DC++ hublist.xml.bz2, etc.",IDC_UPDATE_SERVERS_TEXT,10,10,270,20
 	EDITTEXT		IDC_URL,10,35,270,12,ES_AUTOHSCROLL
 	CONTROL			"Progress1",IDC_PROGRESS,"msctls_progress32",WS_BORDER,10,55,270,10
 	DEFPUSHBUTTON	"OK",IDOK,180,72,50,14
@@ -4009,6 +4009,8 @@ BEGIN
 	IDS_DOWNLOAD_GROUP			"Drag'n'drop files to the %s group"
 	IDS_DOWNLOAD_GROUP_DEFAULT	"Default download group.  (Show all files)"
 	IDS_DOWNLOAD_DC_HUBLIST 	"Download DC++ hublist from the web now?\n\n(Open from Transfers tab.)"
+	IDS_UPDATE_DC_HUBLIST_TITLE	"Download a DC++ Hub List"
+	IDS_UPDATE_DC_HUBLIST_TEXT	"You can download a public DC++ hub list to update the hub cache.\nHub list URL:"
 	IDS_DOWNLOAD_FILENOTFOUND	"Download host %s does not have the file ""%s""."
 	IDS_DOWNLOAD_FILE_CREATE	"Creating file ""%s"" for download."
 	IDS_DOWNLOAD_FILE_CREATE_ERROR "Unable to create local file ""%s"" for download, aborting."

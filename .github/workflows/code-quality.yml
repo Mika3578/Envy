@@ -5,6 +5,7 @@ on:
     branches: [main, master, develop]
   pull_request:
     branches: [main, master, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
   schedule:
     # Nightly run (default branch only) so the expensive MSVC code-analysis
     # build stays off the PR critical path while still being exercised daily.
@@ -32,10 +33,10 @@ jobs:
     name: Static Analysis
     runs-on: windows-2025-vs2026
     timeout-minutes: 120
-    # Expensive full-solution code-analysis build. Skip it on pull_request -
-    # CodeQL already gates PRs; this runs on push to the integration
-    # branches, on the nightly schedule, and on demand.
-    if: github.event_name != 'pull_request'
+    # Expensive full-solution code-analysis build. Skip it on pull_request and
+    # workflow_dispatch — CodeQL already gates PRs; this runs on push to the
+    # integration branches and on the nightly schedule.
+    if: github.event_name == 'push' || github.event_name == 'schedule'
 
     steps:
       - name: Checkout code
@@ -79,7 +80,7 @@ jobs:
     name: Format Check
     # Independent of classify-changes: required context must always emit, and a
     # classifier failure must not suppress formatting.
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -91,8 +92,12 @@ jobs:
         with:
           # Pin to PR head so clang-format-diff hunk line numbers match the tip
           # (default merge ref can shift lines vs base...head hunks).
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
+
+      - name: Fetch develop for format base
+        if: github.event_name == 'workflow_dispatch'
+        run: git fetch --no-tags origin develop:refs/remotes/origin/develop
 
       - name: Install clang-format ${{ env.CLANG_FORMAT_MAJOR }}
         run: |
@@ -106,8 +111,8 @@ jobs:
       - name: clang-format-diff on changed hunks
         shell: bash
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || 'origin/develop' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           CLANG_FORMAT_MAJOR: ${{ env.CLANG_FORMAT_MAJOR }}
           CLANG_FORMAT_BIN: clang-format-${{ env.CLANG_FORMAT_MAJOR }}
           # Encoding-safe wrapper: stock clang-format-diff crashes on ISO-8859
@@ -160,7 +165,7 @@ jobs:
     # waits on a skipped/missing check (see docs/10_dev/CI_AUDIT_2026-09.md).
     # When classify is cancelled (concurrency supersede), emit success no-op
     # so a cancelled parent run does not leave a failed required check.
-    if: always() && github.event_name == 'pull_request'
+    if: always() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
 
     steps:
       - name: Superseded run (classification cancelled)

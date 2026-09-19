@@ -4640,6 +4640,13 @@
 		<control text="OK"/>
 		<control text="Cancel"/>
 	</dialog>
+	<dialog name="CUpdateHubListDlg" cookie="StEdmsBuBu" caption="Download a DC++ Hub List">
+		<control text="You can download a public DC++ hub list to update the hub cache.{n}Hub list URL:"/>
+		<control/>
+		<control/>
+		<control text="OK"/>
+		<control text="Cancel"/>
+	</dialog>
 	<dialog name="CDeleteFileDlg" cookie="StStBuBuBuStBuStStStStCoCoEd" caption="Delete File">
 		<control text="Confirm deletion of this file:"/>
 		<control/>
