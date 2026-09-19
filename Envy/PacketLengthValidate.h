@@ -313,13 +313,13 @@ inline BOOL HostBrowserHttpBufferOk(std::uint64_t nBuffered)
 // Max uncompressed bytes for one ED2K COMPRESSEDPART stream (#81 zip-bomb).
 // Wire "size" is compressed length; expansion must not exceed one ED2K part
 // (9500 KiB, same as HashLib ED2K_PART_SIZE).
-constexpr std::uint64_t ED2K_COMPRESSEDPART_INFLATE_MAX = 9500ull * 1024ull;
+constexpr std::uint64_t ED2K_COMPRESSEDPART_INFLATE_MAX = 9500ULL * 1024ULL;
 
-// nFileSize == ~0ull means SIZE_UNKNOWN (no remaining-size clamp). Keep MFC-free.
+// nFileSize == ~0ULL means SIZE_UNKNOWN (no remaining-size clamp). Keep MFC-free.
 inline std::uint64_t Ed2kCompressedPartInflateBudget(std::uint64_t nFileSize,
                                                      std::uint64_t nInflateOffset)
 {
-	if (nFileSize == ~0ull)
+	if (nFileSize == ~0ULL)
 		return ED2K_COMPRESSEDPART_INFLATE_MAX;
 	if (nInflateOffset >= nFileSize)
 		return 0;

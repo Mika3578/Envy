@@ -689,23 +689,23 @@ BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 
 			CBuffer::Inflate( m_pInflatePtr, Z_SYNC_FLUSH );
 
-			if ( m_pInflatePtr->avail_out < BUFFER_SIZE )
-			{
-				QWORD nOffset = m_nInflateOffset + m_nInflateWritten;
-				QWORD nLength = BUFFER_SIZE - m_pInflatePtr->avail_out;
+			if ( m_pInflatePtr->avail_out >= BUFFER_SIZE )
+				continue;
 
-				if (!AcceptCompressedPartChunk(nLength))
-					return FALSE;
+			QWORD nOffset = m_nInflateOffset + m_nInflateWritten;
+			QWORD nLength = BUFFER_SIZE - m_pInflatePtr->avail_out;
 
-				m_pDownload->SubmitData( nOffset, pBuffer.get(), nLength );
+			if (!AcceptCompressedPartChunk(nLength))
+				return FALSE;
 
-				m_oRequested.erase( Fragments::Fragment( nOffset, nOffset + nLength ) );
+			m_pDownload->SubmitData( nOffset, pBuffer.get(), nLength );
 
-				m_pSource->AddFragment( nOffset, nLength, ( nOffset % ED2K_PART_SIZE ) ? TRUE : FALSE );
+			m_oRequested.erase( Fragments::Fragment( nOffset, nOffset + nLength ) );
 
-				m_nDownloaded += nLength;
-				m_nInflateWritten += nLength;
-			}
+			m_pSource->AddFragment( nOffset, nLength, ( nOffset % ED2K_PART_SIZE ) ? TRUE : FALSE );
+
+			m_nDownloaded += nLength;
+			m_nInflateWritten += nLength;
 		}
 		while ( m_pInflatePtr->avail_out == 0 );
 
@@ -1041,7 +1041,7 @@ bool CDownloadTransferED2K::SendFragmentRequests()
 BOOL CDownloadTransferED2K::AcceptCompressedPartChunk(QWORD nChunkLength)
 {
 	const QWORD nFileSize = (m_pDownload->m_nSize == SIZE_UNKNOWN)
-	                            ? ~0ull
+	                            ? ~0ULL
 	                            : m_pDownload->m_nSize;
 	const QWORD nMaxUncompressed = Ed2kCompressedPartInflateBudget(
 	    nFileSize, m_nInflateOffset);
@@ -1275,24 +1275,24 @@ BOOL CDownloadTransferED2K::OnCompressedPart64(CEDPacket* pPacket)
 
 			CBuffer::Inflate( m_pInflatePtr, Z_SYNC_FLUSH );
 
-			if ( m_pInflatePtr->avail_out < BUFFER_SIZE )
-			{
-				QWORD nOffset = m_nInflateOffset + m_nInflateWritten;
-				QWORD nLength = BUFFER_SIZE - m_pInflatePtr->avail_out;
+			if ( m_pInflatePtr->avail_out >= BUFFER_SIZE )
+				continue;
 
-				if (!AcceptCompressedPartChunk(nLength))
-					return FALSE;
+			QWORD nOffset = m_nInflateOffset + m_nInflateWritten;
+			QWORD nLength = BUFFER_SIZE - m_pInflatePtr->avail_out;
 
-				m_pDownload->SubmitData( nOffset, pBuffer.get(), nLength );
+			if (!AcceptCompressedPartChunk(nLength))
+				return FALSE;
 
-				m_oRequested.erase( Fragments::Fragment( nOffset, nOffset + nLength ) );
+			m_pDownload->SubmitData( nOffset, pBuffer.get(), nLength );
 
-				m_pSource->AddFragment( nOffset, nLength,
-					( nOffset % ED2K_PART_SIZE ) ? TRUE : FALSE );
+			m_oRequested.erase( Fragments::Fragment( nOffset, nOffset + nLength ) );
 
-				m_nDownloaded += nLength;
-				m_nInflateWritten += nLength;
-			}
+			m_pSource->AddFragment( nOffset, nLength,
+				( nOffset % ED2K_PART_SIZE ) ? TRUE : FALSE );
+
+			m_nDownloaded += nLength;
+			m_nInflateWritten += nLength;
 		}
 		while ( m_pInflatePtr->avail_out == 0 );
 

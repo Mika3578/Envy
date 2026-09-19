@@ -11,6 +11,7 @@
 #include "../Envy/EDSourcePacketValidate.h"
 #include "../Envy/PacketLengthValidate.h"
 
+#include <array>
 #include <cstdio>
 #include <fstream>
 #include <iterator>
@@ -491,7 +492,7 @@ static bool test_ed2k_compressedpart_inflate_ok()
 		&& Ed2kCompressedPartInflateOk( 100, 50 ) == FALSE;
 	// Accounting decision shared by AcceptCompressedPartChunk (EOF => 0).
 	const bool bBudget =
-		Ed2kCompressedPartInflateBudget( ~0ull, 0 ) == nPart
+		Ed2kCompressedPartInflateBudget( ~0ULL, 0 ) == nPart
 		&& Ed2kCompressedPartInflateBudget( nPart, 0 ) == nPart
 		&& Ed2kCompressedPartInflateBudget( 100, 40 ) == 60
 		&& Ed2kCompressedPartInflateBudget( 100, 100 ) == 0
@@ -503,7 +504,7 @@ static bool test_ed2k_compressedpart_inflate_ok()
 static bool test_ed2k_compressedpart_accept_before_submit()
 {
 	// Call-site regression: both COMPRESSEDPART handlers must gate SubmitData.
-	const char* candidates[] = {
+	const std::array<const char*, 4> candidates = {
 		"../Envy/DownloadTransferED2K.cpp",
 		"../../Envy/DownloadTransferED2K.cpp",
 		"Envy/DownloadTransferED2K.cpp",
@@ -518,15 +519,12 @@ static bool test_ed2k_compressedpart_accept_before_submit()
 			break;
 	}
 	if ( !in )
-	{
-		std::fprintf( stderr, "ed2k_compressedpart_accept: DownloadTransferED2K.cpp not found from CWD\n" );
 		return false;
-	}
 
 	std::string content( ( std::istreambuf_iterator<char>( in ) ),
 		std::istreambuf_iterator<char>() );
 
-	auto handler_gates_submit = [ &content ]( const char* szFn ) -> bool
+	auto handler_gates_submit = [ &content ]( const char* szFn )
 	{
 		const size_t nFn = content.find( szFn );
 		if ( nFn == std::string::npos )
