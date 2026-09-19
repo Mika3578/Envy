@@ -14,12 +14,11 @@
 
 #include <stddef.h>
 #include <windows.h>
-#include <string.h>
 
-// Same sentinel as Envy SIZE_UNKNOWN (~0ull); keep this header MFC-free.
+// Same sentinel as Envy SIZE_UNKNOWN (~0ULL); keep this header MFC-free.
 // Reserved for the literal "-1" $ADCGET length token only — never accepted
 // as an all-digits unsigned decimal (would collide with 2^64-1).
-constexpr ULONGLONG DC_ADC_LENGTH_UNTIL_END = ~0ull;
+constexpr ULONGLONG DC_ADC_LENGTH_UNTIL_END = ~0ULL;
 
 // Strict unsigned decimal [0-9]+ over exactly nLen bytes. Rejects empty,
 // embedded NULs / junk, leading signs, and values at or above 2^64-1 so
@@ -38,35 +37,20 @@ inline BOOL DcParseUnsignedDecimalU64(const char* psz, size_t nLen, ULONGLONG* p
 			return FALSE;
 
 		const unsigned nDigit = static_cast<unsigned>(c - '0');
-		// Cap at 2^64-2: reject any digit that would reach ~0ull.
-		if (nValue > (DC_ADC_LENGTH_UNTIL_END - 1ull - nDigit) / 10ull)
+		// Cap at 2^64-2: reject any digit that would reach ~0ULL.
+		if (nValue > (DC_ADC_LENGTH_UNTIL_END - 1ULL - nDigit) / 10ULL)
 			return FALSE;
-		nValue = nValue * 10ull + nDigit;
+		nValue = nValue * 10ULL + nDigit;
 	}
 
 	*pnOut = nValue;
 	return TRUE;
 }
 
-// Null-terminated convenience for tests / callers with c_str()-safe tokens.
-inline BOOL DcParseUnsignedDecimalU64(const char* psz, ULONGLONG* pnOut)
-{
-	if (!psz)
-		return FALSE;
-	return DcParseUnsignedDecimalU64(psz, strlen(psz), pnOut);
-}
-
 // $ADCGET / $ADCSND offset: unsigned decimal only (no leading '-').
 inline BOOL DcParseAdcOffsetToken(const char* psz, size_t nLen, ULONGLONG* pnOffset)
 {
 	return DcParseUnsignedDecimalU64(psz, nLen, pnOffset);
-}
-
-inline BOOL DcParseAdcOffsetToken(const char* psz, ULONGLONG* pnOffset)
-{
-	if (!psz)
-		return FALSE;
-	return DcParseAdcOffsetToken(psz, strlen(psz), pnOffset);
 }
 
 // $ADCGET length: unsigned decimal, or exactly "-1" -> until-end sentinel.
@@ -84,24 +68,10 @@ inline BOOL DcParseAdcGetLengthToken(const char* psz, size_t nLen, ULONGLONG* pn
 	return DcParseUnsignedDecimalU64(psz, nLen, pnLength);
 }
 
-inline BOOL DcParseAdcGetLengthToken(const char* psz, ULONGLONG* pnLength)
-{
-	if (!psz)
-		return FALSE;
-	return DcParseAdcGetLengthToken(psz, strlen(psz), pnLength);
-}
-
 // $ADCSND length: unsigned decimal only; "-1" and 2^64-1 are invalid.
 inline BOOL DcParseAdcSndLengthToken(const char* psz, size_t nLen, ULONGLONG* pnLength)
 {
 	return DcParseUnsignedDecimalU64(psz, nLen, pnLength);
-}
-
-inline BOOL DcParseAdcSndLengthToken(const char* psz, ULONGLONG* pnLength)
-{
-	if (!psz)
-		return FALSE;
-	return DcParseAdcSndLengthToken(psz, strlen(psz), pnLength);
 }
 
 // After a fixed-length $ADCGET, $ADCSND must announce the same byte count.

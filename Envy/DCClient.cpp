@@ -615,37 +615,52 @@ BOOL CDCClient::OnDirection(const std::string& strParams)
 	return TRUE;
 }
 
+namespace
+{
+
+// Shared $ADCGET / $ADCSND wire shape: type filename offset length [options]
+BOOL DcSplitAdcGetSndParams(const std::string& strParams, std::string& strType, std::string& strFilename, std::string& strOffset, std::string& strLength, std::string& strOptions)
+{
+	std::string::size_type nPos1 = strParams.find(' ');
+	if (nPos1 == std::string::npos)
+		return FALSE;
+	strType = strParams.substr(0, nPos1);
+	std::string::size_type nPos2 = strParams.find(' ', nPos1 + 1);
+	if (nPos2 == std::string::npos)
+		return FALSE;
+	strFilename = strParams.substr(nPos1 + 1, nPos2 - nPos1 - 1);
+	std::string::size_type nPos3 = strParams.find(' ', nPos2 + 1);
+	if (nPos3 == std::string::npos)
+		return FALSE;
+	strOffset = strParams.substr(nPos2 + 1, nPos3 - nPos2 - 1);
+	std::string::size_type nPos4 = strParams.find(' ', nPos3 + 1);
+	if (nPos4 == std::string::npos)
+	{
+		strLength = strParams.substr(nPos3 + 1);
+		strOptions.clear();
+	}
+	else
+	{
+		strLength = strParams.substr(nPos3 + 1, nPos4 - nPos3 - 1);
+		strOptions = strParams.substr(nPos4 + 1);
+	}
+	return TRUE;
+}
+
+} // namespace
+
 BOOL CDCClient::OnADCGet(const std::string& strParams)
 {
 	// $ADCGET (list|file|tthl) Filename Offset Length [ZL1]
 
-	std::string::size_type nPos1 = strParams.find( ' ' );
-	if ( nPos1 == std::string::npos )
+	std::string strType, strFilename, strOffset, strLength, strOptions;
+	if (!DcSplitAdcGetSndParams(strParams, strType, strFilename, strOffset, strLength, strOptions))
 		return FALSE;	// Invalid command
-	std::string strType = strParams.substr( 0, nPos1 );
-	std::string::size_type nPos2 = strParams.find( ' ', nPos1 + 1 );
-	if ( nPos2 == std::string::npos )
-		return FALSE;	// Invalid command
-	std::string strFilename = strParams.substr( nPos1 + 1, nPos2 - nPos1 - 1 );
-	std::string::size_type nPos3 = strParams.find( ' ', nPos2 + 1 );
-	if ( nPos3 == std::string::npos )
-		return FALSE;	// Invalid command
-	std::string strOffset = strParams.substr( nPos2 + 1, nPos3 - nPos2 - 1 );
-	std::string::size_type nPos4 = strParams.find( ' ', nPos3 + 1 );
-	std::string strLength, strOptions;
-	if ( nPos4 == std::string::npos )
-	{
-		strLength = strParams.substr( nPos3 + 1 );
-	}
-	else
-	{
-		strLength = strParams.substr( nPos3 + 1, nPos4 - nPos3 - 1 );
-		strOptions = strParams.substr( nPos4 + 1 );
-	}
+
 	ULONGLONG nOffset = 0;
 	ULONGLONG nLength = 0;
 	if (!DcParseAdcOffsetToken(strOffset.data(), strOffset.size(), &nOffset))
-		return FALSE;	// Invalid command
+		return FALSE; // Invalid command
 	if (!DcParseAdcGetLengthToken(strLength.data(), strLength.size(), &nLength))
 		return FALSE;	// Invalid command
 
@@ -677,29 +692,9 @@ BOOL CDCClient::OnADCSnd(const std::string& strParams)
 {
 	// $ADCSND (list|file|tthl) Filename Offset Length [ZL1]
 
-	std::string::size_type nPos1 = strParams.find( ' ' );
-	if ( nPos1 == std::string::npos )
+	std::string strType, strFilename, strOffset, strLength, strOptions;
+	if (!DcSplitAdcGetSndParams(strParams, strType, strFilename, strOffset, strLength, strOptions))
 		return FALSE;	// Invalid command
-	std::string strType = strParams.substr( 0, nPos1 );
-	std::string::size_type nPos2 = strParams.find( ' ', nPos1 + 1 );
-	if ( nPos2 == std::string::npos )
-		return FALSE;	// Invalid command
-	std::string strFilename = strParams.substr( nPos1 + 1, nPos2 - nPos1 - 1 );
-	std::string::size_type nPos3 = strParams.find( ' ', nPos2 + 1 );
-	if ( nPos3 == std::string::npos )
-		return FALSE;	// Invalid command
-	std::string strOffset = strParams.substr( nPos2 + 1, nPos3 - nPos2 - 1 );
-	std::string::size_type nPos4 = strParams.find( ' ', nPos3 + 1 );
-	std::string strLength, strOptions;
-	if ( nPos4 == std::string::npos )
-	{
-		strLength = strParams.substr( nPos3 + 1 );
-	}
-	else
-	{
-		strLength = strParams.substr( nPos3 + 1, nPos4 - nPos3 - 1 );
-		strOptions = strParams.substr( nPos4 + 1 );
-	}
 
 	ULONGLONG nOffset = 0;
 	ULONGLONG nLength = 0;
