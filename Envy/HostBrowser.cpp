@@ -1,7 +1,7 @@
 //
 // HostBrowser.cpp
 //
-// This file is part of Envy (getenvy.com) � 2016-2018
+// This file is part of Envy (getenvy.com) � 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -39,6 +39,11 @@
 #include "VendorCache.h"
 #include "GProfile.h"
 #include "XML.h"
+#include "DcBrowse.h"
+#include "DcFileListValidate.h"
+
+static_assert(DC_FILELIST_BYTES_MAX == CBUFFER_UNBZIP_MAX,
+              "DC file-list cap must match CBuffer UnBZip cap");
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -174,16 +179,47 @@ BOOL CHostBrowser::Browse()
 	{
 		CQuickLock oTransfersLock( Transfers.m_pSection );
 
+		if (m_sNick.IsEmpty() || m_nPort == 0 || m_pAddress.s_addr == INADDR_NONE)
+		{
+			theApp.Message(MSG_NOTICE, IDS_BROWSE_CANT_CONNECT_TO, (LPCTSTR)m_sAddress);
+			return FALSE;
+		}
+
 		CEnvyURL oURL;
 		oURL.m_nProtocol		= PROTOCOL_DC;
 		oURL.m_nAction			= CEnvyURL::uriDownload;
 		oURL.m_pServerAddress	= m_pAddress;
 		oURL.m_nServerPort		= m_nPort;
 		oURL.m_sLogin			= m_sNick;
-		oURL.m_sName.Format( L"Files of %s.xml.bz2", (LPCTSTR)SafeFilename( m_sNick ) );
-		oURL.m_sURL.Format( L"dchub://%s@%s:%u/files.xml.bz2", (LPCTSTR)URLEncode( m_sNick ), (LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort );
+		oURL.m_sName = MakeDcFileListDownloadName();
+		{
+			const CStringA sNickUtf8 = UTF8Encode(m_sNick);
+			const CStringA sHubIp(inet_ntoa(m_pAddress));
+			std::string sUrl;
+			if (!DcFormatFileListUrl(static_cast<const char*>(sNickUtf8),
+			                         static_cast<const char*>(sHubIp),
+			                         static_cast<unsigned>(m_nPort), sUrl))
+			{
+				theApp.Message(MSG_NOTICE, IDS_BROWSE_CANT_CONNECT_TO, (LPCTSTR)m_sAddress);
+				return FALSE;
+			}
+			oURL.m_sURL = CString(sUrl.c_str());
+		}
+		m_sFileListUrl = oURL.m_sURL;
 
-		return ( Downloads.Add( oURL ) != NULL );
+		theApp.Message(MSG_INFO, L"DC file list request started (nick=%s hub=%s:%u)",
+		               (LPCTSTR)m_sNick, (LPCTSTR)CString(inet_ntoa(m_pAddress)), m_nPort);
+
+		if (Downloads.Add(oURL) == NULL)
+			return FALSE;
+
+		m_nState = hbsConnecting;
+		m_nHits = 0;
+		delete m_pProfile;
+		m_pProfile = NULL;
+		if (m_pNotify)
+			m_pNotify->UpdateMessages();
+		return TRUE;
 	}
 	else // G2/Gunetella
 	{
@@ -456,99 +492,171 @@ BOOL CHostBrowser::OnPush(const Hashes::Guid& oClientID, CConnection* pConnectio
 
 BOOL CHostBrowser::OnNewFile(const CLibraryFile* pFile)
 {
-	//CQuickLock oTransfersLock( Transfers.m_pSection );
-
-	if ( m_nProtocol == PROTOCOL_DC && ! m_sNick.IsEmpty() )
+	if (m_nProtocol != PROTOCOL_DC || m_sNick.IsEmpty())
 		return FALSE;
 
-	CString strName;
-	strName.Format( L"Files of %s.xml.bz2", (LPCTSTR)SafeFilename( m_sNick ) );
-	if ( strName.CompareNoCase( pFile->m_sName ) != 0 )
+	// Bind to the browse-created download URL; name alone is not unique.
+	if (m_sFileListUrl.IsEmpty() || pFile->m_sURL.IsEmpty() ||
+	    m_sFileListUrl.CompareNoCase(pFile->m_sURL) != 0)
 		return FALSE;
+	if (MakeDcFileListDownloadName().CompareNoCase(pFile->m_sName) != 0)
+		return FALSE;
+
+	theApp.Message(MSG_INFO, L"DC file list received (nick=%s hub=%s:%u)",
+	               (LPCTSTR)m_sNick, (LPCTSTR)CString(inet_ntoa(m_pAddress)), m_nPort);
 
 	CQueryHit* pHits = NULL;
+	CStringList oFolders;
 
-	if ( LoadDC( pFile->GetPath(), pHits ) )
+	if (LoadDC(pFile->GetPath(), pHits, &oFolders))
 	{
-		if ( pHits != NULL )
-			OnQueryHits( pHits );
+		// Snapshot paths/indices into owned containers before OnQueryHits
+		// hands the chain to CNetwork (which may delete it asynchronously).
+		CStringList oHitPaths;
+		CDWordArray oHitIndices;
+		for (CQueryHit* pHit = pHits; pHit; pHit = pHit->m_pNext)
+		{
+			if (pHit->m_nIndex == 0 || pHit->m_sName.IsEmpty())
+				continue;
+			oHitPaths.AddTail(pHit->m_sName);
+			oHitIndices.Add(pHit->m_nIndex);
+		}
 
-		DeleteFileEx( pFile->GetPath(), TRUE, TRUE, TRUE );
+		if (m_pNotify && DcBrowseShareTreeNeeded(
+		                     oHitPaths.IsEmpty() ? NULL : static_cast<const void*>(&oHitPaths),
+		                     !oFolders.IsEmpty()))
+			m_pNotify->OnDcShareTree(oHitPaths, oHitIndices, oFolders);
+		if (pHits != NULL)
+			OnQueryHits(pHits);
+
+		theApp.Message(MSG_INFO, L"DC browse completed (nick=%s files=%u)",
+		               (LPCTSTR)m_sNick, m_nHits);
+
+		DeleteFileEx(pFile->GetPath(), TRUE, TRUE, TRUE);
+		// OnNewFile runs under Library.m_pSection (OnVerifyDownload). Do not
+		// take Transfers.m_pSection here (Stop does). DC browse owns no
+		// CTransfer socket — clear idle state inline.
+		m_nState = hbsNull;
+		m_tPushed = 0;
+		m_sFileListUrl.Empty();
+		theApp.Message(MSG_NOTICE, IDS_BROWSE_FINISHED, (LPCTSTR)m_sAddress, m_nHits);
+		return TRUE;
 	}
 
+	theApp.Message(MSG_ERROR, L"DC file list rejected (invalid) nick=%s", (LPCTSTR)m_sNick);
+	DeleteFileEx(pFile->GetPath(), TRUE, TRUE, TRUE);
+	m_nState = hbsNull;
+	m_tPushed = 0;
+	m_sFileListUrl.Empty();
 	return TRUE;
 }
 
-BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits)
+CString CHostBrowser::MakeDcFileListDownloadName() const
+{
+	CString strName;
+	strName.Format(L"Files of %s %s_%u.xml.bz2",
+	               (LPCTSTR)SafeFilename(m_sNick),
+	               (LPCTSTR)CString(inet_ntoa(m_pAddress)),
+	               m_nPort);
+	return strName;
+}
+
+BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits, CStringList* pFolders)
 {
 	CFile pFile;
-	if ( ! pFile.Open( pszFile, CFile::modeRead | CFile::shareDenyWrite ) )
-		return FALSE;	// File open error
+	if (!pFile.Open(pszFile, CFile::modeRead | CFile::shareDenyWrite))
+		return FALSE;
+
+	const ULONGLONG nCompressed = pFile.GetLength();
+	if (!DcFileListCompressedOk(nCompressed))
+		return FALSE;
 
 	CBuffer pBuffer;
 	if (!pBuffer.LoadFromBZipFile(pFile, CBUFFER_UNBZIP_MAX))
-		return FALSE; // Empty/oversized/read/decompress error
+		return FALSE;
 
-	augment::auto_ptr< CXMLElement > pXML ( CXMLElement::FromString( pBuffer.ReadString( pBuffer.m_nLength, CP_UTF8 ), TRUE ) );
-	if ( ! pXML.get() )
-		return FALSE;	// XML decoding error
+	if (pBuffer.m_nLength == 0 || !DcFileListUncompressedOk(pBuffer.m_nLength))
+		return FALSE;
 
-	// <FileListing Version="1" CID="SKCB4ZF4PZUDF7RKQ5LX6SVAARQER7QEVELZ2TY" Base="/" Generator="DC++ 0.762">
+	// Bounded UTF-8 walker (depth/entries during parse) — not CXMLElement::FromString.
+	std::vector<DcFileListEntry> oEntries;
+	std::vector<std::string> oFolderUtf8;
+	const DcFileListStatus nSt = DcParseFileListingXml(
+	    reinterpret_cast<const char*>(pBuffer.m_pBuffer), pBuffer.m_nLength, oEntries, &oFolderUtf8);
+	if (nSt != dcFileListOk)
+		return FALSE;
 
-	if ( ! pXML->IsNamed( L"FileListing" ) )
-		return FALSE;	// Invalid XML file format
-
-//	CString strTitle = pXML->GetAttributeValue( L"CID" );
-
-	return LoadDCDirectory( pXML.get(), pHits );
-}
-
-BOOL CHostBrowser::LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits)
-{
-	for ( POSITION pos = pRoot->GetElementIterator(); pos; )
+	if (pFolders)
 	{
-		CXMLElement* pElement = pRoot->GetNextElement( pos );
-		if ( pElement->IsNamed( L"Directory" ) )
+		for (const std::string& sFolder : oFolderUtf8)
 		{
-			// <Directory Name="Downloads">
-
-			if ( ! LoadDCDirectory( pElement, pHits ) )
-				return FALSE;
+			const CString strFolder = UTF8Decode(sFolder.c_str(), static_cast<int>(sFolder.size()));
+			if (!strFolder.IsEmpty())
+				pFolders->AddTail(strFolder);
 		}
-		else if ( pElement->IsNamed( L"File" ) )
+	}
+
+	DWORD nIndex = 0;
+	for (const DcFileListEntry& e : oEntries)
+	{
+		CString strPath = UTF8Decode(e.sPath.c_str(), static_cast<int>(e.sPath.size()));
+		CString strName = UTF8Decode(e.sName.c_str(), static_cast<int>(e.sName.size()));
+		if (strName.IsEmpty())
+			continue;
+
+		CString strDisplay = strPath;
+		if (!strDisplay.IsEmpty())
+			strDisplay += L'\\';
+		strDisplay += strName;
+		if (strDisplay.GetLength() > static_cast<int>(DC_FILELIST_PATH_MAX))
 		{
-			// <File Name="music.mp3" Size="100000" TTH="3A6D6T2NDRLU6BGSTSJNW3R3QWTV6A44M6AGXMA"/>
-
-			CString strName = pElement->GetAttributeValue( L"Name" );
-			QWORD nSize;
-			if ( _stscanf( pElement->GetAttributeValue( L"Size" ), L"%I64i", &nSize ) != 1 )
-				nSize = SIZE_UNKNOWN;
-			CString strTiger = pElement->GetAttributeValue( L"TTH" );
-
-			if ( strName.IsEmpty() || nSize == SIZE_UNKNOWN )
-				return FALSE;
-
-			if ( CQueryHit* pHit = new CQueryHit( PROTOCOL_DC ) )
+			for (CQueryHit* pHit = pHits; pHit;)
 			{
-				pHit->m_sName		= strName;
-				pHit->m_nSize		= nSize;
-				pHit->m_bSize		= TRUE;
-				pHit->m_bChat		= TRUE;
-				pHit->m_bBrowseHost	= TRUE;
-				pHit->m_oTiger.fromString( strTiger );
-				pHit->m_sNick		= m_sNick;
-				pHit->m_bBusy		= TRI_FALSE;
-				pHit->m_bPush		= TRI_TRUE;
-				pHit->m_pAddress	= m_pAddress;
-				pHit->m_nPort		= m_nPort;
-				pHit->m_sCountry	= theApp.GetCountryCode( m_pAddress );
-				pHit->m_pVendor		= m_pVendor ? m_pVendor : VendorCache.m_pNull;
-
-				pHit->Resolve();
-
-				pHit->m_pNext = pHits;
-				pHits = pHit;
+				CQueryHit* pNext = pHit->m_pNext;
+				pHit->m_pNext = NULL;
+				delete pHit;
+				pHit = pNext;
 			}
+			pHits = NULL;
+			if (pFolders)
+				pFolders->RemoveAll();
+			return FALSE;
+		}
+
+		CString strTiger = UTF8Decode(e.sTth.c_str(), static_cast<int>(e.sTth.size()));
+		if (CQueryHit* pHit = new CQueryHit(PROTOCOL_DC))
+		{
+			pHit->m_sName = strDisplay;
+			pHit->m_nSize = e.nSize;
+			pHit->m_bSize = TRUE;
+			pHit->m_bChat = TRUE;
+			pHit->m_bBrowseHost = TRUE;
+			pHit->m_nIndex = ++nIndex;
+			if (!pHit->m_oTiger.fromString(strTiger))
+			{
+				delete pHit;
+				for (CQueryHit* pDel = pHits; pDel;)
+				{
+					CQueryHit* pNext = pDel->m_pNext;
+					pDel->m_pNext = NULL;
+					delete pDel;
+					pDel = pNext;
+				}
+				pHits = NULL;
+				if (pFolders)
+					pFolders->RemoveAll();
+				return FALSE;
+			}
+			pHit->m_sNick = m_sNick;
+			pHit->m_bBusy = TRI_FALSE;
+			pHit->m_bPush = TRI_TRUE;
+			pHit->m_pAddress = m_pAddress;
+			pHit->m_nPort = m_nPort;
+			pHit->m_sCountry = theApp.GetCountryCode(m_pAddress);
+			pHit->m_pVendor = m_pVendor ? m_pVendor : VendorCache.m_pNull;
+			pHit->Resolve();
+			pHit->m_pNext = pHits;
+			pHits = pHit;
 		}
 	}
 	return TRUE;

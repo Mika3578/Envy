@@ -193,7 +193,10 @@ CXMLElement* CLibraryFile::CreateXML(CXMLElement* pRoot, BOOL bSharedOnly, XmlTy
 	// Special case-sensitive http://adc.sourceforge.net/ADC.html#_file_list
 	if ( nType == xmlDC )
 	{
-		CXMLElement* pFile = pRoot->AddElement( L"File" );;
+		if (!m_oTiger)
+			return NULL;
+
+		CXMLElement* pFile = pRoot->AddElement(L"File");
 		if ( pFile )
 		{
 			pFile->AddAttribute( L"Name", m_sName );

@@ -45,7 +45,7 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 | BitTorrent v2 | partial | BEP 52, aria2-next | implemented |
 | Gnutella (G1) | implemented | Envy / Shareaza lineage | preserve |
 | Gnutella2 (G2) | implemented | Envy / Shareaza lineage | preserve |
-| Direct Connect (NMDC) | implemented | NMDC, Shareaza, DC++ | preserve |
+| Direct Connect (NMDC) | implemented (hub chat + file-list browse wired; live hub interop unverified) | NMDC, Shareaza, DC++ | preserve |
 | Direct Connect (ADC/ADCS) | not implemented | ADC / ADC-EXT, EiskaltDC++ | planned (separate layer) |
 | uTP (BEP 29) | not implemented | BEP 29, aria2-next | planned |
 | Kad6 / next overlay | not implemented | eMule eSE (R&D only) | experimental (P3) |
@@ -115,6 +115,7 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 - G1: `Envy/G1Packet.*`, `Envy/G1Neighbour.*`, `Envy/NeighboursWithG1.*`.
 - G2: `Envy/G2Packet.*`, `Envy/G2Neighbour.*`, `Envy/NeighboursWithG2.*`.
 - **NMDC (preserve):** `Envy/DCClient.*`, `Envy/DCNeighbour.*`, `Envy/DCPacket.*`, transfer classes. Client `$Supports` includes NMDC-side `ADCGet`/`ADCSND` file-transfer extensions — these are **not** an ADC hub protocol.
+- **NMDC hub users + file-list browse:** `$GetNickList` is still sent after `$Hello`. `$NickList` is a bounded nick-only seed merged into the hub session’s `m_oUsers` (identity is **hub + nick**; `CChatCore::FindSession` still keys by address+protocol only, so two hubs on the same IP with different ports can still coalesce chat sessions — Browse/`/msg` use `Neighbours.Get(IN_ADDR)` likewise). `$MyINFO` remains the metadata path; `$Quit` still removes users. Hub chat can Browse a selected remote user through existing `CHostBrowser` `PROTOCOL_DC` (`files.xml.bz2`). Incoming lists are fail-closed at transfer and parse time; FileListing directories populate the Browse Host left tree from an owned path/index snapshot **before** `CNetwork` owns the hit chain. Outgoing lists skip files without Tiger. This is **not** “full DC++ support”. Live hub tests are not part of CI.
 - **ADC/ADCS hub protocol: not implemented.** `adc://` / `adcs://` are skipped in hublist import (`HostCache`); no ADC `CSUP`/`CINF`/`CID`/`PID` hub session. Future ADC support must be a **separate layer**, not a graft onto the NMDC parser.
 - Default public hublist URL (2026-09): `https://dchublist.org/hublist.xml.bz2`, with additional HTTPS `H` rows in `Data/DefaultServices.dat`. This is bootstrap only — not “hublist support complete”.
 - G1/G2 depth versus gtk-gnutella / latest G2 extras remains **unverified**; that is not an invitation to remove them.

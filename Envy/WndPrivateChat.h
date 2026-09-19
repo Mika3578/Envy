@@ -49,6 +49,8 @@ protected:
 	virtual BOOL OnLocalCommand(const CString& sCommand, const CString& sArgs);
 
 	afx_msg void OnDestroy();
+	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
+	afx_msg void OnUsersDblClk(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnUpdateChatConnect(CCmdUI* pCmdUI);
 	afx_msg void OnChatConnect();
 	afx_msg void OnUpdateChatDisconnect(CCmdUI* pCmdUI);
@@ -57,6 +59,12 @@ protected:
 	afx_msg void OnChatBrowse();
 	afx_msg void OnUpdateChatPriority(CCmdUI* pCmdUI);
 	afx_msg void OnChatPriority();
+	afx_msg void OnUpdateChatPrivateMessage(CCmdUI* pCmdUI);
+	afx_msg void OnChatPrivateMessage();
+
+	BOOL CanBrowseSelectedDcUser();
+	void BrowseSelectedDcUser();
+	BOOL CanMessageSelectedDcUser();
 
 	DECLARE_MESSAGE_MAP()
 };
