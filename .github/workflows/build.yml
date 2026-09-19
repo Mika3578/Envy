@@ -104,6 +104,9 @@ jobs:
       (github.event_name == 'workflow_dispatch' && inputs.configuration == 'Release')
     runs-on: windows-2025-vs2026
     timeout-minutes: 120
+    # Hosted runners hit C1083 (PCH permission denied) when Envy.pch is built
+    # under parallel CL/MSBuild; keep /m:1 until a measured A/B on
+    # windows-2025-vs2026 proves MTT/CL_MPCount is safe (see CI_AUDIT_2026-09).
     env:
       MSBUILD_PARALLEL: /m:1
       MSBUILD_USE_MULTI_TOOL_TASK: false

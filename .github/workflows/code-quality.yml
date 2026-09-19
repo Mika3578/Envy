@@ -142,15 +142,27 @@ jobs:
     needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name == 'pull_request' && needs.changes.outputs.run_docs_check == 'true'
+    # Always emit this required context on PRs. When classify says docs are
+    # out of scope, report success immediately so Protect develop never waits
+    # on a skipped/missing check (see docs/10_dev/CI_AUDIT_2026-09.md).
+    if: >
+      github.event_name == 'pull_request' &&
+      needs.changes.result == 'success'
 
     steps:
       - name: Checkout code
+        if: needs.changes.outputs.run_docs_check == 'true'
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 1
 
+      - name: Docs check not required for this change set
+        if: needs.changes.outputs.run_docs_check != 'true'
+        run: |
+          echo "::notice::Documentation Check no-op (classify run_docs_check=false)."
+
       - name: Check for README updates
+        if: needs.changes.outputs.run_docs_check == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -166,6 +178,7 @@ jobs:
           fi
 
       - name: Check for broken links in markdown
+        if: needs.changes.outputs.run_docs_check == 'true'
         uses: gaurav-nelson/github-action-markdown-link-check@5c5dfc0ac2e225883c0e5f03a85311ec2830d368  # v1
         with:
           use-quiet-mode: "yes"

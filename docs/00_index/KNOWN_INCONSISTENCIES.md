@@ -1,5 +1,18 @@
 # Known inconsistencies
 
+- **Protect develop required approvals (2026-09-19):** Live ruleset
+  `Protect develop` (`16457466`) returns `required_approving_review_count: 0`
+  via the GitHub API, while `AGENTS.md`, `docs/10_dev/devsecops-envy.md`, and
+  `.github/settings.yml` still describe the **intended** policy as ≥1
+  APPROVED review. Prefer restoring the live ruleset to 1; until then treat
+  docs as policy intent and the API as the enforceable gate. See
+  `docs/10_dev/CI_AUDIT_2026-09.md`.
+
+- **Protect develop Code Quality rule:** Live ruleset includes a
+  `code_quality` rule with severity `notes`. Older DevSecOps prose said
+  “no GitHub Code Quality ruleset rule”. Audit doc is source of truth until
+  docs are rewritten after a maintainer decision.
+
 - **ED2K/Kad scope:** `ED2K_KAD_GAP_ANALYSIS` describes historical gaps; `kad2-compatibility-report` focuses on wire-level Kad2 opcode matching with eMule/aMule. Neither is live interop. Canonical high-level status is `docs/10_dev/status.md`.
 
 - **SecureIdent:** January 2026 docs (`modernization-summary.md`, `security-improvements-summary.md`, older CHANGELOG “SecureID version = 3”) contradicted #75. Current code: `ED2K_VERSION_SECUREID = 0`; RSA not implemented. Those historical changelog lines remain as history of a later-reverted advertisement.

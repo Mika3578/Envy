@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — CI audit (`docs/10_dev/CI_AUDIT_2026-09.md`): measured ~7 min PR critical path (Build x64 ∥ CodeQL c-cpp); skip empty NuGet (~22s/job), failure-only PR build logs, always-emit Documentation Check, PR Gate poll 10s; documented live Protect develop approval-count drift (API 0 vs intended 1).
 - **Changelog Entry:** 2026-09-19 — #81: G1 TCP framing uses overflow-safe `G1PacketTotalLengthOk` for signed payload length vs `MaximumPacket`.
 - **Changelog Entry:** 2026-09-19 — #81: G1 UDP datagram path uses overflow-safe G1PacketTotalLengthOk (rejects negative m_nLength wrap before CG1Packet::New).
 - **Changelog Entry:** 2026-09-19 — Agent workflow: after every PR push use `gh pr checks --required --watch --fail-fast --interval 5` (no arbitrary CI sleeps); see `AGENTS.md` §5 and `.cursor/rules/08-dev-workflow.mdc`.
