@@ -887,7 +887,7 @@ static CBrowseTreeItem* DcEnsureFolderPath(CBrowseTreeItem* pRoot, const CString
 	return pItem;
 }
 
-void CBrowseTreeCtrl::BuildFromDcListing(const CQueryHit* pHits, const CStringList* pFolders)
+void CBrowseTreeCtrl::BuildFromDcListing(const CStringList* pHitPaths, const CDWordArray* pHitIndices, const CStringList* pFolders)
 {
 	CSingleLock lRoot(&m_csRoot, TRUE);
 
@@ -901,19 +901,36 @@ void CBrowseTreeCtrl::BuildFromDcListing(const CQueryHit* pHits, const CStringLi
 			DcEnsureFolderPath(m_pRoot, pFolders->GetNext(pos), oByPath);
 	}
 
-	for (const CQueryHit* pHit = pHits; pHit; pHit = pHit->m_pNext)
+	if (pHitPaths && pHitIndices && pHitPaths->GetCount() == pHitIndices->GetSize())
 	{
-		if (pHit->m_nIndex == 0 || pHit->m_sName.IsEmpty())
-			continue;
-		const int nSlash = pHit->m_sName.ReverseFind(L'\\');
-		if (nSlash < 0)
+		POSITION pos = pHitPaths->GetHeadPosition();
+		for (INT_PTR i = 0; pos && i < pHitIndices->GetSize(); ++i)
 		{
-			m_pRoot->AddFileIndex(pHit->m_nIndex);
-			continue;
+			const CString& sName = pHitPaths->GetNext(pos);
+			const DWORD nIndex = pHitIndices->GetAt(i);
+			if (nIndex == 0 || sName.IsEmpty())
+				continue;
+			const int nSlash = sName.ReverseFind(L'\\');
+			if (nSlash < 0)
+			{
+				m_pRoot->AddFileIndex(nIndex);
+				continue;
+			}
+			// Record the index on the leaf folder and every ancestor so an
+			// expanded parent folder (SelectTree skips expanded children)
+			// still matches nested files.
+			CString sFolder = sName.Left(nSlash);
+			for (;;)
+			{
+				CBrowseTreeItem* pFolder = DcEnsureFolderPath(m_pRoot, sFolder, oByPath);
+				if (pFolder)
+					pFolder->AddFileIndex(nIndex);
+				const int nParent = sFolder.ReverseFind(L'\\');
+				if (nParent < 0)
+					break;
+				sFolder = sFolder.Left(nParent);
+			}
 		}
-		CBrowseTreeItem* pFolder = DcEnsureFolderPath(m_pRoot, pHit->m_sName.Left(nSlash), oByPath);
-		if (pFolder)
-			pFolder->AddFileIndex(pHit->m_nIndex);
 	}
 
 	m_nTotal = m_pRoot->GetChildCount();

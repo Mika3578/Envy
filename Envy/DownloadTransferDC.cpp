@@ -26,12 +26,13 @@
 #include "DownloadTransferDC.h"
 #include "DownloadSource.h"
 #include "DcAdcGetValidate.h"
+#include "DcBrowse.h"
+#include "DcFileListValidate.h"
 #include "Library.h"
 #include "Neighbour.h"
 #include "Neighbours.h"
 #include "Network.h"
 #include "Transfers.h"
-#include "DcBrowse.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -335,6 +336,17 @@ BOOL CDownloadTransferDC::OnDownload(const std::string& strType, const std::stri
 		Close(TRI_FALSE);
 		return FALSE;
 	}
+
+	// Cap browse file-list transfers before writing to disk. Until-end
+	// $ADCGET for files.xml.bz2 must announce a length within the 32 MiB cap.
+	const BOOL bFileList = (strFilename == DC_FILELIST_ADCGET_NAME) ||
+	                       (m_pDownload && DcIsFileListDownloadNameW(m_pDownload->m_sName));
+	if (bFileList && !DcFileListCompressedOk(nLength))
+	{
+		Close(TRI_FALSE);
+		return FALSE;
+	}
+
 	m_nLength = nLength;
 
 	BOOL bZip = ( strOptions.find("ZL1") != std::string::npos );
@@ -459,10 +471,12 @@ BOOL CDownloadTransferDC::StartNextFragment()
 	m_nPosition = 0;
 
 	CString strName;
-	if (DcIsFileListDownloadNameW(m_pDownload->m_sName))
-		strName = DC_FILELIST_ADCGET_NAME_W;
-	else if (m_pDownload->m_oTiger)
+	// Prefer TTH for content files so a display name that looks like a file
+	// list still fetches by hash. Browse lists have no Tiger.
+	if (m_pDownload->m_oTiger)
 		strName = L"TTH/" + m_pDownload->m_oTiger.toString();
+	else if (DcIsFileListDownloadNameW(m_pDownload->m_sName))
+		strName = DC_FILELIST_ADCGET_NAME_W;
 	else
 		strName = m_pSource->m_sName;
 

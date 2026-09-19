@@ -59,7 +59,7 @@ public:
 	CBrowseTreeItem*	GetLastSelected() const;
 	CBrowseTreeItem*	HitTest(const POINT& point, RECT* pRect = NULL) const;
 	void				OnTreePacket(CG2Packet* pPacket);
-	void BuildFromDcListing(const CQueryHit* pHits, const CStringList* pFolders);
+	void BuildFromDcListing(const CStringList* pHitPaths, const CDWordArray* pHitIndices, const CStringList* pFolders);
 
 protected:
 	void				UpdateScroll();

@@ -2,8 +2,8 @@
 // DcFileListValidate.h
 //
 // Hostile NMDC FileListing (files.xml / files.xml.bz2) bounds. Used by
-// CHostBrowser::LoadDC and EnvyTests. Invalid lists are rejected; entries
-// are never silently coerced into a valid listing.
+// CHostBrowser::LoadDC (production) and EnvyTests. Invalid structure is
+// rejected; File entries without a valid TTH are skipped (not fatal).
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
@@ -203,15 +203,6 @@ inline void SkipWs(const char*& p, const char* pEnd)
 		++p;
 }
 
-inline BOOL Consume(const char*& p, const char* pEnd, const char* psz)
-{
-	const size_t n = strlen(psz);
-	if (p + n > pEnd || strncmp(p, psz, n) != 0)
-		return FALSE;
-	p += n;
-	return TRUE;
-}
-
 inline BOOL MatchName(const char* p, const char* pEnd, const char* pszName)
 {
 	const size_t n = strlen(pszName);
@@ -370,7 +361,9 @@ inline BOOL IsCloseTag(const char*& p, const char* pEnd, const char* pszName)
 }
 
 inline DcFileListStatus WalkDir(const char*& p, const char* pEnd,
-                                std::vector<DcFileListEntry>& oOut, std::string& sPath, DWORD nDepth, DWORD& nEntries)
+                                std::vector<DcFileListEntry>& oOut,
+                                std::vector<std::string>* pFolders,
+                                std::string& sPath, DWORD nDepth, DWORD& nEntries)
 {
 	if (!DcFileListDepthOk(nDepth))
 		return dcFileListTooDeep;
@@ -405,9 +398,11 @@ inline DcFileListStatus WalkDir(const char*& p, const char* pEnd,
 				sPath.push_back('\\');
 			sPath.append(o.pName, o.nName);
 			++nEntries;
+			if (pFolders)
+				pFolders->push_back(sPath);
 			if (!o.bSelfClose)
 			{
-				const DcFileListStatus nChild = WalkDir(p, pEnd, oOut, sPath, nDepth + 1, nEntries);
+				const DcFileListStatus nChild = WalkDir(p, pEnd, oOut, pFolders, sPath, nDepth + 1, nEntries);
 				if (nChild != dcFileListOk)
 					return nChild;
 				if (!IsCloseTag(p, pEnd, "Directory"))
@@ -419,6 +414,7 @@ inline DcFileListStatus WalkDir(const char*& p, const char* pEnd,
 		{
 			if (!DcFileListEntryCountOk(nEntries))
 				return dcFileListTooMany;
+			++nEntries;
 			if (!DcFileListNameUtf8Ok(o.pName, o.nName))
 				return (o.pName && o.nName == 2 && o.pName[0] == '.' && o.pName[1] == '.')
 				           ? dcFileListTraversal
@@ -426,20 +422,22 @@ inline DcFileListStatus WalkDir(const char*& p, const char* pEnd,
 			std::uint64_t nSize = 0;
 			if (!DcFileListParseSizeUtf8(o.pSize, o.nSize, nSize))
 				return dcFileListBadSize;
-			if (!DcFileListTthUtf8Ok(o.pTth, o.nTth))
-				return dcFileListBadTth;
+			const BOOL bTthOk = DcFileListTthUtf8Ok(o.pTth, o.nTth);
+			if (!o.bSelfClose)
+			{
+				if (!IsCloseTag(p, pEnd, "File"))
+					return dcFileListMalformed;
+			}
+			// TTH-less / invalid-TTH File entries are skipped (legal in NMDC);
+			// they still count toward the entry cap above.
+			if (!bTthOk)
+				continue;
 			DcFileListEntry e;
 			e.sPath = sPath;
 			e.sName.assign(o.pName, o.nName);
 			e.nSize = nSize;
 			e.sTth.assign(o.pTth, o.nTth);
 			oOut.push_back(e);
-			++nEntries;
-			if (!o.bSelfClose)
-			{
-				if (!IsCloseTag(p, pEnd, "File"))
-					return dcFileListMalformed;
-			}
 		}
 		else
 			return dcFileListMalformed;
@@ -449,9 +447,12 @@ inline DcFileListStatus WalkDir(const char*& p, const char* pEnd,
 } // namespace DcFileListDetail
 
 inline DcFileListStatus DcParseFileListingXml(const char* pXml, size_t nLen,
-                                              std::vector<DcFileListEntry>& oOut)
+                                              std::vector<DcFileListEntry>& oOut,
+                                              std::vector<std::string>* pFolders = nullptr)
 {
 	oOut.clear();
+	if (pFolders)
+		pFolders->clear();
 	if (pXml == NULL || nLen == 0)
 		return dcFileListEmpty;
 	if (!DcFileListUncompressedOk(nLen))
@@ -478,27 +479,33 @@ inline DcFileListStatus DcParseFileListingXml(const char* pXml, size_t nLen,
 
 	std::string sPath;
 	DWORD nEntries = 0;
-	const DcFileListStatus nWalk = DcFileListDetail::WalkDir(p, pEnd, oOut, sPath, 1, nEntries);
+	const DcFileListStatus nWalk = DcFileListDetail::WalkDir(p, pEnd, oOut, pFolders, sPath, 1, nEntries);
 	if (nWalk != dcFileListOk)
 	{
 		oOut.clear();
+		if (pFolders)
+			pFolders->clear();
 		return nWalk;
 	}
 	if (!DcFileListDetail::IsCloseTag(p, pEnd, "FileListing"))
 	{
 		oOut.clear();
+		if (pFolders)
+			pFolders->clear();
 		return dcFileListTruncated;
 	}
 	DcFileListDetail::SkipWs(p, pEnd);
 	if (p != pEnd)
 	{
 		oOut.clear();
+		if (pFolders)
+			pFolders->clear();
 		return dcFileListMalformed;
 	}
 	return dcFileListOk;
 }
 
-// Display name "Folder\\file.ext" as used by CHostBrowser::LoadDCDirectory.
+// Display name "Folder\\file.ext" as used by CHostBrowser::LoadDC.
 // nParent == 0 means the file sits on the FileListing root.
 inline BOOL DcFileListSplitParentUtf8(const char* pszFull, size_t nLen,
                                       const char*& pParent, size_t& nParent,

@@ -46,7 +46,10 @@ inline BOOL DcNickListPayloadOk(size_t nBytes)
 template<typename F>
 inline BOOL DcParseNickList(const char* p, size_t nBytes, F&& onNick)
 {
-	if (p == NULL || nBytes == 0)
+	// Null with a claimed nonzero length is malformed, not an empty list.
+	if (p == NULL)
+		return nBytes == 0 ? TRUE : FALSE;
+	if (nBytes == 0)
 		return TRUE;
 	if (!DcNickListPayloadOk(nBytes))
 		return FALSE;
@@ -56,8 +59,9 @@ inline BOOL DcParseNickList(const char* p, size_t nBytes, F&& onNick)
 	while (i <= nBytes)
 	{
 		const BOOL bEnd = (i == nBytes);
-		const BOOL bSep = (!bEnd && p[i] == '$' &&
-		                   ((i + 1 < nBytes && p[i + 1] == '$') || (i + 1 == nBytes)));
+		// Separators are only the $$ pair. A lone trailing '$' (alice$)
+		// must not mint a nick; a lone mid-list '$' is not a separator.
+		const BOOL bSep = (!bEnd && p[i] == '$' && i + 1 < nBytes && p[i + 1] == '$');
 		if (!bEnd && !bSep)
 		{
 			++i;
@@ -73,10 +77,7 @@ inline BOOL DcParseNickList(const char* p, size_t nBytes, F&& onNick)
 
 		if (bEnd)
 			break;
-		if (i + 1 < nBytes && p[i] == '$' && p[i + 1] == '$')
-			i += 2;
-		else
-			++i;
+		i += 2;
 		nStart = i;
 	}
 	return TRUE;

@@ -45,6 +45,17 @@ static bool test_nicklist_empty()
 	return ParseNicks("").empty() && ParseNicks(NULL).empty() && ParseNicks("$$").empty();
 }
 
+static bool test_nicklist_null_nonzero()
+{
+	return DcParseNickList(NULL, 1, [](const char*, size_t) { return TRUE; }) == FALSE;
+}
+
+static bool test_nicklist_lone_dollar_no_nick()
+{
+	// Trailing single $ must not mint a nick; mid-list lone $ is not a separator.
+	return ParseNicks("alice$").empty() && ParseNicks("alice$bob$$").empty();
+}
+
 static bool test_nicklist_one_user()
 {
 	const auto o = ParseNicks("alice");
@@ -127,14 +138,12 @@ static bool test_nicklist_duplicate_tokens()
 
 static bool MergeNickList(std::set<std::string>& oUsers, const char* pszList)
 {
-	const DWORD nBefore = static_cast<DWORD>(oUsers.size());
 	BOOL bOk = DcParseNickList(pszList, strlen(pszList), [&](const char* p, size_t n)
 	                           {
 		if ( ! DcHubUserCountOk( static_cast< DWORD >( oUsers.size() ) ) )
 			return FALSE;
 		oUsers.emplace( p, n );
 		return TRUE; });
-	(void)nBefore;
 	return bOk != FALSE;
 }
 
@@ -159,7 +168,10 @@ static bool test_nicklist_then_myinfo_no_dup()
 
 static bool test_quit_removes_user()
 {
-	std::set<std::string> oUsers{ "alice", "bob" };
+	// Simulate $Quit by erasing a nick that was seeded via DcParseNickList merge.
+	std::set<std::string> oUsers;
+	if (!MergeNickList(oUsers, "alice$$bob$$"))
+		return false;
 	oUsers.erase("alice");
 	return oUsers.size() == 1 && oUsers.count("bob") && !oUsers.count("alice");
 }
@@ -186,19 +198,11 @@ static bool test_browse_url_files_xml()
 static bool test_browse_url_special_nick()
 {
 	std::string sSpace, sAt;
-	if (!DcFormatFileListUrl("John Doe", "10.0.0.1", 411, sSpace))
-	{
-		// space is illegal in NMDC nick bytes
-		if (DcNickBytesOk("John Doe", 8))
-			return false;
-	}
-	else
+	// space is illegal in NMDC nick bytes
+	if (DcFormatFileListUrl("John Doe", "10.0.0.1", 411, sSpace))
 		return false;
-	if (!DcFormatFileListUrl("a@b", "10.0.0.1", 411, sAt))
-	{
-		if (DcNickBytesOk("a@b", 3))
-			return false; // '@' is allowed in nick bytes (not space/$/|)
-	}
+	if (DcNickBytesOk("John Doe", 8))
+		return false;
 	// '@' is allowed by DcNickBytesOk; URL must percent-encode it
 	if (!DcNickBytesOk("a@b", 3))
 		return false;
@@ -220,7 +224,12 @@ static bool test_browse_rejects_bad_target()
 
 static bool test_filelist_download_name()
 {
-	return DcIsFileListDownloadNameW(L"files.xml.bz2") == TRUE && DcIsFileListDownloadNameW(L"files.xml") == TRUE && DcIsFileListDownloadNameW(L"Files of alice.xml.bz2") == TRUE && DcIsFileListDownloadNameW(L"Files of alice 10.0.0.1_411.xml.bz2") == TRUE && DcIsFileListDownloadNameW(L"music.mp3") == FALSE && DcIsFileListDownloadNameW(L"") == FALSE;
+	return DcIsFileListDownloadNameW(L"files.xml.bz2") == TRUE
+	       && DcIsFileListDownloadNameW(L"files.xml") == FALSE
+	       && DcIsFileListDownloadNameW(L"Files of alice.xml.bz2") == TRUE
+	       && DcIsFileListDownloadNameW(L"Files of alice 10.0.0.1_411.xml.bz2") == TRUE
+	       && DcIsFileListDownloadNameW(L"music.mp3") == FALSE
+	       && DcIsFileListDownloadNameW(L"") == FALSE;
 }
 
 static const char* kTth = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
@@ -266,7 +275,8 @@ static bool test_filelist_invalid_tth()
 {
 	const std::string sXml = std::string("<FileListing Version=\"1\">") + FileTag("a.mp3", "1", "NOT_A_VALID_TTH____________") + "</FileListing>";
 	std::vector<DcFileListEntry> o;
-	return DcParseFileListingXml(sXml.c_str(), sXml.size(), o) == dcFileListBadTth && o.empty();
+	// Invalid TTH File entries are skipped (NMDC allows TTH-less files).
+	return DcParseFileListingXml(sXml.c_str(), sXml.size(), o) == dcFileListOk && o.empty();
 }
 
 static bool test_filelist_invalid_size()
@@ -382,14 +392,20 @@ static bool test_filelist_dirs_only()
 {
 	const char* psz = "<FileListing Version=\"1\"><Directory Name=\"EmptyA\"/><Directory Name=\"EmptyB\"><Directory Name=\"Nested\"/></Directory></FileListing>";
 	std::vector<DcFileListEntry> o;
-	return DcParseFileListingXml(psz, strlen(psz), o) == dcFileListOk && o.empty();
+	std::vector<std::string> oFolders;
+	return DcParseFileListingXml(psz, strlen(psz), o, &oFolders) == dcFileListOk && o.empty()
+	       && oFolders.size() == 3
+	       && oFolders[0] == "EmptyA"
+	       && oFolders[1] == "EmptyB"
+	       && oFolders[2] == "EmptyB\\Nested";
 }
 
 static bool test_filelist_failure_clears_partial()
 {
 	const std::string sXml = std::string("<FileListing Version=\"1\">") + FileTag("ok.mp3", "1", kTth) + FileTag("bad.mp3", "1", "NOT_A_VALID_TTH____________") + "</FileListing>";
 	std::vector<DcFileListEntry> o;
-	return DcParseFileListingXml(sXml.c_str(), sXml.size(), o) == dcFileListBadTth && o.empty();
+	// bad.mp3 skipped; ok.mp3 retained
+	return DcParseFileListingXml(sXml.c_str(), sXml.size(), o) == dcFileListOk && o.size() == 1 && o[0].sName == "ok.mp3";
 }
 
 static bool test_filelist_truncated_clears_partial()
@@ -429,6 +445,8 @@ void register_dc_user_file_browse_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("dc_nicklist_nominal", test_nicklist_nominal);
 	suite.add_test("dc_nicklist_empty", test_nicklist_empty);
+	suite.add_test("dc_nicklist_null_nonzero", test_nicklist_null_nonzero);
+	suite.add_test("dc_nicklist_lone_dollar_no_nick", test_nicklist_lone_dollar_no_nick);
 	suite.add_test("dc_nicklist_one_user", test_nicklist_one_user);
 	suite.add_test("dc_nicklist_trailing_separator", test_nicklist_trailing_separator);
 	suite.add_test("dc_nicklist_empty_nick_skipped", test_nicklist_empty_nick_skipped);

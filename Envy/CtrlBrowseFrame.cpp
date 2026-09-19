@@ -432,9 +432,9 @@ void CBrowseFrameCtrl::OnVirtualTree(CG2Packet* pPacket)
 	}
 }
 
-void CBrowseFrameCtrl::OnDcShareTree(const CQueryHit* pHits, const CStringList& oFolders)
+void CBrowseFrameCtrl::OnDcShareTree(const CStringList& oHitPaths, const CDWordArray& oHitIndices, const CStringList& oFolders)
 {
-	m_wndTree.BuildFromDcListing(pHits, &oFolders);
+	m_wndTree.BuildFromDcListing(&oHitPaths, &oHitIndices, &oFolders);
 
 	if (!m_bTreeVisible)
 	{

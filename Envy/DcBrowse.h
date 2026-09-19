@@ -19,12 +19,14 @@
 constexpr const char* DC_FILELIST_ADCGET_NAME = "files.xml.bz2";
 constexpr const wchar_t* DC_FILELIST_ADCGET_NAME_W = L"files.xml.bz2";
 
-// Display / library name for a remote file list: "Files of <nick>.xml.bz2"
+// Browse-created synthetic library name ("Files of <nick>....xml.bz2") or the
+// ADCGET wire name. Bare "files.xml" is not matched so a user file with that
+// display name still uses its TTH when present.
 inline BOOL DcIsFileListDownloadNameW(const wchar_t* pszName)
 {
 	if (pszName == NULL || *pszName == 0)
 		return FALSE;
-	if (wcscmp(pszName, DC_FILELIST_ADCGET_NAME_W) == 0 || wcscmp(pszName, L"files.xml") == 0)
+	if (wcscmp(pszName, DC_FILELIST_ADCGET_NAME_W) == 0)
 		return TRUE;
 	// "Files of " ... ".xml.bz2"
 	const wchar_t* pszPrefix = L"Files of ";

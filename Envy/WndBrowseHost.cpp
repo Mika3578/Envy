@@ -385,11 +385,11 @@ void CBrowseHostWnd::OnVirtualTree(CG2Packet* pPacket)
 	SetModified();
 }
 
-void CBrowseHostWnd::OnDcShareTree(const CQueryHit* pHits, const CStringList& oFolders)
+void CBrowseHostWnd::OnDcShareTree(const CStringList& oHitPaths, const CDWordArray& oHitIndices, const CStringList& oFolders)
 {
 	if (m_bPaused || m_hWnd == NULL) return;
 
-	m_wndFrame.OnDcShareTree(pHits, oFolders);
+	m_wndFrame.OnDcShareTree(oHitPaths, oHitIndices, oFolders);
 
 	SetModified();
 }

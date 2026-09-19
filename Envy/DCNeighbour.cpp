@@ -104,7 +104,7 @@ BOOL CDCNeighbour::SendPrivateTo(const CString& sToNick, bool bAction, const CSt
 		return FALSE;
 	if (sToNick.IsEmpty() || sText.IsEmpty())
 		return FALSE;
-	if (sToNick.Find(L'|') >= 0 || sText.Find(L'|') >= 0)
+	if (sToNick.Find(L'|') >= 0 || sText.Find(L'|') >= 0 || m_sNick.Find(L'|') >= 0)
 		return FALSE;
 	if (GetUser(sToNick) == NULL)
 		return FALSE;
@@ -119,7 +119,8 @@ BOOL CDCNeighbour::SendPrivateTo(const CString& sToNick, bool bAction, const CSt
 
 	if (CDCPacket* pPacket = CDCPacket::New())
 	{
-		pPacket->WriteString(strRequest, FALSE);
+		// NMDC hub traffic is UTF-8 (see ChatSession / $MyINFO paths).
+		pPacket->WriteStringUTF8(strRequest, FALSE);
 		return Send(pPacket);
 	}
 	return FALSE;

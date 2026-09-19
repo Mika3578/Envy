@@ -205,7 +205,10 @@ BOOL CPrivateChatWnd::OnLocalCommand(const CString& sCommand, const CString& sAr
 		CString sNick = sArgs.SpanExcluding(L" \t");
 		CString sText = sArgs.Mid(sNick.GetLength()).Trim();
 		if (sNick.IsEmpty() || sText.IsEmpty())
+		{
+			CChatWnd::OnStatusMessage(1, LoadString(IDS_CHAT_NOT_CONNECTED_1));
 			return TRUE;
+		}
 		if (m_pSession && m_pSession->m_nProtocol == PROTOCOL_DC)
 		{
 			CSingleLock pLock(&Network.m_pSection);
@@ -213,17 +216,26 @@ BOOL CPrivateChatWnd::OnLocalCommand(const CString& sCommand, const CString& sAr
 			{
 				if (CNeighbour* pNeighbour = Neighbours.Get(m_pSession->m_pHost.sin_addr))
 				{
-					if (pNeighbour->m_nProtocol == PROTOCOL_DC && static_cast<CDCNeighbour*>(pNeighbour)->SendPrivateTo(sNick, false, sText))
+					if (pNeighbour->m_nProtocol == PROTOCOL_DC)
 					{
-						CChatWnd::OnMessage(false, GetChatID(), true, MyProfile.GetNick(), sNick, sText);
-						return TRUE;
+						CDCNeighbour* pDc = static_cast<CDCNeighbour*>(pNeighbour);
+						if (pDc->GetUser(sNick) == NULL)
+						{
+							CChatWnd::OnStatusMessage(1, LoadString(IDS_CHAT_NOT_CONNECTED_1));
+							return TRUE;
+						}
+						if (pDc->SendPrivateTo(sNick, false, sText))
+						{
+							CChatWnd::OnMessage(false, GetChatID(), true, MyProfile.GetNick(), sNick, sText);
+							return TRUE;
+						}
 					}
 				}
 			}
 			CChatWnd::OnStatusMessage(1, LoadString(IDS_CHAT_NOT_CONNECTED_1));
 			return TRUE;
 		}
-		return TRUE;
+		return CChatWnd::OnLocalCommand(sCommand, sArgs);
 	}
 	else
 		return CChatWnd::OnLocalCommand( sCommand, sArgs );
@@ -268,10 +280,11 @@ void CPrivateChatWnd::OnContextMenu(CWnd* pWnd, CPoint point)
 	if (pWnd && m_wndUsers.GetSafeHwnd() && pWnd->GetSafeHwnd() == m_wndUsers.GetSafeHwnd())
 	{
 		if (point.x == -1 && point.y == -1)
-			ClientToScreen(&point);
+			GetCursorPos(&point);
 		const int nItem = UsersHitTest(point);
-		if (nItem >= 0)
-			m_wndUsers.SetItemState(nItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+		if (nItem < 0)
+			return;
+		m_wndUsers.SetItemState(nItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 		Skin.TrackPopupMenu(L"CPrivateChatWnd.Users", point);
 		return;
 	}
