@@ -16,6 +16,11 @@ on:
       - "tools/crash-probe/**"
       - ".github/workflows/crash-probe.yml"
   workflow_dispatch:
+    inputs:
+      include_sentry:
+        description: "Also build/run Sentry Native Option B matrix"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -46,7 +51,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        backend: [crashpad, sentry]
+        # Product decision D-019 is Crashpad. Sentry Native remains Option B in
+        # tools/crash-probe (manual / workflow_dispatch comparison only).
+        backend: [crashpad]
         platform: [x64, Win32]
     env:
       PLATFORM_TOOLSET: v145
