@@ -37,6 +37,7 @@ void register_textctrl_viewport_smoke_tests(TestSuite& suite);
 void register_bootstrap_catalog_smoke_tests(TestSuite& suite);
 void register_transfer_settings_limits_smoke_tests(TestSuite& suite);
 void register_transfer_state_smoke_tests(TestSuite& suite);
+void register_kad_search_res_delivery_smoke_tests(TestSuite& suite);
 
 int main() {
 	TestSuite suite;
@@ -67,6 +68,7 @@ int main() {
 	register_bootstrap_catalog_smoke_tests(suite);
 	register_transfer_settings_limits_smoke_tests(suite);
 	register_transfer_state_smoke_tests(suite);
+	register_kad_search_res_delivery_smoke_tests(suite);
 
 	int failures = suite.run_all_tests();
 

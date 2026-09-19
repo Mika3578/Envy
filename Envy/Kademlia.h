@@ -21,6 +21,7 @@
 #include <list>
 #include <map>
 #include <unordered_map>
+#include "KadSearchResDelivery.h"
 
 // Kademlia node ID is 128-bit (16 bytes) for eDonkey2000
 #define KAD_ID_SIZE 16
@@ -295,6 +296,12 @@ private:
     KadStore m_keywordStore;     // Keyword hash -> published keyword entries
     KadStore m_sourceStore;      // File hash -> published source entries
     DWORD m_lastStoreCleanup;
+
+	// SEARCH_RES → ED2K source delivery (impl at EOF of Kademlia.cpp).
+	void DeliverSourceCandidate(const BYTE* pFileHash, const KadSourceCandidate& cand);
+	void ProcessSearchResponseDelivery(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	// Outstanding searches: target hash + kind + expiry; no CDownload*.
+	KadOutstandingSearchMap m_outstandingSearches;
 };
 
 // Kademlia packet structures

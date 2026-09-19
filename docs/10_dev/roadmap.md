@@ -28,7 +28,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 - **BitTorrent v1:** Solid (DHT, ut_metadata, ut_pex, lt_tex, web seeds, trackers)
 - **BitTorrent v2:** Library-only (Merkle tree + SHA-256); no wire protocol
 - **ED2K:** Core transfers + SourceEx2 (0x83/0x84) present; Hello honesty for AICH/SecureIdent/CryptLayer/Ext Multipacket. Compressed upload send path, AICH C2C, Ext Multipacket handlers, callbacks/buddy, and live eMule/aMule interop still open. **SecureIdent RSA is not implemented** (#75; do not advertise).
-- **Kademlia (active: `Kademlia.cpp` only):** Bootstrap, ping, find_node, HELLO, SEARCH/PUBLISH **wire handlers** present; results not delivered to downloads; FIREWALLED/Buddy/UDP keys absent. Legacy `KadProtocol.cpp` / `KBucket` / `KadStorage` require undefined `ENVY_LEGACY_KADEMLIA` and are **inactive**. Live Kad2 interop **unverified**.
+- **Kademlia (active: `Kademlia.cpp` only):** Bootstrap, ping, find_node, HELLO, SEARCH/PUBLISH **wire handlers** present; **source SEARCH_RES → `AddSourceED2K`** for HighID types 1/4 with outstanding-search context (keyword hits never create sources). FIREWALLED/Buddy/UDP keys absent; outbound store-answer framing still simplified; live Kad2 interop **unverified**. Legacy `KadProtocol.cpp` / `KBucket` / `KadStorage` require undefined `ENVY_LEGACY_KADEMLIA` and are **inactive**.
 - **IPv6:** Utilities exist, core connections IPv4-only (`docs/ipv6/PLAN.md`); prefer portable address types in #89
 - **Headless / RPC:** not implemented (MFC GUI + limited Remote web UI); #161
 - **Testing:** HashLib unit tests plus parser/policy/Hello smokes; no live interop harness yet; protocol integration tests require core refactoring (#91)
@@ -106,16 +106,18 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 - Rate limiting, blacklist integration
 - Request tracking, IP endianness
 
-### Partial (wire handlers exist; not delivered to UI/downloads)
-- **SEARCH_KEY / SEARCH_SOURCE / SEARCH_RES** — handlers in `Kademlia.cpp`; results not delivered (`TODO`); no app callers for `SearchKeyword` / `SearchSource`.
-- **PUBLISH_KEY / PUBLISH_SOURCE / PUBLISH_RES** — handlers present; `StoreEntry` is a no-op stub; no app callers for `PublishKeyword` / `PublishSource`.
+### Partial (wire handlers exist; app integration incomplete)
+- **SEARCH_KEY / SEARCH_SOURCE / SEARCH_RES** — handlers in `Kademlia.cpp`. **Source SEARCH_RES delivery:** inbound eMule/aMule framing parsed; outstanding search context; HighID sources → `AddSourceED2K` (`KadSearchResDelivery.h` + EnvyTests). Keyword SEARCH_RES does not create sources. Buddy/callback source types and live interop remain open. No app callers yet for `SearchKeyword` / `SearchSource` (register context when called).
+- **PUBLISH_KEY / PUBLISH_SOURCE / PUBLISH_RES** — handlers present; `StoreEntry` is a no-op stub; no app callers for `PublishKeyword` / `PublishSource`. Envy outbound answers to SEARCH_*_REQ still use simplified `WriteEntryTags` (not reference TagList).
 - Legacy `KadProtocol` / `KBucket` / `KadStorage` — **inactive** (`ENVY_LEGACY_KADEMLIA` undefined).
 
 ### TODO
 
 | Item | Detail | Priority |
 |------|--------|----------|
-| **Deliver SEARCH_RES to downloads** | Wire Kad source hits into `AddSourceED2K` / download UI | P0 |
+| ~~Deliver SEARCH_RES to downloads~~ | HighID source SEARCH_RES → `AddSourceED2K` (keyword excluded; buddy types deferred) | Done (partial) |
+| **App-trigger source search** | Call `SearchSource` from ED2K download source acquisition when Kad is enabled | P0 |
+| **Align outbound SEARCH_RES/store tags** | Envy `WriteEntryTags` vs eMule AnswerID+TagList when answering peers | P1 |
 | **Bucket splitting** | Split buckets when full (if bucket contains own ID); current implementation uses simple add | High |
 | **LRU replacement** | Replace least-recently-used contact when bucket is full; currently rejects new contacts | Medium |
 | **Bucket refresh** | Periodic refresh of stale buckets (eMule uses 15-minute intervals) | Medium |
