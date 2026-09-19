@@ -126,7 +126,11 @@ inline bool BootstrapLooksLikeHostPort(const wchar_t* psz, size_t nLen)
 	for (size_t i = 0; i < nLen; ++i)
 	{
 		if (psz[i] == L':')
+		{
+			if (pColon != nullptr)
+				return false; // IPv4/DNS host:port only; extra colon is malformed
 			pColon = psz + i;
+		}
 	}
 	if (pColon == nullptr || pColon == psz || pColon + 1 >= psz + nLen)
 		return false;
@@ -140,6 +144,68 @@ inline bool BootstrapLooksLikeHostPort(const wchar_t* psz, size_t nLen)
 			return false;
 	}
 	return nPort >= 1u && nPort <= 65535u;
+}
+
+inline bool BootstrapHasAsciiPrefix(const wchar_t* psz, size_t nLen, const wchar_t* pszPrefix, size_t nPrefix)
+{
+	if (psz == nullptr || pszPrefix == nullptr || nLen < nPrefix)
+		return false;
+	for (size_t i = 0; i < nPrefix; ++i)
+	{
+		if (BootstrapFoldAscii(psz[i]) != BootstrapFoldAscii(pszPrefix[i]))
+			return false;
+	}
+	return true;
+}
+
+// U / UHC / UKHL catalogue endpoints. Same prefixes as CheckWebCacheValid;
+// host is IPv4/DNS with an optional decimal port in 1..65535.
+inline bool BootstrapLooksLikeUdpDiscovery(const wchar_t* psz, size_t nLen)
+{
+	if (psz == nullptr || nLen < 5)
+		return false;
+	size_t nPrefix = 0;
+	if (BootstrapHasAsciiPrefix(psz, nLen, L"uhc:", 4))
+		nPrefix = 4;
+	else if (BootstrapHasAsciiPrefix(psz, nLen, L"ukhl:", 5))
+		nPrefix = 5;
+	else if (BootstrapHasAsciiPrefix(psz, nLen, L"gnutella1:host:", 15))
+		nPrefix = 15;
+	else if (BootstrapHasAsciiPrefix(psz, nLen, L"gnutella2:host:", 15))
+		nPrefix = 15;
+	else if (BootstrapHasAsciiPrefix(psz, nLen, L"gnutella:host:", 14))
+		nPrefix = 14;
+	else if (BootstrapHasAsciiPrefix(psz, nLen, L"g2:host:", 8))
+		nPrefix = 8;
+	else
+		return false;
+
+	const wchar_t* pszHost = psz + nPrefix;
+	const size_t nHost = nLen - nPrefix;
+	if (nHost == 0)
+		return false;
+	bool bHasColon = false;
+	for (size_t i = 0; i < nHost; ++i)
+	{
+		if (pszHost[i] == L':')
+		{
+			bHasColon = true;
+			break;
+		}
+		if (pszHost[i] == L' ' || pszHost[i] == L'\t' || pszHost[i] == L'/')
+			return false;
+	}
+	if (bHasColon)
+		return BootstrapLooksLikeHostPort(pszHost, nHost);
+	if (nHost < 3)
+		return false;
+	bool bDot = false;
+	for (size_t i = 0; i < nHost; ++i)
+	{
+		if (pszHost[i] == L'.')
+			bDot = true;
+	}
+	return bDot;
 }
 
 inline BootstrapServiceClass BootstrapClassifyServiceType(wchar_t cType)
@@ -239,7 +305,7 @@ inline BootstrapParseStatus BootstrapParseServiceLine(
 
 	if (BootstrapServiceTypeNeedsUrl(nClass) && !BootstrapIsWebUrl(pszEndpoint, nEndpoint))
 		return BootstrapParseStatus::Invalid;
-	if (nClass == BootstrapServiceClass::GnutellaUdp && nEndpoint < 5)
+	if (nClass == BootstrapServiceClass::GnutellaUdp && !BootstrapLooksLikeUdpDiscovery(pszEndpoint, nEndpoint))
 		return BootstrapParseStatus::Invalid;
 
 	if (pcType != nullptr)
@@ -342,12 +408,12 @@ struct BootstrapDhtBootSlot
 };
 
 inline bool BootstrapDhtAppendBootSlot(
-	BootstrapDhtBootSlot* pSlots,
-	int nCap,
-	int* pnBoot,
-	unsigned long nAddr,
-	unsigned short nPort,
-	bool bHasName)
+    BootstrapDhtBootSlot* pSlots,
+    int nCap,
+    int* pnBoot,
+    unsigned long nAddr,
+    unsigned short nPort,
+    bool bHasName)
 {
 	if (pSlots == nullptr || pnBoot == nullptr || nCap <= 0)
 		return false;

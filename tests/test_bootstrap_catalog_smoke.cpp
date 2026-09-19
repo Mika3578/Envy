@@ -373,6 +373,22 @@ static bool test_server_port_range()
 		&& ParseServer( L"B router.bittorrent.com:6881", nullptr ) == BootstrapParseStatus::Ok;
 }
 
+static bool test_server_extra_colon_rejected()
+{
+	return ParseServer( L"B host:extra:6881", nullptr ) == BootstrapParseStatus::Invalid
+		&& ParseServer( L"B [::1]:6881", nullptr ) == BootstrapParseStatus::Invalid;
+}
+
+static bool test_service_uhc_port_range()
+{
+	return ParseService( L"U uhc:1.uhc.gtk-gnutella.nl:0", nullptr ) == BootstrapParseStatus::Invalid
+		&& ParseService( L"U uhc:1.uhc.gtk-gnutella.nl:65536", nullptr ) == BootstrapParseStatus::Invalid
+		&& ParseService( L"U uhc:1.uhc.gtk-gnutella.nl:19104:99", nullptr ) == BootstrapParseStatus::Invalid
+		&& ParseService( L"U uhc:1.uhc.gtk-gnutella.nl:19104", nullptr ) == BootstrapParseStatus::Ok
+		&& ParseService( L"U ukhl:cache.example.net:6346", nullptr ) == BootstrapParseStatus::Ok
+		&& ParseService( L"U ftp:example.net:3558", nullptr ) == BootstrapParseStatus::Invalid;
+}
+
 static bool test_dht_boot_slot_cap_and_dns_budget()
 {
 	BootstrapDhtBootSlot oSlots[ BootstrapDhtRouterPingCap ] = {};
@@ -425,5 +441,7 @@ void register_bootstrap_catalog_smoke_tests( TestSuite& suite )
 	suite.add_test( "bootstrap_server_tab_separator", test_server_tab_separator );
 	suite.add_test( "bootstrap_server_trailing_note", test_server_trailing_note );
 	suite.add_test( "bootstrap_server_port_range", test_server_port_range );
+	suite.add_test( "bootstrap_server_extra_colon_rejected", test_server_extra_colon_rejected );
+	suite.add_test( "bootstrap_service_uhc_port_range", test_service_uhc_port_range );
 	suite.add_test( "bootstrap_dht_boot_slot_cap_and_dns_budget", test_dht_boot_slot_cap_and_dns_budget );
 }
