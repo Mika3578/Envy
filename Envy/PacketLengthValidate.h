@@ -143,7 +143,7 @@ constexpr DWORD ED2K_UNKNOWN_TAG_STRING_SKIP_MAX = 1023u;
 
 inline BOOL Ed2kUnknownTagStringSkipOk(DWORD nValueLen, ULONGLONG nRemaining)
 {
-	if ( nValueLen > ED2K_UNKNOWN_TAG_STRING_SKIP_MAX )
+	if (nValueLen > ED2K_UNKNOWN_TAG_STRING_SKIP_MAX)
 		return FALSE;
 	return nValueLen <= nRemaining;
 }

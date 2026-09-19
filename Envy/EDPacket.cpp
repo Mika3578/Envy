@@ -1473,21 +1473,21 @@ BOOL CEDTag::Read(CEDPacket* pPacket, BOOL bUnicode)
 			// length claim fits; otherwise fail-closed (do not guess INT and desync).
 			theApp.Message( MSG_DEBUG, L"Unknown ED2K tag type 0x%02x - skipping tag value", m_nType );
 
-			if ( pPacket->GetRemaining() < 2 )
+			if (pPacket->GetRemaining() < 2)
 				return FALSE;
 
 			const DWORD nPos = pPacket->m_nPosition;
 			const WORD nValueLen = pPacket->ReadShortLE();
-			if ( Ed2kUnknownTagStringSkipOk( nValueLen, pPacket->GetRemaining() ) )
+			if (Ed2kUnknownTagStringSkipOk(nValueLen, pPacket->GetRemaining()))
 			{
-				if ( nValueLen )
+				if (nValueLen)
 					pPacket->Seek( nValueLen, CPacket::seekCurrent );
 			}
-			else if ( nValueLen > ED2K_UNKNOWN_TAG_STRING_SKIP_MAX )
+			else if (nValueLen > ED2K_UNKNOWN_TAG_STRING_SKIP_MAX)
 			{
 				// Length too large for STRING heuristic — try INT (4 bytes from nPos).
 				pPacket->m_nPosition = nPos;
-				if ( pPacket->GetRemaining() < 4 )
+				if (pPacket->GetRemaining() < 4)
 					return FALSE;
 				pPacket->Seek( 4, CPacket::seekCurrent );
 			}
@@ -1646,19 +1646,19 @@ BOOL CEDTag::Read(CFile* pFile)
 
 			const ULONGLONG nPos = pFile->GetPosition();
 			WORD nValueLen = 0;
-			if ( pFile->Read( &nValueLen, sizeof( nValueLen ) ) != sizeof( nValueLen ) )
+			if (pFile->Read(&nValueLen, sizeof(nValueLen)) != sizeof(nValueLen))
 				return FALSE;
 
 			const ULONGLONG nRemaining = pFile->GetLength() - pFile->GetPosition();
-			if ( Ed2kUnknownTagStringSkipOk( nValueLen, nRemaining ) )
+			if (Ed2kUnknownTagStringSkipOk(nValueLen, nRemaining))
 			{
-				if ( nValueLen )
+				if (nValueLen)
 					pFile->Seek( nValueLen, CFile::current );
 			}
-			else if ( nValueLen > ED2K_UNKNOWN_TAG_STRING_SKIP_MAX )
+			else if (nValueLen > ED2K_UNKNOWN_TAG_STRING_SKIP_MAX)
 			{
-				pFile->Seek( nPos + 4, CFile::begin );
-				if ( pFile->GetPosition() > pFile->GetLength() )
+				pFile->Seek(nPos + 4, CFile::begin);
+				if (pFile->GetPosition() > pFile->GetLength())
 					return FALSE;
 			}
 			else
