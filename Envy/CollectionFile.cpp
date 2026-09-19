@@ -318,21 +318,9 @@ BOOL CCollectionFile::LoadDC(LPCTSTR pszFile)
 	if ( ! pFile.Open( pszFile, CFile::modeRead | CFile::shareDenyWrite ) )
 		return FALSE;	// File open error
 
-	const ULONGLONG nInSize64 = pFile.GetLength();
-	if (!CBufferUnBZipInputOk(nInSize64))
-		return FALSE; // Empty or oversized compressed listing
-	const UINT nInSize = (UINT)nInSize64;
-
 	CBuffer pBuffer;
-	if ( ! pBuffer.EnsureBuffer( nInSize ) )
-		return FALSE;	// Out of memory
-
-	if ( pFile.Read( pBuffer.GetData(), nInSize ) != nInSize )
-		return FALSE;	// File read error
-	pBuffer.m_nLength = nInSize;
-
-	if (!pBuffer.UnBZip(CBUFFER_UNBZIP_MAX))
-		return FALSE; // Decompression error / zip-bomb
+	if (!pBuffer.LoadFromBZipFile(pFile, CBUFFER_UNBZIP_MAX))
+		return FALSE; // Empty/oversized/read/decompress error
 
 	augment::auto_ptr< CXMLElement > pXML ( CXMLElement::FromString( pBuffer.ReadString( pBuffer.m_nLength, CP_UTF8 ), TRUE ) );
 	if ( ! pXML.get() )

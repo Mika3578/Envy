@@ -88,6 +88,7 @@ public:
 #ifdef _BZLIB_H
 	BOOL	BZip();													// Compress buffer in-place using BZLib
 	BOOL UnBZip(DWORD nMaxOutput = 0);                              // Uncompress in place (optional zip-bomb output cap)
+	BOOL LoadFromBZipFile(CFile& pFile, DWORD nMaxOutput = 0); // Read file + UnBZip with caps
 #endif // BZLIB
 
 	// Read and write a DIME message in the buffer

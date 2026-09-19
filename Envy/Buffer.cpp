@@ -734,6 +734,28 @@ BOOL CBuffer::BZip()
 	return TRUE;
 }
 
+BOOL CBuffer::LoadFromBZipFile(CFile& pFile, DWORD nMaxOutput)
+{
+	// Read a .bz2 file into this buffer and decompress with zip-bomb caps.
+	// nMaxOutput 0 => CBUFFER_UNBZIP_MAX (hublist / DC file listing).
+	if (nMaxOutput == 0)
+		nMaxOutput = CBUFFER_UNBZIP_MAX;
+
+	const ULONGLONG nInSize64 = pFile.GetLength();
+	if (!CBufferUnBZipInputOk(nInSize64))
+		return FALSE; // Empty or oversized compressed input
+
+	const UINT nInSize = (UINT)nInSize64;
+	if (!EnsureBuffer(nInSize))
+		return FALSE; // Out of memory
+
+	if (pFile.Read(GetData(), nInSize) != nInSize)
+		return FALSE; // File read error
+	m_nLength = nInSize;
+
+	return UnBZip(nMaxOutput);
+}
+
 BOOL CBuffer::UnBZip(DWORD nMaxOutput)
 {
 	// Uncompress to temporary buffer first. Cap growth at nMaxOutput to
