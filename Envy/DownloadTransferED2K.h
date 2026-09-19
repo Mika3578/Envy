@@ -69,7 +69,10 @@ protected:
 	BOOL	SendSecondaryRequest();
 	void	ClearRequests();
 	BOOL	RunQueued(DWORD tNow);
+	// FALSE = inflateInit failed or stream cleaned / transfer closed.
+	BOOL	EnsureCompressedPartStream(QWORD nBaseOffset, QWORD nBaseLength);
 	// FALSE = inflate overflow; stream cleaned and transfer closed.
+	BOOL	DrainCompressedPartInflate(BYTE* pBuffer);
 	BOOL AcceptCompressedPartChunk(QWORD nChunkLength);
 	//	BOOL	SelectFragment(const Fragments::List& oPossible, QWORD& nOffset, QWORD& nLength);
 

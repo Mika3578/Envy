@@ -503,7 +503,7 @@ static bool test_ed2k_compressedpart_inflate_ok()
 
 static bool test_ed2k_compressedpart_accept_before_submit()
 {
-	// Call-site regression: both COMPRESSEDPART handlers must gate SubmitData.
+	// Call-site regression: drain helper gates SubmitData; both handlers call it.
 	const std::array<const char*, 4> candidates = {
 		"../Envy/DownloadTransferED2K.cpp",
 		"../../Envy/DownloadTransferED2K.cpp",
@@ -524,23 +524,31 @@ static bool test_ed2k_compressedpart_accept_before_submit()
 	std::string content( ( std::istreambuf_iterator<char>( in ) ),
 		std::istreambuf_iterator<char>() );
 
-	auto handler_gates_submit = [ &content ]( const char* szFn )
+	auto fn_body = [ &content ]( const char* szFn )
 	{
 		const size_t nFn = content.find( szFn );
 		if ( nFn == std::string::npos )
-			return false;
+			return std::string();
 		const size_t nNext = content.find( "\nBOOL ", nFn + 1 );
-		const std::string body = content.substr( nFn,
+		return content.substr( nFn,
 			( nNext == std::string::npos ? content.size() : nNext ) - nFn );
-		const size_t nAccept = body.find( "AcceptCompressedPartChunk" );
-		const size_t nSubmit = body.find( "SubmitData" );
-		return nAccept != std::string::npos
-			&& nSubmit != std::string::npos
-			&& nAccept < nSubmit;
 	};
 
-	return handler_gates_submit( "OnCompressedPart(" )
-		&& handler_gates_submit( "OnCompressedPart64(" );
+	const std::string drain = fn_body( "CDownloadTransferED2K::DrainCompressedPartInflate(" );
+	const size_t nAccept = drain.find( "AcceptCompressedPartChunk" );
+	const size_t nSubmit = drain.find( "SubmitData" );
+	const bool bDrainGates = !drain.empty()
+		&& nAccept != std::string::npos
+		&& nSubmit != std::string::npos
+		&& nAccept < nSubmit;
+
+	const std::string part32 = fn_body( "CDownloadTransferED2K::OnCompressedPart(" );
+	const std::string part64 = fn_body( "CDownloadTransferED2K::OnCompressedPart64(" );
+	const bool bHandlersCallDrain =
+		part32.find( "DrainCompressedPartInflate" ) != std::string::npos
+		&& part64.find( "DrainCompressedPartInflate" ) != std::string::npos;
+
+	return bDrainGates && bHandlersCallDrain;
 }
 
 void register_protocol_parser_smoke_tests(TestSuite& suite)
