@@ -308,6 +308,17 @@ static bool test_ed2k_tag_string_bounds()
 		&& Ed2kTagStringLengthOk( 0, 0 ) == TRUE;
 }
 
+static bool test_ed2k_unknown_tag_string_skip()
+{
+	// MAX itself is a valid STRING skip when remaining fits; only MAX+1 falls to INT path.
+	return Ed2kUnknownTagStringSkipOk( 100u, 100ull ) == TRUE
+		&& Ed2kUnknownTagStringSkipOk( 0u, 0ull ) == TRUE
+		&& Ed2kUnknownTagStringSkipOk( 101u, 100ull ) == FALSE
+		&& Ed2kUnknownTagStringSkipOk( ED2K_UNKNOWN_TAG_STRING_SKIP_MAX, ED2K_UNKNOWN_TAG_STRING_SKIP_MAX ) == TRUE
+		&& Ed2kUnknownTagStringSkipOk( ED2K_UNKNOWN_TAG_STRING_SKIP_MAX + 1u, ED2K_UNKNOWN_TAG_STRING_SKIP_MAX + 1ull ) == FALSE
+		&& Ed2kUnknownTagStringSkipOk( ED2K_UNKNOWN_TAG_STRING_SKIP_MAX, ED2K_UNKNOWN_TAG_STRING_SKIP_MAX - 1ull ) == FALSE;
+}
+
 static bool test_ed2k_file_comment_bounds()
 {
 	return Ed2kFileCommentHeaderFits(5) == TRUE
@@ -659,6 +670,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_preview_acceptable_at_cap", test_ed2k_preview_acceptable_at_cap );
 	suite.add_test( "ed2k_tag_blob_bounds", test_ed2k_tag_blob_bounds );
 	suite.add_test( "ed2k_tag_string_bounds", test_ed2k_tag_string_bounds );
+	suite.add_test( "ed2k_unknown_tag_string_skip", test_ed2k_unknown_tag_string_skip );
 	suite.add_test( "ed2k_file_comment_bounds", test_ed2k_file_comment_bounds );
 	suite.add_test( "ed2k_ed_string_payload", test_ed2k_ed_string_payload );
 	suite.add_test( "ed2k_long_ed_string_payload", test_ed2k_long_ed_string_payload );
