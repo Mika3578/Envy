@@ -613,11 +613,11 @@ BOOL CDiscoveryServices::EnoughServices() const
 		}
 	}
 
-	return ( ( nWebCacheCount	>= 1 ) &&	// At least 1 webcache
-			 ( nG2Count 		>= 3 ) &&	// At least 3 G2 services
-			 ( nG1Count 		>= 2 || ! Settings.Gnutella1.ShowInterface ) &&	// At least 2 G1 services, if exposed
-			 ( nServerMetCount	>= 2 || ! Settings.eDonkey.ShowInterface ) &&	// At least 2 server.met, if exposed
-			 ( nHubListCount	>= 2 || ! Settings.DC.ShowInterface ) );		// At least 2 hublist, if exposed
+	return ( ( nWebCacheCount	>= BootstrapMinWebCaches ) &&	// At least 1 webcache
+			 ( nG2Count 		>= BootstrapMinG2Services ) &&	// At least 3 G2 services
+			 ( nG1Count 		>= BootstrapMinG1Services || ! Settings.Gnutella1.ShowInterface ) &&	// At least 2 G1 services, if exposed
+			 ( nServerMetCount	>= BootstrapMinEd2kMet || ! Settings.eDonkey.ShowInterface ) &&	// At least 2 server.met, if exposed
+			 ( nHubListCount	>= BootstrapMinDcHublists || ! Settings.DC.ShowInterface ) );		// At least 2 hublist, if exposed
 }
 
 //////////////////////////////////////////////////////////////////////

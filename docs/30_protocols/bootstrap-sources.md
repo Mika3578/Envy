@@ -21,12 +21,12 @@ Status vocabulary: catalogue refresh is **implemented** for the shipped files; r
 | Network | Status | Cold-start path |
 | --- | --- | --- |
 | ED2K | implemented (list download) | `DefaultServices.dat` `D` URLs → `server.met` import into HostCache. No static server IPs. |
-| Kad2 | partial | `HostCache.Kademlia` only. Empty cache → `CKademlia::Bootstrap()` exits. No shipped `K` hosts. Remote `nodes.dat` not wired (ImportNodes new-format version 1 only; eMule-Security currently publishes version 2). See #86 / #160. |
+| Kad2 | partial | `HostCache.Kademlia` only. Empty cache → `CKademlia::Bootstrap()` exits. No shipped `K` hosts. Remote `nodes.dat` not wired (ImportNodes accepts old format and new-format version 1 only; eMule-Security currently publishes version 2). See #86 / #160. |
 | Gnutella 1 | implemented (bootstrap) | gtk-gnutella UHCs (`U uhc:…`) plus multi-network GWCs. |
 | Gnutella2 | implemented (bootstrap) | Independent GWCs (jayl.de, bj.ddns.net, 4octets, trillinux). |
 | DC NMDC | implemented (hublist) | Three HTTPS hublists. `adc://` / `adcs://` skipped until #163. |
-| ADC/ADCS | not implemented | Hublist rows are ignored; do not treat import as ADC support. |
-| BitTorrent DHT | implemented (bootstrap) | `DefaultServers.dat` `B` DNS routers loaded into HostCache. `CDHT::Connect` inserts cached node IDs; if none exist it pings up to 8 HostCache BT catalogue hosts (no extra C++ DNS list). Successful nodes persist in `HostCache.dat`. |
+| ADC/ADCS | not implemented | `adc://` / `adcs://` rows are ignored; NMDC rows in the same hublists are still imported. Do not treat import as ADC support. |
+| BitTorrent DHT | implemented (bootstrap) | `DefaultServers.dat` `B` DNS routers loaded into HostCache. `CDHT::Connect` inserts cached node IDs; if none exist it sends BEP 5 `find_node` to up to 8 HostCache BitTorrent hosts (blocking DNS capped at 3 names; empty cache reloads `DefaultServers.dat`). No extra C++ DNS list. Successful nodes persist in `HostCache.dat`. |
 
 ## Shipped sources (audited 2026-09-18)
 

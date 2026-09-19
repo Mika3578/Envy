@@ -245,6 +245,8 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
 9. Evaluate daemon / CLI / REST or JSON-RPC.
 10. Cross-platform foundations doc + decisions (D-012…D-015); Linux/macOS remain `planned`.
 10a. Bootstrap remaining work after the 2026-09-18 catalogue refresh: importer caps, Kad `nodes.dat` source type, last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`).
+### P1 — Bootstrap follow-ups
+9a. After the 2026-09-18 catalogue refresh: importer caps, Kad `nodes.dat` source type, last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`).
 
 ### P1/P2 — BitTorrent (do not drop)
 11. Compressed ED2K upload (send COMPRESSEDPART) — ED2K quality, can proceed beside BT.

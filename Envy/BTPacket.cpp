@@ -171,9 +171,9 @@ void CDHT::Connect()
 
 			if (nCount == 0)
 			{
-				// Cold-start: ping catalogue routers from HostCache (DefaultServers.dat
-				// B lines, plus any previously seen nodes). Do not hard-code DHT DNS
-				// names here - the data file is the bootstrap source.
+				// Cold-start: copy HostCache BT hosts (catalogue B rows plus
+				// any previously seen nodes without IDs). Do not hard-code DHT
+				// DNS names here - DefaultServers.dat is the bootstrap source.
 				for (CHostCacheIterator i = HostCache.BitTorrent.Begin();
 				     i != HostCache.BitTorrent.End() && nBoot < BootstrapDhtRouterPingCap; ++i)
 				{
@@ -186,8 +186,24 @@ void CDHT::Connect()
 			}
 		}
 
+		if ( nCount == 0 && nBoot == 0 )
+		{
+			HostCache.LoadDefaultServers( PROTOCOL_BT );
+			CQuickLock oLock( HostCache.BitTorrent.m_pSection );
+			for ( CHostCacheIterator i = HostCache.BitTorrent.Begin();
+			      i != HostCache.BitTorrent.End() && nBoot < BootstrapDhtRouterPingCap; ++i )
+			{
+				CHostCacheHostPtr pCache = ( *i );
+				oBoot[ nBoot ].addr = pCache->m_pAddress;
+				oBoot[ nBoot ].nPort = pCache->m_nPort;
+				oBoot[ nBoot ].sHost = pCache->m_sAddress;
+				++nBoot;
+			}
+		}
+
 		if ( nCount == 0 )
 		{
+			int nDns = 0;
 			for (int i = 0; i < nBoot; ++i)
 			{
 				SOCKADDR_IN sa = {};
@@ -199,8 +215,11 @@ void CDHT::Connect()
 				}
 				else if (!oBoot[i].sHost.IsEmpty())
 				{
+					if (nDns >= BootstrapDhtBlockingResolveCap)
+						continue;
 					if (!Network.Resolve(oBoot[i].sHost, oBoot[i].nPort, &sa))
 						continue;
+					++nDns;
 				}
 				else
 					continue;
