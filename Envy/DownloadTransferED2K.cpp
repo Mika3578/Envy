@@ -689,7 +689,7 @@ BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 
 			CBuffer::Inflate( m_pInflatePtr, Z_SYNC_FLUSH );
 
-			if ( m_pInflatePtr->avail_out >= BUFFER_SIZE )
+			if (m_pInflatePtr->avail_out >= BUFFER_SIZE)
 				continue;
 
 			QWORD nOffset = m_nInflateOffset + m_nInflateWritten;
@@ -698,11 +698,11 @@ BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 			if (!AcceptCompressedPartChunk(nLength))
 				return FALSE;
 
-			m_pDownload->SubmitData( nOffset, pBuffer.get(), nLength );
+			m_pDownload->SubmitData(nOffset, pBuffer.get(), nLength);
 
-			m_oRequested.erase( Fragments::Fragment( nOffset, nOffset + nLength ) );
+			m_oRequested.erase(Fragments::Fragment(nOffset, nOffset + nLength));
 
-			m_pSource->AddFragment( nOffset, nLength, ( nOffset % ED2K_PART_SIZE ) ? TRUE : FALSE );
+			m_pSource->AddFragment(nOffset, nLength, (nOffset % ED2K_PART_SIZE) ? TRUE : FALSE);
 
 			m_nDownloaded += nLength;
 			m_nInflateWritten += nLength;
@@ -1275,7 +1275,7 @@ BOOL CDownloadTransferED2K::OnCompressedPart64(CEDPacket* pPacket)
 
 			CBuffer::Inflate( m_pInflatePtr, Z_SYNC_FLUSH );
 
-			if ( m_pInflatePtr->avail_out >= BUFFER_SIZE )
+			if (m_pInflatePtr->avail_out >= BUFFER_SIZE)
 				continue;
 
 			QWORD nOffset = m_nInflateOffset + m_nInflateWritten;
@@ -1284,12 +1284,12 @@ BOOL CDownloadTransferED2K::OnCompressedPart64(CEDPacket* pPacket)
 			if (!AcceptCompressedPartChunk(nLength))
 				return FALSE;
 
-			m_pDownload->SubmitData( nOffset, pBuffer.get(), nLength );
+			m_pDownload->SubmitData(nOffset, pBuffer.get(), nLength);
 
-			m_oRequested.erase( Fragments::Fragment( nOffset, nOffset + nLength ) );
+			m_oRequested.erase(Fragments::Fragment(nOffset, nOffset + nLength));
 
-			m_pSource->AddFragment( nOffset, nLength,
-				( nOffset % ED2K_PART_SIZE ) ? TRUE : FALSE );
+			m_pSource->AddFragment(nOffset, nLength,
+			                       (nOffset % ED2K_PART_SIZE) ? TRUE : FALSE);
 
 			m_nDownloaded += nLength;
 			m_nInflateWritten += nLength;

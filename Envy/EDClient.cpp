@@ -1212,8 +1212,8 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 
 		case ED2K_C2C_COMPRESSEDPART:
 			return m_pDownloadTransfer
-				? m_pDownloadTransfer->OnCompressedPart( pPacket )
-				: TRUE;
+			           ? m_pDownloadTransfer->OnCompressedPart(pPacket)
+			           : TRUE;
 		case ED2K_C2C_QUEUERANKING:
 			if ( m_pDownloadTransfer ) m_pDownloadTransfer->OnRankingInfo( pPacket );
 			return TRUE;
@@ -1245,8 +1245,8 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 			return TRUE;
 		case ED2K_C2C_COMPRESSEDPART_I64:
 			return m_pDownloadTransfer
-				? m_pDownloadTransfer->OnCompressedPart64( pPacket )
-				: TRUE;
+			           ? m_pDownloadTransfer->OnCompressedPart64(pPacket)
+			           : TRUE;
 
 		// Chat
 		case ED2K_C2C_CHATCAPTCHAREQ:
