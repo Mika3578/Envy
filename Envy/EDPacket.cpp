@@ -200,7 +200,7 @@ void CEDPacket::Reset()
 CString CEDPacket::ReadEDString(BOOL bUnicode)
 {
 	WORD nLen = ReadShortLE();
-	if (!Ed2kEdStringPayloadOk(GetRemaining(), nLen))
+	if (!Ed2kEdStringPayloadOk(nLen, GetRemaining()))
 		AfxThrowUserException();
 	return bUnicode ?
 		ReadStringUTF8( nLen ) :
@@ -226,7 +226,7 @@ void CEDPacket::WriteEDString(LPCTSTR psz, BOOL bUnicode)
 CString CEDPacket::ReadLongEDString(BOOL bUnicode)
 {
 	DWORD nLen = ReadLongLE();
-	if (!Ed2kLongEdStringPayloadOk(GetRemaining(), nLen))
+	if (!Ed2kLongEdStringPayloadOk(nLen, GetRemaining()))
 		AfxThrowUserException();
 	if ( bUnicode )
 		return ReadStringUTF8( nLen );
@@ -510,9 +510,13 @@ BOOL CEDPacket::Inflate(DWORD nMaxOutput)
 		 m_nEdProtocol != ED2K_PROTOCOL_REVCONNECT_PACKED )
 		return TRUE;
 
+	// Treat 0 as the shared packed-protocol cap (no unlimited inflate).
+	if (nMaxOutput == 0 || nMaxOutput > ED2K_PACKED_INFLATE_MAX)
+		nMaxOutput = ED2K_PACKED_INFLATE_MAX;
+
 	DWORD nOutput = 0;
-	auto_array< BYTE > pOutput( CZLib::Decompress( m_pBuffer, m_nLength, &nOutput, nMaxOutput ) );
-	if ( ! pOutput.get() )
+	auto_array<BYTE> pOutput(CZLib::Decompress(m_pBuffer, m_nLength, &nOutput, nMaxOutput));
+	if (!pOutput.get() || !Ed2kPackedInflateOk(nOutput))
 		return FALSE;
 
 	switch ( m_nEdProtocol )
@@ -1447,7 +1451,7 @@ BOOL CEDTag::Read(CEDPacket* pPacket, BOOL bUnicode)
 		break;
 
 	case ED2K_TAG_UINT64:
-		if ( pPacket->GetRemaining() < 1 ) return FALSE;
+		if (!Ed2kTagUint64RemainingOk(pPacket->GetRemaining())) return FALSE;
 		m_nValue = pPacket->ReadInt64();
 		m_nType = ED2K_TAG_INT;
 		break;

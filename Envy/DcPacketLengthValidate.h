@@ -52,3 +52,12 @@ inline DWORD DcHubNameDescriptionBytes(DWORD nLength, int nSpaceIndex)
 {
 	return nLength - static_cast< DWORD >( nSpaceIndex ) - 2u;
 }
+
+// Cap for NMDC hub user-list entries retained in CDCNeighbour::m_oUsers (#81).
+// Real hubs are typically low thousands; 20k leaves headroom while stopping MyINFO floods.
+constexpr DWORD DC_HUB_USERS_MAX = 20000u;
+
+inline BOOL DcHubUserCountOk(DWORD nUsers)
+{
+	return nUsers < DC_HUB_USERS_MAX;
+}

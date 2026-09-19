@@ -2,8 +2,16 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-18
-- **Changelog Entry:** 2026-09-18 — #81: `CEDPacket::ReadEDString` / `ReadLongEDString` fail-closed when length prefix exceeds remaining (`Ed2kEdStringPayloadOk` / `Ed2kLongEdStringPayloadOk`).
+- **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #81: `CEDPacket::ReadEDString` / `ReadLongEDString` fail-closed when length prefix exceeds remaining (`Ed2kEdStringPayloadOk` / `Ed2kLongEdStringPayloadOk`).
+- **Changelog Entry:** 2026-09-19 — #81: G1 TCP framing uses overflow-safe `G1PacketTotalLengthOk` for signed payload length vs `MaximumPacket`.
+- **Changelog Entry:** 2026-09-19 — #81: G1 UDP datagram path uses overflow-safe G1PacketTotalLengthOk (rejects negative m_nLength wrap before CG1Packet::New).
+- **Changelog Entry:** 2026-09-19 — Agent workflow: after every PR push use `gh pr checks --required --watch --fail-fast --interval 5` (no arbitrary CI sleeps); see `AGENTS.md` §5 and `.cursor/rules/08-dev-workflow.mdc`.
+- **Changelog Entry:** 2026-09-19 — #81: ED2K `COMPRESSEDPART` / `COMPRESSEDPART_I64` stream inflate capped at one part or the remaining file size, whichever is smaller (`ED2K_COMPRESSEDPART_INFLATE_MAX` / `Ed2kCompressedPartInflateBudget` / `Ed2kCompressedPartInflateOk`) before `SubmitData`; `CEDClient::OnPacket` propagates inflate rejection.
+- **Changelog Entry:** 2026-09-19 — #81: GGEP DEFLATE inflate capped at 256 KiB (`GGEP_INFLATE_MAX` / `GgepInflateOutputOk`).
+- **Changelog Entry:** 2026-09-19 — #81: `CBuffer::InflateStreamTo` default `nMaxOutput=0` to `CBUFFER_INFLATE_STREAM_MAX` (32 MiB) for Neighbour G1/G2 deflate backlog; G1/G2/ED/DC `OnRead` fail-closes on inflate error; `CBufferInflateStreamOutputOk` smoke coverage.
+- **Changelog Entry:** 2026-09-19 — #81: `CBuffer::Inflate`/`Ungzip` default `nMaxOutput=0` to `CBUFFER_INFLATE_MAX` (32 MiB); `CBufferInflateOutputOk` smoke coverage.
+- **Changelog Entry:** 2026-09-19 — #81/#82: Browse Host HTTP peer `Content-Length` / buffered body capped at 32 MiB (`HostBrowserHttpBodyOk` / `HostBrowserHttpBufferOk`); strict decimal Content-Length; InflateStreamTo output cap on deflate path.
 - **Changelog Entry:** 2026-09-18 — #82: wire-path ED2K `ED2K_TAG_BLOB` uses `Ed2kTagBlobLengthOk` (4 MiB + remaining), matching `.met` policy.
 - **Changelog Entry:** 2026-09-18 — Format Check: encoding-safe `clang-format-diff-safe` wrapper so ISO-8859 Envy sources do not UnicodeDecodeError under stock clang-format-diff.
 - **Changelog Entry:** 2026-09-18 — #92: remove erroneous `delete pRoot` in BT `OnSourceResponse` (packet-owned `m_pNode`); null-check `GetNode("peers")` and nested peer fields before `IsType`.
@@ -12,6 +20,16 @@
 - **Changelog Entry:** 2026-09-18 — Protect develop docs aligned to live ruleset: ≥1 APPROVED review, dismiss-stale on push, `require_last_push_approval` off, signed commits + force-push block, CodeQL/Gitleaks code scanning, no GitHub Code Quality rule; Dependabot auto-approve removed.
 - **Changelog Entry:** 2026-09-18 — #97: explicit `timeout-minutes` on lightweight Code Quality / version / Copilot setup jobs.
 - **Changelog Entry:** 2026-09-18 — #81: ED2K FileComment header/length fail-closed vs remaining (`Ed2kFileCommentLengthOk`).
+- **Changelog Entry:** 2026-09-18 — #81: wire `ED2K_TAG_UINT64` remaining check fixed (need 8 bytes, not 1) via `Ed2kTagUint64RemainingOk`.
+- **Changelog Entry:** 2026-09-18 — #81: `CNetwork::m_oJobs` capped at 2048 (`NetworkJobQueueCountOk`); drop oldest owned search/hit on overflow.
+- **Changelog Entry:** 2026-09-18 — #81: `CChatSession` undelivered message queue capped at 1024 (`ChatSessionQueueCountOk`); drop oldest on overflow.
+- **Changelog Entry:** 2026-09-18 — #81: NMDC hub `m_oUsers` capped at 20,000 new `$MyINFO` nick inserts (`DcHubUserCountOk`) to stop MyINFO flood DoS.
+- **Changelog Entry:** 2026-09-18 — #81: hublist / DC `.bz2` loaders use `LoadFromBZipFile` / `UnBZip(CBUFFER_UNBZIP_MAX)` (32 MiB); legacy `UnBZip()` with nMaxOutput=0 stays unlimited.
+- **Changelog Entry:** 2026-09-18 — #81: G1 `{deflate}` XML inflate capped at 256 KiB (`G1_DEFLATE_XML_INFLATE_MAX` / `G1DeflateXmlInflateOk`) in QueryHit and G1Packet readers.
+- **Changelog Entry:** 2026-09-18 — #81: Gnutella QHT/QRP patch compressed budget + Inflate output cap to expected patch size (`QhtPatchCompressedBudgetOk`).
+- **Changelog Entry:** 2026-09-18 — #81: `CEDPacket::Inflate` defaults to 512 KiB (`ED2K_PACKED_INFLATE_MAX` / `Ed2kPackedInflateOk`) for packed C2C/UDP/server paths; 0 no longer means unlimited.
+- **Changelog Entry:** 2026-09-18 — #81/#82: BitTorrent tracker HTTP announce/scrape bodies capped at 32 MiB via `LimitContentLength` + `BtTrackerHttpResponseOk` (closes unused limit API for live tracker downloads).
+- **Changelog Entry:** 2026-09-18 — #81/#82: Discovery GWC/server-list HTTP bodies capped at 32 MiB (`LimitContentLength` + `DiscoveryHttpResponseOk`).
 - **Changelog Entry:** 2026-09-18 — #81/#82: file-backed ED2K tag key / TAG_STRING lengths checked against remaining `.met` bytes (`Ed2kTagStringLengthOk`) before allocate/Read.
 - **Changelog Entry:** 2026-09-18 — #166 / D-009 P1: Windows Firewall exceptions via WFAS `INetFwPolicy2` (all Domain/Private/Public profiles); drop legacy `INetFwMgr`.
 - **Changelog Entry:** 2026-09-18 — #76: Remote UI HTML-escapes `CRemote::Add()` substitutions (`Escape`); `AddRaw` for trusted markup; `RemoteHtmlEscape.h` + EnvyTests smoke coverage.
