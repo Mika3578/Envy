@@ -32,22 +32,20 @@
 #define KAD_ID_SIZE 16
 #endif
 
-// Mirror PacketLengthValidate.h caps (keep values identical).
-#ifndef KAD_STORE_TAG_MAX
-constexpr DWORD KAD_STORE_TAG_MAX = 4u * 1024u;
-#endif
-#ifndef ED2K_TAG_BLOB_MAX
-constexpr DWORD ED2K_TAG_BLOB_MAX = 4u * 1024u * 1024u;
-#endif
+// Cap values must stay identical to PacketLengthValidate.h
+// (KAD_STORE_TAG_MAX / ED2K_TAG_BLOB_MAX). Distinct names avoid constexpr
+// redefinition when both headers are included in one TU (MSVC C2374).
+constexpr DWORD KAD_SEARCH_RES_TAG_MAX = 4u * 1024u;
+constexpr DWORD KAD_SEARCH_RES_BLOB_MAX = 4u * 1024u * 1024u;
 
 inline BOOL KadSearchResTagLengthOk(WORD nTagLen)
 {
-	return nTagLen <= KAD_STORE_TAG_MAX;
+	return nTagLen <= KAD_SEARCH_RES_TAG_MAX;
 }
 
 inline BOOL KadSearchResBlobLengthOk(DWORD nBlobLen, size_t nRemaining)
 {
-	if (nBlobLen > ED2K_TAG_BLOB_MAX)
+	if (nBlobLen > KAD_SEARCH_RES_BLOB_MAX)
 		return FALSE;
 	return nBlobLen <= nRemaining;
 }
