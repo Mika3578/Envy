@@ -314,14 +314,34 @@ inline BOOL BtUtMetadataSizeOk(std::uint64_t nSize)
 	return nSize > 0 && nSize <= BT_UT_METADATA_MAX;
 }
 
-// Max MSE/PE Pad_C / Pad_D length accepted on receive (#81).
-// Matches send-side MSE_PAD_MAX_LEN (BTCrypto.h); peers may advertise up to
-// WORD max otherwise and force a large new[] before any framed BT messages.
-constexpr WORD BT_MSE_PAD_MAX = 512;
+// Max MSE/PE Pad_C / Pad_D length (#81). Single source with MSE_PAD_MAX_LEN
+// in BTCrypto.h when that header is included first; otherwise define here so
+// EnvyTests can use the same cap without pulling BTCrypto.
+#ifndef MSE_PAD_MAX_LEN
+#define MSE_PAD_MAX_LEN 512
+#endif
+constexpr WORD BT_MSE_PAD_MAX = static_cast<WORD>(MSE_PAD_MAX_LEN);
 
 inline BOOL BtMsePadLengthOk(WORD nPadLength)
 {
 	return nPadLength <= BT_MSE_PAD_MAX;
+}
+
+// MSE pad/IA length fields are unsigned 16-bit big-endian on the wire (Vuze MSE).
+inline WORD BtMseBeWordFromWire(const BYTE abWire[2])
+{
+	return static_cast<WORD>((static_cast<WORD>(abWire[0]) << 8) | abWire[1]);
+}
+
+inline void BtMseBeWordToWire(WORD nValue, BYTE abWire[2])
+{
+	abWire[0] = static_cast<BYTE>((nValue >> 8) & 0xFF);
+	abWire[1] = static_cast<BYTE>(nValue & 0xFF);
+}
+
+inline BOOL BtMsePadWireLengthOk(const BYTE abWire[2])
+{
+	return BtMsePadLengthOk(BtMseBeWordFromWire(abWire));
 }
 
 // Cap for CBuffer::UnBZip (DC hublist / file listing .bz2) (#81 zip-bomb).
