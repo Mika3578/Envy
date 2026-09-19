@@ -155,7 +155,10 @@ static bool test_g2_subpacket_payload_fits()
 
 static bool test_g2_frame_length_fits()
 {
-	return G2FrameLengthFits(64, 50, 1, 3) == TRUE && G2FrameLengthFits(10, 0xFFFFFFF0, 1, 3) == FALSE && G2FrameLengthFits(104, 100, 1, 3) == FALSE && G2FrameLengthFits(100, 50, 0xFFFFFFF0, 3) == FALSE;
+	// Exact frame = body + nLenLen + nTypeLen + 2 (control + type-len adjust).
+	return G2FrameLengthFits(64, 50, 1, 3) == TRUE && G2FrameLengthFits(106, 100, 1, 3) == TRUE &&
+	       G2FrameLengthFits(105, 100, 1, 3) == FALSE && G2FrameLengthFits(10, 0xFFFFFFF0, 1, 3) == FALSE &&
+	       G2FrameLengthFits(104, 100, 1, 3) == FALSE && G2FrameLengthFits(100, 50, 0xFFFFFFF0, 3) == FALSE;
 }
 
 static bool test_g1_deflate_truncated_marker_only()
