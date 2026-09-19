@@ -10,6 +10,7 @@
 - **Changelog Entry:** 2026-09-19 — CI audit (`docs/10_dev/CI_AUDIT_2026-09.md`): measured ~7 min PR critical path (Build x64 ∥ CodeQL c-cpp); skip empty NuGet (~22s/job), failure-only PR build logs, always-emit Documentation Check; PR Gate keeps `POLL_SEC` script default 15s (no 10s override — API quota); Protect develop + Protect main API snapshots; live Protect develop approval-count drift (API 0 vs intended 1).
 - **Changelog Entry:** 2026-09-19 — #81: Kademlia store-entry tags capped at 4 KiB (`KadStoreTagLengthOk`) in `ReadEntryTags`.
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent MSE responder `len(IA)` capped at 96 (`BtMseIaLengthOk`); partial IA waits in `MSE_AWAITING_IA` before crypto_select (RC4 desync fix).
+- **Changelog Entry:** 2026-09-19 — Bootstrap catalogue review follow-up: migrate obsolete `ServerListURL`/`HubListURL` defaults in `SmartUpgrade`; reject extra `host:port` colons; validate UHC/UKHL ports 1–65535. Kad remaining work is discovery type + ImportNodes v2/v3 + empty-cache path. Missing catalogue/DNS must not restore a C++ DHT seed (D-012).
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent MSE receive Pad_C/Pad_D capped at 512 (`BtMsePadLengthOk` / `MSE_PAD_MAX_LEN`); pad length fields decoded/encoded big-endian.
 - **Changelog Entry:** 2026-09-19 — #81: NMDC `$ADCGET`/`$ADCSND` strict asymmetric numeric parse (`DcAdcGetValidate.h`); GET allows `-1` until-EOF; SND requires real length; length-aware tokens reject embedded NUL / `2^64-1`; fail-closed SND vs fixed request (no `min()`).
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent TCP length-prefix capped at 16 MiB (`BtPacketLengthOk`); oversize clears buffer and closes peer (`PROTOCOL_TOO_LARGE`).
@@ -173,7 +174,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - C++ modernization across legacy modules.
 - Incremental protocol compatibility and robustness improvements.
 - **P0 ED2K/Kad interoperability baseline** against eMule Community and aMule (live interop unverified; see `docs/10_dev/status.md`).
-- **Bootstrap catalogues** — shipped `DefaultServices.dat` / `DefaultServers.dat` refreshed 2026-09-18. Remaining: importer hardening (P0 potential), Kad `nodes.dat` discovery type, last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`).
+- **Bootstrap catalogues** — shipped `DefaultServices.dat` / `DefaultServers.dat` refreshed 2026-09-18. Remaining: importer hardening (P0 potential); Kad `nodes.dat` discovery type + `ImportNodes` v2/v3 + empty-cache path (#86/#160); last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`). Do not restore C++ DHT DNS constants when the catalogue is missing (D-012).
 
 ### Blocked / At Risk
 - Full CMake parity with Visual Studio build graph.

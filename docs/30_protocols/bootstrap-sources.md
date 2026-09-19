@@ -1,7 +1,7 @@
 # Bootstrap sources versus discovered hosts
 
-Status: active  
-Last updated: 2026-09-18  
+Status: active
+Last updated: 2026-09-19
 Scope: Cold-start catalogues shipped with Envy. Not a claim that every protocol is complete.
 
 **Bootstrap sources ≠ discovered peers/servers.** Envy already keeps those layers apart:
@@ -26,7 +26,7 @@ Status vocabulary: catalogue refresh is **implemented** for the shipped files; r
 | Gnutella2 | implemented (bootstrap) | Independent GWCs (jayl.de, bj.ddns.net, 4octets, trillinux). |
 | DC NMDC | implemented (hublist) | Three HTTPS hublists. `adc://` / `adcs://` skipped until #163. |
 | ADC/ADCS | not implemented | `adc://` / `adcs://` rows are ignored; NMDC rows in the same hublists are still imported. Do not treat import as ADC support. |
-| BitTorrent DHT | implemented (bootstrap) | `DefaultServers.dat` `B` DNS routers loaded into HostCache. `CDHT::Connect` inserts cached node IDs; if none exist it sends BEP 5 `find_node` to up to 8 HostCache BitTorrent hosts (blocking DNS capped at 3 names; empty cache reloads `DefaultServers.dat`). No extra C++ DNS list. Successful nodes persist in `HostCache.dat`. |
+| BitTorrent DHT | implemented (bootstrap) | `DefaultServers.dat` `B` DNS routers loaded into HostCache. `CDHT::Connect` inserts cached node IDs; if none exist it sends BEP 5 `find_node` to up to 8 HostCache BitTorrent hosts (blocking DNS capped at 3 names; empty cache reloads `DefaultServers.dat`). No extra C++ DNS list. If the catalogue file is missing or every name fails DNS, DHT still marks connected and waits for later PEX/tracker nodes — D-012 forbids compiling `router.bittorrent.com` (or any replacement) into `.cpp`. Successful nodes persist in `HostCache.dat`. |
 
 ## Shipped sources (audited 2026-09-18)
 
@@ -85,6 +85,8 @@ Removed as dead or parked: `cache.getenvy.com/*` (lander), `gwctest.zapto.org`, 
 
 Removed: `router.utorrent.com`, `router.bitcomet.com` (no DNS), `dht.aelitis.com` (Vuze). Persistence of working nodes remains `CDHT::Disconnect` → `HostCache.dat`.
 
+`CHostCacheList::Add` stores unresolved DNS names with `m_pAddress = INADDR_ANY` (`Network.Resolve(..., FALSE)` does not call DNS). `CHostCacheMap` is a `std::multimap`, so the three shipped `B` rows all insert under `0.0.0.0` without dropping later names; `Find(IN_ADDR)` returns NULL for `INADDR_ANY` by design; `CDHT::Connect` iterates `m_HostsTime` and still copies all three. Debug `ASSERT(m_Hosts.size() == m_HostsTime.size())` remains true. Rewriting HostCache keying for hostname-only rows is a follow-up, not this catalogue slice.
+
 ## Remaining C++ network addresses (not this catalogue)
 
 Justified runtime / product URLs, **not** P2P bootstrap:
@@ -96,7 +98,7 @@ Justified runtime / product URLs, **not** P2P bootstrap:
 ## Follow-ups (not this slice)
 
 - Parser hardening for `server.met` / `nodes.dat` / hublist BZip2 / GWC (size, inflate, entry caps) — P0 potential; see #82 and related importer PRs
-- Kad remote `nodes.dat` type + ImportNodes v2/v3 — only with #86/#160; do not announce Kad complete
+- Kad remote `nodes.dat` type + ImportNodes v2/v3 + empty-cache path — only with #86/#160; do not announce Kad complete
 - Last-known-good remote catalogue (async, ETag, atomic replace, never block startup)
 - Scheduled GitHub workflow that **reports** source health and never auto-merges `develop`
 

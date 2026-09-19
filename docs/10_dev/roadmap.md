@@ -231,7 +231,10 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
 9. Evaluate daemon / CLI / REST or JSON-RPC.
 
 ### P1 — Bootstrap follow-ups
-9a. After the 2026-09-18 catalogue refresh: importer caps, Kad `nodes.dat` source type, last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`).
+- After the 2026-09-18 catalogue refresh (`docs/30_protocols/bootstrap-sources.md`):
+  - Importer caps for `server.met` / hublist / GWC (P0 potential).
+  - Kad remote `nodes.dat` discovery type + `ImportNodes` v2/v3 + empty-cache path. Coordinate with #86/#160. Do not advertise Kad complete.
+  - Last-known-good remote catalogue (async, never block startup).
 
 ### P1/P2 — BitTorrent (do not drop)
 10. Compressed ED2K upload (send COMPRESSEDPART) — ED2K quality, can proceed beside BT.
