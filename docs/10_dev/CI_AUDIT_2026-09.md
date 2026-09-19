@@ -261,7 +261,7 @@ Sources (primary first):
 | Skip empty NuGet | This audit | ~22 s/job | Low | Low | Low | **Do** |
 | Failure-only PR logs | This audit | Storage + ~2 s | Low | Low | Low | **Do** |
 | Always emit Docs check | This audit | Unblock required skip | Low | Low | Low | **Do** |
-| Faster PR Gate poll | This audit | ≤10–20 s wall | Low | Low | Low | **Do** |
+| Faster PR Gate poll | This audit | ≤10 s wall | Low | Low | Low | **Do** |
 | `/m` + MTT | MSVC blogs | Potentially large | High | **C1083 PCH** | Med | **Do not** until A/B |
 | sccache | LLVM/Bitcoin | Unknown on MSVC MFC | High | High | High | **P4** |
 | Merge queue | GH | Serialization | Org limits | Med | Med | Optional (docs) |
