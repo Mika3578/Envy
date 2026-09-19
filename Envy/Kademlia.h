@@ -230,10 +230,10 @@ public:
 	DWORD GetObservedPublicIp() const { return m_firewall.PublicIpHost(); }
 
 	// Search for keyword results in DHT
-    void SearchKeyword(const KadId& keywordHash);
+	void SearchKeyword(const KadId& keywordHash);
 
-    // Search for file sources in DHT
-    void SearchSource(const KadId& fileHash);
+	// Search for file sources in DHT
+	void SearchSource(const KadId& fileHash);
 
     // Publish a keyword entry to DHT
     void PublishKeyword(const KadId& keywordHash, const KadStoredEntry& entry);

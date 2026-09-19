@@ -250,13 +250,13 @@ bool CKademlia::Init() {
 	m_firewall.OnKadStart(m_lastTimerCall, m_lastFirewallTcpPort);
 
 	theApp.Message(MSG_NOTICE, L"Kad2 initialized with ID: %02x%02x%02x%02x...",
-        m_ownId[0], m_ownId[1], m_ownId[2], m_ownId[3]);
+	               m_ownId[0], m_ownId[1], m_ownId[2], m_ownId[3]);
 	theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall-check started (state unknown)");
 
 	// Bootstrap immediately
-    Bootstrap();
+	Bootstrap();
 
-    return true;
+	return true;
 }
 
 void CKademlia::Stop() {
@@ -428,10 +428,10 @@ void CKademlia::OnTimer() {
 	MaybeStartFirewallChecks();
 
 	// Periodic maintenance
-    LogKadStatus();
+	LogKadStatus();
 
-    // Clean up expired DHT entries every 5 minutes
-    if (now - m_lastStoreCleanup > 5 * 60 * 1000) {
+	// Clean up expired DHT entries every 5 minutes
+	if (now - m_lastStoreCleanup > 5 * 60 * 1000) {
         CleanupExpiredEntries();
         m_lastStoreCleanup = now;
     }
@@ -522,10 +522,10 @@ BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
 		return TRUE;
 
 	default:
-        theApp.Message(MSG_DEBUG, L"Kad2: Unknown opcode 0x%02x from %s",
-            pPacket->m_nType, (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
-        return FALSE;
-    }
+		theApp.Message(MSG_DEBUG, L"Kad2: Unknown opcode 0x%02x from %s",
+		               pPacket->m_nType, (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		return FALSE;
+	}
 }
 
 void CKademlia::OnBootstrapRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
