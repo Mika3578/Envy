@@ -147,8 +147,7 @@ BOOL CDCNeighbour::SendPrivateTo(const CString& sToNick, bool bAction, const CSt
 
 	if (CDCPacket* pPacket = CDCPacket::New())
 	{
-		// NMDC hub traffic is UTF-8 (see ChatSession / $MyINFO paths).
-		pPacket->WriteStringUTF8(strRequest, FALSE);
+		DcWriteText(pPacket, strRequest, m_nCodePage);
 		return Send(pPacket);
 	}
 	return FALSE;
