@@ -403,7 +403,7 @@ BOOL CDatagrams::Send(const SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease,
 	if ( m_nInFrags < 1 )
 		bAck = FALSE;
 
-	const BOOL bCreated = pDG->Create( pHost, (CG2Packet*)pPacket, m_nSequence++, m_pBufferFree, bAck );
+	const BOOL bCreated = pDG->Create(pHost, (CG2Packet*)pPacket, m_nSequence++, m_pBufferFree, bAck);
 
 	m_pBufferFree = m_pBufferFree->m_pNext;
 	m_nBufferFree--;
