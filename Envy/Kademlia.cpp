@@ -20,6 +20,7 @@
 #include "Envy.h"
 #include "GProfile.h"
 #include "Settings.h"
+#include "PacketLengthValidate.h"
 #include <array>
 #include <algorithm>
 
@@ -1034,93 +1035,105 @@ void CKademlia::CleanupExpiredRequests() {
 //////////////////////////////////////////////////////////////////////
 // DHT Storage
 
-static KadIdKey ToKey(const KadId& id) {
-    KadIdKey key;
-    memcpy(key.data(), id, KAD_ID_SIZE);
-    return key;
+static KadIdKey ToKey(const KadId& id)
+{
+	KadIdKey key;
+	memcpy(key.data(), id, KAD_ID_SIZE);
+	return key;
 }
 
-bool CKademlia::StoreEntry(const KadIdKey& key, const KadStoredEntry& entry) {
-    // Enforce global limit
-    size_t total = 0;
-    for (const auto& bucket : m_keywordStore)
-        total += bucket.second.size();
-    for (const auto& bucket : m_sourceStore)
-        total += bucket.second.size();
-    if (total >= KAD_STORE_MAX_TOTAL)
-        return false;
+bool CKademlia::StoreEntry(const KadIdKey& key, const KadStoredEntry& entry)
+{
+	// Enforce global limit
+	size_t total = 0;
+	for (const auto& bucket : m_keywordStore)
+		total += bucket.second.size();
+	for (const auto& bucket : m_sourceStore)
+		total += bucket.second.size();
+	if (total >= KAD_STORE_MAX_TOTAL)
+		return false;
 
-    return true;
+	return true;
 }
 
-void CKademlia::CleanupExpiredEntries() {
-    DWORD now = GetTickCount();
-    auto cleanup = [now](KadStore& store) {
-        for (auto it = store.begin(); it != store.end(); ) {
-            auto& entries = it->second;
-            entries.erase(
-                std::remove_if(entries.begin(), entries.end(),
-                    [now](const KadStoredEntry& e) { return now > e.lifetime; }),
-                entries.end());
-            if (entries.empty())
-                it = store.erase(it);
-            else
-                ++it;
-        }
-    };
-    cleanup(m_keywordStore);
-    cleanup(m_sourceStore);
+void CKademlia::CleanupExpiredEntries()
+{
+	DWORD now = GetTickCount();
+	auto cleanup = [now](KadStore& store)
+	{
+		for (auto it = store.begin(); it != store.end();)
+		{
+			auto& entries = it->second;
+			entries.erase(
+			    std::remove_if(entries.begin(), entries.end(),
+			                   [now](const KadStoredEntry& e)
+			                   { return now > e.lifetime; }),
+			    entries.end());
+			if (entries.empty())
+				it = store.erase(it);
+			else
+				++it;
+		}
+	};
+	cleanup(m_keywordStore);
+	cleanup(m_sourceStore);
 }
 
-size_t CKademlia::GetStoredEntryCount() const {
-    size_t total = 0;
-    for (const auto& bucket : m_keywordStore)
-        total += bucket.second.size();
-    for (const auto& bucket : m_sourceStore)
-        total += bucket.second.size();
-    return total;
+size_t CKademlia::GetStoredEntryCount() const
+{
+	size_t total = 0;
+	for (const auto& bucket : m_keywordStore)
+		total += bucket.second.size();
+	for (const auto& bucket : m_sourceStore)
+		total += bucket.second.size();
+	return total;
 }
 
-void CKademlia::WriteEntryTags(CEDPacket* pPacket, const KadStoredEntry& entry) {
-    pPacket->Write(entry.sourceId, KAD_ID_SIZE);
-    pPacket->WriteLongLE(entry.ip);
-    pPacket->WriteShortLE(entry.udpPort);
-    pPacket->WriteShortLE(entry.tcpPort);
-    // Write tag count + tags
-    pPacket->WriteByte((BYTE)entry.tags.size());
-    for (const auto& tag : entry.tags) {
-        pPacket->WriteByte(tag.first);
-        pPacket->WriteShortLE((WORD)tag.second.size());
-        if (!tag.second.empty())
-            pPacket->Write(tag.second.data(), tag.second.size());
-    }
+void CKademlia::WriteEntryTags(CEDPacket* pPacket, const KadStoredEntry& entry)
+{
+	pPacket->Write(entry.sourceId, KAD_ID_SIZE);
+	pPacket->WriteLongLE(entry.ip);
+	pPacket->WriteShortLE(entry.udpPort);
+	pPacket->WriteShortLE(entry.tcpPort);
+	// Write tag count + tags
+	pPacket->WriteByte((BYTE)entry.tags.size());
+	for (const auto& tag : entry.tags)
+	{
+		pPacket->WriteByte(tag.first);
+		pPacket->WriteShortLE((WORD)tag.second.size());
+		if (!tag.second.empty())
+			pPacket->Write(tag.second.data(), tag.second.size());
+	}
 }
 
-bool CKademlia::ReadEntryTags(CEDPacket* pPacket, KadStoredEntry& entry) {
-    if (pPacket->GetRemaining() < KAD_ID_SIZE + 4 + 2 + 2 + 1)
-        return false;
+bool CKademlia::ReadEntryTags(CEDPacket* pPacket, KadStoredEntry& entry)
+{
+	if (pPacket->GetRemaining() < KAD_ID_SIZE + 4 + 2 + 2 + 1)
+		return false;
 
-    pPacket->Read(entry.sourceId, KAD_ID_SIZE);
-    entry.ip = pPacket->ReadLongLE();
-    entry.udpPort = pPacket->ReadShortLE();
-    entry.tcpPort = pPacket->ReadShortLE();
-    entry.lifetime = GetTickCount() + KAD_STORE_ENTRY_LIFETIME;
+	pPacket->Read(entry.sourceId, KAD_ID_SIZE);
+	entry.ip = pPacket->ReadLongLE();
+	entry.udpPort = pPacket->ReadShortLE();
+	entry.tcpPort = pPacket->ReadShortLE();
+	entry.lifetime = GetTickCount() + KAD_STORE_ENTRY_LIFETIME;
 
-    BYTE tagCount = pPacket->ReadByte();
-    if (tagCount > 32) return false;
+	BYTE tagCount = pPacket->ReadByte();
+	if (tagCount > 32) return false;
 
-    for (BYTE t = 0; t < tagCount; t++) {
-        if (pPacket->GetRemaining() < 3) return false;
-        BYTE tagId = pPacket->ReadByte();
-        WORD tagLen = pPacket->ReadShortLE();
-        if (pPacket->GetRemaining() < tagLen) return false;
+	for (BYTE t = 0; t < tagCount; t++)
+	{
+		if (pPacket->GetRemaining() < 3) return false;
+		BYTE tagId = pPacket->ReadByte();
+		WORD tagLen = pPacket->ReadShortLE();
+		if (!KadStoreTagLengthOk(tagLen)) return false;
+		if (pPacket->GetRemaining() < tagLen) return false;
 
-        std::vector<BYTE> tagData(tagLen);
-        if (tagLen > 0)
-            pPacket->Read(tagData.data(), tagLen);
-        entry.tags.push_back(std::make_pair(tagId, std::move(tagData)));
-    }
-    return true;
+		std::vector<BYTE> tagData(tagLen);
+		if (tagLen > 0)
+			pPacket->Read(tagData.data(), tagLen);
+		entry.tags.push_back(std::make_pair(tagId, std::move(tagData)));
+	}
+	return true;
 }
 
 //////////////////////////////////////////////////////////////////////

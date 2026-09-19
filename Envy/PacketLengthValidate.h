@@ -158,6 +158,15 @@ inline BOOL Ed2kTagStringLengthOk(DWORD nLen, ULONGLONG nFileRemaining)
 	return nLen <= nFileRemaining;
 }
 
+// Absolute cap for one Kademlia store-entry tag value (#81).
+// Store tags are small metadata; WORD max * 32 tags is an easy UDP DoS.
+constexpr DWORD KAD_STORE_TAG_MAX = 4u * 1024u;
+
+inline BOOL KadStoreTagLengthOk(WORD nTagLen)
+{
+	return nTagLen <= KAD_STORE_TAG_MAX;
+}
+
 // Absolute cap for speculative unknown-tag STRING skip heuristic (#81).
 // Claims *above* this fall through to INT-sized skip; claims at or below
 // that fit remaining use STRING skip; claims at or below that exceed
