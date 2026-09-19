@@ -1,7 +1,7 @@
 //
 // DownloadTransferDC.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2010 and PeerProject 2010-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -25,6 +25,7 @@
 #include "DownloadTransfer.h"
 #include "DownloadTransferDC.h"
 #include "DownloadSource.h"
+#include "DcAdcGetValidate.h"
 #include "Library.h"
 #include "Neighbour.h"
 #include "Neighbours.h"
@@ -326,7 +327,14 @@ BOOL CDownloadTransferDC::OnDownload(const std::string& strType, const std::stri
 	m_pClient->m_mInput.pLimit = &m_nBandwidth;
 	m_pClient->m_mOutput.pLimit	= &Settings.Bandwidth.Request;
 
-	m_nLength = min( nLength, m_nLength );
+	// Fail-closed: fixed $ADCGET requires equal $ADCSND length; until-end
+	// requests require a real announced length (no silent min() truncate).
+	if ( ! DcAdcSndLengthMatchesRequest( m_nLength, nLength ) )
+	{
+		Close( TRI_FALSE );
+		return FALSE;
+	}
+	m_nLength = nLength;
 
 	BOOL bZip = ( strOptions.find("ZL1") != std::string::npos );
 

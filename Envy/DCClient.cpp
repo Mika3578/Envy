@@ -1,7 +1,7 @@
 //
 // DCClient.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2010 and PeerProject 2010-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -27,6 +27,7 @@
 #include "DownloadSource.h"
 #include "DownloadTransfer.h"
 #include "DownloadTransferDC.h"
+#include "DcAdcGetValidate.h"
 #include "HostCache.h"
 #include "Network.h"
 #include "Neighbours.h"
@@ -641,11 +642,11 @@ BOOL CDCClient::OnADCGet(const std::string& strParams)
 		strLength = strParams.substr( nPos3 + 1, nPos4 - nPos3 - 1 );
 		strOptions = strParams.substr( nPos4 + 1 );
 	}
-	QWORD nOffset;
-	if ( sscanf_s( strOffset.c_str(), "%I64u", &nOffset ) != 1 )
+	ULONGLONG nOffset = 0;
+	ULONGLONG nLength = 0;
+	if ( ! DcParseAdcOffsetToken( strOffset.c_str(), &nOffset ) )
 		return FALSE;	// Invalid command
-	QWORD nLength;
-	if ( sscanf_s( strLength.c_str(), "%I64d", &nLength ) != 1 )
+	if ( ! DcParseAdcGetLengthToken( strLength.c_str(), &nLength ) )
 		return FALSE;	// Invalid command
 
 	if ( CanUpload() )
@@ -700,12 +701,11 @@ BOOL CDCClient::OnADCSnd(const std::string& strParams)
 		strOptions = strParams.substr( nPos4 + 1 );
 	}
 
-	QWORD nOffset;
-	if ( sscanf_s( strOffset.c_str(), "%I64u", &nOffset ) != 1 )
+	ULONGLONG nOffset = 0;
+	ULONGLONG nLength = 0;
+	if ( ! DcParseAdcOffsetToken( strOffset.c_str(), &nOffset ) )
 		return FALSE;	// Invalid command
-
-	QWORD nLength;
-	if ( sscanf_s( strLength.c_str(), "%I64d", &nLength ) != 1 )
+	if ( ! DcParseAdcSndLengthToken( strLength.c_str(), &nLength ) )
 		return FALSE;	// Invalid command
 
 	if ( CanDownload() )	// Start downloading...
