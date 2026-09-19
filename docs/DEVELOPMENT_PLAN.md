@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — CI audit (`docs/10_dev/CI_AUDIT_2026-09.md`): measured ~7 min PR critical path (Build x64 ∥ CodeQL c-cpp); skip empty NuGet (~22s/job), failure-only PR build logs, always-emit Documentation Check, PR Gate poll 10s; documented live Protect develop approval-count drift (API 0 vs intended 1).
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent TCP length-prefix capped at 16 MiB (`BtPacketLengthOk`); oversize clears buffer and closes peer (`PROTOCOL_TOO_LARGE`).
 - **Changelog Entry:** 2026-09-19 — #81: G2 HIT_WRAP / wrapped G1 fail-closed via `G1WrappedPayloadFits` / negative `m_nLength` reject in `CG1Packet::New` + null-check call sites.
 - **Changelog Entry:** 2026-09-19 — #81: G2 compound/frame length checks order-safe (`G2SubpacketPayloadFits` / `G2FrameLengthFits`) in ReadPacket/SkipCompound/ReadBuffer (defense-in-depth).
