@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #81: G2 compound/frame length checks order-safe (`G2SubpacketPayloadFits` / `G2FrameLengthFits`) in ReadPacket/SkipCompound/ReadBuffer (defense-in-depth).
 - **Changelog Entry:** 2026-09-19 — #81: G1 QueryHit QHD `nXMLSize` fail-closed via `G1QueryHitXmlFits` (must leave trailing GUID, including zero-length XML); no soft clamp to 0.
 - **Changelog Entry:** 2026-09-19 — #81: ED2K `VIEWSHAREDDIRANSWER` consumes WORD-prefixed directory name before `count`; `OnViewSharedDir` / `OnAskSharedDirsAnswer` / `OnServerMessage` fail-closed via `Ed2kEdString*` + `Ed2kServerMessageLengthOk` (5000-byte MOTD cap).
 - **Changelog Entry:** 2026-09-19 — #81: ED2K chat `MESSAGE` length checks centralized in `Ed2kChatMessageLengthOk` (+ EnvyTests); valid-frame wire behavior unchanged, malformed lengths rejected; outgoing `SendPrivateMessage` clamps by encoded byte length.

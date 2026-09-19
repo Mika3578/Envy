@@ -428,3 +428,34 @@ inline BOOL Ed2kCompressedPartInflateOk(std::uint64_t nWrittenAfter, std::uint64
 {
 	return nWrittenAfter <= nMaxUncompressed;
 }
+
+// Overflow-safe G2 sub-packet sizing (#81).
+// G2 length descriptors are 2 bits (max 3 length bytes), so body and position
+// values are far below DWORD max on current wire paths; these predicates make
+// the bound arithmetic order-safe (defense-in-depth / reusable for wider length
+// fields) and reject truncated/oversized children without relying on
+// "remaining < body + prefix".
+inline BOOL G2SubpacketPayloadFits(DWORD nRemaining, DWORD nBodyLen, DWORD nPrefixLen)
+{
+	if (nBodyLen > nRemaining)
+		return FALSE;
+	if (nPrefixLen > nRemaining - nBodyLen)
+		return FALSE;
+	return TRUE;
+}
+
+// Overflow-safe G2 top-level frame sizing for ReadBuffer (control+len+type+body).
+inline BOOL G2FrameLengthFits(DWORD nBufferLength, DWORD nBodyLen, DWORD nLenLen, DWORD nTypeLen)
+{
+	// Wire layout: 1 control + nLenLen + (nTypeLen+1) type bytes + nBodyLen payload.
+	// Combine with subtraction to avoid wrap when callers pass large components.
+	if (nBodyLen > nBufferLength)
+		return FALSE;
+	DWORD nRemaining = nBufferLength - nBodyLen;
+	if (nLenLen > nRemaining)
+		return FALSE;
+	nRemaining -= nLenLen;
+	if (nTypeLen > nRemaining)
+		return FALSE;
+	return 2u <= (nRemaining - nTypeLen);
+}
