@@ -192,12 +192,14 @@ When you take on a task you are expected to:
    `pr checks --watch/--fail-fast/--required/--interval`; ≥ 2.72 for
    `run watch --compact`). Attach to required checks immediately:
    `gh pr checks <PR> --repo Mika3578/Envy --required --watch --fail-fast --interval 5`
-   Resume as soon as that command returns. On failure: identify the failed
-   run/job from `gh pr checks` output, then fetch logs with
-   `gh run view <RUN_ID> --log-failed` (statuses alone are not enough),
-   fix, push once, then watch again. On success: immediately verify review
-   threads, ruleset, and squash auto-merge — do not insert idle delays.
-   For a single workflow:
+   Resume as soon as that command returns. On failure, inspect the linked
+   check. For GitHub Actions, identify the failed run/job from
+   `gh pr checks` output and fetch logs with
+   `gh run view <RUN_ID> --log-failed` (statuses alone are not enough);
+   for external checks (e.g. SonarCloud), use the linked provider’s
+   diagnostics, then fix, push once, and watch again. On success:
+   immediately verify review threads, ruleset, and squash auto-merge —
+   do not insert idle delays. For a single Actions workflow:
    `gh run watch <RUN_ID> --compact --exit-status --interval 3`.
    Long unattended babysitting may use a Cursor Cloud Agent `/babysit`
    when available; do not replace `gh pr checks --watch` with shell sleeps.

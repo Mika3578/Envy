@@ -25,8 +25,9 @@ alwaysApply: true
 - **Never** `sleep`, fixed timeouts, or “wait then re-check” loops for CI.
 - Requires recent `gh` (≥ 2.53 for `pr checks --watch/--fail-fast/--required/--interval`;
   ≥ 2.72 for `run watch --compact`).
-- On failure: locate the failed run via `gh pr checks`, then
-  `gh run view <RUN_ID> --log-failed` before fixing (statuses alone lack logs).
+- On failure: locate the failed check via `gh pr checks`; for Actions use
+  `gh run view <RUN_ID> --log-failed`, for external checks (e.g. SonarCloud)
+  use the linked provider diagnostics — then fix and re-watch.
 - On success: immediately continue reviews / thread resolution / squash auto-merge.
 - Long unattended babysit: Cursor Cloud Agent `/babysit` when available — not shell sleeps.
 
