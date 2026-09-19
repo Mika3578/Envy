@@ -1,7 +1,7 @@
 //
 // Buffer.h
 //
-// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -75,19 +75,20 @@ public:
 	// Use the buffer with the ZLib compression library
 #ifdef ZLIB_H
 	BOOL	Deflate(BOOL bIfSmaller = FALSE);						// Compress the data in this buffer
-	BOOL	Inflate();												// Decompress the data in this buffer in place
-	bool	InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* bEndOfStream = NULL);	// Decompress the data in this buffer into another buffer
+	BOOL Inflate(DWORD nMaxOutput = 0);                             // Decompress in place (0 => CBUFFER_INFLATE_MAX)
+	bool InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* bEndOfStream = NULL, DWORD nMaxOutput = 0); // Decompress into oBuffer (0 => CBUFFER_INFLATE_STREAM_MAX)
 	static int Inflate(z_streamp pStream, int nFlush);				// Safe version of inflate()
 	static int Deflate(z_streamp pStream, int nFlush);				// Safe version of deflate()
 	static void	InflateStreamCleanup(z_streamp& pStream);			// Stop stream decompression and cleanup
 	static void	DeflateStreamCleanup(z_streamp& pStream);			// Stop stream compression and cleanup
-	BOOL	Ungzip();												// Delete the gzip header and then remove the compression
+	BOOL Ungzip(DWORD nMaxOutput = 0);                              // Strip gzip header then inflate (0 => CBUFFER_INFLATE_MAX)
 #endif // ZLIB
 
 	// Use the buffer with the BZLib compression library
 #ifdef _BZLIB_H
 	BOOL	BZip();													// Compress buffer in-place using BZLib
-	BOOL	UnBZip();												// Uncompress buffer in-place using BZLib
+	BOOL UnBZip(DWORD nMaxOutput = 0);                              // Uncompress in place (optional zip-bomb output cap)
+	BOOL LoadFromBZipFile(CFile& pFile, DWORD nMaxOutput = 0);      // Read file + UnBZip with caps
 #endif // BZLIB
 
 	// Read and write a DIME message in the buffer
