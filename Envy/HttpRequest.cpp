@@ -269,9 +269,9 @@ void CHttpRequest::OnRun()
 			{
 				m_pResponse = new CBuffer();
 				DWORD nRemaining = 0;
-				for ( ; IsThreadEnabled() &&
-					InternetQueryDataAvailable( hURL, &nRemaining, 0, 0 ) &&
-					nRemaining > 0; )
+				for (; IsThreadEnabled() &&
+				       InternetQueryDataAvailable(hURL, &nRemaining, 0, 0) &&
+				       nRemaining > 0;)
 				{
 					DWORD nToRead = nRemaining;
 					if (m_nLimit > 0)
@@ -285,8 +285,7 @@ void CHttpRequest::OnRun()
 					if (nToRead == 0 || !m_pResponse->EnsureBuffer(nToRead))
 						break;
 					DWORD nRead = 0;
-					if (!InternetReadFile(hURL, m_pResponse->m_pBuffer +
-						m_pResponse->m_nLength, nToRead, &nRead))
+					if (!InternetReadFile(hURL, m_pResponse->m_pBuffer + m_pResponse->m_nLength, nToRead, &nRead))
 						break;
 					if (nRead == 0)
 						break;
