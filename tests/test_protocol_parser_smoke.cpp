@@ -664,11 +664,16 @@ static bool test_ed2k_compressedpart_accept_before_submit()
 		&& part64.find( "DrainCompressedPartInflate" ) != std::string::npos;
 
 	return bDrainGates && bHandlersCallDrain;
-	static bool test_g1_wrapped_payload_ok()
-	{
-		static_assert(G1_PACKET_HEADER_BYTES == 23u, "G1 header size must match GNUTELLAPACKET");
-		return G1WrappedPayloadLengthOk(0) == TRUE && G1WrappedPayloadLengthOk(static_cast<LONG>(G1_WRAPPED_PAYLOAD_MAX)) == TRUE && G1WrappedPayloadLengthOk(static_cast<LONG>(G1_WRAPPED_PAYLOAD_MAX + 1)) == FALSE && G1WrappedPayloadLengthOk(-1) == FALSE && G1WrappedPayloadFits(G1_PACKET_HEADER_BYTES + 10, 10) == TRUE && G1WrappedPayloadFits(G1_PACKET_HEADER_BYTES + 9, 10) == FALSE && G1WrappedPayloadFits(100, -1) == FALSE;
-	}
+}
+
+static bool test_g1_wrapped_payload_ok()
+{
+	static_assert(G1_PACKET_HEADER_BYTES == 23u, "G1 header size must match GNUTELLAPACKET");
+	return G1WrappedPayloadLengthOk(0) == TRUE && G1WrappedPayloadLengthOk(static_cast<LONG>(G1_WRAPPED_PAYLOAD_MAX)) == TRUE &&
+	       G1WrappedPayloadLengthOk(static_cast<LONG>(G1_WRAPPED_PAYLOAD_MAX + 1)) == FALSE && G1WrappedPayloadLengthOk(-1) == FALSE &&
+	       G1WrappedPayloadFits(G1_PACKET_HEADER_BYTES + 10, 10) == TRUE && G1WrappedPayloadFits(G1_PACKET_HEADER_BYTES + 9, 10) == FALSE &&
+	       G1WrappedPayloadFits(100, -1) == FALSE;
+}
 
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
