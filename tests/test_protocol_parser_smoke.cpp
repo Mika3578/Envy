@@ -455,6 +455,14 @@ static bool test_bt_ut_metadata_size_over_max()
 	return BtUtMetadataSizeOk( BT_UT_METADATA_MAX + 1 ) == FALSE;
 }
 
+static bool test_bt_mse_pad_length_ok()
+{
+	const BYTE abOkMax[2] = { 0x02, 0x00 };    // 512 BE
+	const BYTE abOver[2] = { 0x02, 0x01 };     // 513 BE
+	const BYTE abHostTrap[2] = { 0x01, 0x02 }; // 258 BE; would be 513 if LE-decoded
+	return BtMsePadLengthOk(0) == TRUE && BtMsePadLengthOk(BT_MSE_PAD_MAX) == TRUE && BtMsePadLengthOk(static_cast<WORD>(BT_MSE_PAD_MAX + 1)) == FALSE && BtMsePadWireLengthOk(abOkMax) == TRUE && BtMsePadWireLengthOk(abOver) == FALSE && BtMsePadWireLengthOk(abHostTrap) == TRUE && BtMseBeWordFromWire(abOver) == static_cast<WORD>(BT_MSE_PAD_MAX + 1);
+}
+
 static bool test_bt_source_response_no_delete_packet_owned_root()
 {
 	// Regression: OnSourceResponse must not delete pPacket->m_pNode (double-free),
@@ -753,9 +761,10 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds );
 	suite.add_test( "ed2k_chat_message_bounds", test_ed2k_chat_message_bounds );
 	suite.add_test( "bt_ut_metadata_size_ok", test_bt_ut_metadata_size_ok );
-	suite.add_test( "bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero );
+	suite.add_test("bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero);
 	suite.add_test( "bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max );
 	suite.add_test( "bt_ut_metadata_size_over_max", test_bt_ut_metadata_size_over_max );
+	suite.add_test("bt_mse_pad_length_ok", test_bt_mse_pad_length_ok);
 	suite.add_test( "bt_source_response_no_delete_packet_owned_root", test_bt_source_response_no_delete_packet_owned_root );
 
 	suite.add_test("cbuffer_unbzip_bounds", test_cbuffer_unbzip_bounds);
