@@ -53,5 +53,8 @@ jobs:
           RUN_REMOTE_JS: ${{ needs.changes.outputs.run_remote_js }}
           RUN_DEP_REVIEW: ${{ needs.changes.outputs.run_dep_review }}
           TIMEOUT_SEC: "3000"
-          POLL_SEC: "20"
+          # Keep script default POLL_SEC=15 (pr-gate.sh). A 10s override was
+          # considered for ≤5s earlier detection, but each poll queries both
+          # HEAD and merge SHAs; at long timeouts two concurrent Gate jobs
+          # can stress the Actions API quota. See docs/10_dev/CI_AUDIT_2026-09.md.
         run: bash .github/scripts/pr-gate.sh

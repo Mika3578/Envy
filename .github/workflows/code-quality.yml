@@ -47,7 +47,19 @@ jobs:
         uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57  # v3
 
       - name: Restore NuGet packages
-        run: nuget restore "Visual Studio/Envy.sln"
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem -Path . -Recurse -Filter packages.config -File -ErrorAction SilentlyContinue |
+            Where-Object {
+              $_.FullName -notmatch '\\.git\\' -and
+              $_.FullName -notmatch '\\(Services|HashLib\\HashLib)\\' -and
+              $_.FullName -notmatch '\\Plugins\\(PluginWizard|RatDVDPlugin|SWFPlugin)\\'
+            })
+          if ($packages.Count -eq 0) {
+            Write-Host "No first-party packages.config found; skipping nuget restore."
+            exit 0
+          }
+          nuget restore "Visual Studio/Envy.sln"
 
       - name: Run Code Analysis
         run: |
@@ -142,15 +154,39 @@ jobs:
     needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name == 'pull_request' && needs.changes.outputs.run_docs_check == 'true'
+    # Always emit this required context on PRs (even when classify fails).
+    # Classify failure fails this job explicitly; when classify succeeds and
+    # docs are out of scope, report success via no-op so Protect develop never
+    # waits on a skipped/missing check (see docs/10_dev/CI_AUDIT_2026-09.md).
+    # When classify is cancelled (concurrency supersede), emit success no-op
+    # so a cancelled parent run does not leave a failed required check.
+    if: always() && github.event_name == 'pull_request'
 
     steps:
+      - name: Superseded run (classification cancelled)
+        if: needs.changes.result == 'cancelled'
+        run: |
+          echo "::notice::Classification cancelled (superseded); Documentation Check no-op success."
+
+      - name: Fail if classification failed
+        if: needs.changes.result != 'success' && needs.changes.result != 'cancelled'
+        run: |
+          echo "::error::Change classification did not succeed (${{ needs.changes.result }})."
+          exit 1
+
       - name: Checkout code
+        if: needs.changes.result == 'success' && needs.changes.outputs.run_docs_check == 'true'
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 1
 
+      - name: Docs check not required for this change set
+        if: needs.changes.result == 'success' && needs.changes.outputs.run_docs_check != 'true'
+        run: |
+          echo "::notice::Documentation Check no-op (classify run_docs_check=false)."
+
       - name: Check for README updates
+        if: needs.changes.result == 'success' && needs.changes.outputs.run_docs_check == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -166,6 +202,7 @@ jobs:
           fi
 
       - name: Check for broken links in markdown
+        if: needs.changes.result == 'success' && needs.changes.outputs.run_docs_check == 'true'
         uses: gaurav-nelson/github-action-markdown-link-check@5c5dfc0ac2e225883c0e5f03a85311ec2830d368  # v1
         with:
           use-quiet-mode: "yes"

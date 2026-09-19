@@ -37,6 +37,10 @@ add_must "Analyze (javascript-typescript)"
 add_must "Analyze (csharp)"
 # Required Format Check — success no-op when no first-party C/C++ hunks.
 add_must "Format Check"
+# Protect develop requires Documentation Check; the job always emits success
+# (full check or classify no-op). Keep it must_pass so a silent skip cannot
+# green-wash the gate.
+add_must "Documentation Check"
 
 if [[ "$RUN_WINDOWS_BUILD" == "true" ]]; then
 	add_must "Build x64 Release"

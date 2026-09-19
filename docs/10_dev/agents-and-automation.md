@@ -1,6 +1,6 @@
 # Envy Development Agents & Automation
 
-**Last Updated:** 2026-09-18
+**Last Updated:** 2026-09-19
 
 ## What exists today
 
@@ -75,12 +75,17 @@ SonarCloud `12526`, GHAS/gitleaks `57789`).
 `Analyze (c-cpp)`, `SonarCloud Code Analysis`.
 
 CodeRabbit / reviewdog / Bugbot are **advisory** and must not be the sole
-merge blocker. Native GitHub review policy on Protect develop (≥1 APPROVED,
-dismiss stale on push, `require_last_push_approval` off, resolve
-conversations, signed commits, force pushes blocked) is separate from these
-advisors and from PR Gate (CI wait only).
+merge blocker. Native GitHub review policy on Protect develop (**intended**
+≥1 APPROVED; live API showed `0` on 2026-09-19 — see
+[KNOWN_INCONSISTENCIES](../00_index/KNOWN_INCONSISTENCIES.md) and
+[CI_AUDIT_2026-09](CI_AUDIT_2026-09.md); dismiss stale on push,
+`require_last_push_approval` off, resolve conversations, signed commits,
+force pushes blocked) is separate from these advisors and from PR Gate
+(CI wait only).
 
 See [devsecops-envy.md](devsecops-envy.md) for the full stack map.
+Measured timings, critical path, and CI cost notes live in
+[CI_AUDIT_2026-09.md](CI_AUDIT_2026-09.md).
 
 ### Caches and CodeQL
 
