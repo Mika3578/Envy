@@ -2343,6 +2343,9 @@ BOOL CEDClient::OnQueueRequest(CEDPacket* /*pPacket*/)
 
 BOOL CEDClient::OnChatMessage(CEDPacket* pPacket)
 {
+	static_assert(ED2K_CHAT_MESSAGE_MAX == ED2K_MESSAGE_MAX,
+	              "PacketLengthValidate ED2K_CHAT_MESSAGE_MAX must match EDPacket.h ED2K_MESSAGE_MAX");
+
 	// Check packet has message length
 	if ( pPacket->GetRemaining() < 3 )
 	{
@@ -2353,10 +2356,8 @@ BOOL CEDClient::OnChatMessage(CEDPacket* pPacket)
 	// Read message length
 	DWORD nMessageLength = pPacket->ReadShortLE();
 
-	// Validate message length
-	if ( nMessageLength < 1 ||
-		 nMessageLength > ED2K_MESSAGE_MAX ||
-		 nMessageLength != pPacket->GetRemaining() )
+	// Validate message length (exact remaining fit + ED2K_MESSAGE_MAX)
+	if (!Ed2kChatMessageLengthOk(nMessageLength, pPacket->GetRemaining()))
 	{
 		theApp.Message( MSG_ERROR, L"Invalid message packet received from %s", (LPCTSTR)m_sAddress );
 		return TRUE;

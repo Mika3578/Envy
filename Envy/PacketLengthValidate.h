@@ -196,6 +196,19 @@ inline BOOL Ed2kHashsetPayloadFits(DWORD nBlocks, DWORD nRemaining)
 	return nNeed == nRemaining;
 }
 
+// ED2K private chat MESSAGE body after the WORD length field (#81).
+// Must be non-empty, exact-fit remaining, and <= ED2K_MESSAGE_MAX in EDPacket.h.
+// Numeric 500 is duplicated here to keep this header free of EDPacket.h; CEDClient
+// static_asserts ED2K_CHAT_MESSAGE_MAX == ED2K_MESSAGE_MAX.
+constexpr DWORD ED2K_CHAT_MESSAGE_MAX = 500u;
+
+inline BOOL Ed2kChatMessageLengthOk(DWORD nMessageLength, DWORD nRemainingAfterLength)
+{
+	if (nMessageLength < 1 || nMessageLength > ED2K_CHAT_MESSAGE_MAX)
+		return FALSE;
+	return nMessageLength == nRemainingAfterLength;
+}
+
 // Bencode nesting limit for list/dict Decode recursion (stack exhaustion / #82).
 constexpr DWORD BENODE_MAX_DEPTH = 32u;
 
