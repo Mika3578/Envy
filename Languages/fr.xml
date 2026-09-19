@@ -4529,6 +4529,13 @@
 		<control text="Valider"/>
 		<control text="Annuler"/>
 	</dialog>
+	<dialog name="CUpdateHubListDlg" cookie="StEdmsBuBu" caption="Télécharger une liste de hubs DC++">
+		<control text="Vous pouvez télécharger une liste publique de hubs DC++ afin de mettre à jour le cache des hubs.{n}URL de la liste de hubs :"/>
+		<control/>
+		<control/>
+		<control text="Valider"/>
+		<control text="Annuler"/>
+	</dialog>
 	<dialog name="CDeleteFileDlg" cookie="StStBuBuBuStBuStStStStCoCoEd" caption="Supprimer un fichier">
 		<control text="Êtes-vous certain de vouloir supprimer ce fichier ?"/>
 		<control/>

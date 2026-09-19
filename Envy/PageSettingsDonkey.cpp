@@ -141,7 +141,7 @@ void CDonkeySettingsPage::OnServerWalk()
 void CDonkeySettingsPage::OnDiscoveryGo()
 {
 	CUpdateServersDlg dlg;
-	//dlg.m_sURL = Settings.eDonkey.ServerListURL;
+	dlg.m_nMode = UpdateServersDlgMode::eDonkey;
 	dlg.DoModal();
 }
 

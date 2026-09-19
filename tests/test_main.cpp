@@ -23,6 +23,7 @@ void register_network_interface_selector_smoke_tests(TestSuite& suite);
 void register_remote_base64_smoke_tests(TestSuite& suite);
 void register_secure_random_smoke_tests(TestSuite& suite);
 void register_dc_packet_length_smoke_tests(TestSuite& suite);
+void register_dc_hublist_sources_smoke_tests(TestSuite& suite);
 void register_ed2k_lock_order_smoke_tests(TestSuite& suite);
 void register_envy_thread_policy_smoke_tests(TestSuite& suite);
 void register_remote_password_policy_smoke_tests(TestSuite& suite);
@@ -46,6 +47,7 @@ int main() {
 	register_remote_base64_smoke_tests(suite);
 	register_secure_random_smoke_tests(suite);
 	register_dc_packet_length_smoke_tests(suite);
+	register_dc_hublist_sources_smoke_tests(suite);
 	register_ed2k_lock_order_smoke_tests(suite);
 	register_envy_thread_policy_smoke_tests(suite);
 	register_remote_password_policy_smoke_tests(suite);
