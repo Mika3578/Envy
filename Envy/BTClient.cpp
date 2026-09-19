@@ -364,7 +364,7 @@ BOOL CBTClient::OnRead()
 	if ( m_bOnline )
 	{
 		BOOL bProtocolError = FALSE;
-		while ( CBTPacket* pPacket = CBTPacket::ReadBuffer( pInput, &bProtocolError ) )
+		while (CBTPacket* pPacket = CBTPacket::ReadBuffer(pInput, &bProtocolError))
 		{
 			try
 			{
@@ -386,9 +386,9 @@ BOOL CBTClient::OnRead()
 				return FALSE;
 		}
 
-		if ( bProtocolError )
+		if (bProtocolError)
 		{
-			Close( IDS_PROTOCOL_TOO_LARGE );
+			Close(IDS_PROTOCOL_TOO_LARGE);
 			return FALSE;
 		}
 	}

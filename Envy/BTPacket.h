@@ -140,7 +140,7 @@ public:
 public:
 	virtual void		Reset();
 	virtual void		ToBuffer(CBuffer* pBuffer, bool bTCP = true);
-	static	CBTPacket*	ReadBuffer(CBuffer* pBuffer, BOOL* pbProtocolError = NULL);
+	static CBTPacket* ReadBuffer(CBuffer* pBuffer, BOOL* pbProtocolError = NULL);
 	virtual void		SmartDump(const SOCKADDR_IN* pAddress, BOOL bUDP, BOOL bOutgoing, DWORD_PTR nNeighbourUnique = 0);
 	virtual CString		GetType() const;
 	virtual CString		ToHex()   const;
