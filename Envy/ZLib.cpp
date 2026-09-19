@@ -117,7 +117,7 @@ BYTE* CZLib::Compress2(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nSug
 // Decompresses the memory into a new buffer this function allocates
 // Returns a pointer to the new buffer, and writes its size under pnOutput
 
-auto_array< BYTE > CZLib::Decompress(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nMaxOutput)
+auto_array<BYTE> CZLib::Decompress(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nMaxOutput)
 {
 	// Guess decompressed size (4x), grow on Z_BUF_ERROR. When nMaxOutput > 0,
 	// clamp the next attempt to nMaxOutput before rejecting (exact-capacity try).
@@ -129,18 +129,18 @@ auto_array< BYTE > CZLib::Decompress(LPCVOID pInput, DWORD nInput, DWORD* pnOutp
 	if (nSuggest == 0)
 	{
 		*pnOutput = 0;
-		return auto_array< BYTE >();
+		return auto_array<BYTE>();
 	}
 
 	for (;;)
 	{
 		*pnOutput = nSuggest;
 
-		auto_array< BYTE > pBuffer(new BYTE[*pnOutput]);
+		auto_array<BYTE> pBuffer(new BYTE[*pnOutput]);
 		if (!pBuffer.get())
 		{
 			*pnOutput = 0;
-			return auto_array< BYTE >();
+			return auto_array<BYTE>();
 		}
 
 		int nRes = uncompress(pBuffer.get(), pnOutput, (const BYTE*)pInput, nInput);
@@ -151,13 +151,13 @@ auto_array< BYTE > CZLib::Decompress(LPCVOID pInput, DWORD nInput, DWORD* pnOutp
 		if (Z_BUF_ERROR != nRes)
 		{
 			*pnOutput = 0;
-			return auto_array< BYTE >();
+			return auto_array<BYTE>();
 		}
 
 		if (nMaxOutput > 0 && nSuggest >= nMaxOutput)
 		{
 			*pnOutput = 0;
-			return auto_array< BYTE >(); // Would exceed zip-bomb cap
+			return auto_array<BYTE>(); // Would exceed zip-bomb cap
 		}
 
 		DWORD nNext = nSuggest * 2;
@@ -168,7 +168,7 @@ auto_array< BYTE > CZLib::Decompress(LPCVOID pInput, DWORD nInput, DWORD* pnOutp
 		if (nNext <= nSuggest)
 		{
 			*pnOutput = 0;
-			return auto_array< BYTE >();
+			return auto_array<BYTE>();
 		}
 		nSuggest = nNext;
 	}

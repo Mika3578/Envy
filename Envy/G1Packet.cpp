@@ -444,9 +444,9 @@ bool CG1Packet::ReadXML(CSchemaPtr& pSchema, CXMLElement*& pXML)
 
 		// Deflate data — cap inflate to block zip-bomb DoS (#81).
 		DWORD nRealSize;
-		pTmp = CZLib::Decompress( p, len, &nRealSize, G1_DEFLATE_XML_INFLATE_MAX );
-		if ( ! pTmp.get() || ! G1DeflateXmlInflateOk( nRealSize ) )
-			return false;	// Invalid or abusive inflate
+		pTmp = CZLib::Decompress(p, len, &nRealSize, G1_DEFLATE_XML_INFLATE_MAX);
+		if (!pTmp.get() || !G1DeflateXmlInflateOk(nRealSize))
+			return false; // Invalid or abusive inflate
 		p = pTmp.get();
 		len = nRealSize;
 	}

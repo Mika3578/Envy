@@ -911,10 +911,10 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 	{
 		// Deflate data — cap inflate to block zip-bomb DoS (#81).
 		DWORD nRealSize = 0;
-		auto_array< BYTE > pText( CZLib::Decompress(
-			pRaw.get() + 9, nSize - 10, &nRealSize, G1_DEFLATE_XML_INFLATE_MAX ) );
-		if ( ! pText.get() || ! G1DeflateXmlInflateOk( nRealSize ) )
-			return NULL;	// Invalid or abusive inflate
+		auto_array<BYTE> pText(CZLib::Decompress(
+		    pRaw.get() + 9, nSize - 10, &nRealSize, G1_DEFLATE_XML_INFLATE_MAX));
+		if (!pText.get() || !G1DeflateXmlInflateOk(nRealSize))
+			return NULL; // Invalid or abusive inflate
 		pRaw = pText;
 
 		pszXML = pRaw.get();
