@@ -34,7 +34,10 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
    checks (`require_last_push_approval` is off). Never self-approve via
    Actions/bot; never bypass protections.
    (See AGENTS.md section 2, rules 11–13.)
-4. **Reply to the user in the language they used in chat**, but all
+4. **CI wait:** after every PR push use
+   `gh pr checks <PR> --required --watch --fail-fast --interval 5`
+   (never arbitrary `sleep` / fixed delays). See AGENTS.md §5 item 6.
+5. **Reply to the user in the language they used in chat**, but all
    commits, comments, docs, and PR text in **English**.
 
 ## Common pitfalls in this codebase

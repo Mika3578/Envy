@@ -19,6 +19,15 @@ alwaysApply: true
 - If the change is user-visible or risky: also build Release x64.
 - If tests exist for the area you touched: run them (or document why not).
 
+## CI wait gate (after every PR push)
+- **Never** `sleep`, fixed timeouts, or “wait then re-check” loops for CI.
+- Attach immediately:
+  `gh pr checks <PR> --repo Mika3578/Envy --required --watch --fail-fast --interval 5`
+- On failure: `gh run view <id> --log-failed` (or failed job logs), fix, one push, watch again.
+- On success: immediately continue reviews / thread resolution / squash auto-merge checks.
+- Single workflow: `gh run watch <RUN_ID> --compact --exit-status --interval 3`.
+- Long unattended babysit: Cursor Cloud Agent `/babysit` when available — not shell sleeps.
+
 ## Docs gate (definition of done)
 - Follow `09-docs-auto-update.mdc`.
 - Your final response MUST end with either:
