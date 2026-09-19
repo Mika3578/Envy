@@ -102,46 +102,97 @@
 
     function createDownloadRow(download) {
         const row = document.createElement('tr');
-        row.setAttribute('data-download-id', download.id);
-
+        const id = String(download.id ?? '');
+        const filename = String(download.filename ?? '');
         const statusClass = getStatusClass(download.status);
-        const progressPercent = download.progress || 0;
+        const progressPercent = Number(download.progress) || 0;
 
-        row.innerHTML = `
-            <td><input type="checkbox" class="download-checkbox" value="${download.id}"></td>
-            <td class="filename" title="${download.filename}">${download.filename}</td>
-            <td data-sort-value="${download.size}">${formatBytes(download.size)}</td>
-            <td class="progress-cell">
-                <div class="progress-container">
-                    <div class="progress">
-                        <div class="progress-bar" style="width: ${progressPercent}%"
-                             data-progress-id="${download.id}"></div>
-                    </div>
-                    <span class="progress-text">${progressPercent}%</span>
-                </div>
-            </td>
-            <td class="speed-cell">${formatSpeed(download.speed)}</td>
-            <td class="sources-cell">${download.sources || 0}/${download.totalSources || 0}</td>
-            <td><span class="status-badge status-${statusClass}">${download.status}</span></td>
-            <td>
-                <select class="priority-select" data-download-id="${download.id}">
-                    <option value="low" ${download.priority === 'low' ? 'selected' : ''}>Low</option>
-                    <option value="normal" ${download.priority === 'normal' ? 'selected' : ''}>Normal</option>
-                    <option value="high" ${download.priority === 'high' ? 'selected' : ''}>High</option>
-                </select>
-            </td>
-            <td class="action-buttons">
-                <button type="button" class="action-btn btn-success" data-action="start-download" data-id="${download.id}" title="Start">
-                    ▶️
-                </button>
-                <button type="button" class="action-btn btn-warning" data-action="pause-download" data-id="${download.id}" title="Pause">
-                    ⏸️
-                </button>
-                <button type="button" class="action-btn btn-danger" data-action="cancel-download" data-id="${download.id}" title="Cancel">
-                    🗑️
-                </button>
-            </td>
-        `;
+        row.setAttribute('data-download-id', id);
+
+        const checkTd = document.createElement('td');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'download-checkbox';
+        checkbox.value = id;
+        checkTd.appendChild(checkbox);
+
+        const nameTd = document.createElement('td');
+        nameTd.className = 'filename';
+        nameTd.title = filename;
+        nameTd.textContent = filename;
+
+        const sizeTd = document.createElement('td');
+        sizeTd.setAttribute('data-sort-value', String(download.size ?? 0));
+        sizeTd.textContent = formatBytes(download.size);
+
+        const progressTd = document.createElement('td');
+        progressTd.className = 'progress-cell';
+        const progressContainer = document.createElement('div');
+        progressContainer.className = 'progress-container';
+        const progress = document.createElement('div');
+        progress.className = 'progress';
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress-bar';
+        progressBar.style.width = `${Math.max(0, Math.min(100, progressPercent))}%`;
+        progressBar.setAttribute('data-progress-id', id);
+        progress.appendChild(progressBar);
+        const progressText = document.createElement('span');
+        progressText.className = 'progress-text';
+        progressText.textContent = `${Math.max(0, Math.min(100, progressPercent))}%`;
+        progressContainer.appendChild(progress);
+        progressContainer.appendChild(progressText);
+        progressTd.appendChild(progressContainer);
+
+        const speedTd = document.createElement('td');
+        speedTd.className = 'speed-cell';
+        speedTd.textContent = formatSpeed(download.speed);
+
+        const sourcesTd = document.createElement('td');
+        sourcesTd.className = 'sources-cell';
+        sourcesTd.textContent = `${download.sources || 0}/${download.totalSources || 0}`;
+
+        const statusTd = document.createElement('td');
+        const statusBadge = document.createElement('span');
+        statusBadge.className = `status-badge status-${statusClass}`;
+        statusBadge.textContent = String(download.status ?? '');
+        statusTd.appendChild(statusBadge);
+
+        const priorityTd = document.createElement('td');
+        const select = document.createElement('select');
+        select.className = 'priority-select';
+        select.setAttribute('data-download-id', id);
+        ['low', 'normal', 'high'].forEach((value) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value.charAt(0).toUpperCase() + value.slice(1);
+            if (download.priority === value) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+        priorityTd.appendChild(select);
+
+        const actionsTd = document.createElement('td');
+        actionsTd.className = 'action-buttons';
+        [
+            ['start-download', 'btn-success', 'Start', '▶️'],
+            ['pause-download', 'btn-warning', 'Pause', '⏸️'],
+            ['cancel-download', 'btn-danger', 'Cancel', '🗑️']
+        ].forEach(([action, cls, title, label]) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `action-btn ${cls}`;
+            button.setAttribute('data-action', action);
+            button.setAttribute('data-id', id);
+            button.title = title;
+            button.textContent = label;
+            actionsTd.appendChild(button);
+        });
+
+        [
+            checkTd, nameTd, sizeTd, progressTd, speedTd,
+            sourcesTd, statusTd, priorityTd, actionsTd
+        ].forEach((td) => row.appendChild(td));
 
         return row;
     }
@@ -158,10 +209,13 @@
     }
 
     function formatBytes(bytes) {
-        if (!bytes) return '0 B';
+        if (!bytes || bytes <= 0) return '0 B';
         const k = 1024;
         const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        const i = Math.max(0, Math.min(
+            sizes.length - 1,
+            Math.floor(Math.log(bytes) / Math.log(k))
+        ));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
@@ -239,13 +293,19 @@
 
     function showErrorState(message) {
         const tbody = document.querySelector('#downloads-table tbody');
-        tbody.innerHTML = `
-            <tr class="loading-row">
-                <td colspan="9" class="text-center">
-                    <div class="alert alert-error" style="margin: 0;">${message}</div>
-                </td>
-            </tr>
-        `;
+        tbody.textContent = '';
+        const tr = document.createElement('tr');
+        tr.className = 'loading-row';
+        const td = document.createElement('td');
+        td.colSpan = 9;
+        td.className = 'text-center';
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-error';
+        alert.style.margin = '0';
+        alert.textContent = String(message || '');
+        td.appendChild(alert);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
     }
 
     // Global functions for button actions
