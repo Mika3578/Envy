@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #90 crash-engine evaluation (D-017): prefer Crashpad over Sentry Native/BugSplat/Backtrace/homemade MiniDump. Isolated `tools/crash-probe` (x64+Win32, upload off). Do not merge PR #243 as the product dumper. Canonical: `docs/10_dev/crashpad-vs-sentry-native.md`.
 - **Changelog Entry:** 2026-09-19 — #224: NMDC text uses per-hub/settings code page (`DcNmdcText.h`, default CP_ACP; invalid pages fall back to ACP); HostCache ser v2 `m_nCodePage` + `SetNmdcCodePage` (favorites UI later); ADC unchanged.
 - **Changelog Entry:** 2026-09-19 — Uploads Fair-Use is live: `Uploads.FairUseMode` (default off) clips each remote IPv4 client to 10% of an audio/video library file; checkbox bound; HTTP/ED2K/DC consumers; GET/ED2K/DC reserve then charge body bytes; unused reservation rolls back on `ClearRequest`/`Close` (keep-alive HEAD does not burn quota); BitTorrent and partials excluded.
 - **Changelog Entry:** 2026-09-19 — Transfer settings foundation: Uploads page labels match the core (`Unlimited`, throttle Average/Maximum, max uploads per host); `TransferSettingsLimits.h` + EnvyTests; mapping in `docs/50_user/transfer-settings.md`.
@@ -193,6 +194,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - **P0 ED2K/Kad interoperability baseline** against eMule Community and aMule (live interop unverified; see `docs/10_dev/status.md`).
 - **Bootstrap catalogues** — shipped `DefaultServices.dat` / `DefaultServers.dat` refreshed 2026-09-18. Remaining: importer hardening (P0 potential); Kad `nodes.dat` discovery type + `ImportNodes` v2/v3 + empty-cache path (#86/#160); last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`). Do not restore C++ DHT DNS constants when the catalogue is missing (D-012).
 - Transfer settings UX: first slice (labels + validation + mapping) in `docs/50_user/transfer-settings.md`; no fake capabilities.
+- **#90 crash reporting** — BugTrap still on `develop`. D-017: Crashpad capture engine (upload off). Isolated probe in `tools/crash-probe/`; do not merge PR #243 MiniDump as the product engine. Sentry Native is Option B only.
 
 ### Blocked / At Risk
 - Full CMake parity with Visual Studio build graph.
@@ -371,6 +373,7 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-09-19:** D-017 — #90 capture engine is Crashpad (out-of-process handler, local DB, upload off by default). Sentry Native is Option B (consented dashboard only). Do not merge PR #243 homemade `MiniDumpWriteDump` as the product engine. Isolated probe only; no root `vcpkg.json` crash SDK yet. Canonical: `docs/10_dev/crashpad-vs-sentry-native.md`.
 - **2026-09-18:** Adopt cross-platform foundations (D-012…D-015): EnvyCore + platform abstraction + retained MFC Windows frontend; Linux/macOS `planned` not `supported`; Win32 legacy Stage A only; CMake portable slice prioritized over full-app CMake. Canonical doc: `docs/20_arch/PORTABILITY_PLAN.md`. Open question #1 resolved toward multi-OS **as a long-term target**, with Windows-first delivery.
 - **2026-09-17:** #140 wording: MiniUPnPc 2.0 targeted discovery is one receive phase for requested ST values, not a strict wall-clock SSDP deadline; absolute SSDP and HTTP timeout bounding → [#142](https://github.com/Mika3578/Envy/issues/142) / P3.
 - **2026-09-18:** #166 / D-009 P1 delivered: WFAS `INetFwPolicy2` replaces `INetFwMgr`; application rules on all profiles; UPnP via rule-group enable. Next: P2 LocalPort/ExternalPort.

@@ -16,7 +16,7 @@ Protocol Engines (BT, G2, ED2K, Kad, DC, HTTP/FTP)
   ↕
 Storage/Metadata (Library, schemas, SQLite, cache)
   ↕
-Services + Plugins (zlib, bzip2, miniupnp, BugTrap, plugin DLLs)
+Services + Plugins (zlib, bzip2, miniupnp, BugTrap legacy, plugin DLLs)
 ```
 
 ### Target shape (incremental)

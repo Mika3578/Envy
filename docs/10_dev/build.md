@@ -165,7 +165,7 @@ Warning: Mixing Unicode and non-Unicode
 
 #### Precompiled Libraries
 - **Location:** `Services/` directory
-- **Required:** SQLite, zlib, GeoIP, BugTrap, MiniUPnP
+- **Required:** SQLite, zlib, GeoIP, BugTrap (legacy until #90), MiniUPnP
 - **Status:** All included, no external downloads needed
 
 #### Plugin Dependencies
@@ -207,6 +207,10 @@ Envy/
 ├── Plugins/*/Release x64/      # Plugin DLLs (per-project)
 └── HashLib/Release x64/        # HashLib output
 ```
+
+Isolated crash-engine probe (not `Envy.sln`): `tools/crash-probe/`. See
+[crash reporting](crash-reporting.md) and
+[Crashpad vs Sentry Native](crashpad-vs-sentry-native.md).
 
 ## Embedded web HTML gzip resources
 

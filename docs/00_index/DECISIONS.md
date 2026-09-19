@@ -22,6 +22,15 @@ Use this file to record decisions that affect architecture, protocol compatibili
 - **Consequences:** #91/#161/#89 proceed Windows-first under the portability plan; no required Linux/macOS CI until portable code exists; no Win32 removal without evidence.
 - **References:** `docs/20_arch/PORTABILITY_PLAN.md`, `docs/ARCHITECTURE.md`.
 
+### Decision: Crash capture engine (BugTrap replacement)
+- **Date:** 2026-09-19
+- **Status:** accepted (evaluation in progress)
+- **ID:** D-017 in `docs/DECISIONS.md`
+- **Context:** Issue #90 must replace obsolete BugTrap without a mandatory SaaS. PR #243 prototyped in-process `MiniDumpWriteDump`; that is not strong enough for heap-corruption / stack-overflow / fast-fail.
+- **Decision:** Crashpad is the capture engine (local DB, upload off). Sentry Native is Option B only. Isolated `tools/crash-probe` must produce Win32/x64 size and crash-class evidence before root `vcpkg.json` or `Envy.sln` change.
+- **Consequences:** Do not merge #243 as the product dumper. Salvage BugTrap deletion and next-launch UX later. No silent telemetry.
+- **References:** `docs/10_dev/crashpad-vs-sentry-native.md`, `docs/10_dev/crash-reporting.md`.
+
 ## Template
 
 ### Decision: <short title>

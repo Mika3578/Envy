@@ -53,7 +53,7 @@ body:
     id: actual
     attributes:
       label: Actual behavior (crash dump, log, stack trace)
-      description: Attach `BugTrap` dumps from `%APPDATA%\Envy\` if available.
+      description: Attach a crash dump if you have one. On current develop that is still a BugTrap file under `%APPDATA%\Envy\`. After #90 lands it will be a Crashpad report under `%LOCALAPPDATA%\Envy\CrashReports\`.
     validations:
       required: true
   - type: dropdown

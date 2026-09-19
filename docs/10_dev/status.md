@@ -30,6 +30,7 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 | --- | --- | --- | --- |
 | Windows x64 product | implemented (primary) | — | preserve |
 | Windows Win32/x86 product | implemented (legacy Stage A) | — | deprecate later (D-014) |
+| Crash reporting | BugTrap (legacy, Debug) | Crashpad (D-017 eval) | replace (#90); no SaaS default |
 | Linux x86_64 product | planned | aMule | planned → supported only with CI evidence |
 | macOS ARM64 product | planned | aMule | planned → supported only with CI evidence |
 | EnvyCore portable boundary | not implemented | eMule Qt, aria2-next | planned (#161) |

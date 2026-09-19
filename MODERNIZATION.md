@@ -42,7 +42,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 | UnRAR | 5.30 (2015-11) | Outdated, contains x86 inline ASM |
 | GeoIP | unknown | Legacy MaxMind, should move to libmaxminddb |
 | LibUTP | 2010 snapshot | Outdated |
-| BugTrap | 2005-2010 | Evaluate; can be replaced by Windows Error Reporting |
+| BugTrap | 2005-2010 | Replace with Crashpad (D-017 / #90); do not keep homemade MiniDump as the engine |
 | LibGFL | 3.40 (~2003) | **Very outdated** (non-free binary, AGPL conflict) |
 
 ---
@@ -119,7 +119,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
       - `Services/MiniUPnP` -> `vcpkg install miniupnpc`
       - `Services/GeoIP` -> `vcpkg install libmaxminddb` (modern replacement)
 - [ ] Delete the corresponding `Services/<lib>/` subtrees
-- [ ] Evaluate `BugTrap` -> Windows Error Reporting (WER) migration
+- [ ] Replace `BugTrap` with Crashpad (D-017; isolated probe in `tools/crash-probe/`; do not merge PR #243 MiniDump as the product engine)
 - [ ] Evaluate removing `LibGFL` (non-free binary, AGPL conflict)
 
 ### Phase 4 - Runtime robustness

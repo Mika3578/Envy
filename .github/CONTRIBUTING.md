@@ -156,8 +156,10 @@ conservative - do not bulk-reformat existing files.
 
 ## Reporting bugs
 
-Use the bug report issue template. Include the BugTrap dump under
-`%APPDATA%\Envy\` when relevant.
+Use the bug report issue template. If a crash dump exists, attach it. On
+current `develop` that is still the legacy BugTrap file under
+`%APPDATA%\Envy\`. Issue #90 replaces BugTrap with Crashpad (local database,
+upload off by default); see `docs/10_dev/crash-reporting.md`.
 
 ## Security
 
