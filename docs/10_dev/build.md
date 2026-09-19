@@ -173,8 +173,12 @@ cmake --build . --config Release --target HashLib
 #### 0. `vcpkg_installed\x64-windows-static not found` / `PreBuild.cmd` fails / `EnvyOM.h` missing
 A fresh Visual Studio Debug|x64 (or any config) build reaches `Envy/PreBuild.cmd` **before**
 any vcpkg restore. `CopyCrashpadHandler.cmd` then fail-closes if `vcpkg_installed\<triplet>`
-is missing. MIDL never runs, so `StdAfx.h` reports `EnvyOM.h: No such file or directory`.
-That header is generated from `Envy/Envy.idl`; it is not a missing tracked file.
+is missing (`exit /b 1`). Visual Studio often surfaces that as
+`PreBuild.cmd Debug x64 exited with code 2` (cmd.exe / MSBuild wrapping, or an earlier
+`copy`/`cscript` in the same PreBuild). Treat any non-zero PreBuild as this cascade
+unless the log names a different command. MIDL never runs, so `StdAfx.h` reports
+`EnvyOM.h: No such file or directory`. That header is generated from `Envy/Envy.idl`;
+it is not a missing tracked file.
 
 **Solution:** run `scripts\bootstrap-vcpkg.cmd` (see Step 2) so `vcpkg_installed\<triplet>`
 exists **before** the first Build. Do not copy `EnvyOM.h` into git. Do not skip the
