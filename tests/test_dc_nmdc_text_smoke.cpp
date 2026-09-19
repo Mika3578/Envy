@@ -128,6 +128,7 @@ static bool test_dc_nmdc_ascii_regression_unchanged()
 void register_dc_nmdc_text_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("dc_resolve_zero_is_acp", test_dc_resolve_zero_is_acp);
+	suite.add_test("dc_resolve_invalid_falls_back_to_acp", test_dc_resolve_invalid_falls_back_to_acp);
 	suite.add_test("dc_nmdc_ascii_roundtrip", test_dc_nmdc_ascii_roundtrip);
 	suite.add_test("dc_nmdc_utf8_cyrillic", test_dc_nmdc_utf8_cyrillic);
 	suite.add_test("dc_nmdc_cp1251_roundtrip", test_dc_nmdc_cp1251_roundtrip);
