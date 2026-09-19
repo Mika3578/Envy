@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **4.2.0 Preview 1 release packaging** — Unified product version metadata (`version.json` `4.2.0-preview.1`, Windows `FILEVERSION`/`PRODUCTVERSION` `4.2.0.1`, display `4.2.0 Preview 1`). Release workflow builds per-platform Inno Setup installers (`InstallerAlpha=Preview` from tags containing `preview`), publishes `Envy-<version>-{x64|win32}-{setup.exe|.zip}` plus `SHA256SUMS.txt`, and creates a **draft** GitHub Release marked **prerelease** when the tag contains `preview`/`beta`/`rc`/`alpha`. Preview 1 uses separate x64 and Win32 setups (unified universal installer deferred).
 - **Release pipeline validation scripts** — `scripts/release/verify-version.ps1`, `stage-portable.ps1`, `verify-artifacts.ps1`, `publish-draft-release.ps1`, and `repair-draft-release.ps1` gate tag/`version.json`/`Envy.rc`/`Envy.exe` consistency, stage a full portable runtime tree, verify SHA256 + ZIP/setup sanity, and support idempotent draft asset repair.
 
+### Fixed
+- **TransferState smoke registration** — Register `transfer_state_downloading_finished_not_importable` so the fail-closed `MapTransferStateToQBittorrentFinished(Downloading) → error` assertion from #242 actually runs in EnvyTests (22/22 on Linux g++).
+
 ### Changed
 - **Branch naming for agents (hard rule 11)** — `AGENTS.md` / CONTRIBUTING / Cursor workflow pointers forbid tool prefixes (`cursor/`, `claude/`, …) and Cloud-runner slug templates; only `type/short-kebab-summary`. CONTRIBUTING no longer suggests `claude/` branches.
 - **SonarCloud analysis scope (#234)** — `.sonarcloud.properties` excludes vendored `Services/*` / wizard / duplicate FictionBook trees from analysis and CPD so New Code duplication is not dominated by third-party clones. See `docs/10_dev/sonarcloud-exclusions.md`.
