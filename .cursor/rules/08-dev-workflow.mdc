@@ -20,12 +20,14 @@ alwaysApply: true
 - If tests exist for the area you touched: run them (or document why not).
 
 ## CI wait gate (after every PR push)
+- Canonical policy: `AGENTS.md` §5 item 6 (do not duplicate the full command
+  elsewhere — change it only there).
 - **Never** `sleep`, fixed timeouts, or “wait then re-check” loops for CI.
-- Attach immediately:
-  `gh pr checks <PR> --repo Mika3578/Envy --required --watch --fail-fast --interval 5`
-- On failure: `gh run view <id> --log-failed` (or failed job logs), fix, one push, watch again.
-- On success: immediately continue reviews / thread resolution / squash auto-merge checks.
-- Single workflow: `gh run watch <RUN_ID> --compact --exit-status --interval 3`.
+- Requires recent `gh` (≥ 2.53 for `pr checks --watch/--fail-fast/--required/--interval`;
+  ≥ 2.72 for `run watch --compact`).
+- On failure: locate the failed run via `gh pr checks`, then
+  `gh run view <RUN_ID> --log-failed` before fixing (statuses alone lack logs).
+- On success: immediately continue reviews / thread resolution / squash auto-merge.
 - Long unattended babysit: Cursor Cloud Agent `/babysit` when available — not shell sleeps.
 
 ## Docs gate (definition of done)
