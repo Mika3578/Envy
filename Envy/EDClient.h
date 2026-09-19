@@ -109,9 +109,9 @@ public:
 	DWORD		m_nDirsWaiting;
 
 	// #87 phase-1: PUBLICIP query + C2C CALLBACK consume guard (not Buddy stack)
-	Ed2kPublicIpQueryState		m_oPublicIpQuery;
-	Ed2kC2cCallbackConsumeGuard	m_oC2cCallbackGuard;
-	DWORD		m_nObservedPublicIp;	// last accepted PUBLICIP_ANSWER (0 = none); not a global identity claim alone
+	Ed2kPublicIpQueryState m_oPublicIpQuery;
+	Ed2kC2cCallbackConsumeGuard m_oC2cCallbackGuard;
+	DWORD m_nObservedPublicIp; // last accepted PUBLICIP_ANSWER (0 = none); not a global identity claim alone
 
 	BOOL		m_bOpenChat;
 	BOOL		m_bCommentSent;
@@ -199,12 +199,12 @@ protected:
 	BOOL	OnRequestPreview(CEDPacket* pPacket);
 	BOOL	OnPreviewAnswer(CEDPacket* pPacket);
 	// #87 LowID / PUBLICIP / C2C CALLBACK baseline (Buddy paths remain phase 2)
-	void	SendPublicIpRequest();
-	BOOL	OnPublicIpRequest(CEDPacket* pPacket);
-	BOOL	OnPublicIpAnswer(CEDPacket* pPacket);
-	BOOL	OnC2cCallback(CEDPacket* pPacket);
-	BOOL	OnReaskCallbackTcp(CEDPacket* pPacket);
-// Chat:
+	void SendPublicIpRequest();
+	BOOL OnPublicIpRequest(CEDPacket* pPacket);
+	BOOL OnPublicIpAnswer(CEDPacket* pPacket);
+	BOOL OnC2cCallback(CEDPacket* pPacket);
+	BOOL OnReaskCallbackTcp(CEDPacket* pPacket);
+	// Chat:
 	BOOL	OnChatMessage(CEDPacket* pPacket);
 	BOOL	OnCaptchaRequest(CEDPacket* pPacket);
 	BOOL	OnCaptchaResult(CEDPacket* pPacket);

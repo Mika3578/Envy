@@ -192,15 +192,6 @@ public:
     // Check if initialized
     bool IsInitialized() const { return m_bInitialized; }
 
-	// Copy own Kad ID (16 bytes). Returns false when not initialized.
-	bool GetOwnKadId(KadId& outId) const
-	{
-		if ( ! m_bInitialized )
-			return false;
-		memcpy( outId, m_ownId, KAD_ID_SIZE );
-		return true;
-	}
-
     // Process incoming Kad2 packet
     BOOL OnPacket(const SOCKADDR_IN* pHost, class CEDPacket* pPacket);
 
@@ -243,6 +234,15 @@ public:
 
     // Get total stored DHT entries
     size_t GetStoredEntryCount() const;
+
+	// Copy own Kad ID (16 bytes). Returns false when not initialized.
+	bool GetOwnKadId(KadId& outId) const
+	{
+		if (!m_bInitialized)
+			return false;
+		memcpy(outId, m_ownId, KAD_ID_SIZE);
+		return true;
+	}
 
 private:
     // Packet handlers

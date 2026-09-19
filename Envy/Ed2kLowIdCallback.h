@@ -36,7 +36,7 @@ inline constexpr DWORD Ed2kPublicIpAnswerExactBytes()
 // aMule ClientTCPSocket.cpp OP_CALLBACK / eMule ListenSocket.cpp OP_CALLBACK
 inline constexpr DWORD Ed2kC2cCallbackExactBytes()
 {
-	return 16u + 16u + 4u + 2u;	// 38
+	return 16u + 16u + 4u + 2u; // 38
 }
 
 // Buddy-forwarded reask: <IP 4><UDPPort 2><FileHash 16> minimum (extended info may follow)
@@ -84,13 +84,10 @@ inline BOOL Ed2kPublicIpAnswerPayloadOk(DWORD nRemaining)
 // Decode IPv4 from PUBLICIP_ANSWER body (little-endian DWORD = sockaddr s_addr form).
 inline BOOL Ed2kPublicIpAnswerDecode(const BYTE* pData, DWORD nLen, DWORD* pnIpOut)
 {
-	if ( ! pData || ! pnIpOut || ! Ed2kPublicIpAnswerPayloadOk( nLen ) )
+	if (!pData || !pnIpOut || !Ed2kPublicIpAnswerPayloadOk(nLen))
 		return FALSE;
 
-	DWORD nIp = (DWORD)pData[0]
-		| ( (DWORD)pData[1] << 8 )
-		| ( (DWORD)pData[2] << 16 )
-		| ( (DWORD)pData[3] << 24 );
+	DWORD nIp = (DWORD)pData[0] | ((DWORD)pData[1] << 8) | ((DWORD)pData[2] << 16) | ((DWORD)pData[3] << 24);
 	*pnIpOut = nIp;
 	return TRUE;
 }
@@ -98,24 +95,24 @@ inline BOOL Ed2kPublicIpAnswerDecode(const BYTE* pData, DWORD nLen, DWORD* pnIpO
 // Encode observed peer IPv4 into PUBLICIP_ANSWER body (LE dword).
 inline BOOL Ed2kPublicIpAnswerEncode(DWORD nPeerIp, BYTE* pOut4)
 {
-	if ( ! pOut4 )
+	if (!pOut4)
 		return FALSE;
 
-	pOut4[0] = (BYTE)( nPeerIp & 0xFF );
-	pOut4[1] = (BYTE)( ( nPeerIp >> 8 ) & 0xFF );
-	pOut4[2] = (BYTE)( ( nPeerIp >> 16 ) & 0xFF );
-	pOut4[3] = (BYTE)( ( nPeerIp >> 24 ) & 0xFF );
+	pOut4[0] = (BYTE)(nPeerIp & 0xFF);
+	pOut4[1] = (BYTE)((nPeerIp >> 8) & 0xFF);
+	pOut4[2] = (BYTE)((nPeerIp >> 16) & 0xFF);
+	pOut4[3] = (BYTE)((nPeerIp >> 24) & 0xFF);
 	return TRUE;
 }
 
 // eMule/aMule: only apply answer when we asked, public IP still unknown, and value is not LowID-shaped.
 inline BOOL Ed2kPublicIpAnswerMayApply(BOOL bNeedOurPublicIp, DWORD nCurrentPublicIp, DWORD nAnswerIp)
 {
-	if ( ! bNeedOurPublicIp )
+	if (!bNeedOurPublicIp)
 		return FALSE;
-	if ( nCurrentPublicIp != 0 )
+	if (nCurrentPublicIp != 0)
 		return FALSE;
-	if ( Ed2kIsLowIdValue( nAnswerIp ) )
+	if (Ed2kIsLowIdValue(nAnswerIp))
 		return FALSE;
 	return TRUE;
 }
@@ -123,14 +120,14 @@ inline BOOL Ed2kPublicIpAnswerMayApply(BOOL bNeedOurPublicIp, DWORD nCurrentPubl
 // Bounded public-IP query state (per peer session).
 struct Ed2kPublicIpQueryState
 {
-	BOOL	bOutstanding;
-	BOOL	bConsumed;
-	DWORD	tCreatedMs;
+	BOOL bOutstanding;
+	BOOL bConsumed;
+	DWORD tCreatedMs;
 
 	Ed2kPublicIpQueryState()
-		: bOutstanding( FALSE )
-		, bConsumed( FALSE )
-		, tCreatedMs( 0 )
+	    : bOutstanding(FALSE)
+	    , bConsumed(FALSE)
+	    , tCreatedMs(0)
 	{
 	}
 
@@ -150,17 +147,17 @@ struct Ed2kPublicIpQueryState
 
 	BOOL IsExpired(DWORD tNowMs, DWORD nTimeoutMs = Ed2kPublicIpQueryTimeoutMs()) const
 	{
-		if ( ! bOutstanding )
+		if (!bOutstanding)
 			return FALSE;
-		return ( tNowMs - tCreatedMs ) >= nTimeoutMs;
+		return (tNowMs - tCreatedMs) >= nTimeoutMs;
 	}
 
 	// Accept one answer while outstanding and not yet consumed.
 	BOOL TryConsumeAnswer(DWORD tNowMs, DWORD nTimeoutMs = Ed2kPublicIpQueryTimeoutMs())
 	{
-		if ( ! bOutstanding || bConsumed )
+		if (!bOutstanding || bConsumed)
 			return FALSE;
-		if ( IsExpired( tNowMs, nTimeoutMs ) )
+		if (IsExpired(tNowMs, nTimeoutMs))
 		{
 			Clear();
 			return FALSE;
@@ -180,30 +177,30 @@ struct Ed2kPublicIpQueryState
 
 struct Ed2kC2cCallbackFields
 {
-	BYTE	kadCheck[16];		// ownKadId XOR 0xFF…FF when valid for us
-	BYTE	fileHash[16];
-	DWORD	nIp;				// LE dword / sockaddr s_addr form (Kad host IP storage)
-	WORD	nTcpPort;			// host-order port after LE decode
+	BYTE kadCheck[16]; // ownKadId XOR 0xFF…FF when valid for us
+	BYTE fileHash[16];
+	DWORD nIp;     // LE dword / sockaddr s_addr form (Kad host IP storage)
+	WORD nTcpPort; // host-order port after LE decode
 };
 
 inline void Ed2kXorKadIdWithOnes(BYTE* pId16)
 {
-	if ( ! pId16 )
+	if (!pId16)
 		return;
-	for ( int i = 0; i < 16; ++i )
-		pId16[i] = (BYTE)( pId16[i] ^ 0xFF );
+	for (int i = 0; i < 16; ++i)
+		pId16[i] = (BYTE)(pId16[i] ^ 0xFF);
 }
 
 // packetCheck XOR all-ones must equal our Kad ID (aMule/eMule OP_CALLBACK).
 inline BOOL Ed2kCallbackKadIdMatches(const BYTE* pPacketCheck16, const BYTE* pOwnKadId16)
 {
-	if ( ! pPacketCheck16 || ! pOwnKadId16 )
+	if (!pPacketCheck16 || !pOwnKadId16)
 		return FALSE;
 
 	BYTE tmp[16];
-	memcpy( tmp, pPacketCheck16, 16 );
-	Ed2kXorKadIdWithOnes( tmp );
-	return memcmp( tmp, pOwnKadId16, 16 ) == 0;
+	memcpy(tmp, pPacketCheck16, 16);
+	Ed2kXorKadIdWithOnes(tmp);
+	return memcmp(tmp, pOwnKadId16, 16) == 0;
 }
 
 inline BOOL Ed2kC2cCallbackPayloadOk(DWORD nRemaining)
@@ -213,28 +210,25 @@ inline BOOL Ed2kC2cCallbackPayloadOk(DWORD nRemaining)
 
 inline BOOL Ed2kC2cCallbackParse(const BYTE* pData, DWORD nLen, Ed2kC2cCallbackFields* pOut)
 {
-	if ( ! pData || ! pOut || ! Ed2kC2cCallbackPayloadOk( nLen ) )
+	if (!pData || !pOut || !Ed2kC2cCallbackPayloadOk(nLen))
 		return FALSE;
 
-	memcpy( pOut->kadCheck, pData, 16 );
-	memcpy( pOut->fileHash, pData + 16, 16 );
-	pOut->nIp = (DWORD)pData[32]
-		| ( (DWORD)pData[33] << 8 )
-		| ( (DWORD)pData[34] << 16 )
-		| ( (DWORD)pData[35] << 24 );
-	pOut->nTcpPort = (WORD)( (DWORD)pData[36] | ( (DWORD)pData[37] << 8 ) );
+	memcpy(pOut->kadCheck, pData, 16);
+	memcpy(pOut->fileHash, pData + 16, 16);
+	pOut->nIp = (DWORD)pData[32] | ((DWORD)pData[33] << 8) | ((DWORD)pData[34] << 16) | ((DWORD)pData[35] << 24);
+	pOut->nTcpPort = (WORD)((DWORD)pData[36] | ((DWORD)pData[37] << 8));
 	return TRUE;
 }
 
 // Endpoint checks before initiating a callback-derived HighID connect.
 inline BOOL Ed2kCallbackEndpointOk(DWORD nIp, WORD nPort)
 {
-	if ( nPort == 0 )
+	if (nPort == 0)
 		return FALSE;
-	if ( nIp == 0 || nIp == 0xFFFFFFFFu )
+	if (nIp == 0 || nIp == 0xFFFFFFFFu)
 		return FALSE;
 	// Reject LowID-shaped values used as an IP (cannot dial a LowID as HighID).
-	if ( Ed2kIsLowIdValue( nIp ) )
+	if (Ed2kIsLowIdValue(nIp))
 		return FALSE;
 	return TRUE;
 }
@@ -242,10 +236,10 @@ inline BOOL Ed2kCallbackEndpointOk(DWORD nIp, WORD nPort)
 // Zero / empty file hash is not a usable callback target identity.
 inline BOOL Ed2kCallbackFileHashNonEmpty(const BYTE* pHash16)
 {
-	if ( ! pHash16 )
+	if (!pHash16)
 		return FALSE;
 	static const BYTE zeros[16] = {};
-	return memcmp( pHash16, zeros, 16 ) != 0;
+	return memcmp(pHash16, zeros, 16) != 0;
 }
 
 // One-shot consume guard for inbound OP_CALLBACK (eMule connects immediately).
@@ -253,21 +247,21 @@ inline BOOL Ed2kCallbackFileHashNonEmpty(const BYTE* pHash16)
 // a different peer/file target is a separate event and is allowed.
 struct Ed2kC2cCallbackConsumeGuard
 {
-	BOOL	bArmed;
-	BOOL	bConsumed;
-	DWORD	tCreatedMs;
-	DWORD	nIp;
-	WORD	nPort;
-	BYTE	fileHash[16];
+	BOOL bArmed;
+	BOOL bConsumed;
+	DWORD tCreatedMs;
+	DWORD nIp;
+	WORD nPort;
+	BYTE fileHash[16];
 
 	Ed2kC2cCallbackConsumeGuard()
-		: bArmed( FALSE )
-		, bConsumed( FALSE )
-		, tCreatedMs( 0 )
-		, nIp( 0 )
-		, nPort( 0 )
+	    : bArmed(FALSE)
+	    , bConsumed(FALSE)
+	    , tCreatedMs(0)
+	    , nIp(0)
+	    , nPort(0)
 	{
-		memset( fileHash, 0, sizeof( fileHash ) );
+		memset(fileHash, 0, sizeof(fileHash));
 	}
 
 	void Clear()
@@ -277,38 +271,38 @@ struct Ed2kC2cCallbackConsumeGuard
 		tCreatedMs = 0;
 		nIp = 0;
 		nPort = 0;
-		memset( fileHash, 0, sizeof( fileHash ) );
+		memset(fileHash, 0, sizeof(fileHash));
 	}
 
 	BOOL IsExpired(DWORD tNowMs, DWORD nTimeoutMs = Ed2kC2cCallbackPendingTimeoutMs()) const
 	{
-		if ( ! bArmed )
+		if (!bArmed)
 			return FALSE;
-		return ( tNowMs - tCreatedMs ) >= nTimeoutMs;
+		return (tNowMs - tCreatedMs) >= nTimeoutMs;
 	}
 
 	// True when this exact callback was already consumed and is still within the window.
 	BOOL IsDuplicate(DWORD tNowMs, DWORD nIpIn, WORD nPortIn, const BYTE* pFileHash16,
-		DWORD nTimeoutMs = Ed2kC2cCallbackPendingTimeoutMs()) const
+	                 DWORD nTimeoutMs = Ed2kC2cCallbackPendingTimeoutMs()) const
 	{
-		if ( ! bConsumed || ! bArmed || ! pFileHash16 )
+		if (!bConsumed || !bArmed || !pFileHash16)
 			return FALSE;
-		if ( IsExpired( tNowMs, nTimeoutMs ) )
+		if (IsExpired(tNowMs, nTimeoutMs))
 			return FALSE;
-		if ( nIpIn != nIp || nPortIn != nPort )
+		if (nIpIn != nIp || nPortIn != nPort)
 			return FALSE;
-		return memcmp( pFileHash16, fileHash, 16 ) == 0;
+		return memcmp(pFileHash16, fileHash, 16) == 0;
 	}
 
 	// Arm + consume in one step after validation (cannot be reused).
 	BOOL TryConsumeOnce(DWORD tNowMs, DWORD nIpIn, WORD nPortIn, const BYTE* pFileHash16,
-		DWORD nTimeoutMs = Ed2kC2cCallbackPendingTimeoutMs())
+	                    DWORD nTimeoutMs = Ed2kC2cCallbackPendingTimeoutMs())
 	{
-		if ( ! pFileHash16 )
+		if (!pFileHash16)
 			return FALSE;
-		if ( IsExpired( tNowMs, nTimeoutMs ) )
+		if (IsExpired(tNowMs, nTimeoutMs))
 			Clear();
-		if ( IsDuplicate( tNowMs, nIpIn, nPortIn, pFileHash16, nTimeoutMs ) )
+		if (IsDuplicate(tNowMs, nIpIn, nPortIn, pFileHash16, nTimeoutMs))
 			return FALSE;
 
 		bArmed = TRUE;
@@ -316,7 +310,7 @@ struct Ed2kC2cCallbackConsumeGuard
 		tCreatedMs = tNowMs;
 		nIp = nIpIn;
 		nPort = nPortIn;
-		memcpy( fileHash, pFileHash16, 16 );
+		memcpy(fileHash, pFileHash16, 16);
 		return TRUE;
 	}
 
@@ -335,30 +329,27 @@ inline BOOL Ed2kServerCallbackRequestedPayloadOk(DWORD nRemaining)
 
 inline BOOL Ed2kServerCallbackRequestedParse(const BYTE* pData, DWORD nLen, DWORD* pnIp, WORD* pnPort)
 {
-	if ( ! pData || ! pnIp || ! pnPort || ! Ed2kServerCallbackRequestedPayloadOk( nLen ) )
+	if (!pData || !pnIp || !pnPort || !Ed2kServerCallbackRequestedPayloadOk(nLen))
 		return FALSE;
 
-	*pnIp = (DWORD)pData[0]
-		| ( (DWORD)pData[1] << 8 )
-		| ( (DWORD)pData[2] << 16 )
-		| ( (DWORD)pData[3] << 24 );
-	*pnPort = (WORD)( (DWORD)pData[4] | ( (DWORD)pData[5] << 8 ) );
+	*pnIp = (DWORD)pData[0] | ((DWORD)pData[1] << 8) | ((DWORD)pData[2] << 16) | ((DWORD)pData[3] << 24);
+	*pnPort = (WORD)((DWORD)pData[4] | ((DWORD)pData[5] << 8));
 	return TRUE;
 }
 
 // LowID identity: ClientID alone is insufficient — server endpoint must match (CEDClient::Equals).
 inline BOOL Ed2kLowIdPeersEqual(DWORD nIdA, DWORD nServerIpA, DWORD nIdB, DWORD nServerIpB)
 {
-	if ( ! Ed2kIsLowIdValue( nIdA ) || ! Ed2kIsLowIdValue( nIdB ) )
+	if (!Ed2kIsLowIdValue(nIdA) || !Ed2kIsLowIdValue(nIdB))
 		return FALSE;
 	return nIdA == nIdB && nServerIpA == nServerIpB;
 }
 
 inline BOOL Ed2kLowIdSameIdDifferentServerCollide(DWORD nIdA, DWORD nServerIpA, DWORD nIdB, DWORD nServerIpB)
 {
-	if ( ! Ed2kIsLowIdValue( nIdA ) || ! Ed2kIsLowIdValue( nIdB ) )
+	if (!Ed2kIsLowIdValue(nIdA) || !Ed2kIsLowIdValue(nIdB))
 		return FALSE;
-	if ( nIdA != nIdB )
+	if (nIdA != nIdB)
 		return FALSE;
 	return nServerIpA != nServerIpB;
 }
@@ -366,5 +357,5 @@ inline BOOL Ed2kLowIdSameIdDifferentServerCollide(DWORD nIdA, DWORD nServerIpA, 
 // Conceptual classic path: LowID Connect uses server push (not direct TCP).
 inline BOOL Ed2kLowIdConnectUsesServerPush(DWORD nClientId)
 {
-	return Ed2kIsLowIdValue( nClientId );
+	return Ed2kIsLowIdValue(nClientId);
 }

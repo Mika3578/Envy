@@ -401,64 +401,64 @@ BOOL CEDClient::DecryptPacket(BYTE* pData, DWORD nLength)
 // CEDClient construction
 
 CEDClient::CEDClient()
-	: CTransfer				( PROTOCOL_ED2K )
-	, m_pEdPrev				( NULL )
-	, m_pEdNext				( NULL )
+    : CTransfer(PROTOCOL_ED2K)
+    , m_pEdPrev(NULL)
+    , m_pEdNext(NULL)
 
-	, m_nClientID			( 0ul )
-	, m_nUDP				( 0u )
+    , m_nClientID(0ul)
+    , m_nUDP(0u)
 
-	// Client ID and version
-	, m_bEmule				( FALSE )
-	, m_nEmCompatible		( 0 )
-	, m_nEmVersion			( 0 )
-	, m_nVersion			( 0 )
-	, m_nSoftwareVersion	( 0ul )
+    // Client ID and version
+    , m_bEmule(FALSE)
+    , m_nEmCompatible(0)
+    , m_nEmVersion(0)
+    , m_nVersion(0)
+    , m_nSoftwareVersion(0ul)
 
-	// Client capabilities
-	, m_bEmAICH				( TRUE )	// Supported
-	, m_bEmUnicode			( FALSE )
-	, m_bEmUDPVersion		( FALSE )
-	, m_bEmDeflate			( FALSE )
-	, m_bEmSecureID			( FALSE )	// Do not claim SecureIdent locally (#75); peer nibble still parsed
-	, m_bEmSources			( FALSE )
-	, m_bEmRequest			( FALSE )
-	, m_bEmComments			( FALSE )
-	, m_bEmBrowse			( FALSE )
-	, m_bEmPeerCache		( FALSE )	// Unsupported
-	, m_bEmMultiPacket		( FALSE )	// Unsupported
-	, m_bEmPreview			( FALSE )
+    // Client capabilities
+    , m_bEmAICH(TRUE) // Supported
+    , m_bEmUnicode(FALSE)
+    , m_bEmUDPVersion(FALSE)
+    , m_bEmDeflate(FALSE)
+    , m_bEmSecureID(FALSE) // Do not claim SecureIdent locally (#75); peer nibble still parsed
+    , m_bEmSources(FALSE)
+    , m_bEmRequest(FALSE)
+    , m_bEmComments(FALSE)
+    , m_bEmBrowse(FALSE)
+    , m_bEmPeerCache(FALSE)   // Unsupported
+    , m_bEmMultiPacket(FALSE) // Unsupported
+    , m_bEmPreview(FALSE)
 
-	, m_bEmSupportsCaptcha	( FALSE )
-	, m_bEmSupportsSourceEx2 ( TRUE )	// Source Exchange v2 enabled
-	, m_bEmRequiresCryptLayer ( FALSE )	// Peer Hello bit; TCP obfuscation (#121)
-	, m_bEmRequestsCryptLayer ( FALSE )	// Peer Hello bit; default unknown until Hello
-	, m_bEmSupportsCryptLayer ( FALSE )	// Peer Hello bit; default unknown until Hello
-	, m_bEmExtMultiPacket	( FALSE )	// Unsupported
-	, m_bEmLargeFile		( FALSE )	// LargeFile support
-	, m_nEmKadVersion		( 0 )		// Unsupported
+    , m_bEmSupportsCaptcha(FALSE)
+    , m_bEmSupportsSourceEx2(TRUE)   // Source Exchange v2 enabled
+    , m_bEmRequiresCryptLayer(FALSE) // Peer Hello bit; TCP obfuscation (#121)
+    , m_bEmRequestsCryptLayer(FALSE) // Peer Hello bit; default unknown until Hello
+    , m_bEmSupportsCryptLayer(FALSE) // Peer Hello bit; default unknown until Hello
+    , m_bEmExtMultiPacket(FALSE)     // Unsupported
+    , m_bEmLargeFile(FALSE)          // LargeFile support
+    , m_nEmKadVersion(0)             // Unsupported
 
-	// SecureID state
-	, m_nSecureIdentState	( ED2K_SECUREIDENT_STATE_NONE )
+    // SecureID state
+    , m_nSecureIdentState(ED2K_SECUREIDENT_STATE_NONE)
 
-	// Misc stuff
-	, m_pDownloadTransfer	( NULL )
-	, m_pUploadTransfer 	( NULL )
-	, m_nRunExCookie		( 0 )
-	, m_bLogin				( FALSE )
-	, m_bCryptLayerActive	( FALSE )
-	, m_bCryptLayerRequested( FALSE )
-	, m_bCryptLayerInitiator( FALSE )
-	, m_nCryptLayerState	( 0 )
-	, m_pPeerPublicKey		( NULL )
-	, m_nPeerKeyLen			( 0 )
-	, m_bSeeking			( FALSE )
-	, m_bCallbackRequested	( false )
-	, m_bOpenChat			( FALSE )
-	, m_bCommentSent		( FALSE )
-	, m_nObservedPublicIp	( 0 )
+    // Misc stuff
+    , m_pDownloadTransfer(NULL)
+    , m_pUploadTransfer(NULL)
+    , m_nRunExCookie(0)
+    , m_bLogin(FALSE)
+    , m_bCryptLayerActive(FALSE)
+    , m_bCryptLayerRequested(FALSE)
+    , m_bCryptLayerInitiator(FALSE)
+    , m_nCryptLayerState(0)
+    , m_pPeerPublicKey(NULL)
+    , m_nPeerKeyLen(0)
+    , m_bSeeking(FALSE)
+    , m_bCallbackRequested(false)
+    , m_bOpenChat(FALSE)
+    , m_bCommentSent(FALSE)
+    , m_nObservedPublicIp(0)
 
-	, m_nDirsWaiting		( 0ul )
+    , m_nDirsWaiting(0ul)
 {
 	m_mInput.pLimit  = &Settings.Bandwidth.Request;
 	m_mOutput.pLimit = &Settings.Bandwidth.Request;
@@ -875,9 +875,9 @@ BOOL CEDClient::OnRun()
 
 void CEDClient::OnRunEx(DWORD tNow)
 {
-	if ( m_oPublicIpQuery.IsExpired( tNow ) )
+	if (m_oPublicIpQuery.IsExpired(tNow))
 		m_oPublicIpQuery.Clear();
-	if ( m_oC2cCallbackGuard.IsExpired( tNow ) )
+	if (m_oC2cCallbackGuard.IsExpired(tNow))
 		m_oC2cCallbackGuard.Clear();
 
 	// Already downloading or uploading
@@ -1055,10 +1055,10 @@ BOOL CEDClient::OnLoggedIn()
 
 	// aMule BaseClient: request PUBLICIP when our public IPv4 is still unknown.
 	// Only once per peer session; never spam after Hello.
-	if ( Network.m_pHost.sin_addr.S_un.S_addr == 0 &&
-		 m_bEmule &&
-		 ! m_oPublicIpQuery.bOutstanding &&
-		 ! m_oPublicIpQuery.bConsumed )
+	if (Network.m_pHost.sin_addr.S_un.S_addr == 0 &&
+	    m_bEmule &&
+	    !m_oPublicIpQuery.bOutstanding &&
+	    !m_oPublicIpQuery.bConsumed)
 	{
 		SendPublicIpRequest();
 	}
@@ -1300,13 +1300,13 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 
 		// #87 LowID / firewalled C2C baseline (PUBLICIP + CALLBACK; REASK deferred)
 		case ED2K_C2C_PUBLICIP_REQ:
-			return OnPublicIpRequest( pPacket );
+			return OnPublicIpRequest(pPacket);
 		case ED2K_C2C_PUBLICIP_ANSWER:
-			return OnPublicIpAnswer( pPacket );
+			return OnPublicIpAnswer(pPacket);
 		case ED2K_C2C_CALLBACK:
-			return OnC2cCallback( pPacket );
+			return OnC2cCallback(pPacket);
 		case ED2K_C2C_REASKCALLBACKTCP:
-			return OnReaskCallbackTcp( pPacket );
+			return OnReaskCallbackTcp(pPacket);
 		}
 	}
 
@@ -3316,62 +3316,62 @@ void CEDClient::WritePartStatus(CEDPacket* pPacket, CDownload* pDownload)
 
 void CEDClient::SendPublicIpRequest()
 {
-	if ( ! IsValid() || ! m_bLogin )
+	if (!IsValid() || !m_bLogin)
 		return;
-	if ( m_oPublicIpQuery.bOutstanding || m_oPublicIpQuery.bConsumed )
-		return;
-
-	CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_PUBLICIP_REQ, ED2K_PROTOCOL_EMULE );
-	if ( ! pPacket )
+	if (m_oPublicIpQuery.bOutstanding || m_oPublicIpQuery.bConsumed)
 		return;
 
-	m_oPublicIpQuery.MarkRequested( GetTickCount() );
-	Send( pPacket );
+	CEDPacket* pPacket = CEDPacket::New(ED2K_C2C_PUBLICIP_REQ, ED2K_PROTOCOL_EMULE);
+	if (!pPacket)
+		return;
+
+	m_oPublicIpQuery.MarkRequested(GetTickCount());
+	Send(pPacket);
 }
 
 BOOL CEDClient::OnPublicIpRequest(CEDPacket* pPacket)
 {
 	// aMule/eMule: empty request; reply with the connected peer's observed IPv4.
-	if ( ! Ed2kPublicIpReqPayloadOk( pPacket->GetRemaining() ) )
+	if (!Ed2kPublicIpReqPayloadOk(pPacket->GetRemaining()))
 	{
-		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 		return TRUE;
 	}
 
 	const DWORD nPeerIp = m_pHost.sin_addr.S_un.S_addr;
 
-	CEDPacket* pReply = CEDPacket::New( ED2K_C2C_PUBLICIP_ANSWER, ED2K_PROTOCOL_EMULE );
-	if ( ! pReply )
+	CEDPacket* pReply = CEDPacket::New(ED2K_C2C_PUBLICIP_ANSWER, ED2K_PROTOCOL_EMULE);
+	if (!pReply)
 		return TRUE;
 
-	pReply->WriteLongLE( nPeerIp );
-	Send( pReply );
+	pReply->WriteLongLE(nPeerIp);
+	Send(pReply);
 	return TRUE;
 }
 
 BOOL CEDClient::OnPublicIpAnswer(CEDPacket* pPacket)
 {
 	const DWORD nRemaining = pPacket->GetRemaining();
-	if ( ! Ed2kPublicIpAnswerPayloadOk( nRemaining ) )
+	if (!Ed2kPublicIpAnswerPayloadOk(nRemaining))
 	{
-		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 		return TRUE;
 	}
 
 	BYTE pRaw[4];
-	pPacket->Read( pRaw, 4 );
+	pPacket->Read(pRaw, 4);
 
 	DWORD nAnswerIp = 0;
-	if ( ! Ed2kPublicIpAnswerDecode( pRaw, 4, &nAnswerIp ) )
+	if (!Ed2kPublicIpAnswerDecode(pRaw, 4, &nAnswerIp))
 		return TRUE;
 
 	const DWORD tNow = GetTickCount();
-	if ( ! m_oPublicIpQuery.TryConsumeAnswer( tNow ) )
+	if (!m_oPublicIpQuery.TryConsumeAnswer(tNow))
 	{
 		// Unsolicited / duplicate / expired — do not mutate identity.
-		DEBUG_ONLY( theApp.Message( MSG_DEBUG,
-			L"[ED2K] Ignoring unsolicited/stale PUBLICIP_ANSWER from %s",
-			(LPCTSTR)m_sAddress ) );
+		DEBUG_ONLY(theApp.Message(MSG_DEBUG,
+		                          L"[ED2K] Ignoring unsolicited/stale PUBLICIP_ANSWER from %s",
+		                          (LPCTSTR)m_sAddress));
 		return TRUE;
 	}
 
@@ -3380,16 +3380,16 @@ BOOL CEDClient::OnPublicIpAnswer(CEDPacket* pPacket)
 	// Bounded apply: only when Network still has no public IPv4, matching
 	// aMule ProcessPublicIPAnswer (GetPublicIP==0 && !IsLowID). Prefer
 	// AcquireLocalAddress over inventing a second identity store.
-	if ( Ed2kPublicIpAnswerMayApply( TRUE,
-			Network.m_pHost.sin_addr.S_un.S_addr, nAnswerIp ) )
+	if (Ed2kPublicIpAnswerMayApply(TRUE,
+	                               Network.m_pHost.sin_addr.S_un.S_addr, nAnswerIp))
 	{
 		IN_ADDR pAddr = {};
 		pAddr.S_un.S_addr = nAnswerIp;
-		if ( ! Network.IsReserved( &pAddr ) &&
-			 ! Network.IsFirewalledAddress( &pAddr, FALSE ) &&
-			 ! Security.IsDenied( &pAddr ) )
+		if (!Network.IsReserved(&pAddr) &&
+		    !Network.IsFirewalledAddress(&pAddr, FALSE) &&
+		    !Security.IsDenied(&pAddr))
 		{
-			Network.AcquireLocalAddress( pAddr );
+			Network.AcquireLocalAddress(pAddr);
 		}
 	}
 
@@ -3399,73 +3399,73 @@ BOOL CEDClient::OnPublicIpAnswer(CEDPacket* pPacket)
 BOOL CEDClient::OnC2cCallback(CEDPacket* pPacket)
 {
 	const DWORD nRemaining = pPacket->GetRemaining();
-	if ( ! Ed2kC2cCallbackPayloadOk( nRemaining ) )
+	if (!Ed2kC2cCallbackPayloadOk(nRemaining))
 	{
-		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 		return TRUE;
 	}
 
 	BYTE pRaw[38];
-	pPacket->Read( pRaw, sizeof( pRaw ) );
+	pPacket->Read(pRaw, sizeof(pRaw));
 
 	Ed2kC2cCallbackFields oFields = {};
-	if ( ! Ed2kC2cCallbackParse( pRaw, sizeof( pRaw ), &oFields ) )
+	if (!Ed2kC2cCallbackParse(pRaw, sizeof(pRaw), &oFields))
 		return TRUE;
 
 	// eMule/aMule: require Kad running; KadCheck XOR all-ones must equal our Kad ID.
-	if ( ! Kademlia.IsInitialized() )
+	if (!Kademlia.IsInitialized())
 		return TRUE;
 
 	KadId oOwnId = {};
-	if ( ! Kademlia.GetOwnKadId( oOwnId ) )
+	if (!Kademlia.GetOwnKadId(oOwnId))
 		return TRUE;
-	if ( ! Ed2kCallbackKadIdMatches( oFields.kadCheck, oOwnId ) )
+	if (!Ed2kCallbackKadIdMatches(oFields.kadCheck, oOwnId))
 		return TRUE;
 
-	if ( ! Ed2kCallbackFileHashNonEmpty( oFields.fileHash ) )
+	if (!Ed2kCallbackFileHashNonEmpty(oFields.fileHash))
 		return TRUE;
-	if ( ! Ed2kCallbackEndpointOk( oFields.nIp, oFields.nTcpPort ) )
+	if (!Ed2kCallbackEndpointOk(oFields.nIp, oFields.nTcpPort))
 		return TRUE;
 
 	IN_ADDR pTarget = {};
 	pTarget.S_un.S_addr = oFields.nIp;
-	if ( Security.IsDenied( &pTarget ) ||
-		 Network.IsFirewalledAddress( &pTarget ) ||
-		 Network.IsReserved( &pTarget ) )
+	if (Security.IsDenied(&pTarget) ||
+	    Network.IsFirewalledAddress(&pTarget) ||
+	    Network.IsReserved(&pTarget))
 	{
-		theApp.Message( MSG_NOTICE, IDS_PROTOCOL_ZERO_PUSH, m_sAddress );
+		theApp.Message(MSG_NOTICE, IDS_PROTOCOL_ZERO_PUSH, m_sAddress);
 		return TRUE;
 	}
 
 	// File must be known (share or incomplete download) — same gate as eMule.
 	Hashes::Ed2kHash oFileHash(
-		*reinterpret_cast< const Hashes::Ed2kHash::RawStorage* >( oFields.fileHash ) );
+	    *reinterpret_cast<const Hashes::Ed2kHash::RawStorage*>(oFields.fileHash));
 	BOOL bKnownFile = FALSE;
 	{
-		CSingleLock pLock( &Library.m_pSection, FALSE );
-		if ( SafeLock( pLock ) )
+		CSingleLock pLock(&Library.m_pSection, FALSE);
+		if (SafeLock(pLock))
 		{
-			if ( LibraryMaps.LookupFileByED2K( oFileHash, TRUE, TRUE ) )
+			if (LibraryMaps.LookupFileByED2K(oFileHash, TRUE, TRUE))
 				bKnownFile = TRUE;
 			pLock.Unlock();
 		}
 	}
-	if ( ! bKnownFile && Downloads.FindByED2K( oFileHash, TRUE ) )
+	if (!bKnownFile && Downloads.FindByED2K(oFileHash, TRUE))
 		bKnownFile = TRUE;
-	if ( ! bKnownFile )
+	if (!bKnownFile)
 		return TRUE;
 
 	const DWORD tNow = GetTickCount();
-	if ( ! m_oC2cCallbackGuard.TryConsumeOnce( tNow, oFields.nIp, oFields.nTcpPort, oFields.fileHash ) )
+	if (!m_oC2cCallbackGuard.TryConsumeOnce(tNow, oFields.nIp, oFields.nTcpPort, oFields.fileHash))
 	{
-		DEBUG_ONLY( theApp.Message( MSG_DEBUG,
-			L"[ED2K] Duplicate/stale C2C CALLBACK ignored from %s",
-			(LPCTSTR)m_sAddress ) );
+		DEBUG_ONLY(theApp.Message(MSG_DEBUG,
+		                          L"[ED2K] Duplicate/stale C2C CALLBACK ignored from %s",
+		                          (LPCTSTR)m_sAddress));
 		return TRUE;
 	}
 
 	// Reuse classic push connection machinery (complements server callback; does not replace it).
-	EDClients.PushTo( oFields.nIp, oFields.nTcpPort );
+	EDClients.PushTo(oFields.nIp, oFields.nTcpPort);
 	return TRUE;
 }
 
@@ -3473,15 +3473,15 @@ BOOL CEDClient::OnReaskCallbackTcp(CEDPacket* pPacket)
 {
 	// Phase 2: requires Buddy bond. Parse-size audit only; never invent Buddy state.
 	const DWORD nRemaining = pPacket->GetRemaining();
-	if ( nRemaining < Ed2kReaskCallbackTcpMinBytes() )
+	if (nRemaining < Ed2kReaskCallbackTcpMinBytes())
 	{
-		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 		return TRUE;
 	}
 
-	DEBUG_ONLY( theApp.Message( MSG_DEBUG,
-		L"[ED2K] REASKCALLBACKTCP from %s ignored (Buddy not implemented)",
-		(LPCTSTR)m_sAddress ) );
+	DEBUG_ONLY(theApp.Message(MSG_DEBUG,
+	                          L"[ED2K] REASKCALLBACKTCP from %s ignored (Buddy not implemented)",
+	                          (LPCTSTR)m_sAddress));
 	return TRUE;
 }
 
