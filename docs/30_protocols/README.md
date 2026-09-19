@@ -10,6 +10,7 @@ Envy is a multi-network client. Protocol work on ED2K/Kad does not replace BitTo
 | Area | Envy docs | Specifications | Reference implementations |
 | --- | --- | --- | --- |
 | Policy | [REFERENCE_IMPLEMENTATIONS.md](REFERENCE_IMPLEMENTATIONS.md) | Specs listed in that document | eMule Community, aMule, others |
+| Bootstrap catalogues | [bootstrap-sources.md](bootstrap-sources.md) | Shipped `DefaultServices.dat` / `DefaultServers.dat` vs learned HostCache/Discovery | Not a completeness claim for Kad or ADC |
 | ED2K | [ed2k/](ed2k/README.md) | eDonkey/eMule notes, aMule wiki, ED2K URI | eMule Community (P0), aMule (P0) |
 | Kad | [kad/](kad/README.md) | Kademlia paper; Kad2 via eMule/aMule | eMule Community, aMule; Ember/eSE are not Kad2 |
 | BitTorrent | [bittorrent/](bittorrent/README.md) | [BEPs](https://www.bittorrent.org/beps/bep_0000.html) | aria2-next, libtorrent-family (existing Examples notes) |

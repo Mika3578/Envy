@@ -186,17 +186,17 @@ void CDHT::Connect()
 			}
 		}
 
-		if ( nCount == 0 && nBoot == 0 )
+		if (nCount == 0 && nBoot == 0)
 		{
-			HostCache.LoadDefaultServers( PROTOCOL_BT );
-			CQuickLock oLock( HostCache.BitTorrent.m_pSection );
-			for ( CHostCacheIterator i = HostCache.BitTorrent.Begin();
-			      i != HostCache.BitTorrent.End() && nBoot < BootstrapDhtRouterPingCap; ++i )
+			HostCache.LoadDefaultServers(PROTOCOL_BT);
+			CQuickLock oLock(HostCache.BitTorrent.m_pSection);
+			for (CHostCacheIterator i = HostCache.BitTorrent.Begin();
+			     i != HostCache.BitTorrent.End() && nBoot < BootstrapDhtRouterPingCap; ++i)
 			{
-				CHostCacheHostPtr pCache = ( *i );
-				oBoot[ nBoot ].addr = pCache->m_pAddress;
-				oBoot[ nBoot ].nPort = pCache->m_nPort;
-				oBoot[ nBoot ].sHost = pCache->m_sAddress;
+				CHostCacheHostPtr pCache = (*i);
+				oBoot[nBoot].addr = pCache->m_pAddress;
+				oBoot[nBoot].nPort = pCache->m_nPort;
+				oBoot[nBoot].sHost = pCache->m_sAddress;
 				++nBoot;
 			}
 		}
