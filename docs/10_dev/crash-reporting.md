@@ -103,10 +103,29 @@ WinDbg / Visual Studio with that `Envy.pdb` on the symbol path.
 - `tests/test_crash_report_policy_smoke.cpp` — filenames, metadata privacy,
   GitHub URL trust, retention, Crashpad UUID path safety. Does **not** link
   Crashpad and does not crash the test runner.
-- `tools/crash-probe/` — disposable `CrashProbe.exe` child processes for
-  access violation, heap corruption, stack overflow, fast-fail, `terminate`,
-  invalid parameter, multithread, missing handler, unwritable database, and
-  two sequential crashes. Workflow: `.github/workflows/crash-probe.yml`.
+- `tools/crash-probe/` — disposable `CrashProbe.exe` child processes.
+  Workflow: `.github/workflows/crash-probe.yml` (Crashpad × x64/Win32
+  Release). Run `35470816399` on `00e06c1` (required `av` / `av-second`
+  dumps present; consent `uploads_enabled=0` and empty `upload_url`):
+
+  | Kind | x64 dump | Win32 dump |
+  | --- | --- | --- |
+  | access violation | yes (116 KiB) | yes (91 KiB) |
+  | heap corruption `0xC0000374` | yes | yes |
+  | stack overflow | yes (~1.1 MiB) | yes (~1.1 MiB) |
+  | C++ `terminate` | yes | yes |
+  | multithread AV | yes | yes |
+  | `__fastfail` `0xC0000409` | **no** | **no** |
+  | invalid parameter `0xC0000409` | **no** | **no** |
+  | `--no-handler` | none (expected) | none |
+  | unwritable database | init exit 2 | init exit 2 |
+
+  Handler: `tools/crashpad_handler.exe` (x64 875 KiB, Win32 761 KiB).
+  `crashpad_wer.dll` is not installed by this vcpkg port, so fast-fail /
+  fail-fast CRT paths are not captured. The AV minidump CodeView RSDS GUID
+  matched `CrashProbe.exe` / `CrashProbe.pdb` (x64
+  `39FB374B-373C-4F58-818B-1051C567DD0F` age 1; Win32
+  `59B4FB15-7F30-4EDE-AD8F-812F896CB620` age 1).
 - About dialog Shift+Right-click on the web link still forces a null-pointer
   crash after confirmation (Release asks first). That is a manual way to
   produce a local Crashpad dump; it is not proof of heap/stack robustness.
@@ -122,11 +141,12 @@ WinDbg / Visual Studio with that `Envy.pdb` on the symbol path.
   MSBuild vcpkg integration does not see Crashpad headers unless the manifest
   root is explicit.
 - `Envy/CopyCrashpadHandler.cmd` copies `crashpad_handler.exe` (and
-  `crashpad_wer*.dll` if the port produces it) next to `Envy.exe`. Release
-  uses `vcpkg_installed/<triplet>/tools/crashpad/`; Debug uses
-  `debug/tools/crashpad/`. A recursive first-match copy would ship the Debug
-  handler with Release `Envy.exe`. The copy fails the build if the handler is
-  missing.
+  `crashpad_wer*.dll` if present next to that handler) beside `Envy.exe`.
+  Release uses `vcpkg_installed/<triplet>/tools/crashpad_handler.exe`
+  (`vcpkg_copy_tools`); Debug uses `debug/tools/crashpad_handler.exe`.
+  A `tools/crashpad/` subdirectory is accepted as a fallback. A recursive
+  first-match copy would ship the Debug handler with Release `Envy.exe`.
+  The copy fails the build if the handler is missing.
 - Inno Setup copies the handler into `{app}` (required). `crashpad_wer.dll` is
   optional (`skipifsourcedoesntexist`) because the current vcpkg port installs
   `handler:crashpad_handler` only. PDBs stay out of the installer.

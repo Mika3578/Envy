@@ -84,8 +84,8 @@ Build facts for this repo:
 | Upstream build | GN + Ninja (wrapped by the port via `vcpkg-gn`) |
 | MSBuild | Port mirrors `client/`, `util/`, `base/` headers into `include/` |
 | Installed libs | `vcpkg_crashpad_client`, `vcpkg_crashpad_client_common`, `vcpkg_crashpad_util`, `vcpkg_crashpad_base` |
-| Handler | `crashpad_handler.exe` (must be shipped next to `Envy.exe`) |
-| WER helper | Port `TARGETS` currently install `handler:crashpad_handler` only — **probe CI must inventory** whether `crashpad_wer.dll` is produced |
+| Handler | `crashpad_handler.exe` via `vcpkg_copy_tools` (`tools/crashpad_handler.exe`; x64 Release **875 KiB**, Win32 **761 KiB** on run `35470816399`) |
+| WER helper | Port `TARGETS` install `handler:crashpad_handler` only. Probe inventory: **0** `crashpad_wer*.dll`. Fast-fail / `0xC0000409` produced **no dump**. |
 | Triplet | Same as Envy: `x64-windows-static` / `x86-windows-static` |
 | License | Apache-2.0 |
 
@@ -163,7 +163,8 @@ for ingest hosts and for Sentry `transport`.
 - Do **not** expand CMake to replace `Envy.sln`
 - Do **not** edit `Plugins/PluginWizard/**`
 - Handler EXE is copied by `Envy/CopyCrashpadHandler.cmd` (Release:
-  `tools/crashpad`, Debug: `debug/tools/crashpad`) and the installer
+  `tools/crashpad_handler.exe`, Debug: `debug/tools/crashpad_handler.exe`)
+  and the installer
 - PDBs stay in CI artifacts, not the end-user installer
 - Windows-only; not an EnvyCore API (D-013)
 
