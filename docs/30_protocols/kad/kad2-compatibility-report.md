@@ -229,6 +229,35 @@ pResponse->WriteByte(contactCount);        // 1 byte
 
 ---
 
+## 6. KADEMLIA_FIREWALLED_REQ / RES (TCP firewall-detection baseline)
+
+Envy constants `KADEMLIA2_FIREWALLED_REQ` (0x50) / `KADEMLIA2_FIREWALLED_RES` (0x58) are the **Kad1 opcodes still used by Kad2**. They are **not** TagList packets. Historical `ED2K_KAD_GAP_ANALYSIS.md` framing (`<TargetID><TCPPort>…`) is wrong.
+
+**eMule/aMule (2026 sources):**
+- `FIREWALLED_REQ` (0x50): exact **2 bytes**, little-endian TCP port of the requester (`thePrefs.GetPort()`).
+- `FIREWALLED_RES` (0x58): exact **4 bytes**, little-endian IPv4 as observed by the responder (`WriteUInt32(uIP)` host-order).
+- `FIREWALLED2_REQ` (0x53, Kad version > 6): min **19 bytes** `<TCPPort 2><UserHash 16><ConnectOptions 1>`. Envy **parses inbound** 0x53 and answers with 0x58; outbound still emits 0x50 (v7+ still accept it).
+- `FIREWALLED_ACK_RES` (0x59): empty UDP ACK, **deprecated for Kad ≥ 7** in favor of ED2K TCP `OP_KAD_FWTCPCHECK_ACK` (0xA8). Envy accepts both toward TCP Open; it does **not** open a TCP connect-back in this slice.
+- `FIREWALLED_RES` updates public-IP observation only. TCP Open requires two independent ACKs (`IncFirewalled`-style). UDP reachability is a separate tester (`FWCHECKUDPREQ` / `KADEMLIA2_FIREWALLUDP`) and is **not** implemented.
+
+**Envy:** `Envy/KadFirewallCheck.h`, `Envy/Kademlia.cpp` (`OnFirewalledRequest` / `OnFirewalledResponse` / `OnFirewalledAck`), `CEDClient` handles empty 0xA8. State is Kad-specific and does not write `Network.IsFirewalled()`.
+
+**Wire-format impact:** ENVY now consumes/emits the existing Kad2/Kad1 `FIREWALLED_REQ` and `FIREWALLED_RES` (and consumes ACK 0x59 / 0xA8). No proprietary extension.
+
+**Status:** TCP firewall-detection **baseline** (parser + bounded state). UDP firewall verification, Buddy and callback remain incomplete. Live interop **unverified**.
+
+### #160 live harness scenarios (optional, not required CI)
+
+When the #160 eMule/aMule harness lands, add opt-in scenarios:
+
+1. Envy sends `FIREWALLED_REQ` (2-byte TCP port) to a verified eMule/aMule Kad contact.
+2. Envy accepts a matching `FIREWALLED_RES` (4-byte IPv4) and records a public-IP observation (one peer is not authoritative).
+3. Envy answers inbound `FIREWALLED_REQ` / `FIREWALLED2_REQ` with `FIREWALLED_RES` containing the observed source IPv4.
+4. TCP firewall state remains distinct from UDP; do not treat Kad UDP traffic as TCP Open.
+5. Capture ACK path: UDP 0x59 (Kad < 7) vs TCP 0xA8 (Kad ≥ 7). Connect-back from Envy is still a later slice.
+
+---
+
 ## Protocol Constants Compatibility
 
 ### Kademlia Constants

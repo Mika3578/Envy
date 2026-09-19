@@ -28,7 +28,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 - **BitTorrent v1:** Solid (DHT, ut_metadata, ut_pex, lt_tex, web seeds, trackers)
 - **BitTorrent v2:** Library-only (Merkle tree + SHA-256); no wire protocol
 - **ED2K:** Core transfers + SourceEx2 (0x83/0x84) present; Hello honesty for AICH/SecureIdent/CryptLayer/Ext Multipacket. Compressed upload send path, AICH C2C, Ext Multipacket handlers, callbacks/buddy, and live eMule/aMule interop still open. **SecureIdent RSA is not implemented** (#75; do not advertise).
-- **Kademlia (active: `Kademlia.cpp` only):** Bootstrap, ping, find_node, HELLO, SEARCH/PUBLISH **wire handlers** present; **source SEARCH_RES → `AddSourceED2K`** for HighID types 1/4 with outstanding-search context (keyword hits never create sources). FIREWALLED/Buddy/UDP keys absent; outbound store-answer framing still simplified; live Kad2 interop **unverified**. Legacy `KadProtocol.cpp` / `KBucket` / `KadStorage` require undefined `ENVY_LEGACY_KADEMLIA` and are **inactive**.
+- **Kademlia (active: `Kademlia.cpp` only):** Bootstrap, ping, find_node, HELLO, SEARCH/PUBLISH **wire handlers** present; **source SEARCH_RES → `AddSourceED2K`** for HighID types 1/4 with outstanding-search context (keyword hits never create sources). **TCP firewall-detection baseline** (`FIREWALLED_REQ`/`RES` + ACK count) present; UDP firewall tester / Buddy / UDP keys absent; outbound store-answer framing still simplified; live Kad2 interop **unverified**. Legacy `KadProtocol.cpp` / `KBucket` / `KadStorage` require undefined `ENVY_LEGACY_KADEMLIA` and are **inactive**.
 - **IPv6:** Utilities exist, core connections IPv4-only (`docs/ipv6/PLAN.md`); prefer portable address types in #89
 - **Headless / RPC:** not implemented (MFC GUI + limited Remote web UI); #161
 - **Testing:** HashLib unit tests plus parser/policy/Hello smokes; opt-in live interop harness (`tools/interop/`, #160) is not required CI; protocol unit/integration seam remains #91
@@ -122,11 +122,11 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 | **LRU replacement** | Replace least-recently-used contact when bucket is full; currently rejects new contacts | Medium |
 | **Bucket refresh** | Periodic refresh of stale buckets (eMule uses 15-minute intervals) | Medium |
 | **Eclipse protection** | Limit contacts from same /24 subnet to prevent eclipse attacks | Medium |
-| **FIREWALLED_REQ/RES** | Handle firewalled node detection and relay | P0 |
+| ~~FIREWALLED_REQ/RES~~ | TCP firewall-detection baseline (exact 2/4-byte framing, bounded checks, public-IP consensus). UDP tester / Buddy deferred. | Done (partial) |
 | **FINDBUDDY_REQ/RES** | Buddy system for NAT traversal | P0 |
 | **CALLBACK_REQ/RES** | Kad callback mechanism | P0 |
 | **UDP hole punching** | NAT traversal for firewalled nodes (historical Kad2; not Ember/eSE overlays) | P0 |
-| **Firewall self-check** | Detect own firewall status via Kademlia | P0 |
+| ~~Firewall self-check~~ | TCP Unknown/Testing/Open/Firewalled via ACK consensus; UDP state remains Unknown | Done (partial) |
 | **Wire EnableKadHello / KadFindValue** | Settings exist but are not read by `Kademlia.cpp` | Medium |
 | **Kad remote nodes.dat download** | HTTPS discovery type + size/timeout/atomic replace. Local ImportNodes v1/v2/v3 is done. Coordinate with #86/#160. Do not advertise Kad complete. | P1 |
 | **Kad6** | Experimental IPv6 overlay (eMule eSE). Distinct from Kad2. | P3 |

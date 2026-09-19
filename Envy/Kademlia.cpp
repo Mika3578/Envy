@@ -25,6 +25,7 @@
 #include "Download.h"
 #include "Transfers.h"
 #include "Hashes.hpp"
+#include "KadFirewallCheck.h"
 #include <array>
 #include <algorithm>
 #include <vector>
@@ -216,12 +217,13 @@ void Kad2RoutingTable::GetContactsForBootstrap(std::vector<KadContact>& results,
 }
 
 // CKademlia implementation
-CKademlia::CKademlia() :
-    m_bInitialized(false),
-    m_lastBootstrapTime(0),
-    m_lastTimerCall(0),
-    m_lastRateLimitCleanup(0),
-    m_lastStoreCleanup(0)
+CKademlia::CKademlia()
+    : m_bInitialized(false)
+    , m_lastBootstrapTime(0)
+    , m_lastTimerCall(0)
+    , m_lastRateLimitCleanup(0)
+    , m_lastStoreCleanup(0)
+    , m_lastFirewallTcpPort(0)
 {
     memset(m_ownId, 0, KAD_ID_SIZE);
 }
@@ -244,14 +246,17 @@ bool CKademlia::Init() {
     m_bInitialized = true;
     m_lastBootstrapTime = 0;
     m_lastTimerCall = GetTickCount();
+	m_lastFirewallTcpPort = (WORD)Settings.Connection.InPort;
+	m_firewall.OnKadStart(m_lastTimerCall, m_lastFirewallTcpPort);
 
-    theApp.Message(MSG_NOTICE, L"Kad2 initialized with ID: %02x%02x%02x%02x...",
-        m_ownId[0], m_ownId[1], m_ownId[2], m_ownId[3]);
+	theApp.Message(MSG_NOTICE, L"Kad2 initialized with ID: %02x%02x%02x%02x...",
+	               m_ownId[0], m_ownId[1], m_ownId[2], m_ownId[3]);
+	theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall-check started (state unknown)");
 
-    // Bootstrap immediately
-    Bootstrap();
+	// Bootstrap immediately
+	Bootstrap();
 
-    return true;
+	return true;
 }
 
 void CKademlia::Stop() {
@@ -259,8 +264,10 @@ void CKademlia::Stop() {
 
     m_bInitialized = false;
     memset(m_ownId, 0, KAD_ID_SIZE);
+	m_firewall.OnKadStop();
+	m_lastFirewallTcpPort = 0;
 
-    theApp.Message(MSG_NOTICE, L"Kad2 stopped");
+	theApp.Message(MSG_NOTICE, L"Kad2 stopped");
 }
 
 void CKademlia::GenerateOwnKadId() {
@@ -404,19 +411,37 @@ void CKademlia::OnTimer() {
     // Clean up expired requests
     CleanupExpiredRequests();
 
-    // Periodic maintenance
-    LogKadStatus();
+	const WORD tcpPort = (WORD)Settings.Connection.InPort;
+	if (tcpPort != m_lastFirewallTcpPort)
+	{
+		m_lastFirewallTcpPort = tcpPort;
+		m_firewall.OnNetworkOrPortChange(now, tcpPort);
+		theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall-check reset after port change");
+	}
 
-    // Clean up expired DHT entries every 5 minutes
-    if (now - m_lastStoreCleanup > 5 * 60 * 1000) {
-        CleanupExpiredEntries();
-        m_lastStoreCleanup = now;
-    }
+	const KadTcpFirewallState fwBefore = m_firewall.TcpState();
+	if (m_firewall.OnTimer(now) && m_firewall.TcpState() != fwBefore)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall state -> %u (acks=%u publicIP=0x%08x)",
+		               (unsigned)m_firewall.TcpState(), m_firewall.AckCount(), m_firewall.PublicIpHost());
+	}
+	MaybeStartFirewallChecks();
 
-    // Re-bootstrap if we have very few contacts
-    if (m_routingTable.GetTotalContacts() < 5) {
-        Bootstrap();
-    }
+	// Periodic maintenance
+	LogKadStatus();
+
+	// Clean up expired DHT entries every 5 minutes
+	if (now - m_lastStoreCleanup > 5 * 60 * 1000)
+	{
+		CleanupExpiredEntries();
+		m_lastStoreCleanup = now;
+	}
+
+	// Re-bootstrap if we have very few contacts
+	if (m_routingTable.GetTotalContacts() < 5)
+	{
+		Bootstrap();
+	}
 }
 
 BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
@@ -482,11 +507,27 @@ BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
         OnPublishResponse(pHost, pPacket);
         return TRUE;
 
-    default:
-        theApp.Message(MSG_DEBUG, L"Kad2: Unknown opcode 0x%02x from %s",
-            pPacket->m_nType, (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
-        return FALSE;
-    }
+	case KADEMLIA2_FIREWALLED_REQ:
+		OnFirewalledRequest(pHost, pPacket, false);
+		return TRUE;
+
+	case KADEMLIA_FIREWALLED2_REQ:
+		OnFirewalledRequest(pHost, pPacket, true);
+		return TRUE;
+
+	case KADEMLIA2_FIREWALLED_RES:
+		OnFirewalledResponse(pHost, pPacket);
+		return TRUE;
+
+	case KADEMLIA2_FIREWALLED_ACK_RES:
+		OnFirewalledAck(pHost, pPacket);
+		return TRUE;
+
+	default:
+		theApp.Message(MSG_DEBUG, L"Kad2: Unknown opcode 0x%02x from %s",
+		               pPacket->m_nType, (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		return FALSE;
+	}
 }
 
 void CKademlia::OnBootstrapRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket) {
@@ -1589,4 +1630,187 @@ void CKademlia::ProcessSearchResponseDelivery(const SOCKADDR_IN* pHost, CEDPacke
 
 	for (const auto& cand : entries)
 		DeliverSourceCandidate(targetId, cand);
+}
+
+void CKademlia::OnTcpFirewallCheckAck(const SOCKADDR_IN* pHost)
+{
+	if (!m_bInitialized || !pHost)
+		return;
+
+	const DWORD ipHost = ntohl(pHost->sin_addr.s_addr);
+	const KadFwAckStatus st = m_firewall.OnTcpFirewallCheckAck(ipHost, GetTickCount());
+	if (st == KadFwAckStatus::Accepted)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall ACK (0xA8) from %s (acks=%u state=%u)",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)),
+		               m_firewall.AckCount(), (unsigned)m_firewall.TcpState());
+		if (m_firewall.ShouldLogOpenTransition())
+			theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall state Open");
+	}
+}
+
+void CKademlia::OnFirewalledRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket, bool firewalled2)
+{
+	if (!pHost || !pPacket)
+		return;
+
+	const DWORD ipHost = ntohl(pHost->sin_addr.s_addr);
+	const WORD udpPort = ntohs(pHost->sin_port);
+	const KadFwInboundReqResult r = m_firewall.OnInboundFirewalledReq(
+	    ipHost, udpPort, pPacket->GetCurrent(), pPacket->GetRemaining(),
+	    GetTickCount(), firewalled2);
+
+	if (!r.sendResponse)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring FIREWALLED_REQ from %s (status=%u)",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), (unsigned)r.status);
+		return;
+	}
+
+	// RES reports the IPv4 we observed. Recording a TCP probe is not a
+	// completed connect-back; Buddy/callback and live TCP tests stay out.
+	SendFirewalledResponse(pHost, r.observedIpHost);
+	theApp.Message(MSG_DEBUG,
+	               L"Kad2: FIREWALLED_RES to %s observedIP=0x%08x tcpPort=%u (probe recorded, not executed)",
+	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), r.observedIpHost, r.tcpPort);
+}
+
+void CKademlia::OnFirewalledResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	if (!pHost || !pPacket)
+		return;
+
+	const DWORD ipHost = ntohl(pHost->sin_addr.s_addr);
+	const WORD udpPort = ntohs(pHost->sin_port);
+	const KadFwResStatus st = m_firewall.OnFirewalledRes(
+	    ipHost, udpPort, pPacket->GetCurrent(), pPacket->GetRemaining(), GetTickCount());
+
+	if (st != KadFwResStatus::Accepted)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring FIREWALLED_RES from %s (status=%u)",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), (unsigned)st);
+		return;
+	}
+
+	theApp.Message(MSG_DEBUG, L"Kad2: FIREWALLED_RES accepted from %s publicIP=0x%08x",
+	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), m_firewall.PublicIpHost());
+}
+
+void CKademlia::OnFirewalledAck(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	if (!pHost || !pPacket)
+		return;
+
+	const DWORD ipHost = ntohl(pHost->sin_addr.s_addr);
+	const WORD udpPort = ntohs(pHost->sin_port);
+	const KadFwAckStatus st = m_firewall.OnFirewalledAck(
+	    ipHost, udpPort, pPacket->GetRemaining(), GetTickCount());
+	if (st != KadFwAckStatus::Accepted)
+		return;
+
+	theApp.Message(MSG_DEBUG, L"Kad2: FIREWALLED_ACK from %s (acks=%u state=%u)",
+	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)),
+	               m_firewall.AckCount(), (unsigned)m_firewall.TcpState());
+	if (m_firewall.ShouldLogOpenTransition())
+		theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall state Open");
+}
+
+void CKademlia::SendFirewalledResponse(const SOCKADDR_IN* pHost, DWORD observedIpHost)
+{
+	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_FIREWALLED_RES, ED2K_PROTOCOL_KAD);
+	if (!pPacket)
+		return;
+	pPacket->WriteLongLE(observedIpHost);
+	SendPacket(pHost, pPacket);
+	pPacket->Release();
+}
+
+void CKademlia::SendFirewalledRequest(const KadContact& contact)
+{
+	if (!m_bInitialized)
+		return;
+
+	sockaddr_in addr;
+	contact.GetSockAddr(addr);
+
+	KadFwPeerCandidate peer;
+	peer.ipHost = contact.ip;
+	peer.udpPort = contact.udpPort;
+	peer.tcpPort = contact.tcpPort;
+	peer.version = contact.version;
+	peer.verified = contact.verified != FALSE;
+	peer.lastSeen = contact.lastSeen;
+
+	if (!m_firewall.BeginOutboundCheck(peer, GetTickCount()))
+		return;
+
+	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_FIREWALLED_REQ, ED2K_PROTOCOL_KAD);
+	if (!pPacket)
+		return;
+	pPacket->WriteShortLE(m_firewall.OurTcpPort());
+	AddOutstandingRequest(KAD_REQUEST_FIREWALL_CHECK, addr);
+	SendPacket(&addr, pPacket);
+	pPacket->Release();
+
+	theApp.Message(MSG_DEBUG, L"Kad2: FIREWALLED_REQ to %s:%u (tcpPort=%u)",
+	               (LPCTSTR)CString(inet_ntoa(addr.sin_addr)), ntohs(addr.sin_port),
+	               m_firewall.OurTcpPort());
+}
+
+void CKademlia::CollectFirewallCheckCandidates(
+    KadFwPeerCandidate* out, size_t outMax, size_t& outCount) const
+{
+	outCount = 0;
+	if (!out || outMax == 0)
+		return;
+
+	KadFwPeerCandidate raw[KAD_FW_MAX_CANDIDATES * 2];
+	const size_t rawMax = KAD_FW_MAX_CANDIDATES * 2;
+	size_t nRaw = 0;
+	for (int b = 0; b < KAD_BUCKET_COUNT && nRaw < rawMax; ++b)
+	{
+		for (const auto& contact : m_routingTable.buckets[b].contacts)
+		{
+			if (nRaw >= rawMax)
+				break;
+			raw[nRaw].ipHost = contact.ip;
+			raw[nRaw].udpPort = contact.udpPort;
+			raw[nRaw].tcpPort = contact.tcpPort;
+			raw[nRaw].version = contact.version;
+			raw[nRaw].verified = contact.verified != FALSE;
+			raw[nRaw].lastSeen = contact.lastSeen;
+			++nRaw;
+		}
+	}
+
+	outCount = KadSelectFirewallCheckPeers(raw, nRaw, out, outMax);
+}
+
+void CKademlia::MaybeStartFirewallChecks()
+{
+	const DWORD now = GetTickCount();
+	if (!m_firewall.WantsNewOutboundCheck(now))
+		return;
+
+	KadFwPeerCandidate chosen[KAD_FW_MAX_OUTSTANDING_CHECKS];
+	size_t nChosen = 0;
+	CollectFirewallCheckCandidates(chosen, KAD_FW_MAX_OUTSTANDING_CHECKS, nChosen);
+	if (nChosen == 0)
+		return;
+
+	for (size_t i = 0; i < nChosen; ++i)
+	{
+		if (m_firewall.HasOutboundCheck(chosen[i].ipHost, chosen[i].udpPort))
+			continue;
+
+		KadContact contact;
+		contact.ip = chosen[i].ipHost;
+		contact.udpPort = chosen[i].udpPort;
+		contact.tcpPort = chosen[i].tcpPort;
+		contact.version = chosen[i].version;
+		contact.verified = chosen[i].verified ? TRUE : FALSE;
+		contact.lastSeen = chosen[i].lastSeen;
+		SendFirewalledRequest(contact);
+		break; // one new REQ per timer tick
+	}
 }

@@ -49,6 +49,13 @@ ctest --test-dir build
   SecureIdent is not advertised (`ED2K_VERSION_SECUREID == 0`), state never
   becomes verified, and ED2K transfer does not require SecureIdent.
 
+## Kad TCP firewall-check smoke tests
+- `tests/test_kad_firewall_check_smoke.cpp` exercises `Envy/KadFirewallCheck.h`:
+  exact `FIREWALLED_REQ`/`RES` framing, endian golden vectors, state machine
+  (Unknown/Testing/Open/Firewalled), unsolicited/stale/duplicate responses,
+  public-IP consensus, inbound rate limits, and wrap-safe tick comparisons.
+  No live network and no `Sleep()`.
+
 ## Skin engine P0 smoke tests
 - `tests/test_skin_engine_p0_smoke.cpp` exercises `Envy/SkinEngineP0.h`:
   StatusbarHeight member targeting, strict metric parse/clamp (keeps current
