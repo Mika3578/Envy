@@ -36,9 +36,10 @@ Use `.github/CONTRIBUTING.md` as the canonical source for the linear-history wor
 ### Testing expectations
 - Validate changed workflows/jobs with at least one representative run.
 - Capture required vs advisory check impact.
-- Docs-only PRs must not reserve Windows runners; C++ PRs must still emit
-  `Build x64 Release` and `Build Win32 Release`. See
-  `docs/10_dev/agents-and-automation.md`.
+- Docs-only PRs must not reserve Windows runners, but must still **emit**
+  success no-op `Build x64 Release` / `Build Win32 Release` contexts (never
+  SKIPPED under Protect develop). C++ PRs run real MSBuild. See
+  `docs/10_dev/agents-and-automation.md` and `docs/10_dev/CI_AUDIT_2026-09.md`.
 
 ### Documentation expectations
 - Update build/CI sections in relevant docs (`README.md`, `docs/DEVELOPMENT_PLAN.md`).

@@ -36,6 +36,8 @@ These approximate GitHub gates; they do **not** replace CodeQL/Sonar/gitleaks/PR
 BLOCK (required status checks): Build x64 Release, Build Win32 Release,
 Lint build files, Vcpkg manifest sanity, Format Check, Documentation Check,
 secret-scan, gitleaks, PR Gate, Analyze (c-cpp), SonarCloud Code Analysis.
+(Docs-only PRs: Build x64/Win32 emit ubuntu success no-ops when classify
+`run_windows_build=false` — never leave those required contexts SKIPPED.)
 
 BLOCK (native GitHub review rules on Protect develop — not replaceable by PR Gate):
 
