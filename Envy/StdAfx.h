@@ -360,11 +360,6 @@ using augment::IUnknownImplementation;	// For UPnPFinder
 // GeoIP (geolite.maxmind.com)
 #include <GeoIP/GeoIP.h>
 
-// BugTrap (Defunct intellesoft.net)
-#ifdef _DEBUG
-	#include <BugTrap/BugTrap.h>
-#endif
-
 
 //typedef CString StringType;			// Previously for <Hashes>
 

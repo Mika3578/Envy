@@ -256,7 +256,7 @@ The project targets C++20 longer-term, but the baseline has not been raised yet.
 **Updated Projects**:
 - Main application: Envy
 - Support libraries: HashLib, TorrentEnvy, Unpacker
-- Services: SQLite, zlib, GeoIP, BugTrap, LibUTP, MiniUPnP, UnRAR
+- Services: SQLite, zlib, GeoIP, LibUTP, MiniUPnP, UnRAR (BugTrap removed in #90; Crashpad via vcpkg)
 - Plugins: All 18 plugin projects
 - Tools: Language tools, repository tools, hash test
 
@@ -324,7 +324,7 @@ The project targets C++20 longer-term, but the baseline has not been raised yet.
 
 ### Dependencies
 All bundled, no external setup required:
-- zlib, SQLite, GeoIP, BugTrap, LibUTP, MiniUPnP, UnRAR
+- zlib, SQLite, GeoIP, LibUTP, MiniUPnP, UnRAR
 
 ---
 

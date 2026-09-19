@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>CrashProbe</ProjectName>
+    <ProjectGuid>{A7C3E91F-4B2D-4E18-9F06-C0D84E5A17B2}</ProjectGuid>
+    <RootNamespace>CrashProbe</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <!-- Set vcpkg properties before Microsoft.Cpp.props so the integration can see them.
+       Also add explicit include/lib dirs: VS 2026 vcpkg.targets did not inject
+       vcpkg_installed paths (C1083 client/crash_report_database.h and sentry.h). -->
+  <PropertyGroup>
+    <VcpkgEnabled>true</VcpkgEnabled>
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgManifestRoot Condition="'$(VcpkgManifestRoot)'==''">$(ProjectDir)</VcpkgManifestRoot>
+    <VcpkgTriplet Condition="'$(VcpkgTriplet)'=='' AND '$(Platform)'=='x64'">x64-windows-static</VcpkgTriplet>
+    <VcpkgTriplet Condition="'$(VcpkgTriplet)'=='' AND ('$(Platform)'=='Win32' OR '$(Platform)'=='x86')">x86-windows-static</VcpkgTriplet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <CrashProbeBackend Condition="'$(CrashProbeBackend)'==''">crashpad</CrashProbeBackend>
+    <CrashProbeDefines Condition="'$(CrashProbeBackend)'=='sentry'">CRASH_PROBE_SENTRY;SENTRY_BUILD_STATIC;</CrashProbeDefines>
+    <CrashProbeDefines Condition="'$(CrashProbeBackend)'!='sentry'"></CrashProbeDefines>
+    <OutDir>$(ProjectDir)out\$(Configuration)-$(Platform)-$(CrashProbeBackend)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Configuration)-$(Platform)-$(CrashProbeBackend)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)'=='Debug'">true</LinkIncremental>
+    <LinkIncremental Condition="'$(Configuration)'=='Release'">false</LinkIncremental>
+    <CrashProbeInstalled>$(VcpkgManifestRoot)\vcpkg_installed\$(VcpkgTriplet)</CrashProbeInstalled>
+    <CrashProbeLibDir Condition="'$(Configuration)'=='Debug'">$(CrashProbeInstalled)\debug\lib</CrashProbeLibDir>
+    <CrashProbeLibDir Condition="'$(Configuration)'!='Debug'">$(CrashProbeInstalled)\lib</CrashProbeLibDir>
+    <CrashProbeZlib Condition="'$(Configuration)'=='Debug'">zsd.lib</CrashProbeZlib>
+    <CrashProbeZlib Condition="'$(Configuration)'!='Debug'">zs.lib</CrashProbeZlib>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <PreprocessorDefinitions>$(CrashProbeDefines)NOMINMAX;WIN32_LEAN_AND_MEAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</RuntimeLibrary>
+      <Optimization Condition="'$(Configuration)'=='Release'">MaxSpeed</Optimization>
+      <Optimization Condition="'$(Configuration)'=='Debug'">Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(CrashProbeInstalled)\include;$(CrashProbeInstalled)\include\crashpad;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(CrashProbeLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>advapi32.lib;dbghelp.lib;rpcrt4.lib;version.lib;winhttp.lib;shell32.lib;user32.lib;ole32.lib;crypt32.lib;wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(CrashProbeBackend)'!='sentry'">vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;vcpkg_crashpad_base.lib;$(CrashProbeZlib);%(AdditionalDependencies)</AdditionalDependencies>
+      <!-- Sentry Native vendors Crashpad (crashpad_client / crashpad_util /
+           mini_chromium), not the vcpkg_crashpad_* import names. WaitOnAddress
+           lives in synchronization.lib. Option B / workflow_dispatch only. -->
+      <AdditionalDependencies Condition="'$(CrashProbeBackend)'=='sentry'">sentry.lib;crashpad_client.lib;crashpad_util.lib;mini_chromium.lib;$(CrashProbeZlib);synchronization.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="CrashProbe.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
