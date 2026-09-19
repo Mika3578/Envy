@@ -5,6 +5,7 @@ on:
     branches: [main, master, develop]
   pull_request:
     branches: [main, master, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
   schedule:
     # Nightly run (default branch only) so the expensive MSVC code-analysis
     # build stays off the PR critical path while still being exercised daily.
