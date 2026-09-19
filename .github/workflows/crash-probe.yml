@@ -116,7 +116,12 @@ jobs:
           $exe = Join-Path $env:GITHUB_WORKSPACE "tools\crash-probe\out\Release-$platform-$backend\CrashProbe.exe"
           if (-not (Test-Path -LiteralPath $exe)) { throw "missing $exe" }
           $installed = Join-Path $env:GITHUB_WORKSPACE "tools\crash-probe\vcpkg_installed\$env:VCPKG_TARGET_TRIPLET"
-          $handler = Get-ChildItem -Path $installed -Recurse -Filter "crashpad_handler.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          $handler = Get-ChildItem -Path $installed -Recurse -Filter "crashpad_handler.exe" -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -notmatch '\\debug\\' } |
+            Select-Object -First 1
+          if (-not $handler) {
+            $handler = Get-ChildItem -Path $installed -Recurse -Filter "crashpad_handler.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
           if (-not $handler) { throw "crashpad_handler.exe not installed for $backend / $env:VCPKG_TARGET_TRIPLET" }
           $wer = @(Get-ChildItem -Path $installed -Recurse -Filter "crashpad_wer*.dll" -ErrorAction SilentlyContinue)
           Write-Host "Handler: $($handler.FullName) ($($handler.Length) bytes)"

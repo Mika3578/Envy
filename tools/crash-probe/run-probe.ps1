@@ -36,9 +36,10 @@ function Find-Handler {
 	)
 	foreach ($root in $searchRoots) {
 		if (-not (Test-Path -LiteralPath $root)) { continue }
-		$found = Get-ChildItem -Path $root -Recurse -Filter 'crashpad_handler.exe' -ErrorAction SilentlyContinue |
-			Select-Object -First 1
-		if ($found) { return $found.FullName }
+		$candidates = @(Get-ChildItem -Path $root -Recurse -Filter 'crashpad_handler.exe' -ErrorAction SilentlyContinue)
+		$prefer = @($candidates | Where-Object { $_.FullName -notmatch '\\debug\\' } | Select-Object -First 1)
+		if ($prefer.Count -gt 0) { return $prefer[0].FullName }
+		if ($candidates.Count -gt 0) { return $candidates[0].FullName }
 	}
 	throw 'crashpad_handler.exe not found (pass -Handler or set CRASH_PROBE_HANDLER)'
 }
@@ -51,6 +52,18 @@ function Get-DumpFiles {
 			$_.Name -eq 'minidump' -or
 			$_.Extension -match '^\.(dmp|mdmp)$'
 		})
+}
+
+function Get-DumpByteTotal {
+	param([object[]]$Dumps)
+	if ($null -eq $Dumps -or $Dumps.Count -eq 0) {
+		return [int64]0
+	}
+	$measure = $Dumps | Measure-Object -Property Length -Sum
+	if ($null -eq $measure -or $null -eq $measure.Sum) {
+		return [int64]0
+	}
+	return [int64]$measure.Sum
 }
 
 $handlerPath = Find-Handler -Hint $Handler
@@ -99,7 +112,7 @@ foreach ($kind in $crashKinds) {
 		required = ($requiredKinds -contains $kind)
 		exit_code = $proc.ExitCode
 		dump_count = $dumps.Count
-		dump_bytes = [int64](($dumps | Measure-Object -Property Length -Sum).Sum)
+		dump_bytes = (Get-DumpByteTotal -Dumps $dumps)
 	}
 }
 
@@ -113,7 +126,7 @@ $crashes += [pscustomobject]@{
 	required = $true
 	exit_code = $second.ExitCode
 	dump_count = $secondDumps.Count
-	dump_bytes = [int64](($secondDumps | Measure-Object -Property Length -Sum).Sum)
+	dump_bytes = (Get-DumpByteTotal -Dumps $secondDumps)
 }
 
 $noHandlerDb = Join-Path $workRoot 'db-no-handler'
@@ -126,7 +139,7 @@ $crashes += [pscustomobject]@{
 	required = $false
 	exit_code = $noHandler.ExitCode
 	dump_count = $noHandlerDumps.Count
-	dump_bytes = [int64](($noHandlerDumps | Measure-Object -Property Length -Sum).Sum)
+	dump_bytes = (Get-DumpByteTotal -Dumps $noHandlerDumps)
 }
 
 $bogus = Join-Path $workRoot 'not-a-dir'
