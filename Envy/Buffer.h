@@ -1,7 +1,7 @@
 //
 // Buffer.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -75,13 +75,13 @@ public:
 	// Use the buffer with the ZLib compression library
 #ifdef ZLIB_H
 	BOOL	Deflate(BOOL bIfSmaller = FALSE);						// Compress the data in this buffer
-	BOOL Inflate(DWORD nMaxOutput = 0);                             // Decompress the data in this buffer in place (optional output cap)
+	BOOL Inflate(DWORD nMaxOutput = 0);                             // Decompress in place (0 => CBUFFER_INFLATE_MAX)
 	bool InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* bEndOfStream = NULL, DWORD nMaxOutput = 0); // Decompress into oBuffer (optional output cap)
 	static int Inflate(z_streamp pStream, int nFlush);				// Safe version of inflate()
 	static int Deflate(z_streamp pStream, int nFlush);				// Safe version of deflate()
 	static void	InflateStreamCleanup(z_streamp& pStream);			// Stop stream decompression and cleanup
 	static void	DeflateStreamCleanup(z_streamp& pStream);			// Stop stream compression and cleanup
-	BOOL Ungzip(DWORD nMaxOutput = 0);                              // Strip gzip header then inflate (optional zip-bomb cap)
+	BOOL Ungzip(DWORD nMaxOutput = 0);                              // Strip gzip header then inflate (0 => CBUFFER_INFLATE_MAX)
 #endif // ZLIB
 
 	// Use the buffer with the BZLib compression library

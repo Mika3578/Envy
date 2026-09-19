@@ -457,6 +457,14 @@ static bool test_host_browser_http_body_bounds()
 		&& HostBrowserHttpBufferOk( HOST_BROWSER_HTTP_BODY_MAX + 1 ) == FALSE;
 }
 
+static bool test_cbuffer_inflate_output_ok()
+{
+	return CBufferInflateOutputOk( 1 ) == TRUE
+		&& CBufferInflateOutputOk( CBUFFER_INFLATE_MAX ) == TRUE
+		&& CBufferInflateOutputOk( 0 ) == FALSE
+		&& CBufferInflateOutputOk( CBUFFER_INFLATE_MAX + 1 ) == FALSE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -526,4 +534,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_tracker_http_response_bounds", test_bt_tracker_http_response_bounds );
 	suite.add_test( "discovery_http_response_bounds", test_discovery_http_response_bounds );
 	suite.add_test( "host_browser_http_body_bounds", test_host_browser_http_body_bounds );
+	suite.add_test( "cbuffer_inflate_output_ok", test_cbuffer_inflate_output_ok );
 }
