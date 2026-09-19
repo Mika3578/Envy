@@ -286,7 +286,7 @@ pResponse->WriteByte(contactCount);        // 1 byte
 - Version 3 edition 1 — bootstrap edition, 25-byte records; aMule keeps the 50 XOR-closest Kad2 contacts and does **not** insert the whole list into the routing table
 
 **Envy implementation (`Envy/KadNodesDat.h` + `CHostCache::ImportNodes`):**
-- Parses v0 (contacts dropped: no Kad2 version) and v1/v2/v3
+- Parses v0 (every contact dropped: no Kad2 version nibble; type < 4 is not imported) and v1/v2/v3
 - Unknown versions and v3 editions other than 0/1 fail closed
 - Count/size arithmetic is overflow-safe; file cap 256 KiB; max 5000 declared contacts
 - v2 UDP-key / verified fields are parsed then discarded (no runtime UDP-key protocol)

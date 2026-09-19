@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — Kad `nodes.dat` review hardening: drop all legacy v0 contacts (no Kad2 version); bound XOR-closest insert to `nMaxOut`; copy Kad IDs with `Hashes::Guid::byteCount`.
 - **Changelog Entry:** 2026-09-19 — Kad bootstrap: local modern `nodes.dat` v1/v2/v3 parser (`KadNodesDat.h`); v3 edition 1 bounded to 50 XOR-closest contacts; UDP-key fields parsed and discarded; no remote HTTP source; Kad2 still partial / unverified (#86 slice, not SEARCH_RES / routing / firewall).
 - **Changelog Entry:** 2026-09-19 — #90: `CopyCrashpadHandler.cmd` copies the configuration-matching vcpkg handler (`tools/crashpad_handler.exe` for Release, `debug/tools/crashpad_handler.exe` for Debug; `tools/crashpad/` accepted as fallback) instead of the first recursive `dir /s /b` hit.
 - **Changelog Entry:** 2026-09-19 — #90: `Envy.vcxproj` points `VcpkgManifestRoot` at the repo root and adds `vcpkg_installed` include/lib dirs so Crashpad `client/*.h` resolve (C1083 on PR #243). Handler copy and Inno Setup now require `crashpad_handler.exe`.

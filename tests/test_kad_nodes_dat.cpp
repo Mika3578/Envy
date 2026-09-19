@@ -294,6 +294,22 @@ static bool test_v3_bootstrap_selects_closest()
 	return c[0].id[0] == 0x11 && c[1].id[0] == 0x12;
 }
 
+static bool test_v3_bootstrap_maxout_one()
+{
+	std::vector<uint8_t> o;
+	PushU32LE(o, 0);
+	PushU32LE(o, 3);
+	PushU32LE(o, 1);
+	PushU32LE(o, 2);
+	uint8_t own[16] = {};
+	own[0] = 0x10;
+	PushV1Contact(o, 0x80, 203, 1, 1, 5, 4672, 4662, 8);
+	PushV1Contact(o, 0x11, 203, 2, 1, 5, 4672, 4662, 8);
+	KadNodesDatContact c[1] = {};
+	const KadNodesDatResult r = KadNodesDatParse(o.data(), o.size(), c, 1, own);
+	return r.status == KadNodesDatStatus::Ok && r.acceptedCount == 1 && c[0].id[0] == 0x11;
+}
+
 static bool test_v3_bootstrap_large_pool_capped()
 {
 	const uint32_t nPool = 80;
@@ -550,6 +566,7 @@ void register_kad_nodes_dat_tests(TestSuite& suite)
 	suite.add_test("kad_nodes_dat_v2_unverified", test_v2_verified_false);
 	suite.add_test("kad_nodes_dat_v3_normal", test_v3_normal);
 	suite.add_test("kad_nodes_dat_v3_bootstrap_closest", test_v3_bootstrap_selects_closest);
+	suite.add_test("kad_nodes_dat_v3_bootstrap_maxout_one", test_v3_bootstrap_maxout_one);
 	suite.add_test("kad_nodes_dat_v3_bootstrap_cap", test_v3_bootstrap_large_pool_capped);
 	suite.add_test("kad_nodes_dat_unknown_version", test_unknown_version_fail_closed);
 	suite.add_test("kad_nodes_dat_invalid_edition", test_v3_invalid_edition);

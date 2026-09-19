@@ -1009,13 +1009,9 @@ int CHostCache::ImportNodes(CFile* pFile)
 	if (pFile->Read(pBytes, nLen) != nLen)
 		return 0;
 
-	uint8_t ownId[16];
-	memset(ownId, 0, sizeof(ownId));
-	{
-		const Hashes::Guid oSelf = MyProfile.oGUID;
-		const size_t nCopy = (oSelf.byteCount < sizeof(ownId)) ? oSelf.byteCount : sizeof(ownId);
-		CopyMemory(ownId, &oSelf[0], nCopy);
-	}
+	uint8_t ownId[Hashes::Guid::byteCount];
+	ZeroMemory(ownId, sizeof(ownId));
+	CopyMemory(ownId, &MyProfile.oGUID[0], Hashes::Guid::byteCount);
 
 	KadNodesDatContact oParsed[KadNodesDatNormalImportCap];
 	const KadNodesDatResult oResult = KadNodesDatParse(
@@ -1041,9 +1037,7 @@ int CHostCache::ImportNodes(CFile* pFile)
 		pAddress.S_un.S_un_b.s_b4 = c.ip[3];
 
 		Hashes::Guid oGUID;
-		if (oGUID.byteCount > 16)
-			continue;
-		CopyMemory(&oGUID[0], c.id, oGUID.byteCount);
+		CopyMemory(&oGUID[0], c.id, Hashes::Guid::byteCount);
 		oGUID.validate();
 
 		CHostCacheHostPtr pCache = Kademlia.Add(

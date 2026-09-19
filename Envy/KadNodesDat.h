@@ -173,10 +173,10 @@ inline bool KadNodesDatContactValid(const KadNodesDatContact& c, bool bVersioned
 	else
 	{
 		// Legacy v0 stores a type byte, not a Kad protocol version. aMule no
-		// longer reads v0. ENVY parses it but only keeps type < 4; Kad2
-		// bootstrap still requires a Kad2 version, so v0 contacts are dropped.
-		if (c.type >= 4)
-			return false;
+		// longer reads v0. ENVY still parses each record so a truncated file
+		// fails closed, then drops every contact: Kad2 bootstrap requires a
+		// version nibble that v0 does not carry. Do not import type < 4 as
+		// Kad2 contacts.
 		return false;
 	}
 	return true;
@@ -273,15 +273,14 @@ inline void KadNodesDatInsertClosest(
 	if (*pCount == nMaxOut && KadNodesDatXorCmp(ownId, pOut[*pCount - 1].id, c.id) <= 0)
 		return;
 
-	uint32_t nInsert = *pCount;
-	for (uint32_t i = 0; i < *pCount; ++i)
-	{
-		if (KadNodesDatXorCmp(ownId, c.id, pOut[i].id) < 0)
-		{
-			nInsert = i;
-			break;
-		}
-	}
+	uint32_t nInsert = 0;
+	while (nInsert < *pCount && KadNodesDatXorCmp(ownId, c.id, pOut[nInsert].id) >= 0)
+		++nInsert;
+	// Full lists only reach here when c is closer than the farthest entry, so
+	// nInsert is in [0, nMaxOut). Bound it anyway so a 1-slot caller cannot
+	// write past the output array.
+	if (nInsert >= nMaxOut)
+		return;
 
 	uint32_t nKeep = *pCount;
 	if (nKeep < nMaxOut)
@@ -497,9 +496,9 @@ inline KadNodesDatResult KadNodesDatParse(
 
 	const bool bVersioned = (kind != KadNodesDatKind::LegacyV0);
 	const bool bBootstrap = (kind == KadNodesDatKind::Version3Bootstrap);
-	const uint32_t nCap = bBootstrap
-	                          ? (nMaxOut < KadNodesDatBootstrapSelect ? nMaxOut : KadNodesDatBootstrapSelect)
-	                          : nMaxOut;
+	uint32_t nCap = nMaxOut;
+	if (bBootstrap && nCap > KadNodesDatBootstrapSelect)
+		nCap = KadNodesDatBootstrapSelect;
 	uint32_t nAccepted = 0;
 
 	for (uint32_t i = 0; i < nCount; ++i)
