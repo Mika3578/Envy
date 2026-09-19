@@ -182,7 +182,7 @@ BOOL CHostCache::Save()
 
 
 // Set at INTERNAL_VERSION on change:
-#define HOSTCACHE_SER_VERSION 1
+#define HOSTCACHE_SER_VERSION 2
 
 // nVersion History:
 // 14 - Add m_sCountry
@@ -193,6 +193,7 @@ BOOL CHostCache::Save()
 // 19 - Add m_sAddress (Ryo-oh-ki)
 // 1000 - Remove m_bDHT
 // 1 - (Envy 1.0)
+// 2 - Add m_nCodePage (NMDC hub text encoding)
 
 void CHostCache::Serialize(CArchive& ar)
 {
@@ -1271,6 +1272,7 @@ CHostCacheHost::CHostCacheHost(PROTOCOLID nProtocol)
 	, m_bCheckedLocally ( FALSE )
 //	, m_bDHT		( FALSE )	// Attributes: DHT (Unused)
 	, m_nKADVersion	( 0 )		// Attributes: Kademlia
+	, m_nCodePage	( 0 )		// NMDC: 0 = inherit Settings.DC.CodePage
 {
 	m_pAddress.s_addr = INADDR_ANY;
 
@@ -1306,7 +1308,7 @@ CString CHostCacheHost::Address() const
 //////////////////////////////////////////////////////////////////////
 // CHostCacheHost serialize
 
-void CHostCacheHost::Serialize(CArchive& ar, int /*nVersion*/)	// HOSTCACHE_SER_VER
+void CHostCacheHost::Serialize(CArchive& ar, int nVersion)	// HOSTCACHE_SER_VER
 {
 	if ( ar.IsStoring() )
 	{
@@ -1371,6 +1373,9 @@ void CHostCacheHost::Serialize(CArchive& ar, int /*nVersion*/)	// HOSTCACHE_SER_
 
 		if ( m_nProtocol == PROTOCOL_KAD )
 			ar << m_nKADVersion;
+
+		if ( nVersion >= 2 )
+			ar << m_nCodePage;
 	}
 	else // Loading
 	{
@@ -1442,6 +1447,11 @@ void CHostCacheHost::Serialize(CArchive& ar, int /*nVersion*/)	// HOSTCACHE_SER_
 
 		if ( m_nProtocol == PROTOCOL_KAD )
 			ar >> m_nKADVersion;
+
+		if ( nVersion >= 2 )
+			ar >> m_nCodePage;
+		else
+			m_nCodePage = 0;
 	}
 }
 

@@ -18,6 +18,8 @@
 
 #include "StdAfx.h"
 #include "Settings.h"
+#include "DcNmdcText.h"
+#include <string>
 #include "Envy.h"
 #include "QuerySearch.h"
 #include "Network.h"
@@ -679,7 +681,7 @@ BOOL CQuerySearch::WriteHashesToEDPacket(CEDPacket* pPacket, BOOL bUDP, BOOL bLa
 //////////////////////////////////////////////////////////////////////
 // CQuerySearch to DC packet
 
-CDCPacket* CQuerySearch::ToDCPacket() const
+CDCPacket* CQuerySearch::ToDCPacket(UINT nNmdcCodePage) const
 {
 	// Active user / Passive user
 	// $Search SenderIP:SenderPort (T|F)?(T|F)?Size?Type?String|
@@ -734,7 +736,9 @@ CDCPacket* CQuerySearch::ToDCPacket() const
 		nType,
 		(LPCTSTR)( m_oTiger ? ( L"TTH:" + m_oTiger.toString() ) : strSearch ) );
 
-	pPacket->WriteString( strQuery, FALSE );
+	const std::string bytes = EncodeNmdcText( strQuery, nNmdcCodePage );
+	if ( ! bytes.empty() )
+		pPacket->Write( bytes.data(), static_cast< DWORD >( bytes.size() ) );
 
 	return pPacket;
 }
@@ -742,7 +746,7 @@ CDCPacket* CQuerySearch::ToDCPacket() const
 //////////////////////////////////////////////////////////////////////
 // CQuerySearch from packet root
 
-CQuerySearchPtr CQuerySearch::FromPacket(CPacket* pPacket, const SOCKADDR_IN* pEndpoint, BOOL bGUID)
+CQuerySearchPtr CQuerySearch::FromPacket(CPacket* pPacket, const SOCKADDR_IN* pEndpoint, BOOL bGUID, UINT nNmdcCodePage)
 {
 	CQuerySearchPtr pSearch = new CQuerySearch( bGUID );
 
@@ -766,7 +770,7 @@ CQuerySearchPtr CQuerySearch::FromPacket(CPacket* pPacket, const SOCKADDR_IN* pE
 		else if ( pPacket->m_nProtocol == PROTOCOL_DC )
 		{
 			pSearch->m_nProtocol = PROTOCOL_DC; 	// Display convenience
-			if ( pSearch->ReadDCPacket( (CDCPacket*)pPacket, pEndpoint ) )
+			if ( pSearch->ReadDCPacket( (CDCPacket*)pPacket, pEndpoint, nNmdcCodePage ) )
 				return pSearch;
 		}
 		else if ( pPacket->m_nProtocol == PROTOCOL_ED2K )
@@ -1194,7 +1198,7 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, const SOCKADDR_IN* pEndpoint
 	return CheckValid( true );
 }
 
-BOOL CQuerySearch::ReadDCPacket(CDCPacket* pPacket, const SOCKADDR_IN* pEndpoint)
+BOOL CQuerySearch::ReadDCPacket(CDCPacket* pPacket, const SOCKADDR_IN* pEndpoint, UINT nNmdcCodePage)
 {
 	// Active user
 	// $Search SenderIP:SenderPort (F|T)?(F|T)?Size?Type?String|
@@ -1244,7 +1248,7 @@ BOOL CQuerySearch::ReadDCPacket(CDCPacket* pPacket, const SOCKADDR_IN* pEndpoint
 	{
 		// Passive user request (send answer via TCP)
 		m_bUDP = FALSE;
-		m_sUserNick = UTF8Decode( szPort );
+		m_sUserNick = CString( DecodeNmdcText( szPort, nNmdcCodePage ).c_str() );
 	}
 	else
 	{
@@ -1289,7 +1293,7 @@ BOOL CQuerySearch::ReadDCPacket(CDCPacket* pPacket, const SOCKADDR_IN* pEndpoint
 	}
 	else	// Keywords search
 	{
-		m_sSearch = UTF8Decode( szString );
+		m_sSearch = CString( DecodeNmdcText( szString, nNmdcCodePage ).c_str() );
 		m_sSearch.Replace( L'$', L' ' );
 
 		switch ( nType )

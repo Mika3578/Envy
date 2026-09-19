@@ -35,6 +35,9 @@
     <ClCompile Include="test_secure_random_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_dc_nmdc_text_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_dc_packet_length_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

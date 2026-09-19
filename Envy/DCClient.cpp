@@ -1,7 +1,7 @@
 //
 // DCClient.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2010 and PeerProject 2010-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -28,6 +28,7 @@
 #include "DownloadTransfer.h"
 #include "DownloadTransferDC.h"
 #include "HostCache.h"
+#include "DcNmdcText.h"
 #include "Network.h"
 #include "Neighbours.h"
 #include "UploadTransfer.h"
@@ -52,6 +53,7 @@ CDCClient::CDCClient(const IN_ADDR* pHubAddress, WORD nHubPort, LPCTSTR szNick, 
 	, m_nRemoteNumber		( -1 )
 	, m_bLogin				( FALSE )
 	, m_bKey				( FALSE )
+	, m_nCodePage			( Settings.DC.CodePage )
 {
 	TRACE( "[DC++] Creating client 0x%08x\n", (LPVOID)this );
 
@@ -62,6 +64,19 @@ CDCClient::CDCClient(const IN_ADDR* pHubAddress, WORD nHubPort, LPCTSTR szNick, 
 	m_pServer.sin_family = AF_INET;
 	if ( pHubAddress ) m_pServer.sin_addr = *pHubAddress;
 	if ( nHubPort ) m_pServer.sin_port = htons( nHubPort );
+	if ( pHubAddress )
+	{
+		if ( CHostCacheHostPtr pServer = HostCache.DC.Find( pHubAddress ) )
+		{
+			if ( pServer->m_nCodePage != 0 )
+				m_nCodePage = pServer->m_nCodePage;
+		}
+		else if ( CNeighbour* pNeighbour = Neighbours.Get( *pHubAddress ) )
+		{
+			if ( pNeighbour->m_nProtocol == PROTOCOL_DC )
+				m_nCodePage = static_cast< CDCNeighbour* >( pNeighbour )->m_nCodePage;
+		}
+	}
 
 	if ( szRemoteNick && *szRemoteNick )
 	{
@@ -464,7 +479,7 @@ BOOL CDCClient::OnMyNick(const std::string& strParams)
 {
 	// $MyNick RemoteNick|
 
-	m_sRemoteNick = UTF8Decode( strParams.c_str() );
+	m_sRemoteNick = CString( DecodeNmdcText( strParams.c_str(), m_nCodePage ).c_str() );
 	DCClients.CreateGUID( m_sRemoteNick, m_oGUID );
 
 	return ! DCClients.Merge( this );
@@ -815,7 +830,7 @@ BOOL CDCClient::Greetings()
 	ASSERT( ! m_sNick.IsEmpty() );
 
 	Write( _P("$MyNick ") );
-	Write( m_sNick );
+	Write( m_sNick, m_nCodePage );
 	Write( _P("|") );
 
 	std::string sLock = GenerateLock();

@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #224: NMDC text uses per-hub/settings code page (`DcNmdcText.h`, default CP_ACP); HostCache ser v2 `m_nCodePage`; ADC unchanged.
 - **Changelog Entry:** 2026-09-19 — #81: G2 compound/frame length checks order-safe (`G2SubpacketPayloadFits` / `G2FrameLengthFits`) in ReadPacket/SkipCompound/ReadBuffer (defense-in-depth).
 - **Changelog Entry:** 2026-09-19 — #81: G1 QueryHit QHD `nXMLSize` fail-closed via `G1QueryHitXmlFits` (must leave trailing GUID, including zero-length XML); no soft clamp to 0.
 - **Changelog Entry:** 2026-09-19 — #81: ED2K `VIEWSHAREDDIRANSWER` consumes WORD-prefixed directory name before `count`; `OnViewSharedDir` / `OnAskSharedDirsAnswer` / `OnServerMessage` fail-closed via `Ed2kEdString*` + `Ed2kServerMessageLengthOk` (5000-byte MOTD cap).

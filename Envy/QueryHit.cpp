@@ -26,6 +26,8 @@
 #include "G2Packet.h"
 #include "EDPacket.h"
 #include "DCPacket.h"
+#include "DcNmdcText.h"
+#include "HostCache.h"
 #include "Transfer.h"
 #include "Security.h"
 #include "RouteCache.h"
@@ -760,7 +762,7 @@ CQueryHit* CQueryHit::FromEDPacket(CEDPacket* pPacket, const SOCKADDR_IN* pServe
 	return pFirstHit;
 }
 
-CQueryHit* CQueryHit::FromDCPacket(CDCPacket* pPacket)
+CQueryHit* CQueryHit::FromDCPacket(CDCPacket* pPacket, UINT nNmdcCodePage)
 {
 	// Search result
 	// $SR Nick FileName<0x05>FileSize FreeSlots/TotalSlots<0x05>HubName (HubIP:HubPort)|
@@ -863,17 +865,30 @@ CQueryHit* CQueryHit::FromDCPacket(CDCPacket* pPacket)
 	else
 		szNameOnly++;
 
+
+	UINT nCodePage = nNmdcCodePage;
+	if ( nCodePage == 0 )
+		nCodePage = Settings.DC.CodePage;
+	if ( pHubAddress.s_addr != INADDR_NONE && pHubAddress.s_addr != 0 )
+	{
+		if ( CHostCacheHostPtr pServer = HostCache.DC.Find( &pHubAddress ) )
+		{
+			if ( pServer->m_nCodePage != 0 )
+				nCodePage = pServer->m_nCodePage;
+		}
+	}
+
 	CAutoPtr< CQueryHit > pHit( new CQueryHit( PROTOCOL_DC ) );
 	if ( ! pHit )
 		return FALSE;	// Out of memory
 
-	pHit->m_sName		= UTF8Decode( szNameOnly );		// Was CA2W( strFilename.c_str() )
+	pHit->m_sName		= CString( DecodeNmdcText( szNameOnly, nCodePage ).c_str() );
 	pHit->m_nSize		= nSize;
 	pHit->m_bSize		= TRUE;
 	pHit->m_oTiger		= oTiger;
 	pHit->m_bChat		= TRUE;
 	pHit->m_bBrowseHost	= TRUE;
-	pHit->m_sNick		= UTF8Decode( szNick );			// Was CA2W( strNick.c_str() )
+	pHit->m_sNick		= CString( DecodeNmdcText( szNick, nCodePage ).c_str() )
 	pHit->m_nUpSlots	= nTotalSlots;
 	pHit->m_nUpQueue	= nTotalSlots - nFreeSlots;
 	pHit->m_bBusy		= nFreeSlots ? TRI_FALSE : TRI_TRUE;
