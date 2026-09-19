@@ -300,7 +300,7 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define ED2K_C2C_MULTIPACKET_EXT		0xA4	// *DEPRECATED*
 #define ED2K_C2C_CHATCAPTCHAREQ			0xA5	// <tags 1>[tags]<Captcha BITMAP>
 #define ED2K_C2C_CHATCAPTCHARES			0xA6	// <status 1>
-#define ED2K_C2C_FWCHECKUDPREQ			0xA7	// <Inter_Port 2><Extern_Port 2><KadUDPKey 4> *Support required for Kadversion >= 6 (UDP firewall — not this slice)
+#define ED2K_C2C_FWCHECKUDPREQ 0xA7             // <Inter_Port 2><Extern_Port 2><KadUDPKey 4> *Support required for Kadversion >= 6 (UDP firewall — not this slice)
 #define ED2K_C2C_KAD_FWTCPCHECK_ACK		0xA8	// (null/reserved), replaces KADEMLIA_FIREWALLED_ACK_RES, *Support required for Kadversion >= 7
 #define ED2K_C2C_MULTIPACKET_EXT2		0xA9	// <FileIdentifier> ... (MultiPacket Ext2)
 #define ED2K_C2C_MULTIPACKETANSWER_EXT2	0xB0	// <FileIdentifier> ... (MultiPacket Answer Ext2)
@@ -333,10 +333,10 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define KADEMLIA2_PUBLISH_SOURCE_REQ	0x42	// <FileHash 16><KadID 16><TagList>
 #define KADEMLIA2_PUBLISH_NOTES_REQ	0x43	// <FileHash 16><KadID 16><TagList>
 #define KADEMLIA2_PUBLISH_RES		0x49	// <FileHash 16><Load 1><TagList>
-#define KADEMLIA2_FIREWALLED_REQ	0x50	// <TCPPort 2>  (Kad1 opcode, still used by Kad2)
-#define KADEMLIA_FIREWALLED2_REQ	0x53	// <TCPPort 2><UserHash 16><ConnectOptions 1> Kad version > 6
-#define KADEMLIA2_FIREWALLED_RES	0x58	// <IPv4 4> observed address of the requester
-#define KADEMLIA2_FIREWALLED_ACK_RES	0x59	// empty; Kad < 7 UDP ACK (Kad >= 7 uses ED2K_C2C_KAD_FWTCPCHECK_ACK)
+#define KADEMLIA2_FIREWALLED_REQ 0x50       // <TCPPort 2>  (Kad1 opcode, still used by Kad2)
+#define KADEMLIA_FIREWALLED2_REQ 0x53       // <TCPPort 2><UserHash 16><ConnectOptions 1> Kad version > 6
+#define KADEMLIA2_FIREWALLED_RES 0x58       // <IPv4 4> observed address of the requester
+#define KADEMLIA2_FIREWALLED_ACK_RES 0x59   // empty; Kad < 7 UDP ACK (Kad >= 7 uses ED2K_C2C_KAD_FWTCPCHECK_ACK)
 #define KADEMLIA2_PING				0x60	// <TagList>
 #define KADEMLIA2_PONG				0x61	// <TagList>
 

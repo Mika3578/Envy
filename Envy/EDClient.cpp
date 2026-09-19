@@ -1311,9 +1311,9 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 
 		// Kad TCP firewall-check ACK (Kad version >= 7). Empty payload.
 		case ED2K_C2C_KAD_FWTCPCHECK_ACK:
-			if ( pPacket->GetRemaining() != 0 )
+			if (pPacket->GetRemaining() != 0)
 				return TRUE;
-			Kademlia.OnTcpFirewallCheckAck( &m_pHost );
+			Kademlia.OnTcpFirewallCheckAck(&m_pHost);
 			return TRUE;
 		}
 	}

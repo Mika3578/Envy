@@ -99,8 +99,8 @@ enum KadRequestType {
     KAD_REQUEST_SEARCH_KEY = 2,
     KAD_REQUEST_SEARCH_SOURCE = 3,
     KAD_REQUEST_PUBLISH_KEY = 4,
-    KAD_REQUEST_PUBLISH_SOURCE = 5,
-    KAD_REQUEST_FIREWALL_CHECK = 6
+	KAD_REQUEST_PUBLISH_SOURCE = 5,
+	KAD_REQUEST_FIREWALL_CHECK = 6
 };
 
 // DHT stored entry (published keyword or source)
@@ -222,14 +222,14 @@ public:
     // Mark contact as verified
     void MarkContactVerified(const KadId& id);
 
-    // Kad TCP firewall-check ACK from ED2K C2C (0xA8). UDP state is separate.
-    void OnTcpFirewallCheckAck(const SOCKADDR_IN* pHost);
+	// Kad TCP firewall-check ACK from ED2K C2C (0xA8). UDP state is separate.
+	void OnTcpFirewallCheckAck(const SOCKADDR_IN* pHost);
 
-    KadTcpFirewallState GetTcpFirewallState() const { return m_firewall.TcpState(); }
-    KadUdpFirewallState GetUdpFirewallState() const { return m_firewall.UdpState(); }
-    DWORD GetObservedPublicIp() const { return m_firewall.PublicIpHost(); }
+	KadTcpFirewallState GetTcpFirewallState() const { return m_firewall.TcpState(); }
+	KadUdpFirewallState GetUdpFirewallState() const { return m_firewall.UdpState(); }
+	DWORD GetObservedPublicIp() const { return m_firewall.PublicIpHost(); }
 
-    // Search for keyword results in DHT
+	// Search for keyword results in DHT
     void SearchKeyword(const KadId& keywordHash);
 
     // Search for file sources in DHT
