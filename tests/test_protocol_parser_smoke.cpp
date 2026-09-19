@@ -185,6 +185,23 @@ static bool test_g1_packet_total_length_ok()
 		&& G1PacketTotalLength( 10 ) == G1_PACKET_HEADER_BYTES + 10;
 }
 
+static bool test_g1_queryhit_xml_fits_exact()
+{
+	static_assert(G1_QUERYHIT_GUID_BYTES == 16u, "G1 QueryHit trailer GUID is 16 bytes");
+	return G1QueryHitXmlFits(10, 16u + 10) == TRUE;
+}
+
+static bool test_g1_queryhit_xml_fits_zero()
+{
+	// Zero-length XML still requires the trailing 16-byte GUID.
+	return G1QueryHitXmlFits(0, 0) == FALSE && G1QueryHitXmlFits(0, 15u) == FALSE && G1QueryHitXmlFits(0, 16u) == TRUE;
+}
+
+static bool test_g1_queryhit_xml_oversized()
+{
+	return G1QueryHitXmlFits(10, 16u + 9) == FALSE && G1QueryHitXmlFits(1, 16u) == FALSE && G1QueryHitXmlFits(1, 15u) == FALSE;
+}
+
 static bool test_ggep_h_length_zero()
 {
 	return GgepItemHasTypeByte( nullptr, 0 ) == FALSE;
@@ -667,6 +684,9 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "g1_deflate_min_payload", test_g1_deflate_min_compressed_byte );
 	suite.add_test( "g1_deflate_xml_inflate_ok", test_g1_deflate_xml_inflate_ok );
 	suite.add_test( "g1_packet_total_length_ok", test_g1_packet_total_length_ok );
+	suite.add_test("g1_queryhit_xml_fits_exact", test_g1_queryhit_xml_fits_exact);
+	suite.add_test("g1_queryhit_xml_fits_zero", test_g1_queryhit_xml_fits_zero);
+	suite.add_test("g1_queryhit_xml_oversized", test_g1_queryhit_xml_oversized);
 
 	suite.add_test( "ggep_h_length_zero", test_ggep_h_length_zero );
 	suite.add_test( "ggep_m_length_zero", test_ggep_m_length_zero );

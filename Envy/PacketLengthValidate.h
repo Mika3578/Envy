@@ -80,6 +80,19 @@ inline DWORD G1PacketTotalLength(LONG nPayloadLength)
 {
 	return G1_PACKET_HEADER_BYTES + static_cast<DWORD>(nPayloadLength);
 }
+
+// G1 QueryHit QHD: claimed XML length must leave room for the trailing GUID
+// (16 bytes), including when nXmlSize is 0. Fail-closed — do not soft-clamp
+// nXMLSize to 0 (#81).
+constexpr DWORD G1_QUERYHIT_GUID_BYTES = 16u;
+
+inline BOOL G1QueryHitXmlFits(DWORD nXmlSize, DWORD nRemaining)
+{
+	if (nRemaining < G1_QUERYHIT_GUID_BYTES)
+		return FALSE;
+	return (nRemaining - G1_QUERYHIT_GUID_BYTES) >= nXmlSize;
+}
+
 // GGEP item must expose at least one payload byte before m_pBuffer[0].
 inline BOOL GgepItemHasTypeByte(const BYTE* pBuffer, DWORD nLength)
 {
