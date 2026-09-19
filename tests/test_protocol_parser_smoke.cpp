@@ -473,6 +473,14 @@ static bool test_cbuffer_inflate_stream_output_ok()
 		&& CBUFFER_INFLATE_STREAM_MAX == CBUFFER_INFLATE_MAX;
 }
 
+static bool test_ggep_inflate_output_ok()
+{
+	return GgepInflateOutputOk( 1 ) == TRUE
+		&& GgepInflateOutputOk( GGEP_INFLATE_MAX ) == TRUE
+		&& GgepInflateOutputOk( 0 ) == FALSE
+		&& GgepInflateOutputOk( GGEP_INFLATE_MAX + 1 ) == FALSE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -544,4 +552,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "host_browser_http_body_bounds", test_host_browser_http_body_bounds );
 	suite.add_test( "cbuffer_inflate_output_ok", test_cbuffer_inflate_output_ok );
 	suite.add_test( "cbuffer_inflate_stream_output_ok", test_cbuffer_inflate_stream_output_ok );
+	suite.add_test( "ggep_inflate_output_ok", test_ggep_inflate_output_ok );
 }

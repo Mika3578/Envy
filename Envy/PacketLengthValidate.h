@@ -67,6 +67,15 @@ inline BOOL GgepItemHasTypeByte(const BYTE* pBuffer, DWORD nLength)
 	return pBuffer != nullptr && nLength >= 1;
 }
 
+// Absolute cap for GGEP DEFLATE inflate output (#81 zip-bomb).
+// Aligns with Settings.Gnutella.MaximumPacket upper bound (256 KB).
+constexpr DWORD GGEP_INFLATE_MAX = 256u * 1024u;
+
+inline BOOL GgepInflateOutputOk(DWORD nOutput)
+{
+	return nOutput > 0 && nOutput <= GGEP_INFLATE_MAX;
+}
+
 // ED2K preview frame size vs remaining packet bytes — compare unsigned so a
 // high-bit frame size cannot bypass the bound via a signed cast.
 inline BOOL Ed2kPreviewFrameFits(DWORD nFrameSize, DWORD nRemaining)
