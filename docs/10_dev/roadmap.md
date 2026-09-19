@@ -88,8 +88,8 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 | **RSA SecureIdent** | Real eMule challenge-response after ED2K baseline (`docs/DEVELOPMENT_PLAN.md`) | P0/P1 |
 | **AICH C2C protocol** | AICHFILEHASHREQ (0x9E) / AICHFILEHASHANS (0x9D) handlers — required for AICH corruption recovery from peers | Medium |
 | **MULTIPACKET_EXT2 full batching** | Current handler treats each entry as separate FILEREQUEST; implement proper batched processing | Low |
-| **PUBLICIP_REQ / PUBLICIP_ANSWER** (0x97/0x98) | Public IP discovery from peers | Low |
-| **CALLBACK / REASKCALLBACKTCP** (0x99/0x9A) | Callback mechanism for firewalled clients | P0 baseline |
+| **PUBLICIP_REQ / PUBLICIP_ANSWER** (0x97/0x98) | **Partial (phase 1):** inbound REQ answered with peer IPv4; outbound REQ when public IP unknown; ANSWER state-gated. Live interop via #160 | Low |
+| **CALLBACK / REASKCALLBACKTCP** (0x99/0x9A) | **Partial (phase 1):** C2C CALLBACK (38-byte Buddy layout) when Kad ID matches; REASKCALLBACKTCP deferred (needs Buddy). Classic server push already existed | P0 baseline |
 | **BUDDYPING / BUDDYPONG** (0x9F/0xA0) | Buddy system for low-ID clients | P0 Kad/ED2K |
 | **FWCHECKUDPREQ** (0xA7) | Firewall check for Kad integration | P0 Kad |
 
