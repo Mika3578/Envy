@@ -1961,6 +1961,9 @@
     <ClInclude Include="DcPacketLengthValidate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DcAdcGetValidate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="NetworkJobValidate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
