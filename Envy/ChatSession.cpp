@@ -1265,19 +1265,29 @@ BOOL CChatSession::SendPrivateMessage(bool bAction, const CString& strText)
 
 	if ( m_nProtocol == PROTOCOL_ED2K )
 	{
-		// Limit outgoing ed2k messages to shorter than ED2K_MESSAGE_MAX characters, just in case
-		CString strMessage = strText.Left( ED2K_MESSAGE_MAX - 50 );
-
 		// Create an ed2k packet holding the message
 		if ( CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_MESSAGE ) )
 		{
+			// Clamp by encoded wire length so WORD length stays <= ED2K_MESSAGE_MAX
+			// (wchar Left(450) can still exceed 500 UTF-8 bytes for non-ASCII text).
+			CString strMessage = strText;
 			if ( m_bUnicode )
 			{
+				while (strMessage.GetLength() > 0 &&
+				       (DWORD)pPacket->GetStringLenUTF8(strMessage) > ED2K_MESSAGE_MAX)
+				{
+					strMessage = strMessage.Left(strMessage.GetLength() - 1);
+				}
 				pPacket->WriteShortLE( WORD( pPacket->GetStringLenUTF8( strMessage ) ) );
 				pPacket->WriteStringUTF8( strMessage, FALSE );
 			}
 			else
 			{
+				while (strMessage.GetLength() > 0 &&
+				       (DWORD)pPacket->GetStringLen(strMessage) > ED2K_MESSAGE_MAX)
+				{
+					strMessage = strMessage.Left(strMessage.GetLength() - 1);
+				}
 				pPacket->WriteShortLE( WORD( pPacket->GetStringLen( strMessage ) ) );
 				pPacket->WriteString( strMessage, FALSE );
 			}

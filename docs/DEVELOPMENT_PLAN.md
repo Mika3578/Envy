@@ -3,7 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
-- **Changelog Entry:** 2026-09-19 — #81: ED2K chat `MESSAGE` length checks centralized in `Ed2kChatMessageLengthOk` (+ EnvyTests); behavior unchanged.
+- **Changelog Entry:** 2026-09-19 — #81: ED2K chat `MESSAGE` length checks centralized in `Ed2kChatMessageLengthOk` (+ EnvyTests); valid-frame wire behavior unchanged, malformed lengths rejected; outgoing `SendPrivateMessage` clamps by encoded byte length.
 - **Changelog Entry:** 2026-09-19 — #81: unknown ED2K tag skip fail-closed when STRING length claim exceeds remaining (`Ed2kUnknownTagStringSkipOk`); INT fallback only above skip-max.
 - **Changelog Entry:** 2026-09-19 — #81: `CEDPacket::ReadEDString` / `ReadLongEDString` fail-closed when length prefix exceeds remaining (`Ed2kEdStringPayloadOk` / `Ed2kLongEdStringPayloadOk`).
 - **Changelog Entry:** 2026-09-19 — #81: G1 TCP framing uses overflow-safe `G1PacketTotalLengthOk` for signed payload length vs `MaximumPacket`.
