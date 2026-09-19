@@ -26,6 +26,7 @@ readonly F_WORKFLOW='.github/workflows/build.yml'
 readonly F_VCPKG='vcpkg.json'
 readonly F_QUALITY='.github/workflows/code-quality.yml'
 readonly F_CODEQL='.github/workflows/codeql.yml'
+readonly F_INTEROP='tools/interop/run.py'
 
 # Docs-only: path-aware skips Windows/Remote/deps. CodeQL/Format are not gated here.
 check docs-only "$F_DOCS" docs_only true
@@ -48,6 +49,14 @@ check crash-probe-win "$F_PROBE" run_windows_build false
 check crash-probe-cpp "$F_PROBE" cpp false
 check crash-probe-docs "$F_PROBE_DOCS" run_windows_build false
 check crash-probe-envy "$F_PROBE_ENVY" run_windows_build true
+# Interop harness is opt-in Python: docs/self-test only, never a Windows/P2P gate.
+check interop-docs "$F_INTEROP" run_docs_check true
+check interop-win "$F_INTEROP" run_windows_build false
+check interop-docs-only "$F_INTEROP" docs_only true
+
+readonly F_INTEROP_WF='.github/workflows/ed2k-interop-harness.yml'
+check interop-wf-win "$F_INTEROP_WF" run_windows_build false
+check interop-wf-docs-only "$F_INTEROP_WF" docs_only false
 
 # force_remote via code-quality.yml; CodeQL workflow must NOT force remote JS.
 check force-remote "$F_QUALITY" run_remote_js true

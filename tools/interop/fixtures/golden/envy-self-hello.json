@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "reference_client": "envy-self",
+  "reference_version": "develop-Ed2kHelloWire",
+  "packet_direction": "send",
+  "protocol": 227,
+  "opcode": 1,
+  "capture_date": "2026-09-15",
+  "normalization": "none — synthetic Envy self-golden from tests/test_ed2k_hello_golden.cpp; not a live peer capture",
+  "privacy": "synthetic userhash; server IPv4/port already zero",
+  "notes": "SOURCE: Envy implementation (CEDClient::SendHello / Ed2kHelloWire.h). Complements EnvyTests; does not prove eMule/aMule interoperability.",
+  "tcp_frame_hex": "e354000000011000010203040e060708090a0b0c0d6f0f44332211361206000000020100010400456e7679030100113d000000030100f936120000030100fa11221012030100fe100c0000030100fb00000850000000000000"
+}

@@ -222,6 +222,13 @@ jobs:
           use-verbose-mode: "no"
         continue-on-error: true
 
+      - name: Interop harness self-test and dry-run
+        if: needs.changes.result == 'success' && needs.changes.outputs.run_docs_check == 'true'
+        run: |
+          set -euo pipefail
+          python3 tools/interop/run.py --self-test
+          python3 tools/interop/run.py --dry-run --artifact-dir "$RUNNER_TEMP/interop-dry-run"
+
   remote-js-security-tests:
     name: Remote JS Security Tests
     needs: changes

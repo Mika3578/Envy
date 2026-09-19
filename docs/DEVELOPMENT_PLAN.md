@@ -3,6 +3,9 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #160/#253: record binary identity + process exits; Hello evidence fields; opt-in `workflow_dispatch` harness job (never required, never live on GitHub-hosted runners).
+- **Changelog Entry:** 2026-09-19 — #160/#253: interop isolation refuses OS temp roots by path components (`python:S5443`); no ED2K/Kad production protocol changes.
+- **Changelog Entry:** 2026-09-19 — #160 phase 1: opt-in ENVY ↔ eMule/aMule interop harness (`tools/interop/`) with dry-run CI self-tests; live reference binaries remain operator-provided; no ED2K/Kad production protocol changes.
 - **Changelog Entry:** 2026-09-19 — Kad `nodes.dat` import copies the profile GUID through a local `Hashes::Guid` (`CGuarded` has no `operator[]`).
 - **Changelog Entry:** 2026-09-19 — Kad `nodes.dat` review hardening: drop all legacy v0 contacts (no Kad2 version); bound XOR-closest insert to `nMaxOut`; copy Kad IDs with `Hashes::Guid::byteCount`.
 - **Changelog Entry:** 2026-09-19 — Kad bootstrap: local modern `nodes.dat` v1/v2/v3 parser (`KadNodesDat.h`); v3 edition 1 bounded to 50 XOR-closest contacts; UDP-key fields parsed and discarded; no remote HTTP source; Kad2 still partial / unverified (#86 slice, not SEARCH_RES / routing / firewall).
@@ -205,7 +208,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - **Envy 4.2.0 Preview 1 release readiness** — version/packaging PR; install/uninstall + network smoke tests still required before tagging `v4.2.0-preview.1` and publishing the draft GitHub prerelease.
 - C++ modernization across legacy modules.
 - Incremental protocol compatibility and robustness improvements.
-- **P0 ED2K/Kad interoperability baseline** against eMule Community and aMule (live interop unverified; see `docs/10_dev/status.md`).
+- **P0 ED2K/Kad interoperability baseline** against eMule Community and aMule (live interop unverified; harness exists — `tools/interop/README.md`; see `docs/10_dev/status.md`).
 - **Bootstrap catalogues** — shipped `DefaultServices.dat` / `DefaultServers.dat` refreshed 2026-09-18. Remaining: importer hardening (P0 potential); Kad **remote** `nodes.dat` discovery type (#86/#160); last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`). Local `ImportNodes` v1/v2/v3 is implemented. Do not restore C++ DHT DNS constants when the catalogue is missing (D-012).
 - Transfer settings UX: first slice (labels + validation + mapping) in `docs/50_user/transfer-settings.md`; no fake capabilities.
 
@@ -221,7 +224,7 @@ Priorities must match `docs/10_dev/status.md` and `docs/10_dev/roadmap.md`.
 
 ### P0 — ED2K / Kad interoperability baseline
 
-Absolute priority before new ED2K/Kad extensions. Validate against eMule Community and aMule (live Envy ↔ eMule, Envy ↔ aMule, ideally eMule ↔ Envy ↔ aMule). Status today: **partial / unverified live**.
+Absolute priority before new ED2K/Kad extensions. Validate against eMule Community and aMule (live Envy ↔ eMule, Envy ↔ aMule, ideally eMule ↔ Envy ↔ aMule). Status today: **partial / unverified live**. Phase-1 evidence collection: `python3 tools/interop/run.py` (`tools/interop/README.md`). The harness existing is **not** an interoperability claim.
 
 ED2K: Hello / HelloAnswer, MuleInfo / MuleInfoAnswer, userhash, ClientID, HighID / LowID, callbacks, capability negotiation, compression, multipacket, search, Source Exchange, publish-as-source, upload/download, large files, unsupported-extension handling.
 

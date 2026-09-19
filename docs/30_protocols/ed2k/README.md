@@ -10,6 +10,7 @@ Scope: Envy ED2K notes. Live status is `docs/10_dev/status.md`. RSA SecureIdent 
 - [Gap analysis](ED2K_KAD_GAP_ANALYSIS.md) (historical; see banner in that file) · [Search fixes](ED2K_SEARCH_FIXES.md)
 - [Advanced features](ed2k-advanced-features.md) · [Protocol verification](ED2K_PROTOCOL_VERIFICATION.md) (historical; not live status)
 - [Source Exchange notes](SOURCE_EXCHANGE_INTEROP_NOTES.md)
+- [Live interop harness (#160)](../../../tools/interop/README.md) (opt-in; not a compatibility claim)
 
 ## Related
 - [Status](../../10_dev/status.md) · [Dev docs](../../10_dev/) · [Protocol index](../README.md)

@@ -26,4 +26,5 @@ issue volume on the New Code period when the leak baseline is broad
 ## Related
 
 - Issue #234 — restore green SonarCloud Quality Gate on `develop`
+- PR #253 / #160 — interop isolation `python:S5443` (world-writable `Path("/tmp")` denylist literals) is fixed by path-component matching, not by excluding `tools/interop/`
 - `docs/10_dev/devsecops-envy.md` — required checks including SonarCloud
