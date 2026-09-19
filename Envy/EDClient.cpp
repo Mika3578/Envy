@@ -22,6 +22,7 @@
 #include "EDClient.h"
 #include "EDClients.h"
 #include "EDPacket.h"
+#include "Kademlia.h"
 #include "EDSourcePacketValidate.h"
 #include "PacketLengthValidate.h"
 #include "SecureIdentPolicy.h"
@@ -1307,6 +1308,13 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 			return OnC2cCallback(pPacket);
 		case ED2K_C2C_REASKCALLBACKTCP:
 			return OnReaskCallbackTcp(pPacket);
+
+		// Kad TCP firewall-check ACK (Kad version >= 7). Empty payload.
+		case ED2K_C2C_KAD_FWTCPCHECK_ACK:
+			if ( pPacket->GetRemaining() != 0 )
+				return TRUE;
+			Kademlia.OnTcpFirewallCheckAck( &m_pHost );
+			return TRUE;
 		}
 	}
 

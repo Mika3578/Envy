@@ -22,6 +22,7 @@
 #include <map>
 #include <unordered_map>
 #include "KadSearchResDelivery.h"
+#include "KadFirewallCheck.h"
 
 // Kademlia node ID is 128-bit (16 bytes) for eDonkey2000
 #define KAD_ID_SIZE 16
@@ -98,7 +99,8 @@ enum KadRequestType {
     KAD_REQUEST_SEARCH_KEY = 2,
     KAD_REQUEST_SEARCH_SOURCE = 3,
     KAD_REQUEST_PUBLISH_KEY = 4,
-    KAD_REQUEST_PUBLISH_SOURCE = 5
+    KAD_REQUEST_PUBLISH_SOURCE = 5,
+    KAD_REQUEST_FIREWALL_CHECK = 6
 };
 
 // DHT stored entry (published keyword or source)
@@ -220,6 +222,13 @@ public:
     // Mark contact as verified
     void MarkContactVerified(const KadId& id);
 
+    // Kad TCP firewall-check ACK from ED2K C2C (0xA8). UDP state is separate.
+    void OnTcpFirewallCheckAck(const SOCKADDR_IN* pHost);
+
+    KadTcpFirewallState GetTcpFirewallState() const { return m_firewall.TcpState(); }
+    KadUdpFirewallState GetUdpFirewallState() const { return m_firewall.UdpState(); }
+    DWORD GetObservedPublicIp() const { return m_firewall.PublicIpHost(); }
+
     // Search for keyword results in DHT
     void SearchKeyword(const KadId& keywordHash);
 
@@ -311,6 +320,17 @@ private:
 	void ProcessSearchResponseDelivery(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	// Outstanding searches: target hash + kind + expiry; no CDownload*.
 	KadOutstandingSearchMap m_outstandingSearches;
+
+	// TCP firewall-detection baseline (UDP tester / Buddy / callback deferred).
+	void OnFirewalledRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket, bool firewalled2);
+	void OnFirewalledResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	void OnFirewalledAck(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	void SendFirewalledResponse(const SOCKADDR_IN* pHost, DWORD observedIpHost);
+	void SendFirewalledRequest(const KadContact& contact);
+	void MaybeStartFirewallChecks();
+	void CollectFirewallCheckCandidates(KadFwPeerCandidate* out, size_t outMax, size_t& outCount) const;
+	KadFirewallCheck m_firewall;
+	WORD m_lastFirewallTcpPort;
 };
 
 // Kademlia packet structures
