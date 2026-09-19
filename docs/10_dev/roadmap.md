@@ -102,7 +102,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 ### Done (wire surface in `Kademlia.cpp` — not app-complete)
 - BOOTSTRAP_REQ/RES, PING/PONG, FIND_NODE, HELLO handlers
 - Routing table (XOR distance, K=10; no split/LRU/refresh yet)
-- nodes.dat import via `HostCache` (**partial**: old format + new-format version 1; eMule-Security currently publishes version 2 — not a complete Kad bootstrap path)
+- nodes.dat import via `HostCache` (**implemented** for local files: legacy v0 + new-format v1/v2/v3; v3 bootstrap edition bounded). Remote HTTP `nodes.dat` is not wired. Not a complete Kad bootstrap/interop claim.
 - Rate limiting, blacklist integration
 - Request tracking, IP endianness
 
@@ -128,7 +128,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 | **UDP hole punching** | NAT traversal for firewalled nodes (historical Kad2; not Ember/eSE overlays) | P0 |
 | **Firewall self-check** | Detect own firewall status via Kademlia | P0 |
 | **Wire EnableKadHello / KadFindValue** | Settings exist but are not read by `Kademlia.cpp` | Medium |
-| **Kad remote nodes.dat bootstrap** | Discovery type + ImportNodes v2/v3 + empty-cache path. Coordinate with #86/#160. Do not advertise Kad complete. | P1 |
+| **Kad remote nodes.dat download** | HTTPS discovery type + size/timeout/atomic replace. Local ImportNodes v1/v2/v3 is done. Coordinate with #86/#160. Do not advertise Kad complete. | P1 |
 | **Kad6** | Experimental IPv6 overlay (eMule eSE). Distinct from Kad2. | P3 |
 
 ---
@@ -252,7 +252,7 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
 ### P1 — Bootstrap follow-ups
 - After the 2026-09-18 catalogue refresh (`docs/30_protocols/bootstrap-sources.md`):
   - Importer caps for `server.met` / hublist / GWC (P0 potential).
-  - Kad remote `nodes.dat` discovery type + `ImportNodes` v2/v3 + empty-cache path. Coordinate with #86/#160. Do not advertise Kad complete.
+  - Kad remote `nodes.dat` discovery type (HTTPS). Local `ImportNodes` v1/v2/v3 + empty-cache local file path is implemented. Coordinate with #86/#160. Do not advertise Kad complete.
   - Last-known-good remote catalogue (async, never block startup).
 
 ### P1/P2 — BitTorrent (do not drop)

@@ -1341,6 +1341,7 @@ call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)
     <ClInclude Include="FirewallWfasPolicy.h" />
     <ClInclude Include="TextCtrlViewport.h" />
     <ClInclude Include="BootstrapCatalog.h" />
+    <ClInclude Include="KadNodesDat.h" />
     <ClInclude Include="Ed2kHelloCapabilities.h" />
     <ClInclude Include="Ed2kCompressedUpload.h" />
     <ClInclude Include="Ed2kKadSettingsPolicy.h" />

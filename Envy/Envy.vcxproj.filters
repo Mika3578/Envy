@@ -2009,6 +2009,9 @@
     <ClInclude Include="BootstrapCatalog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="KadNodesDat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="TransferSettingsLimits.h">
       <Filter>Header Files</Filter>
     </ClInclude>

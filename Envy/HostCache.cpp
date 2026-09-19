@@ -30,6 +30,8 @@
 #include "VendorCache.h"
 #include "XML.h"
 #include "BootstrapCatalog.h"
+#include "KadNodesDat.h"
+#include "GProfile.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -988,65 +990,75 @@ int CHostCache::ImportMET(CFile* pFile)
 
 int CHostCache::ImportNodes(CFile* pFile)
 {
-	int nServers = 0;
-	DWORD nVersion = 0;
-//
-	DWORD nCount;
-	if ( pFile->Read( &nCount, sizeof( nCount ) ) != sizeof( nCount ) )
+	if (!pFile)
 		return 0;
-	if ( nCount == 0 )
+
+	const ULONGLONG nLen64 = pFile->GetLength();
+	if (nLen64 < 4 || nLen64 > KadNodesDatMaxFileBytes)
 	{
-		// New format
-		if ( pFile->Read( &nVersion, sizeof( nVersion ) ) != sizeof( nVersion ) )
-			return 0;
-		if ( nVersion != 1 )
-			return 0;	// Unknown format
-		if ( pFile->Read( &nCount, sizeof( nCount ) ) != sizeof( nCount ) )
-			return 0;
+		theApp.Message(MSG_NOTICE, L"Kad nodes.dat rejected (size %I64u)", nLen64);
+		return 0;
 	}
-	while ( nCount-- > 0 )
+
+	const DWORD nLen = static_cast<DWORD>(nLen64);
+	CAutoVectorPtr<BYTE> pBytes(new BYTE[nLen]);
+	if (!pBytes)
+		return 0;
+
+	pFile->SeekToBegin();
+	if (pFile->Read(pBytes, nLen) != nLen)
+		return 0;
+
+	uint8_t ownId[Hashes::Guid::byteCount];
+	ZeroMemory(ownId, sizeof(ownId));
 	{
+		const Hashes::Guid oSelf = MyProfile.oGUID;
+		CopyMemory(ownId, &oSelf[0], Hashes::Guid::byteCount);
+	}
+
+	KadNodesDatContact oParsed[KadNodesDatNormalImportCap];
+	const KadNodesDatResult oResult = KadNodesDatParse(
+	    pBytes, nLen, oParsed, KadNodesDatNormalImportCap, ownId);
+
+	if (oResult.status != KadNodesDatStatus::Ok)
+	{
+		theApp.Message(MSG_NOTICE,
+		               L"Kad nodes.dat parse failed (status %d, version %u, edition %u)",
+		               static_cast<int>(oResult.status), oResult.fileVersion, oResult.edition);
+		return 0;
+	}
+
+	int nServers = 0;
+	CQuickLock oLock(Kademlia.m_pSection);
+	for (uint32_t i = 0; i < oResult.acceptedCount; ++i)
+	{
+		const KadNodesDatContact& c = oParsed[i];
+		IN_ADDR pAddress = {};
+		pAddress.S_un.S_un_b.s_b1 = c.ip[0];
+		pAddress.S_un.S_un_b.s_b2 = c.ip[1];
+		pAddress.S_un.S_un_b.s_b3 = c.ip[2];
+		pAddress.S_un.S_un_b.s_b4 = c.ip[3];
+
 		Hashes::Guid oGUID;
-		if ( pFile->Read( &oGUID[0], oGUID.byteCount ) != oGUID.byteCount )
-			break;
+		CopyMemory(&oGUID[0], c.id, Hashes::Guid::byteCount);
 		oGUID.validate();
-		IN_ADDR pAddress;
-		if ( pFile->Read( &pAddress, sizeof( pAddress ) ) != sizeof( pAddress ) )
-			break;
-		// IP addresses are stored in network byte order (as read from file)
-		WORD nUDPPort;
-		if ( pFile->Read( &nUDPPort, sizeof( nUDPPort ) ) != sizeof( nUDPPort ) )
-			break;
-		WORD nTCPPort;
-		if ( pFile->Read( &nTCPPort, sizeof( nTCPPort ) ) != sizeof( nTCPPort ) )
-			break;
-		BYTE nKADVersion = 0;
-		BYTE nType = 0;
-		if ( nVersion == 1 )
+
+		CHostCacheHostPtr pCache = Kademlia.Add(
+		    &pAddress, c.tcpPort ? c.tcpPort : c.udpPort);
+		if (pCache)
 		{
-			if ( pFile->Read( &nKADVersion, sizeof( nKADVersion ) ) != sizeof( nKADVersion ) )
-				break;
-		}
-		else
-		{
-			if ( pFile->Read( &nType, sizeof( nType ) ) != sizeof( nType ) )
-				break;
-		}
-		if ( nVersion == 1 || nType < 4 )
-		{
-			CQuickLock oLock( Kademlia.m_pSection );
-			CHostCacheHostPtr pCache = Kademlia.Add( &pAddress, nTCPPort );
-			if ( pCache )
-			{
-				pCache->m_oGUID = oGUID;
-				pCache->m_sDescription = oGUID.toString();
-				pCache->m_nUDPPort = nUDPPort;
-				pCache->m_nKADVersion = nKADVersion;
-				nServers++;
-			}
+			pCache->m_oGUID = oGUID;
+			pCache->m_sDescription = oGUID.toString();
+			pCache->m_nUDPPort = c.udpPort;
+			pCache->m_nKADVersion = c.contactVersion;
+			++nServers;
 		}
 	}
 
+	theApp.Message(MSG_DEBUG,
+	               L"Kad nodes.dat imported %d of %u accepted contacts (file v%u%s)",
+	               nServers, oResult.acceptedCount, oResult.fileVersion,
+	               oResult.bootstrapEdition ? L", bootstrap edition" : L"");
 	return nServers;
 }
 
@@ -1084,6 +1096,29 @@ bool CHostCache::CheckMinimumServers(PROTOCOLID nProtocol)
 
 	// Load default server list (if necessary)
 	LoadDefaultServers( nProtocol );
+
+	if (nProtocol == PROTOCOL_KAD)
+	{
+		Import(Settings.General.DataPath + L"nodes.dat", FALSE);
+
+		const static LPCTSTR sNodesDatPaths[4] = {
+			{ L"\\eMule\\config\\nodes.dat" },
+			{ L"\\eMule\\nodes.dat" },
+			{ L"\\aMule\\config\\nodes.dat" },
+			{ L"\\aMule\\nodes.dat" }
+		};
+		CString strKadRoots[4] = {
+			theApp.GetProgramFilesFolder(),
+			theApp.GetProgramFilesFolder64(),
+			theApp.GetLocalAppDataFolder(),
+			theApp.GetAppDataFolder()
+		};
+		for (int i = 0; i < _countof(strKadRoots); ++i)
+		{
+			for (int j = 0; j < _countof(sNodesDatPaths); ++j)
+				Import(strKadRoots[i] + sNodesDatPaths[j], TRUE);
+		}
+	}
 
 	// Get the server list from local eMule/mods if possible
 	if ( nProtocol == PROTOCOL_ED2K )
