@@ -21,6 +21,7 @@
 #pragma once
 
 #include "Packet.h"
+#include "PacketLengthValidate.h"
 
 #pragma pack(1)
 
@@ -104,7 +105,9 @@ public:
 	void				WriteLongEDString(LPCTSTR psz, BOOL bUnicode);
 	void				WriteFile(const CEnvyFile* pFile, QWORD nSize, const CEDClient* pClient, const CEDNeighbour* pServer = NULL, bool bPartial = false);
 	BOOL				Deflate();
-	BOOL				Inflate(DWORD nMaxOutput = 0);	// Unzip packet if any (nMaxOutput = 0 for unlimited)
+	// Unzip packed protocol packets. nMaxOutput 0 (or omitted) uses
+	// ED2K_PACKED_INFLATE_MAX (512 KiB); there is no unlimited packed inflate.
+	BOOL Inflate(DWORD nMaxOutput = ED2K_PACKED_INFLATE_MAX);
 
 	virtual void		Reset();
 	virtual	void		ToBuffer(CBuffer* pBuffer, bool bTCP = true);
