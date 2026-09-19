@@ -1,7 +1,8 @@
 # Envy DevSecOps map (cost-minimal, Windows-first)
 
-**Last Updated:** 2026-09-18
+**Last Updated:** 2026-09-19
 **Repo:** [Mika3578/Envy](https://github.com/Mika3578/Envy) (not upstream GetEnvy/Envy)
+**Full measured CI audit:** [CI_AUDIT_2026-09.md](CI_AUDIT_2026-09.md)
 
 ## Principle
 
@@ -32,15 +33,30 @@ These approximate GitHub gates; they do **not** replace CodeQL/Sonar/gitleaks/PR
 
 ## Merge blockers (develop ruleset)
 
-BLOCK: Build x64 Release, Build Win32 Release, Lint build files, Vcpkg manifest sanity,
-Format Check, Documentation Check, secret-scan, gitleaks, PR Gate, Analyze (c-cpp),
-SonarCloud Code Analysis.
+BLOCK (required status checks): Build x64 Release, Build Win32 Release,
+Lint build files, Vcpkg manifest sanity, Format Check, Documentation Check,
+secret-scan, gitleaks, PR Gate, Analyze (c-cpp), SonarCloud Code Analysis.
+
+BLOCK (native GitHub review rules on Protect develop — not replaceable by PR Gate):
+
+- **Intended:** ≥ **1** approving GitHub review (not the PR author; not a
+  self-approve bot). **Live API 2026-09-19:** `required_approving_review_count: 0`
+  — restore to 1 or update this doc after maintainer decision
+  ([KNOWN_INCONSISTENCIES](../00_index/KNOWN_INCONSISTENCIES.md)).
+- Dismiss stale reviews on new commits (**on**)
+- Require approval of the most recent reviewable push (**off** — intentional)
+- Resolve all review conversations / threads
+- Signed commits; force pushes blocked (`non_fast_forward`)
+- Code scanning merge protection: CodeQL + Gitleaks (current thresholds)
+- Live ruleset also has a GitHub **Code Quality** rule at severity `notes`
+  (docs previously said “none”; prefer SonarCloud + CodeQL + CI for blocking)
+- No draft; squash only on `develop`; linear history; **no bypass actors**
 
 ADVISORY: CodeRabbit, clang-tidy + reviewdog, Snyk (when present), Cursor Bugbot
 (optional / paid — not primary).
 
-Never require CodeRabbit or Bugbot as the sole merge gate until a measured low
-false-positive period and an explicit Fail-on-unresolved policy.
+Never require CodeRabbit or Bugbot as the sole merge gate. PR Gate only waits
+on classified CI checks; it does **not** approve or merge.
 
 ## Dependency automation
 
@@ -79,10 +95,22 @@ comparison notes.
    GitHub → Settings → Applications → Installed GitHub Apps → **Renovate** → Configure → **Mika3578/Envy**
    (or install from [renovatebot.com](https://github.com/apps/renovate)).
    Config: `renovate.json5`. Suites may show `QUEUED` until the app processes the repo.
-3. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks on `Protect develop`.
-4. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
-
-## Agent PR back-pressure
+3. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks + **≥1 GitHub APPROVED review** on `Protect develop`.
+4. **Protect develop (live, verified)** — Source of truth is
+   **Settings → Rules → Protect develop** (re-check via API before changing
+   docs). Snapshot 2026-09-19 + intended knobs:
+   - Required approvals: **intended 1** / **live API 0** (reconcile)
+   - Dismiss stale pull request approvals when new commits are pushed: **on**
+   - Require approval of the most recent reviewable push: **off**
+   - Require conversation resolution before merging: **on**
+   - Allowed merge methods: **squash** only
+   - Signed commits: **on**; Block force pushes: **on**; Bypass list: **empty**
+   - Code scanning: CodeQL + Gitleaks (do not tighten thresholds until
+     C++/JS/C# analyses are deterministic on every PR)
+   - GitHub Code Quality ruleset: live **notes**; blocking still via
+     SonarCloud + CodeQL + CI
+   - Automatically request Copilot code review: **off**
+5. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 
 Max **3** active development PRs (canonical rule in `AGENTS.md`). If at cap: repair CI,
 handle CodeRabbit / reviewdog comments, resolve conflicts, ready-for-review,

@@ -22,6 +22,7 @@
 #include "EDNeighbour.h"
 #include "EDPacket.h"
 #include "EDClients.h"
+#include "PacketLengthValidate.h"
 #include "Neighbours.h"
 #include "Network.h"
 #include "Statistics.h"
@@ -198,7 +199,8 @@ void CEDNeighbour::OnDropped()
 
 BOOL CEDNeighbour::OnRead()
 {
-	CNeighbour::OnRead();
+	if (!CNeighbour::OnRead())
+		return FALSE;
 
 	return ProcessPackets();
 }
@@ -227,10 +229,8 @@ BOOL CEDNeighbour::ProcessPackets(CBuffer* pInput)
 			// Server packets can arrive with ED2K_PROTOCOL_EMULE_PACKED (0xD4)
 			if ( pPacket->m_nEdProtocol == ED2K_PROTOCOL_EMULE_PACKED )
 			{
-				// Use 512 KB cap for server packets to prevent zip-bomb attacks while allowing
-				// typical search results and control traffic (most ED2K server responses are < 100 KB)
-				const DWORD MAX_SERVER_PACKET_SIZE = 512 * 1024;	// 512 KB
-				if ( ! pPacket->Inflate( MAX_SERVER_PACKET_SIZE ) )
+				// Inflate uses ED2K_PACKED_INFLATE_MAX (512 KiB) by default.
+				if (!pPacket->Inflate())
 				{
 					// Inflation failed or exceeded size cap - discard packet safely
 					pPacket->Release();
@@ -305,19 +305,27 @@ BOOL CEDNeighbour::OnRejected(CEDPacket* /*pPacket*/)
 BOOL CEDNeighbour::OnServerMessage(CEDPacket* pPacket)
 {
 	// Server message format: <len 2><Message len>
-	// Need at least 2 bytes for the length field
-	if ( pPacket->GetRemaining() < 2 ) return TRUE;
+	// Fail-closed on wire length before ReadEDString (clamp / throw paths).
+	if (!Ed2kEdStringHeaderOk(pPacket->GetRemaining()))
+		return TRUE;
 
-	// Read the message string with Unicode support if server indicates it
-	CString	strMessage = pPacket->ReadEDString(
-		( m_nTCPFlags & ED2K_SERVER_TCP_UNICODE ) != 0 );
-
-	// Validate message length (prevent buffer overflow attacks)
-	if ( strMessage.GetLength() > 5000 ) // Reasonable limit for server messages
+	const DWORD nMsgPos = pPacket->m_nPosition;
+	const WORD nMsgLen = pPacket->ReadShortLE();
+	if (!Ed2kEdStringPayloadOk(nMsgLen, pPacket->GetRemaining()))
+	{
+		theApp.Message(MSG_WARNING, L"ED2K invalid server-message length from %s", (LPCTSTR)m_sAddress);
+		return TRUE;
+	}
+	if (!Ed2kServerMessageLengthOk(nMsgLen))
 	{
 		theApp.Message( MSG_WARNING, L"ED2K server message too long from %s", (LPCTSTR)m_sAddress );
 		return TRUE;
 	}
+	pPacket->m_nPosition = nMsgPos;
+
+	// Read the message string with Unicode support if server indicates it
+	CString strMessage = pPacket->ReadEDString(
+	    (m_nTCPFlags & ED2K_SERVER_TCP_UNICODE) != 0);
 
 	// Debug logging for server messages
 	#ifdef _DEBUG

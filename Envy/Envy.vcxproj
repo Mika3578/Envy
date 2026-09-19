@@ -1253,6 +1253,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="ChatCore.h" />
     <ClInclude Include="ChatSession.h" />
+    <ClInclude Include="ChatSessionValidate.h" />
     <ClInclude Include="ChatWindows.h" />
     <ClInclude Include="CollectionFile.h" />
     <ClInclude Include="Colors.h" />
@@ -1300,6 +1301,8 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="EDSourcePacketValidate.h" />
     <ClInclude Include="PacketLengthValidate.h" />
     <ClInclude Include="DcPacketLengthValidate.h" />
+    <ClInclude Include="DcAdcGetValidate.h" />
+    <ClInclude Include="NetworkJobValidate.h" />
     <ClInclude Include="SecureIdentPolicy.h" />
     <ClInclude Include="RemoteBase64.h" />
     <ClInclude Include="SecureRandom.h" />

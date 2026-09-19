@@ -181,10 +181,11 @@ BOOL CHttpRequest::InflateResponse()
 
 	CString strEncoding( GetHeader( L"Content-Encoding" ) );
 
-	if ( strEncoding.CompareNoCase( L"deflate" ) == 0 )
-		return m_pResponse->Inflate();
-	if ( strEncoding.CompareNoCase( L"gzip" ) == 0 )
-		return m_pResponse->Ungzip();
+	const DWORD nCap = m_nLimit; // 0 = unlimited for callers without LimitContentLength
+	if (strEncoding.CompareNoCase(L"deflate") == 0)
+		return m_pResponse->Inflate(nCap);
+	if (strEncoding.CompareNoCase(L"gzip") == 0)
+		return m_pResponse->Ungzip(nCap);
 
 	return TRUE;
 }
@@ -268,15 +269,37 @@ void CHttpRequest::OnRun()
 			{
 				m_pResponse = new CBuffer();
 				DWORD nRemaining = 0;
-				for ( ; IsThreadEnabled() &&
-					InternetQueryDataAvailable( hURL, &nRemaining, 0, 0 ) &&
-					nRemaining > 0 &&
-					m_pResponse->EnsureBuffer( nRemaining ); )
+				for (; IsThreadEnabled() &&
+				       InternetQueryDataAvailable(hURL, &nRemaining, 0, 0) &&
+				       nRemaining > 0;)
 				{
-					if ( ! InternetReadFile( hURL, m_pResponse->m_pBuffer +
-						m_pResponse->m_nLength, nRemaining, &nRemaining ) ) break;
-					m_pResponse->m_nLength += nRemaining;
-					if ( m_nLimit > 0 && m_pResponse->m_nLength > m_nLimit ) break;
+					DWORD nToRead = nRemaining;
+					if (m_nLimit > 0)
+					{
+						if (m_pResponse->m_nLength >= m_nLimit)
+							break;
+						const DWORD nLeft = m_nLimit - m_pResponse->m_nLength;
+						if (nToRead > nLeft)
+							nToRead = nLeft;
+					}
+					if (nToRead == 0 || !m_pResponse->EnsureBuffer(nToRead))
+						break;
+					DWORD nRead = 0;
+					if (!InternetReadFile(hURL, m_pResponse->m_pBuffer + m_pResponse->m_nLength, nToRead, &nRead))
+						break;
+					if (nRead == 0)
+						break;
+					m_pResponse->m_nLength += nRead;
+					if (m_nLimit > 0 && m_pResponse->m_nLength >= m_nLimit)
+					{
+						// Hitting the cap means the body is at least this large.
+						// Always fail-closed (do not keep a truncated buffer that
+						// callers could treat as a complete response); chunked
+						// transfers may report nMore==0 before more bytes arrive.
+						delete m_pResponse;
+						m_pResponse = NULL;
+						break;
+					}
 				}
 				if ( IsThreadEnabled() && nRemaining == 0 )
 				{

@@ -2,7 +2,15 @@
 # Wait for the pull-request checks that classification says must run.
 # Skipped required checks are accepted only when classification did not
 # request them. This job is not itself part of the wait list.
+#
+# Semantic gate (stricter than GitHub required-check permissiveness):
+#   must_pass → success only
+#   may_skip  → success or skipped (neutral fails)
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=pr-gate-conclusions.sh
+source "${SCRIPT_DIR}/pr-gate-conclusions.sh"
 
 REPO="${GITHUB_REPOSITORY:?}"
 SHA="${HEAD_SHA:?}"
@@ -11,11 +19,7 @@ POLL_SEC="${POLL_SEC:-15}"
 SELF_NAME="${SELF_NAME:-PR Gate}"
 
 RUN_WINDOWS_BUILD="${RUN_WINDOWS_BUILD:-false}"
-RUN_CODEQL_CPP="${RUN_CODEQL_CPP:-false}"
-RUN_CODEQL_JS="${RUN_CODEQL_JS:-false}"
-RUN_CODEQL_CSHARP="${RUN_CODEQL_CSHARP:-false}"
 RUN_REMOTE_JS="${RUN_REMOTE_JS:-false}"
-RUN_FORMAT="${RUN_FORMAT:-false}"
 RUN_DEP_REVIEW="${RUN_DEP_REVIEW:-false}"
 
 must_pass=()
@@ -27,6 +31,16 @@ add_skip() { may_skip+=("$1"); }
 add_must "Lint build files"
 add_must "secret-scan"
 add_must "Vcpkg manifest sanity"
+# Code Scanning expects all three develop CodeQL configurations on every PR.
+add_must "Analyze (c-cpp)"
+add_must "Analyze (javascript-typescript)"
+add_must "Analyze (csharp)"
+# Required Format Check — success no-op when no first-party C/C++ hunks.
+add_must "Format Check"
+# Protect develop requires Documentation Check; the job always emits success
+# (full check or classify no-op). Keep it must_pass so a silent skip cannot
+# green-wash the gate.
+add_must "Documentation Check"
 
 if [[ "$RUN_WINDOWS_BUILD" == "true" ]]; then
 	add_must "Build x64 Release"
@@ -34,28 +48,6 @@ if [[ "$RUN_WINDOWS_BUILD" == "true" ]]; then
 else
 	add_skip "Build x64 Release"
 	add_skip "Build Win32 Release"
-fi
-
-if [[ "$RUN_CODEQL_CPP" == "true" ]]; then
-	add_must "Analyze (c-cpp)"
-else
-	add_skip "Analyze (c-cpp)"
-fi
-
-if [[ "$RUN_CODEQL_JS" == "true" ]]; then
-	add_must "Analyze (javascript-typescript)"
-else
-	add_skip "Analyze (javascript-typescript)"
-fi
-
-if [[ "$RUN_FORMAT" == "true" ]]; then
-	add_must "Format Check"
-else
-	add_skip "Format Check"
-fi
-
-if [[ "$RUN_CODEQL_CSHARP" == "true" ]]; then
-	add_must "Analyze (csharp)"
 fi
 
 if [[ "$RUN_REMOTE_JS" == "true" ]]; then
@@ -68,28 +60,6 @@ fi
 
 echo "Must pass: ${must_pass[*]:-(none)}"
 echo "May skip: ${may_skip[*]:-(none)}"
-
-is_bad_conclusion() {
-	case "$1" in
-	failure | cancelled | timed_out | action_required | startup_failure | stale)
-		return 0
-		;;
-	*)
-		return 1
-		;;
-	esac
-}
-
-is_ok_conclusion() {
-	case "$1" in
-	success | skipped | neutral)
-		return 0
-		;;
-	*)
-		return 1
-		;;
-	esac
-}
 
 start_ts=$(date +%s)
 summary_tmp="$(mktemp)"
@@ -158,18 +128,23 @@ while true; do
 			echo "- $name: $conc" >>"$summary_tmp"
 			return
 		fi
-		if [[ "$conc" == "skipped" && "$allow_skip" != "true" ]]; then
-			failed+=("$name (skipped but required for this PR)")
-			echo "- $name: skipped (unexpected)" >>"$summary_tmp"
+		if [[ "$allow_skip" == "true" ]]; then
+			if is_ok_may_skip "$conc"; then
+				ok+=("$name ($conc)")
+				echo "- $name: $conc" >>"$summary_tmp"
+				return
+			fi
+			failed+=("$name ($conc; may_skip rejects neutral/other)")
+			echo "- $name: $conc (unexpected for may_skip)" >>"$summary_tmp"
 			return
 		fi
-		if is_ok_conclusion "$conc"; then
+		if is_ok_must_pass "$conc"; then
 			ok+=("$name ($conc)")
 			echo "- $name: $conc" >>"$summary_tmp"
 			return
 		fi
-		pending+=("$name ($conc)")
-		echo "- $name: $conc" >>"$summary_tmp"
+		failed+=("$name ($conc; must_pass requires success)")
+		echo "- $name: $conc (must_pass requires success)" >>"$summary_tmp"
 	}
 
 	for name in "${must_pass[@]}"; do

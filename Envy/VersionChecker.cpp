@@ -160,7 +160,7 @@ BOOL CVersionChecker::ExecuteRequest()
 
 	BOOL bSuccess = FALSE;
 	theApp.Message( MSG_DEBUG | MSG_FACILITY_OUTGOING, L"[VersionChecker] Request: %s", UPDATE_URL );
-	m_pRequest.LimitContentLength( VERSION_CHECK_HTTP_RESPONSE_MAX );
+	m_pRequest.LimitContentLength(VERSION_CHECK_HTTP_RESPONSE_MAX);
 	if ( m_pRequest.SetURL( UPDATE_URL ) && m_pRequest.Execute( false ) )
 	{
 		int nStatusCode = m_pRequest.GetStatusCode();
@@ -171,7 +171,7 @@ BOOL CVersionChecker::ExecuteRequest()
 	if ( ! bSuccess )
 	{
 		theApp.Message( MSG_DEBUG | MSG_FACILITY_OUTGOING, L"[VersionChecker] Request: %s", UPDATE_URL_ALT );
-		m_pRequest.LimitContentLength( VERSION_CHECK_HTTP_RESPONSE_MAX );
+		m_pRequest.LimitContentLength(VERSION_CHECK_HTTP_RESPONSE_MAX);
 		if ( m_pRequest.SetURL( UPDATE_URL_ALT ) && m_pRequest.Execute( false ) )
 		{
 			int nStatusCode = m_pRequest.GetStatusCode();
@@ -184,7 +184,7 @@ BOOL CVersionChecker::ExecuteRequest()
 		return FALSE;
 
 	const CBuffer* pBuffer = m_pRequest.GetResponseBuffer();
-	if ( pBuffer == NULL || ! VersionCheckerHttpResponseOk( pBuffer->m_nLength ) )
+	if (pBuffer == NULL || !VersionCheckerHttpResponseOk(pBuffer->m_nLength))
 		return FALSE;
 
 	CString strOutput = m_pRequest.GetResponseString();

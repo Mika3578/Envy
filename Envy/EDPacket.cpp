@@ -200,6 +200,8 @@ void CEDPacket::Reset()
 CString CEDPacket::ReadEDString(BOOL bUnicode)
 {
 	WORD nLen = ReadShortLE();
+	if (!Ed2kEdStringPayloadOk(nLen, GetRemaining()))
+		AfxThrowUserException();
 	return bUnicode ?
 		ReadStringUTF8( nLen ) :
 		ReadStringASCII( nLen );
@@ -224,6 +226,8 @@ void CEDPacket::WriteEDString(LPCTSTR psz, BOOL bUnicode)
 CString CEDPacket::ReadLongEDString(BOOL bUnicode)
 {
 	DWORD nLen = ReadLongLE();
+	if (!Ed2kLongEdStringPayloadOk(nLen, GetRemaining()))
+		AfxThrowUserException();
 	if ( bUnicode )
 		return ReadStringUTF8( nLen );
 
@@ -506,9 +510,13 @@ BOOL CEDPacket::Inflate(DWORD nMaxOutput)
 		 m_nEdProtocol != ED2K_PROTOCOL_REVCONNECT_PACKED )
 		return TRUE;
 
+	// Treat 0 as the shared packed-protocol cap (no unlimited inflate).
+	if (nMaxOutput == 0 || nMaxOutput > ED2K_PACKED_INFLATE_MAX)
+		nMaxOutput = ED2K_PACKED_INFLATE_MAX;
+
 	DWORD nOutput = 0;
-	auto_array< BYTE > pOutput( CZLib::Decompress( m_pBuffer, m_nLength, &nOutput, nMaxOutput ) );
-	if ( ! pOutput.get() )
+	auto_array<BYTE> pOutput(CZLib::Decompress(m_pBuffer, m_nLength, &nOutput, nMaxOutput));
+	if (!pOutput.get() || !Ed2kPackedInflateOk(nOutput))
 		return FALSE;
 
 	switch ( m_nEdProtocol )
@@ -1411,7 +1419,11 @@ BOOL CEDTag::Read(CEDPacket* pPacket, BOOL bUnicode)
 		if ( pPacket->GetRemaining() < 4 ) return FALSE;
 		{
 			DWORD nLenBlob = pPacket->ReadLongLE();
-			if ( pPacket->GetRemaining() < nLenBlob ) return FALSE;
+			// Absolute 4 MiB cap + remaining check (same policy as .met TAG_BLOB / #82).
+			if (!Ed2kTagBlobLengthOk(nLenBlob, pPacket->GetRemaining()))
+				return FALSE;
+			if (nLenBlob == 0)
+				break;
 			m_sValue = pPacket->ReadStringASCII( nLenBlob );
 		}
 		break;
@@ -1439,7 +1451,7 @@ BOOL CEDTag::Read(CEDPacket* pPacket, BOOL bUnicode)
 		break;
 
 	case ED2K_TAG_UINT64:
-		if ( pPacket->GetRemaining() < 1 ) return FALSE;
+		if (!Ed2kTagUint64RemainingOk(pPacket->GetRemaining())) return FALSE;
 		m_nValue = pPacket->ReadInt64();
 		m_nType = ED2K_TAG_INT;
 		break;
@@ -1457,45 +1469,31 @@ BOOL CEDTag::Read(CEDPacket* pPacket, BOOL bUnicode)
 		}
 		else
 		{
-			// Unknown tag type - try to skip it gracefully
-			// Log the unknown type but try common value formats to skip the tag
+			// Unknown tag type — speculative skip. Prefer STRING framing when the
+			// length claim fits; otherwise fail-closed (do not guess INT and desync).
 			theApp.Message( MSG_DEBUG, L"Unknown ED2K tag type 0x%02x - skipping tag value", m_nType );
 
-			// Try to skip based on common value formats
-			// Most tags use INT (4 bytes) or STRING (2-byte length + data)
-			// Try STRING format first (most common for unknown extensions)
-			if ( pPacket->GetRemaining() >= 2 )
+			if (pPacket->GetRemaining() < 2)
+				return FALSE;
+
+			const DWORD nPos = pPacket->m_nPosition;
+			const WORD nValueLen = pPacket->ReadShortLE();
+			if (Ed2kUnknownTagStringSkipOk(nValueLen, pPacket->GetRemaining()))
 			{
-				DWORD nPos = pPacket->m_nPosition;
-				WORD nValueLen = pPacket->ReadShortLE();
-				if ( pPacket->GetRemaining() >= nValueLen && nValueLen < 1024 )
-				{
-					// Valid string length - skip the string data
+				if (nValueLen)
 					pPacket->Seek( nValueLen, CPacket::seekCurrent );
-				}
-				else
-				{
-					// Invalid string length - try INT format (4 bytes)
-					pPacket->m_nPosition = nPos;
-					if ( pPacket->GetRemaining() >= 4 )
-					{
-						pPacket->Seek( 4, CPacket::seekCurrent );
-					}
-					else
-					{
-						// Not enough data for any known format - fail gracefully
-						return FALSE;
-					}
-				}
 			}
-			else if ( pPacket->GetRemaining() >= 4 )
+			else if (nValueLen > ED2K_UNKNOWN_TAG_STRING_SKIP_MAX)
 			{
-				// Try INT format (4 bytes)
+				// Length too large for STRING heuristic — try INT (4 bytes from nPos).
+				pPacket->m_nPosition = nPos;
+				if (pPacket->GetRemaining() < 4)
+					return FALSE;
 				pPacket->Seek( 4, CPacket::seekCurrent );
 			}
 			else
 			{
-				// Not enough data - fail gracefully
+				// Plausible STRING length that does not fit remaining — fail-closed.
 				return FALSE;
 			}
 		}
@@ -1643,42 +1641,29 @@ BOOL CEDTag::Read(CFile* pFile)
 		}
 		else
 		{
-			// Unknown tag type - try to skip it gracefully
-			// Log the unknown type but try common value formats to skip the tag
+			// Unknown tag type — same speculative skip as wire path (#81).
 			theApp.Message( MSG_DEBUG, L"Unknown ED2K tag type 0x%02x - skipping tag value", m_nType );
 
-			// Try to skip based on common value formats
-			// Most tags use INT (4 bytes) or STRING (2-byte length + data)
-			// For safety, try STRING format first (2-byte length + data)
-			DWORD nPos = pFile->GetPosition();
+			const ULONGLONG nPos = pFile->GetPosition();
 			WORD nValueLen = 0;
-			if ( pFile->Read( &nValueLen, sizeof( nValueLen ) ) == sizeof( nValueLen ) )
+			if (pFile->Read(&nValueLen, sizeof(nValueLen)) != sizeof(nValueLen))
+				return FALSE;
+
+			const ULONGLONG nRemaining = pFile->GetLength() - pFile->GetPosition();
+			if (Ed2kUnknownTagStringSkipOk(nValueLen, nRemaining))
 			{
-				// Try STRING format - check if length is reasonable
-				if ( nValueLen < 1024 && pFile->GetLength() - pFile->GetPosition() >= nValueLen )
-				{
-					// Valid string length - skip the string data
+				if (nValueLen)
 					pFile->Seek( nValueLen, CFile::current );
-				}
-				else
-				{
-					// Invalid string length - assume INT format (4 bytes total)
-					// We've already read 2 bytes, so just skip 2 more
-					pFile->Seek( nPos + 4, CFile::begin );
-				}
+			}
+			else if (nValueLen > ED2K_UNKNOWN_TAG_STRING_SKIP_MAX)
+			{
+				pFile->Seek(nPos + 4, CFile::begin);
+				if (pFile->GetPosition() > pFile->GetLength())
+					return FALSE;
 			}
 			else
 			{
-				// Couldn't read length - assume INT format (4 bytes)
-				if ( pFile->GetLength() - pFile->GetPosition() >= 4 )
-				{
-					pFile->Seek( 4, CFile::current );
-				}
-				else
-				{
-					// Not enough data - fail gracefully
-					return FALSE;
-				}
+				return FALSE;
 			}
 		}
 	}

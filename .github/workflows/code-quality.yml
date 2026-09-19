@@ -31,6 +31,7 @@ jobs:
   static-analysis:
     name: Static Analysis
     runs-on: windows-2025-vs2026
+    timeout-minutes: 120
     # Expensive full-solution code-analysis build. Skip it on pull_request -
     # CodeQL already gates PRs; this runs on push to the integration
     # branches, on the nightly schedule, and on demand.
@@ -46,7 +47,19 @@ jobs:
         uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57  # v3
 
       - name: Restore NuGet packages
-        run: nuget restore "Visual Studio/Envy.sln"
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem -Path . -Recurse -Filter packages.config -File -ErrorAction SilentlyContinue |
+            Where-Object {
+              $_.FullName -notmatch '\\.git\\' -and
+              $_.FullName -notmatch '\\(Services|HashLib\\HashLib)\\' -and
+              $_.FullName -notmatch '\\Plugins\\(PluginWizard|RatDVDPlugin|SWFPlugin)\\'
+            })
+          if ($packages.Count -eq 0) {
+            Write-Host "No first-party packages.config found; skipping nuget restore."
+            exit 0
+          }
+          nuget restore "Visual Studio/Envy.sln"
 
       - name: Run Code Analysis
         run: |
@@ -64,58 +77,116 @@ jobs:
 
   lint-check:
     name: Format Check
-    needs: changes
+    # Independent of classify-changes: required context must always emit, and a
+    # classifier failure must not suppress formatting.
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && needs.changes.outputs.run_format == 'true'
+    timeout-minutes: 15
+    env:
+      CLANG_FORMAT_MAJOR: "18"
 
     steps:
       - name: Checkout code
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
-          fetch-depth: 1
+          # Pin to PR head so clang-format-diff hunk line numbers match the tip
+          # (default merge ref can shift lines vs base...head hunks).
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
 
-      - name: Install clang-format
-        run: sudo apt-get update && sudo apt-get install -y clang-format
+      - name: Install clang-format ${{ env.CLANG_FORMAT_MAJOR }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y "clang-format-${CLANG_FORMAT_MAJOR}"
+          clang-format-${CLANG_FORMAT_MAJOR} --version
+          command -v "clang-format-diff-${CLANG_FORMAT_MAJOR}"
+          command -v "clang-format-${CLANG_FORMAT_MAJOR}"
 
-      - name: clang-format --dry-run on changed files
+      - name: clang-format-diff on changed hunks
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CLANG_FORMAT_MAJOR: ${{ env.CLANG_FORMAT_MAJOR }}
+          CLANG_FORMAT_BIN: clang-format-${{ env.CLANG_FORMAT_MAJOR }}
+          # Encoding-safe wrapper: stock clang-format-diff crashes on ISO-8859
+          # Envy sources (copyright 0xA9). Absolute path so format-check.sh
+          # `command -v` accepts it.
+          CLANG_FORMAT_DIFF: ${{ github.workspace }}/.github/scripts/clang-format-diff-safe
         run: |
-          files=$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[].filename' \
-            | grep -E '\.(cpp|h|cxx|hpp)$' \
-            | grep -E '^(Envy|TorrentEnvy|HashLib)/' \
-            | grep -vE '^(Services|Plugins/PluginWizard|Plugins/RatDVDPlugin|Plugins/SWFPlugin)/' \
-            || true)
-          if [ -z "$files" ]; then
-            echo "No relevant C/C++ files changed."
-            exit 0
+          set -euo pipefail
+          # Prefer Format Check inputs from the PR base so a PR cannot bypass
+          # the required check by rewriting format-check.sh or relaxing
+          # .clang-format on the branch alone. Hunk content still comes from
+          # the HEAD working tree (checkout ref above).
+          if ! git rev-parse --verify "${BASE_SHA}^{commit}" >/dev/null 2>&1; then
+            echo "::error::BASE_SHA is not a valid commit: ${BASE_SHA}"
+            exit 1
           fi
-          fail=0
-          while IFS= read -r f; do
-            [ -f "$f" ] || continue
-            if ! clang-format --dry-run --Werror "$f" 2>&1; then
-              fail=1
-            fi
-          done <<< "$files"
-          if [ "$fail" -ne 0 ]; then
-            echo "::warning::Formatting differences detected. Run clang-format locally."
+
+          trusted_script="$(mktemp)"
+          if git cat-file -e "${BASE_SHA}:.github/scripts/format-check.sh" 2>/dev/null; then
+            git show "${BASE_SHA}:.github/scripts/format-check.sh" >"$trusted_script"
+            echo "Using format-check.sh from base ${BASE_SHA}"
+          else
+            # Bootstrap only: script is new on this PR and absent from develop.
+            # After merge, the base path above applies and this branch is unused.
+            echo "::warning::format-check.sh absent on base ${BASE_SHA}; bootstrap from HEAD ${HEAD_SHA}"
+            git show "${HEAD_SHA}:.github/scripts/format-check.sh" >"$trusted_script"
           fi
-        continue-on-error: true
+
+          if ! git cat-file -e "${BASE_SHA}:.clang-format" 2>/dev/null; then
+            echo "::error::.clang-format missing on base ${BASE_SHA}"
+            exit 1
+          fi
+          git show "${BASE_SHA}:.clang-format" >.clang-format
+          echo "Pinned .clang-format from base ${BASE_SHA}"
+          if git cat-file -e "${BASE_SHA}:.clang-format-ignore" 2>/dev/null; then
+            git show "${BASE_SHA}:.clang-format-ignore" >.clang-format-ignore
+            echo "Pinned .clang-format-ignore from base ${BASE_SHA}"
+          fi
+
+          bash "$trusted_script"
 
   documentation-check:
     name: Documentation Check
     needs: changes
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && needs.changes.outputs.run_docs_check == 'true'
+    timeout-minutes: 15
+    # Always emit this required context on PRs (even when classify fails).
+    # Classify failure fails this job explicitly; when classify succeeds and
+    # docs are out of scope, report success via no-op so Protect develop never
+    # waits on a skipped/missing check (see docs/10_dev/CI_AUDIT_2026-09.md).
+    # When classify is cancelled (concurrency supersede), emit success no-op
+    # so a cancelled parent run does not leave a failed required check.
+    if: always() && github.event_name == 'pull_request'
 
     steps:
+      - name: Superseded run (classification cancelled)
+        if: needs.changes.result == 'cancelled'
+        run: |
+          echo "::notice::Classification cancelled (superseded); Documentation Check no-op success."
+
+      - name: Fail if classification failed
+        if: needs.changes.result != 'success' && needs.changes.result != 'cancelled'
+        run: |
+          echo "::error::Change classification did not succeed (${{ needs.changes.result }})."
+          exit 1
+
       - name: Checkout code
+        if: needs.changes.result == 'success' && needs.changes.outputs.run_docs_check == 'true'
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 1
 
+      - name: Docs check not required for this change set
+        if: needs.changes.result == 'success' && needs.changes.outputs.run_docs_check != 'true'
+        run: |
+          echo "::notice::Documentation Check no-op (classify run_docs_check=false)."
+
       - name: Check for README updates
+        if: needs.changes.result == 'success' && needs.changes.outputs.run_docs_check == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -131,6 +202,7 @@ jobs:
           fi
 
       - name: Check for broken links in markdown
+        if: needs.changes.result == 'success' && needs.changes.outputs.run_docs_check == 'true'
         uses: gaurav-nelson/github-action-markdown-link-check@5c5dfc0ac2e225883c0e5f03a85311ec2830d368  # v1
         with:
           use-quiet-mode: "yes"
@@ -141,6 +213,7 @@ jobs:
     name: Remote JS Security Tests
     needs: changes
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: >
       (github.event_name == 'pull_request' && needs.changes.outputs.run_remote_js == 'true') ||
       github.event_name == 'push' ||
