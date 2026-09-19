@@ -183,7 +183,7 @@ BOOL CHostCache::Save()
 
 
 // Set at INTERNAL_VERSION on change:
-#define HOSTCACHE_SER_VERSION 1
+#define HOSTCACHE_SER_VERSION 2
 
 // nVersion History:
 // 14 - Add m_sCountry
@@ -194,6 +194,7 @@ BOOL CHostCache::Save()
 // 19 - Add m_sAddress (Ryo-oh-ki)
 // 1000 - Remove m_bDHT
 // 1 - (Envy 1.0)
+// 2 - Add m_nCodePage (NMDC hub text encoding)
 
 void CHostCache::Serialize(CArchive& ar)
 {
@@ -1228,32 +1229,33 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 // CHostCacheHost construction
 
 CHostCacheHost::CHostCacheHost(PROTOCOLID nProtocol)
-	: m_nProtocol	( nProtocol )
-	, m_nPort		( 0 )
-	, m_nUDPPort	( 0 )
-	, m_pVendor 	( NULL )
-	, m_bPriority	( FALSE )
-	, m_nUserCount	( 0 )
-	, m_nUserLimit	( 0 )
-	, m_nFileLimit	( 0 )
-	, m_nTCPFlags	( 0 )
-	, m_nUDPFlags	( 0 )
-	, m_tAdded		( GetTickCount() )
-	, m_tSeen		( 0 )
-	, m_tRetryAfter	( 0 )
-	, m_tConnect	( 0 )
-	, m_tQuery		( 0 )
-	, m_tAck		( 0 )
-	, m_tStats		( 0 )
-	, m_tFailure	( 0 )
-	, m_nFailures	( 0 )
-	, m_nDailyUptime( 0 )
-	, m_tKeyTime	( 0 )
-	, m_nKeyValue	( 0 )
-	, m_nKeyHost	( 0 )
-	, m_bCheckedLocally ( FALSE )
-//	, m_bDHT		( FALSE )	// Attributes: DHT (Unused)
-	, m_nKADVersion	( 0 )		// Attributes: Kademlia
+    : m_nProtocol(nProtocol)
+    , m_nPort(0)
+    , m_nUDPPort(0)
+    , m_pVendor(NULL)
+    , m_bPriority(FALSE)
+    , m_nUserCount(0)
+    , m_nUserLimit(0)
+    , m_nFileLimit(0)
+    , m_nTCPFlags(0)
+    , m_nUDPFlags(0)
+    , m_tAdded(GetTickCount())
+    , m_tSeen(0)
+    , m_tRetryAfter(0)
+    , m_tConnect(0)
+    , m_tQuery(0)
+    , m_tAck(0)
+    , m_tStats(0)
+    , m_tFailure(0)
+    , m_nFailures(0)
+    , m_nDailyUptime(0)
+    , m_tKeyTime(0)
+    , m_nKeyValue(0)
+    , m_nKeyHost(0)
+    , m_bCheckedLocally(FALSE)
+    //	, m_bDHT		( FALSE )	// Attributes: DHT (Unused)
+    , m_nKADVersion(0) // Attributes: Kademlia
+    , m_nCodePage(0)   // NMDC: 0 = inherit Settings.DC.CodePage
 {
 	m_pAddress.s_addr = INADDR_ANY;
 
@@ -1289,7 +1291,7 @@ CString CHostCacheHost::Address() const
 //////////////////////////////////////////////////////////////////////
 // CHostCacheHost serialize
 
-void CHostCacheHost::Serialize(CArchive& ar, int /*nVersion*/)	// HOSTCACHE_SER_VER
+void CHostCacheHost::Serialize(CArchive& ar, int nVersion) // HOSTCACHE_SER_VER
 {
 	if ( ar.IsStoring() )
 	{
@@ -1354,6 +1356,9 @@ void CHostCacheHost::Serialize(CArchive& ar, int /*nVersion*/)	// HOSTCACHE_SER_
 
 		if ( m_nProtocol == PROTOCOL_KAD )
 			ar << m_nKADVersion;
+
+		if (nVersion >= 2)
+			ar << m_nCodePage;
 	}
 	else // Loading
 	{
@@ -1425,6 +1430,13 @@ void CHostCacheHost::Serialize(CArchive& ar, int /*nVersion*/)	// HOSTCACHE_SER_
 
 		if ( m_nProtocol == PROTOCOL_KAD )
 			ar >> m_nKADVersion;
+
+		// Ser v2+ stores m_nCodePage. Legacy archive 1000 predates the field
+		// (nVersion 1000 >= 2 numerically) — never read it from that format.
+		if (nVersion >= 2 && nVersion != 1000)
+			ar >> m_nCodePage;
+		else
+			m_nCodePage = 0;
 	}
 }
 

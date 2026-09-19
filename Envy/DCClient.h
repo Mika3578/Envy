@@ -1,7 +1,7 @@
 //
 // DCClient.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2010 and PeerProject 2010-2012
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -36,6 +36,7 @@ public:
 
 public:
 	Hashes::Guid	m_oGUID;							// GUID to identify callback connections
+	UINT m_nCodePage;                                   // NMDC text code page for this peer (from hub)
 
 	virtual BOOL	ConnectTo(const IN_ADDR* pAddress, WORD nPort);
 	virtual void	AttachTo(CConnection* pConnection);

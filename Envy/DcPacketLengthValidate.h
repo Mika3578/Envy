@@ -28,7 +28,7 @@ inline DWORD DcPrefixedPayloadBytes(DWORD nLength, DWORD nPrefix)
 	return nLength - nPrefix - 1;
 }
 
-// Public chat "<nick> message|" — UTF8Decode from offset 1 excluding '|'.
+// Public chat "<nick> message|" — decode from offset 1 excluding '|'.
 inline BOOL DcChatAnglePayloadLengthOk(DWORD nLength)
 {
 	return nLength >= 2;
