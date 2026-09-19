@@ -4,6 +4,7 @@
 
 - **Last Updated:** 2026-09-19
 - **Changelog Entry:** 2026-09-19 — Cloud Agent Linux env: add `.cursor/environment.json` installing clang-format-18/clang-tidy (CI-aligned) + cppcheck (local extra) + `Remote/tests` npm deps (MFC/HashLib remain Windows-only).
+- **Changelog Entry:** 2026-09-19 — `CTextCtrl` System/Network log: top-aligned short journals, conventional scroll + follow-bottom only when already at end (`TextCtrlViewport.h` + EnvyTests); see `docs/10_dev/textctrl-log-ui-checklist.md`.
 - **Changelog Entry:** 2026-09-19 — CI: always-emit required `Build x64 Release` / `Build Win32 Release` on PRs (ubuntu no-op when `run_windows_build=false`; same pattern as Documentation Check) so Protect develop does not block on SKIPPED Builds.
 - **Changelog Entry:** 2026-09-19 — Cross-platform foundations: document EnvyCore / platform / UI target, D-012…D-015, Win32 legacy policy (no removal), CMake portable-slice priority; Linux/macOS remain `planned` not `supported` (`docs/20_arch/PORTABILITY_PLAN.md`); trackers #177–#180 (do not duplicate #91/#161/#89).
 - **Changelog Entry:** 2026-09-19 — DC hublist bootstrap: default URL `https://dchublist.org/hublist.xml.bz2`; `DefaultServices.dat` H rows refreshed (org/pwiam/ru HTTPS); `CUpdateServersDlg` DC mode (skin `CUpdateHubListDlg`) so Settings > DC++ > Download is not the eDonkey server.met dialog. Parser unchanged (`dchub://` kept, `adc://`/`adcs://` skipped). Not ADC/hublist-complete.
@@ -54,7 +55,6 @@
 - **Changelog Entry:** 2026-09-18 — #81: `CEDPacket::Inflate` defaults to 512 KiB (`ED2K_PACKED_INFLATE_MAX` / `Ed2kPackedInflateOk`) for packed C2C/UDP/server paths; 0 no longer means unlimited.
 - **Changelog Entry:** 2026-09-18 — #81/#82: BitTorrent tracker HTTP announce/scrape bodies capped at 32 MiB via `LimitContentLength` + `BtTrackerHttpResponseOk` (closes unused limit API for live tracker downloads).
 - **Changelog Entry:** 2026-09-18 — #81/#82: Discovery GWC/server-list HTTP bodies capped at 32 MiB (`LimitContentLength` + `DiscoveryHttpResponseOk`).
-
 - **Changelog Entry:** 2026-09-18 — #81/#82: file-backed ED2K tag key / TAG_STRING lengths checked against remaining `.met` bytes (`Ed2kTagStringLengthOk`) before allocate/Read.
 - **Changelog Entry:** 2026-09-18 — #166 / D-009 P1: Windows Firewall exceptions via WFAS `INetFwPolicy2` (all Domain/Private/Public profiles); drop legacy `INetFwMgr`.
 - **Changelog Entry:** 2026-09-18 — #76: Remote UI HTML-escapes `CRemote::Add()` substitutions (`Escape`); `AddRaw` for trusted markup; `RemoteHtmlEscape.h` + EnvyTests smoke coverage.
