@@ -38,6 +38,9 @@
 #include "QueryKeys.h"
 #include "QuerySearch.h"
 #include "SearchManager.h"
+
+static_assert(sizeof(GNUTELLAPACKET) == G1_PACKET_HEADER_BYTES,
+              "G1_PACKET_HEADER_BYTES must match sizeof(GNUTELLAPACKET)");
 #include "Security.h"
 #include "Statistics.h"
 #include "VendorCache.h"
@@ -349,7 +352,7 @@ BOOL CG2Packet::SeekToWrapped()
 	if ( GetRemaining() < sizeof( GNUTELLAPACKET ) ) return FALSE;
 
 	GNUTELLAPACKET* pHead = (GNUTELLAPACKET*)( m_pBuffer + m_nPosition );
-	return (DWORD)GetRemaining() >= sizeof( GNUTELLAPACKET ) + pHead->m_nLength;
+	return G1WrappedPayloadFits(GetRemaining(), pHead->m_nLength);
 }
 
 //////////////////////////////////////////////////////////////////////
