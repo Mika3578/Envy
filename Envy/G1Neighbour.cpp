@@ -53,7 +53,7 @@
 #include "PacketLengthValidate.h"
 
 static_assert(sizeof(GNUTELLAPACKET) == G1_PACKET_HEADER_BYTES,
-	"G1_PACKET_HEADER_BYTES must match packed GNUTELLAPACKET");
+              "G1_PACKET_HEADER_BYTES must match packed GNUTELLAPACKET");
 
 #ifdef _DEBUG
 #undef THIS_FILE
