@@ -104,7 +104,9 @@ BOOL CDCNeighbour::SendPrivateTo(const CString& sToNick, bool bAction, const CSt
 		return FALSE;
 	if (sToNick.IsEmpty() || sText.IsEmpty())
 		return FALSE;
-	if (sToNick.Find(L'|') >= 0 || sText.Find(L'|') >= 0 || m_sNick.Find(L'|') >= 0)
+	if (sToNick.Find(L'|') >= 0 || sToNick.Find(L'$') >= 0 ||
+	    sText.Find(L'|') >= 0 ||
+	    m_sNick.Find(L'|') >= 0 || m_sNick.Find(L'$') >= 0)
 		return FALSE;
 	if (GetUser(sToNick) == NULL)
 		return FALSE;
