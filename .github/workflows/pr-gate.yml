@@ -53,7 +53,7 @@ jobs:
           RUN_REMOTE_JS: ${{ needs.changes.outputs.run_remote_js }}
           RUN_DEP_REVIEW: ${{ needs.changes.outputs.run_dep_review }}
           TIMEOUT_SEC: "3000"
-          # 10s poll: shaves up to ~10–20s off wall time after the last required
-          # check completes (was 20s; see docs/10_dev/CI_AUDIT_2026-09.md).
+          # 10s poll: reduces post-completion detection delay from up to 20s to
+          # up to 10s (saves at most 10s; see docs/10_dev/CI_AUDIT_2026-09.md).
           POLL_SEC: "10"
         run: bash .github/scripts/pr-gate.sh

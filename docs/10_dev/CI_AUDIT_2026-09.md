@@ -59,7 +59,7 @@ Push develop/main
 | Build Win32 Release | PR if classify / push | MSVC + EnvyTests | Classify | ~5–7 min | Parallel | Yes | — | High |
 | Build Debug matrix | push only | x64+Win32 Debug | Classify | ~5–8 min | No (PR) | main only | — | High |
 | Format Check | PR | clang-format-18 hunks | — | ~15 s | Fast feedback | Yes | Manual format-check.yml | Low |
-| Documentation Check | PR if docs flag | README notice + link check | Classify | ~45–60 s | Soft | Yes (ruleset) | link check `continue-on-error` | Low |
+| Documentation Check | PR (no-op when docs flag false) | README notice + link check | Classify | ~45–60 s when docs; seconds for no-op | Soft | Yes (ruleset) | link check `continue-on-error` | Low |
 | Remote JS tests | PR if Remote / push | npm test | Classify | ~10 s | When Remote | PR Gate if classify | — | Low |
 | secret-scan | PR/push/weekly | gitleaks binary + SARIF | — | ~20–25 s | Yes | Yes | + gitleaks app | Low |
 | Vcpkg manifest sanity | PR | jq schema | — | ~7 s | Fast | Yes | — | Low |
@@ -164,7 +164,7 @@ Build matrix (~8m) and Static Analysis (~9m) finish earlier
 | Classify ×4 per PR | Independent reusable calls; ~40 s ubuntu total | Acceptable; centralizing is P3 |
 | CodeQL push vs Build x64 | Second full MSBuild under CodeQL tracer | Intentional precision; keep |
 | secret-scan job + gitleaks app | Both required | Complementary (SARIF upload vs app) |
-| NuGet restore | Always runs; “Nothing to do” ~22 s | **Remove when no packages** (done this PR) |
+| NuGet restore | `windows-msbuild` + Static Analysis skip when no first-party packages.config | **Done this PR** (both paths) |
 | Build log artifacts on green PRs | Upload every success | **Failure-only on PR** (done this PR) |
 | Format workflow_dispatch vs PR Format Check | Separate manual full-tree dry-run | Keep |
 
@@ -176,7 +176,7 @@ Build matrix (~8m) and Static Analysis (~9m) finish earlier
 | --- | --- |
 | Default `permissions` least-privilege | Mostly yes; Build/Dep-review need `pull-requests: write` for comments |
 | Action SHA pins | Yes (Renovate digests for Actions) |
-| `pull_request_target` | Not used in current workflows |
+| `pull_request_target` | `labeler.yml` + `dependabot-auto-merge.yml` only (no untrusted checkout of PR HEAD; auto-merge never approves — Dependabot login gate only) |
 | Cache poisoning | vcpkg binary cache writable from PR jobs — GitHub restricts cache writes from forks; same-repo PRs share cache (accepted risk) |
 | gitleaks binary | Version + SHA256 pinned in `security.yml` |
 | Secrets in PR workflows | Uses `GITHUB_TOKEN` only for listed scopes |
@@ -312,7 +312,7 @@ Sources (primary first):
 | Skip empty NuGet | ~22 s × 2 Release jobs | ~0 s | **Confirmed** skip &lt;1 s (log) | −~22 s on x64 path | ~−44 s | Low |
 | Failure-only log upload | ~2 s upload on green | 0 on green | No log artifact on green x64 | negligible | −storage | Low |
 | Docs check always emit | skip possible | always success/fail | **pass** (emitted) | stability | ~0 | Low |
-| PR Gate poll 10 s | up to +20 s tail | up to +10 s | Gate wall **6m25s** | −0–10 s wall | 0 | Low |
+| PR Gate poll 10 s | up to +20 s tail | up to +10 s | ≤**10 s** saved vs 20 s poll | −0–10 s wall | 0 | Low |
 | **PR critical path** | #214 Gate **~7.0 min**; x64 **~6.7 min** | ~6.6–6.8 min | Gate **6m25s**; x64 **6m22s** | **~−35 s wall** (one sample) | ~−1 min | Low |
 
 One-sample confirmation only — treat multi-run medians as still pending. Variance across runners can exceed the NuGet saving.

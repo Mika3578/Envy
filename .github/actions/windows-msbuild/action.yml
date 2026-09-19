@@ -95,15 +95,16 @@ runs:
 
     # Measured 2026-09-19 on windows-2025-vs2026: nuget restore prints
     # "Nothing to do" and still costs ~22s. Skip unless a packages.config
-    # exists outside third-party / PluginWizard trees.
+    # exists outside third-party trees (Services/, HashLib/HashLib/, and
+    # Plugins/{PluginWizard,RatDVDPlugin,SWFPlugin}).
     - name: Restore NuGet packages (if any)
       shell: pwsh
       run: |
         $packages = @(Get-ChildItem -Path . -Recurse -Filter packages.config -File -ErrorAction SilentlyContinue |
           Where-Object {
             $_.FullName -notmatch '\\.git\\' -and
-            $_.FullName -notmatch '\\Plugins\\PluginWizard\\' -and
-            $_.FullName -notmatch '\\Services\\(zlib|SQLite|Bzlib|UnRAR|MiniUPnP|GeoIP|LibUTP|BugTrap)\\'
+            $_.FullName -notmatch '\\(Services|HashLib\\HashLib)\\' -and
+            $_.FullName -notmatch '\\Plugins\\(PluginWizard|RatDVDPlugin|SWFPlugin)\\'
           })
         if ($packages.Count -eq 0) {
           Write-Host "No first-party packages.config found; skipping nuget restore (~22s saved)."

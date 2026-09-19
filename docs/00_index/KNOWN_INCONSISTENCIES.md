@@ -9,9 +9,10 @@
   `docs/10_dev/CI_AUDIT_2026-09.md`.
 
 - **Protect develop Code Quality rule:** Live ruleset includes a
-  `code_quality` rule with severity `notes`. Older DevSecOps prose said
-  “no GitHub Code Quality ruleset rule”. Audit doc is source of truth until
-  docs are rewritten after a maintainer decision.
+  `code_quality` rule with severity `notes`. DevSecOps prose was updated in
+  2026-09 to match (`docs/10_dev/devsecops-envy.md`,
+  `docs/10_dev/CI_AUDIT_2026-09.md`). Open item: maintainer decision whether
+  to keep the notes rule, raise it, or remove it in favor of Sonar/CodeQL/CI.
 
 - **ED2K/Kad scope:** `ED2K_KAD_GAP_ANALYSIS` describes historical gaps; `kad2-compatibility-report` focuses on wire-level Kad2 opcode matching with eMule/aMule. Neither is live interop. Canonical high-level status is `docs/10_dev/status.md`.
 
