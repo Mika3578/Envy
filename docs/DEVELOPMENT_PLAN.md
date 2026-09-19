@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #234 follow-up: publish `sonar.projectVersion=4.2.0` in `.sonarcloud.properties` (match `Envy.rc`) as a transparent Previous-version New Code marker; document two-step marker→bump reset in `docs/10_dev/sonarcloud-exclusions.md`. Exclusions alone cannot clear develop Reliability A while ~100+ first-party New Code bugs remain in the 2026-05 leak window.
 - **Changelog Entry:** 2026-09-19 — #234: SonarCloud develop QG remediation — job-scoped GHA permissions, Remote CSP/label alignment, `.sonarcloud.properties` third-party exclusions (`docs/10_dev/sonarcloud-exclusions.md`).
 - **Changelog Entry:** 2026-09-19 — #224: NMDC text uses per-hub/settings code page (`DcNmdcText.h`, default CP_ACP; invalid pages fall back to ACP); HostCache ser v2 `m_nCodePage` + `SetNmdcCodePage` (favorites UI later); ADC unchanged.
 - **Changelog Entry:** 2026-09-19 — Uploads Fair-Use is live: `Uploads.FairUseMode` (default off) clips each remote IPv4 client to 10% of an audio/video library file; checkbox bound; HTTP/ED2K/DC consumers; GET/ED2K/DC reserve then charge body bytes; unused reservation rolls back on `ClearRequest`/`Close` (keep-alive HEAD does not burn quota); BitTorrent and partials excluded.
