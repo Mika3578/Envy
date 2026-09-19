@@ -189,11 +189,8 @@ def safe_rmtree(path: Path, *, owned_root: Path) -> None:
 
 
 def _on_rm_error(func, path, exc_info) -> None:  # pragma: no cover - platform bits
-    try:
-        os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
-        func(path)
-    except OSError:
-        raise
+    os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+    func(path)
 
 
 def create_run_isolation(base: Path, run_id: str) -> IsolationRoot:

@@ -23,8 +23,9 @@ from .constants import (
     Result,
 )
 from .fixtures import write_fixture
-from .golden import GoldenError, ingest_hello, load_golden_json
-from .hello import HelloParseError, compare_envy_advertisement, parse_hello_tcp
+from .golden import GoldenError, ingest_hello, load_bytes, load_golden_json
+from .hello import HelloParseError, compare_envy_advertisement, hello_evidence, parse_emule_info_tcp, parse_hello_tcp
+from .isolation import IsolationRoot
 from .process import ProcessError, ProcessManager
 from .report import ScenarioResult
 
@@ -246,6 +247,7 @@ def handle_golden_parse(ctx: RunContext, spec: ScenarioSpec) -> ScenarioResult:
         cmp_ = compare_envy_advertisement(parsed)
     except (GoldenError, HelloParseError, OSError) as exc:
         return _fail(spec, str(exc))
+    evidence = hello_evidence(parsed)
     if cmp_["mismatches"]:
         return _fail(spec, "golden Hello bits diverged from advertise table", **cmp_)
     return _pass(
@@ -257,6 +259,7 @@ def handle_golden_parse(ctx: RunContext, spec: ScenarioSpec) -> ScenarioResult:
         features1=parsed.features1,
         features2=parsed.features2,
         comparison=cmp_,
+        evidence=evidence,
         artifacts=[str(path.relative_to(ctx.cfg.repo_root))],
     )
 
@@ -302,6 +305,7 @@ def handle_hello_import(ctx: RunContext, spec: ScenarioSpec) -> ScenarioResult:
         features1=parsed.features1,
         features2=parsed.features2,
         comparison=cmp_,
+        evidence=hello_evidence(parsed),
         artifacts=["captures/ingested/hello-candidate.json"],
     )
 
@@ -409,18 +413,25 @@ def handle_live_observe(ctx: RunContext, spec: ScenarioSpec) -> ScenarioResult:
         return gated
     if spec.id in {"hello", "hello_answer"} and ctx.cfg.hello_capture:
         try:
-            raw = ctx.cfg.hello_capture.read_bytes()
-            # Reuse ingest parser via golden.load
-            from .golden import load_bytes
-
             parsed = parse_hello_tcp(load_bytes(ctx.cfg.hello_capture))
             expected = 0x01 if spec.id == "hello" else 0x4C
             if parsed.opcode != expected:
                 return _fail(spec, f"capture opcode 0x{parsed.opcode:02X} != 0x{expected:02X}")
             cmp_ = compare_envy_advertisement(parsed)
-            return _pass(spec, "Hello-family packet parsed from supplied capture", comparison=cmp_)
+            return _pass(
+                spec,
+                "Hello-family packet parsed from supplied capture",
+                comparison=cmp_,
+                evidence=hello_evidence(parsed),
+            )
         except (HelloParseError, OSError, GoldenError) as exc:
             return _fail(spec, str(exc))
+    if spec.id == "muleinfo" and ctx.cfg.hello_capture:
+        try:
+            info = parse_emule_info_tcp(load_bytes(ctx.cfg.hello_capture))
+            return _pass(spec, "MuleInfo frame parsed from supplied capture", **info)
+        except (HelloParseError, OSError, GoldenError):
+            return _skip(spec, "supplied capture is not a MuleInfo 0xC5 frame")
     return _skip(
         spec,
         "no packet/log evidence collected yet; stage isolated profiles and attach logs/captures. "

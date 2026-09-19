@@ -261,5 +261,62 @@ class SanitizerTests(unittest.TestCase):
             self.assertNotIn(os.environ["USER"] + " ", out + " ")
 
 
+class VersionAndExitTests(unittest.TestCase):
+    def test_describe_missing_executable(self) -> None:
+        from envy_interop.versions import describe_executable
+
+        info = describe_executable(Path("/no/such/Envy.exe"), allow_version_flag=False)
+        self.assertTrue(info["configured"])
+        self.assertFalse(info["exists"])
+        self.assertEqual(info["name"], "Envy.exe")
+        self.assertNotIn("no/such", json.dumps(info))
+
+    def test_describe_unicode_path_without_storing_it(self) -> None:
+        from envy_interop.versions import describe_executable
+
+        with tempfile.TemporaryDirectory() as tmp:
+            exe = Path(tmp) / "path with spaces" / "café测试" / "amuled"
+            exe.parent.mkdir(parents=True)
+            exe.write_bytes(b"not-a-real-binary")
+            info = describe_executable(exe, allow_version_flag=False)
+            self.assertEqual(info["name"], "amuled")
+            self.assertEqual(info["size"], len(b"not-a-real-binary"))
+            self.assertTrue(info["sha256"])
+            dumped = json.dumps(info)
+            self.assertNotIn(str(tmp), dumped)
+            self.assertNotIn("path with spaces", dumped)
+
+    def test_amule_version_flag_standin(self) -> None:
+        import stat
+
+        from envy_interop.versions import describe_executable
+
+        with tempfile.TemporaryDirectory() as tmp:
+            exe = Path(tmp) / "amuled"
+            exe.write_text("#!/usr/bin/env python3\nprint('aMule 2.3.3')\n", encoding="utf-8")
+            exe.chmod(exe.stat().st_mode | stat.S_IEXEC)
+            info = describe_executable(exe, allow_version_flag=True)
+            self.assertEqual(info["probe"], "--version")
+            self.assertIn("aMule 2.3.3", info["version_text"])
+
+    def test_exit_snapshot_after_owned_process(self) -> None:
+        mgr = ProcessManager()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            owned = mgr.launch(
+                "die",
+                python_exit_argv(3),
+                cwd=root,
+                stdout_path=root / "out.bin",
+                stderr_path=root / "err.bin",
+            )
+            mgr.wait_exit(owned, 5)
+            snap = mgr.exit_snapshot()
+            self.assertEqual(len(snap), 1)
+            self.assertEqual(snap[0]["exit_code"], 3)
+            self.assertEqual(snap[0]["name"], "die")
+            self.assertNotIn(str(root), json.dumps(snap))
+
+
 if __name__ == "__main__":
     unittest.main()

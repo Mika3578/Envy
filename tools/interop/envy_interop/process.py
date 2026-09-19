@@ -116,10 +116,10 @@ class ProcessManager:
             stdout_handle=stdout_handle,
             stderr_handle=stderr_handle,
         )
-        if proc.pid is None:
-            self._close_handles(owned)
-            raise ProcessError(f"{name} spawned without a pid")
         owned.launch_pid = int(proc.pid)
+        if owned.launch_pid <= 0:
+            self._close_handles(owned)
+            raise ProcessError(f"{name} spawned without a usable pid")
         self._owned[owned.launch_pid] = owned
         return owned
 
@@ -164,11 +164,29 @@ class ProcessManager:
                 return owned.poll()
 
     def terminate_all(self, timeout_sec: float) -> None:
-        for owned in list(self._owned.values()):
+        owned_snapshot = tuple(self._owned.values())
+        for owned in owned_snapshot:
             try:
                 self.terminate_owned(owned, timeout_sec)
             except ProcessError:
                 pass
+
+    def exit_snapshot(self) -> List[dict]:
+        """Record exit state for processes this harness started (no full paths)."""
+        rows = []
+        for owned in tuple(self._owned.values()):
+            code = owned.poll()
+            argv0 = Path(owned.argv[0]).name if owned.argv else ""
+            rows.append(
+                {
+                    "name": owned.name,
+                    "pid": owned.launch_pid or owned.pid,
+                    "exit_code": code if code is not None else owned.exit_code,
+                    "timed_out": owned.timed_out,
+                    "argv0": argv0,
+                }
+            )
+        return rows
 
     def _signal(self, owned: OwnedProcess, *, graceful: bool) -> None:
         raw_pid = owned.launch_pid or owned.pid

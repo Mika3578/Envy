@@ -17,7 +17,7 @@ from envy_interop.config import ConfigError, HarnessConfig
 from envy_interop.constants import Result
 from envy_interop.fixtures import build_payload, spec_for
 from envy_interop.golden import GoldenError, ingest_hello, load_golden_json, parse_hex_dump
-from envy_interop.hello import HelloParseError, parse_hello_tcp
+from envy_interop.hello import HelloParseError, hello_evidence, parse_emule_info_tcp, parse_hello_tcp
 from envy_interop.md4 import md4_hex
 from envy_interop.report import ReportError, empty_payload, utc_now, validate_report, write_json_report
 from envy_interop.runner import run_harness
@@ -59,6 +59,21 @@ class HelloGoldenTests(unittest.TestCase):
         self.assertEqual(parsed.features2["ext_multipacket"], 0)
         self.assertEqual(parsed.features2["cryptlayer_supports"], 0)
         self.assertEqual(parsed.features2["kad"], 0)
+        evidence = hello_evidence(parsed)
+        self.assertEqual(evidence["protocol"], 0xE3)
+        self.assertEqual(evidence["opcode"], 0x01)
+        self.assertEqual(evidence["userhash_len"], 16)
+        self.assertEqual(evidence["compression_version"], 1)
+        self.assertEqual(evidence["source_exchange_version"], 2)
+        self.assertEqual(evidence["extended_request_version"], 2)
+        self.assertEqual(evidence["unicode"], 1)
+        self.assertEqual(evidence["large_files"], 1)
+        self.assertEqual(evidence["aich"], 0)
+        self.assertEqual(evidence["secureident"], 0)
+        self.assertEqual(evidence["cryptlayer_supports"], 0)
+        self.assertEqual(evidence["ext_multipacket"], 0)
+        self.assertEqual(evidence["kad_version_nibble"], 0)
+        self.assertNotIn("nick", evidence)
 
     def test_envy_self_helloanswer(self) -> None:
         path = REPO / "tools/interop/fixtures/golden/envy-self-helloanswer.json"
@@ -68,11 +83,26 @@ class HelloGoldenTests(unittest.TestCase):
         self.assertFalse(parsed.is_hello)
         self.assertEqual(parsed.features1["extended_request"], 2)
 
-    def test_malformed_hello_rejected(self) -> None:
+    def test_malformed_hello_too_short(self) -> None:
         with self.assertRaises(HelloParseError):
             parse_hello_tcp(b"\x00\x01")
+
+    def test_malformed_hello_truncated_frame(self) -> None:
         with self.assertRaises(HelloParseError):
             parse_hello_tcp(bytes.fromhex("e301000000014c"))
+
+    def test_muleinfo_minimal_frame(self) -> None:
+        frame = bytes.fromhex("c506000000010100000000")
+        info = parse_emule_info_tcp(frame)
+        self.assertEqual(info["protocol"], 0xC5)
+        self.assertEqual(info["opcode"], 0x01)
+        self.assertEqual(info["emule_protocol_version"], 1)
+
+    def test_muleinfo_rejects_hello_protocol(self) -> None:
+        hello = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
+        raw = bytes.fromhex(json.loads(hello.read_text(encoding="utf-8"))["tcp_frame_hex"])
+        with self.assertRaises(HelloParseError):
+            parse_emule_info_tcp(raw)
 
     def test_hex_dump_parser(self) -> None:
         raw = parse_hex_dump("# comment\ne3 54\n")
@@ -99,9 +129,11 @@ class HelloGoldenTests(unittest.TestCase):
 
 
 class ReportTests(unittest.TestCase):
-    def test_malformed_metadata_rejected(self) -> None:
+    def test_malformed_schema_version_rejected(self) -> None:
         with self.assertRaises(ReportError):
             validate_report({"schema_version": "nope"})
+
+    def test_malformed_scenario_result_rejected(self) -> None:
         with self.assertRaises(ReportError):
             validate_report(
                 {
@@ -166,6 +198,9 @@ class RunnerDryRunTests(unittest.TestCase):
             md = (runs[0] / "run-summary.md").read_text(encoding="utf-8")
             self.assertIn("not", md.lower())
             self.assertIn("#160", md)
+            self.assertTrue((runs[0] / "binaries.json").is_file())
+            self.assertIn("duration_ms", payload)
+            self.assertIn("owned", payload["process_exit"])
 
     def test_live_envy_startup_with_standin(self) -> None:
         """Launch an owned stand-in; extra Envy flags must not break argv quoting."""
@@ -215,10 +250,11 @@ class RunnerDryRunTests(unittest.TestCase):
             self.assertIn("eMule/aMule", by_id["reference_startup"]["reason"])
 
     def test_scenario_timeout_positive(self) -> None:
-        with self.assertRaises(ConfigError):
-            from envy_interop.config import validate_ports
+        from envy_interop.config import validate_ports
 
-            validate_ports(HarnessConfig(repo_root=REPO, scenario_timeout_sec=0))
+        cfg = HarnessConfig(repo_root=REPO, scenario_timeout_sec=0)
+        with self.assertRaises(ConfigError):
+            validate_ports(cfg)
 
     def test_expand_unknown_scenario(self) -> None:
         from envy_interop.config import ConfigError

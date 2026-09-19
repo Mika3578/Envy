@@ -15,6 +15,7 @@ from .constants import (
     ED2K_CT_UDPPORTS,
     ED2K_CT_VERSION,
     ED2K_PROTOCOL_EDONKEY,
+    ED2K_PROTOCOL_EMULE,
     ED2K_TAG_INT,
     ED2K_TAG_STRING,
     ENVY_ADVERTISED,
@@ -194,6 +195,64 @@ def parse_hello_tcp(packet: bytes) -> HelloPacket:
     return parsed
 
 
+def parse_emule_info_tcp(packet: bytes) -> Dict[str, object]:
+    """Parse eMule MuleInfo / MuleInfoAnswer (protocol 0xC5, opcodes 0x01/0x02).
+
+    Used when an operator supplies a capture. A missing MuleInfo capture is SKIP,
+    never a synthetic PASS.
+    """
+    if len(packet) < 7:
+        raise HelloParseError("MuleInfo shorter than TCP header")
+    if packet[0] != ED2K_PROTOCOL_EMULE:
+        raise HelloParseError("MuleInfo protocol byte is not 0xC5")
+    length = _u32(packet, 1)
+    if length < 2 or len(packet) < 5 + length:
+        raise HelloParseError("MuleInfo length prefix does not fit")
+    opcode = packet[5]
+    if opcode not in (0x01, 0x02):
+        raise HelloParseError("opcode is neither MuleInfo (0x01) nor MuleInfoAnswer (0x02)")
+    body = packet[6 : 5 + length]
+    if not body:
+        raise HelloParseError("MuleInfo body empty")
+    emule_proto = body[0]
+    tags: Dict[int, object] = {}
+    if len(body) >= 5:
+        n_tags = _u32(body, 1)
+        offset = 5
+        for _ in range(min(n_tags, 64)):
+            if offset + 4 > len(body):
+                break
+            tag_type = body[offset]
+            key_len = _u16(body, offset + 1)
+            offset += 3
+            if key_len != 1 or offset + 1 > len(body):
+                break
+            key = body[offset]
+            offset += 1
+            if tag_type == ED2K_TAG_INT:
+                if offset + 4 > len(body):
+                    break
+                tags[key] = _u32(body, offset)
+                offset += 4
+            elif tag_type == ED2K_TAG_STRING:
+                if offset + 2 > len(body):
+                    break
+                str_len = _u16(body, offset)
+                offset += 2
+                if offset + str_len > len(body):
+                    break
+                offset += str_len
+            else:
+                break
+    return {
+        "protocol": ED2K_PROTOCOL_EMULE,
+        "opcode": opcode,
+        "emule_protocol_version": emule_proto,
+        "tag_keys": sorted(tags.keys()),
+        "tags": tags,
+    }
+
+
 def compare_envy_advertisement(packet: HelloPacket) -> Dict[str, object]:
     """Compare parsed Hello bits to the frozen Envy advertise/implement tables.
 
@@ -249,13 +308,46 @@ def compare_envy_advertisement(packet: HelloPacket) -> Dict[str, object]:
         "advertised_expected": dict(ENVY_ADVERTISED),
         "parsed_features1": f1,
         "parsed_features2": f2,
+        "evidence": hello_evidence(packet),
+    }
+
+
+def hello_evidence(packet: HelloPacket) -> Dict[str, object]:
+    """Machine-readable Hello fields for artifacts (no nick / no filesystem paths)."""
+    f1 = packet.features1
+    f2 = packet.features2
+    return {
+        "protocol": packet.protocol,
+        "opcode": packet.opcode,
+        "userhash_hex": packet.userhash.hex(),
+        "userhash_len": len(packet.userhash),
+        "client_id": packet.client_id,
+        "tcp_port": packet.tcp_port,
+        "ed2k_version": packet.ed2k_version,
+        "software_version": packet.software_version,
+        "udp_ports_tag": packet.udp_port,
+        "misc_options1": packet.misc_options1,
+        "misc_options2": packet.misc_options2,
+        "compression_version": f1["compression"],
+        "source_exchange_version": f1["source_exchange"],
+        "extended_request_version": f1["extended_request"],
+        "unicode": f1["unicode"],
+        "large_files": f2["large_files"],
+        "aich": f1["aich"],
+        "secureident": f1["secureident"],
+        "cryptlayer_supports": f2["cryptlayer_supports"],
+        "cryptlayer_requests": f2["cryptlayer_requests"],
+        "cryptlayer_requires": f2["cryptlayer_requires"],
+        "ext_multipacket": f2["ext_multipacket"],
+        "kad_version_nibble": f2["kad"],
+        "source_exchange2": f2["source_exchange2"],
     }
 
 
 def normalize_hello_for_commit(packet: HelloPacket) -> HelloPacket:
     """Zero privacy-sensitive / volatile fields before a committed golden."""
     raw = bytearray(packet.raw)
-    opcode, body = strip_tcp_header(packet.raw)
+    opcode, _body = strip_tcp_header(packet.raw)
     # Body starts at offset 6. Hello has extra 0x10.
     hash_off = 6 + (1 if opcode == ED2K_C2C_HELLO else 0)
     if hash_off + 16 <= len(raw):

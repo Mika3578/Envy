@@ -54,6 +54,10 @@ check interop-docs "$F_INTEROP" run_docs_check true
 check interop-win "$F_INTEROP" run_windows_build false
 check interop-docs-only "$F_INTEROP" docs_only true
 
+readonly F_INTEROP_WF='.github/workflows/ed2k-interop-harness.yml'
+check interop-wf-win "$F_INTEROP_WF" run_windows_build false
+check interop-wf-docs-only "$F_INTEROP_WF" docs_only false
+
 # force_remote via code-quality.yml; CodeQL workflow must NOT force remote JS.
 check force-remote "$F_QUALITY" run_remote_js true
 check codeql-config-remote "$F_CODEQL" run_remote_js false

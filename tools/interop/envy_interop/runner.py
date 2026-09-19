@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional, Sequence
@@ -20,6 +21,7 @@ from .scenarios import (
     run_scenario,
     _read_git_sha,
 )
+from .versions import record_configured_binaries
 
 
 def default_artifact_root(cfg: HarnessConfig) -> Path:
@@ -59,6 +61,7 @@ def sanitized_config_summary(cfg: HarnessConfig) -> dict:
 
 
 def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = None) -> dict:
+    run_started = time.monotonic()
     run_id = make_run_id()
     artifact_root = default_artifact_root(cfg)
     artifact_root.mkdir(parents=True, exist_ok=True)
@@ -83,6 +86,7 @@ def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = N
     (run_dir / "config.sanitized.json").write_text(
         json.dumps(sanitized_config_summary(cfg), indent=2) + "\n", encoding="utf-8"
     )
+    binaries = record_configured_binaries(cfg)
     (run_dir / "versions.txt").write_text(
         sanitize_text(
             "\n".join(
@@ -92,11 +96,18 @@ def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = N
                     f"reference_client={cfg.resolved_reference_client()}",
                     f"reference_version={cfg.reference_version or 'unspecified'}",
                     f"mode={'live' if cfg.live else 'dry-run'}",
+                    f"envy_binary={binaries['envy'].get('name') or 'none'}",
+                    f"emule_binary={binaries['emule'].get('name') or 'none'}",
+                    f"amule_binary={binaries['amule'].get('name') or 'none'}",
+                    f"amule_version_text={binaries['amule'].get('version_text') or ''}",
                 ]
             )
             + "\n"
         ),
         encoding="utf-8",
+    )
+    (run_dir / "binaries.json").write_text(
+        json.dumps(binaries, indent=2) + "\n", encoding="utf-8"
     )
 
     selected = expand_selection(scenario_ids if scenario_ids is not None else cfg.scenarios)
@@ -140,7 +151,10 @@ def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = N
         git_sha_harness=git_sha,
     )
     payload["scenarios"] = [item.to_dict() for item in results]
+    payload["duration_ms"] = int((time.monotonic() - run_started) * 1000)
+    payload["binaries"] = binaries
     payload["process_exit"] = {
+        "owned": processes.exit_snapshot(),
         "owned_pids_remaining": processes.owned_pids(),
     }
 

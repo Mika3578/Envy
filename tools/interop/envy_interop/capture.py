@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 from typing import List, Optional
 
-from .process import OwnedProcess, ProcessError, ProcessManager
+from .process import OwnedProcess, ProcessManager
 
 
 CAPTURE_TOOLS = ("dumpcap", "tcpdump")
@@ -36,13 +36,10 @@ def start_capture(
         argv = [tool, "-i", "lo", "-f", port_spec, "-w", str(out_path)]
     else:
         argv = [tool, "-i", "lo", "-n", "-w", str(out_path), port_spec]
-    try:
-        return manager.launch(
-            "pcap",
-            argv,
-            cwd=out_path.parent,
-            stdout_path=log_dir / "pcap.stdout",
-            stderr_path=log_dir / "pcap.stderr",
-        )
-    except ProcessError:
-        raise
+    return manager.launch(
+        "pcap",
+        argv,
+        cwd=out_path.parent,
+        stdout_path=log_dir / "pcap.stdout",
+        stderr_path=log_dir / "pcap.stderr",
+    )

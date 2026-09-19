@@ -169,9 +169,9 @@ not a silent PASS of compressed transfer.
 Each run writes `tools/interop/artifacts/run-<UTC>/` (gitignored) containing:
 
 - `run-summary.json` — schema version 1, scenario results, artifact *names*
-  (not log bodies)
+  (not log bodies), `duration_ms`, `binaries`, `process_exit`
 - `run-summary.md` — human summary for issue attachments
-- `config.sanitized.json`, `versions.txt`
+- `config.sanitized.json`, `versions.txt`, `binaries.json`
 - `logs/`, `sanitized/logs/`
 - optional `captures/` (raw pcaps stay out of git)
 
@@ -224,6 +224,11 @@ until evidence is attached or a later headless/Remote hook exists.
 `python3 tools/interop/run.py --self-test` and `--dry-run` run on Documentation
 Check when `tools/interop/` or docs change. They must not require Windows, ENVY,
 eMule, aMule, or Internet P2P.
+
+An additional **opt-in** workflow `ED2K interop harness`
+(`.github/workflows/ed2k-interop-harness.yml`) is `workflow_dispatch` only. It
+repeats the self-test/dry-run and **never** launches live clients on
+GitHub-hosted runners. It is not a required Protect develop check.
 
 ## Follow-up issues
 

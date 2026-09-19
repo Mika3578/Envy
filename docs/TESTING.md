@@ -28,6 +28,7 @@ ctest --test-dir build
 - Live: `python3 tools/interop/run.py --live --envy-exe <path> [--emule-exe <path>|--amule-exe <path>]`.
 - Results are PASS/FAIL/SKIP/NOT_IMPLEMENTED. Future compressed-transfer, LowID, and Kad rows stay NOT_IMPLEMENTED.
 - Required CI never needs eMule/aMule binaries or the public P2P network.
+- Optional `workflow_dispatch` workflow: `ED2K interop harness` (self-test + dry-run only on GitHub-hosted runners).
 - Details: `tools/interop/README.md`. This is **not** a claim that ENVY is fully interoperable.
 
 ## Coverage Targets (Proposed)

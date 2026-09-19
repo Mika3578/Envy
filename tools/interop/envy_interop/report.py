@@ -86,6 +86,7 @@ def write_markdown_report(path: Path, payload: Dict[str, Any]) -> None:
         f"- Reference client: `{payload.get('reference_client', 'none')}`",
         f"- Reference version: `{payload.get('reference_version') or '(not recorded)'}`",
         f"- Network class: `{payload.get('network_class', 'none')}`",
+        f"- Duration (ms): `{payload.get('duration_ms', 0)}`",
         "",
         "## Scenarios",
         "",
