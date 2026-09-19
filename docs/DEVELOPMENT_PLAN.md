@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #255 review follow-up: C2C CALLBACK known-file gate includes incomplete downloads; clear consume guard when `EDClients.PushTo` fails.
 - **Changelog Entry:** 2026-09-19 — Kad2 routing × firewall rebase: `CollectFirewallCheckCandidates` walks the zone tree (`ForEachContact`); `SendFirewalledRequest` uses `KadContactGetSockAddr` (no `GetSockAddr` / `KAD_BUCKET_COUNT` / `buckets`).
 - **Changelog Entry:** 2026-09-19 — Kad2 routing review: 128-bit `zonePrefix` (no uint32 shift UB at depth ≥ 32); first zone refresh arms `+10s` then fires; HELLO_RES requires outstanding HELLO_REQ; FIND_NODE_RES matches TargetID and is fail-closed on truncated contact lists before liveness.
 - **Changelog Entry:** 2026-09-19 — Kad2 routing-table maintenance (#86 slice): XOR zone tree with aMule/eMule `CanSplit` (K=10, KBASE=4, KK=5, max depth 127), LRU/type liveness, bounded replacement cache, stale-zone FIND_NODE refresh, /24 diversity (2 per bin / 10 global, 1 IP). `KadRoutingTable.h` + EnvyTests. Kad2 remains partial/unverified; no capability advertise; UDP firewall/Buddy/callback still open.
