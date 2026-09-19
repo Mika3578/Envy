@@ -202,7 +202,7 @@ Since no Examples folder exists in the repository, verification was performed ag
 - ✅ **Routing Table:** Full Kad2RoutingTable implementation (K=10)
 - ✅ **XOR Distance:** Proper XOR distance calculation
 - ✅ **HostCache Integration:** Integration with host cache system
-- ✅ **nodes.dat Import:** Supports nodes.dat versions 0-3
+- ✅ **nodes.dat Import:** Old format + new-format version 1 only (`HostCache::ImportNodes`); any version ≠ 1 is rejected (returns 0). Historical “v0–3” wording is outdated (`docs/10_dev/status.md`).
 - ⚠️ **Wire comparison:** opcode/format notes only; live eMule/aMule interop unverified
 
 ---

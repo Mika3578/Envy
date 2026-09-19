@@ -5,7 +5,7 @@
 This document provides a comprehensive reference of all configurable settings in Envy P2P client, organized by category with default values and detailed explanations.
 
 **Version:** Envy 4.0+
-**Last Updated:** January 18, 2026
+**Last Updated:** 2026-09-19
 **Settings Version:** Internal Version (SmartVersion)
 
 ---
@@ -33,6 +33,7 @@ This document provides a comprehensive reference of all configurable settings in
   - [Gnutella1 Settings](#-gnutella1-settings)
   - [Gnutella2 Settings](#-gnutella2-settings)
   - [eDonkey2000 Settings](#-edonkey2000-settings)
+  - [Direct Connect Settings](#-direct-connect-settings)
   - [BitTorrent Settings](#-bittorrent-settings)
 - [Interface & Skin Settings](#-interface--skin-settings)
   - [Interface Settings](#-interface-settings)
@@ -576,7 +577,7 @@ This document provides a comprehensive reference of all configurable settings in
 | AutoDiscovery | true | Auto-discover server lists |
 | LearnNewServers | true | Learn new servers from servers |
 | LearnNewServersClient | true | Learn new servers from clients |
-| ServerListURL | Default URL | Server list download URL |
+| ServerListURL | `https://upd.emule-security.org/server.met` | Server list download URL |
 | RequestPipe | 3 | Simultaneous requests per connection |
 | RequestSize | 180000 | Request chunk size |
 | FrameSize | 1024 | Frame size |
@@ -589,6 +590,19 @@ This document provides a comprehensive reference of all configurable settings in
 | DefaultServerFlags | 0 | Default server flags |
 | LargeFileSupport | true | Support 64-bit file sizes |
 | Endgame | true | Enable endgame mode |
+
+### 📡 Direct Connect Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| ShowInterface | true | Show Direct Connect interface elements |
+| EnableAlways | false | Always enable on startup |
+| AutoDiscovery | true | Auto-discover hub lists |
+| NumServers | 1 | Number of hub connections |
+| QueryThrottle | 120 | Hub query throttle (s) |
+| ReAskTime | 60000 | Hub re-ask time (ms) |
+| DequeueTime | 300000 | Hub dequeue timeout (ms) |
+| HubListURL | `https://dchublist.org/hublist.xml.bz2` | NMDC hublist download URL. `adc://` / `adcs://` rows are skipped (#163). |
 
 ### 🧲 BitTorrent Settings
 
@@ -742,5 +756,5 @@ This document provides a comprehensive reference of all configurable settings in
 
 **Document Version:** 1.0
 **Envy Version:** 4.0+
-**Last Updated:** January 18, 2026
+**Last Updated:** 2026-09-19
 **Total Settings:** 500+ configurable options

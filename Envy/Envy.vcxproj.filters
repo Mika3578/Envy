@@ -1983,6 +1983,9 @@
     <ClInclude Include="DcHublistSources.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BootstrapCatalog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="SkinEngineP0.h">
       <Filter>Header Files</Filter>
     </ClInclude>

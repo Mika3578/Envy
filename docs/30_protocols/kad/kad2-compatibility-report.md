@@ -2,7 +2,7 @@
 
 > **Opcode/format match only (January 2026).** This is not live DHT interoperability. Canonical status: [`docs/10_dev/status.md`](../../10_dev/status.md) (`partial / unverified`). Ember/eSE overlays are **not** Kad2. Preferred live references: [eMule Community](https://github.com/irwir/eMule), [aMule](https://github.com/amule-project/amule) — see [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md).
 
-**Date:** January 16, 2026 (banner 2026-09-11)
+**Date:** 2026-09-18 (original opcode survey January 16, 2026; banner 2026-09-11)
 **Reference Implementations:**
 - eMule (Examples/eMule/srchybrid; prefer https://github.com/irwir/eMule)
 - aMule (Examples/aMule; prefer https://github.com/amule-project/amule)
@@ -285,11 +285,11 @@ pResponse->WriteByte(contactCount);        // 1 byte
 - Version 3 (with bootstrap edition DWORD)
 
 **Envy Implementation:**
-- Supports all versions (0-3)
-- Handles bootstrap edition DWORD for v3
-- Converts IP from host order to network order correctly
+- Old format (leading contact count ≠ 0) and new-format **version 1**
+- New-format version ≠ 1 is rejected (`ImportNodes` returns 0)
+- eMule-Security `nodes.dat` observed 2026-09-18 is new-format version **2** — not imported until a follow-up
 
-✅ **COMPATIBLE** - Full nodes.dat format support
+⚠️ **PARTIAL** - Not full v0–3 support; not a Kad completeness claim. See `docs/10_dev/status.md`.
 
 ---
 
@@ -340,7 +340,7 @@ pResponse->WriteByte(contactCount);        // 1 byte
 
 ## Conclusion
 
-Opcode values, BOOTSTRAP/PING/PONG/FIND_NODE layouts, IP endianness notes, request tracking, and nodes.dat import (v0–3) matched the inspected eMule/aMule sources. That is **not** live DHT interoperability (`docs/10_dev/status.md`: partial / unverified).
+Opcode values, BOOTSTRAP/PING/PONG/FIND_NODE layouts, IP endianness notes, and request tracking matched the inspected eMule/aMule sources. `HostCache::ImportNodes` accepts old-format files and new-format **version 1** only (version ≠ 1 is rejected). That is **not** live DHT interoperability (`docs/10_dev/status.md`: partial / unverified).
 
 **Verified Compatibility:**
 - ⚠️ **eMule (srchybrid)** — opcode/format match only
