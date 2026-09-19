@@ -17,123 +17,139 @@
 #include <cstring>
 
 // Stable API states. Do not expose historical IDS_STATUS_* strings.
-enum TransferState
+enum class TransferState
 {
-	transferStateQueued = 0,
-	transferStateMetadata,
-	transferStateChecking,
-	transferStateDownloading,
-	transferStateStalled,
-	transferStatePaused,
-	transferStateCompleted,
-	transferStateSeeding,
-	transferStateError,
-	transferStateMoving,
-	transferStateUnknown
+	Queued = 0,
+	Metadata,
+	Checking,
+	Downloading,
+	Stalled,
+	Paused,
+	Completed,
+	Seeding,
+	Error,
+	Moving,
+	Unknown
 };
 
-enum TransferProtocol
+enum class TransferProtocol
 {
-	transferProtocolUnknown = 0,
-	transferProtocolBitTorrent,
-	transferProtocolEd2k,
-	transferProtocolGnutella,
-	transferProtocolGnutella2,
-	transferProtocolDirectConnect,
-	transferProtocolHttp,
-	transferProtocolFtp
+	Unknown = 0,
+	BitTorrent,
+	Ed2k,
+	Gnutella,
+	Gnutella2,
+	DirectConnect,
+	Http,
+	Ftp
 };
 
 // Predicate snapshot taken under the downloads lock. No MFC types.
+// Value-initialized members: aggregate `{}` is defined (all false).
 struct TransferStateInput
 {
-	bool clearing;
-	bool paused;
-	bool fileError;
-	bool completed;
-	bool seeding;
-	bool moving;
-	bool started;
-	bool progressComplete; // GetProgress() == 100.0f
-	bool trying;
-	bool downloading;
-	bool hasSources;
-	bool torrent;
-	bool allocating;
-	bool trackerError;
+	bool clearing = false;
+	bool paused = false;
+	bool fileError = false;
+	bool completed = false;
+	bool seeding = false;
+	bool moving = false;
+	bool started = false;
+	bool progressComplete = false; // GetProgress() == 100.0f
+	bool trying = false;
+	bool downloading = false;
+	bool hasSources = false;
+	bool torrent = false;
+	bool allocating = false;
+	bool trackerError = false;
 };
 
 inline const char* TransferStateName(TransferState nState)
 {
 	switch (nState)
 	{
-	case transferStateQueued: return "queued";
-	case transferStateMetadata: return "metadata";
-	case transferStateChecking: return "checking";
-	case transferStateDownloading: return "downloading";
-	case transferStateStalled: return "stalled";
-	case transferStatePaused: return "paused";
-	case transferStateCompleted: return "completed";
-	case transferStateSeeding: return "seeding";
-	case transferStateError: return "error";
-	case transferStateMoving: return "moving";
-	case transferStateUnknown:
-	default: return "unknown";
+	case TransferState::Queued:
+		return "queued";
+	case TransferState::Metadata:
+		return "metadata";
+	case TransferState::Checking:
+		return "checking";
+	case TransferState::Downloading:
+		return "downloading";
+	case TransferState::Stalled:
+		return "stalled";
+	case TransferState::Paused:
+		return "paused";
+	case TransferState::Completed:
+		return "completed";
+	case TransferState::Seeding:
+		return "seeding";
+	case TransferState::Error:
+		return "error";
+	case TransferState::Moving:
+		return "moving";
+	case TransferState::Unknown:
+	default:
+		return "unknown";
 	}
 }
 
 inline bool TransferStateIsTerminalSuccess(TransferState nState)
 {
-	return nState == transferStateCompleted || nState == transferStateSeeding;
+	return nState == TransferState::Completed || nState == TransferState::Seeding;
 }
 
-// Mirrors CDownload::GetDownloadStatus() branch order without localization.
+// Mirrors CDownload::GetDownloadStatus() branch order (Download.cpp:
+// clearing, IsPaused, IsCompleted, IsMoving, started&&100%, !IsTrying,
+// IsDownloading, GetEffectiveSourceCount, IsTorrent, else queued).
+// paused-before-completed is required: IsPaused() is tested first there.
+// Completed+seeding+trackerError stays Seeding (not Error) so *arr still
+// sees a finished payload; the UI string IDS_STATUS_TRACKERDOWN is local.
 inline TransferState ClassifyTransferState(const TransferStateInput& oIn)
 {
 	if (oIn.clearing)
-		return transferStateUnknown;
+		return TransferState::Unknown;
 
 	if (oIn.paused)
 	{
-		// CDownload::GetDownloadStatus(): paused seeders stay paused even
-		// when GetFileError() is set; non-seed file errors map to error.
+		// Paused seeders stay paused even when GetFileError() is set.
 		if (oIn.fileError && !oIn.seeding)
-			return transferStateError;
-		return transferStatePaused;
+			return TransferState::Error;
+		return TransferState::Paused;
 	}
 
 	if (oIn.completed)
 	{
 		if (oIn.seeding)
-			return transferStateSeeding;
-		return transferStateCompleted;
+			return TransferState::Seeding;
+		return TransferState::Completed;
 	}
 
 	if (oIn.moving)
-		return transferStateMoving;
+		return TransferState::Moving;
 
 	if (oIn.started && oIn.progressComplete)
-		return transferStateChecking;
+		return TransferState::Checking;
 
 	if (!oIn.trying)
-		return transferStateQueued;
+		return TransferState::Queued;
 
 	if (oIn.downloading)
-		return transferStateDownloading;
+		return TransferState::Downloading;
 
 	if (oIn.hasSources)
-		return transferStateStalled;
+		return TransferState::Stalled;
 
 	if (oIn.torrent)
 	{
 		if (oIn.allocating)
-			return transferStateChecking;
+			return TransferState::Checking;
 		if (oIn.trackerError)
-			return transferStateError;
-		return transferStateMetadata;
+			return TransferState::Error;
+		return TransferState::Metadata;
 	}
 
-	return transferStateQueued;
+	return TransferState::Queued;
 }
 
 // qBittorrent Web API v2 `state` strings used by Radarr/Sonarr (API 2.8.x
@@ -142,18 +158,29 @@ inline const char* MapTransferStateToQBittorrent(TransferState nState)
 {
 	switch (nState)
 	{
-	case transferStateQueued: return "queuedDL";
-	case transferStateMetadata: return "metaDL";
-	case transferStateChecking: return "checkingDL";
-	case transferStateDownloading: return "downloading";
-	case transferStateStalled: return "stalledDL";
-	case transferStatePaused: return "pausedDL";
-	case transferStateCompleted: return "pausedUP";
-	case transferStateSeeding: return "uploading";
-	case transferStateError: return "error";
-	case transferStateMoving: return "moving";
-	case transferStateUnknown:
-	default: return "error";
+	case TransferState::Queued:
+		return "queuedDL";
+	case TransferState::Metadata:
+		return "metaDL";
+	case TransferState::Checking:
+		return "checkingDL";
+	case TransferState::Downloading:
+		return "downloading";
+	case TransferState::Stalled:
+		return "stalledDL";
+	case TransferState::Paused:
+		return "pausedDL";
+	case TransferState::Completed:
+		return "pausedUP";
+	case TransferState::Seeding:
+		return "uploading";
+	case TransferState::Error:
+		return "error";
+	case TransferState::Moving:
+		return "moving";
+	case TransferState::Unknown:
+	default:
+		return "error";
 	}
 }
 
@@ -162,49 +189,71 @@ inline const char* MapTransferStateToQBittorrentFinished(TransferState nState)
 {
 	switch (nState)
 	{
-	case transferStateQueued: return "queuedUP";
-	case transferStateChecking: return "checkingUP";
-	case transferStateStalled: return "stalledUP";
-	case transferStatePaused: return "pausedUP";
-	case transferStateCompleted: return "pausedUP";
-	case transferStateSeeding: return "uploading";
-	case transferStateError: return "error";
-	case transferStateMoving: return "moving";
-	case transferStateDownloading: return "uploading";
-	case transferStateMetadata: return "error";
-	case transferStateUnknown:
-	default: return "error";
+	case TransferState::Queued:
+		return "queuedUP";
+	case TransferState::Checking:
+		return "checkingUP";
+	case TransferState::Stalled:
+		return "stalledUP";
+	case TransferState::Paused:
+		return "pausedUP";
+	case TransferState::Completed:
+		return "pausedUP";
+	case TransferState::Seeding:
+		return "uploading";
+	case TransferState::Error:
+		return "error";
+	case TransferState::Moving:
+		return "moving";
+	case TransferState::Downloading:
+		return "uploading";
+	case TransferState::Metadata:
+		return "error";
+	case TransferState::Unknown:
+	default:
+		return "error";
 	}
 }
 
 // Transmission RPC `status` integers (rpc-spec torrent-get).
-enum TransmissionTorrentStatus
+enum class TransmissionTorrentStatus
 {
-	transmissionStatusStopped = 0,
-	transmissionStatusCheckWait = 1,
-	transmissionStatusCheck = 2,
-	transmissionStatusDownloadWait = 3,
-	transmissionStatusDownload = 4,
-	transmissionStatusSeedWait = 5,
-	transmissionStatusSeed = 6
+	Stopped = 0,
+	CheckWait = 1,
+	Check = 2,
+	DownloadWait = 3,
+	Download = 4,
+	SeedWait = 5,
+	Seed = 6
 };
 
-inline int MapTransferStateToTransmission(TransferState nState)
+inline TransmissionTorrentStatus MapTransferStateToTransmission(TransferState nState)
 {
 	switch (nState)
 	{
-	case transferStateQueued: return transmissionStatusDownloadWait;
-	case transferStateMetadata: return transmissionStatusDownloadWait;
-	case transferStateChecking: return transmissionStatusCheck;
-	case transferStateDownloading: return transmissionStatusDownload;
-	case transferStateStalled: return transmissionStatusDownload;
-	case transferStatePaused: return transmissionStatusStopped;
-	case transferStateCompleted: return transmissionStatusStopped;
-	case transferStateSeeding: return transmissionStatusSeed;
-	case transferStateError: return transmissionStatusStopped;
-	case transferStateMoving: return transmissionStatusDownload;
-	case transferStateUnknown:
-	default: return transmissionStatusDownload;
+	case TransferState::Queued:
+		return TransmissionTorrentStatus::DownloadWait;
+	case TransferState::Metadata:
+		return TransmissionTorrentStatus::DownloadWait;
+	case TransferState::Checking:
+		return TransmissionTorrentStatus::Check;
+	case TransferState::Downloading:
+		return TransmissionTorrentStatus::Download;
+	case TransferState::Stalled:
+		return TransmissionTorrentStatus::Download;
+	case TransferState::Paused:
+		return TransmissionTorrentStatus::Stopped;
+	case TransferState::Completed:
+		return TransmissionTorrentStatus::Stopped;
+	case TransferState::Seeding:
+		return TransmissionTorrentStatus::Seed;
+	case TransferState::Error:
+		return TransmissionTorrentStatus::Stopped;
+	case TransferState::Moving:
+		return TransmissionTorrentStatus::Download;
+	case TransferState::Unknown:
+	default:
+		return TransmissionTorrentStatus::Download;
 	}
 }
 
@@ -222,12 +271,12 @@ inline bool QBittorrentStateMeansArrCompleted(const char* pszState)
 
 inline bool TransferUnknownNeverLooksComplete()
 {
-	const char* pszQbit = MapTransferStateToQBittorrent(transferStateUnknown);
-	const char* pszQbitDone = MapTransferStateToQBittorrentFinished(transferStateUnknown);
-	const int nTr = MapTransferStateToTransmission(transferStateUnknown);
+	const char* pszQbit = MapTransferStateToQBittorrent(TransferState::Unknown);
+	const char* pszQbitDone = MapTransferStateToQBittorrentFinished(TransferState::Unknown);
+	const TransmissionTorrentStatus nTr = MapTransferStateToTransmission(TransferState::Unknown);
 	return !QBittorrentStateMeansArrCompleted(pszQbit) &&
 	       !QBittorrentStateMeansArrCompleted(pszQbitDone) &&
-	       nTr != transmissionStatusSeed &&
-	       nTr != transmissionStatusSeedWait &&
-	       nTr != transmissionStatusStopped;
+	       nTr != TransmissionTorrentStatus::Seed &&
+	       nTr != TransmissionTorrentStatus::SeedWait &&
+	       nTr != TransmissionTorrentStatus::Stopped;
 }

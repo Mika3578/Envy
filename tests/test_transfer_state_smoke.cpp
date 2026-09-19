@@ -14,20 +14,20 @@
 
 static TransferStateInput EmptyInput()
 {
-	TransferStateInput o = {};
-	return o;
+	return TransferStateInput{};
 }
 
 static bool test_idle_is_queued()
 {
-	return ClassifyTransferState(EmptyInput()) == transferStateQueued && std::strcmp(TransferStateName(transferStateQueued), "queued") == 0;
+	return ClassifyTransferState(EmptyInput()) == TransferState::Queued &&
+	       std::strcmp(TransferStateName(TransferState::Queued), "queued") == 0;
 }
 
 static bool test_paused_without_error()
 {
 	TransferStateInput o = EmptyInput();
 	o.paused = true;
-	return ClassifyTransferState(o) == transferStatePaused;
+	return ClassifyTransferState(o) == TransferState::Paused;
 }
 
 static bool test_paused_file_error()
@@ -35,7 +35,7 @@ static bool test_paused_file_error()
 	TransferStateInput o = EmptyInput();
 	o.paused = true;
 	o.fileError = true;
-	return ClassifyTransferState(o) == transferStateError;
+	return ClassifyTransferState(o) == TransferState::Error;
 }
 
 static bool test_paused_seeder_keeps_paused_on_file_error()
@@ -45,14 +45,15 @@ static bool test_paused_seeder_keeps_paused_on_file_error()
 	o.fileError = true;
 	o.seeding = true;
 	o.completed = true;
-	return ClassifyTransferState(o) == transferStatePaused;
+	return ClassifyTransferState(o) == TransferState::Paused;
 }
 
 static bool test_completed_not_seeding()
 {
 	TransferStateInput o = EmptyInput();
 	o.completed = true;
-	return ClassifyTransferState(o) == transferStateCompleted && TransferStateIsTerminalSuccess(transferStateCompleted);
+	return ClassifyTransferState(o) == TransferState::Completed &&
+	       TransferStateIsTerminalSuccess(TransferState::Completed);
 }
 
 static bool test_seeding()
@@ -60,14 +61,24 @@ static bool test_seeding()
 	TransferStateInput o = EmptyInput();
 	o.completed = true;
 	o.seeding = true;
-	return ClassifyTransferState(o) == transferStateSeeding;
+	return ClassifyTransferState(o) == TransferState::Seeding;
+}
+
+static bool test_seeding_tracker_error_stays_importable()
+{
+	TransferStateInput o = EmptyInput();
+	o.completed = true;
+	o.seeding = true;
+	o.trackerError = true;
+	return ClassifyTransferState(o) == TransferState::Seeding &&
+	       TransferStateIsTerminalSuccess(TransferState::Seeding);
 }
 
 static bool test_moving()
 {
 	TransferStateInput o = EmptyInput();
 	o.moving = true;
-	return ClassifyTransferState(o) == transferStateMoving;
+	return ClassifyTransferState(o) == TransferState::Moving;
 }
 
 static bool test_verifying_progress_complete()
@@ -76,7 +87,7 @@ static bool test_verifying_progress_complete()
 	o.started = true;
 	o.progressComplete = true;
 	o.trying = true;
-	return ClassifyTransferState(o) == transferStateChecking;
+	return ClassifyTransferState(o) == TransferState::Checking;
 }
 
 static bool test_downloading()
@@ -84,7 +95,7 @@ static bool test_downloading()
 	TransferStateInput o = EmptyInput();
 	o.trying = true;
 	o.downloading = true;
-	return ClassifyTransferState(o) == transferStateDownloading;
+	return ClassifyTransferState(o) == TransferState::Downloading;
 }
 
 static bool test_stalled_has_sources()
@@ -92,7 +103,7 @@ static bool test_stalled_has_sources()
 	TransferStateInput o = EmptyInput();
 	o.trying = true;
 	o.hasSources = true;
-	return ClassifyTransferState(o) == transferStateStalled;
+	return ClassifyTransferState(o) == TransferState::Stalled;
 }
 
 static bool test_torrent_metadata()
@@ -100,7 +111,7 @@ static bool test_torrent_metadata()
 	TransferStateInput o = EmptyInput();
 	o.trying = true;
 	o.torrent = true;
-	return ClassifyTransferState(o) == transferStateMetadata;
+	return ClassifyTransferState(o) == TransferState::Metadata;
 }
 
 static bool test_torrent_allocating()
@@ -109,7 +120,7 @@ static bool test_torrent_allocating()
 	o.trying = true;
 	o.torrent = true;
 	o.allocating = true;
-	return ClassifyTransferState(o) == transferStateChecking;
+	return ClassifyTransferState(o) == TransferState::Checking;
 }
 
 static bool test_torrent_tracker_error()
@@ -118,7 +129,7 @@ static bool test_torrent_tracker_error()
 	o.trying = true;
 	o.torrent = true;
 	o.trackerError = true;
-	return ClassifyTransferState(o) == transferStateError;
+	return ClassifyTransferState(o) == TransferState::Error;
 }
 
 static bool test_clearing_is_unknown_not_complete()
@@ -126,7 +137,8 @@ static bool test_clearing_is_unknown_not_complete()
 	TransferStateInput o = EmptyInput();
 	o.clearing = true;
 	o.completed = true;
-	return ClassifyTransferState(o) == transferStateUnknown && !TransferStateIsTerminalSuccess(transferStateUnknown);
+	return ClassifyTransferState(o) == TransferState::Unknown &&
+	       !TransferStateIsTerminalSuccess(TransferState::Unknown);
 }
 
 static bool test_paused_wins_over_completed_predicates()
@@ -135,33 +147,47 @@ static bool test_paused_wins_over_completed_predicates()
 	o.paused = true;
 	o.completed = true;
 	o.seeding = true;
-	return ClassifyTransferState(o) == transferStatePaused;
+	return ClassifyTransferState(o) == TransferState::Paused;
 }
 
 static bool test_qbit_completed_is_pausedUP()
 {
-	return std::strcmp(MapTransferStateToQBittorrent(transferStateCompleted), "pausedUP") == 0 && QBittorrentStateMeansArrCompleted("pausedUP") && QBittorrentStateMeansArrCompleted("stoppedUP") && QBittorrentStateMeansArrCompleted("uploading") && !QBittorrentStateMeansArrCompleted("downloading") && !QBittorrentStateMeansArrCompleted("error") && !QBittorrentStateMeansArrCompleted(nullptr);
+	return std::strcmp(MapTransferStateToQBittorrent(TransferState::Completed), "pausedUP") == 0 &&
+	       QBittorrentStateMeansArrCompleted("pausedUP") &&
+	       QBittorrentStateMeansArrCompleted("stoppedUP") &&
+	       QBittorrentStateMeansArrCompleted("uploading") &&
+	       !QBittorrentStateMeansArrCompleted("downloading") &&
+	       !QBittorrentStateMeansArrCompleted("error") &&
+	       !QBittorrentStateMeansArrCompleted(nullptr);
 }
 
 static bool test_qbit_paused_incomplete()
 {
-	return std::strcmp(MapTransferStateToQBittorrent(transferStatePaused), "pausedDL") == 0 && std::strcmp(MapTransferStateToQBittorrentFinished(transferStatePaused), "pausedUP") == 0;
+	return std::strcmp(MapTransferStateToQBittorrent(TransferState::Paused), "pausedDL") == 0 &&
+	       std::strcmp(MapTransferStateToQBittorrentFinished(TransferState::Paused), "pausedUP") == 0;
 }
 
 static bool test_unknown_never_looks_complete()
 {
-	return TransferUnknownNeverLooksComplete() && std::strcmp(MapTransferStateToQBittorrent(transferStateUnknown), "error") == 0 && std::strcmp(MapTransferStateToQBittorrentFinished(transferStateUnknown), "error") == 0 && MapTransferStateToTransmission(transferStateUnknown) == transmissionStatusDownload && !TransferStateIsTerminalSuccess(transferStateUnknown);
+	return TransferUnknownNeverLooksComplete() &&
+	       std::strcmp(MapTransferStateToQBittorrent(TransferState::Unknown), "error") == 0 &&
+	       std::strcmp(MapTransferStateToQBittorrentFinished(TransferState::Unknown), "error") == 0 &&
+	       MapTransferStateToTransmission(TransferState::Unknown) == TransmissionTorrentStatus::Download &&
+	       !TransferStateIsTerminalSuccess(TransferState::Unknown);
 }
 
 static bool test_transmission_seed_and_stop()
 {
-	return MapTransferStateToTransmission(transferStateSeeding) == transmissionStatusSeed && MapTransferStateToTransmission(transferStatePaused) == transmissionStatusStopped && MapTransferStateToTransmission(transferStateChecking) == transmissionStatusCheck && MapTransferStateToTransmission(transferStateDownloading) == transmissionStatusDownload;
+	return MapTransferStateToTransmission(TransferState::Seeding) == TransmissionTorrentStatus::Seed &&
+	       MapTransferStateToTransmission(TransferState::Paused) == TransmissionTorrentStatus::Stopped &&
+	       MapTransferStateToTransmission(TransferState::Checking) == TransmissionTorrentStatus::Check &&
+	       MapTransferStateToTransmission(TransferState::Downloading) == TransmissionTorrentStatus::Download;
 }
 
 static bool test_metadata_finished_is_error_not_importable()
 {
-	return std::strcmp(MapTransferStateToQBittorrentFinished(transferStateMetadata), "error") == 0 && !QBittorrentStateMeansArrCompleted(
-	                                                                                                      MapTransferStateToQBittorrentFinished(transferStateMetadata));
+	return std::strcmp(MapTransferStateToQBittorrentFinished(TransferState::Metadata), "error") == 0 &&
+	       !QBittorrentStateMeansArrCompleted(MapTransferStateToQBittorrentFinished(TransferState::Metadata));
 }
 
 void register_transfer_state_smoke_tests(TestSuite& suite)
@@ -172,6 +198,7 @@ void register_transfer_state_smoke_tests(TestSuite& suite)
 	suite.add_test("transfer_state_paused_seeder_file_error", test_paused_seeder_keeps_paused_on_file_error);
 	suite.add_test("transfer_state_completed", test_completed_not_seeding);
 	suite.add_test("transfer_state_seeding", test_seeding);
+	suite.add_test("transfer_state_seeding_tracker_error", test_seeding_tracker_error_stays_importable);
 	suite.add_test("transfer_state_moving", test_moving);
 	suite.add_test("transfer_state_verifying", test_verifying_progress_complete);
 	suite.add_test("transfer_state_downloading", test_downloading);
