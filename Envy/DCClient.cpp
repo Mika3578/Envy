@@ -653,7 +653,11 @@ BOOL CDCClient::OnADCGet(const std::string& strParams)
 {
 	// $ADCGET (list|file|tthl) Filename Offset Length [ZL1]
 
-	std::string strType, strFilename, strOffset, strLength, strOptions;
+	std::string strType;
+	std::string strFilename;
+	std::string strOffset;
+	std::string strLength;
+	std::string strOptions;
 	if (!DcSplitAdcGetSndParams(strParams, strType, strFilename, strOffset, strLength, strOptions))
 		return FALSE;	// Invalid command
 
@@ -692,7 +696,11 @@ BOOL CDCClient::OnADCSnd(const std::string& strParams)
 {
 	// $ADCSND (list|file|tthl) Filename Offset Length [ZL1]
 
-	std::string strType, strFilename, strOffset, strLength, strOptions;
+	std::string strType;
+	std::string strFilename;
+	std::string strOffset;
+	std::string strLength;
+	std::string strOptions;
 	if (!DcSplitAdcGetSndParams(strParams, strType, strFilename, strOffset, strLength, strOptions))
 		return FALSE;	// Invalid command
 
