@@ -717,18 +717,18 @@ bool CQueryHashTable::OnPatch(CPacket* pPacket)
 	if ( nSequence == 1 )
 		m_pBuffer->Clear();
 
-	const DWORD nExpected = QhtPatchExpectedBytes( m_nHash, nBits );
-	if ( pPacket->m_nPosition > pPacket->m_nLength )
+	const DWORD nExpected = QhtPatchExpectedBytes(m_nHash, nBits);
+	if (pPacket->m_nPosition > pPacket->m_nLength)
 		return false;
 	const DWORD nAddend = pPacket->m_nLength - pPacket->m_nPosition;
-	if ( ! QhtPatchCompressedBudgetOk( m_pBuffer->m_nLength, nAddend, nExpected ) )
+	if (!QhtPatchCompressedBudgetOk(m_pBuffer->m_nLength, nAddend, nExpected))
 	{
 		m_pBuffer->Clear();
 		return false;
 	}
 
-	m_pBuffer->Add(	pPacket->m_pBuffer + pPacket->m_nPosition,
-					nAddend );
+	m_pBuffer->Add(pPacket->m_pBuffer + pPacket->m_nPosition,
+	               nAddend);
 
 	if ( nSequence < nMaximum )
 		return true;
@@ -736,7 +736,7 @@ bool CQueryHashTable::OnPatch(CPacket* pPacket)
 	if ( nCompression == 1 )
 	{
 		// Cap inflate output to the exact expected patch size (zip-bomb guard).
-		if ( ! m_pBuffer->Inflate( nExpected ) )
+		if (!m_pBuffer->Inflate(nExpected))
 		{
 			m_pBuffer->Clear();
 			return false;

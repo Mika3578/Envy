@@ -415,7 +415,7 @@ BOOL CBuffer::Inflate(DWORD nMaxOutput)
 {
 	DWORD nCompress = 0;	// For size allocated
 
-	BYTE* pCompress = CZLib::Decompress2( m_pBuffer, m_nLength, &nCompress, nMaxOutput );
+	BYTE* pCompress = CZLib::Decompress2(m_pBuffer, m_nLength, &nCompress, nMaxOutput);
 	if ( ! pCompress ) return FALSE;
 
 	if ( m_pBuffer ) free( m_pBuffer );
