@@ -19,7 +19,7 @@ This path is preserved. Phase 1 does **not** replace it.
 | --- | --- | --- |
 | `PUBLICIP_REQ` (0x97) | empty | Answer with connected peer IPv4 (`PUBLICIP_ANSWER`) |
 | `PUBLICIP_ANSWER` (0x98) | `<IPv4 4>` LE sockaddr dword | Accept only with outstanding query; optional `Network.AcquireLocalAddress` when public IP still 0 and not LowID-shaped |
-| `CALLBACK` (0x99) | `<KadCheck 16><FileHash 16><IP 4><TCPPort 2>` (38 bytes) | Require Kad initialized + KadCheck XOR all-ones == own Kad ID; known file; Security/Network endpoint checks; `EDClients.PushTo` once (consume guard) |
+| `CALLBACK` (0x99) | `<KadCheck 16><FileHash 16><IP 4><TCPPort 2>` (38 bytes) | Require Kad initialized + KadCheck XOR all-ones == own Kad ID; known file (library **or** any incomplete download via `FindByED2K` without shared-only); Security/Network endpoint checks; `EDClients.PushTo` once (consume guard cleared if PushTo fails so retries remain possible) |
 | `REASKCALLBACKTCP` (0x9A) | Buddy reask relay | **Deferred** — needs Buddy; size-audited and ignored |
 
 Helpers: `Envy/Ed2kLowIdCallback.h`. Tests: `tests/test_ed2k_lowid_callback_smoke.cpp`.

@@ -3458,7 +3458,7 @@ BOOL CEDClient::OnC2cCallback(CEDPacket* pPacket)
 			pLock.Unlock();
 		}
 	}
-	if (!bKnownFile && Downloads.FindByED2K(oFileHash, TRUE))
+	if (!bKnownFile && Downloads.FindByED2K(oFileHash))
 		bKnownFile = TRUE;
 	if (!bKnownFile)
 		return TRUE;
@@ -3473,7 +3473,14 @@ BOOL CEDClient::OnC2cCallback(CEDPacket* pPacket)
 	}
 
 	// Reuse classic push connection machinery (complements server callback; does not replace it).
-	EDClients.PushTo(oFields.nIp, oFields.nTcpPort);
+	if (!EDClients.PushTo(oFields.nIp, oFields.nTcpPort))
+	{
+		// Do not keep the one-shot guard armed when nothing was queued (e.g. client table full).
+		m_oC2cCallbackGuard.Clear();
+		DEBUG_ONLY(theApp.Message(MSG_DEBUG,
+		                          L"[ED2K] C2C CALLBACK PushTo failed from %s; guard cleared for retry",
+		                          (LPCTSTR)m_sAddress));
+	}
 	return TRUE;
 }
 
