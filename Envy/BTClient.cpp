@@ -1591,14 +1591,14 @@ BOOL CBTClient::OnUtPex(CBTPacket* pPacket)
 
 	if ( CBENode* pPeersAdd = pRoot->GetNode( BT_DICT_ADDED ) )
 	{
-		if ( BtCompactPeerListBytesOk( pPeersAdd->m_nValue ) )
+		if (BtCompactPeerListBytesOk(pPeersAdd->m_nValue))
 		{
 			const BYTE* pPointer = (const BYTE*)pPeersAdd->m_pValue;
 
 			for ( int nPeer = (int)pPeersAdd->m_nValue / 6; nPeer > 0; nPeer--, pPointer += 6 )
 			{
-				if ( ! BtSourcesWantedAllowsMore( m_pDownload->GetEffectiveSourceCount(),
-					Settings.Downloads.SourcesWanted ) )
+				if (!BtSourcesWantedAllowsMore(m_pDownload->GetEffectiveSourceCount(),
+				                               Settings.Downloads.SourcesWanted))
 					break;
 
 				const IN_ADDR* pAddress = (const IN_ADDR*)pPointer;

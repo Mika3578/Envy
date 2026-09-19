@@ -680,8 +680,8 @@ void CDownloadWithTorrent::OnTrackerEvent(bool bSuccess, LPCTSTR pszReason, LPCT
 		// Get new sources
 		for ( POSITION pos = pEvent->GetSources(); pos; )
 		{
-			if ( ! BtSourcesWantedAllowsMore( GetEffectiveSourceCount(),
-				Settings.Downloads.SourcesWanted ) )
+			if (!BtSourcesWantedAllowsMore(GetEffectiveSourceCount(),
+			                               Settings.Downloads.SourcesWanted))
 				break;
 
 			const CBTTrackerSource& pSource = pEvent->GetNextSource( pos );

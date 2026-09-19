@@ -715,19 +715,12 @@ static bool test_version_checker_http_response_bounds()
 
 static bool test_bt_compact_peer_list_bytes()
 {
-	return BtCompactPeerListBytesOk( 6 ) == TRUE
-		&& BtCompactPeerListBytesOk( 12 ) == TRUE
-		&& BtCompactPeerListBytesOk( 0 ) == FALSE
-		&& BtCompactPeerListBytesOk( 5 ) == FALSE
-		&& BtCompactPeerListBytesOk( 7 ) == FALSE;
+	return BtCompactPeerListBytesOk(6) == TRUE && BtCompactPeerListBytesOk(12) == TRUE && BtCompactPeerListBytesOk(0) == FALSE && BtCompactPeerListBytesOk(5) == FALSE && BtCompactPeerListBytesOk(7) == FALSE;
 }
 
 static bool test_bt_sources_wanted_allows_more()
 {
-	return BtSourcesWantedAllowsMore( 0, 500 ) == TRUE
-		&& BtSourcesWantedAllowsMore( 499, 500 ) == TRUE
-		&& BtSourcesWantedAllowsMore( 500, 500 ) == FALSE
-		&& BtSourcesWantedAllowsMore( 0, 0 ) == FALSE;
+	return BtSourcesWantedAllowsMore(0, 500) == TRUE && BtSourcesWantedAllowsMore(499, 500) == TRUE && BtSourcesWantedAllowsMore(500, 500) == FALSE && BtSourcesWantedAllowsMore(0, 0) == FALSE;
 }
 
 void register_protocol_parser_smoke_tests(TestSuite& suite)
@@ -825,6 +818,6 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_compressedpart_inflate_ok", test_ed2k_compressedpart_inflate_ok );
 	suite.add_test( "ed2k_compressedpart_accept_before_submit", test_ed2k_compressedpart_accept_before_submit );
 	suite.add_test("g1_wrapped_payload_ok", test_g1_wrapped_payload_ok);
-	suite.add_test( "bt_compact_peer_list_bytes", test_bt_compact_peer_list_bytes );
-	suite.add_test( "bt_sources_wanted_allows_more", test_bt_sources_wanted_allows_more );
+	suite.add_test("bt_compact_peer_list_bytes", test_bt_compact_peer_list_bytes);
+	suite.add_test("bt_sources_wanted_allows_more", test_bt_sources_wanted_allows_more);
 }

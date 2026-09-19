@@ -567,7 +567,7 @@ inline BOOL G1WrappedPayloadFits(DWORD nRemaining, LONG nPayloadLen)
 // Compact IPv4 peer list (6 bytes each) used by ut_pex "added" / UDP announce.
 inline BOOL BtCompactPeerListBytesOk(std::uint64_t nBytes)
 {
-	return nBytes > 0 && ( nBytes % 6ull ) == 0ull;
+	return nBytes > 0 && (nBytes % 6ull) == 0ull;
 }
 
 // Stop injecting BT sources once effective count reaches SourcesWanted (#81 DoS).
