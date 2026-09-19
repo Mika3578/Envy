@@ -304,10 +304,14 @@ Sources (primary first):
 
 1. **Reconcile Protect develop approvals:** live API = 0; docs = 1. Human
    decision: restore 1 approval **or** update AGENTS/devsecops to match live.
-2. **Documentation Check always reports** a terminal conclusion — **Done this PR**
+2. **Documentation Check always reports** a terminal conclusion — **Done**
    (`if: always()` no-op path when classify says docs out of scope; cancelled
    classify from concurrency supersede also emits success no-op so a superseded
    run does not fail the required context).
+2b. **Build x64/Win32 Release always report** on PRs — **Done** (same pattern:
+   `if: always()`; ubuntu no-op when `run_windows_build=false`; real MSBuild on
+   `windows-2025-vs2026` when true). Strict Protect develop treats SKIPPED
+   required contexts as unsatisfied.
 
 ### P1 — Reliability / notable time
 
