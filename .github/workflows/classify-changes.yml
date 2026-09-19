@@ -21,16 +21,8 @@ on:
         value: ${{ jobs.classify.outputs.docs_only }}
       run_windows_build:
         value: ${{ jobs.classify.outputs.run_windows_build }}
-      run_codeql_cpp:
-        value: ${{ jobs.classify.outputs.run_codeql_cpp }}
-      run_codeql_js:
-        value: ${{ jobs.classify.outputs.run_codeql_js }}
-      run_codeql_csharp:
-        value: ${{ jobs.classify.outputs.run_codeql_csharp }}
       run_remote_js:
         value: ${{ jobs.classify.outputs.run_remote_js }}
-      run_format:
-        value: ${{ jobs.classify.outputs.run_format }}
       run_dep_review:
         value: ${{ jobs.classify.outputs.run_dep_review }}
       run_docs_check:
@@ -55,11 +47,7 @@ jobs:
       workflow: ${{ steps.run.outputs.workflow }}
       docs_only: ${{ steps.run.outputs.docs_only }}
       run_windows_build: ${{ steps.run.outputs.run_windows_build }}
-      run_codeql_cpp: ${{ steps.run.outputs.run_codeql_cpp }}
-      run_codeql_js: ${{ steps.run.outputs.run_codeql_js }}
-      run_codeql_csharp: ${{ steps.run.outputs.run_codeql_csharp }}
       run_remote_js: ${{ steps.run.outputs.run_remote_js }}
-      run_format: ${{ steps.run.outputs.run_format }}
       run_dep_review: ${{ steps.run.outputs.run_dep_review }}
       run_docs_check: ${{ steps.run.outputs.run_docs_check }}
     steps:
