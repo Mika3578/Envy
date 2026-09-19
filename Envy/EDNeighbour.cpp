@@ -306,17 +306,17 @@ BOOL CEDNeighbour::OnServerMessage(CEDPacket* pPacket)
 {
 	// Server message format: <len 2><Message len>
 	// Fail-closed on wire length before ReadEDString (clamp / throw paths).
-	if ( ! Ed2kEdStringHeaderOk( pPacket->GetRemaining() ) )
+	if (!Ed2kEdStringHeaderOk(pPacket->GetRemaining()))
 		return TRUE;
 
 	const DWORD nMsgPos = pPacket->m_nPosition;
 	const WORD nMsgLen = pPacket->ReadShortLE();
-	if ( ! Ed2kEdStringPayloadOk( nMsgLen, pPacket->GetRemaining() ) )
+	if (!Ed2kEdStringPayloadOk(nMsgLen, pPacket->GetRemaining()))
 	{
-		theApp.Message( MSG_WARNING, L"ED2K invalid server-message length from %s", (LPCTSTR)m_sAddress );
+		theApp.Message(MSG_WARNING, L"ED2K invalid server-message length from %s", (LPCTSTR)m_sAddress);
 		return TRUE;
 	}
-	if ( ! Ed2kServerMessageLengthOk( nMsgLen ) )
+	if (!Ed2kServerMessageLengthOk(nMsgLen))
 	{
 		theApp.Message( MSG_WARNING, L"ED2K server message too long from %s", (LPCTSTR)m_sAddress );
 		return TRUE;
@@ -324,8 +324,8 @@ BOOL CEDNeighbour::OnServerMessage(CEDPacket* pPacket)
 	pPacket->m_nPosition = nMsgPos;
 
 	// Read the message string with Unicode support if server indicates it
-	CString	strMessage = pPacket->ReadEDString(
-		( m_nTCPFlags & ED2K_SERVER_TCP_UNICODE ) != 0 );
+	CString strMessage = pPacket->ReadEDString(
+	    (m_nTCPFlags & ED2K_SERVER_TCP_UNICODE) != 0);
 
 	// Debug logging for server messages
 	#ifdef _DEBUG

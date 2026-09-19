@@ -2495,17 +2495,17 @@ BOOL CEDClient::OnAskSharedDirs(CEDPacket* /*pPacket*/)
 BOOL CEDClient::OnViewSharedDir(CEDPacket* pPacket)
 {
 	// Wire: <len 2><Directory len> — reject before ReadEDString can throw / clamp.
-	if ( ! Ed2kEdStringHeaderOk( pPacket->GetRemaining() ) )
+	if (!Ed2kEdStringHeaderOk(pPacket->GetRemaining()))
 	{
-		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 		return TRUE;
 	}
 
 	const DWORD nDirPos = pPacket->m_nPosition;
 	const WORD nDirLen = pPacket->ReadShortLE();
-	if ( ! Ed2kEdStringPayloadOk( nDirLen, pPacket->GetRemaining() ) )
+	if (!Ed2kEdStringPayloadOk(nDirLen, pPacket->GetRemaining()))
 	{
-		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 		return TRUE;
 	}
 	pPacket->m_nPosition = nDirPos;
@@ -2695,12 +2695,12 @@ BOOL CEDClient::OnAskSharedDirsAnswer(CEDPacket* pPacket)
 
 		for ( DWORD i = 0; i < nCount; i++ )
 		{
-			if ( ! Ed2kEdStringHeaderOk( pPacket->GetRemaining() ) )
+			if (!Ed2kEdStringHeaderOk(pPacket->GetRemaining()))
 				break;
 
 			const DWORD nDirPos = pPacket->m_nPosition;
 			const WORD nDirLen = pPacket->ReadShortLE();
-			if ( ! Ed2kEdStringPayloadOk( nDirLen, pPacket->GetRemaining() ) )
+			if (!Ed2kEdStringPayloadOk(nDirLen, pPacket->GetRemaining()))
 				break;
 			pPacket->m_nPosition = nDirPos;
 
@@ -2734,47 +2734,47 @@ BOOL CEDClient::OnViewSharedDirAnswer(CEDPacket* pPacket)
 	// Wire: <len 2><Directory len><count 4>(file records)...
 	// Must consume the directory name before reading nCount; skipping it
 	// desyncs the count into the string length/bytes (browse-host corruption).
-	if ( ! Ed2kEdStringHeaderOk( pPacket->GetRemaining() ) )
+	if (!Ed2kEdStringHeaderOk(pPacket->GetRemaining()))
 	{
-		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 	}
 	else
 	{
 		const WORD nDirLen = pPacket->ReadShortLE();
-		if ( ! Ed2kEdStringPayloadOk( nDirLen, pPacket->GetRemaining() ) )
+		if (!Ed2kEdStringPayloadOk(nDirLen, pPacket->GetRemaining()))
 		{
-			theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+			theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 		}
 		else
 		{
-			if ( nDirLen )
-				pPacket->Seek( nDirLen, CPacket::seekCurrent );
+			if (nDirLen)
+				pPacket->Seek(nDirLen, CPacket::seekCurrent);
 
-			if ( pPacket->GetRemaining() < 4 )
+			if (pPacket->GetRemaining() < 4)
 			{
-				theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+				theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 			}
 			else
 			{
 				const DWORD nCount = pPacket->ReadLongLE();
 
-				for ( DWORD i = 0; i < nCount; i++ )
+				for (DWORD i = 0; i < nCount; i++)
 				{
-					if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 4 + 2 + 4 )
+					if (pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 4 + 2 + 4)
 						break;
 
-					CQueryHit* pHit = new CQueryHit( PROTOCOL_ED2K );
+					CQueryHit* pHit = new CQueryHit(PROTOCOL_ED2K);
 
 					pHit->m_bBrowseHost = TRUE;
 					pHit->m_bChat = TRUE;
-					pHit->m_pVendor = VendorCache.Lookup( L"ED2K" );
-					if ( ! pHit->m_pVendor )
+					pHit->m_pVendor = VendorCache.Lookup(L"ED2K");
+					if (!pHit->m_pVendor)
 						pHit->m_pVendor = VendorCache.m_pNull;
 
-					pHit->ReadEDPacket( pPacket, &m_pServer, m_bEmUnicode );
+					pHit->ReadEDPacket(pPacket, &m_pServer, m_bEmUnicode);
 
 					pHit->m_pAddress = m_pHost.sin_addr;
-					pHit->m_nPort = ntohs( m_pHost.sin_port );
+					pHit->m_nPort = ntohs(m_pHost.sin_port);
 
 					pHit->Resolve();
 

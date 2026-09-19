@@ -332,9 +332,7 @@ static bool test_ed2k_file_comment_bounds()
 
 static bool test_ed2k_ed_string_header()
 {
-	return Ed2kEdStringHeaderOk( 2 ) == TRUE
-		&& Ed2kEdStringHeaderOk( 1 ) == FALSE
-		&& Ed2kEdStringHeaderOk( 0 ) == FALSE;
+	return Ed2kEdStringHeaderOk(2) == TRUE && Ed2kEdStringHeaderOk(1) == FALSE && Ed2kEdStringHeaderOk(0) == FALSE;
 }
 
 static bool test_ed2k_ed_string_payload()
@@ -371,9 +369,7 @@ static bool test_ed2k_ed_string_truncated_prefix_gate()
 
 static bool test_ed2k_server_message_length()
 {
-	return Ed2kServerMessageLengthOk( 0 ) == TRUE
-		&& Ed2kServerMessageLengthOk( ED2K_SERVER_MESSAGE_MAX ) == TRUE
-		&& Ed2kServerMessageLengthOk( static_cast< WORD >( ED2K_SERVER_MESSAGE_MAX + 1 ) ) == FALSE;
+	return Ed2kServerMessageLengthOk(0) == TRUE && Ed2kServerMessageLengthOk(ED2K_SERVER_MESSAGE_MAX) == TRUE && Ed2kServerMessageLengthOk(static_cast<WORD>(ED2K_SERVER_MESSAGE_MAX + 1)) == FALSE;
 }
 
 static bool test_ed2k_tag_uint64_remaining()
@@ -696,11 +692,11 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_tag_string_bounds", test_ed2k_tag_string_bounds );
 	suite.add_test( "ed2k_unknown_tag_string_skip", test_ed2k_unknown_tag_string_skip );
 	suite.add_test( "ed2k_file_comment_bounds", test_ed2k_file_comment_bounds );
-	suite.add_test( "ed2k_ed_string_header", test_ed2k_ed_string_header );
+	suite.add_test("ed2k_ed_string_header", test_ed2k_ed_string_header);
 	suite.add_test( "ed2k_ed_string_payload", test_ed2k_ed_string_payload );
 	suite.add_test( "ed2k_long_ed_string_payload", test_ed2k_long_ed_string_payload );
 	suite.add_test( "ed2k_ed_string_truncated_prefix_gate", test_ed2k_ed_string_truncated_prefix_gate );
-	suite.add_test( "ed2k_server_message_length", test_ed2k_server_message_length );
+	suite.add_test("ed2k_server_message_length", test_ed2k_server_message_length);
 	suite.add_test( "ed2k_tag_uint64_remaining", test_ed2k_tag_uint64_remaining );
 	suite.add_test( "ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds );
 	suite.add_test( "ed2k_chat_message_bounds", test_ed2k_chat_message_bounds );
