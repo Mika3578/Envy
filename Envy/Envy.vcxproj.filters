@@ -2003,6 +2003,9 @@
     <ClInclude Include="FirewallWfasPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TextCtrlViewport.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="PacketBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
