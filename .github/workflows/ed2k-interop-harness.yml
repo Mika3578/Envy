@@ -1,0 +1,51 @@
+name: ED2K interop harness
+
+# Opt-in operator workflow for issue #160. Never a required Protect develop check.
+# Does not download eMule/aMule. Does not use the public ED2K/Kad network.
+# Live GUI clients are not launched on GitHub-hosted runners.
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenarios:
+        description: Scenario selection (phase1, all, future, or comma-separated ids)
+        required: false
+        default: phase1
+      live:
+        description: Request live launch (ignored on GitHub-hosted runners; no binaries)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ed2k-interop-harness-${{ github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  harness:
+    name: Interop self-test and dry-run
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          fetch-depth: 1
+
+      - name: Self-test (no network, no reference binaries)
+        run: python3 tools/interop/run.py --self-test
+
+      - name: Dry-run selected scenarios
+        env:
+          ENVY_INTEROP_SCENARIOS: ${{ inputs.scenarios }}
+        run: |
+          set -euo pipefail
+          scenarios="${ENVY_INTEROP_SCENARIOS:-phase1}"
+          python3 tools/interop/run.py --dry-run --scenarios "$scenarios" --artifact-dir "$RUNNER_TEMP/interop-dry-run"
+
+      - name: Live launch is not executed here
+        if: ${{ inputs.live }}
+        run: |
+          echo "::notice::Live eMule/aMule execution is not performed on GitHub-hosted runners. Run python3 tools/interop/run.py --live locally with operator-provided binaries. Public P2P is never a CI dependency."

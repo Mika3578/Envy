@@ -31,7 +31,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 - **Kademlia (active: `Kademlia.cpp` only):** Bootstrap, ping, find_node, HELLO, SEARCH/PUBLISH **wire handlers** present; **source SEARCH_RES → `AddSourceED2K`** for HighID types 1/4 with outstanding-search context (keyword hits never create sources). FIREWALLED/Buddy/UDP keys absent; outbound store-answer framing still simplified; live Kad2 interop **unverified**. Legacy `KadProtocol.cpp` / `KBucket` / `KadStorage` require undefined `ENVY_LEGACY_KADEMLIA` and are **inactive**.
 - **IPv6:** Utilities exist, core connections IPv4-only (`docs/ipv6/PLAN.md`); prefer portable address types in #89
 - **Headless / RPC:** not implemented (MFC GUI + limited Remote web UI); #161
-- **Testing:** HashLib unit tests plus parser/policy/Hello smokes; no live interop harness yet; protocol integration tests require core refactoring (#91)
+- **Testing:** HashLib unit tests plus parser/policy/Hello smokes; opt-in live interop harness (`tools/interop/`, #160) is not required CI; protocol unit/integration seam remains #91
 
 ---
 

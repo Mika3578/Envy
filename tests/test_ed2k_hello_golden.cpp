@@ -9,6 +9,9 @@
 //
 // Level-2 reference-golden slots (eMule/aMule captures) are intentionally
 // empty stubs so a later interop PR can drop real captures without redesign.
+// Capture pipeline: tools/interop/ (issue #160). Do not fill these slots
+// until origin, version, direction, opcode, date, and privacy normalization
+// are documented. The Python harness duplicates Envy self-goldens only.
 //
 // Expected bytes are hand-authored (not taken from Ed2kPackHelloTcpPacket
 // output) so the packer under test is not tautological. Hello and HelloAnswer

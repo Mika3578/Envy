@@ -47,6 +47,7 @@ documentation:
       - any-glob-to-any-file:
           - "**/*.md"
           - "ReadMe.txt"
+          - "tools/interop/**"
 
 translations:
   - changed-files:
