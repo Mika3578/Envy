@@ -450,9 +450,10 @@ BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits)
 	if ( ! pFile.Open( pszFile, CFile::modeRead | CFile::shareDenyWrite ) )
 		return FALSE;	// File open error
 
-	UINT nInSize = (UINT)pFile.GetLength();
-	if ( ! CBufferUnBZipInputOk( nInSize ) )
-		return FALSE;	// Empty or oversized compressed listing
+	const ULONGLONG nInSize64 = pFile.GetLength();
+	if (!CBufferUnBZipInputOk(nInSize64))
+		return FALSE; // Empty or oversized compressed listing
+	const UINT nInSize = (UINT)nInSize64;
 
 	CBuffer pBuffer;
 	if ( ! pBuffer.EnsureBuffer( nInSize ) )
@@ -462,8 +463,8 @@ BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits)
 		return FALSE;	// File read error
 	pBuffer.m_nLength = nInSize;
 
-	if ( ! pBuffer.UnBZip( CBUFFER_UNBZIP_MAX ) )
-		return FALSE;	// Decompression error / zip-bomb
+	if (!pBuffer.UnBZip(CBUFFER_UNBZIP_MAX))
+		return FALSE; // Decompression error / zip-bomb
 
 	augment::auto_ptr< CXMLElement > pXML ( CXMLElement::FromString( pBuffer.ReadString( pBuffer.m_nLength, CP_UTF8 ), TRUE ) );
 	if ( ! pXML.get() )

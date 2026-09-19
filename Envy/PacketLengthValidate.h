@@ -199,7 +199,7 @@ inline BOOL CBufferUnBZipOutputOk(DWORD nOutput)
 	return nOutput > 0 && nOutput <= CBUFFER_UNBZIP_MAX;
 }
 
-inline BOOL CBufferUnBZipInputOk(DWORD nCompressed)
+inline BOOL CBufferUnBZipInputOk(ULONGLONG nCompressed)
 {
 	return nCompressed > 0 && nCompressed <= CBUFFER_UNBZIP_MAX;
 }

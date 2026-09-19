@@ -741,7 +741,7 @@ BOOL CBuffer::UnBZip(DWORD nMaxOutput)
 	CBuffer pOutBuf;
 	UINT nOutSize = m_nLength * 3;
 	if (nOutSize < m_nLength)
-		nOutSize = UINT_MAX;	// overflow on huge input guess
+		nOutSize = UINT_MAX; // overflow on huge input guess
 	if (nMaxOutput > 0 && nOutSize > nMaxOutput)
 		nOutSize = nMaxOutput;
 	if (nOutSize == 0)
@@ -753,12 +753,12 @@ BOOL CBuffer::UnBZip(DWORD nMaxOutput)
 			return FALSE;	// Out of memory
 
 		UINT nAvail = nOutSize;
-		int err = BZ2_bzBuffToBuffDecompress( (char*)pOutBuf.m_pBuffer, &nAvail,
-			(char*)m_pBuffer, m_nLength, 0, 0 );
+		int err = BZ2_bzBuffToBuffDecompress((char*)pOutBuf.m_pBuffer, &nAvail,
+		                                     (char*)m_pBuffer, m_nLength, 0, 0);
 
 		if ( err == BZ_OK )
 		{
-			if (nMaxOutput > 0 && !CBufferUnBZipOutputOk(nAvail))
+			if (nMaxOutput > 0 && (nAvail == 0 || nAvail > nMaxOutput))
 				return FALSE;
 			pOutBuf.m_nLength = nAvail;
 			break;
@@ -767,7 +767,7 @@ BOOL CBuffer::UnBZip(DWORD nMaxOutput)
 		if ( err == BZ_OUTBUFF_FULL )
 		{
 			if (nMaxOutput > 0 && nOutSize >= nMaxOutput)
-				return FALSE;	// Would exceed zip-bomb cap
+				return FALSE; // Would exceed zip-bomb cap
 			UINT nNext = nOutSize * 2;
 			if (nNext < nOutSize)
 				nNext = UINT_MAX;

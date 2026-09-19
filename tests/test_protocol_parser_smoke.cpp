@@ -374,14 +374,22 @@ static bool test_cbuffer_unbzip_bounds()
 	constexpr DWORD kMax = 32u * 1024u * 1024u;
 	if (CBUFFER_UNBZIP_MAX != kMax)
 		return false;
-	return CBufferUnBZipOutputOk(1) == TRUE
-		&& CBufferUnBZipOutputOk(kMax) == TRUE
-		&& CBufferUnBZipOutputOk(kMax + 1) == FALSE
-		&& CBufferUnBZipOutputOk(0) == FALSE
-		&& CBufferUnBZipInputOk(1) == TRUE
-		&& CBufferUnBZipInputOk(kMax) == TRUE
-		&& CBufferUnBZipInputOk(kMax + 1) == FALSE
-		&& CBufferUnBZipInputOk(0) == FALSE;
+	// Predicates must reject empty, over-cap, and >4 GiB lengths that would
+	// wrap if narrowed to DWORD/UINT before the check (loader regression).
+	if (CBufferUnBZipOutputOk(1) != TRUE
+		|| CBufferUnBZipOutputOk(kMax) != TRUE
+		|| CBufferUnBZipOutputOk(kMax + 1) != FALSE
+		|| CBufferUnBZipOutputOk(0) != FALSE
+		|| CBufferUnBZipInputOk(1) != TRUE
+		|| CBufferUnBZipInputOk(kMax) != TRUE
+		|| CBufferUnBZipInputOk(kMax + 1) != FALSE
+		|| CBufferUnBZipInputOk(0) != FALSE)
+		return false;
+	if (CBufferUnBZipInputOk(0x100000000ull) != FALSE) // 4 GiB
+		return false;
+	if (CBufferUnBZipInputOk(0x100000001ull) != FALSE) // would wrap to 1 as DWORD
+		return false;
+	return true;
 }
 
 
