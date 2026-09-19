@@ -99,11 +99,16 @@ jobs:
   build-x64-release:
     name: Build x64 Release
     needs: changes
+    # Always emit this required context on PRs (even when classify says no
+    # Windows build). Skipped required checks block Protect develop.
+    # See docs/10_dev/CI_AUDIT_2026-09.md (Documentation Check always-emit).
     if: >
-      (github.event_name == 'pull_request' && needs.changes.outputs.run_windows_build == 'true') ||
-      github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && inputs.configuration == 'Release')
-    runs-on: windows-2025-vs2026
+      always() && (
+        github.event_name == 'pull_request' ||
+        github.event_name == 'push' ||
+        (github.event_name == 'workflow_dispatch' && inputs.configuration == 'Release')
+      )
+    runs-on: ${{ (github.event_name != 'pull_request' || needs.changes.outputs.run_windows_build == 'true') && 'windows-2025-vs2026' || 'ubuntu-latest' }}
     timeout-minutes: 120
     # Hosted runners hit C1083 (PCH permission denied) when Envy.pch is built
     # under parallel CL/MSBuild; keep /m:1 until a measured A/B on
@@ -112,12 +117,38 @@ jobs:
       MSBUILD_PARALLEL: /m:1
       MSBUILD_USE_MULTI_TOOL_TASK: false
     steps:
+      - name: Superseded run (classification cancelled)
+        if: needs.changes.result == 'cancelled'
+        run: |
+          echo "::notice::Classification cancelled (superseded); Build x64 Release no-op success."
+
+      - name: Fail if classification failed
+        if: needs.changes.result != 'success' && needs.changes.result != 'cancelled'
+        run: |
+          echo "::error::Change classification did not succeed (${{ needs.changes.result }})."
+          exit 1
+
+      - name: Build not required for this change set
+        if: github.event_name == 'pull_request' && needs.changes.result == 'success' && needs.changes.outputs.run_windows_build != 'true'
+        run: |
+          echo "::notice::Build x64 Release no-op (classify run_windows_build=false)."
+
       - name: Checkout
+        if: >
+          needs.changes.result == 'success' && (
+            github.event_name != 'pull_request' ||
+            needs.changes.outputs.run_windows_build == 'true'
+          )
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 1
 
       - name: Build x64 Release
+        if: >
+          needs.changes.result == 'success' && (
+            github.event_name != 'pull_request' ||
+            needs.changes.outputs.run_windows_build == 'true'
+          )
         uses: ./.github/actions/windows-msbuild
         with:
           platform: x64
@@ -128,22 +159,51 @@ jobs:
   build-win32-release:
     name: Build Win32 Release
     needs: changes
+    # Always emit this required context on PRs (mirror Build x64 Release).
     if: >
-      (github.event_name == 'pull_request' && needs.changes.outputs.run_windows_build == 'true') ||
-      github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && inputs.configuration == 'Release')
-    runs-on: windows-2025-vs2026
+      always() && (
+        github.event_name == 'pull_request' ||
+        github.event_name == 'push' ||
+        (github.event_name == 'workflow_dispatch' && inputs.configuration == 'Release')
+      )
+    runs-on: ${{ (github.event_name != 'pull_request' || needs.changes.outputs.run_windows_build == 'true') && 'windows-2025-vs2026' || 'ubuntu-latest' }}
     timeout-minutes: 120
     env:
       MSBUILD_PARALLEL: /m:1
       MSBUILD_USE_MULTI_TOOL_TASK: false
     steps:
+      - name: Superseded run (classification cancelled)
+        if: needs.changes.result == 'cancelled'
+        run: |
+          echo "::notice::Classification cancelled (superseded); Build Win32 Release no-op success."
+
+      - name: Fail if classification failed
+        if: needs.changes.result != 'success' && needs.changes.result != 'cancelled'
+        run: |
+          echo "::error::Change classification did not succeed (${{ needs.changes.result }})."
+          exit 1
+
+      - name: Build not required for this change set
+        if: github.event_name == 'pull_request' && needs.changes.result == 'success' && needs.changes.outputs.run_windows_build != 'true'
+        run: |
+          echo "::notice::Build Win32 Release no-op (classify run_windows_build=false)."
+
       - name: Checkout
+        if: >
+          needs.changes.result == 'success' && (
+            github.event_name != 'pull_request' ||
+            needs.changes.outputs.run_windows_build == 'true'
+          )
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 1
 
       - name: Build Win32 Release
+        if: >
+          needs.changes.result == 'success' && (
+            github.event_name != 'pull_request' ||
+            needs.changes.outputs.run_windows_build == 'true'
+          )
         uses: ./.github/actions/windows-msbuild
         with:
           platform: Win32

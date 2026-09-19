@@ -74,6 +74,11 @@ SonarCloud `12526`, GHAS/gitleaks `57789`).
 `secret-scan`, `gitleaks` (GHAS check from SARIF upload), `PR Gate`,
 `Analyze (c-cpp)`, `SonarCloud Code Analysis`.
 
+Docs-only / non-Windows PRs still **emit** `Build x64 Release` and
+`Build Win32 Release` as success no-ops on `ubuntu-latest` when classify
+sets `run_windows_build=false` (same always-emit pattern as Documentation
+Check). They must not stay SKIPPED under a strict ruleset.
+
 CodeRabbit / reviewdog / Bugbot are **advisory** and must not be the sole
 merge blocker. Native GitHub review policy on Protect develop (**intended**
 ≥1 APPROVED; live API showed `0` on 2026-09-19 — see
