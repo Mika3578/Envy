@@ -403,10 +403,27 @@ BOOL CDatagrams::Send(const SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease,
 	if ( m_nInFrags < 1 )
 		bAck = FALSE;
 
-	pDG->Create( pHost, (CG2Packet*)pPacket, m_nSequence++, m_pBufferFree, bAck );
+	const BOOL bCreated = pDG->Create(pHost, (CG2Packet*)pPacket, m_nSequence++, m_pBufferFree, bAck);
 
 	m_pBufferFree = m_pBufferFree->m_pNext;
 	m_nBufferFree--;
+
+	if (!bCreated)
+	{
+		// Fragment count exceeded G2_SGP_FRAGMENT_MAX — reclaim and fail closed.
+		if (pDG->m_pBuffer)
+		{
+			pDG->m_pBuffer->m_pNext = m_pBufferFree;
+			m_pBufferFree = pDG->m_pBuffer;
+			m_pBufferFree->Clear();
+			pDG->m_pBuffer = NULL;
+			m_nBufferFree++;
+		}
+		pDG->m_pNextHash = m_pOutputFree;
+		m_pOutputFree = pDG;
+		if (bRelease) pPacket->Release();
+		return FALSE;
+	}
 
 	pDG->m_pToken		= pToken;
 	pDG->m_pNextTime	= NULL;
@@ -981,6 +998,9 @@ BOOL CDatagrams::OnReceiveSGP(const SOCKADDR_IN* pHost, const SGP_HEADER* pHeade
 #endif
 
 	m_nInFrags++;
+
+	if (!G2SgpFragmentCountOk(pHeader->nCount))
+		return FALSE;
 
 	if ( pHeader->nFlags & SGP_ACKNOWLEDGE )
 	{
