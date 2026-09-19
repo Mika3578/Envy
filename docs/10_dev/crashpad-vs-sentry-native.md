@@ -162,7 +162,8 @@ for ingest hosts and for Sentry `transport`.
 - Root `vcpkg.json` lists `crashpad` only (not `sentry-native`)
 - Do **not** expand CMake to replace `Envy.sln`
 - Do **not** edit `Plugins/PluginWizard/**`
-- Handler EXE is copied by `Envy/CopyCrashpadHandler.cmd` and the installer
+- Handler EXE is copied by `Envy/CopyCrashpadHandler.cmd` (Release:
+  `tools/crashpad`, Debug: `debug/tools/crashpad`) and the installer
 - PDBs stay in CI artifacts, not the end-user installer
 - Windows-only; not an EnvyCore API (D-013)
 

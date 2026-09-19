@@ -1,5 +1,8 @@
 @echo off
 rem Copy crashpad_handler.exe (and optional crashpad_wer*.dll) next to Envy.exe.
+rem Use the configuration-matching vcpkg layout. A recursive dir /s /b of
+rem vcpkg_installed\<triplet> hits debug\tools\crashpad first and would ship
+rem a Debug handler with Release Envy.exe.
 rem %1 - $(ConfigurationName)
 rem %2 - $(PlatformName)
 setlocal EnableExtensions
@@ -29,22 +32,22 @@ if not exist "%SEARCHROOT%" (
 	exit /b 1
 )
 
-set "HANDLER="
-for /f "delims=" %%F in ('dir /s /b "%SEARCHROOT%\crashpad_handler.exe" 2^>nul') do (
-	set "HANDLER=%%F"
-	goto :found
+set "HANDLERDIR=%SEARCHROOT%\tools\crashpad"
+if /I "%CONFIG%"=="Debug" set "HANDLERDIR=%SEARCHROOT%\debug\tools\crashpad"
+set "HANDLER=%HANDLERDIR%\crashpad_handler.exe"
+if not exist "%HANDLER%" (
+	echo error: crashpad_handler.exe not found at "%HANDLER%"
+	echo error: from the repository root run: vcpkg install --triplet=%TRIPLET%
+	exit /b 1
 )
 
-echo error: crashpad_handler.exe not found under vcpkg_installed\%TRIPLET%
-exit /b 1
-
-:found
 copy /b /y "%HANDLER%" "%DEST%\crashpad_handler.exe" >nul
 if errorlevel 1 (
 	echo error: failed to copy "%HANDLER%" to "%DEST%\crashpad_handler.exe"
 	exit /b 1
 )
-for /f "delims=" %%F in ('dir /s /b "%SEARCHROOT%\crashpad_wer*.dll" 2^>nul') do (
-	copy /b /y "%%F" "%DEST%\" >nul
+echo Copied "%HANDLER%" to "%DEST%\crashpad_handler.exe"
+for %%F in ("%HANDLERDIR%\crashpad_wer*.dll") do (
+	if exist "%%~fF" copy /b /y "%%~fF" "%DEST%\" >nul
 )
 exit /b 0

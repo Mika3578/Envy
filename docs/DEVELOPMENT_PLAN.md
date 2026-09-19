@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #90: `CopyCrashpadHandler.cmd` copies the configuration-matching vcpkg handler (`tools/crashpad` for Release, `debug/tools/crashpad` for Debug) instead of the first recursive `dir /s /b` hit.
 - **Changelog Entry:** 2026-09-19 — #90: `Envy.vcxproj` points `VcpkgManifestRoot` at the repo root and adds `vcpkg_installed` include/lib dirs so Crashpad `client/*.h` resolve (C1083 on PR #243). Handler copy and Inno Setup now require `crashpad_handler.exe`.
 - **Changelog Entry:** 2026-09-19 — #90: replace BugTrap with Crashpad (out-of-process `crashpad_handler.exe`, local DB, upload off; D-019). Next-launch GitHub UX kept; `CrashDumpWin.h` removed. Isolated crash-class probe in `tools/crash-probe/`.
 - **Changelog Entry:** 2026-09-19 — #87 slice: send-side ED2K `COMPRESSEDPART` / `COMPRESSEDPART_I64` in `CUploadTransferED2K::DispatchNextChunk()` (`Ed2kCompressedUpload.h`); peer `m_bEmDeflate==1` gate; eMule/aMule benefit fallback; EnvyTests smoke. Not full #87; live interop still #160.

@@ -122,8 +122,11 @@ WinDbg / Visual Studio with that `Envy.pdb` on the symbol path.
   MSBuild vcpkg integration does not see Crashpad headers unless the manifest
   root is explicit.
 - `Envy/CopyCrashpadHandler.cmd` copies `crashpad_handler.exe` (and
-  `crashpad_wer*.dll` if the port produces it) next to `Envy.exe`. The copy
-  fails the build if the handler is missing.
+  `crashpad_wer*.dll` if the port produces it) next to `Envy.exe`. Release
+  uses `vcpkg_installed/<triplet>/tools/crashpad/`; Debug uses
+  `debug/tools/crashpad/`. A recursive first-match copy would ship the Debug
+  handler with Release `Envy.exe`. The copy fails the build if the handler is
+  missing.
 - Inno Setup copies the handler into `{app}` (required). `crashpad_wer.dll` is
   optional (`skipifsourcedoesntexist`) because the current vcpkg port installs
   `handler:crashpad_handler` only. PDBs stay out of the installer.
