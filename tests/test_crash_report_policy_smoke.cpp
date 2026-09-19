@@ -167,9 +167,9 @@ static bool test_metadata_rejects_paths_and_registry()
 
 static bool test_privacy_credentials_and_ips()
 {
-	if (!CrashReportLooksLikeCredentialUrl(L"https://alice:s3cret@tracker.example/announce"))
+	if (!CrashReportLooksLikeCredentialUrl(L"https://alice:token@tracker.example/announce"))
 		return false;
-	if (!CrashReportLooksPrivate(L"udp://alice:s3cret@203.0.113.50:6969/announce"))
+	if (!CrashReportLooksPrivate(L"udp://alice:token@203.0.113.50:6969/announce"))
 		return false;
 	if (!CrashReportLooksPrivate(L"passkey=abcdef"))
 		return false;

@@ -557,12 +557,13 @@ inline BOOL CrashReportFormatMetadataText(const CrashReportMetadata* meta, wchar
 	return n > 0;
 }
 
-inline BOOL CrashReportParseKey(const wchar_t* line, const wchar_t* key, wchar_t* dest, size_t cch)
+template<size_t N>
+inline BOOL CrashReportParseKey(const wchar_t* line, const wchar_t (&key)[N], wchar_t* dest, size_t cch)
 {
-	if (line == nullptr || key == nullptr)
+	if (line == nullptr || dest == nullptr || cch == 0 || N <= 1)
 		return FALSE;
-	const size_t nKey = wcsnlen(key, CRASH_REPORT_FIELD_MAX);
-	if (nKey == 0 || nKey >= CRASH_REPORT_FIELD_MAX)
+	const size_t nKey = wcsnlen(key, N);
+	if (nKey == 0 || nKey >= N)
 		return FALSE;
 	const size_t nLine = wcsnlen(line, CRASH_REPORT_FIELD_MAX + 64);
 	if (nLine <= nKey)

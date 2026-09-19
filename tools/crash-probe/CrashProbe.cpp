@@ -180,6 +180,7 @@ static int InitBackend(const std::wstring& database, const std::wstring& handler
 
 static void ShutdownBackend()
 {
+	// Crashpad has no client shutdown in this probe; the process exits next.
 }
 #endif
 
@@ -191,13 +192,22 @@ static void CrashAccessViolation()
 static void CrashHeapCorruption()
 {
 	HANDLE heap = HeapCreate(0, 0, 0);
-	if (!heap)
+	if (heap == nullptr)
+	{
 		RaiseException(static_cast<DWORD>(0xC0000374), EXCEPTION_NONCONTINUABLE, 0, nullptr);
+		return;
+	}
 	HeapSetInformation(heap, HeapEnableTerminationOnCorruption, nullptr, 0);
 	BYTE* p = static_cast<BYTE*>(HeapAlloc(heap, 0, 64));
-	if (!p)
+	if (p == nullptr)
+	{
+		HeapDestroy(heap);
 		RaiseException(static_cast<DWORD>(0xC0000374), EXCEPTION_NONCONTINUABLE, 0, nullptr);
-	memset(p - 16, 0xCC, 48);
+		return;
+	}
+	// Disposable child: smash the block header so the heap fail-fasts.
+	for (int i = -16; i < 32; ++i)
+		p[i] = 0xCC;
 	HeapFree(heap, 0, p);
 	HeapDestroy(heap);
 }
