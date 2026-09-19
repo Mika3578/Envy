@@ -15,65 +15,60 @@
 #include <windows.h>
 
 // Full visual lines that fit in the client (at least 1 when height known).
-inline int TextCtrlPageLines( int nClientHeight, int nLineHeight )
+inline int TextCtrlPageLines(int nClientHeight, int nLineHeight)
 {
-	if ( nLineHeight <= 0 )
+	if (nLineHeight <= 0)
 		return 1;
 	const int nPage = nClientHeight / nLineHeight;
-	return ( nPage > 0 ) ? nPage : 1;
+	return (nPage > 0) ? nPage : 1;
 }
 
 // Maximum scroll position: first visible line when pinned to the bottom.
-inline int TextCtrlMaxPosition( int nTotal, int nPage )
+inline int TextCtrlMaxPosition(int nTotal, int nPage)
 {
-	if ( nPage <= 0 )
+	if (nPage <= 0)
 		nPage = 1;
-	return ( nTotal > nPage ) ? ( nTotal - nPage ) : 0;
+	return (nTotal > nPage) ? (nTotal - nPage) : 0;
 }
 
-inline int TextCtrlClampPosition( int nPosition, int nTotal, int nPage )
+inline int TextCtrlClampPosition(int nPosition, int nTotal, int nPage)
 {
-	const int nMax = TextCtrlMaxPosition( nTotal, nPage );
-	if ( nPosition < 0 )
+	const int nMax = TextCtrlMaxPosition(nTotal, nPage);
+	if (nPosition < 0)
 		return 0;
-	if ( nPosition > nMax )
+	if (nPosition > nMax)
 		return nMax;
 	return nPosition;
 }
 
-inline BOOL TextCtrlIsAtBottom( int nPosition, int nTotal, int nPage )
+inline BOOL TextCtrlIsAtBottom(int nPosition, int nTotal, int nPage)
 {
-	return nPosition >= TextCtrlMaxPosition( nTotal, nPage );
+	return nPosition >= TextCtrlMaxPosition(nTotal, nPage);
 }
 
 // After nTotal changes: stay pinned to bottom only if the view was already there.
-inline int TextCtrlFollowBottom( BOOL bWasAtBottom, int nPosition, int nTotal, int nPage )
+inline int TextCtrlFollowBottom(BOOL bWasAtBottom, int nPosition, int nTotal, int nPage)
 {
-	if ( bWasAtBottom )
-		return TextCtrlMaxPosition( nTotal, nPage );
-	return TextCtrlClampPosition( nPosition, nTotal, nPage );
+	if (bWasAtBottom)
+		return TextCtrlMaxPosition(nTotal, nPage);
+	return TextCtrlClampPosition(nPosition, nTotal, nPage);
 }
 
 // Client Y of the bottom edge of the last visual line when line 0 is at Y=0
 // and nPosition is the first visible visual line.
-inline int TextCtrlContentBottomY( int nTotal, int nPosition, int nLineHeight )
+inline int TextCtrlContentBottomY(int nTotal, int nPosition, int nLineHeight)
 {
-	if ( nLineHeight <= 0 )
+	if (nLineHeight <= 0)
 		return 0;
-	return ( nTotal - nPosition ) * nLineHeight;
+	return (nTotal - nPosition) * nLineHeight;
 }
 
 // Win32 SCROLLINFO range so max thumb position == TextCtrlMaxPosition.
 // nMax - nPage + 1 == max(0, nTotal - nPage) when nMax = max(nTotal, nPage) - 1.
-inline void TextCtrlScrollRange( int nTotal, int nPage, int& nMin, int& nMax, int& nPageOut )
+inline void TextCtrlScrollRange(int nTotal, int nPage, int& nMin, int& nMax, int& nPageOut)
 {
 	nMin = 0;
-	nPageOut = ( nPage > 0 ) ? nPage : 1;
-	if ( nTotal <= 0 && nPageOut <= 0 )
-	{
-		nMax = 0;
-		return;
-	}
-	const int nSpan = ( nTotal > nPageOut ) ? nTotal : nPageOut;
-	nMax = ( nSpan > 0 ) ? ( nSpan - 1 ) : 0;
+	nPageOut = (nPage > 0) ? nPage : 1;
+	const int nSpan = (nTotal > nPageOut) ? nTotal : nPageOut;
+	nMax = (nSpan > 0) ? (nSpan - 1) : 0;
 }
