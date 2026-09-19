@@ -81,7 +81,7 @@ public:
 	static int Deflate(z_streamp pStream, int nFlush);				// Safe version of deflate()
 	static void	InflateStreamCleanup(z_streamp& pStream);			// Stop stream decompression and cleanup
 	static void	DeflateStreamCleanup(z_streamp& pStream);			// Stop stream compression and cleanup
-	BOOL	Ungzip();												// Delete the gzip header and then remove the compression
+	BOOL Ungzip(DWORD nMaxOutput = 0);                              // Strip gzip header then inflate (optional zip-bomb cap)
 #endif // ZLIB
 
 	// Use the buffer with the BZLib compression library

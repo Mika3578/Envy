@@ -252,3 +252,12 @@ inline BOOL Ed2kPackedInflateOk(DWORD nOutput)
 {
 	return nOutput > 0 && nOutput <= ED2K_PACKED_INFLATE_MAX;
 }
+
+// Cap for BitTorrent tracker HTTP announce/scrape response bodies (#81/#82).
+// LimitContentLength stops OnRun from buffering multi-GB gzip/deflate or plain bodies.
+constexpr DWORD BT_TRACKER_HTTP_RESPONSE_MAX = 32u * 1024u * 1024u;
+
+inline BOOL BtTrackerHttpResponseOk(DWORD nLength)
+{
+	return nLength > 0 && nLength <= BT_TRACKER_HTTP_RESPONSE_MAX;
+}
