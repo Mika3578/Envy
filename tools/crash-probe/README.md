@@ -27,7 +27,8 @@ msbuild CrashProbe.vcxproj /p:Configuration=Release /p:Platform=x64 /p:PlatformT
 The project sets `VcpkgManifestRoot` and also adds
 `vcpkg_installed/<triplet>/include` (and `include/crashpad`) plus the matching
 lib directory explicitly. VS 2026 MSBuild vcpkg integration does not reliably
-inject those paths for this standalone project.
+inject those paths for this standalone project. Link `zs.lib` (debug `zsd.lib`);
+this vcpkg baseline does not install `zlib.lib` on `*-windows-static`.
 
 Copy `crashpad_handler.exe` (and any `crashpad_wer*.dll`) next to
 `CrashProbe.exe`, then:
