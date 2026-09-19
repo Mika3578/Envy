@@ -178,6 +178,20 @@ static bool test_callback_disconnect_clears()
 	return g.bArmed == FALSE && g.bConsumed == FALSE;
 }
 
+// Caller must Clear() when EDClients.PushTo fails so the same callback can retry.
+static bool test_callback_clear_allows_retry_after_failed_push()
+{
+	Ed2kC2cCallbackConsumeGuard g;
+	BYTE hash[16] = { 1, 2, 3 };
+	const DWORD ip = 0x04030201u;
+	if (!g.TryConsumeOnce(1000, ip, 4662, hash))
+		return false;
+	if (g.TryConsumeOnce(1100, ip, 4662, hash))
+		return false; // still armed / duplicate
+	g.Clear();        // simulate PushTo failure path
+	return g.TryConsumeOnce(1200, ip, 4662, hash) == TRUE;
+}
+
 // ---- LowID identity / classic server callback ----
 
 static bool test_server_callback_requested_parse()
@@ -231,6 +245,7 @@ void register_ed2k_lowid_callback_smoke_tests(TestSuite& suite)
 	suite.add_test("ed2k_callback_file_hash", test_callback_empty_file_hash);
 	suite.add_test("ed2k_callback_consume_guard", test_callback_consume_duplicate_and_unrelated);
 	suite.add_test("ed2k_callback_disconnect_clear", test_callback_disconnect_clears);
+	suite.add_test("ed2k_callback_clear_retry", test_callback_clear_allows_retry_after_failed_push);
 	suite.add_test("ed2k_server_callback_parse", test_server_callback_requested_parse);
 	suite.add_test("ed2k_lowid_uses_server_push", test_lowid_connect_uses_server_push);
 	suite.add_test("ed2k_lowid_identity_no_collide", test_lowid_same_id_different_server_no_collide);
