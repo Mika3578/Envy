@@ -159,6 +159,12 @@ jobs:
     needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Always emit this required context on PRs (even when classify fails).
+    # Classify failure fails this job explicitly; when classify succeeds and
+    # docs are out of scope, report success via no-op so Protect develop never
+    # waits on a skipped/missing check (see docs/10_dev/CI_AUDIT_2026-09.md).
+    # When classify is cancelled (concurrency supersede), emit success no-op
+    # so a cancelled parent run does not leave a failed required check.
     if: always() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
 
     steps:
