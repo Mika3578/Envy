@@ -743,7 +743,7 @@ bool CQueryHashTable::OnPatch(CPacket* pPacket)
 		}
 	}
 
-	if ( m_pBuffer->m_nLength != nExpected )
+	if (m_pBuffer->m_nLength != nExpected)
 	{
 		m_pBuffer->Clear();
 		return false;
