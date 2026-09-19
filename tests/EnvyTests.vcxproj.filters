@@ -68,6 +68,9 @@
     <ClCompile Include="test_textctrl_viewport_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_bootstrap_catalog_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h">

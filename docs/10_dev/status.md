@@ -2,7 +2,6 @@
 
 Status: active
 Last updated: 2026-09-19
-
 Scope: Evidence-based protocol and architecture status for Envy on `develop`.
 Source of truth: Envy source under `Envy/`, tests under `tests/`, and the documents linked below. External projects are references only.
 
@@ -66,6 +65,7 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 - **Active path:** `Envy/Kademlia.cpp` / `Envy/Kademlia.h` (UDP via `Datagrams` / `EDPacket` `ED2K_PROTOCOL_KAD`). Started when `Settings.eDonkey.EnableKad` is true (`CEnvyApp::InitKademlia`).
 - **Legacy path (inactive):** `Envy/KadProtocol.cpp`, `KBucket.cpp`, `KadStorage.cpp` are compiled only under `ENVY_LEGACY_KADEMLIA`, which is **never defined**. Do not treat them as the live Kad2 stack. Header-only stubs (`KadFirewall.h`, `KadUDPKeys.h`, `KadIndex.h`) have no implementations.
 - Wire handlers present for bootstrap, HELLO, PING/PONG, REQ/RES (FIND_NODE), SEARCH_KEY/SOURCE/RES, PUBLISH_KEY/SOURCE/RES — **partial**: search results are not delivered to downloads/UI (`TODO` in `Kademlia.cpp`); `StoreEntry` is a no-op stub; outbound `SearchKeyword` / `Publish*` / `SendHelloRequest` have no app callers; HELLO uses hard-coded ports in places; `EnableKadHello` / `KadFindValue` settings are **not read** by `Kademlia.cpp`.
+- Cold-start: `HostCache::Load` calls `CheckMinimumServers(PROTOCOL_KAD)` if the Kad list is empty, but `DefaultServers.dat` ships **no** `K` rows and Discovery has no `nodes.dat` URL type. `CKademlia::Bootstrap()` then logs “No bootstrap contacts found in host cache” and returns. `HostCache::ImportNodes` accepts old-format and new-format **version 1** only; eMule-Security `nodes.dat` (2026-09-18) is new-format version **2**. Remote Kad bootstrap is a follow-up, not a completeness claim.
 - **Absent:** FIREWALLED_*, Buddy, Kad callback, UDP keys, notes search/publish, bucket split/LRU/refresh, eclipse /24 limits.
 - ED2K Hello Kad version nibble is advertised as **0** (`CEDClient::SendHello`) even when Kad is enabled — honest until Kad is app-integrated and tested.
 - `docs/30_protocols/kad/kad2-compatibility-report.md` records **opcode/format matching**, not live DHT interop.
@@ -105,7 +105,7 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 
 ### BitTorrent
 
-- v1: DHT, magnet, PEX, LTEP, web seeds, trackers, MSE/PE (`Envy/BTCrypto.*`) are present per `docs/10_dev/roadmap.md` / CHANGELOG.
+- v1: DHT, magnet, PEX, LTEP, web seeds, trackers, MSE/PE (`Envy/BTCrypto.*`) are present per `docs/10_dev/roadmap.md` / CHANGELOG. DHT catalogue routers live in `DefaultServers.dat`; `CDHT::Connect` sends BEP 5 `find_node` to HostCache BitTorrent hosts when no node IDs are cached; known node IDs persist in `HostCache.dat`.
 - v2 / BEP 52: HashLib SHA-256 exists; `CBTInfo::IsBitTorrentV2()` currently returns false and `m_oBTHv2` remains commented (`Envy/BTInfo.h`). Magnet `btmh:` parsing is not a complete v2 download path (`docs/30_protocols/bittorrent/BITTORRENT_V2_PLAN.md`).
 - uTP: `Services/LibUTP` is vendored; Envy code does not call it. Status: **not implemented**.
 - Do not sacrifice BitTorrent work to make Envy an eMule-only client.
@@ -119,6 +119,7 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 - **ADC/ADCS hub protocol: not implemented.** `adc://` / `adcs://` are skipped in hublist import (`HostCache`); no ADC `CSUP`/`CINF`/`CID`/`PID` hub session. Future ADC support must be a **separate layer**, not a graft onto the NMDC parser.
 - Default public hublist URL (2026-09): `https://dchublist.org/hublist.xml.bz2`, with additional HTTPS `H` rows in `Data/DefaultServices.dat`. This is bootstrap only — not “hublist support complete”.
 - G1/G2 depth versus gtk-gnutella / latest G2 extras remains **unverified**; that is not an invitation to remove them.
+- **Bootstrap catalogues (2026-09-18):** shipped `Data/DefaultServices.dat` / `Data/DefaultServers.dat` are the cold-start sources (GWC/UHC, `server.met`, hublists, BT DHT DNS). Learned hosts stay in `HostCache.dat` / `Discovery.dat`. Kad has **no** shipped contacts; `CKademlia::Bootstrap()` no-ops when `HostCache.Kademlia` is empty. Details: `docs/30_protocols/bootstrap-sources.md`. Do not call Kad or ADC “complete”.
 
 ## Historical documents (do not treat as live status)
 

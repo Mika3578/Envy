@@ -19,6 +19,7 @@
 - **ED2K:** [README](../30_protocols/ed2k/README.md) · [gap analysis](../30_protocols/ed2k/ED2K_KAD_GAP_ANALYSIS.md) · [search fixes](../30_protocols/ed2k/ED2K_SEARCH_FIXES.md)
 - **Kad:** [kad2-compatibility-report](../30_protocols/kad/kad2-compatibility-report.md) (opcode match ≠ live interop)
 - **BitTorrent:** [README](../30_protocols/bittorrent/README.md)
+- **Bootstrap catalogues:** [bootstrap-sources](../30_protocols/bootstrap-sources.md) (shipped GWC/UHC/`server.met`/hublist/DHT routers ≠ HostCache)
 
 ## Quality
 - [Security audit](../40_quality/security/SECURITY_AUDIT_REPORT.md) · [Performance audit](../40_quality/performance/performance-audit.md) · [Testing schedule](../40_quality/testing/PROTOCOL_TESTING_SCHEDULE.md)

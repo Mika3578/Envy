@@ -1,38 +1,41 @@
-M http://cache.getenvy.com/cachechu/
-M http://cache.getenvy.com/skulls/
-M http://gwctest.zapto.org:1337/
+# Shipped bootstrap catalogue (discovery services)
+#
+# Bootstrap sources != discovered peers/servers.
+# This file is the last-resort catalogue for a new install or a wiped
+# Discovery.dat. Learned GWC URLs live in Discovery.dat. Do not add
+# runtime-discovered hosts here, and do not compile these addresses into C++.
+#
+# Type prefix:
+#   M = multi-network GWebCache (G1+G2)
+#   2 = Gnutella2 GWebCache
+#   1 = Gnutella GWebCache
+#   U = UDP bootstrap (uhc: / ukhl: / gnutella:host: / g2:host:)
+#   D = eDonkey server.met URL
+#   H = DC++ hublist.xml.bz2 URL (NMDC; adc:// and adcs:// are skipped at import)
+#   X = blocked service
+#
+# Keep at least: 1 GWC, 3 G2, 2 G1 (if G1 UI shown), 2 server.met, 2 hublists
+# (CDiscoveryServices::EnoughServices). The C++ AddDefaults() fallback is
+# commented out; this file is the only cold-start catalogue.
+#
+# Audited 2026-09-18. Live HTTP/format checks; UHC list from gtk-gnutella
+# devel src/core/uhc.c. HTTPS used only when the service and Envy's HTTP
+# client both support it. See docs/30_protocols/bootstrap-sources.md.
+
 M http://midian.jayl.de/g2/bazooka.php
-M http://disobscure.velum-ultra.com/skulls.php
-M http://tenafly5k.com/gwc/skulls.php
-M http://gwc.centrump2p.com/skulls.php
-# http://gweb.4octets.co.uk/skulls.php
-# http://gweb2.4octets.co.uk/gwc.php
-# http://webcache.peerproject.org/
-
-2 http://cache.getenvy.com/dkac/
+M http://bj.ddns.net/beacon/gwc.php
+M http://gweb3.4octets.co.uk/gwc.php
 2 http://dkac.trillinux.org/dkac/dkac.php
-2 http://cache.trillinux.org/g2/bazooka.php
-2 http://cache.ce3c.be/
-2 http://cache.ibel.de/
-2 http://www.k33bz.com/g2/bazooka.php
-# http://htmlhell.com/
-# http://ping.pongwar.com/
-# http://cache2.bazookanetworks.com/g2/bazooka.php
-# http://dogma.cloud.bishopston.net:33559/
-# http://karma.cloud.bishopston.net:33559/
-2 http://useast.gnutella.dyslexicfish.net:3559/
-2 http://uswest.gnutella.dyslexicfish.net:3559/
-2 http://uk.gnutella.dyslexicfish.net:3559/
-2 http://au.gnutella.dyslexicfish.net:3559
 
-1 http://useast.gnutella.dyslexicfish.net:3558/
-1 http://uswest.gnutella.dyslexicfish.net:3558/
-1 http://uk.gnutella.dyslexicfish.net:3558/
-1 http://au.gnutella.dyslexicfish.net:3558/
+U uhc:useast.gnutella.dyslexicfish.net:3558
+U uhc:uswest.gnutella.dyslexicfish.net:3558
+U uhc:uk.gnutella.dyslexicfish.net:3558
+U uhc:au.gnutella.dyslexicfish.net:3558
+U uhc:1.uhc.gtk-gnutella.nl:19104
+U uhc:2.uhc.gtk-gnutella.nl:4876
 
-# http://gwc.ak-electron.eu:12050/
-# http://gwc.dietpac.com:8080/
-# http://gwc.glucolene.com:8080/
+D https://upd.emule-security.org/server.met
+D https://shortypower.org/server.met
 
 U uhc:uhc.gtk-gnutella.nl:15749
 # uhc:yin.cloud.bishopston.net:33558
@@ -60,12 +63,12 @@ X http://gwebcache.spearforensics.com/
 X http://www.myfoxy.net/gwc/cgi-bin/fc
 X http://gwc.gofoxy.net:2108/gwc/cgi-bin/fc
 
+# Kad nodes.dat is NOT listed here: DefaultServices has no nodes.dat type yet,
+# HostCache::ImportNodes currently accepts nodes.dat new-format version 1 only,
+# and Kad2 remains partial (#86 / #160). Do not advertise Kad as complete.
 #
-# A letter and space must precede each link to indicate the type of service:
-# X = Banned,  M = Multinetwork gwebcache,
-# 2 = Gnutella2 gwebcache,  1 = Gnutella gwebcache (obsolete),
-# U = BootStrap (uhc, ukhl, gnutella1 host, gnutella2 host),
-# D = eDonkey server.met file,  H = DC++ Hublist.xml.bz2 file
+# ADC/ADCS hub protocol is not implemented (#163). Hublists may mix NMDC and
+# ADC; import already skips adc:// and adcs://.
 #
 # Keep at least four gwebcache links and one link to a .met/hublist file
 # or they'll keep getting added every time they're removed

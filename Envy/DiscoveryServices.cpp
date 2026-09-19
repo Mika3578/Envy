@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "DiscoveryServices.h"
+#include "BootstrapCatalog.h"
 #include "Buffer.h"
 #include "PacketLengthValidate.h"
 #include "Network.h"
@@ -612,11 +613,11 @@ BOOL CDiscoveryServices::EnoughServices() const
 		}
 	}
 
-	return ( ( nWebCacheCount	>= 1 ) &&	// At least 1 webcache
-			 ( nG2Count 		>= 3 ) &&	// At least 3 G2 services
-			 ( nG1Count 		>= 2 || ! Settings.Gnutella1.ShowInterface ) &&	// At least 2 G1 services, if exposed
-			 ( nServerMetCount	>= 2 || ! Settings.eDonkey.ShowInterface ) &&	// At least 2 server.met, if exposed
-			 ( nHubListCount	>= 2 || ! Settings.DC.ShowInterface ) );		// At least 2 hublist, if exposed
+	return ((nWebCacheCount >= BootstrapMinWebCaches) &&                                   // At least 1 webcache
+	        (nG2Count >= BootstrapMinG2Services) &&                                        // At least 3 G2 services
+	        (nG1Count >= BootstrapMinG1Services || !Settings.Gnutella1.ShowInterface) &&   // At least 2 G1 services, if exposed
+	        (nServerMetCount >= BootstrapMinEd2kMet || !Settings.eDonkey.ShowInterface) && // At least 2 server.met, if exposed
+	        (nHubListCount >= BootstrapMinDcHublists || !Settings.DC.ShowInterface));      // At least 2 hublist, if exposed
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -644,11 +645,24 @@ void CDiscoveryServices::AddDefaults()
 			while ( pBuffer.ReadLine( strLine ) )
 			{
 				strLine.Trim( L" \t\r\n" );
-				if ( strLine.GetLength() < 7 ) continue;	// Blank/comment line									// Blank comment line
 
-				const CString strService = strLine.Mid( 2 );
+				wchar_t cType = 0;
+				const wchar_t* pszEndpoint = NULL;
+				size_t nEndpoint = 0;
+				const BootstrapParseStatus nParse = BootstrapParseServiceLine(
+				    strLine, static_cast<size_t>(strLine.GetLength()),
+				    &cType, &pszEndpoint, &nEndpoint);
+				if (nParse == BootstrapParseStatus::Skip)
+					continue;
+				if (nParse != BootstrapParseStatus::Ok)
+				{
+					theApp.Message(MSG_ERROR, L"Error line in discovery service list: %s", (LPCTSTR)strLine);
+					continue;
+				}
 
-				switch ( strLine.GetAt( 0 ) )
+				const CString strService(pszEndpoint, static_cast<int>(nEndpoint));
+
+				switch (cType)
 				{
 				case 'M':
 					if ( Add( strService, CDiscoveryService::dsWebCache ) )					// Multinetwork service
