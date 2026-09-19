@@ -184,7 +184,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 **Goal:** Expand test coverage beyond HashLib.
 
 ### Done
-- 13 HashLib unit tests (MD4, MD5, SHA-1, SHA-256, ED2K) — all passing
+- 17 HashLib unit tests (MD4, MD5, SHA-1, SHA-256, ED2K, Tiger/TTH constructor + root stability) — all passing
 - CI/CD test execution (Release + Debug, Win32 + x64)
 - OpenCppCoverage code coverage in CI
 - Code analysis, formatting checks, markdown link checking

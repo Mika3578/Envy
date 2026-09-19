@@ -1,7 +1,7 @@
 //
 // test_hashlib.cpp
 //
-// Unit tests for HashLib algorithms (MD4, MD5, SHA-1, SHA-256, ED2K)
+// Unit tests for HashLib algorithms (MD4, MD5, SHA-1, SHA-256, ED2K, Tiger/TTH)
 // Uses NIST / RFC test vectors for correctness verification.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
@@ -22,6 +22,7 @@
 #include <windows.h>
 
 #include "../HashLib/HashLib.h"
+#include <array>
 #include <cstring>
 #include <cstdio>
 #include <vector>
@@ -410,6 +411,89 @@ static bool test_ed2k_incremental() {
 }
 
 // ---------------------------------------------------------------------------
+// Tiger Tree / TTH (THEX leaf hashing)
+// No golden digest is stored in-tree; these checks freeze constructor
+// defaults and bit-identical roots for the same input. Do not invent
+// external TTH vectors here.
+// ---------------------------------------------------------------------------
+
+static bool tiger_hash_file(CTigerTree& tree, const uint8* data, uint64 len)
+{
+	// Default Library.TigerHeight is 9 (Settings.cpp).
+	tree.BeginFile(9, len);
+	if (len > 0)
+		tree.AddToFile(data, static_cast<uint32>(len));
+	return tree.FinishFile() != FALSE;
+}
+
+static bool tiger_roots_equal(const CTigerTree& a, const CTigerTree& b)
+{
+	std::array<uint8, 24> h1{};
+	std::array<uint8, 24> h2{};
+	if (!a.GetRoot(h1.data()) || !b.GetRoot(h2.data()))
+		return false;
+	return hash_eq(h1.data(), h2.data(), h1.size());
+}
+
+static bool test_tigertree_constructor()
+{
+	CTigerTree tree;
+	if (tree.IsAvailable())
+		return false;
+	if (tree.GetHeight() != 0 || tree.GetBlockCount() != 0)
+		return false;
+	std::array<uint8, 24> root{};
+	return tree.GetRoot(root.data()) == FALSE;
+}
+
+static bool test_tigertree_consistency()
+{
+	std::vector<uint8> data(1024 * 100, 0xAB);
+
+	CTigerTree first;
+	CTigerTree second;
+	if (!tiger_hash_file(first, data.data(), data.size()))
+		return false;
+	if (!tiger_hash_file(second, data.data(), data.size()))
+		return false;
+	return tiger_roots_equal(first, second);
+}
+
+static bool test_tigertree_incremental()
+{
+	const size_t total = 50000;
+	std::vector<uint8> data(total, 0x42);
+
+	CTigerTree full;
+	if (!tiger_hash_file(full, data.data(), total))
+		return false;
+
+	CTigerTree chunked;
+	chunked.BeginFile(9, total);
+	size_t off = 0;
+	while (off < total) {
+		const auto nChunk = static_cast<uint32>(std::min<size_t>(4096, total - off));
+		chunked.AddToFile(data.data() + off, nChunk);
+		off += nChunk;
+	}
+	if (!chunked.FinishFile())
+		return false;
+	return tiger_roots_equal(full, chunked);
+}
+
+static bool test_tigertree_empty_file()
+{
+	CTigerTree empty;
+	if (!tiger_hash_file(empty, nullptr, 0))
+		return false;
+
+	CTigerTree again;
+	if (!tiger_hash_file(again, nullptr, 0))
+		return false;
+	return tiger_roots_equal(empty, again);
+}
+
+// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 
@@ -436,4 +520,10 @@ void register_hashlib_tests(TestSuite& suite) {
 	suite.add_test("ED2K - small file == MD4",       test_ed2k_small_file);
 	suite.add_test("ED2K - consistency",             test_ed2k_consistency);
 	suite.add_test("ED2K - incremental chunks",      test_ed2k_incremental);
+
+	// Tiger Tree / TTH
+	suite.add_test("TigerTree - default constructor", test_tigertree_constructor);
+	suite.add_test("TigerTree - consistency",         test_tigertree_consistency);
+	suite.add_test("TigerTree - incremental chunks",  test_tigertree_incremental);
+	suite.add_test("TigerTree - empty file root",     test_tigertree_empty_file);
 }
