@@ -432,6 +432,17 @@ void CBrowseFrameCtrl::OnVirtualTree(CG2Packet* pPacket)
 	}
 }
 
+void CBrowseFrameCtrl::OnDcShareTree(const CStringList& oHitPaths, const CDWordArray& oHitIndices, const CStringList& oFolders)
+{
+	m_wndTree.BuildFromDcListing(&oHitPaths, &oHitIndices, &oFolders);
+
+	if (!m_bTreeVisible)
+	{
+		m_bTreeVisible = TRUE;
+		PostMessage(WM_SIZE, SIZE_INTERNAL, 0);
+	}
+}
+
 void CBrowseFrameCtrl::OnTreeSelection(NMHDR* /*pNotify*/, LRESULT* pResult)
 {
 	CSingleLock lMatches( &m_wndList->m_pMatches->m_pSection, TRUE );

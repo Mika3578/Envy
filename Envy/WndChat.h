@@ -95,7 +95,7 @@ public:
 	CChatWnd();
 	virtual ~CChatWnd();
 
-private:
+protected:
 	CImageList			m_gdiImageList;
 	CCoolBarCtrl		m_wndToolBar;
 	CRichDocument		m_pContent;
@@ -106,6 +106,10 @@ private:
 	int					m_nHistory;
 	CArray< CString >	m_pHistory;
 	CString				m_sCaption;
+
+	CChatUser* GetSelectedChatUser();
+	void SetComposeText(const CString& sText);
+	int UsersHitTest(CPoint pointScreen);
 
 public:
 //	CChatFrame*	m_pFrame;

@@ -385,6 +385,15 @@ void CBrowseHostWnd::OnVirtualTree(CG2Packet* pPacket)
 	SetModified();
 }
 
+void CBrowseHostWnd::OnDcShareTree(const CStringList& oHitPaths, const CDWordArray& oHitIndices, const CStringList& oFolders)
+{
+	if (m_bPaused || m_hWnd == NULL) return;
+
+	m_wndFrame.OnDcShareTree(oHitPaths, oHitIndices, oFolders);
+
+	SetModified();
+}
+
 BOOL CBrowseHostWnd::OnPush(const Hashes::Guid& oClientID, CConnection* pConnection)
 {
 	return m_pBrowser->OnPush( oClientID, pConnection );
