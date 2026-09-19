@@ -1,0 +1,350 @@
+openapi: 3.0.3
+info:
+  title: ENVY Native Remote API
+  version: 0.0.0
+  description: >
+    Planned control API for ENVY. Routes marked x-envy-status: planned are
+    not served yet. Do not treat this file as a compatibility guarantee.
+    HTML /remote/ is a separate, partial browser UI.
+  license:
+    name: AGPL-3.0-or-later
+servers:
+  - url: http://127.0.0.1:33100
+    description: Planned dedicated localhost API (port not frozen)
+tags:
+  - name: system
+  - name: transfers
+  - name: downloads
+security:
+  - ApiToken: []
+paths:
+  /api/v1/system/status:
+    get:
+      tags: [system]
+      summary: Process and API liveness
+      operationId: getSystemStatus
+      x-envy-status: planned
+      responses:
+        "200":
+          description: API process is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/system/version:
+    get:
+      tags: [system]
+      summary: Product and API versions
+      operationId: getSystemVersion
+      x-envy-status: planned
+      responses:
+        "200":
+          description: Version payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemVersion"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/transfers:
+    get:
+      tags: [transfers]
+      summary: List transfers (all protocols)
+      operationId: listTransfers
+      x-envy-status: planned
+      responses:
+        "200":
+          description: Transfer list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transfers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transfer"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/transfers/{id}:
+    get:
+      tags: [transfers]
+      summary: Transfer detail
+      operationId: getTransfer
+      x-envy-status: planned
+      parameters:
+        - $ref: "#/components/parameters/TransferId"
+      responses:
+        "200":
+          description: One transfer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transfer"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [transfers]
+      summary: Remove transfer
+      operationId: deleteTransfer
+      x-envy-status: planned
+      parameters:
+        - $ref: "#/components/parameters/TransferId"
+        - name: deleteData
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "204":
+          description: Removed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/transfers/{id}/pause:
+    post:
+      tags: [transfers]
+      summary: Pause
+      operationId: pauseTransfer
+      x-envy-status: planned
+      parameters:
+        - $ref: "#/components/parameters/TransferId"
+      responses:
+        "204":
+          description: Paused
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/transfers/{id}/resume:
+    post:
+      tags: [transfers]
+      summary: Resume
+      operationId: resumeTransfer
+      x-envy-status: planned
+      parameters:
+        - $ref: "#/components/parameters/TransferId"
+      responses:
+        "204":
+          description: Resumed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/transfers/{id}/files:
+    get:
+      tags: [transfers]
+      summary: Files and content paths
+      operationId: getTransferFiles
+      x-envy-status: planned
+      parameters:
+        - $ref: "#/components/parameters/TransferId"
+      responses:
+        "200":
+          description: File list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferFiles"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/downloads/magnet:
+    post:
+      tags: [downloads]
+      summary: Add a magnet URI
+      operationId: addMagnet
+      x-envy-status: planned
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddMagnetRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transfer"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/downloads/torrent:
+    post:
+      tags: [downloads]
+      summary: Add a .torrent file
+      operationId: addTorrent
+      x-envy-status: planned
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transfer"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          description: Torrent too large
+components:
+  securitySchemes:
+    ApiToken:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque token
+      description: Planned. Required except loopback if a later exemption is documented.
+  parameters:
+    TransferId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Missing or invalid token
+    NotFound:
+      description: Unknown transfer id
+    BadRequest:
+      description: Malformed body or magnet
+  schemas:
+    SystemStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        api:
+          type: string
+          example: v1
+    SystemVersion:
+      type: object
+      properties:
+        product:
+          type: string
+        api:
+          type: string
+    Hash:
+      type: object
+      properties:
+        algorithm:
+          type: string
+          description: sha1, btih, btmh, ed2k, tth, md5, …
+        value:
+          type: string
+    Transfer:
+      type: object
+      properties:
+        id:
+          type: string
+        protocol:
+          type: string
+        name:
+          type: string
+        state:
+          type: string
+          enum:
+            - queued
+            - metadata
+            - checking
+            - downloading
+            - stalled
+            - paused
+            - completed
+            - seeding
+            - error
+            - moving
+            - unknown
+        progress:
+          type: number
+        size:
+          type: integer
+          format: int64
+        downloaded:
+          type: integer
+          format: int64
+        uploaded:
+          type: integer
+          format: int64
+        download_rate:
+          type: integer
+          format: int64
+        upload_rate:
+          type: integer
+          format: int64
+        eta:
+          type: integer
+          format: int64
+          nullable: true
+        save_path:
+          type: string
+        category:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        error:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        hashes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Hash"
+    TransferFiles:
+      type: object
+      properties:
+        save_path:
+          type: string
+        content_path:
+          type: string
+        files:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              size:
+                type: integer
+                format: int64
+              progress:
+                type: number
+    AddMagnetRequest:
+      type: object
+      required: [magnet]
+      properties:
+        magnet:
+          type: string
+        category:
+          type: string
+        paused:
+          type: boolean
+          default: false
