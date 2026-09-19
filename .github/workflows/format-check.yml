@@ -1,38 +1,48 @@
 name: Format check
 
 # Differential formatting on pull requests lives in code-quality.yml
-# (`Format Check`, required context). This workflow remains for manual runs.
+# (`Format Check`, required context) via .github/scripts/format-check.sh.
+# This workflow remains for manual dry-runs of tracked .cpp/.h under
+# Envy/, TorrentEnvy/, and HashLib/ (not a full .c/.hpp tree sweep).
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
 
+env:
+  CLANG_FORMAT_MAJOR: "18"
+
 jobs:
   clang-format:
     name: clang-format diff
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    continue-on-error: true
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 1
 
-      - name: Install clang-format
-        run: sudo apt-get update && sudo apt-get install -y clang-format
+      - name: Install clang-format ${{ env.CLANG_FORMAT_MAJOR }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y "clang-format-${CLANG_FORMAT_MAJOR}"
 
       - name: clang-format --dry-run on first-party trees
         shell: bash
         run: |
+          set -euo pipefail
           files=$(git ls-files 'Envy/*.cpp' 'Envy/*.h' 'TorrentEnvy/*.cpp' 'TorrentEnvy/*.h' 'HashLib/*.cpp' 'HashLib/*.h')
           fail=0
           for f in $files; do
             [ -f "$f" ] || continue
-            if ! clang-format --dry-run --Werror "$f" 2>&1; then
+            if ! "clang-format-${CLANG_FORMAT_MAJOR}" --dry-run --Werror "$f" 2>&1; then
               fail=1
             fi
           done
           if [ "$fail" -ne 0 ]; then
-            echo "::warning::Formatting differences detected. Run clang-format locally."
+            echo "::error::Formatting differences detected. Run clang-format-${CLANG_FORMAT_MAJOR} locally."
+            exit 1
           fi
+          echo "clang-format dry-run clean."

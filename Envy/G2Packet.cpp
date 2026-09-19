@@ -1,7 +1,7 @@
 //
 // G2Packet.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -21,6 +21,7 @@
 #include "Envy.h"
 #include "G2Packet.h"
 #include "G1Packet.h"
+#include "PacketLengthValidate.h"
 #include "G2Neighbour.h"
 #include "G1Neighbour.h"
 #include "Neighbours.h"
@@ -37,6 +38,9 @@
 #include "QueryKeys.h"
 #include "QuerySearch.h"
 #include "SearchManager.h"
+
+static_assert(sizeof(GNUTELLAPACKET) == G1_PACKET_HEADER_BYTES,
+              "G1_PACKET_HEADER_BYTES must match sizeof(GNUTELLAPACKET)");
 #include "Security.h"
 #include "Statistics.h"
 #include "VendorCache.h"
@@ -239,7 +243,8 @@ BOOL CG2Packet::ReadPacket(G2_PACKET& nType, DWORD& nLength, BOOL* pbCompound)
 		Read( &nLength, nLenLen );
 	}
 
-	if ( GetRemaining() < nLength + nTypeLen + 1u ) AfxThrowUserException();
+	if (!G2SubpacketPayloadFits(GetRemaining(), nLength, nTypeLen + 1u))
+		AfxThrowUserException();
 
 	nType = G2_PACKET_NULL;
 	Read( &nType, nTypeLen + 1 );
@@ -283,7 +288,9 @@ BOOL CG2Packet::SkipCompound(DWORD& nLength, DWORD nRemaining)
 		BYTE nTypeLen	= ( nInput & 0x38 ) >> 3;
 	//	BYTE nFlags		= ( nInput & 0x07 );
 
-		if ( m_nPosition + nTypeLen + nLenLen + 1 > nEnd ) AfxThrowUserException();
+		if (m_nPosition > nEnd ||
+		    !G2SubpacketPayloadFits(nEnd - m_nPosition, 0, nTypeLen + nLenLen + 1u))
+			AfxThrowUserException();
 
 		DWORD nPacket = 0;
 
@@ -300,7 +307,9 @@ BOOL CG2Packet::SkipCompound(DWORD& nLength, DWORD nRemaining)
 			Read( &nPacket, nLenLen );
 		}
 
-		if ( m_nPosition + nTypeLen + 1 + nPacket > nEnd ) AfxThrowUserException();
+		if (m_nPosition > nEnd ||
+		    !G2SubpacketPayloadFits(nEnd - m_nPosition, nPacket, nTypeLen + 1u))
+			AfxThrowUserException();
 
 		m_nPosition += nPacket + nTypeLen + 1;
 	}
@@ -343,7 +352,7 @@ BOOL CG2Packet::SeekToWrapped()
 	if ( GetRemaining() < sizeof( GNUTELLAPACKET ) ) return FALSE;
 
 	GNUTELLAPACKET* pHead = (GNUTELLAPACKET*)( m_pBuffer + m_nPosition );
-	return (DWORD)GetRemaining() >= sizeof( GNUTELLAPACKET ) + pHead->m_nLength;
+	return G1WrappedPayloadFits(GetRemaining(), pHead->m_nLength);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -493,7 +502,7 @@ CG2Packet* CG2Packet::ReadBuffer(CBuffer* pBuffer)
 			*pLenOut++ = *pLenIn++;
 	}
 
-	if ( (DWORD)pBuffer->m_nLength < (DWORD)nLength + nLenLen + nTypeLen + 2 )
+	if (!G2FrameLengthFits(pBuffer->m_nLength, nLength, nLenLen, nTypeLen))
 		return NULL;
 
 	CG2Packet* pPacket = CG2Packet::New( pBuffer->m_pBuffer );

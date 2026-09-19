@@ -12,6 +12,9 @@
 #include "BTCrypto.h"
 #include "Buffer.h"
 #include "Envy.h"
+#include "PacketLengthValidate.h"
+
+static_assert(BT_MSE_PAD_MAX == MSE_PAD_MAX_LEN, "MSE pad send/receive caps must match");
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -463,9 +466,9 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 		m_rc4Encrypt.Process(block, 4);
 		pOutput->Add(block, 4);
 
-		// len(Pad_C) = 0
+		// len(Pad_C) = 0 (big-endian per MSE)
 		WORD padCLen = 0;
-		memcpy(block, &padCLen, 2);
+		BtMseBeWordToWire(padCLen, block);
 		m_rc4Encrypt.Process(block, 2);
 		pOutput->Add(block, 2);
 
@@ -508,8 +511,14 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 		BYTE padDLenBuf[2];
 		if (!pInput->Read(padDLenBuf, 2)) return true;
 		m_rc4Decrypt.Process(padDLenBuf, 2);
-		WORD padDLen;
-		memcpy(&padDLen, padDLenBuf, 2);
+		const WORD padDLen = BtMseBeWordFromWire(padDLenBuf);
+
+		if (!BtMsePadLengthOk(padDLen))
+		{
+			theApp.Message(MSG_WARNING, L"[BT-MSE] Pad_D length exceeds MSE_PAD_MAX_LEN");
+			m_nState = MSE_FAILED;
+			return false;
+		}
 
 		// Skip Pad_D
 		if (pInput->m_nLength < padDLen)
@@ -622,8 +631,14 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 		pInput->Read(padCLenBuf, 2);
 		m_rc4Decrypt.Process(padCLenBuf, 2);
 		pInput->Remove(2);
-		WORD padCLen;
-		memcpy(&padCLen, padCLenBuf, 2);
+		const WORD padCLen = BtMseBeWordFromWire(padCLenBuf);
+
+		if (!BtMsePadLengthOk(padCLen))
+		{
+			theApp.Message(MSG_WARNING, L"[BT-MSE] Pad_C length exceeds MSE_PAD_MAX_LEN");
+			m_nState = MSE_FAILED;
+			return false;
+		}
 
 		if (padCLen > 0) {
 			if (pInput->m_nLength < padCLen + 2u)
@@ -671,7 +686,7 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 		pOutput->Add(block, 4);
 
 		WORD padDLen = 0;
-		memcpy(block, &padDLen, 2);
+		BtMseBeWordToWire(padDLen, block);
 		m_rc4Encrypt.Process(block, 2);
 		pOutput->Add(block, 2);
 

@@ -22,6 +22,7 @@
 #include "HostCache.h"
 #include "DiscoveryServices.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 #include "EDPacket.h"
 #include "Neighbours.h"
 #include "Network.h"
@@ -881,18 +882,9 @@ int CHostCache::Import(LPCTSTR pszFile, BOOL bFreshOnly)
 
 int CHostCache::ImportHubList(CFile* pFile)
 {
-	const DWORD nSize = pFile->GetLength();
-
 	CBuffer pBuffer;
-	if ( ! pBuffer.EnsureBuffer( nSize ) )
-		return 0;	// Out of memory
-
-	if ( pFile->Read( pBuffer.GetData(), nSize ) != nSize )
-		return 0;	// File error
-	pBuffer.m_nLength = nSize;
-
-	if ( ! pBuffer.UnBZip() )
-		return 0;	// Decompression error
+	if (!pBuffer.LoadFromBZipFile(*pFile, CBUFFER_UNBZIP_MAX))
+		return 0; // Empty/oversized/read/decompress error
 
 	CString strEncoding;
 	augment::auto_ptr< CXMLElement > pHublist ( CXMLElement::FromString(
