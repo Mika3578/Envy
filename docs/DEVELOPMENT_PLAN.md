@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #81/#82: `CHttpRequest` exact-limit probe — keep bodies of size `== LimitContentLength` after one-byte `InternetReadFile` EOF; discard on further data or probe failure (VersionChecker 64 KiB / Update Servers 32 MiB predicates stay `<= max`).
 - **Changelog Entry:** 2026-09-19 — #81/#82: VersionChecker HTTP bodies capped at 64 KiB (`LimitContentLength` + `VersionCheckerHttpResponseOk`).
 - **Changelog Entry:** 2026-09-19 — #81/#82: Update Servers dialog HTTP bodies capped at 32 MiB (`LimitContentLength` + `UpdateServersHttpResponseOk`).
 - **Changelog Entry:** 2026-09-19 — CI audit (`docs/10_dev/CI_AUDIT_2026-09.md`): measured ~7 min PR critical path (Build x64 ∥ CodeQL c-cpp); skip empty NuGet (~22s/job), failure-only PR build logs, always-emit Documentation Check; PR Gate keeps `POLL_SEC` script default 15s (no 10s override — API quota); Protect develop + Protect main API snapshots; live Protect develop approval-count drift (API 0 vs intended 1).

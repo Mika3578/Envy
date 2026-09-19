@@ -453,6 +453,8 @@ inline BOOL DiscoveryHttpResponseOk(DWORD nLength)
 }
 
 // Cap for Update Servers dialog HTTP downloads (user/server-list URL) (#81/#82).
+// Exact UPDATE_SERVERS_HTTP_RESPONSE_MAX is accepted; CHttpRequest probes one
+// byte past LimitContentLength so oversize bodies still fail-closed.
 constexpr DWORD UPDATE_SERVERS_HTTP_RESPONSE_MAX = 32u * 1024u * 1024u;
 
 inline BOOL UpdateServersHttpResponseOk(DWORD nLength)
@@ -461,6 +463,8 @@ inline BOOL UpdateServersHttpResponseOk(DWORD nLength)
 }
 
 // Cap for VersionChecker HTTP response (key=value metadata only) (#81/#82).
+// Exact VERSION_CHECK_HTTP_RESPONSE_MAX is accepted; CHttpRequest probes one
+// byte past the LimitContentLength cap so oversize bodies still fail-closed.
 constexpr DWORD VERSION_CHECK_HTTP_RESPONSE_MAX = 64u * 1024u;
 
 inline BOOL VersionCheckerHttpResponseOk(DWORD nLength)
