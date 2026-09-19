@@ -888,7 +888,7 @@ CQueryHit* CQueryHit::FromDCPacket(CDCPacket* pPacket, UINT nNmdcCodePage)
 	pHit->m_oTiger		= oTiger;
 	pHit->m_bChat		= TRUE;
 	pHit->m_bBrowseHost	= TRUE;
-	pHit->m_sNick		= CString( DecodeNmdcText( szNick, nCodePage ).c_str() )
+	pHit->m_sNick		= CString( DecodeNmdcText( szNick, nCodePage ).c_str() );
 	pHit->m_nUpSlots	= nTotalSlots;
 	pHit->m_nUpQueue	= nTotalSlots - nFreeSlots;
 	pHit->m_bBusy		= nFreeSlots ? TRI_FALSE : TRI_TRUE;
