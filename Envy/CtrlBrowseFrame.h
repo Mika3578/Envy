@@ -55,7 +55,7 @@ public:
 	void			OnSkinChange();
 	void			OnPhysicalTree(CG2Packet* pPacket);
 	void			OnVirtualTree(CG2Packet* pPacket);
-	void			OnDcShareTree(const CQueryHit* pHits, const CStringList& oFolders);
+	void OnDcShareTree(const CQueryHit* pHits, const CStringList& oFolders);
 	void			OnSelChangeMatches();
 protected:
 	BOOL			DoSizeTree();

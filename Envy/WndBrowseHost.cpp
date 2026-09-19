@@ -387,9 +387,9 @@ void CBrowseHostWnd::OnVirtualTree(CG2Packet* pPacket)
 
 void CBrowseHostWnd::OnDcShareTree(const CQueryHit* pHits, const CStringList& oFolders)
 {
-	if ( m_bPaused || m_hWnd == NULL ) return;
+	if (m_bPaused || m_hWnd == NULL) return;
 
-	m_wndFrame.OnDcShareTree( pHits, oFolders );
+	m_wndFrame.OnDcShareTree(pHits, oFolders);
 
 	SetModified();
 }

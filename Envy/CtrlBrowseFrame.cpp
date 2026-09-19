@@ -434,12 +434,12 @@ void CBrowseFrameCtrl::OnVirtualTree(CG2Packet* pPacket)
 
 void CBrowseFrameCtrl::OnDcShareTree(const CQueryHit* pHits, const CStringList& oFolders)
 {
-	m_wndTree.BuildFromDcListing( pHits, &oFolders );
+	m_wndTree.BuildFromDcListing(pHits, &oFolders);
 
-	if ( ! m_bTreeVisible )
+	if (!m_bTreeVisible)
 	{
 		m_bTreeVisible = TRUE;
-		PostMessage( WM_SIZE, SIZE_INTERNAL, 0 );
+		PostMessage(WM_SIZE, SIZE_INTERNAL, 0);
 	}
 }
 

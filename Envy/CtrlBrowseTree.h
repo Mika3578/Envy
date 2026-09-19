@@ -59,7 +59,8 @@ public:
 	CBrowseTreeItem*	GetLastSelected() const;
 	CBrowseTreeItem*	HitTest(const POINT& point, RECT* pRect = NULL) const;
 	void				OnTreePacket(CG2Packet* pPacket);
-	void				BuildFromDcListing(const CQueryHit* pHits, const CStringList* pFolders);
+	void BuildFromDcListing(const CQueryHit* pHits, const CStringList* pFolders);
+
 protected:
 	void				UpdateScroll();
 	void				ScrollBy(int nDelta);
@@ -125,7 +126,7 @@ public:
 	CSchemaPtr			m_pSchema;
 	DWORD*				m_pFiles;
 	DWORD				m_nFiles;
-	DWORD				m_nFileBuffer;
+	DWORD m_nFileBuffer;
 
 public:
 	CBrowseTreeItem*	Add(LPCTSTR pszName);
@@ -137,7 +138,7 @@ public:
 	BOOL				IsVisible() const;
 	int					GetChildCount() const;
 	void				AddXML(const CXMLElement* pXML);
-	void				AddFileIndex(DWORD nIndex);
+	void AddFileIndex(DWORD nIndex);
 	void				Paint(CDC& dc, CRect& rc, BOOL bTarget, COLORREF crBack = CLR_NONE) const;
 };
 

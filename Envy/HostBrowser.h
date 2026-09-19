@@ -59,7 +59,7 @@ protected:
 	CVendorPtr		m_pVendor;
 	CBuffer*		m_pBuffer;
 	CString			m_sNick;
-	CString			m_sFileListUrl;
+	CString m_sFileListUrl;
 	DWORD			m_nReceived;
 	BOOL			m_bNewBrowse;
 	BOOL			m_bCanPush;
@@ -94,9 +94,9 @@ protected:
 	BOOL			OnPacket(CG1Packet* pPacket);
 	BOOL			OnPacket(CG2Packet* pPacket);
 	void			OnProfilePacket(CG2Packet* pPacket);
-	BOOL			LoadDC(LPCTSTR pszFile, CQueryHit*& pHits, CStringList* pFolders);
+	BOOL LoadDC(LPCTSTR pszFile, CQueryHit*& pHits, CStringList* pFolders);
 	BOOL LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const CString& sPath, DWORD nDepth, DWORD& nEntries, CStringList* pFolders);
-	CString			MakeDcFileListDownloadName() const;
+	CString MakeDcFileListDownloadName() const;
 
 	virtual BOOL	OnRun();
 	virtual BOOL	OnRead();

@@ -191,7 +191,7 @@ BOOL CHostBrowser::Browse()
 		oURL.m_pServerAddress	= m_pAddress;
 		oURL.m_nServerPort		= m_nPort;
 		oURL.m_sLogin			= m_sNick;
-		oURL.m_sName			= MakeDcFileListDownloadName();
+		oURL.m_sName = MakeDcFileListDownloadName();
 		oURL.m_sURL.Format( L"dchub://%s@%s:%u/files.xml.bz2", (LPCTSTR)URLEncode( m_sNick ), (LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort );
 		m_sFileListUrl = oURL.m_sURL;
 
@@ -485,10 +485,10 @@ BOOL CHostBrowser::OnNewFile(const CLibraryFile* pFile)
 	if (m_nProtocol != PROTOCOL_DC || m_sNick.IsEmpty())
 		return FALSE;
 
-	if ( MakeDcFileListDownloadName().CompareNoCase( pFile->m_sName ) != 0 )
+	if (MakeDcFileListDownloadName().CompareNoCase(pFile->m_sName) != 0)
 		return FALSE;
-	if ( ! m_sFileListUrl.IsEmpty() && ! pFile->m_sURL.IsEmpty() &&
-		 m_sFileListUrl.CompareNoCase( pFile->m_sURL ) != 0 )
+	if (!m_sFileListUrl.IsEmpty() && !pFile->m_sURL.IsEmpty() &&
+	    m_sFileListUrl.CompareNoCase(pFile->m_sURL) != 0)
 		return FALSE;
 
 	theApp.Message(MSG_INFO, L"DC file list received (nick=%s hub=%s:%u)",
@@ -497,13 +497,13 @@ BOOL CHostBrowser::OnNewFile(const CLibraryFile* pFile)
 	CQueryHit* pHits = NULL;
 	CStringList oFolders;
 
-	if ( LoadDC( pFile->GetPath(), pHits, &oFolders ) )
+	if (LoadDC(pFile->GetPath(), pHits, &oFolders))
 	{
 		if ( pHits != NULL )
 		{
 			OnQueryHits( pHits );
-			if ( m_pNotify )
-				m_pNotify->OnDcShareTree( pHits, oFolders );
+			if (m_pNotify)
+				m_pNotify->OnDcShareTree(pHits, oFolders);
 		}
 
 		theApp.Message(MSG_INFO, L"DC browse completed (nick=%s files=%u)",
@@ -523,10 +523,10 @@ BOOL CHostBrowser::OnNewFile(const CLibraryFile* pFile)
 CString CHostBrowser::MakeDcFileListDownloadName() const
 {
 	CString strName;
-	strName.Format( L"Files of %s %s_%u.xml.bz2",
-		(LPCTSTR)SafeFilename( m_sNick ),
-		(LPCTSTR)CString( inet_ntoa( m_pAddress ) ),
-		m_nPort );
+	strName.Format(L"Files of %s %s_%u.xml.bz2",
+	               (LPCTSTR)SafeFilename(m_sNick),
+	               (LPCTSTR)CString(inet_ntoa(m_pAddress)),
+	               m_nPort);
 	return strName;
 }
 
@@ -638,7 +638,7 @@ BOOL CHostBrowser::LoadDCDirectory(CXMLElement* pRoot, CQueryHit*& pHits, const 
 				pHit->m_bSize		= TRUE;
 				pHit->m_bChat		= TRUE;
 				pHit->m_bBrowseHost	= TRUE;
-				pHit->m_nIndex		= nEntries + 1;
+				pHit->m_nIndex = nEntries + 1;
 				if (!pHit->m_oTiger.fromString(strTiger))
 				{
 					delete pHit;
