@@ -13,7 +13,6 @@
 #include "../Envy/TransferSettingsLimits.h"
 
 #include <cwchar>
-#include <limits>
 #include <map>
 #include <string>
 
@@ -139,8 +138,7 @@ static bool test_bandwidth_bytes_to_setting_typical()
 static bool test_bandwidth_bytes_to_setting_overflow_clamps()
 {
 	return TransferBandwidthBytesToSetting( 0x100000000ull ) == 0xFFFFFFFFul
-		&& TransferBandwidthBytesToSetting(
-			std::numeric_limits< unsigned long long >::max() ) == 0xFFFFFFFFul;
+		&& TransferBandwidthBytesToSetting( ~0ull ) == 0xFFFFFFFFul;
 }
 
 static bool test_max_per_host_defaults_and_range()
