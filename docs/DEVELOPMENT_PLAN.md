@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — Cross-platform foundations: document EnvyCore / platform / UI target, D-012…D-015, Win32 legacy policy (no removal), CMake portable-slice priority; Linux/macOS remain `planned` not `supported` (`docs/20_arch/PORTABILITY_PLAN.md`); trackers #177–#180 (do not duplicate #91/#161/#89).
 - **Changelog Entry:** 2026-09-19 — DC hublist bootstrap: default URL `https://dchublist.org/hublist.xml.bz2`; `DefaultServices.dat` H rows refreshed (org/pwiam/ru HTTPS); `CUpdateServersDlg` DC mode (skin `CUpdateHubListDlg`) so Settings > DC++ > Download is not the eDonkey server.met dialog. Parser unchanged (`dchub://` kept, `adc://`/`adcs://` skipped). Not ADC/hublist-complete.
 - **Changelog Entry:** 2026-09-19 — CI: required PR workflows also listen for `ready_for_review`; Format Check can run on `workflow_dispatch` against `origin/develop`.
 - **Changelog Entry:** 2026-09-19 — Renovate fork enablement: migrate `renovate.json5` → root `renovate.json` with `forkProcessing: "enabled"` (Mend App API pre-check); Dependabot remains vcpkg-only.
@@ -16,6 +17,7 @@
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent MSE responder `len(IA)` capped at 96 (`BtMseIaLengthOk`); partial IA waits in `MSE_AWAITING_IA` before crypto_select (RC4 desync fix).
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent MSE receive Pad_C/Pad_D capped at 512 (`BtMsePadLengthOk` / `MSE_PAD_MAX_LEN`); pad length fields decoded/encoded big-endian.
 - **Changelog Entry:** 2026-09-19 — #81: NMDC `$ADCGET`/`$ADCSND` strict asymmetric numeric parse (`DcAdcGetValidate.h`); GET allows `-1` until-EOF; SND requires real length; length-aware tokens reject embedded NUL / `2^64-1`; fail-closed SND vs fixed request (no `min()`).
+
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent TCP length-prefix capped at 16 MiB (`BtPacketLengthOk`); oversize clears buffer and closes peer (`PROTOCOL_TOO_LARGE`).
 - **Changelog Entry:** 2026-09-19 — #81: G2 HIT_WRAP / wrapped G1 fail-closed via `G1WrappedPayloadFits` / negative `m_nLength` reject in `CG1Packet::New` + null-check call sites.
 - **Changelog Entry:** 2026-09-19 — #81: G2 compound/frame length checks order-safe (`G2SubpacketPayloadFits` / `G2FrameLengthFits`) in ReadPacket/SkipCompound/ReadBuffer (defense-in-depth).
@@ -144,10 +146,12 @@
 - `.local/DEV_TRACKER.md`: session notes (gitignored). `docs/DEV_TRACKER.md` is also gitignored and is not a committed source of truth.
 
 ## Vision & Goals
-- Keep Envy a stable **Windows-native multi-network** client: BitTorrent, Gnutella, Gnutella2, ED2K, Kad, Direct Connect, Remote/Web, plus library and multi-network search.
+- Keep Envy a stable **Windows-native multi-network** client today: BitTorrent, Gnutella, Gnutella2, ED2K, Kad, Direct Connect, Remote/Web, plus library and multi-network search.
+- Evolve toward a portable `EnvyCore` + platform abstraction so Linux x86_64 and macOS ARM64 can become real targets later (**planned**, not supported yet). See D-012 and `docs/20_arch/PORTABILITY_PLAN.md`.
 - Improve ED2K/Kad interoperability against eMule Community and aMule without dropping other networks.
 - Reduce modernization risk with incremental core/UI boundaries, testability, and dependency hygiene.
 - Increase release confidence through clearer architecture boundaries and measurable quality gates.
+- Stop reinforcing unnecessary MFC/Win32 coupling in **new** core interfaces (D-013) while preserving the MFC Windows frontend.
 
 ## Positioning
 Envy is not an eMule fork and is not replaced by aMule, eMule Qt, aria2-next, Ember, or Rucio. Those projects are **references**:
@@ -211,9 +215,19 @@ References: eMule AI, eMule Qt, eMule eSE, aria2-next where relevant. Start with
 
 Inspired by eMule Qt, aMule, and aria2-next. Long-term shape:
 
-`EnvyCore` → protocol engines → transfer engine → library/search → stable internal API / IPC → MFC frontend → future Web/CLI frontend.
+```text
+EnvyCore (protocols / transfers / library-search)
+    → Platform Abstraction
+    → Windows | Linux | macOS
+         ↳ MFC frontend (Windows, retained)
+EnvyCore → Local API / headless → WebUI / CLI / future GUI
+```
 
-Incremental extraction only. No full rewrite.
+Incremental extraction only. No full rewrite. No Qt (or other GUI toolkit) introduction in this track. First multiplatform goal is core/headless, not a new desktop GUI. Tracked with #91 (test seam) and #161 (EnvyCore/headless); portability sequencing in `docs/20_arch/PORTABILITY_PLAN.md`.
+
+### P1 — Cross-platform foundations (docs + sequencing)
+
+Formalize platforms (Windows x64 primary; Win32 legacy Stage A; Linux/macOS **planned**), CMake portable-slice priority (D-015), and future CI order: Windows x64 → portable tests → Linux x86_64 → macOS ARM64. Do not add required non-Windows CI until portable code exists. Do not remove Win32 without Stage B/C evidence (D-014).
 
 ### P1 — Skin engine HiDPI / modern display (after P0)
 
@@ -261,14 +275,17 @@ Measure before optimizing. Recommended order:
 Do not reuse [#102](https://github.com/Mika3578/Envy/issues/102) (CI runner latency) for `Envy.exe` runtime performance.
 
 ### Phase 2 — Build/Quality Convergence (P1)
-- [ ] Define CMake migration boundary and milestones (3d)
+- [x] Define CMake migration boundary and milestones — **clarified 2026-09-18**: full-app CMake low priority; portable `EnvyCore`/HashLib/tests/headless CMake is foundational (D-015 / `PORTABILITY_PLAN.md`). Implementation still open under #91/#161.
 - [ ] Reduce duplicated CI workflow logic (2d)
 - [ ] Promote selected static-analysis checks to required gates (2d)
+- [ ] Bootstrap non-Windows CI only after portable tests exist (Linux x86_64, then macOS ARM64); keep jobs advisory until green
 
 ### Phase 3 — Architecture Hardening (P2)
-- [ ] Isolate core transfer engine interfaces from UI classes (10d) — same intent as **P1 core/UI separation** above; incremental only
+- [ ] Isolate core transfer engine interfaces from UI classes (10d) — same intent as **P1 core/UI separation** above; incremental only (#161)
+- [ ] Introduce portable platform abstractions (sockets/DNS/FS/threads/RNG) behind EnvyCore — no mass `#ifdef` rewrite
 - [ ] Version plugin-facing APIs and compatibility policy (5d)
 - [ ] Create automated dependency/SBOM release artifact (3d)
+- [ ] Evaluate Win32 Stage B/C only after multi-compiler 64-bit + non-Windows test evidence (D-014)
 
 ## ED2K / eMule SecureIdent roadmap
 
@@ -343,6 +360,7 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-09-18:** Adopt cross-platform foundations (D-012…D-015): EnvyCore + platform abstraction + retained MFC Windows frontend; Linux/macOS `planned` not `supported`; Win32 legacy Stage A only; CMake portable slice prioritized over full-app CMake. Canonical doc: `docs/20_arch/PORTABILITY_PLAN.md`. Open question #1 resolved toward multi-OS **as a long-term target**, with Windows-first delivery.
 - **2026-09-17:** #140 wording: MiniUPnPc 2.0 targeted discovery is one receive phase for requested ST values, not a strict wall-clock SSDP deadline; absolute SSDP and HTTP timeout bounding → [#142](https://github.com/Mika3578/Envy/issues/142) / P3.
 - **2026-09-18:** #166 / D-009 P1 delivered: WFAS `INetFwPolicy2` replaces `INetFwMgr`; application rules on all profiles; UPnP via rule-group enable. Next: P2 LocalPort/ExternalPort.
 - **2026-09-17:** #140 P0 runtime PASS (post-squash HEAD): targeted discovery + gateway-only rootdevice fallback; non-IGD devices never receive WAN mapping commands. Remaining MiniUPnPc 2.0 SSDP/HTTP latency → [#142](https://github.com/Mika3578/Envy/issues/142) / P3. Separate backlog: bind/listen must not wait for NAT completion → [#141](https://github.com/Mika3578/Envy/issues/141). Order remains P1 WFAS → P2 ports → P3 MiniUPnPc 2.3.x.
@@ -376,8 +394,9 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - **2026-04-22:** Treat this plan as a required living artifact for project management continuity.
 
 ## Open Questions
-1. Should this project explicitly remain Windows-only, or is cross-platform parity still a target? (Headless/API work can proceed on Windows first; aMule-style multi-OS is not a current delivery goal.)
+1. ~~Should this project explicitly remain Windows-only, or is cross-platform parity still a target?~~ **Resolved 2026-09-18 (D-012):** long-term multi-OS via EnvyCore; Windows remains the only supported product OS until Linux/macOS meet support criteria in `PORTABILITY_PLAN.md`. Headless/API still proceeds on Windows first (#161).
 2. What is the acceptable backward-compatibility policy for legacy protocols/features? Working default: preserve G1/G2/DC/BitTorrent; ED2K/Kad changes must remain eMule/aMule-compatible unless versioned as optional Envy extensions.
 3. Which dependency update cadence (monthly/quarterly) is realistic for maintainers?
 4. Should remote API documentation be strict contract-first or implementation-first?
 5. REST versus JSON-RPC for a future Envy daemon API (evaluate against aMule EC, eMule Qt, and aria2-next; no choice yet).
+6. When is Win32 Stage B (drop from user releases) justified relative to Preview/stable channels?

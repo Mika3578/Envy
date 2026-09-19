@@ -2,12 +2,13 @@
 
 Status: active
 Last updated: 2026-09-19
+
 Scope: Evidence-based protocol and architecture status for Envy on `develop`.
 Source of truth: Envy source under `Envy/`, tests under `tests/`, and the documents linked below. External projects are references only.
 
-This is the canonical **status matrix**. Roadmap sequencing lives in `docs/DEVELOPMENT_PLAN.md` and `docs/10_dev/roadmap.md`. External references live in `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`.
+This is the canonical **status matrix**. Roadmap sequencing lives in `docs/DEVELOPMENT_PLAN.md` and `docs/10_dev/roadmap.md`. External references live in `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`. Portability plan: `docs/20_arch/PORTABILITY_PLAN.md`.
 
-Envy is a **Windows-native multi-network** client (BitTorrent, Gnutella, Gnutella2, ED2K, Kad, Direct Connect, Remote/Web, library and multi-network search). ED2K/Kad interop work must not turn Envy into an eMule-only client.
+Envy is a **Windows-native multi-network** client today (BitTorrent, Gnutella, Gnutella2, ED2K, Kad, Direct Connect, Remote/Web, library and multi-network search). ED2K/Kad interop work must not turn Envy into an eMule-only client. Linux and macOS are **planned**, not supported.
 
 ## Status vocabulary
 
@@ -28,6 +29,12 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 
 | Function | Envy current | Reference | Target |
 | --- | --- | --- | --- |
+| Windows x64 product | implemented (primary) | — | preserve |
+| Windows Win32/x86 product | implemented (legacy Stage A) | — | deprecate later (D-014) |
+| Linux x86_64 product | planned | aMule | planned → supported only with CI evidence |
+| macOS ARM64 product | planned | aMule | planned → supported only with CI evidence |
+| EnvyCore portable boundary | not implemented | eMule Qt, aria2-next | planned (#161) |
+| Portable platform abstraction | not implemented | aMule, aria2-next | planned |
 | ED2K basic interop | partial / unverified live | eMule Community, aMule | implemented (full baseline) |
 | Kad2 | partial / unverified live | eMule Community, aMule | interoperable |
 | SecureIdent RSA | not implemented | eMule Community (secondary: aMule) | implemented |
@@ -83,8 +90,18 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 ### Headless / API / core-UI
 
 - Envy is an MFC desktop monolith (`docs/ARCHITECTURE.md`). There is no Envy daemon/CLI.
+- MFC is the **Windows frontend**, not the long-term portable core.
 - Remote/Web exists (`Remote/`) with a design-level API note (`docs/API.md`); endpoint-by-endpoint live verification is incomplete.
-- Headless daemon, CLI, and REST/JSON-RPC are **planned** (P1), inspired by aMule, eMule Qt, aria2-next, and Rucio. Migration must be incremental.
+- Headless daemon, CLI, and REST/JSON-RPC are **planned** (P1), inspired by aMule, eMule Qt, aria2-next, and Rucio. Migration must be incremental (#91, #161).
+- Cross-OS product ports are **planned** only; see `docs/20_arch/PORTABILITY_PLAN.md`. Do not document Linux/macOS as supported.
+
+### Platforms / portability
+
+- **Supported:** Windows x64 (primary shipping target).
+- **Legacy:** Windows Win32/x86 — still built and tested (D-014 Stage A); not a removal candidate yet.
+- **Planned:** Linux x86_64, macOS ARM64 (then optional ARM64 variants). Non-targets: Linux x86-32, macOS 32-bit.
+- vcpkg manifest currently `supports` Windows only; non-Windows dependency strategy follows portable-slice work.
+- Authoritative full app build remains `Visual Studio/Envy.sln`; CMake portable slice is the multiplatform foundation (D-015).
 
 ### BitTorrent
 
@@ -116,6 +133,7 @@ These remain useful for opcodes and archaeology; they over-claim completeness:
 
 - `docs/DEVELOPMENT_PLAN.md` — P0–P3 sequence
 - `docs/10_dev/roadmap.md` — technical itemization
+- `docs/20_arch/PORTABILITY_PLAN.md` — cross-platform foundations
 - `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` — external projects
 - `docs/KNOWN_LIMITATIONS.md`
-- `docs/DECISIONS.md` (D-008)
+- `docs/DECISIONS.md` (D-008, D-012…D-015)

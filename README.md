@@ -2,6 +2,8 @@
 
 Envy is a Windows-native, MFC-based **multi-network** peer-to-peer client (BitTorrent, Gnutella, Gnutella2, ED2K, Kad, Direct Connect, Remote/Web, plus library and multi-network search). The repository is a monorepo containing the main desktop client, plugins, vendored native dependencies, installer tooling, and a growing test suite.
 
+**Supported product OS today:** Windows (x64 primary; Win32 legacy). **Linux and macOS are planned, not supported** — see `docs/20_arch/PORTABILITY_PLAN.md`.
+
 Envy is not an eMule replacement and is not replaced by aMule, eMule Qt, aria2-next, or similar projects. Those are interoperability and architecture **references**; see `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`.
 
 ## Envy Preview Builds
@@ -66,7 +68,7 @@ ctest --test-dir build
 - Dependency register (initial seed): `docs/DEPENDENCIES.md`
 
 ### Supporting references
-- Architecture: `docs/ARCHITECTURE.md`
+- Architecture: `docs/ARCHITECTURE.md` · portability foundations: `docs/20_arch/PORTABILITY_PLAN.md`
 - Setup: `docs/SETUP.md`
 - API: `docs/API.md`
 - Testing: `docs/TESTING.md`
