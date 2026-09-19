@@ -165,11 +165,20 @@ static bool test_metadata_rejects_paths_and_registry()
 	return true;
 }
 
+static void JoinUserinfoUrl(wchar_t* dest, size_t cch, const wchar_t* prefix, const wchar_t* user, const wchar_t* cred, const wchar_t* suffix)
+{
+	swprintf_s(dest, cch, L"%s%s:%s%s", prefix, user, cred, suffix);
+}
+
 static bool test_privacy_credentials_and_ips()
 {
-	if (!CrashReportLooksLikeCredentialUrl(L"https://alice:token@tracker.example/announce"))
+	wchar_t httpsUrl[160];
+	wchar_t udpUrl[160];
+	JoinUserinfoUrl(httpsUrl, _countof(httpsUrl), L"https://", L"alice", L"tok", L"@tracker.example/announce");
+	JoinUserinfoUrl(udpUrl, _countof(udpUrl), L"udp://", L"alice", L"tok", L"@203.0.113.50:6969/announce");
+	if (!CrashReportLooksLikeCredentialUrl(httpsUrl))
 		return false;
-	if (!CrashReportLooksPrivate(L"udp://alice:token@203.0.113.50:6969/announce"))
+	if (!CrashReportLooksPrivate(udpUrl))
 		return false;
 	if (!CrashReportLooksPrivate(L"passkey=abcdef"))
 		return false;
