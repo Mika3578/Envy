@@ -11,7 +11,7 @@
 #pragma once
 
 #include <cwchar>
-#include <windows.h>
+#include <Windows.h>
 
 // Public HTTPS hublist documented by dchublist.org for current DC++ clients
 // (NMDC rows; ImportHubList already skips adc:// and adcs://).

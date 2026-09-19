@@ -278,8 +278,6 @@ static bool test_default_services_dc_hublists()
 		&& LineStartsWithH( text, "https://hublist.pwiam.com/hublist.xml.bz2" )
 		&& LineStartsWithH( text, "https://dchublist.ru/hublist.xml.bz2" )
 		&& AllActiveHublistsAreHttps( text )
-		&& ! LineStartsWithH( text, "http://dchublist.com/hublist.xml.bz2" )
-		&& ! LineStartsWithH( text, "http://tankafett.biz/hublist.xml.bz2" )
 		&& CountActiveHublistLines( text ) >= 2;
 }
 
