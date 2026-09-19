@@ -119,89 +119,118 @@ BYTE* CZLib::Compress2(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nSug
 
 auto_array< BYTE > CZLib::Decompress(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nMaxOutput)
 {
-	// Guess how big the data will be decompressed, use nSuggest, or just guess it will be 4 times as big
-	// Cap growth at nMaxOutput to prevent zip-bomb attacks (0 = unlimited)
-	for ( DWORD nSuggest = nInput * 4; ; nSuggest *= 2 )
+	// Guess decompressed size (4x), grow on Z_BUF_ERROR. When nMaxOutput > 0,
+	// clamp the next attempt to nMaxOutput before rejecting (exact-capacity try).
+	DWORD nSuggest = nInput * 4;
+	if (nSuggest < nInput)
+		nSuggest = UINT_MAX; // overflow on huge input guess
+	if (nMaxOutput > 0 && (nSuggest == 0 || nSuggest > nMaxOutput))
+		nSuggest = nMaxOutput;
+	if (nSuggest == 0)
 	{
-		// Stop growing if we've exceeded the maximum output size cap
-		if ( nMaxOutput > 0 && nSuggest > nMaxOutput )
-		{
-			// Decompression would exceed maximum size - reject to prevent zip-bomb
-			*pnOutput = 0;
-			return auto_array< BYTE >();
-		}
-
-		*pnOutput = nSuggest;
-
-		auto_array< BYTE > pBuffer( new BYTE[ *pnOutput ] );
-		if ( ! pBuffer.get() )
-		{
-			// Out of memory
-			*pnOutput = 0;
-			return auto_array< BYTE >();
-		}
-
-		// Uncompress the data from pInput into pBuffer, writing how big it is now in pnOutput
-		int nRes = uncompress( pBuffer.get(), pnOutput, (const BYTE *)pInput, nInput );
-
-		if ( Z_OK == nRes )
-			return pBuffer;
-
-		if ( Z_BUF_ERROR != nRes )
-		{
-			// Decompression error
-			*pnOutput = 0;
-			return auto_array< BYTE >();
-		}
+		*pnOutput = 0;
+		return auto_array< BYTE >();
 	}
 
-	// The pBuffer buffer is bigger than necessary, move its bytes into one perfectly sized, and return it
-	//auto_array< BYTE > pOutput( new BYTE[ *pnOutput ] );	// Make a new buffer exactly the right size
-	//memcpy( pOutput.get(), pBuffer, *pnOutput );			// Copy the data from the one that's too big
-	//delete [] pBuffer;
-	//return pOutput;										// Return a pointer to the perfectly sized one
+	for (;;)
+	{
+		*pnOutput = nSuggest;
+
+		auto_array< BYTE > pBuffer(new BYTE[*pnOutput]);
+		if (!pBuffer.get())
+		{
+			*pnOutput = 0;
+			return auto_array< BYTE >();
+		}
+
+		int nRes = uncompress(pBuffer.get(), pnOutput, (const BYTE*)pInput, nInput);
+
+		if (Z_OK == nRes)
+			return pBuffer;
+
+		if (Z_BUF_ERROR != nRes)
+		{
+			*pnOutput = 0;
+			return auto_array< BYTE >();
+		}
+
+		if (nMaxOutput > 0 && nSuggest >= nMaxOutput)
+		{
+			*pnOutput = 0;
+			return auto_array< BYTE >(); // Would exceed zip-bomb cap
+		}
+
+		DWORD nNext = nSuggest * 2;
+		if (nNext < nSuggest)
+			nNext = UINT_MAX;
+		if (nMaxOutput > 0 && nNext > nMaxOutput)
+			nNext = nMaxOutput;
+		if (nNext <= nSuggest)
+		{
+			*pnOutput = 0;
+			return auto_array< BYTE >();
+		}
+		nSuggest = nNext;
+	}
 }
 
 BYTE* CZLib::Decompress2(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nMaxOutput)
 {
 	BYTE* pBuffer = NULL;
 
-	// Guess how big the data will be decompressed, use nSuggest, or just guess it will be 4 times as big
-	// Cap growth at nMaxOutput to prevent zip-bomb attacks (0 = unlimited)
-	for ( DWORD nSuggest = nInput * 4; ; nSuggest *= 2 )
+	DWORD nSuggest = nInput * 4;
+	if (nSuggest < nInput)
+		nSuggest = UINT_MAX;
+	if (nMaxOutput > 0 && (nSuggest == 0 || nSuggest > nMaxOutput))
+		nSuggest = nMaxOutput;
+	if (nSuggest == 0)
 	{
-		// Stop growing if we've exceeded the maximum output size cap
-		if ( nMaxOutput > 0 && nSuggest > nMaxOutput )
-		{
-			// Decompression would exceed maximum size - reject to prevent zip-bomb
-			free( pBuffer );
-			*pnOutput = 0;
-			return NULL;
-		}
+		*pnOutput = 0;
+		return NULL;
+	}
 
+	for (;;)
+	{
 		*pnOutput = nSuggest;
 
-		BYTE* pNewBuffer = (BYTE*)realloc( pBuffer, *pnOutput );
-		if ( ! pNewBuffer )
+		BYTE* pNewBuffer = (BYTE*)realloc(pBuffer, *pnOutput);
+		if (!pNewBuffer)
 		{
-			// Out of memory
-			free( pBuffer );
+			free(pBuffer);
 			*pnOutput = 0;
 			return NULL;
 		}
 		pBuffer = pNewBuffer;
 
-		// Uncompress the data from pInput into pBuffer, writing how big it is now in pnOutput
-		int nRes = uncompress( pBuffer, pnOutput, (const BYTE *)pInput, nInput );
-		if ( Z_OK == nRes )
+		int nRes = uncompress(pBuffer, pnOutput, (const BYTE*)pInput, nInput);
+		if (Z_OK == nRes)
 			return pBuffer;
 
-		if ( Z_BUF_ERROR != nRes )
+		if (Z_BUF_ERROR != nRes)
 		{
-			// Decompression error
-			free( pBuffer );
+			free(pBuffer);
 			*pnOutput = 0;
 			return NULL;
 		}
+
+		if (nMaxOutput > 0 && nSuggest >= nMaxOutput)
+		{
+			free(pBuffer);
+			*pnOutput = 0;
+			return NULL;
+		}
+
+		DWORD nNext = nSuggest * 2;
+		if (nNext < nSuggest)
+			nNext = UINT_MAX;
+		if (nMaxOutput > 0 && nNext > nMaxOutput)
+			nNext = nMaxOutput;
+		if (nNext <= nSuggest)
+		{
+			free(pBuffer);
+			*pnOutput = 0;
+			return NULL;
+		}
+		nSuggest = nNext;
 	}
 }

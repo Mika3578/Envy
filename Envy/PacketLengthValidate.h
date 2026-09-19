@@ -53,7 +53,7 @@ inline BOOL G1QueryHitDeflateXmlLengthOk(int nSize)
 }
 
 // Cap for G1 QueryHit/G1Packet "{deflate}" XML inflate output (#81 zip-bomb).
-// Aligns with Settings.Gnutella.MaximumPacket upper bound (256 KB).
+// Aligns with Settings.Gnutella.MaximumPacket upper bound (256 KiB).
 constexpr DWORD G1_DEFLATE_XML_INFLATE_MAX = 256u * 1024u;
 
 inline BOOL G1DeflateXmlInflateOk(DWORD nOutput)

@@ -446,7 +446,7 @@ bool CG1Packet::ReadXML(CSchemaPtr& pSchema, CXMLElement*& pXML)
 		DWORD nRealSize;
 		pTmp = CZLib::Decompress( p, len, &nRealSize, G1_DEFLATE_XML_INFLATE_MAX );
 		if ( ! pTmp.get() || ! G1DeflateXmlInflateOk( nRealSize ) )
-			return NULL;	// Invalid or abusive inflate
+			return false;	// Invalid or abusive inflate
 		p = pTmp.get();
 		len = nRealSize;
 	}
