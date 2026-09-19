@@ -63,12 +63,19 @@ on classified CI checks; it does **not** approve or merge.
 | Tool | Owns | Notes |
 | --- | --- | --- |
 | Dependabot | `vcpkg` baseline only | `.github/dependabot.yml` |
-| Renovate | GitHub Actions only | `renovate.json5` (`enabledManagers: ["github-actions"]`), group non-major, pin digests, Dependency Dashboard; no blind automerge |
+| Renovate | GitHub Actions only | Root `renovate.json` (`enabledManagers: ["github-actions"]`), group non-major, pin digests, Dependency Dashboard; majors need dashboard approval; no blind automerge |
 
+`Mika3578/Envy` is a **fork** of `GetEnvy/Envy`. Mend Renovate Community Cloud
+skips forks by default when the GitHub App is installed on **All repositories**.
+Official docs require a root file named exactly `renovate.json` (not
+`renovate.json5` / `.github/renovate.json`) with `"forkProcessing": "enabled"`
+for that pre-check — Renovate only probes the default onboarding filename via
+the GitHub API before cloning. Prefer installing the app on **Selected
+repositories** including this repo (that path enables fork processing without
+relying on the pre-check alone). If the app is on **All repositories**, also
+confirm the repo is not stuck in Mend **Silent** mode (`dryRun=lookup`) via the
+[Mend Developer Portal](https://developer.mend.io/) job logs.
 
-Install the **Renovate GitHub App** on Mika3578/Envy if suites appear queued but idle
-(no Dependency Dashboard issue / no Renovate PRs). Until then Actions pins are
-maintained manually / via PR #156-style SHA pinning.
 Do not re-enable `github-actions` under Dependabot (duplicate PRs).
 Do not add `regex` to `enabledManagers` unless a real `customManagers` regex entry exists.
 
@@ -91,10 +98,14 @@ comparison notes.
 1. **CodeRabbit GitHub App** — If reviews do not appear on ready (non-draft) PRs, open
    GitHub → Settings → Applications → Installed GitHub Apps → **CodeRabbit** → Configure → **Mika3578/Envy**.
    Config: `.coderabbit.yaml` (`drafts: false`, advisory only). Repos with fewer than 10 stars may require a manual `@coderabbitai review` / checkbox trigger.
-2. **Renovate GitHub App** — If there is no Dependency Dashboard issue and no Renovate PRs, open
-   GitHub → Settings → Applications → Installed GitHub Apps → **Renovate** → Configure → **Mika3578/Envy**
-   (or install from [renovatebot.com](https://github.com/apps/renovate)).
-   Config: `renovate.json5`. Suites may show `QUEUED` until the app processes the repo.
+2. **Renovate GitHub App** — Verify installation mode:
+   GitHub → Settings → Applications → Installed GitHub Apps → **Renovate** → Configure.
+   Expected: **Selected repositories** with `Mika3578/Envy` checked (best practice for a
+   fork). If the app is on **All repositories**, root `renovate.json` must keep
+   `"forkProcessing": "enabled"` and Silent mode must be disabled for this repo in the
+   Mend portal. Success signal: Renovate check suites leave `queued`, a **Dependency
+   Dashboard** issue appears, and (for non-major / approved majors) `renovate/*` branches
+   or PRs. Config file: root `renovate.json` only — do not reintroduce `renovate.json5`.
 3. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks + **≥1 GitHub APPROVED review** on `Protect develop`.
 4. **Protect develop (live, verified)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing
@@ -111,6 +122,9 @@ comparison notes.
      SonarCloud + CodeQL + CI
    - Automatically request Copilot code review: **off**
 5. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
+
+## Agent PR back-pressure
+
 
 Max **3** active development PRs (canonical rule in `AGENTS.md`). If at cap: repair CI,
 handle CodeRabbit / reviewdog comments, resolve conflicts, ready-for-review,
