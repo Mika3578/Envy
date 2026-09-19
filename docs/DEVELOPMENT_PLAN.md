@@ -3,6 +3,9 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — Kad2 routing × firewall rebase: `CollectFirewallCheckCandidates` walks the zone tree (`ForEachContact`); `SendFirewalledRequest` uses `KadContactGetSockAddr` (no `GetSockAddr` / `KAD_BUCKET_COUNT` / `buckets`).
+- **Changelog Entry:** 2026-09-19 — Kad2 routing review: 128-bit `zonePrefix` (no uint32 shift UB at depth ≥ 32); first zone refresh arms `+10s` then fires; HELLO_RES requires outstanding HELLO_REQ; FIND_NODE_RES matches TargetID and is fail-closed on truncated contact lists before liveness.
+- **Changelog Entry:** 2026-09-19 — Kad2 routing-table maintenance (#86 slice): XOR zone tree with aMule/eMule `CanSplit` (K=10, KBASE=4, KK=5, max depth 127), LRU/type liveness, bounded replacement cache, stale-zone FIND_NODE refresh, /24 diversity (2 per bin / 10 global, 1 IP). `KadRoutingTable.h` + EnvyTests. Kad2 remains partial/unverified; no capability advertise; UDP firewall/Buddy/callback still open.
 - **Changelog Entry:** 2026-09-19 — Kad2 TCP firewall-detection baseline (#86 phase 1): `FIREWALLED_REQ`/`RES` exact framing, bounded outbound checks, public-IP consensus (2 independent peers), TCP Open only after 2 ACKs (UDP 0x59 or C2C 0xA8). UDP tester / Buddy / callback deferred. Kad2 remains partial/unverified; Hello Kad nibble stays 0. `KadFirewallCheck.h` + EnvyTests.
 - **Changelog Entry:** 2026-09-19 — #87 phase-1 LowID/callback baseline: `PUBLICIP_REQ`/`ANSWER` (0x97/0x98) and C2C `CALLBACK` (0x99, 38-byte Buddy layout) with bounded state (`Ed2kLowIdCallback.h`); classic server push preserved; `REASKCALLBACKTCP`/Buddy/FWCHECK deferred. Not complete firewalled support.
 - **Changelog Entry:** 2026-09-19 — #160/#253: record binary identity + process exits; Hello evidence fields; opt-in `workflow_dispatch` harness job (never required, never live on GitHub-hosted runners).
@@ -352,7 +355,9 @@ to improve authentication and eMule credit-system compatibility.
 - [ ] UI checkbox for EnableKad (optional follow-up; registry/settings dump works).
 - [x] Kad search/source hits → `AddSourceED2K` (HighID SEARCH_RES delivery + tests; keyword excluded; buddy/callback types deferred; app-trigger `SearchSource` and outbound TagList framing still open — not full #86).
 - [x] Kad TCP firewall-detection baseline (`FIREWALLED_REQ`/`RES`, bounded checks, public-IP consensus, TCP ACK count). UDP firewall verification, Buddy and callback remain incomplete (#86 remainder).
-- [ ] Kad routing-table maintenance / UDP firewall tester / Buddy / callback (#86 remainder).
+- [x] Kad routing-table maintenance (zone split, LRU/type liveness, bounded replacement, stale-zone FIND_NODE refresh, /24 diversity + tests).
+- [x] Local `nodes.dat` v1/v2/v3 parser (`KadNodesDat.h`); v3 bootstrap edition bounded; UDP-key/`verified` bytes discarded. Remote HTTP `nodes.dat` still open.
+- [ ] Kad UDP firewall tester / Buddy / callback / UDP-key runtime (#86 remainder).
 
 ### Future RSA SecureIdent (separate workstream)
 1. Baseline ED2K interoperability with eMule/aMule without SecureIdent.

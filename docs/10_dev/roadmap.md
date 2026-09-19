@@ -101,7 +101,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 
 ### Done (wire surface in `Kademlia.cpp` — not app-complete)
 - BOOTSTRAP_REQ/RES, PING/PONG, FIND_NODE, HELLO handlers
-- Routing table (XOR distance, K=10; no split/LRU/refresh yet)
+- Routing table — XOR zone tree (`Envy/KadRoutingTable.h`): `CanSplit` (K=10, KBASE=4, KK=5, max depth 127, 128-bit `zonePrefix`), LRU/type liveness, 1-slot replacement cache, stale-zone FIND_NODE refresh (arm +10s then 1h), `/24` diversity (2/bin, 10 global, 1 IP). HELLO_RES verify requires outstanding HELLO_REQ. Local tests only; live DHT evidence remains #160.
 - nodes.dat import via `HostCache` (**implemented** for local files: legacy v0 + new-format v1/v2/v3; v3 bootstrap edition bounded). Remote HTTP `nodes.dat` is not wired. Not a complete Kad bootstrap/interop claim.
 - Rate limiting, blacklist integration
 - Request tracking, IP endianness
@@ -118,10 +118,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 | ~~Deliver SEARCH_RES to downloads~~ | HighID source SEARCH_RES → `AddSourceED2K` (keyword excluded; buddy types deferred) | Done (partial) |
 | **App-trigger source search** | Call `SearchSource` from ED2K download source acquisition when Kad is enabled | P0 |
 | **Align outbound SEARCH_RES/store tags** | Envy `WriteEntryTags` vs eMule AnswerID+TagList when answering peers | P1 |
-| **Bucket splitting** | Split buckets when full (if bucket contains own ID); current implementation uses simple add | High |
-| **LRU replacement** | Replace least-recently-used contact when bucket is full; currently rejects new contacts | Medium |
-| **Bucket refresh** | Periodic refresh of stale buckets (eMule uses 15-minute intervals) | Medium |
-| **Eclipse protection** | Limit contacts from same /24 subnet to prevent eclipse attacks | Medium |
+| ~~Bucket splitting / LRU / refresh / eclipse `/24`~~ | Zone tree + LRU + bounded replacement + stale-zone FIND_NODE + `/24` caps (`KadRoutingTable.h`, EnvyTests) | Done (local; live #160) |
 | ~~FIREWALLED_REQ/RES~~ | TCP firewall-detection baseline (exact 2/4-byte framing, bounded checks, public-IP consensus). UDP tester / Buddy deferred. | Done (partial) |
 | **FINDBUDDY_REQ/RES** | Buddy system for NAT traversal | P0 |
 | **CALLBACK_REQ/RES** | Kad callback mechanism | P0 |
@@ -236,7 +233,7 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
 ### P0 — ED2K / Kad interop baseline
 1. Live Envy ↔ eMule Community / aMule validation (Hello, HighID/LowID, search, SourceEx, transfer, Kad bootstrap/search/publish).
 2. Firewalled / callback / Buddy / firewall-check behaviour.
-3. Kad bucket splitting + LRU + refresh (needed for a real routing table).
+3. ~~Kad bucket splitting + LRU + refresh (needed for a real routing table).~~ Routing maintenance landed (zone split / LRU / refresh / `/24` limits); live DHT evidence remains #160. Firewall/Buddy/callback still open (#86).
 4. ~~SourceEx2 / Kad FIND_VALUE + PUBLISH (code present; live interop still unverified).~~
 5. ~~BT protocol encryption~~ — Done (MSE/PE in `CBTClient` via `BTCrypto.h/cpp`).
 
