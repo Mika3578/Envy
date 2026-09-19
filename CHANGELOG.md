@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **DevSecOps tooling (local + PR advisors)** — `scripts/ci-fast.ps1` / `scripts/ci-verify.ps1` for a Windows-local gate approximating MSVC/tests; Renovate (`renovate.json5`) owns GitHub Actions updates with grouping/digests while Dependabot keeps **vcpkg only**; CodeRabbit (`.coderabbit.yaml`) and clang-tidy→reviewdog (`.github/workflows/clang-tidy-pr.yml`) are advisory PR reviewers. See `docs/10_dev/devsecops-envy.md`.
+- **DevSecOps tooling (local + PR advisors)** — `scripts/ci-fast.ps1` / `scripts/ci-verify.ps1` for a Windows-local gate approximating MSVC/tests; Renovate (root `renovate.json`) owns GitHub Actions updates with grouping/digests while Dependabot keeps **vcpkg only**; CodeRabbit (`.coderabbit.yaml`) and clang-tidy→reviewdog (`.github/workflows/clang-tidy-pr.yml`) are advisory PR reviewers. See `docs/10_dev/devsecops-envy.md`.
 - **4.2.0 Preview 1 release packaging** — Unified product version metadata (`version.json` `4.2.0-preview.1`, Windows `FILEVERSION`/`PRODUCTVERSION` `4.2.0.1`, display `4.2.0 Preview 1`). Release workflow builds per-platform Inno Setup installers (`InstallerAlpha=Preview` from tags containing `preview`), publishes `Envy-<version>-{x64|win32}-{setup.exe|.zip}` plus `SHA256SUMS.txt`, and creates a **draft** GitHub Release marked **prerelease** when the tag contains `preview`/`beta`/`rc`/`alpha`. Preview 1 uses separate x64 and Win32 setups (unified universal installer deferred).
 - **Release pipeline validation scripts** — `scripts/release/verify-version.ps1`, `stage-portable.ps1`, `verify-artifacts.ps1`, `publish-draft-release.ps1`, and `repair-draft-release.ps1` gate tag/`version.json`/`Envy.rc`/`Envy.exe` consistency, stage a full portable runtime tree, verify SHA256 + ZIP/setup sanity, and support idempotent draft asset repair.
 
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Agent autonomy policy** — `AGENTS.md` allows ready-for-review + squash auto-merge under explicit low-risk / high-risk evidence gates; adds a hard max of **3** open development PRs (Dependabot/Renovate excluded). See `docs/10_dev/devsecops-envy.md`.
 - **Local ci-verify -Full** — Builds and runs EnvyTests Win32; fails if expected binaries are missing; requires `clang-format` on PATH (ci-fast may still warn-only when absent).
 - **CodeRabbit** — Skip draft PRs (`drafts: false`); path instructions cover `Remote/**` assets and `Envy/*Remote*` C++ surface.
-- **Renovate** — `enabledManagers` is `github-actions` only (no unused `regex` manager).
+- **Renovate** — `enabledManagers` is `github-actions` only (no unused `regex` manager). Root config migrated from `renovate.json5` to `renovate.json` with `"forkProcessing": "enabled"` so Mend Renovate can process this fork (API pre-check only reads the default `renovate.json` filename).
 - **Gnutella `{deflate}` QueryHit vs G1Packet sizing (#119)** — Documented as intentional Shareaza heritage, not a bug: `CQueryHit::ReadXML` uses `nSize - 10` because fixed `nXMLSize` includes a trailing NUL; `CG1Packet::ReadXML` uses `len - 9` because length stops before HIT_SEP/NUL. No wire-behavior change. Deduped `KNOWN_INCONSISTENCIES.md` entry.
 
 ### Security

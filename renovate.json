@@ -1,6 +1,4 @@
 {
-  // Renovate Community Cloud config for Mika3578/Envy
-  // Dependabot retains vcpkg only — do not enable a vcpkg manager here.
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
@@ -8,6 +6,7 @@
     ":semanticCommits",
     ":preserveSemverRanges"
   ],
+  "forkProcessing": "enabled",
   "labels": ["dependencies", "renovate"],
   "timezone": "Europe/Paris",
   "schedule": ["before 8am on Monday"],

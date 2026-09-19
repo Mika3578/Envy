@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — Renovate fork enablement: migrate `renovate.json5` → root `renovate.json` with `forkProcessing: "enabled"` (Mend App API pre-check); Dependabot remains vcpkg-only.
 - **Changelog Entry:** 2026-09-19 — #81: G2 SGP UDP reassembly/inflate capped (64 fragments; byte cap = min(MaximumPacket, 256 KiB) enforced in `Add`/`ToG2Packet`; outbound fragment count fail-closed).
 - **Changelog Entry:** 2026-09-19 — #81: re-enable BitTorrent `SourcesWanted` caps for ut_pex, LTEP source-exchange, tracker HTTP apply, and UDP announce (`BtSourcesWantedAllowsMore`).
 - **Changelog Entry:** 2026-09-19 — #81/#82: `CHttpRequest` exact-limit probe — keep bodies of size `== LimitContentLength` after one-byte `InternetReadFile` EOF; discard on further data or probe failure (VersionChecker 64 KiB / Update Servers 32 MiB predicates stay `<= max`).
@@ -47,6 +48,7 @@
 - **Changelog Entry:** 2026-09-18 — #81: `CEDPacket::Inflate` defaults to 512 KiB (`ED2K_PACKED_INFLATE_MAX` / `Ed2kPackedInflateOk`) for packed C2C/UDP/server paths; 0 no longer means unlimited.
 - **Changelog Entry:** 2026-09-18 — #81/#82: BitTorrent tracker HTTP announce/scrape bodies capped at 32 MiB via `LimitContentLength` + `BtTrackerHttpResponseOk` (closes unused limit API for live tracker downloads).
 - **Changelog Entry:** 2026-09-18 — #81/#82: Discovery GWC/server-list HTTP bodies capped at 32 MiB (`LimitContentLength` + `DiscoveryHttpResponseOk`).
+
 - **Changelog Entry:** 2026-09-18 — #81/#82: file-backed ED2K tag key / TAG_STRING lengths checked against remaining `.met` bytes (`Ed2kTagStringLengthOk`) before allocate/Read.
 - **Changelog Entry:** 2026-09-18 — #166 / D-009 P1: Windows Firewall exceptions via WFAS `INetFwPolicy2` (all Domain/Private/Public profiles); drop legacy `INetFwMgr`.
 - **Changelog Entry:** 2026-09-18 — #76: Remote UI HTML-escapes `CRemote::Add()` substitutions (`Escape`); `AddRaw` for trusted markup; `RemoteHtmlEscape.h` + EnvyTests smoke coverage.
