@@ -732,8 +732,7 @@ bool CQueryHashTable::OnPatch(CPacket* pPacket)
 	else
 	{
 		// Uncompressed patches must not exceed the exact expected size.
-		if (nExpected == 0 || m_pBuffer->m_nLength >= nExpected
-			|| nAddend > nExpected - m_pBuffer->m_nLength)
+		if (nExpected == 0 || m_pBuffer->m_nLength >= nExpected || nAddend > nExpected - m_pBuffer->m_nLength)
 		{
 			m_pBuffer->Clear();
 			return false;
