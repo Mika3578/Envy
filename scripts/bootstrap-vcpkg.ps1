@@ -40,20 +40,14 @@ function Get-RepoRoot {
 	return (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 }
 
-function Resolve-VcpkgExe {
-	param(
-		[Parameter(Mandatory = $true)][string]$Root,
-		[switch]$AllowClone
-	)
-
+function Get-VcpkgCandidatePaths {
+	param([Parameter(Mandatory = $true)][string]$Root)
 	$candidates = @()
-	if ($env:VCPKG_ROOT) {
-		$candidates += (Join-Path $env:VCPKG_ROOT 'vcpkg.exe')
-		$candidates += (Join-Path $env:VCPKG_ROOT 'vcpkg')
-	}
-	if ($env:VCPKG_INSTALLATION_ROOT) {
-		$candidates += (Join-Path $env:VCPKG_INSTALLATION_ROOT 'vcpkg.exe')
-		$candidates += (Join-Path $env:VCPKG_INSTALLATION_ROOT 'vcpkg')
+	foreach ($base in @($env:VCPKG_ROOT, $env:VCPKG_INSTALLATION_ROOT)) {
+		if ($base) {
+			$candidates += (Join-Path $base 'vcpkg.exe')
+			$candidates += (Join-Path $base 'vcpkg')
+		}
 	}
 	$candidates += (Join-Path $Root 'vcpkg\vcpkg.exe')
 	$candidates += (Join-Path $Root 'vcpkg\vcpkg')
@@ -61,11 +55,64 @@ function Resolve-VcpkgExe {
 	if ($cmd) {
 		$candidates += $cmd.Source
 	}
+	return $candidates
+}
 
-	foreach ($c in $candidates) {
+function Find-ExistingVcpkg {
+	param([Parameter(Mandatory = $true)][string]$Root)
+	foreach ($c in (Get-VcpkgCandidatePaths -Root $Root)) {
 		if ($c -and (Test-Path -LiteralPath $c)) {
 			return $c
 		}
+	}
+	return $null
+}
+
+function Install-LocalVcpkg {
+	param([Parameter(Mandatory = $true)][string]$Root)
+	$vcpkgDir = Join-Path $Root 'vcpkg'
+	if (-not (Test-Path -LiteralPath $vcpkgDir)) {
+		Write-Host "Cloning vcpkg into $vcpkgDir (-CloneVcpkg was set)..." -ForegroundColor DarkCyan
+		git clone https://github.com/microsoft/vcpkg.git $vcpkgDir
+		if ($LASTEXITCODE -ne 0) {
+			throw 'git clone of microsoft/vcpkg failed.'
+		}
+	}
+
+	$exe = Join-Path $vcpkgDir 'vcpkg.exe'
+	$unix = Join-Path $vcpkgDir 'vcpkg'
+	if ((Test-Path -LiteralPath $exe) -or (Test-Path -LiteralPath $unix)) {
+		if (Test-Path -LiteralPath $exe) { return $exe }
+		return $unix
+	}
+
+	$bootstrapBat = Join-Path $vcpkgDir 'bootstrap-vcpkg.bat'
+	$bootstrapSh = Join-Path $vcpkgDir 'bootstrap-vcpkg.sh'
+	$onWindows = $env:OS -eq 'Windows_NT'
+	if ($onWindows -and (Test-Path -LiteralPath $bootstrapBat)) {
+		Write-Host 'Bootstrapping vcpkg.exe...' -ForegroundColor DarkCyan
+		& $bootstrapBat -disableMetrics
+	} elseif (Test-Path -LiteralPath $bootstrapSh) {
+		Write-Host 'Bootstrapping vcpkg...' -ForegroundColor DarkCyan
+		& $bootstrapSh -disableMetrics
+	} else {
+		throw "vcpkg bootstrap script was not found under $vcpkgDir"
+	}
+
+	if (Test-Path -LiteralPath $exe) { return $exe }
+	if (Test-Path -LiteralPath $unix) { return $unix }
+	throw "vcpkg was cloned but the executable is still missing under $vcpkgDir"
+}
+
+function Resolve-VcpkgExe {
+	param(
+		[Parameter(Mandatory = $true)][string]$Root,
+		[switch]$AllowClone
+	)
+
+	$existing = Find-ExistingVcpkg -Root $Root
+	if ($existing) {
+		return $existing
 	}
 
 	if (-not $AllowClone) {
@@ -77,41 +124,13 @@ put vcpkg on PATH, or clone it next to the repo and re-run with -CloneVcpkg:
 
   git clone https://github.com/microsoft/vcpkg.git
   .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
-  .\scripts\bootstrap-vcpkg.ps1 -Triplet $Triplet
+  .\scripts\bootstrap-vcpkg.ps1
 
 Do not expect Visual Studio to download Crashpad/vcpkg during PreBuild.
 "@
 	}
 
-	$vcpkgDir = Join-Path $Root 'vcpkg'
-	if (-not (Test-Path -LiteralPath $vcpkgDir)) {
-		Write-Host "Cloning vcpkg into $vcpkgDir (-CloneVcpkg was set)..." -ForegroundColor DarkCyan
-		git clone https://github.com/microsoft/vcpkg.git $vcpkgDir
-		if ($LASTEXITCODE -ne 0) {
-			throw 'git clone of microsoft/vcpkg failed.'
-		}
-	}
-
-	$bootstrapBat = Join-Path $vcpkgDir 'bootstrap-vcpkg.bat'
-	$bootstrapSh = Join-Path $vcpkgDir 'bootstrap-vcpkg.sh'
-	$exe = Join-Path $vcpkgDir 'vcpkg.exe'
-	$unix = Join-Path $vcpkgDir 'vcpkg'
-	$onWindows = $env:OS -eq 'Windows_NT'
-	if (-not (Test-Path -LiteralPath $exe) -and -not (Test-Path -LiteralPath $unix)) {
-		if ($onWindows -and (Test-Path -LiteralPath $bootstrapBat)) {
-			Write-Host 'Bootstrapping vcpkg.exe...' -ForegroundColor DarkCyan
-			& $bootstrapBat -disableMetrics
-		} elseif (Test-Path -LiteralPath $bootstrapSh) {
-			Write-Host 'Bootstrapping vcpkg...' -ForegroundColor DarkCyan
-			& $bootstrapSh -disableMetrics
-		} else {
-			throw "vcpkg bootstrap script was not found under $vcpkgDir"
-		}
-	}
-
-	if (Test-Path -LiteralPath $exe) { return $exe }
-	if (Test-Path -LiteralPath $unix) { return $unix }
-	throw "vcpkg was cloned but the executable is still missing under $vcpkgDir"
+	return (Install-LocalVcpkg -Root $Root)
 }
 
 function Get-HandlerCandidates {
