@@ -543,6 +543,7 @@ public:
 		DWORD		ReAskTime;				// How often to re-ask a remote client about download (ms), default every minute
 		DWORD		DequeueTime;			// Timeout for remote client confirmation of upload queue (ms), default 5 min
 		CString		HubListURL;				// Default hublist.xml.bz2 location
+		DWORD CodePage;                     // NMDC text code page (0 = CP_ACP; 65001 = UTF-8). Not used for ADC.
 	} DC;
 
 	struct sBitTorrent

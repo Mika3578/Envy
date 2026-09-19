@@ -540,6 +540,7 @@ void CSettings::Load()
 	Add( L"DC", L"ReAskTime", &DC.ReAskTime, 60*1000, 1000, 30, 60*60, L" s" );
 	Add( L"DC", L"DequeueTime", &DC.DequeueTime, 5*60*1000, 1000, 2*60, 60*60, L" s" );
 	Add(L"DC", L"HubListURL", &DC.HubListURL, DcDefaultHubListUrl());
+	Add(L"DC", L"CodePage", &DC.CodePage, 0, 1, 0, 9999999); // 0=CP_ACP, 65001=UTF-8, 1251=CP1251, ...
 
 	Add( L"BitTorrent", L"AutoClear", &BitTorrent.AutoClear, false );
 	Add( L"BitTorrent", L"AutoMerge", &BitTorrent.AutoMerge, true );

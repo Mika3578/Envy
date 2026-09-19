@@ -40,6 +40,7 @@
 #include "G1Packet.h"
 #include "G2Packet.h"
 #include "DCPacket.h"
+#include "HostCache.h"
 #include "BTClients.h"
 
 #include "Transfers.h"
@@ -710,24 +711,36 @@ void CLocalSearch::AddHitDC(CDCPacket* pPacket, CSchemaMap& /*pSchemas*/, CLibra
 	else
 		strHubName = m_pSearch->m_sMyHub;
 
+	UINT nCodePage = Settings.DC.CodePage;
+	if (CHostCacheHostPtr pServer = HostCache.DC.Find(&m_pEndpoint.sin_addr))
+	{
+		if (pServer->m_nCodePage != 0)
+			nCodePage = pServer->m_nCodePage;
+	}
+	else if (CNeighbour* pNeighbour = Neighbours.Get(m_pEndpoint.sin_addr))
+	{
+		if (pNeighbour->m_nProtocol == PROTOCOL_DC)
+			nCodePage = static_cast<CDCNeighbour*>(pNeighbour)->m_nCodePage;
+	}
+
 	CBuffer pAnswer;
 	pAnswer.Add( _P("$SR ") );
-	pAnswer.Print( m_pSearch->m_sMyNick );
+	pAnswer.Print(m_pSearch->m_sMyNick, nCodePage);
 	pAnswer.Add( _P(" ") );
-	pAnswer.Print( pFile->m_sName );
+	pAnswer.Print(pFile->m_sName, nCodePage);
 	pAnswer.Add( _P("\x05") );
 	CString strSize;
 	strSize.Format( L"%I64u %d/%d", pFile->m_nSize, nFreeSlots, nTotalSlots );
-	pAnswer.Print( strSize );
+	pAnswer.Print(strSize); // ASCII digits / separators
 	pAnswer.Add( _P("\x05") );
-	pAnswer.Print( strHubName );
+	pAnswer.Print(strHubName, nCodePage);
 	pAnswer.Add( _P(" (") );
-	pAnswer.Print( HostToString( &m_pSearch->m_pMyHub ) );
+	pAnswer.Print(HostToString(&m_pSearch->m_pMyHub)); // ASCII host:port
 	pAnswer.Add( _P(")") );
 	if ( ! m_pSearch->m_bUDP )
 	{
 		pAnswer.Add( _P("\x05") );
-		pAnswer.Print( m_pSearch->m_sUserNick );
+		pAnswer.Print(m_pSearch->m_sUserNick, nCodePage);
 	}
 	pAnswer.Add( _P("|") );
 

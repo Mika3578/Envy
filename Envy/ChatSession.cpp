@@ -30,11 +30,13 @@
 #include "DCClient.h"
 #include "DCPacket.h"
 #include "DcPacketLengthValidate.h"
+#include "DcNmdcText.h"
+#include "DCNeighbour.h"
+#include "Neighbours.h"
+#include <string>
 #include "EDPacket.h"
 #include "EDClient.h"
 #include "EDClients.h"
-#include "DCNeighbour.h"
-#include "Neighbours.h"
 #include "Network.h"
 #include "Transfers.h"
 #include "ImageFile.h"
@@ -603,6 +605,23 @@ BOOL CChatSession::Send(CDCPacket* pPacket)
 	return FALSE;
 }
 
+
+namespace
+{
+
+UINT ChatSessionDcCodePage(const SOCKADDR_IN& host)
+{
+	UINT nCodePage = Settings.DC.CodePage;
+	if (CNeighbour* pNeighbour = Neighbours.Get(host.sin_addr))
+	{
+		if (pNeighbour->m_nProtocol == PROTOCOL_DC)
+			nCodePage = static_cast<CDCNeighbour*>(pNeighbour)->m_nCodePage;
+	}
+	return nCodePage;
+}
+
+} // namespace
+
 BOOL CChatSession::OnChatMessage(CDCPacket* pPacket)
 {
 	// Defence in depth: DCClient/DCNeighbour should validate, but still reject
@@ -611,12 +630,15 @@ BOOL CChatSession::OnChatMessage(CDCPacket* pPacket)
 	if ( pPacket->m_nLength == 0 || pPacket->m_pBuffer == nullptr )
 		return TRUE;
 
+	const UINT nDcCodePage = ChatSessionDcCodePage(m_pHost);
+
 	if ( *pPacket->m_pBuffer == '<' )
 	{
 		if ( ! DcChatAnglePayloadLengthOk( pPacket->m_nLength ) )
 			return TRUE;
-		CString strMsg( UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ 1 ],
-			DcChatAnglePayloadBytes( pPacket->m_nLength ) ) );
+		CString strMsg(DecodeNmdcText((LPCSTR)&pPacket->m_pBuffer[1],
+		                              static_cast<int>(DcChatAnglePayloadBytes(pPacket->m_nLength)), nDcCodePage)
+		                   .c_str());
 		int nPos = strMsg.Find( L'>' );
 		OnChatMessage( strMsg.Left( nPos ), strMsg.Mid( nPos + 2 ) );
 	}
@@ -624,16 +646,18 @@ BOOL CChatSession::OnChatMessage(CDCPacket* pPacket)
 	{
 		if ( ! DcPrefixedPayloadLengthOk( pPacket->m_nLength, DC_HUBTOPIC_PREFIX_LEN ) )
 			return TRUE;
-		CString strTopic( UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ DC_HUBTOPIC_PREFIX_LEN ],
-			DcPrefixedPayloadBytes( pPacket->m_nLength, DC_HUBTOPIC_PREFIX_LEN ) ) );
+		CString strTopic(DecodeNmdcText((LPCSTR)&pPacket->m_pBuffer[DC_HUBTOPIC_PREFIX_LEN],
+		                                static_cast<int>(DcPrefixedPayloadBytes(pPacket->m_nLength, DC_HUBTOPIC_PREFIX_LEN)), nDcCodePage)
+		                     .c_str());
 		NotifyMessage( cmtCaption, m_sNick, strTopic );
 	}
 	else if ( pPacket->Compare( _P("$HubName ") ) )
 	{
 		if ( ! DcPrefixedPayloadLengthOk( pPacket->m_nLength, DC_HUBNAME_PREFIX_LEN ) )
 			return TRUE;
-		CString strTopic( UTF8Decode( (LPCSTR)&pPacket->m_pBuffer[ DC_HUBNAME_PREFIX_LEN ],
-			DcPrefixedPayloadBytes( pPacket->m_nLength, DC_HUBNAME_PREFIX_LEN ) ) );
+		CString strTopic(DecodeNmdcText((LPCSTR)&pPacket->m_pBuffer[DC_HUBNAME_PREFIX_LEN],
+		                                static_cast<int>(DcPrefixedPayloadBytes(pPacket->m_nLength, DC_HUBNAME_PREFIX_LEN)), nDcCodePage)
+		                     .c_str());
 		NotifyMessage( cmtCaption, m_sNick, strTopic );
 	}
 
@@ -1326,12 +1350,18 @@ BOOL CChatSession::SendPrivateMessage(bool bAction, const CString& strText)
 				{
 					if ( CDCPacket* pPacket = CDCPacket::New() )
 					{
+						const UINT nCp = static_cast<CDCNeighbour*>(pClient)->m_nCodePage;
+						const std::string nick = EncodeNmdcText(
+						    static_cast<CDCNeighbour*>(pClient)->m_sNick, nCp);
+						const std::string body = EncodeNmdcText(
+						    bAction ? (L"/me " + strText) : strText, nCp);
 						pPacket->WriteByte( '<' );
-						pPacket->WriteString( static_cast< CDCNeighbour* >( pClient )->m_sNick, FALSE );
+						if (!nick.empty())
+							pPacket->Write(nick.data(), static_cast<DWORD>(nick.size()));
 						pPacket->WriteByte( '>' );
 						pPacket->WriteByte( ' ' );
-						if ( bAction ) pPacket->WriteString( L"/me ", FALSE );
-						pPacket->WriteString( strText, FALSE );
+						if (!body.empty())
+							pPacket->Write(body.data(), static_cast<DWORD>(body.size()));
 						pPacket->WriteByte( '|' );
 
 						Write( pPacket );
