@@ -1270,24 +1270,37 @@ BOOL CChatSession::SendPrivateMessage(bool bAction, const CString& strText)
 		{
 			// Clamp by encoded wire length so WORD length stays <= ED2K_MESSAGE_MAX
 			// (wchar Left(450) can still exceed 500 UTF-8 bytes for non-ASCII text).
+			// Binary-search the longest wchar prefix that fits (avoids O(n^2) trim).
 			CString strMessage = strText;
+			int nLo = 0;
+			int nHi = strMessage.GetLength();
 			if ( m_bUnicode )
 			{
-				while (strMessage.GetLength() > 0 &&
-				       (DWORD)pPacket->GetStringLenUTF8(strMessage) > ED2K_MESSAGE_MAX)
+				while (nLo < nHi)
 				{
-					strMessage = strMessage.Left(strMessage.GetLength() - 1);
+					const int nMid = nLo + (nHi - nLo + 1) / 2;
+					const CString strPrefix = strMessage.Left(nMid);
+					if ((DWORD)pPacket->GetStringLenUTF8(strPrefix) <= ED2K_MESSAGE_MAX)
+						nLo = nMid;
+					else
+						nHi = nMid - 1;
 				}
+				strMessage = strMessage.Left(nLo);
 				pPacket->WriteShortLE( WORD( pPacket->GetStringLenUTF8( strMessage ) ) );
 				pPacket->WriteStringUTF8( strMessage, FALSE );
 			}
 			else
 			{
-				while (strMessage.GetLength() > 0 &&
-				       (DWORD)pPacket->GetStringLen(strMessage) > ED2K_MESSAGE_MAX)
+				while (nLo < nHi)
 				{
-					strMessage = strMessage.Left(strMessage.GetLength() - 1);
+					const int nMid = nLo + (nHi - nLo + 1) / 2;
+					const CString strPrefix = strMessage.Left(nMid);
+					if ((DWORD)pPacket->GetStringLen(strPrefix) <= ED2K_MESSAGE_MAX)
+						nLo = nMid;
+					else
+						nHi = nMid - 1;
 				}
+				strMessage = strMessage.Left(nLo);
 				pPacket->WriteShortLE( WORD( pPacket->GetStringLen( strMessage ) ) );
 				pPacket->WriteString( strMessage, FALSE );
 			}
