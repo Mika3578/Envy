@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+# Encoding-safe stand-in for LLVM clang-format-diff.
+#
+# Stock clang-format-diff uses universal_newlines=True and therefore crashes
+# (UnicodeDecodeError) on Envy's legacy ISO-8859/CP1252 first-party sources
+# when clang-format echoes the copyright bytes (e.g. 0xA9). This wrapper:
+#   - reads the unified diff from stdin as raw bytes (latin-1 round-trip)
+#   - invokes clang-format with binary pipes
+#   - compares before/after as bytes
+# CLI matches clang-format-diff for the flags format-check.sh passes:
+#   -p1 -style=file -binary <clang-format>
+
+from __future__ import annotations
+
+import argparse
+import difflib
+import re
+import subprocess
+import sys
+
+
+def main() -> int:
+	parser = argparse.ArgumentParser(add_help=False)
+	parser.add_argument("-p", type=int, default=0)
+	parser.add_argument("-style")
+	parser.add_argument("-fallback-style")
+	parser.add_argument("-binary", default="clang-format")
+	parser.add_argument("-i", action="store_true")
+	parser.add_argument("-sort-includes", action="store_true")
+	parser.add_argument("-v", "-verbose", action="store_true", dest="verbose")
+	parser.add_argument("-regex")
+	parser.add_argument("-iregex", default=r".*\.(cpp|cc|c\+\+|cxx|c|cl|h|hh|hpp|m|mm|inc)")
+	args, _unknown = parser.parse_known_args()
+
+	# Preserve every byte from git diff (may include ISO-8859 on '-' lines).
+	raw = sys.stdin.buffer.read()
+	diff_text = raw.decode("latin-1")
+
+	filename = None
+	lines_by_file: dict[str, list[str]] = {}
+	prefix_re = re.compile(r"^\+\+\+\ (.*?/){%d}(\S*)" % args.p)
+	hunk_re = re.compile(r"^@@.*\+(\d+)(?:,(\d+))?")
+
+	for line in diff_text.splitlines():
+		match = prefix_re.search(line)
+		if match:
+			filename = match.group(2)
+		if filename is None:
+			continue
+
+		if args.regex is not None:
+			if not re.match("^%s$" % args.regex, filename):
+				continue
+		else:
+			if not re.match("^%s$" % args.iregex, filename, re.IGNORECASE):
+				continue
+
+		match = hunk_re.search(line)
+		if match:
+			start_line = int(match.group(1))
+			line_count = 1
+			if match.group(2):
+				line_count = int(match.group(2))
+				if line_count == 0:
+					continue
+			end_line = start_line
+			if line_count != 0:
+				end_line += line_count - 1
+			lines_by_file.setdefault(filename, []).extend(
+				["-lines", f"{start_line}:{end_line}"]
+			)
+
+	had_diff = False
+	for filename, line_args in lines_by_file.items():
+		if args.i and args.verbose:
+			print(f"Formatting {filename}", file=sys.stderr)
+
+		command = [args.binary, filename]
+		if args.i:
+			command.append("-i")
+		if args.sort_includes:
+			command.append("-sort-includes")
+		command.extend(line_args)
+		if args.style:
+			command.extend(["-style", args.style])
+		if args.fallback_style:
+			command.extend(["-fallback-style", args.fallback_style])
+
+		# Binary pipes: do not force UTF-8 on clang-format stdout.
+		proc = subprocess.run(command, capture_output=True, check=False)
+		if proc.returncode != 0:
+			sys.stderr.buffer.write(proc.stderr)
+			return proc.returncode
+
+		if args.i:
+			continue
+
+		with open(filename, "rb") as f:
+			before = f.read().splitlines(keepends=True)
+		after = proc.stdout.splitlines(keepends=True)
+
+		# difflib needs str; latin-1 round-trips any byte unchanged.
+		before_s = [b.decode("latin-1") for b in before]
+		after_s = [b.decode("latin-1") for b in after]
+		diff_lines = list(
+			difflib.unified_diff(
+				before_s,
+				after_s,
+				filename,
+				filename,
+				"(before formatting)",
+				"(after formatting)",
+			)
+		)
+		if diff_lines:
+			had_diff = True
+			sys.stdout.buffer.write("".join(diff_lines).encode("latin-1"))
+
+	return 1 if had_diff else 0
+
+
+if __name__ == "__main__":
+	sys.exit(main())
