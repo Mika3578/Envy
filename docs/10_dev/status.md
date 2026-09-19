@@ -1,7 +1,7 @@
 # Envy implementation status
 
 Status: active
-Last updated: 2026-09-15
+Last updated: 2026-09-19
 Scope: Evidence-based protocol and architecture status for Envy on `develop`.
 Source of truth: Envy source under `Envy/`, tests under `tests/`, and the documents linked below. External projects are references only.
 
