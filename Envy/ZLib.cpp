@@ -117,15 +117,42 @@ BYTE* CZLib::Compress2(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nSug
 // Decompresses the memory into a new buffer this function allocates
 // Returns a pointer to the new buffer, and writes its size under pnOutput
 
+// Shared capped-grow helpers for Decompress / Decompress2 (#81).
+static DWORD ZLibSuggestOutput(DWORD nInput, DWORD nMaxOutput)
+{
+	if (nInput == 0)
+		return 0; // Empty input: reject without allocating nMaxOutput
+	DWORD nSuggest;
+	if (nInput > UINT_MAX / 4)
+		nSuggest = UINT_MAX;
+	else
+		nSuggest = nInput * 4;
+	if (nMaxOutput > 0 && nSuggest > nMaxOutput)
+		nSuggest = nMaxOutput;
+	return nSuggest;
+}
+
+static BOOL ZLibGrowSuggest(DWORD* pnSuggest, DWORD nMaxOutput)
+{
+	DWORD nSuggest = *pnSuggest;
+	if (nMaxOutput > 0 && nSuggest >= nMaxOutput)
+		return FALSE;
+	DWORD nNext;
+	if (nSuggest > UINT_MAX / 2)
+		nNext = UINT_MAX;
+	else
+		nNext = nSuggest * 2;
+	if (nMaxOutput > 0 && nNext > nMaxOutput)
+		nNext = nMaxOutput;
+	if (nNext <= nSuggest)
+		return FALSE;
+	*pnSuggest = nNext;
+	return TRUE;
+}
+
 auto_array<BYTE> CZLib::Decompress(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nMaxOutput)
 {
-	// Guess decompressed size (4x), grow on Z_BUF_ERROR. When nMaxOutput > 0,
-	// clamp the next attempt to nMaxOutput before rejecting (exact-capacity try).
-	DWORD nSuggest = nInput * 4;
-	if (nSuggest < nInput)
-		nSuggest = UINT_MAX; // overflow on huge input guess
-	if (nMaxOutput > 0 && (nSuggest == 0 || nSuggest > nMaxOutput))
-		nSuggest = nMaxOutput;
+	DWORD nSuggest = ZLibSuggestOutput(nInput, nMaxOutput);
 	if (nSuggest == 0)
 	{
 		*pnOutput = 0;
@@ -154,23 +181,11 @@ auto_array<BYTE> CZLib::Decompress(LPCVOID pInput, DWORD nInput, DWORD* pnOutput
 			return auto_array<BYTE>();
 		}
 
-		if (nMaxOutput > 0 && nSuggest >= nMaxOutput)
+		if (!ZLibGrowSuggest(&nSuggest, nMaxOutput))
 		{
 			*pnOutput = 0;
 			return auto_array<BYTE>(); // Would exceed zip-bomb cap
 		}
-
-		DWORD nNext = nSuggest * 2;
-		if (nNext < nSuggest)
-			nNext = UINT_MAX;
-		if (nMaxOutput > 0 && nNext > nMaxOutput)
-			nNext = nMaxOutput;
-		if (nNext <= nSuggest)
-		{
-			*pnOutput = 0;
-			return auto_array<BYTE>();
-		}
-		nSuggest = nNext;
 	}
 }
 
@@ -178,11 +193,7 @@ BYTE* CZLib::Decompress2(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nM
 {
 	BYTE* pBuffer = NULL;
 
-	DWORD nSuggest = nInput * 4;
-	if (nSuggest < nInput)
-		nSuggest = UINT_MAX;
-	if (nMaxOutput > 0 && (nSuggest == 0 || nSuggest > nMaxOutput))
-		nSuggest = nMaxOutput;
+	DWORD nSuggest = ZLibSuggestOutput(nInput, nMaxOutput);
 	if (nSuggest == 0)
 	{
 		*pnOutput = 0;
@@ -213,24 +224,11 @@ BYTE* CZLib::Decompress2(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nM
 			return NULL;
 		}
 
-		if (nMaxOutput > 0 && nSuggest >= nMaxOutput)
+		if (!ZLibGrowSuggest(&nSuggest, nMaxOutput))
 		{
 			free(pBuffer);
 			*pnOutput = 0;
 			return NULL;
 		}
-
-		DWORD nNext = nSuggest * 2;
-		if (nNext < nSuggest)
-			nNext = UINT_MAX;
-		if (nMaxOutput > 0 && nNext > nMaxOutput)
-			nNext = nMaxOutput;
-		if (nNext <= nSuggest)
-		{
-			free(pBuffer);
-			*pnOutput = 0;
-			return NULL;
-		}
-		nSuggest = nNext;
 	}
 }
