@@ -16,7 +16,7 @@ Protocol Engines (BT, G2, ED2K, Kad, DC, HTTP/FTP)
   ↕
 Storage/Metadata (Library, schemas, SQLite, cache)
   ↕
-Services + Plugins (zlib, bzip2, miniupnp, BugTrap, plugin DLLs)
+Services + Plugins (zlib, bzip2, miniupnp, plugin DLLs)
 ```
 
 ### Target shape (incremental)
@@ -27,7 +27,7 @@ Short form: EnvyCore + platform abstraction; MFC remains the Windows frontend;
 wire formats are never changed merely for portability.
 
 ## Main Components
-- **Application shell (`Envy/Envy.cpp`)**: startup, command-line options, global state, process control.
+- **Application shell (`Envy/Envy.cpp`)** — startup, command-line options, global state, process control, Crashpad crash capture (`CrashReporter` / `CrashPadHost`, Windows-only).
 - **Networking/protocol subsystem**: per-network handlers and transfer state machines.
 - **Library subsystem**: file indexing, metadata extraction, schema mapping, sharing rules.
 - **Remote management surface (`Remote/`)**: HTML templates for a **partial** browser UI. Not a JSON REST/RPC daemon. Planned native API: `docs/20_arch/remote-api.md`.

@@ -3,6 +3,9 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #90: `CopyCrashpadHandler.cmd` copies the configuration-matching vcpkg handler (`tools/crashpad_handler.exe` for Release, `debug/tools/crashpad_handler.exe` for Debug; `tools/crashpad/` accepted as fallback) instead of the first recursive `dir /s /b` hit.
+- **Changelog Entry:** 2026-09-19 — #90: `Envy.vcxproj` points `VcpkgManifestRoot` at the repo root and adds `vcpkg_installed` include/lib dirs so Crashpad `client/*.h` resolve (C1083 on PR #243). Handler copy and Inno Setup now require `crashpad_handler.exe`.
+- **Changelog Entry:** 2026-09-19 — #90: replace BugTrap with Crashpad (out-of-process `crashpad_handler.exe`, local DB, upload off; D-019). Next-launch GitHub UX kept; `CrashDumpWin.h` removed. Isolated crash-class probe in `tools/crash-probe/`.
 - **Changelog Entry:** 2026-09-19 — #87 slice: send-side ED2K `COMPRESSEDPART` / `COMPRESSEDPART_I64` in `CUploadTransferED2K::DispatchNextChunk()` (`Ed2kCompressedUpload.h`); peer `m_bEmDeflate==1` gate; eMule/aMule benefit fallback; EnvyTests smoke. Not full #87; live interop still #160.
 - **Changelog Entry:** 2026-09-19 — Kad2 source SEARCH_RES → `AddSourceED2K` (#86 slice): outstanding search context (keyword vs source); inbound eMule/aMule SEARCH_RES parse; HighID types 1/4 only; `KadSearchResDelivery.h` + EnvyTests. Kad2 remains partial/unverified; no capability advertise.
 - **Changelog Entry:** 2026-09-19 — Register `transfer_state_downloading_finished_not_importable` so #242 fail-closed Finished(Downloading) smoke actually runs (22/22 Linux g++).
@@ -192,6 +195,8 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - Skin engine **P0** input hardening (`SkinEngineP0.h`): StatusbarHeight registration,
   ParseRect `point`/`size`, roundRect validation, LoadFromXML section-failure
   aggregation (non-transactional), strict metric parse/clamp. HiDPI deferred.
+- **#90 crash reporting** — BugTrap removed. Crashpad local database + next-launch
+  opt-in GitHub issue workflow. No dump upload; `crashpad_handler.exe` beside `Envy.exe`.
 
 ### In Progress
 - **Envy 4.2.0 Preview 1 release readiness** — version/packaging PR; install/uninstall + network smoke tests still required before tagging `v4.2.0-preview.1` and publishing the draft GitHub prerelease.
@@ -380,6 +385,7 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 
 ## Decisions Log
 - **2026-09-19:** Remote automation (D-017, D-018): native REST `/api/v1` as source of truth; inbound API on Windows HTTP Server API (`http.sys`) dedicated port, not `CRemote`/P2P HTTP; outbound Torznab via `CHttpRequest`; first *arr adapter is a qBittorrent Web API v2 **subset**. Details: `docs/20_arch/AUDIT_REMOTE_API_2026-09.md`.
+- **2026-09-19:** #90 crash reporting uses Crashpad (vcpkg, out-of-process handler, local DB, upload off). Not Sentry Native, BugSplat, Breakpad, CrashRpt, or homemade `MiniDumpWriteDump`. Canonical: `docs/10_dev/crash-reporting.md` (D-019).
 - **2026-09-18:** Adopt cross-platform foundations (D-012…D-015): EnvyCore + platform abstraction + retained MFC Windows frontend; Linux/macOS `planned` not `supported`; Win32 legacy Stage A only; CMake portable slice prioritized over full-app CMake. Canonical doc: `docs/20_arch/PORTABILITY_PLAN.md`. Open question #1 resolved toward multi-OS **as a long-term target**, with Windows-first delivery.
 - **2026-09-17:** #140 wording: MiniUPnPc 2.0 targeted discovery is one receive phase for requested ST values, not a strict wall-clock SSDP deadline; absolute SSDP and HTTP timeout bounding → [#142](https://github.com/Mika3578/Envy/issues/142) / P3.
 - **2026-09-18:** #166 / D-009 P1 delivered: WFAS `INetFwPolicy2` replaces `INetFwMgr`; application rules on all profiles; UPnP via rule-group enable. Next: P2 LocalPort/ExternalPort.

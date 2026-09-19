@@ -306,6 +306,12 @@ Envy can download from multiple sources simultaneously:
 
 ## 📞 Support and Community
 
+### Crash reports
+
+If ENVY closes unexpectedly, the next launch may offer a local crash report.
+Reports live in `%LOCALAPPDATA%\Envy\CrashReports\`. Nothing is uploaded.
+See [Crash reports](crash-reports.md).
+
 ### Official Resources
 
 - **Documentation**: Comprehensive user guides

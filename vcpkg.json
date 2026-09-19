@@ -12,7 +12,8 @@
     "bzip2",
     "sqlite3",
     "miniupnpc",
-    "openssl"
+    "openssl",
+    "crashpad"
   ],
   "features": {
     "tests": {

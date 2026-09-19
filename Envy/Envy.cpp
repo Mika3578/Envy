@@ -17,6 +17,7 @@
 #include "StdAfx.h"
 #include "Settings.h"
 #include "Envy.h"
+#include "CrashReporter.h"
 #include "SecureRandom.h"
 #include "CoolInterface.h"
 #include <versionhelpers.h>
@@ -274,18 +275,7 @@ CEnvyApp::CEnvyApp()
 	ZeroMemory( m_nVersion, sizeof( m_nVersion ) );
 	ZeroMemory( m_pBTVersion, sizeof( m_pBTVersion ) );
 
-// BugTrap (www.intellesoft.net)
-#ifdef _DEBUG
-	BT_InstallSehFilter();
-	BT_SetTerminate();
-//	BT_SetAppName( CLIENT_NAME );		// Below
-//	BT_SetAppVersion( m_sVersionLong );	// Below
-	BT_SetFlags( BTF_INTERCEPTSUEF | BTF_SHOWADVANCEDUI | BTF_DESCRIBEERROR | BTF_DETAILEDMODE | BTF_ATTACHREPORT | BTF_EDITMAIL );
-	BT_SetSupportURL( L"http://getenvy.com" );
-	BT_SetSupportEMail( L"getenvy-reports@lists.sourceforge.net" );
-//	BT_SetSupportServer( L"http://bugtrap.getenvy.com/RequestHandler.aspx", 80 );
-	BT_AddRegFile( L"Settings.reg", L"HKEY_CURRENT_USER\\" REGISTRY_KEY );
-#endif
+	CrashReporter::Initialize();
 }
 
 CEnvyApp::~CEnvyApp()
@@ -300,6 +290,7 @@ CEnvyApp::~CEnvyApp()
 BOOL CEnvyApp::InitInstance()
 {
 	CWinApp::InitInstance();
+	CrashReporter::Initialize();
 
 	CWinApp::SetRegistryKey( CLIENT_NAME );
 
@@ -424,6 +415,7 @@ BOOL CEnvyApp::InitInstance()
 	// END NO PUBLIC RELEASE
 	// *********************
 
+	CrashReporter::ShowStartupPromptIfNeeded();
 
 	// Go Live
 
@@ -841,6 +833,7 @@ int CEnvyApp::ExitInstance()
 			delete m_oMessages.RemoveHead();
 	}
 
+	CrashReporter::Shutdown();
 	return CWinApp::ExitInstance();
 }
 
@@ -1523,10 +1516,17 @@ void CEnvyApp::GetVersionNumber()
 	L"";
 #endif
 
-#ifdef _DEBUG	// BugTrap
-	BT_SetAppName( CLIENT_NAME );
-	BT_SetAppVersion( m_sVersionLong );
+#ifdef __REVISION__
+	const wchar_t* pszCrashRevision = _T(__REVISION__);
+#else
+	const wchar_t* pszCrashRevision = L"";
 #endif
+#ifdef _DEBUG
+	const wchar_t* pszCrashBuildType = L"Debug";
+#else
+	const wchar_t* pszCrashBuildType = L"Release";
+#endif
+	CrashReporter::SetIdentity(m_sVersion, pszCrashRevision, pszCrashBuildType);
 
 
 	// Determine the version of Windows

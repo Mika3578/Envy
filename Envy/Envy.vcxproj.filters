@@ -144,6 +144,12 @@
     <ClCompile Include="CoolMenu.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CrashPadHost.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CrashReporter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="CrawlSession.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1671,6 +1677,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CoolMenu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CrashPadHost.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CrashReporter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CrashReportPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CrawlSession.h">

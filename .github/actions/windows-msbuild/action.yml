@@ -244,9 +244,22 @@ runs:
       with:
         name: envy-${{ inputs.platform }}-${{ inputs.configuration }}
         path: |
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.exe
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.pdb
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_handler.exe
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_wer.dll
           Envy/**/Release/*.exe
           Envy/**/Release/*.dll
           Plugins/**/Release/*.dll
           Builds/**
         if-no-files-found: warn
         retention-days: 14
+
+    - name: Upload Release PDBs
+      if: ${{ success() && inputs.upload-binaries == 'true' && inputs.configuration == 'Release' }}
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6
+      with:
+        name: envy-pdb-${{ inputs.platform }}-${{ inputs.configuration }}
+        path: Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.pdb
+        if-no-files-found: warn
+        retention-days: 90
