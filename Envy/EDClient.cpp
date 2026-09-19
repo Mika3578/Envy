@@ -1211,8 +1211,9 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 			return OnEmuleInfo( pPacket );
 
 		case ED2K_C2C_COMPRESSEDPART:
-			if ( m_pDownloadTransfer ) m_pDownloadTransfer->OnCompressedPart( pPacket );
-			return TRUE;
+			return m_pDownloadTransfer
+			           ? m_pDownloadTransfer->OnCompressedPart(pPacket)
+			           : TRUE;
 		case ED2K_C2C_QUEUERANKING:
 			if ( m_pDownloadTransfer ) m_pDownloadTransfer->OnRankingInfo( pPacket );
 			return TRUE;
@@ -1243,8 +1244,9 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 			if ( m_pDownloadTransfer ) m_pDownloadTransfer->OnSendingPart64( pPacket );
 			return TRUE;
 		case ED2K_C2C_COMPRESSEDPART_I64:
-			if ( m_pDownloadTransfer ) m_pDownloadTransfer->OnCompressedPart64( pPacket );
-			return TRUE;
+			return m_pDownloadTransfer
+			           ? m_pDownloadTransfer->OnCompressedPart64(pPacket)
+			           : TRUE;
 
 		// Chat
 		case ED2K_C2C_CHATCAPTCHAREQ:
@@ -2341,8 +2343,8 @@ BOOL CEDClient::OnQueueRequest(CEDPacket* /*pPacket*/)
 
 BOOL CEDClient::OnChatMessage(CEDPacket* pPacket)
 {
-	static_assert( ED2K_CHAT_MESSAGE_MAX == ED2K_MESSAGE_MAX,
-		"PacketLengthValidate ED2K_CHAT_MESSAGE_MAX must match EDPacket.h ED2K_MESSAGE_MAX" );
+	static_assert(ED2K_CHAT_MESSAGE_MAX == ED2K_MESSAGE_MAX,
+	              "PacketLengthValidate ED2K_CHAT_MESSAGE_MAX must match EDPacket.h ED2K_MESSAGE_MAX");
 
 	// Check packet has message length
 	if ( pPacket->GetRemaining() < 3 )
@@ -2355,7 +2357,7 @@ BOOL CEDClient::OnChatMessage(CEDPacket* pPacket)
 	DWORD nMessageLength = pPacket->ReadShortLE();
 
 	// Validate message length (exact remaining fit + ED2K_MESSAGE_MAX)
-	if ( ! Ed2kChatMessageLengthOk( nMessageLength, pPacket->GetRemaining() ) )
+	if (!Ed2kChatMessageLengthOk(nMessageLength, pPacket->GetRemaining()))
 	{
 		theApp.Message( MSG_ERROR, L"Invalid message packet received from %s", (LPCTSTR)m_sAddress );
 		return TRUE;

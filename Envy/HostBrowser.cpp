@@ -1,7 +1,7 @@
 //
 // HostBrowser.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -23,6 +23,7 @@
 #include "WndBrowseHost.h"
 #include "Network.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 #include "G1Packet.h"
 #include "G2Packet.h"
 #include "EDPacket.h"
@@ -44,6 +45,33 @@
 static char THIS_FILE[] = __FILE__;
 #define new DEBUG_NEW
 #endif	// Debug
+
+
+namespace
+{
+// HTTP Content-Length must be a single unsigned decimal; reject "1junk" / "1 2".
+BOOL ParseHttpContentLengthDecimal(const CString& strValue, QWORD& nLength)
+{
+	CString s(strValue);
+	s.Trim();
+	if (s.IsEmpty())
+		return FALSE;
+
+	QWORD n = 0;
+	for (int i = 0; i < s.GetLength(); ++i)
+	{
+		const TCHAR ch = s.GetAt(i);
+		if (ch < _T('0') || ch > _T('9'))
+			return FALSE;
+		const QWORD d = static_cast<QWORD>(ch - _T('0'));
+		if (n > (~0ull - d) / 10ull)
+			return FALSE;
+		n = n * 10ull + d;
+	}
+	nLength = n;
+	return TRUE;
+}
+}
 
 
 //////////////////////////////////////////////////////////////////////
@@ -326,7 +354,15 @@ void CHostBrowser::OnDropped()
 		{
 			if ( m_nLength == SIZE_UNKNOWN )
 			{
-				m_nLength = GetInputLength();
+				// m_nReceived already counts prior ReadContent; GetInputLength is only residual.
+				const QWORD nTotal = QWORD(m_nReceived) + GetInputLength();
+				if (!HostBrowserHttpBodyOk(nTotal))
+				{
+					theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
+					Stop();
+					return;
+				}
+				m_nLength = nTotal;
 				ReadContent();
 				return;
 			}
@@ -449,20 +485,9 @@ BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits)
 	if ( ! pFile.Open( pszFile, CFile::modeRead | CFile::shareDenyWrite ) )
 		return FALSE;	// File open error
 
-	UINT nInSize = (UINT)pFile.GetLength();
-	if ( ! nInSize )
-		return FALSE;	// Empty file
-
 	CBuffer pBuffer;
-	if ( ! pBuffer.EnsureBuffer( nInSize ) )
-		return FALSE;	// Out of memory
-
-	if ( pFile.Read( pBuffer.GetData(), nInSize ) != nInSize )
-		return FALSE;	// File read error
-	pBuffer.m_nLength = nInSize;
-
-	if ( ! pBuffer.UnBZip() )
-		return FALSE;	// Decompression error
+	if (!pBuffer.LoadFromBZipFile(pFile, CBUFFER_UNBZIP_MAX))
+		return FALSE; // Empty/oversized/read/decompress error
 
 	augment::auto_ptr< CXMLElement > pXML ( CXMLElement::FromString( pBuffer.ReadString( pBuffer.m_nLength, CP_UTF8 ), TRUE ) );
 	if ( ! pXML.get() )
@@ -680,7 +705,20 @@ BOOL CHostBrowser::OnHeaderLine(CString& strHeader, CString& strValue)
 	}
 	else if ( strHeader.CompareNoCase( L"Content-Length" ) == 0 )
 	{
-		_stscanf( strValue, L"%I64u", &m_nLength );
+		QWORD nLength = 0;
+		if (!ParseHttpContentLengthDecimal(strValue, nLength) || !HostBrowserHttpBodyOk(nLength))
+		{
+			theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
+			Stop();
+			return FALSE;
+		}
+		if (m_nLength != SIZE_UNKNOWN && m_nLength != nLength)
+		{
+			theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
+			Stop();
+			return FALSE;
+		}
+		m_nLength = nLength;
 	}
 
 	return TRUE;
@@ -693,7 +731,8 @@ BOOL CHostBrowser::OnHeadersComplete()
 	if ( m_nState == hbsContent )
 		return TRUE;
 
-	if ( m_nProtocol == PROTOCOL_ANY || m_nLength == 0 )
+	if (m_nProtocol == PROTOCOL_ANY || m_nLength == 0 ||
+	    (m_nLength != SIZE_UNKNOWN && !HostBrowserHttpBodyOk(m_nLength)))
 	{
 		theApp.Message( MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress );
 		Stop();
@@ -725,16 +764,38 @@ BOOL CHostBrowser::ReadContent()
 			CLockedBuffer pInput( GetInput() );
 
 			DWORD nVolume = min( DWORD( m_nLength - m_nReceived ), pInput->m_nLength );
-			m_nReceived += nVolume;
+
+			// Close-delimited bodies: refuse if residual input alone would exceed the cap.
+			if (m_nLength == SIZE_UNKNOWN &&
+			    !HostBrowserHttpBufferOk(QWORD(m_nReceived) + pInput->m_nLength))
+			{
+				theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
+				Stop();
+				return FALSE;
+			}
 
 			if ( ! m_bDeflate )
 			{
+				if (!HostBrowserHttpBufferOk((QWORD)m_pBuffer->m_nLength + nVolume))
+				{
+					theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
+					Stop();
+					return FALSE;
+				}
+				m_nReceived += nVolume;
 				m_pBuffer->AddBuffer( pInput, nVolume );
 			}
-			else if ( ! pInput->InflateStreamTo( *m_pBuffer, m_pInflate ) )		// Try to decompress the stream
+			else
 			{
-				Stop();			// Clean up
-				return FALSE;	// Report failure
+				m_nReceived += nVolume;
+				// Cap inflate before allocation; InflateStreamTo fail-closes past nMaxOutput.
+				if (!pInput->InflateStreamTo(*m_pBuffer, m_pInflate, NULL,
+				                             static_cast<DWORD>(HOST_BROWSER_HTTP_BODY_MAX)))
+				{
+					theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
+					Stop();
+					return FALSE;
+				}
 			}
 		}
 	}
