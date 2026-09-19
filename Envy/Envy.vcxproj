@@ -77,6 +77,17 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30128.1</_ProjectFileVersion>
+    <!-- Envy.vcxproj lives in Envy/; vcpkg.json and vcpkg_installed/ are at the repo root.
+         Without VcpkgManifestRoot, MSBuild vcpkg integration looks next to this project and
+         never adds Crashpad's include/lib dirs (C1083 client/crash_report_database.h). -->
+    <VcpkgEnabled>true</VcpkgEnabled>
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgManifestRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</VcpkgManifestRoot>
+    <VcpkgTriplet Condition="'$(VcpkgTriplet)'=='' AND '$(Platform)'=='x64'">x64-windows-static</VcpkgTriplet>
+    <VcpkgTriplet Condition="'$(VcpkgTriplet)'=='' AND ('$(Platform)'=='Win32' OR '$(Platform)'=='x86')">x86-windows-static</VcpkgTriplet>
+    <EnvyVcpkgInstalled>$(VcpkgManifestRoot)\vcpkg_installed\$(VcpkgTriplet)</EnvyVcpkgInstalled>
+    <EnvyVcpkgLibDir Condition="'$(Configuration)'=='Debug'">$(EnvyVcpkgInstalled)\debug\lib</EnvyVcpkgLibDir>
+    <EnvyVcpkgLibDir Condition="'$(Configuration)'!='Debug'">$(EnvyVcpkgInstalled)\lib</EnvyVcpkgLibDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration) $(Platform)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration) $(Platform)\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
@@ -104,7 +115,7 @@
       <ConformanceMode>false</ConformanceMode>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_ENVY;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_MSC_PLATFORM_TOOLSET=$(PlatformToolsetVersion);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\Services;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(EnvyVcpkgInstalled)\include;$(EnvyVcpkgInstalled)\include\crashpad;..\Services;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Wall /Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <SDLCheck>true</SDLCheck>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -127,6 +138,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>secur32.lib;rasapi32.lib;winmm.lib;version.lib;ws2_32.lib;wininet.lib;Iphlpapi.lib;msi.lib;powrprof.lib;mstask.lib;rpcrt4.lib;dbghelp.lib;winhttp.lib;crypt32.lib;wintrust.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;vcpkg_crashpad_base.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(EnvyVcpkgLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DelayLoadDLLs>rasapi32.dll;winmm.dll;version.dll;ws2_32.dll;wininet.dll;iphlpapi.dll;msi.dll;powrprof.dll;winspool.drv;comctl32.dll;oledlg.dll;ole32.dll;oleaut32.dll;oleacc.dll;urlmon.dll;msimg32.dll;advapi32.dll;shell32.dll;shlwapi.dll</DelayLoadDLLs>
       <!--gdiplus.dll;comdlg32.dll;secur32.dll;imm32.dll-->
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -169,7 +181,7 @@ call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)
       <ConformanceMode>false</ConformanceMode>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;WIN64;_WINDOWS;_ENVY;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_MSC_PLATFORM_TOOLSET=$(PlatformToolsetVersion);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\Services;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(EnvyVcpkgInstalled)\include;$(EnvyVcpkgInstalled)\include\crashpad;..\Services;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Wall /Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <SDLCheck>true</SDLCheck>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -191,6 +203,7 @@ call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>secur32.lib;rasapi32.lib;winmm.lib;version.lib;ws2_32.lib;wininet.lib;Iphlpapi.lib;msi.lib;powrprof.lib;mstask.lib;rpcrt4.lib;dbghelp.lib;winhttp.lib;crypt32.lib;wintrust.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;vcpkg_crashpad_base.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(EnvyVcpkgLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DelayLoadDLLs>rasapi32.dll;winmm.dll;version.dll;ws2_32.dll;wininet.dll;iphlpapi.dll;msi.dll;powrprof.dll;winspool.drv;comctl32.dll;oledlg.dll;ole32.dll;oleaut32.dll;oleacc.dll;urlmon.dll;msimg32.dll;advapi32.dll;shell32.dll;shlwapi.dll</DelayLoadDLLs>
       <!--gdiplus.dll;comdlg32.dll;secur32.dll;imm32.dll-->
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -233,7 +246,7 @@ call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)
       <Optimization>Full</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_ENVY;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_MSC_PLATFORM_TOOLSET=$(PlatformToolsetVersion);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\Services;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(EnvyVcpkgInstalled)\include;$(EnvyVcpkgInstalled)\include\crashpad;..\Services;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Wall /Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -260,6 +273,7 @@ call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>secur32.lib;rasapi32.lib;winmm.lib;version.lib;ws2_32.lib;wininet.lib;Iphlpapi.lib;msi.lib;powrprof.lib;mstask.lib;rpcrt4.lib;dbghelp.lib;winhttp.lib;crypt32.lib;wintrust.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;vcpkg_crashpad_base.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(EnvyVcpkgLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DelayLoadDLLs>rasapi32.dll;winmm.dll;version.dll;ws2_32.dll;wininet.dll;iphlpapi.dll;msi.dll;powrprof.dll;winspool.drv;comctl32.dll;oledlg.dll;ole32.dll;oleaut32.dll;oleacc.dll;urlmon.dll;msimg32.dll;advapi32.dll;shell32.dll;shlwapi.dll</DelayLoadDLLs>
       <!--gdiplus.dll;comdlg32.dll;secur32.dll;imm32.dll-->
       <OptimizeReferences>true</OptimizeReferences>
@@ -306,7 +320,7 @@ call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)
       <Optimization>Full</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <PreprocessorDefinitions>NDEBUG;WIN64;_WINDOWS;_ENVY;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_MSC_PLATFORM_TOOLSET=$(PlatformToolsetVersion);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\Services;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(EnvyVcpkgInstalled)\include;$(EnvyVcpkgInstalled)\include\crashpad;..\Services;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Wall /Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -333,6 +347,7 @@ call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>secur32.lib;rasapi32.lib;winmm.lib;version.lib;ws2_32.lib;wininet.lib;Iphlpapi.lib;msi.lib;powrprof.lib;mstask.lib;rpcrt4.lib;dbghelp.lib;winhttp.lib;crypt32.lib;wintrust.lib;vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;vcpkg_crashpad_base.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(EnvyVcpkgLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DelayLoadDLLs>rasapi32.dll;winmm.dll;version.dll;ws2_32.dll;wininet.dll;iphlpapi.dll;msi.dll;powrprof.dll;winspool.drv;comctl32.dll;oledlg.dll;ole32.dll;oleaut32.dll;oleacc.dll;urlmon.dll;msimg32.dll;advapi32.dll;shell32.dll;shlwapi.dll</DelayLoadDLLs>
       <!--gdiplus.dll;comdlg32.dll;secur32.dll;imm32.dll-->
       <OptimizeReferences>true</OptimizeReferences>

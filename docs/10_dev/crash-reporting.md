@@ -115,9 +115,18 @@ WinDbg / Visual Studio with that `Envy.pdb` on the symbol path.
 
 - Root `vcpkg.json` depends on `crashpad` (same `builtin-baseline` as the rest
   of ENVY). `Visual Studio/Envy.sln` remains the authoritative app build.
+- `Envy/Envy.vcxproj` sets `VcpkgManifestRoot` to the repository root and adds
+  `vcpkg_installed/<triplet>/include` (and `include/crashpad`) plus the matching
+  `lib` / `debug/lib` directory. The project directory is `Envy/`, and
+  `AdditionalIncludeDirectories` historically listed only `..\Services`, so
+  MSBuild vcpkg integration does not see Crashpad headers unless the manifest
+  root is explicit.
 - `Envy/CopyCrashpadHandler.cmd` copies `crashpad_handler.exe` (and
-  `crashpad_wer*.dll` if the port produces it) next to `Envy.exe`.
-- Inno Setup copies the handler into `{app}`. PDBs stay out of the installer.
+  `crashpad_wer*.dll` if the port produces it) next to `Envy.exe`. The copy
+  fails the build if the handler is missing.
+- Inno Setup copies the handler into `{app}` (required). `crashpad_wer.dll` is
+  optional (`skipifsourcedoesntexist`) because the current vcpkg port installs
+  `handler:crashpad_handler` only. PDBs stay out of the installer.
 
 ## Wire format
 
