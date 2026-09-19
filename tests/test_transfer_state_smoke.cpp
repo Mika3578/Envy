@@ -220,4 +220,5 @@ void register_transfer_state_smoke_tests(TestSuite& suite)
 	suite.add_test("transfer_state_unknown_fail_closed", test_unknown_never_looks_complete);
 	suite.add_test("transfer_state_transmission_map", test_transmission_seed_and_stop);
 	suite.add_test("transfer_state_metadata_not_importable", test_metadata_finished_is_error_not_importable);
+	suite.add_test("transfer_state_downloading_finished_not_importable", test_downloading_finished_is_error_not_importable);
 }
