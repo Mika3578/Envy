@@ -44,6 +44,7 @@ END_MESSAGE_MAP()
 // CUpdateServersDlg dialog
 
 CUpdateServersDlg::CUpdateServersDlg(CWnd* pParent)
+    // clang-format 18 BeforeComma: four spaces, not tabs.
     : CSkinDialog(CUpdateServersDlg::IDD, pParent)
     , m_nMode(UpdateServersDlgMode::eDonkey)
 {
