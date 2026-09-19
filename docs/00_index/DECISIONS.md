@@ -22,6 +22,15 @@ Use this file to record decisions that affect architecture, protocol compatibili
 - **Consequences:** #91/#161/#89 proceed Windows-first under the portability plan; no required Linux/macOS CI until portable code exists; no Win32 removal without evidence.
 - **References:** `docs/20_arch/PORTABILITY_PLAN.md`, `docs/ARCHITECTURE.md`.
 
+### Decision: Remote API stack and *arr adapter
+- **Date:** 2026-09-19
+- **Status:** accepted
+- **ID:** D-017, D-018 in `docs/DECISIONS.md`
+- **Context:** Automation (Radarr/Prowlarr/Jackett) needs a real API layer, not HTML Remote query-RPC, and must not mix Torznab search with download-client control.
+- **Decision:** Native REST `/api/v1`; inbound `http.sys` on a dedicated localhost port; Torznab via `CHttpRequest`; first *arr adapter is a qBittorrent Web API v2 **subset**.
+- **Consequences:** No new HTTP frameworks; no “qBittorrent-compatible” wording until tests; Transmission deferred; OpenAPI only implemented+planned.
+- **References:** `docs/20_arch/AUDIT_REMOTE_API_2026-09.md`, `docs/20_arch/remote-api.md`.
+
 ## Template
 
 ### Decision: <short title>

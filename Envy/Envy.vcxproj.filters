@@ -1991,6 +1991,9 @@
     <ClInclude Include="TransferSettingsLimits.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TransferState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="SkinEngineP0.h">
       <Filter>Header Files</Filter>
     </ClInclude>

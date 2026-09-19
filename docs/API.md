@@ -1,36 +1,25 @@
 # API Documentation
 
 ## Scope
-This repository contains remote-control API documentation in `Remote/api-specification.md`. That file appears to describe intended/target JSON API behavior for the remote UI and should be treated as a design-level spec unless verified against server-side handlers.
 
-## Authentication Model (documented)
-Expected headers include:
-- `Authorization: Bearer <token>`
-- `X-Session-ID: <session_id>`
-- `X-CSRF-Token: <csrf_token>`
+There are **three** automation surfaces. They are not interchangeable.
 
-## Documented Endpoint Families
-- `/api/downloads`
-- `/api/uploads`
-- `/api/searches`
-- `/api/system` (in spec document)
+| Surface | Status | Canonical docs |
+| --- | --- | --- |
+| Native ENVY control API (`/api/v1`) | **planned** | [`docs/20_arch/remote-api.md`](20_arch/remote-api.md), [`docs/api/openapi.yaml`](api/openapi.yaml) |
+| qBittorrent Web API **subset** for *arr | **planned** | [`docs/20_arch/arr-integration.md`](20_arch/arr-integration.md) |
+| Torznab **client** (Prowlarr/Jackett) | **planned** | [`docs/20_arch/torznab.md`](20_arch/torznab.md) |
+| HTML Remote UI (`/remote/`) | **partial** | `Envy/Remote.cpp` — browser control, not a JSON engine API |
+| `Remote/api-specification.md` | **obsolete design** | JS `/api/*` calls have **no** C++ handlers |
 
-## Response Contract (documented)
-Spec uses a common envelope:
-```json
-{
-  "success": true,
-  "data": {},
-  "message": "optional",
-  "error": null,
-  "timestamp": 0
-}
-```
+Audit (2026-09): [`docs/20_arch/AUDIT_REMOTE_API_2026-09.md`](20_arch/AUDIT_REMOTE_API_2026-09.md).
 
-## Verification Status
-- This repository pass did **not** execute end-to-end API integration tests against a running Envy instance.
-- Remote/Web is a limited control surface, not a headless JSON-RPC/REST engine API. A daemon/CLI/RPC is **planned** (P1); see `docs/DEVELOPMENT_PLAN.md` and `docs/10_dev/status.md`.
-- Before relying on this API in external tooling, validate each endpoint against live behavior and update this document with confirmed contracts.
+Do not call Envy “Radarr-compatible” or “qBittorrent-compatible” until interoperability tests exist.
 
-## Source of Truth
-- `Remote/api-specification.md` (current design/spec reference)
+## Native authentication (planned)
+
+`Authorization: Bearer <token>`. Cookie/CSRF remains for the HTML Remote UI only.
+
+## Verification
+
+This tree does not ship a served JSON API. Headless/daemon is **planned** (#161). Validate each future route against live handlers before relying on it from external tools.

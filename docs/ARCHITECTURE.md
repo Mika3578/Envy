@@ -30,7 +30,7 @@ wire formats are never changed merely for portability.
 - **Application shell (`Envy/Envy.cpp`)**: startup, command-line options, global state, process control.
 - **Networking/protocol subsystem**: per-network handlers and transfer state machines.
 - **Library subsystem**: file indexing, metadata extraction, schema mapping, sharing rules.
-- **Remote management surface (`Remote/`)**: HTML templates and JS assets for remote control UX (limited; not a headless JSON-RPC daemon).
+- **Remote management surface (`Remote/`)**: HTML templates for a **partial** browser UI. Not a JSON REST/RPC daemon. Planned native API: `docs/20_arch/remote-api.md`.
 - **Plugin host (`Plugins/`)**: media handlers, readers/builders, integration modules.
 
 ## EnvyCore interface rule (new work)
