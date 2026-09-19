@@ -2494,6 +2494,21 @@ BOOL CEDClient::OnAskSharedDirs(CEDPacket* /*pPacket*/)
 
 BOOL CEDClient::OnViewSharedDir(CEDPacket* pPacket)
 {
+	// Wire: <len 2><Directory len> — reject before ReadEDString can throw / clamp.
+	if (!Ed2kEdStringHeaderOk(pPacket->GetRemaining()))
+	{
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
+		return TRUE;
+	}
+
+	const DWORD nDirPos = pPacket->m_nPosition;
+	const WORD nDirLen = pPacket->ReadShortLE();
+	if (!Ed2kEdStringPayloadOk(nDirLen, pPacket->GetRemaining()))
+	{
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
+		return TRUE;
+	}
+	pPacket->m_nPosition = nDirPos;
 	CString strDir = pPacket->ReadEDString( m_bEmUnicode );
 
 	if ( Settings.Community.ServeFiles )
@@ -2678,10 +2693,22 @@ BOOL CEDClient::OnAskSharedDirsAnswer(CEDPacket* pPacket)
 		// Read number of directories
 		DWORD nCount = pPacket->ReadLongLE();
 
-		for ( DWORD i = 0; i < nCount; i++ )
+		for (DWORD i = 0; i < nCount; i++)
 		{
-			if ( pPacket->GetRemaining() < 2 )
+			if (!Ed2kEdStringHeaderOk(pPacket->GetRemaining()))
+			{
+				theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 				break;
+			}
+
+			const DWORD nDirPos = pPacket->m_nPosition;
+			const WORD nDirLen = pPacket->ReadShortLE();
+			if (!Ed2kEdStringPayloadOk(nDirLen, pPacket->GetRemaining()))
+			{
+				theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
+				break;
+			}
+			pPacket->m_nPosition = nDirPos;
 
 			// Read directory name
 			CString strDir = pPacket->ReadEDString( m_bEmUnicode );
@@ -2710,38 +2737,56 @@ BOOL CEDClient::OnViewSharedDirAnswer(CEDPacket* pPacket)
 
 	CQueryHit* pHits = NULL;
 
-	if ( pPacket->GetRemaining() >= 2 )
+	// Wire: <len 2><Directory len><count 4>(file records)...
+	// Must consume the directory name before reading nCount; skipping it
+	// desyncs the count into the string length/bytes (browse-host corruption).
+	if (!Ed2kEdStringHeaderOk(pPacket->GetRemaining()))
 	{
-		// Read original directory name (Unused)
-		//CString strDir = pPacket->ReadEDString( m_bEmUnicode );
-
-		if ( pPacket->GetRemaining() >= 4 )
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
+	}
+	else
+	{
+		const WORD nDirLen = pPacket->ReadShortLE();
+		if (!Ed2kEdStringPayloadOk(nDirLen, pPacket->GetRemaining()))
 		{
-			// Read number of files
-			DWORD nCount = pPacket->ReadLongLE();
+			theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
+		}
+		else
+		{
+			if (nDirLen)
+				pPacket->Seek(nDirLen, CPacket::seekCurrent);
 
-			for ( DWORD i = 0; i < nCount; i++ )
+			if (pPacket->GetRemaining() < 4)
 			{
-				if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 4 + 2 + 4 )
-					break;
+				theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
+			}
+			else
+			{
+				const DWORD nCount = pPacket->ReadLongLE();
 
-				CQueryHit* pHit = new CQueryHit( PROTOCOL_ED2K );
+				for (DWORD i = 0; i < nCount; i++)
+				{
+					if (pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 4 + 2 + 4)
+						break;
 
-				pHit->m_bBrowseHost = TRUE;
-				pHit->m_bChat = TRUE;
-				pHit->m_pVendor = VendorCache.Lookup( L"ED2K" );
-				if ( ! pHit->m_pVendor )
-					pHit->m_pVendor = VendorCache.m_pNull;
+					CQueryHit* pHit = new CQueryHit(PROTOCOL_ED2K);
 
-				pHit->ReadEDPacket( pPacket, &m_pServer, m_bEmUnicode );
+					pHit->m_bBrowseHost = TRUE;
+					pHit->m_bChat = TRUE;
+					pHit->m_pVendor = VendorCache.Lookup(L"ED2K");
+					if (!pHit->m_pVendor)
+						pHit->m_pVendor = VendorCache.m_pNull;
 
-				pHit->m_pAddress = m_pHost.sin_addr;
-				pHit->m_nPort = ntohs( m_pHost.sin_port );
+					pHit->ReadEDPacket(pPacket, &m_pServer, m_bEmUnicode);
 
-				pHit->Resolve();
+					pHit->m_pAddress = m_pHost.sin_addr;
+					pHit->m_nPort = ntohs(m_pHost.sin_port);
 
-				pHit->m_pNext = pHits;
-				pHits = pHit;
+					pHit->Resolve();
+
+					pHit->m_pNext = pHits;
+					pHits = pHit;
+				}
 			}
 		}
 	}
