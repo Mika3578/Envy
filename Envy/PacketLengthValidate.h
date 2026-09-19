@@ -452,6 +452,14 @@ inline BOOL DiscoveryHttpResponseOk(DWORD nLength)
 	return nLength > 0 && nLength <= DISCOVERY_HTTP_RESPONSE_MAX;
 }
 
+// Cap for Update Servers dialog HTTP downloads (user/server-list URL) (#81/#82).
+constexpr DWORD UPDATE_SERVERS_HTTP_RESPONSE_MAX = 32u * 1024u * 1024u;
+
+inline BOOL UpdateServersHttpResponseOk(DWORD nLength)
+{
+	return nLength > 0 && nLength <= UPDATE_SERVERS_HTTP_RESPONSE_MAX;
+}
+
 // Cap for Browse Host HTTP response bodies (peer Content-Length / buffered body) (#81/#82).
 constexpr std::uint64_t HOST_BROWSER_HTTP_BODY_MAX = 32ull * 1024ull * 1024ull;
 

@@ -292,13 +292,12 @@ void CHttpRequest::OnRun()
 					m_pResponse->m_nLength += nRead;
 					if (m_nLimit > 0 && m_pResponse->m_nLength >= m_nLimit)
 					{
-						// Reject if the peer still has more body beyond the cap.
-						DWORD nMore = 0;
-						if (InternetQueryDataAvailable(hURL, &nMore, 0, 0) && nMore > 0)
-						{
-							delete m_pResponse;
-							m_pResponse = NULL;
-						}
+						// Hitting the cap means the body is at least this large.
+						// Always fail-closed (do not keep a truncated buffer that
+						// callers could treat as a complete response); chunked
+						// transfers may report nMore==0 before more bytes arrive.
+						delete m_pResponse;
+						m_pResponse = NULL;
 						break;
 					}
 				}
