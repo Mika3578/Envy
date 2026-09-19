@@ -292,12 +292,20 @@ void CHttpRequest::OnRun()
 					m_pResponse->m_nLength += nRead;
 					if (m_nLimit > 0 && m_pResponse->m_nLength >= m_nLimit)
 					{
-						// Hitting the cap means the body is at least this large.
-						// Always fail-closed (do not keep a truncated buffer that
-						// callers could treat as a complete response); chunked
-						// transfers may report nMore==0 before more bytes arrive.
-						delete m_pResponse;
-						m_pResponse = NULL;
+						// Exact-limit bodies are valid for LimitContentLength callers
+						// (predicates use nLength <= max). Probe one more byte with
+						// InternetReadFile (not QueryDataAvailable): keep only on
+						// successful EOF (TRUE && nRead==0). Any further byte, or a
+						// probe failure, fail-closes so truncated/oversize bodies
+						// are never treated as complete (avoids chunked nMore==0 race).
+						BYTE nProbe = 0;
+						DWORD nProbeRead = 0;
+						if (!InternetReadFile(hURL, &nProbe, 1, &nProbeRead) ||
+						    nProbeRead > 0)
+						{
+							delete m_pResponse;
+							m_pResponse = NULL;
+						}
 						break;
 					}
 				}

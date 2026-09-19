@@ -708,6 +708,11 @@ static bool test_update_servers_http_response_bounds()
 	return UpdateServersHttpResponseOk(1) == TRUE && UpdateServersHttpResponseOk(UPDATE_SERVERS_HTTP_RESPONSE_MAX) == TRUE && UpdateServersHttpResponseOk(UPDATE_SERVERS_HTTP_RESPONSE_MAX + 1) == FALSE && UpdateServersHttpResponseOk(0) == FALSE;
 }
 
+static bool test_version_checker_http_response_bounds()
+{
+	return VersionCheckerHttpResponseOk(1) == TRUE && VersionCheckerHttpResponseOk(VERSION_CHECK_HTTP_RESPONSE_MAX) == TRUE && VersionCheckerHttpResponseOk(VERSION_CHECK_HTTP_RESPONSE_MAX + 1) == FALSE && VersionCheckerHttpResponseOk(0) == FALSE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("ed2k_source_body_exact_fit", test_source_body_valid_exact);
@@ -795,6 +800,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_tracker_http_response_bounds", test_bt_tracker_http_response_bounds );
 	suite.add_test( "discovery_http_response_bounds", test_discovery_http_response_bounds );
 	suite.add_test("update_servers_http_response_bounds", test_update_servers_http_response_bounds);
+	suite.add_test("version_checker_http_response_bounds", test_version_checker_http_response_bounds);
 	suite.add_test( "host_browser_http_body_bounds", test_host_browser_http_body_bounds );
 	suite.add_test( "cbuffer_inflate_output_ok", test_cbuffer_inflate_output_ok );
 	suite.add_test("cbuffer_inflate_stream_output_ok", test_cbuffer_inflate_stream_output_ok);
