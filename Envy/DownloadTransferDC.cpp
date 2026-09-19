@@ -329,9 +329,9 @@ BOOL CDownloadTransferDC::OnDownload(const std::string& strType, const std::stri
 
 	// Fail-closed: fixed $ADCGET requires equal $ADCSND length; until-end
 	// requests require a real announced length (no silent min() truncate).
-	if (!DcAdcSndLengthMatchesRequest(m_nLength, nLength))
+	if ( ! DcAdcSndLengthMatchesRequest( m_nLength, nLength ) )
 	{
-		Close(TRI_FALSE);
+		Close( TRI_FALSE );
 		return FALSE;
 	}
 	m_nLength = nLength;

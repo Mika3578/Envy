@@ -148,6 +148,24 @@ static bool test_bt_extension_length_with_bencode()
 	return BtExtensionPayloadLengthOk( 2 + 5 ) == TRUE;	// e.g. "d1:ae"
 }
 
+static bool test_bt_packet_length_ok()
+{
+	return BtPacketLengthOk(1) == TRUE && BtPacketLengthOk(BT_PACKET_LENGTH_MAX) == TRUE && BtPacketLengthOk(0) == FALSE && BtPacketLengthOk(BT_PACKET_LENGTH_MAX + 1) == FALSE;
+}
+
+static bool test_g2_subpacket_payload_fits()
+{
+	return G2SubpacketPayloadFits(100, 50, 8) == TRUE && G2SubpacketPayloadFits(100, 100, 0) == TRUE && G2SubpacketPayloadFits(100, 101, 0) == FALSE && G2SubpacketPayloadFits(100, 50, 51) == FALSE && G2SubpacketPayloadFits(100, 0xFFFFFFFA, 8) == FALSE;
+}
+
+static bool test_g2_frame_length_fits()
+{
+	// Exact frame = body + nLenLen + nTypeLen + 2 (control + type-len adjust).
+	return G2FrameLengthFits(64, 50, 1, 3) == TRUE && G2FrameLengthFits(106, 100, 1, 3) == TRUE &&
+	       G2FrameLengthFits(105, 100, 1, 3) == FALSE && G2FrameLengthFits(10, 0xFFFFFFF0, 1, 3) == FALSE &&
+	       G2FrameLengthFits(104, 100, 1, 3) == FALSE && G2FrameLengthFits(100, 50, 0xFFFFFFF0, 3) == FALSE;
+}
+
 static bool test_g1_deflate_truncated_marker_only()
 {
 	return G1QueryHitDeflateXmlLengthOk( 9 ) == FALSE;
@@ -183,6 +201,23 @@ static bool test_g1_packet_total_length_ok()
 		&& G1PacketTotalLengthOk( 1, G1_PACKET_HEADER_BYTES ) == FALSE
 		&& G1PacketTotalLengthOk( 0x7FFFFFFFL, nMax ) == FALSE
 		&& G1PacketTotalLength( 10 ) == G1_PACKET_HEADER_BYTES + 10;
+}
+
+static bool test_g1_queryhit_xml_fits_exact()
+{
+	static_assert(G1_QUERYHIT_GUID_BYTES == 16u, "G1 QueryHit trailer GUID is 16 bytes");
+	return G1QueryHitXmlFits(10, 16u + 10) == TRUE;
+}
+
+static bool test_g1_queryhit_xml_fits_zero()
+{
+	// Zero-length XML still requires the trailing 16-byte GUID.
+	return G1QueryHitXmlFits(0, 0) == FALSE && G1QueryHitXmlFits(0, 15u) == FALSE && G1QueryHitXmlFits(0, 16u) == TRUE;
+}
+
+static bool test_g1_queryhit_xml_oversized()
+{
+	return G1QueryHitXmlFits(10, 16u + 9) == FALSE && G1QueryHitXmlFits(1, 16u) == FALSE && G1QueryHitXmlFits(1, 15u) == FALSE;
 }
 
 static bool test_ggep_h_length_zero()
@@ -330,6 +365,11 @@ static bool test_ed2k_file_comment_bounds()
 		&& Ed2kFileCommentLengthOk(ED2K_FILE_COMMENT_MAX + 1, ED2K_FILE_COMMENT_MAX + 1) == FALSE;
 }
 
+static bool test_ed2k_ed_string_header()
+{
+	return Ed2kEdStringHeaderOk(2) == TRUE && Ed2kEdStringHeaderOk(1) == FALSE && Ed2kEdStringHeaderOk(0) == FALSE;
+}
+
 static bool test_ed2k_ed_string_payload()
 {
 	// Mirrors ReadEDString after ReadShortLE: Ed2kEdStringPayloadOk(nLen, remaining).
@@ -362,6 +402,11 @@ static bool test_ed2k_ed_string_truncated_prefix_gate()
 	return bWouldThrow && bExactOk && bLongWouldThrow;
 }
 
+static bool test_ed2k_server_message_length()
+{
+	return Ed2kServerMessageLengthOk(0) == TRUE && Ed2kServerMessageLengthOk(ED2K_SERVER_MESSAGE_MAX) == TRUE && Ed2kServerMessageLengthOk(static_cast<WORD>(ED2K_SERVER_MESSAGE_MAX + 1)) == FALSE;
+}
+
 static bool test_ed2k_tag_uint64_remaining()
 {
 	return Ed2kTagUint64RemainingOk( ED2K_TAG_UINT64_BYTES ) == TRUE
@@ -377,6 +422,16 @@ static bool test_ed2k_hashset_payload_bounds()
 	return Ed2kHashsetPayloadFits( 3, nExact ) == TRUE
 		&& Ed2kHashsetPayloadFits( 3, nExact - 1 ) == FALSE
 		&& Ed2kHashsetPayloadFits( 3, nExact + 1 ) == FALSE;
+}
+
+static bool test_ed2k_chat_message_bounds()
+{
+	return Ed2kChatMessageLengthOk( 1, 1 ) == TRUE
+		&& Ed2kChatMessageLengthOk( 0, 0 ) == FALSE
+		&& Ed2kChatMessageLengthOk( ED2K_CHAT_MESSAGE_MAX, ED2K_CHAT_MESSAGE_MAX ) == TRUE
+		&& Ed2kChatMessageLengthOk( ED2K_CHAT_MESSAGE_MAX + 1, ED2K_CHAT_MESSAGE_MAX + 1 ) == FALSE
+		&& Ed2kChatMessageLengthOk( 10, 11 ) == FALSE
+		&& Ed2kChatMessageLengthOk( 10, 9 ) == FALSE;
 }
 
 
@@ -616,6 +671,17 @@ static bool test_ed2k_compressedpart_accept_before_submit()
 	return bDrainGates && bHandlersCallDrain;
 }
 
+static bool test_g1_wrapped_payload_ok()
+{
+	// G1_PACKET_HEADER_BYTES must match sizeof(GNUTELLAPACKET); enforced by
+	// static_asserts in Envy/G1Neighbour.cpp and Envy/G2Packet.cpp.
+	return G1WrappedPayloadLengthOk(0) == TRUE && G1WrappedPayloadLengthOk(static_cast<LONG>(G1_WRAPPED_PAYLOAD_MAX)) == TRUE &&
+	       G1WrappedPayloadLengthOk(static_cast<LONG>(G1_WRAPPED_PAYLOAD_MAX + 1)) == FALSE && G1WrappedPayloadLengthOk(-1) == FALSE &&
+	       G1WrappedPayloadFits(G1_PACKET_HEADER_BYTES + 10, 10) == TRUE && G1WrappedPayloadFits(G1_PACKET_HEADER_BYTES + 9, 10) == FALSE &&
+	       G1WrappedPayloadFits(100, -1) == FALSE && G1WrappedPayloadFits(G1_PACKET_HEADER_BYTES - 1, 0) == FALSE &&
+	       G1WrappedPayloadFits(G1_PACKET_HEADER_BYTES, 0) == TRUE;
+}
+
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test( "ed2k_source_body_exact_fit", test_source_body_valid_exact );
@@ -641,12 +707,18 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_extension_length_one_not_keepalive", test_bt_extension_length_one_not_keepalive );
 	suite.add_test( "bt_extension_length_min_valid", test_bt_extension_length_min_valid );
 	suite.add_test( "bt_extension_length_bencode", test_bt_extension_length_with_bencode );
+	suite.add_test("bt_packet_length_ok", test_bt_packet_length_ok);
+	suite.add_test("g2_subpacket_payload_fits", test_g2_subpacket_payload_fits);
+	suite.add_test("g2_frame_length_fits", test_g2_frame_length_fits);
 
 	suite.add_test( "g1_deflate_truncated_marker", test_g1_deflate_truncated_marker_only );
 	suite.add_test( "g1_deflate_marker_no_payload", test_g1_deflate_marker_no_payload );
 	suite.add_test( "g1_deflate_min_payload", test_g1_deflate_min_compressed_byte );
 	suite.add_test( "g1_deflate_xml_inflate_ok", test_g1_deflate_xml_inflate_ok );
 	suite.add_test( "g1_packet_total_length_ok", test_g1_packet_total_length_ok );
+	suite.add_test("g1_queryhit_xml_fits_exact", test_g1_queryhit_xml_fits_exact);
+	suite.add_test("g1_queryhit_xml_fits_zero", test_g1_queryhit_xml_fits_zero);
+	suite.add_test("g1_queryhit_xml_oversized", test_g1_queryhit_xml_oversized);
 
 	suite.add_test( "ggep_h_length_zero", test_ggep_h_length_zero );
 	suite.add_test( "ggep_m_length_zero", test_ggep_m_length_zero );
@@ -672,11 +744,14 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ed2k_tag_string_bounds", test_ed2k_tag_string_bounds );
 	suite.add_test( "ed2k_unknown_tag_string_skip", test_ed2k_unknown_tag_string_skip );
 	suite.add_test( "ed2k_file_comment_bounds", test_ed2k_file_comment_bounds );
+	suite.add_test("ed2k_ed_string_header", test_ed2k_ed_string_header);
 	suite.add_test( "ed2k_ed_string_payload", test_ed2k_ed_string_payload );
 	suite.add_test( "ed2k_long_ed_string_payload", test_ed2k_long_ed_string_payload );
 	suite.add_test( "ed2k_ed_string_truncated_prefix_gate", test_ed2k_ed_string_truncated_prefix_gate );
+	suite.add_test("ed2k_server_message_length", test_ed2k_server_message_length);
 	suite.add_test( "ed2k_tag_uint64_remaining", test_ed2k_tag_uint64_remaining );
 	suite.add_test( "ed2k_hashset_payload_bounds", test_ed2k_hashset_payload_bounds );
+	suite.add_test( "ed2k_chat_message_bounds", test_ed2k_chat_message_bounds );
 	suite.add_test( "bt_ut_metadata_size_ok", test_bt_ut_metadata_size_ok );
 	suite.add_test( "bt_ut_metadata_size_zero", test_bt_ut_metadata_size_zero );
 	suite.add_test( "bt_ut_metadata_size_at_max", test_bt_ut_metadata_size_at_max );
@@ -696,4 +771,5 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "ggep_inflate_output_ok", test_ggep_inflate_output_ok );
 	suite.add_test( "ed2k_compressedpart_inflate_ok", test_ed2k_compressedpart_inflate_ok );
 	suite.add_test( "ed2k_compressedpart_accept_before_submit", test_ed2k_compressedpart_accept_before_submit );
+	suite.add_test("g1_wrapped_payload_ok", test_g1_wrapped_payload_ok);
 }

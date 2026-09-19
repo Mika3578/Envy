@@ -43,6 +43,16 @@ inline BOOL BtIsKeepAliveLength(DWORD nLength)
 	return nLength == 0;
 }
 
+// Cap for BitTorrent TCP message length-prefix (#81).
+// Excludes keep-alive (nLength == 0); pair with BtIsKeepAliveLength for the
+// zero prefix. Non-zero lengths must be in [1, BT_PACKET_LENGTH_MAX].
+constexpr DWORD BT_PACKET_LENGTH_MAX = 16u * 1024u * 1024u;
+
+inline BOOL BtPacketLengthOk(DWORD nLength)
+{
+	return nLength >= 1 && nLength <= BT_PACKET_LENGTH_MAX;
+}
+
 // QueryHit XML "{deflate}" path uses "nSize - 10" (9-byte marker + trailing NUL
 // included in fixed nXMLSize). Require nSize > 10 so subtraction cannot underflow.
 // CG1Packet::ReadXML uses "len - 9" because it measures length until HIT_SEP/NUL
@@ -80,6 +90,19 @@ inline DWORD G1PacketTotalLength(LONG nPayloadLength)
 {
 	return G1_PACKET_HEADER_BYTES + static_cast<DWORD>(nPayloadLength);
 }
+
+// G1 QueryHit QHD: claimed XML length must leave room for the trailing GUID
+// (16 bytes), including when nXmlSize is 0. Fail-closed — do not soft-clamp
+// nXMLSize to 0 (#81).
+constexpr DWORD G1_QUERYHIT_GUID_BYTES = 16u;
+
+inline BOOL G1QueryHitXmlFits(DWORD nXmlSize, DWORD nRemaining)
+{
+	if (nRemaining < G1_QUERYHIT_GUID_BYTES)
+		return FALSE;
+	return (nRemaining - G1_QUERYHIT_GUID_BYTES) >= nXmlSize;
+}
+
 // GGEP item must expose at least one payload byte before m_pBuffer[0].
 inline BOOL GgepItemHasTypeByte(const BYTE* pBuffer, DWORD nLength)
 {
@@ -165,6 +188,13 @@ inline BOOL Ed2kFileCommentLengthOk(DWORD nClaimedLen, DWORD nRemainingAfterHead
 	return nClaimedLen <= nRemainingAfterHeader;
 }
 
+// Wire ED2K WORD-prefixed string (ReadEDString / browse-dir framing).
+// Header: remaining must cover the 2-byte length field.
+inline BOOL Ed2kEdStringHeaderOk(DWORD nRemaining)
+{
+	return nRemaining >= 2u;
+}
+
 // Wire ED2K length-prefixed strings (ReadEDString / ReadLongEDString).
 // After consuming the length field, claimed payload must fit remaining.
 // Argument order matches Ed2kTagStringLengthOk / Ed2kFileCommentLengthOk (len, remaining).
@@ -176,6 +206,15 @@ inline BOOL Ed2kEdStringPayloadOk(WORD nLen, DWORD nRemainingAfterLen)
 inline BOOL Ed2kLongEdStringPayloadOk(DWORD nLen, DWORD nRemainingAfterLen)
 {
 	return nLen <= nRemainingAfterLen;
+}
+
+// Absolute cap for ED2K server MOTD / server-message wire payload (#81).
+// Matches the historical post-decode 5000 TCHAR guard, applied on wire length.
+constexpr DWORD ED2K_SERVER_MESSAGE_MAX = 5000u;
+
+inline BOOL Ed2kServerMessageLengthOk(WORD nLen)
+{
+	return nLen <= ED2K_SERVER_MESSAGE_MAX;
 }
 
 // Wire ED2K_TAG_UINT64 value is a little-endian 64-bit integer (#81).
@@ -194,6 +233,19 @@ inline BOOL Ed2kHashsetPayloadFits(DWORD nBlocks, DWORD nRemaining)
 {
 	const ULONGLONG nNeed = static_cast< ULONGLONG >( nBlocks ) * ED2K_HASHSET_DIGEST_BYTES;
 	return nNeed == nRemaining;
+}
+
+// ED2K private chat MESSAGE body after the WORD length field (#81).
+// Must be non-empty, exact-fit remaining, and <= ED2K_MESSAGE_MAX in EDPacket.h.
+// Numeric 500 is duplicated here to keep this header free of EDPacket.h; CEDClient
+// static_asserts ED2K_CHAT_MESSAGE_MAX == ED2K_MESSAGE_MAX.
+constexpr DWORD ED2K_CHAT_MESSAGE_MAX = 500u;
+
+inline BOOL Ed2kChatMessageLengthOk(DWORD nMessageLength, DWORD nRemainingAfterLength)
+{
+	if (nMessageLength < 1 || nMessageLength > ED2K_CHAT_MESSAGE_MAX)
+		return FALSE;
+	return nMessageLength == nRemainingAfterLength;
 }
 
 // Bencode nesting limit for list/dict Decode recursion (stack exhaustion / #82).
@@ -385,4 +437,59 @@ inline std::uint64_t Ed2kCompressedPartInflateBudget(std::uint64_t nFileSize,
 inline BOOL Ed2kCompressedPartInflateOk(std::uint64_t nWrittenAfter, std::uint64_t nMaxUncompressed)
 {
 	return nWrittenAfter <= nMaxUncompressed;
+}
+
+// Overflow-safe G2 sub-packet sizing (#81).
+// G2 length descriptors are 2 bits (max 3 length bytes), so body and position
+// values are far below DWORD max on current wire paths; these predicates make
+// the bound arithmetic order-safe (defense-in-depth / reusable for wider length
+// fields) and reject truncated/oversized children without relying on
+// "remaining < body + prefix".
+inline BOOL G2SubpacketPayloadFits(DWORD nRemaining, DWORD nBodyLen, DWORD nPrefixLen)
+{
+	if (nBodyLen > nRemaining)
+		return FALSE;
+	if (nPrefixLen > nRemaining - nBodyLen)
+		return FALSE;
+	return TRUE;
+}
+
+// Overflow-safe G2 top-level frame sizing for ReadBuffer (control+len+type+body).
+inline BOOL G2FrameLengthFits(DWORD nBufferLength, DWORD nBodyLen, DWORD nLenLen, DWORD nTypeLen)
+{
+	// Wire layout: 1 control + nLenLen + (nTypeLen+1) type bytes + nBodyLen payload.
+	// Combine with subtraction to avoid wrap when callers pass large components.
+	if (nBodyLen > nBufferLength)
+		return FALSE;
+	DWORD nRemaining = nBufferLength - nBodyLen;
+	if (nLenLen > nRemaining)
+		return FALSE;
+	nRemaining -= nLenLen;
+	if (nTypeLen > nRemaining)
+		return FALSE;
+	return 2u <= (nRemaining - nTypeLen);
+}
+
+// G2 HIT_WRAP / routing embeds a GNUTELLAPACKET (#81).
+// m_nLength is signed LONG — negative values must not enter unsigned
+// "remaining >= header + length" math or (DWORD) cast before Write.
+// Absolute payload ceiling matches Settings.Gnutella.MaximumPacket (256 KiB)
+// for wrapped G2->G1 conversion; CG1Packet::New only rejects negatives so
+// HostBrowser may still use MaximumPacket*8.
+constexpr DWORD G1_WRAPPED_PAYLOAD_MAX = 256u * 1024u;
+
+inline BOOL G1WrappedPayloadLengthOk(LONG nPayloadLen)
+{
+	if (nPayloadLen < 0)
+		return FALSE;
+	return static_cast<DWORD>(nPayloadLen) <= G1_WRAPPED_PAYLOAD_MAX;
+}
+
+inline BOOL G1WrappedPayloadFits(DWORD nRemaining, LONG nPayloadLen)
+{
+	if (!G1WrappedPayloadLengthOk(nPayloadLen))
+		return FALSE;
+	if (nRemaining < G1_PACKET_HEADER_BYTES)
+		return FALSE;
+	return static_cast<DWORD>(nPayloadLen) <= (nRemaining - G1_PACKET_HEADER_BYTES);
 }

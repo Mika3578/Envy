@@ -3,7 +3,13 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
-- **Changelog Entry:** 2026-09-19 — #81: NMDC `$ADCGET`/`$ADCSND` strict asymmetric numeric parse (`DcAdcGetValidate.h`); GET allows `-1` until-EOF; SND requires real length; fail-closed SND vs fixed request (no `min()`).
+- **Changelog Entry:** 2026-09-19 — #81: NMDC `$ADCGET`/`$ADCSND` strict asymmetric numeric parse (`DcAdcGetValidate.h`); GET allows `-1` until-EOF; SND requires real length; length-aware tokens reject embedded NUL / `2^64-1`; fail-closed SND vs fixed request (no `min()`).
+- **Changelog Entry:** 2026-09-19 — #81: BitTorrent TCP length-prefix capped at 16 MiB (`BtPacketLengthOk`); oversize clears buffer and closes peer (`PROTOCOL_TOO_LARGE`).
+- **Changelog Entry:** 2026-09-19 — #81: G2 HIT_WRAP / wrapped G1 fail-closed via `G1WrappedPayloadFits` / negative `m_nLength` reject in `CG1Packet::New` + null-check call sites.
+- **Changelog Entry:** 2026-09-19 — #81: G2 compound/frame length checks order-safe (`G2SubpacketPayloadFits` / `G2FrameLengthFits`) in ReadPacket/SkipCompound/ReadBuffer (defense-in-depth).
+- **Changelog Entry:** 2026-09-19 — #81: G1 QueryHit QHD `nXMLSize` fail-closed via `G1QueryHitXmlFits` (must leave trailing GUID, including zero-length XML); no soft clamp to 0.
+- **Changelog Entry:** 2026-09-19 — #81: ED2K `VIEWSHAREDDIRANSWER` consumes WORD-prefixed directory name before `count`; `OnViewSharedDir` / `OnAskSharedDirsAnswer` / `OnServerMessage` fail-closed via `Ed2kEdString*` + `Ed2kServerMessageLengthOk` (5000-byte MOTD cap).
+- **Changelog Entry:** 2026-09-19 — #81: ED2K chat `MESSAGE` length checks centralized in `Ed2kChatMessageLengthOk` (+ EnvyTests); valid-frame wire behavior unchanged, malformed lengths rejected; outgoing `SendPrivateMessage` clamps by encoded byte length.
 - **Changelog Entry:** 2026-09-19 — #81: unknown ED2K tag skip fail-closed when STRING length claim exceeds remaining (`Ed2kUnknownTagStringSkipOk`); INT fallback only above skip-max.
 - **Changelog Entry:** 2026-09-19 — #81: `CEDPacket::ReadEDString` / `ReadLongEDString` fail-closed when length prefix exceeds remaining (`Ed2kEdStringPayloadOk` / `Ed2kLongEdStringPayloadOk`).
 - **Changelog Entry:** 2026-09-19 — #81: G1 TCP framing uses overflow-safe `G1PacketTotalLengthOk` for signed payload length vs `MaximumPacket`.

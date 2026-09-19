@@ -91,10 +91,17 @@ static bool test_dc_adcsnd_length_rejects_until_end()
 static bool test_dc_adc_u64_overflow_reject()
 {
 	ULONGLONG n = 0;
+	const char kEmbeddedNul[] = { '1', '2', '3', '\0', 'x' };
 	// 2^64 == 18446744073709551616 — one past max ULONGLONG
+	// 2^64-1 is reserved as until-end sentinel; reject all-digits smuggle.
 	return DcParseUnsignedDecimalU64( "18446744073709551616", &n ) == FALSE
-		&& DcParseUnsignedDecimalU64( "18446744073709551615", &n ) != FALSE
-		&& n == DC_ADC_LENGTH_UNTIL_END;
+		&& DcParseUnsignedDecimalU64( "18446744073709551615", &n ) == FALSE
+		&& DcParseUnsignedDecimalU64( "18446744073709551614", &n ) != FALSE
+		&& n == ( DC_ADC_LENGTH_UNTIL_END - 1ull )
+		&& DcParseAdcOffsetToken( kEmbeddedNul, sizeof( kEmbeddedNul ), &n ) == FALSE
+		&& DcParseAdcGetLengthToken( kEmbeddedNul, sizeof( kEmbeddedNul ), &n ) == FALSE
+		&& DcParseAdcSndLengthToken( kEmbeddedNul, sizeof( kEmbeddedNul ), &n ) == FALSE
+		&& DcParseAdcGetLengthToken( "-1", 2, &n ) != FALSE && n == DC_ADC_LENGTH_UNTIL_END;
 }
 
 static bool test_dc_adcsnd_length_matches_request()
@@ -103,7 +110,8 @@ static bool test_dc_adcsnd_length_matches_request()
 		&& DcAdcSndLengthMatchesRequest( 100, 99 ) == FALSE
 		&& DcAdcSndLengthMatchesRequest( 100, 101 ) == FALSE
 		&& DcAdcSndLengthMatchesRequest( DC_ADC_LENGTH_UNTIL_END, 50 ) != FALSE
-		&& DcAdcSndLengthMatchesRequest( DC_ADC_LENGTH_UNTIL_END, DC_ADC_LENGTH_UNTIL_END ) == FALSE;
+		&& DcAdcSndLengthMatchesRequest( DC_ADC_LENGTH_UNTIL_END, DC_ADC_LENGTH_UNTIL_END ) == FALSE
+		&& DcAdcSndLengthMatchesRequest( 100, DC_ADC_LENGTH_UNTIL_END ) == FALSE;
 }
 
 void register_dc_packet_length_smoke_tests(TestSuite& suite)

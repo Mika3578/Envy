@@ -12,66 +12,96 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <windows.h>
 #include <string.h>
 
 // Same sentinel as Envy SIZE_UNKNOWN (~0ull); keep this header MFC-free.
+// Reserved for the literal "-1" $ADCGET length token only — never accepted
+// as an all-digits unsigned decimal (would collide with 2^64-1).
 constexpr ULONGLONG DC_ADC_LENGTH_UNTIL_END = ~0ull;
 
-// Strict unsigned decimal [0-9]+ for the entire C string. Rejects empty,
-// leading signs, partial tokens (e.g. "123x"), and overflow past 2^64-1.
-inline BOOL DcParseUnsignedDecimalU64(const char* psz, ULONGLONG* pnOut)
+// Strict unsigned decimal [0-9]+ over exactly nLen bytes. Rejects empty,
+// embedded NULs / junk, leading signs, and values at or above 2^64-1 so
+// DC_ADC_LENGTH_UNTIL_END stays reserved for the "-1" token.
+inline BOOL DcParseUnsignedDecimalU64(const char* psz, size_t nLen, ULONGLONG* pnOut)
 {
-	if (!psz || !pnOut || *psz == '\0')
+	if ( ! psz || ! pnOut || nLen == 0 )
 		return FALSE;
 
 	ULONGLONG nValue = 0;
-	BOOL bDigit = FALSE;
 
-	for (const char* p = psz; *p; ++p)
+	for ( size_t i = 0; i < nLen; ++i )
 	{
-		if (*p < '0' || *p > '9')
+		const char c = psz[ i ];
+		if ( c < '0' || c > '9' )
 			return FALSE;
 
-		bDigit = TRUE;
-		const unsigned nDigit = static_cast<unsigned>(*p - '0');
-		if (nValue > (DC_ADC_LENGTH_UNTIL_END - nDigit) / 10ull)
+		const unsigned nDigit = static_cast<unsigned>( c - '0' );
+		// Cap at 2^64-2: reject any digit that would reach ~0ull.
+		if ( nValue > ( DC_ADC_LENGTH_UNTIL_END - 1ull - nDigit ) / 10ull )
 			return FALSE;
 		nValue = nValue * 10ull + nDigit;
 	}
-
-	if (!bDigit)
-		return FALSE;
 
 	*pnOut = nValue;
 	return TRUE;
 }
 
+// Null-terminated convenience for tests / callers with c_str()-safe tokens.
+inline BOOL DcParseUnsignedDecimalU64(const char* psz, ULONGLONG* pnOut)
+{
+	if ( ! psz )
+		return FALSE;
+	return DcParseUnsignedDecimalU64( psz, strlen( psz ), pnOut );
+}
+
 // $ADCGET / $ADCSND offset: unsigned decimal only (no leading '-').
+inline BOOL DcParseAdcOffsetToken(const char* psz, size_t nLen, ULONGLONG* pnOffset)
+{
+	return DcParseUnsignedDecimalU64( psz, nLen, pnOffset );
+}
+
 inline BOOL DcParseAdcOffsetToken(const char* psz, ULONGLONG* pnOffset)
 {
-	return DcParseUnsignedDecimalU64(psz, pnOffset);
+	if ( ! psz )
+		return FALSE;
+	return DcParseAdcOffsetToken( psz, strlen( psz ), pnOffset );
 }
 
 // $ADCGET length: unsigned decimal, or exactly "-1" -> until-end sentinel.
-inline BOOL DcParseAdcGetLengthToken(const char* psz, ULONGLONG* pnLength)
+inline BOOL DcParseAdcGetLengthToken(const char* psz, size_t nLen, ULONGLONG* pnLength)
 {
-	if (!psz || !pnLength)
+	if ( ! psz || ! pnLength || nLen == 0 )
 		return FALSE;
 
-	if (strcmp(psz, "-1") == 0)
+	if ( nLen == 2 && psz[ 0 ] == '-' && psz[ 1 ] == '1' )
 	{
 		*pnLength = DC_ADC_LENGTH_UNTIL_END;
 		return TRUE;
 	}
 
-	return DcParseUnsignedDecimalU64(psz, pnLength);
+	return DcParseUnsignedDecimalU64( psz, nLen, pnLength );
 }
 
-// $ADCSND length: unsigned decimal only; "-1" is invalid on the wire.
+inline BOOL DcParseAdcGetLengthToken(const char* psz, ULONGLONG* pnLength)
+{
+	if ( ! psz )
+		return FALSE;
+	return DcParseAdcGetLengthToken( psz, strlen( psz ), pnLength );
+}
+
+// $ADCSND length: unsigned decimal only; "-1" and 2^64-1 are invalid.
+inline BOOL DcParseAdcSndLengthToken(const char* psz, size_t nLen, ULONGLONG* pnLength)
+{
+	return DcParseUnsignedDecimalU64( psz, nLen, pnLength );
+}
+
 inline BOOL DcParseAdcSndLengthToken(const char* psz, ULONGLONG* pnLength)
 {
-	return DcParseUnsignedDecimalU64(psz, pnLength);
+	if ( ! psz )
+		return FALSE;
+	return DcParseAdcSndLengthToken( psz, strlen( psz ), pnLength );
 }
 
 // After a fixed-length $ADCGET, $ADCSND must announce the same byte count.
@@ -79,7 +109,7 @@ inline BOOL DcParseAdcSndLengthToken(const char* psz, ULONGLONG* pnLength)
 // real length (not the until-end sentinel).
 inline BOOL DcAdcSndLengthMatchesRequest(ULONGLONG nRequested, ULONGLONG nAnnounced)
 {
-	if (nRequested == DC_ADC_LENGTH_UNTIL_END)
+	if ( nRequested == DC_ADC_LENGTH_UNTIL_END )
 		return nAnnounced != DC_ADC_LENGTH_UNTIL_END;
 
 	return nRequested == nAnnounced;
