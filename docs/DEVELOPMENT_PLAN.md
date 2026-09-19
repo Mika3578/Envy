@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #87 slice: send-side ED2K `COMPRESSEDPART` / `COMPRESSEDPART_I64` in `CUploadTransferED2K::DispatchNextChunk()` (`Ed2kCompressedUpload.h`); peer `m_bEmDeflate==1` gate; eMule/aMule benefit fallback; EnvyTests smoke. Not full #87; live interop still #160.
 - **Changelog Entry:** 2026-09-19 — Kad2 source SEARCH_RES → `AddSourceED2K` (#86 slice): outstanding search context (keyword vs source); inbound eMule/aMule SEARCH_RES parse; HighID types 1/4 only; `KadSearchResDelivery.h` + EnvyTests. Kad2 remains partial/unverified; no capability advertise.
 - **Changelog Entry:** 2026-09-19 — Register `transfer_state_downloading_finished_not_importable` so #242 fail-closed Finished(Downloading) smoke actually runs (22/22 Linux g++).
 - **Changelog Entry:** 2026-09-19 — Reinforce branch naming hard rule 11: forbid `cursor/`/`claude/`/Cloud-runner slug templates; CONTRIBUTING aligned to `type/short-kebab-summary` only.

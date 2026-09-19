@@ -144,14 +144,18 @@
 - **Complexity:** Low (S)
 
 **3. ED2K_C2C_COMPRESSEDPART / ED2K_C2C_COMPRESSEDPART_I64**
-- **Usage:** Envoi de parties compressées (zlib)
-- **Format eMule:**
+- **Usage:** Envoi de parties compressées (zlib `compress2`)
+- **Format eMule/aMule (référence `UploadDiskIOThread::CreatePackedPackets`):**
   ```
-  COMPRESSEDPART: <Hash(16)><Offset(4)><CompressedSize(4)><UncompressedSize(4)><Data...>
-  COMPRESSEDPART_I64: <Hash(16)><Offset(8)><CompressedSize(4)><UncompressedSize(4)><Data...>
+  COMPRESSEDPART:     <Hash(16)><StartOffset(4)><CompressedTotalSize(4)><zlib data...>
+  COMPRESSEDPART_I64: <Hash(16)><StartOffset(8)><CompressedTotalSize(4)><zlib data...>
   ```
-- **Impact:** Performance réduite (pas de compression)
-- **File to modify:** `Envy/UploadTransferED2K.cpp` - Add compression
+  Note: il n'y a **pas** de champ UncompressedSize sur le fil — la taille logique est
+  reconstruite par inflate côté réception. I64 si Start **ou** End exclusif > 0xFFFFFFFF.
+  Fallback si `compress2` échoue ou si taille compressée ≥ source → `SENDINGPART`.
+- **Status Envy:** réception bornée (#81) + envoi implémenté (`DispatchNextChunk`,
+  `Ed2kCompressedUpload.h`); interop live non vérifiée (#160).
+- **Impact:** bandwidth / CPU selon le peer
 - **Complexity:** Medium (M)
 
 **4. ED2K_C2C_QUEUERANKING**
