@@ -1,8 +1,12 @@
 // Isolated Crashpad / Sentry Native probe for ENVY #90 (not linked into Envy.exe).
 // Upload URL and DSN are always empty. Do not add an ingest host here.
 
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 
 #include <windows.h>
 

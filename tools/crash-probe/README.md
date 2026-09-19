@@ -24,9 +24,10 @@ copy /Y vcpkg-crashpad.json vcpkg.json
 msbuild CrashProbe.vcxproj /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:CrashProbeBackend=crashpad /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
 ```
 
-Sentry cell: copy `vcpkg-sentry.json` to `vcpkg.json` and
-`/p:CrashProbeBackend=sentry`. Win32 uses `Platform=Win32` and
-`x86-windows-static`.
+The project sets `VcpkgManifestRoot` and also adds
+`vcpkg_installed/<triplet>/include` (and `include/crashpad`) plus the matching
+lib directory explicitly. VS 2026 MSBuild vcpkg integration does not reliably
+inject those paths for this standalone project.
 
 Copy `crashpad_handler.exe` (and any `crashpad_wer*.dll`) next to
 `CrashProbe.exe`, then:
