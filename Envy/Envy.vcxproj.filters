@@ -1970,6 +1970,9 @@
     <ClInclude Include="Ed2kKadSettingsPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TransferSettingsLimits.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="SkinEngineP0.h">
       <Filter>Header Files</Filter>
     </ClInclude>

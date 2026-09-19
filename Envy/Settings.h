@@ -649,8 +649,8 @@ public:
 		DWORD		ClampdownFactor;
 		DWORD		ClampdownFloor;
 		DWORD		ChunkSize;
-		bool		FairUseMode;			// Limit unknown audio/video to 10% share per remote client
-		bool		ThrottleMode;
+		bool		FairUseMode;			// Not implemented (no core consumer). Persisted for old profiles.
+		bool		ThrottleMode;			// false = Average (soft) limit, true = Maximum (strict) never-exceed
 		DWORD		QueuePollMin;
 		DWORD		QueuePollMax;
 		DWORD		RotateChunkLimit;

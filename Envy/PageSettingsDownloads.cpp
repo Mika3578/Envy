@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "PageSettingsDownloads.h"
+#include "TransferSettingsLimits.h"
 #include "AntiVirus.h"
 #include "Library.h"
 #include "LibraryFolders.h"
@@ -53,6 +54,15 @@ CDownloadsSettingsPage::CDownloadsSettingsPage()
 	, m_nMaxDownTransfers	( 0 )
 	, m_bRequireConnect 	( FALSE )
 {
+}
+
+static CString BandwidthUnlimitedLabel()
+{
+	CString str;
+	LoadString( str, IDS_SETTINGS_BANDWIDTH_UNLIMITED );
+	if ( str.IsEmpty() )
+		str = TransferBandwidthUnlimitedDisplayToken();
+	return str;
 }
 
 //CDownloadsSettingsPage::~CDownloadsSettingsPage()
@@ -108,15 +118,15 @@ BOOL CDownloadsSettingsPage::OnInitDialog()
 	if ( Settings.Downloads.QueueLimit )
 		m_sQueueLimit.Format( L"%u", Settings.Downloads.QueueLimit );
 	else	// 0 = Unlimited
-		m_sQueueLimit = L"MAX";
+		m_sQueueLimit = BandwidthUnlimitedLabel();
 
 	m_bDownloadsChanged = FALSE;
 
 	// Update the text in the bandwidth limit combo
-	if ( Settings.Bandwidth.Downloads )
+	if ( TransferBandwidthSettingIsUnlimited( Settings.Bandwidth.Downloads ) )
+		m_sBandwidthLimit = BandwidthUnlimitedLabel();
+	else
 		m_sBandwidthLimit = Settings.SmartSpeed( Settings.Bandwidth.Downloads );
-	else	// 0 = Unlimited
-		m_sBandwidthLimit = L"MAX";
 
 	UpdateData( FALSE );
 
@@ -253,7 +263,10 @@ void CDownloadsSettingsPage::OnOK()
 	Settings.Downloads.MaxTransfers			= m_nMaxDownTransfers;
 	Settings.Downloads.MaxFileTransfers		= m_nMaxFileTransfers;
 	Settings.Downloads.QueueLimit			= nQueueLimit;
-	Settings.Bandwidth.Downloads			= static_cast< DWORD >( Settings.ParseVolume( m_sBandwidthLimit ) );
+	Settings.Bandwidth.Downloads			= TransferBandwidthTokenIsUnlimited(
+		m_sBandwidthLimit, BandwidthUnlimitedLabel() )
+		? TransferBandwidthUnlimitedValue()
+		: TransferBandwidthBytesToSetting( Settings.ParseVolume( m_sBandwidthLimit ) );
 	Settings.Connection.RequireForTransfers	= m_bRequireConnect != FALSE;
 
 	// Normalize data
@@ -269,7 +282,7 @@ void CDownloadsSettingsPage::OnOK()
 	if ( Settings.Downloads.QueueLimit > 0 )
 		m_sQueueLimit.Format( L"%u", Settings.Downloads.QueueLimit );
 	else
-		m_sQueueLimit = L"MAX";
+		m_sQueueLimit = BandwidthUnlimitedLabel();
 
 	// Display any data changes
 	UpdateData( FALSE );
@@ -321,10 +334,10 @@ void CDownloadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 		// Update the bandwidth limit combo values
 
 		// Update speed units
-		if ( Settings.Bandwidth.Downloads )
-			m_sBandwidthLimit = Settings.SmartSpeed( Settings.Bandwidth.Downloads );
+		if ( TransferBandwidthSettingIsUnlimited( Settings.Bandwidth.Downloads ) )
+			m_sBandwidthLimit = BandwidthUnlimitedLabel();
 		else
-			m_sBandwidthLimit = L"MAX";
+			m_sBandwidthLimit = Settings.SmartSpeed( Settings.Bandwidth.Downloads );
 
 		// Remove any existing strings
 		m_wndBandwidthLimit.ResetContent();
@@ -347,7 +360,7 @@ void CDownloadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 				m_wndBandwidthLimit.AddString( strSpeed );
 			}
 		}
-		m_wndBandwidthLimit.AddString( L"MAX" );
+		m_wndBandwidthLimit.AddString( BandwidthUnlimitedLabel() );
 
 		// Update the queue limit combo values
 
@@ -361,14 +374,14 @@ void CDownloadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 			m_wndQueueLimit.AddString( L"2000" );
 			m_wndQueueLimit.AddString( L"5000" );
 			m_wndQueueLimit.AddString( L"10000" );
-			m_wndQueueLimit.AddString( L"MAX" );
+			m_wndQueueLimit.AddString( BandwidthUnlimitedLabel() );
 		}
 		else
 		{
 			m_wndQueueLimit.AddString( L"5" );
 			m_wndQueueLimit.AddString( L"10" );
 			m_wndQueueLimit.AddString( L"20" );
-			m_wndQueueLimit.AddString( L"MAX" );
+			m_wndQueueLimit.AddString( BandwidthUnlimitedLabel() );
 		}
 
 		UpdateData( FALSE );
@@ -389,7 +402,5 @@ void CDownloadsSettingsPage::OnCbnDropdownAntivirus()
 
 bool CDownloadsSettingsPage::IsLimited(CString& strText) const
 {
-	return ! ( strText.IsEmpty() ||
-		( _tcsistr( strText, L"MAX" ) != NULL ) ||
-		( _tcsistr( strText, L"NONE" ) != NULL ) );
+	return ! TransferBandwidthTokenIsUnlimited( strText, BandwidthUnlimitedLabel() );
 }

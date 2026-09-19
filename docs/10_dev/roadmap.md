@@ -1,7 +1,7 @@
 # Envy Development Roadmap
 
 Status: active
-Last updated: 2026-09-15
+Last updated: 2026-09-19
 Scope: Technical itemization of Envy modernization. Strategic sequence is `docs/DEVELOPMENT_PLAN.md`.
 Source of truth: `docs/10_dev/status.md` for current vs planned; `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` for external projects.
 
@@ -239,6 +239,18 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
 14. DHT/security research (Ember/Rucio ideas, Envy-specific, not Kad2).
 15. Kad6 / eSE-style overlay only after IPv6 + Kad2 interop.
 16. HTTPS trackers, LPD, remaining low-priority opcodes.
+
+### Transfer settings UX (after this foundation)
+
+Do not mix with protocol P0 work. Sequence after the foundation PR:
+
+1. Prove and fix `MaxPerHost` allow vs enforce off-by-one (`AllowMoreTo` / `CanUploadFileTo`).
+2. Simple-mode summary of the two global caps + existing download MaxFiles/MaxTransfers (no new preferences).
+3. Queue overlap preview / criteria docs (keep Small/Large/Partial/eDonkey queues).
+4. Label `BitTorrent.UploadCount` as BT-only if shown near upload queues.
+5. Bind / IPv6 / VPN leak UI — blocked until the core exists.
+
+See `docs/50_user/transfer-settings.md`.
 
 ---
 
