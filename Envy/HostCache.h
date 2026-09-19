@@ -52,10 +52,10 @@ public:
 	CString		m_sPass;			// User password on this server (DC)
 	// NMDC only: optional hub text code page (0 = inherit Settings.DC.CodePage).
 	// Persisted in HostCache ser v2+; assign via SetNmdcCodePage (favorites UI TBD).
-	DWORD		m_nCodePage;
+	DWORD m_nCodePage;
 	CString		m_sCountry; 		// Country code
 
-	void		SetNmdcCodePage(DWORD nCodePage) { m_nCodePage = nCodePage; }
+	void SetNmdcCodePage(DWORD nCodePage) { m_nCodePage = nCodePage; }
 
 	// Attributes: Contact Times
 	DWORD		m_tAdded;			// Time when host was constructed (in ticks)
