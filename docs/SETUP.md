@@ -16,10 +16,13 @@ cd Envy
 ```
 
 ### Visual Studio path (recommended)
-1. Restore vcpkg (`scripts/bootstrap-vcpkg.cmd`). Visual Studio does not restore `vcpkg_installed` before `PreBuildEvent`.
+1. Restore vcpkg. Visual Studio does not restore `vcpkg_installed` before `PreBuildEvent`.
+   - x64 only: `scripts/bootstrap-vcpkg.cmd`
+   - Win32: `scripts/bootstrap-vcpkg.cmd -Triplet x86-windows-static`
+   - both (e.g. before `build_all.ps1`): `scripts/bootstrap-vcpkg.cmd -All`
 2. Open `Visual Studio/Envy.sln`.
 3. Restore NuGet packages if prompted.
-4. Build `Release|x64` (or desired configuration).
+4. Build `Release|x64` (or the platform whose triplet you restored).
 
 ### CMake path (limited)
 ```bash

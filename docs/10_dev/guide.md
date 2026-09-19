@@ -32,14 +32,20 @@ This guide provides comprehensive information for developers working on the Envy
    cd Envy
    ```
 
-2. **Restore vcpkg** (Crashpad / `vcpkg_installed`; not optional on a fresh checkout):
+2. **Restore vcpkg** (Crashpad / `vcpkg_installed`; not optional on a fresh checkout).
+   Default is x64 only; restore Win32 as well if you will build that platform
+   (or use `-All` when following `build_all.ps1`):
    ```bat
    scripts\bootstrap-vcpkg.cmd
+   rem Win32 also:
+   scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static
+   rem or both:
+   scripts\bootstrap-vcpkg.cmd -All
    ```
 
 3. **Open in Visual Studio:**
    - Open `Visual Studio\Envy.sln`
-   - Select your preferred configuration (Debug/Release, x64/Win32)
+   - Select your preferred configuration (Debug/Release, x64/Win32) after the matching triplet is restored
 
 4. **Build the project:**
    - Build → Build Solution (Ctrl+Shift+B)
