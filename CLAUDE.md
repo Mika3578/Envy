@@ -27,11 +27,16 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
 3. **Branch & merge gate.** Branch off `develop` using conventional
    `type/short-kebab-summary` names (`feat/`, `fix/`, `docs/`, `ci/`, ...);
    never use tool- or agent-prefixed branches. You may push, open draft
-   PRs, mark ready-for-review, and enable squash auto-merge under the
-   controlled-autonomy rules in `AGENTS.md` (rules 12–13), including the
-   max-3 development PR cap. Never bypass GitHub protections.
+   PRs, mark ready-for-review, and enable squash auto-merge under
+   `AGENTS.md` rules 12–13, but the live **Protect develop** ruleset still
+   requires ≥1 GitHub **APPROVED** review (non-author), dismiss-stale
+   approvals on push, resolved threads, signed commits, and required
+   checks (`require_last_push_approval` is off). Never self-approve via
+   Actions/bot; never bypass protections.
    (See AGENTS.md section 2, rules 11–13.)
-4. **Reply to the user in the language they used in chat**, but all
+4. **CI wait:** after every PR push follow `AGENTS.md` §5 item 6
+   (`gh pr checks --required --watch --fail-fast` — never arbitrary sleeps).
+5. **Reply to the user in the language they used in chat**, but all
    commits, comments, docs, and PR text in **English**.
 
 ## Common pitfalls in this codebase

@@ -207,9 +207,9 @@ CQueryHit* CQueryHit::FromG1Packet(CG1Packet* pPacket, int* pnHops)
 		while ( nPublicSize-- )
 			pPacket->ReadByte();
 
-		if ( ! G1QueryHitXmlFits( nXMLSize, pPacket->GetRemaining() ) )
+		if (!G1QueryHitXmlFits(nXMLSize, pPacket->GetRemaining()))
 		{
-			theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with invalid size of XML data" );
+			theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with invalid size of XML data");
 			AfxThrowUserException();
 		}
 
@@ -234,9 +234,9 @@ CQueryHit* CQueryHit::FromG1Packet(CG1Packet* pPacket, int* pnHops)
 					if ( pGGEP.Find( GGEP_HEADER_CHAT ) )
 						bChat = TRUE;
 				}
-				if ( ! G1QueryHitXmlFits( nXMLSize, pPacket->GetRemaining() ) )
+				if (!G1QueryHitXmlFits(nXMLSize, pPacket->GetRemaining()))
 				{
-					theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with invalid size of XML data after GGEP" );
+					theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got hit packet with invalid size of XML data after GGEP");
 					AfxThrowUserException();
 				}
 			}
@@ -906,11 +906,12 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 	if ( G1QueryHitDeflateXmlLengthOk( nSize ) &&
 		 strncmp( (LPCSTR)pRaw.get(), "{deflate}", 9 ) == 0 )
 	{
-		// Deflate data
+		// Deflate data — cap inflate to block zip-bomb DoS (#81).
 		DWORD nRealSize = 0;
-		auto_array< BYTE > pText( CZLib::Decompress( pRaw.get() + 9, nSize - 10, &nRealSize ) );
-		if ( ! pText.get() )
-			return NULL;	// Invalid data
+		auto_array<BYTE> pText(CZLib::Decompress(
+		    pRaw.get() + 9, nSize - 10, &nRealSize, G1_DEFLATE_XML_INFLATE_MAX));
+		if (!pText.get() || !G1DeflateXmlInflateOk(nRealSize))
+			return NULL; // Invalid or abusive inflate
 		pRaw = pText;
 
 		pszXML = pRaw.get();
