@@ -1973,6 +1973,9 @@
     <ClInclude Include="KadSearchResDelivery.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="KadFirewallCheck.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="PacketLengthValidate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
