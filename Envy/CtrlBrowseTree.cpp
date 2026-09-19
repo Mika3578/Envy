@@ -22,6 +22,7 @@
 #include "CtrlBrowseTree.h"
 
 #include "G2Packet.h"
+#include "QueryHit.h"
 #include "CoolInterface.h"
 #include "Colors.h"
 #include "Images.h"
@@ -843,6 +844,99 @@ void CBrowseTreeCtrl::OnTreePacket(CG2Packet* pPacket)
 	PostMessage( WM_UPDATE );
 }
 
+static CBrowseTreeItem* DcEnsureFolderPath(CBrowseTreeItem* pRoot, const CString& sPath, CMapStringToPtr& oByPath)
+{
+	if (pRoot == NULL || sPath.IsEmpty())
+		return pRoot;
+
+	void* pCached = NULL;
+	if (oByPath.Lookup(sPath, pCached) && pCached)
+		return static_cast<CBrowseTreeItem*>(pCached);
+
+	CBrowseTreeItem* pItem = pRoot;
+	BOOL bTop = TRUE;
+	CString sAccum;
+	for (int nStart = 0; nStart < sPath.GetLength();)
+	{
+		const int nSlash = sPath.Find(L'\\', nStart);
+		const CString sPart = (nSlash < 0) ? sPath.Mid(nStart) : sPath.Mid(nStart, nSlash - nStart);
+		if (!sPart.IsEmpty())
+		{
+			if (!sAccum.IsEmpty())
+				sAccum += L'\\';
+			sAccum += sPart;
+
+			void* pNext = NULL;
+			if (oByPath.Lookup(sAccum, pNext) && pNext)
+			{
+				pItem = static_cast<CBrowseTreeItem*>(pNext);
+			}
+			else
+			{
+				pItem = pItem->Add(sPart);
+				pItem->m_sText = sPart;
+				pItem->m_bExpanded = bTop;
+				oByPath.SetAt(sAccum, pItem);
+			}
+			bTop = FALSE;
+		}
+		if (nSlash < 0)
+			break;
+		nStart = nSlash + 1;
+	}
+	return pItem;
+}
+
+void CBrowseTreeCtrl::BuildFromDcListing(const CStringList* pHitPaths, const CDWordArray* pHitIndices, const CStringList* pFolders)
+{
+	CSingleLock lRoot(&m_csRoot, TRUE);
+
+	Clear(FALSE);
+
+	CMapStringToPtr oByPath;
+
+	if (pFolders)
+	{
+		for (POSITION pos = pFolders->GetHeadPosition(); pos;)
+			DcEnsureFolderPath(m_pRoot, pFolders->GetNext(pos), oByPath);
+	}
+
+	if (pHitPaths && pHitIndices && pHitPaths->GetCount() == pHitIndices->GetSize())
+	{
+		POSITION pos = pHitPaths->GetHeadPosition();
+		for (INT_PTR i = 0; pos && i < pHitIndices->GetSize(); ++i)
+		{
+			const CString& sName = pHitPaths->GetNext(pos);
+			const DWORD nIndex = pHitIndices->GetAt(i);
+			if (nIndex == 0 || sName.IsEmpty())
+				continue;
+			const int nSlash = sName.ReverseFind(L'\\');
+			if (nSlash < 0)
+			{
+				m_pRoot->AddFileIndex(nIndex);
+				continue;
+			}
+			// Record the index on the leaf folder and every ancestor so an
+			// expanded parent folder (SelectTree skips expanded children)
+			// still matches nested files.
+			CString sFolder = sName.Left(nSlash);
+			for (;;)
+			{
+				CBrowseTreeItem* pFolder = DcEnsureFolderPath(m_pRoot, sFolder, oByPath);
+				if (pFolder)
+					pFolder->AddFileIndex(nIndex);
+				const int nParent = sFolder.ReverseFind(L'\\');
+				if (nParent < 0)
+					break;
+				sFolder = sFolder.Left(nParent);
+			}
+		}
+	}
+
+	m_nTotal = m_pRoot->GetChildCount();
+	PostMessage(WM_UPDATE);
+}
+
 void CBrowseTreeCtrl::OnTreePacket(CG2Packet* pPacket, DWORD nFinish, CBrowseTreeItem* pItem)
 {
 	BOOL bCompound;
@@ -899,26 +993,27 @@ LRESULT CBrowseTreeCtrl::OnUpdate(WPARAM, LPARAM)
 // CBrowseTreeItem construction
 
 CBrowseTreeItem::CBrowseTreeItem(CBrowseTreeItem* pParent)
-	: m_pParent		( pParent )
-	, m_pList		( NULL )
-	, m_nCount		( 0 )
-	, m_nBuffer		( 0 )
-	, m_pSelPrev	( NULL )
-	, m_pSelNext	( NULL )
-	, m_nCleanCookie ( 0 )
+    : m_pParent(pParent)
+    , m_pList(NULL)
+    , m_nCount(0)
+    , m_nBuffer(0)
+    , m_pSelPrev(NULL)
+    , m_pSelNext(NULL)
+    , m_nCleanCookie(0)
 
-	, m_nCookie		( 0 )
-	, m_nIcon16		( -1 )
-	, m_bBold		( FALSE )
+    , m_nCookie(0)
+    , m_nIcon16(-1)
+    , m_bBold(FALSE)
 
-	, m_bExpanded	( FALSE )
-	, m_bSelected	( FALSE )
-	, m_bContract1	( FALSE )
-	, m_bContract2	( FALSE )
+    , m_bExpanded(FALSE)
+    , m_bSelected(FALSE)
+    , m_bContract1(FALSE)
+    , m_bContract2(FALSE)
 
-	, m_pSchema		( NULL )
-	, m_pFiles		( NULL )
-	, m_nFiles		( 0 )
+    , m_pSchema(NULL)
+    , m_pFiles(NULL)
+    , m_nFiles(0)
+    , m_nFileBuffer(0)
 {
 }
 
@@ -1190,4 +1285,21 @@ void CBrowseTreeItem::AddXML(const CXMLElement* pXML)
 			m_sText = L"--";
 		}
 	}
+}
+
+void CBrowseTreeItem::AddFileIndex(DWORD nIndex)
+{
+	if (nIndex == 0)
+		return;
+	if (m_nFiles >= m_nFileBuffer)
+	{
+		const DWORD nNew = m_nFileBuffer ? (m_nFileBuffer * 2) : 4;
+		DWORD* pFiles = new DWORD[nNew];
+		if (m_nFiles && m_pFiles)
+			CopyMemory(pFiles, m_pFiles, m_nFiles * sizeof(DWORD));
+		delete[] m_pFiles;
+		m_pFiles = pFiles;
+		m_nFileBuffer = nNew;
+	}
+	m_pFiles[m_nFiles++] = nIndex;
 }

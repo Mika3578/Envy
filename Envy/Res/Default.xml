@@ -1688,6 +1688,10 @@
 		<item id="ID_CHAT_TIMESTAMP" text="Toggle _Timestamp"/>
 		<item id="ID_CHAT_CLEAR" text="C_lear Window"/>
 	</menu>
+	<menu name="CPrivateChatWnd.Users">
+		<item id="ID_SEARCH_CHAT" text="_Chat to User"/>
+		<item id="ID_CHAT_BROWSE" text="_Browse User"/>
+	</menu>
 	<!-- IRC WINDOW -->
 	<menu name="CIRCTabRClick">
 		<item id="ID_IRC_CLOSETAB" text="_Close"/>

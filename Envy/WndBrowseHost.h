@@ -62,6 +62,7 @@ public:
 	virtual void OnHeadPacket(CG2Packet* pPacket);
 	virtual void OnPhysicalTree(CG2Packet* pPacket);
 	virtual void OnVirtualTree(CG2Packet* pPacket);
+	void OnDcShareTree(const CStringList& oHitPaths, const CDWordArray& oHitIndices, const CStringList& oFolders);
 	virtual BOOL OnPush(const Hashes::Guid& pClientID, CConnection* pConnection);
 	virtual BOOL OnNewFile(CLibraryFile* pFile);
 	virtual void UpdateMessages(BOOL bActive = TRUE);

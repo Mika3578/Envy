@@ -30,6 +30,9 @@
 #include "Transfers.h"
 #include "UploadTransfer.h"
 #include "Uploads.h"
+#include "Network.h"
+#include "Neighbours.h"
+#include "DCNeighbour.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -41,24 +44,28 @@ IMPLEMENT_DYNAMIC(CPrivateChatWnd, CChatWnd)
 
 BEGIN_MESSAGE_MAP(CPrivateChatWnd, CChatWnd)
 	ON_WM_DESTROY()
-	ON_UPDATE_COMMAND_UI(ID_CHAT_CONNECT, &CPrivateChatWnd::OnUpdateChatConnect)
-	ON_COMMAND(ID_CHAT_CONNECT, &CPrivateChatWnd::OnChatConnect)
-	ON_UPDATE_COMMAND_UI(ID_CHAT_DISCONNECT, &CPrivateChatWnd::OnUpdateChatDisconnect)
-	ON_COMMAND(ID_CHAT_DISCONNECT, &CPrivateChatWnd::OnChatDisconnect)
-	ON_UPDATE_COMMAND_UI(ID_CHAT_BROWSE, &CPrivateChatWnd::OnUpdateChatBrowse)
-	ON_COMMAND(ID_CHAT_BROWSE, &CPrivateChatWnd::OnChatBrowse)
-	ON_UPDATE_COMMAND_UI(ID_CHAT_PRIORITY, &CPrivateChatWnd::OnUpdateChatPriority)
-	ON_COMMAND(ID_CHAT_PRIORITY, &CPrivateChatWnd::OnChatPriority)
-END_MESSAGE_MAP()
+    ON_WM_CONTEXTMENU()
+    ON_NOTIFY(NM_DBLCLK, IDC_CHAT_USERS, &CPrivateChatWnd::OnUsersDblClk)
+    ON_UPDATE_COMMAND_UI(ID_CHAT_CONNECT, &CPrivateChatWnd::OnUpdateChatConnect)
+    ON_COMMAND(ID_CHAT_CONNECT, &CPrivateChatWnd::OnChatConnect)
+    ON_UPDATE_COMMAND_UI(ID_CHAT_DISCONNECT, &CPrivateChatWnd::OnUpdateChatDisconnect)
+    ON_COMMAND(ID_CHAT_DISCONNECT, &CPrivateChatWnd::OnChatDisconnect)
+    ON_UPDATE_COMMAND_UI(ID_CHAT_BROWSE, &CPrivateChatWnd::OnUpdateChatBrowse)
+    ON_COMMAND(ID_CHAT_BROWSE, &CPrivateChatWnd::OnChatBrowse)
+    ON_UPDATE_COMMAND_UI(ID_SEARCH_CHAT, &CPrivateChatWnd::OnUpdateChatPrivateMessage)
+    ON_COMMAND(ID_SEARCH_CHAT, &CPrivateChatWnd::OnChatPrivateMessage)
+    ON_UPDATE_COMMAND_UI(ID_CHAT_PRIORITY, &CPrivateChatWnd::OnUpdateChatPriority)
+    ON_COMMAND(ID_CHAT_PRIORITY, &CPrivateChatWnd::OnChatPriority)
+    END_MESSAGE_MAP()
 
-/////////////////////////////////////////////////////////////////////////////
-// CPrivateChatWnd construction
+    /////////////////////////////////////////////////////////////////////////////
+    // CPrivateChatWnd construction
 
-CPrivateChatWnd::CPrivateChatWnd()
-	: m_pSession ( NULL )
-{
-	Create( IDR_CHATFRAME, TRUE );
-}
+    CPrivateChatWnd::CPrivateChatWnd()
+        : m_pSession(NULL)
+    {
+	    Create(IDR_CHATFRAME, TRUE);
+    }
 
 CPrivateChatWnd::~CPrivateChatWnd()
 {
@@ -193,6 +200,43 @@ BOOL CPrivateChatWnd::OnLocalCommand(const CString& sCommand, const CString& sAr
 		PostMessage( WM_COMMAND, ID_CHAT_DISCONNECT );
 	else if ( sCommand.CompareNoCase( L"/browse" ) == 0 )
 		PostMessage( WM_COMMAND, ID_CHAT_BROWSE );
+	else if (sCommand.CompareNoCase(L"/msg") == 0)
+	{
+		CString sNick = sArgs.SpanExcluding(L" \t");
+		CString sText = sArgs.Mid(sNick.GetLength()).Trim();
+		if (sNick.IsEmpty() || sText.IsEmpty())
+		{
+			CChatWnd::OnStatusMessage(1, LoadString(IDS_CHAT_NOT_CONNECTED_1));
+			return TRUE;
+		}
+		if (m_pSession && m_pSession->m_nProtocol == PROTOCOL_DC)
+		{
+			CSingleLock pLock(&Network.m_pSection);
+			if (pLock.Lock(250))
+			{
+				if (CNeighbour* pNeighbour = Neighbours.Get(m_pSession->m_pHost.sin_addr))
+				{
+					if (pNeighbour->m_nProtocol == PROTOCOL_DC)
+					{
+						CDCNeighbour* pDc = static_cast<CDCNeighbour*>(pNeighbour);
+						if (pDc->GetUser(sNick) == NULL)
+						{
+							CChatWnd::OnStatusMessage(1, LoadString(IDS_CHAT_NOT_CONNECTED_1));
+							return TRUE;
+						}
+						if (pDc->SendPrivateTo(sNick, false, sText))
+						{
+							CChatWnd::OnMessage(false, GetChatID(), true, MyProfile.GetNick(), sNick, sText);
+							return TRUE;
+						}
+					}
+				}
+			}
+			CChatWnd::OnStatusMessage(1, LoadString(IDS_CHAT_NOT_CONNECTED_1));
+			return TRUE;
+		}
+		return CChatWnd::OnLocalCommand(sCommand, sArgs);
+	}
 	else
 		return CChatWnd::OnLocalCommand( sCommand, sArgs );
 
@@ -231,14 +275,81 @@ void CPrivateChatWnd::OnChatDisconnect()
 		m_pSession->Close();
 }
 
+void CPrivateChatWnd::OnContextMenu(CWnd* pWnd, CPoint point)
+{
+	if (pWnd && m_wndUsers.GetSafeHwnd() && pWnd->GetSafeHwnd() == m_wndUsers.GetSafeHwnd())
+	{
+		if (point.x == -1 && point.y == -1)
+			GetCursorPos(&point);
+		const int nItem = UsersHitTest(point);
+		if (nItem < 0)
+			return;
+		m_wndUsers.SetItemState(nItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+		Skin.TrackPopupMenu(L"CPrivateChatWnd.Users", point);
+		return;
+	}
+	CChatWnd::OnContextMenu(pWnd, point);
+}
+
+void CPrivateChatWnd::OnUsersDblClk(NMHDR* /*pNMHDR*/, LRESULT* pResult)
+{
+	*pResult = 0;
+	OnChatPrivateMessage();
+}
+
+BOOL CPrivateChatWnd::CanMessageSelectedDcUser()
+{
+	if (!m_pSession || m_pSession->m_nProtocol != PROTOCOL_DC)
+		return FALSE;
+	if (m_pSession->GetConnectedState() != TRI_TRUE)
+		return FALSE;
+	CChatUser* pUser = GetSelectedChatUser();
+	return pUser && pUser->m_bType != cutMe && !pUser->m_sNick.IsEmpty();
+}
+
+BOOL CPrivateChatWnd::CanBrowseSelectedDcUser()
+{
+	return CanMessageSelectedDcUser();
+}
+
+void CPrivateChatWnd::BrowseSelectedDcUser()
+{
+	CChatUser* pUser = GetSelectedChatUser();
+	if (!CanBrowseSelectedDcUser() || !pUser)
+		return;
+	new CBrowseHostWnd(PROTOCOL_DC, &m_pSession->m_pHost, FALSE, Hashes::Guid(), pUser->m_sNick);
+}
+
+void CPrivateChatWnd::OnUpdateChatPrivateMessage(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(CanMessageSelectedDcUser());
+}
+
+void CPrivateChatWnd::OnChatPrivateMessage()
+{
+	if (!CanMessageSelectedDcUser())
+		return;
+	CChatUser* pUser = GetSelectedChatUser();
+	if (pUser)
+		SetComposeText(L"/msg " + pUser->m_sNick + L" ");
+}
+
 void CPrivateChatWnd::OnUpdateChatBrowse(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable( m_pSession && m_pSession->m_nProtocol != PROTOCOL_DC );
+	if (m_pSession && m_pSession->m_nProtocol == PROTOCOL_DC)
+		pCmdUI->Enable(CanBrowseSelectedDcUser());
+	else
+		pCmdUI->Enable(m_pSession != NULL);
 }
 
 void CPrivateChatWnd::OnChatBrowse()
 {
-	if ( m_pSession && m_pSession->m_nProtocol != PROTOCOL_DC )
+	if (m_pSession && m_pSession->m_nProtocol == PROTOCOL_DC)
+	{
+		BrowseSelectedDcUser();
+		return;
+	}
+	if (m_pSession)
 		new CBrowseHostWnd( m_pSession->m_nProtocol,
 			&m_pSession->m_pHost, FALSE, m_pSession->m_oGUID, m_pSession->m_sNick );
 }

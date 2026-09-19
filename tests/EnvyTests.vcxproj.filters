@@ -41,6 +41,9 @@
     <ClCompile Include="test_dc_hublist_sources_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_dc_user_file_browse_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_ed2k_lock_order_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
