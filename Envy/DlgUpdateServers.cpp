@@ -66,16 +66,16 @@ BOOL CUpdateServersDlg::OnInitDialog()
 {
 	CSkinDialog::OnInitDialog();
 
-	const bool bDcMode = ( m_nMode == UpdateServersDlgMode::DC );
-	const bool bHasDcSkinCaption = bDcMode && ! ::Skin.GetDialogCaption( UpdateServersDlgDcSkinName() ).IsEmpty();
-	const bool bHasEd2kSkinCaption = bDcMode && ! ::Skin.GetDialogCaption( UpdateServersDlgEd2kSkinName() ).IsEmpty();
+	const bool bDcMode = (m_nMode == UpdateServersDlgMode::DC);
+	const bool bHasDcSkinCaption = bDcMode && !::Skin.GetDialogCaption(UpdateServersDlgDcSkinName()).IsEmpty();
+	const bool bHasEd2kSkinCaption = bDcMode && !::Skin.GetDialogCaption(UpdateServersDlgEd2kSkinName()).IsEmpty();
 
-	if ( bDcMode && ! bHasDcSkinCaption && bHasEd2kSkinCaption )
-		SkinMe( UpdateServersDlgEd2kSkinName(), IDR_MAINFRAME );
+	if (bDcMode && !bHasDcSkinCaption && bHasEd2kSkinCaption)
+		SkinMe(UpdateServersDlgEd2kSkinName(), IDR_MAINFRAME);
 	else
-		SkinMe( UpdateServersDlgSkinName( m_nMode ), IDR_MAINFRAME );
+		SkinMe(UpdateServersDlgSkinName(m_nMode), IDR_MAINFRAME);
 
-	if ( bDcMode && ! bHasDcSkinCaption && ! bHasEd2kSkinCaption )
+	if (bDcMode && !bHasDcSkinCaption && !bHasEd2kSkinCaption)
 		ApplyDcHublistText();
 
 	// Callers should set m_sURL (and DC mode) before DoModal().
