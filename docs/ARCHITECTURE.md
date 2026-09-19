@@ -21,33 +21,10 @@ Services + Plugins (zlib, bzip2, miniupnp, BugTrap, plugin DLLs)
 
 ### Target shape (incremental)
 
-```text
-                EnvyCore
-                   │
-    ┌──────────────┼───────────────┐
-    │              │               │
- Protocols     Transfers     Library/Search
-    │              │               │
-    └──────────────┴───────────────┘
-                   │
-           Platform Abstraction
-     sockets / DNS / filesystem /
-     threads / clock / RNG / NAT /
-     interfaces / process services
-                   │
-       ┌───────────┼───────────┐
-     Windows      Linux       macOS
-       │
-   MFC frontend
-
-EnvyCore
-   │
-Local API / headless
-   │
-WebUI / CLI / future GUI
-```
-
-MFC is the **Windows frontend**, not the long-term core. Protocol logic, platform transport, and UI stay separated. Wire formats are never changed merely for portability.
+Canonical diagram and layering rules live in
+[`docs/20_arch/PORTABILITY_PLAN.md`](20_arch/PORTABILITY_PLAN.md) §2.
+Short form: EnvyCore + platform abstraction; MFC remains the Windows frontend;
+wire formats are never changed merely for portability.
 
 ## Main Components
 - **Application shell (`Envy/Envy.cpp`)**: startup, command-line options, global state, process control.
@@ -67,13 +44,13 @@ Extraction sequence reuses [#91](https://github.com/Mika3578/Envy/issues/91) (te
 ## Build Architecture
 - **Primary (full Windows app):** Visual Studio solution (`Visual Studio/Envy.sln`) with many native projects.
 - **CMake — full legacy app:** low priority; not authoritative (D-002 / D-004).
-- **CMake — portable slice:** foundational for multiplatform — `EnvyCore`, parsers, HashLib, tests, future headless (D-015). Target compilers: MSVC, Clang, GCC without requiring MFC/Windows SDK.
+- **CMake — portable slice (future target):** foundational for multiplatform — planned `EnvyCore`, parsers, a portable HashLib target, tests, future headless (D-015). These components should eventually build with MSVC, Clang, and GCC without requiring MFC/Windows SDK. Today’s partial CMake still assumes a Windows SDK in places; do not treat non-Windows CMake as available yet.
 
 ## Key Design Constraints
 1. Windows + MFC coupling is foundational **today**; new core work must stop reinforcing it unnecessarily.
 2. Protocol compatibility requires conservative behavior changes.
 3. In-tree vendored dependencies reduce external setup but increase maintenance burden.
-4. Platforms: Windows x64 supported; Win32 legacy; Linux/macOS planned only (`PORTABILITY_PLAN.md`).
+4. Platforms: Windows x64 implemented (primary); Win32 legacy; Linux/macOS planned only (`docs/20_arch/PORTABILITY_PLAN.md`).
 
 ## ADR Notes (Lightweight)
 - **ADR-001 (historical):** Keep monorepo with in-tree dependencies for reproducible Windows builds.

@@ -1,7 +1,7 @@
 # Cross-platform portability plan
 
 Status: active (planning)
-Last updated: 2026-09-18
+Last updated: 2026-09-19
 Scope: Architectural foundations, documentation, and sequencing for a **future** multi-OS Envy.
 **Linux and macOS are `planned`, not `supported`.** Do not claim multiplatform product support until those targets compile, run, and have CI evidence.
 
@@ -100,7 +100,7 @@ This does **not** mean mass-replacing those types in historical code. Windows im
 
 | Priority | Platform | Status word |
 | ---: | --- | --- |
-| 1 | Windows x64 | **supported** (primary) |
+| 1 | Windows x64 | **implemented** (primary) |
 | 2 | Linux x86_64 | **planned** |
 | 3 | macOS ARM64 | **planned** |
 | 4 | Linux ARM64 | planned if useful |

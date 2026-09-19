@@ -1,7 +1,7 @@
 # Envy Development Roadmap
 
 Status: active
-Last updated: 2026-09-18
+Last updated: 2026-09-19
 Scope: Technical itemization of Envy modernization. Strategic sequence is `docs/DEVELOPMENT_PLAN.md`.
 Source of truth: `docs/10_dev/status.md` for current vs planned; `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` for external projects.
 Portability foundations: `docs/20_arch/PORTABILITY_PLAN.md` (Linux/macOS = **planned**, not supported).
@@ -237,18 +237,18 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
 7. IPv6 address/socket/DNS/host-cache foundation (`docs/ipv6/PLAN.md`, #89). Prefer portable address types. No Kad6 yet.
 8. Incremental `EnvyCore` / MFC split (#91 → #161; eMule Qt, aMule, aria2-next).
 9. Evaluate daemon / CLI / REST or JSON-RPC.
-9b. Cross-platform foundations doc + decisions (D-012…D-015); Linux/macOS remain `planned`.
+10. Cross-platform foundations doc + decisions (D-012…D-015); Linux/macOS remain `planned`.
 
 ### P1/P2 — BitTorrent (do not drop)
-10. Compressed ED2K upload (send COMPRESSEDPART) — ED2K quality, can proceed beside BT.
-11. AICH C2C protocol.
-12. BT uTP (BEP 29) — not wired; `Services/LibUTP` is unused by Envy code.
-13. BT v2 infohash + .torrent parsing + wire (BEP 52).
+11. Compressed ED2K upload (send COMPRESSEDPART) — ED2K quality, can proceed beside BT.
+12. AICH C2C protocol.
+13. BT uTP (BEP 29) — not wired; `Services/LibUTP` is unused by Envy code.
+14. BT v2 infohash + .torrent parsing + wire (BEP 52).
 
 ### P2 / P3
-14. DHT/security research (Ember/Rucio ideas, Envy-specific, not Kad2).
-15. Kad6 / eSE-style overlay only after IPv6 + Kad2 interop.
-16. HTTPS trackers, LPD, remaining low-priority opcodes.
+15. DHT/security research (Ember/Rucio ideas, Envy-specific, not Kad2).
+16. Kad6 / eSE-style overlay only after IPv6 + Kad2 interop.
+17. HTTPS trackers, LPD, remaining low-priority opcodes.
 
 ---
 

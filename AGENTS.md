@@ -144,8 +144,11 @@ msbuild HashLib\HashTest\HashTest.vcxproj /p:Configuration=Release /p:Platform=x
 .\HashLib\HashTest\x64\Release\HashTest.exe
 ```
 
-There is no `make test` or `cargo test` - all building flows through
-MSBuild.
+There is no `make test` or `cargo test`. The **full Windows MFC application**
+builds and tests through MSBuild / `Visual Studio/Envy.sln`. Portable-slice
+builds and tests (`EnvyCore`/parsers/HashLib/tests/headless) are directed
+through CMake once that slice exists (D-015); do not skip CMake for that work
+just because the full app is MSBuild-only.
 
 **Build authority:** `Visual Studio/Envy.sln` is the authoritative build
 definition for the **full Windows MFC application**. Visual Studio 2026,
