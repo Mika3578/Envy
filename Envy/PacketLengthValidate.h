@@ -270,3 +270,17 @@ inline BOOL DiscoveryHttpResponseOk(DWORD nLength)
 {
 	return nLength > 0 && nLength <= DISCOVERY_HTTP_RESPONSE_MAX;
 }
+
+// Cap for Browse Host HTTP response bodies (peer Content-Length / buffered body) (#81/#82).
+constexpr std::uint64_t HOST_BROWSER_HTTP_BODY_MAX = 32ull * 1024ull * 1024ull;
+
+inline BOOL HostBrowserHttpBodyOk(std::uint64_t nLength)
+{
+	// SIZE_UNKNOWN is ~0ull in Envy StdAfx; keep this header MFC-free.
+	return nLength > 0 && nLength != ~0ull && nLength <= HOST_BROWSER_HTTP_BODY_MAX;
+}
+
+inline BOOL HostBrowserHttpBufferOk(std::uint64_t nBuffered)
+{
+	return nBuffered <= HOST_BROWSER_HTTP_BODY_MAX;
+}
