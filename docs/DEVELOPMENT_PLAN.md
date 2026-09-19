@@ -3,7 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
-- **Changelog Entry:** 2026-09-19 — #224: NMDC text uses per-hub/settings code page (`DcNmdcText.h`, default CP_ACP); HostCache ser v2 `m_nCodePage`; ADC unchanged.
+- **Changelog Entry:** 2026-09-19 — #224: NMDC text uses per-hub/settings code page (`DcNmdcText.h`, default CP_ACP; invalid pages fall back to ACP); HostCache ser v2 `m_nCodePage` + `SetNmdcCodePage` (favorites UI later); ADC unchanged.
 - **Changelog Entry:** 2026-09-19 — Uploads Fair-Use is live: `Uploads.FairUseMode` (default off) clips each remote IPv4 client to 10% of an audio/video library file; checkbox bound; HTTP/ED2K/DC consumers; GET/ED2K/DC reserve then charge body bytes; unused reservation rolls back on `ClearRequest`/`Close` (keep-alive HEAD does not burn quota); BitTorrent and partials excluded.
 - **Changelog Entry:** 2026-09-19 — Transfer settings foundation: Uploads page labels match the core (`Unlimited`, throttle Average/Maximum, max uploads per host); `TransferSettingsLimits.h` + EnvyTests; mapping in `docs/50_user/transfer-settings.md`.
 - **Changelog Entry:** 2026-09-19 — Cloud Agent Linux env: add `.cursor/environment.json` installing clang-format-18/clang-tidy (CI-aligned) + cppcheck (local extra) + `Remote/tests` npm deps (MFC/HashLib remain Windows-only).

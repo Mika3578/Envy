@@ -17,6 +17,12 @@ static bool test_dc_resolve_zero_is_acp()
 	return DcResolveNmdcCodePage(0) == CP_ACP && DcResolveNmdcCodePage(1251) == 1251 && DcResolveNmdcCodePage(CP_UTF8) == CP_UTF8;
 }
 
+static bool test_dc_resolve_invalid_falls_back_to_acp()
+{
+	// 6501 is not a valid Windows code page (UTF-8 is 65001).
+	return DcResolveNmdcCodePage(6501) == CP_ACP && DecodeNmdcText("AB", 2, 6501) == L"AB";
+}
+
 static bool test_dc_nmdc_ascii_roundtrip()
 {
 	const char kAscii[] = "HubName ASCII";

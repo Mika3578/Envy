@@ -18,9 +18,15 @@
 #include <string>
 
 // 0 means "use the Windows ANSI code page" (DC++ default when hub encoding is blank).
+// Unsupported / invalid nonzero pages also fall back to CP_ACP so a settings typo
+// cannot silently drop all NMDC text.
 inline UINT DcResolveNmdcCodePage(UINT nCodePage)
 {
-	return nCodePage == 0 ? static_cast<UINT>(CP_ACP) : nCodePage;
+	if (nCodePage == 0)
+		return static_cast<UINT>(CP_ACP);
+	if (::IsValidCodePage(nCodePage))
+		return nCodePage;
+	return static_cast<UINT>(CP_ACP);
 }
 
 // Decode nInput bytes (not necessarily NUL-terminated) with the hub code page.
@@ -69,15 +75,17 @@ inline std::string EncodeNmdcText(__in LPCWSTR pszString, __in UINT nCodePage)
 	BOOL bUsedDefault = FALSE;
 	// lpDefaultChar "?" — deterministic substitution when a glyph is missing in the code page.
 	// (UTF-8 ignores lpDefaultChar; every Unicode scalar is representable.)
-	const char* pszDefault = (cp == CP_UTF8) ? nullptr : "?";
-	BOOL* pbUsed = (cp == CP_UTF8) ? nullptr : &bUsedDefault;
+	const bool bUtf8 = (cp == CP_UTF8);
+	const DWORD dwFlags = bUtf8 ? 0 : WC_NO_BEST_FIT_CHARS;
+	const char* pszDefault = bUtf8 ? nullptr : "?";
+	BOOL* pbUsed = bUtf8 ? nullptr : &bUsedDefault;
 
-	int nByte = ::WideCharToMultiByte(cp, 0, pszString, nWide, nullptr, 0, pszDefault, pbUsed);
+	int nByte = ::WideCharToMultiByte(cp, dwFlags, pszString, nWide, nullptr, 0, pszDefault, pbUsed);
 	if (nByte <= 0)
 		return strBytes;
 
 	strBytes.resize(static_cast<size_t>(nByte));
-	nByte = ::WideCharToMultiByte(cp, 0, pszString, nWide, &strBytes[0], nByte, pszDefault, pbUsed);
+	nByte = ::WideCharToMultiByte(cp, dwFlags, pszString, nWide, &strBytes[0], nByte, pszDefault, pbUsed);
 	if (nByte <= 0)
 	{
 		strBytes.clear();
