@@ -83,7 +83,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 
 | Item | Detail | Priority |
 |------|--------|----------|
-| **Compressed upload** | Can receive COMPRESSEDPART but never sends it; implement zlib deflate in `UploadTransferED2K::DispatchNextChunk()` | Medium |
+| **Compressed upload** | Send-side `COMPRESSEDPART` / `COMPRESSEDPART_I64` implemented (`UploadTransferED2K::DispatchNextChunk`, `Ed2kCompressedUpload.h`); live eMule/aMule evidence still via #160 | Done (code) / unverified live |
 | **Live ED2K interop** | Envy ↔ eMule Community / aMule (Hello, HighID/LowID, search, SourceEx, transfer) | P0 |
 | **RSA SecureIdent** | Real eMule challenge-response after ED2K baseline (`docs/DEVELOPMENT_PLAN.md`) | P0/P1 |
 | **AICH C2C protocol** | AICHFILEHASHREQ (0x9E) / AICHFILEHASHANS (0x9D) handlers — required for AICH corruption recovery from peers | Medium |
@@ -256,7 +256,7 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
   - Last-known-good remote catalogue (async, never block startup).
 
 ### P1/P2 — BitTorrent (do not drop)
-11. Compressed ED2K upload (send COMPRESSEDPART) — ED2K quality, can proceed beside BT.
+11. Compressed ED2K upload (send COMPRESSEDPART) — **code done**; live evidence via #160.
 12. AICH C2C protocol.
 13. BT uTP (BEP 29) — not wired; `Services/LibUTP` is unused by Envy code.
 14. BT v2 infohash + .torrent parsing + wire (BEP 52).

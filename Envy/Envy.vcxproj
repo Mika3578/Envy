@@ -1318,6 +1318,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="TextCtrlViewport.h" />
     <ClInclude Include="BootstrapCatalog.h" />
     <ClInclude Include="Ed2kHelloCapabilities.h" />
+    <ClInclude Include="Ed2kCompressedUpload.h" />
     <ClInclude Include="Ed2kKadSettingsPolicy.h" />
     <ClInclude Include="DcHublistSources.h" />
     <ClInclude Include="TransferSettingsLimits.h" />
