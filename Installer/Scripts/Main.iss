@@ -203,6 +203,10 @@ Name: "{group}\{cm:icons_uninstall}"; Filename: "{uninstallexe}"; WorkingDir: "{
 #if unified_build == "True"
 Source: "Envy\Release x64\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "Envy\Release Win32\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
+Source: "Envy\Release x64\crashpad_handler.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
+Source: "Envy\Release Win32\crashpad_handler.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: not Install64Bit
+Source: "Envy\Release x64\crashpad_wer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
+Source: "Envy\Release Win32\crashpad_wer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: not Install64Bit
 Source: "TorrentEnvy\Release x64\TorrentEnvy.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "TorrentEnvy\Release Win32\TorrentEnvy.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
 Source: "Unpacker\Release x64\Unpacker.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
@@ -211,6 +215,8 @@ Source: "Unpacker\Release Win32\Unpacker.exe";DestDir: "{app}"; Flags: overwrite
 ;Source: "SkinBuilder\Release Win32\SkinBuilder.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
 #else
 Source: "Envy\{#ConfigurationName} {#PlatformName}\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
+Source: "Envy\{#ConfigurationName} {#PlatformName}\crashpad_handler.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
+Source: "Envy\{#ConfigurationName} {#PlatformName}\crashpad_wer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
 Source: "TorrentEnvy\{#ConfigurationName} {#PlatformName}\TorrentEnvy.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 Source: "Unpacker\{#ConfigurationName} {#PlatformName}\Unpacker.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 ;Source: "SkinBuilder\{#ConfigurationName} {#PlatformName}\SkinBuilder.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension

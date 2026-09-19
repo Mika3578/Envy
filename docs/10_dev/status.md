@@ -30,7 +30,7 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 | --- | --- | --- | --- |
 | Windows x64 product | implemented (primary) | — | preserve |
 | Windows Win32/x86 product | implemented (legacy Stage A) | — | deprecate later (D-014) |
-| Local crash minidumps | implemented (#90, Windows Debug+Release) | WER + MiniDumpWriteDump | preserve (no SaaS) |
+| Local crash reports | implemented (#90, Windows Debug+Release) | Crashpad (upload off) | preserve (no SaaS) |
 | Linux x86_64 product | planned | aMule | planned → supported only with CI evidence |
 | macOS ARM64 product | planned | aMule | planned → supported only with CI evidence |
 | EnvyCore portable boundary | not implemented | eMule Qt, aria2-next | planned (#161) |

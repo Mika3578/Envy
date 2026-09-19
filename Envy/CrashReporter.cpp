@@ -1,14 +1,14 @@
 //
 // CrashReporter.cpp
 //
-// Next-launch crash recovery UI and process-wide handler install (#90).
-// The exception filter itself lives in CrashDumpWin.h and stays allocation-light.
+// Next-launch crash recovery UI (#90). Capture is Crashpad out-of-process.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
 #include "StdAfx.h"
 #include "CrashReporter.h"
-#include "CrashDumpWin.h"
+#include "CrashPadHost.h"
+#include "CrashReportPolicy.h"
 
 #include <commctrl.h>
 #include <shellapi.h>
@@ -57,15 +57,15 @@ BOOL ResolveCrashDirectory(wchar_t* dest, size_t cch)
 	return dest[0] != 0;
 }
 
-LPTOP_LEVEL_EXCEPTION_FILTER s_pPreviousFilter = nullptr;
-terminate_handler s_pPreviousTerminate = nullptr;
+std::terminate_handler s_pPreviousTerminate = nullptr;
 _invalid_parameter_handler s_pPreviousInvalid = nullptr;
 _purecall_handler s_pPreviousPurecall = nullptr;
 BOOL s_bInstalled = FALSE;
+wchar_t s_directory[MAX_PATH];
 
 void __cdecl OnTerminate()
 {
-	CrashDumpWin::WriteFromException(nullptr);
+	CrashPadHost::DumpNow();
 	abort();
 }
 
@@ -77,13 +77,13 @@ void __cdecl OnInvalidParameter(
     uintptr_t /*pReserved*/)
 {
 	// Do not copy CRT strings; they may contain user paths.
-	CrashDumpWin::WriteFromException(nullptr);
+	CrashPadHost::DumpNow();
 	abort();
 }
 
 void __cdecl OnPureCall()
 {
-	CrashDumpWin::WriteFromException(nullptr);
+	CrashPadHost::DumpNow();
 	abort();
 }
 
@@ -189,7 +189,7 @@ BOOL CopyTextToClipboard(const wchar_t* pszText)
 
 void OpenCrashFolder()
 {
-	const wchar_t* pszDir = CrashDumpWin::Config().directory;
+	const wchar_t* pszDir = s_directory;
 	if (pszDir == nullptr || pszDir[0] == 0)
 		return;
 	ShellExecuteW(nullptr, L"open", pszDir, nullptr, nullptr, SW_SHOWNORMAL);
@@ -231,7 +231,7 @@ BOOL FindPendingReports(PendingReport* pOut, size_t nMax, size_t* pnCount)
 	if (pOut == nullptr || nMax == 0)
 		return FALSE;
 
-	const wchar_t* pszDir = CrashDumpWin::Config().directory;
+	const wchar_t* pszDir = s_directory;
 	if (pszDir == nullptr || pszDir[0] == 0)
 		return FALSE;
 
@@ -249,11 +249,58 @@ BOOL FindPendingReports(PendingReport* pOut, size_t nMax, size_t* pnCount)
 	size_t nCount = 0;
 	do
 	{
-		if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-			continue;
 		if (fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
 			continue;
+		if (fd.cFileName[0] == L'.' &&
+		    (fd.cFileName[1] == 0 || (fd.cFileName[1] == L'.' && fd.cFileName[2] == 0)))
+			continue;
+
+		if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			wchar_t szDump[MAX_PATH];
+			if (!CrashReportJoinPath(pszDir, fd.cFileName, szDump, _countof(szDump)))
+				continue;
+			wchar_t szMini[MAX_PATH];
+			if (!CrashReportJoinPath(szDump, L"minidump", szMini, _countof(szMini)))
+				continue;
+			WIN32_FILE_ATTRIBUTE_DATA attr;
+			if (!GetFileAttributesExW(szMini, GetFileExInfoStandard, &attr))
+				continue;
+			if (attr.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+				continue;
+			if (nCount >= nMax)
+				continue;
+			PendingReport* pItem = &pOut[nCount++];
+			ZeroMemory(pItem, sizeof(*pItem));
+			CrashReportCopyTrunc(pItem->baseName, _countof(pItem->baseName), fd.cFileName);
+			CrashReportCopyTrunc(pItem->dumpName, _countof(pItem->dumpName), fd.cFileName);
+			pItem->hasDump = TRUE;
+			ULARGE_INTEGER writeTime;
+			writeTime.LowPart = attr.ftLastWriteTime.dwLowDateTime;
+			writeTime.HighPart = attr.ftLastWriteTime.dwHighDateTime;
+			pItem->mtimeUtc = writeTime.QuadPart;
+			ULARGE_INTEGER fileSize;
+			fileSize.LowPart = attr.nFileSizeLow;
+			fileSize.HighPart = attr.nFileSizeHigh;
+			pItem->sizeBytes = fileSize.QuadPart;
+			wchar_t szSeenName[CRASH_REPORT_NAME_MAX + 8];
+			if (swprintf_s(szSeenName, _countof(szSeenName), L"%s.seen", fd.cFileName) > 0 &&
+			    CrashReportIsSafeFileName(szSeenName))
+			{
+				wchar_t szSeenPath[MAX_PATH];
+				if (CrashReportJoinPath(pszDir, szSeenName, szSeenPath, _countof(szSeenPath)) &&
+				    GetFileAttributesW(szSeenPath) != INVALID_FILE_ATTRIBUTES)
+				{
+					pItem->hasSeen = TRUE;
+				}
+			}
+			continue;
+		}
+
 		if (!CrashReportIsSafeFileName(fd.cFileName))
+			continue;
+		if (_wcsicmp(fd.cFileName, L"identity.txt") == 0 ||
+		    _wcsicmp(fd.cFileName, L"settings.dat") == 0)
 			continue;
 
 		const size_t nName = wcslen(fd.cFileName);
@@ -337,11 +384,18 @@ BOOL FindPendingReports(PendingReport* pOut, size_t nMax, size_t* pnCount)
 
 	for (size_t i = 0; i < nCount; ++i)
 	{
-		if (!pOut[i].hasTxt)
-			continue;
-		wchar_t szTxtPath[MAX_PATH];
-		if (CrashReportJoinPath(pszDir, pOut[i].txtName, szTxtPath, _countof(szTxtPath)))
-			ReadMetadataFile(szTxtPath, &pOut[i].meta);
+		if (pOut[i].hasTxt)
+		{
+			wchar_t szTxtPath[MAX_PATH];
+			if (CrashReportJoinPath(pszDir, pOut[i].txtName, szTxtPath, _countof(szTxtPath)))
+				ReadMetadataFile(szTxtPath, &pOut[i].meta);
+		}
+		else
+		{
+			wchar_t szIdentity[MAX_PATH];
+			if (CrashReportJoinPath(pszDir, L"identity.txt", szIdentity, _countof(szIdentity)))
+				ReadMetadataFile(szIdentity, &pOut[i].meta);
+		}
 		if (pOut[i].meta.dumpFile[0] == 0 && pOut[i].hasDump)
 			CrashReportCopyTrunc(pOut[i].meta.dumpFile, _countof(pOut[i].meta.dumpFile), pOut[i].dumpName);
 	}
@@ -376,19 +430,66 @@ void MarkSeen(const PendingReport* pItem)
 	if (!CrashReportIsSafeFileName(szSeenName))
 		return;
 	wchar_t szPath[MAX_PATH];
-	if (!CrashReportJoinPath(CrashDumpWin::Config().directory, szSeenName, szPath, _countof(szPath)))
+	if (!CrashReportJoinPath(s_directory, szSeenName, szPath, _countof(szPath)))
 		return;
 	const HANDLE hFile = CreateFileW(szPath, GENERIC_WRITE, 0, nullptr,
-	                                 CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (hFile != INVALID_HANDLE_VALUE)
+	                                 CREATE_NEW,
+	                                 FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
+	                                 nullptr);
+	if (hFile == INVALID_HANDLE_VALUE)
+		return;
+	BY_HANDLE_FILE_INFORMATION info;
+	if (!GetFileInformationByHandle(hFile, &info) ||
+	    (info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
+	{
 		CloseHandle(hFile);
+		DeleteFileW(szPath);
+		return;
+	}
+	CloseHandle(hFile);
+}
+
+void DeleteSafeTree(const wchar_t* pszDir, int depth)
+{
+	if (pszDir == nullptr || pszDir[0] == 0 || depth > 2)
+		return;
+	wchar_t szPattern[MAX_PATH];
+	if (swprintf_s(szPattern, _countof(szPattern), L"%s\\*", pszDir) < 0)
+		return;
+	WIN32_FIND_DATAW fd;
+	const HANDLE hFind = FindFirstFileW(szPattern, &fd);
+	if (hFind == INVALID_HANDLE_VALUE)
+		return;
+	do
+	{
+		if (fd.cFileName[0] == L'.' &&
+		    (fd.cFileName[1] == 0 || (fd.cFileName[1] == L'.' && fd.cFileName[2] == 0)))
+			continue;
+		if (fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
+			continue;
+		if (!CrashReportIsSafeFileName(fd.cFileName))
+			continue;
+		wchar_t szChild[MAX_PATH];
+		if (!CrashReportJoinPath(pszDir, fd.cFileName, szChild, _countof(szChild)))
+			continue;
+		if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			DeleteSafeTree(szChild, depth + 1);
+			RemoveDirectoryW(szChild);
+		}
+		else
+		{
+			DeleteFileW(szChild);
+		}
+	} while (FindNextFileW(hFind, &fd));
+	FindClose(hFind);
 }
 
 void DeleteReportFiles(const wchar_t* pszBase)
 {
 	if (!CrashReportIsSafeFileName(pszBase))
 		return;
-	const wchar_t* pszDir = CrashDumpWin::Config().directory;
+	const wchar_t* pszDir = s_directory;
 	const wchar_t* pszExts[] = { L".dmp", L".txt", L".seen" };
 	for (size_t i = 0; i < 3; ++i)
 	{
@@ -400,6 +501,20 @@ void DeleteReportFiles(const wchar_t* pszBase)
 		if (!CrashReportJoinPath(pszDir, szName, szPath, _countof(szPath)))
 			continue;
 		DeleteFileW(szPath);
+	}
+
+	wchar_t szReportDir[MAX_PATH];
+	if (!CrashReportJoinPath(pszDir, pszBase, szReportDir, _countof(szReportDir)))
+		return;
+	const DWORD attr = GetFileAttributesW(szReportDir);
+	if (attr == INVALID_FILE_ATTRIBUTES)
+		return;
+	if (attr & FILE_ATTRIBUTE_REPARSE_POINT)
+		return;
+	if (attr & FILE_ATTRIBUTE_DIRECTORY)
+	{
+		DeleteSafeTree(szReportDir, 0);
+		RemoveDirectoryW(szReportDir);
 	}
 }
 
@@ -440,9 +555,9 @@ void ShowPendingDialog(PendingReport* pItem)
 	swprintf_s(szInstruction, _countof(szInstruction),
 	           L"ENVY found a crash report from a previous run.\n\n"
 	           L"Reports are stored locally in:\n%s\n\n"
-	           L"Minidumps can contain fragments of process memory and are not anonymous. "
-	           L"Nothing is uploaded. Attach the .dmp only if you choose to share it.",
-	           CrashDumpWin::Config().directory);
+	           L"Crashpad minidumps can contain fragments of process memory and are not anonymous. "
+	           L"Nothing is uploaded. Attach the minidump only if you choose to share it.",
+	           s_directory);
 
 	TASKDIALOGCONFIG tdc;
 	ZeroMemory(&tdc, sizeof(tdc));
@@ -461,7 +576,7 @@ void ShowPendingDialog(PendingReport* pItem)
 	buttons[0].nButtonID = CRASH_BTN_COPY;
 	buttons[0].pszButtonText = L"Copy sanitized report\nCopies text you can paste into a GitHub issue. The dump is not copied.";
 	buttons[1].nButtonID = CRASH_BTN_FOLDER;
-	buttons[1].pszButtonText = L"Open crash-report folder\nInspect or attach the .dmp yourself.";
+	buttons[1].pszButtonText = L"Open crash-report folder\nInspect or attach the Crashpad minidump yourself.";
 	buttons[2].nButtonID = CRASH_BTN_GITHUB;
 	buttons[2].pszButtonText = L"Open GitHub issue page\nOpens a blank issue with a short crash title. Paste the copied text. Do not put dumps in the URL.";
 	tdc.cButtons = 3;
@@ -502,16 +617,9 @@ void ShowPendingDialog(PendingReport* pItem)
 
 void CrashReporter::Initialize()
 {
-	CrashDumpConfig cfg;
-	ZeroMemory(&cfg, sizeof(cfg));
-	cfg.continueSearch = TRUE;
-	ResolveCrashDirectory(cfg.directory, _countof(cfg.directory));
-	CrashDumpWin::Configure(&cfg);
-
-	LPTOP_LEVEL_EXCEPTION_FILTER pPrevious =
-	    SetUnhandledExceptionFilter(&CrashDumpWin::UnhandledExceptionFilter);
-	if (pPrevious != &CrashDumpWin::UnhandledExceptionFilter)
-		s_pPreviousFilter = pPrevious;
+	s_directory[0] = 0;
+	ResolveCrashDirectory(s_directory, _countof(s_directory));
+	CrashPadHost::Start(s_directory);
 
 	if (s_bInstalled)
 		return;
@@ -524,7 +632,7 @@ void CrashReporter::Initialize()
 
 void CrashReporter::SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevision, const wchar_t* pszBuildType)
 {
-	CrashDumpWin::SetIdentity(pszVersion, pszRevision, pszBuildType);
+	CrashPadHost::SetIdentity(pszVersion, pszRevision, pszBuildType);
 }
 
 void CrashReporter::ShowStartupPromptIfNeeded()
@@ -557,7 +665,6 @@ void CrashReporter::Shutdown()
 {
 	if (!s_bInstalled)
 		return;
-	SetUnhandledExceptionFilter(s_pPreviousFilter);
 	if (s_pPreviousTerminate != nullptr)
 		set_terminate(s_pPreviousTerminate);
 	if (s_pPreviousInvalid != nullptr)
@@ -569,5 +676,5 @@ void CrashReporter::Shutdown()
 
 const wchar_t* CrashReporter::GetCrashDirectory()
 {
-	return CrashDumpWin::Config().directory;
+	return s_directory;
 }

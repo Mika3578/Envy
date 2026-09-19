@@ -42,7 +42,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 | UnRAR | 5.30 (2015-11) | Outdated, contains x86 inline ASM |
 | GeoIP | unknown | Legacy MaxMind, should move to libmaxminddb |
 | LibUTP | 2010 snapshot | Outdated |
-| BugTrap | 2005-2010 | **Removed** (#90). Replaced by first-party local minidumps + WER |
+| BugTrap | 2005-2010 | **Removed** (#90). Replaced by Crashpad (local DB, upload off) |
 | LibGFL | 3.40 (~2003) | **Very outdated** (non-free binary, AGPL conflict) |
 
 ---

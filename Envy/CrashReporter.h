@@ -1,7 +1,7 @@
 //
 // CrashReporter.h
 //
-// First-party Windows crash reporting (#90). Not an EnvyCore API.
+// Windows crash reporting UI (#90). Capture is Crashpad. Not an EnvyCore API.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //

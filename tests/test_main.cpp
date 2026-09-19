@@ -10,8 +10,6 @@
 
 #include "test_framework.h"
 
-#include <cstring>
-
 // Test modules register their tests via these functions
 void register_hashlib_tests(TestSuite& suite);
 void register_protocol_parser_smoke_tests(TestSuite& suite);
@@ -43,16 +41,10 @@ void register_transfer_state_smoke_tests(TestSuite& suite);
 void register_kad_search_res_delivery_smoke_tests(TestSuite& suite);
 void register_crash_report_policy_smoke_tests(TestSuite& suite);
 
-#ifdef _WIN32
-int crash_dump_child_main();
-#endif
-
 int main(int argc, char** argv)
 {
-#ifdef _WIN32
-	if (argc >= 2 && strcmp(argv[1], "--crash-dump-child") == 0)
-		return crash_dump_child_main();
-#endif
+	(void)argc;
+	(void)argv;
 	TestSuite suite;
 
 	register_hashlib_tests(suite);

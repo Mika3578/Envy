@@ -1,87 +1,123 @@
 # Crash reporting (maintainers)
 
-Status: current (#90)
+Status: current (#90, D-019)
 Last updated: 2026-09-19
 
-ENVY writes **local minidumps** with a small sanitized text sidecar. There is
-no BugTrap, no crash-reporting SaaS, no automatic upload, and no registry
-export.
+ENVY uses **Crashpad** (vcpkg `crashpad`, Apache-2.0) as the Windows capture
+engine. `crashpad_handler.exe` snapshots the crashed process from **outside**
+that process into a local database. There is no BugTrap, no Sentry Native
+product dependency, no crash-reporting SaaS, no automatic upload, and no
+registry export.
 
 This is a **Windows-only** application concern. It is not an EnvyCore API.
 
-## Why not Crashpad / Breakpad / Sentry Native
+Sentry Native is **not** shipped. It remains Option B in
+`docs/10_dev/crashpad-vs-sentry-native.md` if ENVY later wants a consented
+dashboard. This product path is Crashpad, not “Sentry wrapping Crashpad”.
 
-| Criterion | Native WER + `MiniDumpWriteDump` | Crashpad / Breakpad / Sentry Native |
+## Why Crashpad instead of in-process `MiniDumpWriteDump`
+
+PR #243 first prototyped `CrashDumpWin.h` (`MiniDumpWriteDump` in the faulting
+process). That path is deleted. A successful `RaiseException` test does not
+prove a handler survives heap corruption, stack overflow, CRT damage, or
+loader-lock issues.
+
+| Criterion | Homemade `MiniDumpWriteDump` | Crashpad (this tree) |
 | --- | --- | --- |
-| Maintenance | First-party, ~small surface | Extra handler process + vendored snapshot |
-| Build complexity | Windows SDK `dbghelp.h`, no vcpkg | New third-party, CMake/GN, extra binaries |
-| Processes | In-process dump, then normal WER | Crashpad handler process |
-| x86/x64 | Same Envy Win32/x64 matrix | Extra handler builds |
-| Privacy | Local files, user opt-in to share | Easy to grow into telemetry |
-| Security surface | No network in the crash path | HTTP transport, extra parser code |
-| Offline | Yes | Needs extra work to stay offline |
-| Symbolication | Matching `Envy.exe` + `Envy.pdb` | Same PDBs, plus extra tooling |
-| License | Windows SDK | Additional third-party license review |
-| CI burden | Existing MSBuild + EnvyTests | Extra artifacts and test harnesses |
+| Crash-time work | In-process dump + sidecar write | Handler process snapshots the crashed process |
+| Heap / stack / fast-fail | Weak (same damaged heap/stack) | Stronger; handler is a separate process |
+| Build | Windows SDK `dbghelp.h` | vcpkg `crashpad` (GN wrapped by the port) |
+| Extra binary | None | `crashpad_handler.exe` next to `Envy.exe` |
+| Upload | None | Off: empty URL + `SetUploadsEnabled(false)` |
+| Offline | Yes | Yes (local database) |
+| License | Windows SDK | Apache-2.0 |
 
-BugTrap was obsolete, Debug-only, attached HKCU settings, bundled old
-`dbghelp.dll`, and is removed. A large crash SDK would be more complex than
-the native path ENVY actually needs.
+BugTrap was obsolete, Debug-only, attached HKCU settings, and bundled old
+`dbghelp.dll`. It is removed.
 
 ## Runtime
 
-- Handlers install early in `CEnvyApp` construction (Debug and Release).
-- Crash path: create `%LOCALAPPDATA%\Envy\CrashReports\`, `CREATE_NEW` dump,
-  `MiniDumpWriteDump`, tiny UTF-8 metadata, return
-  `EXCEPTION_CONTINUE_SEARCH` so Windows Error Reporting still runs.
-- CRT `terminate` / invalid-parameter / purecall handlers write a dump
-  without copying CRT strings (those strings can contain user paths).
+```
+Envy.exe
+  └── CrashPadHost (init-time client; empty upload URL)
+         └── crashpad_handler.exe
+                ├── %LOCALAPPDATA%\Envy\CrashReports\  (Crashpad database)
+                ├── UUID directory + minidump + metadata
+                └── uploads disabled
+```
+
+- `CrashReporter::Initialize` runs from `CEnvyApp` construction and again in
+  `InitInstance` (Debug and Release). It starts Crashpad and installs CRT
+  `terminate` / invalid-parameter / purecall handlers that call
+  `DumpWithoutCrash` then `abort`. Crashpad owns SEH; ENVY does **not**
+  install `SetUnhandledExceptionFilter`.
+- Crash-time work in `Envy.exe` is the Crashpad client stub. File I/O for the
+  dump happens in `crashpad_handler.exe`.
+- `SetIdentity` writes sanitized `identity.txt` in the database (version,
+  revision, build type, arch). It does not copy CRT strings or user paths.
 - Next launch: TaskDialog (MessageBox fallback) to copy sanitized text, open
-  the folder, or open GitHub’s new-issue page. The `.dmp` is never uploaded.
+  the folder, or open GitHub’s new-issue page. The minidump is never uploaded.
 - Retention: keep up to 8 newest report groups or 50 MiB; never prune the
-  newest report before the user has seen it.
+  newest report before the user has seen it. Crashpad UUID directories are
+  pruned the same way as leftover `.dmp`/`.txt` pairs.
+- If `crashpad_handler.exe` is missing or the database cannot be created,
+  ENVY still starts. CRT handlers then no-op on `DumpNow`. Windows Error
+  Reporting may still run. There is no second in-process dumper.
 
-## Dump type
+## Privacy
 
-`MiniDumpNormal | MiniDumpWithUnloadedModules |
-MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithThreadInfo`.
+A Crashpad minidump is **not anonymous** and is **not** inherently
+privacy-safe. Indirectly referenced stack memory can contain search queries,
+filenames, peer IPs, tracker URLs with passkeys, usernames, or local paths.
 
-Not a full-memory dump. Indirectly referenced stack memory **can still contain
-private fragments**. Treat dumps as sensitive.
+ENVY does **not**:
 
-## DbgHelp
+- upload dumps, logs, or telemetry
+- attach registry exports
+- attach shared-file or download lists
+- put dump bytes in a GitHub URL
+- enable Crashpad HTTP upload (empty URL; `SetUploadsEnabled(false)`)
 
-Production and tests load **system** `dbghelp.dll` from `%SystemRoot%\System32`
-(`LoadLibraryEx` + `LOAD_LIBRARY_SEARCH_SYSTEM32`). ENVY does not ship
-DbgHelp. `MiniDumpWriteDump` is resolved at init, not during the crash.
-`Envy/PreBuild.cmd` no longer copies BugTrap or bundled DbgHelp next to
-`Envy.exe`.
+Sharing a minidump is an explicit user action after the next-launch dialog.
 
 ## Symbols
 
 Match a dump to:
 
-1. ENVY version / revision from the `.txt` sidecar
-2. The same architecture (`x64` or `Win32`)
-3. `Envy.exe` and `Envy.pdb` from that build
+1. ENVY version / revision from `identity.txt` (and the executable module
+   list inside the minidump)
+2. Architecture (`x64` or `Win32`)
+3. `Envy.exe` and `Envy.pdb` from **that same build** (PDB GUID / age)
 
-Release CI on `develop` / `main` / dispatch uploads `Envy.exe` and `Envy.pdb`
-together in the `envy-<platform>-Release` artifact (90-day PDB retention on
-the explicit PDB upload). PDBs are **not** put in the end-user installer.
+Release CI on `develop` / `main` / dispatch uploads `Envy.exe`, `Envy.pdb`,
+and `crashpad_handler.exe` in the `envy-<platform>-Release` artifact (90-day
+PDB retention on the explicit PDB upload). PDBs are **not** in the installer.
+PDBs can reveal source paths and build information; do not publish them
+publicly as a symbol server without review.
 
-Private source paths in PDBs are a compiler default; do not publish extra
-source indexes from crash reporting.
+Maintainer workflow: download the matching CI artifact, open the minidump in
+WinDbg / Visual Studio with that `Envy.pdb` on the symbol path.
 
 ## Tests
 
-`tests/test_crash_report_policy_smoke.cpp` covers filenames, metadata privacy,
-GitHub URL trust, retention, dump failure, and a child-process dump smoke
-(`EnvyTests.exe --crash-dump-child`). The child must not be the main test
-process. Log-tail inclusion is omitted until a sanitizer can be proven.
+- `tests/test_crash_report_policy_smoke.cpp` — filenames, metadata privacy,
+  GitHub URL trust, retention, Crashpad UUID path safety. Does **not** link
+  Crashpad and does not crash the test runner.
+- `tools/crash-probe/` — disposable `CrashProbe.exe` child processes for
+  access violation, heap corruption, stack overflow, fast-fail, `terminate`,
+  invalid parameter, multithread, missing handler, unwritable database, and
+  two sequential crashes. Workflow: `.github/workflows/crash-probe.yml`.
+- About dialog Shift+Right-click on the web link still forces a null-pointer
+  crash after confirmation (Release asks first). That is a manual way to
+  produce a local Crashpad dump; it is not proof of heap/stack robustness.
 
-The About dialog still has a Shift+Right-click-on-link hook that forces a
-null-pointer crash after confirmation (Release asks first). That remains a
-manual way to produce a local minidump.
+## Installer and build
+
+- Root `vcpkg.json` depends on `crashpad` (same `builtin-baseline` as the rest
+  of ENVY). `Visual Studio/Envy.sln` remains the authoritative app build.
+- `Envy/CopyCrashpadHandler.cmd` copies `crashpad_handler.exe` (and
+  `crashpad_wer*.dll` if the port produces it) next to `Envy.exe`.
+- Inno Setup copies the handler into `{app}`. PDBs stay out of the installer.
 
 ## Wire format
 

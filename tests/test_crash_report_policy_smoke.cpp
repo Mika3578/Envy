@@ -1,16 +1,15 @@
 //
 // test_crash_report_policy_smoke.cpp
 //
-// Crash-report naming, privacy, metadata, retention, and dump-failure
-// helpers for #90. The live child-process dump smoke is Windows-only and
-// must not crash this process.
+// Crash-report naming, privacy, metadata, and retention helpers for #90.
+// Live Crashpad crash-class tests run in tools/crash-probe (disposable
+// child processes), not in this runner.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
 
 #include "test_framework.h"
 #include "../Envy/CrashReportPolicy.h"
-#include "../Envy/CrashDumpWin.h"
 
 #include <string>
 #include <windows.h>
@@ -182,6 +181,10 @@ static bool test_privacy_credentials_and_ips()
 		return false;
 	if (CrashReportLooksPrivate(L"4.2.0 Release x64"))
 		return false;
+	if (CrashReportContainsInsensitive(L"pass", L"passkey="))
+		return false;
+	if (!CrashReportContainsInsensitive(L"passkey=abcdef", L"passkey="))
+		return false;
 	return true;
 }
 
@@ -267,153 +270,18 @@ static bool test_metadata_dump_or_txt_only()
 	return streq(parsedCode.exceptionCode, L"0xC0000005");
 }
 
-static bool test_configure_rejects_empty_directory()
+static bool test_crashpad_uuid_name_is_safe()
 {
-	CrashDumpConfig cfg;
-	ZeroMemory(&cfg, sizeof(cfg));
-	cfg.continueSearch = FALSE;
-	return CrashDumpWin::Configure(&cfg) == FALSE;
-}
-
-static bool test_dump_write_invalid_directory()
-{
-	CrashDumpWin::ResetDumpOnce();
-	CrashDumpConfig cfg;
-	ZeroMemory(&cfg, sizeof(cfg));
-	CrashReportCopyTrunc(cfg.directory, _countof(cfg.directory), L"?:\\envy-crash-missing-dir");
-	cfg.continueSearch = FALSE;
-	CrashDumpWin::Configure(&cfg);
-	CrashDumpWin::ResetDumpOnce();
-	const BOOL wrote = CrashDumpWin::WriteFromException(nullptr);
-	CrashDumpWin::ResetDumpOnce();
-	return wrote == FALSE;
-}
-
-static bool MakeTempCrashDir(wchar_t* dest, size_t cch)
-{
-	wchar_t tmp[MAX_PATH];
-	if (GetTempPathW(_countof(tmp), tmp) == 0)
+	const wchar_t* uuid = L"01234567-89ab-cdef-0123-456789abcdef";
+	if (!CrashReportIsSafeFileName(uuid))
 		return false;
-	swprintf_s(dest, cch, L"%sEnvyCrashTest-%lu-%lu", tmp, GetCurrentProcessId(), GetTickCount());
-	return CreateDirectoryW(dest, nullptr) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
-}
-
-static void RemoveDirBestEffort(const wchar_t* dir)
-{
-	if (dir == nullptr || dir[0] == 0)
-		return;
-	wchar_t pattern[MAX_PATH];
-	swprintf_s(pattern, _countof(pattern), L"%s\\*", dir);
-	WIN32_FIND_DATAW fd;
-	HANDLE h = FindFirstFileW(pattern, &fd);
-	if (h != INVALID_HANDLE_VALUE)
-	{
-		do
-		{
-			if (fd.cFileName[0] == L'.')
-				continue;
-			wchar_t path[MAX_PATH];
-			swprintf_s(path, _countof(path), L"%s\\%s", dir, fd.cFileName);
-			DeleteFileW(path);
-		} while (FindNextFileW(h, &fd));
-		FindClose(h);
-	}
-	RemoveDirectoryW(dir);
-}
-
-int crash_dump_child_main()
-{
-	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
-	_set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
-
-	wchar_t dir[MAX_PATH];
-	dir[0] = 0;
-	GetEnvironmentVariableW(L"ENVY_CRASH_TEST_DIR", dir, MAX_PATH);
-	if (dir[0] == 0)
-		return 2;
-
-	CrashDumpConfig cfg;
-	ZeroMemory(&cfg, sizeof(cfg));
-	CrashReportCopyTrunc(cfg.directory, _countof(cfg.directory), dir);
-	CrashReportCopyTrunc(cfg.version, _countof(cfg.version), L"4.2.0");
-	CrashReportCopyTrunc(cfg.buildType, _countof(cfg.buildType), L"Test");
-	cfg.continueSearch = FALSE;
-	CrashDumpWin::Configure(&cfg);
-	SetUnhandledExceptionFilter(&CrashDumpWin::UnhandledExceptionFilter);
-
-	RaiseException(EXCEPTION_ACCESS_VIOLATION, EXCEPTION_NONCONTINUABLE, 0, nullptr);
-	return 3;
-}
-
-static bool test_child_process_writes_dump()
-{
-	wchar_t dir[MAX_PATH];
-	if (!MakeTempCrashDir(dir, _countof(dir)))
+	wchar_t path[MAX_PATH];
+	if (!CrashReportJoinPath(L"C:\\EnvyCrashUnit", uuid, path, _countof(path)))
 		return false;
-
-	SetEnvironmentVariableW(L"ENVY_CRASH_TEST_DIR", dir);
-
-	wchar_t exe[MAX_PATH];
-	if (GetModuleFileNameW(nullptr, exe, MAX_PATH) == 0)
-	{
-		RemoveDirBestEffort(dir);
+	wchar_t mini[MAX_PATH];
+	if (!CrashReportJoinPath(path, L"minidump", mini, _countof(mini)))
 		return false;
-	}
-
-	wchar_t cmd[MAX_PATH + 64];
-	swprintf_s(cmd, _countof(cmd), L"\"%s\" --crash-dump-child", exe);
-
-	STARTUPINFOW si;
-	ZeroMemory(&si, sizeof(si));
-	si.cb = sizeof(si);
-	PROCESS_INFORMATION pi;
-	ZeroMemory(&pi, sizeof(pi));
-	if (!CreateProcessW(exe, cmd, nullptr, nullptr, FALSE,
-	                    CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi))
-	{
-		RemoveDirBestEffort(dir);
-		return false;
-	}
-	const DWORD wait = WaitForSingleObject(pi.hProcess, 15000);
-	DWORD code = STILL_ACTIVE;
-	GetExitCodeProcess(pi.hProcess, &code);
-	if (wait == WAIT_TIMEOUT)
-		TerminateProcess(pi.hProcess, 9);
-	CloseHandle(pi.hThread);
-	CloseHandle(pi.hProcess);
-
-	BOOL foundDump = FALSE;
-	BOOL foundTxt = FALSE;
-	BOOL nonEmpty = FALSE;
-	wchar_t pattern[MAX_PATH];
-	swprintf_s(pattern, _countof(pattern), L"%s\\*", dir);
-	WIN32_FIND_DATAW fd;
-	HANDLE h = FindFirstFileW(pattern, &fd);
-	if (h != INVALID_HANDLE_VALUE)
-	{
-		do
-		{
-			const size_t n = wcslen(fd.cFileName);
-			if (n > 4 && _wcsicmp(fd.cFileName + n - 4, L".dmp") == 0)
-			{
-				foundDump = TRUE;
-				if (fd.nFileSizeLow > 0 || fd.nFileSizeHigh > 0)
-					nonEmpty = TRUE;
-			}
-			if (n > 4 && _wcsicmp(fd.cFileName + n - 4, L".txt") == 0)
-				foundTxt = TRUE;
-		} while (FindNextFileW(h, &fd));
-		FindClose(h);
-	}
-
-	RemoveDirBestEffort(dir);
-	SetEnvironmentVariableW(L"ENVY_CRASH_TEST_DIR", nullptr);
-
-	if (wait == WAIT_TIMEOUT)
-		return false;
-	if (code == 0)
-		return false;
-	return foundDump && foundTxt && nonEmpty;
+	return wcsstr(mini, L"minidump") != nullptr;
 }
 
 void register_crash_report_policy_smoke_tests(TestSuite& suite)
@@ -431,7 +299,5 @@ void register_crash_report_policy_smoke_tests(TestSuite& suite)
 	suite.add_test("CrashReport.Retention.KeepsNewest", test_retention_keeps_newest);
 	suite.add_test("CrashReport.Retention.NeverPruneNewest", test_retention_never_prunes_newest_over_size);
 	suite.add_test("CrashReport.Metadata.DumpOrTxtOnly", test_metadata_dump_or_txt_only);
-	suite.add_test("CrashReport.Dump.EmptyDirectory", test_configure_rejects_empty_directory);
-	suite.add_test("CrashReport.Dump.InvalidDirectory", test_dump_write_invalid_directory);
-	suite.add_test("CrashReport.Dump.ChildProcessSmoke", test_child_process_writes_dump);
+	suite.add_test("CrashReport.Crashpad.UuidPath", test_crashpad_uuid_name_is_safe);
 }

@@ -208,8 +208,9 @@ Envy/
 └── HashLib/Release x64/        # HashLib output
 ```
 
-Release CI uploads `Envy.exe` and `Envy.pdb` together (90-day PDB artifact)
-so maintainers can symbolicate local minidumps. PDBs are not in the installer.
+Release CI uploads `Envy.exe`, `Envy.pdb`, and `crashpad_handler.exe` together
+(90-day PDB artifact) so maintainers can symbolicate local Crashpad minidumps.
+PDBs are not in the installer.
 See [crash reporting](crash-reporting.md).
 
 ## Embedded web HTML gzip resources

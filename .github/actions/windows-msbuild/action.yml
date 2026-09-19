@@ -246,6 +246,8 @@ runs:
         path: |
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.exe
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.pdb
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_handler.exe
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_wer.dll
           Envy/**/Release/*.exe
           Envy/**/Release/*.dll
           Plugins/**/Release/*.dll

@@ -179,7 +179,7 @@ Classify work by: portable / Windows-only / replaceable / needs abstraction / ve
 | zlib, bzip2, sqlite3 | Portable (vendored + vcpkg) | Prefer portable APIs at core boundary |
 | OpenSSL (vcpkg) | Portable | Prefer over Windows-only crypto for new core paths when practical |
 | MiniUPnP | Mostly portable C; Windows NAT/firewall glue is OS-specific | Keep vendored track (D-009); platform layer owns OS integration |
-| Crash reporting | Windows-only first-party minidumps | Replaced BugTrap (#90). Local dumps + opt-in GitHub issue. Not EnvyCore. |
+| Crash reporting | Windows-only Crashpad (local DB, upload off) | Replaced BugTrap (#90 / D-017). Next-launch opt-in GitHub issue. Not EnvyCore. |
 | MFC / ATL / Win32 | Windows frontend + historical core coupling | Not a core dependency for new EnvyCore interfaces |
 | LibUTP (vendored) | Portable C candidate | Not wired by Envy yet |
 | GeoIP DB / data files | Data; OS-agnostic | Path/fs access goes through platform layer |

@@ -13,12 +13,9 @@ Typical expansion:
 
 `C:\Users\<you>\AppData\Local\Envy\CrashReports\`
 
-Each crash is a pair of files with the same base name:
-
-- `.dmp` — Windows minidump (may contain fragments of memory from the crashed
-  process, including private data)
-- `.txt` — short sanitized summary (version, architecture, exception code,
-  timestamp, dump file name)
+Crashpad stores each crash in a UUID folder with a `minidump` file, plus a
+small `identity.txt` summary for the installed build. Older leftover `.dmp` /
+`.txt` pairs from earlier builds may still appear in the same folder.
 
 Filenames do not include your Windows user name, download names, search terms,
 or peer addresses.
@@ -29,11 +26,11 @@ A minidump is **not anonymous** and is **not** a privacy-safe log. Even this
 smaller dump type can include snippets of memory (paths, names, or other data
 that happened to be on a thread stack).
 
-Do not email or upload a `.dmp` unless you intend to share that information
+Do not email or upload a minidump unless you intend to share that information
 with maintainers.
 
 ENVY does **not** attach registry exports, shared-file lists, or download
-names to crash reports.
+names to crash reports. ENVY does **not** upload dumps by itself.
 
 ## How to report a crash
 
@@ -42,7 +39,7 @@ names to crash reports.
    you want help.
 3. Use **Open crash-report folder** to see the files.
 4. Use **Open GitHub issue page** if you want the tracker. Paste the copied
-   text. Attach the `.dmp` **only if you choose to**.
+   text. Attach the minidump **only if you choose to**.
 5. Continue using ENVY without a GitHub account if you prefer.
 
 Issue tracker: [Mika3578/Envy issues](https://github.com/Mika3578/Envy/issues/new)
@@ -55,5 +52,6 @@ you have had a chance to see it on the next launch.
 
 ## If dump creation fails
 
-ENVY still exits (or Windows Error Reporting still runs). A missing dump does
-not prevent ENVY from starting later.
+ENVY still exits. A missing dump does not prevent ENVY from starting later.
+If `crashpad_handler.exe` is missing from the install folder, ENVY cannot
+write Crashpad dumps until that file is restored.

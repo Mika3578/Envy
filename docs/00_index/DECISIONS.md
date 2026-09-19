@@ -31,6 +31,15 @@ Use this file to record decisions that affect architecture, protocol compatibili
 - **Consequences:** No new HTTP frameworks; no “qBittorrent-compatible” wording until tests; Transmission deferred; OpenAPI only implemented+planned.
 - **References:** `docs/20_arch/AUDIT_REMOTE_API_2026-09.md`, `docs/20_arch/remote-api.md`.
 
+### Decision: Crash capture engine (BugTrap replacement)
+- **Date:** 2026-09-19
+- **Status:** accepted
+- **ID:** D-019 in `docs/DECISIONS.md`
+- **Context:** Issue #90 must replace obsolete BugTrap without a mandatory SaaS. An in-process `MiniDumpWriteDump` prototype is not strong enough for heap-corruption / stack-overflow / fast-fail.
+- **Decision:** Crashpad is the capture engine (local DB, empty upload URL, `SetUploadsEnabled(false)`). Sentry Native is Option B only and is not linked into ENVY. Isolated `tools/crash-probe` records crash-class evidence.
+- **Consequences:** Ship `crashpad_handler.exe` next to `Envy.exe`. Keep next-launch GitHub UX. No silent telemetry.
+- **References:** `docs/10_dev/crashpad-vs-sentry-native.md`, `docs/10_dev/crash-reporting.md`.
+
 ## Template
 
 ### Decision: <short title>

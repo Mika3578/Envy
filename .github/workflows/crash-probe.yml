@@ -1,0 +1,127 @@
+name: Crash Probe
+
+# Isolated Crashpad vs Sentry Native evaluation for #90.
+# Not a required Protect develop check. Not Envy.sln.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/crash-probe/**"
+      - ".github/workflows/crash-probe.yml"
+  push:
+    branches: [develop]
+    paths:
+      - "tools/crash-probe/**"
+      - ".github/workflows/crash-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crash-probe-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  consent:
+    name: Consent (crash probe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          fetch-depth: 1
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Static consent checks
+        run: bash tools/crash-probe/check-consent.sh
+
+  probe:
+    name: Crash Probe (${{ matrix.backend }}, ${{ matrix.platform }})
+    needs: consent
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [crashpad, sentry]
+        platform: [x64, Win32]
+    env:
+      PLATFORM_TOOLSET: v145
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          fetch-depth: 1
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57  # v3
+        with:
+          msbuild-architecture: x64
+
+      - name: Select probe manifest
+        shell: pwsh
+        run: |
+          $src = "tools/crash-probe/vcpkg-${{ matrix.backend }}.json"
+          Copy-Item -LiteralPath $src -Destination "tools/crash-probe/vcpkg.json" -Force
+          Get-Content -LiteralPath "tools/crash-probe/vcpkg.json"
+
+      - name: Cache vcpkg binary cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25  # v5
+        with:
+          path: ${{ github.workspace }}/vcpkg_cache
+          key: crash-probe-v1-${{ matrix.backend }}-${{ matrix.platform }}-${{ hashFiles('tools/crash-probe/vcpkg-crashpad.json', 'tools/crash-probe/vcpkg-sentry.json') }}
+          restore-keys: |
+            crash-probe-v1-${{ matrix.backend }}-${{ matrix.platform }}-
+
+      - name: Bootstrap vcpkg
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "$env:VCPKG_INSTALLATION_ROOT")) {
+            git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
+            & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
+            echo "VCPKG_INSTALLATION_ROOT=$env:GITHUB_WORKSPACE/vcpkg" >> $env:GITHUB_ENV
+          }
+          echo "VCPKG_BINARY_SOURCES=clear;files,$($env:GITHUB_WORKSPACE)/vcpkg_cache,readwrite" >> $env:GITHUB_ENV
+
+      - name: Install probe vcpkg dependencies
+        shell: pwsh
+        run: |
+          $triplet = if ("${{ matrix.platform }}" -eq "x64") { "x64-windows-static" } else { "x86-windows-static" }
+          echo "VCPKG_TARGET_TRIPLET=$triplet" >> $env:GITHUB_ENV
+          & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install --triplet=$triplet --x-manifest-root="$env:GITHUB_WORKSPACE/tools/crash-probe"
+
+      - name: Build CrashProbe
+        shell: cmd
+        run: |
+          set TRIPLET=%VCPKG_TARGET_TRIPLET%
+          msbuild "tools\crash-probe\CrashProbe.vcxproj" /m /nologo /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:PlatformToolset=%PLATFORM_TOOLSET% /p:WindowsTargetPlatformVersion=10.0 /p:CrashProbeBackend=${{ matrix.backend }} /p:VcpkgEnableManifest=true /p:VcpkgEnabled=true /p:VcpkgTriplet=%TRIPLET% /p:VcpkgManifestRoot=%CD%\tools\crash-probe
+
+      - name: Stage handler and run probe
+        shell: pwsh
+        run: |
+          $platform = "${{ matrix.platform }}"
+          $backend = "${{ matrix.backend }}"
+          $exe = Join-Path $env:GITHUB_WORKSPACE "tools\crash-probe\out\Release-$platform-$backend\CrashProbe.exe"
+          if (-not (Test-Path -LiteralPath $exe)) { throw "missing $exe" }
+          $installed = Join-Path $env:GITHUB_WORKSPACE "tools\crash-probe\vcpkg_installed\$env:VCPKG_TARGET_TRIPLET"
+          $handler = Get-ChildItem -Path $installed -Recurse -Filter "crashpad_handler.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $handler) { throw "crashpad_handler.exe not installed for $backend / $env:VCPKG_TARGET_TRIPLET" }
+          $wer = @(Get-ChildItem -Path $installed -Recurse -Filter "crashpad_wer*.dll" -ErrorAction SilentlyContinue)
+          Write-Host "Handler: $($handler.FullName) ($($handler.Length) bytes)"
+          Write-Host "WER modules: $($wer.Count)"
+          $wer | ForEach-Object { Write-Host "  $($_.FullName) ($($_.Length) bytes)" }
+          $outDir = Join-Path $env:GITHUB_WORKSPACE "tools\crash-probe\out\results-$backend-$platform"
+          & "$env:GITHUB_WORKSPACE\tools\crash-probe\run-probe.ps1" -Exe $exe -Backend $backend -Handler $handler.FullName -OutDir $outDir
+
+      - name: Upload probe measurements
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6
+        with:
+          name: crash-probe-${{ matrix.backend }}-${{ matrix.platform }}
+          path: |
+            tools/crash-probe/out/Release-${{ matrix.platform }}-${{ matrix.backend }}/
+            tools/crash-probe/out/results-${{ matrix.backend }}-${{ matrix.platform }}/
+          if-no-files-found: warn
+          retention-days: 30

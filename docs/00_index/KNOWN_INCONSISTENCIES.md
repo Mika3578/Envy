@@ -39,3 +39,5 @@
 - **Remote `BindAddress` unused:** `Settings.Remote.BindAddress` defaults to `127.0.0.1` (`Settings.cpp`) but no listener binds it. HTML Remote is multiplexed on the P2P HTTP accept path (`CUploads::OnAccept` → `CRemote`). Access control is `CRemoteSecurity::IsRemoteAccessAllowed` (IPv4 only; `::1` is not loopback). Canonical: `docs/20_arch/AUDIT_REMOTE_API_2026-09.md`. Follow-up is a dedicated API port (D-017), not silently trusting this setting.
 
 - **`Remote/api-specification.md` vs C++:** The JSON `/api/downloads` family is design-only. `CRemote::PageSwitch` serves `/remote/*` HTML. Do not treat the spec or `envy-modern.js` as a live contract.
+
+- **#90 / PR #243 crash reporter:** `develop` still ships BugTrap until this PR merges. PR #243 now uses Crashpad (`CrashPadHost` + `crashpad_handler.exe`), not in-process `MiniDumpWriteDump`. Canonical: `docs/10_dev/crash-reporting.md`.

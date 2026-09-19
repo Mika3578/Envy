@@ -50,6 +50,8 @@ ctest --test-dir build
 
 ## Crash report policy smoke tests
 - `tests/test_crash_report_policy_smoke.cpp` covers dump filenames, metadata
-  privacy, GitHub URL trust, retention, dump-directory failure, and a Windows
-  child-process minidump smoke (`EnvyTests.exe --crash-dump-child`). Log tails
-  are omitted. See `docs/10_dev/crash-reporting.md`.
+  privacy, GitHub URL trust, retention, and Crashpad UUID path safety. Live
+  crash-class tests run in disposable `tools/crash-probe/CrashProbe.exe`
+  processes (`av`, heap, stack, fast-fail, terminate, invalid parameter,
+  multithread, missing handler, unwritable database). Log tails are omitted.
+  See `docs/10_dev/crash-reporting.md`.

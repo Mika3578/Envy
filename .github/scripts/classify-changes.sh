@@ -107,6 +107,12 @@ while IFS= read -r f; do
 
 	classified=false
 
+	# Isolated crash-engine probe: not Envy.sln / not root vcpkg.json.
+	if match_prefix "$f" "tools/crash-probe/"; then
+		classified=true
+		continue
+	fi
+
 	case "$f" in
 	.github/workflows/build.yml | \
 	.github/workflows/release.yml | \

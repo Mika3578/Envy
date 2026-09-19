@@ -41,6 +41,14 @@ check workflow-win "$F_WORKFLOW" run_windows_build true
 check deps "$F_VCPKG" run_dep_review true
 check deps-win "$F_VCPKG" run_windows_build true
 
+readonly F_PROBE='tools/crash-probe/CrashProbe.cpp'
+readonly F_PROBE_DOCS=$'tools/crash-probe/CrashProbe.cpp\ndocs/10_dev/crash-reporting.md'
+readonly F_PROBE_ENVY=$'tools/crash-probe/CrashProbe.cpp\nEnvy/Envy.cpp'
+check crash-probe-win "$F_PROBE" run_windows_build false
+check crash-probe-cpp "$F_PROBE" cpp false
+check crash-probe-docs "$F_PROBE_DOCS" run_windows_build false
+check crash-probe-envy "$F_PROBE_ENVY" run_windows_build true
+
 # force_remote via code-quality.yml; CodeQL workflow must NOT force remote JS.
 check force-remote "$F_QUALITY" run_remote_js true
 check codeql-config-remote "$F_CODEQL" run_remote_js false

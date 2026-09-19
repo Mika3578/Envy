@@ -391,7 +391,10 @@ inline BOOL CrashReportContainsInsensitive(const wchar_t* text, const wchar_t* t
 		size_t j = 0;
 		while (j < nTok)
 		{
-			wchar_t a = text[i + j];
+			const wchar_t a0 = text[i + j];
+			if (a0 == 0)
+				return FALSE;
+			wchar_t a = a0;
 			wchar_t b = token[j];
 			if (a >= L'A' && a <= L'Z')
 				a = static_cast<wchar_t>(a - L'A' + L'a');
@@ -403,8 +406,6 @@ inline BOOL CrashReportContainsInsensitive(const wchar_t* text, const wchar_t* t
 		}
 		if (j == nTok)
 			return TRUE;
-		if (text[i + 1] == 0 && j < nTok)
-			break;
 	}
 	return FALSE;
 }
