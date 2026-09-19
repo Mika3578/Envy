@@ -28,6 +28,7 @@
 #include "DownloadGroups.h"
 #include "DownloadTransferBT.h"
 #include "UploadTransferBT.h"
+#include "PacketLengthValidate.h"
 #include "UploadTransfer.h"
 #include "Uploads.h"
 #include "Transfers.h"
@@ -677,13 +678,14 @@ void CDownloadWithTorrent::OnTrackerEvent(bool bSuccess, LPCTSTR pszReason, LPCT
 		m_pTorrent.SetTrackerSucceeded( tNow );
 
 		// Get new sources
-		//int nMax = Settings.Downloads.SourcesWanted;
 		for ( POSITION pos = pEvent->GetSources(); pos; )
 		{
+			if (!BtSourcesWantedAllowsMore(GetEffectiveSourceCount(),
+			                               Settings.Downloads.SourcesWanted))
+				break;
+
 			const CBTTrackerSource& pSource = pEvent->GetNextSource( pos );
 			AddSourceBT( pSource.m_pPeerID, &pSource.m_pAddress.sin_addr, ntohs( pSource.m_pAddress.sin_port ) );
-			//if ( nMax-- < 0 && GetEffectiveSourceCount() >= Settings.Downloads.SourcesWanted )
-			//	break;
 		}
 
 		// Lock on this tracker if we were searching for one

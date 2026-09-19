@@ -661,6 +661,10 @@ void CBTTrackerRequest::Process(const CBENode* pRoot)
 		{
 			for ( int nPeer = 0; nPeer < pPeers->GetCount(); nPeer++ )
 			{
+				if (!BtSourcesWantedAllowsMore((DWORD)m_pSources.GetCount(),
+				                               Settings.Downloads.SourcesWanted))
+					break;
+
 				const CBENode* pPeer = pPeers->GetNode( nPeer );
 				if ( ! pPeer || ! pPeer->IsType( CBENode::beDict ) )
 					continue;
@@ -692,12 +696,16 @@ void CBTTrackerRequest::Process(const CBENode* pRoot)
 		}
 		else if ( pPeers && pPeers->IsType( CBENode::beString ) )
 		{
-			if ( 0 == ( pPeers->m_nValue % 6 ) )
+			if (BtCompactPeerListBytesOk(pPeers->m_nValue))
 			{
 				const BYTE* pPointer = (const BYTE*)pPeers->m_pValue;
 
 				for ( int nPeer = (int)pPeers->m_nValue / 6; nPeer > 0; nPeer --, pPointer += 6 )
 				{
+					if (!BtSourcesWantedAllowsMore((DWORD)m_pSources.GetCount(),
+					                               Settings.Downloads.SourcesWanted))
+						break;
+
 					saPeer.sin_addr = *(const IN_ADDR*)pPointer;
 					saPeer.sin_port = *(const WORD*)( pPointer + 4 );
 					m_pSources.AddTail( CBTTrackerSource( Hashes::BtGuid(), saPeer ) );
@@ -803,8 +811,21 @@ BOOL CBTTrackerRequest::OnAnnounce(CBTTrackerPacket* pPacket)
 
 	SOCKADDR_IN saPeer = { AF_INET };
 
+	const DWORD nPeerBytes = pPacket->GetRemaining();
+	// Empty peer list is valid; non-empty must be an exact multiple of 6 bytes.
+	if (nPeerBytes != 0 && !BtCompactPeerListBytesOk(nPeerBytes))
+	{
+		OnTrackerEvent(false, LoadString(IDS_BT_TRACKER_PARSE_ERROR));
+		Cancel();
+		return FALSE;
+	}
+
 	while ( pPacket->GetRemaining() >= sizeof( bt_peer_t ) )
 	{
+		if (!BtSourcesWantedAllowsMore((DWORD)m_pSources.GetCount(),
+		                               Settings.Downloads.SourcesWanted))
+			break;
+
 		saPeer.sin_addr.s_addr = pPacket->ReadLongLE();
 		saPeer.sin_port = pPacket->ReadShortLE();
 		m_pSources.AddTail( CBTTrackerSource( Hashes::BtGuid(), saPeer ) );
