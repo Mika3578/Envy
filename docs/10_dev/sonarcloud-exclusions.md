@@ -1,5 +1,7 @@
 # SonarCloud analysis scope
 
+> **Note:** PR decoration must analyze a non-empty first-party delta; empty commits alone may leave SonarCloud check suites queued.
+
 Canonical exclusions and `sonar.projectVersion` live in
 [`.sonarcloud.properties`](../../.sonarcloud.properties) for SonarCloud
 Automatic Analysis.
