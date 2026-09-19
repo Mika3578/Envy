@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Kademlia store-entry tag length cap (#81)** — Reject per-tag values above 4 KiB (`KadStoreTagLengthOk` / `KAD_STORE_TAG_MAX`) in `CKademlia::ReadEntryTags` before `vector` allocate (WORD×32 tags DoS).
+- **BitTorrent MSE len(IA) fail-closed (#81)** — Cap responder `len(IA)` at 96 (`BtMseIaLengthOk` / `BT_MSE_IA_MAX`); stall in new `MSE_AWAITING_IA` until the full IA is buffered before `crypto_select` (avoids RC4 desync from partial IA / oversized WORD lengths).
 - **BitTorrent MSE Pad_C/Pad_D receive cap (#81)** — Reject peer-advertised pad lengths above 512 (`BtMsePadLengthOk` / `BT_MSE_PAD_MAX` = `MSE_PAD_MAX_LEN`) before `new[]`/wait-for-bytes during MSE handshake. Decode/encode pad length fields as big-endian (`BtMseBeWordFromWire` / `BtMseBeWordToWire`) per Vuze MSE.
 - **BitTorrent TCP length-prefix absolute cap (#81)** — Reject single-message length-prefixes above 16 MiB (`BtPacketLengthOk` / `BT_PACKET_LENGTH_MAX`) in `CBTPacket::ReadBuffer`; clear the input and close the peer (`IDS_PROTOCOL_TOO_LARGE`) instead of stalling forever on a multi-GB wait.
 - **G2 HIT_WRAP embedded G1 length fail-closed (#81)** — Reject negative wrapped `GNUTELLAPACKET::m_nLength` in `CG1Packet::New` before `(DWORD)` cast/`Write`; `SeekToWrapped` uses `G1WrappedPayloadFits` (negative + 256 KiB ceiling + remaining) for G2→G1 conversion. Null-check `New()` at wrap call sites so HostBrowser `MaximumPacket*8` browse is unchanged.

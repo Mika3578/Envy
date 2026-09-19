@@ -4,6 +4,7 @@
 
 - **Last Updated:** 2026-09-19
 - **Changelog Entry:** 2026-09-19 — #81: Kademlia store-entry tags capped at 4 KiB (`KadStoreTagLengthOk`) in `ReadEntryTags`.
+- **Changelog Entry:** 2026-09-19 — #81: BitTorrent MSE responder `len(IA)` capped at 96 (`BtMseIaLengthOk`); partial IA waits in `MSE_AWAITING_IA` before crypto_select (RC4 desync fix).
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent MSE receive Pad_C/Pad_D capped at 512 (`BtMsePadLengthOk` / `MSE_PAD_MAX_LEN`); pad length fields decoded/encoded big-endian.
 - **Changelog Entry:** 2026-09-19 — #81: NMDC `$ADCGET`/`$ADCSND` strict asymmetric numeric parse (`DcAdcGetValidate.h`); GET allows `-1` until-EOF; SND requires real length; length-aware tokens reject embedded NUL / `2^64-1`; fail-closed SND vs fixed request (no `min()`).
 - **Changelog Entry:** 2026-09-19 — #81: BitTorrent TCP length-prefix capped at 16 MiB (`BtPacketLengthOk`); oversize clears buffer and closes peer (`PROTOCOL_TOO_LARGE`).

@@ -323,6 +323,17 @@ inline BOOL BtUtMetadataSizeOk(std::uint64_t nSize)
 	return nSize > 0 && nSize <= BT_UT_METADATA_MAX;
 }
 
+// Max MSE/PE len(IA) accepted on the responder path (#81).
+// Legitimate IA is 0 or the embedded BT handshake (~48 without peer-id, ~68
+// with). Cap at 96 to leave headroom without allowing a full WORD DoS /
+// RC4 desync from completing the handshake on a partial payload.
+constexpr WORD BT_MSE_IA_MAX = 96;
+
+inline BOOL BtMseIaLengthOk(WORD nIaLength)
+{
+	return nIaLength <= BT_MSE_IA_MAX;
+}
+
 // Max MSE/PE Pad_C / Pad_D length (#81). Single source with MSE_PAD_MAX_LEN
 // in BTCrypto.h when that header is included first; otherwise define here so
 // EnvyTests can use the same cap without pulling BTCrypto.
