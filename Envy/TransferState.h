@@ -99,10 +99,12 @@ inline bool TransferStateIsTerminalSuccess(TransferState nState)
 	return nState == TransferState::Completed || nState == TransferState::Seeding;
 }
 
-// Mirrors CDownload::GetDownloadStatus() branch order (Download.cpp:
-// clearing, IsPaused, IsCompleted, IsMoving, started&&100%, !IsTrying,
+// Mirrors CDownload::GetDownloadStatus() branch order in Download.cpp:378-437
+// (clearing, IsPaused, IsCompleted, IsMoving, started&&100%, !IsTrying,
 // IsDownloading, GetEffectiveSourceCount, IsTorrent, else queued).
-// paused-before-completed is required: IsPaused() is tested first there.
+// paused-before-completed is required: IsPaused() is tested first there
+// (Download.cpp:382 before :389). Covered by test_paused_wins_over_completed_predicates.
+// Aggregate `{}` is defined: members use default member initializers (= false).
 // Completed+seeding+trackerError stays Seeding (not Error) so *arr still
 // sees a finished payload; the UI string IDS_STATUS_TRACKERDOWN is local.
 inline TransferState ClassifyTransferState(const TransferStateInput& oIn)
