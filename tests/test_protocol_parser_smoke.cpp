@@ -148,6 +148,11 @@ static bool test_bt_extension_length_with_bencode()
 	return BtExtensionPayloadLengthOk( 2 + 5 ) == TRUE;	// e.g. "d1:ae"
 }
 
+static bool test_bt_packet_length_ok()
+{
+	return BtPacketLengthOk(1) == TRUE && BtPacketLengthOk(BT_PACKET_LENGTH_MAX) == TRUE && BtPacketLengthOk(0) == FALSE && BtPacketLengthOk(BT_PACKET_LENGTH_MAX + 1) == FALSE;
+}
+
 static bool test_g2_subpacket_payload_fits()
 {
 	return G2SubpacketPayloadFits(100, 50, 8) == TRUE && G2SubpacketPayloadFits(100, 100, 0) == TRUE && G2SubpacketPayloadFits(100, 101, 0) == FALSE && G2SubpacketPayloadFits(100, 50, 51) == FALSE && G2SubpacketPayloadFits(100, 0xFFFFFFFA, 8) == FALSE;
@@ -702,6 +707,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_extension_length_one_not_keepalive", test_bt_extension_length_one_not_keepalive );
 	suite.add_test( "bt_extension_length_min_valid", test_bt_extension_length_min_valid );
 	suite.add_test( "bt_extension_length_bencode", test_bt_extension_length_with_bencode );
+	suite.add_test("bt_packet_length_ok", test_bt_packet_length_ok);
 	suite.add_test("g2_subpacket_payload_fits", test_g2_subpacket_payload_fits);
 	suite.add_test("g2_frame_length_fits", test_g2_frame_length_fits);
 

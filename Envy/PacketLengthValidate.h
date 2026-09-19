@@ -43,6 +43,16 @@ inline BOOL BtIsKeepAliveLength(DWORD nLength)
 	return nLength == 0;
 }
 
+// Cap for BitTorrent TCP message length-prefix (#81).
+// Excludes keep-alive (nLength == 0); pair with BtIsKeepAliveLength for the
+// zero prefix. Non-zero lengths must be in [1, BT_PACKET_LENGTH_MAX].
+constexpr DWORD BT_PACKET_LENGTH_MAX = 16u * 1024u * 1024u;
+
+inline BOOL BtPacketLengthOk(DWORD nLength)
+{
+	return nLength >= 1 && nLength <= BT_PACKET_LENGTH_MAX;
+}
+
 // QueryHit XML "{deflate}" path uses "nSize - 10" (9-byte marker + trailing NUL
 // included in fixed nXMLSize). Require nSize > 10 so subtraction cannot underflow.
 // CG1Packet::ReadXML uses "len - 9" because it measures length until HIT_SEP/NUL
