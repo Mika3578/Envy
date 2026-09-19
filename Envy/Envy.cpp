@@ -1359,13 +1359,18 @@ BOOL CEnvyApp::OpenPath(LPCTSTR lpszFileName)
 	// Show existing folder in Library
 	if ( LibraryFolders.IsFolderShared( (CString)lpszFileName ) )
 	{
-		if ( CLibraryFolder* pFolder = LibraryFolders.GetFolder( lpszFileName ) )
+		// Hold Library.m_pSection for GetFolder + Display (pointer must stay valid).
+		CSingleLock pLock( &Library.m_pSection );
+		if ( SafeLock( pLock ) )
 		{
-			CMainWnd* pMainWnd = (CMainWnd*)AfxGetMainWnd();
-			if ( CLibraryWnd* pLibraryWnd = (CLibraryWnd*)pMainWnd->m_pWindows.Open( RUNTIME_CLASS(CLibraryWnd) ) )
+			if ( CLibraryFolder* pFolder = LibraryFolders.GetFolder( lpszFileName ) )
 			{
-				CLibraryFrame* pFrame = &pLibraryWnd->m_wndFrame;
-				pFrame->Display( pFolder );
+				CMainWnd* pMainWnd = (CMainWnd*)AfxGetMainWnd();
+				if ( CLibraryWnd* pLibraryWnd = (CLibraryWnd*)pMainWnd->m_pWindows.Open( RUNTIME_CLASS(CLibraryWnd) ) )
+				{
+					CLibraryFrame* pFrame = &pLibraryWnd->m_wndFrame;
+					pFrame->Display( pFolder );
+				}
 			}
 		}
 

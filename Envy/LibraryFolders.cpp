@@ -133,7 +133,7 @@ CLibraryFolder* CLibraryFolders::GetNextFolder(POSITION& pos) const
 
 CLibraryFolder* CLibraryFolders::GetFolder(const CString& strPath) const
 {
-	ASSUME_LOCK( Library.m_pSection );
+	CQuickLock oLock( Library.m_pSection );
 
 	for ( POSITION pos = GetFolderIterator(); pos; )
 	{
