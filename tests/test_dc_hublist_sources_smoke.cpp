@@ -103,7 +103,7 @@ static bool test_dc_dialog_title_is_not_server_met()
 {
 	return DcHublistDialogTitleLooksLikeHublist( DcHublistDialogTitleEn() )
 		&& ! DcHublistDialogTitleLooksLikeHublist( L"Download Server.met File" )
-		&& ! DcHublistDialogTitleLooksLikeHublist( L"T\x00e9l\x00e9charger un fichier Server.met" )
+		&& ! DcHublistDialogTitleLooksLikeHublist( L"T\u00E9l\u00E9charger un fichier Server.met" )
 		&& wcsstr( DcHublistDialogTextEn(), L"server.met" ) == nullptr
 		&& wcsstr( DcHublistDialogTextEn(), L"eDonkey" ) == nullptr
 		&& wcsstr( DcHublistDialogTextEn(), L"Hub list URL:" ) != nullptr;

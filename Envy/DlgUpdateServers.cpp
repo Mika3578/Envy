@@ -66,9 +66,16 @@ BOOL CUpdateServersDlg::OnInitDialog()
 {
 	CSkinDialog::OnInitDialog();
 
-	SkinMe(UpdateServersDlgSkinName(m_nMode), IDR_MAINFRAME);
+	const bool bDcMode = ( m_nMode == UpdateServersDlgMode::DC );
+	const bool bHasDcSkinCaption = bDcMode && ! ::Skin.GetDialogCaption( UpdateServersDlgDcSkinName() ).IsEmpty();
+	const bool bHasEd2kSkinCaption = bDcMode && ! ::Skin.GetDialogCaption( UpdateServersDlgEd2kSkinName() ).IsEmpty();
 
-	if (m_nMode == UpdateServersDlgMode::DC && ::Skin.GetDialogCaption(UpdateServersDlgDcSkinName()).IsEmpty())
+	if ( bDcMode && ! bHasDcSkinCaption && bHasEd2kSkinCaption )
+		SkinMe( UpdateServersDlgEd2kSkinName(), IDR_MAINFRAME );
+	else
+		SkinMe( UpdateServersDlgSkinName( m_nMode ), IDR_MAINFRAME );
+
+	if ( bDcMode && ! bHasDcSkinCaption && ! bHasEd2kSkinCaption )
 		ApplyDcHublistText();
 
 	// Callers should set m_sURL (and DC mode) before DoModal().
