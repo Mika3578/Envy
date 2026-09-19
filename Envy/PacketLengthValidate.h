@@ -152,6 +152,19 @@ inline BOOL Ed2kFileCommentLengthOk(DWORD nClaimedLen, DWORD nRemainingAfterHead
 	return nClaimedLen <= nRemainingAfterHeader;
 }
 
+// Wire ED2K length-prefixed strings (ReadEDString / ReadLongEDString).
+// After consuming the length field, claimed payload must fit remaining.
+// Argument order matches Ed2kTagStringLengthOk / Ed2kFileCommentLengthOk (len, remaining).
+inline BOOL Ed2kEdStringPayloadOk(WORD nLen, DWORD nRemainingAfterLen)
+{
+	return nLen <= nRemainingAfterLen;
+}
+
+inline BOOL Ed2kLongEdStringPayloadOk(DWORD nLen, DWORD nRemainingAfterLen)
+{
+	return nLen <= nRemainingAfterLen;
+}
+
 // Wire ED2K_TAG_UINT64 value is a little-endian 64-bit integer (#81).
 constexpr DWORD ED2K_TAG_UINT64_BYTES = 8u;
 

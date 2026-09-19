@@ -200,6 +200,8 @@ void CEDPacket::Reset()
 CString CEDPacket::ReadEDString(BOOL bUnicode)
 {
 	WORD nLen = ReadShortLE();
+	if (!Ed2kEdStringPayloadOk(nLen, GetRemaining()))
+		AfxThrowUserException();
 	return bUnicode ?
 		ReadStringUTF8( nLen ) :
 		ReadStringASCII( nLen );
@@ -224,6 +226,8 @@ void CEDPacket::WriteEDString(LPCTSTR psz, BOOL bUnicode)
 CString CEDPacket::ReadLongEDString(BOOL bUnicode)
 {
 	DWORD nLen = ReadLongLE();
+	if (!Ed2kLongEdStringPayloadOk(nLen, GetRemaining()))
+		AfxThrowUserException();
 	if ( bUnicode )
 		return ReadStringUTF8( nLen );
 
