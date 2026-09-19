@@ -415,10 +415,16 @@ BOOL CBuffer::Inflate(DWORD nMaxOutput)
 {
 	DWORD nCompress = 0;	// For size allocated
 
-	BYTE* pCompress = CZLib::Decompress2(m_pBuffer, m_nLength, &nCompress, nMaxOutput);
-	if ( ! pCompress ) return FALSE;
+	// nMaxOutput 0 => default zip-bomb cap (GGEP/datagram/legacy callers).
+	if (nMaxOutput == 0)
+		nMaxOutput = CBUFFER_INFLATE_MAX;
 
-	if ( m_pBuffer ) free( m_pBuffer );
+	BYTE* pCompress = CZLib::Decompress2(m_pBuffer, m_nLength, &nCompress, nMaxOutput);
+	if (!pCompress)
+		return FALSE;
+
+	if (m_pBuffer)
+		free(m_pBuffer);
 	m_pBuffer = pCompress;
 	m_nBuffer = m_nLength = nCompress;
 
@@ -431,6 +437,10 @@ BOOL CBuffer::Ungzip(DWORD nMaxOutput)
 {
 	// Make sure there are at least 10 bytes in this buffer
 	if ( m_nLength < 10 ) return FALSE;
+
+	// nMaxOutput 0 => default zip-bomb cap (matches Inflate).
+	if (nMaxOutput == 0)
+		nMaxOutput = CBUFFER_INFLATE_MAX;
 
 	// Make sure the first 3 bytes are not 1f8b08
 	if ( m_pBuffer[0] != 0x1F || m_pBuffer[1] != 0x8B || m_pBuffer[2] != 8 ) return FALSE;

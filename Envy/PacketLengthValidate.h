@@ -200,7 +200,7 @@ inline BOOL BtUtMetadataSizeOk(std::uint64_t nSize)
 }
 
 // Cap for CBuffer::UnBZip (DC hublist / file listing .bz2) (#81 zip-bomb).
-// Same magnitude as BT_UT_METADATA_MAX / planned CBUFFER_INFLATE_MAX.
+// Same magnitude as BT_UT_METADATA_MAX / CBUFFER_INFLATE_MAX.
 constexpr DWORD CBUFFER_UNBZIP_MAX = 32u * 1024u * 1024u;
 
 inline BOOL CBufferUnBZipOutputOk(DWORD nOutput)
@@ -211,6 +211,14 @@ inline BOOL CBufferUnBZipOutputOk(DWORD nOutput)
 inline BOOL CBufferUnBZipInputOk(ULONGLONG nCompressed)
 {
 	return nCompressed > 0 && nCompressed <= CBUFFER_UNBZIP_MAX;
+}
+
+// Cap for CBuffer::Inflate / Ungzip when callers pass nMaxOutput=0 (#81 zip-bomb).
+constexpr DWORD CBUFFER_INFLATE_MAX = 32u * 1024u * 1024u;
+
+inline BOOL CBufferInflateOutputOk(DWORD nOutput)
+{
+	return nOutput > 0 && nOutput <= CBUFFER_INFLATE_MAX;
 }
 
 // Gnutella QHT/QRP patch sizing (#81 zip-bomb).
