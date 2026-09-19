@@ -1,7 +1,7 @@
 # Envy Development Roadmap
 
 Status: active
-Last updated: 2026-09-15
+Last updated: 2026-09-18
 Scope: Technical itemization of Envy modernization. Strategic sequence is `docs/DEVELOPMENT_PLAN.md`.
 Source of truth: `docs/10_dev/status.md` for current vs planned; `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` for external projects.
 
@@ -95,7 +95,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 ### Done (wire surface in `Kademlia.cpp` — not app-complete)
 - BOOTSTRAP_REQ/RES, PING/PONG, FIND_NODE, HELLO handlers
 - Routing table (XOR distance, K=10; no split/LRU/refresh yet)
-- nodes.dat import (v0–3) via `HostCache`
+- nodes.dat import via `HostCache` (**partial**: old format + new-format version 1; eMule-Security currently publishes version 2 — not a complete Kad bootstrap path)
 - Rate limiting, blacklist integration
 - Request tracking, IP endianness
 
@@ -119,6 +119,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 | **UDP hole punching** | NAT traversal for firewalled nodes (historical Kad2; not Ember/eSE overlays) | P0 |
 | **Firewall self-check** | Detect own firewall status via Kademlia | P0 |
 | **Wire EnableKadHello / KadFindValue** | Settings exist but are not read by `Kademlia.cpp` | Medium |
+| **Kad remote nodes.dat bootstrap** | Discovery type + ImportNodes v2/v3 + empty-cache path. Coordinate with #86/#160. Do not advertise Kad complete. | P1 |
 | **Kad6** | Experimental IPv6 overlay (eMule eSE). Distinct from Kad2. | P3 |
 
 ---
@@ -228,6 +229,12 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
 7. IPv6 address/socket/DNS/host-cache foundation (`docs/ipv6/PLAN.md`). No Kad6 yet.
 8. Incremental `EnvyCore` / MFC split (eMule Qt, aMule, aria2-next).
 9. Evaluate daemon / CLI / REST or JSON-RPC.
+
+### P1 — Bootstrap follow-ups
+- After the 2026-09-18 catalogue refresh (`docs/30_protocols/bootstrap-sources.md`):
+  - Importer caps for `server.met` / hublist / GWC (P0 potential).
+  - Kad remote `nodes.dat` discovery type + `ImportNodes` v2/v3 + empty-cache path. Coordinate with #86/#160. Do not advertise Kad complete.
+  - Last-known-good remote catalogue (async, never block startup).
 
 ### P1/P2 — BitTorrent (do not drop)
 10. Compressed ED2K upload (send COMPRESSEDPART) — ED2K quality, can proceed beside BT.

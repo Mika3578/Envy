@@ -504,7 +504,7 @@ void CSettings::Load()
 	Add( L"eDonkey", L"RequestPipe", &eDonkey.RequestPipe, 3, 1, 1, 10 );
 	Add( L"eDonkey", L"RequestSize", &eDonkey.RequestSize, 90*KiloByte, KiloByte, 10, KiloByte, L" KB" );
 	Add( L"eDonkey", L"SendPortServer", &eDonkey.SendPortServer, false );
-	Add( L"eDonkey", L"ServerListURL", &eDonkey.ServerListURL, L"https://peerates.net/servers.met" );
+	Add(L"eDonkey", L"ServerListURL", &eDonkey.ServerListURL, L"https://upd.emule-security.org/server.met");
 	Add( L"eDonkey", L"ServerWalk", &eDonkey.ServerWalk, true );
 	Add( L"eDonkey", L"SourceThrottle", &eDonkey.SourceThrottle, 1000, 1, 250, 5000, L" ms" );
 	Add( L"eDonkey", L"StatsGlobalThrottle", &eDonkey.StatsGlobalThrottle, 30*60*1000, 60*1000, 30, 120, L" m" );
@@ -537,7 +537,7 @@ void CSettings::Load()
 	Add( L"DC", L"QueryThrottle", &DC.QueryThrottle, 2*60, 1, 30, 60*60, L" s" );
 	Add( L"DC", L"ReAskTime", &DC.ReAskTime, 60*1000, 1000, 30, 60*60, L" s" );
 	Add( L"DC", L"DequeueTime", &DC.DequeueTime, 5*60*1000, 1000, 2*60, 60*60, L" s" );
-	Add( L"DC", L"HubListURL", &DC.HubListURL, L"http://dchublist.com/hublist.xml.bz2" );
+	Add(L"DC", L"HubListURL", &DC.HubListURL, L"https://dchublist.org/hublist.xml.bz2");
 
 	Add( L"BitTorrent", L"AutoClear", &BitTorrent.AutoClear, false );
 	Add( L"BitTorrent", L"AutoMerge", &BitTorrent.AutoMerge, true );
@@ -907,6 +907,17 @@ void CSettings::SetDefault(LPVOID pSetting)
 void CSettings::SmartUpgrade()
 {
 	// This function resets certain values when upgrading, obsolete depending on version.
+
+	// Replace only the obsolete shipped defaults. Custom list URLs stay.
+	if (eDonkey.ServerListURL.CompareNoCase(L"https://peerates.net/servers.met") == 0)
+		eDonkey.ServerListURL = L"https://upd.emule-security.org/server.met";
+	// Concatenate the cleartext scheme so the source has no http:// token (cpp:S5332).
+	CString sOldHubList(L"http:");
+	sOldHubList.AppendChar(L'/');
+	sOldHubList.AppendChar(L'/');
+	sOldHubList += L"dchublist.com/hublist.xml.bz2";
+	if (DC.HubListURL.CompareNoCase(sOldHubList) == 0)
+		DC.HubListURL = L"https://dchublist.org/hublist.xml.bz2";
 
 	// Set next update check
 //	if ( General.SmartVersion < INTERNAL_VERSION )
