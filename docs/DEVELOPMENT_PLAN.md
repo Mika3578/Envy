@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-19
+- **Changelog Entry:** 2026-09-19 — #81: G2 SGP UDP reassembly/inflate capped (64 fragments; byte cap = min(MaximumPacket, 256 KiB) enforced in `Add`/`ToG2Packet`; outbound fragment count fail-closed).
 - **Changelog Entry:** 2026-09-19 — #81: re-enable BitTorrent `SourcesWanted` caps for ut_pex, LTEP source-exchange, tracker HTTP apply, and UDP announce (`BtSourcesWantedAllowsMore`).
 - **Changelog Entry:** 2026-09-19 — #81/#82: `CHttpRequest` exact-limit probe — keep bodies of size `== LimitContentLength` after one-byte `InternetReadFile` EOF; discard on further data or probe failure (VersionChecker 64 KiB / Update Servers 32 MiB predicates stay `<= max`).
 - **Changelog Entry:** 2026-09-19 — #81/#82: VersionChecker HTTP bodies capped at 64 KiB (`LimitContentLength` + `VersionCheckerHttpResponseOk`).

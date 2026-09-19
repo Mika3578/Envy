@@ -575,3 +575,28 @@ inline BOOL BtSourcesWantedAllowsMore(DWORD nEffectiveSources, DWORD nSourcesWan
 {
 	return nSourcesWanted > 0 && nEffectiveSources < nSourcesWanted;
 }
+
+// G2 SGP UDP reassembly / deflate caps (#81).
+// Hard ceiling matches Settings.Gnutella.MaximumPacket upper bound (256 KiB).
+// Call sites also apply the live MaximumPacket via G2SgpEffectiveByteCap so
+// UDP cannot bypass a lower configured TCP G2 limit.
+constexpr DWORD G2_SGP_REASSEMBLED_MAX = 256u * 1024u;
+constexpr DWORD G2_SGP_INFLATE_MAX = G2_SGP_REASSEMBLED_MAX;
+constexpr BYTE G2_SGP_FRAGMENT_MAX = 64;
+
+inline DWORD G2SgpEffectiveByteCap(DWORD nConfiguredMax)
+{
+	if (nConfiguredMax == 0 || nConfiguredMax > G2_SGP_REASSEMBLED_MAX)
+		return G2_SGP_REASSEMBLED_MAX;
+	return nConfiguredMax;
+}
+
+inline BOOL G2SgpFragmentCountOk(BYTE nCount)
+{
+	return nCount >= 1 && nCount <= G2_SGP_FRAGMENT_MAX;
+}
+
+inline BOOL G2SgpReassembledBytesOk(DWORD nTotal, DWORD nMax = G2_SGP_REASSEMBLED_MAX)
+{
+	return nTotal > 0 && nTotal <= nMax;
+}
