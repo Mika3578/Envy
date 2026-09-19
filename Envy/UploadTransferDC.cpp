@@ -207,6 +207,7 @@ BOOL CUploadTransferDC::OnWrite()
 
 			m_nPosition += nRead;
 			m_nUploaded += nRead;
+			ChargeFairUseBody(nRead);
 
 			Statistics.Current.Uploads.Volume += ( nRead / 1024 );
 		}

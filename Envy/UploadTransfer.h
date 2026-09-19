@@ -49,6 +49,8 @@ public:
 	BOOL			m_bLive;		// Live connection tag
 	DWORD			m_nRequests;	// Request count
 	QWORD			m_nUploaded;	// Bytes uploaded
+	QWORD m_nFairUseReserved;       // Bytes reserved on host+path ledger (not yet all sent)
+	QWORD m_nFairUseSent;           // Body bytes charged against that reservation
 	DWORD			m_tContent;		// Send start timestamp
 
 	BOOL			m_bPriority;	// User unlimited upload
@@ -94,7 +96,9 @@ protected:
 	void			StartSending(int nState);
 	void			AllocateBaseFile();
 	void			AttachFile(CFragmentedFile* pFile);
-	BOOL ApplyFairUseLimit(); // Clip range to 10% per host when Fair-Use is on
+	BOOL ApplyFairUseLimit();             // Clip range + reserve; charge body later / roll back on close
+	void ChargeFairUseBody(QWORD nBytes); // Count payload bytes toward the reservation
+	void ReleaseFairUseReservation();     // Roll back unused reserved bytes on close/cancel
 
 	virtual BOOL	IsFileOpen() const;
 	virtual BOOL	OpenFile();

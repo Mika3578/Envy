@@ -59,6 +59,7 @@ public:
 	BOOL		EnforcePerHostLimit(CUploadTransfer* pUpload, BOOL bRequest = FALSE);
 	QWORD GetFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath) const;
 	void AddFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath, QWORD nBytes);
+	void SubtractFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath, QWORD nBytes);
 
 	void		OnRun();
 	DWORD		GetBandwidth() const;

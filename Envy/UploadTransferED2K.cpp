@@ -686,6 +686,7 @@ BOOL CUploadTransferED2K::DispatchNextChunk()
 
 		m_nPosition += nChunk;
 		m_nUploaded += nChunk;
+		ChargeFairUseBody(nChunk);
 	}
 
 	//m_pClient->Send( NULL );

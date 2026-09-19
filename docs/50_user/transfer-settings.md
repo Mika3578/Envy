@@ -32,7 +32,7 @@ load the defaults below.
 | Limit sharing in hub mode | `Uploads.HubUnshare` | true | bool | — | `CUploads::GetBandwidthLimit` scales by `Bandwidth.HubUploads` % when G2 hub or G1 ultrapeer | G1/G2 hub role; the scaled cap then applies to all upload queues | registry `Uploads\HubUnshare` | — | implemented |
 | Share new partial downloads | `Uploads.SharePartials` | true | bool | — | `CDownload` constructor `m_bShared`; ignored for many live ED2K/BT cases (see tooltip) | HTTP/Gnutella path; ED2K/BT often ignore | registry | — | partial (documented caveats) |
 | Share preview files | `Uploads.SharePreviews` | true | bool | — | `CEDClient` preview send; `CLocalSearch` preview advertisement | ED2K + Gnutella browse/search | registry | — | implemented |
-| Fair-Use mode | `Uploads.FairUseMode` | false | bool | — | `CUploadTransfer::ApplyFairUseLimit` clips HTTP/ED2K/DC library ranges; `CUploads` host+path ledger | HTTP, ED2K, DC library A/V; **not** BT, **not** partials | registry `Uploads\FairUseMode` | off = no clip | **implemented** (opt-in) |
+| Fair-Use mode | `Uploads.FairUseMode` | false | bool | — | `ApplyFairUseLimit` clips + reserves on the host+path ledger; body bytes convert the reservation; unused reservation is rolled back on close (HEAD/aborts do not burn quota) | HTTP, ED2K, DC library A/V; **not** BT, **not** partials | registry `Uploads\FairUseMode` | off = no clip | **implemented** (opt-in) |
 | Max uploads per host | `Uploads.MaxPerHost` | **2** (not 64) | count | 1–64 | `CUploads::AllowMoreTo` / `CanUploadFileTo` / `EnforcePerHostLimit`; HTTP `X-PerHost` | all upload transfers (HTTP, ED2K, DC, BT upload objects in `CUploads`) | registry; load + Apply clamp | 0 and &gt;64 clamped to 1..64 | implemented |
 | User-Agent filter | `Uploads.BlockAgents` | `Mozilla`, `Foxy` | substring set | — | `Security.cpp` agent match | HTTP-style User-Agent | registry pipe list | empty = no extra blocks | implemented |
 | Bandwidth Limit combo | `Bandwidth.Uploads` | **0** | bytes/s | 0 or parsed volume | `CUploads::GetBandwidthLimit`; queue point split; `CConnection::OnWrite` meter | global (all protocols sharing `Uploads` limiter) | registry `Bandwidth\Uploads` | **0 / Unlimited / MAX / NONE = unlimited** (no extra cap beyond `Connection.OutSpeed`) | implemented |
@@ -72,7 +72,7 @@ load the defaults below.
 
 ## Inconsistencies found (this audit)
 
-1. **Fair-Use is now bound** — checkbox + DDX + `ApplyFairUseLimit` on HTTP/ED2K/DC complete library files. Historical comment “unknown audio/video” is implemented as audio/video schema files (not “missing metadata”, which would skip almost every scanned MP3).
+1. **Fair-Use is now bound** — checkbox + DDX + `ApplyFairUseLimit` on HTTP/ED2K/DC complete library files. Historical comment “unknown audio/video” is implemented as audio/video schema files (not “missing metadata”, which would skip almost every scanned MP3). Ledger = reserve on clip, charge body bytes, roll back unused on close (HEAD/aborts).
 2. **`MAX` was a hardcoded English combo token** — French UI showed `MAX`. Display is now localized `Unlimited` / `Illimité`; `MAX`/`NONE` still parse as unlimited.
 3. **`ParseVolume("MAX")` returned 0 only because parsing failed** — same as garbage text. Unlimited tokens are now recognized explicitly; unknown text still fails validation when the field is “limited”.
 4. **`static_cast<DWORD>(ParseVolume(...))` truncated QWORD** — overflow now clamps to `DWORD` max.

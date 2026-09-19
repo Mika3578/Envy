@@ -57,6 +57,8 @@ CUploadTransfer::CUploadTransfer(PROTOCOLID nProtocol)
     , m_nUserRating(urNew)
     , m_nRequests(0)
     , m_nUploaded(0)
+    , m_nFairUseReserved(0)
+    , m_nFairUseSent(0)
     , m_tContent(0)
     , m_tRotateTime(0)
     , m_tAverageTime(0)
@@ -104,6 +106,8 @@ void CUploadTransfer::Close(UINT nError)
 
 	if ( m_nState == upsNull ) return;
 	m_nState = upsNull;
+
+	ReleaseFairUseReservation();
 
 	CTransfer::Close( nError );
 	UploadQueues.Dequeue( this );
@@ -555,8 +559,39 @@ BOOL CUploadTransfer::ApplyFairUseLimit()
 
 	m_nOffset = nOffset;
 	m_nLength = nLength;
+	// Reserve now so concurrent requests cannot each take a full 10%. Unused
+	// reservation is rolled back in Close / ReleaseFairUseReservation so HEAD
+	// and aborted transfers do not burn the quota.
 	Uploads.AddFairUseGranted(&m_pHost.sin_addr, m_sPath, nLength);
+	if (m_nFairUseReserved > ~0ull - nLength)
+		m_nFairUseReserved = ~0ull;
+	else
+		m_nFairUseReserved += nLength;
 	return TRUE;
+}
+
+void CUploadTransfer::ChargeFairUseBody(QWORD nBytes)
+{
+	if (nBytes == 0 || m_nFairUseReserved <= m_nFairUseSent)
+		return;
+
+	const QWORD nRemain = m_nFairUseReserved - m_nFairUseSent;
+	m_nFairUseSent += (nBytes < nRemain) ? nBytes : nRemain;
+}
+
+void CUploadTransfer::ReleaseFairUseReservation()
+{
+	if (m_nFairUseReserved <= m_nFairUseSent)
+	{
+		m_nFairUseReserved = 0;
+		m_nFairUseSent = 0;
+		return;
+	}
+
+	const QWORD nUnused = m_nFairUseReserved - m_nFairUseSent;
+	Uploads.SubtractFairUseGranted(&m_pHost.sin_addr, m_sPath, nUnused);
+	m_nFairUseReserved = 0;
+	m_nFairUseSent = 0;
 }
 
 BOOL CUploadTransfer::IsFileOpen() const

@@ -1271,6 +1271,7 @@ BOOL CUploadTransferHTTP::OnWrite()
 
 		m_nPosition += nPacket;
 		m_nUploaded += nPacket;
+		ChargeFairUseBody(nPacket);
 
 		Statistics.Current.Uploads.Volume += ( nPacket / 1024 );
 	}

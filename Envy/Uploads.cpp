@@ -360,6 +360,32 @@ void CUploads::AddFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath, QWORD
 	m_oFairUse.AddTail(pGrant);
 }
 
+void CUploads::SubtractFairUseGranted(const IN_ADDR* pAddress, LPCTSTR pszPath, QWORD nBytes)
+{
+	if (pAddress == NULL || nBytes == 0)
+		return;
+
+	const DWORD nAddr = pAddress->s_addr;
+	const LPCTSTR psz = (pszPath && *pszPath) ? pszPath : L"";
+
+	for (POSITION pos = m_oFairUse.GetHeadPosition(); pos;)
+	{
+		POSITION posHere = pos;
+		FairUseGrant& pGrant = m_oFairUse.GetNext(pos);
+		if (pGrant.nAddr == nAddr && pGrant.sPath.CompareNoCase(psz) == 0)
+		{
+			if (nBytes >= pGrant.nGranted)
+				m_oFairUse.RemoveAt(posHere);
+			else
+			{
+				pGrant.nGranted -= nBytes;
+				pGrant.tLast = GetTickCount();
+			}
+			return;
+		}
+	}
+}
+
 //////////////////////////////////////////////////////////////////////
 // CUploads run
 
