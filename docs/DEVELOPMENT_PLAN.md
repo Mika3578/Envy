@@ -14,7 +14,7 @@
 - **Changelog Entry:** 2026-09-18 — #81: `CNetwork::m_oJobs` capped at 2048 (`NetworkJobQueueCountOk`); drop oldest owned search/hit on overflow.
 - **Changelog Entry:** 2026-09-18 — #81: `CChatSession` undelivered message queue capped at 1024 (`ChatSessionQueueCountOk`); drop oldest on overflow.
 - **Changelog Entry:** 2026-09-18 — #81: NMDC hub `m_oUsers` capped at 20,000 new `$MyINFO` nick inserts (`DcHubUserCountOk`) to stop MyINFO flood DoS.
-- **Changelog Entry:** 2026-09-18 — #81: `CBuffer::UnBZip` output capped at 32 MiB; hublist / DC file-listing `.bz2` loaders reject oversize compressed input (`CBufferUnBZipInputOk`).
+- **Changelog Entry:** 2026-09-18 — #81: hublist / DC `.bz2` loaders use `LoadFromBZipFile` / `UnBZip(CBUFFER_UNBZIP_MAX)` (32 MiB); legacy `UnBZip()` with nMaxOutput=0 stays unlimited.
 - **Changelog Entry:** 2026-09-18 — #81/#82: file-backed ED2K tag key / TAG_STRING lengths checked against remaining `.met` bytes (`Ed2kTagStringLengthOk`) before allocate/Read.
 - **Changelog Entry:** 2026-09-18 — #166 / D-009 P1: Windows Firewall exceptions via WFAS `INetFwPolicy2` (all Domain/Private/Public profiles); drop legacy `INetFwMgr`.
 - **Changelog Entry:** 2026-09-18 — #76: Remote UI HTML-escapes `CRemote::Add()` substitutions (`Escape`); `AddRaw` for trusted markup; `RemoteHtmlEscape.h` + EnvyTests smoke coverage.
