@@ -12,10 +12,6 @@ on:
     - cron: "0 3 * * *"
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pull-requests: read
-
 concurrency:
   group: code-quality-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -27,12 +23,18 @@ jobs:
   changes:
     name: Classify (quality)
     if: github.event_name != 'schedule'
+    permissions:
+      contents: read
+      pull-requests: read
     uses: ./.github/workflows/classify-changes.yml
 
   static-analysis:
     name: Static Analysis
     runs-on: windows-2025-vs2026
     timeout-minutes: 120
+    permissions:
+      contents: read
+      pull-requests: read
     # Expensive full-solution code-analysis build. Skip it on pull_request and
     # workflow_dispatch — CodeQL already gates PRs; this runs on push to the
     # integration branches and on the nightly schedule.
@@ -83,6 +85,9 @@ jobs:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
     env:
       CLANG_FORMAT_MAJOR: "18"
 
@@ -159,6 +164,9 @@ jobs:
     needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
     # Always emit this required context on PRs (even when classify fails).
     # Classify failure fails this job explicitly; when classify succeeds and
     # docs are out of scope, report success via no-op so Protect develop never
@@ -219,6 +227,9 @@ jobs:
     needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
     if: >
       (github.event_name == 'pull_request' && needs.changes.outputs.run_remote_js == 'true') ||
       github.event_name == 'push' ||
