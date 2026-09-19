@@ -28,6 +28,7 @@
 #include "BTPacket.h"
 #include "FragmentedFile.h"
 #include "Transfers.h"
+#include "PacketLengthValidate.h"
 #include "Network.h"
 #include "Buffer.h"
 #include "BENode.h"
@@ -651,6 +652,10 @@ BOOL CDownloadTransferBT::OnSourceResponse(CBTPacket* pPacket)
 
 	for ( int nPeer = 0; nPeer < pPeers->GetCount(); nPeer++ )
 	{
+		if (!BtSourcesWantedAllowsMore(m_pDownload->GetEffectiveSourceCount(),
+		                               Settings.Downloads.SourcesWanted))
+			break;
+
 		const CBENode* pPeer = pPeers->GetNode( nPeer );
 		if (pPeer == NULL || !pPeer->IsType(CBENode::beDict))
 			continue;
@@ -688,9 +693,6 @@ BOOL CDownloadTransferBT::OnSourceResponse(CBTPacket* pPacket)
 				nCount += m_pDownload->AddSourceBT( tmp, &saPeer.sin_addr, htons( saPeer.sin_port ) );
 			}
 		}
-
-		//if ( nCount > Settings.Downloads.SourcesWanted && m_pDownload->GetEffectiveSourceCount() > Settings.Downloads.SourcesWanted )
-		//	break;
 	}
 
 	theApp.Message( MSG_INFO, IDS_BT_CLIENT_EXCHANGE, nCount, (LPCTSTR)m_sAddress );
