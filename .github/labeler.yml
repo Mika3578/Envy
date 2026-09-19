@@ -69,4 +69,3 @@ third-party:
           - "Services/MiniUPnP/**"
           - "Services/GeoIP/**"
           - "Services/LibUTP/**"
-          - "Services/BugTrap/**"

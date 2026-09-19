@@ -11,6 +11,7 @@
 - **Changelog Entry:** 2026-09-19 — #234: SonarCloud develop QG remediation — job-scoped GHA permissions, Remote CSP/label alignment, `.sonarcloud.properties` third-party exclusions (`docs/10_dev/sonarcloud-exclusions.md`).
 - **Changelog Entry:** 2026-09-19 — #224: NMDC text uses per-hub/settings code page (`DcNmdcText.h`, default CP_ACP; invalid pages fall back to ACP); HostCache ser v2 `m_nCodePage` + `SetNmdcCodePage` (favorites UI later); ADC unchanged.
 - **Changelog Entry:** 2026-09-19 — Remote API / *arr / Torznab audit: native REST vs qBit subset vs Torznab client; D-017 http.sys inbound + WinINet outbound; D-018 first *arr adapter is a qBittorrent Web API v2 **subset** (not a compatibility claim). `TransferState.h` + EnvyTests; docs `20_arch/AUDIT_REMOTE_API_2026-09.md`, `remote-api.md`, `arr-integration.md`, `torznab.md`, `docs/api/openapi.yaml` (planned).
+- **Changelog Entry:** 2026-09-19 — #90: replace BugTrap with first-party local minidumps (`CrashReporter` / `CrashReportPolicy.h`), next-launch opt-in GitHub workflow, remove `Services/BugTrap` and bundled DbgHelp. Debug+Release. No dump upload.
 - **Changelog Entry:** 2026-09-19 — Uploads Fair-Use is live: `Uploads.FairUseMode` (default off) clips each remote IPv4 client to 10% of an audio/video library file; checkbox bound; HTTP/ED2K/DC consumers; GET/ED2K/DC reserve then charge body bytes; unused reservation rolls back on `ClearRequest`/`Close` (keep-alive HEAD does not burn quota); BitTorrent and partials excluded.
 - **Changelog Entry:** 2026-09-19 — Transfer settings foundation: Uploads page labels match the core (`Unlimited`, throttle Average/Maximum, max uploads per host); `TransferSettingsLimits.h` + EnvyTests; mapping in `docs/50_user/transfer-settings.md`.
 - **Changelog Entry:** 2026-09-19 — Cloud Agent Linux env: add `.cursor/environment.json` installing clang-format-18/clang-tidy (CI-aligned) + cppcheck (local extra) + `Remote/tests` npm deps (MFC/HashLib remain Windows-only).
@@ -192,6 +193,8 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - Skin engine **P0** input hardening (`SkinEngineP0.h`): StatusbarHeight registration,
   ParseRect `point`/`size`, roundRect validation, LoadFromXML section-failure
   aggregation (non-transactional), strict metric parse/clamp. HiDPI deferred.
+- **#90 crash reporting** — BugTrap removed. First-party local minidumps + next-launch
+  opt-in GitHub issue workflow. No dump upload; system DbgHelp only.
 
 ### In Progress
 - **Envy 4.2.0 Preview 1 release readiness** — version/packaging PR; install/uninstall + network smoke tests still required before tagging `v4.2.0-preview.1` and publishing the draft GitHub prerelease.
@@ -380,6 +383,7 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 
 ## Decisions Log
 - **2026-09-19:** Remote automation (D-017, D-018): native REST `/api/v1` as source of truth; inbound API on Windows HTTP Server API (`http.sys`) dedicated port, not `CRemote`/P2P HTTP; outbound Torznab via `CHttpRequest`; first *arr adapter is a qBittorrent Web API v2 **subset**. Details: `docs/20_arch/AUDIT_REMOTE_API_2026-09.md`.
+- **2026-09-19:** #90 crash reporting uses first-party `MiniDumpWriteDump` + WER (`EXCEPTION_CONTINUE_SEARCH`), not Crashpad/Breakpad/Sentry Native or another SaaS. System DbgHelp only. No vcpkg crash SDK. Canonical: `docs/10_dev/crash-reporting.md`.
 - **2026-09-18:** Adopt cross-platform foundations (D-012…D-015): EnvyCore + platform abstraction + retained MFC Windows frontend; Linux/macOS `planned` not `supported`; Win32 legacy Stage A only; CMake portable slice prioritized over full-app CMake. Canonical doc: `docs/20_arch/PORTABILITY_PLAN.md`. Open question #1 resolved toward multi-OS **as a long-term target**, with Windows-first delivery.
 - **2026-09-17:** #140 wording: MiniUPnPc 2.0 targeted discovery is one receive phase for requested ST values, not a strict wall-clock SSDP deadline; absolute SSDP and HTTP timeout bounding → [#142](https://github.com/Mika3578/Envy/issues/142) / P3.
 - **2026-09-18:** #166 / D-009 P1 delivered: WFAS `INetFwPolicy2` replaces `INetFwMgr`; application rules on all profiles; UPnP via rule-group enable. Next: P2 LocalPort/ExternalPort.

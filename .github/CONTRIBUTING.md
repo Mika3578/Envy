@@ -158,8 +158,10 @@ conservative - do not bulk-reformat existing files.
 
 ## Reporting bugs
 
-Use the bug report issue template. Include the BugTrap dump under
-`%APPDATA%\Envy\` when relevant.
+Use the bug report issue template. If ENVY created a crash report, copy the
+sanitized `.txt` from `%LOCALAPPDATA%\Envy\CrashReports\`. Attach the `.dmp`
+only if you choose to share it (minidumps can contain private memory).
+See `docs/50_user/crash-reports.md`.
 
 ## Security
 

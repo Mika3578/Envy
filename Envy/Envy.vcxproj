@@ -387,6 +387,7 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClCompile Include="Connection.cpp" />
     <ClCompile Include="CoolInterface.cpp" />
     <ClCompile Include="CoolMenu.cpp" />
+    <ClCompile Include="CrashReporter.cpp" />
     <ClCompile Include="CrawlSession.cpp" />
     <ClCompile Include="CryptoProvider.cpp" />
     <ClCompile Include="RC4.cpp" />
@@ -1263,6 +1264,9 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     <ClInclude Include="Connection.h" />
     <ClInclude Include="CoolInterface.h" />
     <ClInclude Include="CoolMenu.h" />
+    <ClInclude Include="CrashDumpWin.h" />
+    <ClInclude Include="CrashReporter.h" />
+    <ClInclude Include="CrashReportPolicy.h" />
     <ClInclude Include="CrawlSession.h" />
     <ClInclude Include="Datagram.h" />
     <ClInclude Include="DatagramPart.h" />
@@ -1698,10 +1702,6 @@ if exist "$(SolutionDir)Data\Vendors.xml" copy /Y "$(SolutionDir)Data\Vendors.xm
     </ProjectReference>
     <ProjectReference Include="..\Services\Bzlib\Bzlib.vcxproj">
       <Project>{A14F5E46-C04C-4F32-9985-2E15819A722A}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\Services\BugTrap\BugTrap.vcxproj">
-      <Project>{e8cf1ada-264a-4127-86c2-fd7057d3792c}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\Services\MiniUPnP\MiniUPnPc.vcxproj">

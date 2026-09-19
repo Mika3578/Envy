@@ -24,4 +24,4 @@
 
 ## Quality
 - [Security audit](../40_quality/security/SECURITY_AUDIT_REPORT.md) · [Performance audit](../40_quality/performance/performance-audit.md) · [Testing schedule](../40_quality/testing/PROTOCOL_TESTING_SCHEDULE.md)
-- [CI/CD audit 2026-09](../10_dev/CI_AUDIT_2026-09.md) · [DevSecOps map](../10_dev/devsecops-envy.md)
+- [Crash reporting](../10_dev/crash-reporting.md) · [CI/CD audit 2026-09](../10_dev/CI_AUDIT_2026-09.md) · [DevSecOps map](../10_dev/devsecops-envy.md)

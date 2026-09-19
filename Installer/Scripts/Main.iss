@@ -401,14 +401,6 @@ Source: "Envy\{#ConfigurationName} {#PlatformName}\Envy.pdb"; DestDir: "{app}"; 
 ;Source: "Plugins\*.pdb"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 ;Source: "Services\*.pdb"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 
-Source: "Services\BugTrap\Release {#PlatformName}\BugTrap.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
-
-#if PlatformName == "x64"
-Source: "Services\BugTrap\dbghelp.64.dll"; DestDir: "{sys}"; DestName: "dbghelp.dll"; Flags: overwritereadonly replacesameversion restartreplace uninsneveruninstall sortfilesbyextension
-#else
-Source: "Services\BugTrap\dbghelp.dll"; DestDir: "{sys}"; DestName: "dbghelp.dll"; Flags: overwritereadonly replacesameversion restartreplace uninsneveruninstall sortfilesbyextension
-#endif
-
 #if PlatformName == "x64"
 Source: "{#VisualStudioPath}\VC\redist\debug_nonredist\x64\Microsoft.VC{#VisualCVersion}0.DebugCRT\vcruntime{#VisualCVersion}0d.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
 Source: "c:\Program Files (x86)\Windows Kits\10\bin\x64\ucrt\ucrtbased.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist replacesameversion overwritereadonly uninsrestartdelete uninsremovereadonly sortfilesbyextension

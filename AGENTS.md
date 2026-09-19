@@ -57,7 +57,7 @@ Branch model:
    un-retargeted.
 4. **Third-party trees are read-only** unless you are deliberately
    upgrading them. The relevant trees:
-   `Services/{zlib,SQLite,Bzlib,UnRAR,MiniUPnP,GeoIP,LibUTP,BugTrap}`,
+   `Services/{zlib,SQLite,Bzlib,UnRAR,MiniUPnP,GeoIP,LibUTP}`,
    `Plugins/{RatDVDPlugin,SWFPlugin}`, `HashLib/HashLib/*` (HashLib has
    its own first-party wrappers). Touch them only via vcpkg
    replacement, never by hand-editing.

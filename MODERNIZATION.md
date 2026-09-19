@@ -26,7 +26,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 | `WindowsTargetPlatformVersion` | undefined (SDK default) |
 | `_CRT_SECURE_NO_WARNINGS` enabled | yes (all projects) |
 | `pragma warning(disable...)` directives | 70 occurrences in `Envy/` |
-| Inline ASM | third-party only (UnRAR, BugTrap) |
+| Inline ASM | third-party only (UnRAR) |
 | CI/CD | **none** (no workflows, no AppVeyor) |
 | Source encoding | mixed ISO-8859 / UTF-8, BOM not systematic |
 | Third-party deps | **bundled sources** in `Services/` and `Plugins/` |
@@ -42,7 +42,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 | UnRAR | 5.30 (2015-11) | Outdated, contains x86 inline ASM |
 | GeoIP | unknown | Legacy MaxMind, should move to libmaxminddb |
 | LibUTP | 2010 snapshot | Outdated |
-| BugTrap | 2005-2010 | Evaluate; can be replaced by Windows Error Reporting |
+| BugTrap | 2005-2010 | **Removed** (#90). Replaced by first-party local minidumps + WER |
 | LibGFL | 3.40 (~2003) | **Very outdated** (non-free binary, AGPL conflict) |
 
 ---
@@ -119,14 +119,14 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
       - `Services/MiniUPnP` -> `vcpkg install miniupnpc`
       - `Services/GeoIP` -> `vcpkg install libmaxminddb` (modern replacement)
 - [ ] Delete the corresponding `Services/<lib>/` subtrees
-- [ ] Evaluate `BugTrap` -> Windows Error Reporting (WER) migration
+- [x] Evaluate `BugTrap` -> Windows Error Reporting (WER) migration
 - [ ] Evaluate removing `LibGFL` (non-free binary, AGPL conflict)
 
 ### Phase 4 - Runtime robustness
 
 - [ ] Wire HashLib unit tests into CI (vcpkg `tests` feature enabled)
 - [ ] AddressSanitizer (`/fsanitize=address`) on Debug configurations
-- [ ] Publish crash-dump symbols as GitHub artifacts
+- [x] Publish crash-dump symbols as GitHub artifacts
 - [ ] Verify the 6% MSVC backend improvement advertised by the cppblog
 
 ### Phase 5 - ARM64 + signing
@@ -251,7 +251,7 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
 | --- | --- |
 | C++20 breakages in legacy MFC code (200+ files) | Phase 1 = build + incremental fixes, `<ConformanceMode>` disabled at first |
 | Plugins depending on obsolete SDKs (RatDVD, SWF, DirectShow) | Already commented out in `Envy.sln`, separate audit |
-| x86 inline ASM in UnRAR / BugTrap | Already conditional on Win32 - x64 uses C variants |
+| x86 inline ASM in UnRAR | Already conditional on Win32 - x64 uses C variants |
 | Win 10+ target breaks the historical XP user base | Documented in `SECURITY.md`; existing `legacy` branch preserved |
 | First `vcpkg install` is slow | GitHub Actions cache keyed on `vcpkg.json` hash |
 | LibGFL non-free vs AGPL license | Track an issue; may need to drop from default build |

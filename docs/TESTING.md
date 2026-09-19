@@ -47,3 +47,9 @@ ctest --test-dir build
   roundRect size validation, and LoadFromXML success aggregation.
   LoadFromXML remains non-transactional (failed sections fail the file load
   without rolling back earlier mutations).
+
+## Crash report policy smoke tests
+- `tests/test_crash_report_policy_smoke.cpp` covers dump filenames, metadata
+  privacy, GitHub URL trust, retention, dump-directory failure, and a Windows
+  child-process minidump smoke (`EnvyTests.exe --crash-dump-child`). Log tails
+  are omitted. See `docs/10_dev/crash-reporting.md`.
