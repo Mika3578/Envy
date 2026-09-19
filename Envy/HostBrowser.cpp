@@ -355,7 +355,7 @@ void CHostBrowser::OnDropped()
 			if ( m_nLength == SIZE_UNKNOWN )
 			{
 				// m_nReceived already counts prior ReadContent; GetInputLength is only residual.
-				const QWORD nTotal = QWORD( m_nReceived ) + GetInputLength();
+				const QWORD nTotal = QWORD(m_nReceived) + GetInputLength();
 				if (!HostBrowserHttpBodyOk(nTotal))
 				{
 					theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
@@ -767,7 +767,7 @@ BOOL CHostBrowser::ReadContent()
 
 			// Close-delimited bodies: refuse if residual input alone would exceed the cap.
 			if (m_nLength == SIZE_UNKNOWN &&
-			    !HostBrowserHttpBufferOk(QWORD( m_nReceived ) + pInput->m_nLength))
+			    !HostBrowserHttpBufferOk(QWORD(m_nReceived) + pInput->m_nLength))
 			{
 				theApp.Message(MSG_ERROR, IDS_BROWSE_BAD_RESPONSE, (LPCTSTR)m_sAddress);
 				Stop();
