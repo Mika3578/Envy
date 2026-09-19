@@ -100,7 +100,7 @@ void CUpdateServersDlg::OnOK()
 
 	if ( ! IsValidURL() ) return;
 	if ( ! m_pRequest.SetURL( m_sURL ) ) return;
-	m_pRequest.LimitContentLength( UPDATE_SERVERS_HTTP_RESPONSE_MAX );
+	m_pRequest.LimitContentLength(UPDATE_SERVERS_HTTP_RESPONSE_MAX);
 	if ( ! m_pRequest.Execute( true ) ) return;
 
 	m_wndOK.EnableWindow( FALSE );
@@ -148,22 +148,22 @@ void CUpdateServersDlg::OnTimer(UINT_PTR nIDEvent)
 		//		Settings.KAD.NodesListURL = m_sURL;
 
 			const CBuffer* pBuffer = m_pRequest.GetResponseBuffer();
-			if ( pBuffer != NULL && pBuffer->m_pBuffer != NULL &&
-				UpdateServersHttpResponseOk( pBuffer->m_nLength ) )
+			if (pBuffer != NULL && pBuffer->m_pBuffer != NULL &&
+			    UpdateServersHttpResponseOk(pBuffer->m_nLength))
 			{
 				CMemFile pFile;
-				pFile.Write( pBuffer->m_pBuffer, pBuffer->m_nLength );
-				pFile.Seek( 0, CFile::begin );
+				pFile.Write(pBuffer->m_pBuffer, pBuffer->m_nLength);
+				pFile.Seek(0, CFile::begin);
 
-				if ( ( strExt == L".bz2" && HostCache.ImportHubList( &pFile ) ) ||
-					 HostCache.ImportMET( &pFile ) )
+				if ((strExt == L".bz2" && HostCache.ImportHubList(&pFile)) ||
+				    HostCache.ImportMET(&pFile))
 				//	 HostCache.ImportCache( &pFile ) || 	// ToDo: G2/Gnutella loading
 				//	 HostCache.ImportNodes( &pFile ) )		// ToDo: KAD
 				{
 					HostCache.Save();
 
 					m_sURL.Empty();
-					EndDialog( IDOK );
+					EndDialog(IDOK);
 					return;
 				}
 			}
