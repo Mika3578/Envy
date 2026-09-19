@@ -23,6 +23,7 @@
 #include "ChatCore.h"
 #include "ChatWindows.h"
 #include "WndPrivateChat.h"
+#include "ChatSessionValidate.h"
 
 #include "GProfile.h"
 #include "G2Packet.h"
@@ -1264,19 +1265,42 @@ BOOL CChatSession::SendPrivateMessage(bool bAction, const CString& strText)
 
 	if ( m_nProtocol == PROTOCOL_ED2K )
 	{
-		// Limit outgoing ed2k messages to shorter than ED2K_MESSAGE_MAX characters, just in case
-		CString strMessage = strText.Left( ED2K_MESSAGE_MAX - 50 );
-
 		// Create an ed2k packet holding the message
 		if ( CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_MESSAGE ) )
 		{
+			// Clamp by encoded wire length so WORD length stays <= ED2K_MESSAGE_MAX
+			// (wchar Left(450) can still exceed 500 UTF-8 bytes for non-ASCII text).
+			// Binary-search the longest wchar prefix that fits (avoids O(n^2) trim).
+			CString strMessage = strText;
+			int nLo = 0;
+			int nHi = strMessage.GetLength();
 			if ( m_bUnicode )
 			{
+				while (nLo < nHi)
+				{
+					const int nMid = nLo + (nHi - nLo + 1) / 2;
+					const CString strPrefix = strMessage.Left(nMid);
+					if ((DWORD)pPacket->GetStringLenUTF8(strPrefix) <= ED2K_MESSAGE_MAX)
+						nLo = nMid;
+					else
+						nHi = nMid - 1;
+				}
+				strMessage = strMessage.Left(nLo);
 				pPacket->WriteShortLE( WORD( pPacket->GetStringLenUTF8( strMessage ) ) );
 				pPacket->WriteStringUTF8( strMessage, FALSE );
 			}
 			else
 			{
+				while (nLo < nHi)
+				{
+					const int nMid = nLo + (nHi - nLo + 1) / 2;
+					const CString strPrefix = strMessage.Left(nMid);
+					if ((DWORD)pPacket->GetStringLen(strPrefix) <= ED2K_MESSAGE_MAX)
+						nLo = nMid;
+					else
+						nHi = nMid - 1;
+				}
+				strMessage = strMessage.Left(nLo);
 				pPacket->WriteShortLE( WORD( pPacket->GetStringLen( strMessage ) ) );
 				pPacket->WriteString( strMessage, FALSE );
 			}
@@ -1414,13 +1438,7 @@ void CChatSession::NotifyMessage(MessageType bType, const CString& sFrom, const 
 	CQuickLock oLock( ChatCore.m_pSection );
 
 	MSG oMsg = { NULL, WM_CHAT_MESSAGE, 0, (LPARAM)new CChatMessage( bType, sFrom, sMessage, hBitmap ) };
-	m_pMessages.AddTail( oMsg );
-
-	// Obsolete:
-	//if ( m_pWndPrivate )
-	//	m_pWndPrivate->PostMessage( WM_CHAT_MESSAGE, 0, (LPARAM)new CChatMessage( bType, sFrom, sMessage, hBitmap ) );
-	//else if ( hBitmap )
-	//	DeleteObject( hBitmap );
+	EnqueueMessage(oMsg);
 }
 
 void CChatSession::AddUser(CChatUser* pUser)
@@ -1428,7 +1446,7 @@ void CChatSession::AddUser(CChatUser* pUser)
 	CQuickLock oLock( ChatCore.m_pSection );
 
 	MSG oMsg = { NULL, WM_CHAT_ADD_USER, 0, (LPARAM)pUser };
-	m_pMessages.AddTail( oMsg );
+	EnqueueMessage(oMsg);
 }
 
 void CChatSession::DeleteUser(CString* pUser)
@@ -1436,7 +1454,7 @@ void CChatSession::DeleteUser(CString* pUser)
 	CQuickLock oLock( ChatCore.m_pSection );
 
 	MSG oMsg = { NULL, WM_CHAT_DELETE_USER, 0, (LPARAM)pUser };
-	m_pMessages.AddTail( oMsg );
+	EnqueueMessage(oMsg);
 }
 
 void CChatSession::Command(UINT nCommand)
@@ -1444,7 +1462,41 @@ void CChatSession::Command(UINT nCommand)
 	CQuickLock oLock( ChatCore.m_pSection );
 
 	MSG oMsg = { NULL, WM_COMMAND, nCommand };
-	m_pMessages.AddTail( oMsg );
+	EnqueueMessage(oMsg);
+}
+
+void CChatSession::FreeQueueMessage(MSG& oMsg)
+{
+	switch (oMsg.message)
+	{
+	case WM_CHAT_MESSAGE:
+		if (CChatMessage* pMsg = (CChatMessage*)oMsg.lParam)
+		{
+			if (pMsg->m_hBitmap)
+				DeleteObject(pMsg->m_hBitmap);
+			delete pMsg;
+		}
+		break;
+
+	case WM_CHAT_ADD_USER:
+		delete (CChatUser*)oMsg.lParam;
+		break;
+
+	case WM_CHAT_DELETE_USER:
+		delete (CString*)oMsg.lParam;
+		break;
+	}
+}
+
+void CChatSession::EnqueueMessage(MSG& oMsg)
+{
+	// Caller holds ChatCore.m_pSection. Drop oldest owned payloads when full.
+	while (!ChatSessionQueueCountOk(static_cast<DWORD>(m_pMessages.GetCount())))
+	{
+		MSG oOld = m_pMessages.RemoveHead();
+		FreeQueueMessage(oOld);
+	}
+	m_pMessages.AddTail(oMsg);
 }
 
 void CChatSession::ProcessMessages()
@@ -1471,24 +1523,7 @@ void CChatSession::ClearMessages()
 	while ( ! m_pMessages.IsEmpty() )
 	{
 		MSG oMsg = m_pMessages.RemoveHead();
-		switch ( oMsg.message )
-		{
-		case WM_CHAT_MESSAGE:
-			if ( CChatMessage* pMsg = (CChatMessage*)oMsg.lParam )
-			{
-				if ( pMsg->m_hBitmap ) DeleteObject( pMsg->m_hBitmap );
-				delete pMsg;
-			}
-			break;
-
-		case WM_CHAT_ADD_USER:
-			delete (CChatUser*)oMsg.lParam;
-			break;
-
-		case WM_CHAT_DELETE_USER:
-			delete (CString*)oMsg.lParam;
-			break;
-		}
+		FreeQueueMessage(oMsg);
 	}
 }
 

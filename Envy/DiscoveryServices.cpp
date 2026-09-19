@@ -1,7 +1,7 @@
 //
 // DiscoveryServices.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2020
+// This file is part of Envy (getenvy.com)  2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -21,6 +21,7 @@
 #include "Envy.h"
 #include "DiscoveryServices.h"
 #include "Buffer.h"
+#include "PacketLengthValidate.h"
 #include "Network.h"
 #include "HostCache.h"
 #include "Neighbours.h"
@@ -1914,11 +1915,21 @@ BOOL CDiscoveryServices::SendWebCacheRequest(const CString& strURL)
 
 	theApp.Message( MSG_DEBUG | MSG_FACILITY_OUTGOING, L"[DiscoveryServices] Request: %s", (LPCTSTR)strURL );
 
-	bool bSuccess = m_pRequest.Execute( false );
+	m_pRequest.LimitContentLength(DISCOVERY_HTTP_RESPONSE_MAX);
+	bool bSuccess = m_pRequest.Execute(false);
 
 	theApp.Message( MSG_DEBUG | MSG_FACILITY_INCOMING, L"[DiscoveryServices] Request status: %d %s", m_pRequest.GetStatusCode(), (LPCTSTR)m_pRequest.GetStatusString() );
 
-	return ( bSuccess ? TRUE : FALSE );
+	if (!bSuccess)
+		return FALSE;
+	if (!m_pRequest.InflateResponse())
+		return FALSE; // Deflate/gzip over DISCOVERY_HTTP_RESPONSE_MAX
+
+	const CBuffer* pBuffer = m_pRequest.GetResponseBuffer();
+	if (pBuffer == NULL || !DiscoveryHttpResponseOk(pBuffer->m_nLength))
+		return FALSE;
+
+	return TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1947,6 +1958,8 @@ BOOL CDiscoveryServices::RunServerList()
 		return FALSE;
 
 	const CBuffer* pBuffer = m_pRequest.GetResponseBuffer();
+	if (pBuffer == NULL || pBuffer->m_pBuffer == NULL || !DiscoveryHttpResponseOk(pBuffer->m_nLength))
+		return FALSE;
 
 	CMemFile pFile;
 	pFile.Write( pBuffer->m_pBuffer, pBuffer->m_nLength );

@@ -240,7 +240,7 @@ BOOL CG2Packet::ReadPacket(G2_PACKET& nType, DWORD& nLength, BOOL* pbCompound)
 		Read( &nLength, nLenLen );
 	}
 
-	if ( ! G2SubpacketPayloadFits( GetRemaining(), nLength, nTypeLen + 1u ) )
+	if (!G2SubpacketPayloadFits(GetRemaining(), nLength, nTypeLen + 1u))
 		AfxThrowUserException();
 
 	nType = G2_PACKET_NULL;
@@ -285,8 +285,8 @@ BOOL CG2Packet::SkipCompound(DWORD& nLength, DWORD nRemaining)
 		BYTE nTypeLen	= ( nInput & 0x38 ) >> 3;
 	//	BYTE nFlags		= ( nInput & 0x07 );
 
-		if ( m_nPosition > nEnd ||
-			 ! G2SubpacketPayloadFits( nEnd - m_nPosition, 0, nTypeLen + nLenLen + 1u ) )
+		if (m_nPosition > nEnd ||
+		    !G2SubpacketPayloadFits(nEnd - m_nPosition, 0, nTypeLen + nLenLen + 1u))
 			AfxThrowUserException();
 
 		DWORD nPacket = 0;
@@ -304,8 +304,8 @@ BOOL CG2Packet::SkipCompound(DWORD& nLength, DWORD nRemaining)
 			Read( &nPacket, nLenLen );
 		}
 
-		if ( m_nPosition > nEnd ||
-			 ! G2SubpacketPayloadFits( nEnd - m_nPosition, nPacket, nTypeLen + 1u ) )
+		if (m_nPosition > nEnd ||
+		    !G2SubpacketPayloadFits(nEnd - m_nPosition, nPacket, nTypeLen + 1u))
 			AfxThrowUserException();
 
 		m_nPosition += nPacket + nTypeLen + 1;
@@ -499,7 +499,7 @@ CG2Packet* CG2Packet::ReadBuffer(CBuffer* pBuffer)
 			*pLenOut++ = *pLenIn++;
 	}
 
-	if ( ! G2FrameLengthFits( pBuffer->m_nLength, nLength, nLenLen, nTypeLen ) )
+	if (!G2FrameLengthFits(pBuffer->m_nLength, nLength, nLenLen, nTypeLen))
 		return NULL;
 
 	CG2Packet* pPacket = CG2Packet::New( pBuffer->m_pBuffer );

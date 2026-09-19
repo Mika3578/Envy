@@ -22,6 +22,7 @@
 #include "SecureRandom.h"
 #include "BTTrackerRequest.h"
 #include "HttpRequest.h"
+#include "PacketLengthValidate.h"
 
 #include "BENode.h"
 #include "BTPacket.h"
@@ -525,6 +526,7 @@ void CBTTrackerRequest::ProcessHTTP()
 
 	m_pRequest->AddHeader( L"Accept-Encoding", L"deflate, gzip" );
 	m_pRequest->EnableCookie( false );
+	m_pRequest->LimitContentLength(BT_TRACKER_HTTP_RESPONSE_MAX);
 
 	const bool bSuccess = m_pRequest->Execute( false );
 
@@ -546,7 +548,7 @@ void CBTTrackerRequest::ProcessHTTP()
 
 	const CBuffer* pBuffer = m_pRequest->GetResponseBuffer();
 
-	if ( pBuffer == NULL )
+	if (pBuffer == NULL || !BtTrackerHttpResponseOk(pBuffer->m_nLength))
 	{
 		OnTrackerEvent( false, LoadString( IDS_BT_TRACKER_DOWN ) );
 		return;
