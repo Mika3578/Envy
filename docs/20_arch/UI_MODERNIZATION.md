@@ -38,8 +38,8 @@ Do **not** claim “UI modernization complete” after one or two screens.
 
 ### Develop
 
-- SHA: `8ebf25a` (includes #292 HashStringConversion `register` drop)
-- Phase 0 docs originally audited `d3095e9`; rebased onto post-#292 `develop`
+- SHA: `ccb4d20` (includes #292 and #293; same audit base as the document header)
+- Phase 0 docs originally audited `d3095e9`; rebased onto post-#292/#293 `develop`. Later merge of #294 was for branch currency only and does not change the UI audit conclusions.
 
 ### Open development PRs (historical preflight; hard cap was 3)
 
