@@ -203,7 +203,7 @@ Before screen-by-screen cosmetics, introduce first-party helpers (names indicati
 | Concern | Approach |
 | --- | --- |
 | DPI/font spacing | Build on `SCALE()` + font metrics (#137 style); prefer logical tokens over raw literals |
-| Min control / hit size | Document minimums (e.g. ≥ SCALE(24) touch-friendly where practical) |
+| Min control / hit size | Pointer floor ≥ `SCALE(24)` (24 effective px at any scaling — **not** a Windows touch target). Touch-friendly targets aim for ~40 EP where touch input is in scope. |
 | Toolbar / header / row metrics | Centralize reads of Skin.* with DPI-aware clamps; do not break skin XML readers |
 | Adaptive list columns | Pure layout calculator (unit-testable) classifying columns: **fixed**, **bounded**, **flexible** |
 | Fill columns | At least one flexible column absorbs unused width |
@@ -270,7 +270,7 @@ Apply per phase; do not regress:
 - Keyboard navigation and tab order
 - Visible focus
 - Screen-reader-friendly labels where MFC allows
-- Minimum clickable areas
+- Minimum clickable areas (pointer floor ≥ `SCALE(24)`; touch ~40 EP where in scope)
 - Text contrast / high-contrast
 - Status not color-only
 - DPI 100/125/150/175/200

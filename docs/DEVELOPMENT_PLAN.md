@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — UI modernization plan (#296): foundation table distinguishes pointer floor `SCALE(24)` from ~40 EP touch targets (remove “touch-friendly” mislabel).
 - **Changelog Entry:** 2026-09-20 — UI modernization plan (#296): align preflight audit SHA with header (`ccb4d20`); clarify SCALE(24) is not a Windows touch target (~40 EP).
 - **Changelog Entry:** 2026-09-20 — UI modernization plan (#296): address Copilot review — historical soft-PR-target wording; Neighbors OnSize sizer+SizeListAndBar; PROTOCOL_NULL = G2 Horizon; DisplayScaling 100–200; ListStates sticky/adaptive persistence caveat.
 - **Changelog Entry:** 2026-09-20 — Desktop UI modernization architecture (#295): audit on `develop` `d3095e9`; staged PR sequence (docs → adaptive Network lists → shell → Transfers → Home → Library → Settings → Media → Chat → assets); reusable adaptive-column foundation; resource-load failures classified. Canonical: `docs/20_arch/UI_MODERNIZATION.md`. No production UI code in Phase 0.
