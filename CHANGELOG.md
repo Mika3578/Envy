@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Interop harness evidence honesty (#160, #294)** — Kad packet-evidence labels use UDP `0xE4` / `SEARCH_RES` `0x3B` (not C5/`0x35`). PUBLICIP/FIREWALLED record `ipv4_present` only (no raw IPv4). `kad_nodes_dat_local` and `optional_pcap` SKIP when only notes/availability exist. CALLBACK body must be exactly 38 bytes; COMPRESSEDPART declared payload length must match remaining body; tcpdump `-G/-W` precede the BPF expression; opcode-only packet evidence cannot PASS transfer/callback/SEARCH_RES-delivery scenarios.
+- **PR #294 Copilot re-request helper** — Temporary `request-copilot-review.yml` gated to pull request #294 only (Actions `GITHUB_TOKEN` can `requestReviews` when the agent integration cannot). Delete after #294 lands.
 
 ### Added
 - **ED2K/Kad interop harness preparation (#160)** — Upgrade `tools/interop/` to reflect current develop after #251/#252/#254/#255/#256/#257/#258/#261: capability table with `compression_send=True`, orthogonal production/harness/evidence states, current compression/LowID/Kad scenario hooks, Windows `run-live.ps1` + operator checklist, optional dumpcap/tshark, bounded packet-evidence extractor, report schema v2. Deterministic Cloud self-test/dry-run only; live evidence still pending a Windows operator run. No ED2K/Kad production protocol changes.
