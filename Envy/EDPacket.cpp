@@ -46,7 +46,7 @@ CEDPacket::CEDPacketPool CEDPacket::POOL;
 class CEDPacketTypes
 {
 public:
-	inline CEDPacketTypes() throw()
+	inline CEDPacketTypes() noexcept
 	{
 		static const struct
 		{
@@ -158,7 +158,7 @@ public:
 		}
 	}
 
-	inline CString GetAt(BYTE nType, BYTE nProtocol, BOOL bUDP, BOOL bServer) const throw()
+	inline CString GetAt(BYTE nType, BYTE nProtocol, BOOL bUDP, BOOL bServer) const noexcept
 	{
 		CString sType;
 		if ( ! m_oTypes.Lookup( MAKEDWORD( MAKEWORD( nType, ( ( bServer && nProtocol == ED2K_PROTOCOL_EMULE ) ? ED2K_PROTOCOL_EDONKEY : nProtocol ) ), MAKEWORD( bUDP, bServer ) ), sType ) )
