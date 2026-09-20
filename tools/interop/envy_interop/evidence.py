@@ -83,13 +83,15 @@ TCP_OPCODE_LABELS = {
 
 # Kad2 UDP opcodes on protocol 0xE4 (Envy/EDPacket.h).
 # HELLO is 0x11/0x19 (Bootstrap 0x01/0x09 is not registered here).
+# Request and response keep distinct labels so exchange scenarios cannot PASS
+# on a single direction.
 KAD_OPCODE_LABELS = {
-    KAD_OP_HELLO_REQ: "kad_hello",
-    KAD_OP_HELLO_RES: "kad_hello",
-    KAD_OP_PING: "kad_ping_pong",
-    KAD_OP_PONG: "kad_ping_pong",
-    KAD_OP_FIND_NODE: "kad_find_node",
-    KAD_OP_FIND_NODE_RES: "kad_find_node",
+    KAD_OP_HELLO_REQ: "kad_hello_req",
+    KAD_OP_HELLO_RES: "kad_hello_res",
+    KAD_OP_PING: "kad_ping",
+    KAD_OP_PONG: "kad_pong",
+    KAD_OP_FIND_NODE: "kad_find_node_req",
+    KAD_OP_FIND_NODE_RES: "kad_find_node_res",
     KAD_OP_SEARCH_SOURCE_REQ: "kad_search_source_req",
     KAD_OP_SEARCH_RES: "kad_search_res",
     KAD_OP_FIREWALLED_REQ: "kad_firewalled_req",
@@ -354,15 +356,65 @@ def summarize_hits(hits: Sequence[FrameHit]) -> Dict[str, Any]:
 
 
 def require_labels(hits: Sequence[FrameHit], required: Sequence[str]) -> Tuple[bool, str]:
-    have = {h.label for h in hits}
-    missing = [name for name in required if name not in have]
+    """Require each label with at least one parse-clean hit.
+
+    A label that appears only with ``parse_error`` fails closed (malformed
+    evidence), distinct from a missing label.
+    """
+    by_label: Dict[str, List[FrameHit]] = {}
+    for hit in hits:
+        by_label.setdefault(hit.label, []).append(hit)
+    missing: List[str] = []
+    malformed: List[str] = []
+    for name in required:
+        frames = by_label.get(name, [])
+        if not frames:
+            missing.append(name)
+            continue
+        if any(not frame.details.get("parse_error") for frame in frames):
+            continue
+        err = frames[0].details.get("parse_error") or "malformed"
+        malformed.append(f"{name}: {err}")
     if missing:
         return False, f"missing evidence labels: {', '.join(missing)}"
-    # Fail closed if any matching frame carried a parse_error.
-    for h in hits:
-        if h.label in required and h.details.get("parse_error"):
-            return False, f"{h.label}: {h.details['parse_error']}"
+    if malformed:
+        return False, "; ".join(malformed)
     return True, "required evidence labels present"
+
+
+def require_any_label_group(
+    hits: Sequence[FrameHit],
+    groups: Sequence[Sequence[str]],
+) -> Tuple[bool, str, Tuple[str, ...]]:
+    """Succeed when any required label group is fully present (parse-clean)."""
+    reasons: List[str] = []
+    for group in groups:
+        ok, reason = require_labels(hits, group)
+        if ok:
+            return True, reason, tuple(group)
+        reasons.append(reason)
+    return False, "; ".join(reasons), tuple()
+
+
+def collect_hits_from_paths(paths: Sequence[Path]) -> List[FrameHit]:
+    """Aggregate frames across evidence files without flattening UDP datagrams.
+
+    Each file is scanned individually (preserves per-datagram Kad boundaries).
+    Additionally, all file bytes are concatenated for ED2K TCP extraction only
+    so a frame split across TCP segments can still match.
+    """
+    hits: List[FrameHit] = []
+    blobs: List[bytes] = []
+    for path in paths:
+        if not path or not path.is_file():
+            continue
+        raw = load_bytes(path)
+        blobs.append(raw)
+        hits.extend(extract_frames(raw))
+    if len(blobs) > 1:
+        # TCP segment reassembly approximation — never feed this concat to Kad.
+        hits.extend(extract_ed2k_frames(b"".join(blobs)))
+    return hits
 
 
 def extract_from_pcap_via_tshark(

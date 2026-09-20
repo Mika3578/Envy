@@ -249,6 +249,8 @@ def validate_ports(cfg: HarnessConfig) -> None:
     ):
         if not (1 <= int(value) <= 65535):
             raise ConfigError(f"{name} must be in 1..65535")
+    if int(cfg.pcap_duration_sec) < 0:
+        raise ConfigError("pcap_duration_sec must be >= 0")
     for name, value in (
         ("startup_timeout_sec", cfg.startup_timeout_sec),
         ("scenario_timeout_sec", cfg.scenario_timeout_sec),

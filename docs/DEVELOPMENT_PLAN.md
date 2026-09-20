@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #160/#294 Copilot round 5: direction-specific Kad HELLO/PING/FIND_NODE labels; cross-file evidence aggregation + TCP concat reassembly; SourceEx2 accepted for source_exchange; README from-pcap-NNNN; reject negative pcap_duration; malformed labeled evidence FAIL.
 - **Changelog Entry:** 2026-09-20 — #160/#294 Copilot round 4: per-packet tshark chunks (no flatten), SEARCH_RES dual layout (eMule 34 + Envy outbound 17), capability needs Hello+HelloAnswer, .bin skip only on captures sanitize.
 - **Changelog Entry:** 2026-09-20 — #160/#294 Copilot round 3: SEARCH_RES production layout (34-byte header), exclude .bin from sanitized captures, capability_negotiation Hello-compare path only.
 - **Changelog Entry:** 2026-09-20 — #160/#294 Copilot round: Kad body min-shape + exclude Kad-in-TCP spans; fixed evidence source_name; optional_pcap PASS only after usable stop; early capture exit FAIL.

@@ -26,9 +26,11 @@ from envy_interop.constants import (
 )
 from envy_interop.evidence import (
     EvidenceError,
+    collect_hits_from_paths,
     extract_ed2k_frames,
     extract_frames,
     extract_kad_udp_frames,
+    require_any_label_group,
     require_labels,
 )
 from envy_interop.fixtures import build_payload, spec_for
@@ -279,27 +281,43 @@ class EvidenceExtractorTests(unittest.TestCase):
 
     def test_kad_hello_ping_find_node_opcodes(self) -> None:
         # Production HELLO is 0x11/0x19 — Bootstrap 0x01/0x09 must not match.
+        # Request and response keep distinct labels.
         hello_req = bytes([0xE4, 0x11]) + (b"\x01" * 16) + bytes([0])  # NodeID + empty TagList
         hello_res = bytes([0xE4, 0x19]) + (b"\x02" * 16) + bytes([0])
         ping = bytes([0xE4, 0x60, 0x00])  # tag count
         pong = bytes([0xE4, 0x61, 0x00])
         find = bytes([0xE4, 0x21]) + (b"\x03" * 16) + bytes([0x02, 0x00])
+        find_res = bytes([0xE4, 0x29]) + (b"\x03" * 16) + bytes([0x02, 0x00])
         bootstrap = bytes([0xE4, 0x01]) + (b"\x04" * 16)
-        hits = extract_kad_udp_frames(hello_req + hello_res + ping + pong + find + bootstrap)
+        hits = extract_kad_udp_frames(
+            hello_req + hello_res + ping + pong + find + find_res + bootstrap
+        )
         labels = {h.label for h in hits}
-        self.assertEqual(labels, {"kad_hello", "kad_ping_pong", "kad_find_node"})
+        self.assertEqual(
+            labels,
+            {
+                "kad_hello_req",
+                "kad_hello_res",
+                "kad_ping",
+                "kad_pong",
+                "kad_find_node_req",
+                "kad_find_node_res",
+            },
+        )
         self.assertTrue(all(h.opcode != 0x01 for h in hits))
         self.assertTrue(any(h.opcode == 0x11 for h in hits))
         self.assertTrue(any(h.opcode == 0x19 for h in hits))
         self.assertTrue(all(not h.details.get("parse_error") for h in hits))
+        self.assertTrue(require_labels(hits, ["kad_hello_req", "kad_hello_res"])[0])
+        self.assertFalse(require_labels(hits[:1], ["kad_hello_req", "kad_hello_res"])[0])
 
     def test_kad_hello_empty_body_fails_closed(self) -> None:
         bare = bytes([0xE4, 0x11])  # no NodeID
         hits = extract_kad_udp_frames(bare)
         self.assertEqual(len(hits), 1)
-        self.assertEqual(hits[0].label, "kad_hello")
+        self.assertEqual(hits[0].label, "kad_hello_req")
         self.assertIn("parse_error", hits[0].details)
-        ok, _ = require_labels(hits, ["kad_hello"])
+        ok, _ = require_labels(hits, ["kad_hello_req"])
         self.assertFalse(ok)
 
     def test_kad_hit_inside_tcp_frame_excluded(self) -> None:
@@ -308,7 +326,7 @@ class EvidenceExtractorTests(unittest.TestCase):
         body = b"noise" + kad_like + b"tail"
         tcp = bytes([0xE3]) + struct.pack("<I", 1 + len(body)) + bytes([0x01]) + body
         hits = extract_frames(tcp)
-        self.assertFalse(any(h.label == "kad_hello" for h in hits))
+        self.assertFalse(any(h.label == "kad_hello_req" for h in hits))
 
     def test_ingest_sanitizes_source_name(self) -> None:
         from envy_interop.evidence import ingest_packet_dump, safe_evidence_source_name
@@ -322,11 +340,64 @@ class EvidenceExtractorTests(unittest.TestCase):
             # Minimal valid Kad HELLO so ingest succeeds.
             src.write_bytes(bytes([0xE4, 0x11]) + (b"\x01" * 16) + bytes([0]))
             dest = Path(tmp) / "out"
-            summary = ingest_packet_dump(src, dest, required_labels=["kad_hello"])
+            summary = ingest_packet_dump(src, dest, required_labels=["kad_hello_req"])
             self.assertEqual(summary["source_name"], "packet-evidence.bin")
             dumped = (dest / "packet-evidence.json").read_text(encoding="utf-8")
             self.assertNotIn("alice", dumped)
             self.assertNotIn("secret", dumped)
+
+    def test_cross_file_label_aggregation(self) -> None:
+        """Hello req and res in separate files must satisfy kad_hello together."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "a.bin").write_bytes(
+                bytes([0xE4, 0x11]) + (b"\x01" * 16) + bytes([0])
+            )
+            (root / "b.bin").write_bytes(
+                bytes([0xE4, 0x19]) + (b"\x02" * 16) + bytes([0])
+            )
+            hits = collect_hits_from_paths([root / "a.bin", root / "b.bin"])
+            ok, reason, matched = require_any_label_group(
+                hits, [("kad_hello_req", "kad_hello_res")]
+            )
+            self.assertTrue(ok, reason)
+            self.assertEqual(matched, ("kad_hello_req", "kad_hello_res"))
+
+    def test_sourceex2_alternative_group(self) -> None:
+        # Minimal SourceEx2 request/answer frames (eMule proto 0xC5).
+        def frame(opcode: int, body: bytes) -> bytes:
+            return bytes([0xC5]) + struct.pack("<I", 1 + len(body)) + bytes([opcode]) + body
+
+        blob = frame(0x83, b"\x00" * 16) + frame(0x84, b"\x00" * 16)
+        hits = extract_ed2k_frames(blob)
+        ok, _, matched = require_any_label_group(
+            hits,
+            (
+                ("sourceex_req", "sourceex_ans"),
+                ("sourceex2_req", "sourceex2_ans"),
+            ),
+        )
+        self.assertTrue(ok)
+        self.assertEqual(matched, ("sourceex2_req", "sourceex2_ans"))
+
+    def test_tcp_segment_reassembly_across_files(self) -> None:
+        """ED2K frame split across two TCP payload files still matches."""
+        hello_path = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
+        frame = bytes.fromhex(
+            json.loads(hello_path.read_text(encoding="utf-8"))["tcp_frame_hex"]
+        )
+        mid = len(frame) // 2
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "from-pcap-0000.bin").write_bytes(frame[:mid])
+            (root / "from-pcap-0001.bin").write_bytes(frame[mid:])
+            # Per-file extract misses; concat TCP path must recover.
+            per = extract_frames((root / "from-pcap-0000.bin").read_bytes())
+            self.assertFalse(any(h.label == "hello" for h in per))
+            hits = collect_hits_from_paths(
+                [root / "from-pcap-0000.bin", root / "from-pcap-0001.bin"]
+            )
+            self.assertTrue(any(h.label == "hello" for h in hits))
 
 
 class ReportTests(unittest.TestCase):

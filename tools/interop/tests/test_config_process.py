@@ -86,6 +86,13 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaises(ConfigError):
             validate_ports(cfg)
 
+    def test_negative_pcap_duration_rejected(self) -> None:
+        from envy_interop.config import validate_ports
+
+        cfg = HarnessConfig(repo_root=self.repo, pcap_duration_sec=-1)
+        with self.assertRaises(ConfigError):
+            validate_ports(cfg)
+
     def test_path_with_spaces_and_unicode_roundtrip(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             spaced = Path(tmp) / "path with spaces" / "café测试"

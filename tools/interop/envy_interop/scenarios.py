@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Sequence, Set
+from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple
 
 from . import HARNESS_VERSION
 from .config import ConfigError, HarnessConfig, validate_live_executables
@@ -27,11 +27,13 @@ from .constants import (
 )
 from .evidence import (
     EvidenceError,
+    collect_hits_from_paths,
+    extract_ed2k_frames,
     extract_frames,
-    ingest_packet_dump,
-    require_labels,
+    require_any_label_group,
     safe_evidence_source_name,
     summarize_hits,
+    write_evidence_summary,
 )
 from .fixtures import write_fixture
 from .golden import GoldenError, ingest_hello, load_bytes, load_golden_json
@@ -209,6 +211,7 @@ _add(
         "source_exchange",
         "Source Exchange observation",
         production=ProductionState.IMPLEMENTED,
+        # SourceEx (0x81/0x82) or SourceEx2 (0x83/0x84) — see evidence groups.
         labels=("sourceex_req", "sourceex_ans"),
         capability_key="source_exchange",
     )
@@ -338,13 +341,21 @@ _add(
         external=True,
     )
 )
-_add(_live("kad_hello", "Kad HELLO", production=ProductionState.IMPLEMENTED, labels=("kad_hello",), phase="current"))
+_add(
+    _live(
+        "kad_hello",
+        "Kad HELLO",
+        production=ProductionState.IMPLEMENTED,
+        labels=("kad_hello_req", "kad_hello_res"),
+        phase="current",
+    )
+)
 _add(
     _live(
         "kad_ping_pong",
         "Kad PING/PONG",
         production=ProductionState.IMPLEMENTED,
-        labels=("kad_ping_pong",),
+        labels=("kad_ping", "kad_pong"),
         phase="current",
     )
 )
@@ -353,7 +364,7 @@ _add(
         "kad_find_node",
         "Kad FIND_NODE",
         production=ProductionState.IMPLEMENTED,
-        labels=("kad_find_node",),
+        labels=("kad_find_node_req", "kad_find_node_res"),
         phase="current",
     )
 )
@@ -927,8 +938,31 @@ _PACKET_WIRE_PASS_IDS = frozenset(
 )
 
 
+# Label groups that satisfy the same scenario (any one group is enough).
+_LABEL_ALTERNATIVES: Dict[str, Tuple[Tuple[str, ...], ...]] = {
+    "source_exchange": (
+        ("sourceex_req", "sourceex_ans"),
+        ("sourceex2_req", "sourceex2_ans"),
+    ),
+}
+
+
+def _evidence_label_groups(spec: ScenarioSpec) -> Tuple[Tuple[str, ...], ...]:
+    alt = _LABEL_ALTERNATIVES.get(spec.id)
+    if alt:
+        return alt
+    if spec.evidence_labels:
+        return (tuple(spec.evidence_labels),)
+    return tuple()
+
+
 def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[ScenarioResult]:
-    """Attempt PASS from --packet-evidence / --hello-capture / evidence dir."""
+    """Attempt PASS from --packet-evidence / --hello-capture / evidence dir.
+
+    Label matching aggregates across candidate files (and TCP-concat reassembles
+    ED2K frames split across segments). Per-file Hello/MuleInfo parse paths
+    remain for dedicated handlers that need a concrete frame slice.
+    """
     candidates: List[Path] = []
     if ctx.cfg.packet_evidence is not None:
         candidates.append(ctx.cfg.packet_evidence)
@@ -938,29 +972,29 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
         candidates.append(ctx.packet_evidence_path)
     evidence_dir = ctx.run_dir / "captures" / "evidence"
     if evidence_dir.is_dir():
-        candidates.extend(sorted(evidence_dir.glob("*")))
+        candidates.extend(sorted(p for p in evidence_dir.glob("*") if p.is_file()))
 
-    for path in candidates:
-        if not path or not path.is_file():
-            continue
+    files = [p for p in candidates if p and p.is_file()]
+    label_groups = _evidence_label_groups(spec)
+    if label_groups and files:
         try:
-            raw = load_bytes(path)
-            hits = extract_frames(raw)
+            hits = collect_hits_from_paths(files)
             summary = summarize_hits(hits)
-            if spec.evidence_labels:
-                ok, reason = require_labels(hits, spec.evidence_labels)
-                if not ok:
-                    continue
+            ok, reason, matched = require_any_label_group(hits, label_groups)
+            if ok:
                 dest_dir = ctx.run_dir / "evidence" / spec.id
-                ingest_packet_dump(path, dest_dir, required_labels=spec.evidence_labels)
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                summary["source_name"] = safe_evidence_source_name("aggregated")
+                summary["required_ok"] = True
+                summary["required_reason"] = reason
+                summary["matched_labels"] = list(matched)
+                write_evidence_summary(dest_dir / "packet-evidence.json", summary)
                 artifacts = [f"evidence/{spec.id}/packet-evidence.json"]
                 if spec.id not in _PACKET_WIRE_PASS_IDS:
-                    # Opcode presence ≠ transfer acceptance / CALLBACK consume /
-                    # SEARCH_RES→ED2K delivery / firewall ACK+state.
                     return _skip(
                         spec,
-                        f"packet labels {list(spec.evidence_labels)} present in "
-                        f"{safe_evidence_source_name(path.name)}, "
+                        f"packet labels {list(matched)} present across "
+                        f"{len(files)} evidence file(s), "
                         "but documented transaction criteria need live operator logs "
                         "(not opcode-only PASS)",
                         evidence=summary,
@@ -968,11 +1002,25 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
                     )
                 return _pass(
                     spec,
-                    f"packet evidence matched labels {list(spec.evidence_labels)} from "
-                    f"{safe_evidence_source_name(path.name)}",
+                    f"packet evidence matched labels {list(matched)} across "
+                    f"{len(files)} evidence file(s)",
                     evidence=summary,
                     artifacts=artifacts,
                 )
+            # Malformed (parse_error) for a present label → FAIL, not silent SKIP.
+            if "missing evidence labels" not in reason and any(
+                h.label in {lab for group in label_groups for lab in group}
+                and h.details.get("parse_error")
+                for h in hits
+            ):
+                return _fail(spec, f"malformed packet evidence: {reason}", evidence=summary)
+        except (EvidenceError, GoldenError, OSError) as exc:
+            return _fail(spec, f"packet evidence read failed: {exc}")
+
+    for path in files:
+        try:
+            raw = load_bytes(path)
+            hits = extract_frames(raw)
             if spec.id in {"hello", "hello_answer"}:
                 label = "hello" if spec.id == "hello" else "hello_answer"
                 hit = _first_hit(hits, label)
@@ -992,17 +1040,38 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
                     continue
                 info = parse_emule_info_tcp(_frame_slice(raw, hit))
                 return _pass(spec, "MuleInfo frame parsed from multi-frame capture", **info)
-            if spec.id == "capability_negotiation":
-                hello_hit = _first_hit(hits, "hello")
-                answer_hit = _first_hit(hits, "hello_answer")
-                if hello_hit is None or answer_hit is None:
-                    continue
-                parsed_hello = parse_hello_tcp(_frame_slice(raw, hello_hit))
-                parsed_answer = parse_hello_tcp(_frame_slice(raw, answer_hit))
+        except (EvidenceError, HelloParseError, GoldenError, OSError):
+            continue
+
+    # capability_negotiation needs Hello + HelloAnswer, possibly in separate files.
+    if spec.id == "capability_negotiation" and files:
+        try:
+            hello_raw = hello_hit = None
+            answer_raw = answer_hit = None
+            # Prefer TCP-concat so a frame split across segments still parses.
+            concat = b"".join(load_bytes(p) for p in files)
+            concat_hits = extract_ed2k_frames(concat)
+            hello_hit = _first_hit(concat_hits, "hello")
+            answer_hit = _first_hit(concat_hits, "hello_answer")
+            if hello_hit is not None and answer_hit is not None:
+                hello_raw = answer_raw = concat
+            else:
+                for path in files:
+                    raw = load_bytes(path)
+                    hits = extract_frames(raw)
+                    if hello_hit is None:
+                        hit = _first_hit(hits, "hello")
+                        if hit is not None:
+                            hello_hit, hello_raw = hit, raw
+                    if answer_hit is None:
+                        hit = _first_hit(hits, "hello_answer")
+                        if hit is not None:
+                            answer_hit, answer_raw = hit, raw
+            if hello_hit is not None and answer_hit is not None and hello_raw and answer_raw:
+                parsed_hello = parse_hello_tcp(_frame_slice(hello_raw, hello_hit))
+                parsed_answer = parse_hello_tcp(_frame_slice(answer_raw, answer_hit))
                 cmp_hello = compare_envy_advertisement(parsed_hello)
                 cmp_answer = compare_envy_advertisement(parsed_answer)
-                # Envy self-advertise must match the frozen table; reference
-                # Hello bits are recorded but not required to equal Envy's.
                 if ctx.cfg.resolved_reference_client() == "none":
                     bad = list(cmp_hello.get("mismatches") or []) + list(
                         cmp_answer.get("mismatches") or []
@@ -1024,7 +1093,7 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
                     },
                 )
         except (EvidenceError, HelloParseError, GoldenError, OSError):
-            continue
+            pass
     return None
 
 
