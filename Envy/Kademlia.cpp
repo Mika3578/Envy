@@ -1228,6 +1228,7 @@ void CKademlia::OnSearchKeyRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 void CKademlia::OnSearchSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
 	// KADEMLIA2_SEARCH_SOURCE_REQ: <FileHash 16><FileSize 8>
+	// FileSize may be omitted by legacy peers; accept hash-only.
 	if (pPacket->GetRemaining() < KAD_ID_SIZE)
 		return;
 
@@ -1236,6 +1237,11 @@ void CKademlia::OnSearchSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPack
 
 	KadId fileHash;
 	pPacket->Read(fileHash, KAD_ID_SIZE);
+
+	QWORD nFileSize = 0;
+	if (pPacket->GetRemaining() >= 8)
+		nFileSize = pPacket->ReadInt64();
+	(void)nFileSize; // Store answers are not filtered by size in this slice.
 
 	theApp.Message(MSG_DEBUG, L"Kad2: Search source request from %s",
 	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
@@ -1428,7 +1434,7 @@ void CKademlia::SearchKeyword(const KadId& keywordHash)
 		SendSearchKeyRequest(contact, keywordHash);
 }
 
-void CKademlia::SearchSource(const KadId& fileHash)
+void CKademlia::SearchSource(const KadId& fileHash, QWORD nFileSize)
 {
 	if (!m_bInitialized)
 		return;
@@ -1453,7 +1459,7 @@ void CKademlia::SearchSource(const KadId& fileHash)
 	theApp.Message(MSG_DEBUG, L"Kad2: Starting source search, querying %d contacts", closest.size());
 
 	for (const auto& contact : closest)
-		SendSearchSourceRequest(contact, fileHash);
+		SendSearchSourceRequest(contact, fileHash, nFileSize);
 }
 
 void CKademlia::PublishKeyword(const KadId& keywordHash, const KadStoredEntry& entry)
@@ -1502,12 +1508,14 @@ void CKademlia::SendSearchKeyRequest(const KadContact& contact, const KadId& tar
 	pPacket->Release();
 }
 
-void CKademlia::SendSearchSourceRequest(const KadContact& contact, const KadId& targetId)
+void CKademlia::SendSearchSourceRequest(const KadContact& contact, const KadId& targetId, QWORD nFileSize)
 {
 	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_SEARCH_SOURCE_REQ, ED2K_PROTOCOL_KAD);
 	if (!pPacket) return;
 
+	// <FileHash 16><FileSize 8> — see KadSearchSourceRequest.h / aMule framing.
 	pPacket->Write(targetId, KAD_ID_SIZE);
+	pPacket->WriteInt64(nFileSize);
 
 	sockaddr_in addr;
 	KadContactGetSockAddr(contact, addr);

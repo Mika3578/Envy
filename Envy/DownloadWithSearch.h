@@ -33,6 +33,7 @@ public:
 	BOOL			m_bUpdateSearch;	// Search must be updated
 	DWORD			m_tLastED2KGlobal;	// Time the last ed2k UDP GetSources was done on this download
 	DWORD			m_tLastED2KLocal;	// Time the last ed2k TCP GetSources was done on this download
+	DWORD m_tLastKadSourceSearch;       // Last Kad SEARCH_SOURCE_REQ trigger (GetTickCount)
 
 	BOOL			IsSearching() const;
 	virtual BOOL	FindMoreSources();
@@ -51,4 +52,5 @@ private:
 	void			StartAutomaticSearch();
 	void			PrepareSearch();
 	BOOL			CanSearch() const;
+	void MaybeSearchKadSources();
 };

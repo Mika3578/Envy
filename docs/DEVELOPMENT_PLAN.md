@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-19
+- **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — Kad #86 app-trigger: ED2K downloads call `SearchSource` when EnableKad + Kad initialized; outbound SEARCH_SOURCE_REQ includes FileSize; `KadSearchSourceRequest.h` + EnvyTests. Buddy/UDP firewall / Hello nibble unchanged.
 - **Changelog Entry:** 2026-09-19 — Local Debug x64 bootstrap: `scripts/bootstrap-vcpkg.ps1` mirrors CI `vcpkg install` because VS/MSBuild does not restore `vcpkg_installed` before `PreBuildEvent` (Crashpad copy). `EnvyOM.h` remains MIDL-generated. Installer `Main.iss` code 2 on a failed Envy build is a cascade (ISCC present, missing payload).
 - **Changelog Entry:** 2026-09-19 — HashLib `CTigerTree` warning cleanup (#84 slice): constructor init order matches `TigerTree.h` (C5038); drop `register` in `CTigerTree::Tiger` (C5033). No Tiger/TTH algorithm or wire-format change. EnvyTests: constructor + identical-input/incremental/empty-file root stability.
 - **Changelog Entry:** 2026-09-19 — #255 review follow-up: C2C CALLBACK known-file gate includes incomplete downloads; clear consume guard when `EDClients.PushTo` fails.
@@ -356,7 +357,8 @@ to improve authentication and eMule credit-system compatibility.
 - [x] Register `eDonkey.EnableKad` with `Settings.Add` (default `true`) so
   `InitKademlia()` can run; distinct from `EnableKadHello`.
 - [ ] UI checkbox for EnableKad (optional follow-up; registry/settings dump works).
-- [x] Kad search/source hits → `AddSourceED2K` (HighID SEARCH_RES delivery + tests; keyword excluded; buddy/callback types deferred; app-trigger `SearchSource` and outbound TagList framing still open — not full #86).
+- [x] Kad search/source hits → `AddSourceED2K` (HighID SEARCH_RES delivery + tests; keyword excluded; buddy/callback types deferred; outbound TagList framing still open — not full #86).
+- [x] App-trigger `SearchSource` from ED2K download source acquisition (`DownloadWithSearch::MaybeSearchKadSources`); outbound SEARCH_SOURCE_REQ includes FileSize.
 - [x] Kad TCP firewall-detection baseline (`FIREWALLED_REQ`/`RES`, bounded checks, public-IP consensus, TCP ACK count). UDP firewall verification, Buddy and callback remain incomplete (#86 remainder).
 - [x] Kad routing-table maintenance (zone split, LRU/type liveness, bounded replacement, stale-zone FIND_NODE refresh, /24 diversity + tests).
 - [x] Local `nodes.dat` v1/v2/v3 parser (`KadNodesDat.h`); v3 bootstrap edition bounded; UDP-key/`verified` bytes discarded. Remote HTTP `nodes.dat` still open.

@@ -23,6 +23,8 @@
 #include "SearchManager.h"
 #include "ManagedSearch.h"
 #include "QuerySearch.h"
+#include "Kademlia.h"
+#include "KadSearchSourceRequest.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -35,11 +37,12 @@ static char THIS_FILE[] = __FILE__;
 // CDownloadWithSearch construction
 
 CDownloadWithSearch::CDownloadWithSearch()
-	: m_bUpdateSearch	( TRUE )
-	, m_tSearchTime		( 0 )
-	, m_tSearchCheck	( 0 )
-	, m_tLastED2KGlobal	( 0 )
-	, m_tLastED2KLocal	( 0 )
+    : m_bUpdateSearch(TRUE)
+    , m_tSearchTime(0)
+    , m_tSearchCheck(0)
+    , m_tLastED2KGlobal(0)
+    , m_tLastED2KLocal(0)
+    , m_tLastKadSourceSearch(0)
 {
 }
 
@@ -79,6 +82,7 @@ BOOL CDownloadWithSearch::FindMoreSources()
 		}
 	}
 
+	MaybeSearchKadSources();
 	return bSuccess;
 }
 
@@ -105,7 +109,10 @@ void CDownloadWithSearch::RunSearch(DWORD tNow)
 		m_tSearchCheck = tNow;
 
 		if ( bFewSources || bDataStarve )	// && ! IsPaused()
+		{
 			StartAutomaticSearch();
+			MaybeSearchKadSources();
+		}
 		else
 			StopSearch();
 	}
@@ -156,6 +163,35 @@ BOOL CDownloadWithSearch::CanSearch() const
 		return TRUE;
 
 	return FALSE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CDownloadWithSearch Kad source search (app-trigger)
+
+void CDownloadWithSearch::MaybeSearchKadSources()
+{
+	if (IsMoving() || IsCompleted())
+		return;
+	if (!Settings.eDonkey.Enabled)
+		return;
+
+	const DWORD tNow = GetTickCount();
+	const bool bSizeKnown = (m_nSize != SIZE_UNKNOWN);
+	const DWORD nPeriod = Settings.Downloads.SearchPeriod / 4;
+	if (!KadMayTriggerSourceSearch(
+	        Settings.eDonkey.EnableKad,
+	        Kademlia.IsInitialized(),
+	        m_oED2K != NULL,
+	        bSizeKnown,
+	        tNow,
+	        m_tLastKadSourceSearch,
+	        nPeriod))
+		return;
+
+	KadId fileHash{};
+	CopyMemory(fileHash, &m_oED2K[0], KAD_ID_SIZE);
+	Kademlia.SearchSource(fileHash, m_nSize);
+	m_tLastKadSourceSearch = tNow;
 }
 
 //////////////////////////////////////////////////////////////////////
