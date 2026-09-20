@@ -74,7 +74,7 @@ CApplication::~CApplication()
 /////////////////////////////////////////////////////////////////////////////
 // CApplication operations
 
-HRESULT CApplication::GetApp(IApplication** ppIApplication) throw()
+HRESULT CApplication::GetApp(IApplication** ppIApplication) noexcept
 {
 	if ( ! ppIApplication )
 		return E_POINTER;
@@ -87,7 +87,7 @@ HRESULT CApplication::GetApp(IApplication** ppIApplication) throw()
 	return *ppIApplication ? S_OK : E_NOINTERFACE;
 }
 
-HRESULT CApplication::GetUI(IUserInterface** ppIUserInterface) throw()
+HRESULT CApplication::GetUI(IUserInterface** ppIUserInterface) noexcept
 {
 	if ( ! ppIUserInterface )
 		return E_POINTER;
@@ -100,7 +100,7 @@ HRESULT CApplication::GetUI(IUserInterface** ppIUserInterface) throw()
 	return *ppIUserInterface ? S_OK : E_NOINTERFACE;
 }
 
-HRESULT CApplication::GetSettings(ISettings** ppISettings) throw()
+HRESULT CApplication::GetSettings(ISettings** ppISettings) noexcept
 {
 	if ( ! ppISettings )
 		return E_POINTER;
