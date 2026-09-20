@@ -84,7 +84,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 - [x] Injected `<WindowsTargetPlatformVersion>10.0</...>` into 44 projects
 - [x] `<LanguageStandard>stdcpp20</...>` on Envy + 12 first-party projects
 - [x] `<LanguageStandard>stdcpp17</...>` on 19 plugins
-- [x] Removed `register` keyword (`Envy/Buffer.cpp`, `HashLib/TigerTree.cpp`) - reserved in C++17 / C5033; remaining first-party uses are tracked under #84
+- [x] Removed `register` keyword (`Envy/Buffer.cpp`, `HashLib/TigerTree.cpp`, `Envy/Strings.cpp`) - reserved in C++17 / C5033; remaining first-party uses are tracked under #84
 - [x] Replaced `throw()` with `noexcept` (Envy/Buffer.{h,cpp}, Connection.h, HostCache.h `CHostCacheList` inlines)
 - [x] Modernized `Envy/StdAfx.h`: Win 10 baseline, MSVC 14.50 requirement,
       auto-XPSUPPORT detection removed
