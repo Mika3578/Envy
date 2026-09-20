@@ -214,9 +214,14 @@ No `permissions: write-all` found. Release workflow is higher privilege by natur
 | Code scanning | CodeQL + Gitleaks | Match |
 | Code quality notes | severity notes | Docs say “no GQ rule” — **ruleset has `code_quality` notes** |
 
-**P0 doc drift:** approval count and Code Quality rule text disagree with live
-API. Do **not** weaken live protections from CI PRs; fix docs and/or have a
-human restore approvals to 1 if that was the intent.
+**Decision 2026-09-20:** keep this table as the measured live snapshot, but the
+maintainer selected the following target for Protect develop: **1 required
+approval**, Copilot Code Review allowed to satisfy it only with a real
+`APPROVED` review and approval-counting enabled, GitHub Code Quality severity
+**All**, automatic Copilot review **on** with re-review on push, draft review
+**off**, and code coverage restriction **off until reliable PR coverage data
+is uploaded and baselined**. This requires a manual ruleset/settings update;
+until then the live values above remain enforceable.
 
 ### Live Protect main (`gh api .../rulesets/16457407`)
 
@@ -302,8 +307,11 @@ Sources (primary first):
 
 ### P0 — Correctness / unsafe merge posture
 
-1. **Reconcile Protect develop approvals:** live API = 0; docs = 1. Human
-   decision: restore 1 approval **or** update AGENTS/devsecops to match live.
+1. **Reconcile Protect develop ruleset:** **Decision made 2026-09-20** —
+   target 1 approval (Copilot may count when configured), Code Quality = All,
+   automatic Copilot review + review-on-push on, draft review off. Manual
+   GitHub settings/ruleset update still required; last live snapshot is 0
+   approvals / Code Quality notes.
 2. **Documentation Check always reports** a terminal conclusion — **Done**
    (`if: always()` no-op path when classify says docs out of scope; cancelled
    classify from concurrency supersede also emits success no-op so a superseded
@@ -385,7 +393,9 @@ Documented; not unified in this PR (would either slow local or risk CI flakes).
 
 ## 14. Follow-ups (out of this PR)
 
-- Human: set Protect develop approvals to 1 if still desired.
+- Manual GitHub settings: apply the 2026-09-20 Protect develop target
+  (1 approval with Copilot counting enabled; Code Quality All; automatic
+  Copilot review + review-on-push; draft review off).
 - P2: vcpkg registry fetch / downloads cache experiment.
 - P3: single classify fan-out.
 - P4: controlled `/m` + MTT A/B on a throwaway branch.
