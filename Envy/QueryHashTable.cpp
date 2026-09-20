@@ -124,8 +124,8 @@ bool CQueryHashTable::Merge(const CQueryHashTable* pSource)
 
 		for ( DWORD nPosition = m_nHash >> 3; nPosition; --nPosition )
 		{
-			register BYTE nSourceByte = *pSourcePtr;
-			register BYTE nDestByte = *pDestPtr;
+			BYTE nSourceByte = *pSourcePtr;
+			BYTE nDestByte = *pDestPtr;
 
 #define DO_MERGE(MASKVAL) \
 			if ( ! ( nSourceByte & MASKVAL ) && ( nDestByte & MASKVAL ) ) \
@@ -229,7 +229,7 @@ bool CQueryHashTable::Merge(const CQueryHashGroup* pSource)
 
 		for ( DWORD nPosition = m_nHash >> 3; nPosition; --nPosition )
 		{
-			register BYTE nDestByte = *pDestPtr;
+			BYTE nDestByte = *pDestPtr;
 
 #define DO_MERGE(MASKVAL) \
 			if ( *pSourcePtr++ && ( nDestByte & MASKVAL ) ) \
