@@ -56,7 +56,7 @@ CDatabase::~CDatabase()
 	}
 }
 
-CDatabase::operator bool() const throw()
+CDatabase::operator bool() const noexcept
 {
 	return ( m_db != NULL );
 }
@@ -66,12 +66,12 @@ CString CDatabase::GetLastErrorMessage() const
 	return ( m_db ? CString( (LPCWSTR)sqlite3_errmsg16( m_db ) ) : CString() );
 }
 
-bool CDatabase::IsBusy() const throw()
+bool CDatabase::IsBusy() const noexcept
 {
 	return m_bBusy;
 }
 
-int CDatabase::GetCount() const throw()
+int CDatabase::GetCount() const noexcept
 {
 	return (int)m_raw.GetCount();	// IN_PTR
 }

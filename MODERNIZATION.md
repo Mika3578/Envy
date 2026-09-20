@@ -85,7 +85,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 - [x] `<LanguageStandard>stdcpp20</...>` on Envy + 12 first-party projects
 - [x] `<LanguageStandard>stdcpp17</...>` on 19 plugins
 - [x] Removed `register` keyword (`Envy/Buffer.cpp`, `HashLib/TigerTree.cpp`, `Envy/Strings.cpp`, `Envy/QueryHashTable.cpp`, `Envy/QueryHashGroup.cpp`, `Envy/MatchObjects.cpp`, `Envy/XML.cpp`, `Envy/DlgLanguage.cpp`, `Envy/PageSettingsSkins.cpp`, `Envy/SkinWindow.cpp`) - reserved in C++17 / C5033; remaining first-party uses are tracked under #84
-- [x] Replaced `throw()` with `noexcept` (Envy/Buffer.{h,cpp}, Connection.h, HostCache.h `CHostCacheList` inlines, Handshakes.h `CHandshakes::IsValid`, VersionChecker.h)
+- [x] Replaced `throw()` with `noexcept` (Envy/Buffer.{h,cpp}, Connection.h, HostCache.h `CHostCacheList` inlines, Handshakes.h `CHandshakes::IsValid`, VersionChecker.h, SQLite.{h,cpp} `CDatabase`)
 - [x] Modernized `Envy/StdAfx.h`: Win 10 baseline, MSVC 14.50 requirement,
       auto-XPSUPPORT detection removed
 - [x] AI rules file (`AGENTS.md`) and living session notes (`.local/DEV_TRACKER.md`, gitignored)
