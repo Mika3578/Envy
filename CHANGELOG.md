@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release pipeline validation scripts** — `scripts/release/verify-version.ps1`, `stage-portable.ps1`, `verify-artifacts.ps1`, `publish-draft-release.ps1`, and `repair-draft-release.ps1` gate tag/`version.json`/`Envy.rc`/`Envy.exe` consistency, stage a full portable runtime tree, verify SHA256 + ZIP/setup sanity, and support idempotent draft asset repair.
 
 ### Fixed
+- **MatchObjects drop `register` (#84)** — Remove C++17-illegal `register` from `CMatchFile::Compare` sort locals in `Envy/MatchObjects.cpp`. No sort behavior change. Remaining first-party uses: XML, PageSettingsSkins, SkinWindow, DlgLanguage, HashStringConversion, …
 - **QueryHash drop `register` (#84)** — Remove C++17-illegal `register` from `Envy/QueryHashTable.cpp` / `Envy/QueryHashGroup.cpp` hash merge loops. No behavior change. Remaining first-party uses: MatchObjects, XML, …
 - **`Envy/Strings.cpp` drop `register` (#84)** — Remove C++17-illegal `register` storage class from string helpers (ToLower buffer walks / UTF-16 byte swap). No behavior change.
 - **HostCache `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on ten `CHostCacheList` inline accessors (`Begin`/`End`/`Find`/`Check`/`CountHosts`/…). Behavior unchanged; matches existing `noexcept` comparators in the same header.
