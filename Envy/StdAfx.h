@@ -993,8 +993,8 @@ public:
 	}
 };
 
-template< class T >
-inline void SafeRelease(CComPtr< T >& pObj) throw()
+template<class T>
+inline void SafeRelease(CComPtr<T>& pObj) noexcept
 {
 	__try
 	{
