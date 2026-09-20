@@ -43,13 +43,13 @@ Do **not** claim “UI modernization complete” after one or two screens.
 
 ### Open development PRs (cap = 3)
 
-| PR | Title | Branch |
-| --- | --- | --- |
+| PR | Title | Branch | Status |
+| --- | --- | --- | --- |
 | #292 | refactor(hashstring): drop register storage class (#84) | `refactor/hashstring-drop-register` | **MERGED** 2026-09-20 |
 | #293 | chore(workflow): consolidate agent rules and strict review policy | `chore/consolidate-agent-workflow` | OPEN |
 | #294 | test(interop): prepare current ED2K/Kad live evidence runs (#160) | `test/ed2k-kad-live-interop-evidence` | OPEN |
 
-Phase 0/1 PRs must wait until capacity is under 3 (AGENTS.md hard rule 13).
+Phase 0 PR opened after #292 freed capacity (AGENTS.md hard rule 13).
 
 ### Existing UI / DPI work already merged (reuse)
 
