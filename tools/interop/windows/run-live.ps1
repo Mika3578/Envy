@@ -67,6 +67,10 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+if ($PcapDurationSec -lt 0) {
+    throw "-PcapDurationSec must be >= 0 (got $PcapDurationSec). Use 0 for no duration bound."
+}
+
 function Resolve-RepoRoot {
     # tools/interop/windows -> repository root
     return (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
