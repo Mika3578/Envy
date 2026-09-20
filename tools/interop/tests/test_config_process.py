@@ -409,6 +409,43 @@ class CaptureToolTests(unittest.TestCase):
             self.assertEqual(result.result, "FAIL")
             self.assertIn("early", result.reason.lower())
 
+    def test_finalize_pcap_rejects_early_death_even_with_bytes(self) -> None:
+        from envy_interop.runner import _finalize_pcap_lifecycle
+        from envy_interop.scenarios import RunContext
+        from envy_interop.isolation import create_run_isolation
+        from envy_interop.process import ProcessManager
+        from unittest.mock import MagicMock
+
+        repo = Path(__file__).resolve().parents[3]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pcap = root / "loopback.pcap"
+            pcap.write_bytes(b"\x00" * 64)
+            cfg = HarnessConfig(
+                repo_root=repo, dry_run=False, live=True, enable_pcap=True, shutdown_timeout_sec=1
+            )
+            isolation = create_run_isolation(root, "pcap-early-bytes")
+            owned = MagicMock()
+            owned.poll.return_value = 1  # already dead before teardown
+            owned.exit_code = 1
+            processes = MagicMock(spec=ProcessManager)
+            processes.terminate_owned.return_value = 1
+            ctx = RunContext(
+                cfg=cfg,
+                run_dir=root / "run",
+                isolation=isolation,
+                processes=processes,
+                logs_dir=root / "logs",
+                git_sha="test",
+                pcap_owned=owned,
+                pcap_path=pcap,
+                pcap_stopped=False,
+            )
+            _finalize_pcap_lifecycle(ctx, cfg)
+            self.assertTrue(ctx.pcap_stopped)
+            self.assertFalse(ctx.pcap_usable)
+            self.assertIn("early", (ctx.pcap_start_error or "").lower())
+
     def test_tcpdump_duration_options_before_bpf(self) -> None:
         from envy_interop import capture as capture_mod
         from envy_interop.process import ProcessManager

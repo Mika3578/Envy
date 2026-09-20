@@ -68,6 +68,7 @@ class HarnessConfig:
     hello_capture: Optional[Path] = None
     packet_evidence: Optional[Path] = None
     pcap_duration_sec: int = 0
+    operator_hold_sec: int = 0
     reference_client: str = "none"
     reference_version: str = ""
     config_path: Optional[Path] = None
@@ -228,6 +229,12 @@ def merge_config(
         "PCAP_DURATION_SEC",
         0,
     )
+    cfg.operator_hold_sec = pick_int(
+        getattr(cli, "operator_hold_sec", None),
+        "operator_hold_sec",
+        "OPERATOR_HOLD_SEC",
+        0,
+    )
     cfg.reference_client = (
         getattr(cli, "reference_client", None)
         or _env("REFERENCE_CLIENT", "")
@@ -251,6 +258,8 @@ def validate_ports(cfg: HarnessConfig) -> None:
             raise ConfigError(f"{name} must be in 1..65535")
     if int(cfg.pcap_duration_sec) < 0:
         raise ConfigError("pcap_duration_sec must be >= 0")
+    if int(cfg.operator_hold_sec) < 0:
+        raise ConfigError("operator_hold_sec must be >= 0")
     for name, value in (
         ("startup_timeout_sec", cfg.startup_timeout_sec),
         ("scenario_timeout_sec", cfg.scenario_timeout_sec),
@@ -346,6 +355,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Optional bounded capture duration for dumpcap/tshark (0 = until harness stop)",
+    )
+    parser.add_argument(
+        "--operator-hold-sec",
+        type=int,
+        default=None,
+        help=(
+            "Live-only: seconds to wait after optional pcap start and before scenario "
+            "evaluation so the operator can complete manual GUI steps (0 = no hold)"
+        ),
     )
     parser.add_argument("--live", action="store_true", help="Launch configured processes")
     parser.add_argument("--dry-run", action="store_true", help="Do not launch processes (default)")

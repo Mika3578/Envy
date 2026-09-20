@@ -57,6 +57,7 @@ def sanitized_config_summary(cfg: HarnessConfig) -> dict:
         "shutdown_timeout_sec": cfg.shutdown_timeout_sec,
         "allow_external_network": cfg.allow_external_network,
         "enable_pcap": cfg.enable_pcap,
+        "operator_hold_sec": cfg.operator_hold_sec,
         "scenarios": list(cfg.scenarios),
         "reference_client": cfg.resolved_reference_client(),
         "reference_version": cfg.reference_version,
@@ -99,14 +100,35 @@ def _convert_owned_pcap(ctx: RunContext, cfg: HarnessConfig) -> Optional[Path]:
         return None
     dest_dir = ctx.run_dir / "captures" / "evidence"
     dest_dir.mkdir(parents=True, exist_ok=True)
-    # Transport-tagged files: TCP reassembly joins only within a tcp.stream.
-    for stream, chunks in sorted(extracted.tcp_by_stream.items(), key=lambda item: item[0]):
-        try:
-            stream_id = f"{int(stream):04d}"
-        except ValueError:
-            stream_id = "".join(ch if ch.isalnum() else "_" for ch in stream)[:16] or "0"
-        for index, chunk in enumerate(chunks):
-            (dest_dir / f"from-pcap-tcp-{stream_id}-{index:04d}.bin").write_bytes(chunk)
+    # Transport-tagged files: TCP reassembly joins only within one unidirectional
+    # flow (tcp.stream + srcport + dstport). Keys are "<stream>-<src>-<dst>".
+    for flow, chunks in sorted(extracted.tcp_by_stream.items(), key=lambda item: item[0]):
+        parts = flow.split("-")
+        if len(parts) >= 3:
+            stream_id, src, dst = parts[0], parts[1], parts[2]
+            try:
+                stream_id = f"{int(stream_id):04d}"
+            except ValueError:
+                stream_id = "".join(ch if ch.isalnum() else "_" for ch in stream_id)[:16] or "0"
+            try:
+                src = str(int(src))
+                dst = str(int(dst))
+            except ValueError:
+                src = "".join(ch if ch.isdigit() else "0" for ch in src)[:8] or "0"
+                dst = "".join(ch if ch.isdigit() else "0" for ch in dst)[:8] or "0"
+            for index, chunk in enumerate(chunks):
+                (dest_dir / f"from-pcap-tcp-{stream_id}-{src}-{dst}-{index:04d}.bin").write_bytes(
+                    chunk
+                )
+        else:
+            # Legacy stream-only key (tests / older extracts).
+            stream_id = parts[0] if parts else "0"
+            try:
+                stream_id = f"{int(stream_id):04d}"
+            except ValueError:
+                stream_id = "".join(ch if ch.isalnum() else "_" for ch in stream_id)[:16] or "0"
+            for index, chunk in enumerate(chunks):
+                (dest_dir / f"from-pcap-tcp-{stream_id}-{index:04d}.bin").write_bytes(chunk)
     for index, chunk in enumerate(extracted.udp):
         (dest_dir / f"from-pcap-udp-{index:04d}.bin").write_bytes(chunk)
     return dest_dir
@@ -133,7 +155,16 @@ def _finalize_pcap_lifecycle(ctx: RunContext, cfg: HarnessConfig) -> None:
     """Stop owned capture and record whether a usable pcap was produced."""
     if not ctx.pcap_owned:
         return
-    code = ctx.processes.terminate_owned(ctx.pcap_owned, cfg.shutdown_timeout_sec)
+    owned = ctx.pcap_owned
+    # Only tolerate non-zero exits caused by *this* requested stop. If the
+    # capture already died, a non-zero code is an early failure even when a
+    # partial pcap file exists on disk.
+    alive_before_stop = True
+    poll = getattr(owned, "poll", None)
+    if callable(poll):
+        pre = poll()
+        alive_before_stop = pre is None
+    code = ctx.processes.terminate_owned(owned, cfg.shutdown_timeout_sec)
     ctx.pcap_stopped = True
     size = 0
     if ctx.pcap_path is not None and ctx.pcap_path.is_file():
@@ -141,12 +172,19 @@ def _finalize_pcap_lifecycle(ctx: RunContext, cfg: HarnessConfig) -> None:
             size = int(ctx.pcap_path.stat().st_size)
         except OSError:
             size = 0
+    early_nonzero = (not alive_before_stop) and code not in (0, None)
+    if early_nonzero:
+        ctx.pcap_usable = False
+        if not ctx.pcap_start_error:
+            ctx.pcap_start_error = (
+                f"capture exited early with code {code} before harness stop"
+            )
+        return
     # SIGTERM/SIGINT after a requested stop often yields non-zero; treat as OK
-    # when bytes were written. Early death with empty output is a failure.
+    # when bytes were written (or clean empty exit after a requested stop).
     if size > 0:
         ctx.pcap_usable = True
     elif code in (0, None):
-        # Clean exit, empty capture — still a completed owned lifecycle.
         ctx.pcap_usable = True
     else:
         ctx.pcap_usable = False
@@ -234,8 +272,28 @@ def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = N
             )
 
     results: List[ScenarioResult] = []
+    hold_sec = int(cfg.operator_hold_sec or 0)
+    hold_pending = bool(cfg.live and not cfg.dry_run and hold_sec > 0)
+    startup_ids = {"envy_startup", "reference_startup"}
     try:
         for scenario_id in selected:
+            # After owned clients are launched (startup scenarios), pause so the
+            # operator can finish manual GUI steps before protocol evaluation.
+            if (
+                hold_pending
+                and scenario_id not in startup_ids
+                and (
+                    not any(sid in selected for sid in startup_ids)
+                    or any(r.id in startup_ids for r in results)
+                )
+            ):
+                (logs_dir / "operator-hold.txt").write_text(
+                    f"holding {hold_sec}s for manual GUI steps before scenario "
+                    f"{scenario_id}\n",
+                    encoding="utf-8",
+                )
+                time.sleep(hold_sec)
+                hold_pending = False
             spec = SCENARIOS[scenario_id]
             results.append(run_scenario(ctx, spec))
     finally:

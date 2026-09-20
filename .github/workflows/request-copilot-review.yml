@@ -5,8 +5,8 @@
 #
 # Important: requestReviews(union:true) is a no-op when Copilot is already on the
 # review-request list — it does not emit ReviewRequestedEvent and does not start
-# a fresh review on a new HEAD. Clear bot reviewers first (union:false + empty
-# botIds), then request Copilot again.
+# a fresh review on a new HEAD. Clear then re-request Copilot, but preserve any
+# human/team reviewers across the replace (union:false replaces the whole set).
 
 name: Request Copilot review
 
@@ -56,17 +56,23 @@ jobs:
           BOT_NODE="$(gh api '/users/copilot-pull-request-reviewer%5Bbot%5D' --jq .node_id)"
           echo "PR node=$PR_NODE bot=$BOT_NODE pr=$PR_NUMBER"
 
+          # Snapshot non-bot reviewers so union:false does not discard them.
+          SNAP="$(gh api graphql -f query='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewRequests(first:20){nodes{requestedReviewer{__typename ... on User{id login} ... on Team{id slug} ... on Bot{id login}}}}}}}' \
+            -f o="$OWNER" -f n="$REPO" -F p="$PR_NUMBER")"
+          USER_IDS="$(echo "$SNAP" | jq -c '[.data.repository.pullRequest.reviewRequests.nodes[] | select(.requestedReviewer.__typename=="User") | .requestedReviewer.id]')"
+          TEAM_IDS="$(echo "$SNAP" | jq -c '[.data.repository.pullRequest.reviewRequests.nodes[] | select(.requestedReviewer.__typename=="Team") | .requestedReviewer.id]')"
+          echo "Preserving userIds=$USER_IDS teamIds=$TEAM_IDS"
+
           list_requests() {
-            gh api graphql -f query='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewRequests(first:10){nodes{requestedReviewer{__typename ... on Bot{login} ... on User{login}}}}}}}' \
+            gh api graphql -f query='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewRequests(first:10){nodes{requestedReviewer{__typename ... on Bot{login} ... on User{login} ... on Team{slug}}}}}}}' \
               -f o="$OWNER" -f n="$REPO" -F p="$PR_NUMBER" \
-              --jq '[.data.repository.pullRequest.reviewRequests.nodes[].requestedReviewer.login]'
+              --jq '[.data.repository.pullRequest.reviewRequests.nodes[].requestedReviewer | (.login // .slug)]'
           }
 
           echo "Before clear: $(list_requests)"
 
-          # Clear bot review requests. REST DELETE cannot resolve Bot node ids as Users.
-          # requestReviews(union:false, botIds:[]) replaces the bot reviewer set with empty.
-          echo "Clearing bot review requests..."
+          # Clear the whole set (only reliable way to drop the Copilot bot request).
+          echo "Clearing review requests..."
           gh api graphql --input - <<EOF
           {
             "query": "mutation(\$pr:ID!){requestReviews(input:{pullRequestId:\$pr,botIds:[],userIds:[],teamIds:[],union:false}){clientMutationId}}",
@@ -76,13 +82,15 @@ jobs:
           sleep 2
           echo "After clear: $(list_requests)"
 
-          echo "Requesting Copilot review..."
+          echo "Requesting Copilot + restoring humans/teams..."
           gh api graphql --input - <<EOF
           {
-            "query": "mutation(\$pr:ID!,\$bots:[ID!]!){requestReviews(input:{pullRequestId:\$pr,botIds:\$bots,union:false}){clientMutationId}}",
+            "query": "mutation(\$pr:ID!,\$bots:[ID!]!,\$users:[ID!]!,\$teams:[ID!]!){requestReviews(input:{pullRequestId:\$pr,botIds:\$bots,userIds:\$users,teamIds:\$teams,union:false}){clientMutationId}}",
             "variables": {
               "pr": "$PR_NODE",
-              "bots": ["$BOT_NODE"]
+              "bots": ["$BOT_NODE"],
+              "users": $USER_IDS,
+              "teams": $TEAM_IDS
             }
           }
           EOF

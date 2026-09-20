@@ -52,6 +52,9 @@ param(
     [int] $PcapDurationSec = 0,
 
     [Parameter(Mandatory = $false)]
+    [int] $OperatorHoldSec = 300,
+
+    [Parameter(Mandatory = $false)]
     [switch] $AllowExternalNetwork,
 
     [Parameter(Mandatory = $false)]
@@ -69,6 +72,9 @@ $ErrorActionPreference = "Stop"
 
 if ($PcapDurationSec -lt 0) {
     throw "-PcapDurationSec must be >= 0 (got $PcapDurationSec). Use 0 for no duration bound."
+}
+if ($OperatorHoldSec -lt 0) {
+    throw "-OperatorHoldSec must be >= 0 (got $OperatorHoldSec). Use 0 to skip the GUI hold."
 }
 
 function Resolve-RepoRoot {
@@ -136,6 +142,7 @@ $argsList += @("--artifact-dir", $DefaultArt)
 $argsList += @("--scenarios", $Scenarios)
 if ($EnablePcap) { $argsList += "--enable-pcap" }
 if ($PcapDurationSec -gt 0) { $argsList += @("--pcap-duration-sec", "$PcapDurationSec") }
+if (-not $DryRun) { $argsList += @("--operator-hold-sec", "$OperatorHoldSec") }
 if ($AllowExternalNetwork) { $argsList += "--allow-external-network" }
 if ($PacketEvidence) { $argsList += @("--packet-evidence", $PacketEvidence) }
 

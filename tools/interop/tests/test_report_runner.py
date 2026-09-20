@@ -284,6 +284,14 @@ class EvidenceExtractorTests(unittest.TestCase):
         short_hits = extract_kad_udp_frames(short)
         self.assertTrue(short_hits[0].details.get("parse_error"))
         self.assertFalse(require_labels(short_hits, ["kad_search_res"])[0])
+        # Legacy with results that also look like eMule once len>=50 must fail
+        # closed as ambiguous (never pick layout from body[32:34] alone).
+        answer = b"\xaa" * 40
+        legacy_results = bytes([0xE4, 0x3B]) + (b"\x11" * 16) + bytes([1]) + answer
+        self.assertGreaterEqual(len(legacy_results) - 2, 50)
+        amb_hits = extract_kad_udp_frames(legacy_results)
+        self.assertIn("ambiguous", (amb_hits[0].details.get("parse_error") or "").lower())
+        self.assertFalse(require_labels(amb_hits, ["kad_search_res"])[0])
 
     def test_kad_udp_not_confused_with_c5_tcp(self) -> None:
         # Old bug: SEARCH_RES 0x35 on C5 would mislabel SEARCH_NOTES as kad_search_res.
@@ -438,6 +446,28 @@ class EvidenceExtractorTests(unittest.TestCase):
             )
             self.assertTrue(any(h.label == "hello" for h in hits))
             self.assertTrue(any(h.label == "kad_hello_req" for h in hits))
+
+    def test_tcp_reassembly_keeps_directions_separate(self) -> None:
+        """Opposite TCP directions in one stream must not be concatenated."""
+        hello_path = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
+        frame = bytes.fromhex(
+            json.loads(hello_path.read_text(encoding="utf-8"))["tcp_frame_hex"]
+        )
+        mid = len(frame) // 2
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "from-pcap-tcp-0000-4662-4663-0000.bin").write_bytes(frame[:mid])
+            (root / "from-pcap-tcp-0000-4662-4663-0001.bin").write_bytes(frame[mid:])
+            # Reverse direction carries unrelated bytes that would break Hello.
+            (root / "from-pcap-tcp-0000-4663-4662-0000.bin").write_bytes(b"\xff" * mid)
+            hits = collect_hits_from_paths(
+                [
+                    root / "from-pcap-tcp-0000-4662-4663-0000.bin",
+                    root / "from-pcap-tcp-0000-4662-4663-0001.bin",
+                    root / "from-pcap-tcp-0000-4663-4662-0000.bin",
+                ]
+            )
+            self.assertTrue(any(h.label == "hello" for h in hits))
 
     def test_udp_not_joined_into_tcp_reassembly(self) -> None:
         """Kad UDP chunks must never be concatenated into ED2K TCP reassembly."""

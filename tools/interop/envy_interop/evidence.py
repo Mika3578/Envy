@@ -291,46 +291,46 @@ def extract_kad_udp_frames(
             #   <SenderID 16><TargetID 16><Count 2 LE>  (min 34)
             # - Envy outbound OnSearch*Request responses (Kademlia.cpp):
             #   <Hash 16><Count 1>  (min 17) — legacy; accept for evidence
+            # Never infer layout from body[32:34] alone once results exist —
+            # those bytes can be the first result's source id. Parse complete
+            # candidates and fail closed on ambiguity.
             min_emule = 16 + 16 + 2
             min_legacy = 16 + 1
+            candidates: List[Tuple[str, int]] = []
             if len(body) < min_legacy:
                 details["parse_error"] = (
                     f"SEARCH_RES body too short ({len(body)} < {min_legacy})"
                 )
             elif len(body) < min_emule:
-                details["layout"] = "envy_outbound_hash_count1"
-                details["has_filehash"] = True
-                details["result_count"] = body[16]
+                candidates.append(("envy_outbound_hash_count1", int(body[16])))
             else:
-                count2 = struct.unpack_from("<H", body, 32)[0]
-                count1 = body[16]
-                # Length alone is ambiguous once results are present. Prefer the
-                # eMule layout only when the LE count at offset 32 is plausible
-                # for the remaining payload; otherwise treat as Envy legacy.
+                count1 = int(body[16])
+                count2 = int(struct.unpack_from("<H", body, 32)[0])
                 remaining_after_emule = len(body) - min_emule
-                emule_plausible = count2 <= 512 and (
-                    (count2 == 0 and remaining_after_emule == 0) or count2 > 0
-                )
-                legacy_plausible = count1 <= 512
-                # Prefer legacy when count2 looks like random contact bytes
-                # (large) while count1 is a small result count with trailing data.
-                if legacy_plausible and remaining_after_emule > 0 and count2 > 64 and count1 <= 32:
-                    details["layout"] = "envy_outbound_hash_count1"
-                    details["has_filehash"] = True
-                    details["result_count"] = count1
-                elif emule_plausible:
-                    details["layout"] = "sender_target_count2"
-                    details["has_sender_id"] = True
-                    details["has_target_id"] = True
-                    details["result_count"] = count2
-                elif legacy_plausible:
-                    details["layout"] = "envy_outbound_hash_count1"
-                    details["has_filehash"] = True
-                    details["result_count"] = count1
+                # Exact eMule empty response is unambiguous (34 bytes, count2==0).
+                # Do not also treat TargetID[0] as a legacy count1.
+                if count2 == 0 and remaining_after_emule == 0:
+                    candidates.append(("sender_target_count2", 0))
                 else:
-                    details["parse_error"] = (
-                        f"SEARCH_RES layout ambiguous (count1={count1}, count2={count2})"
-                    )
+                    if count2 >= 1 and remaining_after_emule >= 16:
+                        candidates.append(("sender_target_count2", count2))
+                    if count1 >= 1:
+                        candidates.append(("envy_outbound_hash_count1", count1))
+            if "parse_error" not in details:
+                if len(candidates) == 1:
+                    layout, count = candidates[0]
+                    details["layout"] = layout
+                    details["result_count"] = count
+                    if layout == "sender_target_count2":
+                        details["has_sender_id"] = True
+                        details["has_target_id"] = True
+                    else:
+                        details["has_filehash"] = True
+                elif not candidates:
+                    details["parse_error"] = "SEARCH_RES matches no complete layout"
+                else:
+                    names = ", ".join(f"{name}(count={n})" for name, n in candidates)
+                    details["parse_error"] = f"SEARCH_RES layout ambiguous ({names})"
         hits.append(
             FrameHit(
                 protocol=proto,
@@ -447,34 +447,41 @@ def _is_pcap_tcp_evidence_name(name: str) -> bool:
     return name.startswith("from-pcap-tcp-") and name.endswith(".bin")
 
 
-def _tcp_stream_key(name: str) -> Optional[str]:
-    """Return stream id from ``from-pcap-tcp-<stream>-<seq>.bin``, else None."""
-    # from-pcap-tcp-0003-0001.bin -> "0003"
+def _tcp_flow_key(name: str) -> Optional[str]:
+    """Return reassembly key from a transport-tagged TCP evidence filename.
+
+    Supported shapes:
+    - ``from-pcap-tcp-<stream>-<src>-<dst>-<seq>.bin`` → ``<stream>-<src>-<dst>``
+      (one TCP direction; never join both directions of a stream)
+    - ``from-pcap-tcp-<stream>-<seq>.bin`` → ``<stream>`` (legacy tests / dumps)
+    """
     if not _is_pcap_tcp_evidence_name(name):
         return None
     parts = name[len("from-pcap-tcp-") : -len(".bin")].split("-")
-    if len(parts) != 2:
-        return None
-    return parts[0]
+    if len(parts) == 4:
+        return f"{parts[0]}-{parts[1]}-{parts[2]}"
+    if len(parts) == 2:
+        return parts[0]
+    return None
 
 
 def tcp_reassembly_blobs(paths: Sequence[Path]) -> List[bytes]:
-    """Concatenate TCP segment payloads per stream; never include UDP files.
+    """Concatenate TCP segment payloads per unidirectional flow; never UDP.
 
     Operator dumps without the ``from-pcap-tcp-`` prefix are not joined — only
     scanned per-file — so Kad UDP bytes cannot forge ED2K frames across files.
     """
-    by_stream: Dict[str, List[Tuple[str, bytes]]] = {}
+    by_flow: Dict[str, List[Tuple[str, bytes]]] = {}
     for path in paths:
         if not path or not path.is_file():
             continue
-        stream = _tcp_stream_key(path.name)
-        if stream is None:
+        flow = _tcp_flow_key(path.name)
+        if flow is None:
             continue
-        by_stream.setdefault(stream, []).append((path.name, load_bytes(path)))
+        by_flow.setdefault(flow, []).append((path.name, load_bytes(path)))
     blobs: List[bytes] = []
-    for stream in sorted(by_stream):
-        ordered = sorted(by_stream[stream], key=lambda item: item[0])
+    for flow in sorted(by_flow):
+        ordered = sorted(by_flow[flow], key=lambda item: item[0])
         blobs.append(b"".join(chunk for _, chunk in ordered))
     return blobs
 
@@ -501,7 +508,8 @@ def collect_hits_from_paths(paths: Sequence[Path]) -> List[FrameHit]:
     """Aggregate frames across evidence files without flattening UDP datagrams.
 
     Transport-tagged files use the matching extractor only. TCP segment
-    reassembly joins only ``from-pcap-tcp-<stream>-*.bin`` within one stream.
+    reassembly joins only ``from-pcap-tcp-<stream>-<src>-<dst>-*`` (or legacy
+    ``from-pcap-tcp-<stream>-*``) within one unidirectional flow.
     """
     hits: List[FrameHit] = []
     for path in paths:
@@ -532,7 +540,8 @@ def extract_from_pcap_via_tshark(
 ) -> PcapPayloadExtract:
     """Extract per-packet TCP/UDP payloads, keeping transports separate.
 
-    TCP lines include ``tcp.stream`` so callers can reassemble by flow.
+    TCP lines include ``tcp.stream`` plus src/dst ports so callers can
+    reassemble one direction at a time (never both directions of a stream).
     UDP datagrams are listed independently and must never be concatenated.
     """
     tool = find_tshark()
@@ -562,17 +571,21 @@ def extract_from_pcap_via_tshark(
             raise EvidenceError(f"tshark exit {proc.returncode}: {proc.stderr.strip()[:200]}")
         return proc.stdout
 
+    # Key: "<stream>-<srcport>-<dstport>" → unidirectional TCP flow payloads.
     tcp_by_stream: Dict[str, List[bytes]] = {}
-    for line in _run(("tcp.stream", "tcp.payload")).splitlines():
+    for line in _run(("tcp.stream", "tcp.srcport", "tcp.dstport", "tcp.payload")).splitlines():
         parts = line.split("\t")
-        if len(parts) < 2:
+        if len(parts) < 4:
             continue
         stream = (parts[0] or "0").strip()
-        hex_str = parts[1].strip().replace(":", "")
+        src = (parts[1] or "0").strip()
+        dst = (parts[2] or "0").strip()
+        hex_str = parts[3].strip().replace(":", "")
         if not hex_str:
             continue
+        flow = f"{stream}-{src}-{dst}"
         try:
-            tcp_by_stream.setdefault(stream, []).append(bytes.fromhex(hex_str))
+            tcp_by_stream.setdefault(flow, []).append(bytes.fromhex(hex_str))
         except ValueError as exc:
             raise EvidenceError("tshark produced malformed TCP hex payload") from exc
 

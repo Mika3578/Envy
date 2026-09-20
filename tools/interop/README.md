@@ -146,11 +146,12 @@ filters cover the configured ED2K **TCP** ports and the Kad **UDP** port
 (default `4672`, override with `--kad-udp-port` / `ENVY_INTEROP_KAD_UDP_PORT`).
 When capture stops, the runner converts the owned pcap via `tshark` (when
 present) into transport-tagged payload files:
-`captures/evidence/from-pcap-tcp-<stream>-<seq>.bin` and
+`captures/evidence/from-pcap-tcp-<stream>-<srcport>-<dstport>-<seq>.bin` and
 `from-pcap-udp-<seq>.bin`. SKIP protocol scenarios that can PASS from packet
 labels are then re-evaluated (labels aggregate across files; ED2K TCP frames
-may be reassembled **within the same TCP stream only** — UDP datagrams are
-never joined). Raw pcaps stay gitignored. Missing
+may be reassembled **within the same unidirectional TCP flow only** — opposite
+directions of a `tcp.stream` are never joined, and UDP datagrams are never
+joined). Raw pcaps stay gitignored. Missing
 tools → SKIP (never silent install). The `optional_pcap` scenario **PASS**es
 only when the live runner started (and later stopped) an owned capture; tool
 availability alone remains SKIP.

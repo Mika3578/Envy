@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #160/#294 Copilot round 9: early pcap death fail-closed; SEARCH_RES ambiguity fail-closed; TCP reassembly by unidirectional flow; operator-hold-sec after startup; Copilot re-request preserves human/team reviewers.
 - **Changelog Entry:** 2026-09-20 — #294 Copilot re-request workflow: clear bot reviewers with `requestReviews(union:false, botIds:[])` then re-request (REST DELETE cannot resolve Bot ids; prior union:true was a no-op with no ReviewRequestedEvent on HEAD).
 - **Changelog Entry:** 2026-09-20 — #294 Copilot re-request workflow: remove existing request then requestReviews (union:true was a no-op when Copilot already requested; no fresh ReviewRequestedEvent on HEAD aafc2a3).
 - **Changelog Entry:** 2026-09-20 — #160/#294 Copilot round 8: PUBLICIP_REQ empty body; COMPRESSEDPART allows partial chunks; transport-dispatched extractors; UDP single-datagram mode; redacted userhash; sanitized config paths; dry-run validate_ports; fail on missing configured evidence / malformed labels; kad_search_source not opcode-only PASS.

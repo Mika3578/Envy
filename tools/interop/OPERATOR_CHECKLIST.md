@@ -29,13 +29,19 @@ alone is **not** an interoperability claim.
   -ReferenceClient emule-community `
   -ReferenceVersion "<exact version string>" `
   -Scenarios current `
-  -EnablePcap
+  -EnablePcap `
+  -OperatorHoldSec 300
 ```
 
-Or call Python directly:
+`run-live.ps1` defaults `-OperatorHoldSec` to **300** on live runs. After
+`envy_startup` / `reference_startup` launch the owned clients, the harness
+pauses that many seconds so you can finish the manual GUI steps below before
+protocol scenarios run and owned processes are torn down. Pass
+`-OperatorHoldSec 0` only when no GUI interaction is needed (e.g. packet-evidence
+replay). Or call Python directly:
 
 ```text
-python tools\interop\run.py --live --envy-exe "..." --emule-exe "..." --reference-client emule-community --reference-version "..." --scenarios current
+python tools\interop\run.py --live --envy-exe "..." --emule-exe "..." --reference-client emule-community --reference-version "..." --scenarios current --operator-hold-sec 300
 ```
 
 ## What the harness automates
