@@ -136,7 +136,14 @@ if ($AllowExternalNetwork) { $argsList += "--allow-external-network" }
 if ($PacketEvidence) { $argsList += @("--packet-evidence", $PacketEvidence) }
 
 Write-Host "Launching:"
-Write-Host ("  {0} {1}" -f $Python, ($argsList -join " "))
+function Format-Arg([string] $Value) {
+    if ($Value -match '[\s"]') {
+        return ('"{0}"' -f ($Value -replace '"', '`"'))
+    }
+    return $Value
+}
+$preview = (@($Python) + $argsList) | ForEach-Object { Format-Arg $_ }
+Write-Host ("  {0}" -f ($preview -join " "))
 Write-Host ""
 Write-Host "Owned processes only. The harness never kills an existing user Envy/eMule."
 Write-Host "If Global\Envy or eMule single-instance mutex is held, close THAT instance yourself."

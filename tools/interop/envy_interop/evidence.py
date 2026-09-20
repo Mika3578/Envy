@@ -97,7 +97,9 @@ def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
             continue
         frame_end = i + 5 + size
         if frame_end > n:
-            break
+            # Plausible proto+size can appear in unrelated bytes; keep scanning.
+            i += 1
+            continue
         opcode = blob[i + 5]
         body = blob[i + 6 : frame_end]
         label = OPCODE_LABELS.get((proto, opcode), f"op_{proto:02x}_{opcode:02x}")

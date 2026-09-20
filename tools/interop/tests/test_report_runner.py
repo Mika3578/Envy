@@ -183,6 +183,16 @@ class EvidenceExtractorTests(unittest.TestCase):
         hits = extract_ed2k_frames(b"\xc5\xff\xff")
         self.assertEqual(hits, [])
 
+    def test_truncated_size_does_not_abort_later_frames(self) -> None:
+        import struct
+
+        # Fake truncated C5 frame (size claims more bytes than remain), then a real muleinfo.
+        truncated = bytes([0xC5]) + struct.pack("<I", 1000) + bytes([0x01])
+        mule_body = b"\x01\x00\x00\x00\x00"
+        mule = bytes([0xC5]) + struct.pack("<I", 1 + len(mule_body)) + bytes([0x01]) + mule_body
+        hits = extract_ed2k_frames(truncated + mule)
+        self.assertTrue(any(h.label == "muleinfo" for h in hits))
+
 
 class ReportTests(unittest.TestCase):
     def test_malformed_schema_version_rejected(self) -> None:
@@ -306,6 +316,36 @@ class RunnerDryRunTests(unittest.TestCase):
             by_id = {item["id"]: item for item in payload["scenarios"]}
             self.assertEqual(by_id["hello"]["result"], "PASS")
             self.assertEqual(by_id["hello_capture_import"]["result"], "PASS")
+
+    def test_multi_frame_blob_selects_matching_frame(self) -> None:
+        """Regression: evidence PASS must not assume a single frame at offset 0."""
+        import struct
+
+        hello_path = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
+        hello_frame = bytes.fromhex(json.loads(hello_path.read_text(encoding="utf-8"))["tcp_frame_hex"])
+        answer_path = REPO / "tools/interop/fixtures/golden/envy-self-helloanswer.json"
+        answer_frame = bytes.fromhex(json.loads(answer_path.read_text(encoding="utf-8"))["tcp_frame_hex"])
+        mule_body = b"\x01\x00\x00\x00\x00"
+        mule_frame = bytes([0xC5]) + struct.pack("<I", 1 + len(mule_body)) + bytes([0x01]) + mule_body
+        # Leading noise + concatenated frames (HelloAnswer first, then Hello, then MuleInfo).
+        blob = b"\x00NOISE\xff" + answer_frame + hello_frame + mule_frame
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence = Path(tmp) / "multi.bin"
+            evidence.write_bytes(blob)
+            cfg = HarnessConfig(
+                repo_root=REPO,
+                artifact_dir=Path(tmp) / "artifacts",
+                work_dir=Path(tmp) / "work",
+                dry_run=True,
+                live=False,
+                packet_evidence=evidence,
+                scenarios=["hello", "hello_answer", "muleinfo"],
+            )
+            payload = run_harness(cfg)
+            by_id = {item["id"]: item for item in payload["scenarios"]}
+            self.assertEqual(by_id["hello"]["result"], "PASS", by_id["hello"].get("reason"))
+            self.assertEqual(by_id["hello_answer"]["result"], "PASS", by_id["hello_answer"].get("reason"))
+            self.assertEqual(by_id["muleinfo"]["result"], "PASS", by_id["muleinfo"].get("reason"))
 
     def test_expand_aliases(self) -> None:
         self.assertIn("compressed_transfer_envy_to_ref", expand_selection(["current"]))

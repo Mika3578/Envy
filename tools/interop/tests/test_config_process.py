@@ -273,6 +273,23 @@ class CaptureToolTests(unittest.TestCase):
                 self.assertEqual(result.result, "SKIP")
                 self.assertIn("optional", result.reason.lower())
 
+    def test_tcp_port_filter_and_darwin_loopback(self) -> None:
+        from envy_interop import capture as capture_mod
+
+        self.assertEqual(capture_mod._tcp_port_filter([4662, 4663]), "tcp port 4662 or tcp port 4663")
+        old = os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)
+        self.addCleanup(lambda: (os.environ.__setitem__("ENVY_INTEROP_PCAP_IFACE", old) if old is not None else os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)))
+        os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)
+        # Force Darwin branch without requiring macOS.
+        import sys
+
+        real_platform = sys.platform
+        try:
+            sys.platform = "darwin"
+            self.assertEqual(capture_mod._loopback_iface(), "lo0")
+        finally:
+            sys.platform = real_platform
+
 
 class SanitizerTests(unittest.TestCase):
     def test_redacts_username_home_and_public_ip(self) -> None:

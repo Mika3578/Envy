@@ -26,11 +26,23 @@ def find_capture_tool() -> Optional[str]:
 
 
 def _loopback_iface() -> str:
+    override = os.environ.get("ENVY_INTEROP_PCAP_IFACE", "").strip()
+    if override:
+        return override
     if os.name == "nt":
-        # dumpcap/tshark on Windows: "Npc" is not portable; operators may
-        # override via ENVY_INTEROP_PCAP_IFACE. Default to a common Npcap name.
-        return os.environ.get("ENVY_INTEROP_PCAP_IFACE", r"\Device\NPF_Loopback")
-    return os.environ.get("ENVY_INTEROP_PCAP_IFACE", "lo")
+        # dumpcap/tshark on Windows: "Npc" is not portable. Default to a
+        # common Npcap name; operators override via ENVY_INTEROP_PCAP_IFACE.
+        return r"\Device\NPF_Loopback"
+    import sys
+
+    if sys.platform == "darwin":
+        return "lo0"
+    return "lo"
+
+
+def _tcp_port_filter(ports: List[int]) -> str:
+    """BPF filter limited to TCP on the configured test ports."""
+    return " or ".join(f"tcp port {int(p)}" for p in ports)
 
 
 def start_capture(
@@ -44,7 +56,7 @@ def start_capture(
 ) -> OwnedProcess:
     """Start a bounded capture limited to the configured test ports."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    port_spec = " or ".join(f"port {int(p)}" for p in ports)
+    port_spec = _tcp_port_filter(ports)
     iface = _loopback_iface()
     name = Path(tool).name.lower()
     argv: List[str]

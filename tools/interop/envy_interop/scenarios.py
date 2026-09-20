@@ -715,8 +715,6 @@ def handle_kad_nodes_dat_local(ctx: RunContext, spec: ScenarioSpec) -> ScenarioR
 def _live_gate(ctx: RunContext, spec: ScenarioSpec) -> Optional[ScenarioResult]:
     if spec.production == ProductionState.NOT_IMPLEMENTED:
         return _not_implemented(spec)
-    if spec.harness == HarnessState.REGISTERED_ONLY and spec.production == ProductionState.NOT_IMPLEMENTED:
-        return _not_implemented(spec)
     if spec.requires_external and not ctx.cfg.allow_external_network:
         return _skip(spec, "external ED2K/Kad network required; pass --allow-external-network")
     if ctx.cfg.dry_run or not ctx.cfg.live:
@@ -815,6 +813,18 @@ def handle_reference_startup(ctx: RunContext, spec: ScenarioSpec) -> ScenarioRes
     )
 
 
+def _frame_slice(raw: bytes, hit) -> bytes:
+    return raw[hit.offset : hit.offset + hit.length]
+
+
+def _first_hit(hits, *labels: str):
+    wanted = set(labels)
+    for hit in hits:
+        if hit.label in wanted and not hit.details.get("parse_error"):
+            return hit
+    return None
+
+
 def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[ScenarioResult]:
     """Attempt PASS from --packet-evidence / --hello-capture / evidence dir."""
     candidates: List[Path] = []
@@ -848,21 +858,28 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
                     artifacts=[f"evidence/{spec.id}/packet-evidence.json"],
                 )
             if spec.id in {"hello", "hello_answer"}:
-                expected = 0x01 if spec.id == "hello" else 0x4C
-                parsed = parse_hello_tcp(raw)
-                if parsed.opcode != expected:
+                label = "hello" if spec.id == "hello" else "hello_answer"
+                hit = _first_hit(hits, label)
+                if hit is None:
                     continue
+                parsed = parse_hello_tcp(_frame_slice(raw, hit))
                 return _pass(
                     spec,
-                    "Hello-family packet parsed from supplied capture",
+                    f"Hello-family packet parsed from multi-frame capture ({path.name})",
                     comparison=compare_envy_advertisement(parsed),
                     evidence=hello_evidence(parsed),
                 )
             if spec.id == "muleinfo":
-                info = parse_emule_info_tcp(raw)
-                return _pass(spec, "MuleInfo frame parsed from supplied capture", **info)
+                hit = _first_hit(hits, "muleinfo", "muleinfo_answer")
+                if hit is None:
+                    continue
+                info = parse_emule_info_tcp(_frame_slice(raw, hit))
+                return _pass(spec, "MuleInfo frame parsed from multi-frame capture", **info)
             if spec.id == "capability_negotiation":
-                parsed = parse_hello_tcp(raw)
+                hit = _first_hit(hits, "hello", "hello_answer")
+                if hit is None:
+                    continue
+                parsed = parse_hello_tcp(_frame_slice(raw, hit))
                 cmp_ = compare_envy_advertisement(parsed)
                 return _pass(
                     spec,
