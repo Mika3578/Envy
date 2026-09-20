@@ -3,7 +3,7 @@
 Status: **PLANNED** (Phase 0 audit complete; Phase 1+ not started)  
 Last updated: 2026-09-20  
 Tracker: [#295](https://github.com/Mika3578/Envy/issues/295)  
-Audit base: `develop` @ `d3095e97f2ddb1b5a654a7eee41441c7d0cdd1ae`
+Audit base: `develop` @ `8ebf25a` (rebased after #292; audit originally against `d3095e9`)
 
 This document is the single source of truth for progressive modernization of the
 **Windows MFC** desktop UI. Labels used below:
@@ -38,16 +38,16 @@ Do **not** claim “UI modernization complete” after one or two screens.
 
 ### Develop
 
-- SHA: `d3095e97f2ddb1b5a654a7eee41441c7d0cdd1ae`
-- Local matched `origin/develop` at audit time
+- SHA: `8ebf25a` (includes #292 HashStringConversion `register` drop)
+- Phase 0 docs originally audited `d3095e9`; rebased onto post-#292 `develop`
 
 ### Open development PRs (cap = 3)
 
 | PR | Title | Branch |
 | --- | --- | --- |
-| #292 | refactor(hashstring): drop register storage class (#84) | `refactor/hashstring-drop-register` |
-| #293 | chore(workflow): consolidate agent rules and strict review policy | `chore/consolidate-agent-workflow` |
-| #294 | test(interop): prepare current ED2K/Kad live evidence runs (#160) | `test/ed2k-kad-live-interop-evidence` |
+| #292 | refactor(hashstring): drop register storage class (#84) | `refactor/hashstring-drop-register` | **MERGED** 2026-09-20 |
+| #293 | chore(workflow): consolidate agent rules and strict review policy | `chore/consolidate-agent-workflow` | OPEN |
+| #294 | test(interop): prepare current ED2K/Kad live evidence runs (#160) | `test/ed2k-kad-live-interop-evidence` | OPEN |
 
 Phase 0/1 PRs must wait until capacity is under 3 (AGENTS.md hard rule 13).
 
