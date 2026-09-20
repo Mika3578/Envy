@@ -274,8 +274,6 @@ CEnvyApp::CEnvyApp()
 
 	ZeroMemory( m_nVersion, sizeof( m_nVersion ) );
 	ZeroMemory( m_pBTVersion, sizeof( m_pBTVersion ) );
-
-	CrashReporter::Initialize();
 }
 
 CEnvyApp::~CEnvyApp()

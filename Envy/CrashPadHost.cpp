@@ -102,7 +102,10 @@ BOOL WriteUtf8FileReplace(const wchar_t* path, const wchar_t* text)
 
 BOOL CrashPadHost::Start(const wchar_t* pszDatabaseDirectory)
 {
-	s_bStarted = FALSE;
+	// CrashpadClient allows StartHandler once; a second call DCHECK-fatals in Debug.
+	if (s_bStarted)
+		return TRUE;
+
 	s_handlerPath[0] = 0;
 	s_database[0] = 0;
 	if (pszDatabaseDirectory == nullptr || pszDatabaseDirectory[0] == 0)
