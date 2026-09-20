@@ -48,12 +48,12 @@ public:
 
 	static BOOL	IsVersionNewer();		// Test if available version is newer than current
 
-	inline bool	IsUpgradeAvailable() const throw()
+	inline bool IsUpgradeAvailable() const noexcept
 	{
 		return ! Settings.VersionCheck.UpgradePrompt.IsEmpty();
 	}
 
-	inline bool IsVerbose() const throw()
+	inline bool IsVerbose() const noexcept
 	{
 		return m_bVerbose;
 	}
