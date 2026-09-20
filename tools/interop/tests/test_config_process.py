@@ -51,11 +51,13 @@ class ConfigTests(unittest.TestCase):
                 shutdown_timeout_sec=None,
                 allow_external_network=None,
                 enable_pcap=None,
+                pcap_duration_sec=None,
                 dry_run=True,
                 live=False,
                 cleanup=True,
                 scenarios=None,
                 hello_capture=None,
+                packet_evidence=None,
                 reference_client=None,
                 reference_version=None,
             )
@@ -241,6 +243,35 @@ class ProcessIsolationTests(unittest.TestCase):
             owned = IsolationRoot(Path(tmp) / "owned")
             with self.assertRaises(IsolationError):
                 owned.child("..", "..", "etc")
+
+
+class CaptureToolTests(unittest.TestCase):
+    def test_optional_pcap_absent_is_skip_not_fail(self) -> None:
+        from envy_interop.capture import find_capture_tool
+        from envy_interop.scenarios import SCENARIOS, RunContext, handle_optional_pcap
+        from envy_interop.isolation import create_run_isolation
+        from envy_interop.process import ProcessManager
+
+        repo = Path(__file__).resolve().parents[3]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = HarnessConfig(repo_root=repo, dry_run=True, live=False)
+            isolation = create_run_isolation(root, "pcap-test")
+            ctx = RunContext(
+                cfg=cfg,
+                run_dir=root / "run",
+                isolation=isolation,
+                processes=ProcessManager(),
+                logs_dir=root / "logs",
+                git_sha="test",
+            )
+            ctx.run_dir.mkdir(parents=True, exist_ok=True)
+            result = handle_optional_pcap(ctx, SCENARIOS["optional_pcap"])
+            if find_capture_tool():
+                self.assertEqual(result.result, "PASS")
+            else:
+                self.assertEqual(result.result, "SKIP")
+                self.assertIn("optional", result.reason.lower())
 
 
 class SanitizerTests(unittest.TestCase):

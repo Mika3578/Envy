@@ -11,10 +11,13 @@
   "shutdown_timeout_sec": 15,
   "allow_external_network": false,
   "enable_pcap": false,
+  "pcap_duration_sec": 0,
   "live": false,
   "dry_run": true,
   "cleanup": true,
   "reference_client": "none",
   "reference_version": "",
+  "packet_evidence": "",
+  "hello_capture": "",
   "scenarios": ["phase1"]
 }

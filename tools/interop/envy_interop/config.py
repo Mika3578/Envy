@@ -64,6 +64,8 @@ class HarnessConfig:
     cleanup: bool = True
     scenarios: List[str] = field(default_factory=lambda: ["phase1"])
     hello_capture: Optional[Path] = None
+    packet_evidence: Optional[Path] = None
+    pcap_duration_sec: int = 0
     reference_client: str = "none"
     reference_version: str = ""
     config_path: Optional[Path] = None
@@ -209,6 +211,15 @@ def merge_config(
     cfg.hello_capture = pick_path(
         getattr(cli, "hello_capture", None), "hello_capture", "HELLO_CAPTURE"
     )
+    cfg.packet_evidence = pick_path(
+        getattr(cli, "packet_evidence", None), "packet_evidence", "PACKET_EVIDENCE"
+    )
+    cfg.pcap_duration_sec = pick_int(
+        getattr(cli, "pcap_duration_sec", None),
+        "pcap_duration_sec",
+        "PCAP_DURATION_SEC",
+        0,
+    )
     cfg.reference_client = (
         getattr(cli, "reference_client", None)
         or _env("REFERENCE_CLIENT", "")
@@ -307,6 +318,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default="",
         help="Hex/binary Hello capture to parse (does not require live clients)",
     )
+    parser.add_argument(
+        "--packet-evidence",
+        type=str,
+        default="",
+        help="Hex/binary dump of ED2K frames for scenario evidence (optional)",
+    )
+    parser.add_argument(
+        "--pcap-duration-sec",
+        type=int,
+        default=None,
+        help="Optional bounded capture duration for dumpcap/tshark (0 = until harness stop)",
+    )
     parser.add_argument("--live", action="store_true", help="Launch configured processes")
     parser.add_argument("--dry-run", action="store_true", help="Do not launch processes (default)")
     parser.add_argument(
@@ -317,7 +340,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--enable-pcap",
         action="store_true",
-        help="Optional packet capture if dumpcap/tcpdump is installed",
+        help="Optional packet capture if dumpcap/tshark/tcpdump is installed",
     )
     parser.add_argument("--no-cleanup", action="store_true", help="Keep isolated scratch directories")
     parser.add_argument(
@@ -360,6 +383,8 @@ def config_from_args(argv: Optional[Sequence[str]], repo_root: Path) -> HarnessC
         ns.artifact_dir = None
     if not ns.hello_capture:
         ns.hello_capture = None
+    if not getattr(ns, "packet_evidence", None):
+        ns.packet_evidence = None
     if not ns.scenarios:
         ns.scenarios = None
     if not ns.reference_client:

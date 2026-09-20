@@ -57,6 +57,8 @@ def sanitized_config_summary(cfg: HarnessConfig) -> dict:
         "reference_client": cfg.resolved_reference_client(),
         "reference_version": cfg.reference_version,
         "hello_capture": show(cfg.hello_capture),
+        "packet_evidence": show(cfg.packet_evidence),
+        "pcap_duration_sec": cfg.pcap_duration_sec,
     }
 
 
@@ -122,12 +124,15 @@ def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = N
                     out_path=run_dir / "captures" / "loopback.pcap",
                     ports=[cfg.envy_tcp_port, cfg.reference_tcp_port],
                     log_dir=logs_dir,
+                    duration_sec=cfg.pcap_duration_sec or None,
                 )
             except ProcessError as exc:
                 (logs_dir / "pcap-start-error.txt").write_text(str(exc), encoding="utf-8")
         else:
             (logs_dir / "pcap-skipped.txt").write_text(
-                "pcap requested but dumpcap/tcpdump was not found\n", encoding="utf-8"
+                "pcap requested but dumpcap/tshark/tcpdump was not found "
+                "(optional; harness does not install capture tools)\n",
+                encoding="utf-8",
             )
 
     results: List[ScenarioResult] = []

@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       scenarios:
-        description: Scenario selection (phase1, all, future, or comma-separated ids)
+        description: Scenario selection (phase1, current, deferred, all, or comma-separated ids)
         required: false
         default: phase1
       live:

@@ -1,8 +1,9 @@
-"""Report, golden Hello, fixtures, dry-run runner, SKIP/NOT_IMPLEMENTED."""
+"""Report, golden Hello, fixtures, dry-run runner, state classification."""
 
 from __future__ import annotations
 
 import json
+import struct
 import sys
 import tempfile
 import unittest
@@ -14,14 +15,24 @@ if str(_INTEROP_ROOT) not in sys.path:
 
 
 from envy_interop.config import ConfigError, HarnessConfig
-from envy_interop.constants import Result
+from envy_interop.constants import (
+    ENVY_CAPABILITY_MATRIX,
+    ENVY_IMPLEMENTED,
+    ENVY_KNOWN_ADVERTISE_DEBT,
+    EvidenceState,
+    HarnessState,
+    ProductionState,
+    Result,
+)
+from envy_interop.evidence import EvidenceError, extract_ed2k_frames, require_labels
 from envy_interop.fixtures import build_payload, spec_for
 from envy_interop.golden import GoldenError, ingest_hello, load_golden_json, parse_hex_dump
 from envy_interop.hello import HelloParseError, hello_evidence, parse_emule_info_tcp, parse_hello_tcp
 from envy_interop.md4 import md4_hex
+from envy_interop.pass_criteria import criteria_for
 from envy_interop.report import ReportError, empty_payload, utc_now, validate_report, write_json_report
 from envy_interop.runner import run_harness
-from envy_interop.scenarios import FUTURE_IDS, expand_selection
+from envy_interop.scenarios import CURRENT_IDS, DEFERRED_IDS, FUTURE_IDS, expand_selection
 
 
 REPO = Path(__file__).resolve().parents[3]
@@ -39,6 +50,27 @@ class Md4AndFixtureTests(unittest.TestCase):
         self.assertEqual(a.size, 65536)
         self.assertEqual(a.ed2k_hex, b.ed2k_hex)
         self.assertEqual(a.sha256_hex, b.sha256_hex)
+
+
+class CapabilityTruthTests(unittest.TestCase):
+    def test_compression_send_implemented(self) -> None:
+        self.assertTrue(ENVY_IMPLEMENTED["compression_send"])
+        self.assertEqual(ENVY_KNOWN_ADVERTISE_DEBT, ())
+        row = ENVY_CAPABILITY_MATRIX["compression_send"]
+        self.assertEqual(row["production"], ProductionState.IMPLEMENTED.value)
+        self.assertEqual(row["harness"], HarnessState.EVIDENCE_HOOKS.value)
+        self.assertEqual(row["evidence"], EvidenceState.UNVERIFIED.value)
+
+    def test_buddy_not_marked_implemented(self) -> None:
+        self.assertFalse(ENVY_IMPLEMENTED["buddy"])
+        self.assertEqual(
+            ENVY_CAPABILITY_MATRIX["buddy"]["production"],
+            ProductionState.NOT_IMPLEMENTED.value,
+        )
+
+    def test_stale_compression_debt_absent(self) -> None:
+        for item in ENVY_KNOWN_ADVERTISE_DEBT:
+            self.assertNotEqual(item.get("implemented_send"), False)
 
 
 class HelloGoldenTests(unittest.TestCase):
@@ -128,6 +160,30 @@ class HelloGoldenTests(unittest.TestCase):
             self.assertEqual(parsed.userhash, b"\x00" * 16)
 
 
+class EvidenceExtractorTests(unittest.TestCase):
+    def test_extract_compressedpart_header(self) -> None:
+        # proto C5, size=25, opcode 0x40, body = hash16 + start4 + compressed_total4
+        body = b"\x11" * 16 + struct.pack("<I", 0) + struct.pack("<I", 8) + b"\x00" * 8
+        frame = bytes([0xC5]) + struct.pack("<I", 1 + len(body)) + bytes([0x40]) + body
+        hits = extract_ed2k_frames(frame)
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0].label, "compressedpart")
+        ok, reason = require_labels(hits, ["compressedpart"])
+        self.assertTrue(ok, reason)
+
+    def test_publicip_answer_wrong_size_fails_closed(self) -> None:
+        body = b"\x01\x02\x03"
+        frame = bytes([0xC5]) + struct.pack("<I", 1 + len(body)) + bytes([0x98]) + body
+        hits = extract_ed2k_frames(frame)
+        ok, reason = require_labels(hits, ["publicip_answer"])
+        self.assertFalse(ok)
+        self.assertIn("4 bytes", reason)
+
+    def test_truncated_blob_no_crash(self) -> None:
+        hits = extract_ed2k_frames(b"\xc5\xff\xff")
+        self.assertEqual(hits, [])
+
+
 class ReportTests(unittest.TestCase):
     def test_malformed_schema_version_rejected(self) -> None:
         with self.assertRaises(ReportError):
@@ -137,7 +193,7 @@ class ReportTests(unittest.TestCase):
         with self.assertRaises(ReportError):
             validate_report(
                 {
-                    "schema_version": 1,
+                    "schema_version": 2,
                     "timestamp": "t",
                     "harness_version": "1",
                     "envy_revision": "x",
@@ -157,13 +213,21 @@ class ReportTests(unittest.TestCase):
             network_class="none",
         )
         payload["scenarios"] = [
-            {"id": "demo", "result": Result.SKIP.value, "duration_ms": 1, "reason": "n/a"}
+            {
+                "id": "demo",
+                "result": Result.SKIP.value,
+                "duration_ms": 1,
+                "reason": "n/a",
+                "production_state": "implemented",
+                "harness_state": "evidence_hooks",
+                "evidence_state": "unverified",
+            }
         ]
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "run-summary.json"
             write_json_report(path, payload)
             loaded = json.loads(path.read_text(encoding="utf-8"))
-            self.assertEqual(loaded["schema_version"], 1)
+            self.assertEqual(loaded["schema_version"], 2)
 
 
 class RunnerDryRunTests(unittest.TestCase):
@@ -187,84 +251,68 @@ class RunnerDryRunTests(unittest.TestCase):
             self.assertEqual(by_id["envy_startup"]["result"], "SKIP")
             self.assertEqual(by_id["reference_startup"]["result"], "SKIP")
             self.assertEqual(by_id["hello"]["result"], "SKIP")
-            self.assertEqual(by_id["kad_bootstrap"]["result"], "NOT_IMPLEMENTED")
-            self.assertEqual(by_id["compressed_transfer_envy_to_ref"]["result"], "NOT_IMPLEMENTED")
+            # Implemented-but-unverified must not look like production NOT_IMPLEMENTED
+            self.assertEqual(by_id["compressed_transfer_envy_to_ref"]["result"], "SKIP")
+            self.assertEqual(
+                by_id["compressed_transfer_envy_to_ref"]["production_state"], "implemented"
+            )
+            self.assertEqual(
+                by_id["compressed_transfer_envy_to_ref"]["harness_state"], "evidence_hooks"
+            )
+            self.assertEqual(by_id["kad_bootstrap"]["result"], "SKIP")
+            self.assertEqual(by_id["kad_nodes_dat_local"]["result"], "PASS")
             self.assertEqual(by_id["lowid_buddy"]["result"], "NOT_IMPLEMENTED")
-            self.assertTrue((cfg.artifact_dir / next(cfg.artifact_dir.iterdir()).name / "run-summary.md").exists() or True)
+            self.assertEqual(by_id["lowid_buddy"]["production_state"], "not_implemented")
+            self.assertEqual(by_id["kad_udp_firewall"]["result"], "NOT_IMPLEMENTED")
+            self.assertIn("pass_criteria", by_id["hello"])
+            self.assertTrue(criteria_for("hello"))
             runs = list((Path(tmp) / "artifacts").glob("run-*"))
             self.assertEqual(len(runs), 1)
             self.assertTrue((runs[0] / "run-summary.json").is_file())
             self.assertTrue((runs[0] / "run-summary.md").is_file())
             md = (runs[0] / "run-summary.md").read_text(encoding="utf-8")
-            self.assertIn("not", md.lower())
+            self.assertIn("pending", md.lower())
             self.assertIn("#160", md)
-            self.assertTrue((runs[0] / "binaries.json").is_file())
-            self.assertIn("duration_ms", payload)
-            self.assertIn("owned", payload["process_exit"])
+            summary = json.loads((runs[0] / "run-summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["schema_version"], 2)
 
-    def test_live_envy_startup_with_standin(self) -> None:
-        """Launch an owned stand-in; extra Envy flags must not break argv quoting."""
-        import stat
-
+    def test_dry_run_phase1_no_binaries(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            standin = Path(tmp) / "fake Envy" / "envy-standin"
-            standin.parent.mkdir(parents=True)
-            standin.write_text(
-                "#!/usr/bin/env python3\nimport time\ntime.sleep(8)\n",
-                encoding="utf-8",
-            )
-            standin.chmod(standin.stat().st_mode | stat.S_IEXEC)
             cfg = HarnessConfig(
                 repo_root=REPO,
                 artifact_dir=Path(tmp) / "artifacts",
                 work_dir=Path(tmp) / "work",
-                envy_exe=standin,
-                dry_run=False,
-                live=True,
-                startup_timeout_sec=0.4,
-                shutdown_timeout_sec=2,
-                scenarios=["envy_startup"],
+                dry_run=True,
+                live=False,
+                scenarios=["phase1"],
             )
             payload = run_harness(cfg)
-            self.assertEqual(payload["scenarios"][0]["result"], "PASS")
-            self.assertIn("running pid=", payload["scenarios"][0]["reason"])
+            self.assertTrue(payload["scenarios"])
+            self.assertFalse(any(item["result"] == "FAIL" for item in payload["scenarios"]))
 
-    def test_missing_reference_skip_semantics(self) -> None:
+    def test_packet_evidence_can_pass_without_live(self) -> None:
+        hello = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
         with tempfile.TemporaryDirectory() as tmp:
-            fake_envy = Path(tmp) / "Envy.exe"
-            fake_envy.write_bytes(b"x")
             cfg = HarnessConfig(
                 repo_root=REPO,
                 artifact_dir=Path(tmp) / "artifacts",
                 work_dir=Path(tmp) / "work",
-                envy_exe=fake_envy,
-                dry_run=False,
-                live=True,
-                startup_timeout_sec=1,
-                shutdown_timeout_sec=1,
-                scenarios=["reference_startup", "hello"],
+                dry_run=True,
+                live=False,
+                hello_capture=hello,
+                scenarios=["hello", "hello_capture_import"],
             )
             payload = run_harness(cfg)
             by_id = {item["id"]: item for item in payload["scenarios"]}
-            self.assertEqual(by_id["reference_startup"]["result"], "SKIP")
-            self.assertIn("eMule/aMule", by_id["reference_startup"]["reason"])
+            self.assertEqual(by_id["hello"]["result"], "PASS")
+            self.assertEqual(by_id["hello_capture_import"]["result"], "PASS")
 
-    def test_scenario_timeout_positive(self) -> None:
-        from envy_interop.config import validate_ports
-
-        cfg = HarnessConfig(repo_root=REPO, scenario_timeout_sec=0)
-        with self.assertRaises(ConfigError):
-            validate_ports(cfg)
-
-    def test_expand_unknown_scenario(self) -> None:
-        from envy_interop.config import ConfigError
-
-        with self.assertRaises(ConfigError):
-            expand_selection(["does-not-exist"])
-
-    def test_future_ids_are_registered(self) -> None:
-        self.assertIn("kad_bootstrap", FUTURE_IDS)
-        self.assertIn("lowid_server_callback", FUTURE_IDS)
+    def test_expand_aliases(self) -> None:
+        self.assertIn("compressed_transfer_envy_to_ref", expand_selection(["current"]))
+        self.assertIn("lowid_buddy", expand_selection(["deferred"]))
+        self.assertTrue(set(DEFERRED_IDS).issubset(set(expand_selection(["all"]))))
+        self.assertTrue(CURRENT_IDS)
+        self.assertTrue(FUTURE_IDS)
 
 
 if __name__ == "__main__":

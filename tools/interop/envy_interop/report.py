@@ -34,6 +34,11 @@ class ScenarioResult:
     reason: str = ""
     network_class: str = "none"
     evidence_class: str = "deterministic"
+    production_state: str = ""
+    harness_state: str = ""
+    evidence_state: str = ""
+    pass_criteria: str = ""
+    capability_key: Optional[str] = None
     artifacts: List[str] = field(default_factory=list)
     observations: Dict[str, Any] = field(default_factory=dict)
 
@@ -41,6 +46,8 @@ class ScenarioResult:
         data = asdict(self)
         if not data["observations"]:
             data.pop("observations")
+        if not data.get("capability_key"):
+            data.pop("capability_key", None)
         return data
 
 
@@ -81,6 +88,7 @@ def write_markdown_report(path: Path, payload: Dict[str, Any]) -> None:
         f"- Schema: `{payload['schema_version']}`",
         f"- Timestamp: `{payload['timestamp']}`",
         f"- Harness: `{payload.get('harness_version', HARNESS_VERSION)}`",
+        f"- Harness git SHA: `{payload.get('harness_git_sha', '')}`",
         f"- ENVY revision: `{payload.get('envy_revision', 'unknown')}`",
         f"- Mode: `{payload.get('mode')}`",
         f"- Reference client: `{payload.get('reference_client', 'none')}`",
@@ -90,15 +98,23 @@ def write_markdown_report(path: Path, payload: Dict[str, Any]) -> None:
         "",
         "## Scenarios",
         "",
-        "| Scenario | Result | Duration (ms) | Reason |",
-        "| --- | --- | ---: | --- |",
+        "| Scenario | Result | Production | Harness | Evidence | Duration (ms) | Reason |",
+        "| --- | --- | --- | --- | --- | ---: | --- |",
     ]
     counts = {item.value: 0 for item in Result}
     for item in payload["scenarios"]:
         counts[item["result"]] = counts.get(item["result"], 0) + 1
         reason = (item.get("reason") or "").replace("|", "\\|")
         lines.append(
-            f"| `{item['id']}` | **{item['result']}** | {item.get('duration_ms', 0)} | {reason} |"
+            "| `{id}` | **{result}** | {prod} | {harness} | {ev} | {dur} | {reason} |".format(
+                id=item["id"],
+                result=item["result"],
+                prod=item.get("production_state") or "—",
+                harness=item.get("harness_state") or "—",
+                ev=item.get("evidence_state") or "—",
+                dur=item.get("duration_ms", 0),
+                reason=reason,
+            )
         )
     lines.extend(
         [
@@ -110,13 +126,22 @@ def write_markdown_report(path: Path, payload: Dict[str, Any]) -> None:
             f"- SKIP: {counts[Result.SKIP.value]}",
             f"- NOT_IMPLEMENTED: {counts[Result.NOT_IMPLEMENTED.value]}",
             "",
+            "## Result meaning",
+            "",
+            "- **PASS** — scenario PASS criteria met (packet/log/process evidence as documented).",
+            "- **FAIL** — evidence present and incorrect, or honesty table regression.",
+            "- **SKIP** — gated (dry-run, missing binaries/tools, external network not opted in, or evidence not yet attached). "
+            "SKIP does **not** mean production is absent.",
+            "- **NOT_IMPLEMENTED** — production behavior is genuinely absent on current develop "
+            "(e.g. Buddy). Do not use this for “harness handler missing”.",
+            "",
             "## Artifacts",
             "",
             f"- Run directory: `{payload.get('artifact_dir', '')}`",
             "",
-            "Live ED2K/Kad interoperability is **not** fully validated by the mere",
-            "existence of this harness. Attach this report to GitHub issues #160, #86,",
-            "or #87 instead of claiming protocol completeness.",
+            "Live ED2K/Kad interoperability remains **pending a Windows operator run** (#160).",
+            "This harness existing is **not** an interoperability claim. Attach this report to",
+            "GitHub issues #160, #86, or #87 instead of claiming protocol completeness.",
             "",
         ]
     )
@@ -156,6 +181,8 @@ def empty_payload(
         "scenarios": [],
         "notes": [
             "This report does not claim ENVY is fully interoperable with eMule/aMule.",
+            "Live interoperability evidence is pending a Windows operator run (#160).",
             "Public P2P network availability is never a required CI dependency.",
+            "production_state / harness_state / evidence_state are orthogonal.",
         ],
     }

@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #160 interop harness v1.1: recalculate capability truth after #251/#252/#254/#255/#256/#257/#258/#261 (compression_send=True); separate production/harness/evidence states; current ED2K/Kad scenario hooks; Windows operator helper + checklist; optional dumpcap/tshark; bounded packet evidence; no ED2K/Kad production protocol changes; live evidence still pending Windows operator run.
 - **Changelog Entry:** 2026-09-20 — #84 Settings: replace `throw()` with `noexcept` on five `Add` overloads and `SmartAgent` (C++20; Item ctors deferred). No behavior change.
 - **Changelog Entry:** 2026-09-20 — Crashpad: idempotent `CrashPadHost::Start`; single `CrashReporter::Initialize` from `InitInstance` (fix Debug double `StartHandler` DCHECK).
 - **Changelog Entry:** 2026-09-20 — #84 ComObject: replace `throw()` with `noexcept` on CComObjectPtr members (C++20). No behavior change.

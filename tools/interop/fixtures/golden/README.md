@@ -9,8 +9,10 @@ Committed golden vectors are allowed only when:
 - capture date is recorded
 - volatile fields are normalized or explicitly represented
 - privacy-sensitive values are removed (userhash, public IPs, profile paths, nicks)
+- provenance notes explain how the capture was obtained
 
-These directories stay empty until a reviewed capture exists. Do not invent bytes.
+These directories stay empty until a reviewed **Windows** capture exists. Do not
+invent bytes on Cursor Cloud or GitHub-hosted runners.
 
 Use:
 
@@ -20,3 +22,6 @@ python3 tools/interop/run.py --ingest-hello capture.hex --reference-client emule
 
 That writes a sanitized *candidate* under the run artifact directory. Copy into
 `emule-community/` or `amule/` only after human review. Keep raw pcaps out of git.
+
+Envy self-goldens (`envy-self-hello*.json`) are first-party fixtures only — they
+are **not** eMule/aMule interop evidence.
