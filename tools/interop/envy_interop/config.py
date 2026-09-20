@@ -14,6 +14,7 @@ ENV_PREFIX = "ENVY_INTEROP_"
 
 DEFAULT_ENVY_TCP_PORT = 4662
 DEFAULT_REFERENCE_TCP_PORT = 4663
+DEFAULT_KAD_UDP_PORT = 4672
 DEFAULT_STARTUP_TIMEOUT = 30
 DEFAULT_SCENARIO_TIMEOUT = 120
 DEFAULT_SHUTDOWN_TIMEOUT = 15
@@ -54,6 +55,7 @@ class HarnessConfig:
     artifact_dir: Optional[Path] = None
     envy_tcp_port: int = DEFAULT_ENVY_TCP_PORT
     reference_tcp_port: int = DEFAULT_REFERENCE_TCP_PORT
+    kad_udp_port: int = DEFAULT_KAD_UDP_PORT
     startup_timeout_sec: int = DEFAULT_STARTUP_TIMEOUT
     scenario_timeout_sec: int = DEFAULT_SCENARIO_TIMEOUT
     shutdown_timeout_sec: int = DEFAULT_SHUTDOWN_TIMEOUT
@@ -64,6 +66,9 @@ class HarnessConfig:
     cleanup: bool = True
     scenarios: List[str] = field(default_factory=lambda: ["phase1"])
     hello_capture: Optional[Path] = None
+    packet_evidence: Optional[Path] = None
+    pcap_duration_sec: int = 0
+    operator_hold_sec: int = 0
     reference_client: str = "none"
     reference_version: str = ""
     config_path: Optional[Path] = None
@@ -161,6 +166,12 @@ def merge_config(
         "REFERENCE_TCP_PORT",
         DEFAULT_REFERENCE_TCP_PORT,
     )
+    cfg.kad_udp_port = pick_int(
+        getattr(cli, "kad_udp_port", None),
+        "kad_udp_port",
+        "KAD_UDP_PORT",
+        DEFAULT_KAD_UDP_PORT,
+    )
     cfg.startup_timeout_sec = pick_int(
         getattr(cli, "startup_timeout_sec", None),
         "startup_timeout_sec",
@@ -209,6 +220,21 @@ def merge_config(
     cfg.hello_capture = pick_path(
         getattr(cli, "hello_capture", None), "hello_capture", "HELLO_CAPTURE"
     )
+    cfg.packet_evidence = pick_path(
+        getattr(cli, "packet_evidence", None), "packet_evidence", "PACKET_EVIDENCE"
+    )
+    cfg.pcap_duration_sec = pick_int(
+        getattr(cli, "pcap_duration_sec", None),
+        "pcap_duration_sec",
+        "PCAP_DURATION_SEC",
+        0,
+    )
+    cfg.operator_hold_sec = pick_int(
+        getattr(cli, "operator_hold_sec", None),
+        "operator_hold_sec",
+        "OPERATOR_HOLD_SEC",
+        0,
+    )
     cfg.reference_client = (
         getattr(cli, "reference_client", None)
         or _env("REFERENCE_CLIENT", "")
@@ -226,9 +252,14 @@ def validate_ports(cfg: HarnessConfig) -> None:
     for name, value in (
         ("envy_tcp_port", cfg.envy_tcp_port),
         ("reference_tcp_port", cfg.reference_tcp_port),
+        ("kad_udp_port", cfg.kad_udp_port),
     ):
         if not (1 <= int(value) <= 65535):
             raise ConfigError(f"{name} must be in 1..65535")
+    if int(cfg.pcap_duration_sec) < 0:
+        raise ConfigError("pcap_duration_sec must be >= 0")
+    if int(cfg.operator_hold_sec) < 0:
+        raise ConfigError("operator_hold_sec must be >= 0")
     for name, value in (
         ("startup_timeout_sec", cfg.startup_timeout_sec),
         ("scenario_timeout_sec", cfg.scenario_timeout_sec),
@@ -285,6 +316,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--artifact-dir", type=str, default="", help="Artifact root directory")
     parser.add_argument("--envy-tcp-port", type=int, default=None)
     parser.add_argument("--reference-tcp-port", type=int, default=None)
+    parser.add_argument(
+        "--kad-udp-port",
+        type=int,
+        default=None,
+        help="Kad UDP port included in optional pcap BPF (default 4672)",
+    )
     parser.add_argument("--startup-timeout-sec", type=int, default=None)
     parser.add_argument("--scenario-timeout-sec", type=int, default=None)
     parser.add_argument("--shutdown-timeout-sec", type=int, default=None)
@@ -307,6 +344,27 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default="",
         help="Hex/binary Hello capture to parse (does not require live clients)",
     )
+    parser.add_argument(
+        "--packet-evidence",
+        type=str,
+        default="",
+        help="Hex/binary dump of ED2K frames for scenario evidence (optional)",
+    )
+    parser.add_argument(
+        "--pcap-duration-sec",
+        type=int,
+        default=None,
+        help="Optional bounded capture duration for dumpcap/tshark (0 = until harness stop)",
+    )
+    parser.add_argument(
+        "--operator-hold-sec",
+        type=int,
+        default=None,
+        help=(
+            "Live-only: seconds to wait after optional pcap start and before scenario "
+            "evaluation so the operator can complete manual GUI steps (0 = no hold)"
+        ),
+    )
     parser.add_argument("--live", action="store_true", help="Launch configured processes")
     parser.add_argument("--dry-run", action="store_true", help="Do not launch processes (default)")
     parser.add_argument(
@@ -317,7 +375,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--enable-pcap",
         action="store_true",
-        help="Optional packet capture if dumpcap/tcpdump is installed",
+        help="Optional packet capture if dumpcap/tshark/tcpdump is installed",
     )
     parser.add_argument("--no-cleanup", action="store_true", help="Keep isolated scratch directories")
     parser.add_argument(
@@ -360,6 +418,8 @@ def config_from_args(argv: Optional[Sequence[str]], repo_root: Path) -> HarnessC
         ns.artifact_dir = None
     if not ns.hello_capture:
         ns.hello_capture = None
+    if not getattr(ns, "packet_evidence", None):
+        ns.packet_evidence = None
     if not ns.scenarios:
         ns.scenarios = None
     if not ns.reference_client:

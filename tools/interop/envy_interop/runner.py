@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import List, Optional, Sequence
 
 from .capture import find_capture_tool, start_capture
-from .config import ConfigError, HarnessConfig
+from .config import HarnessConfig, validate_ports
+from .evidence import EvidenceError, extract_from_pcap_via_tshark, safe_evidence_source_name
 from .isolation import IsolationError, create_run_isolation, safe_rmtree
 from .process import ProcessError, ProcessManager
 from .report import ScenarioResult, empty_payload, utc_now, write_json_report, write_markdown_report
@@ -20,6 +21,8 @@ from .scenarios import (
     expand_selection,
     run_scenario,
     _read_git_sha,
+    _try_packet_evidence,
+    handle_optional_pcap,
 )
 from .versions import record_configured_binaries
 
@@ -48,19 +51,151 @@ def sanitized_config_summary(cfg: HarnessConfig) -> dict:
         "amule_exe": show(cfg.amule_exe),
         "envy_tcp_port": cfg.envy_tcp_port,
         "reference_tcp_port": cfg.reference_tcp_port,
+        "kad_udp_port": cfg.kad_udp_port,
         "startup_timeout_sec": cfg.startup_timeout_sec,
         "scenario_timeout_sec": cfg.scenario_timeout_sec,
         "shutdown_timeout_sec": cfg.shutdown_timeout_sec,
         "allow_external_network": cfg.allow_external_network,
         "enable_pcap": cfg.enable_pcap,
+        "operator_hold_sec": cfg.operator_hold_sec,
         "scenarios": list(cfg.scenarios),
         "reference_client": cfg.resolved_reference_client(),
         "reference_version": cfg.reference_version,
-        "hello_capture": show(cfg.hello_capture),
+        "hello_capture": (
+            safe_evidence_source_name(cfg.hello_capture.name)
+            if cfg.hello_capture is not None
+            else None
+        ),
+        "packet_evidence": (
+            safe_evidence_source_name(cfg.packet_evidence.name)
+            if cfg.packet_evidence is not None
+            else None
+        ),
+        "pcap_duration_sec": cfg.pcap_duration_sec,
     }
 
 
+def _pcap_evidence_ports(cfg: HarnessConfig) -> List[int]:
+    ports = [cfg.envy_tcp_port, cfg.reference_tcp_port, cfg.kad_udp_port]
+    return [int(p) for p in ports if p]
+
+
+def _convert_owned_pcap(ctx: RunContext, cfg: HarnessConfig) -> Optional[Path]:
+    """Extract per-packet payloads from owned pcap into captures/evidence/."""
+    if ctx.pcap_path is None or not ctx.pcap_path.is_file():
+        return None
+    try:
+        extracted = extract_from_pcap_via_tshark(
+            ctx.pcap_path,
+            ports=_pcap_evidence_ports(cfg),
+        )
+    except EvidenceError as exc:
+        (ctx.logs_dir / "pcap-extract-error.txt").write_text(str(exc) + "\n", encoding="utf-8")
+        return None
+    if extracted.is_empty():
+        (ctx.logs_dir / "pcap-extract-empty.txt").write_text(
+            "tshark found no TCP/UDP payloads for configured ports\n",
+            encoding="utf-8",
+        )
+        return None
+    dest_dir = ctx.run_dir / "captures" / "evidence"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    # Transport-tagged files: TCP reassembly joins only within one unidirectional
+    # flow (tcp.stream + srcport + dstport). Keys are "<stream>-<src>-<dst>".
+    for flow, chunks in sorted(extracted.tcp_by_stream.items(), key=lambda item: item[0]):
+        parts = flow.split("-")
+        if len(parts) >= 3:
+            stream_id, src, dst = parts[0], parts[1], parts[2]
+            try:
+                stream_id = f"{int(stream_id):04d}"
+            except ValueError:
+                stream_id = "".join(ch if ch.isalnum() else "_" for ch in stream_id)[:16] or "0"
+            try:
+                src = str(int(src))
+                dst = str(int(dst))
+            except ValueError:
+                src = "".join(ch if ch.isdigit() else "0" for ch in src)[:8] or "0"
+                dst = "".join(ch if ch.isdigit() else "0" for ch in dst)[:8] or "0"
+            for index, chunk in enumerate(chunks):
+                (dest_dir / f"from-pcap-tcp-{stream_id}-{src}-{dst}-{index:04d}.bin").write_bytes(
+                    chunk
+                )
+        else:
+            # Legacy stream-only key (tests / older extracts).
+            stream_id = parts[0] if parts else "0"
+            try:
+                stream_id = f"{int(stream_id):04d}"
+            except ValueError:
+                stream_id = "".join(ch if ch.isalnum() else "_" for ch in stream_id)[:16] or "0"
+            for index, chunk in enumerate(chunks):
+                (dest_dir / f"from-pcap-tcp-{stream_id}-{index:04d}.bin").write_bytes(chunk)
+    for index, chunk in enumerate(extracted.udp):
+        (dest_dir / f"from-pcap-udp-{index:04d}.bin").write_bytes(chunk)
+    return dest_dir
+
+
+def _refresh_after_pcap(ctx: RunContext, results: List[ScenarioResult]) -> None:
+    """Re-evaluate scenarios that depend on post-capture lifecycle / evidence."""
+    for index, result in enumerate(results):
+        spec = SCENARIOS.get(result.id)
+        if spec is None:
+            continue
+        # Always refresh optional_pcap after stop (may already be provisional SKIP).
+        if result.id == "optional_pcap":
+            results[index] = handle_optional_pcap(ctx, spec)
+            continue
+        if result.result != "SKIP":
+            continue
+        renewed = _try_packet_evidence(ctx, spec)
+        if renewed is not None:
+            results[index] = renewed
+
+
+def _finalize_pcap_lifecycle(ctx: RunContext, cfg: HarnessConfig) -> None:
+    """Stop owned capture and record whether a usable pcap was produced."""
+    if not ctx.pcap_owned:
+        return
+    owned = ctx.pcap_owned
+    # Only tolerate non-zero exits caused by *this* requested stop. If the
+    # capture already died, a non-zero code is an early failure even when a
+    # partial pcap file exists on disk.
+    alive_before_stop = True
+    poll = getattr(owned, "poll", None)
+    if callable(poll):
+        pre = poll()
+        alive_before_stop = pre is None
+    code = ctx.processes.terminate_owned(owned, cfg.shutdown_timeout_sec)
+    ctx.pcap_stopped = True
+    size = 0
+    if ctx.pcap_path is not None and ctx.pcap_path.is_file():
+        try:
+            size = int(ctx.pcap_path.stat().st_size)
+        except OSError:
+            size = 0
+    early_nonzero = (not alive_before_stop) and code not in (0, None)
+    if early_nonzero:
+        ctx.pcap_usable = False
+        if not ctx.pcap_start_error:
+            ctx.pcap_start_error = (
+                f"capture exited early with code {code} before harness stop"
+            )
+        return
+    # SIGTERM/SIGINT after a requested stop often yields non-zero; treat as OK
+    # when bytes were written (or clean empty exit after a requested stop).
+    if size > 0:
+        ctx.pcap_usable = True
+    elif code in (0, None):
+        ctx.pcap_usable = True
+    else:
+        ctx.pcap_usable = False
+        if not ctx.pcap_start_error:
+            ctx.pcap_start_error = (
+                f"capture exited with code {code} and produced no pcap bytes"
+            )
+
+
 def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = None) -> dict:
+    validate_ports(cfg)
     run_started = time.monotonic()
     run_id = make_run_id()
     artifact_root = default_artifact_root(cfg)
@@ -111,34 +246,68 @@ def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = N
     )
 
     selected = expand_selection(scenario_ids if scenario_ids is not None else cfg.scenarios)
-    pcap_owned = None
+    pcap_path = run_dir / "captures" / "loopback.pcap"
     if cfg.live and cfg.enable_pcap:
         tool = find_capture_tool()
         if tool:
             try:
-                pcap_owned = start_capture(
+                ctx.pcap_owned = start_capture(
                     processes,
                     tool=tool,
-                    out_path=run_dir / "captures" / "loopback.pcap",
-                    ports=[cfg.envy_tcp_port, cfg.reference_tcp_port],
+                    out_path=pcap_path,
+                    tcp_ports=[cfg.envy_tcp_port, cfg.reference_tcp_port],
+                    udp_ports=[cfg.kad_udp_port],
                     log_dir=logs_dir,
+                    duration_sec=cfg.pcap_duration_sec or None,
                 )
+                ctx.pcap_path = pcap_path
             except ProcessError as exc:
+                ctx.pcap_start_error = str(exc)
                 (logs_dir / "pcap-start-error.txt").write_text(str(exc), encoding="utf-8")
         else:
             (logs_dir / "pcap-skipped.txt").write_text(
-                "pcap requested but dumpcap/tcpdump was not found\n", encoding="utf-8"
+                "pcap requested but dumpcap/tshark/tcpdump was not found "
+                "(optional; harness does not install capture tools)\n",
+                encoding="utf-8",
             )
 
     results: List[ScenarioResult] = []
+    hold_sec = int(cfg.operator_hold_sec or 0)
+    hold_pending = bool(cfg.live and not cfg.dry_run and hold_sec > 0)
+    startup_ids = {"envy_startup", "reference_startup"}
     try:
         for scenario_id in selected:
+            # After owned clients are launched (startup scenarios), pause so the
+            # operator can finish manual GUI steps before protocol evaluation.
+            if (
+                hold_pending
+                and scenario_id not in startup_ids
+                and (
+                    not any(sid in selected for sid in startup_ids)
+                    or any(r.id in startup_ids for r in results)
+                )
+            ):
+                (logs_dir / "operator-hold.txt").write_text(
+                    f"holding {hold_sec}s for manual GUI steps before scenario "
+                    f"{scenario_id}\n",
+                    encoding="utf-8",
+                )
+                time.sleep(hold_sec)
+                hold_pending = False
             spec = SCENARIOS[scenario_id]
             results.append(run_scenario(ctx, spec))
     finally:
         processes.terminate_all(cfg.shutdown_timeout_sec)
-        if pcap_owned:
-            processes.terminate_owned(pcap_owned, cfg.shutdown_timeout_sec)
+        if ctx.pcap_owned:
+            _finalize_pcap_lifecycle(ctx, cfg)
+            extracted = _convert_owned_pcap(ctx, cfg)
+            if extracted is not None:
+                ctx.packet_evidence_path = extracted
+
+    if ctx.pcap_owned or ctx.packet_evidence_path is not None or any(
+        r.id == "optional_pcap" for r in results
+    ):
+        _refresh_after_pcap(ctx, results)
 
     payload = empty_payload(
         timestamp=utc_now(),
@@ -161,7 +330,11 @@ def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = N
     write_json_report(run_dir / "run-summary.json", payload)
     write_markdown_report(run_dir / "run-summary.md", payload)
     sanitize_tree(logs_dir, run_dir / "sanitized" / "logs")
-    sanitize_tree(run_dir / "captures", run_dir / "sanitized" / "captures")
+    sanitize_tree(
+        run_dir / "captures",
+        run_dir / "sanitized" / "captures",
+        skip_raw_bin=True,
+    )
 
     if cfg.cleanup:
         try:

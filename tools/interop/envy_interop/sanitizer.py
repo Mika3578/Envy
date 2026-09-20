@@ -100,15 +100,24 @@ def sanitize_file(src: Path, dest: Path, extra_needles: Iterable[str] = ()) -> N
     dest.write_text(sanitize_text(text, extra_needles), encoding="utf-8")
 
 
-def sanitize_tree(src_dir: Path, dest_dir: Path, extra_needles: Iterable[str] = ()) -> None:
+def sanitize_tree(
+    src_dir: Path,
+    dest_dir: Path,
+    extra_needles: Iterable[str] = (),
+    *,
+    skip_raw_bin: bool = False,
+) -> None:
     if not src_dir.exists():
         return
     dest_dir.mkdir(parents=True, exist_ok=True)
+    skip_suffixes = {".pcap", ".pcapng", ".key", ".pem", ".pfx"}
+    if skip_raw_bin:
+        # Capture/evidence raw dumps only — never apply to logs (stdout.bin).
+        skip_suffixes.add(".bin")
     for path in src_dir.rglob("*"):
         if path.is_dir():
             continue
         rel = path.relative_to(src_dir)
-        # Keep raw pcaps out of sanitized/committed trees.
-        if path.suffix.lower() in {".pcap", ".pcapng", ".key", ".pem", ".pfx"}:
+        if path.suffix.lower() in skip_suffixes:
             continue
         sanitize_file(path, dest_dir / rel, extra_needles)

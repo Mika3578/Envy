@@ -7,7 +7,7 @@ for unit tests or required PR CI.
 
 from __future__ import annotations
 
-HARNESS_VERSION = "1.0.0"
-REPORT_SCHEMA_VERSION = 1
+HARNESS_VERSION = "1.1.0"
+REPORT_SCHEMA_VERSION = 2
 
 __all__ = ["HARNESS_VERSION", "REPORT_SCHEMA_VERSION"]
