@@ -10,7 +10,3 @@ Services/BugTrap/**
 HashLib/HashLib/**
 Plugins/RatDVDPlugin/**
 Plugins/SWFPlugin/**
-
-# Legacy mixed indent; clang-format-diff cascades on one-token edits (#84 register drop)
-Envy/Hashes/HashStringConversion.cpp
-
