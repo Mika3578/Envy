@@ -48,7 +48,7 @@ public:
 private:
 	bool Init();
 
-	static FinderPointer CreateFinderInstance() throw();
+	static FinderPointer CreateFinderInstance() noexcept;
 
 	struct FindDevice
 	{
@@ -69,7 +69,7 @@ private:
 		CComBSTR m_udn;
 	};
 
-	void	ProcessAsyncFind(BSTR bsSearchType) throw();
+	void ProcessAsyncFind(BSTR bsSearchType) noexcept;
 	HRESULT	GetDeviceServices(DevicePointer pDevice);
 	void	StartPortMapping();
 	HRESULT	MapPort(const ServicePointer& service);
