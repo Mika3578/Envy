@@ -60,7 +60,7 @@ public:
 			CoTaskMemFree( m_pidl );
 	}
 
-	inline operator LPITEMIDLIST() const throw()
+	inline operator LPITEMIDLIST() const noexcept
 	{
 		return m_pidl;
 	}
