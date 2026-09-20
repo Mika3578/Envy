@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release pipeline validation scripts** — `scripts/release/verify-version.ps1`, `stage-portable.ps1`, `verify-artifacts.ps1`, `publish-draft-release.ps1`, and `repair-draft-release.ps1` gate tag/`version.json`/`Envy.rc`/`Envy.exe` consistency, stage a full portable runtime tree, verify SHA256 + ZIP/setup sanity, and support idempotent draft asset repair.
 
 ### Fixed
+- **ThreadImpl `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on ten `CThreadImpl` inlines (`BeginThread`/`CloseThread`/`Wait`/`Wakeup`/`Doze`/…). Behavior unchanged.
 - **UPnPFinder `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `CreateFinderInstance` / `ProcessAsyncFind` (header + cpp). Behavior unchanged.
 - **EDPacket `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `CEDPacketTypes` ctor and `GetAt` in `Envy/EDPacket.cpp`. Behavior unchanged.
 - **Library `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `CLibrary::SafeReadTime` / `SafeSerialize` (header + cpp). Behavior unchanged.
