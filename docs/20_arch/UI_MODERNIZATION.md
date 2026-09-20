@@ -49,7 +49,7 @@ Do **not** claim “UI modernization complete” after one or two screens.
 | #293 | chore(workflow): consolidate agent rules and strict review policy | `chore/consolidate-agent-workflow` |
 | #294 | test(interop): prepare current ED2K/Kad live evidence runs (#160) | `test/ed2k-kad-live-interop-evidence` |
 
-Phase 0/1 PRs must wait until capacity is &lt; 3 (AGENTS.md hard rule 13).
+Phase 0/1 PRs must wait until capacity is under 3 (AGENTS.md hard rule 13).
 
 ### Existing UI / DPI work already merged (reuse)
 
@@ -178,7 +178,7 @@ Do not confuse **protocol** with **discovery mechanism**.
 
 | Token / pattern | Location / default | Status |
 | --- | --- | --- |
-| `SCALE(size)` | `StdAfx.h` — uses `Settings.Interface.DisplayScaling` (100–200) | VERIFIED; threshold `&lt; 110` skips scale |
+| `SCALE(size)` | `StdAfx.h` — uses `Settings.Interface.DisplayScaling` (100–200) | VERIFIED; threshold under 110 skips scale |
 | `DisplayScaling` | Settings; Init clamps 101–200 with system DPI | VERIFIED |
 | `InsertColumn` fixed px | `WndHostCache`, `WndNeighbours`, many lists | OBSERVED DEFECT for Network lists |
 | `ToolbarHeight` | Skin setting default 28 | VERIFIED |
