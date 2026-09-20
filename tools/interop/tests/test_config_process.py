@@ -337,11 +337,70 @@ class CaptureToolTests(unittest.TestCase):
                 pcap_owned=MagicMock(),
                 pcap_path=root / "loopback.pcap",
                 pcap_stopped=True,
+                pcap_usable=True,
             )
             ctx.run_dir.mkdir(parents=True, exist_ok=True)
             result = handle_optional_pcap(ctx, SCENARIOS["optional_pcap"])
             self.assertEqual(result.result, "PASS")
             self.assertIn("started and stopped", result.reason.lower())
+
+    def test_optional_pcap_defers_pass_until_stopped(self) -> None:
+        from envy_interop.scenarios import SCENARIOS, RunContext, handle_optional_pcap
+        from envy_interop.isolation import create_run_isolation
+        from envy_interop.process import ProcessManager
+        from unittest.mock import MagicMock
+
+        repo = Path(__file__).resolve().parents[3]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = HarnessConfig(repo_root=repo, dry_run=False, live=True, enable_pcap=True)
+            isolation = create_run_isolation(root, "pcap-defer")
+            owned = MagicMock()
+            owned.poll.return_value = None
+            ctx = RunContext(
+                cfg=cfg,
+                run_dir=root / "run",
+                isolation=isolation,
+                processes=ProcessManager(),
+                logs_dir=root / "logs",
+                git_sha="test",
+                pcap_owned=owned,
+                pcap_path=root / "loopback.pcap",
+                pcap_stopped=False,
+            )
+            ctx.run_dir.mkdir(parents=True, exist_ok=True)
+            result = handle_optional_pcap(ctx, SCENARIOS["optional_pcap"])
+            self.assertEqual(result.result, "SKIP")
+            self.assertIn("deferred", result.reason.lower())
+
+    def test_optional_pcap_fails_on_early_exit(self) -> None:
+        from envy_interop.scenarios import SCENARIOS, RunContext, handle_optional_pcap
+        from envy_interop.isolation import create_run_isolation
+        from envy_interop.process import ProcessManager
+        from unittest.mock import MagicMock
+
+        repo = Path(__file__).resolve().parents[3]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = HarnessConfig(repo_root=repo, dry_run=False, live=True, enable_pcap=True)
+            isolation = create_run_isolation(root, "pcap-early")
+            owned = MagicMock()
+            owned.poll.return_value = 1
+            owned.exit_code = 1
+            ctx = RunContext(
+                cfg=cfg,
+                run_dir=root / "run",
+                isolation=isolation,
+                processes=ProcessManager(),
+                logs_dir=root / "logs",
+                git_sha="test",
+                pcap_owned=owned,
+                pcap_path=root / "loopback.pcap",
+                pcap_stopped=False,
+            )
+            result = handle_optional_pcap(ctx, SCENARIOS["optional_pcap"])
+            self.assertEqual(result.result, "FAIL")
+            self.assertIn("early", result.reason.lower())
 
     def test_tcpdump_duration_options_before_bpf(self) -> None:
         from envy_interop import capture as capture_mod

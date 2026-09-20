@@ -443,6 +443,7 @@ class RunContext:
     pcap_path: Optional[Path] = None
     pcap_start_error: Optional[str] = None
     pcap_stopped: bool = False
+    pcap_usable: Optional[bool] = None  # set after stop: True/False/None(pending)
 
 
 Handler = Callable[[RunContext, ScenarioSpec], ScenarioResult]
@@ -714,18 +715,36 @@ def handle_optional_pcap(ctx: RunContext, spec: ScenarioSpec) -> ScenarioResult:
             tool=tool_name,
         )
     if ctx.pcap_owned is not None:
-        # Runner stops the owned process in finally; when pcap_stopped is set
-        # (post-pass re-eval) report the full lifecycle.
-        if ctx.pcap_stopped:
-            return _pass(
+        owned = ctx.pcap_owned
+        # Detect early death (permissions / bad iface) before harness teardown.
+        poll = getattr(owned, "poll", None)
+        if callable(poll) and not ctx.pcap_stopped:
+            code = poll()
+            if code is not None and int(code) != 0:
+                return _fail(
+                    spec,
+                    f"capture process exited early with code {code} before harness stop",
+                    tool=tool_name,
+                    exit_code=int(code),
+                )
+        if not ctx.pcap_stopped:
+            # Do not PASS until runner confirms stop + usable outcome.
+            return _skip(
                 spec,
-                f"owned capture started and stopped via {tool_name}",
+                f"owned capture started via {tool_name}; PASS deferred until harness teardown",
                 tool=tool_name,
                 pcap=ctx.pcap_path.name if ctx.pcap_path else "",
             )
+        if ctx.pcap_usable is False:
+            return _fail(
+                spec,
+                "owned capture stopped but produced no usable pcap "
+                f"(exit={getattr(owned, 'exit_code', None)})",
+                tool=tool_name,
+            )
         return _pass(
             spec,
-            f"owned capture started via {tool_name} (runner stops on teardown)",
+            f"owned capture started and stopped via {tool_name}",
             tool=tool_name,
             pcap=ctx.pcap_path.name if ctx.pcap_path else "",
         )

@@ -96,19 +96,47 @@ def _convert_owned_pcap(ctx: RunContext, cfg: HarnessConfig) -> Optional[Path]:
 
 
 def _refresh_after_pcap(ctx: RunContext, results: List[ScenarioResult]) -> None:
-    """Re-evaluate SKIP scenarios that can consume post-capture packet evidence."""
+    """Re-evaluate scenarios that depend on post-capture lifecycle / evidence."""
     for index, result in enumerate(results):
-        if result.result != "SKIP":
-            continue
         spec = SCENARIOS.get(result.id)
         if spec is None:
             continue
+        # Always refresh optional_pcap after stop (may already be provisional SKIP).
         if result.id == "optional_pcap":
             results[index] = handle_optional_pcap(ctx, spec)
+            continue
+        if result.result != "SKIP":
             continue
         renewed = _try_packet_evidence(ctx, spec)
         if renewed is not None:
             results[index] = renewed
+
+
+def _finalize_pcap_lifecycle(ctx: RunContext, cfg: HarnessConfig) -> None:
+    """Stop owned capture and record whether a usable pcap was produced."""
+    if not ctx.pcap_owned:
+        return
+    code = ctx.processes.terminate_owned(ctx.pcap_owned, cfg.shutdown_timeout_sec)
+    ctx.pcap_stopped = True
+    size = 0
+    if ctx.pcap_path is not None and ctx.pcap_path.is_file():
+        try:
+            size = int(ctx.pcap_path.stat().st_size)
+        except OSError:
+            size = 0
+    # SIGTERM/SIGINT after a requested stop often yields non-zero; treat as OK
+    # when bytes were written. Early death with empty output is a failure.
+    if size > 0:
+        ctx.pcap_usable = True
+    elif code in (0, None):
+        # Clean exit, empty capture — still a completed owned lifecycle.
+        ctx.pcap_usable = True
+    else:
+        ctx.pcap_usable = False
+        if not ctx.pcap_start_error:
+            ctx.pcap_start_error = (
+                f"capture exited with code {code} and produced no pcap bytes"
+            )
 
 
 def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = None) -> dict:
@@ -195,13 +223,14 @@ def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = N
     finally:
         processes.terminate_all(cfg.shutdown_timeout_sec)
         if ctx.pcap_owned:
-            processes.terminate_owned(ctx.pcap_owned, cfg.shutdown_timeout_sec)
-            ctx.pcap_stopped = True
+            _finalize_pcap_lifecycle(ctx, cfg)
             extracted = _convert_owned_pcap(ctx, cfg)
             if extracted is not None:
                 ctx.packet_evidence_path = extracted
 
-    if ctx.pcap_owned or ctx.packet_evidence_path is not None:
+    if ctx.pcap_owned or ctx.packet_evidence_path is not None or any(
+        r.id == "optional_pcap" for r in results
+    ):
         _refresh_after_pcap(ctx, results)
 
     payload = empty_payload(

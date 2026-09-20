@@ -11,7 +11,6 @@ recognized but not inflated here.
 from __future__ import annotations
 
 import json
-import re
 import shutil
 import struct
 import subprocess
@@ -228,7 +227,24 @@ def extract_kad_udp_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHi
         frame_end = _next_kad_opcode_offset(blob, i + 2)
         body = blob[i + 2 : frame_end]
         details: Dict[str, Any] = {"body_len": len(body), "transport": "udp"}
-        if opcode == KAD_OP_FIREWALLED_REQ:
+        if opcode in (KAD_OP_HELLO_REQ, KAD_OP_HELLO_RES):
+            # <NodeID 16><TagList…> — NodeID is mandatory.
+            if len(body) < 16:
+                details["parse_error"] = f"HELLO body too short ({len(body)} < 16)"
+            else:
+                details["has_node_id"] = True
+        elif opcode in (KAD_OP_PING, KAD_OP_PONG):
+            # <TagList> — at least the tag-count byte.
+            if len(body) < 1:
+                details["parse_error"] = f"PING/PONG body too short ({len(body)} < 1)"
+        elif opcode in (KAD_OP_FIND_NODE, KAD_OP_FIND_NODE_RES):
+            # <NodeID 16><Type 1><TagList…>
+            if len(body) < 17:
+                details["parse_error"] = f"FIND_NODE body too short ({len(body)} < 17)"
+            else:
+                details["has_node_id"] = True
+                details["find_type"] = body[16]
+        elif opcode == KAD_OP_FIREWALLED_REQ:
             if len(body) != 2:
                 details["parse_error"] = f"FIREWALLED_REQ body must be 2 bytes, got {len(body)}"
             else:
@@ -268,10 +284,28 @@ def extract_kad_udp_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHi
     return hits
 
 
+def _overlaps_span(offset: int, length: int, spans: Sequence[Tuple[int, int]]) -> bool:
+    end = offset + length
+    for start, stop in spans:
+        if offset < stop and end > start:
+            return True
+    return False
+
+
 def extract_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
-    """Extract ED2K TCP and Kad UDP evidence frames from a blob."""
+    """Extract ED2K TCP and Kad UDP evidence frames from a blob.
+
+    Kad hits that fall inside a recognized ED2K TCP frame span are dropped so
+    compressed/TCP payload bytes cannot false-PASS Kad observe scenarios.
+    """
     tcp = extract_ed2k_frames(blob, max_frames=max_frames)
-    kad = extract_kad_udp_frames(blob, max_frames=max_frames)
+    tcp_spans = [(h.offset, h.offset + h.length) for h in tcp]
+    kad_raw = extract_kad_udp_frames(blob, max_frames=max_frames)
+    kad = [
+        h
+        for h in kad_raw
+        if not _overlaps_span(h.offset, h.length, tcp_spans)
+    ]
     combined = tcp + kad
     combined.sort(key=lambda h: h.offset)
     return combined[:max_frames]
@@ -375,13 +409,9 @@ def write_evidence_summary(path: Path, summary: Dict[str, Any]) -> None:
 
 
 def safe_evidence_source_name(name: str) -> str:
-    """Basename-only identifier safe for evidence JSON (no path / PII leaks)."""
-    # Normalize Windows and POSIX separators before taking the basename.
-    base = name.replace("\\", "/").rsplit("/", 1)[-1]
-    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", base).strip("._")
-    if not cleaned:
-        return "packet-evidence.bin"
-    return cleaned[:128]
+    """Fixed attachable identifier — never store operator basenames (PII/path leak)."""
+    del name  # intentionally unused; basename content must not reach evidence JSON
+    return "packet-evidence.bin"
 
 
 def ingest_packet_dump(

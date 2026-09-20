@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #160/#294 Copilot round: Kad body min-shape + exclude Kad-in-TCP spans; fixed evidence source_name; optional_pcap PASS only after usable stop; early capture exit FAIL.
 - **Changelog Entry:** 2026-09-20 — #160/#294 Copilot follow-up: Kad HELLO opcodes 0x11/0x19, pcap TCP+UDP 4672, kad_hello/ping/find_node evidence labels, optional_pcap owned lifecycle PASS, tshark post-capture extract, sanitized evidence source_name.
 - **Changelog Entry:** 2026-09-20 — #294 temporary Actions workflow gated to PR #294 to re-request Copilot via GITHUB_TOKEN (agent requestReviewers is 403); delete after land.
 - **Changelog Entry:** 2026-09-20 — #160/#294 interop evidence honesty: tcpdump BPF-last, CALLBACK exact 38, COMPRESSEDPART payload length match, optional_pcap availability SKIP, opcode-only packet evidence cannot PASS transaction scenarios.
