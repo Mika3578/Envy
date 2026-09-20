@@ -110,8 +110,12 @@ Before a pull request can merge into `develop`, **all** of the following must
 hold (enforced by the live GitHub ruleset, not by CI alone):
 
 1. The PR is **not a draft**.
-2. **At least one** GitHub review with state **APPROVED** (not CodeRabbit /
-   advisory bots as the sole gate; a real GitHub approval is required).
+2. **At least one** GitHub review with state **APPROVED** from a reviewer other
+   than the PR author. In this solo-maintainer repository, GitHub Copilot Code
+   Review may satisfy this requirement only when repository settings allow
+   Copilot approvals to count and GitHub records an actual `APPROVED` review.
+   CodeRabbit/advisory comments and Copilot's approval assessment alone do not
+   satisfy the gate.
 3. That approval remains valid for the **current** head: stale approvals are
    **dismissed on new pushes**. `Require approval of the most recent
    reviewable push` is **off** (intentional for the solo-maintainer +
@@ -136,8 +140,8 @@ enabled for other branches; Protect develop still forces squash-only.
 - [ ] Builds Release x64 and Release Win32 with toolset v145.
 - [ ] No new compiler warnings (use the CI build log).
 - [ ] CodeQL passes without new HIGH/CRITICAL findings.
-- [ ] At least one GitHub **APPROVED** review from someone other than the PR
-      author; all review threads resolved.
+- [ ] At least one GitHub **APPROVED** review from a reviewer other than the
+      PR author (Copilot may count when enabled); all review threads resolved.
 - [ ] If you touched anything in `Services/` or `Plugins/`, ping a
       CODEOWNER for review.
 - [ ] If you bumped a vcpkg dependency, note the version delta in the
