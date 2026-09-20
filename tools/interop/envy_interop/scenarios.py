@@ -30,6 +30,7 @@ from .evidence import (
     extract_frames,
     ingest_packet_dump,
     require_labels,
+    safe_evidence_source_name,
     summarize_hits,
 )
 from .fixtures import write_fixture
@@ -337,9 +338,25 @@ _add(
         external=True,
     )
 )
-_add(_live("kad_hello", "Kad HELLO", production=ProductionState.IMPLEMENTED, phase="current"))
-_add(_live("kad_ping_pong", "Kad PING/PONG", production=ProductionState.IMPLEMENTED, phase="current"))
-_add(_live("kad_find_node", "Kad FIND_NODE", production=ProductionState.IMPLEMENTED, phase="current"))
+_add(_live("kad_hello", "Kad HELLO", production=ProductionState.IMPLEMENTED, labels=("kad_hello",), phase="current"))
+_add(
+    _live(
+        "kad_ping_pong",
+        "Kad PING/PONG",
+        production=ProductionState.IMPLEMENTED,
+        labels=("kad_ping_pong",),
+        phase="current",
+    )
+)
+_add(
+    _live(
+        "kad_find_node",
+        "Kad FIND_NODE",
+        production=ProductionState.IMPLEMENTED,
+        labels=("kad_find_node",),
+        phase="current",
+    )
+)
 _add(
     _live(
         "kad_search_source",
@@ -421,6 +438,11 @@ class RunContext:
     logs_dir: Path
     git_sha: str
     packet_evidence_path: Optional[Path] = None
+    # Owned capture lifecycle (set by runner when --live --enable-pcap succeeds).
+    pcap_owned: Optional[object] = None
+    pcap_path: Optional[Path] = None
+    pcap_start_error: Optional[str] = None
+    pcap_stopped: bool = False
 
 
 Handler = Callable[[RunContext, ScenarioSpec], ScenarioResult]
@@ -684,6 +706,29 @@ def handle_optional_pcap(ctx: RunContext, spec: ScenarioSpec) -> ScenarioResult:
     from .capture import find_capture_tool
 
     tool = find_capture_tool()
+    tool_name = Path(tool).name if tool else "capture"
+    if ctx.pcap_start_error:
+        return _fail(
+            spec,
+            f"owned capture failed to start: {ctx.pcap_start_error}",
+            tool=tool_name,
+        )
+    if ctx.pcap_owned is not None:
+        # Runner stops the owned process in finally; when pcap_stopped is set
+        # (post-pass re-eval) report the full lifecycle.
+        if ctx.pcap_stopped:
+            return _pass(
+                spec,
+                f"owned capture started and stopped via {tool_name}",
+                tool=tool_name,
+                pcap=ctx.pcap_path.name if ctx.pcap_path else "",
+            )
+        return _pass(
+            spec,
+            f"owned capture started via {tool_name} (runner stops on teardown)",
+            tool=tool_name,
+            pcap=ctx.pcap_path.name if ctx.pcap_path else "",
+        )
     if not tool:
         return _skip(
             spec,
@@ -693,15 +738,15 @@ def handle_optional_pcap(ctx: RunContext, spec: ScenarioSpec) -> ScenarioResult:
     if ctx.cfg.dry_run or not ctx.cfg.live or not ctx.cfg.enable_pcap:
         return _skip(
             spec,
-            f"capture tool available ({Path(tool).name}) but no owned capture was started "
+            f"capture tool available ({tool_name}) but no owned capture was started "
             "(need --live --enable-pcap). Availability-only must not PASS.",
-            tool=Path(tool).name,
+            tool=tool_name,
         )
     return _skip(
         spec,
-        f"capture tool {Path(tool).name} present; owned capture lifecycle is started by "
-        "the live runner when --enable-pcap is set — this scenario records availability only.",
-        tool=Path(tool).name,
+        f"capture tool {tool_name} present and --enable-pcap set, but owned capture "
+        "did not start (see logs/pcap-start-error.txt or pcap-skipped.txt)",
+        tool=tool_name,
     )
 
 
@@ -855,7 +900,10 @@ _PACKET_WIRE_PASS_IDS = frozenset(
         "source_exchange",
         "lowid_publicip_req",
         "lowid_publicip_answer",
-        "kad_search_source_req",
+        "kad_hello",
+        "kad_ping_pong",
+        "kad_find_node",
+        "kad_search_source",
     }
 )
 
@@ -892,7 +940,8 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
                     # SEARCH_RES→ED2K delivery / firewall ACK+state.
                     return _skip(
                         spec,
-                        f"packet labels {list(spec.evidence_labels)} present in {path.name}, "
+                        f"packet labels {list(spec.evidence_labels)} present in "
+                        f"{safe_evidence_source_name(path.name)}, "
                         "but documented transaction criteria need live operator logs "
                         "(not opcode-only PASS)",
                         evidence=summary,
@@ -900,7 +949,8 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
                     )
                 return _pass(
                     spec,
-                    f"packet evidence matched labels {list(spec.evidence_labels)} from {path.name}",
+                    f"packet evidence matched labels {list(spec.evidence_labels)} from "
+                    f"{safe_evidence_source_name(path.name)}",
                     evidence=summary,
                     artifacts=artifacts,
                 )
@@ -912,7 +962,8 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
                 parsed = parse_hello_tcp(_frame_slice(raw, hit))
                 return _pass(
                     spec,
-                    f"Hello-family packet parsed from multi-frame capture ({path.name})",
+                    f"Hello-family packet parsed from multi-frame capture "
+                    f"({safe_evidence_source_name(path.name)})",
                     comparison=compare_envy_advertisement(parsed),
                     evidence=hello_evidence(parsed),
                 )

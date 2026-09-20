@@ -142,19 +142,25 @@ verified. Do not change the advertised nibble from this harness.
 ## Optional packet capture
 
 `--enable-pcap` uses `dumpcap`, `tshark`, or `tcpdump` when on `PATH`. Bounded
-filters use the configured TCP ports. Raw pcaps stay gitignored. Missing tools
-→ SKIP (never silent install). The `optional_pcap` scenario also **SKIP**s on
-availability alone — PASS requires an owned capture start/stop under
-`--live --enable-pcap`.
+filters cover the configured ED2K **TCP** ports and the Kad **UDP** port
+(default `4672`, override with `--kad-udp-port` / `ENVY_INTEROP_KAD_UDP_PORT`).
+When capture stops, the runner converts the owned pcap via `tshark` (when
+present) into `captures/evidence/from-pcap.bin` and re-evaluates SKIP protocol
+scenarios that can PASS from packet labels. Raw pcaps stay gitignored. Missing
+tools → SKIP (never silent install). The `optional_pcap` scenario **PASS**es
+only when the live runner started (and later stopped) an owned capture; tool
+availability alone remains SKIP.
 
 `--packet-evidence` accepts a hex/binary dump of ED2K **TCP** frames
 (`0xE3`/`0xC5` sized headers) and Kad2 **UDP** datagrams (`0xE4` + opcode,
-e.g. `SEARCH_SOURCE_REQ` 0x34 / `SEARCH_RES` 0x3B / `FIREWALLED_*`).
-Observed public IPv4 values are never written into evidence JSON (presence
-only). Fail closed on malformed frames (exact CALLBACK length, matching
-COMPRESSEDPART payload size). Opcode presence alone cannot PASS transfer,
-callback consume, SEARCH_RES→ED2K delivery, or firewall ACK/state scenarios —
-those stay SKIP until live operator logs satisfy the documented criteria.
+e.g. HELLO `0x11`/`0x19`, PING/PONG `0x60`/`0x61`, FIND_NODE `0x21`,
+`SEARCH_SOURCE_REQ` 0x34 / `SEARCH_RES` 0x3B / `FIREWALLED_*`). Evidence JSON
+stores a sanitized basename only (no operator path/PII). Observed public IPv4
+values are never written into evidence JSON (presence only). Fail closed on
+malformed frames (exact CALLBACK length, matching COMPRESSEDPART payload
+size). Opcode presence alone cannot PASS transfer, callback consume,
+SEARCH_RES→ED2K delivery, or firewall ACK/state scenarios — those stay SKIP
+until live operator logs satisfy the documented criteria.
 
 ## Golden reference captures
 

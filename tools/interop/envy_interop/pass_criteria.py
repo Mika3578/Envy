@@ -64,7 +64,7 @@ PASS_CRITERIA: Dict[str, str] = {
     "kad_findbuddy": "Production not implemented — cannot PASS.",
     "kad_buddy_lifecycle": "Production not implemented — cannot PASS.",
     "kad_callback": "Production not implemented — cannot PASS.",
-    "optional_pcap": "Owned dumpcap/tshark/tcpdump capture started and stopped, or SKIP when tools absent / availability-only.",
+    "optional_pcap": "Owned dumpcap/tshark/tcpdump capture started (and stopped on harness teardown), or SKIP when tools absent / availability-only.",
 }
 
 

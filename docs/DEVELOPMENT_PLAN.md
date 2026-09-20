@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #160/#294 Copilot follow-up: Kad HELLO opcodes 0x11/0x19, pcap TCP+UDP 4672, kad_hello/ping/find_node evidence labels, optional_pcap owned lifecycle PASS, tshark post-capture extract, sanitized evidence source_name.
 - **Changelog Entry:** 2026-09-20 — #294 temporary Actions workflow gated to PR #294 to re-request Copilot via GITHUB_TOKEN (agent requestReviewers is 403); delete after land.
 - **Changelog Entry:** 2026-09-20 — #160/#294 interop evidence honesty: tcpdump BPF-last, CALLBACK exact 38, COMPRESSEDPART payload length match, optional_pcap availability SKIP, opcode-only packet evidence cannot PASS transaction scenarios.
 - **Changelog Entry:** 2026-09-20 — #160 interop harness v1.1: recalculate capability truth after #251/#252/#254/#255/#256/#257/#258/#261 (compression_send=True); separate production/harness/evidence states; current ED2K/Kad scenario hooks; Windows operator helper + checklist; optional dumpcap/tshark; bounded packet evidence; no ED2K/Kad production protocol changes; live evidence still pending Windows operator run.

@@ -14,6 +14,7 @@ ENV_PREFIX = "ENVY_INTEROP_"
 
 DEFAULT_ENVY_TCP_PORT = 4662
 DEFAULT_REFERENCE_TCP_PORT = 4663
+DEFAULT_KAD_UDP_PORT = 4672
 DEFAULT_STARTUP_TIMEOUT = 30
 DEFAULT_SCENARIO_TIMEOUT = 120
 DEFAULT_SHUTDOWN_TIMEOUT = 15
@@ -54,6 +55,7 @@ class HarnessConfig:
     artifact_dir: Optional[Path] = None
     envy_tcp_port: int = DEFAULT_ENVY_TCP_PORT
     reference_tcp_port: int = DEFAULT_REFERENCE_TCP_PORT
+    kad_udp_port: int = DEFAULT_KAD_UDP_PORT
     startup_timeout_sec: int = DEFAULT_STARTUP_TIMEOUT
     scenario_timeout_sec: int = DEFAULT_SCENARIO_TIMEOUT
     shutdown_timeout_sec: int = DEFAULT_SHUTDOWN_TIMEOUT
@@ -163,6 +165,12 @@ def merge_config(
         "REFERENCE_TCP_PORT",
         DEFAULT_REFERENCE_TCP_PORT,
     )
+    cfg.kad_udp_port = pick_int(
+        getattr(cli, "kad_udp_port", None),
+        "kad_udp_port",
+        "KAD_UDP_PORT",
+        DEFAULT_KAD_UDP_PORT,
+    )
     cfg.startup_timeout_sec = pick_int(
         getattr(cli, "startup_timeout_sec", None),
         "startup_timeout_sec",
@@ -237,6 +245,7 @@ def validate_ports(cfg: HarnessConfig) -> None:
     for name, value in (
         ("envy_tcp_port", cfg.envy_tcp_port),
         ("reference_tcp_port", cfg.reference_tcp_port),
+        ("kad_udp_port", cfg.kad_udp_port),
     ):
         if not (1 <= int(value) <= 65535):
             raise ConfigError(f"{name} must be in 1..65535")
@@ -296,6 +305,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--artifact-dir", type=str, default="", help="Artifact root directory")
     parser.add_argument("--envy-tcp-port", type=int, default=None)
     parser.add_argument("--reference-tcp-port", type=int, default=None)
+    parser.add_argument(
+        "--kad-udp-port",
+        type=int,
+        default=None,
+        help="Kad UDP port included in optional pcap BPF (default 4672)",
+    )
     parser.add_argument("--startup-timeout-sec", type=int, default=None)
     parser.add_argument("--scenario-timeout-sec", type=int, default=None)
     parser.add_argument("--shutdown-timeout-sec", type=int, default=None)

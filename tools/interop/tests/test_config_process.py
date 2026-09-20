@@ -278,6 +278,10 @@ class CaptureToolTests(unittest.TestCase):
         from envy_interop import capture as capture_mod
 
         self.assertEqual(capture_mod._tcp_port_filter([4662, 4663]), "tcp port 4662 or tcp port 4663")
+        self.assertEqual(
+            capture_mod._capture_filter(tcp_ports=[4662, 4663], udp_ports=[4672]),
+            "tcp port 4662 or tcp port 4663 or udp port 4672",
+        )
         old = os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)
         self.addCleanup(lambda: (os.environ.__setitem__("ENVY_INTEROP_PCAP_IFACE", old) if old is not None else os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)))
         os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)
@@ -289,6 +293,55 @@ class CaptureToolTests(unittest.TestCase):
             self.assertEqual(capture_mod._loopback_iface(), "lo0")
         finally:
             sys.platform = old_plat
+
+    def test_tcpdump_includes_kad_udp_in_bpf(self) -> None:
+        from envy_interop import capture as capture_mod
+        from envy_interop.process import ProcessManager
+        from unittest.mock import MagicMock, patch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "cap.pcap"
+            mgr = ProcessManager()
+            with patch.object(mgr, "launch", return_value=MagicMock()) as launch:
+                capture_mod.start_capture(
+                    mgr,
+                    out_path=out,
+                    log_dir=Path(tmp),
+                    tcp_ports=[4662],
+                    udp_ports=[4672],
+                    tool="/usr/sbin/tcpdump",
+                    duration_sec=5,
+                )
+                argv = launch.call_args[0][1]
+                self.assertEqual(argv[-1], "tcp port 4662 or udp port 4672")
+                self.assertIn("-G", argv)
+
+    def test_optional_pcap_pass_when_owned_lifecycle_present(self) -> None:
+        from envy_interop.scenarios import SCENARIOS, RunContext, handle_optional_pcap
+        from envy_interop.isolation import create_run_isolation
+        from envy_interop.process import ProcessManager
+        from unittest.mock import MagicMock
+
+        repo = Path(__file__).resolve().parents[3]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = HarnessConfig(repo_root=repo, dry_run=False, live=True, enable_pcap=True)
+            isolation = create_run_isolation(root, "pcap-owned")
+            ctx = RunContext(
+                cfg=cfg,
+                run_dir=root / "run",
+                isolation=isolation,
+                processes=ProcessManager(),
+                logs_dir=root / "logs",
+                git_sha="test",
+                pcap_owned=MagicMock(),
+                pcap_path=root / "loopback.pcap",
+                pcap_stopped=True,
+            )
+            ctx.run_dir.mkdir(parents=True, exist_ok=True)
+            result = handle_optional_pcap(ctx, SCENARIOS["optional_pcap"])
+            self.assertEqual(result.result, "PASS")
+            self.assertIn("started and stopped", result.reason.lower())
 
     def test_tcpdump_duration_options_before_bpf(self) -> None:
         from envy_interop import capture as capture_mod

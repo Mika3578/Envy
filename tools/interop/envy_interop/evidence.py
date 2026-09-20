@@ -11,6 +11,7 @@ recognized but not inflated here.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import struct
 import subprocess
@@ -34,9 +35,15 @@ from .constants import (
     ED2K_PROTOCOL_EMULE,
     ED2K_PROTOCOL_KAD,
     ED2K_PROTOCOL_KAD_PACKED,
+    KAD_OP_FIND_NODE,
+    KAD_OP_FIND_NODE_RES,
     KAD_OP_FIREWALLED_ACK_RES,
     KAD_OP_FIREWALLED_REQ,
     KAD_OP_FIREWALLED_RES,
+    KAD_OP_HELLO_REQ,
+    KAD_OP_HELLO_RES,
+    KAD_OP_PING,
+    KAD_OP_PONG,
     KAD_OP_SEARCH_RES,
     KAD_OP_SEARCH_SOURCE_REQ,
 )
@@ -76,7 +83,14 @@ TCP_OPCODE_LABELS = {
 }
 
 # Kad2 UDP opcodes on protocol 0xE4 (Envy/EDPacket.h).
+# HELLO is 0x11/0x19 (Bootstrap 0x01/0x09 is not registered here).
 KAD_OPCODE_LABELS = {
+    KAD_OP_HELLO_REQ: "kad_hello",
+    KAD_OP_HELLO_RES: "kad_hello",
+    KAD_OP_PING: "kad_ping_pong",
+    KAD_OP_PONG: "kad_ping_pong",
+    KAD_OP_FIND_NODE: "kad_find_node",
+    KAD_OP_FIND_NODE_RES: "kad_find_node",
     KAD_OP_SEARCH_SOURCE_REQ: "kad_search_source_req",
     KAD_OP_SEARCH_RES: "kad_search_res",
     KAD_OP_FIREWALLED_REQ: "kad_firewalled_req",
@@ -360,6 +374,16 @@ def write_evidence_summary(path: Path, summary: Dict[str, Any]) -> None:
     path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
 
 
+def safe_evidence_source_name(name: str) -> str:
+    """Basename-only identifier safe for evidence JSON (no path / PII leaks)."""
+    # Normalize Windows and POSIX separators before taking the basename.
+    base = name.replace("\\", "/").rsplit("/", 1)[-1]
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", base).strip("._")
+    if not cleaned:
+        return "packet-evidence.bin"
+    return cleaned[:128]
+
+
 def ingest_packet_dump(
     source: Path,
     dest_dir: Path,
@@ -369,7 +393,7 @@ def ingest_packet_dump(
     raw = load_evidence_bytes(source)
     hits = extract_frames(raw)
     summary = summarize_hits(hits)
-    summary["source_name"] = source.name
+    summary["source_name"] = safe_evidence_source_name(source.name)
     if required_labels:
         ok, reason = require_labels(hits, required_labels)
         summary["required_ok"] = ok

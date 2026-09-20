@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 import shutil
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 from .process import OwnedProcess, ProcessManager
 
@@ -30,7 +30,7 @@ def _loopback_iface() -> str:
     if override:
         return override
     if os.name == "nt":
-        # dumpcap/tshark on Windows: "Npc" is not portable. Default to a
+        # dumpcap/tshark on Windows: "netdev" is not portable. Default to a
         # common Npcap name; operators override via ENVY_INTEROP_PCAP_IFACE.
         return r"\Device\NPF_Loopback"
     import sys
@@ -41,8 +41,26 @@ def _loopback_iface() -> str:
 
 
 def _tcp_port_filter(ports: List[int]) -> str:
-    """BPF filter limited to TCP on the configured test ports."""
-    return " or ".join(f"tcp port {int(p)}" for p in ports)
+    """BPF filter limited to TCP on the configured test ports (compat helper)."""
+    return _capture_filter(tcp_ports=ports, udp_ports=[])
+
+
+def _capture_filter(
+    *,
+    tcp_ports: Sequence[int],
+    udp_ports: Sequence[int] = (),
+) -> str:
+    """BPF filter for ED2K TCP ports and Kad UDP ports."""
+    parts: List[str] = []
+    for p in tcp_ports:
+        if p:
+            parts.append(f"tcp port {int(p)}")
+    for p in udp_ports:
+        if p:
+            parts.append(f"udp port {int(p)}")
+    if not parts:
+        raise ValueError("capture filter requires at least one TCP or UDP port")
+    return " or ".join(parts)
 
 
 def start_capture(
@@ -50,13 +68,21 @@ def start_capture(
     *,
     tool: str,
     out_path: Path,
-    ports: List[int],
+    ports: Optional[List[int]] = None,
+    tcp_ports: Optional[Sequence[int]] = None,
+    udp_ports: Optional[Sequence[int]] = None,
     log_dir: Path,
     duration_sec: Optional[int] = None,
 ) -> OwnedProcess:
-    """Start a bounded capture limited to the configured test ports."""
+    """Start a bounded capture limited to the configured test ports.
+
+    ``ports`` is a legacy alias for ``tcp_ports``. Prefer explicit
+    ``tcp_ports`` / ``udp_ports`` so Kad UDP (default 4672) is included.
+    """
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    port_spec = _tcp_port_filter(ports)
+    resolved_tcp = list(tcp_ports) if tcp_ports is not None else list(ports or [])
+    resolved_udp = list(udp_ports or [])
+    port_spec = _capture_filter(tcp_ports=resolved_tcp, udp_ports=resolved_udp)
     iface = _loopback_iface()
     name = Path(tool).name.lower()
     argv: List[str]
