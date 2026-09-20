@@ -35,28 +35,31 @@ namespace Hashes
 	const wchar base16[] = L"0123456789abcdef";
 	const wchar base32[] = L"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567=";
 
+	// clang-format off
 	bool Unhex(LPCTSTR psz, uchar* pOut)
 	{
-	    TCHAR c = *psz++;
-	    if (c >= '0' && c <= '9')
-		    *pOut = uchar((c - '0') << 4);
-	    else if (c >= 'A' && c <= 'F')
-		    *pOut = uchar((c - 'A' + 10) << 4);
-	    else if (c >= 'a' && c <= 'f')
-		    *pOut = uchar((c - 'a' + 10) << 4);
-	    else
-		    return false;
-	    c = *psz;
-	    if (c >= '0' && c <= '9')
-		    *pOut |= uchar(c - '0');
-	    else if (c >= 'A' && c <= 'F')
-		    *pOut |= uchar(c - 'A' + 10);
-	    else if (c >= 'a' && c <= 'f')
-		    *pOut |= uchar(c - 'a' + 10);
-	    else
-		    return false;
-	    return true;
-    }
+		TCHAR c = *psz++;
+		if ( c >= '0' && c <= '9' )
+			*pOut = uchar( ( c - '0' ) << 4 );
+		else if ( c >= 'A' && c <= 'F' )
+			*pOut = uchar( ( c - 'A' + 10 ) << 4 );
+		else if ( c >= 'a' && c <= 'f' )
+			*pOut = uchar( ( c - 'a' + 10 ) << 4 );
+		else
+			return false;
+		c = *psz;
+		if ( c >= '0' && c <= '9' )
+			*pOut |= uchar( c - '0' );
+		else if ( c >= 'A' && c <= 'F' )
+			*pOut |= uchar( c - 'A' + 10 );
+		else if ( c >= 'a' && c <= 'f' )
+			*pOut |= uchar( c - 'a' + 10 );
+		else
+			return false;
+		return true;
+	}
+	// clang-format on
+
 	CString toGuid(const uchar* hash)
 	{
 		return toGuid( *reinterpret_cast< const CLSID* >( hash ), false );
