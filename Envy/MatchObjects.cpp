@@ -1950,7 +1950,7 @@ void CMatchFile::ClearNew()
 int CMatchFile::Compare(CMatchFile* pFile) const
 {
 	LPCTSTR pszA, pszB;
-	int x, y;		// returns x = 1,0,-1
+	int x, y; // returns x = 1,0,-1
 
 	//if ( m_bCollection != pFile->m_bCollection )
 	//	return m_bCollection ? -m_pList->m_bSortDir : m_pList->m_bSortDir;
