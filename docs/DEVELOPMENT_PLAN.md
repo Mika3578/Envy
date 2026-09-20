@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #84 Application: replace `throw()` with `noexcept` on GetApp/GetUI/GetSettings (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 SQLite: replace `throw()` with `noexcept` on `CDatabase` bool/IsBusy/GetCount (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 VersionChecker: replace `throw()` with `noexcept` on `IsUpgradeAvailable` / `IsVerbose` (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 Handshakes: replace `throw()` with `noexcept` on `CHandshakes::IsValid` (C++20). No behavior change.
