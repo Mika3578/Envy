@@ -28,8 +28,9 @@ SonarCloud required, PR Gate stricter than GitHub skip semantics.
 - MSBuild `/m:1` is intentional (PCH C1083) and must not be “optimized”
   without a re-benchmark.
 - Four identical classify jobs per PR (~8–10 s each) — centralizing is P3.
-- Repository Copilot UI approve/count/auto-request toggles still need manual
-  UI verification (not fully exposed on the ruleset API).
+- Repository Copilot UI approve/count toggles, Balanced effort, and the
+  optional Stage-3 path allowlist still need manual UI verification (not
+  on the ruleset API). Automatic review is already live via Protect develop.
 
 **Live Protect develop re-verification (2026-09-20):** required approvals **1**,
 Code Quality severity **All**, Copilot `review_on_push` **on**, draft review
@@ -398,9 +399,10 @@ Documented; not unified in this PR (would either slow local or risk CI flakes).
 
 ## 14. Follow-ups (out of this PR)
 
-- Manual GitHub settings: apply the 2026-09-20 Protect develop target
-  (1 approval with Copilot counting enabled; Code Quality All; automatic
-  Copilot review + review-on-push; draft review off).
+- Manual GitHub Settings → Copilot → Code review only: confirm approve/count
+  ON, effort **Balanced**, and optional Stage-3 path allowlist. Protect
+  develop ruleset knobs (1 approval, Code Quality All, automatic Copilot
+  review + review-on-push, draft review off) are already applied.
 - P2: vcpkg registry fetch / downloads cache experiment.
 - P3: single classify fan-out.
 - P4: controlled `/m` + MTT A/B on a throwaway branch.

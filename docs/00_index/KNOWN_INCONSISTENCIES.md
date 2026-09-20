@@ -6,13 +6,15 @@
   restriction remains **off** (no `Restrict code coverage` rule). Historical
   2026-09-19 audit snapshots that recorded `required_approving_review_count: 0`
   / Code Quality `notes` / `review_on_push: false` are retained as history —
-  do not treat them as current. Repository Copilot UI toggles (**Allow Copilot
-  to approve pull requests**, **Allow Copilot approvals to count toward merge
-  requirements**, review effort **Balanced**, automatically request review)
-  still require manual UI verification, including the optional path
-  allowlist (Stage-3 docs/rules globs in `docs/10_dev/devsecops-envy.md`).
-  An AI comment/assessment alone is not an `APPROVED` review. See
-  `docs/10_dev/CI_AUDIT_2026-09.md` and `docs/10_dev/devsecops-envy.md`.
+  do not treat them as current. Repository Copilot UI toggles that still
+  need manual verification are **Allow Copilot to approve pull requests**,
+  **Allow Copilot approvals to count toward merge requirements**, review
+  effort **Balanced**, and the optional path allowlist (Stage-3 docs/rules
+  globs in `docs/10_dev/devsecops-envy.md`). Automatic Copilot review is
+  already live on Protect develop (`copilot_code_review` + `review_on_push`);
+  it is not a remaining UI gap. An AI comment/assessment alone is not an
+  `APPROVED` review. See `docs/10_dev/CI_AUDIT_2026-09.md` and
+  `docs/10_dev/devsecops-envy.md`.
 
 - **ED2K/Kad scope:** `ED2K_KAD_GAP_ANALYSIS` is a historical snapshot (routing-table items annotated 2026-09-19 after `KadRoutingTable.h`). `kad2-compatibility-report` covers opcode/format matching plus local routing maintenance. Neither is live interop. Canonical high-level status is `docs/10_dev/status.md`. The gap-analysis `FIREWALLED_REQ`/`RES` TagList/TargetID framing is outdated; eMule/aMule use exact 2-byte port / 4-byte IPv4 (`docs/30_protocols/kad/kad2-compatibility-report.md`).
 
