@@ -37,7 +37,7 @@ namespace Hashes
 
 	bool Unhex(LPCTSTR psz, uchar* pOut)
 	{
-		register TCHAR c = *psz++;
+		TCHAR c = *psz++;
 		if ( c >= '0' && c <= '9' )
 			*pOut = uchar( ( c - '0' ) << 4 );
 		else if ( c >= 'A' && c <= 'F' )

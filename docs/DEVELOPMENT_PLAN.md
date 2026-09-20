@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #84 HashStringConversion: drop leftover `register` from `Unhex` (C++17). No hex decode behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 SkinWindow: drop leftover `register` from alpha-blend temp (C++17). No blend behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 UTF-16 byte-swap: drop leftover `register` from XML/DlgLanguage/PageSettingsSkins endian-swap temps (C++17). No decode behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 MatchObjects: drop leftover `register` storage class from `CMatchFile::Compare` (C++17). No sort behavior change.
