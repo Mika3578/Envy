@@ -135,8 +135,11 @@ comparison notes.
    - Protect develop already requests Copilot on ready-for-review and
      on push; keep draft review **off**.
    Assessment ≠ approval. Copilot-authored PRs still need a human.
-   Independent checks (builds, EnvyTests when C++ changes, CodeQL,
-   SonarCloud, gitleaks, secret-scan, PR Gate) stay required.
+   A Copilot `APPROVED` review is not proof of correctness (business
+   logic, production behavior, missed security, performance, or
+   architecture). Independent checks (builds, EnvyTests when C++
+   changes, CodeQL, SonarCloud, gitleaks, secret-scan, PR Gate) stay
+   required.
 4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks + **≥1 GitHub APPROVED review** on `Protect develop`.
 5. **Protect develop (live, re-verified 2026-09-20)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing

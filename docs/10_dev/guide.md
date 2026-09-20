@@ -15,7 +15,10 @@ Source of truth: `AGENTS.md`, `Visual Studio/Envy.sln`, and live GitHub rulesets
 
 Language/platform policy:
 
-- First-party targets: **C++20**
+- First-party **policy target**: **C++20**. Live Release|x64 for Envy,
+  HashLib, TorrentEnvy, and Unpacker still ends with `stdcpp17` (later
+  `LanguageStandard` wins), so those primary builds are C++17 until a
+  dedicated vcxproj cleanup. Keep that code C++17-clean.
 - Legacy plugins explicitly configured that way: **C++17**
 - Windows x64: primary supported build
 - Win32: legacy Stage A

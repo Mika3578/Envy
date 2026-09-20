@@ -15,3 +15,5 @@ For Copilot Code Review, follow `.github/skills/code-review/SKILL.md`.
 - `Wire-format impact: none` is not evidence for crypto, auth, threading,
   locking, memory, workflows, or `.github/settings.yml`.
 - Never approve a pull request authored by Copilot cloud agent.
+- A Copilot `APPROVED` review is not proof of correctness; required CI and
+  security checks stay independent.

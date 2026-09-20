@@ -63,7 +63,8 @@ request a human; do not `APPROVED`.
 - High-risk PRs: the matching evidence class above is present, and no
   blocking defect exists.
 - Do not treat CodeRabbit, Amazon Q, Sourcery, or an approval *assessment*
-  as an approval.
+  as an approval. A Copilot `APPROVED` review is not proof of correctness;
+  required CI and security checks stay independent.
 
 ## Submit `CHANGES_REQUESTED` when
 

@@ -124,8 +124,11 @@ git commit -m "Changes"
 ## 📏 Code Standards
 
 ### Language and Style
-- **C++20** for first-party targets; **C++17** only for legacy plugins
-  explicitly configured that way
+- **C++20** is the first-party **policy target**; **C++17** is required for
+  legacy plugins and, until a dedicated vcxproj cleanup, for live
+  Release|x64 Envy / HashLib / TorrentEnvy / Unpacker (those `ClCompile`
+  blocks currently end with `stdcpp17`, which overrides the earlier
+  `stdcpp20`). Keep that first-party code C++17-clean.
 - **MFC conventions** followed
 - **Unicode** (UTF-16) throughout
 - Prefer RAII / smart pointers for new ownership; match surrounding MFC style

@@ -1,5 +1,12 @@
 # Known inconsistencies
 
+- **Mixed C++17/C++20 Release|x64 baseline:** Policy is C++20 first-party and
+  C++17 legacy plugins (`AGENTS.md`, `MODERNIZATION.md`). Live MSBuild uses
+  the last `<LanguageStandard>` in a `ClCompile` block, so Release|x64 for
+  Envy, HashLib, TorrentEnvy, and Unpacker currently compiles as C++17
+  (`stdcpp20` then trailing `stdcpp17`). Canonical wording:
+  `docs/10_dev/standards.md`. Do not remove those overrides in a docs PR.
+
 - **Protect develop ruleset (re-verified 2026-09-20):** Live API now matches
   the maintainer target for **1 required approval**, Code Quality severity
   **All**, Copilot `review_on_push` **on**, and draft review **off**. Coverage
