@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #293 Copilot review: unclassified paths default to high-risk code/infra (Visual Studio, scripts, Remote, Unpacker, SkinBuilder, Repository, root build files).
 - **Changelog Entry:** 2026-09-20 — #293 Copilot review: review-governance files are high-risk and excluded from the Copilot counting allowlist; `Wire-format impact: none` no longer covers crypto/auth/threading/locking/memory.
 - **Changelog Entry:** 2026-09-20 — #293 Copilot review: risk-specific evidence (workflows/settings.yml cannot use wire-format text); ARM64 planned/unsupported in modernization table; C++20 first-party in standards.md; CHANGELOG playbook aligned with AGENTS.md.
 - **Changelog Entry:** 2026-09-20 — #293 Copilot review: remaining UI gaps are approve/count, Balanced effort, and path allowlist only; automatic review is already live on Protect develop; drop deleted `.cursor/rules/08-dev-workflow.mdc` pointer.
