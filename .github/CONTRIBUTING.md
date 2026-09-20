@@ -26,8 +26,10 @@ distributed under those terms.
    .\scripts\bootstrap-vcpkg.cmd
    ```
    `bootstrap-vcpkg.cmd` is the local equivalent of CI’s
-   `vcpkg install --triplet=…` step. Visual Studio does **not** restore
-   `vcpkg_installed\` before `PreBuildEvent`. See `docs/10_dev/build.md`.
+   `vcpkg install --triplet=…` step (default `x64-windows-static`). For Win32
+   use `-Triplet x86-windows-static`; for both platforms / `build_all.ps1` use
+   `-All`. Visual Studio does **not** restore `vcpkg_installed\` before
+   `PreBuildEvent`. See `docs/10_dev/build.md`.
 3. Open `Visual Studio\Envy.sln` and build (Ctrl+Shift+B).
 
 If you migrated from VS 2017/2019: run `Visual Studio\SetVS2026.bat` once
