@@ -31,10 +31,10 @@ constexpr size_t KAD_SEARCH_SOURCE_REQ_BODY_SIZE = KAD_ID_SIZE + sizeof(uint64_t
 // Encode <FileHash 16><FileSize 8> into out. Returns bytes written, or 0 if
 // outCap is too small. FileSize is little-endian (host LE on Windows/MSVC).
 inline size_t KadEncodeSearchSourceRequest(
-	uint8_t* out,
-	size_t outCap,
-	const uint8_t fileHash[KAD_ID_SIZE],
-	uint64_t fileSize)
+    uint8_t* out,
+    size_t outCap,
+    const uint8_t fileHash[KAD_ID_SIZE],
+    uint64_t fileSize)
 {
 	if (out == nullptr || fileHash == nullptr)
 		return 0;
@@ -50,9 +50,9 @@ inline size_t KadEncodeSearchSourceRequest(
 // Decode FileSize from a body that already consumed the 16-byte hash.
 // Returns false when fewer than 8 bytes remain (legacy hash-only peers).
 inline bool KadDecodeSearchSourceFileSize(
-	const uint8_t* bodyAfterHash,
-	size_t remaining,
-	uint64_t& outFileSize)
+    const uint8_t* bodyAfterHash,
+    size_t remaining,
+    uint64_t& outFileSize)
 {
 	outFileSize = 0;
 	if (bodyAfterHash == nullptr || remaining < sizeof(uint64_t))
@@ -69,13 +69,13 @@ inline bool KadDecodeSearchSourceFileSize(
 // acquisition. Period is wall-clock ms (GetTickCount style); tLastTrigger==0
 // means never triggered. Size must be known — FileSize is required on the wire.
 inline bool KadMayTriggerSourceSearch(
-	bool bEnableKad,
-	bool bKadInitialized,
-	bool bHasEd2kHash,
-	bool bSizeKnown,
-	uint32_t tNow,
-	uint32_t tLastTrigger,
-	uint32_t nMinPeriodMs)
+    bool bEnableKad,
+    bool bKadInitialized,
+    bool bHasEd2kHash,
+    bool bSizeKnown,
+    uint32_t tNow,
+    uint32_t tLastTrigger,
+    uint32_t nMinPeriodMs)
 {
 	if (!bEnableKad || !bKadInitialized || !bHasEd2kHash || !bSizeKnown)
 		return false;

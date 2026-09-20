@@ -21,7 +21,7 @@ static bool test_encode_body_size()
 		hash[i] = static_cast<uint8_t>(i + 1);
 
 	const size_t n = KadEncodeSearchSourceRequest(
-		buf.data(), buf.size(), hash.data(), 0x1122334455667788ull);
+	    buf.data(), buf.size(), hash.data(), 0x1122334455667788ull);
 	if (n != KAD_SEARCH_SOURCE_REQ_BODY_SIZE)
 		return false;
 	if (std::memcmp(buf.data(), hash.data(), KAD_ID_SIZE) != 0)
