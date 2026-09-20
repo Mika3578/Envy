@@ -108,7 +108,7 @@ def sanitize_tree(src_dir: Path, dest_dir: Path, extra_needles: Iterable[str] = 
         if path.is_dir():
             continue
         rel = path.relative_to(src_dir)
-        # Keep raw pcaps out of sanitized/committed trees.
-        if path.suffix.lower() in {".pcap", ".pcapng", ".key", ".pem", ".pfx"}:
+        # Keep raw captures / keys out of sanitized/committed trees.
+        if path.suffix.lower() in {".pcap", ".pcapng", ".bin", ".key", ".pem", ".pfx"}:
             continue
         sanitize_file(path, dest_dir / rel, extra_needles)

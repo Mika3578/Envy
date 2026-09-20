@@ -265,11 +265,17 @@ def extract_kad_udp_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHi
                 details["has_filehash"] = True
                 details["has_filesize"] = len(body) >= 24
         elif opcode == KAD_OP_SEARCH_RES:
-            if len(body) < 17:
-                details["parse_error"] = f"SEARCH_RES body too short ({len(body)} < 17)"
+            # Production layout (KadSearchResDelivery.h / Kademlia.cpp):
+            # <SenderID 16><TargetID 16><Count 2 LE>[answers…]
+            min_header = 16 + 16 + 2
+            if len(body) < min_header:
+                details["parse_error"] = (
+                    f"SEARCH_RES body too short ({len(body)} < {min_header})"
+                )
             else:
-                details["has_filehash"] = True
-                details["result_count"] = body[16]
+                details["has_sender_id"] = True
+                details["has_target_id"] = True
+                details["result_count"] = struct.unpack_from("<H", body, 32)[0]
         hits.append(
             FrameHit(
                 protocol=proto,

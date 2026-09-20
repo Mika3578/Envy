@@ -200,7 +200,7 @@ _add(
         "capability_negotiation",
         "Capability negotiation from Hello-family evidence",
         production=ProductionState.IMPLEMENTED,
-        labels=("hello",),
+        # No evidence_labels: dedicated Hello parse + compare_envy_advertisement path.
     )
 )
 _add(_live("peer_transfer", "Basic peer transfer of the generated fixture", production=ProductionState.IMPLEMENTED))

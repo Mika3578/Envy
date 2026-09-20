@@ -230,14 +230,21 @@ class EvidenceExtractorTests(unittest.TestCase):
         self.assertNotIn("167772170", dumped)  # would be LE int of 10.0.0.1
 
     def test_kad_udp_search_res_opcode_3b(self) -> None:
-        # <0xE4><0x3B><hash16><count1>
-        body = b"\x11" * 16 + bytes([0])
+        # Production: <SenderID 16><TargetID 16><Count 2 LE>
+        body = (b"\x11" * 16) + (b"\x22" * 16) + struct.pack("<H", 0)
         datagram = bytes([0xE4, 0x3B]) + body
         hits = extract_kad_udp_frames(datagram)
         self.assertEqual(len(hits), 1)
         self.assertEqual(hits[0].label, "kad_search_res")
         self.assertEqual(hits[0].opcode, 0x3B)
         self.assertEqual(hits[0].protocol, 0xE4)
+        self.assertEqual(hits[0].details.get("result_count"), 0)
+        self.assertNotIn("parse_error", hits[0].details)
+        # Truncated old layout must fail closed.
+        short = bytes([0xE4, 0x3B]) + (b"\x11" * 16) + bytes([0])
+        short_hits = extract_kad_udp_frames(short)
+        self.assertTrue(short_hits[0].details.get("parse_error"))
+        self.assertFalse(require_labels(short_hits, ["kad_search_res"])[0])
 
     def test_kad_udp_not_confused_with_c5_tcp(self) -> None:
         # Old bug: SEARCH_RES 0x35 on C5 would mislabel SEARCH_NOTES as kad_search_res.
