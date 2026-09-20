@@ -7,7 +7,9 @@ alwaysApply: false
 # C++ standards (Envy)
 
 ## Baseline
-- Target: **C++20**, keep changes **C++17 compatible** unless the project has been bumped.
+- **C++20** for first-party targets; **C++17** only for legacy plugin targets
+  that are explicitly configured that way.
+- Do not downgrade first-party code to C++17 for artificial compatibility.
 - Prefer small, local modernizations; avoid “rewrite” refactors.
 
 ## Ownership + lifetime (hard rules)
@@ -29,7 +31,9 @@ alwaysApply: false
 ## Style (practical)
 - Use range-for and standard algorithms when they improve readability.
 - Use `auto` for iterators/long types; keep explicit types when it aids clarity with MFC types.
-- Keep includes grouped: standard → MFC/Win32 → project.
+- In `.cpp` files keep `StdAfx.h` first, then the file's own header,
+  project headers, SDK/MFC/Win32 headers, and standard headers as the local
+  file style requires. Do not reorder legacy includes gratuitously.
 
 ## MFC interoperability notes
 - For MFC class members: use `BOOL` for flags (locals can use `bool`).
