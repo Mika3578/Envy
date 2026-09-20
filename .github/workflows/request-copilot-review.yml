@@ -2,49 +2,89 @@
 # Agent tokens cannot call requestReviewers (403); Actions GITHUB_TOKEN can.
 # Safe after merge: the job is gated to pull_request.number == 294 (never runs again).
 # Follow-up: delete this workflow once #294 has landed.
+#
+# Important: requestReviews(union:true) is a no-op when Copilot is already on the
+# review-request list — it does not emit ReviewRequestedEvent and does not start
+# a fresh review on a new HEAD. Always remove, then request.
 
 name: Request Copilot review
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number (must be 294)"
+        required: true
+        default: "294"
 
 permissions:
   contents: read
   pull-requests: write
 
 concurrency:
-  group: request-copilot-${{ github.event.pull_request.number }}
+  group: request-copilot-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
   request:
     name: Request Copilot on #294
     if: >
-      github.event.pull_request.number == 294 &&
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.number == 294 &&
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      ) || (
+        github.event_name == 'workflow_dispatch' &&
+        github.event.inputs.pr_number == '294'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Request Copilot review (GraphQL botIds)
+      - name: Remove then request Copilot review
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.event.repository.name }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
         run: |
           set -euo pipefail
           PR_NODE="$(gh api graphql -f query='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){id}}}' -f o="$OWNER" -f n="$REPO" -F p="$PR_NUMBER" --jq '.data.repository.pullRequest.id')"
           BOT_NODE="$(gh api '/users/copilot-pull-request-reviewer%5Bbot%5D' --jq .node_id)"
-          echo "PR node=$PR_NODE bot=$BOT_NODE"
-          # Pass botIds as a GraphQL variable array via --input JSON.
+          BOT_LOGIN="copilot-pull-request-reviewer"
+          echo "PR node=$PR_NODE bot=$BOT_NODE pr=$PR_NUMBER"
+
+          # Drop any existing request so the next requestReviews emits a fresh
+          # ReviewRequestedEvent (union:true alone does not re-trigger Copilot).
+          echo "Removing existing Copilot review request (ignore if none)..."
+          gh api -X DELETE "repos/$OWNER/$REPO/pulls/$PR_NUMBER/requested_reviewers" \
+            --input - <<< "{\"reviewers\":[\"$BOT_LOGIN\"]}" \
+            || true
+          gh api graphql --input - <<EOF || true
+          {
+            "query": "mutation(\$pr:ID!,\$ids:[ID!]!){deletePullRequestReviewRequest(input:{pullRequestId:\$pr,userIds:\$ids}){clientMutationId}}",
+            "variables": {
+              "pr": "$PR_NODE",
+              "ids": ["$BOT_NODE"]
+            }
+          }
+          EOF
+          sleep 2
+
+          echo "Requesting Copilot review..."
           gh api graphql --input - <<EOF
           {
-            "query": "mutation(\$pr:ID!,\$bots:[ID!]!){requestReviews(input:{pullRequestId:\$pr,botIds:\$bots,union:true}){clientMutationId}}",
+            "query": "mutation(\$pr:ID!,\$bots:[ID!]!){requestReviews(input:{pullRequestId:\$pr,botIds:\$bots,union:false}){clientMutationId}}",
             "variables": {
               "pr": "$PR_NODE",
               "bots": ["$BOT_NODE"]
             }
           }
           EOF
+
+          echo "Verify reviewRequests:"
+          gh api graphql -f query='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewRequests(first:10){nodes{requestedReviewer{__typename ... on Bot{login} ... on User{login}}}}}}}' \
+            -f o="$OWNER" -f n="$REPO" -F p="$PR_NUMBER" \
+            --jq '.data.repository.pullRequest.reviewRequests.nodes'
