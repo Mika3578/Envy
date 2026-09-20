@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release pipeline validation scripts** — `scripts/release/verify-version.ps1`, `stage-portable.ps1`, `verify-artifacts.ps1`, `publish-draft-release.ps1`, and `repair-draft-release.ps1` gate tag/`version.json`/`Envy.rc`/`Envy.exe` consistency, stage a full portable runtime tree, verify SHA256 + ZIP/setup sanity, and support idempotent draft asset repair.
 
 ### Fixed
+- **StdAfx.cpp `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `InitGetMicroCount` / `NoThrowNew` / OOM handlers. Behavior unchanged.
 - **CLocked `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `CLocked::operator T` / `operator->`. Behavior unchanged.
 - **CoolMenu `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `SafeTrackPopupMenu` / `SafeQueryContextMenu`. Behavior unchanged.
 - **EnvyFile `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specification on `CEnvyFile::GetSize`. Behavior unchanged.
