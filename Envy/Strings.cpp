@@ -168,13 +168,13 @@ TCHAR CLowerCaseTable::operator()(TCHAR cLookup) const
 
 CString& CLowerCaseTable::operator()(CString& strSource) const
 {
-	register const int nLength = strSource.GetLength();
-	register LPTSTR str = strSource.GetBuffer();
+	const int nLength = strSource.GetLength();
+	LPTSTR str = strSource.GetBuffer();
 	for ( int i = 0; i < nLength; ++i, ++str )
 	{
 		// A...Z -> a...z
-		register TCHAR l = *str;
-		register TCHAR r = ToLower( l );
+		TCHAR l = *str;
+		TCHAR r = ToLower(l);
 		if ( l != r ) *str = r;
 	}
 	strSource.ReleaseBuffer( nLength );
@@ -184,12 +184,12 @@ CString& CLowerCaseTable::operator()(CString& strSource) const
 
 CString& CLowerCaseTable::Clean(CString& strSource) const
 {
-	register const int nLength = strSource.GetLength();
-	register const int nExt = strSource.ReverseFind( L'.' );
-	register LPTSTR str = strSource.GetBuffer();
+	const int nLength = strSource.GetLength();
+	const int nExt = strSource.ReverseFind(L'.');
+	LPTSTR str = strSource.GetBuffer();
 	for ( int i = 0; i < nLength; ++i, ++str )
 	{
-		register TCHAR l = *str;
+		TCHAR l = *str;
 		switch ( l )
 		{
 		case L'_':
@@ -229,7 +229,7 @@ CString& CLowerCaseTable::Clean(CString& strSource) const
 			break;
 
 		default:
-			register TCHAR r = ToLower( l );
+			TCHAR r = ToLower(l);
 			if ( l != r ) *str = r;
 		}
 	}
@@ -849,7 +849,7 @@ CString LoadFile(LPCTSTR pszPath)
 			pByte += 2;
 			for ( DWORD nSwap = 0; nSwap < nByte; nSwap ++ )
 			{
-				register BYTE nTemp = pByte[ ( nSwap << 1 ) + 0 ];
+				BYTE nTemp = pByte[(nSwap << 1) + 0];
 				pByte[ ( nSwap << 1 ) + 0 ] = pByte[ ( nSwap << 1 ) + 1 ];
 				pByte[ ( nSwap << 1 ) + 1 ] = nTemp;
 			}
