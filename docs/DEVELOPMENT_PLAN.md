@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — Agent/workflow governance: consolidate repository-wide AI rules into `AGENTS.md`; remove legacy/duplicate Cursor and GitHub agent rule copies; add mandatory live-state preflight; set target Protect develop policy to 1 valid approval (Copilot may count when configured), Code Quality `All`, automatic Copilot review/re-review, coverage gate deferred until measured; mark ARM64 planned/unsupported in issue forms; refresh developer guide.
 - **Changelog Entry:** 2026-09-20 — #84 Settings: replace `throw()` with `noexcept` on five `Add` overloads and `SmartAgent` (C++20; Item ctors deferred). No behavior change.
 - **Changelog Entry:** 2026-09-20 — Crashpad: idempotent `CrashPadHost::Start`; single `CrashReporter::Initialize` from `InitInstance` (fix Debug double `StartHandler` DCHECK).
 - **Changelog Entry:** 2026-09-20 — #84 ComObject: replace `throw()` with `noexcept` on CComObjectPtr members (C++20). No behavior change.
