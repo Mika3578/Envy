@@ -60,7 +60,7 @@ protected:
 	virtual void OnRun() = 0;
 
 public:
-	inline bool BeginThread(LPCSTR szName = NULL, int nPriority = THREAD_PRIORITY_NORMAL) throw()
+	inline bool BeginThread(LPCSTR szName = NULL, int nPriority = THREAD_PRIORITY_NORMAL) noexcept
 	{
 		if ( IsThreadAlive() )
 			return true;
@@ -70,7 +70,7 @@ public:
 		return ( CEnvyThread::BeginThread( szName, ThreadStart, this, nPriority, 0, 0, NULL, &m_nThreadID ) != NULL );
 	}
 
-	inline void CloseThread(DWORD dwTimeout = ALMOST_INFINITE) throw()
+	inline void CloseThread(DWORD dwTimeout = ALMOST_INFINITE) noexcept
 	{
 		m_pCancel.SetEvent();		// Ask thread for exit
 		m_pWakeup.SetEvent();		// Wakeup thread if any
@@ -85,7 +85,7 @@ public:
 		}
 	}
 
-	inline void Wait() throw()
+	inline void Wait() noexcept
 	{
 		if ( ! InterlockedCompareExchange( &m_bCancelled, TRUE, FALSE ) )
 		{
@@ -98,12 +98,12 @@ public:
 		}
 	}
 
-	inline bool Wakeup() throw()
+	inline bool Wakeup() noexcept
 	{
 		return ( m_pWakeup.SetEvent() != FALSE );
 	}
 
-	inline void Doze(DWORD dwTimeout) throw()	// = INFINITE
+	inline void Doze(DWORD dwTimeout) noexcept // = INFINITE
 	{
 		SwitchToThread();
 		do
@@ -113,27 +113,27 @@ public:
 		while ( MsgWaitForMultipleObjects( 1, &m_pWakeup.m_hObject, FALSE, dwTimeout, QS_ALLINPUT | QS_ALLPOSTMESSAGE ) == WAIT_OBJECT_0 + 1 );
 	}
 
-	inline HANDLE GetWakeupEvent() const throw()
+	inline HANDLE GetWakeupEvent() const noexcept
 	{
 		return m_pWakeup;
 	}
 
-	inline bool IsThreadEnabled(DWORD dwTimeout = 0) const throw()
+	inline bool IsThreadEnabled(DWORD dwTimeout = 0) const noexcept
 	{
 		return ( WaitForSingleObject( m_pCancel, dwTimeout ) == WAIT_TIMEOUT );
 	}
 
-	inline bool IsThreadAlive() const throw()
+	inline bool IsThreadAlive() const noexcept
 	{
 		return CEnvyThread::IsThreadAlive( m_nThreadID );
 	}
 
-	inline void Exit() throw()
+	inline void Exit() noexcept
 	{
 		m_pCancel.SetEvent();
 	}
 
-	inline bool SetThreadPriority(int nPriority) throw()
+	inline bool SetThreadPriority(int nPriority) noexcept
 	{
 		return CEnvyThread::SetThreadPriority( m_nThreadID, nPriority );
 	}
