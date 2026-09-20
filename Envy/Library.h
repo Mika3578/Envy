@@ -122,8 +122,8 @@ public:
 protected:
 	void			OnRun();
 	void			Serialize(CArchive& ar);
-	BOOL			SafeReadTime(CFile& pFile, FILETIME* pFileTime) throw();
-	BOOL			SafeSerialize(CArchive& ar) throw();
+	BOOL SafeReadTime(CFile& pFile, FILETIME* pFileTime) noexcept;
+	BOOL SafeSerialize(CArchive& ar) noexcept;
 	BOOL			ThreadScan();
 
 // Automation
