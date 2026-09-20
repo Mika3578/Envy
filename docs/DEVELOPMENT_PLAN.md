@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #84 UPnPFinder: replace `throw()` with `noexcept` on CreateFinderInstance/ProcessAsyncFind (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 EDPacket: replace `throw()` with `noexcept` on CEDPacketTypes/GetAt (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 Library: replace `throw()` with `noexcept` on SafeReadTime/SafeSerialize (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 Application: replace `throw()` with `noexcept` on GetApp/GetUI/GetSettings (C++20). No behavior change.

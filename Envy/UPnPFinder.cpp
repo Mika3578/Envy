@@ -66,7 +66,7 @@ bool CUPnPFinder::Init()
 	return m_bInited;
 }
 
-CUPnPFinder::FinderPointer CUPnPFinder::CreateFinderInstance() throw()
+CUPnPFinder::FinderPointer CUPnPFinder::CreateFinderInstance() noexcept
 {
 	FinderPointer pNewDeviceFinder;
 	if ( FAILED( pNewDeviceFinder.CoCreateInstance( CLSID_UPnPDeviceFinder ) ) )
@@ -88,7 +88,7 @@ CUPnPFinder::~CUPnPFinder()
 // Note IsServiceHealthy() moved to Network
 
 // Helper function for processing the AsyncFind search
-void CUPnPFinder::ProcessAsyncFind(BSTR bsSearchType) throw()
+void CUPnPFinder::ProcessAsyncFind(BSTR bsSearchType) noexcept
 {
 	HRESULT hr;
 
