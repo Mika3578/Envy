@@ -45,17 +45,23 @@ relax Quality Gate thresholds to pass.
 
 BLOCK (native GitHub review rules on Protect develop — not replaceable by PR Gate):
 
-- **Intended:** ≥ **1** approving GitHub review (not the PR author; not a
-  self-approve bot). **Live API 2026-09-19:** `required_approving_review_count: 0`
-  — restore to 1 or update this doc after maintainer decision
+- **Target policy (maintainer decision 2026-09-20):** ≥ **1** approving GitHub
+  review from a reviewer other than the PR author. GitHub Copilot Code Review
+  may satisfy the approval only when repository settings allow Copilot
+  approvals to count and GitHub records an actual `APPROVED` review. Never
+  manufacture approval with Actions/self-approval. **Live API at the last
+  check still reported 0 approvals required**, so the ruleset must be changed
+  manually before this target is enforceable
   ([KNOWN_INCONSISTENCIES](../00_index/KNOWN_INCONSISTENCIES.md)).
 - Dismiss stale reviews on new commits (**on**)
 - Require approval of the most recent reviewable push (**off** — intentional)
 - Resolve all review conversations / threads
 - Signed commits; force pushes blocked (`non_fast_forward`)
 - Code scanning merge protection: CodeQL + Gitleaks (current thresholds)
-- Live ruleset also has a GitHub **Code Quality** rule at severity `notes`
-  (docs previously said “none”; prefer SonarCloud + CodeQL + CI for blocking)
+- GitHub **Code Quality** target is severity **All** (maintainer decision
+  2026-09-20). The live ruleset was last observed at `notes`, which is already
+  strict but not maximal. Code Quality complements — it does not replace —
+  SonarCloud/CodeQL/MSVC/tests for the C++ core.
 - No draft; squash only on `develop`; linear history; **no bypass actors**
 
 ADVISORY: CodeRabbit, clang-tidy + reviewdog, Snyk (when present), Cursor Bugbot
@@ -89,8 +95,9 @@ Do not add `regex` to `enabledManagers` unless a real `customManagers` regex ent
 
 | Tool | Role | Cost posture |
 | --- | --- | --- |
-| CodeRabbit | Default automatic PR review | Free for public OSS — install GitHub App |
-| reviewdog + clang-tidy | Line annotations on PR diffs | Free Actions minutes |
+| GitHub Copilot Code Review | Required approval reviewer when auto-approval/counting are enabled | Balanced review effort recommended |
+| CodeRabbit | Advisory automatic/manual review | Free for public OSS — install GitHub App |
+| reviewdog + clang-tidy | Advisory line annotations on PR diffs | Free Actions minutes |
 | Qodo / PR-Agent | Manual on high-risk PRs only | Optional |
 | Cursor Bugbot | Exceptional / paid | Not primary |
 
@@ -112,22 +119,34 @@ comparison notes.
    Mend portal. Success signal: Renovate check suites leave `queued`, a **Dependency
    Dashboard** issue appears, and (for non-major / approved majors) `renovate/*` branches
    or PRs. Config file: root `renovate.json` only — do not reintroduce `renovate.json5`.
-3. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks + **≥1 GitHub APPROVED review** on `Protect develop`.
-4. **Protect develop (live, verified)** — Source of truth is
+3. **GitHub Copilot Code Review** — Repository Settings → Copilot → Code
+   review: use **Balanced** effort; enable **Allow Copilot to approve pull
+   requests** and **Allow Copilot approvals to count toward merge
+   requirements**. In Protect develop, enable automatic Copilot review,
+   review new pushes, and leave draft review off unless early feedback is
+   explicitly desired.
+4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks + **≥1 GitHub APPROVED review** on `Protect develop`.
+5. **Protect develop (live + target)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing
    docs). Snapshot 2026-09-19 + intended knobs:
-   - Required approvals: **intended 1** / **live API 0** (reconcile)
+   - Required approvals: **target 1** / last live API observation **0**
    - Dismiss stale pull request approvals when new commits are pushed: **on**
    - Require approval of the most recent reviewable push: **off**
    - Require conversation resolution before merging: **on**
+   - Additional approval for unattributed Copilot PRs: **off** for the
+     solo-maintainer/agent workflow
    - Allowed merge methods: **squash** only
-   - Signed commits: **on**; Block force pushes: **on**; Bypass list: **empty**
-   - Code scanning: CodeQL + Gitleaks (do not tighten thresholds until
-     C++/JS/C# analyses are deterministic on every PR)
-   - GitHub Code Quality ruleset: live **notes**; blocking still via
-     SonarCloud + CodeQL + CI
-   - Automatically request Copilot code review: **off**
-5. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
+   - Require branches up to date before merging: **on**
+   - Signed commits: **on**; block force pushes: **on**; deletion blocked;
+     bypass list: **empty**
+   - Code scanning: CodeQL + Gitleaks with existing thresholds unless a
+     separate measured change justifies tightening
+   - GitHub Code Quality: **target All**; last live observation **notes**
+   - Restrict code coverage: **off for now** — do not enable until PR coverage
+     data is uploaded reliably and a baseline has been measured
+   - Automatically request Copilot code review: **on**; review new pushes:
+     **on**; review drafts: **off**
+6. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 
 ## Agent PR back-pressure
 
