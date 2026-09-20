@@ -103,7 +103,7 @@ void CQueryHashGroup::Operate(CQueryHashTable* pTable, BOOL bAdd)
 	{
 		for ( DWORD nHash = m_nHash >> 3; nHash; nHash-- )
 		{
-			register BYTE nSource = *pSource++;
+			BYTE nSource = *pSource++;
 
 			if ( ( nSource & 0x01 ) == 0 ) (*pTarget++) ++; else pTarget++;
 			if ( ( nSource & 0x02 ) == 0 ) (*pTarget++) ++; else pTarget++;
@@ -119,7 +119,7 @@ void CQueryHashGroup::Operate(CQueryHashTable* pTable, BOOL bAdd)
 	{
 		for ( DWORD nHash = m_nHash >> 3; nHash; nHash-- )
 		{
-			register BYTE nSource = *pSource++;
+			BYTE nSource = *pSource++;
 
 			if ( ( nSource & 0x01 ) == 0 ) (*pTarget++) --; else pTarget++;
 			if ( ( nSource & 0x02 ) == 0 ) (*pTarget++) --; else pTarget++;
