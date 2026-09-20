@@ -14,31 +14,40 @@ gates below hold and repository Copilot approval settings allow it.
 
 ## Risk class
 
-**Low-risk (docs/rules/i18n/skills):** `docs/**`, `*.md`, `*.mdc`,
-`.github/ISSUE_TEMPLATE/**`, `.github/skills/**`,
-`.github/copilot-instructions.md`, `.github/CONTRIBUTING.md`,
+**Low-risk (docs/i18n/adapters):** `docs/**`, `*.mdc`,
+`.github/ISSUE_TEMPLATE/**`, `.github/CONTRIBUTING.md`,
 `.cursor/**`, `.continue/**`, `.clinerules`, `.windsurfrules`,
-`.cursorrules`, `Languages/**`, `AGENTS.md`, `CLAUDE.md`.
+`.cursorrules`, `Languages/**`, `CHANGELOG.md`, `MODERNIZATION.md`.
 
-**High-risk:** `Envy/**`, `HashLib/**`, `Plugins/**`, `Services/**`,
-`TorrentEnvy/**`, `.github/workflows/**`, `.github/settings.yml`,
-installer/infra, protocol, crypto, auth, networking, packet parse,
-threading, locking, memory.
+**High-risk review-governance:** `AGENTS.md`,
+`.github/copilot-instructions.md`, `.github/skills/**`.
+
+**High-risk code/infra:** `Envy/**`, `HashLib/**`, `Plugins/**`,
+`Services/**`, `TorrentEnvy/**`, `.github/workflows/**`,
+`.github/settings.yml`, installer/infra, protocol, crypto, auth,
+networking, packet parse, threading, locking, memory.
 
 If **any** changed file is high-risk, treat the whole pull request as
-high-risk, **except** when the high-risk file's actual diff is comments
-or documentation only (assess that file on the diff, not the path).
-Copilot cloud-agent authored PRs: comment and request a human; do not
-`APPROVED` (no self-approval).
+high-risk, **except** comment-only diffs on code/infra paths (not on
+review-governance files). Copilot cloud-agent authored PRs: comment and
+request a human; do not `APPROVED`.
 
 ## Evidence by risk
 
-- **Protocol / C++ / crypto / networking:** a regression or protocol
-  comparison, **or** an explicit `Wire-format impact: none`.
+- **Protocol / packet parse / networking:** a regression or protocol
+  comparison, **or** `Wire-format impact: none` when the change cannot
+  affect the wire.
+- **Crypto, authentication, threading, locking, memory lifetime:**
+  targeted tests or an explicit validation of that risk.
+  `Wire-format impact: none` is **not** enough.
 - **Workflows / `.github/settings.yml` / installer / infra:** targeted
-  CI or security validation for that change (required checks still
-  green; no secrets, permissions, or protection weakening).
-  `Wire-format impact: none` does **not** satisfy this class.
+  CI or security validation (required checks green; no secrets,
+  permissions, or protection weakening). Wire-format text is not enough.
+- **Review-governance:** required CI green, and the diff must not reduce
+  required approvals, required checks, Copilot self-approval bans, or
+  quality gates. Tightening/clarifying is OK. Weakening is
+  `CHANGES_REQUESTED`. Recommended path allowlist excludes these files,
+  so Copilot's `APPROVED` does not count unless the allowlist is blank.
 
 ## Submit `APPROVED` when all of the following hold
 
@@ -57,8 +66,9 @@ Copilot cloud-agent authored PRs: comment and request a human; do not
 
 - A required gate is missing, skipped, or bypassed.
 - A blocking defect, unsafe parse, or undocumented wire-format change exists.
-- Protocol/C++ high-risk change lacks protocol evidence or
+- Protocol high-risk change lacks protocol evidence or a justified
   `Wire-format impact: none`.
-- Workflow/infra/settings.yml high-risk change lacks targeted CI/security
-  validation (wire-format text is not enough).
+- Crypto/auth/threading/locking/memory change lacks targeted validation.
+- Workflow/infra/settings.yml change lacks targeted CI/security validation.
+- Review-governance change weakens merge gates or self-approval bans.
 - Branch naming uses a tool/agent prefix (`cursor/`, `claude/`, …).

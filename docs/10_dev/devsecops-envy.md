@@ -121,15 +121,17 @@ comparison notes.
    - **Allow Copilot to approve pull requests:** ON
    - **Allow Copilot approvals to count toward merge requirements:** ON
    - Path allowlist (≤15 globs; every changed file must match, or the
-     approval does not count). Recommended Stage-3 list for docs/rules
-     PRs such as #293: `docs/**`, `**/*.md`, `**/*.mdc`,
-     `.github/ISSUE_TEMPLATE/**`, `.github/skills/**`,
-     `.cursor/**`, `.continue/**`,
-     `.clinerules`, `.windsurfrules`, `.cursorrules`, `Languages/**`.
-     Do **not** include `.github/settings.yml` or `.github/workflows/**`
-     (high-risk infra). Leave the list **blank** only if Copilot must also
-     satisfy C++ PRs; then the code-review skill + required CI remain the
-     safety net.
+     approval does not count). Recommended Stage-3 list:
+     `docs/**`, `**/*.mdc`, `.github/ISSUE_TEMPLATE/**`,
+     `.github/CONTRIBUTING.md`, `.cursor/**`, `.continue/**`,
+     `.clinerules`, `.windsurfrules`, `.cursorrules`, `Languages/**`,
+     `CHANGELOG.md`, `MODERNIZATION.md`.
+     Exclude review-governance (`AGENTS.md`, `.github/copilot-instructions.md`,
+     `.github/skills/**`) and infra (`.github/settings.yml`,
+     `.github/workflows/**`). Do not use `**/*.md` (it would include
+     `AGENTS.md`). Leave the list **blank** only for a one-shot merge
+     where Copilot must count on a governance PR (then apply the globs
+     immediately after).
    - Protect develop already requests Copilot on ready-for-review and
      on push; keep draft review **off**.
    Assessment ≠ approval. Copilot-authored PRs still need a human.
@@ -158,8 +160,8 @@ comparison notes.
 6. **GitHub Copilot Code Review (repository UI — manual verify):** Settings →
    Copilot → Code review: effort **Balanced**; **Allow Copilot to approve pull
    requests** ON; **Allow Copilot approvals to count toward merge
-   requirements** ON; path allowlist as in item 3 (docs/rules Stage 3, or
-   blank only if C++ PRs must also count). Automatically request Copilot
+   requirements** ON; path allowlist as in item 3 (exclude
+   review-governance and infra). Automatically request Copilot
    code review is already on via Protect develop (`review_on_push`). These
    toggles and globs are not on the ruleset API. See
    [Using AI-Approved Pull Requests Safely with GitHub Copilot](https://www.c-sharpcorner.com/article/using-ai-approved-pull-requests-safely-with-github-copilot/).

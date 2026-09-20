@@ -129,11 +129,16 @@ Branch model:
     Network/NAT, packet parsing, serialization, crypto, authentication,
     threading, locking, memory lifetime), also require sufficient evidence:
     a regression test, protocol/spec comparison, comparison with
-    eMule/aMule/Shareaza (or another relevant reference), **or** an explicit
-    `Wire-format impact: none` justification in the PR. Workflow,
-    `.github/settings.yml`, and installer/infra changes need targeted
-    CI/security validation instead; `Wire-format impact: none` does not
-    cover them.
+    eMule/aMule/Shareaza (or another relevant reference). Use
+    `Wire-format impact: none` only for protocol/packet/networking changes
+    that cannot affect the wire. Crypto, authentication, threading,
+    locking, and memory-lifetime changes need targeted tests or explicit
+    validation of that risk; wire-format text does not cover them.
+    Workflow, `.github/settings.yml`, and installer/infra changes need
+    targeted CI/security validation. Review-governance files (`AGENTS.md`,
+    `.github/copilot-instructions.md`, `.github/skills/**`) are high-risk:
+    do not reduce required approvals, required checks, or self-approval
+    bans; Copilot counting should exclude those paths.
     **Never** bypass GitHub rulesets, required checks, or branch
     protections (`--admin`, elevated PATs, force-push to protected refs).
     Never push to `main`/`develop`/`legacy` directly.
