@@ -58,7 +58,7 @@ protected:
 
 public:
 	// True if the socket is valid, false if its closed
-	inline BOOL IsValid() const throw()
+	inline BOOL IsValid() const noexcept
 	{
 		return ( m_hSocket != INVALID_SOCKET );
 	}
