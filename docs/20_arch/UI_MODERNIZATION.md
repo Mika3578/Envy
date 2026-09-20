@@ -3,7 +3,7 @@
 Status: **PLANNED** (Phase 0 audit complete; Phase 1+ not started)  
 Last updated: 2026-09-20  
 Tracker: [#295](https://github.com/Mika3578/Envy/issues/295)  
-Audit base: `develop` @ `8ebf25a` (rebased after #292; audit originally against `d3095e9`)
+Audit base: `develop` @ `ccb4d20` (rebased after #292 and #293; original audit against `d3095e9`)
 
 This document is the single source of truth for progressive modernization of the
 **Windows MFC** desktop UI. Labels used below:
