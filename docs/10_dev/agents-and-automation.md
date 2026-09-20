@@ -1,6 +1,6 @@
 # Envy Development Agents & Automation
 
-**Last Updated:** 2026-09-19
+**Last Updated:** 2026-09-20
 
 ## What exists today
 
@@ -81,13 +81,16 @@ sets `run_windows_build=false` (same always-emit pattern as Documentation
 Check). They must not stay SKIPPED under a strict ruleset.
 
 CodeRabbit / reviewdog / Bugbot are **advisory** and must not be the sole
-merge blocker. Native GitHub review policy on Protect develop (**intended**
-≥1 APPROVED; live API showed `0` on 2026-09-19 — see
+merge blocker. Live native review policy on Protect develop (re-verified
+2026-09-20) is **≥1 APPROVED** review from a non-author reviewer. In this
+solo-maintainer repo, GitHub Copilot Code Review may satisfy it only when
+approval/counting are enabled in the Copilot repository UI, any path
+allowlist matches every changed file, and GitHub records an actual
+`APPROVED` review. An assessment is not an approval. See
 [KNOWN_INCONSISTENCIES](../00_index/KNOWN_INCONSISTENCIES.md) and
-[CI_AUDIT_2026-09](CI_AUDIT_2026-09.md); dismiss stale on push,
-`require_last_push_approval` off, resolve conversations, signed commits,
-force pushes blocked) is separate from these advisors and from PR Gate
-(CI wait only).
+[CI_AUDIT_2026-09](CI_AUDIT_2026-09.md). Dismiss stale on push remains on,
+`require_last_push_approval` off, conversations resolved, signed commits,
+force pushes blocked. PR Gate is CI wait only.
 
 See [devsecops-envy.md](devsecops-envy.md) for the full stack map.
 Measured timings, critical path, and CI cost notes live in
@@ -148,7 +151,7 @@ Do not reintroduce mutable `@vN` tags for external actions.
 | **Code analysis** | MSVC Code Analysis on `develop`/nightly; CodeQL (`none` on PR C++, manual on `develop`); `.clang-tidy` + reviewdog on PRs (advisory) |
 | **Format / docs** | `clang-format-diff-18` on changed hunks under `Envy/`, `TorrentEnvy/`, `HashLib/` (blocking); markdown link check when docs change |
 | **Dependencies** | Dependabot (vcpkg), Renovate (GitHub Actions), dependency review, vcpkg manifest sanity |
-| **AI review** | CodeRabbit (advisory); Qodo/Bugbot optional/manual |
+| **AI review** | Copilot Code Review = target approval reviewer (skill `.github/skills/code-review/SKILL.md`); CodeRabbit/reviewdog/Qodo/Bugbot remain advisory |
 | **Testing** | `EnvyTests.exe` after PR and `develop` MSBuild; Remote JS tests when `Remote/` changes; local `.\scripts\ci-verify.ps1` |
 | **Security** | Gitleaks on every PR, CodeQL, dependency review |
 

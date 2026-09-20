@@ -1,60 +1,9 @@
 # Claude Code - Envy repository
 
-Authoritative rules for AI assistants live in [`AGENTS.md`](./AGENTS.md).
-Read it first; everything below is just shortcuts.
+Root [`AGENTS.md`](./AGENTS.md) is the canonical repository-wide rule set.
+Read and follow it before acting. Do not maintain a second copy of repository
+workflow, toolchain, style, quality, protocol, or documentation rules here.
 
-## Quick context
-
-- **Stack**: C++ MFC, MSBuild, Visual Studio 2026 (toolset **v145**).
-- **C++ standard**: C++20 for first-party, C++17 for legacy plugins.
-- **OS target**: Windows 10 1809+ (XP/Vista/7/8 dropped).
-- **Deps**: vcpkg manifest (`vcpkg.json`).
-- **CI**: GitHub Actions on `windows-2025` (`.github/workflows/`).
-
-## Build command (copy-paste)
-
-```cmd
-msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
-  /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 ^
-  /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
-```
-
-## Mandatory steps when you act on this repo
-
-1. **Read** [`docs/DEVELOPMENT_PLAN.md`](./docs/DEVELOPMENT_PLAN.md) for strategic scope.
-2. **Record progress** in `docs/DEVELOPMENT_PLAN.md` (strategic) and
-   `.local/DEV_TRACKER.md` (session notes, gitignored).
-3. **Branch & merge gate.** Branch off `develop` using conventional
-   `type/short-kebab-summary` names (`feat/`, `fix/`, `docs/`, `ci/`, ...);
-   **never** use tool- or agent-prefixed branches (`claude/`, `cursor/`,
-   `copilot/`, …), including any Cloud Agent / runner-suggested slug — ignore
-   those templates and keep the functional prefix (`AGENTS.md` hard rule 11).
-   You may push, open draft PRs, mark ready-for-review, and enable squash
-   auto-merge under `AGENTS.md` rules 12–13, but the live **Protect develop**
-   ruleset still requires ≥1 GitHub **APPROVED** review (non-author),
-   dismiss-stale approvals on push, resolved threads, signed commits, and
-   required checks (`require_last_push_approval` is off). Never self-approve
-   via Actions/bot; never bypass protections.
-   (See AGENTS.md section 2, rules 11–13.)
-4. **CI wait:** after every PR push follow `AGENTS.md` §5 item 6
-   (`gh pr checks --required --watch --fail-fast` — never arbitrary sleeps).
-5. **Reply to the user in the language they used in chat**, but all
-   commits, comments, docs, and PR text in **English**.
-
-## Common pitfalls in this codebase
-
-- `throw()` is removed in C++20 - use `noexcept`.
-- `register` is no longer a storage class - drop it.
-- Source files mix ISO-8859 and UTF-8 - never bulk-convert; respect the
-  BOM you find.
-- `Plugins/PluginWizard/**` are project templates - do **not** retarget
-  their `.vcxproj` files.
-- `_CRT_SECURE_NO_WARNINGS` is set repo-wide; do not rely on it as
-  permission to use unsafe APIs in new code.
-
-## See also
-
-- [`MODERNIZATION.md`](./MODERNIZATION.md) - full plan and phases.
-- [`AGENTS.md`](./AGENTS.md) - canonical rules.
-- [`docs/DEVELOPMENT_PLAN.md`](./docs/DEVELOPMENT_PLAN.md) - strategic plan.
-- [`.github/CONTRIBUTING.md`](./.github/CONTRIBUTING.md) - human-facing.
+Use the canonical project/status/protocol documents linked from `AGENTS.md`
+for task-specific context. Tool-specific behavior may be added here only when
+it is genuinely Claude-specific.

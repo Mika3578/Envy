@@ -35,14 +35,16 @@ cd Envy
 - Follow the [Development Guide](guide.md) and [build.md](build.md) (`scripts/bootstrap-vcpkg.cmd` before the first Visual Studio build)
 - Build with Visual Studio (`Visual Studio\Envy.sln`) or `.\scripts\ci-verify.ps1`
 
-### 4. Create a Feature Branch
+### 4. Create a work branch
 ```bash
-# Create and switch to a new branch
-git checkout -b feature/your-feature-name
+# Functional type/short-kebab-summary names only (see AGENTS.md hard rule 11)
+git checkout -b feat/short-kebab-summary
 
-# Or for bug fixes
-git checkout -b fix/issue-number-description
+# Bug fixes, docs, CI, etc.
+git checkout -b fix/short-kebab-summary
 ```
+
+Never use tool/agent prefixes such as `cursor/`, `claude/`, or `copilot/`.
 
 ## 💻 Development Process
 
@@ -114,18 +116,22 @@ git commit -m "Changes"
 - **Code quality**: Refactoring, modernization
 
 ### Future Opportunities
-- **New protocols**: WebRTC, QUIC, modern P2P
-- **Cross-platform**: Linux/macOS support
-- **Advanced features**: AI optimization, cloud integration
+- **New protocols**: only after primary specs and Envy product scope justify them
+- **Portable core**: Linux/macOS are **planned** portable-core/headless targets,
+  not currently supported Envy product platforms
 - **Plugin ecosystem**: New plugin types and APIs
 
 ## 📏 Code Standards
 
 ### Language and Style
-- **C++17** baseline (C++20 planned)
+- **C++20** is the first-party **policy target**; **C++17** is required for
+  legacy plugins and, until a dedicated vcxproj cleanup, for live
+  Release|x64 Envy / HashLib / TorrentEnvy / Unpacker (those `ClCompile`
+  blocks currently end with `stdcpp17`, which overrides the earlier
+  `stdcpp20`). Keep that first-party code C++17-clean.
 - **MFC conventions** followed
 - **Unicode** (UTF-16) throughout
-- **Smart pointers** for memory management
+- Prefer RAII / smart pointers for new ownership; match surrounding MFC style
 
 ### Naming Conventions
 ```cpp

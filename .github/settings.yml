@@ -207,7 +207,10 @@ milestones:
 #   - bypass_actors: [] (none)
 #   - non_fast_forward / block force pushes
 #   - code_scanning: CodeQL + Gitleaks
-#   - no GitHub Code Quality ruleset rule
+#   - GitHub Code Quality severity (live: All)
+#   - Copilot review-on-push (live: on) / draft review (live: off)
+#   - Copilot approve/count UI toggles + optional path allowlist (manual verify in Settings → Copilot)
+#   - code coverage rule (intentionally off until reliable PR coverage upload exists)
 branches:
   - name: develop
     protection:

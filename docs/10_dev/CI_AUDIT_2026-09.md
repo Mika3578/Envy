@@ -24,12 +24,19 @@ Strengths: SHA-pinned Actions, concurrency + cancel-in-progress on PRs,
 composite `windows-msbuild`, classify-changes gating, gitleaks + CodeQL +
 SonarCloud required, PR Gate stricter than GitHub skip semantics.
 
-**Open gaps (still true after this PR):**
-- Live **Protect develop** reports `required_approving_review_count: 0`
-  while docs/`AGENTS.md` claim ≥1 (human decision).
+**Open gaps:**
 - MSBuild `/m:1` is intentional (PCH C1083) and must not be “optimized”
   without a re-benchmark.
 - Four identical classify jobs per PR (~8–10 s each) — centralizing is P3.
+- Repository Copilot UI approve/count toggles, Balanced effort, and the
+  optional Stage-3 path allowlist still need manual UI verification (not
+  on the ruleset API). Automatic review is already live via Protect develop.
+
+**Live Protect develop re-verification (2026-09-20):** required approvals **1**,
+Code Quality severity **All**, Copilot `review_on_push` **on**, draft review
+**off**, coverage restriction **off**. Older rows below that show approvals
+**0** / Code Quality `notes` / `review_on_push: false` are the **2026-09-19
+historical snapshot**, not current live state.
 
 **Pre-change findings resolved in this PR:** empty NuGet restore (~22 s/job
 no-op) skipped; Documentation Check always emits a terminal conclusion;
@@ -214,9 +221,13 @@ No `permissions: write-all` found. Release workflow is higher privilege by natur
 | Code scanning | CodeQL + Gitleaks | Match |
 | Code quality notes | severity notes | Docs say “no GQ rule” — **ruleset has `code_quality` notes** |
 
-**P0 doc drift:** approval count and Code Quality rule text disagree with live
-API. Do **not** weaken live protections from CI PRs; fix docs and/or have a
-human restore approvals to 1 if that was the intent.
+**Decision 2026-09-20 + live apply 2026-09-20:** the table above remains the
+**2026-09-19 measured snapshot**. Current live Protect develop now enforces
+**1 required approval**, Code Quality severity **All**, Copilot
+`review_on_push` **on**, draft review **off**, and coverage restriction
+**off**. Copilot may satisfy the approval only with a real `APPROVED` review
+when repository Copilot approve/count settings are enabled (UI verification
+still required).
 
 ### Live Protect main (`gh api .../rulesets/16457407`)
 
@@ -302,8 +313,11 @@ Sources (primary first):
 
 ### P0 — Correctness / unsafe merge posture
 
-1. **Reconcile Protect develop approvals:** live API = 0; docs = 1. Human
-   decision: restore 1 approval **or** update AGENTS/devsecops to match live.
+1. **Reconcile Protect develop ruleset:** **Done for ruleset knobs
+   2026-09-20** — live now has 1 approval, Code Quality = All,
+   review-on-push on, draft review off. Remaining: verify repository Copilot
+   UI approve/count toggles, Balanced effort, and optional Stage-3 path
+   allowlist (`docs/10_dev/devsecops-envy.md`).
 2. **Documentation Check always reports** a terminal conclusion — **Done**
    (`if: always()` no-op path when classify says docs out of scope; cancelled
    classify from concurrency supersede also emits success no-op so a superseded
@@ -385,7 +399,10 @@ Documented; not unified in this PR (would either slow local or risk CI flakes).
 
 ## 14. Follow-ups (out of this PR)
 
-- Human: set Protect develop approvals to 1 if still desired.
+- Manual GitHub Settings → Copilot → Code review only: confirm approve/count
+  ON, effort **Balanced**, and optional Stage-3 path allowlist. Protect
+  develop ruleset knobs (1 approval, Code Quality All, automatic Copilot
+  review + review-on-push, draft review off) are already applied.
 - P2: vcpkg registry fetch / downloads cache experiment.
 - P3: single classify fan-out.
 - P4: controlled `/m` + MTT A/B on a throwaway branch.

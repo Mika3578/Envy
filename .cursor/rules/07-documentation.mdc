@@ -9,7 +9,8 @@ alwaysApply: false
 ## Source of truth
 
 - Canonical documentation lives in `docs/` (not in `.cursor/rules/`).
-- The **authoritative docs-sync / definition-of-done rule** is `09-docs-auto-update.mdc`.
+- Repository-wide docs-sync / definition-of-done policy is canonical in
+  root `AGENTS.md`; this file adds documentation-path-specific guidance only.
 
 ## Documentation map (single source of truth)
 
@@ -18,7 +19,7 @@ Keep documentation in **one canonical location** per topic. Prefer updating an e
 - `docs/00_index/`
   - `README.md`: main entry point
   - `CURSOR_INDEX.md`: quick navigation for AI + humans
-  - `MASTER_PLAN.md`, `MIGRATION_MAP.md`: planning
+  - `MIGRATION_MAP.md`: documentation migration map
   - `DECISIONS.md`: ADR-lite decision log
   - `KNOWN_INCONSISTENCIES.md`: doc/code mismatches to resolve
 
