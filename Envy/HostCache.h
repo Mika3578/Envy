@@ -200,37 +200,37 @@ public:
 	void				Clear();
 	void				Serialize(CArchive& ar, int nVersion);
 
-	inline CHostCacheIterator Begin() const throw()
+	inline CHostCacheIterator Begin() const noexcept
 	{
 		return m_HostsTime.begin();
 	}
 
-	inline CHostCacheIterator End() const throw()
+	inline CHostCacheIterator End() const noexcept
 	{
 		return m_HostsTime.end();
 	}
 
-	inline CHostCacheRIterator RBegin() const throw()
+	inline CHostCacheRIterator RBegin() const noexcept
 	{
 		return m_HostsTime.rbegin();
 	}
 
-	inline CHostCacheRIterator REnd() const throw()
+	inline CHostCacheRIterator REnd() const noexcept
 	{
 		return m_HostsTime.rend();
 	}
 
-	inline bool IsEmpty() const throw()
+	inline bool IsEmpty() const noexcept
 	{
 		return m_HostsTime.empty();
 	}
 
-	inline DWORD GetCount() const throw()
+	inline DWORD GetCount() const noexcept
 	{
 		return (DWORD)m_Hosts.size();
 	}
 
-	inline CHostCacheHostPtr Find(const IN_ADDR* pAddress) const throw()
+	inline CHostCacheHostPtr Find(const IN_ADDR* pAddress) const noexcept
 	{
 		if ( pAddress->s_addr == INADDR_ANY ||
 			 pAddress->s_addr == INADDR_NONE )
@@ -240,7 +240,7 @@ public:
 		return ( i != m_Hosts.end() ) ? (*i).second : NULL;
 	}
 
-	inline CHostCacheHostPtr Find(LPCTSTR szAddress) const throw()
+	inline CHostCacheHostPtr Find(LPCTSTR szAddress) const noexcept
 	{
 		if ( ! szAddress || ! *szAddress )
 			return NULL;
@@ -251,13 +251,13 @@ public:
 		return ( i != m_Hosts.end() ) ? (*i).second : NULL;
 	}
 
-	inline bool Check(const CHostCacheHostPtr pHost) const throw()
+	inline bool Check(const CHostCacheHostPtr pHost) const noexcept
 	{
 		CQuickLock oLock( m_pSection );
 		return std::find( m_HostsTime.begin(), m_HostsTime.end(), pHost ) != m_HostsTime.end();
 	}
 
-	inline DWORD CountHosts(const BOOL bCountUncheckedLocally = FALSE) const throw()
+	inline DWORD CountHosts(const BOOL bCountUncheckedLocally = FALSE) const noexcept
 	{
 		CQuickLock oLock( m_pSection );
 		return (DWORD)(size_t) std::count_if( m_Hosts.begin(), m_Hosts.end(),

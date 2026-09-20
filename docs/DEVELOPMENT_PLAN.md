@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #84 HostCache: replace ten `throw()` exception specs with `noexcept` on `CHostCacheList` inlines (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — Kad #86 app-trigger: ED2K downloads call `SearchSource` when EnableKad + Kad initialized; outbound SEARCH_SOURCE_REQ includes FileSize; `KadSearchSourceRequest.h` + EnvyTests. Buddy/UDP firewall / Hello nibble unchanged.
 - **Changelog Entry:** 2026-09-19 — Local Debug x64 bootstrap: `scripts/bootstrap-vcpkg.ps1` mirrors CI `vcpkg install` because VS/MSBuild does not restore `vcpkg_installed` before `PreBuildEvent` (Crashpad copy). `EnvyOM.h` remains MIDL-generated. Installer `Main.iss` code 2 on a failed Envy build is a cascade (ISCC present, missing payload).
 - **Changelog Entry:** 2026-09-19 — HashLib `CTigerTree` warning cleanup (#84 slice): constructor init order matches `TigerTree.h` (C5038); drop `register` in `CTigerTree::Tiger` (C5033). No Tiger/TTH algorithm or wire-format change. EnvyTests: constructor + identical-input/incremental/empty-file root stability.
