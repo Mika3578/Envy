@@ -35,7 +35,6 @@ namespace Hashes
 	const wchar base16[] = L"0123456789abcdef";
 	const wchar base32[] = L"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567=";
 
-	// clang-format off
 	bool Unhex(LPCTSTR psz, uchar* pOut)
 	{
 		TCHAR c = *psz++;
@@ -58,7 +57,6 @@ namespace Hashes
 			return false;
 		return true;
 	}
-	// clang-format on
 
 	CString toGuid(const uchar* hash)
 	{
