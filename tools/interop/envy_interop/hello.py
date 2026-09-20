@@ -291,14 +291,18 @@ def compare_envy_advertisement(packet: HelloPacket) -> Dict[str, object]:
             )
 
     honesty_notes = [dict(item) for item in ENVY_KNOWN_ADVERTISE_DEBT]
-    if f1["compression"] == 1 and not ENVY_IMPLEMENTED["compression_send"]:
+    # After #252, compression nibble 1 matches send-side COMPRESSEDPART.
+    # Stale harness tables that claim compression_send=False are a FAIL in
+    # envy_capability_honesty — do not reintroduce advertise-vs-implement debt here.
+    if f1["compression"] == 1 and ENVY_IMPLEMENTED["compression_send"]:
         honesty_notes.append(
             {
                 "field": "compression",
                 "parsed": f1["compression"],
-                "implemented_send": False,
-                "kind": "advertise_vs_implement",
+                "implemented_send": True,
+                "kind": "advertise_matches_implement",
                 "issue": 87,
+                "note": "Live compressed transfer evidence still pending #160",
             }
         )
     return {
@@ -312,15 +316,21 @@ def compare_envy_advertisement(packet: HelloPacket) -> Dict[str, object]:
     }
 
 
-def hello_evidence(packet: HelloPacket) -> Dict[str, object]:
-    """Machine-readable Hello fields for artifacts (no nick / no filesystem paths)."""
+def hello_evidence(packet: HelloPacket, *, redact_userhash: bool = True) -> Dict[str, object]:
+    """Machine-readable Hello fields for artifacts (no nick / no filesystem paths).
+
+    ``userhash_hex`` is zeroed by default so attachable run summaries do not
+    expose peer identifiers from live captures.
+    """
     f1 = packet.features1
     f2 = packet.features2
+    userhash_hex = ("00" * len(packet.userhash)) if redact_userhash else packet.userhash.hex()
     return {
         "protocol": packet.protocol,
         "opcode": packet.opcode,
-        "userhash_hex": packet.userhash.hex(),
+        "userhash_hex": userhash_hex,
         "userhash_len": len(packet.userhash),
+        "userhash_redacted": bool(redact_userhash),
         "client_id": packet.client_id,
         "tcp_port": packet.tcp_port,
         "ed2k_version": packet.ed2k_version,

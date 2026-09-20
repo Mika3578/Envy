@@ -51,11 +51,13 @@ class ConfigTests(unittest.TestCase):
                 shutdown_timeout_sec=None,
                 allow_external_network=None,
                 enable_pcap=None,
+                pcap_duration_sec=None,
                 dry_run=True,
                 live=False,
                 cleanup=True,
                 scenarios=None,
                 hello_capture=None,
+                packet_evidence=None,
                 reference_client=None,
                 reference_version=None,
             )
@@ -81,6 +83,13 @@ class ConfigTests(unittest.TestCase):
         from envy_interop.config import validate_ports
 
         cfg = HarnessConfig(repo_root=self.repo, envy_tcp_port=0)
+        with self.assertRaises(ConfigError):
+            validate_ports(cfg)
+
+    def test_negative_pcap_duration_rejected(self) -> None:
+        from envy_interop.config import validate_ports
+
+        cfg = HarnessConfig(repo_root=self.repo, pcap_duration_sec=-1)
         with self.assertRaises(ConfigError):
             validate_ports(cfg)
 
@@ -241,6 +250,224 @@ class ProcessIsolationTests(unittest.TestCase):
             owned = IsolationRoot(Path(tmp) / "owned")
             with self.assertRaises(IsolationError):
                 owned.child("..", "..", "etc")
+
+
+class CaptureToolTests(unittest.TestCase):
+    def test_optional_pcap_absent_is_skip_not_fail(self) -> None:
+        from envy_interop.capture import find_capture_tool
+        from envy_interop.scenarios import SCENARIOS, RunContext, handle_optional_pcap
+        from envy_interop.isolation import create_run_isolation
+        from envy_interop.process import ProcessManager
+
+        repo = Path(__file__).resolve().parents[3]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = HarnessConfig(repo_root=repo, dry_run=True, live=False)
+            isolation = create_run_isolation(root, "pcap-test")
+            ctx = RunContext(
+                cfg=cfg,
+                run_dir=root / "run",
+                isolation=isolation,
+                processes=ProcessManager(),
+                logs_dir=root / "logs",
+                git_sha="test",
+            )
+            ctx.run_dir.mkdir(parents=True, exist_ok=True)
+            result = handle_optional_pcap(ctx, SCENARIOS["optional_pcap"])
+            # Availability alone must SKIP (not PASS) — owned capture required.
+            self.assertEqual(result.result, "SKIP")
+            if find_capture_tool():
+                self.assertIn("available", result.reason.lower())
+            else:
+                self.assertIn("optional", result.reason.lower())
+
+    def test_tcp_port_filter_and_darwin_loopback(self) -> None:
+        from envy_interop import capture as capture_mod
+
+        self.assertEqual(capture_mod._tcp_port_filter([4662, 4663]), "tcp port 4662 or tcp port 4663")
+        self.assertEqual(
+            capture_mod._capture_filter(tcp_ports=[4662, 4663], udp_ports=[4672]),
+            "tcp port 4662 or tcp port 4663 or udp port 4672",
+        )
+        old = os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)
+        self.addCleanup(lambda: (os.environ.__setitem__("ENVY_INTEROP_PCAP_IFACE", old) if old is not None else os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)))
+        os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)
+        # Force Darwin branch without requiring macOS.
+        import sys
+        old_plat = sys.platform
+        sys.platform = "darwin"
+        try:
+            self.assertEqual(capture_mod._loopback_iface(), "lo0")
+        finally:
+            sys.platform = old_plat
+
+    def test_tcpdump_includes_kad_udp_in_bpf(self) -> None:
+        from envy_interop import capture as capture_mod
+        from envy_interop.process import ProcessManager
+        from unittest.mock import MagicMock, patch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "cap.pcap"
+            mgr = ProcessManager()
+            with patch.object(mgr, "launch", return_value=MagicMock()) as launch:
+                capture_mod.start_capture(
+                    mgr,
+                    out_path=out,
+                    log_dir=Path(tmp),
+                    tcp_ports=[4662],
+                    udp_ports=[4672],
+                    tool="/usr/sbin/tcpdump",
+                    duration_sec=5,
+                )
+                argv = launch.call_args[0][1]
+                self.assertEqual(argv[-1], "tcp port 4662 or udp port 4672")
+                self.assertIn("-G", argv)
+
+    def test_optional_pcap_pass_when_owned_lifecycle_present(self) -> None:
+        from envy_interop.scenarios import SCENARIOS, RunContext, handle_optional_pcap
+        from envy_interop.isolation import create_run_isolation
+        from envy_interop.process import ProcessManager
+        from unittest.mock import MagicMock
+
+        repo = Path(__file__).resolve().parents[3]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = HarnessConfig(repo_root=repo, dry_run=False, live=True, enable_pcap=True)
+            isolation = create_run_isolation(root, "pcap-owned")
+            ctx = RunContext(
+                cfg=cfg,
+                run_dir=root / "run",
+                isolation=isolation,
+                processes=ProcessManager(),
+                logs_dir=root / "logs",
+                git_sha="test",
+                pcap_owned=MagicMock(),
+                pcap_path=root / "loopback.pcap",
+                pcap_stopped=True,
+                pcap_usable=True,
+            )
+            ctx.run_dir.mkdir(parents=True, exist_ok=True)
+            result = handle_optional_pcap(ctx, SCENARIOS["optional_pcap"])
+            self.assertEqual(result.result, "PASS")
+            self.assertIn("started and stopped", result.reason.lower())
+
+    def test_optional_pcap_defers_pass_until_stopped(self) -> None:
+        from envy_interop.scenarios import SCENARIOS, RunContext, handle_optional_pcap
+        from envy_interop.isolation import create_run_isolation
+        from envy_interop.process import ProcessManager
+        from unittest.mock import MagicMock
+
+        repo = Path(__file__).resolve().parents[3]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = HarnessConfig(repo_root=repo, dry_run=False, live=True, enable_pcap=True)
+            isolation = create_run_isolation(root, "pcap-defer")
+            owned = MagicMock()
+            owned.poll.return_value = None
+            ctx = RunContext(
+                cfg=cfg,
+                run_dir=root / "run",
+                isolation=isolation,
+                processes=ProcessManager(),
+                logs_dir=root / "logs",
+                git_sha="test",
+                pcap_owned=owned,
+                pcap_path=root / "loopback.pcap",
+                pcap_stopped=False,
+            )
+            ctx.run_dir.mkdir(parents=True, exist_ok=True)
+            result = handle_optional_pcap(ctx, SCENARIOS["optional_pcap"])
+            self.assertEqual(result.result, "SKIP")
+            self.assertIn("deferred", result.reason.lower())
+
+    def test_optional_pcap_fails_on_early_exit(self) -> None:
+        from envy_interop.scenarios import SCENARIOS, RunContext, handle_optional_pcap
+        from envy_interop.isolation import create_run_isolation
+        from envy_interop.process import ProcessManager
+        from unittest.mock import MagicMock
+
+        repo = Path(__file__).resolve().parents[3]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cfg = HarnessConfig(repo_root=repo, dry_run=False, live=True, enable_pcap=True)
+            isolation = create_run_isolation(root, "pcap-early")
+            owned = MagicMock()
+            owned.poll.return_value = 1
+            owned.exit_code = 1
+            ctx = RunContext(
+                cfg=cfg,
+                run_dir=root / "run",
+                isolation=isolation,
+                processes=ProcessManager(),
+                logs_dir=root / "logs",
+                git_sha="test",
+                pcap_owned=owned,
+                pcap_path=root / "loopback.pcap",
+                pcap_stopped=False,
+            )
+            result = handle_optional_pcap(ctx, SCENARIOS["optional_pcap"])
+            self.assertEqual(result.result, "FAIL")
+            self.assertIn("early", result.reason.lower())
+
+    def test_finalize_pcap_rejects_early_death_even_with_bytes(self) -> None:
+        from envy_interop.runner import _finalize_pcap_lifecycle
+        from envy_interop.scenarios import RunContext
+        from envy_interop.isolation import create_run_isolation
+        from envy_interop.process import ProcessManager
+        from unittest.mock import MagicMock
+
+        repo = Path(__file__).resolve().parents[3]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pcap = root / "loopback.pcap"
+            pcap.write_bytes(b"\x00" * 64)
+            cfg = HarnessConfig(
+                repo_root=repo, dry_run=False, live=True, enable_pcap=True, shutdown_timeout_sec=1
+            )
+            isolation = create_run_isolation(root, "pcap-early-bytes")
+            owned = MagicMock()
+            owned.poll.return_value = 1  # already dead before teardown
+            owned.exit_code = 1
+            processes = MagicMock(spec=ProcessManager)
+            processes.terminate_owned.return_value = 1
+            ctx = RunContext(
+                cfg=cfg,
+                run_dir=root / "run",
+                isolation=isolation,
+                processes=processes,
+                logs_dir=root / "logs",
+                git_sha="test",
+                pcap_owned=owned,
+                pcap_path=pcap,
+                pcap_stopped=False,
+            )
+            _finalize_pcap_lifecycle(ctx, cfg)
+            self.assertTrue(ctx.pcap_stopped)
+            self.assertFalse(ctx.pcap_usable)
+            self.assertIn("early", (ctx.pcap_start_error or "").lower())
+
+    def test_tcpdump_duration_options_before_bpf(self) -> None:
+        from envy_interop import capture as capture_mod
+        from envy_interop.process import ProcessManager
+        from unittest.mock import MagicMock, patch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "cap.pcap"
+            mgr = ProcessManager()
+            with patch.object(mgr, "launch", return_value=MagicMock()) as launch:
+                capture_mod.start_capture(
+                    mgr,
+                    out_path=out,
+                    log_dir=Path(tmp),
+                    ports=[4662],
+                    tool="/usr/sbin/tcpdump",
+                    duration_sec=5,
+                )
+                argv = launch.call_args[0][1]
+                self.assertEqual(argv[-1], "tcp port 4662")
+                self.assertIn("-G", argv)
+                self.assertLess(argv.index("-G"), len(argv) - 1)
+                self.assertEqual(argv[argv.index("-G") + 1], "5")
 
 
 class SanitizerTests(unittest.TestCase):

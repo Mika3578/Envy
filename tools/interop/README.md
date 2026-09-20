@@ -9,6 +9,10 @@ This harness exists so [#160](https://github.com/Mika3578/Envy/issues/160),
 [#87](https://github.com/Mika3578/Envy/issues/87) can attach reproducible
 evidence instead of opcode-presence claims.
 
+**Status after this preparation PR:** live interoperability evidence is still
+**pending a Windows operator run**. Cursor Cloud validates Python dry-run /
+self-test only — never native `Envy.exe`.
+
 **Required PR CI never launches eMule/aMule and never depends on the public
 ED2K/Kad network.**
 
@@ -19,10 +23,39 @@ ED2K/Kad network.**
 | Deterministic first-party tests | `tests/EnvyTests` + harness golden parse | Yes (EnvyTests on Windows; harness unit tests on Ubuntu) |
 | Opt-in local integration | `--live` with isolated profiles | No |
 | Public-network tests | scenarios marked `external` + `--allow-external-network` | No |
-| Captured evidence | `--hello-capture` / `--ingest-hello` | No |
+| Captured evidence | `--hello-capture` / `--packet-evidence` / `--ingest-hello` | No |
 
 Do **not** patch ED2K/Kad production code to make a scenario PASS. Record FAIL
 with artifacts and open/link a focused issue.
+
+## Three orthogonal states
+
+Every scenario and capability row tracks:
+
+| Axis | Meaning |
+| --- | --- |
+| **production** | `implemented` / `partial` / `not_implemented` in ENVY source |
+| **harness** | `automated` / `evidence_hooks` / `registered_only` / `not_applicable` |
+| **evidence** | `verified` / `unverified` / `pending_operator` / `not_applicable` |
+
+Examples:
+
+- ED2K compressed upload — production **implemented** (#252), harness
+  **evidence_hooks**, live evidence **unverified**.
+- Buddy — production **not_implemented**, harness **registered_only**,
+  evidence **not_applicable**.
+
+### Final run results
+
+| Result | Meaning |
+| --- | --- |
+| `PASS` | Documented PASS criteria met (see `pass_criteria.py`) |
+| `FAIL` | Evidence present and wrong, or honesty-table regression |
+| `SKIP` | Gated (dry-run, missing binaries/tools, no evidence yet, external not opted in). **Not** “production missing”. |
+| `NOT_IMPLEMENTED` | Production behavior genuinely absent (Buddy, UDP firewall, …) |
+
+A process being alive is a PASS only for explicit startup scenarios. Protocol
+scenarios require packet/log evidence.
 
 ## One command
 
@@ -30,30 +63,17 @@ From the repository root:
 
 ```bash
 python3 tools/interop/run.py --dry-run
-```
-
-Self-tests (no network, no reference binaries):
-
-```bash
+python3 tools/interop/run.py --dry-run --scenarios current
 python3 tools/interop/run.py --self-test
 ```
 
-Live run (operator-provided binaries only — never downloaded by CI):
+Windows live helper (operator machine):
 
-```bash
-python3 tools/interop/run.py --live \
-  --envy-exe "/path/to/Envy.exe" \
-  --amule-exe "/usr/bin/amuled" \
-  --reference-client amule \
-  --reference-version "2.3.3" \
-  --scenarios phase1
+```powershell
+.\tools\interop\windows\run-live.ps1 -EnvyExe "D:\Build\Envy.exe" -EmuleExe "C:\Program Files\eMule\emule.exe" -ReferenceVersion "0.70a" -Scenarios current
 ```
 
-Windows eMule Community example (paths may contain spaces or Unicode):
-
-```text
-python3 tools/interop/run.py --live --config tools/interop/config.example.json --envy-exe "D:\Build\Envy.exe" --emule-exe "C:\Program Files\eMule\emule.exe" --reference-client emule-community --reference-version "0.70a"
-```
+Manual GUI steps: [`OPERATOR_CHECKLIST.md`](./OPERATOR_CHECKLIST.md).
 
 ## Configuration
 
@@ -68,174 +88,131 @@ Priority: CLI > `ENVY_INTEROP_*` environment variables > JSON `--config`.
 | Artifact directory | `--artifact-dir` | `ENVY_INTEROP_ARTIFACT_DIR` |
 | ENVY TCP port | `--envy-tcp-port` | `ENVY_INTEROP_ENVY_TCP_PORT` |
 | Reference TCP port | `--reference-tcp-port` | `ENVY_INTEROP_REFERENCE_TCP_PORT` |
-| Timeouts | `--startup-timeout-sec` / `--scenario-timeout-sec` / `--shutdown-timeout-sec` | matching `ENVY_INTEROP_*` |
-| Scenario list | `--scenarios` | `ENVY_INTEROP_SCENARIOS` |
+| Packet evidence dump | `--packet-evidence` | `ENVY_INTEROP_PACKET_EVIDENCE` |
 | Hello capture | `--hello-capture` | `ENVY_INTEROP_HELLO_CAPTURE` |
+| Timeouts | `--startup-timeout-sec` / … | matching `ENVY_INTEROP_*` |
+| Scenario list | `--scenarios` | `ENVY_INTEROP_SCENARIOS` |
+| External network | `--allow-external-network` | `ENVY_INTEROP_ALLOW_EXTERNAL_NETWORK` |
+| Optional pcap | `--enable-pcap` | `ENVY_INTEROP_ENABLE_PCAP` |
+| Pcap interface | (env only) | `ENVY_INTEROP_PCAP_IFACE` |
 
 See `config.example.json`. No developer machine paths are hard-coded.
 Process arguments are a list (`shell=False`); spaces and Unicode in paths are
-safe and are not interpolated into a shell command.
-
-## Reference clients
-
-Not vendored. Not downloaded during CI.
-
-| Client | Role | Isolation |
-| --- | --- | --- |
-| eMule Community | Primary ED2K/Kad2 wire reference | `APPDATA` / `LOCALAPPDATA` redirected into the run scratch tree. There is no `--config-dir` in this harness. **Never** write `config\` next to the operator's `emule.exe`. |
-| aMule / `amuled` | Second interop target; easier headless | `amuled -c <isolated-profile>` |
-
-Supported versions: whichever build the operator records with
-`--reference-version`. Record the exact string in the run report. Typical
-targets are current eMule Community releases and aMule 2.3.x, but the harness
-does not gate on a version tuple.
-
-## Isolation and cleanup
-
-Each run creates `scratch/<run-id>/` under the artifact/work directory:
-
-- `profiles/envy`, `profiles/emule`, `profiles/amule`
-- `share/` (generated fixture)
-- `incoming/`
-
-Default `--cleanup` deletes **only** that owned scratch tree. Cleanup refuses
-home directories, `C:\Users`, the process temp directory, POSIX temp roots
-matched by path components (`tmp` under `/` or `/var`; never opened as scratch),
-and any path not under the owned root. Children of the process temp directory
-remain deletable when they are the owned scratch tree.
-
-**Limitations**
-
-- ENVY has no `--datadir`. Isolation uses redirected `APPDATA`. ENVY also takes
-  a `Global\Envy` mutex; a second instance will not start. The harness **never**
-  kills an existing user ENVY/eMule/aMule process.
-- eMule Community similarly uses a single-instance mutex on many builds.
-- Do not point `--work-dir` at a real user profile.
-
-## Networking
-
-- Prefer loopback. Default ports: ENVY `4662`, reference `4663`.
-- Scenarios that need public ED2K/Kad infrastructure are marked `external` and
-  stay `NOT_IMPLEMENTED` or `SKIP` unless `--allow-external-network`.
-- Every wait is bounded. There are no indefinite polls.
-
-Packet capture (`--enable-pcap`) is **optional**. Baseline operation does not
-require dumpcap/tcpdump/Wireshark.
-
-## Scenarios and results
-
-Machine-readable states: `PASS`, `FAIL`, `SKIP`, `NOT_IMPLEMENTED`.
-
-Phase 1 (`--scenarios phase1`):
-
-| Id | Default dry-run | Notes |
-| --- | --- | --- |
-| `harness_self_check` | PASS | Harness version + git SHA |
-| `envy_capability_honesty` | PASS | Advertised Hello bits vs implemented capabilities |
-| `golden_envy_hello_parse` | PASS | Committed Envy *self-golden* (not eMule) |
-| `golden_envy_helloanswer_parse` | PASS | Same for HelloAnswer |
-| `fixture_generation` | PASS | 64 KiB harmless file + ED2K/SHA-256 |
-| `hello_capture_import` | SKIP | Needs `--hello-capture` |
-| `envy_startup` / `reference_startup` | SKIP | Need `--live` + binaries |
-| `ed2k_connection` / `hello` / `hello_answer` / `muleinfo` / `peer_transfer` / `source_exchange` | SKIP | Need live processes **and** packet/log evidence. A process launch alone is not a protocol PASS. |
-
-Future ids (`compressed_transfer_*`, `lowid_*`, `kad_*`) always return
-`NOT_IMPLEMENTED` in this PR so later work can plug in handlers without
-redesigning the runner.
-
-`--scenarios all` includes the future rows (still `NOT_IMPLEMENTED`).
+safe.
 
 ## Capability honesty (current `develop`)
 
-The harness **records** these advertise vs implement facts. It does not change
-`SendHello`.
+Recalculated from production units (not opcode constants alone). The harness
+**records** these facts; it does not change `SendHello`.
 
-| Feature | Advertised | Implemented | Issue |
-| --- | --- | --- | --- |
-| AICH C2C | 0 | no | #87 |
-| SecureIdent RSA | 0 | no | #75 |
-| CryptLayer TCP obfuscation | 0 | no | #121 |
-| Ext Multipacket | 0 | no | #129 / #87 |
-| Kad nibble | 0 | not app-integrated | #86 |
-| Source Exchange v1/v2 | 2 / bit | yes (IPv4-only wire) | live unverified |
-| Large files | 1 | yes | live unverified |
-| Compression | nibble 1 | receive yes, **send no** | #87 |
+| Feature | Advertised | Production | Harness | Live evidence | Cite |
+| --- | --- | --- | --- | --- | --- |
+| AICH C2C | 0 | not implemented | n/a | n/a | `Ed2kAichAdvertisedVersion` |
+| SecureIdent RSA | 0 | not implemented | n/a | n/a | #75 |
+| CryptLayer TCP obfuscation | 0 | not implemented | n/a | n/a | #121 |
+| Ext Multipacket | 0 | not implemented | n/a | n/a | #129 |
+| Source Exchange v1/v2 | 2 / bit | implemented | evidence hooks | unverified | IPv4-only wire |
+| Large files | 1 | implemented | evidence hooks | unverified | I64 parts |
+| Compressed receive | nibble 1 | implemented | evidence hooks | unverified | inflate path |
+| Compressed send | nibble 1 | **implemented** (#252) | evidence hooks | unverified | `Ed2kCompressedUpload.h` |
+| PUBLICIP | — | partial (#255/#258) | evidence hooks | unverified | `Ed2kLowIdCallback.h` |
+| C2C CALLBACK | — | partial (#255/#258) | evidence hooks | unverified | 38-byte layout |
+| REASKCALLBACKTCP | — | not implemented | registered | n/a | needs Buddy |
+| Kad source search | Hello nibble **0** | implemented (#261) | evidence hooks | unverified | app-trigger SearchSource |
+| Kad SEARCH_RES → ED2K | 0 | implemented (#251) | evidence hooks | unverified | `KadSearchResDelivery` |
+| Kad routing | 0 | implemented (#257) | evidence hooks | unverified | `KadRoutingTable` |
+| Kad TCP firewall | 0 | partial (#256) | evidence hooks | unverified | `KadFirewallCheck` |
+| Kad UDP firewall | 0 | not implemented | registered | n/a | |
+| Buddy / FINDBUDDY | 0 | not implemented | registered | n/a | |
+| Kad callback | 0 | not implemented | registered | n/a | |
+| nodes.dat v1/v2/v3 | — | implemented (#254) | evidence hooks | local ≠ live | `KadNodesDat.h` |
 
-Compression advertisement while upload compression is missing is **known debt**,
-not a silent PASS of compressed transfer.
+Hello Kad nibble stays **0** until Buddy/UDP firewall and live interop are
+verified. Do not change the advertised nibble from this harness.
+
+## Scenario aliases
+
+| Alias | Contents |
+| --- | --- |
+| `phase1` | Deterministic + baseline live hooks |
+| `current` | phase1 + compression / LowID partial / Kad partial |
+| `deferred` | Buddy / REASK / UDP firewall / Kad callback (production absent) |
+| `all` | Everything |
+
+## Optional packet capture
+
+`--enable-pcap` uses `dumpcap`, `tshark`, or `tcpdump` when on `PATH`. Bounded
+filters cover the configured ED2K **TCP** ports and the Kad **UDP** port
+(default `4672`, override with `--kad-udp-port` / `ENVY_INTEROP_KAD_UDP_PORT`).
+When capture stops, the runner converts the owned pcap via `tshark` (when
+present) into transport-tagged payload files:
+`captures/evidence/from-pcap-tcp-<stream>-<srcport>-<dstport>-<seq>.bin` and
+`from-pcap-udp-<seq>.bin`. SKIP protocol scenarios that can PASS from packet
+labels are then re-evaluated (labels aggregate across files; ED2K TCP frames
+may be reassembled **within the same unidirectional TCP flow only** — opposite
+directions of a `tcp.stream` are never joined, and UDP datagrams are never
+joined). Raw pcaps stay gitignored. Missing
+tools → SKIP (never silent install). The `optional_pcap` scenario **PASS**es
+only when the live runner started (and later stopped) an owned capture; tool
+availability alone remains SKIP.
+
+`--packet-evidence` accepts a hex/binary dump of ED2K **TCP** frames
+(`0xE3`/`0xC5` sized headers) and Kad2 **UDP** datagrams (`0xE4` + opcode,
+e.g. HELLO `0x11`/`0x19`, PING/PONG `0x60`/`0x61`, FIND_NODE `0x21`,
+`SEARCH_SOURCE_REQ` 0x34 / `SEARCH_RES` 0x3B
+(`<SenderID 16><TargetID 16><Count 2>` per production) / `FIREWALLED_*`).
+Evidence JSON stores a fixed `source_name` (`packet-evidence.bin`) — never the
+operator filename. Raw `.bin`/`.pcap` extracts stay out of `sanitized/`.
+Observed public IPv4 values are never written into evidence JSON (presence
+only). Fail closed on malformed frames (exact CALLBACK length, matching
+COMPRESSEDPART payload size, Kad HELLO/PING/FIND_NODE minimum body shapes).
+Kad hits overlapping a recognized ED2K TCP frame span are ignored. Opcode
+presence alone cannot PASS transfer, callback consume, SEARCH_RES→ED2K
+delivery, or firewall ACK/state scenarios — those stay SKIP until live
+operator logs satisfy the documented criteria.
+
+## Golden reference captures
+
+Envy self-goldens are committed. eMule Community / aMule slots stay empty until
+a reviewed Windows capture exists — **do not fabricate** captures in Cloud VMs.
+
+Required metadata for every committed golden: reference client, exact version,
+direction, opcode, capture date, normalization, provenance.
+
+```bash
+python3 tools/interop/run.py --ingest-hello dump.hex \
+  --reference-client emule-community --reference-version 0.70a
+```
 
 ## Artifacts
 
-Each run writes `tools/interop/artifacts/run-<UTC>/` (gitignored) containing:
+Each run writes `tools/interop/artifacts/run-<UTC>/` (gitignored):
 
-- `run-summary.json` — schema version 1, scenario results, artifact *names*
-  (not log bodies), `duration_ms`, `binaries`, `process_exit`
-- `run-summary.md` — human summary for issue attachments
+- `run-summary.json` / `run-summary.md` — schema v2 with production/harness/
+  evidence states, PASS criteria, binary identity, process exits
 - `config.sanitized.json`, `versions.txt`, `binaries.json`
-- `logs/`, `sanitized/logs/`
-- optional `captures/` (raw pcaps stay out of git)
-
-JSON fields: `schema_version`, `timestamp`, `harness_version`,
-`harness_git_sha`, `envy_revision`, `reference_client`, `reference_version`,
-`mode`, `scenario`, `result`, `duration_ms`, `reason`, `artifacts`.
+- `logs/`, `sanitized/logs/`, optional `captures/`, `evidence/`
 
 ## Privacy
 
-Sanitize before attaching to GitHub. The sanitizer redacts:
-
-- username / `USERPROFILE` / `APPDATA` / `/home/<user>` / `C:\Users\...`
-- non-loopback IPv4/IPv6
-- `BEGIN PRIVATE KEY` blocks
-- `password=` / `token=` style assignments
-
-Raw captures must not be committed unless reviewed. Committed goldens may
-include only protocol bytes with documented normalization.
-
-## Updating golden Hello captures
-
-1. Capture on an isolated test profile (no personal shares).
-2. `python3 tools/interop/run.py --ingest-hello dump.hex --reference-client emule-community --reference-version <exact>`
-3. Review the candidate JSON: origin, version, direction, opcode, date,
-   normalization.
-4. Copy into `fixtures/golden/emule-community/` or `amule/` only after review.
-5. Golden tests must check wire structure (opcode, userhash field layout,
-   ClientID, TCP port, MiscOptions bits) — not application version strings alone.
-
-Envy self-goldens in this tree duplicate
-`tests/test_ed2k_hello_golden.cpp` for the Python parser. eMule/aMule slots are
-**empty** until a real capture is reviewed.
-
-## Process management
-
-The harness tracks only PIDs it started, signals only those PIDs (and their
-process group on POSIX), and never runs `pkill -f emule` / `killall amuled`.
-
-## Test data
-
-`fixture_generation` writes `envy-interop-fixture.bin` (64 KiB), contents
-`ENVY-ED2K-INTEROP-FIXTURE\n` plus a repeating byte pattern. Size, ED2K (MD4),
-and SHA-256 are recorded. Not copyrighted network content.
-
-ENVY has no headless share-import CLI, so automated `peer_transfer` stays SKIP
-until evidence is attached or a later headless/Remote hook exists.
+Sanitize before attaching to GitHub. Redacts username / profile paths /
+APPDATA / non-loopback IPs / private keys / password= token= style secrets.
+Protocol fields needed for deterministic interop evidence are normalized
+deliberately (see golden ingest), not blindly erased.
 
 ## CI
 
 `python3 tools/interop/run.py --self-test` and `--dry-run` run on Documentation
 Check when `tools/interop/` or docs change. They must not require Windows, ENVY,
-eMule, aMule, or Internet P2P.
+eMule, aMule, Wireshark, or Internet P2P.
 
-An additional **opt-in** workflow `ED2K interop harness`
-(`.github/workflows/ed2k-interop-harness.yml`) is `workflow_dispatch` only. It
-repeats the self-test/dry-run and **never** launches live clients on
-GitHub-hosted runners. It is not a required Protect develop check.
+Opt-in `workflow_dispatch` job `ED2K interop harness` repeats self-test/dry-run
+only and is **not** a required Protect develop check.
 
-## Follow-up issues
+## Follow-up
 
-Protocol failures belong in focused issues, not in this harness:
-
-- Kad routing / SEARCH_RES / Buddy — #86
-- ED2K compressed upload, LowID/callback, AICH C2C, multipacket — #87
-- CryptLayer honesty — #121
-- SecureIdent RSA — #75
-- Deterministic parser seam — #91
+- Live Windows evidence attachment → #160 (owner of Envy ↔ eMule/aMule proof)
+- Protocol gaps → focused issues under #86 / #87 (not this harness PR)
+- CryptLayer honesty → #121
+- SecureIdent RSA → #75
+- Deterministic parser seam → #91
