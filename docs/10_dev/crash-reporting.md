@@ -139,7 +139,10 @@ WinDbg / Visual Studio with that `Envy.pdb` on the symbol path.
   `lib` / `debug/lib` directory. The project directory is `Envy/`, and
   `AdditionalIncludeDirectories` historically listed only `..\Services`, so
   MSBuild vcpkg integration does not see Crashpad headers unless the manifest
-  root is explicit.
+  root is explicit. Those properties do **not** restore `vcpkg_installed` before
+  `PreBuildEvent`. Local builds must run `scripts/bootstrap-vcpkg.cmd` (x64;
+  `-Triplet x86-windows-static` for Win32; `-All` for both). CI already runs
+  `vcpkg install --triplet=…` first. See `docs/10_dev/build.md`.
 - `Envy/CopyCrashpadHandler.cmd` copies `crashpad_handler.exe` (and
   `crashpad_wer*.dll` if present next to that handler) beside `Envy.exe`.
   Release uses `vcpkg_installed/<triplet>/tools/crashpad_handler.exe`
