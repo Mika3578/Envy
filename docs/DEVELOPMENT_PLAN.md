@@ -4,6 +4,7 @@
 
 - **Last Updated:** 2026-09-20
 - **Changelog Entry:** 2026-09-20 — #84 Settings: replace `throw()` with `noexcept` on five `Add` overloads and `SmartAgent` (C++20; Item ctors deferred). No behavior change.
+- **Changelog Entry:** 2026-09-20 — Crashpad: idempotent `CrashPadHost::Start`; single `CrashReporter::Initialize` from `InitInstance` (fix Debug double `StartHandler` DCHECK).
 - **Changelog Entry:** 2026-09-20 — #84 ComObject: replace `throw()` with `noexcept` on CComObjectPtr members (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 HashTest: drop `register` and replace `throw()` with `noexcept` (C++17/C++20). Test harness only.
 - **Changelog Entry:** 2026-09-20 — #84 SafeRelease: replace `throw()` with `noexcept` (C++20; template spacing collapsed). No behavior change.

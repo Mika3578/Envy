@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Settings Add/SmartAgent `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on five `CSettings::Add` overloads and `SmartAgent` (`Item` ctors deferred for Format Check). Behavior unchanged.
+- **Crashpad Debug double-start** — `CrashReporter::Initialize` only from `InitInstance` (removed ctor call). `CrashPadHost::Start` is idempotent so a second `StartHandler` cannot hit Crashpad’s Debug `DCHECK(ipc_pipe_.empty())`. See `docs/10_dev/crash-reporting.md`.
 - **ComObject `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `CComObjectPtr` members (Format Check spacing on touched decls). Behavior unchanged.
 - **HashTest `register` / `throw()` modernization (#84)** — Drop leftover `register` storage class and replace `throw()` with `noexcept` in `HashLib/HashTest/HashTest.cpp`. Test harness only; no production hash behavior change.
 - **SafeRelease `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specification on `SafeRelease` (collapse template spacing for Format Check). Behavior unchanged.
