@@ -10,6 +10,7 @@
 | [status](../10_dev/status.md) | Current implementation state (canonical matrix) |
 | [architecture](../20_arch/architecture.md) | System design |
 | [PORTABILITY_PLAN](../20_arch/PORTABILITY_PLAN.md) | Cross-platform foundations (planned OS targets; EnvyCore / platform / UI) |
+| [UI_MODERNIZATION](../20_arch/UI_MODERNIZATION.md) | Progressive MFC desktop UI modernization (#295); Phase 0 architecture |
 | [remote-api](../20_arch/remote-api.md) | Native API / *arr subset / Torznab client (planned); audit 2026-09 |
 
 ## Planning

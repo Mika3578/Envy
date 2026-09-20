@@ -5,7 +5,7 @@ Last updated: 2026-09-20
 Scope: Evidence-based protocol and architecture status for Envy on `develop`.
 Source of truth: Envy source under `Envy/`, tests under `tests/`, and the documents linked below. External projects are references only.
 
-This is the canonical **status matrix**. Roadmap sequencing lives in `docs/DEVELOPMENT_PLAN.md` and `docs/10_dev/roadmap.md`. External references live in `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`. Portability plan: `docs/20_arch/PORTABILITY_PLAN.md`.
+This is the canonical **status matrix**. Roadmap sequencing lives in `docs/DEVELOPMENT_PLAN.md` and `docs/10_dev/roadmap.md`. External references live in `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`. Portability plan: `docs/20_arch/PORTABILITY_PLAN.md`. Desktop MFC UI modernization (planned, progressive): `docs/20_arch/UI_MODERNIZATION.md` (#295).
 
 Envy is a **Windows-native multi-network** client today (BitTorrent, Gnutella, Gnutella2, ED2K, Kad, Direct Connect, Remote/Web, library and multi-network search). ED2K/Kad interop work must not turn Envy into an eMule-only client. Linux and macOS are **planned**, not supported.
 
