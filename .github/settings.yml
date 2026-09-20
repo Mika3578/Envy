@@ -209,7 +209,7 @@ milestones:
 #   - code_scanning: CodeQL + Gitleaks
 #   - GitHub Code Quality severity (live: All)
 #   - Copilot review-on-push (live: on) / draft review (live: off)
-#   - Copilot approve/count/auto-request UI toggles (manual verify in Settings → Copilot)
+#   - Copilot approve/count UI toggles + optional path allowlist (manual verify in Settings → Copilot)
 #   - code coverage rule (intentionally off until reliable PR coverage upload exists)
 branches:
   - name: develop

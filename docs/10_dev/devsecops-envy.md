@@ -115,12 +115,24 @@ comparison notes.
    Mend portal. Success signal: Renovate check suites leave `queued`, a **Dependency
    Dashboard** issue appears, and (for non-major / approved majors) `renovate/*` branches
    or PRs. Config file: root `renovate.json` only — do not reintroduce `renovate.json5`.
-3. **GitHub Copilot Code Review** — Repository Settings → Copilot → Code
-   review: use **Balanced** effort; enable **Allow Copilot to approve pull
-   requests** and **Allow Copilot approvals to count toward merge
-   requirements**. In Protect develop, enable automatic Copilot review,
-   review new pushes, and leave draft review off unless early feedback is
-   explicitly desired.
+3. **GitHub Copilot Code Review (safe AI approval)** — Repository
+   Settings → Copilot → Code review (UI-only; not in the ruleset API):
+   - Review effort: **Balanced**
+   - **Allow Copilot to approve pull requests:** ON
+   - **Allow Copilot approvals to count toward merge requirements:** ON
+   - Path allowlist (≤15 globs; every changed file must match, or the
+     approval does not count). Recommended Stage-3 list for docs/rules
+     PRs such as #293: `docs/**`, `**/*.md`, `**/*.mdc`,
+     `.github/ISSUE_TEMPLATE/**`, `.github/skills/**`,
+     `.github/settings.yml`, `.cursor/**`, `.continue/**`,
+     `.clinerules`, `.windsurfrules`, `.cursorrules`, `Languages/**`.
+     Leave the list **blank** only if Copilot must also satisfy C++ PRs;
+     then the code-review skill + required CI remain the safety net.
+   - Protect develop already requests Copilot on ready-for-review and
+     on push; keep draft review **off**.
+   Assessment ≠ approval. Copilot-authored PRs still need a human.
+   Independent checks (builds, EnvyTests when C++ changes, CodeQL,
+   SonarCloud, gitleaks, secret-scan, PR Gate) stay required.
 4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks + **≥1 GitHub APPROVED review** on `Protect develop`.
 5. **Protect develop (live, re-verified 2026-09-20)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing
@@ -144,8 +156,11 @@ comparison notes.
 6. **GitHub Copilot Code Review (repository UI — manual verify):** Settings →
    Copilot → Code review: effort **Balanced**; **Allow Copilot to approve pull
    requests** ON; **Allow Copilot approvals to count toward merge
-   requirements** ON; automatically request Copilot code review ON. These
-   toggles are not fully exposed on the ruleset API.
+   requirements** ON; path allowlist as in item 3 (docs/rules Stage 3, or
+   blank only if C++ PRs must also count). Automatically request Copilot
+   code review is already on via Protect develop (`review_on_push`). These
+   toggles and globs are not on the ruleset API. See
+   [Using AI-Approved Pull Requests Safely with GitHub Copilot](https://www.c-sharpcorner.com/article/using-ai-approved-pull-requests-safely-with-github-copilot/).
 7. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 
 ## Agent PR back-pressure

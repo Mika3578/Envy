@@ -105,11 +105,13 @@ Branch model:
     - at least one GitHub review with state **APPROVED** from a reviewer
       other than the PR author (Protect develop live requirement). In this
       solo-maintainer repository, **GitHub Copilot Code Review may satisfy
-      that approval** only when the repository Copilot settings allow Copilot
-      approvals to count toward merge requirements and GitHub records an
-      actual `APPROVED` review. An AI assessment/comment (CodeRabbit, Amazon Q,
+      that approval** only when repository Copilot settings allow Copilot to
+      approve **and** count toward merge requirements, any path allowlist
+      matches every changed file, and GitHub records an actual `APPROVED`
+      review. An approval *assessment* or an AI comment (CodeRabbit, Amazon Q,
       Sourcery, Copilot summary, etc.) is not an approval. Never manufacture
-      approval with GitHub Actions or a self-approval workflow;
+      approval with GitHub Actions or a self-approval workflow. Copilot
+      cloud-agent PRs still need a non-Copilot reviewer;
     - stale approvals are dismissed when new commits are pushed
       (`require_last_push_approval` remains **off** so a valid non-author
       approval, including Copilot when enabled, can satisfy the count);

@@ -315,7 +315,8 @@ Sources (primary first):
 1. **Reconcile Protect develop ruleset:** **Done for ruleset knobs
    2026-09-20** — live now has 1 approval, Code Quality = All,
    review-on-push on, draft review off. Remaining: verify repository Copilot
-   UI approve/count/auto-request toggles and Balanced effort.
+   UI approve/count toggles, Balanced effort, and optional Stage-3 path
+   allowlist (`docs/10_dev/devsecops-envy.md`).
 2. **Documentation Check always reports** a terminal conclusion — **Done**
    (`if: always()` no-op path when classify says docs out of scope; cancelled
    classify from concurrency supersede also emits success no-op so a superseded
