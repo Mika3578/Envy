@@ -60,22 +60,22 @@ public:
 	BOOL		Write(QWORD nOffset, LPCVOID pBuffer, QWORD nBuffer, QWORD* pnWritten);
 	BOOL		EnsureWrite();
 
-	inline BOOL	IsOpen() const throw()
+	inline BOOL IsOpen() const noexcept
 	{
 		return ( m_hFile != INVALID_HANDLE_VALUE ) || IsFolder();
 	}
 
-	inline BOOL	IsExists() const throw()
+	inline BOOL IsExists() const noexcept
 	{
 		return m_bExists;
 	}
 
-	inline BOOL	IsWritable() const throw()
+	inline BOOL IsWritable() const noexcept
 	{
 		return m_bWrite;
 	}
 
-	inline BOOL	IsFolder() const throw()
+	inline BOOL IsFolder() const noexcept
 	{
 		return ( m_sPath.GetAt( m_sPath.GetLength() - 1 ) == L'\\' );
 	}
