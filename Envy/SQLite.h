@@ -44,14 +44,14 @@ public:
 	~CDatabase();
 
 public:
-	operator bool() const noexcept;					// Return true if database successfully opened
+	operator bool() const noexcept; // Return true if database successfully opened
 
 	bool			Exec(LPCTSTR szQuery);			// Execute multiple queries without parameters
 	bool			Prepare(LPCTSTR szQuery);		// Prep single query
 	bool			Step(); 						// Run one query iteration
 	void			Finalize(); 					// Finalize query
-	bool			IsBusy() const noexcept; 		// Return true if latest SQL call failed for a locked table state
-	int				GetCount() const noexcept;		// Return the number of values in the current row of the result set
+	bool IsBusy() const noexcept;                   // Return true if latest SQL call failed for a locked table state
+	int GetCount() const noexcept;                  // Return the number of values in the current row of the result set
 	int				GetType(LPCWSTR pszName) const;	// Return column type in the current row of the result set
 	CString			GetLastErrorMessage() const;	// Return database error
 
