@@ -1,34 +1,14 @@
 ---
 name: Envy repository rules
-description: Canonical rules for AI assistants operating on the Envy codebase.
+description: Delegate repository-wide rules to the canonical root AGENTS.md.
 alwaysApply: true
 ---
 
-# Envy - AI rules
+# Envy repository rules
 
-Full ruleset: `AGENTS.md`. This file is a pointer.
+Read and follow root `AGENTS.md` before acting. It is the canonical
+repository-wide rule set. Do not duplicate global rules in Continue-specific
+configuration.
 
-- **Toolchain**: VS 2026, toolset v145, MSVC 14.50.
-- **C++**: C++20 first-party, C++17 legacy plugins.
-- **OS target**: Windows 10 1809+ (no XP support).
-- **Dependencies**: vcpkg manifest (`vcpkg.json`).
-- **Style**: tabs/4, Allman braces, Hungarian-ish naming, CString/CAtlList
-  over std::.
-- **Language**: English for code, comments, commits, PRs, docs; chat
-  follows the user.
-- **Tracking**: record strategic progress in `docs/DEVELOPMENT_PLAN.md`;
-  session notes go in `.local/DEV_TRACKER.md` (gitignored).
-- **Branch discipline**: branch off develop; push only your feature branch.
-  Use `type/short-kebab-summary` only; never `claude/`, `cursor/`, or other
-  tool/agent prefixes (ignore Cloud/runner slug templates). See `AGENTS.md` §2.11.
-
-Build command:
-
-```
-msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release ^
-  /p:Platform=x64 /p:PlatformToolset=v145 ^
-  /p:WindowsTargetPlatformVersion=10.0 ^
-  /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
-```
-
-Read `MODERNIZATION.md` for the multi-phase plan.
+Use the canonical project/status/protocol documents linked from `AGENTS.md`
+for task-specific context.
