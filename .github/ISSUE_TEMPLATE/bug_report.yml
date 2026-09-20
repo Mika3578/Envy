@@ -23,7 +23,7 @@ body:
       options:
         - x64
         - Win32 (x86)
-        - ARM64
+        - ARM64 (planned / unsupported; experimental reports only)
     validations:
       required: true
   - type: input

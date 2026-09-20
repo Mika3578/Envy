@@ -54,9 +54,9 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 | Toolset | **v145** (VS 2026 v18.0+ / MSVC 14.50) |
 | OS target | **Windows 10 1809 (build 17763)** or newer |
 | `WindowsTargetPlatformVersion` | `10.0` (latest SDK installed) |
-| C++ standard | **C++20** for first-party code, **C++17** for legacy plugins |
+| C++ standard | **C++20** policy for first-party, **C++17** for legacy plugins; live Release\|x64 Envy/HashLib/TorrentEnvy/Unpacker still end with `stdcpp17` |
 | `/permissive-` | Phase 2 (after warning cleanup) |
-| Architectures | x64 (primary), Win32 (compat), **ARM64** (new) |
+| Architectures | x64 (primary), Win32 (legacy Stage A), **ARM64 (planned / unsupported)** |
 | Mitigations | `/GS`, `/guard:cf`, `/sdl`, Spectre runtime libs |
 | Deps management | **vcpkg manifest** (`vcpkg.json`) |
 | Auto-update | **Dependabot** (vcpkg + GitHub Actions) |
@@ -83,8 +83,10 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 - [x] Removed `_ATL_XP_TARGETING` (66 sites) and `ENVY_USE_ASM` (2 sites)
 - [x] Injected `<WindowsTargetPlatformVersion>10.0</...>` into 44 projects
 - [x] `<LanguageStandard>stdcpp20</...>` on Envy + 12 first-party projects
+      (Release|x64 Envy/HashLib/TorrentEnvy/Unpacker still have a later
+      `stdcpp17` in the same `ClCompile` block; later value wins)
 - [x] `<LanguageStandard>stdcpp17</...>` on 19 plugins
-- [x] Removed `register` keyword (`Envy/Buffer.cpp`, `HashLib/TigerTree.cpp`, `Envy/Strings.cpp`, `Envy/QueryHashTable.cpp`, `Envy/QueryHashGroup.cpp`, `Envy/MatchObjects.cpp`, `Envy/XML.cpp`, `Envy/DlgLanguage.cpp`, `Envy/PageSettingsSkins.cpp`, `Envy/SkinWindow.cpp`, `HashLib/HashTest/HashTest.cpp`) - reserved in C++17 / C5033; remaining first-party uses are tracked under #84
+- [x] Removed `register` keyword (`Envy/Buffer.cpp`, `HashLib/TigerTree.cpp`, `Envy/Strings.cpp`, `Envy/QueryHashTable.cpp`, `Envy/QueryHashGroup.cpp`, `Envy/MatchObjects.cpp`, `Envy/XML.cpp`, `Envy/DlgLanguage.cpp`, `Envy/PageSettingsSkins.cpp`, `Envy/SkinWindow.cpp`, `Envy/Hashes/HashStringConversion.cpp`, `HashLib/HashTest/HashTest.cpp`) - reserved in C++17 / C5033; no remaining first-party storage-class uses (vendored trees excluded)
 - [x] Replaced `throw()` with `noexcept` (Envy/Buffer.{h,cpp}, Connection.h, HostCache.h `CHostCacheList` inlines, Handshakes.h `CHandshakes::IsValid`, VersionChecker.h, SQLite.{h,cpp} `CDatabase`, Application.{h,cpp}, Library.{h,cpp}, EDPacket.cpp, UPnPFinder.{h,cpp}, ThreadImpl.h, BTTrackerRequest.h `CAutoPtr<CBTTrackerRequest>::Free`, Shell.h `CShellItem::operator LPITEMIDLIST`, EnvyFile.h `CEnvyFile::GetSize`, CoolMenu.cpp SafeTrackPopupMenu/SafeQueryContextMenu, StdAfx.h `CLocked` operators, StdAfx.cpp InitGetMicroCount/NoThrowNew/OOM handlers, StreamArchive.h dtor/LPSTREAM/Detach/IsValid, TransferFile.h IsOpen/IsExists/IsWritable/IsFolder, HGlobal.h dtor/Clean/conversions/IsValid/Detach/Size, StdAfx.h SafeRelease, HashTest.cpp HashWord/InitGetMicroCount, ComObject.h CComObjectPtr, Settings.h Add/SmartAgent)
 - [x] Modernized `Envy/StdAfx.h`: Win 10 baseline, MSVC 14.50 requirement,
       auto-XPSUPPORT detection removed

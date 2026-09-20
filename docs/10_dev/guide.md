@@ -1,290 +1,152 @@
 # Developer Guide
 
-This guide provides comprehensive information for developers working on the Envy P2P client project.
+Status: active
+Last updated: 2026-09-20
+Scope: Supported setup, build, development workflow, and pull-request process.
+Source of truth: `AGENTS.md`, `Visual Studio/Envy.sln`, and live GitHub rulesets/workflows.
 
-## 📋 Table of Contents
+## Prerequisites
 
-- [Getting Started](#getting-started)
-- [Project Structure](#project-structure)
-- [Development Workflow](#development-workflow)
-- [Code Standards](#code-standards)
-- [Testing](#testing)
-- [Build System](#build-system)
-- [Contributing](#contributing)
+- **Visual Studio 2026** (18.x) with MSVC **v145 / 14.50**
+- Desktop development with C++, MFC, ATL, Spectre-mitigated libraries
+- Windows 10/11 SDK
+- Git 2.30+
+- vcpkg restored through the repository scripts
 
-## 🚀 Getting Started
+Language/platform policy:
 
-### Prerequisites
+- First-party **policy target**: **C++20**. Live Release|x64 for Envy,
+  HashLib, TorrentEnvy, and Unpacker still ends with `stdcpp17` (later
+  `LanguageStandard` wins), so those primary builds are C++17 until a
+  dedicated vcxproj cleanup. Keep that code C++17-clean.
+- Legacy plugins explicitly configured that way: **C++17**
+- Windows x64: primary supported build
+- Win32: legacy Stage A
+- Windows ARM64: **planned / unsupported**
+- Linux/macOS: planned for portable-core/headless work only; not supported
+  product targets today
 
-- **Visual Studio 2026** (18.x) or newer
-  - MSVC toolset `v145` (as configured in the `.vcxproj` files)
-  - Workloads/components: Desktop development with C++, MFC/ATL, Windows 10/11 SDK
-- **Windows SDK** 10.0.x (projects target `10.0`)
-- **CMake** 3.20+ (optional; incomplete, HashLib only)
-- **Git** 2.30+
-- **vcpkg** for the root manifest (`scripts/bootstrap-vcpkg.cmd` before the first `.sln` build; see [build.md](build.md))
+The full MFC application is authoritative through
+`Visual Studio\Envy.sln`. CMake is for the portable slice where documented;
+do not treat it as a replacement full-app build.
 
-### Initial Setup
+## Initial setup
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Mika3578/Envy.git
-   cd Envy
-   ```
-
-2. **Restore vcpkg** (Crashpad / `vcpkg_installed`; not optional on a fresh checkout).
-   Default is x64 only; restore Win32 as well if you will build that platform
-   (or use `-All` when following `build_all.ps1`):
-   ```bat
-   scripts\bootstrap-vcpkg.cmd
-   rem Win32 also:
-   scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static
-   rem or both:
-   scripts\bootstrap-vcpkg.cmd -All
-   ```
-
-3. **Open in Visual Studio:**
-   - Open `Visual Studio\Envy.sln`
-   - Select your preferred configuration (Debug/Release, x64/Win32) after the matching triplet is restored
-
-4. **Build the project:**
-   - Build → Build Solution (Ctrl+Shift+B)
-
-### Recommended Tools
-
-- **ClangFormat**: For code formatting (`.clang-format` provided)
-- **GitHub Copilot**: AI code completion (see [AI Coding Guide](ai-coding-guide.md))
-- **Cursor AI**: Project-specific rules live under `.cursor/rules/`
-
-## 🏗️ Project Structure
-
-```
-Envy/
-├── Envy/                    # Main application source (network, library, UI, protocols)
-├── HashLib/                 # Hash algorithm library
-├── Services/                # Bundled libs (SQLite, zlib, etc.)
-├── Plugins/                 # Plugin implementations
-├── Visual Studio/           # Solution and build configs
-├── scripts/                 # Version and build scripts
-├── tests/                   # Integration tests (manual runner)
-└── docs/                    # Documentation
+```text
+git clone https://github.com/Mika3578/Envy.git
+cd Envy
+scripts\bootstrap-vcpkg.cmd
+rem Restore Win32 too when needed:
+scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static
 ```
 
-### Key Components
+Open `Visual Studio\Envy.sln` and select the required configuration/platform.
 
-- **Network Layer**: TCP/UDP sockets, protocol implementations
-- **Library System**: File management, metadata, search
-- **Download Manager**: Multi-source downloads, hash verification
-- **UI Framework**: MFC-based with skinning support
-- **Plugin System**: COM-based extensibility
+## Development workflow
 
-## 🔄 Development Workflow
+### 1. Preflight before editing
 
-### Daily Development
+Read root `AGENTS.md` and perform its mandatory preflight:
 
-1. **Pull latest changes:**
-   ```bash
-   git pull origin develop
-   ```
+- inspect current `develop`, open PRs/issues, recent commits and CI/rulesets;
+- verify that the work is not already fixed, in progress, obsolete, or duplicate;
+- inspect nearby code/tests and relevant canonical docs;
+- for protocol/security work, consult primary specifications before reference
+  implementations;
+- define the smallest change and its verification plan.
 
-2. **Create feature branch:**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+### 2. Synchronize `develop`
 
-3. **Make changes with frequent commits:**
-   ```bash
-   # Make small, focused changes
-   git add specific-files
-   git commit -m "Clear, descriptive commit message"
-   ```
-
-4. **Test your changes:**
-   ```bash
-   # Build all configurations/platforms
-   .\build_all.ps1
-   ```
-
-5. **Format code:**
-   ```bash
-   # Use clang-format via your IDE or the clang-format executable
-   # (configuration is in the repository root: .clang-format)
-   ```
-
-### Before Committing
-
-- ✅ Code compiles without warnings
-- ✅ `.\build_all.ps1` succeeds (or equivalent); run `tests\run_integration_tests.bat` if you touch protocol/hash code
-- ✅ Code follows [standards](standards.md); format with clang-format
-- ✅ Docs updated if behaviour or setup changes
-
-### Pull Request Process
-
-1. **Push your branch:**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-2. **Create Pull Request** on GitHub with:
-   - Clear description of changes
-   - Reference to any related issues
-   - Screenshots for UI changes
-
-3. **Address review feedback** and update as needed
-
-## 📏 Code Standards
-
-### Language Standards
-
-- **C++ Standard**: C++17 (current baseline in project files; C++20 is a future target)
-- **Character Set**: Unicode (UTF-16)
-- **Framework**: Microsoft Foundation Classes (MFC)
-
-### Naming Conventions
-
-#### Classes
-```cpp
-class CDownloadTask;        // PascalCase with C prefix (MFC convention)
-class CLibraryFile;
+```bash
+git fetch origin
+git checkout develop
+git pull --ff-only origin develop
 ```
 
-#### Member Variables
-```cpp
-class CExample
-{
-private:
-    CString m_sFileName;        // strings use m_s* in this codebase
-    int m_nCount;               // m_n prefix for numbers
-    DWORD m_nFileSize;
-    CFile* m_pFile;             // m_p prefix for pointers
-    BOOL m_bIsActive;           // BOOL for MFC/Win32 compatibility
-};
+Never commit directly to `develop`, `main`, or `legacy`.
+
+### 3. Create a functional branch
+
+```bash
+git checkout -b feat/short-kebab-summary
 ```
 
-#### Functions
-```cpp
-void OnDownload();              // PascalCase
-bool GetFileSize();
-void UpdateProgress();
-```
+Use the prefixes allowed by `AGENTS.md` such as `feat/`, `fix/`,
+`docs/`, `refactor/`, `perf/`, `test/`, `build/`, `ci/`,
+`chore/`, `hotfix/`, or `security/`. Never use tool/agent prefixes such
+as `cursor/`, `claude/`, or `copilot/`.
 
-### Modern C++ Features
+### 4. Implement and verify
 
-**✅ Use:**
-- Smart pointers (`std::unique_ptr`, `std::shared_ptr`)
-- `nullptr` instead of `NULL`
-- Range-based `for` loops
-- `auto` for obvious types
-- `constexpr` for compile-time constants
-- `override` and `final` keywords
+Match the surrounding MFC style and preserve legacy file encoding. Do not
+bulk-format unrelated code.
 
-**❌ Avoid:**
-- Raw `new`/`delete` (use smart pointers)
-- `NULL` (use `nullptr`)
-- C-style casts (use C++ casts)
-- Manual memory management
-
-See [Modern C++ Guide](modern-cpp-guide.md) for detailed examples.
-
-### Code Organization
-
-- **Header files**: Include guards, forward declarations, clear structure
-- **Implementation files**: Logical function grouping, clear comments
-- **Error handling**: Exceptions for exceptional cases, proper resource cleanup
-- **Thread safety**: Document thread requirements, use appropriate synchronization
-
-## 🧪 Testing
-
-### Integration Tests (Current)
-
-The repository contains a standalone integration test runner in `tests/` (not wired into the Visual Studio solution yet).
-
-**Run via batch script:**
-```batch
-cd tests
-run_integration_tests.bat
-```
-
-**Or compile manually (Developer Command Prompt):**
-```batch
-cd tests
-cl /EHsc /I"../Envy" /I"." test_runner.cpp /Fe:test_runner.exe
-test_runner.exe
-```
-
-### Testing Guidelines
-
-- Write tests for new functionality
-- Test edge cases and error conditions
-- Ensure tests are fast and reliable
-- Use descriptive test names
-- Follow the existing test structure
-
-See `tests/INTEGRATION_TEST_README.md` and `tests/MANUAL_CRYPTO_TESTING_GUIDE.md`.
-
-## 🔨 Build System
-
-### Visual Studio Builds
-
-- **Solution**: `Visual Studio\Envy.sln`
-- **Configurations**: Debug, Release
-- **Platforms**: Win32, x64 (x64 recommended)
-- **Toolset**: v145 (VS2026)
-
-### CMake Builds (Modern)
+Useful local gates:
 
 ```powershell
-# Configure
-cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-
-# Build
-cmake --build build --config Release --parallel
-
-# Install
-cmake --install build --config Release
+.\scripts\ci-fast.ps1
+.\scripts\ci-verify.ps1
+# broader Windows verification when required:
+.\scripts\ci-verify.ps1 -Full
 ```
 
-### Build Verification
+For protocol/parser changes, add focused regression coverage including
+relevant nominal, boundary, zero, truncated, malformed, overflow, and unknown
+opcode/extension cases.
 
-**Test all configurations:**
-```powershell
-.\build_all.ps1
+### 5. Pull request
+
+Push only the work branch and open a **draft PR to `develop`** using
+`.github/pull_request_template.md`. Include exact validation performed,
+validation not performed, environment limitations, compatibility/wire impact,
+risk, rollback, and relevant source/spec evidence.
+
+After pushes, follow `AGENTS.md` for CI monitoring. Do not use arbitrary
+sleep/poll loops.
+
+The target merge policy is at least one GitHub `APPROVED` review. In this
+solo-maintainer repository, GitHub Copilot Code Review may satisfy the review
+gate only when repository settings explicitly allow its approvals to count and
+GitHub records an actual `APPROVED` review. All required checks and review
+threads must still be satisfied.
+
+## Build
+
+Authoritative full-app Release x64 example:
+
+```cmd
+msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
+  /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 ^
+  /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
 ```
 
-### Static Analysis
+CI also verifies Win32 where required. See [build.md](build.md) for bootstrap,
+runner, and troubleshooting details.
 
-Static analysis is currently performed in CI (and via IDE tooling). Repo configs include `.clang-tidy` and `.cppcheck-suppressions`.
+## Testing and analysis
 
-## 🤝 Contributing
+Use the closest relevant tests for the files touched. CI supplies the
+authoritative Windows builds plus required quality/security checks. Local Linux
+or Cursor Cloud checks are useful for portable tooling, clang-format/tidy,
+cppcheck and Remote JS tests, but they do **not** validate the MFC application.
 
-### Contribution Guidelines
+See:
 
-1. **Understand the codebase** before making changes
-2. **Follow existing patterns** and conventions
-3. **Make minimal changes** that solve the specific problem
-4. **Test thoroughly** before submitting
-5. **Update documentation** as needed
+- [Testing](../TESTING.md)
+- [CI audit](CI_AUDIT_2026-09.md)
+- [DevSecOps map](devsecops-envy.md)
+- [Standards](standards.md)
 
-### Areas for Contribution
+## Documentation
 
-- **Protocol improvements**: BitTorrent, Gnutella2, eDonkey
-- **Performance optimization**: Memory usage, CPU efficiency
-- **UI enhancements**: Modern Windows features, accessibility
-- **Testing**: Additional test coverage, integration tests
-- **Documentation**: User guides, API documentation
+Update documentation in the same PR when behavior, setup, API, protocol,
+security, build/CI, or troubleshooting changes. Keep one canonical location per
+topic and do not claim support without code/tests/runtime evidence.
 
-### Getting Help
+## Related
 
-- **Issues**: [GitHub Issues](../../issues)
-- **Discussions**: [GitHub Discussions](../../discussions)
-- **Documentation**: Check this guide and related docs
-- **Code**: Look for similar implementations in the codebase
-
-## 📚 Related
-
-- [Build](build.md) · [Status](status.md) · [Contributing](contributing.md) · [Standards](standards.md)
-- [Architecture](../20_arch/architecture.md) · [AI Coding Guide](ai-coding-guide.md) · [Modern C++](modern-cpp-guide.md) · [Agents & Automation](agents-and-automation.md)
-
----
-
-**Last Updated:** January 2026
+- [AGENTS.md](../../AGENTS.md)
+- [Contributing](contributing.md)
+- [Status](status.md)
+- [Architecture](../20_arch/architecture.md)
+- [Cursor index](../00_index/CURSOR_INDEX.md)

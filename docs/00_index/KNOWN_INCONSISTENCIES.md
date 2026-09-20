@@ -1,21 +1,27 @@
 # Known inconsistencies
 
-- **Protect develop required approvals (2026-09-19):** Live ruleset
-  `Protect develop` (`16457466`) returns `required_approving_review_count: 0`
-  via the GitHub API, while `AGENTS.md`, `docs/10_dev/devsecops-envy.md`, and
-  `.github/settings.yml` still describe the **intended** policy as ≥1
-  APPROVED review. Prefer restoring the live ruleset to 1; until then treat
-  docs as policy intent and the API as the enforceable gate. See
-  `docs/10_dev/CI_AUDIT_2026-09.md`.
+- **Mixed C++17/C++20 Release|x64 baseline:** Policy is C++20 first-party and
+  C++17 legacy plugins (`AGENTS.md`, `MODERNIZATION.md`). Live MSBuild uses
+  the last `<LanguageStandard>` in a `ClCompile` block, so Release|x64 for
+  Envy, HashLib, TorrentEnvy, and Unpacker currently compiles as C++17
+  (`stdcpp20` then trailing `stdcpp17`). Canonical wording:
+  `docs/10_dev/standards.md`. Do not remove those overrides in a docs PR.
 
-- **Protect develop Code Quality rule:** Live ruleset includes a
-  `code_quality` rule with severity `notes`. DevSecOps prose was updated in
-  2026-09 to match (`docs/10_dev/devsecops-envy.md`,
-  `docs/10_dev/CI_AUDIT_2026-09.md`). `.github/settings.yml` still records
-  the intended policy as having **no** GitHub Code Quality ruleset rule
-  (Probot comment block). Open item: maintainer decision whether to keep the
-  notes rule, raise it, or remove it in favor of Sonar/CodeQL/CI — and align
-  `settings.yml` afterward.
+- **Protect develop ruleset (re-verified 2026-09-20):** Live API now matches
+  the maintainer target for **1 required approval**, Code Quality severity
+  **All**, Copilot `review_on_push` **on**, and draft review **off**. Coverage
+  restriction remains **off** (no `Restrict code coverage` rule). Historical
+  2026-09-19 audit snapshots that recorded `required_approving_review_count: 0`
+  / Code Quality `notes` / `review_on_push: false` are retained as history —
+  do not treat them as current. Repository Copilot UI toggles that still
+  need manual verification are **Allow Copilot to approve pull requests**,
+  **Allow Copilot approvals to count toward merge requirements**, review
+  effort **Balanced**, and the optional path allowlist (Stage-3 docs/i18n
+  globs in `docs/10_dev/devsecops-envy.md`; excludes review-governance). Automatic Copilot review is
+  already live on Protect develop (`copilot_code_review` + `review_on_push`);
+  it is not a remaining UI gap. An AI comment/assessment alone is not an
+  `APPROVED` review. See `docs/10_dev/CI_AUDIT_2026-09.md` and
+  `docs/10_dev/devsecops-envy.md`.
 
 - **ED2K/Kad scope:** `ED2K_KAD_GAP_ANALYSIS` is a historical snapshot (routing-table items annotated 2026-09-19 after `KadRoutingTable.h`). `kad2-compatibility-report` covers opcode/format matching plus local routing maintenance. Neither is live interop. Canonical high-level status is `docs/10_dev/status.md`. The gap-analysis `FIREWALLED_REQ`/`RES` TagList/TargetID framing is outdated; eMule/aMule use exact 2-byte port / 4-byte IPv4 (`docs/30_protocols/kad/kad2-compatibility-report.md`).
 
@@ -25,7 +31,7 @@
 
 - **Missing index targets:** `docs/00_index/MASTER_PLAN.md` and `docs/30_protocols/ed2k/ED2K_SEARCH_DIAGNOSTICS.md` were linked but absent; links were removed from the index/ED2K README rather than inventing stub files.
 
-- **Historical `.github/` docs:** Former live copies of roadmap / upgrade summary / modern C++ guide under `.github/` contradicted `docs/10_dev/status.md` (e.g. IPv6 “complete”). They are now pointers; archives live under `docs/10_dev/archive/`. AI-rule thin-adapter consolidation is deferred while PR #164 touches `AGENTS.md` / `CLAUDE.md` / `.github/CONTRIBUTING.md`.
+- **Historical `.github/` docs:** Former live copies of roadmap / upgrade summary / modern C++ guide under `.github/` contradicted `docs/10_dev/status.md` (e.g. IPv6 “complete”). They are now pointers; archives live under `docs/10_dev/archive/`. AI-rule thin-adapter consolidation is this PR (#293): `AGENTS.md` is canonical; Copilot/Claude/Cline/Windsurf/Continue files are pointers.
 
 - **EDClient.h comments:** Member `m_bEmSupportsSourceEx2` is commented "Not supported" but SourceEx2 (REQUESTSOURCES2/ANSWERSOURCES2) is implemented in `EDClient.cpp` and advertised; consider updating the comment to "Source Exchange v2".
 

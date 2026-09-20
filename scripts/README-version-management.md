@@ -172,7 +172,7 @@ git checkout -- version.json
 ### Development Workflow
 ```powershell
 # Start new feature branch
-git checkout -b feature/new-feature
+git checkout -b feat/new-feature
 
 # Make changes...
 
