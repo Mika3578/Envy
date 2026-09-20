@@ -56,7 +56,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 | `WindowsTargetPlatformVersion` | `10.0` (latest SDK installed) |
 | C++ standard | **C++20** for first-party code, **C++17** for legacy plugins |
 | `/permissive-` | Phase 2 (after warning cleanup) |
-| Architectures | x64 (primary), Win32 (compat), **ARM64** (new) |
+| Architectures | x64 (primary), Win32 (legacy Stage A), **ARM64 (planned / unsupported)** |
 | Mitigations | `/GS`, `/guard:cf`, `/sdl`, Spectre runtime libs |
 | Deps management | **vcpkg manifest** (`vcpkg.json`) |
 | Auto-update | **Dependabot** (vcpkg + GitHub Actions) |

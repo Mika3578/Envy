@@ -15,9 +15,11 @@ This document defines the coding standards and best practices for the Envy proje
 ## 🎯 Language Standards
 
 ### C++ Standard
-- **Current baseline**: C++17 (configured as `stdcpp17` in the `.vcxproj` files)
-- **Target**: C++20 (planned; adopt incrementally once the baseline is raised)
-- **Migration**: Gradual adoption of modern features
+- **First-party baseline**: C++20 (`stdcpp20` on Envy and other first-party
+  `.vcxproj` files)
+- **Legacy plugins**: C++17 (`stdcpp17` on plugins that remain on that
+  standard)
+- **Target OS**: Windows 10 1809+; Windows ARM64 is planned / unsupported
 
 ### Platform and Framework
 - **OS**: Windows (Win32/x64)

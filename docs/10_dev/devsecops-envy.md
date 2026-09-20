@@ -124,10 +124,12 @@ comparison notes.
      approval does not count). Recommended Stage-3 list for docs/rules
      PRs such as #293: `docs/**`, `**/*.md`, `**/*.mdc`,
      `.github/ISSUE_TEMPLATE/**`, `.github/skills/**`,
-     `.github/settings.yml`, `.cursor/**`, `.continue/**`,
+     `.cursor/**`, `.continue/**`,
      `.clinerules`, `.windsurfrules`, `.cursorrules`, `Languages/**`.
-     Leave the list **blank** only if Copilot must also satisfy C++ PRs;
-     then the code-review skill + required CI remain the safety net.
+     Do **not** include `.github/settings.yml` or `.github/workflows/**`
+     (high-risk infra). Leave the list **blank** only if Copilot must also
+     satisfy C++ PRs; then the code-review skill + required CI remain the
+     safety net.
    - Protect develop already requests Copilot on ready-for-review and
      on push; keep draft review **off**.
    Assessment ≠ approval. Copilot-authored PRs still need a human.

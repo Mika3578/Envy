@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #293 Copilot review: risk-specific evidence (workflows/settings.yml cannot use wire-format text); ARM64 planned/unsupported in modernization table; C++20 first-party in standards.md; CHANGELOG playbook aligned with AGENTS.md.
 - **Changelog Entry:** 2026-09-20 — #293 Copilot review: remaining UI gaps are approve/count, Balanced effort, and path allowlist only; automatic review is already live on Protect develop; drop deleted `.cursor/rules/08-dev-workflow.mdc` pointer.
 - **Changelog Entry:** 2026-09-20 — #293: safe Copilot approval policy — assessment ≠ APPROVED; path-allowlist Stage-3 docs/rules globs; high-risk C++/workflows need evidence; Copilot-authored PRs are not self-approved; independent CI/security checks stay required.
 - **Changelog Entry:** 2026-09-20 — #293: Copilot Code Review is the solo-maintainer required reviewer; auto-review runs on ready-for-review and on push (draft review off). Approve only with a real `APPROVED` review when repository Copilot approve/count settings are on. Stale #164 consolidation-deferral note removed.

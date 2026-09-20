@@ -130,7 +130,10 @@ Branch model:
     threading, locking, memory lifetime), also require sufficient evidence:
     a regression test, protocol/spec comparison, comparison with
     eMule/aMule/Shareaza (or another relevant reference), **or** an explicit
-    `Wire-format impact: none` justification in the PR.
+    `Wire-format impact: none` justification in the PR. Workflow,
+    `.github/settings.yml`, and installer/infra changes need targeted
+    CI/security validation instead; `Wire-format impact: none` does not
+    cover them.
     **Never** bypass GitHub rulesets, required checks, or branch
     protections (`--admin`, elevated PATs, force-push to protected refs).
     Never push to `main`/`develop`/`legacy` directly.
