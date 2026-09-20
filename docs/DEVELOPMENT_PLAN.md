@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #160/#294 Copilot round 8: PUBLICIP_REQ empty body; COMPRESSEDPART allows partial chunks; transport-dispatched extractors; UDP single-datagram mode; redacted userhash; sanitized config paths; dry-run validate_ports; fail on missing configured evidence / malformed labels; kad_search_source not opcode-only PASS.
 - **Changelog Entry:** 2026-09-20 — #160/#294 Copilot round 7: TCP reassembly only within `from-pcap-tcp-<stream>-*` (UDP never joined); capability_negotiation reuses the same helper.
 - **Changelog Entry:** 2026-09-20 — #160/#294 Copilot round 6: `run-live.ps1` rejects negative `-PcapDurationSec` (was silently treated as unbounded 0).
 - **Changelog Entry:** 2026-09-20 — #160/#294 Copilot round 5: direction-specific Kad HELLO/PING/FIND_NODE labels; cross-file evidence aggregation + TCP concat reassembly; SourceEx2 accepted for source_exchange; README from-pcap-NNNN; reject negative pcap_duration; malformed labeled evidence FAIL.
