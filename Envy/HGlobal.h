@@ -52,12 +52,12 @@ public:
 		}
 	}
 
-	virtual ~CHGlobal() throw()
+	virtual ~CHGlobal() noexcept
 	{
 		Clean();
 	}
 
-	inline void Clean() throw()
+	inline void Clean() noexcept
 	{
 		if ( m_phGlobal )
 		{
@@ -71,7 +71,7 @@ public:
 		}
 	}
 
-	inline operator T*() throw()
+	inline operator T*() noexcept
 	{
 		if ( m_phGlobal )
 		{
@@ -84,22 +84,22 @@ public:
 		return NULL;
 	}
 
-	inline T* operator ->() throw()
+	inline T* operator->() noexcept
 	{
 		return operator T*();
 	}
 
-	inline bool IsValid() const throw()
+	inline bool IsValid() const noexcept
 	{
 		return ( m_phGlobal != NULL );
 	}
 
-	inline operator HGLOBAL() throw()
+	inline operator HGLOBAL() noexcept
 	{
 		return m_phGlobal;
 	}
 
-	inline HGLOBAL Detach() throw()
+	inline HGLOBAL Detach() noexcept
 	{
 		if ( m_phGlobal )
 		{
@@ -114,7 +114,7 @@ public:
 		return hGlobal;
 	}
 
-	inline SIZE_T Size() const throw()
+	inline SIZE_T Size() const noexcept
 	{
 		if ( m_phGlobal )
 		{
