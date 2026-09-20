@@ -389,15 +389,40 @@ class EvidenceExtractorTests(unittest.TestCase):
         mid = len(frame) // 2
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "from-pcap-0000.bin").write_bytes(frame[:mid])
-            (root / "from-pcap-0001.bin").write_bytes(frame[mid:])
-            # Per-file extract misses; concat TCP path must recover.
-            per = extract_frames((root / "from-pcap-0000.bin").read_bytes())
+            # Same tcp.stream (0000); UDP neighbor must not join the reassembly.
+            (root / "from-pcap-tcp-0000-0000.bin").write_bytes(frame[:mid])
+            (root / "from-pcap-tcp-0000-0001.bin").write_bytes(frame[mid:])
+            (root / "from-pcap-udp-0000.bin").write_bytes(
+                bytes([0xE4, 0x11]) + (b"\xaa" * 16) + bytes([0])
+            )
+            per = extract_frames((root / "from-pcap-tcp-0000-0000.bin").read_bytes())
             self.assertFalse(any(h.label == "hello" for h in per))
             hits = collect_hits_from_paths(
-                [root / "from-pcap-0000.bin", root / "from-pcap-0001.bin"]
+                [
+                    root / "from-pcap-tcp-0000-0000.bin",
+                    root / "from-pcap-tcp-0000-0001.bin",
+                    root / "from-pcap-udp-0000.bin",
+                ]
             )
             self.assertTrue(any(h.label == "hello" for h in hits))
+            self.assertTrue(any(h.label == "kad_hello_req" for h in hits))
+
+    def test_udp_not_joined_into_tcp_reassembly(self) -> None:
+        """Kad UDP chunks must never be concatenated into ED2K TCP reassembly."""
+        # Two UDP-looking halves that would forge a Hello if naively joined.
+        hello_path = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
+        frame = bytes.fromhex(
+            json.loads(hello_path.read_text(encoding="utf-8"))["tcp_frame_hex"]
+        )
+        mid = len(frame) // 2
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "from-pcap-udp-0000.bin").write_bytes(frame[:mid])
+            (root / "from-pcap-udp-0001.bin").write_bytes(frame[mid:])
+            hits = collect_hits_from_paths(
+                [root / "from-pcap-udp-0000.bin", root / "from-pcap-udp-0001.bin"]
+            )
+            self.assertFalse(any(h.label == "hello" for h in hits))
 
 
 class ReportTests(unittest.TestCase):

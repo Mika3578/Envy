@@ -396,25 +396,69 @@ def require_any_label_group(
     return False, "; ".join(reasons), tuple()
 
 
+def _is_pcap_tcp_evidence_name(name: str) -> bool:
+    """True for runner-emitted TCP payload files (never UDP)."""
+    return name.startswith("from-pcap-tcp-") and name.endswith(".bin")
+
+
+def _tcp_stream_key(name: str) -> Optional[str]:
+    """Return stream id from ``from-pcap-tcp-<stream>-<seq>.bin``, else None."""
+    # from-pcap-tcp-0003-0001.bin -> "0003"
+    if not _is_pcap_tcp_evidence_name(name):
+        return None
+    parts = name[len("from-pcap-tcp-") : -len(".bin")].split("-")
+    if len(parts) != 2:
+        return None
+    return parts[0]
+
+
+def tcp_reassembly_blobs(paths: Sequence[Path]) -> List[bytes]:
+    """Concatenate TCP segment payloads per stream; never include UDP files.
+
+    Operator dumps without the ``from-pcap-tcp-`` prefix are not joined — only
+    scanned per-file — so Kad UDP bytes cannot forge ED2K frames across files.
+    """
+    by_stream: Dict[str, List[Tuple[str, bytes]]] = {}
+    for path in paths:
+        if not path or not path.is_file():
+            continue
+        stream = _tcp_stream_key(path.name)
+        if stream is None:
+            continue
+        by_stream.setdefault(stream, []).append((path.name, load_bytes(path)))
+    blobs: List[bytes] = []
+    for stream in sorted(by_stream):
+        ordered = sorted(by_stream[stream], key=lambda item: item[0])
+        blobs.append(b"".join(chunk for _, chunk in ordered))
+    return blobs
+
+
 def collect_hits_from_paths(paths: Sequence[Path]) -> List[FrameHit]:
     """Aggregate frames across evidence files without flattening UDP datagrams.
 
     Each file is scanned individually (preserves per-datagram Kad boundaries).
-    Additionally, all file bytes are concatenated for ED2K TCP extraction only
-    so a frame split across TCP segments can still match.
+    TCP segment reassembly joins only ``from-pcap-tcp-<stream>-*.bin`` files
+    within the same stream — UDP extracts are never included in that join.
     """
     hits: List[FrameHit] = []
-    blobs: List[bytes] = []
     for path in paths:
         if not path or not path.is_file():
             continue
-        raw = load_bytes(path)
-        blobs.append(raw)
-        hits.extend(extract_frames(raw))
-    if len(blobs) > 1:
-        # TCP segment reassembly approximation — never feed this concat to Kad.
-        hits.extend(extract_ed2k_frames(b"".join(blobs)))
+        hits.extend(extract_frames(load_bytes(path)))
+    for blob in tcp_reassembly_blobs(paths):
+        hits.extend(extract_ed2k_frames(blob))
     return hits
+
+
+@dataclass(frozen=True)
+class PcapPayloadExtract:
+    """Transport-separated tshark payloads (one list entry per field line)."""
+
+    tcp_by_stream: Dict[str, List[bytes]]
+    udp: List[bytes]
+
+    def is_empty(self) -> bool:
+        return not self.udp and not any(self.tcp_by_stream.values())
 
 
 def extract_from_pcap_via_tshark(
@@ -422,11 +466,11 @@ def extract_from_pcap_via_tshark(
     *,
     ports: Sequence[int],
     timeout_sec: float = 30.0,
-) -> List[bytes]:
-    """Extract per-packet TCP/UDP payloads (one list entry per tshark field line).
+) -> PcapPayloadExtract:
+    """Extract per-packet TCP/UDP payloads, keeping transports separate.
 
-    Units are not concatenated: callers must parse each chunk separately so UDP
-    datagram and TCP segment boundaries are preserved.
+    TCP lines include ``tcp.stream`` so callers can reassemble by flow.
+    UDP datagrams are listed independently and must never be concatenated.
     """
     tool = find_tshark()
     if not tool:
@@ -437,19 +481,9 @@ def extract_from_pcap_via_tshark(
         f"(tcp.port == {int(p)} or udp.port == {int(p)})" for p in ports
     )
     display = f"({port_or})"
-    chunks: List[bytes] = []
-    for field in ("tcp.payload", "udp.payload"):
-        argv = [
-            tool,
-            "-r",
-            str(pcap_path),
-            "-Y",
-            display,
-            "-T",
-            "fields",
-            "-e",
-            field,
-        ]
+
+    def _run(fields: Sequence[str]) -> str:
+        argv = [tool, "-r", str(pcap_path), "-Y", display, "-T", "fields", *[item for f in fields for item in ("-e", f)]]
         try:
             proc = subprocess.run(
                 argv,
@@ -463,15 +497,33 @@ def extract_from_pcap_via_tshark(
             raise EvidenceError(f"tshark failed: {exc}") from exc
         if proc.returncode != 0:
             raise EvidenceError(f"tshark exit {proc.returncode}: {proc.stderr.strip()[:200]}")
-        for line in proc.stdout.splitlines():
-            hex_str = line.strip().replace(":", "")
-            if not hex_str:
-                continue
-            try:
-                chunks.append(bytes.fromhex(hex_str))
-            except ValueError as exc:
-                raise EvidenceError("tshark produced malformed hex payload") from exc
-    return chunks
+        return proc.stdout
+
+    tcp_by_stream: Dict[str, List[bytes]] = {}
+    for line in _run(("tcp.stream", "tcp.payload")).splitlines():
+        parts = line.split("\t")
+        if len(parts) < 2:
+            continue
+        stream = (parts[0] or "0").strip()
+        hex_str = parts[1].strip().replace(":", "")
+        if not hex_str:
+            continue
+        try:
+            tcp_by_stream.setdefault(stream, []).append(bytes.fromhex(hex_str))
+        except ValueError as exc:
+            raise EvidenceError("tshark produced malformed TCP hex payload") from exc
+
+    udp: List[bytes] = []
+    for line in _run(("udp.payload",)).splitlines():
+        hex_str = line.strip().replace(":", "")
+        if not hex_str:
+            continue
+        try:
+            udp.append(bytes.fromhex(hex_str))
+        except ValueError as exc:
+            raise EvidenceError("tshark produced malformed UDP hex payload") from exc
+
+    return PcapPayloadExtract(tcp_by_stream=tcp_by_stream, udp=udp)
 
 
 def write_evidence_summary(path: Path, summary: Dict[str, Any]) -> None:

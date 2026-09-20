@@ -76,14 +76,14 @@ def _convert_owned_pcap(ctx: RunContext, cfg: HarnessConfig) -> Optional[Path]:
     if ctx.pcap_path is None or not ctx.pcap_path.is_file():
         return None
     try:
-        chunks = extract_from_pcap_via_tshark(
+        extracted = extract_from_pcap_via_tshark(
             ctx.pcap_path,
             ports=_pcap_evidence_ports(cfg),
         )
     except EvidenceError as exc:
         (ctx.logs_dir / "pcap-extract-error.txt").write_text(str(exc) + "\n", encoding="utf-8")
         return None
-    if not chunks:
+    if extracted.is_empty():
         (ctx.logs_dir / "pcap-extract-empty.txt").write_text(
             "tshark found no TCP/UDP payloads for configured ports\n",
             encoding="utf-8",
@@ -91,9 +91,16 @@ def _convert_owned_pcap(ctx: RunContext, cfg: HarnessConfig) -> Optional[Path]:
         return None
     dest_dir = ctx.run_dir / "captures" / "evidence"
     dest_dir.mkdir(parents=True, exist_ok=True)
-    # One file per tshark payload unit — do not flatten datagram/segment boundaries.
-    for index, chunk in enumerate(chunks):
-        (dest_dir / f"from-pcap-{index:04d}.bin").write_bytes(chunk)
+    # Transport-tagged files: TCP reassembly joins only within a tcp.stream.
+    for stream, chunks in sorted(extracted.tcp_by_stream.items(), key=lambda item: item[0]):
+        try:
+            stream_id = f"{int(stream):04d}"
+        except ValueError:
+            stream_id = "".join(ch if ch.isalnum() else "_" for ch in stream)[:16] or "0"
+        for index, chunk in enumerate(chunks):
+            (dest_dir / f"from-pcap-tcp-{stream_id}-{index:04d}.bin").write_bytes(chunk)
+    for index, chunk in enumerate(extracted.udp):
+        (dest_dir / f"from-pcap-udp-{index:04d}.bin").write_bytes(chunk)
     return dest_dir
 
 

@@ -33,6 +33,7 @@ from .evidence import (
     require_any_label_group,
     safe_evidence_source_name,
     summarize_hits,
+    tcp_reassembly_blobs,
     write_evidence_summary,
 )
 from .fixtures import write_fixture
@@ -1048,14 +1049,22 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
         try:
             hello_raw = hello_hit = None
             answer_raw = answer_hit = None
-            # Prefer TCP-concat so a frame split across segments still parses.
-            concat = b"".join(load_bytes(p) for p in files)
-            concat_hits = extract_ed2k_frames(concat)
-            hello_hit = _first_hit(concat_hits, "hello")
-            answer_hit = _first_hit(concat_hits, "hello_answer")
-            if hello_hit is not None and answer_hit is not None:
-                hello_raw = answer_raw = concat
-            else:
+            # TCP-only stream reassembly — never join UDP/Kad datagram bytes.
+            for blob in tcp_reassembly_blobs(files):
+                concat_hits = extract_ed2k_frames(blob)
+                if hello_hit is None:
+                    hello_hit = _first_hit(concat_hits, "hello")
+                    if hello_hit is not None:
+                        hello_raw = blob
+                if answer_hit is None:
+                    answer_hit = _first_hit(concat_hits, "hello_answer")
+                    if answer_hit is not None:
+                        answer_raw = blob
+                if hello_hit is not None and answer_hit is not None:
+                    break
+            if hello_hit is None or answer_hit is None:
+                hello_hit = answer_hit = None
+                hello_raw = answer_raw = None
                 for path in files:
                     raw = load_bytes(path)
                     hits = extract_frames(raw)
