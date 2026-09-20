@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #84 StreamArchive: replace `throw()` with `noexcept` on dtor/LPSTREAM/Detach/IsValid (C++20; ctors deferred). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 StdAfx.cpp: replace `throw()` with `noexcept` on InitGetMicroCount/NoThrowNew/OOM handlers (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 CLocked: replace `throw()` with `noexcept` on operator T / operator-> (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 CoolMenu: replace `throw()` with `noexcept` on SafeTrackPopupMenu/SafeQueryContextMenu (C++20). No behavior change.
