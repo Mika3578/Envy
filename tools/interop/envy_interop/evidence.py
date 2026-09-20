@@ -149,6 +149,9 @@ def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
                 details.update({k: info[k] for k in ("emule_protocol_version",) if k in info})
             except HelloParseError as exc:
                 details["parse_error"] = str(exc)
+        elif proto == ED2K_PROTOCOL_EMULE and opcode == ED2K_C2C_PUBLICIP_REQ:
+            if len(body) != 0:
+                details["parse_error"] = f"PUBLICIP_REQ body must be empty, got {len(body)}"
         elif proto == ED2K_PROTOCOL_EMULE and opcode == ED2K_C2C_PUBLICIP_ANSWER:
             if len(body) != 4:
                 details["parse_error"] = f"PUBLICIP_ANSWER body must be 4 bytes, got {len(body)}"
@@ -170,14 +173,20 @@ def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
             else:
                 compressed_len = struct.unpack_from("<I", body, need - 4)[0]
                 remaining = len(body) - need
-                if remaining != compressed_len:
+                # CompressedTotalSize is the full zlib stream; a single TCP frame may
+                # carry only a chunk (remaining <= compressed_len). Oversized chunks fail.
+                if remaining > compressed_len:
                     details["parse_error"] = (
-                        f"compressed payload length mismatch "
+                        f"compressed payload longer than declared total "
                         f"(declared {compressed_len}, remaining {remaining})"
                     )
+                elif remaining == 0 and compressed_len > 0:
+                    details["parse_error"] = "compressed part chunk empty"
                 else:
                     details["i64"] = opcode == ED2K_C2C_COMPRESSEDPART_I64
                     details["compressed_len"] = compressed_len
+                    details["chunk_len"] = remaining
+                    details["complete_chunk"] = remaining == compressed_len
         hits.append(
             FrameHit(
                 protocol=proto,
@@ -203,12 +212,19 @@ def _next_kad_opcode_offset(blob: bytes, start: int) -> int:
     return n
 
 
-def extract_kad_udp_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
+def extract_kad_udp_frames(
+    blob: bytes,
+    *,
+    max_frames: int = 64,
+    single_datagram: bool = False,
+) -> List[FrameHit]:
     """Scan for Kad2 UDP datagrams: <0xE4><opcode:1><body> (no size field).
 
-    Packed protocol 0xE5 is skipped (fail closed — no inflate). Body runs until
-    the next known Kad opcode header or end of blob. Single-datagram operator
-    dumps are the common case.
+    Packed protocol 0xE5 is skipped (fail closed — no inflate).
+
+    When ``single_datagram`` is True (per-packet ``from-pcap-udp-*.bin``), the
+    entire blob after the first header is one body — never split on embedded
+    ``E4 <opcode>`` sequences inside the payload.
     """
     hits: List[FrameHit] = []
     n = len(blob)
@@ -226,7 +242,10 @@ def extract_kad_udp_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHi
         if label is None:
             i += 1
             continue
-        frame_end = _next_kad_opcode_offset(blob, i + 2)
+        if single_datagram:
+            frame_end = n
+        else:
+            frame_end = _next_kad_opcode_offset(blob, i + 2)
         body = blob[i + 2 : frame_end]
         details: Dict[str, Any] = {"body_len": len(body), "transport": "udp"}
         if opcode in (KAD_OP_HELLO_REQ, KAD_OP_HELLO_RES):
@@ -274,19 +293,44 @@ def extract_kad_udp_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHi
             #   <Hash 16><Count 1>  (min 17) — legacy; accept for evidence
             min_emule = 16 + 16 + 2
             min_legacy = 16 + 1
-            if len(body) >= min_emule:
-                details["layout"] = "sender_target_count2"
-                details["has_sender_id"] = True
-                details["has_target_id"] = True
-                details["result_count"] = struct.unpack_from("<H", body, 32)[0]
-            elif len(body) >= min_legacy:
+            if len(body) < min_legacy:
+                details["parse_error"] = (
+                    f"SEARCH_RES body too short ({len(body)} < {min_legacy})"
+                )
+            elif len(body) < min_emule:
                 details["layout"] = "envy_outbound_hash_count1"
                 details["has_filehash"] = True
                 details["result_count"] = body[16]
             else:
-                details["parse_error"] = (
-                    f"SEARCH_RES body too short ({len(body)} < {min_legacy})"
+                count2 = struct.unpack_from("<H", body, 32)[0]
+                count1 = body[16]
+                # Length alone is ambiguous once results are present. Prefer the
+                # eMule layout only when the LE count at offset 32 is plausible
+                # for the remaining payload; otherwise treat as Envy legacy.
+                remaining_after_emule = len(body) - min_emule
+                emule_plausible = count2 <= 512 and (
+                    (count2 == 0 and remaining_after_emule == 0) or count2 > 0
                 )
+                legacy_plausible = count1 <= 512
+                # Prefer legacy when count2 looks like random contact bytes
+                # (large) while count1 is a small result count with trailing data.
+                if legacy_plausible and remaining_after_emule > 0 and count2 > 64 and count1 <= 32:
+                    details["layout"] = "envy_outbound_hash_count1"
+                    details["has_filehash"] = True
+                    details["result_count"] = count1
+                elif emule_plausible:
+                    details["layout"] = "sender_target_count2"
+                    details["has_sender_id"] = True
+                    details["has_target_id"] = True
+                    details["result_count"] = count2
+                elif legacy_plausible:
+                    details["layout"] = "envy_outbound_hash_count1"
+                    details["has_filehash"] = True
+                    details["result_count"] = count1
+                else:
+                    details["parse_error"] = (
+                        f"SEARCH_RES layout ambiguous (count1={count1}, count2={count2})"
+                    )
         hits.append(
             FrameHit(
                 protocol=proto,
@@ -297,6 +341,8 @@ def extract_kad_udp_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHi
                 details=details,
             )
         )
+        if single_datagram:
+            break
         i = frame_end
     return hits
 
@@ -433,18 +479,35 @@ def tcp_reassembly_blobs(paths: Sequence[Path]) -> List[bytes]:
     return blobs
 
 
+def _is_pcap_udp_evidence_name(name: str) -> bool:
+    return name.startswith("from-pcap-udp-") and name.endswith(".bin")
+
+
+def extract_frames_for_path(path: Path, blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
+    """Dispatch extractors from transport tag when present.
+
+    ``from-pcap-tcp-*`` → ED2K TCP only; ``from-pcap-udp-*`` → one Kad datagram;
+    untagged operator dumps keep the combined scanner.
+    """
+    name = path.name
+    if _is_pcap_tcp_evidence_name(name):
+        return extract_ed2k_frames(blob, max_frames=max_frames)
+    if _is_pcap_udp_evidence_name(name):
+        return extract_kad_udp_frames(blob, max_frames=max_frames, single_datagram=True)
+    return extract_frames(blob, max_frames=max_frames)
+
+
 def collect_hits_from_paths(paths: Sequence[Path]) -> List[FrameHit]:
     """Aggregate frames across evidence files without flattening UDP datagrams.
 
-    Each file is scanned individually (preserves per-datagram Kad boundaries).
-    TCP segment reassembly joins only ``from-pcap-tcp-<stream>-*.bin`` files
-    within the same stream — UDP extracts are never included in that join.
+    Transport-tagged files use the matching extractor only. TCP segment
+    reassembly joins only ``from-pcap-tcp-<stream>-*.bin`` within one stream.
     """
     hits: List[FrameHit] = []
     for path in paths:
         if not path or not path.is_file():
             continue
-        hits.extend(extract_frames(load_bytes(path)))
+        hits.extend(extract_frames_for_path(path, load_bytes(path)))
     for blob in tcp_reassembly_blobs(paths):
         hits.extend(extract_ed2k_frames(blob))
     return hits

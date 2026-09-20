@@ -211,14 +211,46 @@ class EvidenceExtractorTests(unittest.TestCase):
         self.assertTrue(ok, reason)
 
     def test_compressedpart_payload_length_must_match(self) -> None:
-        # Declared compressed_total=100 but only 8 payload bytes → fail closed.
-        short = b"\x11" * 16 + struct.pack("<I", 0) + struct.pack("<I", 100) + b"\x00" * 8
-        frame = bytes([0xC5]) + struct.pack("<I", 1 + len(short)) + bytes([0x40]) + short
-        self.assertFalse(require_labels(extract_ed2k_frames(frame), ["compressedpart"])[0])
+        # Partial chunk (remaining < declared total) is valid wire evidence.
+        partial = b"\x11" * 16 + struct.pack("<I", 0) + struct.pack("<I", 100) + b"\x00" * 8
+        frame = bytes([0xC5]) + struct.pack("<I", 1 + len(partial)) + bytes([0x40]) + partial
+        ok, reason = require_labels(extract_ed2k_frames(frame), ["compressedpart"])
+        self.assertTrue(ok, reason)
+        self.assertFalse(extract_ed2k_frames(frame)[0].details.get("complete_chunk"))
         # Trailing junk beyond declared length → fail closed.
         long = b"\x11" * 16 + struct.pack("<I", 0) + struct.pack("<I", 4) + b"\x00" * 8
         frame = bytes([0xC5]) + struct.pack("<I", 1 + len(long)) + bytes([0x40]) + long
         self.assertFalse(require_labels(extract_ed2k_frames(frame), ["compressedpart"])[0])
+
+    def test_publicip_req_must_be_empty(self) -> None:
+        nonempty = bytes([0xC5]) + struct.pack("<I", 2) + bytes([0x97, 0x01])
+        empty = bytes([0xC5]) + struct.pack("<I", 1) + bytes([0x97])
+        self.assertFalse(require_labels(extract_ed2k_frames(nonempty), ["publicip_req"])[0])
+        self.assertTrue(require_labels(extract_ed2k_frames(empty), ["publicip_req"])[0])
+
+    def test_udp_single_datagram_does_not_split_on_embedded_opcode(self) -> None:
+        # Body contains E4 61 which must not become a second datagram.
+        body = bytes([0x00, 0xE4, 0x61, 0x00])
+        blob = bytes([0xE4, 0x60]) + body
+        split = extract_kad_udp_frames(blob)
+        self.assertGreaterEqual(len(split), 2)
+        single = extract_kad_udp_frames(blob, single_datagram=True)
+        self.assertEqual(len(single), 1)
+        self.assertEqual(single[0].label, "kad_ping")
+        self.assertEqual(single[0].details["body_len"], len(body))
+
+    def test_hello_evidence_redacts_userhash(self) -> None:
+        from envy_interop.hello import hello_evidence, parse_hello_tcp
+
+        hello_path = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
+        frame = bytes.fromhex(
+            json.loads(hello_path.read_text(encoding="utf-8"))["tcp_frame_hex"]
+        )
+        parsed = parse_hello_tcp(frame)
+        evidence = hello_evidence(parsed)
+        self.assertTrue(evidence["userhash_redacted"])
+        self.assertEqual(evidence["userhash_hex"], "00" * evidence["userhash_len"])
+        self.assertNotEqual(parsed.userhash, b"\x00" * len(parsed.userhash))
 
     def test_publicip_answer_omits_raw_ipv4(self) -> None:
         body = b"\x0a\x00\x00\x01"

@@ -934,7 +934,7 @@ _PACKET_WIRE_PASS_IDS = frozenset(
         "kad_hello",
         "kad_ping_pong",
         "kad_find_node",
-        "kad_search_source",
+        # kad_search_source stays SKIP from opcode-only dumps — needs app-trigger evidence.
     }
 )
 
@@ -964,11 +964,22 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
     ED2K frames split across segments). Per-file Hello/MuleInfo parse paths
     remain for dedicated handlers that need a concrete frame slice.
     """
-    candidates: List[Path] = []
+    configured: List[Path] = []
     if ctx.cfg.packet_evidence is not None:
-        candidates.append(ctx.cfg.packet_evidence)
+        configured.append(ctx.cfg.packet_evidence)
     if ctx.cfg.hello_capture is not None:
-        candidates.append(ctx.cfg.hello_capture)
+        configured.append(ctx.cfg.hello_capture)
+    missing_configured = [p for p in configured if p is not None and not p.is_file()]
+    if missing_configured and (
+        spec.evidence_labels
+        or spec.id in {"hello", "hello_answer", "muleinfo", "capability_negotiation"}
+    ):
+        return _fail(
+            spec,
+            f"configured evidence path missing ({len(missing_configured)} path(s))",
+        )
+
+    candidates: List[Path] = list(configured)
     if ctx.packet_evidence_path is not None:
         candidates.append(ctx.packet_evidence_path)
     evidence_dir = ctx.run_dir / "captures" / "evidence"
@@ -977,6 +988,7 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
 
     files = [p for p in candidates if p and p.is_file()]
     label_groups = _evidence_label_groups(spec)
+    wanted_labels = {lab for group in label_groups for lab in group}
     if label_groups and files:
         try:
             hits = collect_hits_from_paths(files)
@@ -1008,15 +1020,19 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
                     evidence=summary,
                     artifacts=artifacts,
                 )
-            # Malformed (parse_error) for a present label → FAIL, not silent SKIP.
-            if "missing evidence labels" not in reason and any(
-                h.label in {lab for group in label_groups for lab in group}
-                and h.details.get("parse_error")
+            # Malformed present labels FAIL even when other required labels are missing.
+            malformed = [
+                h
                 for h in hits
-            ):
-                return _fail(spec, f"malformed packet evidence: {reason}", evidence=summary)
-        except (EvidenceError, GoldenError, OSError) as exc:
-            return _fail(spec, f"packet evidence read failed: {exc}")
+                if h.label in wanted_labels and h.details.get("parse_error")
+            ]
+            if malformed:
+                detail = "; ".join(
+                    f"{h.label}: {h.details.get('parse_error')}" for h in malformed[:3]
+                )
+                return _fail(spec, f"malformed packet evidence: {detail}", evidence=summary)
+        except (EvidenceError, GoldenError, OSError):
+            return _fail(spec, "packet evidence read failed (details in local logs only)")
 
     for path in files:
         try:
@@ -1024,6 +1040,11 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
             hits = extract_frames(raw)
             if spec.id in {"hello", "hello_answer"}:
                 label = "hello" if spec.id == "hello" else "hello_answer"
+                malformed = [
+                    h for h in hits if h.label == label and h.details.get("parse_error")
+                ]
+                if malformed and _first_hit(hits, label) is None:
+                    return _fail(spec, f"malformed {label} frame in packet evidence")
                 hit = _first_hit(hits, label)
                 if hit is None:
                     continue
@@ -1049,7 +1070,6 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
         try:
             hello_raw = hello_hit = None
             answer_raw = answer_hit = None
-            # TCP-only stream reassembly — never join UDP/Kad datagram bytes.
             for blob in tcp_reassembly_blobs(files):
                 concat_hits = extract_ed2k_frames(blob)
                 if hello_hit is None:
@@ -1065,9 +1085,15 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
             if hello_hit is None or answer_hit is None:
                 hello_hit = answer_hit = None
                 hello_raw = answer_raw = None
+                saw_malformed = False
                 for path in files:
                     raw = load_bytes(path)
                     hits = extract_frames(raw)
+                    if any(
+                        h.label in {"hello", "hello_answer"} and h.details.get("parse_error")
+                        for h in hits
+                    ) and _first_hit(hits, "hello", "hello_answer") is None:
+                        saw_malformed = True
                     if hello_hit is None:
                         hit = _first_hit(hits, "hello")
                         if hit is not None:
@@ -1076,6 +1102,8 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
                         hit = _first_hit(hits, "hello_answer")
                         if hit is not None:
                             answer_hit, answer_raw = hit, raw
+                if saw_malformed and (hello_hit is None or answer_hit is None):
+                    return _fail(spec, "malformed Hello-family frame in packet evidence")
             if hello_hit is not None and answer_hit is not None and hello_raw and answer_raw:
                 parsed_hello = parse_hello_tcp(_frame_slice(hello_raw, hello_hit))
                 parsed_answer = parse_hello_tcp(_frame_slice(answer_raw, answer_hit))

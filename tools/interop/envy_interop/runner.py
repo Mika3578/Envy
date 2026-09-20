@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import List, Optional, Sequence
 
 from .capture import find_capture_tool, start_capture
-from .config import HarnessConfig
-from .evidence import EvidenceError, extract_from_pcap_via_tshark
+from .config import HarnessConfig, validate_ports
+from .evidence import EvidenceError, extract_from_pcap_via_tshark, safe_evidence_source_name
 from .isolation import IsolationError, create_run_isolation, safe_rmtree
 from .process import ProcessError, ProcessManager
 from .report import ScenarioResult, empty_payload, utc_now, write_json_report, write_markdown_report
@@ -60,8 +60,16 @@ def sanitized_config_summary(cfg: HarnessConfig) -> dict:
         "scenarios": list(cfg.scenarios),
         "reference_client": cfg.resolved_reference_client(),
         "reference_version": cfg.reference_version,
-        "hello_capture": show(cfg.hello_capture),
-        "packet_evidence": show(cfg.packet_evidence),
+        "hello_capture": (
+            safe_evidence_source_name(cfg.hello_capture.name)
+            if cfg.hello_capture is not None
+            else None
+        ),
+        "packet_evidence": (
+            safe_evidence_source_name(cfg.packet_evidence.name)
+            if cfg.packet_evidence is not None
+            else None
+        ),
         "pcap_duration_sec": cfg.pcap_duration_sec,
     }
 
@@ -149,6 +157,7 @@ def _finalize_pcap_lifecycle(ctx: RunContext, cfg: HarnessConfig) -> None:
 
 
 def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = None) -> dict:
+    validate_ports(cfg)
     run_started = time.monotonic()
     run_id = make_run_id()
     artifact_root = default_artifact_root(cfg)

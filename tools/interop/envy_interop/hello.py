@@ -316,15 +316,21 @@ def compare_envy_advertisement(packet: HelloPacket) -> Dict[str, object]:
     }
 
 
-def hello_evidence(packet: HelloPacket) -> Dict[str, object]:
-    """Machine-readable Hello fields for artifacts (no nick / no filesystem paths)."""
+def hello_evidence(packet: HelloPacket, *, redact_userhash: bool = True) -> Dict[str, object]:
+    """Machine-readable Hello fields for artifacts (no nick / no filesystem paths).
+
+    ``userhash_hex`` is zeroed by default so attachable run summaries do not
+    expose peer identifiers from live captures.
+    """
     f1 = packet.features1
     f2 = packet.features2
+    userhash_hex = ("00" * len(packet.userhash)) if redact_userhash else packet.userhash.hex()
     return {
         "protocol": packet.protocol,
         "opcode": packet.opcode,
-        "userhash_hex": packet.userhash.hex(),
+        "userhash_hex": userhash_hex,
         "userhash_len": len(packet.userhash),
+        "userhash_redacted": bool(redact_userhash),
         "client_id": packet.client_id,
         "tcp_port": packet.tcp_port,
         "ed2k_version": packet.ed2k_version,
