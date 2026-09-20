@@ -9,8 +9,10 @@ Envy. It is read by:
   conventional rule files - see the symlinks / pointers at the bottom of
   this document.
 
-Keep this file short. If you find yourself wanting to add a paragraph,
-write it in `MODERNIZATION.md` or `docs/DEVELOPMENT_PLAN.md` and link to it here.
+Keep repository-wide operational rules here. Detailed rationale, protocol
+research, architecture plans, and long examples belong in the relevant docs
+and are linked from here. Tool-specific adapters must stay thin: they may
+point to this file, but must not become independent copies of these rules.
 
 ---
 
@@ -23,6 +25,9 @@ Envy is a multi-network peer-to-peer client for Windows. Stack:
 - **Target toolchain**: Visual Studio 2026 (toolset **v145**, MSVC 14.50,
   C++20 for first-party, C++17 for legacy plugins)
 - **Target OS**: Windows 10 1809+ (XP/Vista/7/8 deliberately dropped)
+- **Product platforms**: Windows x64 is primary; Win32 is legacy Stage A;
+  Windows ARM64 is **planned / unsupported** until it has a real build target,
+  CI, packaging, runtime validation, and support policy.
 - **Dependencies**: managed via **vcpkg manifest** (`vcpkg.json`)
 - **License**: AGPL-3.0-or-later (`Envy/AGPL-License.txt`). Some bundled
   resources have additional CC-BY-NC-SA terms - see `ReadMe.txt`.
@@ -97,11 +102,19 @@ Branch model:
     PR ready-for-review, address reviews, fix CI, update the branch with
     `develop`, and enable **squash auto-merge**. GitHub will merge only when
     the live **Protect develop** ruleset is satisfied, including:
-    - at least one GitHub review **APPROVED** by someone **other than** the
-      PR author (do **not** fake this with a bot/Actions self-approve);
+    - target policy: at least one GitHub review with state **APPROVED** from
+      a reviewer other than the PR author. In this solo-maintainer repository,
+      **GitHub Copilot Code Review may satisfy that approval** only when the
+      repository explicitly allows Copilot approvals to count toward merge
+      requirements and GitHub records an actual `APPROVED` review. An AI
+      assessment/comment is not an approval. Never manufacture approval with
+      GitHub Actions or a self-approval workflow;
     - stale approvals are dismissed when new commits are pushed
-      (`require_last_push_approval` remains **off** so a non-author
-      approval — including Copilot when enabled — can satisfy the count);
+      (`require_last_push_approval` remains **off** so a valid non-author
+      approval, including Copilot when enabled, can satisfy the count);
+    - if the live ruleset differs from the documented target, treat the live
+      ruleset as the enforceable state, record the mismatch, and do not claim
+      the target is enforced until the ruleset is corrected;
     - all review threads resolved and no active **CHANGES_REQUESTED**;
     - all **required** status checks green; branch up to date with `develop`;
     - PR not a draft; squash-only on `develop`; signed commits; force pushes
@@ -132,6 +145,13 @@ Branch model:
     until those targets compile and have CI evidence. See
     `docs/20_arch/PORTABILITY_PLAN.md` and D-012…D-015 in
     `docs/DECISIONS.md`.
+15. **Quality gates are policy, not obstacles.** Never disable, lower, skip,
+    relabel, or work around a required build/test/static-analysis/security/
+    quality gate merely to merge a PR. Fix the finding, prove a false positive
+    with evidence, or change the policy in a dedicated reviewed CI/ruleset
+    change. GitHub Code Quality complements — and does not replace — the C++
+    gates (MSVC builds/tests, SonarCloud, CodeQL/security analysis and targeted
+    regression tests).
 
 ---
 
@@ -180,8 +200,10 @@ patterns you will see and should preserve:
 
 - Indentation: **tabs**, width 4.
 - Braces: Allman (opening brace on its own line).
-- Naming: `m_` for members, `p` pointer, `n` numeric, `b` boolean,
-  `str` string, `dw` DWORD, `lp` long pointer.
+- Naming: follow the surrounding Hungarian-style conventions. Common member
+  prefixes are `m_s` (strings), `m_n` (numbers/sizes), `m_b`
+  (booleans), `m_p` (pointers), `m_h` (handles), `m_t` (time/ticks), and
+  `m_o` (objects/collections).
 - Headers: include `StdAfx.h` first in every `.cpp`, then own header,
   then project headers, then SDK headers.
 - Strings: `CString` (MFC) inside Envy/. New code may use `std::string`
@@ -192,10 +214,33 @@ patterns you will see and should preserve:
 - File headers: keep the existing copyright block intact when editing
   an existing file; do not add new copyright lines for incremental
   edits.
+- Preserve the encoding and BOM of legacy source files. Do not bulk-convert
+  mixed ISO-8859 / UTF-8 files as a side effect of an unrelated change.
 
 ---
 
 ## 5. Workflow expectations
+
+### Mandatory preflight before editing
+
+Before modifying code, build files, CI, or committed project policy:
+
+1. Read this `AGENTS.md` plus the relevant canonical status/plan/protocol docs.
+2. Inspect the **current** `develop` state: open PRs, relevant issues, recent
+   commits, CI/ruleset state, and nearby code/tests. Prefer live GitHub state
+   over old chat context or stale audit notes.
+3. Classify overlapping work as **already fixed**, **in progress**,
+   **obsolete**, **duplicate**, or **genuinely open**. Do not start a parallel
+   implementation when an existing PR already owns the same change.
+4. For protocol/security/interoperability work, consult sources in this order:
+   specification/RFC/BEP → official documentation → maintained implementation
+   → relevant reference clients. Record meaningful divergences.
+5. For feature inspiration, separate the **software used as a reference** from
+   the **protocols Envy actually supports**. Do not add a network merely
+   because a reference client implements it.
+6. Define the smallest compatible change, expected files, risk, and
+   verification plan before editing. If live state cannot be checked because a
+   required tool is unavailable, say so; do not invent repository state.
 
 When you take on a task you are expected to:
 
@@ -236,6 +281,16 @@ When you take on a task you are expected to:
    across N files, write a Python/PowerShell script under
    `Visual Studio/` (or a tmp script you delete), run it, commit the
    resulting diff. Don't hand-edit 40 files.
+10. **Keep documentation truthful in the same PR.** Update docs when behavior,
+    APIs, protocol handling, UI/config, build/CI, security, performance, or
+    troubleshooting changes. Update `CHANGELOG.md` for release/user-visible
+    changes; update `docs/DEVELOPMENT_PLAN.md` for strategic scope,
+    sequencing, decisions, or blockers. Do not create duplicate status docs.
+    If no documentation change is required, state why in the PR/final report.
+11. **Do not silently remove validation or compatibility assets.** Tests,
+    coverage, workflows, fixtures, protocol evidence, docs, runtime resources,
+    and legacy compatibility paths may be removed only when the PR explicitly
+    explains why and supplies an equivalent or intentional retirement plan.
 
 ---
 
@@ -283,20 +338,23 @@ When you take on a task you are expected to:
 
 ## 8. AI-tool-specific notes
 
-The following tools all read this file. Where they need a private
-config you'll find a thin pointer file that delegates here.
+**This file is the canonical repository-wide rule set.** Tool adapters must
+delegate here and must not maintain a second copy of global workflow/style
+rules.
 
-- `.github/copilot-instructions.md` - GitHub Copilot context.
-- `.cursorrules` and `.cursor/rules/*.mdc` - Cursor IDE.
-- `.clinerules` - Cline.
-- `.aider.conf.yml` - Aider.
-- `.windsurfrules` - Windsurf.
-- `CLAUDE.md` - Claude Code (CLI / web / IDE).
-- `.continue/rules/*.md` - Continue.
+- Cursor reads root `AGENTS.md` automatically. `.cursor/rules/*.mdc` is
+  reserved for **conditional, file-scoped guidance only** (C++, MFC,
+  protocols, docs, etc.). Do not add another always-on project-context or
+  workflow rule there.
+- `.cursorrules` is intentionally absent; it is legacy and must not be
+  reintroduced.
+- `.github/copilot-instructions.md`, `CLAUDE.md`, `.clinerules`,
+  `.windsurfrules`, and `.continue/rules/*.md` are thin adapters/pointers.
+- `.aider.conf.yml` explicitly loads this file.
 
-Keep these pointers; do not let them drift into independent rule sets.
-If a rule needs to change, change it in **this file** and let the
-others continue to delegate.
+When a global rule changes, change it **here first**. Add or update a
+tool-specific rule only when the behavior genuinely applies to a narrower
+file/path/tool context.
 
 ---
 
