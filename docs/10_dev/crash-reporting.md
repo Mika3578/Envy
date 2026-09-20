@@ -46,11 +46,13 @@ Envy.exe
                 └── uploads disabled
 ```
 
-- `CrashReporter::Initialize` runs from `CEnvyApp` construction and again in
-  `InitInstance` (Debug and Release). It starts Crashpad and installs CRT
-  `terminate` / invalid-parameter / purecall handlers that call
-  `DumpWithoutCrash` then `abort`. Crashpad owns SEH; ENVY does **not**
-  install `SetUnhandledExceptionFilter`.
+- `CrashReporter::Initialize` runs once from `CEnvyApp::InitInstance` (Debug
+  and Release). It starts Crashpad and installs CRT `terminate` /
+  invalid-parameter / purecall handlers that call `DumpWithoutCrash` then
+  `abort`. `CrashPadHost::Start` is idempotent: a second call returns success
+  without calling `CrashpadClient::StartHandler` again (Crashpad allows one
+  handler start per client; Debug DCHECK-fatals otherwise). Crashpad owns SEH;
+  ENVY does **not** install `SetUnhandledExceptionFilter`.
 - Crash-time work in `Envy.exe` is the Crashpad client stub. File I/O for the
   dump happens in `crashpad_handler.exe`.
 - `SetIdentity` writes sanitized `identity.txt` in the database (version,
