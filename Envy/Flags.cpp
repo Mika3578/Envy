@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "Flags.h"
+#include "FlagsState.h"
 #include "Skin.h"
 #include "ImageFile.h"
 
@@ -39,6 +40,10 @@ static char THIS_FILE[] = __FILE__;
 CFlags Flags;
 
 CFlags::CFlags()
+	: Height( 0 )
+	, Width( 0 )
+	, m_nImagelistHeight( 0 )
+	, m_nImagelistWidth( 0 )
 {
 }
 
@@ -79,6 +84,7 @@ BOOL CFlags::Load()
 			! pImage.EnsureRGB( GetSysColor( COLOR_WINDOW ) ) ||
 			! pImage.SwapRGB() )
 		{
+			theApp.Message( MSG_ERROR, L"Failed to load Flags.png / CFlags watermark." );
 			return FALSE;
 		}
 	}
@@ -88,9 +94,23 @@ BOOL CFlags::Load()
 	m_nImagelistWidth  = max( Width, 16 );
 	m_nImagelistHeight = max( Height, ( Settings.Skin.RowSize > 17 ? (int)Settings.Skin.RowSize - 1 : 16 ) );
 
-	m_pImage.Create( m_nImagelistWidth, m_nImagelistHeight, ILC_COLOR32|ILC_MASK, 26 * 26, 8 ) ||
-	m_pImage.Create( m_nImagelistWidth, m_nImagelistHeight, ILC_COLOR24|ILC_MASK, 26 * 26, 8 ) ||
-	m_pImage.Create( m_nImagelistWidth, m_nImagelistHeight, ILC_COLOR16|ILC_MASK, 26 * 26, 8 );
+	if ( ! FlagsImageListCreateArgsOk( m_nImagelistWidth, m_nImagelistHeight, 26 * 26 ) )
+	{
+		theApp.Message( MSG_ERROR, L"Flags image has invalid dimensions." );
+		Clear();
+		return FALSE;
+	}
+
+	const BOOL bCreated =
+		m_pImage.Create( m_nImagelistWidth, m_nImagelistHeight, ILC_COLOR32|ILC_MASK, 26 * 26, 8 ) ||
+		m_pImage.Create( m_nImagelistWidth, m_nImagelistHeight, ILC_COLOR24|ILC_MASK, 26 * 26, 8 ) ||
+		m_pImage.Create( m_nImagelistWidth, m_nImagelistHeight, ILC_COLOR16|ILC_MASK, 26 * 26, 8 );
+	if ( ! bCreated || m_pImage.m_hImageList == NULL )
+	{
+		theApp.Message( MSG_ERROR, L"Failed to create Flags image list." );
+		Clear();
+		return FALSE;
+	}
 
 	const COLORREF crMask = RGB( 0, 255, 0 );
 
@@ -114,6 +134,10 @@ BOOL CFlags::Load()
 
 void CFlags::AddFlag(CImageFile* pImage, CRect* pRect, COLORREF crBack)
 {
+	if ( m_pImage.m_hImageList == NULL || Width <= 0 || Height <= 0 ||
+		m_nImagelistWidth <= 0 || m_nImagelistHeight <= 0 || pImage == NULL || pRect == NULL )
+		return;
+
 	//ASSERT( pImage->m_bLoaded && pImage->m_nComponents == 3 );	// Allow alpha?
 	//ASSERT( pRect->left >= 0 && pRect->left + SOURCE_FLAG_WIDTH <= pImage->m_nWidth );
 	//ASSERT( pRect->top >= 0 && pRect->top <= pImage->m_nHeight + SOURCE_FLAG_HEIGHT );
@@ -184,14 +208,18 @@ void CFlags::Clear()
 {
 	if ( m_pImage.m_hImageList )
 		m_pImage.DeleteImageList();
+	Height = 0;
+	Width = 0;
+	m_nImagelistHeight = 0;
+	m_nImagelistWidth = 0;
 }
 
 int CFlags::GetCount() const
 {
 	if ( ! m_pImage.m_hImageList )
-		return NULL;	// Startup
+		return 0;
 
-	return m_pImage.GetImageCount();
+	return FlagsCountOrZero( true, m_pImage.GetImageCount() );
 }
 
 int CFlags::GetFlagIndex(const CString& sCountryCode) const
@@ -213,11 +241,21 @@ int CFlags::GetFlagIndex(const CString& sCountryCode) const
 
 HICON CFlags::ExtractIcon(int i)
 {
+	if ( ! FlagsIndexIsValid( i, GetCount() ) )
+		return NULL;
 	return m_pImage.ExtractIcon( i );
+}
+
+HICON CFlags::ExtractIconW(int i)
+{
+	return ExtractIcon( i );
 }
 
 BOOL CFlags::Draw(int i, HDC hdcDst, int x, int y, COLORREF rgbBk, COLORREF rgbFg, UINT fStyle)
 {
+	if ( hdcDst == NULL || ! FlagsIndexIsValid( i, GetCount() ) ||
+		m_nImagelistWidth <= 0 || m_nImagelistHeight <= 0 )
+		return FALSE;
 	return ImageList_DrawEx( m_pImage, i, hdcDst, x, y,
 		m_nImagelistWidth, m_nImagelistHeight, rgbBk, rgbFg, fStyle );
 }

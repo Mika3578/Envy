@@ -5,7 +5,7 @@ This guide covers installing and setting up Envy on your Windows system.
 ## 📋 System Requirements
 
 ### Minimum Requirements
-- **Operating System**: Windows 7 SP1 or later
+- **Operating System**: Windows 10 1809 or later
 - **Processor**: 1 GHz or faster
 - **Memory**: 512 MB RAM
 - **Storage**: 100 MB available space
@@ -77,7 +77,18 @@ For testing new features:
 
 ### Initial Configuration Wizard
 
-When you first run Envy, the setup wizard will guide you through:
+When you first run Envy, the setup wizard will guide you through connection
+speed, networks, folders, and sharing. Connection download/upload values are
+parsed as kbps, Mbps, or Gbps (malformed text is rejected). The wizard does
+**not** connect to P2P networks or download ED2K/DC bootstrap lists until after
+you choose networks. Missing flag artwork cannot block first run.
+
+The current page order is still the historical 8-page sheet; a shorter 6-page
+flow is a follow-up. Do not treat the older outline below as protocol-complete
+(Direct Connect NMDC and the BitTorrent engine are configured in Settings until
+that follow-up). ADC/ADCS is **not** implemented.
+
+When you first run Envy, the setup wizard currently still includes:
 
 1. **Welcome Screen**
    - Introduction to Envy

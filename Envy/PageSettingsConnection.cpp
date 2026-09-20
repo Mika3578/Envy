@@ -19,6 +19,7 @@
 #include "StdAfx.h"
 #include "Settings.h"
 #include "PageSettingsConnection.h"
+#include "WizardQuickStartPolicy.h"
 #include "DlgHelp.h"
 #include "Network.h"
 
@@ -285,9 +286,9 @@ void CConnectionSettingsPage::OnOK()
 
 	if ( Settings.Connection.OutSpeed != nOldOutSpeed )
 	{
-		// Reset upload limit to 90% of capacity, trimmed down to nearest KB.
-		Settings.Bandwidth.Uploads = ( Settings.Connection.OutSpeed / 8 ) *
-			( ( 100 - Settings.Uploads.FreeBandwidthFactor ) / 100 ) * 1024;
+		// Keep (100 - FreeBandwidthFactor)% of capacity, floor to whole KiB/s.
+		Settings.Bandwidth.Uploads = WizardUploadLimitBytesPerSecond(
+			Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor );
 	}
 
 	UpdateData();

@@ -27,6 +27,7 @@
 #include "DlgUpdateServers.h"
 #include "DlgHelp.h"
 #include "Skin.h"
+#include "WizardQuickStartPolicy.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -139,15 +140,18 @@ LRESULT CWizardNetworksPage::OnWizardNext()
 	Settings.eDonkey.EnableAlways	= m_bEDEnable != FALSE;
 
 	// Load server.met from web if needed
-	if ( m_bEDEnable && HostCache.eDonkey.GetCount() < 3 )
+	if ( WizardShouldBootstrapEd2k( m_bEDEnable != FALSE,
+			static_cast< std::uint32_t >( HostCache.eDonkey.GetCount() ) ) )
 	{
 		CUpdateServersDlg dlg;
 		dlg.m_nMode = UpdateServersDlgMode::eDonkey;
 		dlg.DoModal();
 	}
 
-	// Load hublist.xml.bz2 from web if needed, various ways
-	if ( HostCache.DC.GetCount() < 5 &&
+	// Load hublist.xml.bz2 only when Direct Connect is enabled
+	if ( WizardShouldBootstrapDc(
+			Settings.DC.Enabled || Settings.DC.EnableAlways,
+			static_cast< std::uint32_t >( HostCache.DC.GetCount() ) ) &&
 		! ( PathFileExists( Settings.General.DataPath + L"hublist.xml.bz2" ) &&
 			theApp.OpenImport( Settings.General.DataPath + L"hublist.xml.bz2" ) ) )
 	{
@@ -158,7 +162,6 @@ LRESULT CWizardNetworksPage::OnWizardNext()
 			MsgBox( IDS_DOWNLOAD_DC_HUBLIST, MB_ICONQUESTION | MB_YESNO ) == IDYES )
 		{
 			CEnvyURL pURL;
-		//	pURL.Parse( Settings.DC.HubListURL );
 			pURL.m_sURL = Settings.DC.HubListURL;
 			pURL.m_sName = L"hublist.xml.bz2";
 			pURL.m_nAction = CEnvyURL::uriDownload;
@@ -166,7 +169,12 @@ LRESULT CWizardNetworksPage::OnWizardNext()
 		}
 	}
 
-	if ( ! Network.IsConnected() && ( m_bG2Enable || m_bG1Enable || m_bEDEnable ) )
+	if ( ! Network.IsConnected() && WizardShouldConnectNetworks(
+			m_bG1Enable != FALSE,
+			m_bG2Enable != FALSE,
+			m_bEDEnable != FALSE,
+			Settings.DC.Enabled || Settings.DC.EnableAlways,
+			false ) )
 		Network.Connect( TRUE );
 
 	return 0;

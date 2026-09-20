@@ -210,6 +210,7 @@
     <ClCompile Include="test_transfer_state_smoke.cpp" />
     <ClCompile Include="test_crash_report_policy_smoke.cpp" />
     <ClCompile Include="test_ed2k_lowid_callback_smoke.cpp" />
+    <ClCompile Include="test_quickstart_wizard_policy_smoke.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />

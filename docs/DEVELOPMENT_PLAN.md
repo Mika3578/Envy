@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — QuickStart reliability: safe `CFlags` empty state; strict kbps/Mbps/Gbps parser; 64-bit upload-limit math; no ED2K/G1/G2/DC bootstrap or `Network.Connect` on the Connection page; DC hublist only when DC is enabled. UX modernization (6-page flow, network list, storage/share privacy) remains a follow-up.
 - **Changelog Entry:** 2026-09-20 — #84 Settings: replace `throw()` with `noexcept` on five `Add` overloads and `SmartAgent` (C++20; Item ctors deferred). No behavior change.
 - **Changelog Entry:** 2026-09-20 — Crashpad: idempotent `CrashPadHost::Start`; single `CrashReporter::Initialize` from `InitInstance` (fix Debug double `StartHandler` DCHECK).
 - **Changelog Entry:** 2026-09-20 — #84 ComObject: replace `throw()` with `noexcept` on CComObjectPtr members (C++20). No behavior change.
@@ -248,6 +249,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - **P0 ED2K/Kad interoperability baseline** against eMule Community and aMule (live interop unverified; harness exists — `tools/interop/README.md`; see `docs/10_dev/status.md`).
 - **Bootstrap catalogues** — shipped `DefaultServices.dat` / `DefaultServers.dat` refreshed 2026-09-18. Remaining: importer hardening (P0 potential); Kad **remote** `nodes.dat` discovery type (#86/#160); last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`). Local `ImportNodes` v1/v2/v3 is implemented. Do not restore C++ DHT DNS constants when the catalogue is missing (D-012).
 - Transfer settings UX: first slice (labels + validation + mapping) in `docs/50_user/transfer-settings.md`; no fake capabilities.
+- **QuickStart wizard reliability** — flags/profile crash, bandwidth parser, upload-limit arithmetic, and premature protocol bootstrap are in this slice. The 6-page UX modernization (G1/G2/ED2K/DC-NMDC/BitTorrent, storage/share privacy, drop profile from first-run) is a follow-up branch `feat/quickstart-wizard-modernization`.
 
 ### Blocked / At Risk
 - Full CMake parity with Visual Studio build graph.
@@ -429,6 +431,7 @@ NAT traversal, Kad versions, HighID/LowID/firewalled behavior, and
 eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 
 ## Backlog
+- [ ] QuickStart 6-page UX modernization (`feat/quickstart-wizard-modernization`): G1/G2/ED2K/DC-NMDC/BitTorrent, separate `.torrent` association from the BT engine, storage/share privacy, drop profile/advanced theme from first-run, remove fake-search advice. Depends on reliability helpers in `WizardQuickStartPolicy.h`.
 - [ ] Replace unsafe string operations in first-party code (incremental: bounded keyword copy in legacy Kad publish packet builder completed)
 - Consolidate duplicate roadmap/status markdown into canonical set
 - [x] Document remote API implementation status endpoint-by-endpoint — 2026-09-19 audit (`docs/20_arch/AUDIT_REMOTE_API_2026-09.md`); OpenAPI remains `planned` until routes are served

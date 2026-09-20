@@ -27,6 +27,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "Scheduler.h"
+#include "WizardQuickStartPolicy.h"
 #include "Buffer.h"
 #include "DlgHelp.h"
 #include "Network.h"
@@ -566,7 +567,8 @@ void CScheduler::ExecuteScheduledTask(CScheduleTask *pSchTask)
 		Settings.Live.BandwidthScaleIn	= 101;
 		Settings.Live.BandwidthScaleOut	= 101;
 		Settings.Bandwidth.Downloads	= 0;
-		Settings.Bandwidth.Uploads		= ( ( ( Settings.Connection.OutSpeed * ( 100 - Settings.Uploads.FreeBandwidthFactor ) ) / 100 ) / 8 ) * 1024;
+		Settings.Bandwidth.Uploads		= WizardUploadLimitBytesPerSecond(
+			Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor );
 		Settings.Gnutella2.Enabled		= true;
 		Settings.Gnutella1.Enabled		= Settings.Gnutella1.EnableAlways;
 		Settings.eDonkey.Enabled		= Settings.eDonkey.EnableAlways;
@@ -581,7 +583,8 @@ void CScheduler::ExecuteScheduledTask(CScheduleTask *pSchTask)
 		Settings.Live.BandwidthScaleIn	= pSchTask->m_nLimitDown;
 		Settings.Live.BandwidthScaleOut	= pSchTask->m_nLimitUp;
 		Settings.Bandwidth.Downloads	= ( Settings.Connection.InSpeed * 1024 ) / 8;
-		Settings.Bandwidth.Uploads		= ( ( ( Settings.Connection.OutSpeed * ( 100 - Settings.Uploads.FreeBandwidthFactor ) ) / 100 ) / 8 ) * 1024;
+		Settings.Bandwidth.Uploads		= WizardUploadLimitBytesPerSecond(
+			Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor );
 		Settings.Gnutella2.Enabled		= true;
 		Settings.Gnutella1.Enabled		= pSchTask->m_bLimitedNetworks ? false : Settings.Gnutella1.EnableAlways;
 		Settings.eDonkey.Enabled		= pSchTask->m_bLimitedNetworks ? false : Settings.eDonkey.EnableAlways;

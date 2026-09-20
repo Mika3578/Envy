@@ -18,13 +18,12 @@
 
 #pragma once
 
-#include "ThreadImpl.h"
 #include "WizardSheet.h"
+#include <map>
 
 
 class CWizardConnectionPage :
-	public CWizardPage,
-	public CThreadImpl
+	public CWizardPage
 {
 	DECLARE_DYNCREATE(CWizardConnectionPage)
 
@@ -46,30 +45,23 @@ protected:
 	CProgressCtrl m_wndProgress;
 	CToolTipCtrl m_ToolTip;		// Port hint
 
-	bool		m_bQueryDiscoveries;
-	bool		m_bUpdateServers;
 	BOOL		m_bRandom;
 	DWORD		m_nPort;
-	short		m_nProgressSteps;
 
 	std::map < const DWORD, DWORD > m_mapSpeed;
 
 	CString		SpeedFormat(const double nSpeed) const;
 
 protected:
-	void		OnRun();
-
 	virtual void DoDataExchange(CDataExchange* pDX);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual BOOL OnInitDialog();
 	virtual BOOL OnSetActive();
-	virtual BOOL OnQueryCancel();
 	virtual LRESULT OnWizardNext();
 
 	afx_msg void OnSelChangeConnectionType();
 	afx_msg void OnChangeConnectionSpeed();
 	afx_msg void OnBnClickedRandom();
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnXButtonDown(UINT nFlags, UINT nButton, CPoint point);
 
 	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);

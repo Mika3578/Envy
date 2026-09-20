@@ -68,9 +68,13 @@ BOOL CWorldGPS::Load()
 		catch ( CException* pException )
 		{
 			pException->Delete();
+			Clear();
 		}
 
-		return TRUE;
+		pFile.Close();
+		if ( m_pCountry != NULL && m_nCountry > 0 )
+			return TRUE;
+		Clear();
 	}
 
 	strFile = Settings.General.DataPath + L"WorldGPS.xml";

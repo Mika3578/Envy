@@ -24,6 +24,7 @@
 #include "Network.h"
 #include "WorldGPS.h"
 #include "Flags.h"
+#include "FlagsState.h"
 #include "Skin.h"
 #include "XML.h"
 
@@ -93,45 +94,55 @@ BOOL CWizardProfilePage::OnInitDialog()
 		m_wndComments.SetWindowText( pNotes->GetValue() );
 
 	const int nFlags = Flags.GetCount();
-	VERIFY( m_gdiFlags.Create( Flags.Width, 16, ILC_COLOR32|ILC_MASK, nFlags, 0 ) ||
-			m_gdiFlags.Create( Flags.Width, 16, ILC_COLOR24|ILC_MASK, nFlags, 0 ) ||
-			m_gdiFlags.Create( Flags.Width, 16, ILC_COLOR16|ILC_MASK, nFlags, 0 ) );
-	for ( int nFlag = 0; nFlag < nFlags; nFlag++ )
+	BOOL bFlags = FALSE;
+	if ( FlagsImageListCreateArgsOk( Flags.Width, 16, nFlags ) && nFlags > 0 )
 	{
-		if ( HICON hIcon = Flags.ExtractIcon( nFlag ) )
+		bFlags = m_gdiFlags.Create( Flags.Width, 16, ILC_COLOR32|ILC_MASK, nFlags, 0 ) ||
+			m_gdiFlags.Create( Flags.Width, 16, ILC_COLOR24|ILC_MASK, nFlags, 0 ) ||
+			m_gdiFlags.Create( Flags.Width, 16, ILC_COLOR16|ILC_MASK, nFlags, 0 );
+		if ( bFlags )
 		{
-			VERIFY( m_gdiFlags.Add( hIcon ) != -1 );
-			VERIFY( DestroyIcon( hIcon ) );
+			for ( int nFlag = 0; nFlag < nFlags; nFlag++ )
+			{
+				if ( HICON hIcon = Flags.ExtractIcon( nFlag ) )
+				{
+					m_gdiFlags.Add( hIcon );
+					DestroyIcon( hIcon );
+				}
+			}
+			m_wndCountry.SetImageList( &m_gdiFlags );
 		}
 	}
-	m_wndCountry.SetImageList( &m_gdiFlags );
 
 	m_pWorld = new CWorldGPS();
-	m_pWorld->Load();
+	if ( m_pWorld && ! m_pWorld->Load() )
+		theApp.Message( MSG_ERROR, L"Failed to load WorldGPS." );
+
+	if ( m_pWorld == NULL || m_pWorld->m_pCountry == NULL || m_pWorld->m_nCountry == 0 )
+	{
+		UpdateData( FALSE );
+		return TRUE;
+	}
 
 	const CWorldCountry* pCountry = m_pWorld->m_pCountry;
 
 	int nSelect = -1;
 	for ( UINT nCountry = 0; nCountry < m_pWorld->m_nCountry; nCountry++, pCountry++ )
 	{
-	//	m_wndCountry.SetItemData( m_wndCountry.AddString( pCountry->m_sName ), (LPARAM)pCountry );
-
-		const int nImage = Flags.GetFlagIndex( CString( pCountry->m_szID, 2 ) );
-		const COMBOBOXEXITEM cbei =
-		{
-			CBEIF_IMAGE | CBEIF_SELECTEDIMAGE | CBEIF_LPARAM | CBEIF_TEXT,
-			nCountry,
-			(LPTSTR)(LPCTSTR)pCountry->m_sName,
-			pCountry->m_sName.GetLength() + 1,
-			nImage,
-			nImage,
-			0,
-			0,
-			(LPARAM)pCountry
-		};
+		const int nImage = bFlags ? Flags.GetFlagIndex( CString( pCountry->m_szID, 2 ) ) : I_IMAGENONE;
+		COMBOBOXEXITEM cbei = {};
+		cbei.mask = CBEIF_LPARAM | CBEIF_TEXT;
+		if ( bFlags )
+			cbei.mask |= CBEIF_IMAGE | CBEIF_SELECTEDIMAGE;
+		cbei.iItem = static_cast< INT_PTR >( nCountry );
+		cbei.pszText = (LPTSTR)(LPCTSTR)pCountry->m_sName;
+		cbei.cchTextMax = pCountry->m_sName.GetLength() + 1;
+		cbei.iImage = nImage;
+		cbei.iSelectedImage = nImage;
+		cbei.lParam = (LPARAM)pCountry;
 		m_wndCountry.InsertItem( &cbei );
 		if ( pCountry->m_sName.CompareNoCase( m_sLocCountry ) == 0 )
-			nSelect = nCountry;
+			nSelect = static_cast< int >( nCountry );
 	}
 	m_wndCountry.SetCurSel( nSelect );
 
@@ -199,13 +210,16 @@ BOOL CWizardProfilePage::OnSetActive()
 		m_sLocCountry = theApp.GetCountryName( Network.m_pHost.sin_addr );
 
 	CString strTest;
-	for ( UINT nCountry = 0; nCountry < m_pWorld->m_nCountry; nCountry++ )
+	if ( m_pWorld && m_pWorld->m_pCountry && m_pWorld->m_nCountry )
 	{
-		m_wndCountry.GetLBText( nCountry, strTest );
-		if ( strTest.CompareNoCase( m_sLocCountry ) == 0 )
+		for ( UINT nCountry = 0; nCountry < m_pWorld->m_nCountry; nCountry++ )
 		{
-			m_wndCountry.SetCurSel( nCountry );
-			break;
+			m_wndCountry.GetLBText( nCountry, strTest );
+			if ( strTest.CompareNoCase( m_sLocCountry ) == 0 )
+			{
+				m_wndCountry.SetCurSel( nCountry );
+				break;
+			}
 		}
 	}
 

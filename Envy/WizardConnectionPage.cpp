@@ -20,16 +20,11 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "WizardConnectionPage.h"
-//#include "WizardSheet.h"
+#include "WizardQuickStartPolicy.h"
 #include "CoolInterface.h"
 #include "Colors.h"
 #include "Skin.h"
-#include "Network.h"
-#include "Registry.h"
-#include "HostCache.h"
 #include "UploadQueues.h"
-#include "DiscoveryServices.h"
-#include "DlgHelp.h"
 
 
 #ifdef _DEBUG
@@ -41,7 +36,6 @@ static char THIS_FILE[] = __FILE__;
 IMPLEMENT_DYNCREATE(CWizardConnectionPage, CWizardPage)
 
 BEGIN_MESSAGE_MAP(CWizardConnectionPage, CWizardPage)
-	ON_WM_TIMER()
 	ON_WM_CTLCOLOR()
 	ON_WM_SETCURSOR()
 	ON_WM_LBUTTONDOWN()
@@ -61,11 +55,8 @@ END_MESSAGE_MAP()
 
 CWizardConnectionPage::CWizardConnectionPage()
 	: CWizardPage(CWizardConnectionPage::IDD)
-	, m_bQueryDiscoveries	( false )
-	, m_bUpdateServers		( false )
 	, m_bRandom 			( false )
 	, m_nPort				( 0 )
-	, m_nProgressSteps		( 0 )
 {
 }
 
@@ -178,12 +169,6 @@ BOOL CWizardConnectionPage::OnInitDialog()
 	{
 		m_nPort	= protocolPorts[ PROTOCOL_NULL ];		// Substitute Non-standard Port (6480)
 
-		// Obsolete check:
-		//CString strRegName = L"InPort";
-		//CString strRegPath = L"Connection";
-		//DWORD nPort = CRegistry::GetDword( (LPCTSTR)strRegPath, (LPCTSTR)strRegName );
-
-		// Initially try Shareaza's port to accomodate possible existing port-forwarding (with conflict)
 		const CString strRegPath = L"Software\\Shareaza\\Shareaza\\Connection";
 		DWORD nType = 0, nEnabled = 1, nPort, nSize = sizeof( m_nPort );
 
@@ -191,13 +176,13 @@ BOOL CWizardConnectionPage::OnInitDialog()
 		LONG nErrorCode = SHRegGetUSValue( (LPCTSTR)strRegPath, (LPCTSTR)strRegName,
 			&nType, (PBYTE)&nEnabled, &nSize, FALSE, NULL, 0 );
 
-		if ( nErrorCode == ERROR_SUCCESS && nEnabled == 0 )	// Plug'n'Play disabled, assume deliberately
+		if ( nErrorCode == ERROR_SUCCESS && nEnabled == 0 )
 		{
 			strRegName = L"InPort";
 			nErrorCode = SHRegGetUSValue( (LPCTSTR)strRegPath, (LPCTSTR)strRegName,
 				&nType, (PBYTE)&nPort, &nSize, FALSE, NULL, 0 );
 
-			if ( nErrorCode == ERROR_SUCCESS && nPort > 1024 && nPort <= 65535 ) 	//&& nType == REG_DWORD && nSize == sizeof( nPort ) )
+			if ( nErrorCode == ERROR_SUCCESS && WizardListenPortIsValid( nPort ) )
 				m_nPort	= nPort;
 		}
 	}
@@ -208,8 +193,7 @@ BOOL CWizardConnectionPage::OnInitDialog()
 		m_ToolTip.Activate( TRUE );
 	}
 
-	// 3 steps with 30 sub-steps each
-	m_wndProgress.SetRange( 0, 90 );
+	m_wndProgress.SetRange( 0, 1 );
 	m_wndProgress.SetPos( 0 );
 
 	m_wndStatus.SetWindowText( L"" );
@@ -289,17 +273,24 @@ void CWizardConnectionPage::OnBnClickedRandom()
 
 LRESULT CWizardConnectionPage::OnWizardNext()
 {
-	if ( GetAsyncKeyState( VK_SHIFT ) & 0x8000 ) return 0;
-
 	CWaitCursor pCursor;
 
 	UpdateData();
 
-	if ( m_nPort > 1022 && m_nPort < 65536 )
-		Settings.Connection.InPort = m_nPort;
-	else
-		MsgBox( L"Port number ignored.  (Use 1030-65530)" );
+	if ( ! m_bRandom && ! WizardListenPortIsValid( m_nPort ) )
+	{
+		CString strMessage;
+		strMessage.Format( L"Listening port must be between %u and %u, or enable Random.",
+			WizardListenPortMin(), WizardListenPortMax() );
+		MsgBox( strMessage, MB_ICONEXCLAMATION );
+		return -1;
+	}
+
 	Settings.Connection.RandomPort = ( m_bRandom == TRUE );
+	if ( m_bRandom )
+		Settings.Connection.InPort = 0;
+	else
+		Settings.Connection.InPort = m_nPort;
 	Settings.Connection.EnableUPnP = ( m_wndUPnP.GetCurSel() == 0 );
 
 	DWORD nDownloadSpeed = 0, nUploadSpeed = 0;
@@ -313,23 +304,24 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	else
 	{
 		CString strSpeed;
-		double nTemp;
+		std::uint32_t nKbps = 0;
+		WizardBandwidthParseError nError = WizardBandwidthParseNone;
 
 		m_wndDownloadSpeed.GetWindowText( strSpeed );
-		if ( _stscanf( strSpeed, L"%lf", &nTemp ) == 1 )
+		if ( ! ParseWizardBandwidthKbps( strSpeed, nKbps, nError ) )
 		{
-			if ( nTemp < 400 && strSpeed.Find( L"mbps" ) )
-				nTemp *= 1024;
-			nDownloadSpeed = (DWORD)nTemp;
+			MsgBox( IDS_WIZARD_NEED_SPEED, MB_ICONEXCLAMATION );
+			return -1;
 		}
+		nDownloadSpeed = nKbps;
 
 		m_wndUploadSpeed.GetWindowText( strSpeed );
-		if ( _stscanf( strSpeed, L"%lf", &nTemp ) == 1 )
+		if ( ! ParseWizardBandwidthKbps( strSpeed, nKbps, nError ) )
 		{
-			if ( nTemp < 400 && strSpeed.Find( L"mbps" ) )
-				nTemp *= 1024;
-			nUploadSpeed = (DWORD)nTemp;
+			MsgBox( IDS_WIZARD_NEED_SPEED, MB_ICONEXCLAMATION );
+			return -1;
 		}
+		nUploadSpeed = nKbps;
 	}
 
 	if ( nDownloadSpeed < 2 || nUploadSpeed < 2 )
@@ -341,177 +333,15 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	Settings.Connection.InSpeed = nDownloadSpeed;
 	Settings.Connection.OutSpeed = nUploadSpeed;
 
-	//if ( Settings.Experimental.LAN_Mode )
-	//{
-	//	Settings.Connection.InSpeed = 40960;
-	//	Settings.Connection.OutSpeed = 40960;
-	//}
-
-	// Set upload limit to 90% of capacity, trimmed down to nearest KB.
-	Settings.Bandwidth.Uploads = ( Settings.Connection.OutSpeed / 8 ) *
-		( ( 100 - Settings.Uploads.FreeBandwidthFactor ) / 100 ) * 1024;
+	// Keep (100 - FreeBandwidthFactor)% of capacity, floor to whole KiB/s.
+	Settings.Bandwidth.Uploads = WizardUploadLimitBytesPerSecond(
+		Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor );
 
 	Settings.eDonkey.MaxLinks = nUploadSpeed < 130 ? 100 : 250;
 	Settings.OnChangeConnectionSpeed();
 	UploadQueues.CreateDefault();
 
-	//if ( theApp.m_bLimitedConnections && ! Settings.General.IgnoreXPLimits )
-	//	CHelpDlg::Show( L"GeneralHelp.XPLimits" );
-
-	m_nProgressSteps = 0;
-
-	// Load default ed2k server list (if necessary)
-	m_bUpdateServers = true;
-	m_nProgressSteps += 30;
-
-	// Update the G1, G2 and eDonkey host cache (if necessary)
-	m_bQueryDiscoveries = true;
-	m_nProgressSteps += 30;
-
-	// Obsolete for reference & deletion
-	//CWaitCursor pCursor;
-	//if ( m_bUPnPForward )
-	//{
-	//	Settings.Connection.EnableUPnP = true;
-	//
-	//	m_nProgressSteps += 30;		// UPnP device detection
-	//
-	//	//Network.MapPorts();
-	//
-	//	// Create UPnP finder object if it doesn't exist
-	//	//if ( ! Network.UPnPFinder )
-	//	//	Network.UPnPFinder.Attach( new CUPnPFinder );
-	//	//if ( Network.UPnPFinder->AreServicesHealthy() )
-	//	//	Network.UPnPFinder->StartDiscovery();
-	//}
-	//else if ( m_wndUPnP.GetCurSel() == 1 )
-	//{
-	//	Settings.Connection.EnableUPnP = false;
-	//}
-
-	BeginThread( "WizardConnectionPage" );
-
-	// Disable all navigation buttons while the thread is running
-	CWizardSheet* pSheet = GetSheet();
-	if ( pSheet->GetDlgItem( ID_WIZBACK ) )
-		pSheet->GetDlgItem( ID_WIZBACK )->EnableWindow( FALSE );
-	if ( pSheet->GetDlgItem( ID_WIZNEXT ) )
-		pSheet->GetDlgItem( ID_WIZNEXT )->EnableWindow( FALSE );
-	if ( pSheet->GetDlgItem( 2 ) )
-		pSheet->GetDlgItem( 2 )->EnableWindow( FALSE );
-
-	return -1;	// Don't move to the next page; the thread will do this work
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// CWizardConnectionPage thread
-
-void CWizardConnectionPage::OnRun()
-{
-	short nCurrentStep = 0;
-
-	m_wndProgress.PostMessage( PBM_SETRANGE32, 0, (LPARAM)m_nProgressSteps );
-
-	// Obsolete for reference & deletion
-	//if ( m_bUPnPForward )
-	//{
-	//	m_wndStatus.SetWindowText( LoadString( IDS_WIZARD_UPNP_SETUP ) );
-	//
-	//	while ( Network.UPnPFinder && Network.UPnPFinder->IsAsyncFindRunning() )
-	//	{
-	//		Sleep( 1000 );
-	//		if ( nCurrentStep < 30 )
-	//			nCurrentStep++;
-	//		else if ( nCurrentStep == 30 )
-	//			nCurrentStep = 0;
-	//		m_wndProgress.PostMessage( PBM_SETPOS, nCurrentStep );
-	//	}
-	//
-	//	nCurrentStep = 30;
-	//	m_wndProgress.PostMessage( PBM_SETPOS, nCurrentStep );
-	//}
-
-	if ( m_bUpdateServers )
-	{
-		m_wndStatus.SetWindowText( LoadString( IDS_WIZARD_ED2K ) );
-
-		HostCache.CheckMinimumServers( PROTOCOL_ED2K );
-		nCurrentStep += 30;
-		m_wndProgress.PostMessage( PBM_SETPOS, nCurrentStep );
-		Sleep( 10 );	// Mixed text bugfix?
-		m_wndStatus.SetWindowText( L"" );
-	}
-
-	if ( m_bQueryDiscoveries )
-	{
-		m_wndStatus.SetWindowText( LoadString( IDS_WIZARD_DISCOVERY ) );
-
-		DiscoveryServices.CheckMinimumServices();
-		nCurrentStep += 10;
-		m_wndProgress.PostMessage( PBM_SETPOS, nCurrentStep );
-
-		BOOL bConnected = Network.IsConnected();
-		if ( bConnected || Network.Connect(TRUE) )
-		{
-			int i;
-			// It will be checked if it is needed inside DiscoveryServices.Execute()
-			for ( i = 0; i < 2 && ! DiscoveryServices.Execute( PROTOCOL_G1, 2 ); i++ ) Sleep(200);
-			nCurrentStep += 5;
-			m_wndProgress.PostMessage( PBM_SETPOS, nCurrentStep );
-			for ( i = 0; i < 2 && ! DiscoveryServices.Execute( PROTOCOL_G2, 2 ); i++ ) Sleep(200);
-			nCurrentStep += 5;
-			m_wndProgress.PostMessage( PBM_SETPOS, nCurrentStep );
-			for ( i = 0; i < 2 && ! DiscoveryServices.Execute( PROTOCOL_ED2K, 2 ); i++ ) Sleep(200);
-			nCurrentStep += 5;
-			m_wndProgress.PostMessage( PBM_SETPOS, nCurrentStep );
-			for ( i = 0; i < 2 && ! DiscoveryServices.Execute( PROTOCOL_DC, 2 ); i++ ) Sleep(200);
-			nCurrentStep += 5;
-			m_wndProgress.PostMessage( PBM_SETPOS, nCurrentStep );
-
-		//	if ( ! bConnected ) Network.Disconnect();		// Caused UPnP false fail on first run?
-		}
-		else
-		{
-			nCurrentStep += 20;
-			m_wndProgress.PostMessage( PBM_SETPOS, nCurrentStep );
-		}
-	}
-
-	// Reenable navigation buttons
-	CWizardSheet* pSheet = GetSheet();
-	if ( pSheet->GetDlgItem( ID_WIZBACK ) )
-		pSheet->GetDlgItem( ID_WIZBACK )->EnableWindow();
-	if ( pSheet->GetDlgItem( ID_WIZNEXT ) )
-		pSheet->GetDlgItem( ID_WIZNEXT )->EnableWindow();
-	if ( pSheet->GetDlgItem( 2 ) )
-		pSheet->GetDlgItem( 2 )->EnableWindow();
-
-	pSheet->SendMessage( PSM_SETCURSEL, 2, 0 );	// Go to the 3rd page
-	PostMessage( WM_TIMER, 1 );					// Terminate thread if necessary
-}
-
-BOOL CWizardConnectionPage::OnQueryCancel()
-{
-	if ( IsThreadAlive() )
-		return FALSE;
-
-	return CWizardPage::OnQueryCancel();
-}
-
-void CWizardConnectionPage::OnTimer(UINT_PTR nIDEvent)
-{
-	if ( nIDEvent != 1 )
-		return;
-
-	CloseThread();
-
-	// Obsolete for reference & deletion
-	//if ( m_bUPnPForward && Network.m_bUPnPPortsForwarded != TRI_TRUE )
-	//{
-	//	CString strMessage;
-	//	strMessage.Format( LoadString( IDS_WIZARD_PORT_FORWARD ), Settings.Connection.InPort );
-	//	MsgBox( strMessage, MB_ICONINFORMATION );
-	//}
+	return 0;
 }
 
 CString CWizardConnectionPage::SpeedFormat(const double nSpeed) const

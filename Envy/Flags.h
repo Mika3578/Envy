@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include "FlagsState.h"
+
 class CImageFile;
 
 
@@ -45,6 +47,7 @@ public:
 	int			GetFlagIndex(const CString& sCountryCode) const;
 	BOOL		Draw(int i, HDC hdcDst, int x, int y, COLORREF rgbBk, COLORREF rgbFg = CLR_NONE, UINT fStyle = ILD_NORMAL);
 	HICON		ExtractIcon(int i);
+	HICON		ExtractIconW(int i);
 
 protected:
 	void		AddFlag(CImageFile* pImage, CRect* pRect, COLORREF crBack);
