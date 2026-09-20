@@ -267,10 +267,11 @@ class CaptureToolTests(unittest.TestCase):
             )
             ctx.run_dir.mkdir(parents=True, exist_ok=True)
             result = handle_optional_pcap(ctx, SCENARIOS["optional_pcap"])
+            # Availability alone must SKIP (not PASS) — owned capture required.
+            self.assertEqual(result.result, "SKIP")
             if find_capture_tool():
-                self.assertEqual(result.result, "PASS")
+                self.assertIn("available", result.reason.lower())
             else:
-                self.assertEqual(result.result, "SKIP")
                 self.assertIn("optional", result.reason.lower())
 
     def test_tcp_port_filter_and_darwin_loopback(self) -> None:
@@ -282,13 +283,35 @@ class CaptureToolTests(unittest.TestCase):
         os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)
         # Force Darwin branch without requiring macOS.
         import sys
-
-        real_platform = sys.platform
+        old_plat = sys.platform
+        sys.platform = "darwin"
         try:
-            sys.platform = "darwin"
             self.assertEqual(capture_mod._loopback_iface(), "lo0")
         finally:
-            sys.platform = real_platform
+            sys.platform = old_plat
+
+    def test_tcpdump_duration_options_before_bpf(self) -> None:
+        from envy_interop import capture as capture_mod
+        from envy_interop.process import ProcessManager
+        from unittest.mock import MagicMock, patch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "cap.pcap"
+            mgr = ProcessManager()
+            with patch.object(mgr, "launch", return_value=MagicMock()) as launch:
+                capture_mod.start_capture(
+                    mgr,
+                    out_path=out,
+                    log_dir=Path(tmp),
+                    ports=[4662],
+                    tool="/usr/sbin/tcpdump",
+                    duration_sec=5,
+                )
+                argv = launch.call_args[0][1]
+                self.assertEqual(argv[-1], "tcp port 4662")
+                self.assertIn("-G", argv)
+                self.assertLess(argv.index("-G"), len(argv) - 1)
+                self.assertEqual(argv[argv.index("-G") + 1], "5")
 
 
 class SanitizerTests(unittest.TestCase):

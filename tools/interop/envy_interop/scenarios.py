@@ -689,7 +689,20 @@ def handle_optional_pcap(ctx: RunContext, spec: ScenarioSpec) -> ScenarioResult:
             spec,
             "dumpcap/tshark/tcpdump not found; pcap remains optional (do not install from harness)",
         )
-    return _pass(spec, f"capture tool available: {Path(tool).name}", tool=Path(tool).name)
+    # Availability alone is not an owned capture start/stop (pass criterion).
+    if ctx.cfg.dry_run or not ctx.cfg.live or not ctx.cfg.enable_pcap:
+        return _skip(
+            spec,
+            f"capture tool available ({Path(tool).name}) but no owned capture was started "
+            "(need --live --enable-pcap). Availability-only must not PASS.",
+            tool=Path(tool).name,
+        )
+    return _skip(
+        spec,
+        f"capture tool {Path(tool).name} present; owned capture lifecycle is started by "
+        "the live runner when --enable-pcap is set — this scenario records availability only.",
+        tool=Path(tool).name,
+    )
 
 
 def handle_kad_nodes_dat_local(ctx: RunContext, spec: ScenarioSpec) -> ScenarioResult:
@@ -831,6 +844,22 @@ def _first_hit(hits, *labels: str):
     return None
 
 
+# Scenarios where matching wire labels/parse is enough for packet-evidence PASS.
+# Transfer/delivery/consumption criteria still require live operator logs.
+_PACKET_WIRE_PASS_IDS = frozenset(
+    {
+        "hello",
+        "hello_answer",
+        "muleinfo",
+        "capability_negotiation",
+        "source_exchange",
+        "lowid_publicip_req",
+        "lowid_publicip_answer",
+        "kad_search_source_req",
+    }
+)
+
+
 def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[ScenarioResult]:
     """Attempt PASS from --packet-evidence / --hello-capture / evidence dir."""
     candidates: List[Path] = []
@@ -857,11 +886,23 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
                     continue
                 dest_dir = ctx.run_dir / "evidence" / spec.id
                 ingest_packet_dump(path, dest_dir, required_labels=spec.evidence_labels)
+                artifacts = [f"evidence/{spec.id}/packet-evidence.json"]
+                if spec.id not in _PACKET_WIRE_PASS_IDS:
+                    # Opcode presence ≠ transfer acceptance / CALLBACK consume /
+                    # SEARCH_RES→ED2K delivery / firewall ACK+state.
+                    return _skip(
+                        spec,
+                        f"packet labels {list(spec.evidence_labels)} present in {path.name}, "
+                        "but documented transaction criteria need live operator logs "
+                        "(not opcode-only PASS)",
+                        evidence=summary,
+                        artifacts=artifacts,
+                    )
                 return _pass(
                     spec,
                     f"packet evidence matched labels {list(spec.evidence_labels)} from {path.name}",
                     evidence=summary,
-                    artifacts=[f"evidence/{spec.id}/packet-evidence.json"],
+                    artifacts=artifacts,
                 )
             if spec.id in {"hello", "hello_answer"}:
                 label = "hello" if spec.id == "hello" else "hello_answer"

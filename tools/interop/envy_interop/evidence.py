@@ -141,8 +141,8 @@ def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
                 # Do not store the observed IPv4 — evidence JSON is not sanitized.
                 details["ipv4_present"] = True
         elif proto == ED2K_PROTOCOL_EMULE and opcode == ED2K_C2C_CALLBACK:
-            if len(body) < 38:
-                details["parse_error"] = f"CALLBACK body too short ({len(body)} < 38)"
+            if len(body) != 38:
+                details["parse_error"] = f"CALLBACK body must be exactly 38 bytes, got {len(body)}"
             else:
                 details["layout"] = "kadcheck16+filehash16+ip4+tcp2"
         elif proto == ED2K_PROTOCOL_EMULE and opcode in (
@@ -153,7 +153,16 @@ def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
             if len(body) < need:
                 details["parse_error"] = f"compressed part header truncated ({len(body)} < {need})"
             else:
-                details["i64"] = opcode == ED2K_C2C_COMPRESSEDPART_I64
+                compressed_len = struct.unpack_from("<I", body, need - 4)[0]
+                remaining = len(body) - need
+                if remaining != compressed_len:
+                    details["parse_error"] = (
+                        f"compressed payload length mismatch "
+                        f"(declared {compressed_len}, remaining {remaining})"
+                    )
+                else:
+                    details["i64"] = opcode == ED2K_C2C_COMPRESSEDPART_I64
+                    details["compressed_len"] = compressed_len
         hits.append(
             FrameHit(
                 protocol=proto,

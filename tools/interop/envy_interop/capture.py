@@ -78,10 +78,11 @@ def start_capture(
         if duration_sec and duration_sec > 0:
             argv.extend(["-a", f"duration:{int(duration_sec)}"])
     else:
-        # tcpdump
-        argv = [tool, "-i", iface, "-n", "-w", str(out_path), port_spec]
+        # tcpdump: BPF expression must be last (positional). Options before it.
+        argv = [tool, "-i", iface, "-n", "-w", str(out_path)]
         if duration_sec and duration_sec > 0:
             argv.extend(["-G", str(int(duration_sec)), "-W", "1"])
+        argv.append(port_spec)
     return manager.launch(
         "pcap",
         argv,

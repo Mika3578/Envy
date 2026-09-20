@@ -199,6 +199,25 @@ class EvidenceExtractorTests(unittest.TestCase):
         hits = extract_ed2k_frames(truncated + mule)
         self.assertTrue(any(h.label == "muleinfo" for h in hits))
 
+    def test_callback_body_must_be_exactly_38_bytes(self) -> None:
+        short = bytes([0xC5]) + struct.pack("<I", 1 + 37) + bytes([0x99]) + (b"\x00" * 37)
+        long = bytes([0xC5]) + struct.pack("<I", 1 + 39) + bytes([0x99]) + (b"\x00" * 39)
+        exact = bytes([0xC5]) + struct.pack("<I", 1 + 38) + bytes([0x99]) + (b"\x00" * 38)
+        self.assertFalse(require_labels(extract_ed2k_frames(short), ["callback"])[0])
+        self.assertFalse(require_labels(extract_ed2k_frames(long), ["callback"])[0])
+        ok, reason = require_labels(extract_ed2k_frames(exact), ["callback"])
+        self.assertTrue(ok, reason)
+
+    def test_compressedpart_payload_length_must_match(self) -> None:
+        # Declared compressed_total=100 but only 8 payload bytes → fail closed.
+        short = b"\x11" * 16 + struct.pack("<I", 0) + struct.pack("<I", 100) + b"\x00" * 8
+        frame = bytes([0xC5]) + struct.pack("<I", 1 + len(short)) + bytes([0x40]) + short
+        self.assertFalse(require_labels(extract_ed2k_frames(frame), ["compressedpart"])[0])
+        # Trailing junk beyond declared length → fail closed.
+        long = b"\x11" * 16 + struct.pack("<I", 0) + struct.pack("<I", 4) + b"\x00" * 8
+        frame = bytes([0xC5]) + struct.pack("<I", 1 + len(long)) + bytes([0x40]) + long
+        self.assertFalse(require_labels(extract_ed2k_frames(frame), ["compressedpart"])[0])
+
     def test_publicip_answer_omits_raw_ipv4(self) -> None:
         body = b"\x0a\x00\x00\x01"
         frame = bytes([0xC5]) + struct.pack("<I", 1 + len(body)) + bytes([0x98]) + body

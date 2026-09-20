@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **Interop harness Kad evidence / privacy (#160, #294)** — Kad packet-evidence labels now use UDP protocol `0xE4` and `KADEMLIA2_SEARCH_RES` opcode `0x3B` (not eMule TCP `0xC5` / notes `0x35`). PUBLICIP/FIREWALLED observed IPv4 is recorded as `ipv4_present` only (no raw address in evidence JSON). `kad_nodes_dat_local` SKIP in dry-run (documentation note is not parse evidence).
+- **Interop harness evidence honesty (#160, #294)** — Kad packet-evidence labels use UDP `0xE4` / `SEARCH_RES` `0x3B` (not C5/`0x35`). PUBLICIP/FIREWALLED record `ipv4_present` only (no raw IPv4). `kad_nodes_dat_local` and `optional_pcap` SKIP when only notes/availability exist. CALLBACK body must be exactly 38 bytes; COMPRESSEDPART declared payload length must match remaining body; tcpdump `-G/-W` precede the BPF expression; opcode-only packet evidence cannot PASS transfer/callback/SEARCH_RES-delivery scenarios.
 
 ### Added
 - **ED2K/Kad interop harness preparation (#160)** — Upgrade `tools/interop/` to reflect current develop after #251/#252/#254/#255/#256/#257/#258/#261: capability table with `compression_send=True`, orthogonal production/harness/evidence states, current compression/LowID/Kad scenario hooks, Windows `run-live.ps1` + operator checklist, optional dumpcap/tshark, bounded packet-evidence extractor, report schema v2. Deterministic Cloud self-test/dry-run only; live evidence still pending a Windows operator run. No ED2K/Kad production protocol changes.

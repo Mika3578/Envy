@@ -143,13 +143,18 @@ verified. Do not change the advertised nibble from this harness.
 
 `--enable-pcap` uses `dumpcap`, `tshark`, or `tcpdump` when on `PATH`. Bounded
 filters use the configured TCP ports. Raw pcaps stay gitignored. Missing tools
-→ SKIP (never silent install).
+→ SKIP (never silent install). The `optional_pcap` scenario also **SKIP**s on
+availability alone — PASS requires an owned capture start/stop under
+`--live --enable-pcap`.
 
 `--packet-evidence` accepts a hex/binary dump of ED2K **TCP** frames
 (`0xE3`/`0xC5` sized headers) and Kad2 **UDP** datagrams (`0xE4` + opcode,
 e.g. `SEARCH_SOURCE_REQ` 0x34 / `SEARCH_RES` 0x3B / `FIREWALLED_*`).
 Observed public IPv4 values are never written into evidence JSON (presence
-only). Fail closed on malformed frames.
+only). Fail closed on malformed frames (exact CALLBACK length, matching
+COMPRESSEDPART payload size). Opcode presence alone cannot PASS transfer,
+callback consume, SEARCH_RES→ED2K delivery, or firewall ACK/state scenarios —
+those stay SKIP until live operator logs satisfy the documented criteria.
 
 ## Golden reference captures
 
