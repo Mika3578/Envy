@@ -9,6 +9,9 @@ especially `docs/DEVELOPMENT_PLAN.md`, `docs/10_dev/status.md`, and the
 relevant protocol/architecture docs.
 
 For Copilot Code Review, apply the same safety, interoperability, testing, and
-evidence requirements. An approval counts only when GitHub records an actual
-`APPROVED` review and repository settings allow Copilot approvals to satisfy
-merge requirements; an approval assessment or comment alone is not sufficient.
+evidence requirements. When the pull request is ready — required checks green,
+no unresolved threads, no `CHANGES_REQUESTED`, no weakened quality gates, and
+high-risk protocol/crypto/auth/threading/locking/memory changes have evidence
+or an explicit `Wire-format impact: none` — submit a GitHub `APPROVED` review
+if repository Copilot approval settings allow it. An approval assessment or
+comment alone is not sufficient and does not satisfy Protect develop.

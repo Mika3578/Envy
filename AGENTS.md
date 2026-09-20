@@ -358,6 +358,8 @@ rules.
   reintroduced.
 - `.github/copilot-instructions.md`, `CLAUDE.md`, `.clinerules`,
   `.windsurfrules`, and `.continue/rules/*.md` are thin adapters/pointers.
+- Copilot Code Review also reads `.github/skills/code-review/SKILL.md`
+  (approve only with a real `APPROVED` review when settings allow it).
 - `.aider.conf.yml` explicitly loads this file.
 
 When a global rule changes, change it **here first**. Add or update a

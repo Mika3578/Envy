@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #293: Copilot Code Review is the solo-maintainer required reviewer; auto-review runs on ready-for-review and on push (draft review off). Approve only with a real `APPROVED` review when repository Copilot approve/count settings are on. Stale #164 consolidation-deferral note removed.
 - **Changelog Entry:** 2026-09-20 — Agent/workflow governance: consolidate repository-wide AI rules into `AGENTS.md`; remove legacy/duplicate Cursor and GitHub agent rule copies; add mandatory live-state preflight; Protect develop live now enforces 1 approval, Code Quality `All`, Copilot review-on-push on (draft off); coverage gate deferred until measured; Copilot UI approve/count/auto-request still need manual verify; mark ARM64 planned/unsupported in issue forms; refresh developer guide.
 - **Changelog Entry:** 2026-09-20 — #84 Settings: replace `throw()` with `noexcept` on five `Add` overloads and `SmartAgent` (C++20; Item ctors deferred). No behavior change.
 - **Changelog Entry:** 2026-09-20 — Crashpad: idempotent `CrashPadHost::Start`; single `CrashReporter::Initialize` from `InitInstance` (fix Debug double `StartHandler` DCHECK).

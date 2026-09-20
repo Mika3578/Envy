@@ -1,6 +1,6 @@
 # Envy Development Agents & Automation
 
-**Last Updated:** 2026-09-19
+**Last Updated:** 2026-09-20
 
 ## What exists today
 
@@ -150,7 +150,7 @@ Do not reintroduce mutable `@vN` tags for external actions.
 | **Code analysis** | MSVC Code Analysis on `develop`/nightly; CodeQL (`none` on PR C++, manual on `develop`); `.clang-tidy` + reviewdog on PRs (advisory) |
 | **Format / docs** | `clang-format-diff-18` on changed hunks under `Envy/`, `TorrentEnvy/`, `HashLib/` (blocking); markdown link check when docs change |
 | **Dependencies** | Dependabot (vcpkg), Renovate (GitHub Actions), dependency review, vcpkg manifest sanity |
-| **AI review** | Copilot Code Review = target approval reviewer; CodeRabbit/reviewdog/Qodo/Bugbot remain advisory |
+| **AI review** | Copilot Code Review = target approval reviewer (skill `.github/skills/code-review/SKILL.md`); CodeRabbit/reviewdog/Qodo/Bugbot remain advisory |
 | **Testing** | `EnvyTests.exe` after PR and `develop` MSBuild; Remote JS tests when `Remote/` changes; local `.\scripts\ci-verify.ps1` |
 | **Security** | Gitleaks on every PR, CodeQL, dependency review |
 

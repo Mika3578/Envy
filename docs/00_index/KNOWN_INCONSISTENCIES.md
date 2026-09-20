@@ -21,7 +21,7 @@
 
 - **Missing index targets:** `docs/00_index/MASTER_PLAN.md` and `docs/30_protocols/ed2k/ED2K_SEARCH_DIAGNOSTICS.md` were linked but absent; links were removed from the index/ED2K README rather than inventing stub files.
 
-- **Historical `.github/` docs:** Former live copies of roadmap / upgrade summary / modern C++ guide under `.github/` contradicted `docs/10_dev/status.md` (e.g. IPv6 “complete”). They are now pointers; archives live under `docs/10_dev/archive/`. AI-rule thin-adapter consolidation is deferred while PR #164 touches `AGENTS.md` / `CLAUDE.md` / `.github/CONTRIBUTING.md`.
+- **Historical `.github/` docs:** Former live copies of roadmap / upgrade summary / modern C++ guide under `.github/` contradicted `docs/10_dev/status.md` (e.g. IPv6 “complete”). They are now pointers; archives live under `docs/10_dev/archive/`. AI-rule thin-adapter consolidation is this PR (#293): `AGENTS.md` is canonical; Copilot/Claude/Cline/Windsurf/Continue files are pointers.
 
 - **EDClient.h comments:** Member `m_bEmSupportsSourceEx2` is commented "Not supported" but SourceEx2 (REQUESTSOURCES2/ANSWERSOURCES2) is implemented in `EDClient.cpp` and advertised; consider updating the comment to "Source Exchange v2".
 
