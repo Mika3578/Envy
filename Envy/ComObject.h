@@ -137,31 +137,31 @@ template < class T >
 class CComObjectPtr
 {
 public:
-	CComObjectPtr() throw()
-		: p( NULL )
+	CComObjectPtr() noexcept
+	    : p(NULL)
 	{
 	}
 
-	CComObjectPtr(T* p2) throw()
-		: p( p2 )
-	{
-		if ( p )
-			p->ComAddRef( NULL );
-	}
-
-	CComObjectPtr(const CComObjectPtr& pObjectPtr) throw()
-		: p( pObjectPtr.p )
+	CComObjectPtr(T* p2) noexcept
+	    : p(p2)
 	{
 		if ( p )
 			p->ComAddRef( NULL );
 	}
 
-	~CComObjectPtr() throw()
+	CComObjectPtr(const CComObjectPtr& pObjectPtr) noexcept
+	    : p(pObjectPtr.p)
+	{
+		if ( p )
+			p->ComAddRef( NULL );
+	}
+
+	~CComObjectPtr() noexcept
 	{
 		Release();
 	}
 
-	CComObjectPtr& operator=(const CComObjectPtr& pObjectPtr) throw()
+	CComObjectPtr& operator=(const CComObjectPtr& pObjectPtr) noexcept
 	{
 		if ( *this != pObjectPtr )
 		{
@@ -172,64 +172,64 @@ public:
 		return *this;
 	}
 
-	operator T*() const throw()
+	operator T*() const noexcept
 	{
 		return p;
 	}
 
-	T& operator*() const throw()
+	T& operator*() const noexcept
 	{
 		ASSERT( p != NULL );
 		return *p;
 	}
 
-	_StrictCComObjectPtr< T >* operator->() const throw()
+	_StrictCComObjectPtr<T>* operator->() const noexcept
 	{
 		ASSERT( p != NULL );
-		return (_StrictCComObjectPtr< T >*)p;
+		return (_StrictCComObjectPtr<T>*)p;
 	}
 
-	operator bool() const throw()
+	operator bool() const noexcept
 	{
 		return ( p != NULL );
 	}
 
-	bool operator!() const throw()
+	bool operator!() const noexcept
 	{
 		return ( p == NULL );
 	}
 
-	bool operator<(T* pT) const throw()
+	bool operator<(T* pT) const noexcept
 	{
 		return ( p < pT );
 	}
 
-	bool operator!=(T* pT) const throw()
+	bool operator!=(T* pT) const noexcept
 	{
 		return ! operator==( pT );
 	}
 
-	bool operator==(_In_opt_ T* pT) const throw()
+	bool operator==(_In_opt_ T* pT) const noexcept
 	{
 		return ( p == pT );
 	}
 
 	// Attach to an existing interface (does not ComAddRef)
-	void Attach(T* p2) throw()
+	void Attach(T* p2) noexcept
 	{
 		Release();
 		p = p2;
 	}
 
 	// Detach the interface (does not ComRelease)
-	T* Detach() throw()
+	T* Detach() noexcept
 	{
 		T* pTemp = p;
 		p = NULL;
 		return pTemp;
 	}
 
-	void Release() throw()
+	void Release() noexcept
 	{
 		T* pTemp = p;
 		if ( pTemp )
