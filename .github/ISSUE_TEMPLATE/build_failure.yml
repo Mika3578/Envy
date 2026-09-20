@@ -34,7 +34,7 @@ body:
       options:
         - Release x64
         - Release Win32
-        - Release ARM64
+        - Release ARM64 (planned / unsupported; experimental only)
         - Debug x64
         - Debug Win32
     validations:

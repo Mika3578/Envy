@@ -3,6 +3,15 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — Agent PR back-pressure: replace the hard max-3 development PR cap with a soft target of 5, with documented overflow only.
+- **Changelog Entry:** 2026-09-20 — #293 Copilot review: document the live mixed C++17/C++20 Release|x64 baseline (trailing `stdcpp17` wins on Envy/HashLib/TorrentEnvy/Unpacker); replace `feature/` example with `feat/` in the versioning guide. Copilot `APPROVED` is not proof of correctness.
+- **Changelog Entry:** 2026-09-20 — #293 Copilot review: unclassified paths default to high-risk code/infra (Visual Studio, scripts, Remote, Unpacker, SkinBuilder, Repository, root build files).
+- **Changelog Entry:** 2026-09-20 — #293 Copilot review: review-governance files are high-risk and excluded from the Copilot counting allowlist; `Wire-format impact: none` no longer covers crypto/auth/threading/locking/memory.
+- **Changelog Entry:** 2026-09-20 — #293 Copilot review: risk-specific evidence (workflows/settings.yml cannot use wire-format text); ARM64 planned/unsupported in modernization table; C++20 first-party in standards.md; CHANGELOG playbook aligned with AGENTS.md.
+- **Changelog Entry:** 2026-09-20 — #293 Copilot review: remaining UI gaps are approve/count, Balanced effort, and path allowlist only; automatic review is already live on Protect develop; drop deleted `.cursor/rules/08-dev-workflow.mdc` pointer.
+- **Changelog Entry:** 2026-09-20 — #293: safe Copilot approval policy — assessment ≠ APPROVED; path-allowlist Stage-3 docs/rules globs; high-risk C++/workflows need evidence; Copilot-authored PRs are not self-approved; independent CI/security checks stay required.
+- **Changelog Entry:** 2026-09-20 — #293: Copilot Code Review is the solo-maintainer required reviewer; auto-review runs on ready-for-review and on push (draft review off). Approve only with a real `APPROVED` review when repository Copilot approve/count settings are on. Stale #164 consolidation-deferral note removed.
+- **Changelog Entry:** 2026-09-20 — Agent/workflow governance: consolidate repository-wide AI rules into `AGENTS.md`; remove legacy/duplicate Cursor and GitHub agent rule copies; add mandatory live-state preflight; Protect develop live now enforces 1 approval, Code Quality `All`, Copilot review-on-push on (draft off); coverage gate deferred until measured; Copilot UI approve/count, Balanced effort, and optional path allowlist still need manual verify; mark ARM64 planned/unsupported in issue forms; refresh developer guide.
 - **Changelog Entry:** 2026-09-20 — #84 HashStringConversion: drop leftover `register` from `Unhex` (C++17). No hex decode behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 Settings: replace `throw()` with `noexcept` on five `Add` overloads and `SmartAgent` (C++20; Item ctors deferred). No behavior change.
 - **Changelog Entry:** 2026-09-20 — Crashpad: idempotent `CrashPadHost::Start`; single `CrashReporter::Initialize` from `InitInstance` (fix Debug double `StartHandler` DCHECK).
@@ -91,7 +100,7 @@
 - **Changelog Entry:** 2026-09-19 — #81: `CEDPacket::ReadEDString` / `ReadLongEDString` fail-closed when length prefix exceeds remaining (`Ed2kEdStringPayloadOk` / `Ed2kLongEdStringPayloadOk`).
 - **Changelog Entry:** 2026-09-19 — #81: G1 TCP framing uses overflow-safe `G1PacketTotalLengthOk` for signed payload length vs `MaximumPacket`.
 - **Changelog Entry:** 2026-09-19 — #81: G1 UDP datagram path uses overflow-safe G1PacketTotalLengthOk (rejects negative m_nLength wrap before CG1Packet::New).
-- **Changelog Entry:** 2026-09-19 — Agent workflow: after every PR push use `gh pr checks --required --watch --fail-fast --interval 5` (no arbitrary CI sleeps); see `AGENTS.md` §5 and `.cursor/rules/08-dev-workflow.mdc`.
+- **Changelog Entry:** 2026-09-19 — Agent workflow: after every PR push use `gh pr checks --required --watch --fail-fast --interval 5` (no arbitrary CI sleeps); see `AGENTS.md` §5.
 - **Changelog Entry:** 2026-09-19 — #81: ED2K `COMPRESSEDPART` / `COMPRESSEDPART_I64` stream inflate capped at one part or the remaining file size, whichever is smaller (`ED2K_COMPRESSEDPART_INFLATE_MAX` / `Ed2kCompressedPartInflateBudget` / `Ed2kCompressedPartInflateOk`) before `SubmitData`; `CEDClient::OnPacket` propagates inflate rejection.
 - **Changelog Entry:** 2026-09-19 — #81: GGEP DEFLATE inflate capped at 256 KiB (`GGEP_INFLATE_MAX` / `GgepInflateOutputOk`).
 - **Changelog Entry:** 2026-09-19 — #81: `CBuffer::InflateStreamTo` default `nMaxOutput=0` to `CBUFFER_INFLATE_STREAM_MAX` (32 MiB) for Neighbour G1/G2 deflate backlog; G1/G2/ED/DC `OnRead` fail-closes on inflate error; `CBufferInflateStreamOutputOk` smoke coverage.

@@ -10,7 +10,9 @@ Use this playbook to keep PRs small, reviewable, and operationally safe.
   - testing not performed
   - environment limitations
 - Never silently remove tests, coverage, workflows, docs, artifacts, or legacy files.
-- Update under `[Unreleased]` in `CHANGELOG.md`.
+- Update `CHANGELOG.md` under `[Unreleased]` for release/user-visible
+  behavior. Docs/rules/CI-only PRs may skip it when the PR states why
+  and still updates `docs/DEVELOPMENT_PLAN.md` for strategic scope.
 - Update `docs/DEVELOPMENT_PLAN.md` for strategic/scope decisions.
 - Record session notes in `.local/DEV_TRACKER.md` (gitignored).
 

@@ -1,7 +1,7 @@
 # Building Envy
 
 **Last Updated:** September 2026
-**Primary:** Visual Studio (`Visual Studio\Envy.sln`, toolset `v145`, C++20 for first-party Envy; C++17 for legacy plugins)
+**Primary:** Visual Studio (`Visual Studio\Envy.sln`, toolset `v145`, C++20 policy for first-party Envy; C++17 for legacy plugins and for live Release|x64 Envy/HashLib/TorrentEnvy/Unpacker until the trailing `stdcpp17` override is removed)
 **Secondary:** CMake (HashLib only)
 
 ## Quick reference

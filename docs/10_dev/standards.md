@@ -15,9 +15,16 @@ This document defines the coding standards and best practices for the Envy proje
 ## 🎯 Language Standards
 
 ### C++ Standard
-- **Current baseline**: C++17 (configured as `stdcpp17` in the `.vcxproj` files)
-- **Target**: C++20 (planned; adopt incrementally once the baseline is raised)
-- **Migration**: Gradual adoption of modern features
+- **Policy target**: C++20 (`stdcpp20`) for first-party projects; C++17
+  (`stdcpp17`) for legacy plugins that remain on that standard.
+- **Live Release|x64**: the last `<LanguageStandard>` in a `ClCompile` block
+  wins. Envy (`Envy/Envy.vcxproj`), HashLib (`HashLib/HashLib.vcxproj`),
+  TorrentEnvy (`TorrentEnvy/TorrentEnvy.vcxproj`), and Unpacker
+  (`Unpacker/Unpacker.vcxproj`) currently set `stdcpp20` then `stdcpp17` in
+  Release|x64, so those primary configs compile as C++17. Removing the
+  trailing override is a dedicated build change, not a docs-only edit.
+  Keep first-party code on those configs C++17-clean until then.
+- **Target OS**: Windows 10 1809+; Windows ARM64 is planned / unsupported
 
 ### Platform and Framework
 - **OS**: Windows (Win32/x64)
