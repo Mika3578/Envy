@@ -2,6 +2,10 @@
 
 Not a Wireshark replacement. Fail closed on malformed frames. Optional tshark
 is used only when present; absence is SKIP, never an install attempt.
+
+ED2K TCP frames use ``<proto:1><size:4 LE><opcode:1><body>`` (0xE3/0xC5).
+Kad2 UDP datagrams use ``<proto:1><opcode:1><body>`` (0xE4); packed 0xE5 is
+recognized but not inflated here.
 """
 
 from __future__ import annotations
@@ -28,6 +32,8 @@ from .constants import (
     ED2K_C2C_REQUESTSOURCES2,
     ED2K_PROTOCOL_EDONKEY,
     ED2K_PROTOCOL_EMULE,
+    ED2K_PROTOCOL_KAD,
+    ED2K_PROTOCOL_KAD_PACKED,
     KAD_OP_FIREWALLED_ACK_RES,
     KAD_OP_FIREWALLED_REQ,
     KAD_OP_FIREWALLED_RES,
@@ -52,7 +58,8 @@ class FrameHit:
     details: Dict[str, Any] = field(default_factory=dict)
 
 
-OPCODE_LABELS = {
+# eMule / eDonkey TCP (sized frames). Kad must not be registered here.
+TCP_OPCODE_LABELS = {
     (ED2K_PROTOCOL_EDONKEY, ED2K_C2C_HELLO): "hello",
     (ED2K_PROTOCOL_EDONKEY, ED2K_C2C_HELLOANSWER): "hello_answer",
     (ED2K_PROTOCOL_EMULE, 0x01): "muleinfo",
@@ -66,12 +73,19 @@ OPCODE_LABELS = {
     (ED2K_PROTOCOL_EMULE, ED2K_C2C_ANSWERSOURCES): "sourceex_ans",
     (ED2K_PROTOCOL_EMULE, ED2K_C2C_REQUESTSOURCES2): "sourceex2_req",
     (ED2K_PROTOCOL_EMULE, ED2K_C2C_ANSWERSOURCES2): "sourceex2_ans",
-    (ED2K_PROTOCOL_EMULE, KAD_OP_SEARCH_SOURCE_REQ): "kad_search_source_req",
-    (ED2K_PROTOCOL_EMULE, KAD_OP_SEARCH_RES): "kad_search_res",
-    (ED2K_PROTOCOL_EMULE, KAD_OP_FIREWALLED_REQ): "kad_firewalled_req",
-    (ED2K_PROTOCOL_EMULE, KAD_OP_FIREWALLED_RES): "kad_firewalled_res",
-    (ED2K_PROTOCOL_EMULE, KAD_OP_FIREWALLED_ACK_RES): "kad_firewalled_ack",
 }
+
+# Kad2 UDP opcodes on protocol 0xE4 (Envy/EDPacket.h).
+KAD_OPCODE_LABELS = {
+    KAD_OP_SEARCH_SOURCE_REQ: "kad_search_source_req",
+    KAD_OP_SEARCH_RES: "kad_search_res",
+    KAD_OP_FIREWALLED_REQ: "kad_firewalled_req",
+    KAD_OP_FIREWALLED_RES: "kad_firewalled_res",
+    KAD_OP_FIREWALLED_ACK_RES: "kad_firewalled_ack",
+}
+
+# Back-compat alias for callers/tests that imported OPCODE_LABELS.
+OPCODE_LABELS = {**TCP_OPCODE_LABELS}
 
 
 def find_tshark() -> Optional[str]:
@@ -82,6 +96,7 @@ def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
     """Scan a blob for ED2K TCP frames: <proto:1><size:4 LE><opcode:1><body>.
 
     Fail closed: truncated size fields are skipped; no speculative repair.
+    Does not recognize Kad UDP (0xE4); use ``extract_kad_udp_frames``.
     """
     hits: List[FrameHit] = []
     i = 0
@@ -102,7 +117,7 @@ def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
             continue
         opcode = blob[i + 5]
         body = blob[i + 6 : frame_end]
-        label = OPCODE_LABELS.get((proto, opcode), f"op_{proto:02x}_{opcode:02x}")
+        label = TCP_OPCODE_LABELS.get((proto, opcode), f"op_{proto:02x}_{opcode:02x}")
         details: Dict[str, Any] = {"body_len": len(body)}
         if proto == ED2K_PROTOCOL_EDONKEY and opcode in (ED2K_C2C_HELLO, ED2K_C2C_HELLOANSWER):
             try:
@@ -123,7 +138,8 @@ def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
             if len(body) != 4:
                 details["parse_error"] = f"PUBLICIP_ANSWER body must be 4 bytes, got {len(body)}"
             else:
-                details["ipv4_le"] = struct.unpack("<I", body)[0]
+                # Do not store the observed IPv4 — evidence JSON is not sanitized.
+                details["ipv4_present"] = True
         elif proto == ED2K_PROTOCOL_EMULE and opcode == ED2K_C2C_CALLBACK:
             if len(body) < 38:
                 details["parse_error"] = f"CALLBACK body too short ({len(body)} < 38)"
@@ -150,6 +166,92 @@ def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
         )
         i = frame_end
     return hits
+
+
+def _next_kad_opcode_offset(blob: bytes, start: int) -> int:
+    """Return offset of the next 0xE4 + known Kad opcode, or len(blob)."""
+    n = len(blob)
+    i = start
+    while i + 2 <= n:
+        if blob[i] == ED2K_PROTOCOL_KAD and blob[i + 1] in KAD_OPCODE_LABELS:
+            return i
+        i += 1
+    return n
+
+
+def extract_kad_udp_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
+    """Scan for Kad2 UDP datagrams: <0xE4><opcode:1><body> (no size field).
+
+    Packed protocol 0xE5 is skipped (fail closed — no inflate). Body runs until
+    the next known Kad opcode header or end of blob. Single-datagram operator
+    dumps are the common case.
+    """
+    hits: List[FrameHit] = []
+    n = len(blob)
+    i = 0
+    while i + 2 <= n and len(hits) < max_frames:
+        proto = blob[i]
+        if proto == ED2K_PROTOCOL_KAD_PACKED:
+            i += 1
+            continue
+        if proto != ED2K_PROTOCOL_KAD:
+            i += 1
+            continue
+        opcode = blob[i + 1]
+        label = KAD_OPCODE_LABELS.get(opcode)
+        if label is None:
+            i += 1
+            continue
+        frame_end = _next_kad_opcode_offset(blob, i + 2)
+        body = blob[i + 2 : frame_end]
+        details: Dict[str, Any] = {"body_len": len(body), "transport": "udp"}
+        if opcode == KAD_OP_FIREWALLED_REQ:
+            if len(body) != 2:
+                details["parse_error"] = f"FIREWALLED_REQ body must be 2 bytes, got {len(body)}"
+            else:
+                details["tcp_port"] = struct.unpack("<H", body)[0]
+        elif opcode == KAD_OP_FIREWALLED_RES:
+            if len(body) != 4:
+                details["parse_error"] = f"FIREWALLED_RES body must be 4 bytes, got {len(body)}"
+            else:
+                # Observed public IP — never persist the raw address.
+                details["ipv4_present"] = True
+        elif opcode == KAD_OP_FIREWALLED_ACK_RES:
+            if len(body) != 0:
+                details["parse_error"] = f"FIREWALLED_ACK body must be empty, got {len(body)}"
+        elif opcode == KAD_OP_SEARCH_SOURCE_REQ:
+            if len(body) < 16:
+                details["parse_error"] = f"SEARCH_SOURCE_REQ body too short ({len(body)} < 16)"
+            else:
+                details["has_filehash"] = True
+                details["has_filesize"] = len(body) >= 24
+        elif opcode == KAD_OP_SEARCH_RES:
+            if len(body) < 17:
+                details["parse_error"] = f"SEARCH_RES body too short ({len(body)} < 17)"
+            else:
+                details["has_filehash"] = True
+                details["result_count"] = body[16]
+        hits.append(
+            FrameHit(
+                protocol=proto,
+                opcode=opcode,
+                offset=i,
+                length=frame_end - i,
+                label=label,
+                details=details,
+            )
+        )
+        i = frame_end
+    return hits
+
+
+def extract_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
+    """Extract ED2K TCP and Kad UDP evidence frames from a blob."""
+    tcp = extract_ed2k_frames(blob, max_frames=max_frames)
+    kad = extract_kad_udp_frames(blob, max_frames=max_frames)
+    combined = tcp + kad
+    combined.sort(key=lambda h: h.offset)
+    return combined[:max_frames]
 
 
 def load_evidence_bytes(path: Path) -> bytes:
@@ -197,47 +299,50 @@ def extract_from_pcap_via_tshark(
     ports: Sequence[int],
     timeout_sec: float = 30.0,
 ) -> bytes:
-    """Extract TCP payloads for configured ports using tshark when available."""
+    """Extract TCP/UDP payloads for configured ports using tshark when available."""
     tool = find_tshark()
     if not tool:
         raise EvidenceError("tshark not found (optional; do not install from the harness)")
     if not pcap_path.is_file():
         raise EvidenceError(f"pcap not found: {pcap_path}")
-    port_or = " or ".join(f"tcp.port == {int(p)}" for p in ports)
+    port_or = " or ".join(
+        f"(tcp.port == {int(p)} or udp.port == {int(p)})" for p in ports
+    )
     display = f"({port_or})"
-    argv = [
-        tool,
-        "-r",
-        str(pcap_path),
-        "-Y",
-        display,
-        "-T",
-        "fields",
-        "-e",
-        "tcp.payload",
-    ]
-    try:
-        proc = subprocess.run(
-            argv,
-            capture_output=True,
-            text=True,
-            timeout=timeout_sec,
-            check=False,
-            shell=False,
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise EvidenceError(f"tshark failed: {exc}") from exc
-    if proc.returncode != 0:
-        raise EvidenceError(f"tshark exit {proc.returncode}: {proc.stderr.strip()[:200]}")
     chunks: List[bytes] = []
-    for line in proc.stdout.splitlines():
-        hex_str = line.strip().replace(":", "")
-        if not hex_str:
-            continue
+    for field in ("tcp.payload", "udp.payload"):
+        argv = [
+            tool,
+            "-r",
+            str(pcap_path),
+            "-Y",
+            display,
+            "-T",
+            "fields",
+            "-e",
+            field,
+        ]
         try:
-            chunks.append(bytes.fromhex(hex_str))
-        except ValueError as exc:
-            raise EvidenceError("tshark produced malformed hex payload") from exc
+            proc = subprocess.run(
+                argv,
+                capture_output=True,
+                text=True,
+                timeout=timeout_sec,
+                check=False,
+                shell=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise EvidenceError(f"tshark failed: {exc}") from exc
+        if proc.returncode != 0:
+            raise EvidenceError(f"tshark exit {proc.returncode}: {proc.stderr.strip()[:200]}")
+        for line in proc.stdout.splitlines():
+            hex_str = line.strip().replace(":", "")
+            if not hex_str:
+                continue
+            try:
+                chunks.append(bytes.fromhex(hex_str))
+            except ValueError as exc:
+                raise EvidenceError("tshark produced malformed hex payload") from exc
     return b"".join(chunks)
 
 
@@ -253,7 +358,7 @@ def ingest_packet_dump(
     required_labels: Optional[Sequence[str]] = None,
 ) -> Dict[str, Any]:
     raw = load_evidence_bytes(source)
-    hits = extract_ed2k_frames(raw)
+    hits = extract_frames(raw)
     summary = summarize_hits(hits)
     summary["source_name"] = source.name
     if required_labels:

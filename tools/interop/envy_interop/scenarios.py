@@ -25,7 +25,13 @@ from .constants import (
     ProductionState,
     Result,
 )
-from .evidence import EvidenceError, extract_ed2k_frames, ingest_packet_dump, require_labels, summarize_hits
+from .evidence import (
+    EvidenceError,
+    extract_frames,
+    ingest_packet_dump,
+    require_labels,
+    summarize_hits,
+)
 from .fixtures import write_fixture
 from .golden import GoldenError, ingest_hello, load_bytes, load_golden_json
 from .hello import HelloParseError, compare_envy_advertisement, hello_evidence, parse_emule_info_tcp, parse_hello_tcp
@@ -687,7 +693,12 @@ def handle_optional_pcap(ctx: RunContext, spec: ScenarioSpec) -> ScenarioResult:
 
 
 def handle_kad_nodes_dat_local(ctx: RunContext, spec: ScenarioSpec) -> ScenarioResult:
-    """Local deterministic evidence hook — not live Kad interop."""
+    """Local deterministic evidence hook — not live Kad interop.
+
+    Dry-run writing a note alone must SKIP (not PASS): that is documentation,
+    not parser or bootstrap evidence. EnvyTests (test_kad_nodes_dat.cpp) owns
+    the real parse coverage; operators attach sanitized Windows logs for live.
+    """
     note_path = ctx.run_dir / "evidence" / "kad-nodes-dat-note.txt"
     note_path.parent.mkdir(parents=True, exist_ok=True)
     note_path.write_text(
@@ -698,16 +709,11 @@ def handle_kad_nodes_dat_local(ctx: RunContext, spec: ScenarioSpec) -> ScenarioR
         "DataPath and attach sanitized bootstrap logs — do not invent captures here.\n",
         encoding="utf-8",
     )
-    if ctx.cfg.dry_run or not ctx.cfg.live:
-        return _pass(
-            spec,
-            "local nodes.dat production support documented; live bootstrap evidence pending operator run",
-            artifacts=["evidence/kad-nodes-dat-note.txt"],
-            distinction="local_deterministic_vs_live_kad",
-        )
     return _skip(
         spec,
-        "live nodes.dat bootstrap logs not attached yet; production parser exists (#254)",
+        "nodes.dat parse is covered by EnvyTests (#254); harness does not claim PASS "
+        "from a documentation note. Attach sanitized Windows bootstrap logs for "
+        "live_evidence claims (#160).",
         artifacts=["evidence/kad-nodes-dat-note.txt"],
     )
 
@@ -843,7 +849,7 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
             continue
         try:
             raw = load_bytes(path)
-            hits = extract_ed2k_frames(raw)
+            hits = extract_frames(raw)
             summary = summarize_hits(hits)
             if spec.evidence_labels:
                 ok, reason = require_labels(hits, spec.evidence_labels)

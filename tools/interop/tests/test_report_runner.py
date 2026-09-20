@@ -24,7 +24,13 @@ from envy_interop.constants import (
     ProductionState,
     Result,
 )
-from envy_interop.evidence import EvidenceError, extract_ed2k_frames, require_labels
+from envy_interop.evidence import (
+    EvidenceError,
+    extract_ed2k_frames,
+    extract_frames,
+    extract_kad_udp_frames,
+    require_labels,
+)
 from envy_interop.fixtures import build_payload, spec_for
 from envy_interop.golden import GoldenError, ingest_hello, load_golden_json, parse_hex_dump
 from envy_interop.hello import HelloParseError, hello_evidence, parse_emule_info_tcp, parse_hello_tcp
@@ -193,6 +199,53 @@ class EvidenceExtractorTests(unittest.TestCase):
         hits = extract_ed2k_frames(truncated + mule)
         self.assertTrue(any(h.label == "muleinfo" for h in hits))
 
+    def test_publicip_answer_omits_raw_ipv4(self) -> None:
+        body = b"\x0a\x00\x00\x01"
+        frame = bytes([0xC5]) + struct.pack("<I", 1 + len(body)) + bytes([0x98]) + body
+        hits = extract_ed2k_frames(frame)
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0].label, "publicip_answer")
+        self.assertTrue(hits[0].details.get("ipv4_present"))
+        self.assertNotIn("ipv4_le", hits[0].details)
+        dumped = str(hits[0].details)
+        self.assertNotIn("167772170", dumped)  # would be LE int of 10.0.0.1
+
+    def test_kad_udp_search_res_opcode_3b(self) -> None:
+        # <0xE4><0x3B><hash16><count1>
+        body = b"\x11" * 16 + bytes([0])
+        datagram = bytes([0xE4, 0x3B]) + body
+        hits = extract_kad_udp_frames(datagram)
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0].label, "kad_search_res")
+        self.assertEqual(hits[0].opcode, 0x3B)
+        self.assertEqual(hits[0].protocol, 0xE4)
+
+    def test_kad_udp_not_confused_with_c5_tcp(self) -> None:
+        # Old bug: SEARCH_RES 0x35 on C5 would mislabel SEARCH_NOTES as kad_search_res.
+        body = b"\x00" * 4
+        fake = bytes([0xC5]) + struct.pack("<I", 1 + len(body)) + bytes([0x35]) + body
+        hits = extract_frames(fake)
+        self.assertFalse(any(h.label == "kad_search_res" for h in hits))
+
+    def test_kad_firewalled_res_omits_raw_ipv4(self) -> None:
+        body = b"\xc0\xa8\x00\x01"
+        datagram = bytes([0xE4, 0x58]) + body
+        hits = extract_kad_udp_frames(datagram)
+        self.assertEqual(hits[0].label, "kad_firewalled_res")
+        self.assertTrue(hits[0].details.get("ipv4_present"))
+        self.assertNotIn("ipv4_le", hits[0].details)
+
+    def test_kad_search_source_and_firewall_labels(self) -> None:
+        req = bytes([0xE4, 0x34]) + (b"\xaa" * 16) + struct.pack("<Q", 100)
+        fw_req = bytes([0xE4, 0x50]) + struct.pack("<H", 4662)
+        fw_ack = bytes([0xE4, 0x59])
+        blob = req + fw_req + fw_ack
+        hits = extract_kad_udp_frames(blob)
+        labels = {h.label for h in hits}
+        self.assertEqual(
+            labels, {"kad_search_source_req", "kad_firewalled_req", "kad_firewalled_ack"}
+        )
+
 
 class ReportTests(unittest.TestCase):
     def test_malformed_schema_version_rejected(self) -> None:
@@ -270,7 +323,8 @@ class RunnerDryRunTests(unittest.TestCase):
                 by_id["compressed_transfer_envy_to_ref"]["harness_state"], "evidence_hooks"
             )
             self.assertEqual(by_id["kad_bootstrap"]["result"], "SKIP")
-            self.assertEqual(by_id["kad_nodes_dat_local"]["result"], "PASS")
+            # Documentation-only note must not PASS (Copilot honesty finding).
+            self.assertEqual(by_id["kad_nodes_dat_local"]["result"], "SKIP")
             self.assertEqual(by_id["lowid_buddy"]["result"], "NOT_IMPLEMENTED")
             self.assertEqual(by_id["lowid_buddy"]["production_state"], "not_implemented")
             self.assertEqual(by_id["kad_udp_firewall"]["result"], "NOT_IMPLEMENTED")

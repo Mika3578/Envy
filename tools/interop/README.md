@@ -145,9 +145,11 @@ verified. Do not change the advertised nibble from this harness.
 filters use the configured TCP ports. Raw pcaps stay gitignored. Missing tools
 → SKIP (never silent install).
 
-`--packet-evidence` accepts a hex/binary dump of ED2K frames for automated
-label matching (Hello, MuleInfo, SourceEx, COMPRESSEDPART, PUBLICIP, CALLBACK,
-selected Kad opcodes). Fail closed on malformed frames.
+`--packet-evidence` accepts a hex/binary dump of ED2K **TCP** frames
+(`0xE3`/`0xC5` sized headers) and Kad2 **UDP** datagrams (`0xE4` + opcode,
+e.g. `SEARCH_SOURCE_REQ` 0x34 / `SEARCH_RES` 0x3B / `FIREWALLED_*`).
+Observed public IPv4 values are never written into evidence JSON (presence
+only). Fail closed on malformed frames.
 
 ## Golden reference captures
 

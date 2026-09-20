@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Interop harness Kad evidence / privacy (#160, #294)** — Kad packet-evidence labels now use UDP protocol `0xE4` and `KADEMLIA2_SEARCH_RES` opcode `0x3B` (not eMule TCP `0xC5` / notes `0x35`). PUBLICIP/FIREWALLED observed IPv4 is recorded as `ipv4_present` only (no raw address in evidence JSON). `kad_nodes_dat_local` SKIP in dry-run (documentation note is not parse evidence).
+
 ### Added
 - **ED2K/Kad interop harness preparation (#160)** — Upgrade `tools/interop/` to reflect current develop after #251/#252/#254/#255/#256/#257/#258/#261: capability table with `compression_send=True`, orthogonal production/harness/evidence states, current compression/LowID/Kad scenario hooks, Windows `run-live.ps1` + operator checklist, optional dumpcap/tshark, bounded packet-evidence extractor, report schema v2. Deterministic Cloud self-test/dry-run only; live evidence still pending a Windows operator run. No ED2K/Kad production protocol changes.
 - **Kad app-trigger source search (#86)** — ED2K downloads call `CKademlia::SearchSource` from `FindMoreSources` / automatic starve paths when `EnableKad` is on and Kad is initialized. Outbound `KADEMLIA2_SEARCH_SOURCE_REQ` (0x34) now includes little-endian `FileSize` (`<FileHash 16><FileSize 8>`). Inbound still accepts legacy hash-only. Helpers: `Envy/KadSearchSourceRequest.h`. Smoke: `tests/test_kad_search_source_request_smoke.cpp`. Buddy/UDP firewall / Hello Kad nibble unchanged; Kad2 remains partial/unverified.
