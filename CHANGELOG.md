@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release pipeline validation scripts** — `scripts/release/verify-version.ps1`, `stage-portable.ps1`, `verify-artifacts.ps1`, `publish-draft-release.ps1`, and `repair-draft-release.ps1` gate tag/`version.json`/`Envy.rc`/`Envy.exe` consistency, stage a full portable runtime tree, verify SHA256 + ZIP/setup sanity, and support idempotent draft asset repair.
 
 ### Fixed
+- **Settings Add/SmartAgent `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on five `CSettings::Add` overloads and `SmartAgent` (`Item` ctors deferred for Format Check). Behavior unchanged.
 - **HashTest `register` / `throw()` modernization (#84)** — Drop leftover `register` storage class and replace `throw()` with `noexcept` in `HashLib/HashTest/HashTest.cpp`. Test harness only; no production hash behavior change.
 - **SafeRelease `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specification on `SafeRelease` (collapse template spacing for Format Check). Behavior unchanged.
 - **HGlobal `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on dtor / `Clean` / conversions / `IsValid` / `Detach` / `Size` (ctors deferred for Format Check). Behavior unchanged.

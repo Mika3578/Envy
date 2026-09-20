@@ -952,27 +952,27 @@ public:
 protected:
 	void	SmartUpgrade();
 
-	inline void Add(const LPCTSTR szSection, const LPCTSTR szName, bool* const pBool, const bool bDefault, const bool bHidden = false) throw()
+	inline void Add(const LPCTSTR szSection, const LPCTSTR szName, bool* const pBool, const bool bDefault, const bool bHidden = false) noexcept
 	{
 		m_pItems.AddTail( new Item( szSection, szName, pBool, bDefault, bHidden ) );
 	}
 
-	inline void Add(const LPCTSTR szSection, const LPCTSTR szName, DWORD* const pDword, const DWORD nDefault, DWORD nScale = 0, DWORD nMin = 0, DWORD nMax = 0, LPCTSTR szSuffix = NULL, const bool bHidden = false) throw()
+	inline void Add(const LPCTSTR szSection, const LPCTSTR szName, DWORD* const pDword, const DWORD nDefault, DWORD nScale = 0, DWORD nMin = 0, DWORD nMax = 0, LPCTSTR szSuffix = NULL, const bool bHidden = false) noexcept
 	{
 		m_pItems.AddTail( new Item( szSection, szName, pDword, nDefault, nScale, nMin, nMax, szSuffix, bHidden ) );
 	}
 
-	inline void Add(const LPCTSTR szSection, const LPCTSTR szName, DOUBLE* const pDouble, const DOUBLE dDefault, const bool bHidden = false) throw()
+	inline void Add(const LPCTSTR szSection, const LPCTSTR szName, DOUBLE* const pDouble, const DOUBLE dDefault, const bool bHidden = false) noexcept
 	{
 		m_pItems.AddTail( new Item( szSection, szName, pDouble, dDefault, bHidden ) );
 	}
 
-	inline void Add(const LPCTSTR szSection, const LPCTSTR szName, CString* const pString, const LPCTSTR szDefault = NULL, const bool bHidden = false, const Type nType = setString) throw()
+	inline void Add(const LPCTSTR szSection, const LPCTSTR szName, CString* const pString, const LPCTSTR szDefault = NULL, const bool bHidden = false, const Type nType = setString) noexcept
 	{
 		m_pItems.AddTail( new Item( szSection, szName, pString, szDefault, bHidden, nType ) );
 	}
 
-	inline void Add(const LPCTSTR szSection, const LPCTSTR szName, string_set* const pSet, const LPCTSTR szDefault, const bool bHidden = false) throw()
+	inline void Add(const LPCTSTR szSection, const LPCTSTR szName, string_set* const pSet, const LPCTSTR szDefault, const bool bHidden = false) noexcept
 	{
 		m_pItems.AddTail( new Item( szSection, szName, pSet, szDefault, bHidden ) );
 	}
@@ -980,7 +980,7 @@ protected:
 // Inlines
 public:
 	// CSettings configurable user agent (Client Name + Version)
-	inline const CString& SmartAgent() const throw()
+	inline const CString& SmartAgent() const noexcept
 	{
 		return theApp.m_sSmartAgent;
 	}
