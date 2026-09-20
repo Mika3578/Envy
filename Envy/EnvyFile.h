@@ -79,7 +79,7 @@ public:
 	}
 
 	// Printable file size
-	inline QWORD GetSize() const throw()
+	inline QWORD GetSize() const noexcept
 	{
 		return ( ( m_nSize == SIZE_UNKNOWN ) ? 0 : m_nSize );
 	}

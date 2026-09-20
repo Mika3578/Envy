@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #84 EnvyFile: replace `throw()` with `noexcept` on `CEnvyFile::GetSize` (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 Shell: replace `throw()` with `noexcept` on `CShellItem::operator LPITEMIDLIST` (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 BTTrackerRequest: replace `throw()` with `noexcept` on `CAutoPtr<CBTTrackerRequest>::Free` (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 ThreadImpl: replace ten `throw()` specs with `noexcept` on CThreadImpl inlines (C++20). No behavior change.
