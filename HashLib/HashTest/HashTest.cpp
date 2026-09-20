@@ -42,14 +42,14 @@ __int64 GetMicroCount()
 }
 
 // HashWord() function from Envy source	(Known bad use of tolower() unicode)
-DWORD HashWord(LPCTSTR pszString, size_t nStart, size_t nLength, DWORD nBits) throw()
+DWORD HashWord(LPCTSTR pszString, size_t nStart, size_t nLength, DWORD nBits) noexcept
 {
 	if ( nLength == 0 || nBits == 0 )
 		return 0;
 
 	pszString += nStart;
 
-	register DWORD nNumber	= 0;
+	DWORD nNumber = 0;
 
 	// Obsolete method for reference & deletion:
 	//for ( int nByte = 0; nLength; --nLength, ++pszString )
@@ -58,7 +58,7 @@ DWORD HashWord(LPCTSTR pszString, size_t nStart, size_t nLength, DWORD nBits) th
 	//	nByte = ( nByte + 1 ) & 3;
 	//}
 
-	for ( register size_t nLength1 = nLength / 8; nLength1; --nLength1, pszString += 8 )
+	for (size_t nLength1 = nLength / 8; nLength1; --nLength1, pszString += 8)
 	{
 		nNumber ^=
 			( ( tolower( pszString[ 0 ] ) & 0xFF )       ) ^
@@ -71,7 +71,7 @@ DWORD HashWord(LPCTSTR pszString, size_t nStart, size_t nLength, DWORD nBits) th
 			( ( tolower( pszString[ 7 ] ) & 0xFF ) << 24 );
 	}
 
-	register size_t nLength2 = nLength & 7;
+	size_t nLength2 = nLength & 7;
 	if ( nLength2 > 0 )
 	{
 		nNumber ^= ( tolower( pszString[ 0 ] ) & 0xFF );
@@ -108,7 +108,7 @@ DWORD HashWord(LPCTSTR pszString, size_t nStart, size_t nLength, DWORD nBits) th
 class InitGetMicroCount
 {
 public:
-	inline InitGetMicroCount() throw() { GetMicroCount(); }
+	inline InitGetMicroCount() noexcept { GetMicroCount(); }
 };
 
 static InitGetMicroCount initGetMicroCount;
