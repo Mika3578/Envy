@@ -63,6 +63,12 @@ ctest --test-dir build
   public-IP consensus, inbound rate limits, and wrap-safe tick comparisons.
   No live network and no `Sleep()`.
 
+## Kad SEARCH_SOURCE_REQ app-trigger smoke tests
+- `tests/test_kad_search_source_request_smoke.cpp` exercises
+  `Envy/KadSearchSourceRequest.h`: `<FileHash 16><FileSize 8>` encode/decode,
+  legacy hash-only decode failure, and the EnableKad / initialized / ED2K /
+  size-known / period policy for calling `SearchSource` from downloads.
+
 ## Skin engine P0 smoke tests
 - `tests/test_skin_engine_p0_smoke.cpp` exercises `Envy/SkinEngineP0.h`:
   StatusbarHeight member targeting, strict metric parse/clamp (keeps current

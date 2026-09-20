@@ -89,6 +89,9 @@
     <ClCompile Include="test_kad_search_res_delivery_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_kad_search_source_request_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_kad_firewall_check_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

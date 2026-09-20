@@ -326,7 +326,7 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define KADEMLIA_FIND_NODE            0x0B    // eMule FIND_NODE search type
 #define KADEMLIA2_RES				0x29	// <NodeID 16><Type 1><TagList>[<NodeID 16><IP 4><UDPPort 2><TCPPort 2><TagList>]*
 #define KADEMLIA2_SEARCH_KEY_REQ	0x33	// <FileHash 16><StartPos 8><TagList>
-#define KADEMLIA2_SEARCH_SOURCE_REQ	0x34	// <FileHash 16><StartPos 8><TagList>
+#define KADEMLIA2_SEARCH_SOURCE_REQ 0x34    // <FileHash 16><FileSize 8>
 #define KADEMLIA2_SEARCH_NOTES_REQ	0x35	// <FileHash 16><StartPos 8><TagList>
 #define KADEMLIA2_SEARCH_RES		0x3B	// <FileHash 16><ResultCount 1>[<Result>]*<TagList>
 #define KADEMLIA2_PUBLISH_KEY_REQ	0x41	// <FileHash 16><KadID 16><TagList>

@@ -169,8 +169,8 @@ public:
 	// Search for keyword results in DHT
 	void SearchKeyword(const KadId& keywordHash);
 
-	// Search for file sources in DHT
-	void SearchSource(const KadId& fileHash);
+	// Search for file sources in DHT (FileSize required on SEARCH_SOURCE_REQ).
+	void SearchSource(const KadId& fileHash, QWORD nFileSize);
 
 	// Publish a keyword entry to DHT
 	void PublishKeyword(const KadId& keywordHash, const KadStoredEntry& entry);
@@ -211,7 +211,7 @@ private:
 
 	// Send search/publish packets to a contact
 	void SendSearchKeyRequest(const KadContact& contact, const KadId& targetId);
-	void SendSearchSourceRequest(const KadContact& contact, const KadId& targetId);
+	void SendSearchSourceRequest(const KadContact& contact, const KadId& targetId, QWORD nFileSize);
 	void SendPublishKeyRequest(const KadContact& contact, const KadId& targetId, const KadStoredEntry& entry);
 	void SendPublishSourceRequest(const KadContact& contact, const KadId& targetId, const KadStoredEntry& entry);
 

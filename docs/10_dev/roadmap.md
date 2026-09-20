@@ -1,7 +1,7 @@
 # Envy Development Roadmap
 
 Status: active
-Last updated: 2026-09-19
+Last updated: 2026-09-20
 Scope: Technical itemization of Envy modernization. Strategic sequence is `docs/DEVELOPMENT_PLAN.md`.
 Source of truth: `docs/10_dev/status.md` for current vs planned; `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` for external projects.
 Portability foundations: `docs/20_arch/PORTABILITY_PLAN.md` (Linux/macOS = **planned**, not supported).
@@ -107,7 +107,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 - Request tracking, IP endianness
 
 ### Partial (wire handlers exist; app integration incomplete)
-- **SEARCH_KEY / SEARCH_SOURCE / SEARCH_RES** — handlers in `Kademlia.cpp`. **Source SEARCH_RES delivery:** inbound eMule/aMule framing parsed; outstanding search context; HighID sources → `AddSourceED2K` (`KadSearchResDelivery.h` + EnvyTests). Keyword SEARCH_RES does not create sources. Buddy/callback source types and live interop remain open. No app callers yet for `SearchKeyword` / `SearchSource` (register context when called).
+- **SEARCH_KEY / SEARCH_SOURCE / SEARCH_RES** — handlers in `Kademlia.cpp`. **Source SEARCH_RES delivery:** inbound eMule/aMule framing parsed; outstanding search context; HighID sources → `AddSourceED2K` (`KadSearchResDelivery.h` + EnvyTests). Keyword SEARCH_RES does not create sources. Buddy/callback source types and live interop remain open. **App-trigger:** ED2K downloads call `SearchSource` when `EnableKad` is on (`DownloadWithSearch::MaybeSearchKadSources`); outbound SEARCH_SOURCE_REQ includes FileSize. `SearchKeyword` still has no app caller.
 - **PUBLISH_KEY / PUBLISH_SOURCE / PUBLISH_RES** — handlers present; `StoreEntry` is a no-op stub; no app callers for `PublishKeyword` / `PublishSource`. Envy outbound answers to SEARCH_*_REQ still use simplified `WriteEntryTags` (not reference TagList).
 - Legacy `KadProtocol` / `KBucket` / `KadStorage` — **inactive** (`ENVY_LEGACY_KADEMLIA` undefined).
 
@@ -116,7 +116,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 | Item | Detail | Priority |
 |------|--------|----------|
 | ~~Deliver SEARCH_RES to downloads~~ | HighID source SEARCH_RES → `AddSourceED2K` (keyword excluded; buddy types deferred) | Done (partial) |
-| **App-trigger source search** | Call `SearchSource` from ED2K download source acquisition when Kad is enabled | P0 |
+| ~~App-trigger source search~~ | Call `SearchSource` from ED2K download source acquisition when Kad is enabled (FileSize on REQ) | Done (partial) |
 | **Align outbound SEARCH_RES/store tags** | Envy `WriteEntryTags` vs eMule AnswerID+TagList when answering peers | P1 |
 | ~~Bucket splitting / LRU / refresh / eclipse `/24`~~ | Zone tree + LRU + bounded replacement + stale-zone FIND_NODE + `/24` caps (`KadRoutingTable.h`, EnvyTests) | Done (local; live #160) |
 | ~~FIREWALLED_REQ/RES~~ | TCP firewall-detection baseline (exact 2/4-byte framing, bounded checks, public-IP consensus). UDP tester / Buddy deferred. | Done (partial) |
