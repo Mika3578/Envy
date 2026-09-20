@@ -74,9 +74,12 @@ Kad Find Value Timeout = 15
 ### Network Features
 
 #### IPv6 Support
-- **Prefer IPv6**: Use IPv6 when available
-- **Enable Dual Stack**: Allow both IPv4 and IPv6
-- **IPv6 Connect Timeout**: 30 seconds
+
+These eDonkey settings exist in the UI/settings store but are **not wired** to sockets. Dual-stack is not implemented (`docs/10_dev/status.md`). Do not use this section as operational IPv6 guidance.
+
+- **Prefer IPv6**: stored only; no dial-order effect today
+- **Enable Dual Stack**: stored only
+- **IPv6 Connect Timeout**: stored only
 
 #### UPnP (Universal Plug and Play)
 - **Enable UPnP**: ✅ Automatic port forwarding
@@ -140,10 +143,7 @@ Enable MultiPacket Ext2 = true
 4. Try different bootstrap nodes
 
 ### IPv6 Issues
-1. Disable **Prefer IPv6** if having problems
-2. Check ISP supports IPv6
-3. Verify firewall allows IPv6 traffic
-4. Increase **IPv6 Connect Timeout**
+Dual-stack is not implemented. Changing **Prefer IPv6** will not fix connectivity. See `docs/ipv6/PLAN.md`.
 
 ## Advanced Configuration
 

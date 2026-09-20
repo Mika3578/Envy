@@ -11,7 +11,8 @@ This document tracks important current constraints that affect development and v
 - **Remote bind setting unused:** `Settings.Remote.BindAddress` defaults to `127.0.0.1` but is not applied to a socket; HTML Remote is accepted on the P2P HTTP listener after an IP allowlist check.
 - **Legacy UI/core coupling:** MFC and core protocol logic remain tightly coupled in key paths. Long-term extraction is planned (#161); MFC remains the Windows frontend.
 - **Not multiplatform yet:** Linux and macOS are **planned**, not supported. Only Windows ships today (x64 primary, Win32 legacy). See `docs/20_arch/PORTABILITY_PLAN.md`.
-- **Partial IPv6 support:** Helpers and settings exist; core sockets, host cache, and Source Exchange remain IPv4-centric (`docs/ipv6/PLAN.md`).
+- **IPv6 dual-stack not implemented:** Phase 0 docs only. `CEnvyAddress` does not exist; `IPv6Support.*` is not compiled; core sockets, HostCache, and Source Exchange are IPv4-only (`docs/ipv6/PLAN.md`, D-020).
+- **HTTPS downloads not implemented:** Transfer path remaps `https://` to HTTP port 80. Auxiliary WinINet `https://` catalogues still work. HTTPS BT trackers are rejected (`docs/20_arch/HTTPS_TLS_RESTORATION_PLAN.md`, D-021).
 - **CI limitations:** CI signals are useful but not a complete substitute for full local/VS validation. Non-Windows CI is not required until a portable slice exists.
 - **Unsigned Preview builds:** Preview installers/Zips published via GitHub Releases are not Authenticode-signed until a certificate is configured in CI. Windows SmartScreen / Smart App Control may block or warn on first run; verify downloads against `SHA256SUMS.txt` on the Release page.
 - **Protocol gaps:** Some advanced ED2K/Kad/BitTorrent features remain partial or planned.

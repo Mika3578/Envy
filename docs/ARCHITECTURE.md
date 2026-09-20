@@ -39,7 +39,7 @@ New interfaces that belong to the future `EnvyCore` must not expose MFC or Win32
 
 Historical code may keep those types. Windows implementations may use MFC/Win32 **behind** platform or frontend boundaries. Do not mass-migrate existing APIs. Details: `docs/20_arch/PORTABILITY_PLAN.md`, D-013 in `docs/DECISIONS.md`.
 
-Extraction sequence reuses [#91](https://github.com/Mika3578/Envy/issues/91) (test/parser seam) and [#161](https://github.com/Mika3578/Envy/issues/161) (EnvyCore / headless). IPv6 work [#89](https://github.com/Mika3578/Envy/issues/89) should prefer a portable address type over new `SOCKADDR_IN` assumptions at the core boundary.
+Extraction sequence reuses [#91](https://github.com/Mika3578/Envy/issues/91) (test/parser seam) and [#161](https://github.com/Mika3578/Envy/issues/161) (EnvyCore / headless). IPv6 work [#89](https://github.com/Mika3578/Envy/issues/89) uses a portable endpoint type `CEnvyAddress` (D-020; future EnvyCore alias `Envy::Endpoint`). The type is **not in code yet**. Do not add new `SOCKADDR_IN`/`IN6_ADDR` overload pairs at the core boundary. TLS for downloads is a separate stack (D-021), not Shareaza OpenSSL on `CConnection`.
 
 ## Build Architecture
 - **Primary (full Windows app):** Visual Studio solution (`Visual Studio/Envy.sln`) with many native projects.

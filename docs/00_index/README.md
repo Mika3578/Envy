@@ -16,7 +16,7 @@
 |---------|----------|-------|
 | **User** | `docs/50_user/` | Guide, installation, configuration, [crash reports](../50_user/crash-reports.md), [transfer settings](../50_user/transfer-settings.md), [settings reference](../50_user/reference/COMPLETE_SETTINGS_REFERENCE.md) |
 | **Developer** | `docs/10_dev/` | Build, guide, standards, contributing, status, roadmap, [crash reporting](../10_dev/crash-reporting.md) |
-| **Architecture** | [architecture](../20_arch/architecture.md) · [PORTABILITY_PLAN](../20_arch/PORTABILITY_PLAN.md) · [remote API](../20_arch/remote-api.md) | System design, portability, automation API |
+| **Architecture** | [architecture](../20_arch/architecture.md) · [PORTABILITY_PLAN](../20_arch/PORTABILITY_PLAN.md) · [remote API](../20_arch/remote-api.md) · [IPv6/HTTPS recovery](../20_arch/IPV6_HTTPS_RECOVERY_SERIES.md) | System design, portability, dual-stack/TLS recovery (docs only) |
 | **Protocols** | `docs/30_protocols/` | ED2K, Kad, BitTorrent, [bootstrap sources](../30_protocols/bootstrap-sources.md), [reference implementations](../30_protocols/REFERENCE_IMPLEMENTATIONS.md) |
 | **Quality** | `docs/40_quality/` | Analysis, performance, security, testing |
 

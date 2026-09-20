@@ -1,12 +1,21 @@
 # IPv6 Dual-Stack Scope (Phase 0)
 
 _Date: 2026-04-22_
+_Reverified: 2026-09-20 on `Mika3578/Envy` `develop` (see `docs/20_arch/AUDIT_SHAREAZA_IPV6_HTTPS_2026-09.md`)_
 
 ## Objectives of this scope pass
 - Identify current IPv6 readiness points (`AF_INET6`, `sockaddr_in6`, `in6_addr`, `getaddrinfo`).
 - Identify IPv4-only assumptions (`sockaddr_in`, `AF_INET`, `inet_addr`, `inet_ntoa`, `IN_ADDR`, `DWORD` IP fields).
 - Enumerate files that must change for full dual-stack support across core socket layer, BitTorrent, ED2K, Kademlia, G2, on-disk caches, and UI.
 - Identify on-disk formats that currently assume 4-byte addresses and define compatibility migration expectations.
+
+## 2026-09 reverify (overrides older “helpers exist” wording)
+
+- `Envy/IPv6Support.h` / `IPv6Support.cpp` are **orphans**: not listed in `Envy/Envy.vcxproj`, not included elsewhere. Do not treat them as a compiled foundation or as `CEnvyAddress`.
+- `Settings.Connection.EnableIPv6` is **not** in `Settings.cpp`. Only unused `eDonkey` IPv6-named keys exist.
+- Core listen/connect/UDP/HostCache/Security/G2/PEX remain IPv4. BitTorrent DHT `dht.c` has IPv6 primitives unused by the C++ wrapper.
+- Shareaza `master` still runs dual-family sockets/cache/G2/BT; ENVY must reimplement **surfaces** via D-020, not copy `IN_ADDR`/`IN6_ADDR` overloads.
+- HTTPS download remapping (`CEnvyURL`) is **out of IPv6 scope** — D-021.
 
 ## Discovery commands used
 ```bash
@@ -18,9 +27,9 @@ python (symbol density ranking for IPv4-only call sites)
 ## Current readiness snapshot
 
 ### Existing IPv6-related code (limited / partial)
-- `Envy/IPv6Support.h`, `Envy/IPv6Support.cpp` already provide `IPv6Address` and `CIPv6Manager` helpers.
-- BitTorrent DHT C library (`Envy/BitTorrentDHT/dht.*`) contains IPv6 primitives and `sockaddr_storage` usage.
-- Settings already contain some ED2K-oriented flags (`PreferIPv6`, `EnableDualStack`, `IPv6ConnectTimeout`) but this is not wired as a global address-family abstraction.
+- `Envy/IPv6Support.h`, `Envy/IPv6Support.cpp` contain `IPv6Address` / `CIPv6Manager` **source only** (not compiled; 2026-09). Do not extend this file as the dual-stack type.
+- BitTorrent DHT C library (`Envy/BitTorrentDHT/dht.*`) contains IPv6 primitives and `sockaddr_storage` usage (not wired from `CDHT` IPv4 `Ping`).
+- Settings contain ED2K-oriented flags (`PreferIPv6`, `EnableDualStack`, `IPv6ConnectTimeout`) **unwired**. There is no global `Settings.Connection.EnableIPv6`.
 
 ### Structural IPv4 coupling hotspots
 - Core types still use `SOCKADDR_IN` and `IN_ADDR` widely in connection, network routing, handshake, datagram, neighbour, and host/discovery caches.

@@ -29,7 +29,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 - **BitTorrent v2:** Library-only (Merkle tree + SHA-256); no wire protocol
 - **ED2K:** Core transfers + SourceEx2 (0x83/0x84) present; Hello honesty for AICH/SecureIdent/CryptLayer/Ext Multipacket. Compressed upload send path, AICH C2C, Ext Multipacket handlers, callbacks/buddy, and live eMule/aMule interop still open. **SecureIdent RSA is not implemented** (#75; do not advertise).
 - **Kademlia (active: `Kademlia.cpp` only):** Bootstrap, ping, find_node, HELLO, SEARCH/PUBLISH **wire handlers** present; **source SEARCH_RES → `AddSourceED2K`** for HighID types 1/4 with outstanding-search context (keyword hits never create sources). **TCP firewall-detection baseline** (`FIREWALLED_REQ`/`RES` + ACK count) present; UDP firewall tester / Buddy / UDP keys absent; outbound store-answer framing still simplified; live Kad2 interop **unverified**. Legacy `KadProtocol.cpp` / `KBucket` / `KadStorage` require undefined `ENVY_LEGACY_KADEMLIA` and are **inactive**.
-- **IPv6:** Utilities exist, core connections IPv4-only (`docs/ipv6/PLAN.md`); prefer portable address types in #89
+- **IPv6:** Dual-stack **not implemented** (`docs/ipv6/PLAN.md`, D-020). `IPv6Support.*` is not compiled. Prefer portable `CEnvyAddress` in #89; Shareaza is a surface list, not a type to copy.
 - **Headless / RPC:** not implemented (MFC GUI + limited Remote web UI); #161
 - **Testing:** HashLib unit tests plus parser/policy/Hello smokes; opt-in live interop harness (`tools/interop/`, #160) is not required CI; protocol unit/integration seam remains #91
 
@@ -140,7 +140,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 |------|--------|----------|
 | ~~Protocol encryption (MSE/PE)~~ | Done: `BTCrypto.h/cpp` with DH+RC4, integrated into `CBTClient`; `Settings.BitTorrent.Encryption` | Done |
 | **uTP (BEP-29)** | UDP-based congestion-controlled transport; required by many modern peers | High |
-| **HTTPS tracker support** | Accept `https://` tracker URLs | Medium |
+| **HTTPS tracker support** | Accept `https://` tracker URLs via WinINet (D-021 auxiliary path), not P2P Schannel | Medium (#88) |
 | **HTTP scrape** | Uncomment and fix `ScrapeTracker()` in `BTInfo.cpp` | Medium |
 | **Fast peers (BEP-6)** | Have/Allowed-Fast/Suggest-Piece/Reject — flag defined but never set | Low |
 | **Local peer discovery (BEP-14)** | mDNS/LPD for LAN peers | Low |
@@ -166,16 +166,17 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 
 ## Phase 5: IPv6 Integration (TODO) — P1
 
-**Goal:** Dual-stack networking before any Kad6 work. References: eMule AI, eMule Qt, eMule eSE, `docs/ipv6/PLAN.md`.
+**Goal:** Dual-stack networking before any Kad6 work. Trust order: specs/BEPs → modern clients → Shareaza archaeology. Canonical plan: `docs/ipv6/PLAN.md`. Address type: D-020. Tests: `docs/40_quality/testing/NETWORK_IPV6_HTTPS_TEST_STRATEGY.md`. HTTPS downloads are **not** this phase (D-021).
 
 | Item | Detail | Priority |
 |------|--------|----------|
-| **Core connection layer** | Change `CConnection` from `AF_INET` to dual-stack (`AF_INET6` with `IPV6_V6ONLY=0`) | High |
-| **IPv6 in BT PEX** | 18-byte compact format for IPv6 peers | Medium |
-| **IPv6 UPnP** | Port mapping for IPv6 | Medium |
-| **UPnP GetExternalIP** | Currently returns empty; implement | Medium |
-| **IPv6 in Kad DHT** | DHT already has IPv6 paths; integrate with core | Medium |
-| **IPv6 in G2/G1** | Hub/ultrapeer connections over IPv6 | Low |
+| **`CEnvyAddress`** | Family-neutral endpoint + tests; no wire change | High (#89) |
+| **Core connection layer** | Dual-stack listen/connect/UDP behind default-off flag; measure `IPV6_V6ONLY` | High |
+| **HostCache / Security** | One map; ser-2 migration; bans must not miss IPv6 or mapped-v4 | High |
+| **IPv6 in BT PEX / peers6 / DHT nodes6** | BEP 7/11/32; split PRs if needed (#88) | Medium |
+| **IPv6 UPnP / PCP** | After sockets; D-009 remains IPv4-first | Medium |
+| **IPv6 in G2** | Optional children; do not advertise until parse+reply+errors tested (#162) | Medium |
+| **Kad6** | Forbidden until Kad2 IPv4 + this foundation | P3 |
 
 ---
 

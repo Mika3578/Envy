@@ -26,7 +26,7 @@ Canonical companions:
 | CI | GitHub Actions on Windows: x64 + Win32 Release (and Debug on `develop`) |
 | Headless / EnvyCore | Not extracted; planned under #161 |
 | Protocol test seam | Planned under #91 (parsers/state machines without MFC windows) |
-| IPv6 | Helpers exist; core connection path still IPv4-centric (#89, `docs/ipv6/`) |
+| IPv6 | Dual-stack **not implemented**; orphan `IPv6Support.*`; core still IPv4 (#89, D-020, `docs/ipv6/PLAN.md`) |
 | Remote/Web | Limited HTML control surface on the P2P HTTP port; not a portable headless API (`docs/20_arch/remote-api.md`) |
 
 Network code still depends heavily on Winsock / Win32 / MFC synchronization (`WSAStartup`, async DNS tied to `HWND` patterns, `SOCKADDR_IN`, `HANDLE`, SEH). That is expected for the current product; it is **debt to bound**, not something this plan rewrites now.
@@ -163,9 +163,9 @@ Do **not** convert the whole solution to CMake in the portability foundations wo
 
 Do not abstract the entire stack now. Future network work (especially IPv6 dual-stack) must avoid introducing **new** Windows-only assumptions when a portable type is reasonable.
 
-In particular, the future IPv4/IPv6 address type should be independent of `SOCKADDR_IN` at the core boundary (platform adapters may still map to OS socket addresses).
+In particular, the future IPv4/IPv6 address type (`CEnvyAddress` / `Envy::Endpoint`, D-020) should be independent of `SOCKADDR_IN` at the core boundary (platform adapters may still map to OS socket addresses). Do not copy Shareaza dual native-struct APIs.
 
-See `docs/ipv6/PLAN.md` and issue #89.
+See `docs/ipv6/PLAN.md`, `docs/20_arch/ADR_NETWORK_ADDRESS_ABSTRACTION.md`, and issue #89. Transfer HTTPS/TLS (D-021) is not an IPv6 prerequisite except that IPv6 TLS must not repeat Shareaza’s plaintext-on-v6 bug.
 
 ---
 

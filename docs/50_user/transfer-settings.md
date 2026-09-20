@@ -97,7 +97,7 @@ load the defaults below.
 | Per-IP upload cap | Anti-hog | `MaxPerHost` (transfers, not TCP) | renamed to match | do not pretend it is connections |
 | Per-protocol bandwidth | Isolate BT vs ED2K | neighbour Hub/Leaf/Peer pipes; **not** a full per-protocol byte cap | — | only if we wire a real limiter |
 | VPN leak / bind | Privacy | **not implemented** | — | not until sockets support it |
-| IPv6 | Dual-stack | partial helpers | — | `docs/ipv6/PLAN.md` |
+| IPv6 | Dual-stack | **not implemented** | — | `docs/ipv6/PLAN.md`, D-020 |
 | UPnP / NAT-PMP | Reachability | MiniUPnP implemented (NAT-PMP/PCP planned) | — | not this page |
 | ADC / I2P / WebTorrent | extra nets | ADC hub **not implemented**; do not add | — | out of scope |
 

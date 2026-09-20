@@ -40,6 +40,24 @@ Use this file to record decisions that affect architecture, protocol compatibili
 - **Consequences:** Ship `crashpad_handler.exe` next to `Envy.exe`. Keep next-launch GitHub UX. No silent telemetry.
 - **References:** `docs/10_dev/crashpad-vs-sentry-native.md`, `docs/10_dev/crash-reporting.md`.
 
+### Decision: Family-neutral network address
+- **Date:** 2026-09-20
+- **Status:** proposed
+- **ID:** D-020 in `docs/DECISIONS.md`
+- **Context:** IPv6 recovery must not copy Shareaza `IN_ADDR`/`IN6_ADDR` overload pairs; EnvyCore (D-013) needs a portable endpoint.
+- **Decision:** One `CEnvyAddress` value type (family, bytes, port, scope). Layer: endpoint → sockets → cache/security → protocols. First code PR is type+tests only.
+- **Consequences:** No dual HostCache maps; `IPv6Support.*` is not the abstraction; G2/BT IPv6 wait on this type.
+- **References:** `docs/20_arch/ADR_NETWORK_ADDRESS_ABSTRACTION.md`, `docs/ipv6/PLAN.md`, #89.
+
+### Decision: HTTP/TLS transport split
+- **Date:** 2026-09-20
+- **Status:** proposed
+- **ID:** D-021 in `docs/DECISIONS.md`
+- **Context:** P2P HTTPS was lost; auxiliary WinINet `https://` still works. Shareaza OpenSSL did not verify certificates.
+- **Decision:** Schannel under the transfer HTTP engine; keep WinINet for catalogues/trackers. Fail closed on download `https://` until TLS exists (no port-80 remap).
+- **Consequences:** HTTPS trackers (#88) can proceed on WinINet without Schannel. Remote inbound TLS stays D-017.
+- **References:** `docs/20_arch/ADR_HTTP_TLS_TRANSPORT.md`, `docs/20_arch/HTTPS_TLS_RESTORATION_PLAN.md`.
+
 ## Template
 
 ### Decision: <short title>

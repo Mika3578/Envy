@@ -38,7 +38,10 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 | ED2K basic interop | partial / unverified live | eMule Community, aMule | implemented (full baseline) |
 | Kad2 | partial / unverified live | eMule Community, aMule | interoperable |
 | SecureIdent RSA | not implemented | eMule Community (secondary: aMule) | implemented |
-| IPv6 | partial | eMule AI, eMule Qt, eMule eSE | dual-stack |
+| IPv6 | not implemented (orphaned sources only) | eMule AI, eMule Qt, BEPs 7/11/32, G2 spec; Shareaza = archaeology | dual-stack (flag off until tests) |
+| HTTPS downloads (transfer TLS) | not implemented (`https://` remapped to HTTP:80) | RFC 9110 + OS TLS; not Shareaza OpenSSL | planned (D-021) |
+| HTTPS catalogues / WinINet | partial (OS TLS, not ENVY-owned policy) | Windows WinINet | preserve |
+| HTTPS BitTorrent trackers | not implemented (`BTInfo` rejects) | BEP 7 over TLS, #88 | planned |
 | Headless daemon | not implemented | aMule, eMule Qt, aria2-next | planned |
 | REST / JSON-RPC | not implemented (HTML Remote is not this API) | eMule Qt, aria2-next | planned (`/api/v1`, D-017) |
 | qBittorrent Web API subset (*arr) | not implemented | Radarr QBittorrentProxyV2 | planned (D-018; subset only) |
@@ -92,10 +95,17 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 
 ### IPv6 / reachability
 
-- Helpers and some settings exist (`Envy/IPv6Support.*`); core sockets/host cache remain IPv4-centric (`docs/ipv6/SCOPE.md`).
-- Dual-stack phases 1+ are still `todo` (`docs/ipv6/PLAN.md`).
+- **Not implemented** as dual-stack. `CEnvyAddress` does not exist. `Envy/IPv6Support.*` is unused and **not in the vcxproj**. `Settings.Connection.EnableIPv6` does not exist. Core sockets, HostCache (ser 2), Security, G2, and BT PEX remain IPv4 (`docs/ipv6/SCOPE.md`, audit `docs/20_arch/AUDIT_SHAREAZA_IPV6_HTTPS_2026-09.md`).
+- Dual-stack phases 1+ are `todo` (`docs/ipv6/PLAN.md`, D-020). Shareaza master still has live IPv6 sockets/cache/G2/BT; that is a surface list, not a type to copy.
 - Do not start Kad6 before a clean IPv4/IPv6 address type, sockets, DNS A/AAAA, connect/listen, source exchange, host cache, bans, dedup, UI/logging, and UPnP / NAT-PMP / PCP / CGNAT behaviour.
-- Status: **partial**. Target: dual-stack.
+- External reachability probe: design only (`docs/20_arch/REACHABILITY_PROBE_DESIGN.md`). Do not import Shareaza `ConnectionTest` PHP.
+- Status: **not implemented** (docs Phase 0 only). Target: dual-stack behind a default-off flag.
+
+### HTTPS / TLS
+
+- **Transfer engine:** no TLS. `CEnvyURL` maps `https://` to `PROTOCOL_HTTP` port 80. There is no `CDownloadTransferHTTPS` / `PROTOCOL_SSL`.
+- **Auxiliary:** VersionChecker, Update Servers, GWC, HTTP catalogues can use WinINet `https://`. HTTPS BT trackers are rejected in `BTInfo` (#88).
+- Plan/ADR: `docs/20_arch/HTTPS_TLS_RESTORATION_PLAN.md`, D-021. Do not copy Shareaza OpenSSL-on-connection.
 
 ### Headless / API / core-UI
 
@@ -156,6 +166,8 @@ These remain useful for opcodes and archaeology; they over-claim completeness:
 - `docs/20_arch/PORTABILITY_PLAN.md` — cross-platform foundations
 - `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` — external projects
 - `docs/KNOWN_LIMITATIONS.md`
-- `docs/DECISIONS.md` (D-008, D-012…D-015)
+- `docs/DECISIONS.md` (D-008, D-012…D-015, D-020/D-021 proposed)
+- `docs/20_arch/AUDIT_SHAREAZA_IPV6_HTTPS_2026-09.md` — IPv6/HTTPS recovery audit (docs only)
+- `docs/ipv6/PLAN.md` — dual-stack plan (not implemented)
 - `tools/interop/README.md` — opt-in live eMule/aMule harness (#160; not an interop claim)
 - `docs/50_user/transfer-settings.md` — Uploads/Downloads limit mapping (partial; no fake capabilities)

@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — IPv6/HTTPS recovery docs: Shareaza gap audit, D-020/D-021 (proposed), IPv6 plan refresh, HTTPS/TLS plan, network test strategy, reachability design. No network code. Dual-stack and transfer HTTPS remain **not implemented**.
 - **Changelog Entry:** 2026-09-20 — #84 Settings: replace `throw()` with `noexcept` on five `Add` overloads and `SmartAgent` (C++20; Item ctors deferred). No behavior change.
 - **Changelog Entry:** 2026-09-20 — Crashpad: idempotent `CrashPadHost::Start`; single `CrashReporter::Initialize` from `InitInstance` (fix Debug double `StartHandler` DCHECK).
 - **Changelog Entry:** 2026-09-20 — #84 ComObject: replace `throw()` with `noexcept` on CComObjectPtr members (C++20). No behavior change.
@@ -275,7 +276,11 @@ Only after a reliable ED2K baseline without SecureIdent. **Not implemented today
 
 ### P1 — IPv6 / reachability
 
-References: eMule AI, eMule Qt, eMule eSE, aria2-next where relevant. Start with a clean dual-stack architecture (address type, sockets, DNS A/AAAA, connect/listen, source exchange, host cache, bans, dedup, UI/logging, UPnP / NAT-PMP / PCP, CGNAT). **Do not start Kad6** before this foundation. See `docs/ipv6/PLAN.md`.
+References: BEPs 7/10/11/32, G2 spec, eMule AI / eMule Qt for architecture; `ansani/Shareaza` master as **surface archaeology only** (do not copy `IN_ADDR`/`IN6_ADDR` or OpenSSL-on-socket). Start with D-020 (`CEnvyAddress`) then sockets, DNS A/AAAA, HostCache/Security, then BT/G2. **Do not start Kad6** before this foundation. Dual-stack is **not implemented** (Phase 0 docs only). Canonical: `docs/ipv6/PLAN.md`, `docs/20_arch/AUDIT_SHAREAZA_IPV6_HTTPS_2026-09.md`. External probe: design only (`docs/20_arch/REACHABILITY_PROBE_DESIGN.md`).
+
+### P1/P2 — HTTPS / TLS (downloads vs catalogues)
+
+Transfer-engine `https://` is **not implemented** (silent remap to HTTP:80). Auxiliary WinINet `https://` still works. Restore TLS under the existing HTTP download engine with Schannel (D-021); keep WinINet for catalogues and HTTPS trackers (#88). Plan: `docs/20_arch/HTTPS_TLS_RESTORATION_PLAN.md`. Must not block P0 ED2K/Kad.
 
 ### P1 — Incremental core / UI separation
 
@@ -465,6 +470,7 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
   on SecureIdent.
 - **2026-05-27:** Rewrote `develop` into a linear history with no merge commits while preserving the final tree through backup refs; enforce linear history going forward via the active `Protect develop` ruleset (squash-only on `develop`), global GitHub merge settings (no merge commits; squash/rebase enabled), and contributor `git pull --ff-only` hygiene.
 - **2026-05-15:** Repository hygiene baseline on `develop` requires explicit branch-state tracking and GitHub label prerequisites (`ci`, `dependencies`) before enforcing CI as mandatory gates.
+- **2026-09-20:** IPv6/HTTPS recovery documentation (no code): Shareaza gap audit; proposed D-020 (family-neutral endpoint, reject dual native-struct APIs) and D-021 (Schannel for transfer TLS, WinINet for auxiliary HTTPS); refreshed `docs/ipv6/PLAN.md` (flags not present in Settings; `IPv6Support.*` orphaned); test strategy requires local deterministic CI only. Implementation PRs wait on ADR acceptance and the development-PR cap.
 - **2026-04-22:** Added IPv6 dual-stack Phase 0 scoping inventory and phased rollout plan under `docs/ipv6/`.
 - **2026-04-22:** Remote web UI must use cryptographic token generation (`crypto.getRandomValues`) and allowlist-based redirect validation for all client-side navigation paths.
 - **2026-04-22:** Keep Visual Studio solution as authoritative full-build path while CMake remains partial.

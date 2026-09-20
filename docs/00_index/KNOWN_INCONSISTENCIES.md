@@ -27,6 +27,12 @@
 
 - **Historical `.github/` docs:** Former live copies of roadmap / upgrade summary / modern C++ guide under `.github/` contradicted `docs/10_dev/status.md` (e.g. IPv6 “complete”). They are now pointers; archives live under `docs/10_dev/archive/`. AI-rule thin-adapter consolidation is deferred while PR #164 touches `AGENTS.md` / `CLAUDE.md` / `.github/CONTRIBUTING.md`.
 
+- **IPv6 “helpers exist” vs compiled code (2026-09-20):** Older `docs/ipv6/SCOPE.md` / `status.md` / `KNOWN_LIMITATIONS.md` described `IPv6Support.*` and `Settings.Connection.EnableIPv6` as present. Reverify: `IPv6Support.*` is not in `Envy.vcxproj`; `EnableIPv6` is not in `Settings.cpp`. Canonical: `docs/10_dev/status.md`, `docs/ipv6/PLAN.md`, `docs/20_arch/AUDIT_SHAREAZA_IPV6_HTTPS_2026-09.md`. User guide `docs/50_user/ed2k-settings-guide.md` now states those eDonkey IPv6 keys are unwired.
+
+- **Windows gitignore `Testing/` (2026-09-20):** A CMake `Testing/` rule was matching `docs/40_quality/testing/` because Git on Windows is case-insensitive. Narrowed to `/Testing/` so quality-test docs can be committed.
+
+- **HTTPS downloads vs catalogues:** Bootstrap `https://` catalogues use WinINet. P2P transfer `https://` is remapped to HTTP:80. Do not cite catalogue HTTPS as download TLS. Canonical: D-021, `docs/20_arch/HTTPS_TLS_RESTORATION_PLAN.md`.
+
 - **EDClient.h comments:** Member `m_bEmSupportsSourceEx2` is commented "Not supported" but SourceEx2 (REQUESTSOURCES2/ANSWERSOURCES2) is implemented in `EDClient.cpp` and advertised; consider updating the comment to "Source Exchange v2".
 
 - **Gnutella `{deflate}` sizing (QueryHit vs G1Packet) — resolved (#119):** Not a functional bug. `CQueryHit::ReadXML` receives a fixed `nXMLSize` that includes a trailing NUL (Shareaza heritage: `{plaintext}` used `nSize - 12` = 11-byte header + NUL; `{deflate}` uses `nSize - 10` = 9-byte marker + NUL). `CG1Packet::ReadXML` measures length until `G1_PACKET_HIT_SEP`/NUL, so `len` already excludes the separator and correctly uses `len - 9`. Keep both arithmetic paths; do not "unify" them.

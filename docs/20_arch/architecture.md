@@ -211,6 +211,7 @@ Envy is a multi-network peer-to-peer file sharing application supporting BitTorr
 ## Related
 
 - [Guide](../10_dev/guide.md) · [Build](../10_dev/build.md) · [Status](../10_dev/status.md) · [Standards](../10_dev/standards.md)
+- IPv6/HTTPS recovery (docs only): [audit](AUDIT_SHAREAZA_IPV6_HTTPS_2026-09.md) · [D-020](ADR_NETWORK_ADDRESS_ABSTRACTION.md) · [D-021](ADR_HTTP_TLS_TRANSPORT.md)
 
 ---
 

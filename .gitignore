@@ -207,7 +207,10 @@ Installer/Output/
 CMakeCache.txt
 CMakeFiles/
 CMakeScripts/
-Testing/
+# CTest writes Testing/ at the CMake build/source root. Do not ignore
+# docs/**/testing/ (Windows git is case-insensitive, so a bare Testing/
+# also hid documentation).
+/Testing/
 Makefile
 cmake_install.cmake
 install_manifest.txt
