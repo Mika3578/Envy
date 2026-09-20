@@ -29,6 +29,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **HashStringConversion drop `register` (#84)** — Remove C++17-illegal `register` from `Unhex` in `Envy/Hashes/HashStringConversion.cpp`. No hex decode behavior change. Remaining first-party uses: HashTest, …
+- **ComObject `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `CComObjectPtr` members (Format Check spacing on touched decls). Behavior unchanged.
+- **HashTest `register` / `throw()` modernization (#84)** — Drop leftover `register` storage class and replace `throw()` with `noexcept` in `HashLib/HashTest/HashTest.cpp`. Test harness only; no production hash behavior change.
+- **SafeRelease `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specification on `SafeRelease` (collapse template spacing for Format Check). Behavior unchanged.
+- **HGlobal `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on dtor / `Clean` / conversions / `IsValid` / `Detach` / `Size` (ctors deferred for Format Check). Behavior unchanged.
+- **TransferFile `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `IsOpen` / `IsExists` / `IsWritable` / `IsFolder`. Behavior unchanged.
+- **StreamArchive `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on dtor / `operator LPSTREAM` / `Detach` / `IsValid` (ctors deferred for Format Check). Behavior unchanged.
+- **StdAfx.cpp `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `InitGetMicroCount` / `NoThrowNew` / OOM handlers. Behavior unchanged.
+- **CLocked `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `CLocked::operator T` / `operator->`. Behavior unchanged.
+- **CoolMenu `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `SafeTrackPopupMenu` / `SafeQueryContextMenu`. Behavior unchanged.
+- **EnvyFile `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specification on `CEnvyFile::GetSize`. Behavior unchanged.
+- **Shell `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specification on `CShellItem::operator LPITEMIDLIST`. Behavior unchanged.
+- **BTTrackerRequest `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specification on `CAutoPtr<CBTTrackerRequest>::Free`. Behavior unchanged.
+- **ThreadImpl `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on ten `CThreadImpl` inlines (`BeginThread`/`CloseThread`/`Wait`/`Wakeup`/`Doze`/…). Behavior unchanged.
+- **UPnPFinder `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `CreateFinderInstance` / `ProcessAsyncFind` (header + cpp). Behavior unchanged.
+- **EDPacket `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `CEDPacketTypes` ctor and `GetAt` in `Envy/EDPacket.cpp`. Behavior unchanged.
+- **Library `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `CLibrary::SafeReadTime` / `SafeSerialize` (header + cpp). Behavior unchanged.
+- **Application `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `CApplication::GetApp` / `GetUI` / `GetSettings` (header + cpp). Behavior unchanged.
+- **SQLite `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `CDatabase` `operator bool` / `IsBusy` / `GetCount` (header + cpp). Behavior unchanged.
+- **VersionChecker `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on `IsUpgradeAvailable` / `IsVerbose`. Behavior unchanged.
+- **Handshakes `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specification on `CHandshakes::IsValid`. Behavior unchanged.
 - **SkinWindow drop `register` (#84)** — Remove C++17-illegal `register` from the alpha-blend temp in `Envy/SkinWindow.cpp`. No blend behavior change. Remaining first-party uses: HashStringConversion, HashTest, …
 - **UTF-16 byte-swap drop `register` (#84)** — Remove C++17-illegal `register` from identical endian-swap temps in `Envy/XML.cpp`, `Envy/DlgLanguage.cpp`, and `Envy/PageSettingsSkins.cpp`. No decode behavior change. Remaining first-party uses: SkinWindow, HashStringConversion, HashTest, …
 - **MatchObjects drop `register` (#84)** — Remove C++17-illegal `register` from `CMatchFile::Compare` sort locals in `Envy/MatchObjects.cpp`. No sort behavior change. Remaining first-party uses: XML, PageSettingsSkins, SkinWindow, DlgLanguage, HashStringConversion, …

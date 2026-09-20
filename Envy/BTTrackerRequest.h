@@ -326,7 +326,7 @@ private:
 };
 
 template<>
-inline void CAutoPtr< CBTTrackerRequest >::Free() throw()
+inline void CAutoPtr<CBTTrackerRequest>::Free() noexcept
 {
 	if ( m_p )
 	{

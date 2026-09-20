@@ -28,11 +28,11 @@ public:
 	virtual ~CApplication();
 
 public:
-	static HRESULT GetApp(IApplication** ppIApplication) throw();
-	static HRESULT GetUI(IUserInterface** ppIUserInterface) throw();
-	static HRESULT GetSettings(ISettings** ppISettings) throw();
+	static HRESULT GetApp(IApplication** ppIApplication) noexcept;
+	static HRESULT GetUI(IUserInterface** ppIUserInterface) noexcept;
+	static HRESULT GetSettings(ISettings** ppISettings) noexcept;
 
-// IApplication
+	// IApplication
 protected:
 	BEGIN_INTERFACE_PART(Application, IApplication)
 		DECLARE_DISPATCH()

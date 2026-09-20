@@ -4,6 +4,26 @@
 
 - **Last Updated:** 2026-09-20
 - **Changelog Entry:** 2026-09-20 — #84 HashStringConversion: drop leftover `register` from `Unhex` (C++17). No hex decode behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 ComObject: replace `throw()` with `noexcept` on CComObjectPtr members (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 HashTest: drop `register` and replace `throw()` with `noexcept` (C++17/C++20). Test harness only.
+- **Changelog Entry:** 2026-09-20 — #84 SafeRelease: replace `throw()` with `noexcept` (C++20; template spacing collapsed). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 HGlobal: replace `throw()` with `noexcept` on dtor/Clean/conversions/IsValid/Detach/Size (C++20; ctors deferred). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 TransferFile: replace `throw()` with `noexcept` on IsOpen/IsExists/IsWritable/IsFolder (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 StreamArchive: replace `throw()` with `noexcept` on dtor/LPSTREAM/Detach/IsValid (C++20; ctors deferred). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 StdAfx.cpp: replace `throw()` with `noexcept` on InitGetMicroCount/NoThrowNew/OOM handlers (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 CLocked: replace `throw()` with `noexcept` on operator T / operator-> (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 CoolMenu: replace `throw()` with `noexcept` on SafeTrackPopupMenu/SafeQueryContextMenu (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 EnvyFile: replace `throw()` with `noexcept` on `CEnvyFile::GetSize` (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 Shell: replace `throw()` with `noexcept` on `CShellItem::operator LPITEMIDLIST` (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 BTTrackerRequest: replace `throw()` with `noexcept` on `CAutoPtr<CBTTrackerRequest>::Free` (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 ThreadImpl: replace ten `throw()` specs with `noexcept` on CThreadImpl inlines (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 UPnPFinder: replace `throw()` with `noexcept` on CreateFinderInstance/ProcessAsyncFind (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 EDPacket: replace `throw()` with `noexcept` on CEDPacketTypes/GetAt (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 Library: replace `throw()` with `noexcept` on SafeReadTime/SafeSerialize (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 Application: replace `throw()` with `noexcept` on GetApp/GetUI/GetSettings (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 SQLite: replace `throw()` with `noexcept` on `CDatabase` bool/IsBusy/GetCount (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 VersionChecker: replace `throw()` with `noexcept` on `IsUpgradeAvailable` / `IsVerbose` (C++20). No behavior change.
+- **Changelog Entry:** 2026-09-20 — #84 Handshakes: replace `throw()` with `noexcept` on `CHandshakes::IsValid` (C++20). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 SkinWindow: drop leftover `register` from alpha-blend temp (C++17). No blend behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 UTF-16 byte-swap: drop leftover `register` from XML/DlgLanguage/PageSettingsSkins endian-swap temps (C++17). No decode behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 MatchObjects: drop leftover `register` storage class from `CMatchFile::Compare` (C++17). No sort behavior change.

@@ -48,7 +48,7 @@ __int64 GetMicroCount()
 class InitGetMicroCount
 {
 public:
-	inline InitGetMicroCount() throw() { GetMicroCount(); }
+	inline InitGetMicroCount() noexcept { GetMicroCount(); }
 };
 
 InitGetMicroCount initGetMicroCount;
@@ -76,7 +76,7 @@ UINT GetBestHashTableSize(UINT nCount)
 class NoThrowNew
 {
 public:
-	NoThrowNew() throw()
+	NoThrowNew() noexcept
 	{
 		std::set_new_handler( &NoThrowNew::OutOfMemoryHandlerStd );
 		_set_new_handler( &NoThrowNew::OutOfMemoryHandler );
@@ -84,16 +84,16 @@ public:
 	}
 
 private:
-	static void __cdecl OutOfMemoryHandlerStd() throw()
+	static void __cdecl OutOfMemoryHandlerStd() noexcept
 	{
 	}
 
-	static int __cdecl OutOfMemoryHandler(size_t /* nSize */) throw()
+	static int __cdecl OutOfMemoryHandler(size_t /* nSize */) noexcept
 	{
 		return 0;
 	}
 
-	static int __cdecl OutOfMemoryHandlerAfx(size_t /* nSize */) throw()
+	static int __cdecl OutOfMemoryHandlerAfx(size_t /* nSize */) noexcept
 	{
 		return 0;
 	}

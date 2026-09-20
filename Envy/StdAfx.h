@@ -775,12 +775,12 @@ public:
 		m_oLock->Unlock();
 	}
 
-	operator T() const throw()
+	operator T() const noexcept
 	{
 		return m_oValue;
 	}
 
-	T operator->() const throw()
+	T operator->() const noexcept
 	{
 		return m_oValue;
 	}
@@ -993,8 +993,8 @@ public:
 	}
 };
 
-template< class T >
-inline void SafeRelease(CComPtr< T >& pObj) throw()
+template<class T>
+inline void SafeRelease(CComPtr<T>& pObj) noexcept
 {
 	__try
 	{

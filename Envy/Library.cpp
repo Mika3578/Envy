@@ -320,7 +320,7 @@ void CLibrary::Serialize(CArchive& ar)
 //////////////////////////////////////////////////////////////////////
 // CLibrary load from disk
 
-BOOL CLibrary::SafeSerialize(CArchive& ar) throw()
+BOOL CLibrary::SafeSerialize(CArchive& ar) noexcept
 {
 	CFile* fp = ar.GetFile();
 
@@ -352,7 +352,7 @@ BOOL CLibrary::SafeSerialize(CArchive& ar) throw()
 	return FALSE;
 }
 
-BOOL CLibrary::SafeReadTime(CFile& pFile, FILETIME* pFileTime) throw()
+BOOL CLibrary::SafeReadTime(CFile& pFile, FILETIME* pFileTime) noexcept
 {
 	__try
 	{

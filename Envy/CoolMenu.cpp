@@ -585,7 +585,7 @@ void CCoolMenu::RegisterEdge(int nLeft, int nTop, int nLength)
 	m_nEdgeSize	= nLength;
 }
 
-static UINT_PTR SafeTrackPopupMenu(HMENU hMenu, UINT nFlags, POINT point, HWND hWnd) throw()
+static UINT_PTR SafeTrackPopupMenu(HMENU hMenu, UINT nFlags, POINT point, HWND hWnd) noexcept
 {
 	__try
 	{
@@ -600,7 +600,7 @@ static UINT_PTR SafeTrackPopupMenu(HMENU hMenu, UINT nFlags, POINT point, HWND h
 	}
 }
 
-static HRESULT SafeQueryContextMenu(IContextMenu* pContextMenu, HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags) throw()
+static HRESULT SafeQueryContextMenu(IContextMenu* pContextMenu, HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags) noexcept
 {
 	__try
 	{
