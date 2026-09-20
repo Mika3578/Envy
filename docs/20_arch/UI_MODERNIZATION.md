@@ -41,15 +41,15 @@ Do **not** claim “UI modernization complete” after one or two screens.
 - SHA: `8ebf25a` (includes #292 HashStringConversion `register` drop)
 - Phase 0 docs originally audited `d3095e9`; rebased onto post-#292 `develop`
 
-### Open development PRs (cap = 3)
+### Open development PRs (historical preflight; hard cap was 3)
 
 | PR | Title | Branch | Status |
 | --- | --- | --- | --- |
 | #292 | refactor(hashstring): drop register storage class (#84) | `refactor/hashstring-drop-register` | **MERGED** 2026-09-20 |
-| #293 | chore(workflow): consolidate agent rules and strict review policy | `chore/consolidate-agent-workflow` | OPEN |
-| #294 | test(interop): prepare current ED2K/Kad live evidence runs (#160) | `test/ed2k-kad-live-interop-evidence` | OPEN |
+| #293 | chore(workflow): consolidate agent rules and strict review policy | `chore/consolidate-agent-workflow` | **MERGED** 2026-09-20 (replaced hard max-3 with soft target of 5) |
+| #294 | test(interop): prepare current ED2K/Kad live evidence runs (#160) | `test/ed2k-kad-live-interop-evidence` | **MERGED** 2026-09-20 |
 
-Phase 0 PR opened after #292 freed capacity (AGENTS.md hard rule 13).
+Phase 0 PR opened after #292 freed capacity under the then-current hard max-3. Current policy: soft open-PR target of 5 (`AGENTS.md` / #293).
 
 ### Existing UI / DPI work already merged (reuse)
 
@@ -119,7 +119,7 @@ Do not confuse **protocol** with **discovery mechanism**.
 
 - Files: `WndNeighbours.*`, `LiveList.*`, `LiveListSizer.*`
 - Default columns (current `develop`): Address 110, Port 42, Time 56, Traffic 84, Total 96, Packets 70, Flow 0, Leaves 52, Mode 84, Client 110, Name 100, Country 54
-- `OnSize` → `SizeListAndBar` only (list + toolbar chrome); no adaptive fill
+- `OnSize` → `m_pSizer.Resize(cx)` (proportional `CLiveListSizer`, gated by `Settings.General.SizeLists` default **false**) then `SizeListAndBar` (list + toolbar chrome). Neither path is a column-class-aware fill; Phase 1 adds an explicit adaptive allocator alongside these.
 - Persistence: `Settings.LoadList` / `SaveList` (`CNeighboursWnd`) for widths/order/sort
 - `CLiveListSizer` attached **without** `bScale`; gated by `Settings.General.SizeLists` default **false**
 
@@ -128,7 +128,7 @@ Do not confuse **protocol** with **discovery mechanism**.
 - Files: `WndHostCache.*`
 - Default columns: Address 140, Port 60, Last Seen 128, Failures 60, CurUsers 60, MaxUsers 60, Name 140, Description 140, Client 100, Country 60 (+ debug cols width 0)
 - Same `SizeListAndBar` / non-adaptive behavior
-- Protocol view modes (selectors must expose only real support): **G2, G1, ED2K, Kad, DC, BT**, plus “all” (`PROTOCOL_NULL`)
+- Protocol view modes (selectors must expose only real support): **G2, G1, ED2K, Kad, DC, BT**, plus **G2 Horizon** (`PROTOCOL_NULL` — maps to the G2 cache filtered through `HubHorizonPool`; **not** an aggregate/all-protocol mode; UI handler `OnHostcacheG2Horizon`)
 - Persistence: `CHostCacheWnd` list state
 
 ### 4.4 Network — System / Discovery — PARTIAL interest
@@ -179,7 +179,7 @@ Do not confuse **protocol** with **discovery mechanism**.
 | Token / pattern | Location / default | Status |
 | --- | --- | --- |
 | `SCALE(size)` | `StdAfx.h` — uses `Settings.Interface.DisplayScaling` (100–200) | VERIFIED; threshold under 110 skips scale |
-| `DisplayScaling` | Settings; Init clamps 101–200 with system DPI | VERIFIED |
+| `DisplayScaling` | Settings range 100–200; Init replaces values outside 101–200 with a system-DPI-derived value that can still be 100 | VERIFIED |
 | `InsertColumn` fixed px | `WndHostCache`, `WndNeighbours`, many lists | OBSERVED DEFECT for Network lists |
 | `ToolbarHeight` | Skin setting default 28 | VERIFIED |
 | `GroupsbarHeight` | default 24 | VERIFIED |
@@ -207,7 +207,7 @@ Before screen-by-screen cosmetics, introduce first-party helpers (names indicati
 | Toolbar / header / row metrics | Centralize reads of Skin.* with DPI-aware clamps; do not break skin XML readers |
 | Adaptive list columns | Pure layout calculator (unit-testable) classifying columns: **fixed**, **bounded**, **flexible** |
 | Fill columns | At least one flexible column absorbs unused width |
-| User widths / order | Preserve `LoadList`/`SaveList`; mark user-resized columns as sticky; no registry write storms on `WM_SIZE` |
+| User widths / order | Preserve `LoadList`/`SaveList` order/sort. **Gap:** current hex `ListStates` stores only displayed widths — it cannot tell a user drag from an allocator fill. Phase 1 must keep **in-session** sticky flags (HDN capture) and either (a) avoid `SaveList` of purely adaptive widths, or (b) extend persistence with separate sticky/logical-user metadata. Do not write registry on every `WM_SIZE`. |
 | Empty states | Shared pattern later; not Phase 1 |
 | Command bars / page headers | Shared spacing after shell phase |
 | Semantic colors | Prefer `Colors.*` roles; light/dark later if feasible |
@@ -223,6 +223,8 @@ Before screen-by-screen cosmetics, introduce first-party helpers (names indicati
 6. Anticipate long IPv6 textual addresses (#89) in Address column bounds
 
 Prefer extracting pure functions under something like `Envy/AdaptiveListColumns.h` (or `tests/`-friendly header) with EnvyTests coverage.
+
+**Persistence caveat:** `SaveList`/`LoadList` serialize displayed widths only (`Settings.cpp` `ListStates`). An adaptive width written at shutdown would look like a user width after restart. Phase 1 design must separate **session sticky** (HDN user drag) from **allocator widths**, and either skip saving non-sticky adaptive widths or add sticky metadata in a later persistence revision.
 
 **Relation to `CLiveListSizer`:** keep for compatibility when `SizeLists` is enabled; Phase 1 adaptive allocator is a **new**, column-class-aware path used explicitly by Neighbors / Host Cache (do not silently change global SizeLists semantics for all lists).
 
@@ -293,7 +295,7 @@ Apply per phase; do not regress:
 
 | Selector | Backed by HostCache list | Notes |
 | --- | --- | --- |
-| All (`PROTOCOL_NULL`) | Aggregate view | VERIFIED |
+| G2 Horizon (`PROTOCOL_NULL`) | G2 cache + `HubHorizonPool` filter | VERIFIED — **not** aggregate/all-protocol |
 | Gnutella2 | Yes | VERIFIED |
 | Gnutella1 | Yes; UI gated by G1 enable/show | VERIFIED |
 | eDonkey / ED2K | Yes; server.met import | VERIFIED |
@@ -377,7 +379,7 @@ Follow live Protect develop ruleset and AGENTS.md:
 
 - Squash-only, signed commits, ≥1 non-author APPROVED review
 - Required checks green; no ruleset bypass
-- Max 3 open development PRs
+- Soft open development PR target of 5 (historical hard max-3 superseded by #293)
 - After push: `gh pr checks <PR> --repo Mika3578/Envy --required --watch --fail-fast --interval 5`
 
 ---

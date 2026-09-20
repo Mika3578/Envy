@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — UI modernization plan (#296): address Copilot review — historical soft-PR-target wording; Neighbors OnSize sizer+SizeListAndBar; PROTOCOL_NULL = G2 Horizon; DisplayScaling 100–200; ListStates sticky/adaptive persistence caveat.
 - **Changelog Entry:** 2026-09-20 — Desktop UI modernization architecture (#295): audit on `develop` `d3095e9`; staged PR sequence (docs → adaptive Network lists → shell → Transfers → Home → Library → Settings → Media → Chat → assets); reusable adaptive-column foundation; resource-load failures classified. Canonical: `docs/20_arch/UI_MODERNIZATION.md`. No production UI code in Phase 0.
 - **Changelog Entry:** 2026-09-20 — #160/#294 Copilot round 9: early pcap death fail-closed; SEARCH_RES ambiguity fail-closed; TCP reassembly by unidirectional flow; operator-hold-sec after startup; Copilot re-request preserves human/team reviewers.
 - **Changelog Entry:** 2026-09-20 — #294 Copilot re-request workflow: clear bot reviewers with `requestReviews(union:false, botIds:[])` then re-request (REST DELETE cannot resolve Bot ids; prior union:true was a no-op with no ReviewRequestedEvent on HEAD).
