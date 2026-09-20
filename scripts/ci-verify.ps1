@@ -5,7 +5,7 @@
   Local verification approximating Mika3578/Envy GitHub PR merge gates.
 
 .DESCRIPTION
-  Default: ci-fast + Envy Release x64 + EnvyTests Release x64 + run EnvyTests x64.
+  Default: ci-fast + vcpkg restore + Envy Release x64 + EnvyTests Release x64 + run EnvyTests x64.
   -Full: also Envy Release Win32 + EnvyTests Release Win32 + run EnvyTests Win32,
   and requires clang-format on PATH (ci-fast alone may only warn if missing).
 
@@ -101,6 +101,12 @@ $common = @(
 	'/nologo'
 )
 
+# Same restore step as .github/actions/windows-msbuild/action.yml. Visual Studio
+# does not populate vcpkg_installed before PreBuildEvent.
+Invoke-Step 'vcpkg manifest x64-windows-static' {
+	& "$root\scripts\bootstrap-vcpkg.ps1" -Triplet x64-windows-static
+}
+
 Invoke-Step 'Envy Release x64' {
 	& $msbuild 'Visual Studio\Envy.sln' @common '/t:Envy' '/p:Platform=x64' '/p:VcpkgTriplet=x64-windows-static'
 }
@@ -115,6 +121,10 @@ Invoke-Step 'Run EnvyTests x64' {
 }
 
 if ($Full) {
+	Invoke-Step 'vcpkg manifest x86-windows-static' {
+		& "$root\scripts\bootstrap-vcpkg.ps1" -Triplet x86-windows-static
+	}
+
 	Invoke-Step 'Envy Release Win32' {
 		& $msbuild 'Visual Studio\Envy.sln' @common '/t:Envy' '/p:Platform=Win32' '/p:VcpkgTriplet=x86-windows-static'
 	}

@@ -32,9 +32,8 @@ cd Envy
 ```
 
 ### 3. Set Up Development Environment
-- Follow the [Development Guide](guide.md)
-- Build with Visual Studio (`Visual Studio\Envy.sln`) or `.\build_all.ps1`
-- Optionally run `tests\run_integration_tests.bat` to verify setup
+- Follow the [Development Guide](guide.md) and [build.md](build.md) (`scripts/bootstrap-vcpkg.cmd` before the first Visual Studio build)
+- Build with Visual Studio (`Visual Studio\Envy.sln`) or `.\scripts\ci-verify.ps1`
 
 ### 4. Create a Feature Branch
 ```bash

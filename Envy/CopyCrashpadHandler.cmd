@@ -30,8 +30,14 @@ if not exist "%DEST%" mkdir "%DEST%"
 
 set "SEARCHROOT=%ROOT%\vcpkg_installed\%TRIPLET%"
 if not exist "%SEARCHROOT%" (
-	echo error: vcpkg_installed\%TRIPLET% not found. From the repository root run:
+	echo error: vcpkg_installed\%TRIPLET% not found.
+	echo Visual Studio does not restore the root vcpkg.json manifest before PreBuildEvent.
+	echo CI runs "vcpkg install --triplet=%TRIPLET%" first; a fresh local checkout must do the same.
+	echo From the repository root run:
+	echo   scripts\bootstrap-vcpkg.cmd -Triplet %TRIPLET%
+	echo or:
 	echo   vcpkg install --triplet=%TRIPLET%
+	echo Requires a bootstrapped vcpkg ^(VCPKG_ROOT, VCPKG_INSTALLATION_ROOT, .\vcpkg, or PATH^).
 	exit /b 1
 )
 
@@ -50,7 +56,10 @@ if not defined HANDLER (
 	echo error: crashpad_handler.exe not found at:
 	echo   %CAND1%
 	echo   %CAND2%
-	echo error: from the repository root run: vcpkg install --triplet=%TRIPLET%
+	echo error: Crashpad is required. From the repository root run:
+	echo   scripts\bootstrap-vcpkg.cmd -Triplet %TRIPLET%
+	echo or:
+	echo   vcpkg install --triplet=%TRIPLET%
 	exit /b 1
 )
 
