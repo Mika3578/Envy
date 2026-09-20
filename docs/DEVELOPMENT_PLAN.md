@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — Agent PR back-pressure: replace the hard max-3 development PR cap with a soft target of 5, with documented overflow only.
 - **Changelog Entry:** 2026-09-20 — #293 Copilot review: document the live mixed C++17/C++20 Release|x64 baseline (trailing `stdcpp17` wins on Envy/HashLib/TorrentEnvy/Unpacker); replace `feature/` example with `feat/` in the versioning guide. Copilot `APPROVED` is not proof of correctness.
 - **Changelog Entry:** 2026-09-20 — #293 Copilot review: unclassified paths default to high-risk code/infra (Visual Studio, scripts, Remote, Unpacker, SkinBuilder, Repository, root build files).
 - **Changelog Entry:** 2026-09-20 — #293 Copilot review: review-governance files are high-risk and excluded from the Copilot counting allowlist; `Wire-format impact: none` no longer covers crypto/auth/threading/locking/memory.

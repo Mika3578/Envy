@@ -173,10 +173,13 @@ comparison notes.
 ## Agent PR back-pressure
 
 
-Max **3** active development PRs (canonical rule in `AGENTS.md`). If at cap: repair CI,
-handle CodeRabbit / reviewdog comments, resolve conflicts, ready-for-review,
-squash auto-merge — **do not** open another PR. No “small/tooling” exceptions.
-Dependabot/Renovate PRs are outside the agent cap but should stay grouped.
+Soft target of **5** active development PRs (canonical rule in `AGENTS.md`).
+Prefer finishing or merging existing PRs first. Opening a sixth (or more)
+needs a concrete documented reason in the PR body (blocking reliability or
+security fix, required CI hotfix, or a dependency that cannot wait). Overflow
+is not a loophole for unbounded parallel work, and “small/quick/tooling” is
+not by itself a reason. Dependabot/Renovate PRs are outside the agent target
+but should stay grouped.
 
 ## Related
 

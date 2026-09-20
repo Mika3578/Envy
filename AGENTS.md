@@ -146,12 +146,14 @@ Branch model:
     **Never** bypass GitHub rulesets, required checks, or branch
     protections (`--admin`, elevated PATs, force-push to protected refs).
     Never push to `main`/`develop`/`legacy` directly.
-13. **Maximum 3 active development PRs**. Before opening a new PR, count
+13. **Soft target of 5 active development PRs**. Before opening a new PR, count
     open **development** PRs (Dependabot/Renovate PRs do **not** count).
-    If **≤ 2**, a new PR is allowed. If **≥ 3**, creating another PR is
-    **forbidden** — work only on existing PRs (CI, reviews, conflicts,
-    update-branch, tests, ready-for-review, squash auto-merge, merge).
-    No exceptions for “small/quick”, “tooling”, or “simple refactor” PRs.
+    Prefer staying at or below **5**. Opening a sixth (or more) is allowed only
+    with a concrete documented reason in the PR body (for example a blocking
+    reliability or security fix, a required CI hotfix, or a dependency that
+    cannot wait for an existing PR to merge). Prefer finishing or merging
+    existing PRs first. Overflow is not a loophole for unbounded parallel work,
+    and “small/quick/tooling” is not by itself a reason.
 14. **EnvyCore portability (new interfaces only).** New APIs that belong
     to the future portable core must not expose MFC or Win32 types when a
     reasonable portable abstraction exists (`CString`, `CFile`, MFC
@@ -273,8 +275,8 @@ When you take on a task you are expected to:
 3. **Open a draft PR** if one does not exist. Match the PR template at
    `.github/pull_request_template.md`. Mark ready-for-review and enable
    squash auto-merge only under hard rule 12.
-4. **Respect the max-3 development PR cap** (hard rule 13) before opening
-   anything new.
+4. **Respect the soft target of 5 development PRs** (hard rule 13) before
+   opening anything new. Overflow needs a documented reason in the PR body.
 5. **Tick the checkboxes** in the PR template that genuinely apply -
    don't blanket-check them.
 6. **CI wait (no arbitrary sleeps).** After any push tied to a PR, never
