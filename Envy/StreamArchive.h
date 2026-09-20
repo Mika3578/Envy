@@ -35,7 +35,7 @@ public:
 	{
 	}
 
-	virtual ~CStreamArchive() throw()
+	virtual ~CStreamArchive() noexcept
 	{
 		if ( m_pFile )
 		{
@@ -45,12 +45,12 @@ public:
 		delete m_pStreamFile;
 	}
 
-	inline operator LPSTREAM() throw()
+	inline operator LPSTREAM() noexcept
 	{
 		return m_pStreamFile ? m_pStreamFile->m_lpStream : NULL;
 	}
 
-	inline LPSTREAM Detach() throw()
+	inline LPSTREAM Detach() noexcept
 	{
 		if ( m_pFile )
 		{
@@ -65,7 +65,7 @@ public:
 		return pStream;
 	}
 
-	inline bool IsValid() const throw()
+	inline bool IsValid() const noexcept
 	{
 		return ( m_pStreamFile && ( m_pStreamFile->m_lpStream != NULL ) );
 	}
