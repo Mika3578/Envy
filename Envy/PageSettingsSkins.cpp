@@ -186,7 +186,7 @@ BOOL CSkinsSettingsPage::AddSkin(LPCTSTR pszPath, LPCTSTR pszName)
 
 			for ( DWORD nSwap = 0; nSwap < nByte; nSwap ++ )
 			{
-				register CHAR nTemp = pByte[ ( nSwap << 1 ) + 0 ];
+				CHAR nTemp = pByte[(nSwap << 1) + 0];
 				pByte[ ( nSwap << 1 ) + 0 ] = pByte[ ( nSwap << 1 ) + 1 ];
 				pByte[ ( nSwap << 1 ) + 1 ] = nTemp;
 			}
