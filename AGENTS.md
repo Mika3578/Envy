@@ -102,19 +102,20 @@ Branch model:
     PR ready-for-review, address reviews, fix CI, update the branch with
     `develop`, and enable **squash auto-merge**. GitHub will merge only when
     the live **Protect develop** ruleset is satisfied, including:
-    - target policy: at least one GitHub review with state **APPROVED** from
-      a reviewer other than the PR author. In this solo-maintainer repository,
-      **GitHub Copilot Code Review may satisfy that approval** only when the
-      repository explicitly allows Copilot approvals to count toward merge
-      requirements and GitHub records an actual `APPROVED` review. An AI
-      assessment/comment is not an approval. Never manufacture approval with
-      GitHub Actions or a self-approval workflow;
+    - at least one GitHub review with state **APPROVED** from a reviewer
+      other than the PR author (Protect develop live requirement). In this
+      solo-maintainer repository, **GitHub Copilot Code Review may satisfy
+      that approval** only when the repository Copilot settings allow Copilot
+      approvals to count toward merge requirements and GitHub records an
+      actual `APPROVED` review. An AI assessment/comment (CodeRabbit, Amazon Q,
+      Sourcery, Copilot summary, etc.) is not an approval. Never manufacture
+      approval with GitHub Actions or a self-approval workflow;
     - stale approvals are dismissed when new commits are pushed
       (`require_last_push_approval` remains **off** so a valid non-author
       approval, including Copilot when enabled, can satisfy the count);
-    - if the live ruleset differs from the documented target, treat the live
-      ruleset as the enforceable state, record the mismatch, and do not claim
-      the target is enforced until the ruleset is corrected;
+    - if the live ruleset differs from documentation, treat the live ruleset
+      as the enforceable state, record the mismatch, and update docs — do not
+      claim a setting is enforced until the ruleset confirms it;
     - all review threads resolved and no active **CHANGES_REQUESTED**;
     - all **required** status checks green; branch up to date with `develop`;
     - PR not a draft; squash-only on `develop`; signed commits; force pushes
@@ -234,7 +235,14 @@ Before modifying code, build files, CI, or committed project policy:
    implementation when an existing PR already owns the same change.
 4. For protocol/security/interoperability work, consult sources in this order:
    specification/RFC/BEP → official documentation → maintained implementation
-   → relevant reference clients. Record meaningful divergences.
+   → relevant reference clients. Record meaningful divergences. Envy-specific
+   reference priority after the primary specs/docs:
+   - ED2K / Kad: eMule Community / aMule
+   - Gnutella / Gnutella2: Shareaza-lineage references
+   - BitTorrent: official BEPs before libtorrent / qBittorrent / Transmission /
+     BiglyBT
+   - DC++ / NMDC / ADC: only where Envy’s DC paths are actually in scope
+   Canonical list: `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`.
 5. For feature inspiration, separate the **software used as a reference** from
    the **protocols Envy actually supports**. Do not add a network merely
    because a reference client implements it.

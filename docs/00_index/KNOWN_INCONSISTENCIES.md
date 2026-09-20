@@ -1,16 +1,17 @@
 # Known inconsistencies
 
-- **Protect develop ruleset target vs live state (decision 2026-09-20):**
-  The maintainer selected a stricter target: **1 required approval**, with
-  GitHub Copilot Code Review allowed to satisfy that approval only when GitHub
-  records an actual `APPROVED` review and repository Copilot settings allow
-  it to count; GitHub Code Quality severity **All**; automatic Copilot review
-  **on** with review-on-push **on** and draft review **off**; code coverage
-  restriction **off until reliable PR coverage data is uploaded and measured**.
-  The last live API snapshot still showed `required_approving_review_count: 0`
-  and Code Quality severity `notes`. Until the ruleset is changed manually,
-  the live API remains the enforceable state. See
-  `docs/10_dev/CI_AUDIT_2026-09.md` and `docs/10_dev/devsecops-envy.md`.
+- **Protect develop ruleset (re-verified 2026-09-20):** Live API now matches
+  the maintainer target for **1 required approval**, Code Quality severity
+  **All**, Copilot `review_on_push` **on**, and draft review **off**. Coverage
+  restriction remains **off** (no `Restrict code coverage` rule). Historical
+  2026-09-19 audit snapshots that recorded `required_approving_review_count: 0`
+  / Code Quality `notes` / `review_on_push: false` are retained as history —
+  do not treat them as current. Repository Copilot UI toggles (**Allow Copilot
+  to approve pull requests**, **Allow Copilot approvals to count toward merge
+  requirements**, review effort **Balanced**, automatically request review)
+  still require manual UI verification; an AI comment/assessment alone is not
+  an `APPROVED` review. See `docs/10_dev/CI_AUDIT_2026-09.md` and
+  `docs/10_dev/devsecops-envy.md`.
 
 - **ED2K/Kad scope:** `ED2K_KAD_GAP_ANALYSIS` is a historical snapshot (routing-table items annotated 2026-09-19 after `KadRoutingTable.h`). `kad2-compatibility-report` covers opcode/format matching plus local routing maintenance. Neither is live interop. Canonical high-level status is `docs/10_dev/status.md`. The gap-analysis `FIREWALLED_REQ`/`RES` TagList/TargetID framing is outdated; eMule/aMule use exact 2-byte port / 4-byte IPv4 (`docs/30_protocols/kad/kad2-compatibility-report.md`).
 

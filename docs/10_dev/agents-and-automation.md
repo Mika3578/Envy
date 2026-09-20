@@ -81,11 +81,11 @@ sets `run_windows_build=false` (same always-emit pattern as Documentation
 Check). They must not stay SKIPPED under a strict ruleset.
 
 CodeRabbit / reviewdog / Bugbot are **advisory** and must not be the sole
-merge blocker. Target native review policy on Protect develop is **≥1
-APPROVED** review from a non-author reviewer. In this solo-maintainer repo,
-GitHub Copilot Code Review may satisfy it only when approval/counting are
-enabled and GitHub records an actual `APPROVED` review. The last live API
-snapshot still showed `0`; see
+merge blocker. Live native review policy on Protect develop (re-verified
+2026-09-20) is **≥1 APPROVED** review from a non-author reviewer. In this
+solo-maintainer repo, GitHub Copilot Code Review may satisfy it only when
+approval/counting are enabled in the Copilot repository UI and GitHub records
+an actual `APPROVED` review. See
 [KNOWN_INCONSISTENCIES](../00_index/KNOWN_INCONSISTENCIES.md) and
 [CI_AUDIT_2026-09](CI_AUDIT_2026-09.md). Dismiss stale on push remains on,
 `require_last_push_approval` off, conversations resolved, signed commits,
