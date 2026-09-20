@@ -993,16 +993,35 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
                 info = parse_emule_info_tcp(_frame_slice(raw, hit))
                 return _pass(spec, "MuleInfo frame parsed from multi-frame capture", **info)
             if spec.id == "capability_negotiation":
-                hit = _first_hit(hits, "hello", "hello_answer")
-                if hit is None:
+                hello_hit = _first_hit(hits, "hello")
+                answer_hit = _first_hit(hits, "hello_answer")
+                if hello_hit is None or answer_hit is None:
                     continue
-                parsed = parse_hello_tcp(_frame_slice(raw, hit))
-                cmp_ = compare_envy_advertisement(parsed)
+                parsed_hello = parse_hello_tcp(_frame_slice(raw, hello_hit))
+                parsed_answer = parse_hello_tcp(_frame_slice(raw, answer_hit))
+                cmp_hello = compare_envy_advertisement(parsed_hello)
+                cmp_answer = compare_envy_advertisement(parsed_answer)
+                # Envy self-advertise must match the frozen table; reference
+                # Hello bits are recorded but not required to equal Envy's.
+                if ctx.cfg.resolved_reference_client() == "none":
+                    bad = list(cmp_hello.get("mismatches") or []) + list(
+                        cmp_answer.get("mismatches") or []
+                    )
+                    if bad:
+                        return _fail(
+                            spec,
+                            "capability mismatches vs ENVY advertise table",
+                            comparison={"hello": cmp_hello, "hello_answer": cmp_answer},
+                            mismatches=bad,
+                        )
                 return _pass(
                     spec,
-                    "capability bits recorded from Hello-family capture",
-                    comparison=cmp_,
-                    evidence=hello_evidence(parsed),
+                    "capability bits recorded from Hello + HelloAnswer capture",
+                    comparison={"hello": cmp_hello, "hello_answer": cmp_answer},
+                    evidence={
+                        "hello": hello_evidence(parsed_hello),
+                        "hello_answer": hello_evidence(parsed_answer),
+                    },
                 )
         except (EvidenceError, HelloParseError, GoldenError, OSError):
             continue

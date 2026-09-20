@@ -72,27 +72,29 @@ def _pcap_evidence_ports(cfg: HarnessConfig) -> List[int]:
 
 
 def _convert_owned_pcap(ctx: RunContext, cfg: HarnessConfig) -> Optional[Path]:
-    """Extract TCP/UDP payloads from owned pcap into captures/evidence when tshark exists."""
+    """Extract per-packet payloads from owned pcap into captures/evidence/."""
     if ctx.pcap_path is None or not ctx.pcap_path.is_file():
         return None
     try:
-        blob = extract_from_pcap_via_tshark(
+        chunks = extract_from_pcap_via_tshark(
             ctx.pcap_path,
             ports=_pcap_evidence_ports(cfg),
         )
     except EvidenceError as exc:
         (ctx.logs_dir / "pcap-extract-error.txt").write_text(str(exc) + "\n", encoding="utf-8")
         return None
-    if not blob:
+    if not chunks:
         (ctx.logs_dir / "pcap-extract-empty.txt").write_text(
             "tshark found no TCP/UDP payloads for configured ports\n",
             encoding="utf-8",
         )
         return None
-    dest = ctx.run_dir / "captures" / "evidence" / "from-pcap.bin"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(blob)
-    return dest
+    dest_dir = ctx.run_dir / "captures" / "evidence"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    # One file per tshark payload unit — do not flatten datagram/segment boundaries.
+    for index, chunk in enumerate(chunks):
+        (dest_dir / f"from-pcap-{index:04d}.bin").write_bytes(chunk)
+    return dest_dir
 
 
 def _refresh_after_pcap(ctx: RunContext, results: List[ScenarioResult]) -> None:
@@ -254,7 +256,11 @@ def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = N
     write_json_report(run_dir / "run-summary.json", payload)
     write_markdown_report(run_dir / "run-summary.md", payload)
     sanitize_tree(logs_dir, run_dir / "sanitized" / "logs")
-    sanitize_tree(run_dir / "captures", run_dir / "sanitized" / "captures")
+    sanitize_tree(
+        run_dir / "captures",
+        run_dir / "sanitized" / "captures",
+        skip_raw_bin=True,
+    )
 
     if cfg.cleanup:
         try:

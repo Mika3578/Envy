@@ -230,18 +230,23 @@ class EvidenceExtractorTests(unittest.TestCase):
         self.assertNotIn("167772170", dumped)  # would be LE int of 10.0.0.1
 
     def test_kad_udp_search_res_opcode_3b(self) -> None:
-        # Production: <SenderID 16><TargetID 16><Count 2 LE>
+        # Production inbound / eMule: <SenderID 16><TargetID 16><Count 2 LE>
         body = (b"\x11" * 16) + (b"\x22" * 16) + struct.pack("<H", 0)
         datagram = bytes([0xE4, 0x3B]) + body
         hits = extract_kad_udp_frames(datagram)
         self.assertEqual(len(hits), 1)
         self.assertEqual(hits[0].label, "kad_search_res")
         self.assertEqual(hits[0].opcode, 0x3B)
-        self.assertEqual(hits[0].protocol, 0xE4)
+        self.assertEqual(hits[0].details.get("layout"), "sender_target_count2")
         self.assertEqual(hits[0].details.get("result_count"), 0)
         self.assertNotIn("parse_error", hits[0].details)
-        # Truncated old layout must fail closed.
-        short = bytes([0xE4, 0x3B]) + (b"\x11" * 16) + bytes([0])
+        # Envy outbound legacy: <Hash 16><Count 1>
+        legacy = bytes([0xE4, 0x3B]) + (b"\x11" * 16) + bytes([0])
+        legacy_hits = extract_kad_udp_frames(legacy)
+        self.assertEqual(legacy_hits[0].details.get("layout"), "envy_outbound_hash_count1")
+        self.assertTrue(require_labels(legacy_hits, ["kad_search_res"])[0])
+        # Too short for either layout.
+        short = bytes([0xE4, 0x3B]) + (b"\x11" * 15)
         short_hits = extract_kad_udp_frames(short)
         self.assertTrue(short_hits[0].details.get("parse_error"))
         self.assertFalse(require_labels(short_hits, ["kad_search_res"])[0])

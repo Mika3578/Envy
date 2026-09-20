@@ -265,17 +265,26 @@ def extract_kad_udp_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHi
                 details["has_filehash"] = True
                 details["has_filesize"] = len(body) >= 24
         elif opcode == KAD_OP_SEARCH_RES:
-            # Production layout (KadSearchResDelivery.h / Kademlia.cpp):
-            # <SenderID 16><TargetID 16><Count 2 LE>[answers…]
-            min_header = 16 + 16 + 2
-            if len(body) < min_header:
-                details["parse_error"] = (
-                    f"SEARCH_RES body too short ({len(body)} < {min_header})"
-                )
-            else:
+            # Two wire layouts exist in this repo:
+            # - Production inbound / eMule (KadSearchResDelivery.h):
+            #   <SenderID 16><TargetID 16><Count 2 LE>  (min 34)
+            # - Envy outbound OnSearch*Request responses (Kademlia.cpp):
+            #   <Hash 16><Count 1>  (min 17) — legacy; accept for evidence
+            min_emule = 16 + 16 + 2
+            min_legacy = 16 + 1
+            if len(body) >= min_emule:
+                details["layout"] = "sender_target_count2"
                 details["has_sender_id"] = True
                 details["has_target_id"] = True
                 details["result_count"] = struct.unpack_from("<H", body, 32)[0]
+            elif len(body) >= min_legacy:
+                details["layout"] = "envy_outbound_hash_count1"
+                details["has_filehash"] = True
+                details["result_count"] = body[16]
+            else:
+                details["parse_error"] = (
+                    f"SEARCH_RES body too short ({len(body)} < {min_legacy})"
+                )
         hits.append(
             FrameHit(
                 protocol=proto,
@@ -361,8 +370,12 @@ def extract_from_pcap_via_tshark(
     *,
     ports: Sequence[int],
     timeout_sec: float = 30.0,
-) -> bytes:
-    """Extract TCP/UDP payloads for configured ports using tshark when available."""
+) -> List[bytes]:
+    """Extract per-packet TCP/UDP payloads (one list entry per tshark field line).
+
+    Units are not concatenated: callers must parse each chunk separately so UDP
+    datagram and TCP segment boundaries are preserved.
+    """
     tool = find_tshark()
     if not tool:
         raise EvidenceError("tshark not found (optional; do not install from the harness)")
@@ -406,7 +419,7 @@ def extract_from_pcap_via_tshark(
                 chunks.append(bytes.fromhex(hex_str))
             except ValueError as exc:
                 raise EvidenceError("tshark produced malformed hex payload") from exc
-    return b"".join(chunks)
+    return chunks
 
 
 def write_evidence_summary(path: Path, summary: Dict[str, Any]) -> None:
