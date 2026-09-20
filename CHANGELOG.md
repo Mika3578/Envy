@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release pipeline validation scripts** — `scripts/release/verify-version.ps1`, `stage-portable.ps1`, `verify-artifacts.ps1`, `publish-draft-release.ps1`, and `repair-draft-release.ps1` gate tag/`version.json`/`Envy.rc`/`Envy.exe` consistency, stage a full portable runtime tree, verify SHA256 + ZIP/setup sanity, and support idempotent draft asset repair.
 
 ### Fixed
+- **`Envy/Strings.cpp` drop `register` (#84)** — Remove C++17-illegal `register` storage class from string helpers (ToLower buffer walks / UTF-16 byte swap). No behavior change.
 - **HostCache `throw()` → `noexcept` (#84)** — Replace removed-in-C++20 dynamic exception specifications on ten `CHostCacheList` inline accessors (`Begin`/`End`/`Find`/`Check`/`CountHosts`/…). Behavior unchanged; matches existing `noexcept` comparators in the same header.
 - **`bootstrap-vcpkg.cmd` exit code** — Read the child `pwsh`/`powershell` status with delayed expansion; a parenthesized `if` was expanding `%ERRORLEVEL%` from `where pwsh` and reporting a failed restore as success.
 - **HashLib `CTigerTree` MSVC C5038/C5033 (#84)** — Reorder the `CTigerTree` constructor initializer list to match `TigerTree.h` member order (C5038) and drop the leftover `register` storage class in `CTigerTree::Tiger` (C5033). Tiger/TTH algorithm, hash bytes, and wire format are unchanged. EnvyTests cover constructor defaults plus identical-input / incremental / empty-file root stability (no invented golden digest).
