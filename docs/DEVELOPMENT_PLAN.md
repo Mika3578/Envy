@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-20
+- **Changelog Entry:** 2026-09-20 — #84 HashTest: drop `register` and replace `throw()` with `noexcept` (C++17/C++20). Test harness only.
 - **Changelog Entry:** 2026-09-20 — #84 SafeRelease: replace `throw()` with `noexcept` (C++20; template spacing collapsed). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 HGlobal: replace `throw()` with `noexcept` on dtor/Clean/conversions/IsValid/Detach/Size (C++20; ctors deferred). No behavior change.
 - **Changelog Entry:** 2026-09-20 — #84 TransferFile: replace `throw()` with `noexcept` on IsOpen/IsExists/IsWritable/IsFolder (C++20). No behavior change.
