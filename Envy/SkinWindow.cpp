@@ -1843,7 +1843,8 @@ BOOL CSkinWindow::PreBlend(CBitmap* pbmTarget, const CRect& rcTarget, const CRec
 				BYTE* pAlphaPtr = pAlphaData.get() + nSrcY * nAlphaPitch + nSrcLeft;
 				for ( int nX = nWidth; nX; nX-- )
 				{
-					register BYTE nAlpha = *pAlphaPtr; pAlphaPtr += 3;
+					BYTE nAlpha = *pAlphaPtr;
+					pAlphaPtr += 3;
 					*pCachePtr = (BYTE)( ( (DWORD)(*pCachePtr) * ( 255 - nAlpha ) + (*pImagePtr) * nAlpha ) / 255 );
 					pCachePtr++; pImagePtr++;
 					*pCachePtr = (BYTE)( ( (DWORD)(*pCachePtr) * ( 255 - nAlpha ) + (*pImagePtr) * nAlpha ) / 255 );
