@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Documentation canonical map** — Record live repository-tree hygiene (`docs/10_dev/repository-tree-hygiene.md`); collapse duplicated G1/G2/NMDC Current State bullets in `docs/10_dev/roadmap.md`; mark `docs/00_index/README_old.md` historical. No runtime or build change.
+
 ### Fixed
 - **Library collection mount null crash (#300)** — `CAlbumFolder::MountCollection` no longer calls a method on a null subfolder (`this == nullptr`, `0xC0000005`). Child pointers are not inserted into `m_pFolders`; `GetNextFolder` asserts the invariant in Debug; Release still skips a corrupt null entry. `CLibraryFolders::MountCollection` returns false if the album root is not created yet.
 - **Interop harness exchange labels + cross-packet evidence (#160, #294)** — Kad HELLO/PING/FIND_NODE use direction-specific labels (req+res both required); packet-evidence aggregates labels across transport-tagged `from-pcap-tcp-<stream>-<src>-<dst>-*` / `from-pcap-udp-*` files; TCP reassembly joins only within the same unidirectional flow (never opposite directions or UDP); SEARCH_RES accepts complete eMule/legacy layouts and fails closed on ambiguity; `PUBLICIP_REQ` empty-body check; COMPRESSEDPART allows partial chunks; Hello `userhash` redacted in attachable evidence; missing configured evidence paths FAIL; `source_exchange` accepts SourceEx or SourceEx2; negative `pcap_duration_sec` rejected; early capture death before requested stop FAILs even if partial bytes exist; live `--operator-hold-sec` / `run-live.ps1 -OperatorHoldSec` pauses after startup for manual GUI steps; malformed labeled evidence FAILs.

@@ -20,6 +20,18 @@
 | **Protocols** | `docs/30_protocols/` | ED2K, Kad, BitTorrent, [bootstrap sources](../30_protocols/bootstrap-sources.md), [reference implementations](../30_protocols/REFERENCE_IMPLEMENTATIONS.md) |
 | **Quality** | `docs/40_quality/` | Analysis, performance, security, testing |
 
+## Canonical sources (do not duplicate policy)
+
+| Role | Canonical | Notes |
+|------|-----------|-------|
+| Contributor workflow (GitHub) | [`.github/CONTRIBUTING.md`](../../.github/CONTRIBUTING.md) | GitHub prefers `.github/` over `docs/` |
+| Agent / assistant rules | [`AGENTS.md`](../../AGENTS.md) | Tool adapters stay thin pointers |
+| Strategic sequence | [`DEVELOPMENT_PLAN.md`](../DEVELOPMENT_PLAN.md) | Living P0–P3 plan |
+| Technical roadmap | [`10_dev/roadmap.md`](../10_dev/roadmap.md) | Itemization; not a second plan |
+| Implementation status | [`10_dev/status.md`](../10_dev/status.md) | Evidence matrix |
+| Decisions | [`DECISIONS.md`](../DECISIONS.md) | ADR-lite table |
+| Repository tree hygiene | [`10_dev/repository-tree-hygiene.md`](../10_dev/repository-tree-hygiene.md) | Inventory; no mass moves |
+
 ## Root compatibility pointers
 
 These short files under `docs/` preserve old links; prefer the numbered targets:

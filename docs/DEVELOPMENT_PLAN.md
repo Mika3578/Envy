@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-21
+- **Changelog Entry:** 2026-09-21 — Repository tree hygiene inventory on `develop` `0f39cd3`: 3344 files / 164 dirs; no mass moves; canonical docs map + roadmap Current State dedupe. Next independent PRs: `.gitignore`, unused `.vcproj` (keep PluginWizard), then duplicates/vcpkg. See `docs/10_dev/repository-tree-hygiene.md`.
 - **Changelog Entry:** 2026-09-21 — UI Phase 1 (#297): merge `develop` after #301; keep both the adaptive-list changelog and the library MountCollection null-guard entry.
 - **Changelog Entry:** 2026-09-21 — #300: `CAlbumFolder::MountCollection` guards null `GetNextFolder` results; `m_pFolders` rejects null inserts; album-root mount is skipped when `m_pAlbumRoot` is null. EnvyTests cannot construct `CAlbumFolder` (MFC/`Library.m_pSection`); policy smoke `test_albumfolder_mountcollection_smoke.cpp`.
 - **Changelog Entry:** 2026-09-20 — UI Phase 1 (#297) Copilot: load ListStates/sticky only once; later OnSkinChange keeps in-session sticky.
@@ -466,10 +467,11 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 
 ## Backlog
 - [ ] Replace unsafe string operations in first-party code (incremental: bounded keyword copy in legacy Kad publish packet builder completed)
-- Consolidate duplicate roadmap/status markdown into canonical set
+- [x] Record live tree-hygiene inventory and canonical doc map (`docs/10_dev/repository-tree-hygiene.md`); collapse duplicated Current State bullets in `docs/10_dev/roadmap.md`
+- Trim `docs/10_dev/contributing.md` so it does not repeat `.github/CONTRIBUTING.md` (defer while #303 is open)
 - [x] Document remote API implementation status endpoint-by-endpoint — 2026-09-19 audit (`docs/20_arch/AUDIT_REMOTE_API_2026-09.md`); OpenAPI remains `planned` until routes are served
 - Add long-running memory/regression test scenario
-- Archive legacy `.vcproj` files once migration is complete
+- Archive unused legacy `.vcproj` files only after the per-file usage matrix; **keep** `Plugins/PluginWizard/**` templates
 
 ## Decisions Log
 - **2026-09-19:** Remote automation (D-017, D-018): native REST `/api/v1` as source of truth; inbound API on Windows HTTP Server API (`http.sys`) dedicated port, not `CRemote`/P2P HTTP; outbound Torznab via `CHttpRequest`; first *arr adapter is a qBittorrent Web API v2 **subset**. Details: `docs/20_arch/AUDIT_REMOTE_API_2026-09.md`.

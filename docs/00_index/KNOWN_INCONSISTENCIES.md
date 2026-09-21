@@ -7,13 +7,14 @@
   (`stdcpp20` then trailing `stdcpp17`). Canonical wording:
   `docs/10_dev/standards.md`. Do not remove those overrides in a docs PR.
 
-- **Protect develop ruleset (re-verified 2026-09-20):** Live API now matches
-  the maintainer target for **1 required approval**, Code Quality severity
-  **All**, Copilot `review_on_push` **on**, and draft review **off**. Coverage
-  restriction remains **off** (no `Restrict code coverage` rule). Historical
-  2026-09-19 audit snapshots that recorded `required_approving_review_count: 0`
-  / Code Quality `notes` / `review_on_push: false` are retained as history —
-  do not treat them as current. Repository Copilot UI toggles that still
+- **Protect develop ruleset (re-verified 2026-09-21):** Live ruleset
+  `16457466` still reports `required_approving_review_count: 0` via the GitHub
+  API, with Code Quality severity **all**, required review-thread resolution,
+  squash-only + linear history, and the published required status checks.
+  Maintainer **target** remains **1 required approval**; do not treat older
+  “already matched 1 approval” notes as live. Coverage restriction remains
+  **off**. Historical 2026-09-19 snapshots that recorded Code Quality `notes` /
+  `review_on_push: false` are retained as history. Repository Copilot UI toggles that still
   need manual verification are **Allow Copilot to approve pull requests**,
   **Allow Copilot approvals to count toward merge requirements**, review
   effort **Balanced**, and the optional path allowlist (Stage-3 docs/i18n

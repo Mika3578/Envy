@@ -16,15 +16,10 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 
 ## Current State Summary
 
-- **Build System:** Visual Studio solution builds (MSVC toolset `v145`), CMake partial (HashLib only)
-- **UI Framework:** MFC/Unicode complete
-- **G2 / G1 / NMDC:** implemented and in scope to preserve. NMDC hub chat now wires user-list merge (`$NickList` + `$MyINFO`) to remote `files.xml.bz2` browse via `CHostBrowser`; FileListing directories fill the existing Browse Host tree before `CNetwork` owns the hit chain; live hub interop unverified. **ADC/ADCS hub protocol is not implemented** (NMDC-side `ADCGet`/`ADCSND` ≠ ADC hubs). Feature depth vs latest ADC-EXT / gtk-gnutella unverified.
-- **G2 / G1 / NMDC:** implemented and in scope to preserve. NMDC hub chat now wires user-list merge (`$NickList` + `$MyINFO`) to remote `files.xml.bz2` browse via `CHostBrowser`; FileListing directories fill the existing Browse Host tree; live hub interop unverified. **ADC/ADCS hub protocol is not implemented** (NMDC-side `ADCGet`/`ADCSND` ≠ ADC hubs). Feature depth vs latest ADC-EXT / gtk-gnutella unverified.
-- **G2 / G1 / NMDC:** implemented and in scope to preserve. NMDC hub chat now wires user-list merge (`$NickList` + `$MyINFO`) to remote `files.xml.bz2` browse via `CHostBrowser`; live hub interop unverified. **ADC/ADCS hub protocol is not implemented** (NMDC-side `ADCGet`/`ADCSND` ≠ ADC hubs). Feature depth vs latest ADC-EXT / gtk-gnutella unverified.
 - **Build System:** Visual Studio solution builds (MSVC toolset `v145`), CMake partial (HashLib + selected tests). Full-app CMake low priority; portable-slice CMake is the multiplatform foundation (`PORTABILITY_PLAN.md`, D-015).
 - **Platforms:** Windows x64 **supported** (primary); Win32 **legacy** (still CI/release for Stage A); Linux/macOS **planned** (not supported).
 - **UI Framework:** MFC/Unicode complete on Windows; MFC is frontend, not future EnvyCore. Progressive desktop modernization is **planned** (#295; `docs/20_arch/UI_MODERNIZATION.md`) — adaptive Network lists first; no Qt/WinUI rewrite.
-- **G2 / G1 / NMDC:** implemented and in scope to preserve. **ADC/ADCS hub protocol is not implemented** (NMDC-side `ADCGet`/`ADCSND` ≠ ADC hubs). Feature depth vs latest ADC-EXT / gtk-gnutella unverified.
+- **G2 / G1 / NMDC:** implemented and in scope to preserve. NMDC hub chat now wires user-list merge (`$NickList` + `$MyINFO`) to remote `files.xml.bz2` browse via `CHostBrowser`; FileListing directories fill the existing Browse Host tree before `CNetwork` owns the hit chain; live hub interop unverified. **ADC/ADCS hub protocol is not implemented** (NMDC-side `ADCGet`/`ADCSND` ≠ ADC hubs). Feature depth vs latest ADC-EXT / gtk-gnutella unverified.
 - **BitTorrent v1:** Solid (DHT, ut_metadata, ut_pex, lt_tex, web seeds, trackers)
 - **BitTorrent v2:** Library-only (Merkle tree + SHA-256); no wire protocol
 - **ED2K:** Core transfers + SourceEx2 (0x83/0x84) present; Hello honesty for AICH/SecureIdent/CryptLayer/Ext Multipacket. Compressed upload send path is **implemented** (#252) but live-unverified; AICH C2C, Ext Multipacket handlers, Buddy/REASK, and live eMule/aMule interop still open (#160). **SecureIdent RSA is not implemented** (#75; do not advertise).
