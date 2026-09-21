@@ -200,6 +200,7 @@
     <ClCompile Include="test_network_job_queue_smoke.cpp" />
     <ClCompile Include="test_chat_session_queue_smoke.cpp" />
     <ClCompile Include="test_textctrl_viewport_smoke.cpp" />
+    <ClCompile Include="test_adaptive_list_columns_smoke.cpp" />
     <ClCompile Include="test_bootstrap_catalog_smoke.cpp" />
     <ClCompile Include="test_kad_nodes_dat.cpp" />
     <ClCompile Include="test_transfer_settings_limits_smoke.cpp" />

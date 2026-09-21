@@ -32,6 +32,7 @@
 #include "Skin.h"
 #include "Flags.h"
 #include "VendorCache.h"
+#include "AdaptiveListLayout.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -59,6 +60,7 @@ enum {
 	COL_LAST	// Column Count
 };
 
+static void FillHostCacheAdaptiveColumnSpecs(AdaptiveColumnSpec* cols);
 
 IMPLEMENT_SERIAL(CHostCacheWnd, CPanelWnd, 0)
 
@@ -105,11 +107,13 @@ END_MESSAGE_MAP()
 // CHostCacheWnd construction
 
 CHostCacheWnd::CHostCacheWnd()
-	: m_nMode			( PROTOCOLID( Settings.Gnutella.HostCacheView ) )
-	, m_bAllowUpdates	( TRUE )
-	, m_nCookie			( 0 )
-	, m_tLastUpdate		( 0 )
+    : m_nMode(PROTOCOLID(Settings.Gnutella.HostCacheView))
+    , m_bAllowUpdates(TRUE)
+    , m_nCookie(0)
+    , m_tLastUpdate(0)
 {
+	ZeroMemory(m_bColumnSticky.data(), sizeof(m_bColumnSticky));
+	ZeroMemory(m_nColumnSticky.data(), sizeof(m_nColumnSticky));
 	Create( IDR_HOSTCACHEFRAME );
 }
 
@@ -140,16 +144,16 @@ int CHostCacheWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndList.SetExtendedStyle( LVS_EX_DOUBLEBUFFER|LVS_EX_FULLROWSELECT|LVS_EX_HEADERDRAGDROP|LVS_EX_LABELTIP|LVS_EX_SUBITEMIMAGES );
 	m_wndList.SetFont( &theApp.m_gdiFont );
 
-	m_wndList.InsertColumn( COL_ADDRESS,	L"Address",	LVCFMT_LEFT,	140 );
-	m_wndList.InsertColumn( COL_PORT,		L"Port", 	LVCFMT_CENTER,	 60 );
-	m_wndList.InsertColumn( COL_SEEN,		L"Last Seen", LVCFMT_CENTER,	128 );
-	m_wndList.InsertColumn( COL_FAILURES,	L"Failures",	LVCFMT_CENTER,	 60 );
-	m_wndList.InsertColumn( COL_USERS,		L"CurUsers",	LVCFMT_CENTER,	 60 );
-	m_wndList.InsertColumn( COL_MAXUSERS,	L"MaxUsers",	LVCFMT_CENTER,	 60 );
-	m_wndList.InsertColumn( COL_NAME,		L"Name", 	LVCFMT_LEFT,	140 );
-	m_wndList.InsertColumn( COL_INFO,		L"Description", LVCFMT_LEFT,	140 );
-	m_wndList.InsertColumn( COL_CLIENT, 	L"Client",	LVCFMT_CENTER,	100 );
-	m_wndList.InsertColumn( COL_COUNTRY,	L"Country",	LVCFMT_LEFT,	 60 );
+	m_wndList.InsertColumn(COL_ADDRESS, L"Address", LVCFMT_LEFT, SCALE(140));
+	m_wndList.InsertColumn(COL_PORT, L"Port", LVCFMT_CENTER, SCALE(60));
+	m_wndList.InsertColumn(COL_SEEN, L"Last Seen", LVCFMT_CENTER, SCALE(128));
+	m_wndList.InsertColumn(COL_FAILURES, L"Failures", LVCFMT_CENTER, SCALE(60));
+	m_wndList.InsertColumn(COL_USERS, L"CurUsers", LVCFMT_CENTER, SCALE(60));
+	m_wndList.InsertColumn(COL_MAXUSERS, L"MaxUsers", LVCFMT_CENTER, SCALE(60));
+	m_wndList.InsertColumn(COL_NAME, L"Name", LVCFMT_LEFT, SCALE(140));
+	m_wndList.InsertColumn(COL_INFO, L"Description", LVCFMT_LEFT, SCALE(140));
+	m_wndList.InsertColumn(COL_CLIENT, L"Client", LVCFMT_CENTER, SCALE(100));
+	m_wndList.InsertColumn(COL_COUNTRY, L"Country", LVCFMT_LEFT, SCALE(60));
 #ifdef _DEBUG
 	m_wndList.InsertColumn( COL_DBG_KEY,	L"Key",		LVCFMT_RIGHT, 0 );
 	m_wndList.InsertColumn( COL_DBG_QUERY,	L"Query",	LVCFMT_RIGHT, 0 );
@@ -169,7 +173,14 @@ void CHostCacheWnd::OnDestroy()
 {
 	HostCache.Save();
 
+	std::array<AdaptiveColumnSpec, COL_LAST> cols{};
+	FillHostCacheAdaptiveColumnSpecs(cols.data());
+	const int nStickyCols = (COL_LAST < 16) ? COL_LAST : 16;
+	AdaptiveNormalizeNonStickyForSave(
+	    m_wndList, cols.data(), COL_LAST, (int)Settings.Interface.DisplayScaling,
+	    m_bColumnSticky.data(), &m_bApplyingColumns);
 	Settings.SaveList( L"CHostCacheWnd", &m_wndList );
+	AdaptiveSaveStickyColumnState(L"CHostCacheWnd", nStickyCols, m_bColumnSticky.data());
 	SaveState( L"CHostCacheWnd" );
 
 	CPanelWnd::OnDestroy();
@@ -276,7 +287,18 @@ void CHostCacheWnd::OnSkinChange()
 	OnSize( 0, 0, 0 );
 	CPanelWnd::OnSkinChange();
 
-	Settings.LoadList( L"CHostCacheWnd", &m_wndList );
+	// Load persisted widths/order/sticky once. Later skin refreshes must keep
+	// in-session sticky state (only saved on destroy).
+	if (!m_bListStateLoaded)
+	{
+		m_bApplyingColumns = TRUE;
+		Settings.LoadList(L"CHostCacheWnd", &m_wndList);
+		m_bApplyingColumns = FALSE;
+		const int nStickyCols = (COL_LAST < 16) ? COL_LAST : 16;
+		AdaptiveLoadStickyColumnState(
+		    L"CHostCacheWnd", nStickyCols, m_bColumnSticky.data(), m_nColumnSticky.data(), m_wndList);
+		m_bListStateLoaded = TRUE;
+	}
 	Skin.CreateToolBar( L"CHostCacheWnd", &m_wndToolBar );
 
 	CoolInterface.LoadIconsTo( m_gdiImageList, protocolIDs, 0, LVSIL_SMALL, Flags.Width, (Settings.Skin.RowSize > 17 ? (int)Settings.Skin.RowSize - 1 : 16) );
@@ -288,6 +310,8 @@ void CHostCacheWnd::OnSkinChange()
 	m_wndList.SetTextBkColor( Colors.m_crWindow );
 	m_wndList.SetBkColor( Colors.m_crWindow );
 
+	ApplyAdaptiveColumns();
+
 	//if ( Settings.General.GUIMode == GUI_BASIC )
 	//	Settings.Gnutella.HostCacheView = m_nMode = PROTOCOL_G2;
 }
@@ -295,11 +319,64 @@ void CHostCacheWnd::OnSkinChange()
 /////////////////////////////////////////////////////////////////////////////
 // CHostCacheWnd message handlers
 
+static void FillHostCacheAdaptiveColumnSpecs(AdaptiveColumnSpec* cols)
+{
+	cols[COL_ADDRESS] = { AdaptiveColumnBounded, 140, 100, 280, 0, FALSE, 0, FALSE };
+	cols[COL_PORT] = { AdaptiveColumnFixed, 60, 48, 60, 0, FALSE, 0, FALSE };
+	cols[COL_SEEN] = { AdaptiveColumnBounded, 128, 96, 180, 0, FALSE, 0, FALSE };
+	cols[COL_FAILURES] = { AdaptiveColumnFixed, 60, 48, 60, 0, FALSE, 0, FALSE };
+	cols[COL_USERS] = { AdaptiveColumnFixed, 60, 48, 60, 0, FALSE, 0, FALSE };
+	cols[COL_MAXUSERS] = { AdaptiveColumnFixed, 60, 48, 60, 0, FALSE, 0, FALSE };
+	cols[COL_NAME] = { AdaptiveColumnFlexible, 140, 80, INT_MAX, 2, FALSE, 0, FALSE };
+	cols[COL_INFO] = { AdaptiveColumnFlexible, 140, 80, INT_MAX, 3, FALSE, 0, FALSE };
+	cols[COL_CLIENT] = { AdaptiveColumnBounded, 100, 72, 160, 0, FALSE, 0, FALSE };
+	cols[COL_COUNTRY] = { AdaptiveColumnBounded, 60, 48, 100, 0, FALSE, 0, FALSE };
+#ifdef _DEBUG
+	cols[COL_DBG_KEY] = { AdaptiveColumnFixed, 0, 0, 0, 0, FALSE, 0, TRUE };
+	cols[COL_DBG_QUERY] = { AdaptiveColumnFixed, 0, 0, 0, 0, FALSE, 0, TRUE };
+	cols[COL_DBG_ACK] = { AdaptiveColumnFixed, 0, 0, 0, 0, FALSE, 0, TRUE };
+#endif
+}
+
+void CHostCacheWnd::ApplyAdaptiveColumns()
+{
+	std::array<AdaptiveColumnSpec, COL_LAST> cols{};
+	FillHostCacheAdaptiveColumnSpecs(cols.data());
+
+	AdaptiveApplyListColumns(
+	    m_wndList,
+	    cols.data(),
+	    COL_LAST,
+	    (int)Settings.Interface.DisplayScaling,
+	    m_bColumnSticky.data(),
+	    m_nColumnSticky.data(),
+	    &m_bApplyingColumns);
+}
+
+BOOL CHostCacheWnd::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult)
+{
+	const int nStickyCols = (COL_LAST < 16) ? COL_LAST : 16;
+	const AdaptiveStickyNotifyContext ctx{
+		m_wndList,
+		IDC_HOSTS,
+		m_bApplyingColumns,
+		nStickyCols,
+		m_bColumnSticky.data(),
+		m_nColumnSticky.data()
+	};
+	AdaptiveCaptureStickyColumnFromHeaderNotify(ctx, wParam, lParam);
+	return CPanelWnd::OnNotify(wParam, lParam, pResult);
+}
+
 void CHostCacheWnd::OnSize(UINT nType, int cx, int cy)
 {
 	CPanelWnd::OnSize( nType, cx, cy );
+	// SizeLists proportional SetColumn fires HDN_*; suppress sticky capture.
+	m_bApplyingColumns = TRUE;
 	m_pSizer.Resize( cx );
+	m_bApplyingColumns = FALSE;
 	SizeListAndBar( &m_wndList, &m_wndToolBar );
+	ApplyAdaptiveColumns();
 }
 
 void CHostCacheWnd::OnTimer(UINT_PTR nIDEvent)

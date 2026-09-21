@@ -484,6 +484,7 @@ call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)
     <ClCompile Include="LibraryMaps.cpp" />
     <ClCompile Include="LiveList.cpp" />
     <ClCompile Include="LiveListSizer.cpp" />
+    <ClCompile Include="AdaptiveListLayout.cpp" />
     <ClCompile Include="LocalSearch.cpp" />
     <ClCompile Include="ManagedSearch.cpp" />
     <ClCompile Include="MatchListView.cpp" />
@@ -1342,6 +1343,8 @@ call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)
     <ClInclude Include="RemoteHtmlEscape.h" />
     <ClInclude Include="FirewallWfasPolicy.h" />
     <ClInclude Include="TextCtrlViewport.h" />
+    <ClInclude Include="AdaptiveListColumns.h" />
+    <ClInclude Include="AdaptiveListLayout.h" />
     <ClInclude Include="BootstrapCatalog.h" />
     <ClInclude Include="KadNodesDat.h" />
     <ClInclude Include="Ed2kHelloCapabilities.h" />

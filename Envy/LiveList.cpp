@@ -19,6 +19,7 @@
 #include "StdAfx.h"
 #include "Envy.h"
 #include "LiveList.h"
+#include "AdaptiveListLayout.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -779,6 +780,12 @@ CLiveListCtrl::~CLiveListCtrl()
 		CLiveItemPtr pItem = (*i).second;
 		delete pItem;
 	}
+}
+
+BOOL CLiveListCtrl::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult)
+{
+	AdaptiveRelayHeaderNotifyToParent(*this, wParam, lParam);
+	return CListCtrl::OnNotify(wParam, lParam, pResult);
 }
 
 BEGIN_MESSAGE_MAP(CLiveListCtrl, CListCtrl)

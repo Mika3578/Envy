@@ -21,6 +21,8 @@
 #include "WndPanel.h"
 #include "LiveList.h"
 
+#include <array>
+
 #define IDC_HOSTS		100
 
 class CHostCacheHost;
@@ -44,6 +46,10 @@ protected:
 	CImageList		m_gdiImageList;
 	DWORD			m_nCookie;
 	DWORD			m_tLastUpdate;
+	std::array<BOOL, 16> m_bColumnSticky{};
+	std::array<int, 16> m_nColumnSticky{};
+	BOOL m_bApplyingColumns = FALSE;
+	BOOL m_bListStateLoaded = FALSE;
 
 public:
 	void			Update(BOOL bForce = FALSE);
@@ -51,8 +57,10 @@ public:
 	virtual void	OnSkinChange();
 
 protected:
+	void ApplyAdaptiveColumns();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual void RecalcLayout(BOOL bNotify = TRUE);
+	BOOL OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult) override;
 
 protected:
 	afx_msg int  OnCreate(LPCREATESTRUCT lpCreateStruct);

@@ -372,6 +372,9 @@
     <ClCompile Include="LiveListSizer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AdaptiveListLayout.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="LocalSearch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -2055,6 +2058,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TextCtrlViewport.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AdaptiveListColumns.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AdaptiveListLayout.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PacketBuffer.h">

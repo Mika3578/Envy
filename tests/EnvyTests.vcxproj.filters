@@ -74,6 +74,9 @@
     <ClCompile Include="test_textctrl_viewport_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_adaptive_list_columns_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_bootstrap_catalog_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

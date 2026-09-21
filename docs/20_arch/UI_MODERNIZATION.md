@@ -1,6 +1,6 @@
 # Envy desktop UI modernization architecture
 
-Status: **PLANNED** (Phase 0 audit complete; Phase 1+ not started)  
+Status: **PARTIAL** (Phase 0 landed via #296; Phase 1 adaptive Network lists in #297)  
 Last updated: 2026-09-20  
 Tracker: [#295](https://github.com/Mika3578/Envy/issues/295)  
 Audit base: `develop` @ `ccb4d20` (rebased after #292 and #293; original audit against `d3095e9`)
@@ -207,7 +207,7 @@ Before screen-by-screen cosmetics, introduce first-party helpers (names indicati
 | Toolbar / header / row metrics | Centralize reads of Skin.* with DPI-aware clamps; do not break skin XML readers |
 | Adaptive list columns | Pure layout calculator (unit-testable) classifying columns: **fixed**, **bounded**, **flexible** |
 | Fill columns | At least one flexible column absorbs unused width |
-| User widths / order | Preserve `LoadList`/`SaveList` order/sort. **Gap:** current hex `ListStates` stores only displayed widths — it cannot tell a user drag from an allocator fill. Phase 1 must keep **in-session** sticky flags (HDN capture) and either (a) avoid `SaveList` of purely adaptive widths, or (b) extend persistence with separate sticky/logical-user metadata. Do not write registry on every `WM_SIZE`. |
+| User widths / order | Preserve `LoadList`/`SaveList` order/sort. Phase 1: **in-session** sticky via HDN capture; **cross-restart** sticky mask under `ListStates` `*.Sticky`; before `SaveList`, non-sticky columns are normalized to preferred widths so allocator fill is not persisted as user intent. Do not write registry on every `WM_SIZE`. |
 | Empty states | Shared pattern later; not Phase 1 |
 | Command bars / page headers | Shared spacing after shell phase |
 | Semantic colors | Prefer `Colors.*` roles; light/dark later if feasible |
@@ -224,7 +224,7 @@ Before screen-by-screen cosmetics, introduce first-party helpers (names indicati
 
 Prefer extracting pure functions under something like `Envy/AdaptiveListColumns.h` (or `tests/`-friendly header) with EnvyTests coverage.
 
-**Persistence caveat:** `SaveList`/`LoadList` serialize displayed widths only (`Settings.cpp` `ListStates`). An adaptive width written at shutdown would look like a user width after restart. Phase 1 design must separate **session sticky** (HDN user drag) from **allocator widths**, and either skip saving non-sticky adaptive widths or add sticky metadata in a later persistence revision.
+**Persistence:** `SaveList`/`LoadList` still serialize displayed widths (`ListStates` Ordering/Widths/Sort). Phase 1 adds `ListStates` `*.Sticky` bitmask and normalizes non-sticky columns to preferred widths before `SaveList`, so allocator fill is not treated as user intent after restart.
 
 **Relation to `CLiveListSizer`:** keep for compatibility when `SizeLists` is enabled; Phase 1 adaptive allocator is a **new**, column-class-aware path used explicitly by Neighbors / Host Cache (do not silently change global SizeLists semantics for all lists).
 
@@ -309,8 +309,8 @@ Apply per phase; do not regress:
 
 | Order | Branch | PR title | Status |
 | --- | --- | --- | --- |
-| 0 | `docs/ui-modernization-plan` | `docs(ui): define desktop modernization architecture` | This document |
-| 1 | `fix/ui-adaptive-network-lists` | `fix(ui): make network lists adaptive and DPI-aware` | PLANNED — Neighbors + Host Cache + helpers only |
+| 0 | `docs/ui-modernization-plan` | `docs(ui): define desktop modernization architecture` | **IMPLEMENTED** (#296) |
+| 1 | `fix/ui-adaptive-network-lists` | `fix(ui): make network lists adaptive and DPI-aware` | **PARTIAL** — Neighbors + Host Cache + helpers (#297); awaiting merge |
 | 2 | `refactor/ui-shell-navigation` | `refactor(ui): simplify main shell and navigation hierarchy` | PLANNED after Phase 1 merge |
 | 3 | `refactor/ui-transfers-layout` | `refactor(ui): modernize transfers workspace layout` | PLANNED |
 | 4 | `refactor/ui-home-dashboard` | `refactor(ui): modernize home dashboard` | PLANNED |

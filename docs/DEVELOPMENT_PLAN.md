@@ -3,7 +3,14 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-21
+- **Changelog Entry:** 2026-09-21 — UI Phase 1 (#297): merge `develop` after #301; keep both the adaptive-list changelog and the library MountCollection null-guard entry.
 - **Changelog Entry:** 2026-09-21 — #300: `CAlbumFolder::MountCollection` guards null `GetNextFolder` results; `m_pFolders` rejects null inserts; album-root mount is skipped when `m_pAlbumRoot` is null. EnvyTests cannot construct `CAlbumFolder` (MFC/`Library.m_pSection`); policy smoke `test_albumfolder_mountcollection_smoke.cpp`.
+- **Changelog Entry:** 2026-09-20 — UI Phase 1 (#297) Copilot: load ListStates/sticky only once; later OnSkinChange keeps in-session sticky.
+- **Changelog Entry:** 2026-09-20 — UI Phase 1 (#297) Copilot: suppress sticky during SizeLists sizer resize; document sticky clamp to [min,max].
+- **Changelog Entry:** 2026-09-20 — UI Phase 1 (#297) Copilot: sticky mask `ListStates *.Sticky` + normalize non-sticky before SaveList; accept header hwndFrom for HDN; architecture doc status PARTIAL.
+- **Changelog Entry:** 2026-09-20 — UI Phase 1 (#297) Copilot: AdaptiveScalePx saturates via 64-bit product; HDN_ENDTRACK sticky prefers NMHEADER cxy; Bounded docs (no leftover grow).
+- **Changelog Entry:** 2026-09-20 — UI Phase 1 (#297) Copilot: flex remainder redistributes until exhausted; suppress sticky during LoadList; smoke test asserts fixed/bounded sum 668 + capped-peer remainder case.
+- **Changelog Entry:** 2026-09-20 — UI Phase 1 (#295): adaptive column allocator + Neighbors/Host Cache DPI-aware fill (`AdaptiveListColumns.h` / `AdaptiveListLayout.*`); EnvyTests; no protocol change. Architecture doc landed via #296.
 - **Changelog Entry:** 2026-09-20 — UI modernization plan (#296): foundation table distinguishes pointer floor `SCALE(24)` from ~40 EP touch targets (remove “touch-friendly” mislabel).
 - **Changelog Entry:** 2026-09-20 — UI modernization plan (#296): align preflight audit SHA with header (`ccb4d20`); clarify SCALE(24) is not a Windows touch target (~40 EP).
 - **Changelog Entry:** 2026-09-20 — UI modernization plan (#296): address Copilot review — historical soft-PR-target wording; Neighbors OnSize sizer+SizeListAndBar; PROTOCOL_NULL = G2 Horizon; DisplayScaling 100–200; ListStates sticky/adaptive persistence caveat.

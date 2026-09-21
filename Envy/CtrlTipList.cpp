@@ -19,6 +19,7 @@
 #include "StdAfx.h"
 #include "Envy.h"
 #include "CtrlTipList.h"
+#include "AdaptiveListLayout.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -46,6 +47,12 @@ CTipListCtrl::CTipListCtrl()
 
 CTipListCtrl::~CTipListCtrl()
 {
+}
+
+BOOL CTipListCtrl::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult)
+{
+	AdaptiveRelayHeaderNotifyToParent(*this, wParam, lParam);
+	return CListCtrl::OnNotify(wParam, lParam, pResult);
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -36,6 +36,7 @@
 #include "Colors.h"
 #include "Flags.h"
 #include "Skin.h"
+#include "AdaptiveListLayout.h"
 
 #include "WndMain.h"
 #include "WndNeighbours.h"
@@ -73,6 +74,7 @@ enum {
 	COL_LAST  // Column Count
 };
 
+static void FillNeighboursAdaptiveColumnSpecs(AdaptiveColumnSpec* cols);
 
 IMPLEMENT_SERIAL(CNeighboursWnd, CPanelWnd, 0)
 
@@ -110,9 +112,11 @@ END_MESSAGE_MAP()
 // CNeighboursWnd construction
 
 CNeighboursWnd::CNeighboursWnd()
-	: CPanelWnd( TRUE, TRUE )
+    : CPanelWnd(TRUE, TRUE)
 //	, m_tLastUpdate( 0 )	// Using static
 {
+	ZeroMemory(m_bColumnSticky.data(), sizeof(m_bColumnSticky));
+	ZeroMemory(m_nColumnSticky.data(), sizeof(m_nColumnSticky));
 	Create( IDR_NEIGHBOURSFRAME );
 }
 
@@ -153,18 +157,18 @@ int CNeighboursWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_wndList.SetExtendedStyle( LVS_EX_DOUBLEBUFFER|LVS_EX_FULLROWSELECT|LVS_EX_HEADERDRAGDROP|LVS_EX_LABELTIP|LVS_EX_SUBITEMIMAGES );
 
-	m_wndList.InsertColumn( COL_ADDRESS, L"Address",	LVCFMT_LEFT,	110 );
-	m_wndList.InsertColumn( COL_PORT,	 L"Port", 	LVCFMT_CENTER,	 42 );
-	m_wndList.InsertColumn( COL_TIME,	 L"Time",	LVCFMT_CENTER,	 56 );
-	m_wndList.InsertColumn( COL_TRAFFIC, L"Traffic", LVCFMT_CENTER,	 84 );
-	m_wndList.InsertColumn( COL_TOTAL,	 L"Total",	LVCFMT_CENTER,	 96 );
-	m_wndList.InsertColumn( COL_PACKETS, L"Packets",	LVCFMT_CENTER,	 70 );
+	m_wndList.InsertColumn(COL_ADDRESS, L"Address", LVCFMT_LEFT, SCALE(110));
+	m_wndList.InsertColumn(COL_PORT, L"Port", LVCFMT_CENTER, SCALE(42));
+	m_wndList.InsertColumn(COL_TIME, L"Time", LVCFMT_CENTER, SCALE(56));
+	m_wndList.InsertColumn(COL_TRAFFIC, L"Traffic", LVCFMT_CENTER, SCALE(84));
+	m_wndList.InsertColumn(COL_TOTAL, L"Total", LVCFMT_CENTER, SCALE(96));
+	m_wndList.InsertColumn(COL_PACKETS, L"Packets", LVCFMT_CENTER, SCALE(70));
 	m_wndList.InsertColumn( COL_FLOW,	 L"Flow", 	LVCFMT_CENTER,	  0 );
-	m_wndList.InsertColumn( COL_LEAVES,	 L"Leaves",	LVCFMT_CENTER,	 52 );
-	m_wndList.InsertColumn( COL_MODE,	 L"Mode", 	LVCFMT_CENTER,	 84 );
-	m_wndList.InsertColumn( COL_CLIENT,	 L"Client",	LVCFMT_LEFT,	110 );
-	m_wndList.InsertColumn( COL_NAME,	 L"Name", 	LVCFMT_LEFT,	100 );
-	m_wndList.InsertColumn( COL_COUNTRY, L"Country",	LVCFMT_LEFT,	 54 );
+	m_wndList.InsertColumn(COL_LEAVES, L"Leaves", LVCFMT_CENTER, SCALE(52));
+	m_wndList.InsertColumn(COL_MODE, L"Mode", LVCFMT_CENTER, SCALE(84));
+	m_wndList.InsertColumn(COL_CLIENT, L"Client", LVCFMT_LEFT, SCALE(110));
+	m_wndList.InsertColumn(COL_NAME, L"Name", LVCFMT_LEFT, SCALE(100));
+	m_wndList.InsertColumn(COL_COUNTRY, L"Country", LVCFMT_LEFT, SCALE(54));
 
 	//CLiveList::Sort( &m_wndList, COL_MODE );	// Does not work
 
@@ -213,7 +217,14 @@ int CNeighboursWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CNeighboursWnd::OnDestroy()
 {
+	std::array<AdaptiveColumnSpec, COL_LAST> cols{};
+	FillNeighboursAdaptiveColumnSpecs(cols.data());
+	const int nStickyCols = (COL_LAST < 16) ? COL_LAST : 16;
+	AdaptiveNormalizeNonStickyForSave(
+	    m_wndList, cols.data(), COL_LAST, (int)Settings.Interface.DisplayScaling,
+	    m_bColumnSticky.data(), &m_bApplyingColumns);
 	Settings.SaveList( L"CNeighboursWnd", &m_wndList );
+	AdaptiveSaveStickyColumnState(L"CNeighboursWnd", nStickyCols, m_bColumnSticky.data());
 	SaveState( L"CNeighboursWnd" );
 	CPanelWnd::OnDestroy();
 }
@@ -414,13 +425,63 @@ BOOL CNeighboursWnd::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERI
 	return CPanelWnd::OnCmdMsg( nID, nCode, pExtra, pHandlerInfo );
 }
 
+void CNeighboursWnd::ApplyAdaptiveColumns()
+{
+	std::array<AdaptiveColumnSpec, COL_LAST> cols{};
+	FillNeighboursAdaptiveColumnSpecs(cols.data());
+
+	AdaptiveApplyListColumns(
+	    m_wndList,
+	    cols.data(),
+	    COL_LAST,
+	    (int)Settings.Interface.DisplayScaling,
+	    m_bColumnSticky.data(),
+	    m_nColumnSticky.data(),
+	    &m_bApplyingColumns);
+}
+
+static void FillNeighboursAdaptiveColumnSpecs(AdaptiveColumnSpec* cols)
+{
+	cols[COL_ADDRESS] = { AdaptiveColumnBounded, 110, 90, 260, 0, FALSE, 0, FALSE };
+	cols[COL_PORT] = { AdaptiveColumnFixed, 42, 36, 48, 0, FALSE, 0, FALSE };
+	cols[COL_TIME] = { AdaptiveColumnBounded, 56, 48, 90, 0, FALSE, 0, FALSE };
+	cols[COL_TRAFFIC] = { AdaptiveColumnBounded, 84, 64, 120, 0, FALSE, 0, FALSE };
+	cols[COL_TOTAL] = { AdaptiveColumnBounded, 96, 72, 140, 0, FALSE, 0, FALSE };
+	cols[COL_PACKETS] = { AdaptiveColumnBounded, 70, 56, 110, 0, FALSE, 0, FALSE };
+	cols[COL_FLOW] = { AdaptiveColumnFixed, 0, 0, 0, 0, FALSE, 0, TRUE };
+	cols[COL_LEAVES] = { AdaptiveColumnFixed, 52, 40, 64, 0, FALSE, 0, FALSE };
+	cols[COL_MODE] = { AdaptiveColumnBounded, 84, 64, 120, 0, FALSE, 0, FALSE };
+	cols[COL_CLIENT] = { AdaptiveColumnBounded, 110, 80, 180, 0, FALSE, 0, FALSE };
+	cols[COL_NAME] = { AdaptiveColumnFlexible, 100, 80, INT_MAX, 2, FALSE, 0, FALSE };
+	cols[COL_COUNTRY] = { AdaptiveColumnBounded, 54, 40, 90, 0, FALSE, 0, FALSE };
+}
+
+BOOL CNeighboursWnd::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult)
+{
+	const int nStickyCols = (COL_LAST < 16) ? COL_LAST : 16;
+	const AdaptiveStickyNotifyContext ctx{
+		m_wndList,
+		IDC_NEIGHBOURS,
+		m_bApplyingColumns,
+		nStickyCols,
+		m_bColumnSticky.data(),
+		m_nColumnSticky.data()
+	};
+	AdaptiveCaptureStickyColumnFromHeaderNotify(ctx, wParam, lParam);
+	return CPanelWnd::OnNotify(wParam, lParam, pResult);
+}
+
 void CNeighboursWnd::OnSize(UINT nType, int cx, int cy)
 {
 	CPanelWnd::OnSize( nType, cx, cy );
 
+	// SizeLists proportional SetColumn fires HDN_*; suppress sticky capture.
+	m_bApplyingColumns = TRUE;
 	BOOL bSized = m_pSizer.Resize( cx );
+	m_bApplyingColumns = FALSE;
 
 	SizeListAndBar( &m_wndList, &m_wndToolBar );
+	ApplyAdaptiveColumns();
 
 	if ( bSized && m_wndList.GetItemCount() == 0 )
 		m_wndList.Invalidate();
@@ -667,7 +728,18 @@ void CNeighboursWnd::OnSkinChange()
 	CPanelWnd::OnSkinChange();
 
 	// Columns, Toolbar, Font
-	Settings.LoadList( L"CNeighboursWnd", &m_wndList );
+	// Load persisted widths/order/sticky once. Later skin refreshes must keep
+	// in-session sticky state (only saved on destroy).
+	if (!m_bListStateLoaded)
+	{
+		m_bApplyingColumns = TRUE;
+		Settings.LoadList(L"CNeighboursWnd", &m_wndList);
+		m_bApplyingColumns = FALSE;
+		const int nStickyCols = (COL_LAST < 16) ? COL_LAST : 16;
+		AdaptiveLoadStickyColumnState(
+		    L"CNeighboursWnd", nStickyCols, m_bColumnSticky.data(), m_nColumnSticky.data(), m_wndList);
+		m_bListStateLoaded = TRUE;
+	}
 	Skin.CreateToolBar( L"CNeighboursWnd", &m_wndToolBar );
 	m_wndList.SetFont( &theApp.m_gdiFont );
 
@@ -680,6 +752,8 @@ void CNeighboursWnd::OnSkinChange()
 		m_wndList.SetExtendedStyle( LVS_EX_FULLROWSELECT|LVS_EX_HEADERDRAGDROP|LVS_EX_LABELTIP|LVS_EX_SUBITEMIMAGES );		// No LVS_EX_DOUBLEBUFFER	(LVS_EX_TRANSPARENTBKGND ?)
 	else
 		m_wndList.SetBkColor( Colors.m_crWindow );
+
+	ApplyAdaptiveColumns();
 
 	// Update Dropshadow
 	m_wndTip.DestroyWindow();

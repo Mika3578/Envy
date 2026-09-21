@@ -21,6 +21,8 @@
 #include "WndPanel.h"
 #include "CtrlTipList.h"
 
+#include <array>
+
 class CNeighbour;
 
 
@@ -37,7 +39,11 @@ protected:
 	CNeighbourTipCtrl	m_wndTip;
 	CLiveListSizer		m_pSizer;
 	CImageList			m_gdiImageList;
-//	DWORD				m_tLastUpdate;	// Using static
+	std::array<BOOL, 16> m_bColumnSticky{};
+	std::array<int, 16> m_nColumnSticky{};
+	BOOL m_bApplyingColumns = FALSE;
+	BOOL m_bListStateLoaded = FALSE;
+	//	DWORD				m_tLastUpdate;	// Using static
 
 public:
 	void		Update();
@@ -50,8 +56,10 @@ public:
 	virtual void OnSkinChange();
 	virtual BOOL OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	BOOL OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult) override;
 
 protected:
+	void ApplyAdaptiveColumns();
 	afx_msg int  OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);

@@ -35,6 +35,7 @@ void register_firewall_wfas_policy_smoke_tests(TestSuite& suite);
 void register_network_job_queue_smoke_tests(TestSuite& suite);
 void register_chat_session_queue_smoke_tests(TestSuite& suite);
 void register_textctrl_viewport_smoke_tests(TestSuite& suite);
+void register_adaptive_list_columns_smoke_tests(TestSuite& suite);
 void register_bootstrap_catalog_smoke_tests(TestSuite& suite);
 void register_kad_nodes_dat_tests(TestSuite& suite);
 void register_transfer_settings_limits_smoke_tests(TestSuite& suite);
@@ -77,6 +78,7 @@ int main(int argc, char** argv)
 	register_network_job_queue_smoke_tests(suite);
 	register_chat_session_queue_smoke_tests(suite);
 	register_textctrl_viewport_smoke_tests(suite);
+	register_adaptive_list_columns_smoke_tests(suite);
 	register_bootstrap_catalog_smoke_tests(suite);
 	register_kad_nodes_dat_tests(suite);
 	register_transfer_settings_limits_smoke_tests(suite);
