@@ -1,7 +1,7 @@
 # Repository tree hygiene (live baseline)
 
 Status: active inventory (not a migration plan)
-Last verified: 2026-09-21 against `develop` `0f39cd3`
+Last verified: 2026-09-21 against `develop` `27f9942` plus this PR (3350 tracked files)
 Scope: tracked files only. No directory rename. No Git LFS. No mass delete.
 
 This document is the canonical **tree-hygiene** record. Protocol/status remains
@@ -11,7 +11,7 @@ This document is the canonical **tree-hygiene** record. Protocol/status remains
 
 | Item | Value |
 |------|--------|
-| Files | 3344 |
+| Files | 3350 (3344 on `0f39cd3` before #299; +#299 workflows/docs + this inventory) |
 | Directories | 164 |
 | Open development PRs at audit | 3 (#298, #299, #303) — under the soft target of 5 |
 | Related open issue | [#85](https://github.com/Mika3578/Envy/issues/85) (status/roadmap drift; not this inventory) |

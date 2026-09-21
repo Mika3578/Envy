@@ -2,7 +2,8 @@
 
 **Not current.** This file preserves the pre-numbered `docs/user` /
 `docs/developer` index. Live index: [`README.md`](README.md). Many relative
-links below point at paths that no longer exist.
+links below point at paths that no longer exist **on purpose**; they are
+not a Documentation Check of the live tree.
 
 ## 📖 Documentation Structure
 
