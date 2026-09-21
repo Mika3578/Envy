@@ -87,6 +87,15 @@ void CEDPartImporter::CopyJobs(CArray< CEDPartImportJob >& oOut) const
 	oOut.Copy( m_pJobs );
 }
 
+void CEDPartImporter::TakeLogs(CString& sOut)
+{
+	CQuickLock oLock( m_pSection );
+	sOut.Empty();
+	for ( POSITION pos = m_pLogs.GetHeadPosition(); pos; )
+		sOut += m_pLogs.GetNext( pos );
+	m_pLogs.RemoveAll();
+}
+
 void CEDPartImporter::GetTotals(int& nJobs, int& nCompleted, int& nFailed, int& nCancelled,
 	int& nOverallPercent, CString& sCurrent, int& nCurrentPercent,
 	ULONGLONG& tLastProgress) const
@@ -706,10 +715,6 @@ void CEDPartImporter::NotifyRefresh()
 
 void CEDPartImporter::Message(UINT nMessageID, ...)
 {
-	HWND h = m_hNotify;
-	if ( ! h || ! IsWindow( h ) )
-		return;
-
 	const DWORD nBufferLength = 2048;
 	auto_array< TCHAR > szBuffer( new TCHAR[ nBufferLength ] );
 	ZeroMemory( szBuffer.get(), nBufferLength * sizeof( TCHAR ) );
@@ -722,7 +727,12 @@ void CEDPartImporter::Message(UINT nMessageID, ...)
 	_tcscat( szBuffer.get(), L"\r\n" );
 	va_end( pArgs );
 
-	CString* pText = new CString( szBuffer.get() );
-	if ( ! PostMessage( h, WM_ED2K_IMPORT_LOG, 0, reinterpret_cast< LPARAM >( pText ) ) )
-		delete pText;
+	{
+		CQuickLock oLock( m_pSection );
+		m_pLogs.AddTail( szBuffer.get() );
+		while ( m_pLogs.GetCount() > 500 )
+			m_pLogs.RemoveHead();
+	}
+
+	NotifyRefresh();
 }

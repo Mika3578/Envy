@@ -21,7 +21,6 @@
 #include "ThreadImpl.h"
 #include "PartialImportTypes.h"
 
-#define WM_ED2K_IMPORT_LOG		( WM_APP + 41 )
 #define WM_ED2K_IMPORT_REFRESH	( WM_APP + 42 )
 
 class CDownload;
@@ -57,6 +56,7 @@ public:
 	void	DetachNotify();
 
 	void	CopyJobs(CArray< CEDPartImportJob >& oOut) const;
+	void	TakeLogs(CString& sOut);
 	void	GetTotals(int& nJobs, int& nCompleted, int& nFailed, int& nCancelled,
 				int& nOverallPercent, CString& sCurrent, int& nCurrentPercent,
 				ULONGLONG& tLastProgress) const;
@@ -64,6 +64,7 @@ public:
 protected:
 	mutable CCriticalSection	m_pSection;
 	CList< CString >			m_pFolders;
+	CList< CString >			m_pLogs;
 	CArray< CEDPartImportJob >	m_pJobs;
 	HWND						m_hNotify;
 	int							m_nCount;

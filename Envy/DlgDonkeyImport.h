@@ -71,7 +71,6 @@ protected:
 	afx_msg void OnImport();
 	afx_msg void OnAddFolder();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
-	afx_msg LRESULT OnImportLog(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnImportRefresh(WPARAM wParam, LPARAM lParam);
 
 	DECLARE_MESSAGE_MAP()

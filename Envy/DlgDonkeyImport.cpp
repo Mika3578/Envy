@@ -37,7 +37,6 @@ BEGIN_MESSAGE_MAP(CDonkeyImportDlg, CSkinDialog)
 	ON_BN_CLICKED(IDC_IMPORT, OnImport)
 	ON_BN_CLICKED(IDC_IMPORT_ADD_FOLDER, OnAddFolder)
 	ON_BN_CLICKED(IDC_CLOSE, OnHide)
-	ON_MESSAGE(WM_ED2K_IMPORT_LOG, OnImportLog)
 	ON_MESSAGE(WM_ED2K_IMPORT_REFRESH, OnImportRefresh)
 END_MESSAGE_MAP()
 
@@ -84,18 +83,17 @@ CDonkeyImportDlg* CDonkeyImportDlg::OpenModeless(CWnd* pParent)
 
 void CDonkeyImportDlg::CloseInstance()
 {
-	if ( ! s_pDlg )
+	CDonkeyImportDlg* pDlg = s_pDlg;
+	s_pDlg = NULL;
+	if ( ! pDlg )
 		return;
 
-	s_pDlg->m_pImporter.Stop();
-	s_pDlg->m_pImporter.DetachNotify();
-	if ( IsWindow( s_pDlg->GetSafeHwnd() ) )
-		s_pDlg->DestroyWindow();
+	pDlg->m_pImporter.DetachNotify();
+	pDlg->m_pImporter.Stop();
+	if ( IsWindow( pDlg->GetSafeHwnd() ) )
+		pDlg->DestroyWindow();
 	else
-	{
-		delete s_pDlg;
-		s_pDlg = NULL;
-	}
+		delete pDlg;
 }
 
 void CDonkeyImportDlg::AddFolder(LPCTSTR pszFolder)
@@ -200,7 +198,6 @@ void CDonkeyImportDlg::OnClose()
 
 void CDonkeyImportDlg::PostNcDestroy()
 {
-	m_pImporter.Stop();
 	if ( s_pDlg == this )
 		s_pDlg = NULL;
 	delete this;
@@ -218,21 +215,6 @@ void CDonkeyImportDlg::OnTimer(UINT_PTR /*nIDEvent*/)
 		m_wndClose.ShowWindow( SW_SHOW );
 		m_wndClose.SetFocus();
 	}
-}
-
-LRESULT CDonkeyImportDlg::OnImportLog(WPARAM /*wParam*/, LPARAM lParam)
-{
-	CString* pText = reinterpret_cast< CString* >( lParam );
-	if ( ! pText )
-		return 0;
-
-	int nLen = m_wndLog.GetWindowTextLength();
-	m_wndLog.SetSel( nLen, nLen );
-	m_wndLog.ReplaceSel( *pText );
-	nLen += pText->GetLength();
-	m_wndLog.SetSel( nLen, nLen );
-	delete pText;
-	return 0;
 }
 
 LRESULT CDonkeyImportDlg::OnImportRefresh(WPARAM /*wParam*/, LPARAM /*lParam*/)
@@ -278,6 +260,17 @@ CString CDonkeyImportDlg::StageText(PartialImportStage nStage, PartialImportErro
 
 void CDonkeyImportDlg::RefreshJobs()
 {
+	CString sLog;
+	m_pImporter.TakeLogs( sLog );
+	if ( ! sLog.IsEmpty() )
+	{
+		int nLen = m_wndLog.GetWindowTextLength();
+		m_wndLog.SetSel( nLen, nLen );
+		m_wndLog.ReplaceSel( sLog );
+		nLen += sLog.GetLength();
+		m_wndLog.SetSel( nLen, nLen );
+	}
+
 	int nJobs = 0, nCompleted = 0, nFailed = 0, nCancelled = 0, nOverall = 0, nCurrent = 0;
 	CString sCurrent;
 	ULONGLONG tLast = 0;

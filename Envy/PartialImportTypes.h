@@ -112,14 +112,11 @@ inline bool PartialImportPartNameIsSafe(const wchar_t* pszName) noexcept
 
 	for ( const wchar_t* p = pszName; *p; ++p )
 	{
-		if ( *p == L'\\' || *p == L'/' || *p == L':' || *p == L'\0' )
+		if ( *p == L'\\' || *p == L'/' || *p == L':' )
 			return false;
 		if ( *p == L'.' && p[ 1 ] == L'.' )
 			return false;
 	}
-
-	if ( wcsstr( pszName, L":" ) != nullptr )
-		return false;
 
 	return true;
 }
