@@ -84,6 +84,14 @@ Do **not** rename `Envy/`, `Services/`, `Plugins/`, `Repository/`, `Visual Studi
    (`27f9942`, 2026-09-21) live REST reports **1 required approval**.
    `Review Lifecycle Gate` is still **not** a required Protect develop
    context. Copilot UI approve/count are not ruleset fields.
+8. **PR Gate vs cancelled concurrent checks (canary #304):** on the first
+   ready-for-review+push of `bd3761a`, PR Gate fail-closed because
+   `Format Check` / `Analyze (javascript-typescript)` were still
+   `cancelled` (superseded Code Quality/CodeQL runs) before the
+   replacement jobs existed. That is fail-closed, not a docs defect.
+   `gh run rerun` of PR Gate was not available to this agent (`403`).
+   A later synchronize is required so PR Gate can wait the full timeout
+   against the replacement checks.
 
 ## Safe now vs later
 
