@@ -80,17 +80,18 @@ Docs-only / non-Windows PRs still **emit** `Build x64 Release` and
 sets `run_windows_build=false` (same always-emit pattern as Documentation
 Check). They must not stay SKIPPED under a strict ruleset.
 
-CodeRabbit / reviewdog / Bugbot are **advisory** and must not be the sole
-merge blocker. Live native review policy on Protect develop (re-verified
-2026-09-20) is **≥1 APPROVED** review from a non-author reviewer. In this
-solo-maintainer repo, GitHub Copilot Code Review may satisfy it only when
-approval/counting are enabled in the Copilot repository UI, any path
-allowlist matches every changed file, and GitHub records an actual
-`APPROVED` review. An assessment is not an approval. See
+CodeRabbit / reviewdog / Bugbot are **advisory pre-review** and must not
+be the sole merge blocker. Live native review policy on Protect develop
+(re-verified 2026-09-21) is **≥1 APPROVED** review from a non-author
+reviewer. Repository policy: Copilot Code Review is the **final
+reviewer**; the `Review Lifecycle Gate` requires Copilot `APPROVED` on
+the current HEAD and is not ruleset-required until added manually. Do
+not enable `copilot_code_review.review_on_push`. See
 [KNOWN_INCONSISTENCIES](../00_index/KNOWN_INCONSISTENCIES.md) and
 [CI_AUDIT_2026-09](CI_AUDIT_2026-09.md). Dismiss stale on push remains on,
 `require_last_push_approval` off, conversations resolved, signed commits,
-force pushes blocked. PR Gate is CI wait only.
+force pushes blocked. PR Gate is CI wait only (includes required `gitleaks`
+and `SonarCloud Code Analysis` so Copilot final request cannot race them).
 
 See [devsecops-envy.md](devsecops-envy.md) for the full stack map.
 Measured timings, critical path, and CI cost notes live in

@@ -30,6 +30,11 @@ add_skip() { may_skip+=("$1"); }
 
 add_must "Lint build files"
 add_must "secret-scan"
+# Protect develop required contexts (ruleset 16457466). Waiting here keeps
+# workflow_run(PR Gate) → Request final Copilot from racing ahead of these
+# external checks and no-op'ing until nothing re-triggers.
+add_must "gitleaks"
+add_must "SonarCloud Code Analysis"
 add_must "Vcpkg manifest sanity"
 # Code Scanning expects all three develop CodeQL configurations on every PR.
 add_must "Analyze (c-cpp)"

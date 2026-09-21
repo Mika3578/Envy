@@ -105,17 +105,25 @@ Branch model:
     `develop`, and enable **squash auto-merge**. GitHub will merge only when
     the live **Protect develop** ruleset is satisfied, including:
     - at least one GitHub review with state **APPROVED** from a reviewer
-      other than the PR author (Protect develop live requirement). In this
-      solo-maintainer repository, **GitHub Copilot Code Review may satisfy
-      that approval** only when repository Copilot settings allow Copilot to
-      approve **and** count toward merge requirements, any path allowlist
-      matches every changed file, and GitHub records an actual `APPROVED`
-      review. An approval *assessment* or an AI comment (CodeRabbit, Amazon Q,
-      Sourcery, Copilot summary, etc.) is not an approval. A Copilot
-      `APPROVED` review is not proof of correctness; required CI and
-      security checks stay independent. Never manufacture
+      other than the PR author (Protect develop live requirement). The
+      **final reviewer is Copilot Code Review**. Other AI tools (Amazon Q,
+      Sourcery, Cubic, Cursor Bugbot/Security/Approval, CodeRabbit) are
+      **advisory pre-review** and must not replace Copilot. PASS of the
+      `Review Lifecycle Gate` requires a real GitHub review
+      `state == APPROVED`, `author == copilot-pull-request-reviewer`,
+      `commit == current HEAD`, not `DISMISSED`. A `COMMENTED` review, an
+      approval *assessment*, a successful Copilot check, a review on an
+      older SHA, or a human/other-bot `APPROVED` is not the final
+      approval. Copilot is requested **after** required technical checks
+      (PR Gate) succeed — not on every push, and **not** via ruleset
+      `copilot_code_review.review_on_push`. Copilot UI settings must allow
+      Copilot to approve **and** count toward merge requirements or the
+      native ruleset stays `REVIEW_REQUIRED` even after the CI gate is
+      green. A Copilot `APPROVED` review is not proof of correctness;
+      required CI and security checks stay independent. Never manufacture
       approval with GitHub Actions or a self-approval workflow. Copilot
-      cloud-agent PRs still need a non-Copilot reviewer;
+      cloud-agent PRs still need a non-Copilot reviewer in addition to
+      the Copilot Code Review cycle;
     - stale approvals are dismissed when new commits are pushed
       (`require_last_push_approval` remains **off** so a valid non-author
       approval, including Copilot when enabled, can satisfy the count);
@@ -123,9 +131,27 @@ Branch model:
       as the enforceable state, record the mismatch, and update docs — do not
       claim a setting is enforced until the ruleset confirms it;
     - all review threads resolved and no active **CHANGES_REQUESTED**;
+    - the current HEAD has a completed **final** Copilot Code Review
+      (`APPROVED` on that SHA). `required_review_thread_resolution` only
+      sees threads that already exist; it does not wait for an in-flight
+      Copilot review, and Actions cannot subscribe to thread resolve.
+      The CI check `Review Lifecycle Gate` encodes the HEAD-bound Copilot
+      approval rule and is **not** a Protect develop required context
+      until a maintainer adds it after validation;
     - all **required** status checks green; branch up to date with `develop`;
     - PR not a draft; squash-only on `develop`; signed commits; force pushes
       blocked; no ruleset bypass.
+
+    Distinguish four layers; do not call a setting “live/enforced” unless
+    that layer actually has it:
+    - **GitHub ruleset enforced:** Protect develop REST/GraphQL snapshot.
+    - **Repository policy:** this file (including Copilot cloud-agent PRs
+      still needing a non-Copilot reviewer).
+    - **Copilot UI setting:** Settings → Copilot → Code review (approve,
+      count, effort, path allowlist). Not exposed by the available API.
+      Do **not** enable repository/ruleset auto-review-on-push; that
+      would run Copilot before the advisory pre-review wave.
+    - **CI check:** `Review Lifecycle Gate` and other Actions contexts.
     Additionally apply the usual change-quality gates (sufficient tests;
     no unvalidated risky protocol/crypto/auth/threading/locking/memory or
     undocumented wire-format change). For high-risk areas (ED2K/eMule,

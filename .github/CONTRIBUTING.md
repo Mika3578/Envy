@@ -123,11 +123,15 @@ hold (enforced by the live GitHub ruleset, not by CI alone):
    final-reviewer workflow).
 4. **All review conversations / threads are resolved**.
 5. There is no outstanding **CHANGES_REQUESTED** review.
-6. All **required status checks** are green and the branch is **up to date**
+6. The current HEAD has a completed review cycle (Copilot Code Review
+   submitted for that SHA). Thread resolution alone does not wait for an
+   in-flight Copilot review. The CI check `Review Lifecycle Gate` encodes
+   this and is not a required Protect develop context until added manually.
+7. All **required status checks** are green and the branch is **up to date**
    with `develop` (strict checks).
-7. Merge method on `develop` is **squash** only; history stays **linear**;
+8. Merge method on `develop` is **squash** only; history stays **linear**;
    commits must be **signed**; force pushes are blocked.
-8. **No bypass actors** — do not use admin merge, `--admin`, or a PAT to
+9. **No bypass actors** — do not use admin merge, `--admin`, or a PAT to
    override the ruleset.
 
 The declarative template in `.github/settings.yml` mirrors the Probot-capable

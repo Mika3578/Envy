@@ -1,6 +1,6 @@
 # Envy DevSecOps map (cost-minimal, Windows-first)
 
-**Last Updated:** 2026-09-19
+**Last Updated:** 2026-09-20
 **Repo:** [Mika3578/Envy](https://github.com/Mika3578/Envy) (not upstream GetEnvy/Envy)
 **Full measured CI audit:** [CI_AUDIT_2026-09.md](CI_AUDIT_2026-09.md)
 
@@ -57,14 +57,25 @@ BLOCK (native GitHub review rules on Protect develop — not replaceable by PR G
 - Code scanning merge protection: CodeQL + Gitleaks (current thresholds)
 - GitHub **Code Quality** severity **All** (live). Code Quality complements —
   it does not replace — SonarCloud/CodeQL/MSVC/tests for the C++ core.
-- Copilot ruleset: `review_on_push` **on**, draft review **off** (live).
+- Copilot `copilot_code_review` ruleset rule: **absent** on Protect develop
+  (`VERIFIED VIA API`, REST+GraphQL 2026-09-20). Protect main has the rule
+  with `review_on_push: false` and `review_draft_pull_requests: false`.
+- Observed GitHub state (not a develop ruleset rule): ready develop PRs
+  receive Copilot reviews plus a HEAD-tied check `copilot-pull-request-reviewer`;
+  draft PRs do not.
+- CI check `Review Lifecycle Gate`: Copilot `APPROVED` on the current
+  HEAD after advisory pre-review; drafts skip. Strict (pending fails the
+  job). **Not** a required Protect develop context until added
+  manually. Do **not** enable `copilot_code_review.review_on_push`.
 - No draft; squash only on `develop`; linear history; **no bypass actors**
 
 ADVISORY: CodeRabbit, clang-tidy + reviewdog, Snyk (when present), Cursor Bugbot
 (optional / paid — not primary).
 
-Never require CodeRabbit or Bugbot as the sole merge gate. PR Gate only waits
-on classified CI checks; it does **not** approve or merge.
+Never require CodeRabbit or Bugbot as the sole merge gate. PR Gate waits on
+classified CI checks plus Protect develop contexts `gitleaks` and
+`SonarCloud Code Analysis` so final Copilot request cannot race ahead of
+those required checks; it does **not** approve or merge.
 
 ## Dependency automation
 
@@ -132,8 +143,9 @@ comparison notes.
      `AGENTS.md`). Leave the list **blank** only for a one-shot merge
      where Copilot must count on a governance PR (then apply the globs
      immediately after).
-   - Protect develop already requests Copilot on ready-for-review and
-     on push; keep draft review **off**.
+   - Automatic Copilot review of ready develop PRs is observed in GitHub
+     review/check history. Protect develop does **not** currently contain
+     `copilot_code_review` (`VERIFIED VIA API`). Keep draft review **off**.
    Assessment ≠ approval. Copilot-authored PRs still need a human.
    A Copilot `APPROVED` review is not proof of correctness (business
    logic, production behavior, missed security, performance, or
@@ -148,8 +160,13 @@ comparison notes.
    - Dismiss stale pull request approvals when new commits are pushed: **on**
    - Require approval of the most recent reviewable push: **off**
    - Require conversation resolution before merging: **on**
-   - Additional approval for unattributed Copilot PRs: **off** for the
-     solo-maintainer/agent workflow
+   - Additional approval for unattributed Copilot PRs: **off** on develop
+     (`VERIFIED VIA API`). GitHub's extra approval applies only when Copilot
+     opens an *unattributed* PR (own app identity, e.g. Slack/Teams). That
+     is **not** the same as repository policy that Copilot cloud-agent PRs
+     still need a non-Copilot reviewer. Cursor/agent PRs attributed to the
+     maintainer are unaffected. Do not enable this knob as a substitute
+     for that policy.
    - Allowed merge methods: **squash** only
    - Require branches up to date before merging: **on**
    - Signed commits: **on**; block force pushes: **on**; deletion blocked;
@@ -159,14 +176,19 @@ comparison notes.
    - GitHub Code Quality: severity **All** (live)
    - Restrict code coverage: **off for now** — do not enable until PR coverage
      data is uploaded reliably and a baseline has been measured
-   - Copilot ruleset: review new pushes **on**; review drafts **off**
-6. **GitHub Copilot Code Review (repository UI — manual verify):** Settings →
-   Copilot → Code review: effort **Balanced**; **Allow Copilot to approve pull
-   requests** ON; **Allow Copilot approvals to count toward merge
-   requirements** ON; path allowlist as in item 3 (exclude
-   review-governance and infra). Automatically request Copilot
-   code review is already on via Protect develop (`review_on_push`). These
-   toggles and globs are not on the ruleset API. See
+   - Copilot `copilot_code_review` on Protect develop: **not present**
+     (`VERIFIED VIA API`). Do **not** add `review_on_push: true`; Copilot
+     must be requested after PR Gate / advisory pre-review.
+6. **GitHub Copilot Code Review (repository UI — `NOT EXPOSED BY AVAILABLE
+   API`):** Settings → Copilot → Code review. Documented target: effort
+   **Balanced**; **Allow Copilot to approve pull requests** ON; **Allow
+   Copilot approvals to count toward merge requirements** ON; path
+   allowlist as in item 3 (exclude review-governance and infra). These
+   toggles are not on the ruleset API. Automatic review of *ready*
+   develop PRs is `VERIFIED VIA AVAILABLE GITHUB STATE` (Copilot reviews +
+   `copilot-pull-request-reviewer` check on HEAD). Draft review is
+   observed off. Do not call the develop ruleset `review_on_push` live
+   until `copilot_code_review` appears on Protect develop. See
    [Using AI-Approved Pull Requests Safely with GitHub Copilot](https://www.c-sharpcorner.com/article/using-ai-approved-pull-requests-safely-with-github-copilot/).
 7. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 
@@ -184,5 +206,6 @@ but should stay grouped.
 ## Related
 
 - [agents-and-automation.md](agents-and-automation.md)
+- [POST_MERGE_REVIEW_AUDIT_2026-09.md](POST_MERGE_REVIEW_AUDIT_2026-09.md)
 - [AGENTS.md](../../AGENTS.md)
 - Overnight local policy: `.cursor/rules/10-autonomous-overnight.mdc` (gitignored / local-only)

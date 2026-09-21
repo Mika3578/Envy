@@ -8,9 +8,11 @@ description: Review Envy pull requests against AGENTS.md. Use when reviewing a P
 Read root `AGENTS.md` before commenting or submitting a review. Do not
 duplicate those global rules here.
 
-An **approval assessment** ("ready to approve") is not an `APPROVED` review
-and does not satisfy Protect develop. Submit `APPROVED` only when the
-gates below hold and repository Copilot approval settings allow it.
+Copilot Code Review is the **final reviewer**. Other AI comments are
+pre-review only. An **approval assessment** ("ready to approve") is not an
+`APPROVED` review and does not satisfy Protect develop or the Review
+Lifecycle Gate. Submit `APPROVED` only when the gates below hold and
+repository Copilot approval settings allow Copilot to approve.
 
 ## Risk class
 
@@ -57,6 +59,15 @@ request a human; do not `APPROVED`.
 - The pull request is not a draft and is not Copilot-authored.
 - Required Protect develop checks are green. If CI is still running, wait.
 - No unresolved review threads and no outstanding `CHANGES_REQUESTED`.
+- The current HEAD has a completed **final** Copilot cycle: GitHub
+  records `copilot-pull-request-reviewer` `APPROVED` on this exact SHA.
+  A Copilot, CodeRabbit, Amazon Q, Sourcery, Cubic, or Cursor *comment*
+  is not an `APPROVED` review. The
+  `copilot-pull-request-reviewer` check success is supporting evidence,
+  not a substitute. The `Review Lifecycle Gate` CI check encodes this on
+  ready PRs (drafts are skipped). Unresolved threads are enforced by
+  Protect develop, not by this CI check. The gate is not a Protect
+  develop required context until a maintainer adds it.
 - The change does not disable, skip, relabel, or weaken a required
   build/test/static-analysis/security/quality gate.
 - Low-risk PRs: docs match the live Protect develop ruleset.
