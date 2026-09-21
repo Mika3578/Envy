@@ -30,7 +30,10 @@ public:
 	CDonkeyImportDlg(CWnd* pParent = NULL);
 	virtual ~CDonkeyImportDlg();
 
-	enum { IDD = IDD_DONKEY_IMPORT };
+	enum
+	{
+		IDD = IDD_DONKEY_IMPORT
+	};
 
 	static CDonkeyImportDlg* OpenModeless(CWnd* pParent);
 	static void CloseInstance();
@@ -53,17 +56,16 @@ public:
 	CStatic m_wndCurrentText;
 	CListCtrl m_wndJobs;
 
-	CString	m_sCancel;
+	CString m_sCancel;
 
 protected:
-	static CDonkeyImportDlg* s_pDlg;
+	static CDonkeyImportDlg& Instance();
 	void RefreshJobs();
 	CString StageText(PartialImportStage nStage, PartialImportError nError) const;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);
 	virtual void OnCancel();
-	virtual void PostNcDestroy();
 
 	virtual BOOL OnInitDialog();
 	afx_msg void OnClose();

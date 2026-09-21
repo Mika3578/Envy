@@ -25,86 +25,78 @@
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #define new DEBUG_NEW
-#endif	// Debug
+#endif // Debug
 
 IMPLEMENT_DYNAMIC(CDonkeyImportDlg, CSkinDialog)
 
-CDonkeyImportDlg* CDonkeyImportDlg::s_pDlg = NULL;
-
 BEGIN_MESSAGE_MAP(CDonkeyImportDlg, CSkinDialog)
-	ON_WM_TIMER()
-    ON_WM_CLOSE()
-    ON_BN_CLICKED(IDC_IMPORT, OnImport)
-    ON_BN_CLICKED(IDC_IMPORT_ADD_FOLDER, OnAddFolder)
-    ON_BN_CLICKED(IDC_CLOSE, OnHide)
-    ON_MESSAGE(WM_ED2K_IMPORT_REFRESH, OnImportRefresh)
-    END_MESSAGE_MAP()
+ON_WM_TIMER()
+ON_WM_CLOSE()
+ON_BN_CLICKED(IDC_IMPORT, OnImport)
+ON_BN_CLICKED(IDC_IMPORT_ADD_FOLDER, OnAddFolder)
+ON_BN_CLICKED(IDC_CLOSE, OnHide)
+ON_MESSAGE(WM_ED2K_IMPORT_REFRESH, OnImportRefresh)
+END_MESSAGE_MAP()
 
 
-    /////////////////////////////////////////////////////////////////////////////
-    // CDonkeyImportDlg dialog
+/////////////////////////////////////////////////////////////////////////////
+// CDonkeyImportDlg dialog
 
-    CDonkeyImportDlg::CDonkeyImportDlg(CWnd* pParent /*=NULL*/)
-        : CSkinDialog(CDonkeyImportDlg::IDD, pParent)
-    {
-    }
+CDonkeyImportDlg::CDonkeyImportDlg(CWnd* pParent /*=NULL*/)
+    : CSkinDialog(CDonkeyImportDlg::IDD, pParent)
+{
+}
 
-    CDonkeyImportDlg::~CDonkeyImportDlg()
-    {
-	    if (s_pDlg == this)
-		    s_pDlg = NULL;
-    }
+CDonkeyImportDlg::~CDonkeyImportDlg()
+{
+}
 
-    BOOL CDonkeyImportDlg::IsOpen()
-    {
-	    return s_pDlg != NULL && IsWindow(s_pDlg->GetSafeHwnd());
-    }
+CDonkeyImportDlg& CDonkeyImportDlg::Instance()
+{
+	static CDonkeyImportDlg s_dlg;
+	return s_dlg;
+}
 
-    CDonkeyImportDlg* CDonkeyImportDlg::OpenModeless(CWnd* pParent)
-    {
-	    if (s_pDlg && IsWindow(s_pDlg->GetSafeHwnd()))
-	    {
-		    s_pDlg->ShowWindow(SW_SHOW);
-		    s_pDlg->SetForegroundWindow();
-		    return s_pDlg;
-	    }
+BOOL CDonkeyImportDlg::IsOpen()
+{
+	return Instance().GetSafeHwnd() != NULL;
+}
 
-	    s_pDlg = new CDonkeyImportDlg(pParent);
-	    if (!s_pDlg->Create(CDonkeyImportDlg::IDD, pParent))
-	    {
-		    delete s_pDlg;
-		    s_pDlg = NULL;
-		    return NULL;
-	    }
+CDonkeyImportDlg* CDonkeyImportDlg::OpenModeless(CWnd* pParent)
+{
+	CDonkeyImportDlg& dlg = Instance();
+	if (dlg.GetSafeHwnd() != NULL)
+	{
+		dlg.ShowWindow(SW_SHOW);
+		dlg.SetForegroundWindow();
+		return &dlg;
+	}
 
-	    s_pDlg->ShowWindow(SW_SHOW);
-	    return s_pDlg;
-    }
+	if (!dlg.Create(CDonkeyImportDlg::IDD, pParent))
+		return NULL;
 
-    void CDonkeyImportDlg::CloseInstance()
-    {
-	    CDonkeyImportDlg* pDlg = s_pDlg;
-	    s_pDlg = NULL;
-	    if (!pDlg)
-		    return;
+	dlg.ShowWindow(SW_SHOW);
+	return &dlg;
+}
 
-	    pDlg->m_pImporter.DetachNotify();
-	    pDlg->m_pImporter.Stop();
-	    if (IsWindow(pDlg->GetSafeHwnd()))
-		    pDlg->DestroyWindow();
-	    else
-		    delete pDlg;
-    }
+void CDonkeyImportDlg::CloseInstance()
+{
+	CDonkeyImportDlg& dlg = Instance();
+	dlg.m_pImporter.DetachNotify();
+	dlg.m_pImporter.Stop();
+	if (dlg.GetSafeHwnd() != NULL)
+		dlg.DestroyWindow();
+}
 
-    void CDonkeyImportDlg::AddFolder(LPCTSTR pszFolder)
-    {
-	    m_pImporter.AddFolder(pszFolder);
-    }
+void CDonkeyImportDlg::AddFolder(LPCTSTR pszFolder)
+{
+	m_pImporter.AddFolder(pszFolder);
+}
 
-    void CDonkeyImportDlg::StartImport()
-    {
-	    OnImport();
-    }
+void CDonkeyImportDlg::StartImport()
+{
+	OnImport();
+}
 
 void CDonkeyImportDlg::DoDataExchange(CDataExchange* pDX)
 {
@@ -129,15 +121,15 @@ BOOL CDonkeyImportDlg::OnInitDialog()
 {
 	CSkinDialog::OnInitDialog();
 
-	SkinMe( L"CDonkeyImportDlg", IDR_MAINFRAME );
+	SkinMe(L"CDonkeyImportDlg", IDR_MAINFRAME);
 
 	CString str;
-	m_wndCancel.GetWindowText( str );
-	int nPos = str.Find( L'|' );
-	if ( nPos > 0 )
+	m_wndCancel.GetWindowText(str);
+	int nPos = str.Find(L'|');
+	if (nPos > 0)
 	{
-		m_sCancel = str.Mid( nPos + 1 );
-		m_wndCancel.SetWindowText( str.Left( nPos ) );
+		m_sCancel = str.Mid(nPos + 1);
+		m_wndCancel.SetWindowText(str.Left(nPos));
 	}
 
 	m_wndOverall.SetRange(0, 100);
@@ -162,7 +154,7 @@ void CDonkeyImportDlg::OnImport()
 	if (m_pImporter.IsThreadAlive())
 		return;
 
-	m_wndImport.EnableWindow( FALSE );
+	m_wndImport.EnableWindow(FALSE);
 	if (!m_sCancel.IsEmpty())
 		m_wndCancel.SetWindowText(m_sCancel);
 	m_pImporter.Start(GetSafeHwnd());
@@ -196,23 +188,16 @@ void CDonkeyImportDlg::OnClose()
 	ShowWindow(SW_HIDE);
 }
 
-void CDonkeyImportDlg::PostNcDestroy()
-{
-	if (s_pDlg == this)
-		s_pDlg = NULL;
-	delete this;
-}
-
 void CDonkeyImportDlg::OnTimer(UINT_PTR /*nIDEvent*/)
 {
 	RefreshJobs();
 
-	if ( ! m_pImporter.IsThreadAlive() )
+	if (!m_pImporter.IsThreadAlive())
 	{
-		KillTimer( 1 );
+		KillTimer(1);
 		m_wndImport.EnableWindow(TRUE);
-		m_wndClose.ModifyStyle( 0, BS_DEFPUSHBUTTON );
-		m_wndClose.ShowWindow( SW_SHOW );
+		m_wndClose.ModifyStyle(0, BS_DEFPUSHBUTTON);
+		m_wndClose.ShowWindow(SW_SHOW);
 		m_wndClose.SetFocus();
 	}
 }
