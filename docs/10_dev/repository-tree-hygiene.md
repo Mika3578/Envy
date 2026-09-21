@@ -13,7 +13,7 @@ This document is the canonical **tree-hygiene** record. Protocol/status remains
 |------|--------|
 | Files | 3350 (3344 on `0f39cd3` before #299; +#299 workflows/docs + this inventory) |
 | Directories | 164 |
-| Open development PRs at audit | 3 (#298, #299, #303) — under the soft target of 5 |
+| Open development PRs | Snapshot 2026-09-21 09:41 UTC (pre-#299 merge): 3 (#298, #299, #303). Snapshot 2026-09-21 12:07 UTC: 5 (#298, #303, #304, #305, #306). Soft target remains 5. |
 | Related open issue | [#85](https://github.com/Mika3578/Envy/issues/85) (status/roadmap drift; not this inventory) |
 | Overlap | #303 edits contributor/agent policy; do not duplicate that work here |
 | Git pack size | ~59 MiB |
