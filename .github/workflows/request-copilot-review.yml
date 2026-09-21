@@ -1,89 +1,132 @@
-# Temporary: re-request Copilot code review for PR #294 only.
-# Agent tokens cannot call requestReviewers (403); Actions GITHUB_TOKEN can.
-# Safe after merge: the job is gated to pull_request.number == 294 (never runs again).
-# Follow-up: delete this workflow once #294 has landed.
+# Request one final Copilot Code Review after pre-review is ready.
 #
-# Important: requestReviews(union:true) is a no-op when Copilot is already on the
-# review-request list — it does not emit ReviewRequestedEvent and does not start
-# a fresh review on a new HEAD. Clear then re-request Copilot, but preserve any
-# human/team reviewers across the replace (union:false replaces the whole set).
+# Do NOT request Copilot on opened/synchronize/reopened/ready_for_review.
+# Other AI reviewers run first; Copilot is the last reviewer.
+#
+# Trusted execution: workflow_run and workflow_dispatch load this file from
+# the default branch. This job uses pull-requests: write and must never
+# checkout or run scripts from the PR HEAD.
+#
+# workflow_run("PR Gate") is the primary trigger. GitHub runs that event
+# from the default-branch workflow, so this file cannot self-host on a PR
+# that is not yet merged (#299 bootstrap is manual workflow_dispatch / gh).
+#
+# Revalidate live GitHub state before requesting. Do not trust the mere
+# fact that an older workflow_run was green.
+# Thread resolution is not an Actions event; Protect develop owns it.
+# Native Copilot review-on-push is NOT the intended order.
+# cancel-in-progress is false so a run cannot stop between clear and restore.
 
-name: Request Copilot review
+name: Request final Copilot review
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_run:
+    workflows: ["PR Gate"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       pr_number:
-        description: "PR number (must be 294)"
+        description: "Pull request number"
         required: true
-        default: "294"
+      force_rerequest:
+        description: "Force a Copilot re-review of the current HEAD"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
+  actions: read
+  checks: read
   pull-requests: write
 
 concurrency:
-  group: request-copilot-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
-  cancel-in-progress: true
+  group: request-copilot-${{ github.event.workflow_run.head_sha || github.event.inputs.pr_number || github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   request:
-    name: Request Copilot on #294
+    name: Request final Copilot review
     if: >
       (
-        github.event_name == 'pull_request' &&
-        github.event.pull_request.number == 294 &&
-        github.event.pull_request.draft == false &&
-        github.event.pull_request.head.repo.full_name == github.repository
+        github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'pull_request'
       ) || (
         github.event_name == 'workflow_dispatch' &&
-        github.event.inputs.pr_number == '294'
+        github.event.inputs.pr_number != ''
       )
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Clear then request Copilot review
+      - name: Revalidate live state and request Copilot if needed
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.event.repository.name }}
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          FORCE_REREQUEST: ${{ github.event.inputs.force_rerequest || 'false' }}
         run: |
           set -euo pipefail
-          PR_NODE="$(gh api graphql -f query='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){id}}}' -f o="$OWNER" -f n="$REPO" -F p="$PR_NUMBER" --jq '.data.repository.pullRequest.id')"
-          BOT_NODE="$(gh api '/users/copilot-pull-request-reviewer%5Bbot%5D' --jq .node_id)"
-          echo "PR node=$PR_NODE bot=$BOT_NODE pr=$PR_NUMBER"
+          if [[ "$EVENT_NAME" == "workflow_run" && "${WORKFLOW_CONCLUSION:-}" != "success" ]]; then
+            echo "noop: triggering workflow did not succeed"
+            exit 0
+          fi
+          mkdir -p .github/scripts
+          for script in review_lifecycle_gate.py request_final_copilot.py; do
+            gh api "repos/$OWNER/$REPO/contents/.github/scripts/${script}?ref=$DEFAULT_BRANCH" --jq .content | base64 -d > ".github/scripts/$script"
+          done
 
-          # Snapshot non-bot reviewers so union:false does not discard them.
-          SNAP="$(gh api graphql -f query='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewRequests(first:20){nodes{requestedReviewer{__typename ... on User{id login} ... on Team{id slug} ... on Bot{id login}}}}}}}' \
+          if [[ -n "${PR_NUMBER:-}" ]]; then
+            if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+              echo "PR_NUMBER must be numeric, got: $PR_NUMBER"
+              exit 1
+            fi
+          else
+            if [[ -z "${EXPECTED_SHA:-}" ]]; then
+              echo "EXPECTED_SHA missing from workflow_run"
+              exit 1
+            fi
+            PR_NUMBER="$(gh api "repos/$OWNER/$REPO/commits/$EXPECTED_SHA/pulls" --jq '[.[] | select(.base.ref=="develop" and .state=="open")][0].number // empty')"
+            if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+              echo "noop: no open develop pull request for $EXPECTED_SHA"
+              exit 0
+            fi
+          fi
+
+          python3 .github/scripts/request_final_copilot.py \
+            --collect-output final-copilot-snapshot.json \
+            --owner "$OWNER" \
+            --name "$REPO" \
+            --number "$PR_NUMBER" \
+            --expected-sha "${EXPECTED_SHA:-}"
+
+          FORCE_FLAG=()
+          if [[ "${FORCE_REREQUEST}" == "true" ]]; then
+            FORCE_FLAG=(--force)
+          fi
+          DECISION="$(python3 .github/scripts/request_final_copilot.py --snapshot final-copilot-snapshot.json "${FORCE_FLAG[@]}")"
+          echo "$DECISION"
+          ACTION="$(echo "$DECISION" | python3 -c 'import json,sys; print(json.load(sys.stdin)["action"])')"
+          if [[ "$ACTION" != "request" ]]; then
+            echo "noop: not requesting Copilot"
+            exit 0
+          fi
+
+          PR_NODE="$(python3 -c 'import json; print(json.load(open("final-copilot-snapshot.json"))["pr_id"])')"
+          BOT_NODE="$(gh api '/users/copilot-pull-request-reviewer%5Bbot%5D' --jq .node_id)"
+          SNAP="$(gh api graphql -f query='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewRequests(first:20){pageInfo{hasNextPage}nodes{requestedReviewer{__typename ... on User{id login} ... on Team{id slug} ... on Bot{id login}}}}}}}' \
             -f o="$OWNER" -f n="$REPO" -F p="$PR_NUMBER")"
+          echo "$SNAP" | python3 -c 'import json,sys; d=json.load(sys.stdin); p=d["data"]["repository"]["pullRequest"]["reviewRequests"];
+          assert not p["pageInfo"]["hasNextPage"]'
           USER_IDS="$(echo "$SNAP" | jq -c '[.data.repository.pullRequest.reviewRequests.nodes[] | select(.requestedReviewer.__typename=="User") | .requestedReviewer.id]')"
           TEAM_IDS="$(echo "$SNAP" | jq -c '[.data.repository.pullRequest.reviewRequests.nodes[] | select(.requestedReviewer.__typename=="Team") | .requestedReviewer.id]')"
-          echo "Preserving userIds=$USER_IDS teamIds=$TEAM_IDS"
 
-          list_requests() {
-            gh api graphql -f query='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewRequests(first:10){nodes{requestedReviewer{__typename ... on Bot{login} ... on User{login} ... on Team{slug}}}}}}}' \
-              -f o="$OWNER" -f n="$REPO" -F p="$PR_NUMBER" \
-              --jq '[.data.repository.pullRequest.reviewRequests.nodes[].requestedReviewer | (.login // .slug)]'
-          }
-
-          echo "Before clear: $(list_requests)"
-
-          # Clear the whole set (only reliable way to drop the Copilot bot request).
-          echo "Clearing review requests..."
-          gh api graphql --input - <<EOF
-          {
-            "query": "mutation(\$pr:ID!){requestReviews(input:{pullRequestId:\$pr,botIds:[],userIds:[],teamIds:[],union:false}){clientMutationId}}",
-            "variables": { "pr": "$PR_NODE" }
-          }
-          EOF
-          sleep 2
-          echo "After clear: $(list_requests)"
-
-          echo "Requesting Copilot + restoring humans/teams..."
-          gh api graphql --input - <<EOF
+          restore_reviewers() {
+            gh api graphql --input - <<EOF
           {
             "query": "mutation(\$pr:ID!,\$bots:[ID!]!,\$users:[ID!]!,\$teams:[ID!]!){requestReviews(input:{pullRequestId:\$pr,botIds:\$bots,userIds:\$users,teamIds:\$teams,union:false}){clientMutationId}}",
             "variables": {
@@ -94,5 +137,15 @@ jobs:
             }
           }
           EOF
-          sleep 1
-          echo "After request: $(list_requests)"
+          }
+
+          trap restore_reviewers ERR
+          gh api graphql --input - <<EOF
+          {
+            "query": "mutation(\$pr:ID!){requestReviews(input:{pullRequestId:\$pr,botIds:[],userIds:[],teamIds:[],union:false}){clientMutationId}}",
+            "variables": { "pr": "$PR_NODE" }
+          }
+          EOF
+          restore_reviewers
+          trap - ERR
+          echo "requested final Copilot review on PR $PR_NUMBER"

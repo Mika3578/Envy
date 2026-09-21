@@ -7,22 +7,20 @@
   (`stdcpp20` then trailing `stdcpp17`). Canonical wording:
   `docs/10_dev/standards.md`. Do not remove those overrides in a docs PR.
 
-- **Protect develop ruleset (re-verified 2026-09-21):** Live ruleset
-  `16457466` still reports `required_approving_review_count: 0` via the GitHub
-  API, with Code Quality severity **all**, required review-thread resolution,
-  squash-only + linear history, and the published required status checks.
-  Maintainer **target** remains **1 required approval**; do not treat older
-  “already matched 1 approval” notes as live. Coverage restriction remains
-  **off**. Historical 2026-09-19 snapshots that recorded Code Quality `notes` /
-  `review_on_push: false` are retained as history. Repository Copilot UI toggles that still
-  need manual verification are **Allow Copilot to approve pull requests**,
-  **Allow Copilot approvals to count toward merge requirements**, review
-  effort **Balanced**, and the optional path allowlist (Stage-3 docs/i18n
-  globs in `docs/10_dev/devsecops-envy.md`; excludes review-governance). Automatic Copilot review is
-  already live on Protect develop (`copilot_code_review` + `review_on_push`);
-  it is not a remaining UI gap. An AI comment/assessment alone is not an
-  `APPROVED` review. See `docs/10_dev/CI_AUDIT_2026-09.md` and
-  `docs/10_dev/devsecops-envy.md`.
+- **Protect develop Copilot ruleset vs observed review (re-verified
+  2026-09-21 after #299):** Live REST for Protect develop (`16457466`)
+  matches **1 required approval**, dismiss-stale on push, thread
+  resolution, squash-only, Code Quality severity **All**, **no**
+  `copilot_code_review` rule, and **no** bypass. Coverage restriction
+  remains **off**. Copilot `review_on_push` is **not** a develop ruleset
+  setting. The CI check `Review Lifecycle Gate` exists but is **not** a
+  required Protect develop context until a validated canary. Repository
+  Copilot UI approve/count remain `NOT EXPOSED BY AVAILABLE API` (manual:
+  approve PRs ON; no path allowlist). An AI comment/assessment is not an
+  `APPROVED` review. A pre-#299 snapshot that recorded
+  `required_approving_review_count: 0` is historical only. Canonical:
+  `AGENTS.md`, `docs/10_dev/devsecops-envy.md`,
+  `docs/10_dev/POST_MERGE_REVIEW_AUDIT_2026-09.md`.
 
 - **ED2K/Kad scope:** `ED2K_KAD_GAP_ANALYSIS` is a historical snapshot (routing-table items annotated 2026-09-19 after `KadRoutingTable.h`). `kad2-compatibility-report` covers opcode/format matching plus local routing maintenance. Neither is live interop. Canonical high-level status is `docs/10_dev/status.md`. The gap-analysis `FIREWALLED_REQ`/`RES` TagList/TargetID framing is outdated; eMule/aMule use exact 2-byte port / 4-byte IPv4 (`docs/30_protocols/kad/kad2-compatibility-report.md`).
 

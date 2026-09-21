@@ -79,9 +79,11 @@ Do **not** rename `Envy/`, `Services/`, `Plugins/`, `Repository/`, `Visual Studi
 6. **vcpkg vs vendored:** `vcpkg.json` lists zlib, bzip2, sqlite3, miniupnpc, openssl,
    crashpad while `Services/` still vendors zlib/Bzlib/SQLite/MiniUPnP/UnRAR/GeoIP/LibUTP/LibGFL.
    LibUTP is unused by Envy code (`docs/DEPENDENCIES.md`). Replacement needs dedicated PRs.
-7. **Protect develop vs older docs:** live ruleset `16457466` on 2026-09-21 still
-   has `required_approving_review_count: 0`. `docs/00_index/KNOWN_INCONSISTENCIES.md`
-   previously claimed the live target of 1 approval was already matched.
+7. **Protect develop vs older docs:** a pre-#299 snapshot of ruleset
+   `16457466` showed `required_approving_review_count: 0`. After #299
+   (`27f9942`, 2026-09-21) live REST reports **1 required approval**.
+   `Review Lifecycle Gate` is still **not** a required Protect develop
+   context. Copilot UI approve/count are not ruleset fields.
 
 ## Safe now vs later
 
