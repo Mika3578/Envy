@@ -59,43 +59,43 @@ struct PartialImportProgress
 
 inline int PartialImportPercent(std::uint64_t nProcessed, std::uint64_t nTotal) noexcept
 {
-	if ( nTotal == 0 )
+	if (nTotal == 0)
 		return 0;
-	if ( nProcessed >= nTotal )
+	if (nProcessed >= nTotal)
 		return 100;
-	const double f = ( 100.0 * static_cast< double >( nProcessed ) ) / static_cast< double >( nTotal );
-	if ( f < 0.0 )
+	const double f = (100.0 * static_cast<double>(nProcessed)) / static_cast<double>(nTotal);
+	if (f < 0.0)
 		return 0;
-	if ( f > 100.0 )
+	if (f > 100.0)
 		return 100;
-	return static_cast< int >( f );
+	return static_cast<int>(f);
 }
 
 inline int PartialImportOverallPercent(std::uint64_t nBytesDone, std::uint64_t nBytesTotal,
-	int nFilesDone, int nFilesTotal) noexcept
+                                       int nFilesDone, int nFilesTotal) noexcept
 {
-	if ( nBytesTotal > 0 )
-		return PartialImportPercent( nBytesDone, nBytesTotal );
-	return PartialImportPercent( static_cast< std::uint64_t >( nFilesDone < 0 ? 0 : nFilesDone ),
-		static_cast< std::uint64_t >( nFilesTotal < 0 ? 0 : nFilesTotal ) );
+	if (nBytesTotal > 0)
+		return PartialImportPercent(nBytesDone, nBytesTotal);
+	return PartialImportPercent(static_cast<std::uint64_t>(nFilesDone < 0 ? 0 : nFilesDone),
+	                            static_cast<std::uint64_t>(nFilesTotal < 0 ? 0 : nFilesTotal));
 }
 
 inline bool PartialImportProgressIsMonotone(int nPrevious, int nNext) noexcept
 {
-	if ( nPrevious < 0 || nNext < 0 || nPrevious > 100 || nNext > 100 )
+	if (nPrevious < 0 || nNext < 0 || nPrevious > 100 || nNext > 100)
 		return false;
 	return nNext >= nPrevious;
 }
 
 inline bool PartialImportGapIsValid(std::uint64_t nStart, std::uint64_t nStop, std::uint64_t nSize) noexcept
 {
-	if ( nSize == 0 )
+	if (nSize == 0)
 		return false;
-	if ( nStart >= nSize )
+	if (nStart >= nSize)
 		return false;
-	if ( nStop > nSize )
+	if (nStop > nSize)
 		return false;
-	if ( nStop <= nStart )
+	if (nStop <= nStart)
 		return false;
 	return true;
 }
@@ -104,17 +104,17 @@ inline bool PartialImportGapIsValid(std::uint64_t nStart, std::uint64_t nStop, s
 // (no separators, no "..", no drive/UNC) is accepted.
 inline bool PartialImportPartNameIsSafe(const wchar_t* pszName) noexcept
 {
-	if ( pszName == nullptr || pszName[ 0 ] == L'\0' )
-		return true;	// empty → importer uses "<stem>.part"
+	if (pszName == nullptr || pszName[0] == L'\0')
+		return true; // empty → importer uses "<stem>.part"
 
-	if ( pszName[ 0 ] == L'\\' || pszName[ 0 ] == L'/' )
+	if (pszName[0] == L'\\' || pszName[0] == L'/')
 		return false;
 
-	for ( const wchar_t* p = pszName; *p; ++p )
+	for (const wchar_t* p = pszName; *p; ++p)
 	{
-		if ( *p == L'\\' || *p == L'/' || *p == L':' )
+		if (*p == L'\\' || *p == L'/' || *p == L':')
 			return false;
-		if ( *p == L'.' && p[ 1 ] == L'.' )
+		if (*p == L'.' && p[1] == L'.')
 			return false;
 	}
 
@@ -123,23 +123,19 @@ inline bool PartialImportPartNameIsSafe(const wchar_t* pszName) noexcept
 
 inline bool PartialImportJobIsTerminal(PartialImportStage nStage) noexcept
 {
-	return nStage == PartialImportStage::Completed
-		|| nStage == PartialImportStage::NoUsefulData
-		|| nStage == PartialImportStage::Failed
-		|| nStage == PartialImportStage::Cancelled;
+	return nStage == PartialImportStage::Completed || nStage == PartialImportStage::NoUsefulData || nStage == PartialImportStage::Failed || nStage == PartialImportStage::Cancelled;
 }
 
 inline bool PartialImportJobIsSuccess(PartialImportStage nStage) noexcept
 {
-	return nStage == PartialImportStage::Completed
-		|| nStage == PartialImportStage::NoUsefulData;
+	return nStage == PartialImportStage::Completed || nStage == PartialImportStage::NoUsefulData;
 }
 
 // Historical Shareaza/Envy bug: "copy finished" was logged before MergeFile().
 // Completed must not be claimed until the merge task itself has finished.
 inline bool PartialImportMayMarkCompleted(bool bMergeStarted, bool bMergeFinished) noexcept
 {
-	if ( ! bMergeStarted )
-		return true;	// no payload copy required
+	if (!bMergeStarted)
+		return true; // no payload copy required
 	return bMergeFinished;
 }

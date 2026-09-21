@@ -36,29 +36,29 @@ public:
 	static void CloseInstance();
 	static BOOL IsOpen();
 
-	void	AddFolder(LPCTSTR pszFolder);
-	void	StartImport();
+	void AddFolder(LPCTSTR pszFolder);
+	void StartImport();
 
-	CEDPartImporter	m_pImporter;
+	CEDPartImporter m_pImporter;
 
 public:
-	CButton			m_wndClose;
-	CButton			m_wndCancel;
-	CButton			m_wndImport;
-	CButton			m_wndAddFolder;
-	CEdit			m_wndLog;
-	CProgressCtrl	m_wndOverall;
-	CProgressCtrl	m_wndFile;
-	CStatic			m_wndOverallText;
-	CStatic			m_wndCurrentText;
-	CListCtrl		m_wndJobs;
+	CButton m_wndClose;
+	CButton m_wndCancel;
+	CButton m_wndImport;
+	CButton m_wndAddFolder;
+	CEdit m_wndLog;
+	CProgressCtrl m_wndOverall;
+	CProgressCtrl m_wndFile;
+	CStatic m_wndOverallText;
+	CStatic m_wndCurrentText;
+	CListCtrl m_wndJobs;
 
 	CString	m_sCancel;
 
 protected:
 	static CDonkeyImportDlg* s_pDlg;
-	void	RefreshJobs();
-	CString	StageText(PartialImportStage nStage, PartialImportError nError) const;
+	void RefreshJobs();
+	CString StageText(PartialImportStage nStage, PartialImportError nError) const;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);

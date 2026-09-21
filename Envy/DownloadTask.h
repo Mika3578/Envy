@@ -42,7 +42,7 @@ public:
 	virtual ~CDownloadTask();
 
 public:
-	float				m_fProgress;		// Progress of current operation (0-100%), updated from merge/copy threads
+	float m_fProgress; // Progress of current operation (0-100%), updated from merge/copy threads
 
 	void				Allocate();
 	void				Copy();

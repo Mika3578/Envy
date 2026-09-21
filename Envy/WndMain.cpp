@@ -2613,18 +2613,18 @@ void CMainWnd::OnUpdateToolsImportDownloads(CCmdUI* pCmdUI)
 
 void CMainWnd::OnToolsImportDownloads()
 {
-	CDonkeyImportDlg* pDlg = CDonkeyImportDlg::OpenModeless( this );
-	if ( ! pDlg )
+	CDonkeyImportDlg* pDlg = CDonkeyImportDlg::OpenModeless(this);
+	if (!pDlg)
 		return;
 
-	if ( pDlg->m_pImporter.IsThreadAlive() )
+	if (pDlg->m_pImporter.IsThreadAlive())
 		return;
 
 	CString strPath( BrowseForFolder( IDS_SELECT_ED2K_TEMP_FOLDER ) );
 	if ( strPath.IsEmpty() )
 		return;
 
-	pDlg->AddFolder( strPath );
+	pDlg->AddFolder(strPath);
 	pDlg->StartImport();
 }
 

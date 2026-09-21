@@ -558,15 +558,15 @@ bool CDownloadWithTiger::RunMergeFile(LPCTSTR szFilename, BOOL bMergeValidation,
 
 	const Fragments::List::const_iterator pEnd = oList.end();
 	QWORD nTotalUseful = 0;
-	for ( Fragments::List::const_iterator pSum = oList.begin(); pSum != pEnd; ++pSum )
+	for (Fragments::List::const_iterator pSum = oList.begin(); pSum != pEnd; ++pSum)
 	{
 		QWORD qwLength = pSum->end() - pSum->begin();
 		QWORD qwOffset = pSum->begin();
-		if ( qwOffset + qwLength <= qwSourceOffset ||
-			 qwSourceOffset + qwSourceSize <= qwOffset )
+		if (qwOffset + qwLength <= qwSourceOffset ||
+		    qwSourceOffset + qwSourceSize <= qwOffset)
 			continue;
-		const QWORD qwEnd = min( qwOffset + qwLength, qwSourceOffset + qwSourceSize );
-		qwOffset = max( qwOffset, qwSourceOffset );
+		const QWORD qwEnd = min(qwOffset + qwLength, qwSourceOffset + qwSourceSize);
+		qwOffset = max(qwOffset, qwSourceOffset);
 		nTotalUseful += qwEnd - qwOffset;
 	}
 
@@ -611,12 +611,12 @@ bool CDownloadWithTiger::RunMergeFile(LPCTSTR szFilename, BOOL bMergeValidation,
 				qwOffset += (QWORD)dwReaded;
 				qwLength -= (QWORD)dwReaded;
 				nCopied += (QWORD)dwReaded;
-				if ( nTotalUseful )
+				if (nTotalUseful)
 				{
-					const double fPart = static_cast< double >( nCopied ) / static_cast< double >( nTotalUseful );
-					float fNow = fBase + fProgress * static_cast< float >( fPart );
+					const double fPart = static_cast<double>(nCopied) / static_cast<double>(nTotalUseful);
+					float fNow = fBase + fProgress * static_cast<float>(fPart);
 					const float fCap = fBase + fProgress;
-					if ( fNow > fCap )
+					if (fNow > fCap)
 						fNow = fCap;
 					pTask->m_fProgress = fNow;
 				}

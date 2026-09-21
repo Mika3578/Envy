@@ -21,25 +21,25 @@
 #include "ThreadImpl.h"
 #include "PartialImportTypes.h"
 
-#define WM_ED2K_IMPORT_REFRESH	( WM_APP + 42 )
+#define WM_ED2K_IMPORT_REFRESH (WM_APP + 42)
 
 class CDownload;
 
 
 struct CEDPartImportJob
 {
-	int					nId;
-	CString				sDisplayName;
-	CString				sMetPath;
-	CString				sDataPath;
-	PartialImportStage	nStage;
-	PartialImportError	nError;
-	std::uint64_t		nBytesProcessed;
-	std::uint64_t		nBytesTotal;
-	int					nPercent;
-	DWORD				nSerID;
-	ULONGLONG			tLastProgress;
-	CString				sDetail;
+	int nId;
+	CString sDisplayName;
+	CString sMetPath;
+	CString sDataPath;
+	PartialImportStage nStage;
+	PartialImportError nError;
+	std::uint64_t nBytesProcessed;
+	std::uint64_t nBytesTotal;
+	int nPercent;
+	DWORD nSerID;
+	ULONGLONG tLastProgress;
+	CString sDetail;
 };
 
 
@@ -51,35 +51,35 @@ public:
 
 public:
 	void	AddFolder(LPCTSTR pszFolder);
-	void	Start(HWND hNotify);
+	void Start(HWND hNotify);
 	void	Stop();
-	void	DetachNotify();
+	void DetachNotify();
 
-	void	CopyJobs(CArray< CEDPartImportJob >& oOut) const;
-	void	TakeLogs(CString& sOut);
-	void	GetTotals(int& nJobs, int& nCompleted, int& nFailed, int& nCancelled,
-				int& nOverallPercent, CString& sCurrent, int& nCurrentPercent,
-				ULONGLONG& tLastProgress) const;
+	void CopyJobs(CArray<CEDPartImportJob>& oOut) const;
+	void TakeLogs(CString& sOut);
+	void GetTotals(int& nJobs, int& nCompleted, int& nFailed, int& nCancelled,
+	               int& nOverallPercent, CString& sCurrent, int& nCurrentPercent,
+	               ULONGLONG& tLastProgress) const;
 
 protected:
-	mutable CCriticalSection	m_pSection;
-	CList< CString >			m_pFolders;
-	CList< CString >			m_pLogs;
-	CArray< CEDPartImportJob >	m_pJobs;
-	HWND						m_hNotify;
-	int							m_nCount;
-	int							m_nFailed;
-	int							m_nCancelled;
-	DWORD						m_nActiveSerID;
+	mutable CCriticalSection m_pSection;
+	CList<CString> m_pFolders;
+	CList<CString> m_pLogs;
+	CArray<CEDPartImportJob> m_pJobs;
+	HWND m_hNotify;
+	int m_nCount;
+	int m_nFailed;
+	int m_nCancelled;
+	DWORD m_nActiveSerID;
 
-	void	OnRun();
+	void OnRun();
 	void	ImportFolder(LPCTSTR pszPath);
-	BOOL	ImportFile(int nJob);
-	void	SetJobStage(int nJob, PartialImportStage nStage, PartialImportError nError = PartialImportError::None);
-	void	SetJobProgress(int nJob, std::uint64_t nDone, std::uint64_t nTotal);
-	void	SetJobDetail(int nJob, LPCTSTR pszDetail);
+	BOOL ImportFile(int nJob);
+	void SetJobStage(int nJob, PartialImportStage nStage, PartialImportError nError = PartialImportError::None);
+	void SetJobProgress(int nJob, std::uint64_t nDone, std::uint64_t nTotal);
+	void SetJobDetail(int nJob, LPCTSTR pszDetail);
 	void	Message(UINT nMessageID, ...);
-	void	NotifyRefresh();
-	BOOL	WaitForMerge(DWORD nSerID, int nJob);
-	BOOL	AbortActiveMerge();
+	void NotifyRefresh();
+	BOOL WaitForMerge(DWORD nSerID, int nJob);
+	BOOL AbortActiveMerge();
 };

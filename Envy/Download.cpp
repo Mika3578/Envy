@@ -97,7 +97,7 @@ void CDownload::SetStableName(bool bStable /*true*/)
 float CDownload::GetProgress() const
 {
 	const dtask nTask = m_pTask.GetTaskType();
-	if ( nTask == dtaskCopy || nTask == dtaskMergeFile )
+	if (nTask == dtaskCopy || nTask == dtaskMergeFile)
 		return m_pTask.GetProgress();
 	return CDownloadWithExtras::GetProgress();
 }
