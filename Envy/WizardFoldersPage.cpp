@@ -250,13 +250,13 @@ void CWizardFoldersPage::DoDonkeyImport()
 	if ( ! bFound )
 		return;
 
-	CDonkeyImportDlg dlg( this );
+	CDonkeyImportDlg* pDlg = CDonkeyImportDlg::OpenModeless( GetParent() );
+	if ( ! pDlg )
+		return;
 
 	for ( int nFolder = 0; pszFolders[ nFolder ]; nFolder++ )
 	{
 		if ( PathIsDirectory( pszFolders[ nFolder ] ) )
-			dlg.m_pImporter.AddFolder( pszFolders[ nFolder ] );
+			pDlg->AddFolder( pszFolders[ nFolder ] );
 	}
-
-	dlg.DoModal();
 }

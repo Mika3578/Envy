@@ -24,29 +24,55 @@
 
 class CDonkeyImportDlg : public CSkinDialog
 {
+	DECLARE_DYNAMIC(CDonkeyImportDlg)
+
 public:
 	CDonkeyImportDlg(CWnd* pParent = NULL);
+	virtual ~CDonkeyImportDlg();
 
 	enum { IDD = IDD_DONKEY_IMPORT };
 
+	static CDonkeyImportDlg* OpenModeless(CWnd* pParent);
+	static void CloseInstance();
+	static BOOL IsOpen();
+
+	void	AddFolder(LPCTSTR pszFolder);
+	void	StartImport();
+
+	CEDPartImporter	m_pImporter;
+
 public:
-	CButton	m_wndClose;
-	CButton	m_wndCancel;
-	CButton	m_wndImport;
-	CEdit	m_wndLog;
+	CButton			m_wndClose;
+	CButton			m_wndCancel;
+	CButton			m_wndImport;
+	CButton			m_wndAddFolder;
+	CEdit			m_wndLog;
+	CProgressCtrl	m_wndOverall;
+	CProgressCtrl	m_wndFile;
+	CStatic			m_wndOverallText;
+	CStatic			m_wndCurrentText;
+	CListCtrl		m_wndJobs;
 
 	CString	m_sCancel;
-	CEDPartImporter	m_pImporter;
+
+protected:
+	static CDonkeyImportDlg* s_pDlg;
+	void	RefreshJobs();
+	CString	StageText(PartialImportStage nStage, PartialImportError nError) const;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);
-
-protected:
-	virtual BOOL OnInitDialog();
 	virtual void OnCancel();
+	virtual void PostNcDestroy();
+
+	virtual BOOL OnInitDialog();
 	afx_msg void OnClose();
+	afx_msg void OnHide();
 	afx_msg void OnImport();
+	afx_msg void OnAddFolder();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg LRESULT OnImportLog(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnImportRefresh(WPARAM wParam, LPARAM lParam);
 
 	DECLARE_MESSAGE_MAP()
 };

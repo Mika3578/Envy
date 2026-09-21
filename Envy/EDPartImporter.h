@@ -19,6 +19,29 @@
 #pragma once
 
 #include "ThreadImpl.h"
+#include "PartialImportTypes.h"
+
+#define WM_ED2K_IMPORT_LOG		( WM_APP + 41 )
+#define WM_ED2K_IMPORT_REFRESH	( WM_APP + 42 )
+
+class CDownload;
+
+
+struct CEDPartImportJob
+{
+	int					nId;
+	CString				sDisplayName;
+	CString				sMetPath;
+	CString				sDataPath;
+	PartialImportStage	nStage;
+	PartialImportError	nError;
+	std::uint64_t		nBytesProcessed;
+	std::uint64_t		nBytesTotal;
+	int					nPercent;
+	DWORD				nSerID;
+	ULONGLONG			tLastProgress;
+	CString				sDetail;
+};
 
 
 class CEDPartImporter : public CThreadImpl
@@ -29,16 +52,33 @@ public:
 
 public:
 	void	AddFolder(LPCTSTR pszFolder);
-	void	Start(CEdit* pCtrl);
+	void	Start(HWND hNotify);
 	void	Stop();
+	void	DetachNotify();
+
+	void	CopyJobs(CArray< CEDPartImportJob >& oOut) const;
+	void	GetTotals(int& nJobs, int& nCompleted, int& nFailed, int& nCancelled,
+				int& nOverallPercent, CString& sCurrent, int& nCurrentPercent,
+				ULONGLONG& tLastProgress) const;
 
 protected:
-	CList< CString > m_pFolders;
-	CEdit*	m_pTextCtrl;
-	int 	m_nCount;
+	mutable CCriticalSection	m_pSection;
+	CList< CString >			m_pFolders;
+	CArray< CEDPartImportJob >	m_pJobs;
+	HWND						m_hNotify;
+	int							m_nCount;
+	int							m_nFailed;
+	int							m_nCancelled;
+	DWORD						m_nActiveSerID;
 
-	void	ImportFolder(LPCTSTR pszPath);
-	BOOL	ImportFile(LPCTSTR pszPath, LPCTSTR pszFile);
-	void	Message(UINT nMessageID, ...);
 	void	OnRun();
+	void	ImportFolder(LPCTSTR pszPath);
+	BOOL	ImportFile(int nJob);
+	void	SetJobStage(int nJob, PartialImportStage nStage, PartialImportError nError = PartialImportError::None);
+	void	SetJobProgress(int nJob, std::uint64_t nDone, std::uint64_t nTotal);
+	void	SetJobDetail(int nJob, LPCTSTR pszDetail);
+	void	Message(UINT nMessageID, ...);
+	void	NotifyRefresh();
+	BOOL	WaitForMerge(DWORD nSerID, int nJob);
+	BOOL	AbortActiveMerge();
 };

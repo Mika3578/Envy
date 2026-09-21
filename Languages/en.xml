@@ -4162,12 +4162,20 @@
 		<control text="And thanks. {n}Enjoy using Envy for all your peer-to-peer networking needs."/>
 		<control/>
 	</dialog>
-	<dialog name="CDonkeyImportDlg" cookie="StBuBuEdBu" caption="Import eDonkey Downloads">
-		<control text="Envy has detected that you have another eDonkey program installed on your computer. Would you like to import any unfinished downloads into Envy?"/>
+	<dialog name="CDonkeyImportDlg" cookie="StBuBuBuBuStmsStStmsStSyEd" caption="Import eDonkey Downloads">
+		<control text="Import unfinished eDonkey/eMule partial downloads. Envy stays usable while this window is open. Hide does not cancel the import."/>
 		<control text="Yes"/>
-		<control text="No|Cancel"/>
+		<control text="Add Folder"/>
+		<control text="No|Cancel Import"/>
+		<control text="Hide"/>
+		<control text="Overall"/>
 		<control/>
-		<control text="Close"/>
+		<control text="0 / 0"/>
+		<control text="Current file"/>
+		<control/>
+		<control/>
+		<control/>
+		<control/>
 	</dialog>
 	<dialog name="CProfileManagerDlg" cookie="SyBuBuBu" caption="User Profile">
 		<control/>

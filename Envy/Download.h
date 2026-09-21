@@ -111,6 +111,7 @@ public:
 	virtual float GetProgress() const;		// Statistics
 	virtual dtask GetTaskType() const;		// Return currently running task
 	virtual bool IsTasking() const;			// Check if a task is already running
+	void		CancelTask();			// Signal task cancel without waiting on the worker
 	virtual bool IsTrying() const;			// Is the download currently trying to download?
 	virtual bool IsPaused(bool bRealState = false) const;
 	virtual bool IsCompleted() const;

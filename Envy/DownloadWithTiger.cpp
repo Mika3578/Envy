@@ -554,9 +554,24 @@ bool CDownloadWithTiger::RunMergeFile(LPCTSTR szFilename, BOOL bMergeValidation,
 		}
 	}	// Multifile offset
 
-	const float fIncrement = fProgress / oList.size();
-
 	const DWORD nBufferLength = 256 * 1024;		// Was 65536?
+
+	const Fragments::List::const_iterator pEnd = oList.end();
+	QWORD nTotalUseful = 0;
+	for ( Fragments::List::const_iterator pSum = oList.begin(); pSum != pEnd; ++pSum )
+	{
+		QWORD qwLength = pSum->end() - pSum->begin();
+		QWORD qwOffset = pSum->begin();
+		if ( qwOffset + qwLength <= qwSourceOffset ||
+			 qwSourceOffset + qwSourceSize <= qwOffset )
+			continue;
+		const QWORD qwEnd = min( qwOffset + qwLength, qwSourceOffset + qwSourceSize );
+		qwOffset = max( qwOffset, qwSourceOffset );
+		nTotalUseful += qwEnd - qwOffset;
+	}
+
+	const float fBase = pTask->m_fProgress;
+	QWORD nCopied = 0;
 
 	// Read missing file fragments from selected file
 	CAutoVectorPtr< BYTE >pBuf( new BYTE [ nBufferLength ] );
@@ -564,11 +579,8 @@ bool CDownloadWithTiger::RunMergeFile(LPCTSTR szFilename, BOOL bMergeValidation,
 		return false;
 
 	Fragments::List::const_iterator pItr = oList.begin();
-	const Fragments::List::const_iterator pEnd = oList.end();
 	for ( ; pItr != pEnd && pTask->IsThreadEnabled(); ++pItr )
 	{
-		pTask->m_fProgress += fIncrement;		// Update tooltip
-
 		QWORD qwLength = pItr->end() - pItr->begin();
 		QWORD qwOffset = pItr->begin();
 
@@ -598,6 +610,16 @@ bool CDownloadWithTiger::RunMergeFile(LPCTSTR szFilename, BOOL bMergeValidation,
 
 				qwOffset += (QWORD)dwReaded;
 				qwLength -= (QWORD)dwReaded;
+				nCopied += (QWORD)dwReaded;
+				if ( nTotalUseful )
+				{
+					const double fPart = static_cast< double >( nCopied ) / static_cast< double >( nTotalUseful );
+					float fNow = fBase + fProgress * static_cast< float >( fPart );
+					const float fCap = fBase + fProgress;
+					if ( fNow > fCap )
+						fNow = fCap;
+					pTask->m_fProgress = fNow;
+				}
 			}
 			else
 			{

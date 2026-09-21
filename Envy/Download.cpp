@@ -96,7 +96,10 @@ void CDownload::SetStableName(bool bStable /*true*/)
 
 float CDownload::GetProgress() const
 {
-	return IsMoving() ? m_pTask.GetProgress() : CDownloadWithExtras::GetProgress();
+	const dtask nTask = m_pTask.GetTaskType();
+	if ( nTask == dtaskCopy || nTask == dtaskMergeFile )
+		return m_pTask.GetProgress();
+	return CDownloadWithExtras::GetProgress();
 }
 
 bool CDownload::IsMoving() const
@@ -117,6 +120,11 @@ dtask CDownload::GetTaskType() const
 void CDownload::AbortTask()
 {
 	m_pTask.Abort();
+}
+
+void CDownload::CancelTask()
+{
+	m_pTask.Exit();
 }
 
 void CDownload::Allocate()

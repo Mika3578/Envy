@@ -298,7 +298,7 @@ Apply per phase; do not regress:
 | G2 Horizon (`PROTOCOL_NULL`) | G2 cache + `HubHorizonPool` filter | VERIFIED — **not** aggregate/all-protocol |
 | Gnutella2 | Yes | VERIFIED |
 | Gnutella1 | Yes; UI gated by G1 enable/show | VERIFIED |
-| eDonkey / ED2K | Yes; server.met import | VERIFIED |
+| eDonkey / ED2K | Yes; server.met import; modeless `.part.met` import (progress/jobs) | VERIFIED |
 | Kad | Yes; bootstrap via nodes.dat paths | Kad2 still partial/unverified overall |
 | Direct Connect | Yes; hublist import | NMDC; ADC hubs NOT SUPPORTED |
 | BitTorrent | Yes | DHT/bootstrap hosts; not “full BT UI” |

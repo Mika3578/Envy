@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-21
+- **Changelog Entry:** 2026-09-21 — eDonkey partial import: modeless dialog, job queue, UI-thread notifications, wait for merge completion, byte-based merge progress. Duplicate ED2K still fail-closed (follow-up: complementary merge).
 - **Changelog Entry:** 2026-09-21 — Review cycle: Copilot Code Review is the final reviewer (`require_copilot_approval`); other AI tools are advisory pre-review. Request Copilot after PR Gate (`workflow_run`), not on synchronize. Gate requires exact `copilot-pull-request-reviewer`, latest HEAD Copilot review `APPROVED`, and pending while Copilot is in live `reviewRequests`. PR Gate also waits for required `gitleaks` + `SonarCloud Code Analysis` so the Copilot request cannot race those checks. Gate is strict (`REVIEW_GATE_ADVISORY=false`). Do not enable `copilot_code_review.review_on_push`. Canonical: `docs/10_dev/POST_MERGE_REVIEW_AUDIT_2026-09.md`.
 - **Changelog Entry:** 2026-09-21 — UI Phase 1 (#297): merge `develop` after #301; keep both the adaptive-list changelog and the library MountCollection null-guard entry.
 - **Changelog Entry:** 2026-09-21 — #300: `CAlbumFolder::MountCollection` guards null `GetNextFolder` results; `m_pFolders` rejects null inserts; album-root mount is skipped when `m_pAlbumRoot` is null. EnvyTests cannot construct `CAlbumFolder` (MFC/`Library.m_pSection`); policy smoke `test_albumfolder_mountcollection_smoke.cpp`.

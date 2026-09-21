@@ -1356,6 +1356,7 @@ call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)
     <ClInclude Include="TransferState.h" />
     <ClInclude Include="SkinEngineP0.h" />
     <ClInclude Include="EDPartImporter.h" />
+    <ClInclude Include="PartialImportTypes.h" />
     <ClInclude Include="Emoticons.h" />
     <ClInclude Include="FileExecutor.h" />
     <ClInclude Include="FileIdentifier.h" />

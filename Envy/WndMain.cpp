@@ -642,6 +642,7 @@ void CMainWnd::OnClose()
 
 	CDownloadMonitorDlg::CloseAll();
 	CFilePreviewDlg::CloseAll();
+	CDonkeyImportDlg::CloseInstance();
 
 	//Network.Disconnect();
 	//Transfers.StopThread();
@@ -2612,13 +2613,19 @@ void CMainWnd::OnUpdateToolsImportDownloads(CCmdUI* pCmdUI)
 
 void CMainWnd::OnToolsImportDownloads()
 {
+	CDonkeyImportDlg* pDlg = CDonkeyImportDlg::OpenModeless( this );
+	if ( ! pDlg )
+		return;
+
+	if ( pDlg->m_pImporter.IsThreadAlive() )
+		return;
+
 	CString strPath( BrowseForFolder( IDS_SELECT_ED2K_TEMP_FOLDER ) );
 	if ( strPath.IsEmpty() )
 		return;
 
-	CDonkeyImportDlg dlg;
-	dlg.m_pImporter.AddFolder( strPath );
-	dlg.DoModal();
+	pDlg->AddFolder( strPath );
+	pDlg->StartImport();
 }
 
 void CMainWnd::OnUpdateOpenDownloadsFolder(CCmdUI* pCmdUI)

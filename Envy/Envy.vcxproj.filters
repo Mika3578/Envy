@@ -1799,6 +1799,9 @@
     <ClInclude Include="EDPartImporter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PartialImportTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Emoticons.h">
       <Filter>Header Files</Filter>
     </ClInclude>

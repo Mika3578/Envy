@@ -281,6 +281,10 @@ Envy can download from multiple sources simultaneously:
 - **BitTorrent**: Piece hash verification
 - **AICH**: Advanced Intelligent Corruption Handler
 
+### Import eDonkey partial downloads
+
+Tools → **Import eDonkey Downloads** opens a modeless window. Envy stays usable while files are imported. **Hide** does not stop the work; **Cancel Import** does. Progress is per file and overall. This import copies local `.part` / `.part.met` data into Envy downloads. A second partial with the same ED2K hash is still treated as already present (merging complementary ranges is not in this version).
+
 ### Queue Management
 
 - **Download Queues**: Organize downloads

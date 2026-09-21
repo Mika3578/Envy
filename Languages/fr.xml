@@ -4050,12 +4050,20 @@
 		<control text="Vous pouvez maintenant apprécier Envy."/>
 		<control/>
 	</dialog>
-	<dialog name="CDonkeyImportDlg" cookie="StBuBuEdBu" caption="Importer des téléchargements eDonkey">
-		<control text="Envy a détecté que vous aviez un autre client eDonkey installé sur votre ordinateur. Souhaitez-vous importer ses téléchargements en cours dans Envy ?"/>
+	<dialog name="CDonkeyImportDlg" cookie="StBuBuBuBuStmsStStmsStSyEd" caption="Importer des téléchargements eDonkey">
+		<control text="Importer des téléchargements partiels eDonkey/eMule. Envy reste utilisable pendant l'import. Masquer n'annule pas l'opération."/>
 		<control text="Oui"/>
-		<control text="Non|Annuler"/>
+		<control text="Ajouter un dossier"/>
+		<control text="Non|Annuler l'import"/>
+		<control text="Masquer"/>
+		<control text="Progression globale"/>
 		<control/>
-		<control text="Fermer"/>
+		<control text="0 / 0"/>
+		<control text="Fichier courant"/>
+		<control/>
+		<control/>
+		<control/>
+		<control/>
 	</dialog>
 	<dialog name="CProfileManagerDlg" cookie="SyBuBuBu" caption="Éditer mon profil">
 		<control/>
