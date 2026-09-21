@@ -1,5 +1,11 @@
 # Testing Guide
 
+## Album folder collection mount (#300)
+- Production fix is in `Envy/AlbumFolder.cpp` / `Envy/LibraryFolders.cpp`.
+- `CAlbumFolder` requires the MFC library lock (`Library.m_pSection`) and the live library object graph, so EnvyTests cannot construct or call `MountCollection` directly.
+- `tests/test_albumfolder_mountcollection_smoke.cpp` only checks the child-visit policy (skip null, visit valid, empty tree, nested visit).
+- Manual: open Library, import or open a `.collection` while the album tree exists; confirm no access violation. Repeat before the library has finished creating the album root (should no-op, not crash).
+
 ## Current Test Surface
 - Primary test project: `tests/EnvyTests.vcxproj`
 - Additional standalone test executables exist in `tests/` (`test_runner.cpp`, simple integration binaries)

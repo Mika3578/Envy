@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-20
+- **Last Updated:** 2026-09-21
+- **Changelog Entry:** 2026-09-21 — #300: `CAlbumFolder::MountCollection` guards null `GetNextFolder` results; `m_pFolders` rejects null inserts; album-root mount is skipped when `m_pAlbumRoot` is null. EnvyTests cannot construct `CAlbumFolder` (MFC/`Library.m_pSection`); policy smoke `test_albumfolder_mountcollection_smoke.cpp`.
 - **Changelog Entry:** 2026-09-20 — UI modernization plan (#296): foundation table distinguishes pointer floor `SCALE(24)` from ~40 EP touch targets (remove “touch-friendly” mislabel).
 - **Changelog Entry:** 2026-09-20 — UI modernization plan (#296): align preflight audit SHA with header (`ccb4d20`); clarify SCALE(24) is not a Windows touch target (~40 EP).
 - **Changelog Entry:** 2026-09-20 — UI modernization plan (#296): address Copilot review — historical soft-PR-target wording; Neighbors OnSize sizer+SizeListAndBar; PROTOCOL_NULL = G2 Horizon; DisplayScaling 100–200; ListStates sticky/adaptive persistence caveat.

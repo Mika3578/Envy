@@ -522,7 +522,12 @@ BOOL CLibraryFolders::MountCollection(const Hashes::Sha1Hash& oSHA1, CCollection
 	BOOL bSuccess = FALSE;
 
 	if ( pCollection->GetThisURI().GetLength() )
+	{
+		if (m_pAlbumRoot == nullptr)
+			return FALSE;
+
 		bSuccess |= m_pAlbumRoot->MountCollection( oSHA1, pCollection );
+	}
 
 	//if ( pCollection->GetParentURI().GetLength() )
 	//{

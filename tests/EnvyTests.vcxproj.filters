@@ -104,6 +104,9 @@
     <ClCompile Include="test_ed2k_lowid_callback_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_albumfolder_mountcollection_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h">

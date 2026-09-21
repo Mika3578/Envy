@@ -91,6 +91,10 @@ void CAlbumFolder::AddFolder(CAlbumFolder* pFolder)
 {
 	ASSUME_LOCK( Library.m_pSection );
 
+	ASSERT(pFolder != nullptr);
+	if (pFolder == nullptr)
+		return;
+
 	ASSERT( pFolder->m_pParent == this );
 
 	if ( m_pFolders.Find( pFolder ) )
@@ -115,6 +119,8 @@ CAlbumFolder* CAlbumFolder::AddFolder(LPCTSTR pszSchemaURI, LPCTSTR pszName, BOO
 		pszSchemaURI = CSchema::uriFolder;
 
 	CAlbumFolder* pFolder = new CAlbumFolder( this, pszSchemaURI, pszName, bAutoDelete );
+	if (pFolder == nullptr)
+		return nullptr;
 
 	m_pFolders.AddTail( pFolder );
 
@@ -141,7 +147,9 @@ CAlbumFolder* CAlbumFolder::GetNextFolder(POSITION& pos) const
 {
 	ASSUME_LOCK( Library.m_pSection );
 
-	return m_pFolders.GetNext( pos );
+	CAlbumFolder* pFolder = m_pFolders.GetNext(pos);
+	ASSERT(pFolder != nullptr);
+	return pFolder;
 }
 
 CAlbumFolder* CAlbumFolder::GetParent() const
@@ -239,11 +247,14 @@ CAlbumFolder* CAlbumFolder::FindFolder(const Hashes::Guid& oGUID)
 		return this;		// It's me.
 
 	// Find between children
-	POSITION pos = m_pFolders.GetHeadPosition();
-	while ( pos )
+	for (POSITION pos = GetFolderIterator(); pos;)
 	{
-		CAlbumFolder* pTemp = m_pFolders.GetNext( pos )->FindFolder( oGUID );
-		if ( pTemp )
+		CAlbumFolder* pTemp = GetNextFolder(pos);
+		if (pTemp == nullptr)
+			continue;
+
+		pTemp = pTemp->FindFolder(oGUID);
+		if (pTemp)
 			return pTemp;	// Found
 	}
 	return NULL;
@@ -252,6 +263,10 @@ CAlbumFolder* CAlbumFolder::FindFolder(const Hashes::Guid& oGUID)
 bool CAlbumFolder::OnFolderDelete(CAlbumFolder* pFolder)
 {
 	ASSUME_LOCK( Library.m_pSection );
+
+	ASSERT(pFolder != nullptr);
+	if (pFolder == nullptr)
+		return false;
 
 	ASSERT( pFolder->m_pParent == this );
 	pFolder->m_pParent = NULL;
@@ -592,6 +607,25 @@ CString CAlbumFolder::GetBestView() const
 //////////////////////////////////////////////////////////////////////
 // CAlbumFolder mount a collection
 
+static BOOL MountCollectionWalkChildren(const CAlbumFolder* pAlbum, const Hashes::Sha1Hash& oSHA1, CCollectionFile* pCollection, BOOL bForce, CAlbumFolder** ppExisting)
+{
+	BOOL bResult = FALSE;
+
+	for (POSITION pos = pAlbum->GetFolderIterator(); pos;)
+	{
+		CAlbumFolder* pSubFolder = pAlbum->GetNextFolder(pos);
+		if (pSubFolder == nullptr)
+			continue;
+
+		bResult |= pSubFolder->MountCollection(oSHA1, pCollection, bForce);
+
+		if (ppExisting != nullptr && validAndEqual(pSubFolder->m_oCollSHA1, oSHA1))
+			*ppExisting = pSubFolder;
+	}
+
+	return bResult;
+}
+
 BOOL CAlbumFolder::MountCollection(const Hashes::Sha1Hash& oSHA1, CCollectionFile* pCollection, BOOL bForce)
 {
 	BOOL bResult = FALSE;
@@ -626,17 +660,7 @@ BOOL CAlbumFolder::MountCollection(const Hashes::Sha1Hash& oSHA1, CCollectionFil
 		if ( ! bForce )
 		{
 			bGoingDeeper = true;
-
-			for ( POSITION pos = GetFolderIterator(); pos; )
-			{
-				CAlbumFolder* pSubFolder = GetNextFolder( pos );
-				// Mount it deeper if we can
-				bResult |= pSubFolder->MountCollection( oSHA1, pCollection, bForce );
-
-				// Check if the same collection exists
-				if ( validAndEqual( pSubFolder->m_oCollSHA1, oSHA1 ) )
-					pFolder = pSubFolder;
-			}
+			bResult |= MountCollectionWalkChildren(this, oSHA1, pCollection, bForce, &pFolder);
 		}
 
 		// If the collection doesn't exist or we are forcing, mount it and update Library
@@ -656,12 +680,8 @@ BOOL CAlbumFolder::MountCollection(const Hashes::Sha1Hash& oSHA1, CCollectionFil
 
 	// If the criteria for the mounting didn't match and we haven't iterated subfolders
 	if ( ! bGoingDeeper )
-	{
-		for ( POSITION pos = GetFolderIterator(); pos; )
-		{
-			bResult |= GetNextFolder( pos )->MountCollection( oSHA1, pCollection, bForce );
-		}
-	}
+		bResult |= MountCollectionWalkChildren(this, oSHA1, pCollection, bForce, nullptr);
+
 	return bResult;
 }
 
@@ -1348,6 +1368,9 @@ void CAlbumFolder::Serialize(CArchive& ar, int nVersion)
 		while ( nCount-- > 0 )
 		{
 			augment::auto_ptr< CAlbumFolder > pFolder( new CAlbumFolder( this, NULL, (LPCTSTR)1 ) );
+			if (pFolder.get() == nullptr)
+				AfxThrowMemoryException();
+
 			pFolder->Serialize( ar, nVersion );
 			m_pFolders.AddTail( pFolder.release() );
 		}
