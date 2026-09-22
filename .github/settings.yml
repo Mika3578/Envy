@@ -202,30 +202,14 @@ milestones:
 #   - required_review_thread_resolution: true
 #   - require_last_push_approval: false  (intentional; dismiss-stale is on)
 #   - dismiss_stale_reviews_on_push: true
-#   - require_extra_approval_for_unattributed_changes: false on develop
-#     (GitHub: extra approval only when Copilot opens an *unattributed* PR.
-#     That is not the same as repository policy that Copilot cloud-agent PRs
-#     still need a non-Copilot reviewer. Leave false unless a maintainer
-#     opts into the GitHub-specific unattributed case.)
 #   - allowed_merge_methods: ["squash"] only (develop ruleset)
 #   - required_signatures: true
 #   - bypass_actors: [] (none)
 #   - non_fast_forward / block force pushes
 #   - code_scanning: CodeQL + Gitleaks
 #   - GitHub Code Quality severity (live: All)
-#   - copilot_code_review: NOT present on Protect develop (REST+GraphQL
-#     2026-09-20). Present on Protect main with review_on_push: false and
-#     review_draft_pull_requests: false. Do not document develop as having
-#     a live Copilot ruleset rule until the ruleset snapshot includes it.
-#   - Copilot repository UI (Settings → Copilot → Code review): approve,
-#     count, effort, path allowlist — NOT EXPOSED BY AVAILABLE API
-#     (BLOCKER ADMIN SETTING for native ruleset counting).
-#     Do not enable ruleset copilot_code_review.review_on_push on develop
-#     (Copilot must run after advisory pre-review, requested by
-#     request-copilot-review.yml after PR Gate).
-#   - CI check `Review Lifecycle Gate` requires Copilot APPROVED on the
-#     current HEAD (strict; drafts skip). Not a required Protect develop
-#     context until added manually.
+#   - Copilot review-on-push (live: on) / draft review (live: off)
+#   - Copilot approve/count UI toggles + optional path allowlist (manual verify in Settings → Copilot)
 #   - code coverage rule (intentionally off until reliable PR coverage upload exists)
 branches:
   - name: develop

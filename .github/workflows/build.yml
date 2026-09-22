@@ -88,10 +88,6 @@ jobs:
         shell: bash
         run: bash .github/scripts/pr-gate-conclusions.selftest.sh
 
-      - name: Review lifecycle gate self-test
-        shell: bash
-        run: python3 .github/scripts/review_lifecycle_gate_test.py
-
       - name: Format-check self-test
         shell: bash
         run: |

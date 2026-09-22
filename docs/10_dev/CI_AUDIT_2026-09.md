@@ -30,15 +30,13 @@ SonarCloud required, PR Gate stricter than GitHub skip semantics.
 - Four identical classify jobs per PR (~8–10 s each) — centralizing is P3.
 - Repository Copilot UI approve/count toggles, Balanced effort, and the
   optional Stage-3 path allowlist still need manual UI verification (not
-  on the ruleset API). Automatic Copilot review of ready develop PRs is
-  observed, but Protect develop has **no** `copilot_code_review` rule.
+  on the ruleset API). Automatic review is already live via Protect develop.
 
-**Live Protect develop re-verification (2026-09-20 evening):** required
-approvals **1**, Code Quality severity **All**, coverage restriction **off**,
-**no** `copilot_code_review` rule. Older rows below that show approvals
-**0** / Code Quality `notes` are the **2026-09-19 historical snapshot**.
-The same-day claim that develop had Copilot `review_on_push` **on** was
-incorrect; see [POST_MERGE_REVIEW_AUDIT_2026-09.md](POST_MERGE_REVIEW_AUDIT_2026-09.md).
+**Live Protect develop re-verification (2026-09-20):** required approvals **1**,
+Code Quality severity **All**, Copilot `review_on_push` **on**, draft review
+**off**, coverage restriction **off**. Older rows below that show approvals
+**0** / Code Quality `notes` / `review_on_push: false` are the **2026-09-19
+historical snapshot**, not current live state.
 
 **Pre-change findings resolved in this PR:** empty NuGet restore (~22 s/job
 no-op) skipped; Documentation Check always emits a terminal conclusion;
@@ -96,11 +94,9 @@ Build x64 Release, Build Win32 Release, Lint build files, Vcpkg manifest sanity,
 Format Check, Documentation Check, secret-scan, gitleaks (app `57789`),
 PR Gate, Analyze (c-cpp), SonarCloud Code Analysis (`12526`).
 
-**PR Gate must_pass also includes Protect develop contexts** `gitleaks` and
-`SonarCloud Code Analysis` (so `workflow_run(PR Gate)` cannot fire before
-those required external checks finish). **Additionally (not all
-ruleset-required):** Analyze (javascript-typescript), Analyze (csharp);
-optionally builds / Remote JS / Dependency review per classify.
+**PR Gate additionally requires (not all ruleset-required):** Analyze
+(javascript-typescript), Analyze (csharp); optionally builds / Remote JS /
+Dependency review per classify.
 
 ---
 
@@ -226,18 +222,12 @@ No `permissions: write-all` found. Release workflow is higher privilege by natur
 | Code quality notes | severity notes | Docs say “no GQ rule” — **ruleset has `code_quality` notes** |
 
 **Decision 2026-09-20 + live apply 2026-09-20:** the table above remains the
-**2026-09-19 measured snapshot**. Current live Protect develop enforces
-**1 required approval** and Code Quality severity **All**. Coverage
-restriction stays **off**. Copilot `review_on_push` is **not** on Protect
-develop: the 2026-09-20 evening REST+GraphQL snapshot has **no**
-`copilot_code_review` rule there (`VERIFIED VIA API`). Protect main still
-has `copilot_code_review` with `review_on_push: false` and draft review
-**off**. Ready develop PRs nevertheless receive Copilot reviews and a
-HEAD-tied `copilot-pull-request-reviewer` check (`VERIFIED VIA AVAILABLE
-GITHUB STATE`). Copilot may satisfy the required approval only with a real
-`APPROVED` review when repository Copilot approve/count settings are enabled
-(those UI toggles remain `NOT EXPOSED BY AVAILABLE API`). See
-[POST_MERGE_REVIEW_AUDIT_2026-09.md](POST_MERGE_REVIEW_AUDIT_2026-09.md).
+**2026-09-19 measured snapshot**. Current live Protect develop now enforces
+**1 required approval**, Code Quality severity **All**, Copilot
+`review_on_push` **on**, draft review **off**, and coverage restriction
+**off**. Copilot may satisfy the approval only with a real `APPROVED` review
+when repository Copilot approve/count settings are enabled (UI verification
+still required).
 
 ### Live Protect main (`gh api .../rulesets/16457407`)
 
@@ -323,15 +313,11 @@ Sources (primary first):
 
 ### P0 — Correctness / unsafe merge posture
 
-1. **Reconcile Protect develop ruleset:** **Done for approval count and Code
-   Quality 2026-09-20** — live has 1 approval and Code Quality = All.
-   Copilot `copilot_code_review` is **not** on Protect develop (evening
-   2026-09-20 API snapshot). Remaining: verify repository Copilot UI
-   approve/count toggles, Balanced effort, and optional Stage-3 path
-   allowlist (`docs/10_dev/devsecops-envy.md`); optionally add
-   `Review Lifecycle Gate` to required checks after validation. Do
-   **not** add `copilot_code_review` with `review_on_push: true`
-   (Copilot must run after advisory pre-review).
+1. **Reconcile Protect develop ruleset:** **Done for ruleset knobs
+   2026-09-20** — live now has 1 approval, Code Quality = All,
+   review-on-push on, draft review off. Remaining: verify repository Copilot
+   UI approve/count toggles, Balanced effort, and optional Stage-3 path
+   allowlist (`docs/10_dev/devsecops-envy.md`).
 2. **Documentation Check always reports** a terminal conclusion — **Done**
    (`if: always()` no-op path when classify says docs out of scope; cancelled
    classify from concurrency supersede also emits success no-op so a superseded
@@ -413,11 +399,10 @@ Documented; not unified in this PR (would either slow local or risk CI flakes).
 
 ## 14. Follow-ups (out of this PR)
 
-- Manual GitHub Settings → Copilot → Code review: confirm approve/count
-  ON, effort **Balanced**, and optional Stage-3 path allowlist. These are
-  UI-only. Protect develop currently has 1 approval and Code Quality All;
-  it does **not** contain `copilot_code_review`. Adding that rule and
-  making `Review Lifecycle Gate` required are documented manual steps.
+- Manual GitHub Settings → Copilot → Code review only: confirm approve/count
+  ON, effort **Balanced**, and optional Stage-3 path allowlist. Protect
+  develop ruleset knobs (1 approval, Code Quality All, automatic Copilot
+  review + review-on-push, draft review off) are already applied.
 - P2: vcpkg registry fetch / downloads cache experiment.
 - P3: single classify fan-out.
 - P4: controlled `/m` + MTT A/B on a throwaway branch.

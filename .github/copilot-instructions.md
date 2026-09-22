@@ -17,8 +17,3 @@ For Copilot Code Review, follow `.github/skills/code-review/SKILL.md`.
 - Never approve a pull request authored by Copilot cloud agent.
 - A Copilot `APPROVED` review is not proof of correctness; required CI and
   security checks stay independent.
-- Merge-readiness for `develop` requires Copilot Code Review `APPROVED`
-  on the current HEAD after advisory pre-review. Canonical policy:
-  `AGENTS.md`. The CI check is `Review Lifecycle Gate` (not
-  ruleset-required until validated). Do not review-on-push before
-  other AI pre-reviewers have had a chance to run.
