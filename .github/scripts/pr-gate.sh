@@ -12,6 +12,83 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=pr-gate-conclusions.sh
 source "${SCRIPT_DIR}/pr-gate-conclusions.sh"
 
+latest_check_rows() {
+	"${PYTHON:-python3}" -c '
+import json
+import os
+import sys
+
+self_name = os.environ.get("SELF_NAME", "PR Gate")
+decoder = json.JSONDecoder()
+text = sys.stdin.read().strip()
+idx = 0
+latest = {}
+while idx < len(text):
+    while idx < len(text) and text[idx].isspace():
+        idx += 1
+    if idx >= len(text):
+        break
+    page, idx = decoder.raw_decode(text, idx)
+    if not isinstance(page, dict):
+        raise SystemExit("check-runs response was not an object")
+    runs = page.get("check_runs")
+    if not isinstance(runs, list):
+        raise SystemExit("check-runs response did not include check_runs")
+    for run in runs:
+        if not isinstance(run, dict):
+            continue
+        name = run.get("name")
+        if not name or name == self_name:
+            continue
+        key = (
+            str(run.get("started_at") or run.get("created_at") or run.get("completed_at") or ""),
+            int(run.get("id") or 0),
+        )
+        current = latest.get(name)
+        if current is None or key >= current[0]:
+            latest[name] = (key, run)
+for name in sorted(latest):
+    run = latest[name][1]
+    print("{}\t{}\t{}".format(name, run.get("status") or "", run.get("conclusion") or ""))
+'
+}
+
+run_selftest() {
+	local tmp
+	tmp="$(mktemp)"
+	trap 'rm -f "$tmp"' RETURN
+	cat >"$tmp" <<'JSON'
+{"check_runs":[
+{"id":1,"name":"authorship-hygiene","status":"completed","conclusion":"failure","started_at":"2026-09-21T18:00:00Z"},
+{"id":2,"name":"authorship-hygiene","status":"completed","conclusion":"success","started_at":"2026-09-21T18:05:00Z"},
+{"id":3,"name":"secret-scan","status":"completed","conclusion":"success","started_at":"2026-09-21T18:00:00Z"},
+{"id":4,"name":"secret-scan","status":"completed","conclusion":"failure","started_at":"2026-09-21T18:05:00Z"},
+{"id":5,"name":"gitleaks","status":"completed","conclusion":"success","started_at":"2026-09-21T18:00:00Z"},
+{"id":6,"name":"gitleaks","status":"in_progress","conclusion":null,"started_at":"2026-09-21T18:05:00Z"},
+{"id":7,"name":"Format Check","status":"completed","conclusion":"failure","started_at":"2026-09-21T18:05:00Z"},
+{"id":8,"name":"Format Check","status":"completed","conclusion":"success","started_at":"2026-09-21T18:05:00Z"},
+{"id":9,"name":"Build x64 Release","status":"completed","conclusion":"success","created_at":"2026-09-21T18:00:00Z"},
+{"id":10,"name":"Build x64 Release","status":"completed","conclusion":"cancelled","created_at":"2026-09-21T18:05:00Z"},
+{"id":11,"name":"Build Win32 Release","status":"completed","conclusion":"cancelled","created_at":"2026-09-21T18:00:00Z"},
+{"id":12,"name":"Build Win32 Release","status":"completed","conclusion":"success","created_at":"2026-09-21T18:05:00Z"}
+]}
+JSON
+	local rows
+	rows="$(latest_check_rows <"$tmp")"
+	grep -F $'authorship-hygiene\tcompleted\tsuccess' <<<"$rows" >/dev/null
+	grep -F $'secret-scan\tcompleted\tfailure' <<<"$rows" >/dev/null
+	grep -F $'gitleaks\tin_progress\t' <<<"$rows" >/dev/null
+	grep -F $'Format Check\tcompleted\tsuccess' <<<"$rows" >/dev/null
+	grep -F $'Build x64 Release\tcompleted\tcancelled' <<<"$rows" >/dev/null
+	grep -F $'Build Win32 Release\tcompleted\tsuccess' <<<"$rows" >/dev/null
+	echo "pr-gate latest check selftest passed"
+}
+
+if [[ "${PR_GATE_SELFTEST:-}" == "1" ]]; then
+	run_selftest
+	exit 0
+fi
+
 REPO="${GITHUB_REPOSITORY:?}"
 SHA="${HEAD_SHA:?}"
 TIMEOUT_SEC="${TIMEOUT_SEC:-3000}"
@@ -86,15 +163,7 @@ while true; do
 	fi
 	json="${json_head}"$'\n'"${json_merge}"
 
-	mapfile -t rows < <(printf '%s\n' "$json" | jq -s -r '
-		[ .[] | .check_runs[]? ]
-		| map(select(.name != null and .name != "PR Gate"))
-		| group_by(.name)
-		| map(sort_by(.id) | last)
-		| .[]
-		| [.name, (.status // ""), (.conclusion // "")]
-		| @tsv
-	')
+	mapfile -t rows < <(printf '%s\n' "$json" | latest_check_rows)
 
 	declare -A status_by_name=()
 	declare -A conclusion_by_name=()
