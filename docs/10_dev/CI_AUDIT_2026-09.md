@@ -191,8 +191,8 @@ Build matrix (~8m) and Static Analysis (~9m) finish earlier
 | Control | Status |
 | --- | --- |
 | Default `permissions` least-privilege | Mostly yes; Build/Dep-review need `pull-requests: write` for comments |
-| Action SHA pins | Yes (Renovate digests for Actions) |
-| `pull_request_target` | `labeler.yml` + `dependabot-auto-merge.yml` only (no untrusted checkout of PR HEAD; auto-merge never approves — Dependabot login gate only) |
+| Action SHA pins | Yes (full commit SHA pins with version comments; Dependabot owns updates) |
+| `pull_request_target` | `labeler.yml` only |
 | Cache poisoning | vcpkg binary cache writable from PR jobs — GitHub restricts cache writes from forks; same-repo PRs share cache (accepted risk) |
 | gitleaks binary | Version + SHA256 pinned in `security.yml` |
 | Secrets in PR workflows | Uses `GITHUB_TOKEN` only for listed scopes |
@@ -294,7 +294,7 @@ Sources (primary first):
 | Idea | Source | Gain | Cost | Risk | Maint. | Rec. |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | Concurrency cancel PR | GH / qBT | High on busy PRs | Low | Low | Low | **Done** |
-| SHA-pin Actions | GH secure use | Security | Low | Low | Renovate | **Done** |
+| SHA-pin Actions | GH secure use | Security | Low | Low | Dependabot | **Done** |
 | Path-aware PR builds | Envy #116 | High | Med | Med | Med | **Done** |
 | CodeQL none on PR | Envy #116 | ~25 min | Precision | Med | Low | **Keep** |
 | Skip empty NuGet | This audit | ~22 s/job | Low | Low | Low | **Done** |

@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-21
+- **Last Updated:** 2026-09-23
+- **Changelog Entry:** 2026-09-23 — Dependency automation hardening: Dependabot now owns vcpkg, `Remote/tests` npm, and GitHub Actions; Renovate and Dependabot auto-merge are intentionally inactive; `vcpkg.json` is the single vcpkg baseline source. Dependency Review runs on every PR and blocks moderate+ vulnerabilities.
 - **Changelog Entry:** 2026-09-21 — UI Phase 1 (#297): merge `develop` after #301; keep both the adaptive-list changelog and the library MountCollection null-guard entry.
 - **Changelog Entry:** 2026-09-21 — #300: `CAlbumFolder::MountCollection` guards null `GetNextFolder` results; `m_pFolders` rejects null inserts; album-root mount is skipped when `m_pAlbumRoot` is null. EnvyTests cannot construct `CAlbumFolder` (MFC/`Library.m_pSection`); policy smoke `test_albumfolder_mountcollection_smoke.cpp`.
 - **Changelog Entry:** 2026-09-20 — UI Phase 1 (#297) Copilot: load ListStates/sticky only once; later OnSkinChange keeps in-session sticky.

@@ -65,7 +65,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/vcpkg_cache
-          key: vcpkg-v3-${{ runner.os }}-x64-${{ env.PLATFORM_TOOLSET }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          key: vcpkg-v3-${{ runner.os }}-x64-${{ env.PLATFORM_TOOLSET }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
             vcpkg-v3-${{ runner.os }}-x64-${{ env.PLATFORM_TOOLSET }}-
             vcpkg-v3-${{ runner.os }}-x64-

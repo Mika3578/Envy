@@ -17,14 +17,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
-  changes:
-    name: Classify (deps)
-    uses: ./.github/workflows/classify-changes.yml
-
   review:
     name: Dependency review
-    needs: changes
-    if: needs.changes.outputs.run_dep_review == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -35,7 +29,7 @@ jobs:
       - name: Dependency Review
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294  # v5.0.0
         with:
-          fail-on-severity: high
+          fail-on-severity: moderate
           comment-summary-in-pr: on-failure
           deny-licenses: GPL-2.0, GPL-3.0, AGPL-1.0
           # AGPL-3.0 is allowed because Envy itself is AGPL-3.0+.

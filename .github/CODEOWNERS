@@ -11,7 +11,6 @@
 *.props                           @mika3578
 *.targets                         @mika3578
 vcpkg.json                        @mika3578
-vcpkg-configuration.json          @mika3578
 
 # Core application
 /Envy/                            @mika3578
