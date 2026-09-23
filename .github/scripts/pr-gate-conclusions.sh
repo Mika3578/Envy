@@ -127,6 +127,16 @@ while idx < len(text):
 			raise SystemExit("check-runs response included an invalid check_run status")
 		if conclusion is not None and not isinstance(conclusion, str):
 			raise SystemExit("check-runs response included an invalid check_run conclusion")
+		for field_name, value in (
+			("name", name),
+			("status", status),
+			("conclusion", conclusion),
+			("head_sha", run_sha),
+		):
+			if value is not None and any(ord(ch) < 0x20 or ord(ch) == 0x7f for ch in value):
+				raise SystemExit(
+					f"check-runs response included control characters in check_run {field_name}"
+				)
 		if name == "PR Gate":
 			continue
 		if allowed_shas and run_sha not in allowed_shas:
