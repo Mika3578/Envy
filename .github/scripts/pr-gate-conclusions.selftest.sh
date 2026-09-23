@@ -416,4 +416,66 @@ else
 	echo "NOTE mapfile unexpectedly failed (rc=$map_rc)"
 fi
 
+# End-to-end timeout regression: every expected check except one is terminal
+# and acceptable. The cancelled required check must remain pending until the
+# real pr-gate.sh polling loop reaches TIMEOUT_SEC and exits non-zero.
+timeout_stub_dir="$(mktemp -d)"
+cat >"$timeout_stub_dir/gh" <<'EOF_GH'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" != "api" ]]; then
+	echo "unexpected gh invocation: $*" >&2
+	exit 2
+fi
+cat <<EOF_JSON
+{"check_runs":[
+  {"id":100,"name":"Lint build files","status":"completed","conclusion":"cancelled","head_sha":"${STUB_HEAD_SHA}"},
+  {"id":101,"name":"secret-scan","status":"completed","conclusion":"success","head_sha":"${STUB_HEAD_SHA}"},
+  {"id":102,"name":"Vcpkg manifest sanity","status":"completed","conclusion":"success","head_sha":"${STUB_HEAD_SHA}"},
+  {"id":103,"name":"Analyze (c-cpp)","status":"completed","conclusion":"success","head_sha":"${STUB_HEAD_SHA}"},
+  {"id":104,"name":"Analyze (javascript-typescript)","status":"completed","conclusion":"success","head_sha":"${STUB_HEAD_SHA}"},
+  {"id":105,"name":"Analyze (csharp)","status":"completed","conclusion":"success","head_sha":"${STUB_HEAD_SHA}"},
+  {"id":106,"name":"Format Check","status":"completed","conclusion":"success","head_sha":"${STUB_HEAD_SHA}"},
+  {"id":107,"name":"Documentation Check","status":"completed","conclusion":"success","head_sha":"${STUB_HEAD_SHA}"},
+  {"id":108,"name":"Build x64 Release","status":"completed","conclusion":"skipped","head_sha":"${STUB_HEAD_SHA}"},
+  {"id":109,"name":"Build Win32 Release","status":"completed","conclusion":"skipped","head_sha":"${STUB_HEAD_SHA}"}
+]}
+EOF_JSON
+EOF_GH
+chmod +x "$timeout_stub_dir/gh"
+
+set +e
+timeout_output="$(PATH="$timeout_stub_dir:$PATH" \
+	STUB_HEAD_SHA="$HEAD_A" \
+	GITHUB_REPOSITORY="Mika3578/Envy" \
+	HEAD_SHA="$HEAD_A" \
+	MERGE_SHA="$HEAD_A" \
+	RUN_WINDOWS_BUILD=false \
+	RUN_REMOTE_JS=false \
+	RUN_DEP_REVIEW=false \
+	TIMEOUT_SEC=1 \
+	POLL_SEC=0.1 \
+	bash ./pr-gate.sh 2>&1)"
+timeout_rc=$?
+set -e
+rm -rf "$timeout_stub_dir"
+
+if [[ "$timeout_rc" -eq 0 ]]; then
+	echo "FAIL cancelled-check-e2e-timeout: gate unexpectedly succeeded"
+	fail=1
+elif [[ "$timeout_output" != *"Timed out after 1s waiting for required checks."* ]]; then
+	echo "FAIL cancelled-check-e2e-timeout: timeout message missing"
+	printf '%s\n' "$timeout_output"
+	fail=1
+elif [[ "$timeout_output" != *"Lint build files: cancelled (waiting for replacement)"* ]]; then
+	echo "FAIL cancelled-check-e2e-timeout: cancelled check was not kept pending"
+	printf '%s\n' "$timeout_output"
+	fail=1
+elif [[ "$timeout_output" == *"All expected checks completed successfully."* ]]; then
+	echo "FAIL cancelled-check-e2e-timeout: cancelled check was accepted as success"
+	fail=1
+else
+	echo "OK   cancelled-check-e2e-timeout"
+fi
+
 exit "$fail"
