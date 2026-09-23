@@ -111,15 +111,25 @@ while idx < len(text):
 		raise SystemExit("check-runs response did not include check_runs")
 	for run in runs:
 		if not isinstance(run, dict):
-			continue
+			raise SystemExit("check-runs response included a non-object check_run")
+		run_id = run.get("id")
 		name = run.get("name")
-		if not name or name == "PR Gate":
-			continue
 		run_sha = run.get("head_sha")
-		if allowed_shas and run_sha not in allowed_shas:
+		status = run.get("status")
+		conclusion = run.get("conclusion")
+		if not isinstance(run_id, int) or isinstance(run_id, bool) or run_id <= 0:
+			raise SystemExit("check-runs response included an invalid check_run id")
+		if not isinstance(name, str) or not name:
+			raise SystemExit("check-runs response included an invalid check_run name")
+		if not isinstance(run_sha, str) or not run_sha:
+			raise SystemExit("check-runs response included an invalid check_run head_sha")
+		if not isinstance(status, str) or not status:
+			raise SystemExit("check-runs response included an invalid check_run status")
+		if conclusion is not None and not isinstance(conclusion, str):
+			raise SystemExit("check-runs response included an invalid check_run conclusion")
+		if name == "PR Gate":
 			continue
-		run_id = int(run.get("id") or 0)
-		if run_id <= 0:
+		if allowed_shas and run_sha not in allowed_shas:
 			continue
 		current = latest.get(name)
 		if current is None or run_id > current[0]:
