@@ -12,12 +12,25 @@ permissions:
 
 jobs:
   copilot-setup-steps:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
-          persist-credentials: false
           submodules: recursive
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57  # v3
+
+      - name: Bootstrap vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
+          & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
+
+      - name: Restore vcpkg manifest
+        shell: pwsh
+        run: |
+          & "$env:GITHUB_WORKSPACE/vcpkg/vcpkg.exe" install --triplet=x64-windows-static
