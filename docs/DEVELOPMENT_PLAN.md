@@ -3,6 +3,7 @@
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
 - **Last Updated:** 2026-09-21
+- **Changelog Entry:** 2026-09-21 — PR Gate treats `cancelled` as pending so a superseded check-run cannot false-fail before its replacement is registered. Fail-fast remains `failure`/`timed_out`/`action_required`/`startup_failure`/`stale`. `cancelled` is never success; a cancelled check without replacement still times out. Do not promote Review Lifecycle Gate until this lands. Canonical: `.github/scripts/pr-gate.sh`.
 - **Changelog Entry:** 2026-09-21 — UI Phase 1 (#297): merge `develop` after #301; keep both the adaptive-list changelog and the library MountCollection null-guard entry.
 - **Changelog Entry:** 2026-09-21 — #300: `CAlbumFolder::MountCollection` guards null `GetNextFolder` results; `m_pFolders` rejects null inserts; album-root mount is skipped when `m_pAlbumRoot` is null. EnvyTests cannot construct `CAlbumFolder` (MFC/`Library.m_pSection`); policy smoke `test_albumfolder_mountcollection_smoke.cpp`.
 - **Changelog Entry:** 2026-09-20 — UI Phase 1 (#297) Copilot: load ListStates/sticky only once; later OnSkinChange keeps in-session sticky.

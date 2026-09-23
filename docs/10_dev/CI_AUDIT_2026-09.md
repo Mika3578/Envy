@@ -390,8 +390,11 @@ Documented; not unified in this PR (would either slow local or risk CI flakes).
 ## 13. Health notes
 
 - Cancelled PR workflows: concurrency (healthy).
-- PR Gate failures often accompany early Format/Quality failures or mid-update
-  cancels — not evidence of Gate flakiness alone.
+- PR Gate failures often accompany early Format/Quality failures. Mid-update
+  `cancelled` check-runs are **not** fail-fast: concurrency can supersede a
+  generation before the replacement is registered (#304 canary, run
+  `35594164751`). The gate waits until a newer generation is observed or
+  `TIMEOUT_SEC` elapses. True failures still fail immediately.
 - Static Analysis `continue-on-error: true` — advisory by design.
 - No systematic Win32-only flake identified in the sampled window.
 

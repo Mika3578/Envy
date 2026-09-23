@@ -2,6 +2,10 @@
 # Shared conclusion helpers for PR Gate (sourced by pr-gate.sh and selftests).
 # shellcheck shell=bash
 
+# Historical GitHub "bad terminal" set. Keep cancelled here so other callers
+# that want a strict terminal view stay unchanged. PR Gate itself must not
+# treat cancelled as fail-fast (concurrency can supersede a run before the
+# replacement check-run exists).
 is_bad_conclusion() {
 	local conclusion="$1"
 	case "$conclusion" in
@@ -12,6 +16,123 @@ is_bad_conclusion() {
 		return 1
 		;;
 	esac
+}
+
+# Immediate PR Gate failures. cancelled is omitted on purpose.
+is_fail_fast_conclusion() {
+	local conclusion="$1"
+	case "$conclusion" in
+	failure | timed_out | action_required | startup_failure | stale)
+		return 0
+		;;
+	*)
+		return 1
+		;;
+	esac
+}
+
+# Completed conclusions that may be replaced by a newer generation on the
+# same HEAD. Never treat these as success.
+is_supersedable_conclusion() {
+	local conclusion="$1"
+	[[ "$conclusion" == "cancelled" ]]
+}
+
+# Classify one observed check for PR Gate.
+# stdout: ok | pending | failed
+# args: status conclusion allow_skip(true|false)
+classify_gate_outcome() {
+	local st="${1:-}"
+	local conc="${2:-}"
+	local allow_skip="${3:-false}"
+	if [[ -z "$st" ]]; then
+		printf '%s\n' pending
+		return
+	fi
+	if [[ "$st" != "completed" ]]; then
+		printf '%s\n' pending
+		return
+	fi
+	if is_supersedable_conclusion "$conc"; then
+		printf '%s\n' pending
+		return
+	fi
+	if is_fail_fast_conclusion "$conc"; then
+		printf '%s\n' failed
+		return
+	fi
+	if [[ "$allow_skip" == "true" ]]; then
+		if is_ok_may_skip "$conc"; then
+			printf '%s\n' ok
+			return
+		fi
+		printf '%s\n' failed
+		return
+	fi
+	if is_ok_must_pass "$conc"; then
+		printf '%s\n' ok
+		return
+	fi
+	printf '%s\n' failed
+}
+
+# stdin: one or more check-runs API JSON payloads (possibly concatenated).
+# $1: current HEAD sha. $2: current merge sha, when GitHub created one.
+# Runs from other SHAs are ignored so stale head or merge generations cannot
+# mask missing current pull-request state.
+pr_gate_latest_check_rows() {
+	local head_sha="${1:-}"
+	local merge_sha="${2:-}"
+	"${PYTHON:-python3}" -c '
+import json
+import sys
+from json import JSONDecodeError
+
+head_sha = sys.argv[1]
+merge_sha = sys.argv[2]
+allowed_shas = {sha for sha in (head_sha, merge_sha) if sha}
+decoder = json.JSONDecoder()
+text = sys.stdin.read().strip()
+idx = 0
+latest = {}
+while idx < len(text):
+	while idx < len(text) and text[idx].isspace():
+		idx += 1
+	if idx >= len(text):
+		break
+	try:
+		page, idx = decoder.raw_decode(text, idx)
+	except JSONDecodeError as exc:
+		raise SystemExit(f"check-runs response was not valid JSON: {exc}") from None
+	if not isinstance(page, dict):
+		raise SystemExit("check-runs response was not an object")
+	runs = page.get("check_runs")
+	if not isinstance(runs, list):
+		raise SystemExit("check-runs response did not include check_runs")
+	for run in runs:
+		if not isinstance(run, dict):
+			continue
+		name = run.get("name")
+		if not name or name == "PR Gate":
+			continue
+		run_sha = run.get("head_sha")
+		if allowed_shas and run_sha not in allowed_shas:
+			continue
+		run_id = int(run.get("id") or 0)
+		if run_id <= 0:
+			continue
+		current = latest.get(name)
+		if current is None or run_id > current[0]:
+			latest[name] = (run_id, run)
+for name in sorted(latest):
+	run = latest[name][1]
+	print("{}\t{}\t{}\t{}".format(
+		name,
+		run.get("status") or "",
+		run.get("conclusion") or "",
+		run.get("head_sha") or "",
+	))
+' "$head_sha" "$merge_sha"
 }
 
 # must_pass: only success is OK (skipped/neutral/empty fail).
