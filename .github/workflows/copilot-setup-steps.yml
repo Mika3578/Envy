@@ -1,7 +1,6 @@
 # Setup steps GitHub Copilot uses when it opens this repo in a remote
-# environment. Keep this lightweight and Ubuntu-based so Copilot Code Review
-# can use it safely as a fallback while the dedicated review setup is rolling
-# out.
+# environment. Keep this Windows/MSBuild/vcpkg environment usable for coding
+# agent sessions; Copilot Code Review uses copilot-code-review.yml instead.
 name: Copilot setup
 
 on:
