@@ -57,7 +57,7 @@ BLOCK (native GitHub review rules on Protect develop — not replaceable by PR G
 - Code scanning merge protection: CodeQL + Gitleaks (current thresholds)
 - GitHub **Code Quality** severity **All** (live). Code Quality complements —
   it does not replace — SonarCloud/CodeQL/MSVC/tests for the C++ core.
-- Copilot ruleset: `review_on_push` **on**, draft review **off** (live).
+- Copilot ruleset: `review_on_push` **off**, draft review **off** (live).
 - No draft; squash only on `develop`; linear history; **no bypass actors**
 
 ADVISORY: CodeRabbit, clang-tidy + reviewdog, Snyk (when present), Cursor Bugbot
@@ -159,14 +159,14 @@ comparison notes.
    - GitHub Code Quality: severity **All** (live)
    - Restrict code coverage: **off for now** — do not enable until PR coverage
      data is uploaded reliably and a baseline has been measured
-   - Copilot ruleset: review new pushes **on**; review drafts **off**
+   - Copilot ruleset: review new pushes **off**; review drafts **off**
 6. **GitHub Copilot Code Review (repository UI — manual verify):** Settings →
    Copilot → Code review: effort **Balanced**; **Allow Copilot to approve pull
    requests** ON; **Allow Copilot approvals to count toward merge
    requirements** ON; path allowlist as in item 3 (exclude
-   review-governance and infra). Automatically request Copilot
-   code review is already on via Protect develop (`review_on_push`). These
-   toggles and globs are not on the ruleset API. See
+   review-governance and infra). Automatic review on each push is deliberately
+   off in Protect develop; request the final Copilot review after PR Gate is
+   green. These toggles and globs are not on the ruleset API. See
    [Using AI-Approved Pull Requests Safely with GitHub Copilot](https://www.c-sharpcorner.com/article/using-ai-approved-pull-requests-safely-with-github-copilot/).
 7. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 

@@ -9,7 +9,7 @@
 
 - **Protect develop ruleset (re-verified 2026-09-20):** Live API now matches
   the maintainer target for **1 required approval**, Code Quality severity
-  **All**, Copilot `review_on_push` **on**, and draft review **off**. Coverage
+  **All**, Copilot `review_on_push` **off**, and draft review **off**. Coverage
   restriction remains **off** (no `Restrict code coverage` rule). Historical
   2026-09-19 audit snapshots that recorded `required_approving_review_count: 0`
   / Code Quality `notes` / `review_on_push: false` are retained as history —
@@ -17,8 +17,9 @@
   need manual verification are **Allow Copilot to approve pull requests**,
   **Allow Copilot approvals to count toward merge requirements**, review
   effort **Balanced**, and the optional path allowlist (Stage-3 docs/i18n
-  globs in `docs/10_dev/devsecops-envy.md`; excludes review-governance). Automatic Copilot review is
-  already live on Protect develop (`copilot_code_review` + `review_on_push`);
+  globs in `docs/10_dev/devsecops-envy.md`; excludes review-governance).
+  Automatic Copilot review on each push is deliberately off in Protect
+  develop (`copilot_code_review` enabled, `review_on_push: false`);
   it is not a remaining UI gap. An AI comment/assessment alone is not an
   `APPROVED` review. See `docs/10_dev/CI_AUDIT_2026-09.md` and
   `docs/10_dev/devsecops-envy.md`.
