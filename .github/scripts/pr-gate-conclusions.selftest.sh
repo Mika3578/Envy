@@ -282,6 +282,22 @@ else
 	echo "OK   malformed-json-fails"
 fi
 
+# A malformed newer record must not be ignored in favor of an older success.
+json_malformed_run="$(check_json '[
+  {"id":1,"name":"Format Check","status":"completed","conclusion":"success","head_sha":"'"$HEAD_A"'"},
+  {"id":null,"name":"Format Check","status":"completed","conclusion":"failure","head_sha":"'"$HEAD_A"'"}
+]')"
+set +e
+printf '%s\n' "$json_malformed_run" | pr_gate_latest_check_rows "$HEAD_A" >/dev/null
+malformed_run_rc=$?
+set -e
+if [[ "$malformed_run_rc" -eq 0 ]]; then
+	echo "FAIL malformed-check-run-fails-closed"
+	fail=1
+else
+	echo "OK   malformed-check-run-fails-closed"
+fi
+
 # Regression: #304 canary race (run 35594164751)
 # t0/t1: old Format Check cancelled, replacement not yet reported → pending
 json_t0="$(check_json '[
