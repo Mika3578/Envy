@@ -298,6 +298,43 @@ else
 	echo "OK   malformed-check-run-fails-closed"
 fi
 
+# Serialized TSV fields must reject control characters so a malformed value
+# cannot shift Bash read fields and synthesize a passing required check.
+for control_case in name status conclusion head_sha; do
+	case "$control_case" in
+	name)
+		json_control_char="$(check_json '[
+  {"id":1,"name":"Format Check\\tspoof","status":"completed","conclusion":"success","head_sha":"'"$HEAD_A"'"}
+]')"
+		;;
+	status)
+		json_control_char="$(check_json '[
+  {"id":1,"name":"Format Check","status":"completed\\nspoof","conclusion":"success","head_sha":"'"$HEAD_A"'"}
+]')"
+		;;
+	conclusion)
+		json_control_char="$(check_json '[
+  {"id":1,"name":"Format Check","status":"completed","conclusion":"success\\rspoof","head_sha":"'"$HEAD_A"'"}
+]')"
+		;;
+	head_sha)
+		json_control_char="$(check_json '[
+  {"id":1,"name":"Format Check","status":"completed","conclusion":"success","head_sha":"'"$HEAD_A"'\\tspoof"}
+]')"
+		;;
+	esac
+	set +e
+	printf '%s\n' "$json_control_char" | pr_gate_latest_check_rows "$HEAD_A" >/dev/null
+	control_char_rc=$?
+	set -e
+	if [[ "$control_char_rc" -eq 0 ]]; then
+		echo "FAIL control-char-$control_case-fails-closed"
+		fail=1
+	else
+		echo "OK   control-char-$control_case-fails-closed"
+	fi
+done
+
 # Regression: #304 canary race (run 35594164751)
 # t0/t1: old Format Check cancelled, replacement not yet reported → pending
 json_t0="$(check_json '[
