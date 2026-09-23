@@ -304,22 +304,22 @@ for control_case in name status conclusion head_sha; do
 	case "$control_case" in
 	name)
 		json_control_char="$(check_json '[
-  {"id":1,"name":"Format Check\\tspoof","status":"completed","conclusion":"success","head_sha":"'"$HEAD_A"'"}
+  {"id":1,"name":"Format Check\tspoof","status":"completed","conclusion":"success","head_sha":"'"$HEAD_A"'"}
 ]')"
 		;;
 	status)
 		json_control_char="$(check_json '[
-  {"id":1,"name":"Format Check","status":"completed\\nspoof","conclusion":"success","head_sha":"'"$HEAD_A"'"}
+  {"id":1,"name":"Format Check","status":"completed\nspoof","conclusion":"success","head_sha":"'"$HEAD_A"'"}
 ]')"
 		;;
 	conclusion)
 		json_control_char="$(check_json '[
-  {"id":1,"name":"Format Check","status":"completed","conclusion":"success\\rspoof","head_sha":"'"$HEAD_A"'"}
+  {"id":1,"name":"Format Check","status":"completed","conclusion":"success\rspoof","head_sha":"'"$HEAD_A"'"}
 ]')"
 		;;
 	head_sha)
 		json_control_char="$(check_json '[
-  {"id":1,"name":"Format Check","status":"completed","conclusion":"success","head_sha":"'"$HEAD_A"'\\tspoof"}
+  {"id":1,"name":"Format Check","status":"completed","conclusion":"success","head_sha":"'"$HEAD_A"'\tspoof"}
 ]')"
 		;;
 	esac
