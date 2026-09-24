@@ -1,6 +1,6 @@
 # Setup steps GitHub Copilot uses when it opens this repo in a remote
-# environment. Keeps the agent on a known-good toolchain without forcing the
-# whole MSVC install.
+# environment. Keep this Windows/MSBuild/vcpkg environment usable for coding
+# agent sessions; Copilot Code Review uses copilot-code-review.yml instead.
 name: Copilot setup
 
 on:
@@ -13,6 +13,8 @@ jobs:
   copilot-setup-steps:
     runs-on: windows-2025-vs2026
     timeout-minutes: 60
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:

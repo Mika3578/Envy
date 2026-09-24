@@ -1,0 +1,25 @@
+name: Copilot Code Review
+
+# Copilot Code Review uses this file instead of copilot-setup-steps.yml when
+# present. Keep it on Ubuntu: Copilot Code Review supports Ubuntu x64 runners.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/copilot-code-review.yml
+
+permissions:
+  contents: read
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0

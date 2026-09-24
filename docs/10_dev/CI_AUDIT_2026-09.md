@@ -224,7 +224,7 @@ No `permissions: write-all` found. Release workflow is higher privilege by natur
 **Decision 2026-09-20 + live apply 2026-09-20:** the table above remains the
 **2026-09-19 measured snapshot**. Current live Protect develop now enforces
 **1 required approval**, Code Quality severity **All**, Copilot
-`review_on_push` **on**, draft review **off**, and coverage restriction
+`review_on_push` **off**, draft review **off**, and coverage restriction
 **off**. Copilot may satisfy the approval only with a real `APPROVED` review
 when repository Copilot approve/count settings are enabled (UI verification
 still required).
