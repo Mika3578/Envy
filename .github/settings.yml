@@ -66,6 +66,14 @@ labels:
     color: "0366d6"
     description: "Pull requests that update a dependency file"
 
+  - name: "vcpkg"
+    color: "0366d6"
+    description: "vcpkg dependency updates"
+
+  - name: "npm"
+    color: "0366d6"
+    description: "npm dependency updates"
+
   # Status labels
   - name: "needs-triage"
     color: "fef2c0"
