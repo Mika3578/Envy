@@ -119,15 +119,8 @@ jobs:
             git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
           }
 
-          $baseline = $null
-          $vcpkgConfig = Join-Path $env:GITHUB_WORKSPACE "vcpkg-configuration.json"
-          if (Test-Path $vcpkgConfig) {
-            $baseline = (Get-Content $vcpkgConfig -Raw | ConvertFrom-Json)."builtin-baseline"
-          }
-          if (-not $baseline) {
-            $vcpkgManifest = Join-Path $env:GITHUB_WORKSPACE "vcpkg.json"
-            $baseline = (Get-Content $vcpkgManifest -Raw | ConvertFrom-Json)."builtin-baseline"
-          }
+          $vcpkgManifest = Join-Path $env:GITHUB_WORKSPACE "vcpkg.json"
+          $baseline = (Get-Content $vcpkgManifest -Raw | ConvertFrom-Json)."builtin-baseline"
           if ($baseline) {
             git -C $vcpkgRoot checkout $baseline
           }
@@ -143,7 +136,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/vcpkg_cache
-          key: vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          key: vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
             vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-${{ env.VCPKG_COMMIT }}-
             vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-

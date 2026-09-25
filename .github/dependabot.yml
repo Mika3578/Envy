@@ -1,11 +1,5 @@
 version: 2
 updates:
-  # Native C/C++ dependencies via vcpkg manifest.
-  # Dependabot advances vcpkg-configuration.json's builtin-baseline commit hash
-  # rather than bumping individual packages - keeps the curated set consistent.
-  #
-  # GitHub Actions updates are owned by Renovate (renovate.json) to enable
-  # grouping, digests, and a Dependency Dashboard without duplicate PRs.
   - package-ecosystem: "vcpkg"
     directory: "/"
     schedule:
@@ -22,5 +16,49 @@ updates:
       include: "scope"
     groups:
       vcpkg-baseline:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/Remote/tests"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:15"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "npm"
+    commit-message:
+      prefix: "deps(npm)"
+      include: "scope"
+    groups:
+      remote-tests-npm:
+        update-types:
+          - "minor"
+          - "patch"
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:30"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "deps(actions)"
+      include: "scope"
+    groups:
+      github-actions-non-major:
+        update-types:
+          - "minor"
+          - "patch"
         patterns:
           - "*"

@@ -20,7 +20,6 @@ SELF_NAME="${SELF_NAME:-PR Gate}"
 
 RUN_WINDOWS_BUILD="${RUN_WINDOWS_BUILD:-false}"
 RUN_REMOTE_JS="${RUN_REMOTE_JS:-false}"
-RUN_DEP_REVIEW="${RUN_DEP_REVIEW:-false}"
 
 must_pass=()
 may_skip=()
@@ -41,6 +40,10 @@ add_must "Format Check"
 # (full check or classify no-op). Keep it must_pass so a silent skip cannot
 # green-wash the gate.
 add_must "Documentation Check"
+# Dependency Review runs on every PR and blocks moderate-or-higher vulnerable
+# dependency changes. Keep it unconditional here so PR Gate remains stricter
+# than classifier-driven required-check lists.
+add_must "Dependency review"
 
 if [[ "$RUN_WINDOWS_BUILD" == "true" ]]; then
 	add_must "Build x64 Release"
@@ -52,10 +55,6 @@ fi
 
 if [[ "$RUN_REMOTE_JS" == "true" ]]; then
 	add_must "Remote JS Security Tests"
-fi
-
-if [[ "$RUN_DEP_REVIEW" == "true" ]]; then
-	add_must "Dependency review"
 fi
 
 echo "Must pass: ${must_pass[*]:-(none)}"

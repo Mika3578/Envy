@@ -21,6 +21,7 @@ check() {
 readonly F_DOCS=$'docs/foo.md\nREADME.md'
 readonly F_CPP='Envy/EDClient.cpp'
 readonly F_REMOTE='Remote/script.js'
+readonly F_REMOTE_NPM='Remote/tests/package-lock.json'
 readonly F_CSHARP='Languages/Tools/SkinUpdater/Program.cs'
 readonly F_WORKFLOW='.github/workflows/build.yml'
 readonly F_VCPKG='vcpkg.json'
@@ -37,6 +38,9 @@ check docs-only-docs "$F_DOCS" run_docs_check true
 check cpp "$F_CPP" run_windows_build true
 check remote "$F_REMOTE" run_remote_js true
 check remote-win "$F_REMOTE" run_windows_build false
+check remote-npm-js "$F_REMOTE_NPM" run_remote_js true
+check remote-npm-deps "$F_REMOTE_NPM" run_dep_review true
+check remote-npm-win "$F_REMOTE_NPM" run_windows_build false
 check csharp-win "$F_CSHARP" run_windows_build false
 check workflow-win "$F_WORKFLOW" run_windows_build true
 check deps "$F_VCPKG" run_dep_review true

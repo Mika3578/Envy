@@ -35,7 +35,7 @@ actively exploited issues.
 This repository ships with the following automated defenses:
 
 - **CodeQL** scans on every push and pull request (`.github/workflows/codeql.yml`).
-- **Dependabot** version updates for vcpkg dependencies and GitHub Actions
+- **Dependabot** version updates for vcpkg, `Remote/tests` npm, and GitHub Actions
   (`.github/dependabot.yml`).
 - **Dependency review** on pull requests
   (`.github/workflows/dependency-review.yml`).

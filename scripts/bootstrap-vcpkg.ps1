@@ -91,10 +91,16 @@ function Install-LocalVcpkg {
 	$onWindows = $env:OS -eq 'Windows_NT'
 	if ($onWindows -and (Test-Path -LiteralPath $bootstrapBat)) {
 		Write-Host 'Bootstrapping vcpkg.exe...' -ForegroundColor DarkCyan
-		& $bootstrapBat -disableMetrics
+		& $bootstrapBat -disableMetrics 2>&1 | ForEach-Object { Write-Host $_ }
+		if ($LASTEXITCODE -ne 0) {
+			throw "vcpkg bootstrap failed with exit code $LASTEXITCODE."
+		}
 	} elseif (Test-Path -LiteralPath $bootstrapSh) {
 		Write-Host 'Bootstrapping vcpkg...' -ForegroundColor DarkCyan
-		& $bootstrapSh -disableMetrics
+		& $bootstrapSh -disableMetrics 2>&1 | ForEach-Object { Write-Host $_ }
+		if ($LASTEXITCODE -ne 0) {
+			throw "vcpkg bootstrap failed with exit code $LASTEXITCODE."
+		}
 	} else {
 		throw "vcpkg bootstrap script was not found under $vcpkgDir"
 	}
