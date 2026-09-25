@@ -93,6 +93,15 @@ runs:
         Write-Host "Triplet=$triplet"
         & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install --triplet=$triplet
 
+    - name: Verify BugSplat SDK slice (x64)
+      if: ${{ inputs.platform == 'x64' }}
+      shell: pwsh
+      run: |
+        $lib = "ThirdParty/BugSplat/x64/Release/lib/mt/BugSplat.lib"
+        if (-not (Test-Path -LiteralPath $lib)) {
+          throw "Missing $lib. Maintainers must run scripts/import-bugsplat-sdk.ps1 from the official native SDK and commit ThirdParty/BugSplat (see ThirdParty/BugSplat/README.md)."
+        }
+
     # Measured 2026-09-19 on windows-2025-vs2026: nuget restore prints
     # "Nothing to do" and still costs ~22s. Skip unless a packages.config
     # exists outside third-party trees (Services/, HashLib/HashLib/, and
@@ -246,6 +255,9 @@ runs:
         path: |
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.exe
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.pdb
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatMonitor.exe
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatWer.dll
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatRc.dll
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_handler.exe
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_wer.dll
           Envy/**/Release/*.exe

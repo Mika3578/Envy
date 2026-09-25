@@ -1,0 +1,85 @@
+name: BugSplat symbols
+
+# Upload matching Envy.exe / PDB to BugSplat from trusted branches only.
+# Requires repository secrets BUGSPLAT_CLIENT_ID and BUGSPLAT_CLIENT_SECRET.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop, main]
+    paths:
+      - "Envy/**"
+      - "ThirdParty/BugSplat/**"
+      - ".github/workflows/bugsplat-symbols.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bugsplat-symbols-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  upload-x64-release:
+    name: BugSplat symbols (x64 Release)
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 120
+    if: github.repository == 'Mika3578/Envy'
+    env:
+      PLATFORM_TOOLSET: v145
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          fetch-depth: 1
+
+      - name: Skip when BugSplat OAuth secrets are absent
+        id: secrets
+        shell: pwsh
+        run: |
+          $ok = [bool]$env:BUGSPLAT_CLIENT_ID -and [bool]$env:BUGSPLAT_CLIENT_SECRET
+          if (-not $ok) {
+            Write-Host "::notice::BUGSPLAT_CLIENT_ID / BUGSPLAT_CLIENT_SECRET not set; skipping symbol upload."
+            "skip=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "skip=false" >> $env:GITHUB_OUTPUT
+          }
+        env:
+          BUGSPLAT_CLIENT_ID: ${{ secrets.BUGSPLAT_CLIENT_ID }}
+          BUGSPLAT_CLIENT_SECRET: ${{ secrets.BUGSPLAT_CLIENT_SECRET }}
+
+      - name: Build x64 Release
+        if: steps.secrets.outputs.skip != 'true'
+        uses: ./.github/actions/windows-msbuild
+        with:
+          platform: x64
+          configuration: Release
+          upload-binaries: "false"
+          run-tests: "false"
+
+      - name: Download symbol-upload tool
+        if: steps.secrets.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          $ver = "v11.0.0"
+          $dest = "$env:RUNNER_TEMP\symbol-upload-windows.exe"
+          Invoke-WebRequest -Uri "https://github.com/BugSplat-Git/symbol-upload/releases/download/$ver/symbol-upload-windows.exe" -OutFile $dest
+          "SYMBOL_UPLOAD_EXE=$dest" >> $env:GITHUB_ENV
+
+      - name: Upload symbols
+        if: steps.secrets.outputs.skip != 'true'
+        shell: pwsh
+        env:
+          BUGSPLAT_CLIENT_ID: ${{ secrets.BUGSPLAT_CLIENT_ID }}
+          BUGSPLAT_CLIENT_SECRET: ${{ secrets.BUGSPLAT_CLIENT_SECRET }}
+          BUGSPLAT_DATABASE: ${{ vars.ENVY_BUGSPLAT_DATABASE }}
+          BUGSPLAT_APP: Envy
+          BUGSPLAT_VERSION: ${{ github.sha }}
+        run: |
+          if (-not $env:BUGSPLAT_DATABASE) {
+            Write-Error "Repository variable ENVY_BUGSPLAT_DATABASE is not set."
+            exit 1
+          }
+          $exe = Get-ChildItem -LiteralPath "Envy/Release x64" -Filter "Envy.exe" | Select-Object -First 1
+          if (-not $exe) { throw "Envy.exe not built" }
+          & $env:SYMBOL_UPLOAD_EXE -b $env:BUGSPLAT_DATABASE -a $env:BUGSPLAT_APP -v $env:BUGSPLAT_VERSION `
+            -i $env:BUGSPLAT_CLIENT_ID -s $env:BUGSPLAT_CLIENT_SECRET -d $exe.DirectoryName
