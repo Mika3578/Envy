@@ -1,4 +1,16 @@
 {
-  "description": "Expected SHA-256 of official BugSplat native SDK files before import. Empty until a maintainer imports a verified SDK with -RecordReferenceHashes.",
+  "description": "Maintainer-reviewed SHA-256 baseline for the BugSplat Native Windows SDK. Not an independent publisher manifest.",
+  "trustModel": {
+    "publisherIndependentSha256Manifest": false,
+    "sha256Role": "Detect drift from a maintainer-reviewed baseline after portal download.",
+    "baselineEstablishedBy": "scripts/establish-bugsplat-sdk-trust.ps1 plus human PR review",
+    "authenticode": {
+      "requiredForPeFiles": true,
+      "publisherSubjectContains": ["BugSplat"]
+    },
+    "limitation": "SHA-256 in this file does not prove the first download was uncompromised; it only detects changes after the baseline was committed."
+  },
+  "sdkVersion": "",
+  "sourceUrl": "https://app.bugsplat.com/browse/download_item.php?item=native",
   "files": {}
 }

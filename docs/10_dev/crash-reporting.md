@@ -24,7 +24,7 @@ Envy.exe (x64)
                 └── BugSplat backend (when database configured + user sends)
 ```
 
-- SDK slice: `ThirdParty/BugSplat/` (import via `scripts/import-bugsplat-sdk.ps1`).
+- SDK slice: `ThirdParty/BugSplat/` (`establish-bugsplat-sdk-trust.ps1` for baseline, `import-bugsplat-sdk.ps1` for copy-only import).
 - **No** Crashpad on x64: root `vcpkg.json` lists `crashpad` only for `windows & x86`.
 - Official builds may pass `/p:EnvyBugSplatDatabase=<name>` (database name is not a secret). Forks leave it empty to compile without uploading.
 - BugSplat is constructed in `SetIdentity` with `BugSplat(database, L"Envy", productVersion)` where `productVersion` is the same `major.minor` string as `m_sVersion` / `Envy.exe` file version. CI symbol upload uses that file version, not `github.sha` (revision stays in `envy_revision`).

@@ -9,27 +9,40 @@ maintainers — it is **not** the full SDK archive.
 1. Download the **Windows Native C++** package from BugSplat (account required):
    https://app.bugsplat.com/browse/download_item.php?item=native
 2. Unzip locally (do not commit the zip).
-3. Import the required files:
+3. Establish trust baseline (first time or SDK upgrade — **separate maintainer PR**):
 
 ```powershell
-# First import: official portal only, Authenticode on signed binaries, record hashes
-pwsh scripts/import-bugsplat-sdk.ps1 `
+pwsh scripts/establish-bugsplat-sdk-trust.ps1 `
   -SourceRoot C:\path\to\unzipped-sdk `
   -SdkVersion 7.0.5 `
-  -AllowUnlistedSource `
-  -ConfirmOfficialSdkSource `
-  -RecordReferenceHashes
-
-# Later imports / upgrades: SHA-256 in SDK-HASHES.json must match before copy
-pwsh scripts/import-bugsplat-sdk.ps1 -SourceRoot C:\path\to\unzipped-sdk -SdkVersion 7.0.5 -RecordReferenceHashes
+  -WriteReferenceHashes `
+  -ConfirmOfficialPortalDownload `
+  -ConfirmMaintainerBaselineReview
 ```
+
+BugSplat does **not** publish an independent SHA-256 manifest for the Native zip.
+`SDK-HASHES.json` records a **maintainer-reviewed baseline** (see `trustModel` in that
+file). SHA-256 detects drift after that baseline is committed; it is not proof against
+a compromised first download. PE binaries (`BugSplatMonitor.exe`, `BugSplatWer.dll`,
+`BugSplatRc.dll`) must pass Authenticode with a BugSplat publisher subject when signed.
+
+4. Import into this directory (fail-closed; never rewrites `SDK-HASHES.json`):
+
+```powershell
+pwsh scripts/import-bugsplat-sdk.ps1 -SourceRoot C:\path\to\unzipped-sdk
+```
+
+For SDK upgrades, re-run `establish-bugsplat-sdk-trust.ps1` with `-AllowBaselineUpgrade`
+after review, then `import-bugsplat-sdk.ps1`.
 
 BugSplat **application version** in `Envy.exe` uses the same `major.minor` string as
 `GetVersionNumber()` / `FileVersionInfo` (for example `5.0`). Symbol upload CI reads
 that value from the built `Envy.exe` so it matches `BugSplat(db, L"Envy", version)`.
 Git revision remains in the `envy_revision` crash attribute, not the BugSplat version field.
 
-4. Review `SDK-MANIFEST.json` and `SDK-HASHES.json`, then commit the imported tree.
+5. Review `SDK-MANIFEST.json` and `SDK-HASHES.json`, then commit the imported tree.
+
+Self-test (no SDK required): `pwsh scripts/import-bugsplat-sdk.selftest.ps1` (also runs in CI Lint job).
 
 The public [BugSplat-Git/Samples](https://github.com/BugSplat-Git/Samples)
 repository ships `/MD` prebuilt libraries only. **Do not** use those libraries
