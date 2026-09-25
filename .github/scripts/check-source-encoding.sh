@@ -16,8 +16,6 @@ FIRST_PARTY_PREFIXES=(
 	SkinBuilder/
 )
 
-SOURCE_GLOB='*.cpp *.cxx *.cc *.c *.h *.hpp *.hxx *.inl'
-
 count_fffd_blob() {
 	python3 -c 'import sys; print(sys.stdin.buffer.read().count(b"\xef\xbf\xbd"))'
 }

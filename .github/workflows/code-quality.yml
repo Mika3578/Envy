@@ -118,7 +118,22 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || 'origin/develop' }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: bash .github/scripts/check-source-encoding.sh
+        run: |
+          set -euo pipefail
+          if ! git rev-parse --verify "${BASE_SHA}^{commit}" >/dev/null 2>&1; then
+            echo "::error::BASE_SHA is not a valid commit: ${BASE_SHA}"
+            exit 1
+          fi
+
+          trusted_script="$(mktemp)"
+          if git cat-file -e "${BASE_SHA}:.github/scripts/check-source-encoding.sh" 2>/dev/null; then
+            git show "${BASE_SHA}:.github/scripts/check-source-encoding.sh" >"$trusted_script"
+            echo "Using check-source-encoding.sh from base ${BASE_SHA}"
+          else
+            echo "::warning::check-source-encoding.sh absent on base ${BASE_SHA}; bootstrap from HEAD ${HEAD_SHA}"
+            git show "${HEAD_SHA}:.github/scripts/check-source-encoding.sh" >"$trusted_script"
+          fi
+          bash "$trusted_script"
 
       - name: clang-format-diff on changed hunks
         shell: bash

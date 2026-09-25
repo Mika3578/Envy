@@ -60,7 +60,7 @@ Recommended extensions (see `.vscode/extensions.json`):
 - **EditorConfig** — applies repository editor rules
 - **clangd** — C++ navigation when `compile_commands.json` exists
 
-Use **one** C++ language service: prefer **clangd** for IntelliSense/navigation. Disable duplicate MSVC IntelliSense in personal settings if both are active.
+Use **one** C++ language service: prefer **clangd** for IntelliSense/navigation. Disable duplicate MSVC IntelliSense in personal settings if both are active. The repo lists `ms-vscode.cpptools` under `unwantedRecommendations` only to reduce accidental dual-IntelliSense installs; you may still install it for MSVC debugging if your workflow needs it.
 
 ### clangd and `compile_commands.json`
 
@@ -127,7 +127,7 @@ Secret scanning and gitleaks run in existing workflows (see `.github/workflows/s
 
 | Symptom | Likely cause | Action |
 | --- | --- | --- |
-| `` or mojibake in copyright line after save | UTF-8 forced on legacy bytes | Restore from git; edit in VS; see #350 |
+| Unicode replacement character (U+FFFD) or mojibake in copyright line after save | UTF-8 forced on legacy bytes | Restore from git; edit in VS; see #350 |
 | clangd no compile flags | Missing `compile_commands.json` | Build in VS, run `generate-compile-commands.ps1` |
 | Format CI fails | Changed hunk not clang-format clean | Format **modified lines only** |
 | Encoding CI fails | New `EF BF BD` in diff | Revert corruption; do not commit replacement bytes |
