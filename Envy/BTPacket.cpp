@@ -607,7 +607,7 @@ CBTPacket* CBTPacket::ReadBuffer(CBuffer* pBuffer, BOOL* pbProtocolError)
 		if ( ! bKeepAlive && nLength == 0 )
 			bKeepAlive = true;
 
-		if ( bValid )
+		if (bValid && BtShouldRemoveSizeMarkerAfterPeek(bKeepAlive, nLength))
 			pBuffer->Remove( sizeof( DWORD ) );		// Remove size marker
 	}
 	while ( bKeepAlive && bValid && nLength == 0 );

@@ -53,6 +53,11 @@ inline BOOL BtPacketLengthOk(DWORD nLength)
 	return nLength >= 1 && nLength <= BT_PACKET_LENGTH_MAX;
 }
 
+inline BOOL BtShouldRemoveSizeMarkerAfterPeek(BOOL bReturningKeepAlive, DWORD nLength)
+{
+	return !bReturningKeepAlive || BtIsKeepAliveLength(nLength);
+}
+
 // QueryHit XML "{deflate}" path uses "nSize - 10" (9-byte marker + trailing NUL
 // included in fixed nXMLSize). Require nSize > 10 so subtraction cannot underflow.
 // CG1Packet::ReadXML uses "len - 9" because it measures length until HIT_SEP/NUL

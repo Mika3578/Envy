@@ -153,6 +153,41 @@ static bool test_bt_packet_length_ok()
 	return BtPacketLengthOk(1) == TRUE && BtPacketLengthOk(BT_PACKET_LENGTH_MAX) == TRUE && BtPacketLengthOk(0) == FALSE && BtPacketLengthOk(BT_PACKET_LENGTH_MAX + 1) == FALSE;
 }
 
+static bool test_bt_keepalive_removes_own_marker()
+{
+	return BtShouldRemoveSizeMarkerAfterPeek(TRUE, 0) == TRUE;
+}
+
+static bool test_bt_keepalive_followed_by_message_preserves_marker()
+{
+	const std::array<BYTE, 9> pBytes =
+	{
+		0x00, 0x00, 0x00, 0x00,	// keep-alive
+		0x00, 0x00, 0x00, 0x01,	// choke frame prefix
+		0x00						// choke id
+	};
+	size_t nOffset = 0;
+	BOOL bReturningKeepAlive = FALSE;
+
+	DWORD nLength = (static_cast<DWORD>(pBytes[nOffset]) << 24) |
+		(static_cast<DWORD>(pBytes[nOffset + 1]) << 16) |
+		(static_cast<DWORD>(pBytes[nOffset + 2]) << 8) |
+		static_cast<DWORD>(pBytes[nOffset + 3]);
+	if ( BtIsKeepAliveLength(nLength) )
+		bReturningKeepAlive = TRUE;
+	if ( BtShouldRemoveSizeMarkerAfterPeek(bReturningKeepAlive, nLength) )
+		nOffset += 4;
+
+	nLength = (static_cast<DWORD>(pBytes[nOffset]) << 24) |
+		(static_cast<DWORD>(pBytes[nOffset + 1]) << 16) |
+		(static_cast<DWORD>(pBytes[nOffset + 2]) << 8) |
+		static_cast<DWORD>(pBytes[nOffset + 3]);
+	if ( BtShouldRemoveSizeMarkerAfterPeek(bReturningKeepAlive, nLength) )
+		nOffset += 4;
+
+	return nOffset == 4 && nLength == 1 && pBytes[nOffset + 4] == 0;
+}
+
 static bool test_g2_subpacket_payload_fits()
 {
 	return G2SubpacketPayloadFits(100, 50, 8) == TRUE && G2SubpacketPayloadFits(100, 100, 0) == TRUE && G2SubpacketPayloadFits(100, 101, 0) == FALSE && G2SubpacketPayloadFits(100, 50, 51) == FALSE && G2SubpacketPayloadFits(100, 0xFFFFFFFA, 8) == FALSE;
@@ -754,6 +789,8 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "bt_extension_length_min_valid", test_bt_extension_length_min_valid );
 	suite.add_test( "bt_extension_length_bencode", test_bt_extension_length_with_bencode );
 	suite.add_test("bt_packet_length_ok", test_bt_packet_length_ok);
+	suite.add_test("bt_keepalive_removes_own_marker", test_bt_keepalive_removes_own_marker);
+	suite.add_test("bt_keepalive_preserves_next_marker", test_bt_keepalive_followed_by_message_preserves_marker);
 	suite.add_test("g2_subpacket_payload_fits", test_g2_subpacket_payload_fits);
 	suite.add_test("g2_frame_length_fits", test_g2_frame_length_fits);
 

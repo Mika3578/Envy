@@ -2,7 +2,9 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-21
+- **Last Updated:** 2026-09-25
+- **Changelog Entry:** 2026-09-25 — #298: rebase BitTorrent keep-alive framing onto current `develop`; resolve CHANGELOG/DEVELOPMENT_PLAN with library (#301) and UI (#297) entries.
+- **Changelog Entry:** 2026-09-20 — #88/#91 BitTorrent keep-alive framing: `CBTPacket::ReadBuffer` now leaves the following frame prefix intact when returning a keep-alive; EnvyTests cover keep-alive marker removal and keep-alive+choke sequencing.
 - **Changelog Entry:** 2026-09-21 — UI Phase 1 (#297): merge `develop` after #301; keep both the adaptive-list changelog and the library MountCollection null-guard entry.
 - **Changelog Entry:** 2026-09-21 — #300: `CAlbumFolder::MountCollection` guards null `GetNextFolder` results; `m_pFolders` rejects null inserts; album-root mount is skipped when `m_pAlbumRoot` is null. EnvyTests cannot construct `CAlbumFolder` (MFC/`Library.m_pSection`); policy smoke `test_albumfolder_mountcollection_smoke.cpp`.
 - **Changelog Entry:** 2026-09-20 — UI Phase 1 (#297) Copilot: load ListStates/sticky only once; later OnSkinChange keeps in-session sticky.
