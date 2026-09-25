@@ -170,10 +170,15 @@ while IFS= read -r f; do
 	esac
 
 	case "$f" in
-	vcpkg.json | Remote/tests/package.json | Remote/tests/package-lock.json)
+	vcpkg.json)
 		dependencies=true
 		build=true
 		force_windows=true
+		force_dep_review=true
+		classified=true
+		;;
+	Remote/tests/package.json | Remote/tests/package-lock.json)
+		dependencies=true
 		force_dep_review=true
 		classified=true
 		;;
