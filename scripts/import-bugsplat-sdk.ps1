@@ -68,6 +68,63 @@ function Find-LibMt {
 	return $null
 }
 
+function Get-StaticLibCrtKind {
+	param([string]$Path)
+	if (-not (Test-Path -LiteralPath $Path)) { return 'missing' }
+	$ascii = [System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes($Path))
+	if ($ascii -match 'DEFAULTLIB:msvcrtd\.lib' -or $ascii -match 'DEFAULTLIB:msvcprtd\.lib') { return 'md-dynamic-debug' }
+	if ($ascii -match 'DEFAULTLIB:msvcrt\.lib' -or $ascii -match 'DEFAULTLIB:msvcprt\.lib') { return 'md-dynamic-release' }
+	if ($ascii -match 'DEFAULTLIB:LIBCMTD') { return 'mt-static-debug' }
+	if ($ascii -match 'DEFAULTLIB:LIBCMT') { return 'mt-static-release' }
+	return 'unknown'
+}
+
+function Throw-SdkImportDiagnostics {
+	param([string]$SdkRoot, [string]$Config)
+	$lines = @(
+		"Missing official x64\$Config\lib\mt\BugSplat.lib under $SdkRoot.",
+		'',
+		'Expected: Windows Native C++ SDK from https://app.bugsplat.com/browse/download_item.php?item=native (login required).',
+		'',
+		'Common mistakes:'
+	)
+	if (Test-Path -LiteralPath (Join-Path $SdkRoot 'client\crashpad_client.h')) {
+		$lines += '- This tree looks like BugSplat-Git/bugsplat-crashpad (Crashpad). It is not the Native SDK and does not ship lib/mt BugSplat.lib.'
+	}
+	if (Test-Path -LiteralPath (Join-Path $SdkRoot "x64\$Config\crashpad_handler.exe")) {
+		$lines += '- Found crashpad_handler.exe: use the Native SDK zip, not bugsplat-crashpad GitHub releases.'
+	}
+	$flatLib = Join-Path $SdkRoot "x64\$Config\BugSplat.lib"
+	if (Test-Path -LiteralPath $flatLib) {
+		$kind = Get-StaticLibCrtKind -Path $flatLib
+		$lines += "- Found $flatLib (CRT probe: $kind). Public Samples use /MD only; Envy requires lib\mt (/MT)."
+	}
+	$mdLib = Join-Path $SdkRoot "x64\$Config\lib\BugSplat.lib"
+	if (Test-Path -LiteralPath $mdLib) {
+		$kind = Get-StaticLibCrtKind -Path $mdLib
+		$lines += "- Found $mdLib without lib\mt (CRT probe: $kind)."
+	}
+	$html = Get-ChildItem -LiteralPath $SdkRoot -Recurse -File -Filter '*.html' -ErrorAction SilentlyContinue | Select-Object -First 1
+	if ($html) {
+		$lines += "- HTML under the source tree ($($html.FullName)) often means a login page was saved instead of the SDK zip."
+	}
+	$lines += ''
+	$lines += 'See ThirdParty/BugSplat/README.md and docs/10_dev/crash-reporting.md (bugsplat-crashpad public releases are /MD and do not replace the Native SDK for #354).'
+	throw ($lines -join [Environment]::NewLine)
+}
+
+function Assert-LibMtCrt {
+	param([string]$LibPath, [string]$Config)
+	$kind = Get-StaticLibCrtKind -Path $LibPath
+	$expect = if ($Config -eq 'Debug') { 'mt-static-debug' } else { 'mt-static-release' }
+	if ($kind -eq 'md-dynamic-release' -or $kind -eq 'md-dynamic-debug') {
+		throw "Refusing to import $LibPath: CRT probe reports $kind. Envy links /MT (/MTd Debug). Use lib\mt from the official Native SDK, not Samples or bugsplat-crashpad."
+	}
+	if ($kind -ne $expect -and $kind -ne 'unknown') {
+		Write-Warning "CRT probe for $LibPath returned $kind (expected $expect). Verify this is lib\mt from the official Native SDK."
+	}
+}
+
 function Find-BinDir {
 	param([string]$SdkRoot, [string]$Config)
 	$candidates = @(
@@ -163,7 +220,8 @@ $newReference = [ordered]@{
 
 foreach ($config in @('Release', 'Debug')) {
 	$libSrc = Find-LibMt -SdkRoot $sdk -Config $config
-	if (-not $libSrc) { throw "Missing official lib/mt for $config under $sdk" }
+	if (-not $libSrc) { Throw-SdkImportDiagnostics -SdkRoot $sdk -Config $config }
+	Assert-LibMtCrt -LibPath $libSrc -Config $config
 	$relLib = "x64/$config/lib/mt/BugSplat.lib"
 	$libHash = Assert-SourceHash -SourceFile $libSrc -RelativePath $relLib -Reference $reference -AllowUnlisted:$AllowUnlistedSource.IsPresent
 	$libDestDir = Join-Path $DestRoot "x64\$config\lib\mt"

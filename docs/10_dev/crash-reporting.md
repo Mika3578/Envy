@@ -56,6 +56,15 @@ See historical sections below and D-019 notes for local-database behavior.
 - x64: `scripts/bootstrap-vcpkg.cmd` restores manifest deps **without** Crashpad. Import BugSplat SDK into `ThirdParty/BugSplat` before building `Envy.vcxproj`.
 - Win32: bootstrap `x86-windows-static` still requires `crashpad_handler.exe` in `vcpkg_installed`.
 
+### Reproducible dependency probe (bugsplat-crashpad)
+
+Official [BugSplat-Git/bugsplat-crashpad](https://github.com/BugSplat-Git/bugsplat-crashpad)
+releases are public and pin-friendly, but they distribute **Crashpad** (`/MD`), not
+the BugSplat 7 **Native** `/MT` SDK. They cannot replace
+`scripts/import-bugsplat-sdk.ps1` for #354 without a product/CRT migration and a
+new architecture review. Evidence and pinned hashes:
+`ThirdParty/BugSplat/README.md` (section *Why not bugsplat-crashpad*).
+
 ## Tests
 
 - `tools/bugsplat-mt-probe/` — `/MT` + `/MTd` link gate against official `lib/mt`.

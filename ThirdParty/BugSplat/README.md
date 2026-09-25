@@ -35,6 +35,25 @@ The public [BugSplat-Git/Samples](https://github.com/BugSplat-Git/Samples)
 repository ships `/MD` prebuilt libraries only. **Do not** use those libraries
 for Envy production builds.
 
+### Why not `BugSplat-Git/bugsplat-crashpad` GitHub releases?
+
+Maintainers evaluated the official public Crashpad bundles (2026-09-25) as a
+possible substitute for the login-gated Native zip. They **do not** unblock x64
+BugSplat 7 integration for Envy:
+
+| Source | Pin | SHA-256 (asset) | CRT (probe) | Replaces Native SDK? |
+| --- | --- | --- | --- | --- |
+| `crashpad-db44314-windows-x64.tar.xz` | tag `crashpad-db44314` | `21d90472abeb8ac4595fd4af55b113930c95bb231dc887d0948099ab1ac1970c` | `/MD` (`PREBUILT.json` `extra_cflags="/MD"`; `client.lib` → `msvcrt.lib` / `msvcprt.lib`) | No |
+| `crashpad-windows-v20260825-60dd943.tar.gz` | tag `v20260825-60dd943` | `ab478196e6675ca79e1e737afa8a97fc2b06b6dd21deabe0a4f1f6f737801cba` | `/MD` Release + `/MDd` Debug on `client.lib` | No |
+
+Envy x64 uses **static** `/MT` and `/MTd` (`Envy.vcxproj`). Linking these
+Crashpad archives would risk LNK2038/LNK2005 CRT mismatches (same class of issue
+as Samples `/MD` libs). The archives also lack `BugSplat.lib`, `BugSplatMonitor.exe`,
+`BugSplatWer.dll`, and the native consent dialog stack assumed by D-020 / #354.
+
+Win32 already uses Crashpad via vcpkg for legacy Stage A; x64 still needs the
+**Native** SDK import path above until a separate, reviewed migration is opened.
+
 ## Layout
 
 ```
