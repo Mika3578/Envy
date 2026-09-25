@@ -68,8 +68,15 @@ jobs:
             throw "symbol-upload SHA-256 mismatch. Expected $($pin.sha256) got $hash"
           }
           $sig = Get-AuthenticodeSignature -LiteralPath $dest
-          if ($sig.Status -ne 'Valid') {
-            throw "symbol-upload Authenticode status is $($sig.Status), expected Valid"
+          if ($sig.SignatureType -ne 'None') {
+            if ($sig.Status -ne 'Valid') {
+              throw "symbol-upload Authenticode status is $($sig.Status), expected Valid"
+            }
+            if ($sig.SignerCertificate.Subject -notlike '*BugSplat*') {
+              throw "symbol-upload Authenticode signer unexpected: $($sig.SignerCertificate.Subject)"
+            }
+          } else {
+            Write-Host "Notice: upstream symbol-upload-windows.exe release asset is unsigned; integrity verified via pinned SHA-256."
           }
           "SYMBOL_UPLOAD_EXE=$dest" >> $env:GITHUB_ENV
 

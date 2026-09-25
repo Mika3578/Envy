@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- x64: BugSplat 7 static /MT. Win32: vcpkg Crashpad (legacy Stage A). -->
+  <!-- x64: BugSplat 8 static /MT. Win32: vcpkg Crashpad (legacy Stage A). -->
   <PropertyGroup>
     <EnvyBugSplatRoot Condition="'$(EnvyBugSplatRoot)'==''">$(VcpkgManifestRoot)\ThirdParty\BugSplat</EnvyBugSplatRoot>
     <EnvyBugSplatLibMtDebug>$(EnvyBugSplatRoot)\x64\Debug\lib\mt</EnvyBugSplatLibMtDebug>
@@ -13,14 +13,14 @@
     <EnvyCrashLibDir Condition="'$(Configuration)'=='Debug'">$(EnvyBugSplatLibMtDebug)</EnvyCrashLibDir>
     <EnvyCrashLibDir Condition="'$(Configuration)'!='Debug'">$(EnvyBugSplatLibMtRelease)</EnvyCrashLibDir>
     <EnvyCrashLinkLibs>BugSplat.lib;wer.lib</EnvyCrashLinkLibs>
-    <EnvyCrashPostBuildCmd>call "$(ProjectDir)CopyBugSplatRuntime.cmd" $(ConfigurationName) $(PlatformName)</EnvyCrashPostBuildCmd>
+    <EnvyCrashPostBuildCmd>call "$(ProjectDir)CopyBugSplatRuntime.cmd" $(Configuration) $(Platform)</EnvyCrashPostBuildCmd>
     <EnvyCrashVcpkgIncludeCrashpad>false</EnvyCrashVcpkgIncludeCrashpad>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='Win32'">
     <EnvyCrashExtraIncludeDirs>$(EnvyVcpkgInstalled)\include\crashpad</EnvyCrashExtraIncludeDirs>
     <EnvyCrashLibDir>$(EnvyVcpkgLibDir)</EnvyCrashLibDir>
     <EnvyCrashLinkLibs>vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;vcpkg_crashpad_base.lib</EnvyCrashLinkLibs>
-    <EnvyCrashPostBuildCmd>call "$(ProjectDir)CopyCrashpadHandler.cmd" $(ConfigurationName) $(PlatformName)</EnvyCrashPostBuildCmd>
+    <EnvyCrashPostBuildCmd>call "$(ProjectDir)CopyCrashpadHandler.cmd" $(Configuration) $(Platform)</EnvyCrashPostBuildCmd>
     <EnvyCrashVcpkgIncludeCrashpad>true</EnvyCrashVcpkgIncludeCrashpad>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">

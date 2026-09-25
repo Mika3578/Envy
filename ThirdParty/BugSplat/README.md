@@ -1,6 +1,6 @@
 # BugSplat Windows SDK (redistributable slice)
 
-Envy x64 links the official BugSplat 7 **static `/MT`** libraries and ships the
+Envy x64 links the official BugSplat **static `/MT`** libraries (SDK v8.0.0) and ships the
 out-of-process runtime next to `Envy.exe`. This directory is populated by
 maintainers — it is **not** the full SDK archive.
 
@@ -14,7 +14,7 @@ maintainers — it is **not** the full SDK archive.
 ```powershell
 pwsh scripts/establish-bugsplat-sdk-trust.ps1 `
   -SourceRoot C:\path\to\unzipped-sdk `
-  -SdkVersion 7.0.5 `
+  -SdkVersion 8.0.0 `
   -WriteReferenceHashes `
   -ConfirmOfficialPortalDownload `
   -ConfirmMaintainerBaselineReview
@@ -44,9 +44,8 @@ Git revision remains in the `envy_revision` crash attribute, not the BugSplat ve
 
 Self-test (no SDK required): `pwsh scripts/import-bugsplat-sdk.selftest.ps1` (also runs in CI Lint job).
 
-The public [BugSplat-Git/Samples](https://github.com/BugSplat-Git/Samples)
-repository ships `/MD` prebuilt libraries only. **Do not** use those libraries
-for Envy production builds.
+The imported libraries are verified by `Assert-BugSplatLibMtCrt` to be `/MT` (`RuntimeLibrary=MT_StaticRelease`)
+and `/MTd` (`RuntimeLibrary=MTd_StaticDebug`). Public `/MD` binaries are strictly rejected.
 
 ### Why not `BugSplat-Git/bugsplat-crashpad` GitHub releases?
 

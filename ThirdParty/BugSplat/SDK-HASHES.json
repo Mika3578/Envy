@@ -6,11 +6,24 @@
     "baselineEstablishedBy": "scripts/establish-bugsplat-sdk-trust.ps1 plus human PR review",
     "authenticode": {
       "requiredForPeFiles": true,
-      "publisherSubjectContains": ["BugSplat"]
+      "publisherSubjectContains": [
+        "BugSplat"
+      ]
     },
     "limitation": "SHA-256 in this file does not prove the first download was uncompromised; it only detects changes after the baseline was committed."
   },
-  "sdkVersion": "",
+  "sdkVersion": "8.0.0",
   "sourceUrl": "https://app.bugsplat.com/browse/download_item.php?item=native",
-  "files": {}
+  "establishedAt": "2026-09-25T21:19:16.4259090Z",
+  "files": {
+    "inc/BugSplat.h": "AC5FC3C14FF295E7185DB207D246ECC9C2400C1CAD3A363610FECD95576E92A4",
+    "x64/Release/lib/mt/BugSplat.lib": "D04A18D27604D90F84B2E680D25F218A215430F1CBBDE9EEF61FE56595917F3C",
+    "x64/Debug/lib/mt/BugSplat.lib": "A4F2DF9220CF1086766A902AB7828EE16DC6157228D1549C71BC1659E659A640",
+    "x64/Release/bin/BugSplatMonitor.exe": "E0E8E1F23B47ACD5C6C229B9966B6782BF08F50BD76B000BA0D45BFE9C68AC63",
+    "x64/Release/bin/BugSplatWer.dll": "0D87A5CCAC502315B54BD625B24B69E4559C82E3A5D00D6600D80DC8EFA8F4CA",
+    "x64/Release/bin/BugSplatRc.dll": "449A856FB659D7F7C66DE6E6380D085E3A8BBD7B8803A1C3DA6F87851BEAC2B1",
+    "x64/Debug/bin/BugSplatMonitor.exe": "1244E02665DAC1E1AB88898B72255673878D5A67214525A583E0B309FB0A5D44",
+    "x64/Debug/bin/BugSplatWer.dll": "1FDAF865018E709EFA01CBCBB7BB7E37FC56EA0E6E3DDFEB89AF6137C73AF4BF",
+    "x64/Debug/bin/BugSplatRc.dll": "7CE7A37EE36D86879839688F80B12F63FD273F49EE8DAB6046DF4A00753734A4"
+  }
 }

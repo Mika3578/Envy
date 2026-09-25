@@ -225,14 +225,14 @@ function Invoke-BugSplatSdkImport {
 
 	New-Item -ItemType Directory -Force -Path $DestRoot | Out-Null
 
-	Assert-BugSplatSourceMatchesReference -SourceFile $plan.Header -RelativePath 'inc/BugSplat.h' -ReferenceMap $reference
+	$null = Assert-BugSplatSourceMatchesReference -SourceFile $plan.Header -RelativePath 'inc/BugSplat.h' -ReferenceMap $reference
 	$incDest = Join-Path $DestRoot 'inc'
 	if (Test-Path $incDest) { Remove-Item -Recurse -Force $incDest }
 	Copy-Item -Recurse -Force (Join-Path $sdk 'inc') $incDest
 
 	$manifest = @()
 	foreach ($lib in $plan.Libs) {
-		Assert-BugSplatSourceMatchesReference -SourceFile $lib.Source -RelativePath $lib.RelativePath -ReferenceMap $reference
+		$null = Assert-BugSplatSourceMatchesReference -SourceFile $lib.Source -RelativePath $lib.RelativePath -ReferenceMap $reference
 		$libDestDir = Join-Path $DestRoot ("x64\{0}\lib\mt" -f $lib.Config)
 		New-Item -ItemType Directory -Force -Path $libDestDir | Out-Null
 		Copy-Item -Force $lib.Source (Join-Path $libDestDir 'BugSplat.lib')
@@ -240,7 +240,7 @@ function Invoke-BugSplatSdkImport {
 	}
 	foreach ($bin in $plan.Bins) {
 		Assert-BugSplatAuthenticode -Path $bin.Source
-		Assert-BugSplatSourceMatchesReference -SourceFile $bin.Source -RelativePath $bin.RelativePath -ReferenceMap $reference
+		$null = Assert-BugSplatSourceMatchesReference -SourceFile $bin.Source -RelativePath $bin.RelativePath -ReferenceMap $reference
 		$binDest = Join-Path $DestRoot ("x64\{0}\bin" -f $bin.Config)
 		New-Item -ItemType Directory -Force -Path $binDest | Out-Null
 		Copy-Item -Force $bin.Source (Join-Path $binDest $bin.Name)

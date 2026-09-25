@@ -8,6 +8,25 @@
 
 class BugSplatImpl;
 
+// Result of a user feedback submission via PostFeedbackWithResult.
+// When success is true, crashId/infoUrl identify the report in the BugSplat dashboard.
+// On failure crashId is 0 and infoUrl is empty.
+struct FeedbackResult {
+    bool success = false;
+    int crashId = 0;
+    std::wstring infoUrl;
+};
+
+// Determines what the crash handler does after it has created and uploaded the
+// crash report. See BugSplat::SetCrashCompletionBehavior.
+enum class BugSplatCrashCompletion
+{
+    Exit = 0,            // call exit() (default) - runs full CRT shutdown
+    Terminate = 1,       // call TerminateProcess - hard kill, skips CRT shutdown
+    ContinueSearch = 2   // return EXCEPTION_CONTINUE_SEARCH - hand off to the OS's
+                         // default unhandled-exception handling (WER / debugger)
+};
+
 class BugSplat {
 
 public:
@@ -50,13 +69,24 @@ public:
 	//! Set the timeout in ms used to determine if a process is hung. Default is 5000.  Disable hang detection with 0.
     void SetHangDetectionTimeout(int ms);
 
-    // Generates a BugSplat crash report. 
+    //! Determines what the crash handler does after creating and uploading the report:
+    //! Exit (default, full CRT shutdown), Terminate (hard kill - use when the host's CRT
+    //! shutdown can hang after a crash, e.g. a Unity player), or ContinueSearch (return
+    //! EXCEPTION_CONTINUE_SEARCH so the OS's default handling or an attached debugger runs).
+    void SetCrashCompletionBehavior(BugSplatCrashCompletion behavior);
+
+    //! Override the crash type id stamped on uploaded crashes (default Native=1). Set to
+    //! 15 (UnityNative) for Unity native crashes so the server applies LineNumberMappings.json.
+    void SetCrashType(int crashTypeId);
+
+    // Generates a BugSplat crash report.
     // Note, the Xbox team requires that MiniDumpFilterTriage be used for production
     void GenerateDump(LPEXCEPTION_POINTERS const exceptionPointers, 
                       MINIDUMP_TYPE dumpType = (MINIDUMP_TYPE)(MiniDumpNormal|MiniDumpFilterTriage)) const;
     
-    // Add/remove crash report file attachments
-    void AddAttachment(const wchar_t* filepath);
+    // Add/remove file attachments. Attachments are included in both crash reports and feedback uploads.
+    bool AddAttachment(const wchar_t* filepath);
+    bool RemoveAttachment(const wchar_t* filepath);
     void ClearAttachments();
 
     // Sends an xml report to BugSplat, bypassing minidump creation.  
@@ -65,6 +95,17 @@ public:
     void CreateXmlReport(const wchar_t* xmlReport);
 
     void CreateAsanReport(const char* asanReport);
+
+    // Sends user feedback to BugSplat. Returns true on success.
+    // Title becomes the stack key for grouping feedback in the dashboard.
+    // If attachments are provided, they are included only in this feedback upload
+    // and automatically removed afterward. Existing crash report attachments are not affected.
+    // This is a thin wrapper over PostFeedbackWithResult that discards the report id.
+    bool PostFeedback(const wchar_t* title, const wchar_t* description = L"", const std::vector<const wchar_t*>& attachments = {});
+
+    // Like PostFeedback, but returns the BugSplat report id (crashId) and infoUrl for the
+    // submitted feedback so callers can display or link to the report.
+    FeedbackResult PostFeedbackWithResult(const wchar_t* title, const wchar_t* description = L"", const std::vector<const wchar_t*>& attachments = {});
 
     // Returns folder current crash artifacts will use e.g. R:\\BugSplat\{uniq-guid-string}
     const wchar_t* GetCrashFolder();      
