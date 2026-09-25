@@ -6,3 +6,9 @@
 # Shell scripts must stay LF for Ubuntu CI runners
 .github/scripts/*.sh text eol=lf
 
+# First-party C/C++ line endings are predominantly CRLF in the working tree on
+# Windows. We do not set a global eol= rule for *.cpp/*.h here: index/working-
+# tree EOL is mixed today and a blanket rule would invite mass renormalization
+# (see docs/10_dev/development-environment.md). Use .editorconfig end_of_line
+# and avoid `git add --renormalize` unless #350 explicitly covers EOL.
+
