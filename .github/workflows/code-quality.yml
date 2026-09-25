@@ -113,6 +113,13 @@ jobs:
           command -v "clang-format-diff-${CLANG_FORMAT_MAJOR}"
           command -v "clang-format-${CLANG_FORMAT_MAJOR}"
 
+      - name: Block new U+FFFD in changed first-party sources
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || 'origin/develop' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: bash .github/scripts/check-source-encoding.sh
+
       - name: clang-format-diff on changed hunks
         shell: bash
         env:
