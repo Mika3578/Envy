@@ -21,13 +21,21 @@
 
 .PARAMETER AllowUnlistedSource
   Import when SDK-HASHES.json has no entries (first-time maintainer import only).
+
+.PARAMETER ConfirmOfficialSdkSource
+  Required with -AllowUnlistedSource. Confirms the zip came from the official BugSplat portal.
+
+.PARAMETER SdkVersion
+  Required with -AllowUnlistedSource. Exact BugSplat native SDK version label (for example 7.0.5).
 #>
 [CmdletBinding()]
 param(
 	[Parameter(Mandatory = $true)][string]$SourceRoot,
 	[string]$DestRoot = '',
+	[string]$SdkVersion = '',
 	[switch]$RecordReferenceHashes,
-	[switch]$AllowUnlistedSource
+	[switch]$AllowUnlistedSource,
+	[switch]$ConfirmOfficialSdkSource
 )
 
 $ErrorActionPreference = 'Stop'
@@ -73,6 +81,20 @@ function Find-BinDir {
 	return $null
 }
 
+function Assert-AuthenticodeForBinary {
+	param([string]$Path)
+	if ($Path -notmatch '\.(exe|dll)$') { return }
+	$sig = Get-AuthenticodeSignature -LiteralPath $Path
+	if ($sig.SignatureType -eq 'None') {
+		Write-Warning "No Authenticode signature on $Path"
+		return
+	}
+	if ($sig.Status -ne 'Valid') {
+		throw "Authenticode check failed for $Path ($($sig.Status))"
+	}
+	Write-Host "Authenticode OK: $Path" -ForegroundColor DarkGray
+}
+
 function Load-ReferenceHashes {
 	param([string]$Path)
 	if (-not (Test-Path -LiteralPath $Path)) {
@@ -110,6 +132,14 @@ function Assert-SourceHash {
 
 $repo = Get-RepoRoot
 if (-not $DestRoot) { $DestRoot = Join-Path $repo 'ThirdParty\BugSplat' }
+if ($AllowUnlistedSource) {
+	if (-not $ConfirmOfficialSdkSource) {
+		throw 'First import requires -ConfirmOfficialSdkSource after downloading from https://app.bugsplat.com/browse/download_item.php?item=native'
+	}
+	if ([string]::IsNullOrWhiteSpace($SdkVersion)) {
+		throw 'First import requires -SdkVersion (exact BugSplat native SDK version).'
+	}
+}
 $sdk = Resolve-SdkRoot -Root $SourceRoot
 $referencePath = Join-Path $DestRoot 'SDK-HASHES.json'
 $reference = Load-ReferenceHashes -Path $referencePath
@@ -123,7 +153,13 @@ Assert-SourceHash -SourceFile $incSrc -RelativePath 'inc/BugSplat.h' -Reference 
 Copy-Item -Recurse -Force (Join-Path $sdk 'inc') $incDest
 
 $manifest = @()
-$newReference = [ordered]@{ description = 'Expected SHA-256 of official BugSplat native SDK files before import.'; files = [ordered]@{} }
+$newReference = [ordered]@{
+	description = 'Expected SHA-256 of official BugSplat native SDK files before import.'
+	sdkVersion  = $SdkVersion
+	sourceUrl   = 'https://app.bugsplat.com/browse/download_item.php?item=native'
+	importedAt  = (Get-Date).ToUniversalTime().ToString('o')
+	files       = [ordered]@{}
+}
 
 foreach ($config in @('Release', 'Debug')) {
 	$libSrc = Find-LibMt -SdkRoot $sdk -Config $config
@@ -143,6 +179,7 @@ foreach ($config in @('Release', 'Debug')) {
 	foreach ($name in @('BugSplatMonitor.exe', 'BugSplatWer.dll', 'BugSplatRc.dll')) {
 		$srcFile = Join-Path $binSrc $name
 		if (Test-Path -LiteralPath $srcFile) {
+			Assert-AuthenticodeForBinary -Path $srcFile
 			$relBin = "x64/$config/bin/$name"
 			$binHash = Assert-SourceHash -SourceFile $srcFile -RelativePath $relBin -Reference $reference -AllowUnlisted:$AllowUnlistedSource.IsPresent
 			Copy-Item -Force $srcFile (Join-Path $binDest $name)

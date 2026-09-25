@@ -650,9 +650,7 @@ void CrashReporter::Initialize()
 {
 	s_directory[0] = 0;
 	ResolveCrashDirectory(s_directory, _countof(s_directory));
-#ifdef _WIN64
-	BugSplatHost::Start();
-#else
+#ifndef _WIN64
 	CrashPadHost::Start(s_directory);
 #endif
 

@@ -12,12 +12,22 @@ maintainers — it is **not** the full SDK archive.
 3. Import the required files:
 
 ```powershell
-# First import (official zip only): record reference hashes for supply-chain checks
-pwsh scripts/import-bugsplat-sdk.ps1 -SourceRoot C:\path\to\unzipped-sdk -AllowUnlistedSource -RecordReferenceHashes
+# First import: official portal only, Authenticode on signed binaries, record hashes
+pwsh scripts/import-bugsplat-sdk.ps1 `
+  -SourceRoot C:\path\to\unzipped-sdk `
+  -SdkVersion 7.0.5 `
+  -AllowUnlistedSource `
+  -ConfirmOfficialSdkSource `
+  -RecordReferenceHashes
 
-# Later imports / upgrades: hashes in SDK-HASHES.json must match the source files
-pwsh scripts/import-bugsplat-sdk.ps1 -SourceRoot C:\path\to\unzipped-sdk
+# Later imports / upgrades: SHA-256 in SDK-HASHES.json must match before copy
+pwsh scripts/import-bugsplat-sdk.ps1 -SourceRoot C:\path\to\unzipped-sdk -SdkVersion 7.0.5 -RecordReferenceHashes
 ```
+
+BugSplat **application version** in `Envy.exe` uses the same `major.minor` string as
+`GetVersionNumber()` / `FileVersionInfo` (for example `5.0`). Symbol upload CI reads
+that value from the built `Envy.exe` so it matches `BugSplat(db, L"Envy", version)`.
+Git revision remains in the `envy_revision` crash attribute, not the BugSplat version field.
 
 4. Review `SDK-MANIFEST.json` and `SDK-HASHES.json`, then commit the imported tree.
 

@@ -299,7 +299,7 @@ BOOL CEnvyApp::InitInstance()
 	CoInitializeSecurity( NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_PKT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL );
 
 	CrashReporter::Initialize();
-	GetVersionNumber();			// Calls CrashReporter::SetIdentity when version is known.
+	GetVersionNumber();         // Calls CrashReporter::SetIdentity when version is known.
 	Settings.Load();			// Loads settings.			Depends on GetVersionNumber()
 	InitResources();			// Loads theApp settings.	Depends on Settings::Load()
 	CoolInterface.Load();		// Loads colors and fonts.	Depends on InitResources()

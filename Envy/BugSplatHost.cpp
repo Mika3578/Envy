@@ -70,9 +70,8 @@ void ApplyPrivacySafeMetadata()
 #else
 #define ENVY_BUGSPLAT_DB_NAME L""
 #endif
-}
 
-BOOL BugSplatHost::Start()
+BOOL EnsureBugSplatStarted()
 {
 	if (s_bActive)
 		return TRUE;
@@ -80,14 +79,12 @@ BOOL BugSplatHost::Start()
 	const wchar_t* pszDatabase = ENVY_BUGSPLAT_DB_NAME;
 	if (pszDatabase == nullptr || pszDatabase[0] == 0)
 		return FALSE;
-
-	s_version[0] = 0;
-	s_revision[0] = 0;
-	s_buildType[0] = 0;
+	if (s_version[0] == 0)
+		return FALSE;
 
 	try
 	{
-		s_pBugSplat = std::make_unique<BugSplat>(pszDatabase, L"Envy", L"0.0.0");
+		s_pBugSplat = std::make_unique<BugSplat>(pszDatabase, L"Envy", s_version);
 	}
 	catch (...)
 	{
@@ -98,9 +95,9 @@ BOOL BugSplatHost::Start()
 	SetGlobalCRTExceptionBehavior();
 	SetPerThreadCRTExceptionBehavior();
 	ApplyCrashReportingDefaults();
-
 	s_bActive = TRUE;
 	return TRUE;
+}
 }
 
 void BugSplatHost::SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevision, const wchar_t* pszBuildType)
@@ -108,6 +105,10 @@ void BugSplatHost::SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevi
 	CrashReportSanitizeField(pszVersion, s_version, _countof(s_version));
 	CrashReportSanitizeField(pszRevision, s_revision, _countof(s_revision));
 	CrashReportSanitizeField(pszBuildType, s_buildType, _countof(s_buildType));
+
+	if (!EnsureBugSplatStarted())
+		return;
+
 	ApplyPrivacySafeMetadata();
 }
 

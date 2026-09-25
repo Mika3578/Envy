@@ -10,7 +10,7 @@
 
 namespace BugSplatHost
 {
-BOOL Start();
+// Starts BugSplat on first call when a database is configured and pszVersion is non-empty.
 void SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevision, const wchar_t* pszBuildType);
 void Shutdown();
 BOOL IsActive();

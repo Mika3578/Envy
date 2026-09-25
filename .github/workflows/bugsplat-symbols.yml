@@ -56,13 +56,21 @@ jobs:
           upload-binaries: "false"
           run-tests: "false"
 
-      - name: Download symbol-upload tool
+      - name: Download and verify symbol-upload tool
         if: steps.secrets.outputs.skip != 'true'
         shell: pwsh
         run: |
-          $ver = "v11.0.0"
+          $pin = Get-Content -LiteralPath ".github/tool-pins/symbol-upload-windows.json" -Raw | ConvertFrom-Json
           $dest = "$env:RUNNER_TEMP\symbol-upload-windows.exe"
-          Invoke-WebRequest -Uri "https://github.com/BugSplat-Git/symbol-upload/releases/download/$ver/symbol-upload-windows.exe" -OutFile $dest
+          Invoke-WebRequest -Uri $pin.downloadUrl -OutFile $dest
+          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $dest).Hash.ToUpperInvariant()
+          if ($hash -ne $pin.sha256.ToUpperInvariant()) {
+            throw "symbol-upload SHA-256 mismatch. Expected $($pin.sha256) got $hash"
+          }
+          $sig = Get-AuthenticodeSignature -LiteralPath $dest
+          if ($sig.Status -ne 'Valid') {
+            throw "symbol-upload Authenticode status is $($sig.Status), expected Valid"
+          }
           "SYMBOL_UPLOAD_EXE=$dest" >> $env:GITHUB_ENV
 
       - name: Upload symbols
@@ -73,7 +81,6 @@ jobs:
           BUGSPLAT_CLIENT_SECRET: ${{ secrets.BUGSPLAT_CLIENT_SECRET }}
           BUGSPLAT_DATABASE: ${{ vars.ENVY_BUGSPLAT_DATABASE }}
           BUGSPLAT_APP: Envy
-          BUGSPLAT_VERSION: ${{ github.sha }}
         run: |
           if (-not $env:BUGSPLAT_DATABASE) {
             Write-Error "Repository variable ENVY_BUGSPLAT_DATABASE is not set."
@@ -81,5 +88,8 @@ jobs:
           }
           $exe = Get-ChildItem -LiteralPath "Envy/Release x64" -Filter "Envy.exe" | Select-Object -First 1
           if (-not $exe) { throw "Envy.exe not built" }
-          & $env:SYMBOL_UPLOAD_EXE -b $env:BUGSPLAT_DATABASE -a $env:BUGSPLAT_APP -v $env:BUGSPLAT_VERSION `
+          $verInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe.FullName)
+          $productVersion = "{0}.{1}" -f $verInfo.FileMajorPart, $verInfo.FileMinorPart
+          Write-Host "BugSplat symbol version (matches Envy.exe): $productVersion"
+          & $env:SYMBOL_UPLOAD_EXE -b $env:BUGSPLAT_DATABASE -a $env:BUGSPLAT_APP -v $productVersion `
             -i $env:BUGSPLAT_CLIENT_ID -s $env:BUGSPLAT_CLIENT_SECRET -d $exe.DirectoryName
