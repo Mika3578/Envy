@@ -7,7 +7,7 @@ introduction of a complete GitHub Actions CI/CD pipeline, and the
 automation of dependency updates.
 
 > **Audit date** : 2026-05-15
-> **Target branch** : `security/dependency-automation-hardening`
+> **Target branch** : `develop`
 
 For the day-by-day execution log, see `.local/DEV_TRACKER.md` (gitignored). Strategic plan: [`docs/DEVELOPMENT_PLAN.md`](./docs/DEVELOPMENT_PLAN.md). Protocol status: [`docs/10_dev/status.md`](./docs/10_dev/status.md). External P2P references: [`docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`](./docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md).
 For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
@@ -194,10 +194,10 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 ::   - C++ CMake tools for Windows
 ::   - vcpkg (bundled with VS 2026)
 
-:: 1. Clone and switch to the branch
+:: 1. Clone and switch to the integration branch
 git clone https://github.com/mika3578/envy.git
 cd envy
-git checkout security/dependency-automation-hardening
+git checkout develop
 
 :: 2. Bootstrap vcpkg (manifest mode auto-enabled by VS 2026)
 git clone https://github.com/microsoft/vcpkg.git
@@ -226,24 +226,21 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
 
 ## 6. How to enable Dependabot and the workflows
 
-1. **Push the branch** to GitHub:
-   ```
-   git push -u origin security/dependency-automation-hardening
-   ```
-2. **Create the PR** against `develop`.
-3. In the repo **Settings -> Security and analysis**:
+1. **Create a functional work branch** from `develop`, then open a PR back to
+   `develop`.
+2. In the repo **Settings -> Security and analysis**:
    - Enable "Dependency graph"
    - Enable "Dependabot alerts"
    - Enable "Dependabot security updates"
    - Enable "Dependabot version updates" (uses `.github/dependabot.yml`)
    - Enable "Code scanning" (CodeQL through the workflow)
    - Enable "Secret scanning" and "Push protection"
-4. **Branch protection** on `develop`:
+3. **Branch protection** on `develop`:
    - Require pull request reviews (1+)
-   - Require status checks: `Build x64 Release`, `Analyze C/C++`,
-     `Dependency review`
+   - Require status checks: `Build x64 Release`, `Analyze (c-cpp)`,
+     `PR Gate` (which waits for `Dependency review`)
    - Require CODEOWNERS review for `.github/` and `Visual Studio/`
-5. Dependabot updates the existing `builtin-baseline` in `vcpkg.json` and the
+4. Dependabot updates the existing `builtin-baseline` in `vcpkg.json` and the
    relevant npm / GitHub Actions manifests. Do not add a second bot for an
    ecosystem already owned by Dependabot.
 

@@ -51,7 +51,7 @@ PR build logs upload on failure only. PR Gate keeps script-default
 PR opened/updated
   ├─ Classify (×4 reusable calls: Build, Quality, Deps, PR Gate)
   ├─ Fast (ubuntu): Format Check, secret-scan, Vcpkg sanity, Lint build files,
-  │                 Dependency review?, Docs?, Remote JS?, labeler, clang-tidy PR
+  │                 Dependency review, Docs?, Remote JS?, labeler, clang-tidy PR
   ├─ Windows: Build x64 Release + Build Win32 Release (if classify)
   ├─ CodeQL: Analyze (c-cpp) ubuntu build-mode:none | (js) | (csharp) Windows
   ├─ External: SonarCloud, gitleaks app, Snyk (advisory)
@@ -78,7 +78,7 @@ Push develop/main
 | Remote JS tests | PR if Remote / push | npm test | Classify | ~10 s | When Remote | PR Gate if classify | — | Low |
 | secret-scan | PR/push/weekly | gitleaks binary + SARIF | — | ~20–25 s | Yes | Yes | + gitleaks app | Low |
 | Vcpkg manifest sanity | PR | jq schema | — | ~7 s | Fast | Yes | — | Low |
-| Dependency review | PR if deps | GH dependency-review | Classify | ~10 s | When deps | PR Gate if classify | — | Low |
+| Dependency review | PR | GH dependency-review | — | ~10 s | Yes | PR Gate always | — | Low |
 | Analyze (c-cpp) PR | PR | CodeQL no-build | — | **~6.5–7 min** | **Yes** | Yes | lighter than push | Med (ubuntu) |
 | Analyze (c-cpp) push | push/schedule | Traced MSBuild + analyze | — | **~32–33 min** | Post-merge | ruleset/CS | Rebuilds vs Build job | **Very high** |
 | Analyze (javascript-typescript) | PR/push | CodeQL | — | ~1 min | Parallel | PR Gate | — | Low |
@@ -94,9 +94,9 @@ Build x64 Release, Build Win32 Release, Lint build files, Vcpkg manifest sanity,
 Format Check, Documentation Check, secret-scan, gitleaks (app `57789`),
 PR Gate, Analyze (c-cpp), SonarCloud Code Analysis (`12526`).
 
-**PR Gate additionally requires (not all ruleset-required):** Analyze
-(javascript-typescript), Analyze (csharp); optionally builds / Remote JS /
-Dependency review per classify.
+**PR Gate additionally requires (not all ruleset-required):** Dependency
+review, Analyze (javascript-typescript), Analyze (csharp); optionally builds /
+Remote JS per classify.
 
 ---
 
