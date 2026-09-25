@@ -99,12 +99,7 @@ runs:
       run: |
         $lib = "ThirdParty/BugSplat/x64/Release/lib/mt/BugSplat.lib"
         if (-not (Test-Path -LiteralPath $lib)) {
-          throw @"
-Missing $lib.
-Import the login-gated Windows Native C++ SDK (not BugSplat-Git/bugsplat-crashpad — those are /MD Crashpad bundles).
-Run: pwsh scripts/import-bugsplat-sdk.ps1 -SourceRoot <unzipped-sdk> ...
-Then commit ThirdParty/BugSplat. See ThirdParty/BugSplat/README.md.
-"@
+          throw "Missing $lib. Import the login-gated Windows Native C++ SDK (not BugSplat-Git/bugsplat-crashpad /MD Crashpad bundles). Run scripts/import-bugsplat-sdk.ps1, commit ThirdParty/BugSplat. See ThirdParty/BugSplat/README.md."
         }
 
     # Measured 2026-09-19 on windows-2025-vs2026: nuget restore prints
