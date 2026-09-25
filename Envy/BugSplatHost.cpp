@@ -22,13 +22,18 @@ wchar_t s_version[64];
 wchar_t s_revision[32];
 wchar_t s_buildType[16];
 
+void ApplyCrashReportingDefaults()
+{
+	if (!s_pBugSplat)
+		return;
+	s_pBugSplat->ClearAttachments();
+	s_pBugSplat->SetQuietMode(false);
+}
+
 void ApplyPrivacySafeMetadata()
 {
 	if (!s_pBugSplat)
 		return;
-
-	s_pBugSplat->ClearAttachments();
-	s_pBugSplat->SetQuietMode(false);
 
 	wchar_t windowsVersion[32];
 	windowsVersion[0] = 0;
@@ -92,7 +97,7 @@ BOOL BugSplatHost::Start()
 
 	SetGlobalCRTExceptionBehavior();
 	SetPerThreadCRTExceptionBehavior();
-	ApplyPrivacySafeMetadata();
+	ApplyCrashReportingDefaults();
 
 	s_bActive = TRUE;
 	return TRUE;

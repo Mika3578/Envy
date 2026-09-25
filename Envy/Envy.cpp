@@ -288,7 +288,6 @@ CEnvyApp::~CEnvyApp()
 BOOL CEnvyApp::InitInstance()
 {
 	CWinApp::InitInstance();
-	CrashReporter::Initialize();
 
 	CWinApp::SetRegistryKey( CLIENT_NAME );
 
@@ -299,7 +298,8 @@ BOOL CEnvyApp::InitInstance()
 	AfxGetThread()->m_lpfnOleTermOrFreeLib = AfxOleTermOrFreeLibSafe;	// Rare crash workaround
 	CoInitializeSecurity( NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_PKT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL );
 
-	GetVersionNumber();
+	CrashReporter::Initialize();
+	GetVersionNumber();			// Calls CrashReporter::SetIdentity when version is known.
 	Settings.Load();			// Loads settings.			Depends on GetVersionNumber()
 	InitResources();			// Loads theApp settings.	Depends on Settings::Load()
 	CoolInterface.Load();		// Loads colors and fonts.	Depends on InitResources()

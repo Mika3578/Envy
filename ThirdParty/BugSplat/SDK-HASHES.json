@@ -1,0 +1,4 @@
+{
+  "description": "Expected SHA-256 of official BugSplat native SDK files before import. Empty until a maintainer imports a verified SDK with -RecordReferenceHashes.",
+  "files": {}
+}

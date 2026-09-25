@@ -12,10 +12,14 @@ maintainers — it is **not** the full SDK archive.
 3. Import the required files:
 
 ```powershell
+# First import (official zip only): record reference hashes for supply-chain checks
+pwsh scripts/import-bugsplat-sdk.ps1 -SourceRoot C:\path\to\unzipped-sdk -AllowUnlistedSource -RecordReferenceHashes
+
+# Later imports / upgrades: hashes in SDK-HASHES.json must match the source files
 pwsh scripts/import-bugsplat-sdk.ps1 -SourceRoot C:\path\to\unzipped-sdk
 ```
 
-4. Review `SDK-MANIFEST.json` (SHA-256) and commit the imported tree.
+4. Review `SDK-MANIFEST.json` and `SDK-HASHES.json`, then commit the imported tree.
 
 The public [BugSplat-Git/Samples](https://github.com/BugSplat-Git/Samples)
 repository ships `/MD` prebuilt libraries only. **Do not** use those libraries
