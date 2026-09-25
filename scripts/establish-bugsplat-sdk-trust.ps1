@@ -57,7 +57,7 @@ function Get-RepoRoot {
 
 $repo = Get-RepoRoot
 if (-not $DestRoot) { $DestRoot = Join-Path $repo 'ThirdParty\BugSplat' }
-Import-Module (Join-Path $PSScriptRoot 'lib\BugSplatSdkTrust.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot (Join-Path 'lib' 'BugSplatSdkTrust.psm1')) -Force
 
 $proposal = Invoke-BugSplatSdkTrustProposal -SourceRoot $SourceRoot
 $doc = New-BugSplatTrustDocumentSkeleton -SdkVersion $SdkVersion

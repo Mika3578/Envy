@@ -32,7 +32,7 @@ $repo = Get-RepoRoot
 if (-not $DestRoot) { $DestRoot = Join-Path $repo 'ThirdParty\BugSplat' }
 $referencePath = Join-Path $DestRoot 'SDK-HASHES.json'
 
-Import-Module (Join-Path $PSScriptRoot 'lib\BugSplatSdkTrust.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot (Join-Path 'lib' 'BugSplatSdkTrust.psm1')) -Force
 
 $result = Invoke-BugSplatSdkImport -SourceRoot $SourceRoot -DestRoot $DestRoot -ReferenceHashesPath $referencePath
 Write-Host "Imported BugSplat SDK from $($result.SdkRoot) to $($result.DestRoot)"

@@ -3,7 +3,7 @@
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$modulePath = Join-Path $PSScriptRoot 'lib\BugSplatSdkTrust.psm1'
+$modulePath = Join-Path $PSScriptRoot (Join-Path 'lib' 'BugSplatSdkTrust.psm1')
 Import-Module $modulePath -Force
 
 function Assert-Throws {
@@ -45,10 +45,12 @@ try {
 	$map2 = @{ 'other.bin' = 'AA' }
 	Assert-Throws { Assert-BugSplatSourceMatchesReference -SourceFile $refFile -RelativePath 'payload.bin' -ReferenceMap $map2 } -Pattern 'No reference hash'
 
-	# Authenticode: unsigned PE must fail when required
-	$fakeExe = Join-Path $tmp.FullName 'unsigned.exe'
-	[System.IO.File]::WriteAllBytes($fakeExe, [byte[]](0x4D, 0x5A) + (,0 * 64))
-	Assert-Throws { Assert-BugSplatAuthenticode -Path $fakeExe -RequireSignature:$true } -Pattern 'signature required'
+	# Authenticode: unsigned PE must fail when required (Windows only; Linux runners lack signtool semantics)
+	if ($IsWindows -or $env:OS -eq 'Windows_NT') {
+		$fakeExe = Join-Path $tmp.FullName 'unsigned.exe'
+		[System.IO.File]::WriteAllBytes($fakeExe, [byte[]](0x4D, 0x5A) + (,0 * 64))
+		Assert-Throws { Assert-BugSplatAuthenticode -Path $fakeExe -RequireSignature:$true } -Pattern 'signature required'
+	}
 
 	# import-bugsplat-sdk.ps1 must not accept removed bootstrap parameters
 	$importScript = Join-Path $PSScriptRoot 'import-bugsplat-sdk.ps1'
