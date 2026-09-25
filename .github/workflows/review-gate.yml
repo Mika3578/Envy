@@ -1,0 +1,66 @@
+name: Review Gate
+
+# Advisory staged review/correction/final-approval evaluator. READ-ONLY:
+# never approves, never merges, never pushes. Emits one required-in-future
+# `Review Gate` check. Advisory until the maintainer adds it to the
+# Protect develop ruleset after several green runs (see docs/10_dev/review-gate.md).
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: read
+
+concurrency:
+  group: review-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review-gate:
+    name: Review Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          fetch-depth: 1
+
+      - name: Compute correction generation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          count="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow review-gate.yml \
+            --branch "$HEAD_BRANCH" --status completed --json databaseId --jq 'length')"
+          echo "GENERATION=$((count + 1))" >> "$GITHUB_ENV"
+          echo "Correction generation: $((count + 1)) (max 3 per PR)"
+
+      - name: Detect docs-only/low-risk path
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          files="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename')"
+          if printf '%s\n' "$files" | grep -qvE '^(docs/|Languages/|CHANGELOG\.md|MODERNIZATION\.md|\.cursor/|\.continue/|\.github/ISSUE_TEMPLATE/|\.github/CONTRIBUTING\.md|.*\.mdc$|\.clinerules$|\.windsurfrules$|\.cursorrules$)'; then
+            echo "DOCS_ONLY=false" >> "$GITHUB_ENV"
+            echo "Standard path: Copilot final APPROVED required."
+          else
+            echo "DOCS_ONLY=true" >> "$GITHUB_ENV"
+            echo "Low-risk path: Copilot final not required."
+          fi
+
+      - name: Evaluate review policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          MAX_ITERATIONS: "3"
+        run: bash .github/scripts/review-gate.sh
