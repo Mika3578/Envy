@@ -7,8 +7,12 @@
 //
 #include "StdAfx.h"
 #include "CrashReporter.h"
-#include "CrashPadHost.h"
 #include "CrashReportPolicy.h"
+#ifdef _WIN64
+#include "BugSplatHost.h"
+#else
+#include "CrashPadHost.h"
+#endif
 
 #include <commctrl.h>
 #include <shellapi.h>
@@ -65,7 +69,9 @@ wchar_t s_directory[MAX_PATH];
 
 void __cdecl OnTerminate()
 {
+#ifndef _WIN64
 	CrashPadHost::DumpNow();
+#endif
 	abort();
 }
 
@@ -77,13 +83,17 @@ void __cdecl OnInvalidParameter(
     uintptr_t /*pReserved*/)
 {
 	// Do not copy CRT strings; they may contain user paths.
+#ifndef _WIN64
 	CrashPadHost::DumpNow();
+#endif
 	abort();
 }
 
 void __cdecl OnPureCall()
 {
+#ifndef _WIN64
 	CrashPadHost::DumpNow();
+#endif
 	abort();
 }
 
@@ -640,24 +650,38 @@ void CrashReporter::Initialize()
 {
 	s_directory[0] = 0;
 	ResolveCrashDirectory(s_directory, _countof(s_directory));
+#ifdef _WIN64
+	BugSplatHost::Start();
+#else
 	CrashPadHost::Start(s_directory);
+#endif
 
 	if (s_bInstalled)
 		return;
 
+#ifndef _WIN64
 	s_pPreviousTerminate = set_terminate(&OnTerminate);
 	s_pPreviousInvalid = _set_invalid_parameter_handler(&OnInvalidParameter);
 	s_pPreviousPurecall = _set_purecall_handler(&OnPureCall);
+#endif
 	s_bInstalled = TRUE;
 }
 
 void CrashReporter::SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevision, const wchar_t* pszBuildType)
 {
+#ifdef _WIN64
+	BugSplatHost::SetIdentity(pszVersion, pszRevision, pszBuildType);
+#else
 	CrashPadHost::SetIdentity(pszVersion, pszRevision, pszBuildType);
+#endif
 }
 
 void CrashReporter::ShowStartupPromptIfNeeded()
 {
+#ifdef _WIN64
+	if (BugSplatHost::IsActive())
+		return;
+#endif
 	PendingReport reports[32];
 	size_t nCount = 0;
 	if (!FindPendingReports(reports, 32, &nCount) || nCount == 0)
@@ -686,12 +710,16 @@ void CrashReporter::Shutdown()
 {
 	if (!s_bInstalled)
 		return;
+#ifdef _WIN64
+	BugSplatHost::Shutdown();
+#else
 	if (s_pPreviousTerminate != nullptr)
 		set_terminate(s_pPreviousTerminate);
 	if (s_pPreviousInvalid != nullptr)
 		_set_invalid_parameter_handler(s_pPreviousInvalid);
 	if (s_pPreviousPurecall != nullptr)
 		_set_purecall_handler(s_pPreviousPurecall);
+#endif
 	s_bInstalled = FALSE;
 }
 
