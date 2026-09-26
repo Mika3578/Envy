@@ -28,6 +28,7 @@
 #include "DownloadTransferED2K.h"
 #include "DownloadTransferBT.h"
 #include "UploadQueues.h"
+#include "TransferSettingsLimits.h"
 
 #include "Buffer.h"
 #include "EDClient.h"
@@ -1021,9 +1022,8 @@ void CDownloads::OnRun()
 	DWORD nRunningTransfersED2K	= 0;	// Number of ed2k transfers that are downloading and transfering data
 	DWORD nTotalBandwidthED2K	= 0;	// Total ed2k bandwidth in use.
 
-	DWORD nBandwidthAvailable	= min( ( Settings.Bandwidth.Downloads ?
-		Settings.Bandwidth.Downloads : 0xffffffffu ),
-		Settings.Connection.InSpeed * Kilobits / Bytes );
+	DWORD nBandwidthAvailable = min((Settings.Bandwidth.Downloads ? Settings.Bandwidth.Downloads : 0xffffffffu),
+	                                TransferConnectionKilobitsToBytesPerSecondDword(Settings.Connection.InSpeed));
 	DWORD nBandwidthAvailableED2K = 0;
 	BOOL bDonkeyRatioActive		= FALSE;
 

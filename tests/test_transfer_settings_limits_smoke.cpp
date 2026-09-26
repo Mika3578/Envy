@@ -125,6 +125,92 @@ static bool test_bandwidth_bytes_to_setting_overflow_clamps()
 	return TransferBandwidthBytesToSetting(0x100000000ull) == 0xFFFFFFFFul && TransferBandwidthBytesToSetting(~0ull) == 0xFFFFFFFFul;
 }
 
+static unsigned long long legacy_headroom_buggy_formula(DWORD nOutSpeedKbps, unsigned int nFreeBandwidthFactor)
+{
+	return static_cast<unsigned long long>( nOutSpeedKbps / 8 ) *
+	    static_cast<unsigned long long>( ( 100 - nFreeBandwidthFactor ) / 100 ) * 1024ull;
+}
+
+static bool test_connection_kbps_to_bytes_zero()
+{
+	return TransferConnectionKilobitsToBytesPerSecond(0) == 0 &&
+	       TransferConnectionKilobitsToBytesPerSecondDword(0) == TransferBandwidthUnlimitedValue();
+}
+
+static bool test_connection_kbps_to_bytes_legacy_defaults()
+{
+	return TransferConnectionKilobitsToBytesPerSecond(768) == 98304ull &&
+	       TransferConnectionKilobitsToBytesPerSecond(4096) == 524288ull;
+}
+
+static bool test_connection_kbps_to_bytes_multigig()
+{
+	return TransferConnectionKilobitsToBytesPerSecond(100000) == 12800000ull &&
+	       TransferConnectionKilobitsToBytesPerSecond(1000000) == 128000000ull &&
+	       TransferConnectionKilobitsToBytesPerSecond(10000000) == 1280000000ull &&
+	       TransferConnectionKilobitsToBytesPerSecond(2500000) == 320000000ull &&
+	       TransferConnectionKilobitsToBytesPerSecond(5000000) == 640000000ull;
+}
+
+static bool test_connection_kbps_overflow_boundary_no_wrap()
+{
+	const DWORD nBelow = 4194303u;
+	const DWORD nAt = 4194304u;
+	const unsigned long long nExpectedBelow = static_cast<unsigned long long>(nBelow) * 128ull;
+	const unsigned long long nExpectedAt = static_cast<unsigned long long>(nAt) * 128ull;
+	const unsigned long long nWrongAt =
+	    static_cast<unsigned long long>(static_cast<DWORD>(nAt * 1024u) / 8u);
+	return TransferConnectionKilobitsToBytesPerSecond(nBelow) == nExpectedBelow &&
+	       TransferConnectionKilobitsToBytesPerSecond(nAt) == nExpectedAt &&
+	       nWrongAt != nExpectedAt;
+}
+
+static bool test_connection_kbps_saturation_to_dword()
+{
+	return TransferConnectionKilobitsToBytesPerSecondDword(50000000u) == 0xFFFFFFFFul;
+}
+
+static bool test_bandwidth_apply_usable_percent_factors()
+{
+	const unsigned long long nCapacity = 100000ull;
+	return TransferBandwidthApplyUsablePercent(nCapacity, 0) == 100000ull &&
+	       TransferBandwidthApplyUsablePercent(nCapacity, 1) == 99000ull &&
+	       TransferBandwidthApplyUsablePercent(nCapacity, 8) == 92000ull &&
+	       TransferBandwidthApplyUsablePercent(nCapacity, 50) == 50000ull &&
+	       TransferBandwidthApplyUsablePercent(nCapacity, 99) == 1000ull;
+}
+
+static bool test_upload_headroom_default_not_accidental_unlimited()
+{
+	const DWORD nLimit = TransferBandwidthUploadLimitFromOutboundKilobits(768, 8);
+	if (nLimit == TransferBandwidthUnlimitedValue())
+		return false;
+	if (legacy_headroom_buggy_formula(768, 8) != 0)
+		return false;
+	return nLimit == 90439u;
+}
+
+static bool test_upload_headroom_regression_92_over_100_integer_division()
+{
+	return legacy_headroom_buggy_formula(768, 8) == 0 &&
+	       TransferBandwidthUploadLimitFromOutboundKilobits(768, 8) == 90439u;
+}
+
+static bool test_upload_headroom_10g_default_reserve()
+{
+	const DWORD nLimit = TransferBandwidthUploadLimitFromOutboundKilobits(10000000, 8);
+	return nLimit == 1177600000u;
+}
+
+static bool test_bandwidth_torrent_percent_multigig_no_dword_wrap()
+{
+	const DWORD nBase = TransferConnectionKilobitsToBytesPerSecondDword(10000000);
+	const unsigned long long nScaled = static_cast<unsigned long long>(nBase) * 90ull / 100ull;
+	const DWORD nExpected = TransferBandwidthBytesToSetting(nScaled);
+	const DWORD nWrapped = ( nBase * 90 ) / 100;
+	return nExpected != 0 && nWrapped != nExpected;
+}
+
 static bool test_max_per_host_defaults_and_range()
 {
 	return TransferMaxPerHostDefault() == 2 && TransferMaxPerHostMin() == 1 && TransferMaxPerHostMax() == 64;
@@ -300,6 +386,24 @@ void register_transfer_settings_limits_smoke_tests(TestSuite& suite)
 	               test_bandwidth_bytes_to_setting_typical);
 	suite.add_test("transfer_bandwidth_bytes_to_setting_overflow_clamps",
 	               test_bandwidth_bytes_to_setting_overflow_clamps);
+	suite.add_test("transfer_connection_kbps_to_bytes_zero",
+	               test_connection_kbps_to_bytes_zero);
+	suite.add_test("transfer_connection_kbps_to_bytes_legacy_defaults",
+	               test_connection_kbps_to_bytes_legacy_defaults);
+	suite.add_test("transfer_connection_kbps_to_bytes_multigig",
+	               test_connection_kbps_to_bytes_multigig);
+	suite.add_test("transfer_connection_kbps_overflow_boundary_no_wrap",
+	               test_connection_kbps_overflow_boundary_no_wrap);
+	suite.add_test("transfer_connection_kbps_saturation_to_dword",
+	               test_connection_kbps_saturation_to_dword);
+	suite.add_test("transfer_bandwidth_apply_usable_percent_factors",
+	               test_bandwidth_apply_usable_percent_factors);
+	suite.add_test("transfer_upload_headroom_default_not_accidental_unlimited",
+	               test_upload_headroom_default_not_accidental_unlimited);
+	suite.add_test("transfer_upload_headroom_regression_92_over_100_integer_division",
+	               test_upload_headroom_regression_92_over_100_integer_division);
+	suite.add_test("transfer_upload_headroom_10g_default_reserve",
+	               test_upload_headroom_10g_default_reserve);
 	suite.add_test("transfer_max_per_host_defaults_and_range",
 	               test_max_per_host_defaults_and_range);
 	suite.add_test("transfer_max_per_host_clamp_bounds",

@@ -25,6 +25,7 @@
 
 #include "StdAfx.h"
 #include "Settings.h"
+#include "TransferSettingsLimits.h"
 #include "Envy.h"
 #include "Scheduler.h"
 #include "Buffer.h"
@@ -566,7 +567,8 @@ void CScheduler::ExecuteScheduledTask(CScheduleTask *pSchTask)
 		Settings.Live.BandwidthScaleIn	= 101;
 		Settings.Live.BandwidthScaleOut	= 101;
 		Settings.Bandwidth.Downloads	= 0;
-		Settings.Bandwidth.Uploads		= ( ( ( Settings.Connection.OutSpeed * ( 100 - Settings.Uploads.FreeBandwidthFactor ) ) / 100 ) / 8 ) * 1024;
+		Settings.Bandwidth.Uploads = TransferBandwidthUploadLimitFromOutboundKilobits(
+		    Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor);
 		Settings.Gnutella2.Enabled		= true;
 		Settings.Gnutella1.Enabled		= Settings.Gnutella1.EnableAlways;
 		Settings.eDonkey.Enabled		= Settings.eDonkey.EnableAlways;
@@ -580,8 +582,10 @@ void CScheduler::ExecuteScheduledTask(CScheduleTask *pSchTask)
 		theApp.Message( MSG_NOTICE, L"Scheduler| Bandwidth: Limited" );
 		Settings.Live.BandwidthScaleIn	= pSchTask->m_nLimitDown;
 		Settings.Live.BandwidthScaleOut	= pSchTask->m_nLimitUp;
-		Settings.Bandwidth.Downloads	= ( Settings.Connection.InSpeed * 1024 ) / 8;
-		Settings.Bandwidth.Uploads		= ( ( ( Settings.Connection.OutSpeed * ( 100 - Settings.Uploads.FreeBandwidthFactor ) ) / 100 ) / 8 ) * 1024;
+		Settings.Bandwidth.Downloads = TransferConnectionKilobitsToBytesPerSecondDword(
+		    Settings.Connection.InSpeed);
+		Settings.Bandwidth.Uploads = TransferBandwidthUploadLimitFromOutboundKilobits(
+		    Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor);
 		Settings.Gnutella2.Enabled		= true;
 		Settings.Gnutella1.Enabled		= pSchTask->m_bLimitedNetworks ? false : Settings.Gnutella1.EnableAlways;
 		Settings.eDonkey.Enabled		= pSchTask->m_bLimitedNetworks ? false : Settings.eDonkey.EnableAlways;
