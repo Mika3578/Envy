@@ -135,6 +135,7 @@ MERGE_A="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 MERGE_OLD="cccccccccccccccccccccccccccccccccccccccc"
 CHECK_FORMAT='Format Check'
 TSV_COMPLETED_SUCCESS=$'completed\tsuccess\t'
+TSV_COMPLETED_FAILURE=$'completed\tfailure\t'
 JSON_STARTED_AT_1805_SUFFIX='","started_at":"2026-09-21T18:05:00Z"}'
 
 # 8 / 11: cancelled then success same HEAD
@@ -189,7 +190,7 @@ json_fail="$(check_json '[
   {"id":20,"name":"Format Check","status":"completed","conclusion":"failure","head_sha":"'"$HEAD_A"'"}
 ]')"
 got="$(select_conc "$HEAD_A" "$json_fail" "$CHECK_FORMAT")"
-expect_out select-cancelled-then-failure $'completed\tfailure\t'"$HEAD_A" printf '%s' "$got"
+expect_out select-cancelled-then-failure "${TSV_COMPLETED_FAILURE}${HEAD_A}" printf '%s' "$got"
 expect_out classify-after-replacement-failure failed classify_gate_outcome completed failure false
 
 # 13: never select older success to mask newer failure
@@ -198,7 +199,7 @@ json_mask="$(check_json '[
   {"id":99,"name":"Format Check","status":"completed","conclusion":"failure","head_sha":"'"$HEAD_A"'"}
 ]')"
 got="$(select_conc "$HEAD_A" "$json_mask" "$CHECK_FORMAT")"
-expect_out select-latest-failure-not-old-success $'completed\tfailure\t'"$HEAD_A" printf '%s' "$got"
+expect_out select-latest-failure-not-old-success "${TSV_COMPLETED_FAILURE}${HEAD_A}" printf '%s' "$got"
 expect_out classify-old-success-new-failure failed classify_gate_outcome completed failure false
 
 # old success -> new cancelled is pending/fail-closed until timeout
@@ -235,7 +236,7 @@ json_old_starts_late="$(check_json '[
   {"id":200,"name":"Format Check","status":"completed","conclusion":"failure","head_sha":"'"$HEAD_A${JSON_STARTED_AT_1805_SUFFIX}"'
 ]')"
 got="$(select_conc "$HEAD_A" "$json_old_starts_late" "$CHECK_FORMAT")"
-expected_newer_failure="$(printf 'completed\tfailure\t%s' "$HEAD_A")"
+expected_newer_failure="${TSV_COMPLETED_FAILURE}${HEAD_A}"
 expect_out select-newer-id-even-if-older-starts-later "$expected_newer_failure" printf '%s' "$got"
 expect_out classify-newer-failure-not-masked failed classify_gate_outcome completed failure false
 
@@ -249,7 +250,7 @@ json_page_2="$(check_json '[
 ]')"
 json_two_pages="$(printf '%s\n%s\n' "$json_page_1" "$json_page_2")"
 got="$(select_conc "$HEAD_A" "$json_two_pages" "Documentation Check")"
-expected_paged_failure="$(printf 'completed\tfailure\t%s' "$HEAD_A")"
+expected_paged_failure="${TSV_COMPLETED_FAILURE}${HEAD_A}"
 expect_out select-newer-generation-across-pages "$expected_paged_failure" printf '%s' "$got"
 expect_out classify-newer-paged-failure failed classify_gate_outcome completed failure false
 
@@ -259,7 +260,7 @@ json_heads="$(check_json '[
   {"id":10,"name":"Format Check","status":"completed","conclusion":"failure","head_sha":"'"$HEAD_A"'"}
 ]')"
 got="$(select_conc "$HEAD_A" "$json_heads" "$CHECK_FORMAT")"
-expect_out select-head-not-other-sha $'completed\tfailure\t'"$HEAD_A" printf '%s' "$got"
+expect_out select-head-not-other-sha "${TSV_COMPLETED_FAILURE}${HEAD_A}" printf '%s' "$got"
 got_b="$(select_conc "$HEAD_B" "$json_heads" "$CHECK_FORMAT")"
 expect_out select-other-head-isolated "${TSV_COMPLETED_SUCCESS}${HEAD_B}" printf '%s' "$got_b"
 
@@ -300,7 +301,7 @@ json_wrong_app="$(check_json '[
   {"id":2,"name":"gitleaks","status":"completed","conclusion":"failure","head_sha":"'"$HEAD_A"'","app":{"id":57789}}
 ]')"
 got="$(select_conc "$HEAD_A" "$json_wrong_app" "gitleaks")"
-expect_out select-gitleaks-app-id $'completed\tfailure\t'"$HEAD_A" printf '%s' "$got"
+expect_out select-gitleaks-app-id "${TSV_COMPLETED_FAILURE}${HEAD_A}" printf '%s' "$got"
 
 # API error-shaped payload fails explicitly.
 set +e
@@ -505,11 +506,11 @@ if [[ "$timeout_rc" -eq 0 ]]; then
 	fail=1
 elif [[ "$timeout_output" != *"Timed out after 1s waiting for required checks."* ]]; then
 	echo "FAIL cancelled-check-e2e-timeout: timeout message missing" >&2
-	printf '%s\n' "$timeout_output"
+	printf '%s\n' "$timeout_output" >&2
 	fail=1
 elif [[ "$timeout_output" != *"Lint build files: cancelled (waiting for replacement)"* ]]; then
 	echo "FAIL cancelled-check-e2e-timeout: cancelled check was not kept pending" >&2
-	printf '%s\n' "$timeout_output"
+	printf '%s\n' "$timeout_output" >&2
 	fail=1
 elif [[ "$timeout_output" == *"All expected checks completed successfully."* ]]; then
 	echo "FAIL cancelled-check-e2e-timeout: cancelled check was accepted as success" >&2
