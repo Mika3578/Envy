@@ -206,6 +206,11 @@ Source: "Envy\Release Win32\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadon
 Source: "Envy\Release x64\BugSplatMonitor.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "Envy\Release x64\BugSplatWer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "Envy\Release x64\BugSplatRc.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
+Source: "Envy\Release x64\vcruntime140.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
+Source: "Envy\Release x64\vcruntime140_1.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
+Source: "Envy\Release x64\msvcp140.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
+Source: "Envy\Release x64\msvcp140_1.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
+Source: "Envy\Release x64\msvcp140_2.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
 Source: "Envy\Release Win32\crashpad_handler.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
 Source: "Envy\Release Win32\crashpad_wer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: not Install64Bit
 Source: "TorrentEnvy\Release x64\TorrentEnvy.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
@@ -218,8 +223,13 @@ Source: "Unpacker\Release Win32\Unpacker.exe";DestDir: "{app}"; Flags: overwrite
 Source: "Envy\{#ConfigurationName} {#PlatformName}\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 #if PlatformName == "x64"
 Source: "Envy\{#ConfigurationName} {#PlatformName}\BugSplatMonitor.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
-Source: "Envy\{#ConfigurationName} {#PlatformName}\BugSplatWer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
-Source: "Envy\{#ConfigurationName} {#PlatformName}\BugSplatRc.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
+Source: "Envy\{#ConfigurationName} {#PlatformName}\BugSplatWer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
+Source: "Envy\{#ConfigurationName} {#PlatformName}\BugSplatRc.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
+Source: "Envy\{#ConfigurationName} {#PlatformName}\vcruntime140.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
+Source: "Envy\{#ConfigurationName} {#PlatformName}\vcruntime140_1.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
+Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
+Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140_1.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
+Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140_2.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
 #endif
 #if PlatformName == "Win32"
 Source: "Envy\{#ConfigurationName} {#PlatformName}\crashpad_handler.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension

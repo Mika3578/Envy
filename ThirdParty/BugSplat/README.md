@@ -24,7 +24,9 @@ BugSplat does **not** publish an independent SHA-256 manifest for the Native zip
 `SDK-HASHES.json` records a **maintainer-reviewed baseline** (see `trustModel` in that
 file). SHA-256 detects drift after that baseline is committed; it is not proof against
 a compromised first download. PE binaries (`BugSplatMonitor.exe`, `BugSplatWer.dll`,
-`BugSplatRc.dll`) must pass Authenticode with a BugSplat publisher subject when signed.
+`BugSplatRc.dll`) must have a **valid** Authenticode signature from a BugSplat publisher subject.
+Import and `establish-bugsplat-sdk-trust.ps1` fail closed on missing, invalid, or unexpected signer PE files.
+Headers (`inc/*.h`) are hashed against the baseline; they are not re-signed vendor binaries.
 
 4. Import into this directory (fail-closed; never rewrites `SDK-HASHES.json`):
 
