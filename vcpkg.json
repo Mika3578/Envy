@@ -13,7 +13,10 @@
     "sqlite3",
     "miniupnpc",
     "openssl",
-    "crashpad"
+    {
+      "name": "crashpad",
+      "platform": "windows & x86"
+    }
   ],
   "features": {
     "tests": {

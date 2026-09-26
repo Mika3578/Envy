@@ -1,8 +1,9 @@
-Inno Setup 5.6.0 Components
-Copyright 2018 Jordan Russell
+Inno Setup 6.7.3 Unicode compiler components
+Copyright 1997-2026 Jordan Russell / Martijn Laan
 Redistributed as per License.txt
 
-http://jrsoftware.org/isdl.php
-http://jrsoftware.org/ishelp
+https://jrsoftware.org/isdl.php
+https://jrsoftware.org/ishelp
 
-Source: isetup-5.6.0.exe
+Refreshed from a local Inno Setup 6.7.3 install via scripts/installer/sync-innosetup-from-install.ps1.
+UTF-8 .iss scripts (no BOM required since Inno Setup 6.3+) are supported by this compiler.
