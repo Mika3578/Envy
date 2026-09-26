@@ -187,11 +187,18 @@ Crashpad handler copy.
 `scripts/ci-verify.ps1` now runs the same restore before MSBuild.
 
 #### 0b. `Installer\Scripts\Main.iss` custom build exited with code 2
-`Installer/InnoSetup/ISCC.exe` is vendored, so the Installer project does **not** skip
-when Inno is “missing”. ISCC exit code 2 is a compile failure, usually because
-`Envy.exe` / `crashpad_handler.exe` (or another `[Files]` source) is absent after the
-`Envy` project failed. This is a **cascade**, not a separate Inno script bug. Fix the
-`Envy` build first. Release CI packages Installer after a successful Envy build.
+`Installer/InnoSetup/ISCC.exe` is vendored (**Inno Setup 6.7.3 Unicode**; see
+`Installer/InnoSetup/Version.txt`), so the Installer project does **not** skip when Inno
+is “missing”. `Main.iss` is **UTF-8** (no BOM) and requires Inno Setup **6.3+** for
+Unicode metadata such as `©` in `AppCopyright`. CI enforces this with
+`.github/scripts/check-installer-main-iss-encoding.sh`.
+
+ISCC exit code 2 is a compile failure, usually because `Envy.exe` /
+`crashpad_handler.exe` (or another `[Files]` source) is absent after the `Envy` project
+failed. This is a **cascade**, not a separate Inno script bug. Fix the `Envy` build
+first. Release CI packages Installer after a successful Envy build. After a local
+Release build, validate setup metadata with
+`scripts/installer/verify-setup-appcopyright.ps1 -SetupExePath Builds\<setup>.exe`.
 
 #### 1. Platform Toolset Mismatch
 ```

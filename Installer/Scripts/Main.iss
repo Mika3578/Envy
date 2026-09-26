@@ -14,18 +14,15 @@
 #define VisualStudioPath  "c:\Program Files (x86)\Microsoft Visual Studio 14.0"
 #define VisualCVersion    "14"
 
-#if VER < 0x05030500
-  #error Inno Setup version 5.3.5 or higher (2009) is needed for this script
-#endif
-#if PREPROCVER < 0x05040200
-  #error PreProcessor version 5.4.2.0 or higher (2011) is needed for this script
+#if VER < 0x06030000
+  #error Inno Setup 6.3+ Unicode is required for UTF-8 installer scripts (see Installer/InnoSetup/Version.txt)
 #endif
 
 #define internal_name GetStringFileInfo("..\..\Envy\" + ConfigurationName + " " + PlatformName + "\Envy.exe", INTERNAL_NAME)
 #define version       GetStringFileInfo("..\..\Envy\" + ConfigurationName + " " + PlatformName + "\Envy.exe", FILE_VERSION)
 ; #define version     GetFileVersion("..\..\Envy\" + ConfigurationName + " " + PlatformName + "\Envy.exe");
 #define publisher     "GetEnvy.com"
-#define copyright     "(C) 2016-2020 Envy Development Team"
+#define copyright     "© 2016-2020 Envy Development Team"
 #define description   internal_name + " Filesharing"
 #define date          GetDateTimeString('yyyy/mm/dd', '-', '')
 
