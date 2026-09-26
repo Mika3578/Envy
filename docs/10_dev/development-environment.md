@@ -98,9 +98,10 @@ Tracked in [issue #350](https://github.com/Mika3578/Envy/issues/350).
 - Do **not** mass-convert encodings or declare all C++ CP1252/Latin-1 globally.
 - `.editorconfig` does **not** set `charset = utf-8` on legacy C/C++; it uses `charset = unset` for `*.cpp`/`*.h` and UTF-8 only where content is genuinely UTF-8 (YAML, JSON, XML, docs, scripts).
 - Prefer **Visual Studio** to edit/save legacy sources until a file is explicitly migrated under #350.
-- CI runs [`.github/scripts/check-source-encoding.sh`](../../.github/scripts/check-source-encoding.sh): it **fails only when a PR increases** `EF BF BD` counts in changed first-party C/C++ files (baseline debt on `develop` is allowed).
+- CI runs [`.github/scripts/check-source-encoding.sh`](../../.github/scripts/check-source-encoding.sh) with [`.github/scripts/check_source_encoding_lib.py`](../../.github/scripts/check_source_encoding_lib.py): on changed first-party C/C++ and `Installer/**/*.iss`, it **fails when HEAD introduces new corruption vs the merge base** (baseline debt on `develop` is allowed). Detected classes include new `U+FFFD` (`EF BF BD`), new UTF-8 `C2 9D` / Unicode C1 controls (`U+0080`–`U+009F`) in valid UTF-8 text, common mojibake (`Â©`, …), and byte changes to Envy copyright/installer metadata lines (for example legacy `©` / `0xA9` becoming `U+009D` or `?`).
+- **Functional PR rule:** do not rewrite, normalize, transliterate, or otherwise alter unrelated non-ASCII bytes, copyright/license headers, BOMs, or line endings in legacy sources. Encoding migration belongs in dedicated PRs tracked under #350 (set `ENVY_ENCODING_MIGRATION_PR=1` only on those PRs).
 
-**Before you finish a change**, inspect files you **actually modified** (not merely opened) for unintended encoding conversion, new `U+FFFD`, EOL-only churn, secrets, or local paths.
+**Before you finish a change**, inspect files you **actually modified** (not merely opened) for unintended encoding conversion, new `U+FFFD`, new `U+0080`–`U+009F` / mojibake, accidental copyright byte changes, EOL-only churn, secrets, or local paths. A functional PR must not rewrite unrelated non-ASCII bytes or copyright/license header lines in legacy C/C++; use a dedicated encoding migration PR (#350) instead.
 
 ## Project-owned vs local
 

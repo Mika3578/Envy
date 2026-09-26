@@ -113,7 +113,7 @@ jobs:
           command -v "clang-format-diff-${CLANG_FORMAT_MAJOR}"
           command -v "clang-format-${CLANG_FORMAT_MAJOR}"
 
-      - name: Block new U+FFFD in changed first-party sources
+      - name: Block new encoding corruption in changed first-party sources
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || 'origin/develop' }}
@@ -126,14 +126,17 @@ jobs:
           fi
 
           trusted_script="$(mktemp)"
+          trusted_lib="$(mktemp)"
           if git cat-file -e "${BASE_SHA}:.github/scripts/check-source-encoding.sh" 2>/dev/null; then
             git show "${BASE_SHA}:.github/scripts/check-source-encoding.sh" >"$trusted_script"
-            echo "Using check-source-encoding.sh from base ${BASE_SHA}"
+            git show "${BASE_SHA}:.github/scripts/check_source_encoding_lib.py" >"$trusted_lib"
+            echo "Using encoding guard from base ${BASE_SHA}"
           else
-            echo "::warning::check-source-encoding.sh absent on base ${BASE_SHA}; bootstrap from HEAD ${HEAD_SHA}"
+            echo "::warning::Encoding guard absent on base ${BASE_SHA}; bootstrap from HEAD ${HEAD_SHA}"
             git show "${HEAD_SHA}:.github/scripts/check-source-encoding.sh" >"$trusted_script"
+            git show "${HEAD_SHA}:.github/scripts/check_source_encoding_lib.py" >"$trusted_lib"
           fi
-          bash "$trusted_script"
+          CHECK_ENCODING_LIB="$trusted_lib" bash "$trusted_script"
 
       - name: clang-format-diff on changed hunks
         shell: bash

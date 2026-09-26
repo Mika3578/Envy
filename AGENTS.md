@@ -306,9 +306,12 @@ When you take on a task you are expected to:
    `Visual Studio/` (or a tmp script you delete), run it, commit the
    resulting diff. Don't hand-edit 40 files.
 10. **Validate files you actually modified** before finishing (not files merely
-   opened). Check for new `U+FFFD` / `EF BF BD`, unintended encoding or EOL
-   churn, unrelated formatting, secrets, machine-specific paths, and spurious
-   comment/header rewrites. Opening a file must not trigger whole-file cleanup.
+   opened). Check for new `U+FFFD` / `EF BF BD`, new Unicode C1 controls or
+   mojibake in modified lines, unintended encoding or copyright/license header
+   byte changes, EOL-only churn, unrelated formatting, secrets, machine-specific
+   paths, and spurious comment/header rewrites. A functional PR must not rewrite
+   unrelated non-ASCII bytes in legacy sources; encoding migration belongs in
+   dedicated PRs under issue #350. Opening a file must not trigger whole-file cleanup.
    See `docs/10_dev/development-environment.md` and issue #350.
 11. **Keep documentation truthful in the same PR.** Update docs when behavior,
     APIs, protocol handling, UI/config, build/CI, security, performance, or

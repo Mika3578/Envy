@@ -122,7 +122,7 @@
 - **Changelog Entry:** 2026-09-19 — #81: G2 HIT_WRAP / wrapped G1 fail-closed via `G1WrappedPayloadFits` / negative `m_nLength` reject in `CG1Packet::New` + null-check call sites.
 - **Changelog Entry:** 2026-09-19 — #81: G2 compound/frame length checks order-safe (`G2SubpacketPayloadFits` / `G2FrameLengthFits`) in ReadPacket/SkipCompound/ReadBuffer (defense-in-depth).
 - **Changelog Entry:** 2026-09-19 — #81: G1 QueryHit QHD `nXMLSize` fail-closed via `G1QueryHitXmlFits` (must leave trailing GUID, including zero-length XML); no soft clamp to 0.
-- **Changelog Entry:** 2026-09-19 — #81: ED2K `VIEWSHAREDDIRANSWER` consumes WORD-prefixed directory name before `count`; `OnViewSharedDir` / `OnAskSharedDirsAnswer` / `OnServerMessage` fail-closed via `Ed2kEdString*` + `Ed2kServerMessageLengthOk` (5000-byte MOTD cap).
+- **Changelog Entry:** 2026-09-26 — PR #351: diff-aware encoding guard extended beyond new `U+FFFD` to C1 controls, mojibake, and Envy/installer copyright metadata (regression case PR #357 `©`/`0xA9` → `U+009D`); `.editorconfig` keeps `charset=unset` on legacy C/C++ until #350 migration PRs.
 - **Changelog Entry:** 2026-09-19 — #81: ED2K chat `MESSAGE` length checks centralized in `Ed2kChatMessageLengthOk` (+ EnvyTests); valid-frame wire behavior unchanged, malformed lengths rejected; outgoing `SendPrivateMessage` clamps by encoded byte length.
 - **Changelog Entry:** 2026-09-19 — #81: unknown ED2K tag skip fail-closed when STRING length claim exceeds remaining (`Ed2kUnknownTagStringSkipOk`); INT fallback only above skip-max.
 - **Changelog Entry:** 2026-09-19 — #81: `CEDPacket::ReadEDString` / `ReadLongEDString` fail-closed when length prefix exceeds remaining (`Ed2kEdStringPayloadOk` / `Ed2kLongEdStringPayloadOk`).
