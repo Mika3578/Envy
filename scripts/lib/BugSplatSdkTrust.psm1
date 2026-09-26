@@ -292,6 +292,25 @@ function Invoke-BugSplatSdkImport {
 		$manifestPath = Join-Path $stageRoot 'SDK-MANIFEST.json'
 		$manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
 
+		# Preserve maintainer-owned files not produced by the SDK payload (baseline, docs).
+		$preserveNames = @('SDK-HASHES.json', 'README.md')
+		if (Test-Path -LiteralPath $DestRoot) {
+			foreach ($name in $preserveNames) {
+				$existing = Join-Path $DestRoot $name
+				if (Test-Path -LiteralPath $existing) {
+					Copy-Item -Force $existing (Join-Path $stageRoot $name)
+				}
+			}
+		} else {
+			if (Test-Path -LiteralPath $ReferenceHashesPath) {
+				Copy-Item -Force $ReferenceHashesPath (Join-Path $stageRoot 'SDK-HASHES.json')
+			}
+			$readme = Join-Path (Split-Path -Parent $ReferenceHashesPath) 'README.md'
+			if (Test-Path -LiteralPath $readme) {
+				Copy-Item -Force $readme (Join-Path $stageRoot 'README.md')
+			}
+		}
+
 		$destParent = Split-Path -Parent $DestRoot
 		$destName = Split-Path -Leaf $DestRoot
 		$backup = Join-Path $destParent ("{0}.import-backup-{1}" -f $destName, [guid]::NewGuid().Guid)

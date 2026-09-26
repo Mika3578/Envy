@@ -50,9 +50,13 @@ if ($WriteReferenceHashes) {
 }
 
 function Get-RepoRoot {
-	$fromGit = git rev-parse --show-toplevel 2>$null
+	$scriptDir = $PSScriptRoot
+	if (-not $scriptDir) {
+		$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+	}
+	$fromGit = git -C $scriptDir rev-parse --show-toplevel 2>$null
 	if ($LASTEXITCODE -eq 0 -and $fromGit) { return $fromGit.Trim() }
-	return (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+	return (Resolve-Path (Join-Path $scriptDir '..')).Path
 }
 
 $repo = Get-RepoRoot

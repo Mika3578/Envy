@@ -58,7 +58,12 @@ try {
 
 	# import-bugsplat-sdk.ps1 must not accept removed bootstrap parameters
 	$importScript = Join-Path $PSScriptRoot 'import-bugsplat-sdk.ps1'
-	$importAst = [System.Management.Automation.Language.Parser]::ParseFile($importScript, [ref]$null, [ref]$null)
+	$parseErrors = $null
+	$parseTokens = $null
+	$importAst = [System.Management.Automation.Language.Parser]::ParseFile($importScript, [ref]$parseTokens, [ref]$parseErrors)
+	if ($parseErrors -and $parseErrors.Count -gt 0) {
+		throw "Failed to parse import-bugsplat-sdk.ps1: $($parseErrors[0].Message)"
+	}
 	$paramNames = $importAst.FindAll({ $args[0] -is [System.Management.Automation.Language.ParameterAst] }, $true) |
 		ForEach-Object { $_.Name.VariablePath.UserPath }
 	if ($paramNames -contains 'RecordReferenceHashes' -or $paramNames -contains 'AllowUnlistedSource') {
