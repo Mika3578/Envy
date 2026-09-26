@@ -44,3 +44,7 @@ alwaysApply: false
 ## MFC interoperability notes
 - For MFC class members: use `BOOL` for flags (locals can use `bool`).
 - Prefer `CString`/Unicode-friendly APIs in UI/MFC-facing code paths.
+
+## Copyright / licensing
+- Follow `AGENTS.md` for copyright, attribution, and privacy policy. Preserve
+  third-party provenance and legacy encoding.

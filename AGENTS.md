@@ -169,6 +169,62 @@ Branch model:
     change. GitHub Code Quality complements — and does not replace — the C++
     gates (MSVC builds/tests, SonarCloud, CodeQL/security analysis and targeted
     regression tests).
+16. **Authorship, privacy, and source comments (hard).** The repository
+    documents the software and its architecture, not the tool or agent that
+    produced a change. Git history and GitHub PRs/issues keep process
+    history; source comments keep technical meaning.
+    - **Do not** add `Co-authored-by` trailers for AI assistants, agents,
+      Cursor, Copilot, Codex, Claude, ChatGPT, OpenAI, Anthropic, or other
+      tools. Those tools are not Git co-authors. Do not add `Generated-by`,
+      `Generated with`, `Created with`, `AI-generated`, or equivalent
+      advertising signatures to commits or contributor-authored PR text.
+    - GitHub bot comments, reviews, and auto-generated summary blocks
+      (CodeRabbit, Cubic, Amazon Q, Sonar, Copilot summaries, and similar)
+      are allowed on the PR conversation. The authorship scanner ignores
+      recognized bot output; it enforces policy on commits, added source
+      lines, and contributor-authored PR title/body text.
+    - Agents must never invent a git identity and must never commit as
+      Cursor, Copilot, Codex, or another assistant. Use a GitHub noreply
+      address (`scripts/configure-git-noreply.sh`) and set
+      `user.useConfigOnly=true`. Humans use
+      `<id>+<login>@users.noreply.github.com`.
+    - **Do not** publish personal email addresses in commits, PR titles or
+      bodies, GitHub comments you write as the contributor, documentation,
+      tests, CI scripts, or source comments. CI uses a positive allowlist
+      (GitHub noreply domains and documented technical mailboxes). Do not
+      maintain a denylist of real personal addresses.
+    - Human `Co-authored-by` trailers remain valid when a real person
+      co-authored the change **and** the trailer uses a GitHub noreply
+      address. Dependabot `Signed-off-by` is allowed. This repository does
+      **not** require DCO `Signed-off-by` on first-party commits. Other
+      attribution trailers must not smuggle a personal mailbox.
+    - **Pull request titles** are English, short, and technical. Prefer
+      `type(scope): short description` (`feat`, `fix`, `docs`, `refactor`,
+      `perf`, `test`, `build`, `ci`, `chore`, `security`). Do not put agent
+      names, tool brands, emails, `Co-authored-by`, or marketing text in the
+      title. No arbitrary character-limit CI rule.
+    - **Pull request descriptions** stay technical: problem/why, changes,
+      testing, risks/compatibility, related issue. `Fixes #123` /
+      `Closes #123` / `Related to #123` belong in PR/issue text, not in
+      source comments.
+    - **`develop` squash merges** should use the PR title as the squash
+      commit title and a **blank** default squash body (GitHub Probot
+      Settings keys `squash_merge_commit_title: PR_TITLE` and
+      `squash_merge_commit_message: BLANK` when this repository adopts
+      them). The squash commit on
+      `develop` must not carry agent trailers, tool signatures, or bot
+      summaries. Maintainers may add a short technical body when needed
+      (for example `Fixes #298`).
+    - Source-code comments explain a non-obvious constraint, protocol rule,
+      invariant, limitation, security reason, or interoperability subtlety.
+      Prefer a self-contained technical explanation. A rare issue/PR
+      reference is allowed only when it is truly indispensable and no
+      reasonable standalone explanation exists. Do **not** write process-only
+      comments such as `Requested by Copilot review` or `Cursor changed this`.
+    - Never delete copyright, licence, AUTHORS, historical contributor
+      notices, third-party provenance, or legally required attribution.
+    - Agents must **not** rewrite published `develop`/`main` history as
+      routine cleanup.
 
 ---
 
@@ -228,11 +284,20 @@ patterns you will see and should preserve:
 - Concurrency: `CCriticalSection`, `CSingleLock` (MFC), not
   `std::mutex`, unless wrapping pure standalone helpers.
 - Comments: write **why**, not **what**. Don't paraphrase the code.
-- File headers: keep the existing copyright block intact when editing
-  an existing file; do not add new copyright lines for incremental
-  edits.
-- Preserve the encoding and BOM of legacy source files. Do not bulk-convert
-  mixed ISO-8859 / UTF-8 files as a side effect of an unrelated change.
+- **Copyright and licensing** (see also hard rule 16):
+  - **Third-party / inherited** notices (Shareaza, PeerProject, eMule,
+    dependencies, other upstreams): preserve exactly; do not extend their
+    year ranges or claim ownership without upstream/licensing evidence.
+  - **First-party Envy**: do not bump the copyright year only because a file
+    was touched. No year-only updates for formatting, mechanical, generated,
+    trivial, or documentation-only edits. Substantive first-party code changes
+    may update metadata per repository copyright policy; prefer dedicated
+    copyright-maintenance PRs over scattered year edits in feature work.
+  - **New first-party files**: use the repository canonical header; prefer
+    `SPDX-License-Identifier: AGPL-3.0-or-later` when the file licence is
+    verified.
+  - **Encoding**: preserve legacy encoding and BOM. Never re-encode a file
+    solely to edit a copyright header.
 
 ---
 
