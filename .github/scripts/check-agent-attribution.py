@@ -238,36 +238,55 @@ def _exemption_flags_for_path(path: str) -> tuple[bool, bool]:
     return False, False
 
 
+class _DiffPatchParser:
+    """Stateful unified-diff walker; hunk lines never update file-header metadata."""
+
+    def __init__(self) -> None:
+        self.in_file = False
+        self.in_hunk = False
+        self.skip_signatures = False
+        self.skip_policy_emails = False
+
+    def on_diff_git(self) -> None:
+        self.in_file = True
+        self.in_hunk = False
+        self.skip_signatures = False
+        self.skip_policy_emails = False
+
+    def on_binary(self) -> None:
+        self.in_file = False
+        self.in_hunk = False
+
+    def on_header_line(self, line: str) -> None:
+        if line.startswith("+++ b/"):
+            self.skip_signatures, self.skip_policy_emails = _exemption_flags_for_path(line[6:])
+            return
+        if line.startswith("@@"):
+            self.in_hunk = True
+
+    def on_hunk_line(self, errors: list[str], line: str) -> None:
+        if not line.startswith("+") or line.startswith("-"):
+            return
+        _scan_added_diff_line(
+            errors, line[1:], self.skip_signatures, self.skip_policy_emails
+        )
+
+
 def _scan_diff_patch(errors: list[str], patch: str) -> None:
-    """Parse one unified diff patch; hunk lines never update file-header state."""
-    in_file = False
-    in_hunk = False
-    skip_signatures = False
-    skip_policy_emails = False
+    parser = _DiffPatchParser()
     for line in patch.splitlines():
         if line.startswith("diff --git "):
-            in_file = True
-            in_hunk = False
-            skip_signatures = False
-            skip_policy_emails = False
+            parser.on_diff_git()
             continue
-        if not in_file:
+        if not parser.in_file:
             continue
         if line.startswith("Binary files ") and line.endswith(" differ"):
-            in_file = False
-            in_hunk = False
+            parser.on_binary()
             continue
-        if not in_hunk:
-            if line.startswith("+++ b/"):
-                path = line[6:]
-                skip_signatures, skip_policy_emails = _exemption_flags_for_path(path)
-                continue
-            if line.startswith("@@"):
-                in_hunk = True
+        if not parser.in_hunk:
+            parser.on_header_line(line)
             continue
-        if not line.startswith("+") or line.startswith("-"):
-            continue
-        _scan_added_diff_line(errors, line[1:], skip_signatures, skip_policy_emails)
+        parser.on_hunk_line(errors, line)
 
 
 def _scan_added_diff_line(errors: list[str], payload: str, skip_signatures: bool, skip_policy_emails: bool) -> None:
