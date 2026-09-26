@@ -12,56 +12,70 @@
 
 #include "BugSplat.h"
 
+#include <array>
+#include <exception>
 #include <memory>
 
 namespace
 {
-std::unique_ptr<BugSplat> s_pBugSplat;
-BOOL s_bActive = FALSE;
-wchar_t s_version[64];
-wchar_t s_revision[32];
-wchar_t s_buildType[16];
+struct BugSplatState
+{
+	std::unique_ptr<BugSplat> client;
+	bool active = false;
+	std::array<wchar_t, 64> version{};
+	std::array<wchar_t, 32> revision{};
+	std::array<wchar_t, 16> buildType{};
+};
+
+BugSplatState s_state;
+
+using RtlGetVersionFn = LONG(WINAPI*)(OSVERSIONINFOW*);
+
+RtlGetVersionFn ResolveRtlGetVersion(HMODULE hNtdll)
+{
+	const FARPROC proc = GetProcAddress(hNtdll, "RtlGetVersion");
+	if (proc == nullptr)
+		return nullptr;
+	// FARPROC → stdcall function pointer is required on Win32; no portable alternative.
+	return reinterpret_cast<RtlGetVersionFn>(proc);
+}
 
 void ApplyCrashReportingDefaults()
 {
-	if (!s_pBugSplat)
+	if (!s_state.client)
 		return;
-	s_pBugSplat->ClearAttachments();
-	s_pBugSplat->SetQuietMode(false);
+	s_state.client->ClearAttachments();
+	s_state.client->SetQuietMode(false);
 }
 
 void ApplyPrivacySafeMetadata()
 {
-	if (!s_pBugSplat)
+	if (!s_state.client)
 		return;
 
-	wchar_t windowsVersion[32];
-	windowsVersion[0] = 0;
+	std::array<wchar_t, 32> windowsVersion{};
 	if (const HMODULE hNtdll = GetModuleHandleW(L"ntdll.dll"); hNtdll != nullptr)
 	{
-		using RtlGetVersionFn = LONG(WINAPI*)(OSVERSIONINFOW*);
-		const auto pRtlGetVersion =
-		    reinterpret_cast<RtlGetVersionFn>(GetProcAddress(hNtdll, "RtlGetVersion"));
-		if (pRtlGetVersion != nullptr)
+		if (const RtlGetVersionFn pRtlGetVersion = ResolveRtlGetVersion(hNtdll); pRtlGetVersion != nullptr)
 		{
 			OSVERSIONINFOW vi;
 			ZeroMemory(&vi, sizeof(vi));
 			vi.dwOSVersionInfoSize = sizeof(vi);
 			if (pRtlGetVersion(&vi) == 0)
-				swprintf_s(windowsVersion, _countof(windowsVersion), L"%u.%u.%u",
+				swprintf_s(windowsVersion.data(), windowsVersion.size(), L"%u.%u.%u",
 				           vi.dwMajorVersion, vi.dwMinorVersion, vi.dwBuildNumber);
 		}
 	}
 
-	if (s_version[0] != 0)
-		s_pBugSplat->SetAttribute(L"envy_version", s_version);
-	if (s_revision[0] != 0)
-		s_pBugSplat->SetAttribute(L"envy_revision", s_revision);
-	if (s_buildType[0] != 0)
-		s_pBugSplat->SetAttribute(L"envy_build_type", s_buildType);
+	if (s_state.version[0] != 0)
+		s_state.client->SetAttribute(L"envy_version", s_state.version.data());
+	if (s_state.revision[0] != 0)
+		s_state.client->SetAttribute(L"envy_revision", s_state.revision.data());
+	if (s_state.buildType[0] != 0)
+		s_state.client->SetAttribute(L"envy_build_type", s_state.buildType.data());
 	if (windowsVersion[0] != 0)
-		s_pBugSplat->SetAttribute(L"windows_version", windowsVersion);
-	s_pBugSplat->SetAttribute(L"envy_arch", CrashReportArchitectureToken());
+		s_state.client->SetAttribute(L"windows_version", windowsVersion.data());
+	s_state.client->SetAttribute(L"envy_arch", CrashReportArchitectureToken());
 }
 
 #ifdef ENVY_BUGSPLAT_DATABASE
@@ -72,38 +86,44 @@ const wchar_t kBugSplatDatabase[] = L"";
 
 BOOL EnsureBugSplatStarted()
 {
-	if (s_bActive)
+	if (s_state.active)
 		return TRUE;
 
 	const wchar_t* pszDatabase = kBugSplatDatabase;
 	if (pszDatabase == nullptr || pszDatabase[0] == 0)
 		return FALSE;
-	if (s_version[0] == 0)
+	if (s_state.version[0] == 0)
 		return FALSE;
 
 	try
 	{
-		s_pBugSplat = std::make_unique<BugSplat>(pszDatabase, L"Envy", s_version);
+		s_state.client = std::make_unique<BugSplat>(pszDatabase, L"Envy", s_state.version.data());
+	}
+	catch (const std::exception&)
+	{
+		s_state.client.reset();
+		return FALSE;
 	}
 	catch (...)
 	{
-		s_pBugSplat.reset();
+		// BugSplat SDK may throw outside std::exception; crash reporter must fail closed.
+		s_state.client.reset();
 		return FALSE;
 	}
 
 	SetGlobalCRTExceptionBehavior();
 	SetPerThreadCRTExceptionBehavior();
 	ApplyCrashReportingDefaults();
-	s_bActive = TRUE;
+	s_state.active = true;
 	return TRUE;
 }
 }
 
 void BugSplatHost::SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevision, const wchar_t* pszBuildType)
 {
-	CrashReportSanitizeField(pszVersion, s_version, _countof(s_version));
-	CrashReportSanitizeField(pszRevision, s_revision, _countof(s_revision));
-	CrashReportSanitizeField(pszBuildType, s_buildType, _countof(s_buildType));
+	CrashReportSanitizeField(pszVersion, s_state.version.data(), s_state.version.size());
+	CrashReportSanitizeField(pszRevision, s_state.revision.data(), s_state.revision.size());
+	CrashReportSanitizeField(pszBuildType, s_state.buildType.data(), s_state.buildType.size());
 
 	if (!EnsureBugSplatStarted())
 		return;
@@ -113,22 +133,22 @@ void BugSplatHost::SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevi
 
 void BugSplatHost::Shutdown()
 {
-	if (!s_bActive)
+	if (!s_state.active)
 		return;
-	if (s_pBugSplat)
-		s_pBugSplat->CleanupExceptionSystem();
-	s_pBugSplat.reset();
-	s_bActive = FALSE;
+	if (s_state.client)
+		s_state.client->CleanupExceptionSystem();
+	s_state.client.reset();
+	s_state.active = false;
 }
 
 BOOL BugSplatHost::IsActive()
 {
-	return s_bActive;
+	return s_state.active ? TRUE : FALSE;
 }
 
 void BugSplatHost::InstallWorkerThreadExceptionBehavior()
 {
-	if (!s_bActive)
+	if (!s_state.active)
 		return;
 	SetPerThreadCRTExceptionBehavior();
 }

@@ -248,6 +248,107 @@ function Test-BugSplatCommittedSdkTree {
 	return $true
 }
 
+function Copy-BugSplatValidatedHeadersToStage {
+	param(
+		[string]$SdkRoot,
+		[string]$StageRoot,
+		[hashtable]$ReferenceMap
+	)
+	$incRelPaths = @($ReferenceMap.Keys | Where-Object { $_ -like 'inc/*' })
+	if ($incRelPaths.Count -eq 0) {
+		throw 'SDK-HASHES.json has no inc/* entries; run establish-bugsplat-sdk-trust.ps1.'
+	}
+	$incDest = Join-Path $StageRoot 'inc'
+	New-Item -ItemType Directory -Force -Path $incDest | Out-Null
+	foreach ($rel in $incRelPaths) {
+		$name = Split-Path $rel -Leaf
+		$srcFile = Join-Path $SdkRoot ("inc\$name")
+		if (-not (Test-Path -LiteralPath $srcFile)) {
+			throw "Source SDK missing $rel at $srcFile"
+		}
+		$null = Assert-BugSplatSourceMatchesReference -SourceFile $srcFile -RelativePath $rel -ReferenceMap $ReferenceMap
+		Copy-Item -Force $srcFile (Join-Path $incDest $name)
+	}
+}
+
+function Copy-BugSplatValidatedPayloadToStage {
+	param(
+		[string]$StageRoot,
+		$ImportPlan,
+		[hashtable]$ReferenceMap
+	)
+	$manifest = @()
+	foreach ($lib in $ImportPlan.Libs) {
+		$null = Assert-BugSplatSourceMatchesReference -SourceFile $lib.Source -RelativePath $lib.RelativePath -ReferenceMap $ReferenceMap
+		$libDestDir = Join-Path $StageRoot ("x64\{0}\lib\mt" -f $lib.Config)
+		New-Item -ItemType Directory -Force -Path $libDestDir | Out-Null
+		Copy-Item -Force $lib.Source (Join-Path $libDestDir 'BugSplat.lib')
+		$manifest += [pscustomobject]@{ Path = $lib.RelativePath; Sha256 = $ReferenceMap[$lib.RelativePath] }
+	}
+	foreach ($bin in $ImportPlan.Bins) {
+		Assert-BugSplatAuthenticode -Path $bin.Source
+		$null = Assert-BugSplatSourceMatchesReference -SourceFile $bin.Source -RelativePath $bin.RelativePath -ReferenceMap $ReferenceMap
+		$binDest = Join-Path $StageRoot ("x64\{0}\bin" -f $bin.Config)
+		New-Item -ItemType Directory -Force -Path $binDest | Out-Null
+		Copy-Item -Force $bin.Source (Join-Path $binDest $bin.Name)
+		$manifest += [pscustomobject]@{ Path = $bin.RelativePath; Sha256 = $ReferenceMap[$bin.RelativePath] }
+	}
+	return $manifest
+}
+
+function Copy-BugSplatMaintainerFilesToStage {
+	param(
+		[string]$StageRoot,
+		[string]$DestRoot,
+		[string]$ReferenceHashesPath
+	)
+	$preserveNames = @('SDK-HASHES.json', 'README.md')
+	if (Test-Path -LiteralPath $DestRoot) {
+		foreach ($name in $preserveNames) {
+			$existing = Join-Path $DestRoot $name
+			if (Test-Path -LiteralPath $existing) {
+				Copy-Item -Force $existing (Join-Path $StageRoot $name)
+			}
+		}
+		return
+	}
+	if (Test-Path -LiteralPath $ReferenceHashesPath) {
+		Copy-Item -Force $ReferenceHashesPath (Join-Path $StageRoot 'SDK-HASHES.json')
+	}
+	$readme = Join-Path (Split-Path -Parent $ReferenceHashesPath) 'README.md'
+	if (Test-Path -LiteralPath $readme) {
+		Copy-Item -Force $readme (Join-Path $StageRoot 'README.md')
+	}
+}
+
+function Install-BugSplatStageAtomically {
+	param(
+		[string]$StageRoot,
+		[string]$DestRoot
+	)
+	$destParent = Split-Path -Parent $DestRoot
+	$destName = Split-Path -Leaf $DestRoot
+	$backup = Join-Path $destParent ("{0}.import-backup-{1}" -f $destName, [guid]::NewGuid().Guid)
+	if (Test-Path -LiteralPath $DestRoot) {
+		Move-Item -LiteralPath $DestRoot -Destination $backup -Force
+	}
+	try {
+		Move-Item -LiteralPath $StageRoot -Destination $DestRoot -Force
+		if (Test-Path -LiteralPath $backup) {
+			Remove-Item -LiteralPath $backup -Recurse -Force
+		}
+		return $null
+	} catch {
+		if (Test-Path -LiteralPath $backup) {
+			if (Test-Path -LiteralPath $DestRoot) {
+				Remove-Item -LiteralPath $DestRoot -Recurse -Force
+			}
+			Move-Item -LiteralPath $backup -Destination $DestRoot -Force
+		}
+		throw
+	}
+}
+
 function Invoke-BugSplatSdkImport {
 	param(
 		[string]$SourceRoot,
@@ -263,84 +364,18 @@ function Invoke-BugSplatSdkImport {
 	New-Item -ItemType Directory -Force -Path $stageRoot | Out-Null
 
 	try {
-		$incRelPaths = @($reference.Keys | Where-Object { $_ -like 'inc/*' })
-		if ($incRelPaths.Count -eq 0) {
-			throw 'SDK-HASHES.json has no inc/* entries; run establish-bugsplat-sdk-trust.ps1.'
-		}
-		$incDest = Join-Path $stageRoot 'inc'
-		New-Item -ItemType Directory -Force -Path $incDest | Out-Null
-		foreach ($rel in $incRelPaths) {
-			$name = Split-Path $rel -Leaf
-			$srcFile = Join-Path $sdk ("inc\$name")
-			if (-not (Test-Path -LiteralPath $srcFile)) {
-				throw "Source SDK missing $rel at $srcFile"
-			}
-			$null = Assert-BugSplatSourceMatchesReference -SourceFile $srcFile -RelativePath $rel -ReferenceMap $reference
-			Copy-Item -Force $srcFile (Join-Path $incDest $name)
-		}
-
-		$manifest = @()
-		foreach ($lib in $plan.Libs) {
-			$null = Assert-BugSplatSourceMatchesReference -SourceFile $lib.Source -RelativePath $lib.RelativePath -ReferenceMap $reference
-			$libDestDir = Join-Path $stageRoot ("x64\{0}\lib\mt" -f $lib.Config)
-			New-Item -ItemType Directory -Force -Path $libDestDir | Out-Null
-			Copy-Item -Force $lib.Source (Join-Path $libDestDir 'BugSplat.lib')
-			$manifest += [pscustomobject]@{ Path = $lib.RelativePath; Sha256 = $reference[$lib.RelativePath] }
-		}
-		foreach ($bin in $plan.Bins) {
-			Assert-BugSplatAuthenticode -Path $bin.Source
-			$null = Assert-BugSplatSourceMatchesReference -SourceFile $bin.Source -RelativePath $bin.RelativePath -ReferenceMap $reference
-			$binDest = Join-Path $stageRoot ("x64\{0}\bin" -f $bin.Config)
-			New-Item -ItemType Directory -Force -Path $binDest | Out-Null
-			Copy-Item -Force $bin.Source (Join-Path $binDest $bin.Name)
-			$manifest += [pscustomobject]@{ Path = $bin.RelativePath; Sha256 = $reference[$bin.RelativePath] }
-		}
+		Copy-BugSplatValidatedHeadersToStage -SdkRoot $sdk -StageRoot $stageRoot -ReferenceMap $reference
+		$manifest = Copy-BugSplatValidatedPayloadToStage -StageRoot $stageRoot -ImportPlan $plan -ReferenceMap $reference
 
 		$null = Test-BugSplatCommittedSdkTree -DestRoot $stageRoot -ReferenceHashesPath $ReferenceHashesPath
 
 		$manifestPath = Join-Path $stageRoot 'SDK-MANIFEST.json'
 		$manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
 
-		# Preserve maintainer-owned files not produced by the SDK payload (baseline, docs).
-		$preserveNames = @('SDK-HASHES.json', 'README.md')
-		if (Test-Path -LiteralPath $DestRoot) {
-			foreach ($name in $preserveNames) {
-				$existing = Join-Path $DestRoot $name
-				if (Test-Path -LiteralPath $existing) {
-					Copy-Item -Force $existing (Join-Path $stageRoot $name)
-				}
-			}
-		} else {
-			if (Test-Path -LiteralPath $ReferenceHashesPath) {
-				Copy-Item -Force $ReferenceHashesPath (Join-Path $stageRoot 'SDK-HASHES.json')
-			}
-			$readme = Join-Path (Split-Path -Parent $ReferenceHashesPath) 'README.md'
-			if (Test-Path -LiteralPath $readme) {
-				Copy-Item -Force $readme (Join-Path $stageRoot 'README.md')
-			}
-		}
+		Copy-BugSplatMaintainerFilesToStage -StageRoot $stageRoot -DestRoot $DestRoot -ReferenceHashesPath $ReferenceHashesPath
 
-		$destParent = Split-Path -Parent $DestRoot
-		$destName = Split-Path -Leaf $DestRoot
-		$backup = Join-Path $destParent ("{0}.import-backup-{1}" -f $destName, [guid]::NewGuid().Guid)
-		if (Test-Path -LiteralPath $DestRoot) {
-			Move-Item -LiteralPath $DestRoot -Destination $backup -Force
-		}
-		try {
-			Move-Item -LiteralPath $stageRoot -Destination $DestRoot -Force
-			$stageRoot = $null
-			if (Test-Path -LiteralPath $backup) {
-				Remove-Item -LiteralPath $backup -Recurse -Force
-			}
-		} catch {
-			if (Test-Path -LiteralPath $backup) {
-				if (Test-Path -LiteralPath $DestRoot) {
-					Remove-Item -LiteralPath $DestRoot -Recurse -Force
-				}
-				Move-Item -LiteralPath $backup -Destination $DestRoot -Force
-			}
-			throw
-		}
+		$null = Install-BugSplatStageAtomically -StageRoot $stageRoot -DestRoot $DestRoot
+		$stageRoot = $null
 
 		$manifestPath = Join-Path $DestRoot 'SDK-MANIFEST.json'
 		return @{ ManifestPath = $manifestPath; DestRoot = $DestRoot; SdkRoot = $sdk }
