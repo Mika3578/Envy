@@ -111,7 +111,8 @@ ShowComponentSizes=no
 ChangesAssociations=yes
 ChangesEnvironment=yes
 CloseApplications=no
-MinVersion=0,5.01
+; Windows 10 1809+ (Inno Setup 6 requires MinVersion >= 6.1; see AGENTS.md)
+MinVersion=10.0.17763
 #if unified_build == "True"
   OutputManifestFile=Manifest.txt
 #else
