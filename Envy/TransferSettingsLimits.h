@@ -200,6 +200,16 @@ inline DWORD TransferBandwidthUploadLimitFromOutboundKilobits(DWORD nOutSpeedKil
 	return TransferBandwidthBytesToSetting(nLimited);
 }
 
+inline DWORD TransferBandwidthApplyPercentToBytes(DWORD nBytesPerSecond, unsigned int nPercent)
+{
+	if (nBytesPerSecond == 0 || nPercent == 0)
+		return 0;
+	if (nPercent >= 100)
+		return nBytesPerSecond;
+	return TransferBandwidthBytesToSetting(
+	    static_cast<unsigned long long>(nBytesPerSecond) * static_cast<unsigned long long>(nPercent) / 100ull);
+}
+
 inline DWORD TransferMaxPerHostClamp(unsigned long long nValue)
 {
 	if (nValue < TransferMaxPerHostMin())

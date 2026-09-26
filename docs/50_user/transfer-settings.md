@@ -48,7 +48,7 @@ load the defaults below.
 | `BitTorrent.UploadCount` | 4 (2–20) | BT unchoke / torrent upload slots | BitTorrent settings, **not** Uploads |
 | `Bandwidth.HubIn/Out`, `LeafIn/Out`, `PeerIn/Out`, `UdpOut`, `Request` | various | G1/G2 neighbour pipes | Advanced settings, **not** Uploads |
 | `Connection.InSpeed` / `OutSpeed` | wizard / connection page | physical cap used when Bandwidth.* is 0 or larger | Settings → Connection |
-| `Uploads.FreeBandwidthFactor` | default 8 (%) | reserve on outbound capacity when Connection recalculates or Scheduler restores full/limited bandwidth | Advanced / engine |
+| `Uploads.FreeBandwidthFactor` | default 8 (%) | reserve on outbound capacity when Connection page, **first-run wizard**, or Scheduler recalculates bandwidth | Advanced / engine |
 | Scheduler night/day bandwidth | writes `Bandwidth.Uploads/Downloads` | `Scheduler.cpp` | Scheduler window |
 | `Uploads.ChunkSize`, `Clampdown*`, `FreeBandwidth*`, `QueuePoll*` | see settings reference | upload engine | Advanced only |
 | Bind interface / VPN leak / IPv6 dual-stack | — | **not implemented** as transfer settings | see `docs/ipv6/` and network docs |

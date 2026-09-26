@@ -202,6 +202,15 @@ static bool test_upload_headroom_10g_default_reserve()
 	return nLimit == 1177600000u;
 }
 
+static bool test_bandwidth_torrent_percent_multigig_no_dword_wrap()
+{
+	const DWORD nBase = TransferConnectionKilobitsToBytesPerSecondDword(10000000);
+	const unsigned long long nScaled = static_cast<unsigned long long>(nBase) * 90ull / 100ull;
+	const DWORD nExpected = TransferBandwidthBytesToSetting(nScaled);
+	const DWORD nWrapped = ( nBase * 90 ) / 100;
+	return nExpected != 0 && nWrapped != nExpected;
+}
+
 static bool test_max_per_host_defaults_and_range()
 {
 	return TransferMaxPerHostDefault() == 2 && TransferMaxPerHostMin() == 1 && TransferMaxPerHostMax() == 64;
