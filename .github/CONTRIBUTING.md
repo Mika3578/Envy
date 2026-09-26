@@ -54,6 +54,8 @@ fast-forward-only and rebase feature branches before opening or updating PRs.
 
 - Merge commits: **disabled**
 - Squash merge: **enabled** (required path onto `develop`)
+- Squash merge title: **PR title** (target in `.github/settings.yml`; confirm live GitHub settings)
+- Squash merge body: **blank** by default (no agent trailers or bot summaries on `develop`)
 - Rebase merge: **enabled globally**, but **prohibited** when merging into
   `develop` by the Protect develop ruleset (squash-only)
 - Require linear history on `develop`: **enabled** via the active `Protect develop` ruleset
@@ -91,6 +93,22 @@ git reset --hard origin/develop
 ```
 
 Never commit directly on `develop`; always use a feature branch and PR.
+
+## Authorship, privacy, and comments
+
+See `AGENTS.md` hard rule 16. In short: no assistant `Co-authored-by`, no
+`Generated with` signatures in commits or contributor PR text, no personal
+emails in repository content, technical PR titles (`type(scope): …`), and
+source comments that explain the software—not the review process. Bot
+comments and auto-generated PR summaries on GitHub are fine.
+
+```bash
+./scripts/configure-git-noreply.sh
+git config user.useConfigOnly true
+```
+
+Review lifecycle / final Copilot orchestration is tracked separately (for
+example PR #349), not in authorship hygiene PRs.
 
 ### Feature branch workflow (before opening or updating a PR)
 
