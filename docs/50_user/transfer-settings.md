@@ -1,7 +1,7 @@
 # Transfer settings (Uploads / Downloads)
 
-Status: **partial** (foundation + Fair-Use)
-Last updated: 2026-09-19
+Status: **partial** (foundation + Fair-Use + bandwidth correctness)
+Last updated: 2026-09-26
 Scope: Settings → Internet → Uploads (`CUploadsSettingsPage`) and the shared
 bandwidth-limit token used on Settings → Internet → Downloads.
 Source of truth: `Envy/PageSettingsUploads.cpp`, `Envy/TransferSettingsLimits.h`,
@@ -48,6 +48,7 @@ load the defaults below.
 | `BitTorrent.UploadCount` | 4 (2–20) | BT unchoke / torrent upload slots | BitTorrent settings, **not** Uploads |
 | `Bandwidth.HubIn/Out`, `LeafIn/Out`, `PeerIn/Out`, `UdpOut`, `Request` | various | G1/G2 neighbour pipes | Advanced settings, **not** Uploads |
 | `Connection.InSpeed` / `OutSpeed` | wizard / connection page | physical cap used when Bandwidth.* is 0 or larger | Settings → Connection |
+| `Uploads.FreeBandwidthFactor` | default 8 (%) | reserve on outbound capacity when Connection recalculates or Scheduler restores full/limited bandwidth | Advanced / engine |
 | Scheduler night/day bandwidth | writes `Bandwidth.Uploads/Downloads` | `Scheduler.cpp` | Scheduler window |
 | `Uploads.ChunkSize`, `Clampdown*`, `FreeBandwidth*`, `QueuePoll*` | see settings reference | upload engine | Advanced only |
 | Bind interface / VPN leak / IPv6 dual-stack | — | **not implemented** as transfer settings | see `docs/ipv6/` and network docs |
@@ -67,6 +68,23 @@ load the defaults below.
 | `Bandwidth.Uploads = 0` | Unlimited extra cap; effective send rate still bounded by `Connection.OutSpeed`. |
 | `ThrottleMode = false` | Average/soft limiter (Shareaza heritage). Strict mode is opt-in. |
 | `FairUseMode = false` | Opt-in. When true, each IPv4 client is clipped to 10% of each audio/video library file (schema Audio.xsd / Video.xsd, including extension-guessed schema). GET/ED2K/DC reserve on accept; body bytes convert the reservation; unused bytes roll back on the next request or close so HTTP keep-alive HEAD / aborted transfers do not burn quota. HTTP HEAD still clips the advertised range. Ledger is in-memory (cleared on `CUploads::Clear` / process exit; max 4096 host+path keys). |
+
+---
+
+## Bandwidth conversion (correctness)
+
+`Connection.InSpeed` / `OutSpeed` are **kilobits per second** (Kb/s). Persisted
+`Bandwidth.Uploads` / `Bandwidth.Downloads` are **bytes per second**; `0` means
+no extra cap (unlimited relative to the connection capacity).
+
+Pure helpers in `TransferSettingsLimits.h` convert with 64-bit intermediates
+(`Kb/s × 1024 ÷ 8`) and clamp to `DWORD` at persistence boundaries. When the
+Connection page changes outbound capacity, `Bandwidth.Uploads` is set to
+`(100 − FreeBandwidthFactor)%` of that capacity (default reserve **8%** → **92%**
+usable). Scheduler full/limited tasks use the same headroom rule.
+
+This slice does **not** change upload slot counts, download presets, or
+BitTorrent choking (#343–#345).
 
 ---
 
@@ -140,6 +158,10 @@ MaxPerHost clamp (0, 1, 64, 65, negative), absent-key fallback, Fair-Use
 opt-in default, 10% max-bytes, range clip (first request, remaining,
 offset preserved, EOF deny), saturating add, and charge/unused math
 (HEAD = unused full reservation; partial abort keeps only sent bytes).
+
+Also: Kb/s→bytes/s through 10 Gb/s class values, 32-bit multiply overflow
+boundary (4,194,304 Kb/s), upload headroom factors (0/1/8/50/99%), and the
+Connection-page regression where integer `(100−8)/100` collapsed to zero.
 
 Live MFC Apply/immediate queue save is not executed in EnvyTests (no dialog
 host). Wire-format impact: **none** (HTTP 206 / existing ED2K-DC part frames;

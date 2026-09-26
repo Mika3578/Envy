@@ -25,6 +25,7 @@
 #include "SharedFile.h"
 #include "Download.h"
 #include "Network.h"
+#include "TransferSettingsLimits.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -567,7 +568,7 @@ DWORD CUploadQueues::GetMinimumDonkeyBandwidth()
 {
 	CQuickLock oLock( m_pSection );
 
-	DWORD nTotal = Settings.Connection.OutSpeed * 128;
+	DWORD nTotal = TransferConnectionKilobitsToBytesPerSecondDword(Settings.Connection.OutSpeed);
 	DWORD nLimit = Settings.Bandwidth.Uploads;
 	DWORD nDonkeyPoints = 0, nTotalPoints = 0, nBandwidth = 0;
 

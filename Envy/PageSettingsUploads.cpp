@@ -176,7 +176,7 @@ void CUploadsSettingsPage::UpdateQueues()
 {
 	UpdateData( TRUE );
 
-	QWORD nTotal = Settings.Connection.OutSpeed * Kilobits / Bytes;
+	QWORD nTotal = TransferConnectionKilobitsToBytesPerSecond(Settings.Connection.OutSpeed);
 	QWORD nLimit = Settings.ParseVolume( m_sBandwidthLimit );
 
 	if ( nLimit == 0 || nLimit > nTotal ) nLimit = nTotal;
@@ -382,8 +382,14 @@ void CUploadsSettingsPage::OnOK()
 	// Warn the user about the effects of upload limiting
 	if ( ! Settings.Live.UploadLimitWarning && Settings.Bandwidth.Uploads > 0 && Settings.Bandwidth.Uploads != nOldLimit )
 	{
-		QWORD nDownload	= max( Settings.Bandwidth.Downloads, Settings.Connection.InSpeed  * Kilobits / Bytes );
-		QWORD nUpload	= min( Settings.Bandwidth.Uploads,   Settings.Connection.OutSpeed * Kilobits / Bytes );
+		const QWORD nInBytes = TransferConnectionKilobitsToBytesPerSecond(Settings.Connection.InSpeed);
+		QWORD nDownload = static_cast<QWORD>(Settings.Bandwidth.Downloads);
+		if (nInBytes > nDownload)
+			nDownload = nInBytes;
+		const QWORD nOutBytes = TransferConnectionKilobitsToBytesPerSecond(Settings.Connection.OutSpeed);
+		QWORD nUpload = static_cast<QWORD>(Settings.Bandwidth.Uploads);
+		if (nOutBytes < nUpload)
+			nUpload = nOutBytes;
 
 		if ( nUpload * 16 < nDownload )
 		{

@@ -166,7 +166,7 @@ DWORD CUploads::GetBandwidth() const
 
 DWORD CUploads::GetBandwidthLimit() const
 {
-	DWORD nTotal = Settings.Connection.OutSpeed * 128;		// Kilobits/s to Bytes/s
+	DWORD nTotal = TransferConnectionKilobitsToBytesPerSecondDword(Settings.Connection.OutSpeed);
 	DWORD nLimit = Settings.Bandwidth.Uploads;
 	if ( nLimit == 0 || nLimit > nTotal )
 		nLimit = nTotal;

@@ -18,6 +18,7 @@
 
 #include "StdAfx.h"
 #include "Settings.h"
+#include "TransferSettingsLimits.h"
 #include "PageSettingsConnection.h"
 #include "DlgHelp.h"
 #include "Network.h"
@@ -285,9 +286,8 @@ void CConnectionSettingsPage::OnOK()
 
 	if ( Settings.Connection.OutSpeed != nOldOutSpeed )
 	{
-		// Reset upload limit to 90% of capacity, trimmed down to nearest KB.
-		Settings.Bandwidth.Uploads = ( Settings.Connection.OutSpeed / 8 ) *
-			( ( 100 - Settings.Uploads.FreeBandwidthFactor ) / 100 ) * 1024;
+		Settings.Bandwidth.Uploads = TransferBandwidthUploadLimitFromOutboundKilobits(
+		    Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor);
 	}
 
 	UpdateData();
@@ -296,8 +296,11 @@ void CConnectionSettingsPage::OnOK()
 	if ( ! Settings.Live.UploadLimitWarning &&
 		( Settings.eDonkey.Enabled || Settings.eDonkey.EnableAlways || Settings.BitTorrent.EnableAlways ) )
 	{
-		QWORD nDownload = max( Settings.Bandwidth.Downloads, Settings.Connection.InSpeed * Kilobits / Bytes );
-		QWORD nUpload   = Settings.Connection.OutSpeed * Kilobits / Bytes;
+		const QWORD nInBytes = TransferConnectionKilobitsToBytesPerSecond(Settings.Connection.InSpeed);
+		QWORD nDownload = static_cast<QWORD>(Settings.Bandwidth.Downloads);
+		if (nInBytes > nDownload)
+			nDownload = nInBytes;
+		QWORD nUpload = TransferConnectionKilobitsToBytesPerSecond(Settings.Connection.OutSpeed);
 		if ( Settings.Bandwidth.Uploads > 0 && Settings.Bandwidth.Uploads < nUpload )
 			nUpload = Settings.Bandwidth.Uploads;
 

@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "Datagrams.h"
+#include "TransferSettingsLimits.h"
 #include "Datagram.h"
 #include "DatagramPart.h"
 
@@ -567,7 +568,7 @@ BOOL CDatagrams::TryWrite()
 		if ( Settings.Bandwidth.UdpOut )
 			nLimit = Settings.Bandwidth.UdpOut;
 		else
-			nLimit = Settings.Connection.OutSpeed * 128;
+			nLimit = TransferConnectionKilobitsToBytesPerSecondDword(Settings.Connection.OutSpeed);
 
 		if ( Settings.Live.BandwidthScaleOut < 100 )
 			nLimit = nLimit * Settings.Live.BandwidthScaleOut / 100;
