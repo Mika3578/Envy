@@ -309,10 +309,10 @@ printf '%s\n' '{"message":"bad credentials"}' | pr_gate_latest_check_rows "$HEAD
 api_rc=$?
 set -e
 if [[ "$api_rc" -eq 0 ]]; then
-	echo "FAIL api-error-payload-fails" >&2
+	echo "FAIL api-invalid-payload-exits" >&2
 	fail=1
 else
-	echo "OK   api-error-payload-fails"
+	echo "OK   api-invalid-payload-exits"
 fi
 
 set +e
