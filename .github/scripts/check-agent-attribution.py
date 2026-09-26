@@ -18,15 +18,18 @@ AI_COAUTHOR_NAME_RE = re.compile(
     r"Copilot|Codex|Claude|ChatGPT|OpenAI|Anthropic|CodeRabbit|cubic\.dev|"
     r"Cubic|Aider|Cline|Windsurf|Sourcery|Gemini|Grok|Amazon\s+Q(?:\s+Developer)?)"
 )
+_GENERATED_PREFIX = (
+    r"(?:Generated(?:[ \t]+(?:with|by)|-by)|Created[ \t]+with|AI-generated|Made-with)"
+)
+_GENERATED_TOOL = (
+    r"(Cursor(?:[ \t]+Agent)?|Copilot|Codex|Claude|ChatGPT|OpenAI|Aider|"
+    r"CodeRabbit|Cline|Windsurf|Anthropic|Cubic|Sourcery|Gemini|Grok|Amazon[ \t]+Q(?:[ \t]+Developer)?)"
+)
 GENERATED_LINE_RE = re.compile(
-    r"(?im)^[ \t]*(?://|/\*|\*)?[ \t]*(Generated[ \t]+(with|by)|Created[ \t]+with|AI-generated|Made-with)"
-    r"[ \t]+(Cursor(?:[ \t]+Agent)?|Copilot|Codex|Claude|ChatGPT|OpenAI|Aider|"
-    r"CodeRabbit|Cline|Windsurf|Anthropic|Cubic|Sourcery|Gemini|Grok|Amazon[ \t]+Q(?:[ \t]+Developer)?)\b"
+    rf"(?im)^[ \t]*(?://|/\*|\*)?[ \t]*{_GENERATED_PREFIX}[ \t:]+{_GENERATED_TOOL}\b"
 )
 GENERATED_DIFF_TEXT_RE = re.compile(
-    r"(?i)\b(Generated[ \t]+(with|by)|Created[ \t]+with|AI-generated|Made-with)"
-    r"[ \t]+(Cursor(?:[ \t]+Agent)?|Copilot|Codex|Claude|ChatGPT|OpenAI|Aider|"
-    r"CodeRabbit|Cline|Windsurf|Anthropic|Cubic|Sourcery|Gemini|Grok|Amazon[ \t]+Q(?:[ \t]+Developer)?)\b"
+    rf"(?i)\b{_GENERATED_PREFIX}[ \t:]+{_GENERATED_TOOL}\b"
 )
 TRAILER_RE = re.compile(
     r"(?im)^(Co-authored-by|Signed-off-by|Reviewed-by|Acked-by|Reported-by|"
@@ -187,6 +190,18 @@ def scan_pr_text(errors: list[str], label: str, text: str) -> None:
     scan_text(errors, label, contributor)
 
 
+def scan_pr_title(errors: list[str], label: str, text: str) -> None:
+    """Scan contributor-authored PR title (no agent/tool brand names)."""
+    title = strip_automated_pr_sections(text).strip()
+    if not title:
+        return
+    if AI_COAUTHOR_NAME_RE.search(title):
+        report(errors, f"{label}: agent/tool name is not allowed in PR title.")
+    if CONTRIBUTOR_AGENT_MARKER_RE.search(title):
+        report(errors, f"{label}: agent automation marker is not allowed in contributor text.")
+    scan_text(errors, label, title)
+
+
 def scan_identity(errors: list[str], label: str, name: str, email: str) -> None:
     email = email.strip()
     name = name.strip()
@@ -212,6 +227,47 @@ def scan_commits(errors: list[str], from_sha: str, to_sha: str) -> None:
         scan_identity(errors, f"commit {short} author", name, email)
         scan_identity(errors, f"commit {short} committer", cname, cemail)
         scan_text(errors, f"commit {short} message", body)
+
+
+def _exemption_flags_for_path(path: str) -> tuple[bool, bool]:
+    if path == ".github/scripts/check-agent-attribution.selftest.sh":
+        return True, False
+    if path == ".github/scripts/check-agent-attribution.py":
+        # Scanner source embeds forbidden phrases inside regex literals.
+        return True, True
+    return False, False
+
+
+def _scan_diff_patch(errors: list[str], patch: str) -> None:
+    """Parse one unified diff patch; hunk lines never update file-header state."""
+    in_file = False
+    in_hunk = False
+    skip_signatures = False
+    skip_policy_emails = False
+    for line in patch.splitlines():
+        if line.startswith("diff --git "):
+            in_file = True
+            in_hunk = False
+            skip_signatures = False
+            skip_policy_emails = False
+            continue
+        if not in_file:
+            continue
+        if line.startswith("Binary files ") and line.endswith(" differ"):
+            in_file = False
+            in_hunk = False
+            continue
+        if not in_hunk:
+            if line.startswith("+++ b/"):
+                path = line[6:]
+                skip_signatures, skip_policy_emails = _exemption_flags_for_path(path)
+                continue
+            if line.startswith("@@"):
+                in_hunk = True
+            continue
+        if not line.startswith("+") or line.startswith("-"):
+            continue
+        _scan_added_diff_line(errors, line[1:], skip_signatures, skip_policy_emails)
 
 
 def _scan_added_diff_line(errors: list[str], payload: str, skip_signatures: bool, skip_policy_emails: bool) -> None:
@@ -245,21 +301,17 @@ def _scan_added_diff_line(errors: list[str], payload: str, skip_signatures: bool
 
 
 def scan_diff(errors: list[str], from_sha: str, to_sha: str) -> None:
-    skip_signatures = False
-    skip_policy_emails = False
-    for line in git("diff", "-U0", from_sha, to_sha).splitlines():
-        if line.startswith("diff --git "):
-            skip_signatures = False
-            skip_policy_emails = False
+    _scan_diff_patch(errors, git("diff", "-U0", from_sha, to_sha))
+    for commit in git("rev-list", f"{from_sha}..{to_sha}").splitlines():
+        if not commit:
             continue
-        if line.startswith("+++ b/"):
-            path = line[6:]
-            skip_signatures = path == ".github/scripts/check-agent-attribution.selftest.sh"
-            skip_policy_emails = path == ".github/scripts/check-agent-attribution.py"
+        try:
+            parent = git("rev-parse", f"{commit}^").strip()
+        except subprocess.CalledProcessError:
             continue
-        if line.startswith("--- a/") or not line.startswith("+"):
-            continue
-        _scan_added_diff_line(errors, line[1:], skip_signatures, skip_policy_emails)
+        patch = git("diff", "-U0", parent, commit)
+        if patch.strip():
+            _scan_diff_patch(errors, patch)
 
 
 def scan_file(errors: list[str], label: str, path: Path) -> None:
@@ -348,7 +400,11 @@ def main() -> int:
     if args.pr_body:
         scan_pr_file(errors, "pull request body", Path(args.pr_body))
     if args.pr_title:
-        scan_pr_file(errors, "pull request title", Path(args.pr_title))
+        title_path = Path(args.pr_title)
+        if not title_path.is_file():
+            report(errors, f"pull request title file not found: {title_path}")
+        else:
+            scan_pr_title(errors, "pull request title", title_path.read_text(encoding="utf-8", errors="replace"))
     if args.pr_comments:
         scan_pr_file(errors, "pull request comments", Path(args.pr_comments))
     if args.github_repo and args.github_pr:

@@ -218,7 +218,7 @@ printf 'Contact %s\n' "$(fx alice.test gmail com)" >docs/note.md
 git add docs/note.md
 git commit -q -m "docs: email in markdown"
 DOCMAIL=$(git rev-parse HEAD)
-if run_scan --from "$OKREF" --to "$DOCMAIL" --diff; then
+if run_scan --from "$CPPMAIL" --to "$DOCMAIL" --diff; then
 	echo "FAIL: personal email in documentation must be rejected"
 	exit 1
 fi
@@ -308,6 +308,76 @@ fi
 printf 'ci(authorship): enforce repository privacy hygiene\n' >"$TMP/pr-title-good.md"
 if ! run_scan --pr-title "$TMP/pr-title-good.md"; then
 	echo "FAIL: technical PR title must pass"
+	exit 1
+fi
+
+printf 'feat: Cursor Agent update\n' >"$TMP/pr-title-bad.md"
+if run_scan --pr-title "$TMP/pr-title-bad.md"; then
+	echo "FAIL: agent name in PR title must be rejected"
+	exit 1
+fi
+
+printf 'fix: bad trailer\n\nGenerated-by: Cursor\n' >"$TMP/commit-genby.msg"
+echo genby >file.txt
+git add file.txt
+git commit -q -F "$TMP/commit-genby.msg"
+GENBY=$(git rev-parse HEAD)
+if run_scan --from "$AITRAILER" --to "$GENBY"; then
+	echo "FAIL: Generated-by: Cursor in commit message must be rejected"
+	exit 1
+fi
+
+printf '// Generated with Cursor\nvoid spoof() {}\n' >Envy/spoof.cpp
+git add Envy/spoof.cpp
+git commit -q -m "fix: add forbidden signature"
+SPOOF_ADD=$(git rev-parse HEAD)
+printf 'void spoof() {}\n' >Envy/spoof.cpp
+git add Envy/spoof.cpp
+git commit -q -m "fix: remove forbidden signature from tree"
+SPOOF_CLEAN=$(git rev-parse HEAD)
+if run_scan --from "$FAKECHECKER" --to "$SPOOF_CLEAN" --diff; then
+	echo "FAIL: forbidden text removed in later commit must still fail history scan"
+	exit 1
+fi
+
+printf 'clean file\n' >Envy/clean.cpp
+git add Envy/clean.cpp
+git commit -q -m "fix: clean multi-commit step one"
+CLEAN1=$(git rev-parse HEAD)
+printf 'still clean\n' >Envy/clean.cpp
+git add Envy/clean.cpp
+git commit -q -m "fix: clean multi-commit step two"
+CLEAN2=$(git rev-parse HEAD)
+if ! run_scan --from "$CLEAN1" --to "$CLEAN2" --diff; then
+	echo "FAIL: clean multi-commit PR range must pass"
+	exit 1
+fi
+
+printf 'void trap() {}\n' >Envy/trap.cpp
+git add Envy/trap.cpp
+git commit -q -m "fix: trap baseline"
+TRAP=$(git rev-parse HEAD)
+cat >Envy/trap.cpp <<'EOF'
++++ b/.github/scripts/check-agent-attribution.selftest.sh
+void trap() {
+	// Generated with Cursor
+}
+EOF
+git add Envy/trap.cpp
+git commit -q -m "fix: fake diff header line in hunk must not exempt"
+TRAP_FAKE=$(git rev-parse HEAD)
+if run_scan --from "$TRAP" --to "$TRAP_FAKE" --diff; then
+	echo "FAIL: fake +++ b/ selftest path inside hunk must not bypass scanner"
+	exit 1
+fi
+
+printf '+++ b/.github/scripts/check-agent-attribution.selftest.sh\n' >Envy/leak_a.cpp
+printf 'const char* leak = "%s";\n' "$(fx leak.test gmail com)" >Envy/leak_b.cpp
+git add Envy/leak_a.cpp Envy/leak_b.cpp
+git commit -q -m "fix: exemption must not leak across files in one commit"
+LEAK=$(git rev-parse HEAD)
+if run_scan --from "$CLEAN2" --to "$LEAK" --diff; then
+	echo "FAIL: personal email must be scanned after fake selftest header line"
 	exit 1
 fi
 
