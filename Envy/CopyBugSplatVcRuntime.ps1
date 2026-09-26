@@ -35,16 +35,7 @@ function Find-VcRedistDllDir {
 	$install = (& $vswhere -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath) -as [string]
 	if (-not $install) { return $null }
 
-	$toolsRoot = Join-Path $install 'VC\Tools\MSVC'
-	if (Test-Path -LiteralPath $toolsRoot) {
-		foreach ($ver in Get-ChildItem -LiteralPath $toolsRoot -Directory | Sort-Object Name -Descending) {
-			$hostBin = Join-Path $ver.FullName 'bin\Hostx64\x64'
-			if (Test-Path -LiteralPath (Join-Path $hostBin 'vcruntime140.dll')) {
-				return $hostBin
-			}
-		}
-	}
-
+	# Prefer official vc_redist CRT folders (shipping redist), not IDE toolchains.
 	$msvcRoot = Join-Path $install 'VC\Redist\MSVC'
 	if (Test-Path -LiteralPath $msvcRoot) {
 		foreach ($ver in Get-ChildItem -LiteralPath $msvcRoot -Directory | Sort-Object Name -Descending) {
@@ -63,6 +54,16 @@ function Find-VcRedistDllDir {
 			Sort-Object FullName -Descending |
 			Select-Object -First 1
 		if ($hit) { return $hit.DirectoryName }
+	}
+
+	$toolsRoot = Join-Path $install 'VC\Tools\MSVC'
+	if (Test-Path -LiteralPath $toolsRoot) {
+		foreach ($ver in Get-ChildItem -LiteralPath $toolsRoot -Directory | Sort-Object Name -Descending) {
+			$hostBin = Join-Path $ver.FullName 'bin\Hostx64\x64'
+			if (Test-Path -LiteralPath (Join-Path $hostBin 'vcruntime140.dll')) {
+				return $hostBin
+			}
+		}
 	}
 	return $null
 }

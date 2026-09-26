@@ -564,9 +564,9 @@ Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\Envy.ex
 
 ; BugSplat WER helper (x64 packages only; requires elevation for HKLM)
 #if unified_build == "True"
-Root: HKLM64; Subkey: "Software\Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules"; ValueType: string; ValueName: "{app}\BugSplatWer.dll"; ValueData: ""; Flags: uninsdeletevalue; Check: Install64Bit
+Root: HKLM64; Subkey: "Software\Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules"; ValueType: dword; ValueName: "{app}\BugSplatWer.dll"; ValueData: "0"; Flags: uninsdeletevalue; Check: Install64Bit
 #elif PlatformName == "x64"
-Root: HKLM64; Subkey: "Software\Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules"; ValueType: string; ValueName: "{app}\BugSplatWer.dll"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM64; Subkey: "Software\Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules"; ValueType: dword; ValueName: "{app}\BugSplatWer.dll"; ValueData: "0"; Flags: uninsdeletevalue
 #endif
 
 ; Set directory locations
