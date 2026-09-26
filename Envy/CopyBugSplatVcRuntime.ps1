@@ -17,10 +17,14 @@ if (-not (Test-Path -LiteralPath $dest)) { exit 0 }
 $monitor = Join-Path $dest 'BugSplatMonitor.exe'
 if (-not (Test-Path -LiteralPath $monitor)) { exit 0 }
 
-function Find-DumpBin {
+function Get-LatestVsInstallPath {
 	$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 	if (-not (Test-Path -LiteralPath $vswhere)) { return $null }
-	$install = (& $vswhere -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath) -as [string]
+	return (& $vswhere -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath) -as [string]
+}
+
+function Find-DumpBin {
+	$install = Get-LatestVsInstallPath
 	if (-not $install) { return $null }
 	$dumpbin = Get-ChildItem -Path (Join-Path $install 'VC\Tools\MSVC') -Recurse -Filter 'dumpbin.exe' -ErrorAction SilentlyContinue |
 		Where-Object { $_.FullName -match '\\Hostx64\\x64\\dumpbin\.exe$' } |
@@ -29,41 +33,51 @@ function Find-DumpBin {
 	return $null
 }
 
+function Find-VcRedistDllDirUnderMsvcRoot {
+	param([string]$MsvcRoot)
+	foreach ($ver in Get-ChildItem -LiteralPath $MsvcRoot -Directory | Sort-Object Name -Descending) {
+		$candidates = @(
+			(Join-Path $ver.FullName 'vc_redist.x64\Microsoft.VC143.CRT'),
+			(Join-Path $ver.FullName 'vc_redist.x64\Microsoft.VC142.CRT'),
+			(Join-Path $ver.FullName 'x64\Microsoft.VC143.CRT'),
+			(Join-Path $ver.FullName 'Microsoft.VC143.CRT')
+		)
+		foreach ($c in $candidates) {
+			if (Test-Path -LiteralPath (Join-Path $c 'vcruntime140.dll')) { return $c }
+		}
+	}
+	$hit = Get-ChildItem -LiteralPath $MsvcRoot -Recurse -Filter 'vcruntime140.dll' -File -ErrorAction SilentlyContinue |
+		Where-Object { $_.FullName -match '\\x64\\' -or $_.FullName -match 'vc_redist\.x64' } |
+		Sort-Object FullName -Descending |
+		Select-Object -First 1
+	if ($hit) { return $hit.DirectoryName }
+	return $null
+}
+
+function Find-VcRedistDllDirUnderToolsRoot {
+	param([string]$ToolsRoot)
+	foreach ($ver in Get-ChildItem -LiteralPath $ToolsRoot -Directory | Sort-Object Name -Descending) {
+		$hostBin = Join-Path $ver.FullName 'bin\Hostx64\x64'
+		if (Test-Path -LiteralPath (Join-Path $hostBin 'vcruntime140.dll')) {
+			return $hostBin
+		}
+	}
+	return $null
+}
+
 function Find-VcRedistDllDir {
-	$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-	if (-not (Test-Path -LiteralPath $vswhere)) { return $null }
-	$install = (& $vswhere -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath) -as [string]
+	$install = Get-LatestVsInstallPath
 	if (-not $install) { return $null }
 
-	# Prefer official vc_redist CRT folders (shipping redist), not IDE toolchains.
 	$msvcRoot = Join-Path $install 'VC\Redist\MSVC'
 	if (Test-Path -LiteralPath $msvcRoot) {
-		foreach ($ver in Get-ChildItem -LiteralPath $msvcRoot -Directory | Sort-Object Name -Descending) {
-			$candidates = @(
-				(Join-Path $ver.FullName 'vc_redist.x64\Microsoft.VC143.CRT'),
-				(Join-Path $ver.FullName 'vc_redist.x64\Microsoft.VC142.CRT'),
-				(Join-Path $ver.FullName 'x64\Microsoft.VC143.CRT'),
-				(Join-Path $ver.FullName 'Microsoft.VC143.CRT')
-			)
-			foreach ($c in $candidates) {
-				if (Test-Path -LiteralPath (Join-Path $c 'vcruntime140.dll')) { return $c }
-			}
-		}
-		$hit = Get-ChildItem -LiteralPath $msvcRoot -Recurse -Filter 'vcruntime140.dll' -File -ErrorAction SilentlyContinue |
-			Where-Object { $_.FullName -match '\\x64\\' -or $_.FullName -match 'vc_redist\.x64' } |
-			Sort-Object FullName -Descending |
-			Select-Object -First 1
-		if ($hit) { return $hit.DirectoryName }
+		$fromRedist = Find-VcRedistDllDirUnderMsvcRoot -MsvcRoot $msvcRoot
+		if ($fromRedist) { return $fromRedist }
 	}
 
 	$toolsRoot = Join-Path $install 'VC\Tools\MSVC'
 	if (Test-Path -LiteralPath $toolsRoot) {
-		foreach ($ver in Get-ChildItem -LiteralPath $toolsRoot -Directory | Sort-Object Name -Descending) {
-			$hostBin = Join-Path $ver.FullName 'bin\Hostx64\x64'
-			if (Test-Path -LiteralPath (Join-Path $hostBin 'vcruntime140.dll')) {
-				return $hostBin
-			}
-		}
+		return Find-VcRedistDllDirUnderToolsRoot -ToolsRoot $toolsRoot
 	}
 	return $null
 }

@@ -37,11 +37,10 @@ void ApplyPrivacySafeMetadata()
 
 	wchar_t windowsVersion[32];
 	windowsVersion[0] = 0;
-	HMODULE hNtdll = GetModuleHandleW(L"ntdll.dll");
-	if (hNtdll != nullptr)
+	if (const HMODULE hNtdll = GetModuleHandleW(L"ntdll.dll"); hNtdll != nullptr)
 	{
-		typedef LONG(WINAPI * RtlGetVersionFn)(OSVERSIONINFOW*);
-		RtlGetVersionFn pRtlGetVersion =
+		using RtlGetVersionFn = LONG(WINAPI*)(OSVERSIONINFOW*);
+		const auto pRtlGetVersion =
 		    reinterpret_cast<RtlGetVersionFn>(GetProcAddress(hNtdll, "RtlGetVersion"));
 		if (pRtlGetVersion != nullptr)
 		{
@@ -66,9 +65,9 @@ void ApplyPrivacySafeMetadata()
 }
 
 #ifdef ENVY_BUGSPLAT_DATABASE
-#define ENVY_BUGSPLAT_DB_NAME ENVY_BUGSPLAT_DATABASE
+const wchar_t kBugSplatDatabase[] = ENVY_BUGSPLAT_DATABASE;
 #else
-#define ENVY_BUGSPLAT_DB_NAME L""
+const wchar_t kBugSplatDatabase[] = L"";
 #endif
 
 BOOL EnsureBugSplatStarted()
@@ -76,7 +75,7 @@ BOOL EnsureBugSplatStarted()
 	if (s_bActive)
 		return TRUE;
 
-	const wchar_t* pszDatabase = ENVY_BUGSPLAT_DB_NAME;
+	const wchar_t* pszDatabase = kBugSplatDatabase;
 	if (pszDatabase == nullptr || pszDatabase[0] == 0)
 		return FALSE;
 	if (s_version[0] == 0)
