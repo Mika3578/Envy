@@ -45,10 +45,11 @@ function Get-BugSplatStaticLibCrtKind {
 	param([string]$Path)
 	if (-not (Test-Path -LiteralPath $Path)) { return 'missing' }
 	$ascii = [System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes($Path))
-	if ($ascii -match 'DEFAULTLIB:msvcrtd\.lib' -or $ascii -match 'DEFAULTLIB:msvcprtd\.lib') { return 'md-dynamic-debug' }
-	if ($ascii -match 'DEFAULTLIB:msvcrt\.lib' -or $ascii -match 'DEFAULTLIB:msvcprt\.lib') { return 'md-dynamic-release' }
-	if ($ascii -match 'DEFAULTLIB:LIBCMTD') { return 'mt-static-debug' }
-	if ($ascii -match 'DEFAULTLIB:LIBCMT') { return 'mt-static-release' }
+	# COFF .drectve uses /DEFAULTLIB:"name" (often without .lib); selftests use DEFAULTLIB:name.lib.
+	if ($ascii -match 'DEFAULTLIB:"?msvcrtd' -or $ascii -match 'DEFAULTLIB:"?msvcprtd') { return 'md-dynamic-debug' }
+	if ($ascii -match 'DEFAULTLIB:"?msvcrt' -or $ascii -match 'DEFAULTLIB:"?msvcprt') { return 'md-dynamic-release' }
+	if ($ascii -match 'DEFAULTLIB:"?LIBCMTD') { return 'mt-static-debug' }
+	if ($ascii -match 'DEFAULTLIB:"?LIBCMT') { return 'mt-static-release' }
 	return 'unknown'
 }
 

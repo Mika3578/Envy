@@ -32,6 +32,9 @@ try {
 	$mtLib = Join-Path $tmp.FullName 'mt.lib'
 	[System.IO.File]::WriteAllText($mtLib, 'DEFAULTLIB:LIBCMT')
 	if ((Get-BugSplatStaticLibCrtKind -Path $mtLib) -ne 'mt-static-release') { throw 'mt CRT probe failed' }
+	$coffMt = Join-Path $tmp.FullName 'coff-mt.lib'
+	[System.IO.File]::WriteAllText($coffMt, ' /DEFAULTLIB:"LIBCMT" /DEFAULTLIB:"OLDNAMES"')
+	if ((Get-BugSplatStaticLibCrtKind -Path $coffMt) -ne 'mt-static-release') { throw 'COFF mt CRT probe failed' }
 
 	# Hash match / mismatch
 	$refFile = Join-Path $tmp.FullName 'payload.bin'

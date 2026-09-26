@@ -53,8 +53,9 @@ msbuild tools\bugsplat-mt-probe\BugSplatMtProbe.vcxproj ^
   /p:BugSplatProbeCrt=md
 ```
 
-When `BUGSPLAT_SDK_ROOT` is unset, the project defaults to
-`%REPO%\.local\bugsplat-sdk` if present.
+When `BUGSPLAT_SDK_ROOT` is unset, MSBuild picks `BugSplatSdkRoot` in this order
+(see `BugSplatMtProbe.vcxproj`): committed `ThirdParty\BugSplat` when
+`inc\BugSplat.h` exists; otherwise `%REPO%\.local\bugsplat-sdk`.
 
 ## Pass criteria
 

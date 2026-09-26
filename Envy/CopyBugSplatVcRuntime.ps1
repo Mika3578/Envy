@@ -75,6 +75,9 @@ if (-not $dumpbin) {
 }
 
 $depOut = & $dumpbin /nologo /dependents $monitor 2>&1 | Out-String
+if ($LASTEXITCODE -ne 0) {
+	throw "dumpbin /dependents failed on $monitor (exit $LASTEXITCODE): $depOut"
+}
 $needed = @()
 foreach ($name in @('vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'msvcp140_2.dll')) {
 	if ($depOut -match "(?im)^\s+$name\s*$") { $needed += $name }
