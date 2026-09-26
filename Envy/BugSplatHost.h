@@ -1,7 +1,7 @@
 //
 // BugSplatHost.h
 //
-// BugSplat 7 client wrapper for ENVY x64 (#353).
+// BugSplat SDK v8.0.0 client wrapper for ENVY x64 (#353).
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
@@ -14,4 +14,5 @@ namespace BugSplatHost
 void SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevision, const wchar_t* pszBuildType);
 void Shutdown();
 BOOL IsActive();
+void InstallWorkerThreadExceptionBehavior();
 }

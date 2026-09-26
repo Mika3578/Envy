@@ -1,7 +1,7 @@
 //
 // BugSplatHost.cpp
 //
-// BugSplat 7 out-of-process crash reporting for ENVY x64.
+// BugSplat SDK v8.0.0 out-of-process crash reporting for ENVY x64.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
@@ -125,4 +125,11 @@ void BugSplatHost::Shutdown()
 BOOL BugSplatHost::IsActive()
 {
 	return s_bActive;
+}
+
+void BugSplatHost::InstallWorkerThreadExceptionBehavior()
+{
+	if (!s_bActive)
+		return;
+	SetPerThreadCRTExceptionBehavior();
 }

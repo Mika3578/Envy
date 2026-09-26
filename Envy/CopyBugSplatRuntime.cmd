@@ -19,7 +19,12 @@ if not exist "%ROOT%\BugSplatMonitor.exe" (
 copy /b /y "%ROOT%\BugSplatMonitor.exe" "%DEST%\" >nul
 if errorlevel 1 exit /b 1
 for %%F in (BugSplatWer.dll BugSplatRc.dll) do (
-	if exist "%ROOT%\%%F" copy /b /y "%ROOT%\%%F" "%DEST%\" >nul
+	if not exist "%ROOT%\%%F" (
+		echo error: required BugSplat runtime "%%F" not found under "%ROOT%"
+		exit /b 1
+	)
+	copy /b /y "%ROOT%\%%F" "%DEST%\" >nul
+	if errorlevel 1 exit /b 1
 )
 echo Copied BugSplat runtime from "%ROOT%" to "%DEST%"
 exit /b 0
