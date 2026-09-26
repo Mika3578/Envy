@@ -68,8 +68,9 @@ new architecture review. Evidence and pinned hashes:
 
 ## Tests
 
-- `tools/bugsplat-mt-probe/` — `/MT` + `/MTd` link gate against official `lib/mt`.
-- `tools/crash-probe/` — disposable Crashpad probes (Win32 + comparison); extend for BugSplat x64 in follow-up runs.
+- `tools/bugsplat-mt-probe/` — `/MT` + `/MTd` **link** gate against official `lib/mt` (no live crash or BugSplat database).
+- **CI (x64 Release):** `verify-bugsplat-sdk-committed.ps1` (hash + Authenticode + `/MT` lib probe) and `verify-bugsplat-output-layout.ps1` (monitor/WER DLLs + MSVC redist next to `Envy.exe` via `dumpbin /dependents`). These catch missing runtime packaging; they do not drive a consent dialog or upload.
+- `tools/crash-probe/` — disposable Crashpad probes (Win32 + comparison); BugSplat x64 end-to-end crash/upload remains a **manual** maintainer check with a disposable database (not in CI).
 - `tests/test_crash_report_policy_smoke.cpp` — policy helpers (no live crash).
 
 ## Wire format
