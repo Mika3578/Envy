@@ -657,11 +657,11 @@ void CrashReporter::Initialize()
 	if (s_bInstalled)
 		return;
 
-#ifndef _WIN64
+	// Win32: capture via Crashpad before abort. x64: same CRT hooks when BugSplat is
+	// misconfigured so terminate/invalid-parameter/purecall still fail fast.
 	s_pPreviousTerminate = set_terminate(&OnTerminate);
 	s_pPreviousInvalid = _set_invalid_parameter_handler(&OnInvalidParameter);
 	s_pPreviousPurecall = _set_purecall_handler(&OnPureCall);
-#endif
 	s_bInstalled = TRUE;
 }
 
@@ -676,15 +676,17 @@ void CrashReporter::SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRev
 
 void CrashReporter::ShowStartupPromptIfNeeded()
 {
-#ifdef _WIN64
-	if (BugSplatHost::IsActive())
-		return;
-#endif
 	PendingReport reports[32];
 	size_t nCount = 0;
 	if (!FindPendingReports(reports, 32, &nCount) || nCount == 0)
 		return;
 
+#ifdef _WIN64
+	// Legacy Crashpad dumps from pre-BugSplat x64 builds: prune only, no startup UI.
+	FindPendingReports(reports, 32, &nCount);
+	PruneOldReports(reports, nCount);
+	return;
+#else
 	PendingReport* pNewestUnseen = nullptr;
 	for (size_t i = 0; i < nCount; ++i)
 	{
@@ -702,6 +704,7 @@ void CrashReporter::ShowStartupPromptIfNeeded()
 
 	FindPendingReports(reports, 32, &nCount);
 	PruneOldReports(reports, nCount);
+#endif
 }
 
 void CrashReporter::Shutdown()
@@ -710,14 +713,13 @@ void CrashReporter::Shutdown()
 		return;
 #ifdef _WIN64
 	BugSplatHost::Shutdown();
-#else
+#endif
 	if (s_pPreviousTerminate != nullptr)
 		set_terminate(s_pPreviousTerminate);
 	if (s_pPreviousInvalid != nullptr)
 		_set_invalid_parameter_handler(s_pPreviousInvalid);
 	if (s_pPreviousPurecall != nullptr)
 		_set_purecall_handler(s_pPreviousPurecall);
-#endif
 	s_bInstalled = FALSE;
 }
 
