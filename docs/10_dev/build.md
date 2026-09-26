@@ -54,7 +54,7 @@ scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static
 
 `Envy.vcxproj` disables vcpkg integration on **x64** (`VcpkgEnabled=false`). On **Win32**, it sets `VcpkgManifestRoot` to `EnvyRepoRoot` but does not import `vcpkg.targets`. `CheckVcpkgInstalled` runs **only when** `EnvyCrashRequiresVcpkg` is true (Win32).
 
-CI (`.github/actions/windows-msbuild/action.yml`) still runs `vcpkg install` for the matrix triplet (including x64 jobs); that is optional for Envy x64 link but keeps manifest coverage.
+CI (`.github/actions/windows-msbuild/action.yml`) still runs `vcpkg install` for the matrix triplet (including x64 jobs); that is optional for Envy x64 link but keeps manifest coverage. MSBuild passes `VcpkgEnabled` / `VcpkgEnableManifest` only for **Win32** builds so global `/p:` flags do not override `Envy.vcxproj` x64 disables.
 
 Check Win32 restore without installing:
 
@@ -62,7 +62,7 @@ Check Win32 restore without installing:
 scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static -CheckOnly
 ```
 
-Install Win32 Crashpad only:
+Install the Win32 vcpkg manifest (including Crashpad):
 
 ```bat
 scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static

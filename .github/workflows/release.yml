@@ -162,6 +162,8 @@ jobs:
         run: |
           set "BUGSPLAT_MSBUILD_PROP="
           if not "%ENVY_BUGSPLAT_DATABASE%"=="" set "BUGSPLAT_MSBUILD_PROP=/p:EnvyBugSplatDatabase=%ENVY_BUGSPLAT_DATABASE%"
+          set "VCPKG_MSBUILD_PROPS="
+          if "${{ matrix.platform }}"=="Win32" set "VCPKG_MSBUILD_PROPS=/p:VcpkgEnableManifest=true /p:VcpkgEnabled=true /p:VcpkgTriplet=%VCPKG_TARGET_TRIPLET%"
           msbuild "%SOLUTION%" ^
             %MSBUILD_PARALLEL% ^
             /nologo ^
@@ -169,13 +171,11 @@ jobs:
             /p:Configuration=Release ^
             /p:Platform=${{ matrix.platform }} ^
             %BUGSPLAT_MSBUILD_PROP% ^
+            %VCPKG_MSBUILD_PROPS% ^
             /p:PlatformToolset=%PLATFORM_TOOLSET% ^
             /p:WindowsTargetPlatformVersion=10.0 ^
             /p:UseMultiToolTask=%MSBUILD_USE_MULTI_TOOL_TASK% ^
             /p:EnforceProcessCountAcrossBuilds=true ^
-            /p:VcpkgEnableManifest=true ^
-            /p:VcpkgEnabled=true ^
-            /p:VcpkgTriplet=%VCPKG_TARGET_TRIPLET% ^
             /p:InstallerAlpha=${{ steps.channel.outputs.InstallerAlpha }} ^
             /p:TreatWarningsAsErrors=false ^
             /flp:LogFile=release-${{ matrix.platform }}.log;Verbosity=detailed;Encoding=UTF-8 ^

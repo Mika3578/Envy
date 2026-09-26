@@ -109,9 +109,6 @@ jobs:
             /p:WindowsTargetPlatformVersion=10.0 ^
             /p:UseMultiToolTask=%MSBUILD_USE_MULTI_TOOL_TASK% ^
             /p:EnforceProcessCountAcrossBuilds=true ^
-            /p:VcpkgEnableManifest=true ^
-            /p:VcpkgEnabled=true ^
-            /p:VcpkgTriplet=x64-windows-static ^
             /p:TreatWarningsAsErrors=false
 
       - name: Perform CodeQL Analysis
