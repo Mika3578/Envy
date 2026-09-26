@@ -187,13 +187,13 @@ static bool test_upload_headroom_default_not_accidental_unlimited()
 		return false;
 	if (legacy_headroom_buggy_formula(768, 8) != 0)
 		return false;
-	return nLimit == 90339u;
+	return nLimit == 90439u;
 }
 
 static bool test_upload_headroom_regression_92_over_100_integer_division()
 {
 	return legacy_headroom_buggy_formula(768, 8) == 0 &&
-	       TransferBandwidthUploadLimitFromOutboundKilobits(768, 8) == 90339u;
+	       TransferBandwidthUploadLimitFromOutboundKilobits(768, 8) == 90439u;
 }
 
 static bool test_upload_headroom_10g_default_reserve()
