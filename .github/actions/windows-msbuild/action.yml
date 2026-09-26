@@ -173,6 +173,16 @@ runs:
       run: |
         pwsh scripts/verify-bugsplat-output-layout.ps1 -OutputDir "Envy/${{ inputs.configuration }} x64"
 
+    - name: Verify installer AppCopyright on setup executable (Release)
+      if: ${{ inputs.configuration == 'Release' }}
+      shell: pwsh
+      run: |
+        $setups = @(Get-ChildItem -Path Builds -Filter *.exe -File -ErrorAction SilentlyContinue)
+        if ($setups.Count -ne 1) {
+          throw "Expected exactly one setup executable in Builds/, found $($setups.Count)."
+        }
+        pwsh scripts/installer/verify-setup-appcopyright.ps1 -SetupExePath $setups[0].FullName
+
     - name: Run EnvyTests
       if: ${{ inputs.run-tests == 'true' }}
       shell: cmd

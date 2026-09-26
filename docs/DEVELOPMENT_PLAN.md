@@ -276,8 +276,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - Skin engine **P0** input hardening (`SkinEngineP0.h`): StatusbarHeight registration,
   ParseRect `point`/`size`, roundRect validation, LoadFromXML section-failure
   aggregation (non-transactional), strict metric parse/clamp. HiDPI deferred.
-- **#90 crash reporting** — BugTrap removed. Crashpad local database + next-launch
-  opt-in GitHub issue workflow. No dump upload; `crashpad_handler.exe` beside `Envy.exe`.
+- **#90 / #354 crash reporting** — BugTrap removed. **x64:** BugSplat SDK v8.0.0 (`ThirdParty/BugSplat`, optional upload when `EnvyBugSplatDatabase` is set). **Win32:** Crashpad local database + next-launch opt-in GitHub issue workflow (upload off). See `docs/10_dev/crash-reporting.md` (D-019, D-020).
 
 ### In Progress
 - **Envy 4.2.0 Preview 1 release readiness** — version/packaging PR; install/uninstall + network smoke tests still required before tagging `v4.2.0-preview.1` and publishing the draft GitHub prerelease.
