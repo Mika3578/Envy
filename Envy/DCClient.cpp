@@ -28,6 +28,7 @@
 #include "DownloadTransfer.h"
 #include "DownloadTransferDC.h"
 #include "DcAdcGetValidate.h"
+#include "DcMaxedOutValidate.h"
 #include "HostCache.h"
 #include "DcNmdcText.h"
 #include "Network.h"
@@ -799,7 +800,17 @@ BOOL CDCClient::OnMaxedOut(const std::string& strParams)
 		if ( strParams.empty() )
 			return m_pDownloadTransfer->OnBusy();
 
-		return m_pDownloadTransfer->OnQueue( atoi( strParams.c_str() ) );
+		unsigned nRank = 0;
+		if ( ! DcParseNmdcMaxedOutQueueRank( strParams.data(), strParams.size(), &nRank ) )
+		{
+#ifdef _DEBUG
+			TRACE( "[DC++] Ignoring $MaxedOut with invalid queue position: \"%s\"\n",
+				strParams.c_str() );
+#endif
+			return TRUE;
+		}
+
+		return m_pDownloadTransfer->OnQueue( static_cast<int>( nRank ) );
 	}
 
 	TRACE( "[DC++] Got $MaxedOut but have no downloads.\n" );

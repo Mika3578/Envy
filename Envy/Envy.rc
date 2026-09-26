@@ -4038,6 +4038,7 @@ BEGIN
 	IDS_DOWNLOAD_PUSHED			"Host %s is pushing download ""%s"", accepting."
 	IDS_DOWNLOAD_PUSH_SENT		"Sending push request for download ""%s""..."
 	IDS_DOWNLOAD_QUEUED			"Download host %s is busy, waiting in queue at position #%i of %i (""%s"")."
+	IDS_DOWNLOAD_QUEUED_RANK	"Download host %s is busy, waiting in queue at position #%i (""%s"")."
 	IDS_DOWNLOAD_QUEUE_DROP		"Staying in queue for ""%s""."
 	IDS_DOWNLOAD_QUEUE_HUGE		"Dropping download source %s for ""%s"" because queue position %i is too high."
 	IDS_DOWNLOAD_QUEUE_TIMEOUT	"Timed out waiting for queue update from eDonkey download host %s for file ""%s""."
