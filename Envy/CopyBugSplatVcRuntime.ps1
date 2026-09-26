@@ -34,17 +34,34 @@ function Find-VcRedistDllDir {
 	if (-not (Test-Path -LiteralPath $vswhere)) { return $null }
 	$install = (& $vswhere -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath) -as [string]
 	if (-not $install) { return $null }
+
+	$toolsRoot = Join-Path $install 'VC\Tools\MSVC'
+	if (Test-Path -LiteralPath $toolsRoot) {
+		foreach ($ver in Get-ChildItem -LiteralPath $toolsRoot -Directory | Sort-Object Name -Descending) {
+			$hostBin = Join-Path $ver.FullName 'bin\Hostx64\x64'
+			if (Test-Path -LiteralPath (Join-Path $hostBin 'vcruntime140.dll')) {
+				return $hostBin
+			}
+		}
+	}
+
 	$msvcRoot = Join-Path $install 'VC\Redist\MSVC'
-	if (-not (Test-Path -LiteralPath $msvcRoot)) { return $null }
-	$versionDir = Get-ChildItem -LiteralPath $msvcRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1
-	if (-not $versionDir) { return $null }
-	$candidates = @(
-		(Join-Path $versionDir.FullName 'vc_redist.x64\Microsoft.VC143.CRT'),
-		(Join-Path $versionDir.FullName 'vc_redist.x64\Microsoft.VC142.CRT'),
-		(Join-Path $versionDir.FullName 'x64\Microsoft.VC143.CRT')
-	)
-	foreach ($c in $candidates) {
-		if (Test-Path -LiteralPath (Join-Path $c 'vcruntime140.dll')) { return $c }
+	if (Test-Path -LiteralPath $msvcRoot) {
+		foreach ($ver in Get-ChildItem -LiteralPath $msvcRoot -Directory | Sort-Object Name -Descending) {
+			$candidates = @(
+				(Join-Path $ver.FullName 'vc_redist.x64\Microsoft.VC143.CRT'),
+				(Join-Path $ver.FullName 'vc_redist.x64\Microsoft.VC142.CRT'),
+				(Join-Path $ver.FullName 'x64\Microsoft.VC143.CRT'),
+				(Join-Path $ver.FullName 'Microsoft.VC143.CRT')
+			)
+			foreach ($c in $candidates) {
+				if (Test-Path -LiteralPath (Join-Path $c 'vcruntime140.dll')) { return $c }
+			}
+		}
+		$hit = Get-ChildItem -LiteralPath $msvcRoot -Recurse -Filter 'vcruntime140.dll' -File -ErrorAction SilentlyContinue |
+			Where-Object { $_.FullName -match '\\x64\\' -or $_.FullName -match 'vc_redist\.x64' } |
+			Select-Object -First 1
+		if ($hit) { return $hit.DirectoryName }
 	}
 	return $null
 }
