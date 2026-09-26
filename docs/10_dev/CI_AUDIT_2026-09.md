@@ -98,6 +98,14 @@ PR Gate, Analyze (c-cpp), SonarCloud Code Analysis (`12526`).
 (javascript-typescript), Analyze (csharp); optionally builds / Remote JS /
 Dependency review per classify.
 
+**PR Gate policy guard:** `pr-gate-policy-sync.selftest.sh` compares live
+documented Protect develop contexts in `.github/settings.yml` to every
+`add_must` / `add_skip` name in `pr-gate.sh` (excluding PR Gate itself).
+Check-run polling uses `filter=all&per_page=100` so generation selection by
+check-run `id` is not undermined by the API default `filter=latest`.
+Non–GitHub Actions required contexts (`gitleaks`, SonarCloud) are matched by
+`check_run.app.id` against ruleset `integration_id` values in the parser.
+
 ---
 
 ## 3. Measurements (representative)
@@ -390,8 +398,11 @@ Documented; not unified in this PR (would either slow local or risk CI flakes).
 ## 13. Health notes
 
 - Cancelled PR workflows: concurrency (healthy).
-- PR Gate failures often accompany early Format/Quality failures or mid-update
-  cancels — not evidence of Gate flakiness alone.
+- PR Gate failures often accompany early Format/Quality failures. Mid-update
+  `cancelled` check-runs are **not** fail-fast: concurrency can supersede a
+  generation before the replacement is registered (#304 canary, run
+  `35594164751`). The gate waits until a newer generation is observed or
+  `TIMEOUT_SEC` elapses. True failures still fail immediately.
 - Static Analysis `continue-on-error: true` — advisory by design.
 - No systematic Win32-only flake identified in the sampled window.
 
