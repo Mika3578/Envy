@@ -571,7 +571,7 @@ BOOL CDatagrams::TryWrite()
 		{
 			unsigned long long nCap = TransferConnectionKilobitsToBytesPerSecond(
 			    Settings.Connection.OutSpeed);
-			if ( Settings.Live.BandwidthScaleOut < 100 )
+			if (Settings.Live.BandwidthScaleOut < 100)
 				nCap = nCap * Settings.Live.BandwidthScaleOut / 100ull;
 			nLimit = TransferBandwidthBytesToSetting(nCap);
 		}
