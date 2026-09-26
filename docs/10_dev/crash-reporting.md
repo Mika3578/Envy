@@ -42,7 +42,7 @@ Some crash classes (fast-fail, stack overrun, etc.) require BugSplat WER registr
 
 ### Symbols
 
-Trusted `develop` / `main` pushes may upload symbols via `.github/workflows/bugsplat-symbols.yml` when `BUGSPLAT_CLIENT_ID`, `BUGSPLAT_CLIENT_SECRET`, and repository variable `ENVY_BUGSPLAT_DATABASE` are set. PRs and forks skip upload when secrets are absent.
+Trusted `develop` / `main` pushes may upload symbols via `.github/workflows/bugsplat-symbols.yml` when repository secrets `BUGSPLAT_CLIENT_ID` / `BUGSPLAT_CLIENT_SECRET` and variable `ENVY_BUGSPLAT_DATABASE` are set. The workflow maps those secrets to `SYMBOL_UPLOAD_CLIENT_ID` / `SYMBOL_UPLOAD_CLIENT_SECRET` for [symbol-upload v11](https://github.com/BugSplat-Git/symbol-upload/tree/v11.0.0) (OAuth via environment variables, not `-i`/`-s` argv). PRs and forks skip upload when secrets are absent.
 
 ## Win32 — Crashpad (unchanged)
 

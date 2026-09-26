@@ -93,8 +93,9 @@ jobs:
         if: steps.secrets.outputs.skip != 'true'
         shell: pwsh
         env:
-          BUGSPLAT_CLIENT_ID: ${{ secrets.BUGSPLAT_CLIENT_ID }}
-          BUGSPLAT_CLIENT_SECRET: ${{ secrets.BUGSPLAT_CLIENT_SECRET }}
+          # symbol-upload v11 reads OAuth credentials from env (README); do not pass -i/-s on argv (process listings).
+          SYMBOL_UPLOAD_CLIENT_ID: ${{ secrets.BUGSPLAT_CLIENT_ID }}
+          SYMBOL_UPLOAD_CLIENT_SECRET: ${{ secrets.BUGSPLAT_CLIENT_SECRET }}
           BUGSPLAT_DATABASE: ${{ vars.ENVY_BUGSPLAT_DATABASE }}
           BUGSPLAT_APP: Envy
         run: |
@@ -102,13 +103,15 @@ jobs:
             Write-Error "Repository variable ENVY_BUGSPLAT_DATABASE is not set."
             exit 1
           }
+          if (-not $env:SYMBOL_UPLOAD_CLIENT_ID -or -not $env:SYMBOL_UPLOAD_CLIENT_SECRET) {
+            throw 'BUGSPLAT_CLIENT_ID / BUGSPLAT_CLIENT_SECRET must be set for symbol upload.'
+          }
           $exe = Get-ChildItem -LiteralPath "Envy/Release x64" -Filter "Envy.exe" | Select-Object -First 1
           if (-not $exe) { throw "Envy.exe not built" }
           $verInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe.FullName)
           $productVersion = "{0}.{1}" -f $verInfo.FileMajorPart, $verInfo.FileMinorPart
           Write-Host "BugSplat symbol version (matches Envy.exe): $productVersion"
-          & $env:SYMBOL_UPLOAD_EXE -b $env:BUGSPLAT_DATABASE -a $env:BUGSPLAT_APP -v $productVersion `
-            -i $env:BUGSPLAT_CLIENT_ID -s $env:BUGSPLAT_CLIENT_SECRET -d $exe.DirectoryName
+          & $env:SYMBOL_UPLOAD_EXE -b $env:BUGSPLAT_DATABASE -a $env:BUGSPLAT_APP -v $productVersion -d $exe.DirectoryName
           if ($LASTEXITCODE -ne 0) {
             throw "symbol-upload-windows.exe failed with exit code $LASTEXITCODE"
           }

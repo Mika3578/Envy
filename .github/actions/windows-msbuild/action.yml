@@ -100,8 +100,12 @@ runs:
     - name: Verify BugSplat SDK slice (x64)
       if: ${{ inputs.platform == 'x64' }}
       shell: pwsh
+      env:
+        ENVY_BUILD_CONFIGURATION: ${{ inputs.configuration }}
       run: |
-        $lib = "ThirdParty/BugSplat/x64/Release/lib/mt/BugSplat.lib"
+        $config = $env:ENVY_BUILD_CONFIGURATION
+        if (-not $config) { throw 'Missing build configuration input' }
+        $lib = "ThirdParty/BugSplat/x64/$config/lib/mt/BugSplat.lib"
         if (-not (Test-Path -LiteralPath $lib)) {
           throw "Missing $lib. Import the login-gated Windows Native C++ SDK (not BugSplat-Git/bugsplat-crashpad /MD Crashpad bundles). Run scripts/import-bugsplat-sdk.ps1, commit ThirdParty/BugSplat. See ThirdParty/BugSplat/README.md."
         }
@@ -162,6 +166,12 @@ runs:
           /flp:LogFile=build-${{ inputs.platform }}-${{ inputs.configuration }}.log;Verbosity=detailed;Encoding=UTF-8 ^
           /flp1:LogFile=build-${{ inputs.platform }}-${{ inputs.configuration }}.warnings.log;WarningsOnly;Verbosity=normal ^
           /flp2:LogFile=build-${{ inputs.platform }}-${{ inputs.configuration }}.errors.log;ErrorsOnly;Verbosity=normal
+
+    - name: Verify BugSplat output layout (x64)
+      if: ${{ inputs.platform == 'x64' }}
+      shell: pwsh
+      run: |
+        pwsh scripts/verify-bugsplat-output-layout.ps1 -OutputDir "Envy/${{ inputs.configuration }} x64"
 
     - name: Run EnvyTests
       if: ${{ inputs.run-tests == 'true' }}
