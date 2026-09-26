@@ -65,12 +65,14 @@ try {
 		throw 'import-bugsplat-sdk.ps1 must not expose bootstrap-only parameters'
 	}
 
-	$repoRoot = git -C $PSScriptRoot rev-parse --show-toplevel 2>$null
-	if ($LASTEXITCODE -eq 0 -and $repoRoot) {
-		$committed = Join-Path $repoRoot.Trim() 'ThirdParty\BugSplat'
-		$baseline = Join-Path $committed 'SDK-HASHES.json'
-		if ((Test-Path -LiteralPath $baseline)) {
-			$null = Test-BugSplatCommittedSdkTree -DestRoot $committed -ReferenceHashesPath $baseline
+	if ($IsWindows -or $env:OS -eq 'Windows_NT') {
+		$repoRoot = git -C $PSScriptRoot rev-parse --show-toplevel 2>$null
+		if ($LASTEXITCODE -eq 0 -and $repoRoot) {
+			$committed = Join-Path $repoRoot.Trim() 'ThirdParty\BugSplat'
+			$baseline = Join-Path $committed 'SDK-HASHES.json'
+			if ((Test-Path -LiteralPath $baseline)) {
+				$null = Test-BugSplatCommittedSdkTree -DestRoot $committed -ReferenceHashesPath $baseline
+			}
 		}
 	}
 

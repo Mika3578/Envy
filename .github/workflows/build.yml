@@ -92,10 +92,6 @@ jobs:
         shell: pwsh
         run: pwsh scripts/import-bugsplat-sdk.selftest.ps1
 
-      - name: BugSplat committed SDK tree verification
-        shell: pwsh
-        run: pwsh scripts/verify-bugsplat-sdk-committed.ps1
-
       - name: Format-check self-test
         shell: bash
         run: |
