@@ -186,15 +186,18 @@ Write-Host "Repository : $root" -ForegroundColor DarkGray
 Write-Host "Triplets   : $($triplets -join ', ')" -ForegroundColor DarkGray
 
 $missing = @()
-foreach ($t in $triplets) {
+	foreach ($t in $triplets) {
 	$state = Test-VcpkgInstalled -Root $root -TargetTriplet $t
+	$needsCrashpadHandler = ($t -match '^x86-windows')
 	if ($state.Exists) {
 		Write-Host "OK  $($state.Installed)" -ForegroundColor Green
 		if ($state.Handler) {
 			Write-Host "    crashpad_handler: $($state.Handler)" -ForegroundColor DarkGray
-		} else {
-			Write-Host "    crashpad_handler.exe not found yet (vcpkg install still required if Crashpad is missing)." -ForegroundColor DarkYellow
+		} elseif ($needsCrashpadHandler) {
+			Write-Host "    crashpad_handler.exe not found yet (vcpkg install still required for Win32 Crashpad)." -ForegroundColor DarkYellow
 			$missing += $t
+		} else {
+			Write-Host "    x64: Crashpad not required (BugSplat x64); openssl/zlib manifest deps only." -ForegroundColor DarkGray
 		}
 	} else {
 		Write-Host "MISS $($state.Installed)" -ForegroundColor Yellow
@@ -232,10 +235,14 @@ foreach ($t in $triplets) {
 	if (-not $state.Exists) {
 		throw "vcpkg install finished but $($state.Installed) is still missing."
 	}
-	if (-not $state.Handler) {
-		throw "vcpkg install finished but crashpad_handler.exe was not found under $($state.Installed). Crashpad is a required root-manifest dependency."
+	if ($t -match '^x86-windows') {
+		if (-not $state.Handler) {
+			throw "vcpkg install finished but crashpad_handler.exe was not found under $($state.Installed). Crashpad is required for Win32."
+		}
+		Write-Host "Installed Crashpad handler: $($state.Handler)" -ForegroundColor Green
+	} else {
+		Write-Host "x64 manifest restore complete (no Crashpad dependency)." -ForegroundColor Green
 	}
-	Write-Host "Installed Crashpad handler: $($state.Handler)" -ForegroundColor Green
 }
 
 Write-Host 'vcpkg bootstrap OK. You can now build Visual Studio\Envy.sln (Debug/Release, x64/Win32).' -ForegroundColor Green

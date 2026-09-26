@@ -91,28 +91,23 @@ Invoke-Step 'ci-fast' {
 	if ($null -eq $LASTEXITCODE) { $global:LASTEXITCODE = 0 }
 }
 
-$common = @(
+$msbuildCommon = @(
 	'/m',
 	"/p:Configuration=$Configuration",
 	'/p:PlatformToolset=v145',
 	'/p:WindowsTargetPlatformVersion=10.0',
-	'/p:VcpkgEnableManifest=true',
 	'/v:minimal',
 	'/nologo'
 )
+$msbuildWin32 = @($msbuildCommon) + @('/p:VcpkgEnableManifest=true')
 
-# Same restore step as .github/actions/windows-msbuild/action.yml. Visual Studio
-# does not populate vcpkg_installed before PreBuildEvent.
-Invoke-Step 'vcpkg manifest x64-windows-static' {
-	& "$root\scripts\bootstrap-vcpkg.ps1" -Triplet x64-windows-static
-}
-
+# x64: vendored BugSplat + Services/; no vcpkg_installed\x64-windows-static required.
 Invoke-Step 'Envy Release x64' {
-	& $msbuild 'Visual Studio\Envy.sln' @common '/t:Envy' '/p:Platform=x64' '/p:VcpkgTriplet=x64-windows-static'
+	& $msbuild 'Visual Studio\Envy.sln' @msbuildCommon '/t:Envy' '/p:Platform=x64'
 }
 
 Invoke-Step 'EnvyTests Release x64' {
-	& $msbuild 'tests\EnvyTests.vcxproj' @common '/p:Platform=x64'
+	& $msbuild 'tests\EnvyTests.vcxproj' @msbuildCommon '/p:Platform=x64'
 }
 
 $testsX64 = Resolve-EnvyTestsExe -Platform 'x64' -Config $Configuration
@@ -126,11 +121,11 @@ if ($Full) {
 	}
 
 	Invoke-Step 'Envy Release Win32' {
-		& $msbuild 'Visual Studio\Envy.sln' @common '/t:Envy' '/p:Platform=Win32' '/p:VcpkgTriplet=x86-windows-static'
+		& $msbuild 'Visual Studio\Envy.sln' @msbuildWin32 '/t:Envy' '/p:Platform=Win32' '/p:VcpkgTriplet=x86-windows-static'
 	}
 
 	Invoke-Step 'EnvyTests Release Win32' {
-		& $msbuild 'tests\EnvyTests.vcxproj' @common '/p:Platform=Win32'
+		& $msbuild 'tests\EnvyTests.vcxproj' @msbuildWin32 '/p:Platform=Win32'
 	}
 
 	$testsWin32 = Resolve-EnvyTestsExe -Platform 'Win32' -Config $Configuration

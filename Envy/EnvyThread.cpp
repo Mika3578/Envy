@@ -1,7 +1,7 @@
 //
 // EnvyThread.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -20,6 +20,9 @@
 #include "Envy.h"
 #include "EnvyThread.h"
 #include "EnvyThreadPolicy.h"
+#ifdef _WIN64
+#include "BugSplatHost.h"
+#endif
 
 
 inline void SetThreadName(DWORD dwThreadID, LPCSTR szThreadName)
@@ -101,7 +104,9 @@ HANDLE CEnvyThread::CreateThread(LPCSTR pszName, int nPriority, DWORD dwCreateFl
 BOOL CEnvyThread::InitInstance()
 {
 	CWinThread::InitInstance();
-
+#ifdef _WIN64
+	BugSplatHost::InstallWorkerThreadExceptionBehavior();
+#endif
 	return TRUE;
 }
 
@@ -257,7 +262,7 @@ void CEnvyThread::CloseThread(DWORD nThreadID, DWORD dwTimeout) noexcept
 					break;		// Handle signaled state or errors
 
 				// Timeout after cooperative cancel (CThreadImpl sets m_pCancel first).
-				// TerminateThread orphans critical sections / TLS (#92) ¬ó never force-kill
+				// TerminateThread orphans critical sections / TLS (#92) ? never force-kill
 				// unless an explicit emergency policy enables it.
 				if ( EnvyThreadAllowForcedTerminate() )
 				{
@@ -274,7 +279,7 @@ void CEnvyThread::CloseThread(DWORD nThreadID, DWORD dwTimeout) noexcept
 						L"Thread 0x%x did not exit within %u ms after cancel; abandoning without TerminateThread.",
 						nThreadID, dwTimeout );
 					TRACE( "WARNING: Abandoning thread (0x%x) without TerminateThread.\n", nThreadID );
-					// Drop map entry only ¬ó CWinThread auto-deletes when the worker eventually exits.
+					// Drop map entry only ? CWinThread auto-deletes when the worker eventually exits.
 					DetachThread( nThreadID );
 					Remove( nThreadID );
 				}

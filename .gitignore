@@ -362,6 +362,10 @@ release
 !scripts/release/
 !scripts/release/**
 
+# Vendor slice for BugSplat crash reporting
+!ThirdParty/BugSplat/
+!ThirdParty/BugSplat/**
+
 # Cleanup script notes (if needed)
 Cleanup.log
 

@@ -14,18 +14,15 @@
 #define VisualStudioPath  "c:\Program Files (x86)\Microsoft Visual Studio 14.0"
 #define VisualCVersion    "14"
 
-#if VER < 0x05030500
-  #error Inno Setup version 5.3.5 or higher (2009) is needed for this script
-#endif
-#if PREPROCVER < 0x05040200
-  #error PreProcessor version 5.4.2.0 or higher (2011) is needed for this script
+#if VER < 0x06030000
+  #error Inno Setup 6.3+ Unicode is required for UTF-8 installer scripts (see Installer/InnoSetup/Version.txt)
 #endif
 
 #define internal_name GetStringFileInfo("..\..\Envy\" + ConfigurationName + " " + PlatformName + "\Envy.exe", INTERNAL_NAME)
 #define version       GetStringFileInfo("..\..\Envy\" + ConfigurationName + " " + PlatformName + "\Envy.exe", FILE_VERSION)
 ; #define version     GetFileVersion("..\..\Envy\" + ConfigurationName + " " + PlatformName + "\Envy.exe");
 #define publisher     "GetEnvy.com"
-#define copyright     "© 2016-2020 Envy Development Team"
+#define copyright     "Â© 2016-2020 Envy Development Team"
 #define description   internal_name + " Filesharing"
 #define date          GetDateTimeString('yyyy/mm/dd', '-', '')
 
@@ -114,7 +111,8 @@ ShowComponentSizes=no
 ChangesAssociations=yes
 ChangesEnvironment=yes
 CloseApplications=no
-MinVersion=0,5.01
+; Windows 10 1809+ (Inno Setup 6 requires MinVersion >= 6.1; see AGENTS.md)
+MinVersion=10.0.17763
 #if unified_build == "True"
   OutputManifestFile=Manifest.txt
 #else
@@ -150,7 +148,7 @@ SignTool=signtoolparams sign /f cert.pfx /p "{#signpass}" /as /fd sha256 /td sha
 [Messages]
 ; Overwrite standard ISL entries  (Do not use localized messages)
 BeveledLabel=GetEnvy.com
-SetupAppTitle=Setup • {#internal_name}
+SetupAppTitle=Setup - {#internal_name}
 
 
 [Tasks]
@@ -203,9 +201,15 @@ Name: "{group}\{cm:icons_uninstall}"; Filename: "{uninstallexe}"; WorkingDir: "{
 #if unified_build == "True"
 Source: "Envy\Release x64\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "Envy\Release Win32\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
-Source: "Envy\Release x64\crashpad_handler.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
+Source: "Envy\Release x64\BugSplatMonitor.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
+Source: "Envy\Release x64\BugSplatWer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
+Source: "Envy\Release x64\BugSplatRc.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
+Source: "Envy\Release x64\vcruntime140.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
+Source: "Envy\Release x64\vcruntime140_1.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
+Source: "Envy\Release x64\msvcp140.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
+Source: "Envy\Release x64\msvcp140_1.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
+Source: "Envy\Release x64\msvcp140_2.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
 Source: "Envy\Release Win32\crashpad_handler.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
-Source: "Envy\Release x64\crashpad_wer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
 Source: "Envy\Release Win32\crashpad_wer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: not Install64Bit
 Source: "TorrentEnvy\Release x64\TorrentEnvy.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "TorrentEnvy\Release Win32\TorrentEnvy.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
@@ -215,8 +219,20 @@ Source: "Unpacker\Release Win32\Unpacker.exe";DestDir: "{app}"; Flags: overwrite
 ;Source: "SkinBuilder\Release Win32\SkinBuilder.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
 #else
 Source: "Envy\{#ConfigurationName} {#PlatformName}\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
+#if PlatformName == "x64"
+Source: "Envy\{#ConfigurationName} {#PlatformName}\BugSplatMonitor.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
+Source: "Envy\{#ConfigurationName} {#PlatformName}\BugSplatWer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
+Source: "Envy\{#ConfigurationName} {#PlatformName}\BugSplatRc.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
+Source: "Envy\{#ConfigurationName} {#PlatformName}\vcruntime140.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
+Source: "Envy\{#ConfigurationName} {#PlatformName}\vcruntime140_1.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
+Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
+Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140_1.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
+Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140_2.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
+#endif
+#if PlatformName == "Win32"
 Source: "Envy\{#ConfigurationName} {#PlatformName}\crashpad_handler.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 Source: "Envy\{#ConfigurationName} {#PlatformName}\crashpad_wer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
+#endif
 Source: "TorrentEnvy\{#ConfigurationName} {#PlatformName}\TorrentEnvy.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 Source: "Unpacker\{#ConfigurationName} {#PlatformName}\Unpacker.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 ;Source: "SkinBuilder\{#ConfigurationName} {#PlatformName}\SkinBuilder.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
@@ -545,6 +561,13 @@ Root: HKCU; Subkey: "Software\Envy\Envy"; ValueType: string; ValueName: "UserPat
 Root: HKCU; Subkey: "Software\Envy\Envy"; ValueType: string; ValueName: "UserPath" ; ValueData: "{ini:{param:SETTINGS|},Locations,UserPath|{app}}"; Flags: uninsdeletekey deletevalue; Tasks: not multiuser
 Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\Envy.exe"; ValueType: string; ValueName: ; ValueData: "{app}\Envy.exe"; Flags: uninsdeletekey deletevalue
 Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\Envy.exe"; ValueType: string; ValueName: "Path"; ValueData: "{app}"; Flags: uninsdeletekey deletevalue
+
+; BugSplat WER helper (x64 packages only; requires elevation for HKLM)
+#if unified_build == "True"
+Root: HKLM64; Subkey: "Software\Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules"; ValueType: dword; ValueName: "{app}\BugSplatWer.dll"; ValueData: "0"; Flags: uninsdeletevalue; Check: Install64Bit
+#elif PlatformName == "x64"
+Root: HKLM64; Subkey: "Software\Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules"; ValueType: dword; ValueName: "{app}\BugSplatWer.dll"; ValueData: "0"; Flags: uninsdeletevalue
+#endif
 
 ; Set directory locations
 ;Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: string; ValueName: "CompletePath"; ValueData: "{ini:{param:SETTINGS|},Locations,CompletePath|{userdocs}\Envy Downloads}"; Flags: uninsdeletekey createvalueifdoesntexist; Tasks: multiuser

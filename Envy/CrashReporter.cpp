@@ -7,8 +7,12 @@
 //
 #include "StdAfx.h"
 #include "CrashReporter.h"
-#include "CrashPadHost.h"
 #include "CrashReportPolicy.h"
+#ifdef _WIN64
+#include "BugSplatHost.h"
+#else
+#include "CrashPadHost.h"
+#endif
 
 #include <commctrl.h>
 #include <shellapi.h>
@@ -65,7 +69,9 @@ wchar_t s_directory[MAX_PATH];
 
 void __cdecl OnTerminate()
 {
+#ifndef _WIN64
 	CrashPadHost::DumpNow();
+#endif
 	abort();
 }
 
@@ -77,13 +83,17 @@ void __cdecl OnInvalidParameter(
     uintptr_t /*pReserved*/)
 {
 	// Do not copy CRT strings; they may contain user paths.
+#ifndef _WIN64
 	CrashPadHost::DumpNow();
+#endif
 	abort();
 }
 
 void __cdecl OnPureCall()
 {
+#ifndef _WIN64
 	CrashPadHost::DumpNow();
+#endif
 	abort();
 }
 
@@ -640,11 +650,15 @@ void CrashReporter::Initialize()
 {
 	s_directory[0] = 0;
 	ResolveCrashDirectory(s_directory, _countof(s_directory));
+#ifndef _WIN64
 	CrashPadHost::Start(s_directory);
+#endif
 
 	if (s_bInstalled)
 		return;
 
+	// Win32: capture via Crashpad before abort. x64: same CRT hooks when BugSplat is
+	// misconfigured so terminate/invalid-parameter/purecall still fail fast.
 	s_pPreviousTerminate = set_terminate(&OnTerminate);
 	s_pPreviousInvalid = _set_invalid_parameter_handler(&OnInvalidParameter);
 	s_pPreviousPurecall = _set_purecall_handler(&OnPureCall);
@@ -653,7 +667,11 @@ void CrashReporter::Initialize()
 
 void CrashReporter::SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevision, const wchar_t* pszBuildType)
 {
+#ifdef _WIN64
+	BugSplatHost::SetIdentity(pszVersion, pszRevision, pszBuildType);
+#else
 	CrashPadHost::SetIdentity(pszVersion, pszRevision, pszBuildType);
+#endif
 }
 
 void CrashReporter::ShowStartupPromptIfNeeded()
@@ -663,6 +681,12 @@ void CrashReporter::ShowStartupPromptIfNeeded()
 	if (!FindPendingReports(reports, 32, &nCount) || nCount == 0)
 		return;
 
+#ifdef _WIN64
+	// Legacy Crashpad dumps from pre-BugSplat x64 builds: prune only, no startup UI.
+	FindPendingReports(reports, 32, &nCount);
+	PruneOldReports(reports, nCount);
+	return;
+#else
 	PendingReport* pNewestUnseen = nullptr;
 	for (size_t i = 0; i < nCount; ++i)
 	{
@@ -680,12 +704,16 @@ void CrashReporter::ShowStartupPromptIfNeeded()
 
 	FindPendingReports(reports, 32, &nCount);
 	PruneOldReports(reports, nCount);
+#endif
 }
 
 void CrashReporter::Shutdown()
 {
 	if (!s_bInstalled)
 		return;
+#ifdef _WIN64
+	BugSplatHost::Shutdown();
+#endif
 	if (s_pPreviousTerminate != nullptr)
 		set_terminate(s_pPreviousTerminate);
 	if (s_pPreviousInvalid != nullptr)
