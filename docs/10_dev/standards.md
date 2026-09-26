@@ -444,6 +444,9 @@ void CDownloadTask::ProcessChunk(const BYTE* pData, size_t nLength)
 
 ## 🛠️ Tools and Automation
 
+**Editor/workspace policy, encoding guardrails (#350), and Windows bootstrap:**
+[development-environment.md](development-environment.md).
+
 ### Code Formatting
 - **Tool**: clang-format
 - **Config**: `.clang-format` in repository root

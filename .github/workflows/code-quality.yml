@@ -113,6 +113,48 @@ jobs:
           command -v "clang-format-diff-${CLANG_FORMAT_MAJOR}"
           command -v "clang-format-${CLANG_FORMAT_MAJOR}"
 
+      - name: Block new encoding corruption in changed first-party sources
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || 'origin/develop' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if ! git rev-parse --verify "${BASE_SHA}^{commit}" >/dev/null 2>&1; then
+            echo "::error::BASE_SHA is not a valid commit: ${BASE_SHA}"
+            exit 1
+          fi
+
+          trusted_script="$(mktemp)"
+          trusted_lib="$(mktemp)"
+          use_lib=0
+          if git cat-file -e "${BASE_SHA}:.github/scripts/check_source_encoding_lib.py" 2>/dev/null; then
+            git show "${BASE_SHA}:.github/scripts/check-source-encoding.sh" >"$trusted_script"
+            git show "${BASE_SHA}:.github/scripts/check_source_encoding_lib.py" >"$trusted_lib"
+            use_lib=1
+            echo "Using encoding guard from base ${BASE_SHA}"
+          elif git cat-file -e "${HEAD_SHA}:.github/scripts/check_source_encoding_lib.py" 2>/dev/null; then
+            git show "${HEAD_SHA}:.github/scripts/check-source-encoding.sh" >"$trusted_script"
+            git show "${HEAD_SHA}:.github/scripts/check_source_encoding_lib.py" >"$trusted_lib"
+            use_lib=1
+            echo "Using encoding guard scripts from HEAD ${HEAD_SHA} (lib not on base yet)"
+          elif git cat-file -e "${BASE_SHA}:.github/scripts/check-source-encoding.sh" 2>/dev/null; then
+            git show "${BASE_SHA}:.github/scripts/check-source-encoding.sh" >"$trusted_script"
+            echo "Using legacy check-source-encoding.sh from base ${BASE_SHA}"
+          else
+            echo "::warning::Encoding guard absent on base ${BASE_SHA}; bootstrap from HEAD ${HEAD_SHA}"
+            git show "${HEAD_SHA}:.github/scripts/check-source-encoding.sh" >"$trusted_script"
+            if git cat-file -e "${HEAD_SHA}:.github/scripts/check_source_encoding_lib.py" 2>/dev/null; then
+              git show "${HEAD_SHA}:.github/scripts/check_source_encoding_lib.py" >"$trusted_lib"
+              use_lib=1
+            fi
+          fi
+          if [[ "$use_lib" -eq 1 ]]; then
+            CHECK_ENCODING_ROOT="${{ github.workspace }}" CHECK_ENCODING_LIB="$trusted_lib" bash "$trusted_script"
+          else
+            CHECK_ENCODING_ROOT="${{ github.workspace }}" bash "$trusted_script"
+          fi
+
       - name: clang-format-diff on changed hunks
         shell: bash
         env:
