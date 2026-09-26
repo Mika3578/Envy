@@ -13,8 +13,8 @@
 #include "BugSplat.h"
 
 #include <array>
-#include <exception>
 #include <memory>
+#include <new>
 
 namespace
 {
@@ -27,7 +27,11 @@ struct BugSplatState
 	std::array<wchar_t, 16> buildType{};
 };
 
-BugSplatState s_state;
+BugSplatState& State()
+{
+	static BugSplatState state;
+	return state;
+}
 
 using RtlGetVersionFn = LONG(WINAPI*)(OSVERSIONINFOW*);
 
@@ -36,21 +40,20 @@ RtlGetVersionFn ResolveRtlGetVersion(HMODULE hNtdll)
 	const FARPROC proc = GetProcAddress(hNtdll, "RtlGetVersion");
 	if (proc == nullptr)
 		return nullptr;
-	// FARPROC → stdcall function pointer is required on Win32; no portable alternative.
-	return reinterpret_cast<RtlGetVersionFn>(proc);
+	return reinterpret_cast<RtlGetVersionFn>(proc); // NOSONAR cpp:S3630 (FARPROC → stdcall fn)
 }
 
 void ApplyCrashReportingDefaults()
 {
-	if (!s_state.client)
+	if (!State().client)
 		return;
-	s_state.client->ClearAttachments();
-	s_state.client->SetQuietMode(false);
+	State().client->ClearAttachments();
+	State().client->SetQuietMode(false);
 }
 
 void ApplyPrivacySafeMetadata()
 {
-	if (!s_state.client)
+	if (!State().client)
 		return;
 
 	std::array<wchar_t, 32> windowsVersion{};
@@ -67,15 +70,15 @@ void ApplyPrivacySafeMetadata()
 		}
 	}
 
-	if (s_state.version[0] != 0)
-		s_state.client->SetAttribute(L"envy_version", s_state.version.data());
-	if (s_state.revision[0] != 0)
-		s_state.client->SetAttribute(L"envy_revision", s_state.revision.data());
-	if (s_state.buildType[0] != 0)
-		s_state.client->SetAttribute(L"envy_build_type", s_state.buildType.data());
+	if (State().version[0] != 0)
+		State().client->SetAttribute(L"envy_version", State().version.data());
+	if (State().revision[0] != 0)
+		State().client->SetAttribute(L"envy_revision", State().revision.data());
+	if (State().buildType[0] != 0)
+		State().client->SetAttribute(L"envy_build_type", State().buildType.data());
 	if (windowsVersion[0] != 0)
-		s_state.client->SetAttribute(L"windows_version", windowsVersion.data());
-	s_state.client->SetAttribute(L"envy_arch", CrashReportArchitectureToken());
+		State().client->SetAttribute(L"windows_version", windowsVersion.data());
+	State().client->SetAttribute(L"envy_arch", CrashReportArchitectureToken());
 }
 
 #ifdef ENVY_BUGSPLAT_DATABASE
@@ -86,44 +89,43 @@ const wchar_t kBugSplatDatabase[] = L"";
 
 BOOL EnsureBugSplatStarted()
 {
-	if (s_state.active)
+	if (State().active)
 		return TRUE;
 
 	const wchar_t* pszDatabase = kBugSplatDatabase;
 	if (pszDatabase == nullptr || pszDatabase[0] == 0)
 		return FALSE;
-	if (s_state.version[0] == 0)
+	if (State().version[0] == 0)
 		return FALSE;
 
 	try
 	{
-		s_state.client = std::make_unique<BugSplat>(pszDatabase, L"Envy", s_state.version.data());
+		State().client = std::make_unique<BugSplat>(pszDatabase, L"Envy", State().version.data());
 	}
-	catch (const std::exception&)
+	catch (const std::bad_alloc&)
 	{
-		s_state.client.reset();
+		State().client.reset();
 		return FALSE;
 	}
-	catch (...)
+	catch (...) // NOSONAR cpp:S2738 — vendor SDK boundary; must not abort Envy startup
 	{
-		// BugSplat SDK may throw outside std::exception; crash reporter must fail closed.
-		s_state.client.reset();
+		State().client.reset();
 		return FALSE;
 	}
 
 	SetGlobalCRTExceptionBehavior();
 	SetPerThreadCRTExceptionBehavior();
 	ApplyCrashReportingDefaults();
-	s_state.active = true;
+	State().active = true;
 	return TRUE;
 }
 }
 
 void BugSplatHost::SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevision, const wchar_t* pszBuildType)
 {
-	CrashReportSanitizeField(pszVersion, s_state.version.data(), s_state.version.size());
-	CrashReportSanitizeField(pszRevision, s_state.revision.data(), s_state.revision.size());
-	CrashReportSanitizeField(pszBuildType, s_state.buildType.data(), s_state.buildType.size());
+	CrashReportSanitizeField(pszVersion, State().version.data(), State().version.size());
+	CrashReportSanitizeField(pszRevision, State().revision.data(), State().revision.size());
+	CrashReportSanitizeField(pszBuildType, State().buildType.data(), State().buildType.size());
 
 	if (!EnsureBugSplatStarted())
 		return;
@@ -133,22 +135,22 @@ void BugSplatHost::SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevi
 
 void BugSplatHost::Shutdown()
 {
-	if (!s_state.active)
+	if (!State().active)
 		return;
-	if (s_state.client)
-		s_state.client->CleanupExceptionSystem();
-	s_state.client.reset();
-	s_state.active = false;
+	if (State().client)
+		State().client->CleanupExceptionSystem();
+	State().client.reset();
+	State().active = false;
 }
 
 BOOL BugSplatHost::IsActive()
 {
-	return s_state.active ? TRUE : FALSE;
+	return State().active ? TRUE : FALSE;
 }
 
 void BugSplatHost::InstallWorkerThreadExceptionBehavior()
 {
-	if (!s_state.active)
+	if (!State().active)
 		return;
 	SetPerThreadCRTExceptionBehavior();
 }
