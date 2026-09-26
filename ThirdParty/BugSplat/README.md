@@ -51,7 +51,7 @@ and `/MTd` (`RuntimeLibrary=MTd_StaticDebug`). Public `/MD` binaries are strictl
 
 Maintainers evaluated the official public Crashpad bundles (2026-09-25) as a
 possible substitute for the login-gated Native zip. They **do not** unblock x64
-BugSplat 7 integration for Envy:
+BugSplat SDK v8.0.0 integration for Envy:
 
 | Source | Pin | SHA-256 (asset) | CRT (probe) | Replaces Native SDK? |
 | --- | --- | --- | --- | --- |
@@ -78,6 +78,12 @@ ThirdParty/BugSplat/
   x64/Release/bin/BugSplatRc.dll
   (matching Debug/bin for local Debug builds)
 ```
+
+`BugSplatMonitor.exe` and companion DLLs are **vendor `/MD` PEs** (unlike Envy's `/MT`
+link). `CopyBugSplatRuntime.cmd` copies the SDK binaries and, when `dumpbin` and the
+VS `vc_redist.x64` CRT folder are available, also copies required `vcruntime140*.dll`
+/ `msvcp140*.dll` next to `Envy.exe`. Official installers must ship those DLLs when
+the monitor reports them as dependents.
 
 ## Licensing
 
