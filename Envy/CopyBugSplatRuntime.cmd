@@ -27,6 +27,11 @@ for %%F in (BugSplatWer.dll BugSplatRc.dll) do (
 	if errorlevel 1 exit /b 1
 )
 echo Copied BugSplat runtime from "%ROOT%" to "%DEST%"
+where pwsh >nul 2>&1
+if errorlevel 1 (
+	echo warning: pwsh not found; skipping BugSplat VC runtime DLL copy. Install PowerShell 7+ or copy vcruntime/msvcp DLLs manually.
+	exit /b 0
+)
 pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0CopyBugSplatVcRuntime.ps1" -Configuration "%~1" -Platform "%~2"
 if errorlevel 1 exit /b 1
 exit /b 0

@@ -159,13 +159,14 @@ function Get-BugSplatImportPlan {
 		if (-not $binSrc) { throw "Missing BugSplatMonitor.exe for $config under $SdkRoot" }
 		foreach ($name in @('BugSplatMonitor.exe', 'BugSplatWer.dll', 'BugSplatRc.dll')) {
 			$srcFile = Join-Path $binSrc $name
-			if (Test-Path -LiteralPath $srcFile) {
-				$plan.Bins += [pscustomobject]@{
-					Config       = $config
-					Source       = $srcFile
-					RelativePath = "x64/$config/bin/$name"
-					Name         = $name
-				}
+			if (-not (Test-Path -LiteralPath $srcFile)) {
+				throw "Missing required BugSplat runtime '$name' for $config under $binSrc"
+			}
+			$plan.Bins += [pscustomobject]@{
+				Config       = $config
+				Source       = $srcFile
+				RelativePath = "x64/$config/bin/$name"
+				Name         = $name
 			}
 		}
 	}
@@ -229,12 +230,19 @@ function Test-BugSplatCommittedSdkTree {
 	if ($reference.Count -eq 0) {
 		throw "SDK-HASHES.json has no file entries under $ReferenceHashesPath"
 	}
+	$publisherTokens = @('BugSplat')
+	if ($loaded.Document -and $loaded.Document.trustModel.authenticode.publisherSubjectContains) {
+		$publisherTokens = @($loaded.Document.trustModel.authenticode.publisherSubjectContains)
+	}
 	foreach ($rel in $reference.Keys) {
 		$destFile = Join-Path $DestRoot ($rel -replace '/', [IO.Path]::DirectorySeparatorChar)
 		if (-not (Test-Path -LiteralPath $destFile)) {
 			throw "Committed SDK missing $rel at $destFile"
 		}
 		$null = Assert-BugSplatSourceMatchesReference -SourceFile $destFile -RelativePath $rel -ReferenceMap $reference
+		if ($IsWindows -and $rel -match '\.(exe|dll)$') {
+			Assert-BugSplatAuthenticode -Path $destFile -PublisherSubjectContains $publisherTokens
+		}
 	}
 	return $true
 }

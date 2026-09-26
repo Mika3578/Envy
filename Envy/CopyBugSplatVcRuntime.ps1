@@ -60,6 +60,7 @@ function Find-VcRedistDllDir {
 		}
 		$hit = Get-ChildItem -LiteralPath $msvcRoot -Recurse -Filter 'vcruntime140.dll' -File -ErrorAction SilentlyContinue |
 			Where-Object { $_.FullName -match '\\x64\\' -or $_.FullName -match 'vc_redist\.x64' } |
+			Sort-Object FullName -Descending |
 			Select-Object -First 1
 		if ($hit) { return $hit.DirectoryName }
 	}

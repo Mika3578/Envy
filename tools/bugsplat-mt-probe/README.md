@@ -3,12 +3,12 @@
 Isolated gate for [#353](https://github.com/Mika3578/Envy/issues/353). Not part of
 `Visual Studio/Envy.sln`. Does not ship in the product.
 
-Target product architecture: **BugSplat 7 only** (no permanent Crashpad dual-backend).
-This probe must pass before changing `Envy.vcxproj` or root `vcpkg.json`.
+Target: **BugSplat SDK v8.0.0 `/MT`** for **x64** (Win32 keeps Crashpad). This probe
+validates static `/MT` link compatibility before changing `Envy.vcxproj` / `vcpkg.json`.
 
 ## Purpose
 
-Prove that the official BugSplat 7 Windows SDK static libraries in `lib\mt`
+Prove that the official BugSplat Windows SDK static libraries in `lib\mt`
 link with ENVY's runtime model (`/MT` Release, `/MTd` Debug) on VS 2026 / v145 /
 x64 without migrating the application to `/MD`.
 

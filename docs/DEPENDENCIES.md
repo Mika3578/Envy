@@ -15,7 +15,7 @@
 | LibUTP (vendored) | `Services/LibUTP` | uTP transport (unused by Envy yet) | Portable C candidate | Owner TBD / Unused | Medium | Leave until BT uTP work (#88) | Not wired |
 | BugTrap (removed) | *(deleted `Services/BugTrap`)* | Replaced by Crashpad (#90 / D-017) | Windows-only (not EnvyCore) | Removed | — | Do not reintroduce | See `docs/10_dev/crash-reporting.md` |
 | Crashpad | vcpkg `crashpad` (`platform: windows & x86` only) | Win32 legacy out-of-process capture (`crashpad_handler.exe`) | Win32 Stage A only | Active (Win32) | Medium | Crash Probe Win32 matrix | Apache-2.0; local DB; upload off |
-| BugSplat 7 | `ThirdParty/BugSplat` (official native SDK slice) | x64 crash dialog + optional backend upload | Windows x64 only | Active (x64) | Medium | `tools/bugsplat-mt-probe`, import script | Proprietary SDK; verify redistribution per imported version |
+| BugSplat 8.0.0 | `ThirdParty/BugSplat` (official native SDK slice) | x64 crash dialog + optional backend upload | Windows x64 only | Active (x64) | Medium | `tools/bugsplat-mt-probe`, import script | Proprietary SDK; verify redistribution per imported version |
 | MFC / ATL / Win32 | system / VS | UI + historical app coupling | **Windows-only** | Active product UI | High for portability | Keep for Windows frontend; ban from **new** EnvyCore APIs (D-013) | Not removed; not a portable core dependency |
 | GeoIP data | `Data/` | Geo lookup data | OS-agnostic data | Active | Low | Data refresh process | Access via filesystem platform API |
 | gtest (vcpkg feature) | vcpkg `tests` feature | Unit tests | Portable | Owner TBD / Unused | Low | Remove unused feature or wire tests to gtest | Current `tests/` uses the in-repo `TestSuite` framework |
