@@ -554,6 +554,13 @@ Root: HKCU; Subkey: "Software\Envy\Envy"; ValueType: string; ValueName: "UserPat
 Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\Envy.exe"; ValueType: string; ValueName: ; ValueData: "{app}\Envy.exe"; Flags: uninsdeletekey deletevalue
 Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\Envy.exe"; ValueType: string; ValueName: "Path"; ValueData: "{app}"; Flags: uninsdeletekey deletevalue
 
+; BugSplat WER helper (x64 packages only; requires elevation for HKLM)
+#if unified_build == "True"
+Root: HKLM64; Subkey: "Software\Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules"; ValueType: string; ValueName: "{app}\BugSplatWer.dll"; ValueData: ""; Flags: uninsdeletevalue; Check: Install64Bit
+#elif PlatformName == "x64"
+Root: HKLM64; Subkey: "Software\Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules"; ValueType: string; ValueName: "{app}\BugSplatWer.dll"; ValueData: ""; Flags: uninsdeletevalue
+#endif
+
 ; Set directory locations
 ;Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: string; ValueName: "CompletePath"; ValueData: "{ini:{param:SETTINGS|},Locations,CompletePath|{userdocs}\Envy Downloads}"; Flags: uninsdeletekey createvalueifdoesntexist; Tasks: multiuser
 ;Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: string; ValueName: "IncompletePath"; ValueData: "{ini:{param:SETTINGS|},Locations,IncompletePath|{localappdata}\Envy\Incomplete}"; Flags: uninsdeletekey createvalueifdoesntexist; Tasks: multiuser

@@ -28,8 +28,9 @@ Envy.exe (x64)
 - **No** Crashpad on x64: root `vcpkg.json` lists `crashpad` only for `windows & x86`.
 - Official builds may pass `/p:EnvyBugSplatDatabase=<name>` (database name is not a secret). Forks leave it empty to compile without uploading.
 - BugSplat is constructed in `SetIdentity` with `BugSplat(database, L"Envy", productVersion)` where `productVersion` is the same `major.minor` string as `m_sVersion` / `Envy.exe` file version. CI symbol upload uses that file version, not `github.sha` (revision stays in `envy_revision`).
-- `CrashReporter::ShowStartupPromptIfNeeded` is skipped when BugSplat is active (no duplicate next-launch UI).
-- CRT handlers for Crashpad are **not** installed on x64; BugSplat's `SetGlobalCRTExceptionBehavior` runs from `BugSplatHost`.
+- `CrashReporter::ShowStartupPromptIfNeeded` on x64 never shows the legacy Crashpad TaskDialog; it may still prune old local Crashpad dumps from pre-BugSplat builds.
+- When BugSplat is active, `BugSplatHost` installs global and per-thread CRT exception behavior (`CEnvyThread::InitInstance` on worker threads).
+- When BugSplat is inactive (no database), x64 still installs CRT terminate / invalid-parameter / purecall handlers for fail-fast behavior.
 
 ### Privacy (x64)
 
@@ -37,7 +38,7 @@ Do not attach registry exports, logs, share/download lists, torrent metadata, tr
 
 ### WER
 
-Some crash classes (fast-fail, stack overrun, etc.) require BugSplat WER registration (`BugSplatWer.dll` under `RuntimeExceptionHelperModules`). The installer runs at `PrivilegesRequired=poweruser`; HKLM registration may require elevation. Missing WER registration must not block startup — some crash types will not be captured.
+Some crash classes (fast-fail, stack overrun, etc.) require BugSplat WER registration (`BugSplatWer.dll` under `RuntimeExceptionHelperModules`). x64 installers register `{app}\BugSplatWer.dll` under that key when elevation allows. Missing WER registration must not block startup — some crash types will not be captured.
 
 ### Symbols
 
@@ -45,7 +46,7 @@ Trusted `develop` / `main` pushes may upload symbols via `.github/workflows/bugs
 
 ## Win32 — Crashpad (unchanged)
 
-See historical sections below and D-019 notes for local-database behavior.
+Local-database behavior matches D-019 / #90 (Crashpad host, next-launch dialog, retention helpers in `CrashReportPolicy.h`).
 
 - `CrashPadHost` + `crashpad_handler.exe` from vcpkg (`x86-windows-static`).
 - `CopyCrashpadHandler.cmd` runs from `PreBuild.cmd` / post-build on Win32 only.
@@ -60,7 +61,7 @@ See historical sections below and D-019 notes for local-database behavior.
 
 Official [BugSplat-Git/bugsplat-crashpad](https://github.com/BugSplat-Git/bugsplat-crashpad)
 releases are public and pin-friendly, but they distribute **Crashpad** (`/MD`), not
-the BugSplat 7 **Native** `/MT` SDK. They cannot replace
+the BugSplat SDK v8.0.0 **Native** `/MT` SDK. They cannot replace
 `scripts/import-bugsplat-sdk.ps1` for #354 without a product/CRT migration and a
 new architecture review. Evidence and pinned hashes:
 `ThirdParty/BugSplat/README.md` (section *Why not bugsplat-crashpad*).
