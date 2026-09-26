@@ -86,8 +86,7 @@ def git_changed_paths(repo_root: str, base: str, head: str) -> list[str]:
             "diff",
             "--name-only",
             "--diff-filter=ACMR",
-            base,
-            head,
+            f"{base}...{head}",
         ],
         capture_output=True,
         check=True,
@@ -145,6 +144,21 @@ def analyze_blob(data: bytes) -> FileMetrics:
     )
 
 
+def is_corrupt_copyright_line(line: bytes) -> bool:
+    if FFFD in line:
+        return True
+    if UTF8_C29D in line:
+        return True
+    if b"\x9d" in line and b"\xa9" not in line and b"\xc2\xa9" not in line:
+        return True
+    for seq in MOJIBAKE_SEQUENCES:
+        if seq in line:
+            return True
+    if b"?" in line and (b"copyright" in line.lower() or b"getenvy" in line.lower()):
+        return True
+    return False
+
+
 def line_introduces_copyright_corruption(base_line: bytes, head_line: bytes) -> bool:
     if base_line == head_line:
         return False
@@ -172,9 +186,12 @@ def compare_sensitive_lines(base_lines: list[bytes], head_lines: list[bytes]) ->
     for base_line, head_line in zip(base_lines, head_lines):
         if base_line == head_line:
             continue
+        if is_corrupt_copyright_line(head_line) and not is_corrupt_copyright_line(base_line):
+            return "copyright/license header corruption"
+        if is_corrupt_copyright_line(base_line) and not is_corrupt_copyright_line(head_line):
+            continue
         if line_introduces_copyright_corruption(base_line, head_line):
             return "copyright/license header corruption"
-        # Any other byte change to ENVY header lines is suspicious in functional PRs.
         return "copyright/license header bytes changed (preserve legacy bytes byte-for-byte)"
     return None
 
