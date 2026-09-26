@@ -27,4 +27,6 @@ for %%F in (BugSplatWer.dll BugSplatRc.dll) do (
 	if errorlevel 1 exit /b 1
 )
 echo Copied BugSplat runtime from "%ROOT%" to "%DEST%"
+pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0CopyBugSplatVcRuntime.ps1" -Configuration "%~1" -Platform "%~2"
+if errorlevel 1 exit /b 1
 exit /b 0

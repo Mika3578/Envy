@@ -25,7 +25,7 @@
 #define version       GetStringFileInfo("..\..\Envy\" + ConfigurationName + " " + PlatformName + "\Envy.exe", FILE_VERSION)
 ; #define version     GetFileVersion("..\..\Envy\" + ConfigurationName + " " + PlatformName + "\Envy.exe");
 #define publisher     "GetEnvy.com"
-#define copyright     "? 2016-2020 Envy Development Team"
+#define copyright     "(C) 2016-2020 Envy Development Team"
 #define description   internal_name + " Filesharing"
 #define date          GetDateTimeString('yyyy/mm/dd', '-', '')
 
@@ -150,7 +150,7 @@ SignTool=signtoolparams sign /f cert.pfx /p "{#signpass}" /as /fd sha256 /td sha
 [Messages]
 ; Overwrite standard ISL entries  (Do not use localized messages)
 BeveledLabel=GetEnvy.com
-SetupAppTitle=Setup ? {#internal_name}
+SetupAppTitle=Setup - {#internal_name}
 
 
 [Tasks]
@@ -203,9 +203,9 @@ Name: "{group}\{cm:icons_uninstall}"; Filename: "{uninstallexe}"; WorkingDir: "{
 #if unified_build == "True"
 Source: "Envy\Release x64\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "Envy\Release Win32\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
-Source: "Envy\Release x64\BugSplatMonitor.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
-Source: "Envy\Release x64\BugSplatWer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
-Source: "Envy\Release x64\BugSplatRc.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: Install64Bit
+Source: "Envy\Release x64\BugSplatMonitor.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
+Source: "Envy\Release x64\BugSplatWer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
+Source: "Envy\Release x64\BugSplatRc.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "Envy\Release Win32\crashpad_handler.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
 Source: "Envy\Release Win32\crashpad_wer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: not Install64Bit
 Source: "TorrentEnvy\Release x64\TorrentEnvy.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
