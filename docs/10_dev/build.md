@@ -27,11 +27,12 @@
    - Windows 10/11 (64-bit recommended)
    - Administrator privileges (for some operations)
 
-3. **vcpkg (required before the first Visual Studio build)**
-   - Root `vcpkg.json` is the Crashpad/OpenSSL/etc. manifest (`x64-windows-static` / `x86-windows-static`)
-   - Vendored `Services/` libraries are still built from the solution; they do **not** replace Crashpad
+3. **vcpkg (Win32 required; x64 optional for the main app)**
+   - **x64:** `Envy.exe` uses vendored **BugSplat** (`ThirdParty/BugSplat`) and in-tree **Services/** (zlib, SQLite, Bzlib, MiniUPnP). It does **not** link the root manifest ports and does **not** need `vcpkg_installed\x64-windows-static` for a normal build.
+   - **Win32:** Crashpad still comes from vcpkg (`x86-windows-static`); bootstrap before the first Win32 build.
+   - Root `vcpkg.json` still lists zlib/openssl/etc. for CI, Dependabot, and future migration; the main app does not consume those x64 packages today.
    - A fresh checkout does **not** contain `vcpkg_installed/` (gitignored)
-   - GitHub Actions restores the manifest **before** MSBuild; Visual Studio does **not**
+   - GitHub Actions may still run `vcpkg install` for the job triplet; Visual Studio does **not** restore manifests before `PreBuildEvent`
 
 ### Build Steps
 
@@ -41,53 +42,43 @@ git clone https://github.com/Mika3578/Envy.git
 cd Envy
 ```
 
-#### Step 2: Restore vcpkg (required on a fresh checkout)
-Visual Studio/MSBuild do **not** populate `vcpkg_installed\<triplet>` before `Envy` `PreBuildEvent`.
-`Envy.vcxproj` sets `VcpkgEnabled`, `VcpkgEnableManifest`, `VcpkgManifestRoot` (repo root),
-and `VcpkgTriplet`, but it does not import `vcpkg.targets`. Those properties do not restore
-packages by themselves. Even with `vcpkg integrate install`, vcpkg MSBuild restore runs
-before `ClCompile`/`Midl` — **after** `PreBuildEvent`, which copies `crashpad_handler.exe`.
+#### Step 2: Crash reporting inputs (platform-specific)
 
-CI (`.github/actions/windows-msbuild/action.yml`) always runs this first:
+**x64 (Release or Debug):** ensure `ThirdParty/BugSplat` is present (committed on official branches; see `ThirdParty/BugSplat/README.md`). No vcpkg restore is required before building `Envy.vcxproj`.
 
-```bat
-vcpkg install --triplet=x64-windows-static
-```
-
-Local equivalent from the repository root (uses `VCPKG_ROOT`, `VCPKG_INSTALLATION_ROOT`,
-`.\vcpkg\vcpkg.exe`, or `vcpkg` on PATH; does **not** clone vcpkg unless `-CloneVcpkg`):
-
-```bat
-scripts\bootstrap-vcpkg.cmd
-```
-
-Win32:
+**Win32:** Visual Studio/MSBuild do **not** populate `vcpkg_installed\x86-windows-static` before `PreBuildEvent`. `CopyCrashpadHandler.cmd` needs `crashpad_handler.exe` from that tree. Bootstrap from the repository root (Developer PowerShell recommended if Crashpad GN fails):
 
 ```bat
 scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static
 ```
 
-Both triplets:
+`Envy.vcxproj` disables vcpkg integration on **x64** (`VcpkgEnabled=false`). On **Win32**, it sets `VcpkgManifestRoot` to `EnvyRepoRoot` but does not import `vcpkg.targets`. `CheckVcpkgInstalled` runs **only when** `EnvyCrashRequiresVcpkg` is true (Win32).
+
+CI (`.github/actions/windows-msbuild/action.yml`) still runs `vcpkg install` for the matrix triplet (including x64 jobs); that is optional for Envy x64 link but keeps manifest coverage.
+
+Check Win32 restore without installing:
 
 ```bat
-scripts\bootstrap-vcpkg.cmd -All
+scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static -CheckOnly
 ```
 
-Check without installing:
+Install Win32 Crashpad only:
 
 ```bat
-scripts\bootstrap-vcpkg.cmd -CheckOnly
+scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static
 ```
 
-If `vcpkg.exe` is missing, bootstrap a vcpkg tree **explicitly** (same as CONTRIBUTING):
+You do **not** need to run `scripts\bootstrap-vcpkg.cmd` before your first **x64** build if `ThirdParty\BugSplat` is present.
+
+If `vcpkg.exe` is missing (Win32 bootstrap only), clone and bootstrap vcpkg explicitly (same as CONTRIBUTING):
 
 ```bat
 git clone https://github.com/microsoft/vcpkg.git
 .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
-scripts\bootstrap-vcpkg.cmd
+scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static
 ```
 
-or `scripts\bootstrap-vcpkg.cmd -CloneVcpkg`.
+or `scripts\bootstrap-vcpkg.cmd -CloneVcpkg -Triplet x86-windows-static`.
 
 #### Step 3: Open Solution
 - Navigate to `Visual Studio/` directory
@@ -170,21 +161,14 @@ cmake --build . --config Release --target HashLib
 
 ### Common Build Errors
 
-#### 0. `vcpkg_installed\x64-windows-static not found` / `PreBuild.cmd` fails / `EnvyOM.h` missing
-A fresh Visual Studio Debug|x64 (or any config) build reaches `Envy/PreBuild.cmd` **before**
-any vcpkg restore. `CopyCrashpadHandler.cmd` then fail-closes if `vcpkg_installed\<triplet>`
-is missing (`exit /b 1`). Visual Studio often surfaces that as
-`PreBuild.cmd Debug x64 exited with code 2` (cmd.exe / MSBuild wrapping, or an earlier
-`copy`/`cscript` in the same PreBuild). Treat any non-zero PreBuild as this cascade
-unless the log names a different command. MIDL never runs, so `StdAfx.h` reports
-`EnvyOM.h: No such file or directory`. That header is generated from `Envy/Envy.idl`;
-it is not a missing tracked file.
+#### 0. `PreBuild.cmd` fails / `EnvyOM.h` missing
+**x64:** `CheckVcpkgInstalled` no longer requires `vcpkg_installed\x64-windows-static`. If PreBuild still fails, read the log: missing `HashLib.dll` or a `Services\…` DLL usually means build **HashLib** and **Services** projects first (or Build Solution). Missing BugSplat files fail in `ValidateEnvyBugSplatSdk` with an import hint.
 
-**Solution:** run `scripts\bootstrap-vcpkg.cmd` (see Step 2) so `vcpkg_installed\<triplet>`
-exists **before** the first Build. Do not copy `EnvyOM.h` into git. Do not skip the
-Crashpad handler copy.
+**Win32:** missing `vcpkg_installed\x86-windows-static` or `crashpad_handler.exe` fails in `CheckVcpkgInstalled` or `CopyCrashpadHandler.cmd`. Run `scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static`.
 
-`scripts/ci-verify.ps1` now runs the same restore before MSBuild.
+If `Envy` never compiles, MIDL does not run and plugins report `EnvyOM.h: No such file or directory` (generated from `Envy/Envy.idl`; do not commit it).
+
+`scripts/ci-verify.ps1` builds x64 **without** bootstrapping x64 vcpkg; Win32 steps still bootstrap x86 when `-Full`.
 
 #### 0b. `Installer\Scripts\Main.iss` custom build exited with code 2
 `Installer/InnoSetup/ISCC.exe` is vendored (**Inno Setup 6.7.3 Unicode**; see
