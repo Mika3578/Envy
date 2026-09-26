@@ -188,7 +188,7 @@ Write-Host "Triplets   : $($triplets -join ', ')" -ForegroundColor DarkGray
 $missing = @()
 	foreach ($t in $triplets) {
 	$state = Test-VcpkgInstalled -Root $root -TargetTriplet $t
-	$needsCrashpadHandler = ($t -eq 'x86-windows-static')
+	$needsCrashpadHandler = ($t -match '^x86-windows')
 	if ($state.Exists) {
 		Write-Host "OK  $($state.Installed)" -ForegroundColor Green
 		if ($state.Handler) {
@@ -235,7 +235,7 @@ foreach ($t in $triplets) {
 	if (-not $state.Exists) {
 		throw "vcpkg install finished but $($state.Installed) is still missing."
 	}
-	if ($t -eq 'x86-windows-static') {
+	if ($t -match '^x86-windows') {
 		if (-not $state.Handler) {
 			throw "vcpkg install finished but crashpad_handler.exe was not found under $($state.Installed). Crashpad is required for Win32."
 		}

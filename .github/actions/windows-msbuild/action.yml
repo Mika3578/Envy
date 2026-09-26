@@ -16,6 +16,10 @@ inputs:
     description: Run EnvyTests.exe after a successful build
     required: false
     default: "true"
+  envy-bugsplat-database:
+    description: Optional BugSplat database name for trusted x64 Release builds (/p:EnvyBugSplatDatabase)
+    required: false
+    default: ""
   upload-logs:
     description: Upload MSBuild logs
     required: false
@@ -101,6 +105,7 @@ runs:
         if (-not (Test-Path -LiteralPath $lib)) {
           throw "Missing $lib. Import the login-gated Windows Native C++ SDK (not BugSplat-Git/bugsplat-crashpad /MD Crashpad bundles). Run scripts/import-bugsplat-sdk.ps1, commit ThirdParty/BugSplat. See ThirdParty/BugSplat/README.md."
         }
+        pwsh scripts/verify-bugsplat-sdk-committed.ps1
 
     # Measured 2026-09-19 on windows-2025-vs2026: nuget restore prints
     # "Nothing to do" and still costs ~22s. Skip unless a packages.config
@@ -134,13 +139,18 @@ runs:
 
     - name: Build solution
       shell: cmd
+      env:
+        ENVY_BUGSPLAT_DATABASE: ${{ inputs.envy-bugsplat-database }}
       run: |
+        set "BUGSPLAT_MSBUILD_PROP="
+        if not "%ENVY_BUGSPLAT_DATABASE%"=="" set "BUGSPLAT_MSBUILD_PROP=/p:EnvyBugSplatDatabase=%ENVY_BUGSPLAT_DATABASE%"
         msbuild "%SOLUTION%" ^
           %MSBUILD_PARALLEL% ^
           /nologo ^
           /verbosity:minimal ^
           /p:Configuration=${{ inputs.configuration }} ^
           /p:Platform=${{ inputs.platform }} ^
+          %BUGSPLAT_MSBUILD_PROP% ^
           /p:PlatformToolset=${{ steps.toolset.outputs.PlatformToolset }} ^
           /p:WindowsTargetPlatformVersion=10.0 ^
           /p:UseMultiToolTask=%MSBUILD_USE_MULTI_TOOL_TASK% ^

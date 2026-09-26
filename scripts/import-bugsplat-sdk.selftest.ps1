@@ -8,13 +8,17 @@ Import-Module $modulePath -Force
 
 function Assert-Throws {
 	param([scriptblock]$Block, [string]$Pattern = '')
+	$threw = $false
 	try {
 		& $Block
-		throw 'Expected script block to throw'
 	} catch {
+		$threw = $true
 		if ($Pattern -and $_.Exception.Message -notmatch $Pattern) {
 			throw "Throw message mismatch. Expected pattern '$Pattern' got: $($_.Exception.Message)"
 		}
+	}
+	if (-not $threw) {
+		throw 'Expected script block to throw'
 	}
 }
 
@@ -59,6 +63,15 @@ try {
 		ForEach-Object { $_.Name.VariablePath.UserPath }
 	if ($paramNames -contains 'RecordReferenceHashes' -or $paramNames -contains 'AllowUnlistedSource') {
 		throw 'import-bugsplat-sdk.ps1 must not expose bootstrap-only parameters'
+	}
+
+	$repoRoot = git -C $PSScriptRoot rev-parse --show-toplevel 2>$null
+	if ($LASTEXITCODE -eq 0 -and $repoRoot) {
+		$committed = Join-Path $repoRoot.Trim() 'ThirdParty\BugSplat'
+		$baseline = Join-Path $committed 'SDK-HASHES.json'
+		if ((Test-Path -LiteralPath $baseline)) {
+			$null = Test-BugSplatCommittedSdkTree -DestRoot $committed -ReferenceHashesPath $baseline
+		}
 	}
 
 	Write-Host 'import-bugsplat-sdk.selftest.ps1: all checks passed.' -ForegroundColor Green

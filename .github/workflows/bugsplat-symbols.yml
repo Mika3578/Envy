@@ -24,7 +24,15 @@ jobs:
     name: BugSplat symbols (x64 Release)
     runs-on: windows-2025-vs2026
     timeout-minutes: 120
-    if: github.repository == 'Mika3578/Envy'
+    if: >
+      github.repository == 'Mika3578/Envy' &&
+      (
+        github.event_name == 'push' ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
+        )
+      )
     env:
       PLATFORM_TOOLSET: v145
     steps:
@@ -55,6 +63,7 @@ jobs:
           configuration: Release
           upload-binaries: "false"
           run-tests: "false"
+          envy-bugsplat-database: ${{ vars.ENVY_BUGSPLAT_DATABASE }}
 
       - name: Download and verify symbol-upload tool
         if: steps.secrets.outputs.skip != 'true'
@@ -100,3 +109,6 @@ jobs:
           Write-Host "BugSplat symbol version (matches Envy.exe): $productVersion"
           & $env:SYMBOL_UPLOAD_EXE -b $env:BUGSPLAT_DATABASE -a $env:BUGSPLAT_APP -v $productVersion `
             -i $env:BUGSPLAT_CLIENT_ID -s $env:BUGSPLAT_CLIENT_SECRET -d $exe.DirectoryName
+          if ($LASTEXITCODE -ne 0) {
+            throw "symbol-upload-windows.exe failed with exit code $LASTEXITCODE"
+          }
