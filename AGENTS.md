@@ -207,9 +207,11 @@ Branch model:
       testing, risks/compatibility, related issue. `Fixes #123` /
       `Closes #123` / `Related to #123` belong in PR/issue text, not in
       source comments.
-    - **`develop` squash merges** use the PR title as the squash commit
-      title and a **blank** default squash body (`PR_TITLE` / `BLANK` in
-      `.github/settings.yml` when configured). The squash commit on
+    - **`develop` squash merges** should use the PR title as the squash
+      commit title and a **blank** default squash body (GitHub Probot
+      Settings keys `squash_merge_commit_title: PR_TITLE` and
+      `squash_merge_commit_message: BLANK` when this repository adopts
+      them). The squash commit on
       `develop` must not carry agent trailers, tool signatures, or bot
       summaries. Maintainers may add a short technical body when needed
       (for example `Fixes #298`).

@@ -1,9 +1,8 @@
 ## Summary
-- What changed?
-- Why now?
+- Why now? (problem, motivation, or context)
 
 ## Changes
-- Notable files or behavior changes.
+- Concrete files, behavior, or configuration touched.
 
 ## Scope
 - [ ] Code
