@@ -26,7 +26,8 @@ permissions:
 
 concurrency:
   group: request-copilot-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
-  cancel-in-progress: true
+  # Do not cancel mid-run: clear/re-request must finish or human reviewers can be dropped.
+  cancel-in-progress: false
 
 jobs:
   request:
