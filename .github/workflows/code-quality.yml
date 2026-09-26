@@ -150,9 +150,9 @@ jobs:
             fi
           fi
           if [[ "$use_lib" -eq 1 ]]; then
-            CHECK_ENCODING_LIB="$trusted_lib" bash "$trusted_script"
+            CHECK_ENCODING_ROOT="${{ github.workspace }}" CHECK_ENCODING_LIB="$trusted_lib" bash "$trusted_script"
           else
-            bash "$trusted_script"
+            CHECK_ENCODING_ROOT="${{ github.workspace }}" bash "$trusted_script"
           fi
 
       - name: clang-format-diff on changed hunks

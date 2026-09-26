@@ -3,8 +3,11 @@
 # Historical debt on the merge base is tolerated (base -> head). See #350.
 set -euo pipefail
 
-SCRIPT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-ROOT="${CHECK_ENCODING_ROOT:-$SCRIPT_ROOT}"
+if [[ -n "${CHECK_ENCODING_ROOT:-}" ]]; then
+	ROOT="$CHECK_ENCODING_ROOT"
+else
+	ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+fi
 cd "$ROOT"
 
 resolve_base_head() {
@@ -47,7 +50,7 @@ fi
 echo "check-source-encoding: base=${BASE_SHA} head=${HEAD_SHA}"
 
 export CHECK_ENCODING_ROOT="$ROOT"
-LIB="${CHECK_ENCODING_LIB:-$(cd "$(dirname "$0")" && pwd)/check_source_encoding_lib.py}"
+LIB="${CHECK_ENCODING_LIB:-$ROOT/.github/scripts/check_source_encoding_lib.py}"
 if [[ ! -f "$LIB" ]]; then
 	echo "::error::Missing check_source_encoding_lib.py (expected at ${LIB})" >&2
 	exit 1
