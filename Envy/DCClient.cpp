@@ -801,16 +801,16 @@ BOOL CDCClient::OnMaxedOut(const std::string& strParams)
 			return m_pDownloadTransfer->OnBusy();
 
 		unsigned nRank = 0;
-		if ( ! DcParseNmdcMaxedOutQueueRank( strParams.data(), strParams.size(), &nRank ) )
+		if (!DcParseNmdcMaxedOutQueueRank(strParams.data(), strParams.size(), &nRank))
 		{
 #ifdef _DEBUG
-			TRACE( "[DC++] Ignoring $MaxedOut with invalid queue position: \"%s\"\n",
-				strParams.c_str() );
+			TRACE("[DC++] Ignoring $MaxedOut with invalid queue position: \"%s\"\n",
+			      strParams.c_str());
 #endif
 			return TRUE;
 		}
 
-		return m_pDownloadTransfer->OnQueue( static_cast<int>( nRank ) );
+		return m_pDownloadTransfer->OnQueue(static_cast<int>(nRank));
 	}
 
 	TRACE( "[DC++] Got $MaxedOut but have no downloads.\n" );

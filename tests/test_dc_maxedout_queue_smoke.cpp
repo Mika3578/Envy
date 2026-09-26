@@ -15,9 +15,9 @@
 
 // Mirrors IDS_DOWNLOAD_QUEUED / IDS_DOWNLOAD_QUEUED_RANK English templates in Envy.rc.
 static const char kQueuedKnownTotalFmt[] =
-	"Download host %s is busy, waiting in queue at position #%i of %i (\"%s\").";
+    "Download host %s is busy, waiting in queue at position #%i of %i (\"%s\").";
 static const char kQueuedRankOnlyFmt[] =
-	"Download host %s is busy, waiting in queue at position #%i (\"%s\").";
+    "Download host %s is busy, waiting in queue at position #%i (\"%s\").";
 
 static bool parse_rank(const char* psz, size_t nLen, unsigned expected)
 {
@@ -41,21 +41,14 @@ static bool test_dc_maxedout_rank_one_and_twenty_five()
 static bool test_dc_maxedout_rejects_zero_negative_and_non_numeric()
 {
 	unsigned n = 1;
-	return !DcParseNmdcMaxedOutQueueRank("0", 1, &n)
-		&& !DcParseNmdcMaxedOutQueueRank("-1", 2, &n)
-		&& !DcParseNmdcMaxedOutQueueRank("abc", 3, &n)
-		&& !DcParseNmdcMaxedOutQueueRank("12abc", 5, &n)
-		&& !DcParseNmdcMaxedOutQueueRank("1x", 2, &n);
+	return !DcParseNmdcMaxedOutQueueRank("0", 1, &n) && !DcParseNmdcMaxedOutQueueRank("-1", 2, &n) && !DcParseNmdcMaxedOutQueueRank("abc", 3, &n) && !DcParseNmdcMaxedOutQueueRank("12abc", 5, &n) && !DcParseNmdcMaxedOutQueueRank("1x", 2, &n);
 }
 
 static bool test_dc_maxedout_rejects_overflow_and_whitespace_junk()
 {
 	unsigned n = 0;
 	const char kOverflow[] = "2147483648";
-	return !DcParseNmdcMaxedOutQueueRank(kOverflow, sizeof(kOverflow) - 1, &n)
-		&& !DcParseNmdcMaxedOutQueueRank(" 1", 2, &n)
-		&& !DcParseNmdcMaxedOutQueueRank("1 ", 2, &n)
-		&& !DcParseNmdcMaxedOutQueueRank("01", 2, &n);
+	return !DcParseNmdcMaxedOutQueueRank(kOverflow, sizeof(kOverflow) - 1, &n) && !DcParseNmdcMaxedOutQueueRank(" 1", 2, &n) && !DcParseNmdcMaxedOutQueueRank("1 ", 2, &n) && !DcParseNmdcMaxedOutQueueRank("01", 2, &n);
 }
 
 static bool test_dc_maxedout_nlen_truncation_ignores_trailer()

@@ -424,8 +424,8 @@ BOOL CDownloadTransferDC::OnQueue(int nQueue)
 
 	m_tRequest	= GetTickCount();
 
-	m_nQueuePos	= static_cast<DWORD>( nQueue );
-	m_nQueueLen	= 0;	// NMDC $MaxedOut rank only - total queue length unknown
+	m_nQueuePos = static_cast<DWORD>(nQueue);
+	m_nQueueLen = 0; // NMDC $MaxedOut rank only - total queue length unknown
 
 	if ( Settings.Downloads.QueueLimit && m_nQueuePos > Settings.Downloads.QueueLimit )
 	{
@@ -434,7 +434,7 @@ BOOL CDownloadTransferDC::OnQueue(int nQueue)
 		return FALSE;
 	}
 
-	theApp.Message( MSG_INFO, IDS_DOWNLOAD_QUEUED_RANK, (LPCTSTR)m_sAddress, m_nQueuePos, (LPCTSTR)m_sQueueName );
+	theApp.Message(MSG_INFO, IDS_DOWNLOAD_QUEUED_RANK, (LPCTSTR)m_sAddress, m_nQueuePos, (LPCTSTR)m_sQueueName);
 	return TRUE;
 }
 
