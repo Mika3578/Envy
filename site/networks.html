@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Networks — Envy</title>
+  <meta name="description" content="Networks Envy targets with current status from the repository status matrix.">
+  <link rel="canonical" href="https://mika3578.github.io/Envy/networks.html">
+  <meta property="og:title" content="Networks — Envy">
+  <meta property="og:description" content="Networks Envy targets with current status from the repository status matrix.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mika3578.github.io/Envy/networks.html">
+  <link rel="icon" href="assets/images/envy-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html">
+        <img src="assets/images/envy-logo.svg" width="40" height="48" alt="">
+        <span>Envy</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="features.html">Features</a></li>
+          <li><a href="networks.html" aria-current="page">Networks</a></li>
+          <li><a href="download.html">Download</a></li>
+          <li><a href="history.html">History</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+          <li><a href="contribute.html">Contribute</a></li>
+          <li><a href="community.html">Community</a></li>
+          <li><a href="documentation.html">Docs</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+
+    <h1>Networks</h1>
+    <p class="muted">Current status snapshot — verify on <a href="https://github.com/Mika3578/Envy/blob/develop/docs/10_dev/status.md">docs/10_dev/status.md</a> before citing in bug reports.</p>
+    <table>
+      <thead><tr><th scope="col">Network</th><th scope="col">Current status (summary)</th><th scope="col">Canonical doc</th></tr></thead>
+      <tbody>
+        <tr><td>BitTorrent v1</td><td>implemented</td><td><a href="https://github.com/Mika3578/Envy/blob/develop/docs/10_dev/status.md">status matrix</a></td></tr>
+        <tr><td>BitTorrent v2</td><td>partial</td><td><a href="https://github.com/Mika3578/Envy/blob/develop/docs/30_protocols/bittorrent/BITTORRENT_V2_PLAN.md">BEP 52 plan</a></td></tr>
+        <tr><td>Gnutella (G1)</td><td>implemented (Shareaza lineage)</td><td>status matrix</td></tr>
+        <tr><td>Gnutella2 (G2)</td><td>implemented (Shareaza lineage)</td><td>status matrix</td></tr>
+        <tr><td>ED2K / eMule family</td><td>partial / live interop unverified</td><td><a href="https://github.com/Mika3578/Envy/blob/develop/docs/30_protocols/ed2k/README.md">ED2K docs</a></td></tr>
+        <tr><td>Kad2</td><td>partial / live interop unverified</td><td><a href="https://github.com/Mika3578/Envy/blob/develop/docs/30_protocols/kad/kad2-compatibility-report.md">Kad report</a></td></tr>
+        <tr><td>Direct Connect (NMDC)</td><td>implemented; live hub interop unverified</td><td>status matrix</td></tr>
+        <tr><td>ADC / ADCS</td><td>not implemented</td><td>status matrix</td></tr>
+        <tr><td>Remote / Web UI</td><td>implemented (HTML remote; not REST API)</td><td><a href="https://github.com/Mika3578/Envy/blob/develop/docs/API.md">API notes</a></td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <strong>Historical vs current:</strong> Archived getenvy.com and SourceForge pages may list protocols or features that are not implemented on today&apos;s <code>develop</code> branch.
+      Label historical marketing separately.</div>
+
+  </main>
+  <footer class="site-footer">
+    <p>Envy is AGPL-3.0-or-later. Community site source: <a href="https://github.com/Mika3578/Envy/tree/develop/site">https://github.com/Mika3578/Envy/site</a>.
+    Current implementation status is defined in the <a href="https://github.com/Mika3578/Envy/blob/develop/docs/10_dev/status.md">repository status matrix</a>, not on this site alone.</p>
+  </footer>
+</body>
+</html>

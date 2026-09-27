@@ -240,6 +240,8 @@ while IFS= read -r f; do
 		;;
 	esac
 	if match_prefix "$f" "docs/" || \
+	   match_prefix "$f" "site/" || \
+	   match_prefix "$f" "community/" || \
 	   match_prefix "$f" "Templates/" || \
 	   match_prefix "$f" ".github/ISSUE_TEMPLATE/" || \
 	   match_prefix "$f" "tools/interop/" || \

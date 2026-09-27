@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Features — Envy</title>
+  <meta name="description" content="Feature areas for the Envy client with pointers to the canonical implementation status matrix.">
+  <link rel="canonical" href="https://mika3578.github.io/Envy/features.html">
+  <meta property="og:title" content="Features — Envy">
+  <meta property="og:description" content="Feature areas for the Envy client with pointers to the canonical implementation status matrix.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mika3578.github.io/Envy/features.html">
+  <link rel="icon" href="assets/images/envy-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html">
+        <img src="assets/images/envy-logo.svg" width="40" height="48" alt="">
+        <span>Envy</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="features.html" aria-current="page">Features</a></li>
+          <li><a href="networks.html">Networks</a></li>
+          <li><a href="download.html">Download</a></li>
+          <li><a href="history.html">History</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+          <li><a href="contribute.html">Contribute</a></li>
+          <li><a href="community.html">Community</a></li>
+          <li><a href="documentation.html">Docs</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+
+    <h1>Features</h1>
+    <p>Do not treat this page as a separate feature database. Status vocabulary and evidence live in the
+    <a href="https://github.com/Mika3578/Envy/blob/develop/docs/10_dev/status.md">canonical status matrix</a> (implemented, partial, unverified, planned, …).</p>
+    <h2>Transfers and library</h2>
+    <p>Multi-source downloads, queuing, and library organization across supported networks. Maturity varies by protocol; see the matrix.</p>
+    <h2>Search</h2>
+    <p>Multi-network search UI with network-specific backends. Live interoperability for ED2K/Kad remains a focus area on <code>develop</code>.</p>
+    <h2>Network engines</h2>
+    <p>BitTorrent v1/v2 (partial v2), Gnutella, Gnutella2, ED2K, Kad2, NMDC Direct Connect, and HTML Remote — each with documented current status on the
+    <a href="networks.html">Networks</a> page.</p>
+    <h2>Modernization foundations</h2>
+    <ul>
+      <li>Visual Studio 2026 / MSVC v145 builds and manifest vcpkg dependencies</li>
+      <li>Expanded CI, static analysis, and targeted protocol tests</li>
+      <li>Crash reporting integration (platform-specific; see status matrix)</li>
+      <li>Portable-core planning documented under <code>docs/20_arch/</code></li>
+    </ul>
+    <h2>Security and reliability</h2>
+    <p>Report vulnerabilities via <a href="https://github.com/Mika3578/Envy/security/policy">SECURITY.md</a>. Do not post exploit details in public Issues.</p>
+
+  </main>
+  <footer class="site-footer">
+    <p>Envy is AGPL-3.0-or-later. Community site source: <a href="https://github.com/Mika3578/Envy/tree/develop/site">https://github.com/Mika3578/Envy/site</a>.
+    Current implementation status is defined in the <a href="https://github.com/Mika3578/Envy/blob/develop/docs/10_dev/status.md">repository status matrix</a>, not on this site alone.</p>
+  </footer>
+</body>
+</html>

@@ -61,6 +61,12 @@ ctest --test-dir build
 - **External P2P references (spec first):** `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`
 - **Session notes (gitignored):** `.local/DEV_TRACKER.md` (`docs/DEV_TRACKER.md` is gitignored and not committed)
 
+### Community
+- **Website (GitHub Pages):** https://mika3578.github.io/Envy/ (source: `site/`; enabled after maintainer activates Pages)
+- **Wiki:** https://github.com/Mika3578/Envy/wiki (reviewable source: `community/wiki/`)
+- **Discussions:** https://github.com/Mika3578/Envy/discussions
+- Project history research: `docs/history/` (evidence ledger for community site/Wiki)
+
 ### Contributor and governance docs
 - Contribution guide: `.github/CONTRIBUTING.md` (compat pointer: `docs/CONTRIBUTING.md`)
 - PR workflow checklist: `docs/PR_PLAYBOOK.md`
