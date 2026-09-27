@@ -18,6 +18,7 @@
     <ClCompile Include="bench_json.cpp"><Filter>Source</Filter></ClCompile>
     <ClCompile Include="bench_cli.cpp"><Filter>Source</Filter></ClCompile>
     <ClCompile Include="bench_buffer.cpp"><Filter>Workloads</Filter></ClCompile>
+    <ClCompile Include="bench_buffer_support.cpp"><Filter>Source</Filter></ClCompile>
     <ClCompile Include="bench_protocol.cpp"><Filter>Workloads</Filter></ClCompile>
     <ClCompile Include="bench_hash.cpp"><Filter>Workloads</Filter></ClCompile>
     <ClCompile Include="bench_fileio.cpp"><Filter>Workloads</Filter></ClCompile>
