@@ -30,20 +30,20 @@
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #define new DEBUG_NEW
-#endif	// Debug
+#endif // Debug
 
 BEGIN_MESSAGE_MAP(CQueuePropertiesDlg, CSkinDialog)
-	ON_WM_HSCROLL()
-	ON_BN_CLICKED(IDC_QUEUE_PARTIALONLY, OnPartialClicked)
-	ON_BN_CLICKED(IDC_QUEUE_LIBRARYONLY, OnLibraryClicked)
-	ON_BN_CLICKED(IDC_QUEUE_BOTH, OnBothClicked)
-	ON_BN_CLICKED(IDC_MINIMUM_CHECK, OnMinimumCheck)
-	ON_BN_CLICKED(IDC_MAXIMUM_CHECK, OnMaximumCheck)
-	ON_BN_CLICKED(IDC_PROTOCOLS_CHECK, OnProtocolsCheck)
-	ON_BN_CLICKED(IDC_MARKED_CHECK, OnMarkedCheck)
-	ON_BN_CLICKED(IDC_ROTATE_ENABLE, OnRotateEnable)
-	ON_BN_CLICKED(IDC_MATCH_CHECK, OnMatchCheck)
-	ON_EN_CHANGE(IDC_TRANSFERS_MAX, OnChangeTransfersMax)
+ON_WM_HSCROLL()
+ON_BN_CLICKED(IDC_QUEUE_PARTIALONLY, OnPartialClicked)
+ON_BN_CLICKED(IDC_QUEUE_LIBRARYONLY, OnLibraryClicked)
+ON_BN_CLICKED(IDC_QUEUE_BOTH, OnBothClicked)
+ON_BN_CLICKED(IDC_MINIMUM_CHECK, OnMinimumCheck)
+ON_BN_CLICKED(IDC_MAXIMUM_CHECK, OnMaximumCheck)
+ON_BN_CLICKED(IDC_PROTOCOLS_CHECK, OnProtocolsCheck)
+ON_BN_CLICKED(IDC_MARKED_CHECK, OnMarkedCheck)
+ON_BN_CLICKED(IDC_ROTATE_ENABLE, OnRotateEnable)
+ON_BN_CLICKED(IDC_MATCH_CHECK, OnMatchCheck)
+ON_EN_CHANGE(IDC_TRANSFERS_MAX, OnChangeTransfersMax)
 END_MESSAGE_MAP()
 
 
@@ -51,21 +51,21 @@ END_MESSAGE_MAP()
 // CQueuePropertiesDlg dialog
 
 CQueuePropertiesDlg::CQueuePropertiesDlg(CUploadQueue* pQueue, BOOL bEnable, CWnd* pParent)
-	: CSkinDialog(CQueuePropertiesDlg::IDD, pParent)
-	, m_nCapacity	( 0 )
-	, m_bMaxSize	( FALSE )
-	, m_bMinSize	( FALSE )
-	, m_bMatch		( FALSE )
-	, m_bMarked 	( FALSE )
-	, m_bEnable 	( FALSE )
-	, m_bProtocols	( FALSE )
-	, m_bReward 	( FALSE )
-	, m_bRotate 	( FALSE )
-	, m_nRotateTime	( 0 )
-	, m_nTransfersMin ( 0 )
-	, m_nTransfersMax ( 0 )
+    : CSkinDialog(CQueuePropertiesDlg::IDD, pParent)
+    , m_nCapacity(0)
+    , m_bMaxSize(FALSE)
+    , m_bMinSize(FALSE)
+    , m_bMatch(FALSE)
+    , m_bMarked(FALSE)
+    , m_bEnable(FALSE)
+    , m_bProtocols(FALSE)
+    , m_bReward(FALSE)
+    , m_bRotate(FALSE)
+    , m_nRotateTime(0)
+    , m_nTransfersMin(0)
+    , m_nTransfersMax(0)
 {
-	ASSERT( pQueue != NULL );
+	ASSERT(pQueue != NULL);
 	m_pQueue = pQueue;
 	m_bEnableOverride = bEnable;
 	m_nFileStatusFlag = CUploadQueue::ulqBoth;
@@ -116,26 +116,26 @@ BOOL CQueuePropertiesDlg::OnInitDialog()
 {
 	CSkinDialog::OnInitDialog();
 
-	SkinMe( L"CQueuePropertiesDlg", ID_VIEW_UPLOADS );
+	SkinMe(L"CQueuePropertiesDlg", ID_VIEW_UPLOADS);
 
-	m_wndTransfersMin.SetRange( 1, 128 );
-	m_wndTransfersMax.SetRange( 1, 512 );
-	m_wndRotateTimeSpin.SetRange( 30, 15 * 60 );
+	m_wndTransfersMin.SetRange(1, 128);
+	m_wndTransfersMax.SetRange(1, 512);
+	m_wndRotateTimeSpin.SetRange(30, 15 * 60);
 
-	CoolInterface.LoadIconsTo( m_gdiProtocols, protocolIDs );
-	m_wndProtocols.SetImageList( &m_gdiProtocols, LVSIL_SMALL );
+	CoolInterface.LoadIconsTo(m_gdiProtocols, protocolIDs);
+	m_wndProtocols.SetImageList(&m_gdiProtocols, LVSIL_SMALL);
 
-	m_wndProtocols.SetExtendedStyle( LVS_EX_CHECKBOXES );
-	m_wndProtocols.InsertItem( LVIF_TEXT|LVIF_IMAGE|LVIF_PARAM, 0, L"HTTP", 0, 0, PROTOCOL_HTTP, PROTOCOL_HTTP );
-	m_wndProtocols.InsertItem( LVIF_TEXT|LVIF_IMAGE|LVIF_PARAM, 1, L"ED2K", 0, 0, PROTOCOL_ED2K, PROTOCOL_ED2K );
-	m_wndProtocols.InsertItem( LVIF_TEXT|LVIF_IMAGE|LVIF_PARAM, 2, L"DC++", 0, 0, PROTOCOL_DC, PROTOCOL_DC );
-	m_wndProtocols.InsertItem( LVIF_TEXT|LVIF_IMAGE|LVIF_PARAM, 3, L"BitTorrent", 0, 0, PROTOCOL_BT, PROTOCOL_BT );
+	m_wndProtocols.SetExtendedStyle(LVS_EX_CHECKBOXES);
+	m_wndProtocols.InsertItem(LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM, 0, L"HTTP", 0, 0, PROTOCOL_HTTP, PROTOCOL_HTTP);
+	m_wndProtocols.InsertItem(LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM, 1, L"ED2K", 0, 0, PROTOCOL_ED2K, PROTOCOL_ED2K);
+	m_wndProtocols.InsertItem(LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM, 2, L"DC++", 0, 0, PROTOCOL_DC, PROTOCOL_DC);
+	m_wndProtocols.InsertItem(LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM, 3, L"BitTorrent", 0, 0, PROTOCOL_BT, PROTOCOL_BT);
 
-	CSingleLock pLock( &UploadQueues.m_pSection, TRUE );
+	CSingleLock pLock(&UploadQueues.m_pSection, TRUE);
 
-	if ( ! UploadQueues.Check( m_pQueue ) )
+	if (!UploadQueues.Check(m_pQueue))
 	{
-		PostMessage( WM_CLOSE );
+		PostMessage(WM_CLOSE);
 		return TRUE;
 	}
 
@@ -143,13 +143,13 @@ BOOL CQueuePropertiesDlg::OnInitDialog()
 
 	m_nFileStatusFlag = m_pQueue->m_nFileStateFlag;
 
-	if ( m_nFileStatusFlag == CUploadQueue::ulqPartial )
+	if (m_nFileStatusFlag == CUploadQueue::ulqPartial)
 	{
 		m_wndPartialOnly.SetCheck(BST_CHECKED);
 		m_wndLibraryOnly.SetCheck(BST_UNCHECKED);
 		m_wndBoth.SetCheck(BST_UNCHECKED);
 	}
-	else if ( m_nFileStatusFlag == CUploadQueue::ulqLibrary )
+	else if (m_nFileStatusFlag == CUploadQueue::ulqLibrary)
 	{
 		m_wndPartialOnly.SetCheck(BST_UNCHECKED);
 		m_wndLibraryOnly.SetCheck(BST_CHECKED);
@@ -163,75 +163,74 @@ BOOL CQueuePropertiesDlg::OnInitDialog()
 	}
 
 	m_bMinSize = m_pQueue->m_nMinSize > 0;
-	m_sMinSize = Settings.SmartVolume( m_bMinSize ? m_pQueue->m_nMinSize : 0 );
+	m_sMinSize = Settings.SmartVolume(m_bMinSize ? m_pQueue->m_nMinSize : 0);
 
 	m_bMaxSize = m_pQueue->m_nMaxSize < SIZE_UNKNOWN;
-	m_sMaxSize = Settings.SmartVolume( m_bMaxSize ? m_pQueue->m_nMaxSize : 0 );
+	m_sMaxSize = Settings.SmartVolume(m_bMaxSize ? m_pQueue->m_nMaxSize : 0);
 
-	m_bMarked = ( ! m_pQueue->m_sShareTag.IsEmpty() );
+	m_bMarked = (!m_pQueue->m_sShareTag.IsEmpty());
 	m_sMarked = m_pQueue->m_sShareTag;
 
-	m_bMatch = ( ! m_pQueue->m_sNameMatch.IsEmpty() );
+	m_bMatch = (!m_pQueue->m_sNameMatch.IsEmpty());
 	m_sMatch = m_pQueue->m_sNameMatch;
 
-	m_bProtocols = ( m_pQueue->m_nProtocols != 0 );
+	m_bProtocols = (m_pQueue->m_nProtocols != 0);
 
-	if ( ! m_bProtocols || ( m_pQueue->m_nProtocols & (1<<PROTOCOL_HTTP) ) )
-		m_wndProtocols.SetItemState( 0, INDEXTOSTATEIMAGEMASK(2), LVIS_STATEIMAGEMASK );
-	if ( ! m_bProtocols || ( m_pQueue->m_nProtocols & (1<<PROTOCOL_ED2K) ) )
-		m_wndProtocols.SetItemState( 1, INDEXTOSTATEIMAGEMASK(2), LVIS_STATEIMAGEMASK );
-	if ( ! m_bProtocols || ( m_pQueue->m_nProtocols & (1<<PROTOCOL_DC) ) )
-		m_wndProtocols.SetItemState( 2, INDEXTOSTATEIMAGEMASK(2), LVIS_STATEIMAGEMASK );
-	if ( ! m_bProtocols || ( m_pQueue->m_nProtocols & (1<<PROTOCOL_BT) ) )
-		m_wndProtocols.SetItemState( 3, INDEXTOSTATEIMAGEMASK(2), LVIS_STATEIMAGEMASK );
+	if (!m_bProtocols || (m_pQueue->m_nProtocols & (1 << PROTOCOL_HTTP)))
+		m_wndProtocols.SetItemState(0, INDEXTOSTATEIMAGEMASK(2), LVIS_STATEIMAGEMASK);
+	if (!m_bProtocols || (m_pQueue->m_nProtocols & (1 << PROTOCOL_ED2K)))
+		m_wndProtocols.SetItemState(1, INDEXTOSTATEIMAGEMASK(2), LVIS_STATEIMAGEMASK);
+	if (!m_bProtocols || (m_pQueue->m_nProtocols & (1 << PROTOCOL_DC)))
+		m_wndProtocols.SetItemState(2, INDEXTOSTATEIMAGEMASK(2), LVIS_STATEIMAGEMASK);
+	if (!m_bProtocols || (m_pQueue->m_nProtocols & (1 << PROTOCOL_BT)))
+		m_wndProtocols.SetItemState(3, INDEXTOSTATEIMAGEMASK(2), LVIS_STATEIMAGEMASK);
 
-	m_bEnable		= m_pQueue->m_bEnable || m_bEnableOverride;
+	m_bEnable = m_pQueue->m_bEnable || m_bEnableOverride;
 
-	m_nCapacity		= max( m_pQueue->m_nCapacity, m_pQueue->m_nMaxTransfers );
-	m_nTransfersMin	= m_pQueue->m_nMinTransfers;
-	m_nTransfersMax	= m_pQueue->m_nMaxTransfers;
+	m_nCapacity = max(m_pQueue->m_nCapacity, m_pQueue->m_nMaxTransfers);
+	m_nTransfersMin = m_pQueue->m_nMinTransfers;
+	m_nTransfersMax = m_pQueue->m_nMaxTransfers;
 
-	m_bRotate		= m_pQueue->m_bRotate;
-	m_nRotateTime	= m_pQueue->m_nRotateTime;
+	m_bRotate = m_pQueue->m_bRotate;
+	m_nRotateTime = m_pQueue->m_nRotateTime;
 
-	m_bReward		= m_pQueue->m_bRewardUploaders;
+	m_bReward = m_pQueue->m_bRewardUploaders;
 
 	//DWORD nTotal = Settings.Connection.OutSpeed * 1024 / 8;
 	//DWORD nLimit = Settings.Bandwidth.Uploads;
 	//if ( nLimit == 0 || nLimit > nTotal ) nLimit = nTotal;
 
-	int nOtherPoints = (int)UploadQueues.GetTotalBandwidthPoints( !( m_pQueue->m_nProtocols & (1<<PROTOCOL_ED2K) ) )
-						- (int)m_pQueue->m_nBandwidthPoints;
-	if ( nOtherPoints < 0 ) nOtherPoints = 0;
+	int nOtherPoints = (int)UploadQueues.GetTotalBandwidthPoints(!(m_pQueue->m_nProtocols & (1 << PROTOCOL_ED2K))) - (int)m_pQueue->m_nBandwidthPoints;
+	if (nOtherPoints < 0) nOtherPoints = 0;
 
-	m_wndBandwidthSlider.SetRange( 1, max( 100, nOtherPoints * 3 ) );
-	m_wndBandwidthSlider.SetPos( m_pQueue->m_nBandwidthPoints );
+	m_wndBandwidthSlider.SetRange(1, max(100, nOtherPoints * 3));
+	m_wndBandwidthSlider.SetPos(m_pQueue->m_nBandwidthPoints);
 
-	UpdateData( FALSE );
+	UpdateData(FALSE);
 
 	m_wndPartialOnly.EnableWindow(TRUE);
 	m_wndLibraryOnly.EnableWindow(TRUE);
 	m_wndBoth.EnableWindow(TRUE);
 
-	m_wndMinSize.EnableWindow( m_bMinSize );
-	m_wndMaxSize.EnableWindow( m_bMaxSize );
-	m_wndMarked.EnableWindow( m_bMarked );
-	m_wndMatch.EnableWindow( m_bMatch );
-	m_wndProtocols.EnableWindow( m_bProtocols );
-	m_wndRotateTime.EnableWindow( m_bRotate );
-	m_wndRotateTimeSpin.EnableWindow( m_bRotate );
-	m_wndCapacity.SetRange32( static_cast< int >( m_nTransfersMax ), 4096 );
-	OnHScroll( 0, 0, NULL );
+	m_wndMinSize.EnableWindow(m_bMinSize);
+	m_wndMaxSize.EnableWindow(m_bMaxSize);
+	m_wndMarked.EnableWindow(m_bMarked);
+	m_wndMatch.EnableWindow(m_bMatch);
+	m_wndProtocols.EnableWindow(m_bProtocols);
+	m_wndRotateTime.EnableWindow(m_bRotate);
+	m_wndRotateTimeSpin.EnableWindow(m_bRotate);
+	m_wndCapacity.SetRange32(static_cast<int>(m_nTransfersMax), 4096);
+	OnHScroll(0, 0, NULL);
 
-	if ( Settings.General.GUIMode == GUI_BASIC &&
-		 !( Settings.eDonkey.EnableAlways | Settings.eDonkey.Enabled ) )
+	if (Settings.General.GUIMode == GUI_BASIC &&
+	    !(Settings.eDonkey.EnableAlways | Settings.eDonkey.Enabled))
 	{
 		m_bProtocols = FALSE;
-		m_wndProtocols.EnableWindow( FALSE );
-		m_wndProtocols.ShowWindow( FALSE );
+		m_wndProtocols.EnableWindow(FALSE);
+		m_wndProtocols.ShowWindow(FALSE);
 
-		(GetProtocolCheckbox())->EnableWindow( FALSE );
-		(GetProtocolCheckbox())->ShowWindow( FALSE );
+		(GetProtocolCheckbox())->EnableWindow(FALSE);
+		(GetProtocolCheckbox())->ShowWindow(FALSE);
 	}
 
 	return TRUE;
@@ -240,54 +239,54 @@ BOOL CQueuePropertiesDlg::OnInitDialog()
 void CQueuePropertiesDlg::OnMinimumCheck()
 {
 	UpdateData();
-	m_wndMinSize.EnableWindow( m_bMinSize );
+	m_wndMinSize.EnableWindow(m_bMinSize);
 }
 
 void CQueuePropertiesDlg::OnMaximumCheck()
 {
 	UpdateData();
-	m_wndMaxSize.EnableWindow( m_bMaxSize );
+	m_wndMaxSize.EnableWindow(m_bMaxSize);
 }
 
 void CQueuePropertiesDlg::OnMarkedCheck()
 {
 	UpdateData();
-	m_wndMarked.EnableWindow( m_bMarked );
+	m_wndMarked.EnableWindow(m_bMarked);
 }
 
 void CQueuePropertiesDlg::OnMatchCheck()
 {
 	UpdateData();
-	m_wndMatch.EnableWindow( m_bMatch );
+	m_wndMatch.EnableWindow(m_bMatch);
 }
 
 void CQueuePropertiesDlg::OnProtocolsCheck()
 {
-	if ( Settings.General.GUIMode == GUI_BASIC &&
-		 !( Settings.eDonkey.EnableAlways | Settings.eDonkey.Enabled ) )
+	if (Settings.General.GUIMode == GUI_BASIC &&
+	    !(Settings.eDonkey.EnableAlways | Settings.eDonkey.Enabled))
 		return;
 
 	UpdateData();
-	m_wndProtocols.EnableWindow( m_bProtocols );
+	m_wndProtocols.EnableWindow(m_bProtocols);
 }
 
 void CQueuePropertiesDlg::OnChangeTransfersMax()
 {
-	if ( m_wndBandwidthValue.m_hWnd != NULL )
+	if (m_wndBandwidthValue.m_hWnd != NULL)
 	{
 		UpdateData();
-		if ( m_nTransfersMax > m_nCapacity)
+		if (m_nTransfersMax > m_nCapacity)
 			m_nCapacity = m_nTransfersMax;
-		m_wndCapacity.SetRange( short( m_nTransfersMax ), 1024 );
-		UpdateData( FALSE );
+		m_wndCapacity.SetRange(short(m_nTransfersMax), 1024);
+		UpdateData(FALSE);
 	}
 }
 
 void CQueuePropertiesDlg::OnRotateEnable()
 {
 	UpdateData();
-	m_wndRotateTime.EnableWindow( m_bRotate );
-	m_wndRotateTimeSpin.EnableWindow( m_bRotate );
+	m_wndRotateTime.EnableWindow(m_bRotate);
+	m_wndRotateTimeSpin.EnableWindow(m_bRotate);
 }
 
 void CQueuePropertiesDlg::OnHScroll(UINT /*nSBCode*/, UINT /*nPos*/, CScrollBar* /*pScrollBar*/)
@@ -296,7 +295,7 @@ void CQueuePropertiesDlg::OnHScroll(UINT /*nSBCode*/, UINT /*nPos*/, CScrollBar*
 	                                                     Settings.Connection.OutSpeed);
 
 	int nOtherPoints = (int)UploadQueues.GetTotalBandwidthPoints(!(m_pQueue->m_nProtocols & (1 << PROTOCOL_ED2K))) - (int)m_pQueue->m_nBandwidthPoints;
-	if ( nOtherPoints < 0 )
+	if (nOtherPoints < 0)
 		nOtherPoints = 0;
 
 	int nLocalPoints = m_wndBandwidthSlider.GetPos();
@@ -311,19 +310,19 @@ void CQueuePropertiesDlg::OnHScroll(UINT /*nSBCode*/, UINT /*nPos*/, CScrollBar*
 	                     static_cast<unsigned long long>(nBandwidth) * 100ull /
 	                     static_cast<unsigned long long>(nLimit))
 	               : 0u;
-	str.Format( L"%u%% (%i/%i)", nPercent, nLocalPoints, nTotalPoints );
+	str.Format(L"%u%% (%i/%i)", nPercent, nLocalPoints, nTotalPoints);
 
-	m_wndBandwidthPoints.SetWindowText( str );
-	m_wndBandwidthValue.SetWindowText( Settings.SmartSpeed( nBandwidth ) + L'+' );
+	m_wndBandwidthPoints.SetWindowText(str);
+	m_wndBandwidthValue.SetWindowText(Settings.SmartSpeed(nBandwidth) + L'+');
 }
 
 void CQueuePropertiesDlg::OnOK()
 {
 	UpdateData();
 
-	CSingleLock pLock( &UploadQueues.m_pSection, TRUE );
+	CSingleLock pLock(&UploadQueues.m_pSection, TRUE);
 
-	if ( ! UploadQueues.Check( m_pQueue ) )
+	if (!UploadQueues.Check(m_pQueue))
 	{
 		CSkinDialog::OnCancel();
 		return;
@@ -331,15 +330,15 @@ void CQueuePropertiesDlg::OnOK()
 
 	m_pQueue->m_sName = m_sName;
 
-	if ( m_wndBoth.GetCheck() )			m_nFileStatusFlag = (CUploadQueue::ulqBoth);
-	if ( m_wndLibraryOnly.GetCheck() )	m_nFileStatusFlag = (CUploadQueue::ulqLibrary);
-	if ( m_wndPartialOnly.GetCheck() )	m_nFileStatusFlag = (CUploadQueue::ulqPartial);
-	m_pQueue->m_nFileStateFlag = ( m_nFileStatusFlag != CUploadQueue::ulqNull ) ? m_nFileStatusFlag : (CUploadQueue::ulqBoth);
+	if (m_wndBoth.GetCheck()) m_nFileStatusFlag = (CUploadQueue::ulqBoth);
+	if (m_wndLibraryOnly.GetCheck()) m_nFileStatusFlag = (CUploadQueue::ulqLibrary);
+	if (m_wndPartialOnly.GetCheck()) m_nFileStatusFlag = (CUploadQueue::ulqPartial);
+	m_pQueue->m_nFileStateFlag = (m_nFileStatusFlag != CUploadQueue::ulqNull) ? m_nFileStatusFlag : (CUploadQueue::ulqBoth);
 
-	if ( m_bMaxSize )
+	if (m_bMaxSize)
 	{
-		m_pQueue->m_nMaxSize = Settings.ParseVolume( m_sMaxSize );
-		if ( m_pQueue->m_nMaxSize == 0 )
+		m_pQueue->m_nMaxSize = Settings.ParseVolume(m_sMaxSize);
+		if (m_pQueue->m_nMaxSize == 0)
 			m_pQueue->m_nMaxSize = SIZE_UNKNOWN;
 	}
 	else
@@ -347,56 +346,56 @@ void CQueuePropertiesDlg::OnOK()
 		m_pQueue->m_nMaxSize = SIZE_UNKNOWN;
 	}
 
-	if ( m_bMinSize )
-		m_pQueue->m_nMinSize = Settings.ParseVolume( m_sMinSize );
+	if (m_bMinSize)
+		m_pQueue->m_nMinSize = Settings.ParseVolume(m_sMinSize);
 	else
 		m_pQueue->m_nMinSize = 0;
 
-	if ( m_bMarked )
+	if (m_bMarked)
 		m_pQueue->m_sShareTag = m_sMarked;
 	else
 		m_pQueue->m_sShareTag.Empty();
 
-	if ( m_bMatch )
+	if (m_bMatch)
 		m_pQueue->m_sNameMatch = m_sMatch;
 	else
 		m_pQueue->m_sNameMatch.Empty();
 
 	m_pQueue->m_nProtocols = 0;
 
-	if ( m_bProtocols )
+	if (m_bProtocols)
 	{
-		if ( m_wndProtocols.GetItemState( 0, LVIS_STATEIMAGEMASK ) == INDEXTOSTATEIMAGEMASK(2) )
-			m_pQueue->m_nProtocols |= (1<<PROTOCOL_HTTP);
-		if ( m_wndProtocols.GetItemState( 1, LVIS_STATEIMAGEMASK ) == INDEXTOSTATEIMAGEMASK(2) )
-			m_pQueue->m_nProtocols |= (1<<PROTOCOL_ED2K);
-		if ( m_wndProtocols.GetItemState( 2, LVIS_STATEIMAGEMASK ) == INDEXTOSTATEIMAGEMASK(2) )
-			m_pQueue->m_nProtocols |= (1<<PROTOCOL_DC);
-		if ( m_wndProtocols.GetItemState( 3, LVIS_STATEIMAGEMASK ) == INDEXTOSTATEIMAGEMASK(2) )
-			m_pQueue->m_nProtocols |= (1<<PROTOCOL_BT);
+		if (m_wndProtocols.GetItemState(0, LVIS_STATEIMAGEMASK) == INDEXTOSTATEIMAGEMASK(2))
+			m_pQueue->m_nProtocols |= (1 << PROTOCOL_HTTP);
+		if (m_wndProtocols.GetItemState(1, LVIS_STATEIMAGEMASK) == INDEXTOSTATEIMAGEMASK(2))
+			m_pQueue->m_nProtocols |= (1 << PROTOCOL_ED2K);
+		if (m_wndProtocols.GetItemState(2, LVIS_STATEIMAGEMASK) == INDEXTOSTATEIMAGEMASK(2))
+			m_pQueue->m_nProtocols |= (1 << PROTOCOL_DC);
+		if (m_wndProtocols.GetItemState(3, LVIS_STATEIMAGEMASK) == INDEXTOSTATEIMAGEMASK(2))
+			m_pQueue->m_nProtocols |= (1 << PROTOCOL_BT);
 
-		if ( m_pQueue->m_nProtocols == ( (1<<PROTOCOL_HTTP)|(1<<PROTOCOL_ED2K)|(1<<PROTOCOL_DC)|(1<<PROTOCOL_BT) ) )
+		if (m_pQueue->m_nProtocols == ((1 << PROTOCOL_HTTP) | (1 << PROTOCOL_ED2K) | (1 << PROTOCOL_DC) | (1 << PROTOCOL_BT)))
 			m_pQueue->m_nProtocols = 0;
 	}
 
-	m_pQueue->m_nCapacity		= min( (int)m_nCapacity, ( m_pQueue->m_nProtocols & (1<<PROTOCOL_ED2K) ) ? 4096 : 64 );
+	m_pQueue->m_nCapacity = min((int)m_nCapacity, (m_pQueue->m_nProtocols & (1 << PROTOCOL_ED2K)) ? 4096 : 64);
 
-	m_pQueue->m_bEnable			= m_bEnable;
+	m_pQueue->m_bEnable = m_bEnable;
 	//m_pQueue->m_nMinTransfers	= max( (DWORD)m_nTransfersMin, 1 );
 	//m_pQueue->m_nMaxTransfers	= (int)max( m_nTransfersMin, m_nTransfersMax );		// INT_PTR use below
 
-	if ( m_nTransfersMin > 1 )
-		IntPtrToDWord( m_nTransfersMin, &m_pQueue->m_nMinTransfers );
+	if (m_nTransfersMin > 1)
+		IntPtrToDWord(m_nTransfersMin, &m_pQueue->m_nMinTransfers);
 	else
 		m_pQueue->m_nMinTransfers = 1;
 
-	if ( m_nTransfersMax > m_nTransfersMin )
-		IntPtrToDWord( m_nTransfersMax, &m_pQueue->m_nMaxTransfers );
+	if (m_nTransfersMax > m_nTransfersMin)
+		IntPtrToDWord(m_nTransfersMax, &m_pQueue->m_nMaxTransfers);
 	else
-		m_pQueue->m_nMaxTransfers =  m_pQueue->m_nMinTransfers;
+		m_pQueue->m_nMaxTransfers = m_pQueue->m_nMinTransfers;
 
-	m_pQueue->m_bRotate			= m_bRotate;
-	m_pQueue->m_nRotateTime		= max( m_nRotateTime, 30 );
+	m_pQueue->m_bRotate = m_bRotate;
+	m_pQueue->m_nRotateTime = max(m_nRotateTime, 30);
 
 	m_pQueue->m_nBandwidthPoints = m_wndBandwidthSlider.GetPos();
 

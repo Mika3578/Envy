@@ -20,14 +20,14 @@
 
 namespace TransferConnectionCapacityDetail
 {
-	static const DWORD kPresets[] = {
-		56, 128, 256, 384, 512, 640, 768, 1024, 1544, 1550, 2048, 3072, 4096, 5120,
-		8192, 10240, 12288, 16384, 20480, 24576, 25400, 30720, 44800, 45000, 50800,
-		77000, 102400, 155000, 204800, 307200, 409600, 512000, 972800, 1024000,
-		2621440, 5242880, 10485760
-	};
-	static const unsigned int kPresetCount =
-	    static_cast<unsigned int>(sizeof(kPresets) / sizeof(kPresets[0]));
+static const DWORD kPresets[] = {
+	56, 128, 256, 384, 512, 640, 768, 1024, 1544, 1550, 2048, 3072, 4096, 5120,
+	8192, 10240, 12288, 16384, 20480, 24576, 25400, 30720, 44800, 45000, 50800,
+	77000, 102400, 155000, 204800, 307200, 409600, 512000, 972800, 1024000,
+	2621440, 5242880, 10485760
+};
+static const unsigned int kPresetCount =
+    static_cast<unsigned int>(sizeof(kPresets) / sizeof(kPresets[0]));
 } // namespace TransferConnectionCapacityDetail
 
 inline unsigned int TransferConnectionCapacityPresetCount()
@@ -54,8 +54,8 @@ inline bool TransferConnectionCapacityShouldSetWizardUploadDefault(bool bFirstRu
 
 // Connection settings Apply: preserve explicit Bandwidth.Uploads (OutSpeed is capacity only).
 inline DWORD TransferBandwidthUploadAfterConnectionSettingsApply(DWORD nExistingUploadsBytesPerSecond,
-                                                                   DWORD nOutSpeedKilobitsPerSecond,
-                                                                   unsigned int nFreeBandwidthFactor)
+                                                                 DWORD nOutSpeedKilobitsPerSecond,
+                                                                 unsigned int nFreeBandwidthFactor)
 {
 	if (TransferConnectionCapacityShouldSyncUploadLimitOnConnectionApply())
 	{

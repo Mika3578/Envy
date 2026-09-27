@@ -128,8 +128,8 @@ static bool test_bandwidth_bytes_to_setting_overflow_clamps()
 
 static unsigned long long legacy_headroom_buggy_formula(DWORD nOutSpeedKbps, unsigned int nFreeBandwidthFactor)
 {
-	return static_cast<unsigned long long>( nOutSpeedKbps / 8 ) *
-	    static_cast<unsigned long long>( ( 100 - nFreeBandwidthFactor ) / 100 ) * 1024ull;
+	return static_cast<unsigned long long>(nOutSpeedKbps / 8) *
+	       static_cast<unsigned long long>((100 - nFreeBandwidthFactor) / 100) * 1024ull;
 }
 
 static bool test_connection_kbps_to_bytes_zero()
@@ -208,7 +208,7 @@ static bool test_bandwidth_torrent_percent_multigig_no_dword_wrap()
 	const DWORD nBase = TransferConnectionKilobitsToBytesPerSecondDword(10000000);
 	const unsigned long long nScaled = static_cast<unsigned long long>(nBase) * 90ull / 100ull;
 	const DWORD nExpected = TransferBandwidthBytesToSetting(nScaled);
-	const DWORD nWrapped = ( nBase * 90 ) / 100;
+	const DWORD nWrapped = (nBase * 90) / 100;
 	return nExpected != 0 && nWrapped != nExpected;
 }
 
