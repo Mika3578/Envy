@@ -21,10 +21,6 @@
 #define VC_EXTRALEAN
 #endif
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
 #ifndef _SECURE_ATL
 #define _SECURE_ATL 1
 #endif
@@ -36,6 +32,7 @@
 
 #pragma warning(push, 0)
 
+#include <wtsapi32.h>
 #include <afxwin.h>
 #include <afxext.h>
 
