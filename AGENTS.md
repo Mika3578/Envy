@@ -101,9 +101,16 @@ Branch model:
     Human CONTRIBUTING text must match this rule (no `claude/` exception).
 12. **Controlled autonomy at the merge gate**. An assistant **may** create a
     work branch, commit/push on that branch, open a **draft** PR, mark the
-    PR ready-for-review, address reviews, fix CI, update the branch with
-    `develop`, and enable **squash auto-merge**. GitHub will merge only when
-    the live **Protect develop** ruleset is satisfied, including:
+    PR ready-for-review, address reviews, fix CI, and update the branch with
+    `develop`. **Do not** enable squash auto-merge when rule 16 requires a
+    maintainer-curated squash body (the default for `develop` with live
+    `squash_merge_commit_message: BLANK`): GitHub auto-merge cannot populate
+    the squash Extended description field, so the maintainer performs a
+    **manual squash merge** and pastes the **Squash Commit Summary** from the
+    PR. Squash auto-merge remains available only when a separate, reviewed
+    automation path can set the squash body without dumping the full PR text.
+    GitHub will merge only when the live **Protect develop** ruleset is
+    satisfied, including:
     - at least one GitHub review with state **APPROVED** from a reviewer
       other than the PR author (Protect develop live requirement). In this
       solo-maintainer repository, **GitHub Copilot Code Review may satisfy
@@ -212,19 +219,23 @@ Branch model:
     - **`develop` squash merges (title, body, references).** Merges onto
       `develop` are squash-only. Use the **PR title** as the squash commit
       title (`type(scope): short description` in English; no tool/agent
-      names). GitHub may append the PR number (for example
-      `fix(transfers): … (#357)`); do not duplicate the number when GitHub
-      already adds it. The repository default keeps GitHub from auto-filling
-      a noisy body: live settings use `squash_merge_commit_title: PR_TITLE`
-      and `squash_merge_commit_message: BLANK` (Probot Settings keys
-      `squash_merge_commit_title` / `squash_merge_commit_message` when
-      adopted). **`BLANK` means do not auto-populate** from the full PR
-      description or intermediate commit messages; it does **not** mean the
-      final squash body should stay empty. Before merge, the maintainer or
-      merge automation must paste a **concise technical squash body** into
-      GitHub's squash **Extended description** field (see the **Squash Commit
-      Summary** section in `.github/pull_request_template.md`). That body
-      must summarize the **final** change for `git log`, not review process.
+      names). With live GitHub `squash_merge_commit_title: PR_TITLE` (verify
+      under Settings → General → Pull Requests), the squash title matches the
+      PR title verbatim—there is no automatic `(#n)` suffix. Include `(#n)`
+      in the PR title only when you want it in `develop` history; link issues
+      in the curated squash body with `Fixes #123` / `Related to #123`. The
+      repository default keeps GitHub from auto-filling a noisy body: live
+      GitHub currently uses `squash_merge_commit_message: BLANK` (Probot
+      Settings keys `squash_merge_commit_title` /
+      `squash_merge_commit_message` when adopted). **`BLANK` means do not
+      auto-populate** from the full PR description or intermediate commit
+      messages; it does **not** mean the final squash body should stay empty.
+      Before merge, the maintainer (manual squash merge) or reviewed merge
+      automation must supply a **concise technical squash body**—typically by
+      pasting the **Squash Commit Summary** from the PR into GitHub's squash
+      **Extended description** field (see
+      `.github/pull_request_template.md`). That body must summarize the
+      **final** change for `git log`, not review process.
       When the change fully resolves an issue, start with `Fixes #123.` or
       `Closes #123.`; when only related, `Related to #123.`; prefer `#123`
       over same-repo URLs. Follow with roughly 1–5 bullets: root problem,
@@ -405,10 +416,12 @@ When you take on a task you are expected to:
    description reflects the current head; the **Squash Commit Summary** in the
    PR body (template section) is current and describes the **final** diff; issue
    reference semantics (`Fixes` / `Closes` / `Related to`) are correct; and the
-   summary bullets exclude process-only text forbidden in squash bodies. If a PR
-   predates the template, add or update an equivalent summary block instead of
-   rewriting unrelated sections. Do not treat the PR as merge-ready until those
-   items hold alongside required CI and review gates.
+   summary bullets exclude process-only text forbidden in squash bodies. Do not
+   enable squash auto-merge when a curated squash body is required (rule 16;
+   live `BLANK` default). If a PR predates the template, add or update an
+   equivalent summary block instead of rewriting unrelated sections. Do not treat
+   the PR as merge-ready until those items hold alongside required CI and review
+   gates.
 
 ---
 

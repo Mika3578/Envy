@@ -31,6 +31,7 @@ Final technical summary:
 
 ## Checklist
 - [ ] Changes are scoped and reviewable
+- [ ] No AI-tool attribution, assistant `Co-authored-by`, or personal emails in contributor text (`AGENTS.md` rule 16)
 - [ ] Tests added/updated where practical
 - [ ] Documentation updated
 - [ ] Changelog updated
