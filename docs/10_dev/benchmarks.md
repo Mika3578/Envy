@@ -102,7 +102,7 @@ No hostnames, personal paths, or secrets are written.
 | `buffer/*` | `Envy/Buffer.cpp` | append, remove, alternating, packet-like, retained 2 MiB |
 | `protocol/*` | `Envy/PacketLengthValidate.h` | BT/ED2K/G1/G2 framing predicates |
 | `hash/*` | `HashLib` | SHA-1, MD5, MD4, ED2K, Tiger/TTH file hashing |
-| `fileio/*` | Temp files under `%TEMP%\EnvyBenchmarks` | sequential read/write, multi-file |
+| `fileio/*` | Scratch under `%LOCALAPPDATA%\\Envy\\BenchmarkScratch` | sequential read/write, multi-file |
 
 **Not yet measured:** transfer concurrency, lock hold/wait, socket churn, `CTransferFile`
 contention (#114), or synthetic scheduler metrics (#343–#345). The JSON schema leaves
