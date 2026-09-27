@@ -99,7 +99,7 @@ No hostnames, personal paths, or secrets are written.
 
 | Group | Production seam | Notes |
 | --- | --- | --- |
-| `buffer/*` | `Envy/Buffer.cpp` | append, remove, alternating, packet-like, retained 2 MiB |
+| `buffer/*` | `Envy/Buffer.cpp` (`ENVY_BENCHMARK_BUILD` → `benchmarks/StdAfx.h`) | append, remove, alternating, packet-like, retained 2 MiB |
 | `protocol/*` | `Envy/PacketLengthValidate.h` | BT/ED2K/G1/G2 framing predicates |
 | `hash/*` | `HashLib` | SHA-1, MD5, MD4, ED2K, Tiger/TTH file hashing |
 | `fileio/*` | Scratch under `%LOCALAPPDATA%\\Envy\\BenchmarkScratch` | sequential read/write, multi-file |

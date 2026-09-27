@@ -158,6 +158,7 @@
     <ClCompile Include="bench_json.cpp" />
     <ClCompile Include="bench_cli.cpp" />
     <ClCompile Include="bench_buffer.cpp" />
+    <ClCompile Include="bench_buffer_support.cpp" />
     <ClCompile Include="bench_protocol.cpp" />
     <ClCompile Include="bench_hash.cpp" />
     <ClCompile Include="bench_fileio.cpp" />

@@ -27,6 +27,11 @@
 #endif
 #include "Buffer.h"
 #include "PacketLengthValidate.h"
+
+#ifdef ENVY_BENCHMARK_BUILD
+#include "Strings.h"
+#include "../HashLib/Utility.hpp"
+#endif
 //#include "Statistics.h"
 
 #ifdef ZLIB_H
