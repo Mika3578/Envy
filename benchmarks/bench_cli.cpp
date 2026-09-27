@@ -79,8 +79,7 @@ bool BenchParseArgs(int argc, char** argv, BenchCliOptions& out, std::string& er
 				return false;
 			}
 			out.json_output_path = argv[++i];
-			if (out.json_output_path.empty() || out.json_output_path.size() > 260 ||
-			    HasPathTraversal(out.json_output_path))
+			if (!IsSimpleOutputFilename(out.json_output_path))
 			{
 				error_message = "Invalid --json output path";
 				return false;
@@ -102,7 +101,7 @@ void BenchPrintHelp()
 	std::printf("Options:\n");
 	std::printf("  --list              List benchmark names and exit\n");
 	std::printf("  --filter <prefix>   Run benchmarks whose group/name matches prefix\n");
-	std::printf("  --json <file>       Write machine-readable JSON results\n");
+	std::printf("  --json <file>       Write machine-readable JSON results (filename only)\n");
 	std::printf("  --ci                Shorter sample counts for hosted CI\n");
 	std::printf("  --self-test         Run harness infrastructure self-tests\n");
 	std::printf("  --help              Show this help\n");

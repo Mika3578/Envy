@@ -17,20 +17,29 @@
 
 #include <sdkddkver.h>
 
-#include <WinUser.h>
-
 #ifndef VC_EXTRALEAN
 #define VC_EXTRALEAN
+#endif
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 #endif
 
 #ifndef _SECURE_ATL
 #define _SECURE_ATL 1
 #endif
 
+#define _ATL_NO_COM_SUPPORT
 #define _ATL_CSTRING_NO_CRT
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS
+#define _AFX_NO_MFC_CONTROLS_IN_DIALOGS
+
+#pragma warning(push, 0)
 
 #include <afxwin.h>
+#include <afxext.h>
+
+#pragma warning(pop)
 
 #include <cstdint>
 #include <cstring>

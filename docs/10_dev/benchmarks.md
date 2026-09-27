@@ -42,7 +42,7 @@ exists.
 benchmarks\Release x64\EnvyBenchmarks.exe
 benchmarks\Release x64\EnvyBenchmarks.exe --list
 benchmarks\Release x64\EnvyBenchmarks.exe --filter buffer
-benchmarks\Release x64\EnvyBenchmarks.exe --json my-results.json
+benchmarks\Release x64\EnvyBenchmarks.exe --json results.json
 benchmarks\Release x64\EnvyBenchmarks.exe --ci --json ci-results.json
 benchmarks\Release x64\EnvyBenchmarks.exe --self-test
 ```

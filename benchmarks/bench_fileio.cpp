@@ -8,8 +8,9 @@
 
 #include "bench_harness.h"
 
+#include "StdAfx.h"
+
 #include <cstdint>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
