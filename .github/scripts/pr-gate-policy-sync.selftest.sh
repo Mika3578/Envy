@@ -35,12 +35,12 @@ contexts = []
 for line in block[ctx_match.end() :].splitlines():
     if not line.strip():
         continue
-    indent = len(line) - len(line.lstrip(" "))
-    if indent < list_indent:
-        break
     stripped = line.strip()
     if stripped.startswith("#"):
         continue
+    indent = len(line) - len(line.lstrip(" "))
+    if indent < list_indent:
+        break
     if not stripped.startswith("- "):
         raise SystemExit(f"unexpected line in contexts list: {line!r}")
     value = stripped[2:].strip()
@@ -67,6 +67,7 @@ contexts_text="$(extract_required_contexts "$settings")" || {
 	echo "FAIL pr-gate-policy-sync: could not parse required contexts from settings.yml" >&2
 	exit 1
 }
+contexts_text="${contexts_text//$'\r'/}"
 if [[ -z "${contexts_text//[$'\t\n\r ']/}" ]]; then
 	echo "FAIL pr-gate-policy-sync: parsed zero required contexts (fail closed)" >&2
 	exit 1
@@ -77,6 +78,7 @@ gate_names_text="$(extract_gate_names "$gate")" || {
 	echo "FAIL pr-gate-policy-sync: could not read add_must/add_skip from pr-gate.sh" >&2
 	exit 1
 }
+gate_names_text="${gate_names_text//$'\r'/}"
 if [[ -z "${gate_names_text//[$'\t\n\r ']/}" ]]; then
 	echo "FAIL pr-gate-policy-sync: pr-gate.sh has no add_must/add_skip names" >&2
 	exit 1
@@ -188,10 +190,35 @@ set +e
 mixed_out="$(extract_required_contexts "$neg_tmp/mixed-contexts.yml" 2>/dev/null)"
 mixed_rc=$?
 set -e
+mixed_out="${mixed_out//$'\r'/}"
 if [[ "$mixed_rc" -eq 0 && "$mixed_out" == $'Quoted First\nUnquoted Second\nQuoted Third' ]]; then
 	echo "OK   pr-gate-policy-sync negative: mixed contexts list parses completely"
 else
 	echo "FAIL pr-gate-policy-sync negative: mixed contexts must parse all entries (rc=$mixed_rc)" >&2
+	neg_fail=1
+fi
+
+cat >"$neg_tmp/contexts-comment-indent.yml" <<'EOF'
+branches:
+  - name: develop
+    protection:
+      required_status_checks:
+        strict: true
+        contexts:
+          - "Quoted First"
+        # comment aligned with contexts: must not terminate the list
+          - "Quoted Second"
+EOF
+
+set +e
+comment_indent_out="$(extract_required_contexts "$neg_tmp/contexts-comment-indent.yml" 2>/dev/null)"
+comment_indent_rc=$?
+set -e
+comment_indent_out="${comment_indent_out//$'\r'/}"
+if [[ "$comment_indent_rc" -eq 0 && "$comment_indent_out" == $'Quoted First\nQuoted Second' ]]; then
+	echo "OK   pr-gate-policy-sync negative: contexts-aligned comment does not truncate the list"
+else
+	echo "FAIL pr-gate-policy-sync negative: contexts-aligned comment must not truncate the list (rc=$comment_indent_rc)" >&2
 	neg_fail=1
 fi
 
