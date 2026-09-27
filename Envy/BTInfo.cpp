@@ -100,14 +100,15 @@ CBTInfo::CBTInfo(const CBTInfo& oSource)
 
 CBTInfo::~CBTInfo()
 {
-	// Do not call Clear() from the destructor (cpp:S1048): full reset touches MFC
-	// paths Sonar treats as potentially throwing. Release owned file nodes and
-	// piece-hash storage only.
-	while (!m_pFiles.IsEmpty())
-		delete m_pFiles.RemoveHead();
-	m_pBlockBTH.clear();
-	m_nBlockCount = 0;
-	m_nBlockSize = 0;
+	// Clear() may throw on legacy MFC paths; swallow so the destructor stays
+	// noexcept from the caller's perspective (Sonar cpp:S1048).
+	try
+	{
+		Clear();
+	}
+	catch (...)
+	{
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1130,7 +1131,7 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 
 	const CBENode* pHash = pInfo->GetNode( "pieces" );
 	if ( ! pHash || ! pHash->IsType( CBENode::beString ) ) return FALSE;
-	if ( pHash->m_nValue % Hashes::Sha1Hash::byteCount ) return FALSE;
+	if (pHash->m_nValue % Hashes::Sha1Hash::byteCount) return FALSE;
 	const DWORD nPieceCount = (DWORD)(pHash->m_nValue / Hashes::Sha1Hash::byteCount);
 	if (!nPieceCount || !BtPieceHashDeclaredCountValid(nPieceCount)) return FALSE;
 
