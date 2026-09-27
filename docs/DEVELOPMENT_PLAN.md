@@ -286,7 +286,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - **P0 ED2K/Kad interoperability baseline** against eMule Community and aMule (live interop unverified; harness exists — `tools/interop/README.md`; see `docs/10_dev/status.md`).
 - **Bootstrap catalogues** — shipped `DefaultServices.dat` / `DefaultServers.dat` refreshed 2026-09-18. Remaining: importer hardening (P0 potential); Kad **remote** `nodes.dat` discovery type (#86/#160); last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`). Local `ImportNodes` v1/v2/v3 is implemented. Do not restore C++ DHT DNS constants when the catalogue is missing (D-012).
 - Transfer settings UX: first slice (labels + validation + mapping) in `docs/50_user/transfer-settings.md`; no fake capabilities.
-- **Modern Transfer Capacity / Broadband 2026** (#341–#345, #332, #111): #341 correctness foundation (multigig-safe conversions + upload headroom) in flight; #342 capacity vs user limits UX; #343 connection-speed presets; #344 elastic ED2K/HTTP slots; #345 BitTorrent choking; measure (#111) before raising concurrency (#113/#114).
+- **Modern Transfer Capacity / Broadband 2026** (#341–#345, #332, #111): #341 merged (#357); #342 capacity vs user limits — implementation PR in review (`fix/transfer-capacity-semantics`); #343 upload slots; #344 elastic ED2K/HTTP slots; #345 BitTorrent choking; measure (#111) before raising concurrency (#113/#114).
 
 ### Blocked / At Risk
 - Full CMake parity with Visual Studio build graph.

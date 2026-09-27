@@ -1,7 +1,7 @@
 # Transfer settings (Uploads / Downloads)
 
-Status: **partial** (foundation + Fair-Use + bandwidth correctness)
-Last updated: 2026-09-26
+Status: **partial** (foundation + Fair-Use + bandwidth correctness + capacity semantics)
+Last updated: 2026-09-27
 Scope: Settings → Internet → Uploads (`CUploadsSettingsPage`) and the shared
 bandwidth-limit token used on Settings → Internet → Downloads.
 Source of truth: `Envy/PageSettingsUploads.cpp`, `Envy/TransferSettingsLimits.h`,
@@ -35,7 +35,7 @@ load the defaults below.
 | Fair-Use mode | `Uploads.FairUseMode` | false | bool | — | `ApplyFairUseLimit` clips HTTP/ED2K/DC ranges; GET/ED2K/DC reserve on the host+path ledger; `ChargeFairUseBody` converts payload; unused reservation rolls back on `ClearRequest`/`Close`. HTTP HEAD clips advertised range but does not reserve. | HTTP, ED2K, DC library A/V; **not** BT, **not** partials | registry `Uploads\FairUseMode` | off = no clip | **implemented** (opt-in) |
 | Max uploads per host | `Uploads.MaxPerHost` | **2** (not 64) | count | 1–64 | `CUploads::AllowMoreTo` / `CanUploadFileTo` / `EnforcePerHostLimit`; HTTP `X-PerHost` | all upload transfers (HTTP, ED2K, DC, BT upload objects in `CUploads`) | registry; load + Apply clamp | 0 and &gt;64 clamped to 1..64 | implemented |
 | User-Agent filter | `Uploads.BlockAgents` | `Mozilla`, `Foxy` | substring set | — | `Security.cpp` agent match | HTTP-style User-Agent | registry pipe list | empty = no extra blocks | implemented |
-| Bandwidth Limit combo | `Bandwidth.Uploads` | **0** | bytes/s | 0 or parsed volume | `CUploads::GetBandwidthLimit`; queue point split; `CConnection::OnWrite` meter | global (all protocols sharing `Uploads` limiter) | registry `Bandwidth\Uploads` | **0 / Unlimited / MAX / NONE = unlimited** (no extra cap beyond `Connection.OutSpeed`) | implemented |
+| Bandwidth Limit combo | `Bandwidth.Uploads` | **0** | bytes/s | 0 or parsed volume | `CUploads::GetBandwidthLimit`; queue point split; `CConnection::OnWrite` meter | global (all protocols sharing `Uploads` limiter) | registry `Bandwidth\Uploads` | **0 / Unlimited / MAX / NONE = unlimited** (no additional user cap; hub/torrent policies may still scale against declared capacity) | implemented |
 | Throttle combo | `Uploads.ThrottleMode` | false (Average) | bool | Average=0, Maximum=1 | `TCPBandwidthMeter::CalculateLimit` (`bMaxMode`); also +1 point fudge in `CUploadQueue::GetBandwidthLimit` | sockets using the output meter | registry | false = average (soft), true = maximum (strict, never exceed) | implemented |
 | Queue list | `UploadQueues` XML/profile (not a single DWORD) | `CreateDefault()` by uplink | mix | per-queue | `CUploadQueue` match + slot/bandwidth points | HTTP vs ED2K queues; BT has a separate torrent queue object | `UploadQueues.Save()` on New/Edit/Delete/drag (**immediate**) | — | implemented (engine unchanged in this PR) |
 
@@ -47,8 +47,8 @@ load the defaults below.
 | `Downloads.MaxFiles` / `MaxTransfers` / `MaxFileTransfers` | 200 / 100 / 40 | active download caps | Settings → Downloads |
 | `BitTorrent.UploadCount` | 4 (2–20) | BT unchoke / torrent upload slots | BitTorrent settings, **not** Uploads |
 | `Bandwidth.HubIn/Out`, `LeafIn/Out`, `PeerIn/Out`, `UdpOut`, `Request` | various | G1/G2 neighbour pipes | Advanced settings, **not** Uploads |
-| `Connection.InSpeed` / `OutSpeed` | wizard / connection page | physical cap used when Bandwidth.* is 0 or larger | Settings → Connection |
-| `Uploads.FreeBandwidthFactor` | default 8 (%) | reserve on outbound capacity when Connection page, **first-run wizard**, or Scheduler recalculates bandwidth | Advanced / engine |
+| `Connection.InSpeed` / `OutSpeed` | wizard / connection page (canonical presets in `TransferConnectionCapacity.h`) | declared link capacity (Kb/s) for auto-tuning, warnings, queue reference, UDP cap, scheduler tasks — **not** an implicit transfer cap when bandwidth is Unlimited | Settings → Connection |
+| `Uploads.FreeBandwidthFactor` | default 8 (%) | reserve on outbound capacity when **first-run wizard** or Scheduler recalculates bandwidth (Connection page no longer overwrites `Bandwidth.Uploads`) | Advanced / engine |
 | Scheduler night/day bandwidth | writes `Bandwidth.Uploads/Downloads` | `Scheduler.cpp` | Scheduler window |
 | `Uploads.ChunkSize`, `Clampdown*`, `FreeBandwidth*`, `QueuePoll*` | see settings reference | upload engine | Advanced only |
 | Bind interface / VPN leak / IPv6 dual-stack | — | **not implemented** as transfer settings | see `docs/ipv6/` and network docs |
@@ -65,25 +65,37 @@ load the defaults below.
 | Value | Why it stays |
 | --- | --- |
 | `MaxPerHost = 2` | Historical Shareaza/Envy default. 64 is the **maximum**, not the default. Raising it increases per-IP upload slots and can hurt fairness. |
-| `Bandwidth.Uploads = 0` | Unlimited extra cap; effective send rate still bounded by `Connection.OutSpeed`. |
+| `Bandwidth.Uploads = 0` | Unlimited user cap; transfers are not silently limited to legacy default capacity. Hub/torrent percentage rules may still use declared outbound capacity as a reference. |
 | `ThrottleMode = false` | Average/soft limiter (Shareaza heritage). Strict mode is opt-in. |
 | `FairUseMode = false` | Opt-in. When true, each IPv4 client is clipped to 10% of each audio/video library file (schema Audio.xsd / Video.xsd, including extension-guessed schema). GET/ED2K/DC reserve on accept; body bytes convert the reservation; unused bytes roll back on the next request or close so HTTP keep-alive HEAD / aborted transfers do not burn quota. HTTP HEAD still clips the advertised range. Ledger is in-memory (cleared on `CUploads::Clear` / process exit; max 4096 host+path keys). |
 
 ---
 
+## Connection capacity vs transfer limit (#342)
+
+| Concept | Settings | Meaning |
+| --- | --- | --- |
+| **Connection capacity** | `Connection.InSpeed`, `Connection.OutSpeed` | Declared or estimated link speed in **Kb/s** (Ki-based presets, e.g. 100 Mb/s ≈ 102400 Kb/s). Used for concurrency tiers (`OnChangeConnectionSpeed`), neighbour policy, monitor scale, warnings, scheduler-derived limits, and queue **reference** bandwidth when the user cap is Unlimited. |
+| **Transfer limit** | `Bandwidth.Downloads`, `Bandwidth.Uploads` | Optional user cap in **bytes/s**. `0` / Unlimited = no additional user rate cap. |
+| **Scheduler** | `Scheduler.cpp` | May intentionally write concrete `Bandwidth.*` values from capacity (day/night profiles). That is an explicit scheduled cap, not the hidden Unlimited ceiling removed in #342. |
+
+Changing capacity on Settings → Connection does **not** rewrite `Bandwidth.Uploads` or `Bandwidth.Downloads`. The connection wizard seeds upload headroom from outbound capacity **only on first run** (`Live.FirstRun`).
+
+No registry migration is required for historical 4096/768 Kb/s defaults: removing the capacity ceiling on Unlimited transfers decouples behaviour without resetting stored values.
+
 ## Bandwidth conversion (correctness)
 
 `Connection.InSpeed` / `OutSpeed` are **kilobits per second** (Kb/s). Persisted
 `Bandwidth.Uploads` / `Bandwidth.Downloads` are **bytes per second**; `0` means
-no extra cap (unlimited relative to the connection capacity).
+no user transfer cap.
 
-Pure helpers in `TransferSettingsLimits.h` convert with 64-bit intermediates
-(`Kb/s × 1024 ÷ 8`) and clamp to `DWORD` at persistence boundaries. When the
-Connection page changes outbound capacity, `Bandwidth.Uploads` is set to
-`(100 − FreeBandwidthFactor)%` of that capacity (default reserve **8%** → **92%**
-usable). Scheduler full/limited tasks use the same headroom rule.
+Pure helpers in `TransferSettingsLimits.h` and `TransferConnectionCapacity.h`
+convert with 64-bit intermediates (`Kb/s × 1024 ÷ 8`) and clamp to `DWORD` at
+persistence boundaries. First-run wizard and Scheduler tasks may still set
+`Bandwidth.Uploads` to `(100 − FreeBandwidthFactor)%` of outbound capacity
+(default reserve **8%** → **92%** usable).
 
-This slice does **not** change upload slot counts, download presets, or
+This slice does **not** change upload slot counts, download concurrency tiers, or
 BitTorrent choking (#343–#345).
 
 ---
