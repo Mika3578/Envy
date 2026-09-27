@@ -57,6 +57,8 @@ request a human; do not `APPROVED`.
 - The pull request is not a draft and is not Copilot-authored.
 - Required Protect develop checks are green. If CI is still running, wait.
 - No unresolved review threads and no outstanding `CHANGES_REQUESTED`.
+- Squash Commit Summary in the PR body matches the final head and satisfies
+  `AGENTS.md` rule 16 (issue reference + concise bullets; no process-only text).
 - The change does not disable, skip, relabel, or weaken a required
   build/test/static-analysis/security/quality gate.
 - Low-risk PRs: docs match the live Protect develop ruleset.

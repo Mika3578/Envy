@@ -203,18 +203,38 @@ Branch model:
       `perf`, `test`, `build`, `ci`, `chore`, `security`). Do not put agent
       names, tool brands, emails, `Co-authored-by`, or marketing text in the
       title. No arbitrary character-limit CI rule.
-    - **Pull request descriptions** stay technical: problem/why, changes,
-      testing, risks/compatibility, related issue. `Fixes #123` /
-      `Closes #123` / `Related to #123` belong in PR/issue text, not in
-      source comments.
-    - **`develop` squash merges** should use the PR title as the squash
-      commit title and a **blank** default squash body (GitHub Probot
-      Settings keys `squash_merge_commit_title: PR_TITLE` and
-      `squash_merge_commit_message: BLANK` when this repository adopts
-      them). The squash commit on
-      `develop` must not carry agent trailers, tool signatures, or bot
-      summaries. Maintainers may add a short technical body when needed
-      (for example `Fixes #298`).
+    - **Pull request descriptions** are the detailed review artifact:
+      problem/motivation, changes, validation, risks/compatibility,
+      documentation, and related issues. They are **not** copied wholesale
+      into the squash commit body. `Fixes #123` / `Closes #123` /
+      `Related to #123` belong in PR/issue text (and in the curated squash
+      body when applicable), not in source comments.
+    - **`develop` squash merges (title, body, references).** Merges onto
+      `develop` are squash-only. Use the **PR title** as the squash commit
+      title (`type(scope): short description` in English; no tool/agent
+      names). GitHub may append the PR number (for example
+      `fix(transfers): … (#357)`); do not duplicate the number when GitHub
+      already adds it. The repository default keeps GitHub from auto-filling
+      a noisy body: live settings use `squash_merge_commit_title: PR_TITLE`
+      and `squash_merge_commit_message: BLANK` (Probot Settings keys
+      `squash_merge_commit_title` / `squash_merge_commit_message` when
+      adopted). **`BLANK` means do not auto-populate** from the full PR
+      description or intermediate commit messages; it does **not** mean the
+      final squash body should stay empty. Before merge, the maintainer or
+      merge automation must paste a **concise technical squash body** into
+      GitHub's squash **Extended description** field (see the **Squash Commit
+      Summary** section in `.github/pull_request_template.md`). That body
+      must summarize the **final** change for `git log`, not review process.
+      When the change fully resolves an issue, start with `Fixes #123.` or
+      `Closes #123.`; when only related, `Related to #123.`; prefer `#123`
+      over same-repo URLs. Follow with roughly 1–5 bullets: root problem,
+      resulting behavior, important compatibility/security/reliability
+      effects, and meaningful regression coverage when useful. The squash
+      body must **not** include AI/tool attribution, `Generated-by`,
+      AI `Co-authored-by`, review-bot summaries, "address review comments",
+      "fix CI", intermediate commit history, personal emails, PR template
+      checkboxes, or full CI logs. Normal GitHub noreply commit authorship is
+      fine and is not a `Co-authored-by` trailer.
     - Source-code comments explain a non-obvious constraint, protocol rule,
       invariant, limitation, security reason, or interoperability subtlety.
       Prefer a self-contained technical explanation. A rare issue/PR
@@ -377,9 +397,18 @@ When you take on a task you are expected to:
     sequencing, decisions, or blockers. Do not create duplicate status docs.
     If no documentation change is required, state why in the PR/final report.
 11. **Do not silently remove validation or compatibility assets.** Tests,
-    coverage, workflows, fixtures, protocol evidence, docs, runtime resources,
-    and legacy compatibility paths may be removed only when the PR explicitly
-    explains why and supplies an equivalent or intentional retirement plan.
+   coverage, workflows, fixtures, protocol evidence, docs, runtime resources,
+   and legacy compatibility paths may be removed only when the PR explicitly
+   explains why and supplies an equivalent or intentional retirement plan.
+12. **PR finalization before manual squash merge.** When cleaning up a PR for
+   merge, ensure the PR title matches the intended squash title; the PR
+   description reflects the current head; the **Squash Commit Summary** in the
+   PR body (template section) is current and describes the **final** diff; issue
+   reference semantics (`Fixes` / `Closes` / `Related to`) are correct; and the
+   summary bullets exclude process-only text forbidden in squash bodies. If a PR
+   predates the template, add or update an equivalent summary block instead of
+   rewriting unrelated sections. Do not treat the PR as merge-ready until those
+   items hold alongside required CI and review gates.
 
 ---
 

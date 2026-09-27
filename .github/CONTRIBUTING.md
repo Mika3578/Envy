@@ -54,8 +54,14 @@ fast-forward-only and rebase feature branches before opening or updating PRs.
 
 - Merge commits: **disabled**
 - Squash merge: **enabled** (required path onto `develop`)
-- Squash merge title: **PR title** (target in `.github/settings.yml`; confirm live GitHub settings)
-- Squash merge body: **blank** by default (no agent trailers or bot summaries on `develop`)
+- Squash merge title default: **PR title** (live GitHub:
+  `squash_merge_commit_title: PR_TITLE`)
+- Squash merge message default: **blank auto-fill** (live GitHub:
+  `squash_merge_commit_message: BLANK`) — prevents GitHub from dumping the
+  full PR body or all branch commits into `develop`. **Policy still requires**
+  a concise technical squash body at merge time; copy it from the **Squash
+  Commit Summary** section of your PR (see `.github/pull_request_template.md`).
+  Canonical rules: `AGENTS.md` hard rule 16.
 - Rebase merge: **enabled globally**, but **prohibited** when merging into
   `develop` by the Protect develop ruleset (squash-only)
 - Require linear history on `develop`: **enabled** via the active `Protect develop` ruleset
@@ -93,6 +99,19 @@ git reset --hard origin/develop
 ```
 
 Never commit directly on `develop`; always use a feature branch and PR.
+
+## Pull requests, squash merges, and commit messages
+
+- Open PRs against `develop`; use squash merge only (Protect develop).
+- **PR title** → squash commit title (`type(scope): short description`,
+  English, no tool/agent names).
+- **PR description** → detailed review context (problem, changes, validation,
+  risks, docs, issues). It is not pasted wholesale into `develop` history.
+- **Squash commit body** → required concise technical summary at merge (issue
+  line plus a few bullets). Prepare it in the PR template **Squash Commit
+  Summary** section for copy/paste into GitHub's Extended description field.
+- Use `Fixes #n` / `Closes #n` only when the merge fully resolves the issue;
+  otherwise `Related to #n`. Prefer `#n` for same-repo references.
 
 ## Authorship, privacy, and comments
 

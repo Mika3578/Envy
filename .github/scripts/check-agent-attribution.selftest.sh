@@ -434,12 +434,13 @@ if run_scan --from "../../../etc/passwd" --to "$HEAD"; then
 	exit 1
 fi
 echo 'ok' >"$TMP/safe-body.md"
+mkdir -p "$TMP/nested"
 if ! run_scan --pr-body "$TMP/safe-body.md"; then
 	echo "FAIL: temp PR body path must remain readable"
 	exit 1
 fi
-if run_scan --pr-body "$TMP/../$TMP/not-there/../../etc/passwd"; then
-	echo "FAIL: traversal in --pr-body must be rejected"
+if run_scan --pr-body "$TMP/nested/../safe-body.md"; then
+	echo "FAIL: .. in pr-body path must be rejected even when target exists"
 	exit 1
 fi
 
@@ -461,4 +462,3 @@ print("gh_api_list validation ok")
 PY
 
 echo "check-agent-attribution.selftest passed"
-# Sonar re-analysis trigger: security hardening validated by selftest injection cases.

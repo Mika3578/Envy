@@ -145,38 +145,40 @@ def require_full_sha(value: str, label: str) -> str:
 def normalize_to_sha(to_sha: str) -> str:
     to_sha = to_sha.strip()
     if to_sha == "HEAD":
-        return git_check_output(["git", "rev-parse", "HEAD"]).strip()
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True, errors="replace"
+        ).strip()
     return require_full_sha(to_sha, "to")
 
 
-def git_check_output(argv: list[str]) -> str:
-    if not argv or argv[0] != "git":
-        raise RuntimeError("internal: expected git argv")
-    return subprocess.check_output(argv, text=True, errors="replace")
-
-
 def git_diff(parent: str, child: str) -> str:
-    return git_check_output(
-        [
-            "git",
-            "diff",
-            "-U0",
-            require_full_sha(parent, "parent"),
-            require_full_sha(child, "child"),
-        ]
+    parent = require_full_sha(parent, "parent")
+    child = require_full_sha(child, "child")
+    return subprocess.check_output(
+        ["git", "diff", "-U0", parent, child],
+        text=True,
+        errors="replace",
     )
 
 
 def git_rev_list_range(from_sha: str, to_sha: str) -> list[str]:
     start = require_full_sha(from_sha, "from")
     end = require_full_sha(to_sha, "to")
-    out = git_check_output(["git", "rev-list", f"{start}..{end}"])
+    out = subprocess.check_output(
+        ["git", "rev-list", f"{start}..{end}"],
+        text=True,
+        errors="replace",
+    )
     return [line.strip() for line in out.splitlines() if line.strip()]
 
 
 def git_rev_parse_parent(commit: str) -> str:
     commit = require_full_sha(commit, "commit")
-    return git_check_output(["git", "rev-parse", f"{commit}^"]).strip()
+    return subprocess.check_output(
+        ["git", "rev-parse", f"{commit}^"],
+        text=True,
+        errors="replace",
+    ).strip()
 
 
 def git_log_field(commit: str, fmt: str) -> str:
@@ -184,7 +186,11 @@ def git_log_field(commit: str, fmt: str) -> str:
     allowed = {"%ae", "%an", "%ce", "%cn", "%B"}
     if fmt not in allowed:
         raise RuntimeError(f"unsupported git log format: {fmt}")
-    return git_check_output(["git", "log", "-1", f"--format={fmt}", commit]).strip()
+    return subprocess.check_output(
+        ["git", "log", "-1", f"--format={fmt}", commit],
+        text=True,
+        errors="replace",
+    ).strip()
 
 
 def read_bounded_input_file(path_str: str, label: str, errors: list[str]) -> str | None:
