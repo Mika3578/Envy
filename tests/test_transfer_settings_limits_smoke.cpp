@@ -390,7 +390,10 @@ static bool test_outgoing_heuristic_finite_user_limit()
 
 static bool test_connection_apply_does_not_sync_upload_limit()
 {
-	return TransferConnectionCapacityShouldSyncUploadLimitOnConnectionApply() == false;
+	const DWORD nExplicitUpload = 128000u;
+	const DWORD nAfterApply = TransferBandwidthUploadAfterConnectionSettingsApply(
+	    nExplicitUpload, 10485760u, 8u);
+	return nAfterApply == nExplicitUpload;
 }
 
 static bool test_wizard_upload_default_only_first_run()
@@ -446,6 +449,31 @@ static bool test_capacity_parse_mbps()
 {
 	const auto o = TransferConnectionCapacityParseKilobitsText(L"100 mbps     (12.50 MB/s)");
 	return o.eStatus == TransferConnectionCapacityParseStatus::Ok && o.nKilobitsPerSecond == 102400ull;
+}
+
+static bool test_capacity_parse_wizard_mbps_with_kbs_parenthetical()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"1.0 mbps    (128 KB/s)");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Ok && o.nKilobitsPerSecond == 1024ull;
+}
+
+static bool test_capacity_parse_rejects_nan()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"nan mbps");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Negative;
+}
+
+static bool test_capacity_parse_garbage_not_gigabit()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"100 garbage");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Ok && o.nKilobitsPerSecond == 100ull;
+}
+
+static bool test_bandwidth_share_bytes_10g_no_wrap()
+{
+	const DWORD nRef = TransferConnectionKilobitsToBytesPerSecondDword(10485760u);
+	const DWORD nShare = TransferBandwidthShareBytes(nRef, 30u, 100u);
+	return nShare > 0u && nShare < nRef;
 }
 
 static bool test_capacity_parse_gbps()
@@ -574,6 +602,14 @@ void register_transfer_settings_limits_smoke_tests(TestSuite& suite)
 	               test_capacity_parse_kbps_wizard_string);
 	suite.add_test("transfer_capacity_parse_mbps",
 	               test_capacity_parse_mbps);
+	suite.add_test("transfer_capacity_parse_wizard_mbps_with_kbs_parenthetical",
+	               test_capacity_parse_wizard_mbps_with_kbs_parenthetical);
+	suite.add_test("transfer_capacity_parse_rejects_nan",
+	               test_capacity_parse_rejects_nan);
+	suite.add_test("transfer_capacity_parse_garbage_not_gigabit",
+	               test_capacity_parse_garbage_not_gigabit);
+	suite.add_test("transfer_bandwidth_share_bytes_10g_no_wrap",
+	               test_bandwidth_share_bytes_10g_no_wrap);
 	suite.add_test("transfer_capacity_parse_gbps",
 	               test_capacity_parse_gbps);
 	suite.add_test("transfer_capacity_parse_malformed",

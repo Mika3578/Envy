@@ -219,6 +219,20 @@ inline DWORD TransferBandwidthReferenceUploadBytes(DWORD nUserUploadsBytesPerSec
 	return TransferConnectionKilobitsToBytesPerSecondDword(nOutSpeedKilobitsPerSecond);
 }
 
+// Queue / ED2K point share: 64-bit product before DWORD saturation.
+inline DWORD TransferBandwidthShareBytes(DWORD nReferenceBytesPerSecond,
+                                         unsigned int nPoints,
+                                         unsigned int nTotalPoints)
+{
+	if (nTotalPoints < 1)
+		nTotalPoints = 1;
+	const unsigned long long nShare =
+	    static_cast<unsigned long long>(nReferenceBytesPerSecond) *
+	    static_cast<unsigned long long>(nPoints) /
+	    static_cast<unsigned long long>(nTotalPoints);
+	return TransferBandwidthBytesToSetting(nShare);
+}
+
 // Heuristic outbound KB/s for UI gates (enable networks, torrent caps). Not a wire limiter.
 inline DWORD TransferOutgoingBandwidthHeuristicKBps(DWORD nUserUploadsBytesPerSecond,
                                                     DWORD nOutSpeedKilobitsPerSecond)

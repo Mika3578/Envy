@@ -876,7 +876,11 @@ DWORD CConnection::TCPBandwidthMeter::CalculateLimit(DWORD tNow, DWORD nBandwidt
 	DWORD nLimit = *pLimit;							// Get the speed limit
 
 	if ( nBandwidthScale < 100 )					// The scale is turned down and we should use it
-		nLimit = nLimit * nBandwidthScale / 100;	// Adjust limit based on the scale percentage
+	{
+		const unsigned long long nScaled =
+		    static_cast<unsigned long long>(nLimit) * static_cast<unsigned long long>(nBandwidthScale) / 100ull;
+		nLimit = nScaled > 0xFFFFFFFFull ? 0xFFFFFFFFu : static_cast<DWORD>(nScaled);
+	}
 	else if ( nBandwidthScale > 100 )
 		nLimit = 0xFFFFFFFF;						// Remove limit based on MAX scale
 

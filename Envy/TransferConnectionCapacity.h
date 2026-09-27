@@ -14,32 +14,32 @@
 
 #include "TransferSettingsLimits.h"
 
+#include <cmath>
 #include <cwchar>
 #include <cwctype>
 
-inline unsigned int TransferConnectionCapacityPresetCount()
+namespace TransferConnectionCapacityDetail
 {
-	// Sorted ascending; no duplicates. Ki-based Mb/s/Gb/s labels (×1024).
 	static const DWORD kPresets[] = {
 		56, 128, 256, 384, 512, 640, 768, 1024, 1544, 1550, 2048, 3072, 4096, 5120,
 		8192, 10240, 12288, 16384, 20480, 24576, 25400, 30720, 44800, 45000, 50800,
 		77000, 102400, 155000, 204800, 307200, 409600, 512000, 972800, 1024000,
 		2621440, 5242880, 10485760
 	};
-	return static_cast<unsigned int>(sizeof(kPresets) / sizeof(kPresets[0]));
+	static const unsigned int kPresetCount =
+	    static_cast<unsigned int>(sizeof(kPresets) / sizeof(kPresets[0]));
+} // namespace TransferConnectionCapacityDetail
+
+inline unsigned int TransferConnectionCapacityPresetCount()
+{
+	return TransferConnectionCapacityDetail::kPresetCount;
 }
 
 inline DWORD TransferConnectionCapacityPresetKilobits(unsigned int nIndex)
 {
-	static const DWORD kPresets[] = {
-		56, 128, 256, 384, 512, 640, 768, 1024, 1544, 1550, 2048, 3072, 4096, 5120,
-		8192, 10240, 12288, 16384, 20480, 24576, 25400, 30720, 44800, 45000, 50800,
-		77000, 102400, 155000, 204800, 307200, 409600, 512000, 972800, 1024000,
-		2621440, 5242880, 10485760
-	};
-	if (nIndex >= TransferConnectionCapacityPresetCount())
+	if (nIndex >= TransferConnectionCapacityDetail::kPresetCount)
 		return 0;
-	return kPresets[nIndex];
+	return TransferConnectionCapacityDetail::kPresets[nIndex];
 }
 
 inline bool TransferConnectionCapacityShouldSyncUploadLimitOnConnectionApply()
@@ -50,6 +50,19 @@ inline bool TransferConnectionCapacityShouldSyncUploadLimitOnConnectionApply()
 inline bool TransferConnectionCapacityShouldSetWizardUploadDefault(bool bFirstRun)
 {
 	return bFirstRun;
+}
+
+// Connection settings Apply: preserve explicit Bandwidth.Uploads (OutSpeed is capacity only).
+inline DWORD TransferBandwidthUploadAfterConnectionSettingsApply(DWORD nExistingUploadsBytesPerSecond,
+                                                                   DWORD nOutSpeedKilobitsPerSecond,
+                                                                   unsigned int nFreeBandwidthFactor)
+{
+	if (TransferConnectionCapacityShouldSyncUploadLimitOnConnectionApply())
+	{
+		return TransferBandwidthUploadLimitFromOutboundKilobits(nOutSpeedKilobitsPerSecond,
+		                                                        nFreeBandwidthFactor);
+	}
+	return nExistingUploadsBytesPerSecond;
 }
 
 enum class TransferConnectionCapacityParseStatus
@@ -96,22 +109,21 @@ inline TransferConnectionCapacityParseResult TransferConnectionCapacityParseKilo
 	double val = 0.0;
 	if (swscanf(psz, L"%lf", &val) != 1)
 		return oResult;
-	if (val < 0.0)
+	if (!std::isfinite(val) || val < 0.0)
 	{
 		oResult.eStatus = TransferConnectionCapacityParseStatus::Negative;
 		return oResult;
 	}
 
-	const bool bKilobit = TransferConnectionCapacityContainsUnit(psz, L"kbps") ||
-	                      TransferConnectionCapacityContainsUnit(psz, L"kb/s");
-	const bool bGigabit = !bKilobit &&
-	                      (TransferConnectionCapacityContainsUnit(psz, L"gbps") ||
-	                       TransferConnectionCapacityContainsUnit(psz, L"gb/s") ||
-	                       (TransferConnectionCapacityContainsUnit(psz, L"g") &&
-	                        !TransferConnectionCapacityContainsUnit(psz, L"mbps")));
-	const bool bMegabit = !bKilobit && !bGigabit &&
+	// Evaluate larger units before kbps/kb/s so parenthetical "(128 KB/s)" does not hijack mbps strings.
+	const bool bGigabit = TransferConnectionCapacityContainsUnit(psz, L"gbps") ||
+	                      TransferConnectionCapacityContainsUnit(psz, L"gb/s");
+	const bool bMegabit = !bGigabit &&
 	                      (TransferConnectionCapacityContainsUnit(psz, L"mbps") ||
 	                       TransferConnectionCapacityContainsUnit(psz, L"mb/s"));
+	const bool bKilobit = !bGigabit && !bMegabit &&
+	                      (TransferConnectionCapacityContainsUnit(psz, L"kbps") ||
+	                       TransferConnectionCapacityContainsUnit(psz, L"kb/s"));
 
 	unsigned long long nKilobits = 0;
 	if (bKilobit)
@@ -171,5 +183,7 @@ inline DWORD TransferConnectionCapacityParseKilobitsTextDword(const wchar_t* psz
 	    TransferConnectionCapacityParseKilobitsText(pszText);
 	if (oParsed.eStatus != TransferConnectionCapacityParseStatus::Ok)
 		return 0;
-	return TransferBandwidthBytesToSetting(oParsed.nKilobitsPerSecond);
+	if (oParsed.nKilobitsPerSecond > 0xFFFFFFFFull)
+		return 0xFFFFFFFFu;
+	return static_cast<DWORD>(oParsed.nKilobitsPerSecond);
 }

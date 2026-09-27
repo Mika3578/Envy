@@ -302,10 +302,16 @@ void CQueuePropertiesDlg::OnHScroll(UINT /*nSBCode*/, UINT /*nPos*/, CScrollBar*
 	int nLocalPoints = m_wndBandwidthSlider.GetPos();
 	int nTotalPoints = nLocalPoints + nOtherPoints;
 
-	DWORD nBandwidth = nLimit * nLocalPoints / max( 1, nTotalPoints );
+	const DWORD nBandwidth = TransferBandwidthShareBytes(
+	    nLimit, static_cast<unsigned int>(nLocalPoints), static_cast<unsigned int>(max(1, nTotalPoints)));
 
 	CString str;
-	str.Format( L"%u%% (%i/%i)", ( 100 * nBandwidth ) / nLimit, nLocalPoints, nTotalPoints );
+	const unsigned int nPercent =
+	    nLimit > 0 ? static_cast<unsigned int>(
+	                     static_cast<unsigned long long>(nBandwidth) * 100ull /
+	                     static_cast<unsigned long long>(nLimit))
+	               : 0u;
+	str.Format( L"%u%% (%i/%i)", nPercent, nLocalPoints, nTotalPoints );
 
 	m_wndBandwidthPoints.SetWindowText( str );
 	m_wndBandwidthValue.SetWindowText( Settings.SmartSpeed( nBandwidth ) + L'+' );
