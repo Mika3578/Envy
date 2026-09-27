@@ -311,7 +311,7 @@ void CQueuePropertiesDlg::OnHScroll(UINT /*nSBCode*/, UINT /*nPos*/, CScrollBar*
 	                     static_cast<unsigned long long>(nBandwidth) * 100ull /
 	                     static_cast<unsigned long long>(nLimit))
 	               : 0u;
-	str.Format( L"%u%% (%i/%i)", nPercent, nLocalPoints, nTotalPoints );
+	str.Format(L"%u%% (%i/%i)", nPercent, nLocalPoints, nTotalPoints);
 
 	m_wndBandwidthPoints.SetWindowText( str );
 	m_wndBandwidthValue.SetWindowText( Settings.SmartSpeed( nBandwidth ) + L'+' );
