@@ -28,6 +28,7 @@
 #include "Registry.h"
 #include "HostCache.h"
 #include "UploadQueues.h"
+#include "TransferSettingsLimits.h"
 #include "DiscoveryServices.h"
 #include "DlgHelp.h"
 
@@ -347,9 +348,9 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	//	Settings.Connection.OutSpeed = 40960;
 	//}
 
-	// Set upload limit to 90% of capacity, trimmed down to nearest KB.
-	Settings.Bandwidth.Uploads = ( Settings.Connection.OutSpeed / 8 ) *
-		( ( 100 - Settings.Uploads.FreeBandwidthFactor ) / 100 ) * 1024;
+	// Set upload limit with configured outbound headroom (same helper as Connection page).
+	Settings.Bandwidth.Uploads = TransferBandwidthUploadLimitFromOutboundKilobits(
+	    Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor);
 
 	Settings.eDonkey.MaxLinks = nUploadSpeed < 130 ? 100 : 250;
 	Settings.OnChangeConnectionSpeed();

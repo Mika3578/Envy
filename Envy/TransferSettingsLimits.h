@@ -25,6 +25,9 @@
 
 #include <cwchar>
 #include <cwctype>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 
 inline DWORD TransferBandwidthUnlimitedValue()
@@ -159,6 +162,52 @@ inline DWORD TransferBandwidthBytesToSetting(unsigned long long nBytes)
 	if (nBytes > 0xFFFFFFFFull)
 		return 0xFFFFFFFFul;
 	return static_cast<DWORD>(nBytes);
+}
+
+// Connection.InSpeed / OutSpeed are stored in kilobits per second (Kb/s).
+// Effective bytes/s = Kb/s * 1024 / 8 (multiply before divide; 64-bit intermediate).
+inline unsigned long long TransferConnectionKilobitsToBytesPerSecond(unsigned long long nKilobitsPerSecond)
+{
+	return nKilobitsPerSecond * 1024ull / 8ull;
+}
+
+inline DWORD TransferConnectionKilobitsToBytesPerSecondDword(DWORD nKilobitsPerSecond)
+{
+	return TransferBandwidthBytesToSetting(
+	    TransferConnectionKilobitsToBytesPerSecond(nKilobitsPerSecond));
+}
+
+// Apply usable share after reserving nReservePercent (Uploads.FreeBandwidthFactor).
+// Example: reserve 8% -> pass 8 -> returns 92% of nBytesPerSecond.
+inline unsigned long long TransferBandwidthApplyUsablePercent(unsigned long long nBytesPerSecond,
+                                                              unsigned int nReservePercent)
+{
+	if (nBytesPerSecond == 0 || nReservePercent >= 100)
+		return 0;
+	if (nReservePercent == 0)
+		return nBytesPerSecond;
+	return nBytesPerSecond * (100ull - static_cast<unsigned long long>(nReservePercent)) / 100ull;
+}
+
+// Outbound capacity (Kb/s) -> Bandwidth.Uploads bytes/s with configured upload headroom.
+inline DWORD TransferBandwidthUploadLimitFromOutboundKilobits(DWORD nOutSpeedKilobitsPerSecond,
+                                                              unsigned int nFreeBandwidthFactor)
+{
+	const unsigned long long nCapacity =
+	    TransferConnectionKilobitsToBytesPerSecond(nOutSpeedKilobitsPerSecond);
+	const unsigned long long nLimited =
+	    TransferBandwidthApplyUsablePercent(nCapacity, nFreeBandwidthFactor);
+	return TransferBandwidthBytesToSetting(nLimited);
+}
+
+inline DWORD TransferBandwidthApplyPercentToBytes(DWORD nBytesPerSecond, unsigned int nPercent)
+{
+	if (nBytesPerSecond == 0 || nPercent == 0)
+		return 0;
+	if (nPercent >= 100)
+		return nBytesPerSecond;
+	return TransferBandwidthBytesToSetting(
+	    static_cast<unsigned long long>(nBytesPerSecond) * static_cast<unsigned long long>(nPercent) / 100ull);
 }
 
 inline DWORD TransferMaxPerHostClamp(unsigned long long nValue)

@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-25
+- **Last Updated:** 2026-09-26
+- **Changelog Entry:** 2026-09-26 — #341 transfer bandwidth correctness: `TransferSettingsLimits.h` Kb/s→bytes/s and upload-headroom helpers (64-bit intermediates, DWORD saturation); fix Connection page integer-order bug (`92/100→0`); align Scheduler/Downloads/Uploads/UploadQueues/Datagrams paths. Slot/queue presets (#343/#344/#345) unchanged.
 - **Changelog Entry:** 2026-09-25 — #298: rebase BitTorrent keep-alive framing onto current `develop`; resolve CHANGELOG/DEVELOPMENT_PLAN with library (#301) and UI (#297) entries.
 - **Changelog Entry:** 2026-09-20 — #88/#91 BitTorrent keep-alive framing: `CBTPacket::ReadBuffer` now leaves the following frame prefix intact when returning a keep-alive; EnvyTests cover keep-alive marker removal and keep-alive+choke sequencing.
 - **Changelog Entry:** 2026-09-21 — UI Phase 1 (#297): merge `develop` after #301; keep both the adaptive-list changelog and the library MountCollection null-guard entry.
@@ -285,6 +286,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - **P0 ED2K/Kad interoperability baseline** against eMule Community and aMule (live interop unverified; harness exists — `tools/interop/README.md`; see `docs/10_dev/status.md`).
 - **Bootstrap catalogues** — shipped `DefaultServices.dat` / `DefaultServers.dat` refreshed 2026-09-18. Remaining: importer hardening (P0 potential); Kad **remote** `nodes.dat` discovery type (#86/#160); last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`). Local `ImportNodes` v1/v2/v3 is implemented. Do not restore C++ DHT DNS constants when the catalogue is missing (D-012).
 - Transfer settings UX: first slice (labels + validation + mapping) in `docs/50_user/transfer-settings.md`; no fake capabilities.
+- **Modern Transfer Capacity / Broadband 2026** (#341–#345, #332, #111): #341 correctness foundation (multigig-safe conversions + upload headroom) in flight; #342 capacity vs user limits UX; #343 connection-speed presets; #344 elastic ED2K/HTTP slots; #345 BitTorrent choking; measure (#111) before raising concurrency (#113/#114).
 
 ### Blocked / At Risk
 - Full CMake parity with Visual Studio build graph.
