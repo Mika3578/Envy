@@ -100,11 +100,7 @@ CBTInfo::CBTInfo(const CBTInfo& oSource)
 
 CBTInfo::~CBTInfo()
 {
-	// Do not call Clear() here: full reset can touch paths Sonar flags as throwing in dtors.
-	for (POSITION pos = m_pFiles.GetHeadPosition(); pos;)
-		delete m_pFiles.GetNext(pos);
-	m_pFiles.RemoveAll();
-	m_pBlockBTH.clear();
+	Clear();
 }
 
 //////////////////////////////////////////////////////////////////////
