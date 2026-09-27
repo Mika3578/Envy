@@ -30,7 +30,7 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 | --- | --- | --- | --- |
 | Windows x64 product | implemented (primary) | — | preserve |
 | Windows Win32/x86 product | implemented (legacy Stage A) | — | deprecate later (D-014) |
-| Local crash reports | implemented (#90, Windows Debug+Release) | Crashpad (upload off) | preserve (no SaaS) |
+| Local crash reports | implemented (#90 / #354) | x64: BugSplat SDK v8.0.0; Win32: Crashpad (upload off) | hybrid; optional BugSplat backend when configured |
 | Linux x86_64 product | planned | aMule | planned → supported only with CI evidence |
 | macOS ARM64 product | planned | aMule | planned → supported only with CI evidence |
 | EnvyCore portable boundary | not implemented | eMule Qt, aria2-next | planned (#161) |

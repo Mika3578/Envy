@@ -16,6 +16,10 @@ inputs:
     description: Run EnvyTests.exe after a successful build
     required: false
     default: "true"
+  envy-bugsplat-database:
+    description: Optional BugSplat database name for trusted x64 Release builds (/p:EnvyBugSplatDatabase)
+    required: false
+    default: ""
   upload-logs:
     description: Upload MSBuild logs
     required: false
@@ -93,6 +97,20 @@ runs:
         Write-Host "Triplet=$triplet"
         & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install --triplet=$triplet
 
+    - name: Verify BugSplat SDK slice (x64)
+      if: ${{ inputs.platform == 'x64' }}
+      shell: pwsh
+      env:
+        ENVY_BUILD_CONFIGURATION: ${{ inputs.configuration }}
+      run: |
+        $config = $env:ENVY_BUILD_CONFIGURATION
+        if (-not $config) { throw 'Missing build configuration input' }
+        $lib = "ThirdParty/BugSplat/x64/$config/lib/mt/BugSplat.lib"
+        if (-not (Test-Path -LiteralPath $lib)) {
+          throw "Missing $lib. Import the login-gated Windows Native C++ SDK (not BugSplat-Git/bugsplat-crashpad /MD Crashpad bundles). Run scripts/import-bugsplat-sdk.ps1, commit ThirdParty/BugSplat. See ThirdParty/BugSplat/README.md."
+        }
+        pwsh scripts/verify-bugsplat-sdk-committed.ps1
+
     # Measured 2026-09-19 on windows-2025-vs2026: nuget restore prints
     # "Nothing to do" and still costs ~22s. Skip unless a packages.config
     # exists outside third-party trees (Services/, HashLib/HashLib/, and
@@ -125,24 +143,45 @@ runs:
 
     - name: Build solution
       shell: cmd
+      env:
+        ENVY_BUGSPLAT_DATABASE: ${{ inputs.envy-bugsplat-database }}
       run: |
+        set "BUGSPLAT_MSBUILD_PROP="
+        if not "%ENVY_BUGSPLAT_DATABASE%"=="" set "BUGSPLAT_MSBUILD_PROP=/p:EnvyBugSplatDatabase=%ENVY_BUGSPLAT_DATABASE%"
+        set "VCPKG_MSBUILD_PROPS="
+        if "${{ inputs.platform }}"=="Win32" set "VCPKG_MSBUILD_PROPS=/p:VcpkgEnableManifest=true /p:VcpkgEnabled=true /p:VcpkgTriplet=%VCPKG_TARGET_TRIPLET%"
         msbuild "%SOLUTION%" ^
           %MSBUILD_PARALLEL% ^
           /nologo ^
           /verbosity:minimal ^
           /p:Configuration=${{ inputs.configuration }} ^
           /p:Platform=${{ inputs.platform }} ^
+          %BUGSPLAT_MSBUILD_PROP% ^
+          %VCPKG_MSBUILD_PROPS% ^
           /p:PlatformToolset=${{ steps.toolset.outputs.PlatformToolset }} ^
           /p:WindowsTargetPlatformVersion=10.0 ^
           /p:UseMultiToolTask=%MSBUILD_USE_MULTI_TOOL_TASK% ^
           /p:EnforceProcessCountAcrossBuilds=true ^
-          /p:VcpkgEnableManifest=true ^
-          /p:VcpkgEnabled=true ^
-          /p:VcpkgTriplet=%VCPKG_TARGET_TRIPLET% ^
           /p:TreatWarningsAsErrors=false ^
           /flp:LogFile=build-${{ inputs.platform }}-${{ inputs.configuration }}.log;Verbosity=detailed;Encoding=UTF-8 ^
           /flp1:LogFile=build-${{ inputs.platform }}-${{ inputs.configuration }}.warnings.log;WarningsOnly;Verbosity=normal ^
           /flp2:LogFile=build-${{ inputs.platform }}-${{ inputs.configuration }}.errors.log;ErrorsOnly;Verbosity=normal
+
+    - name: Verify BugSplat output layout (x64)
+      if: ${{ inputs.platform == 'x64' }}
+      shell: pwsh
+      run: |
+        pwsh scripts/verify-bugsplat-output-layout.ps1 -OutputDir "Envy/${{ inputs.configuration }} x64"
+
+    - name: Verify installer AppCopyright on setup executable (Release)
+      if: ${{ inputs.configuration == 'Release' }}
+      shell: pwsh
+      run: |
+        $setups = @(Get-ChildItem -Path Builds -Filter *.exe -File -ErrorAction SilentlyContinue)
+        if ($setups.Count -ne 1) {
+          throw "Expected exactly one setup executable in Builds/, found $($setups.Count)."
+        }
+        pwsh scripts/installer/verify-setup-appcopyright.ps1 -SetupExePath $setups[0].FullName
 
     - name: Run EnvyTests
       if: ${{ inputs.run-tests == 'true' }}
@@ -246,6 +285,9 @@ runs:
         path: |
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.exe
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.pdb
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatMonitor.exe
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatWer.dll
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatRc.dll
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_handler.exe
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_wer.dll
           Envy/**/Release/*.exe

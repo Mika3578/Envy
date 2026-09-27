@@ -101,6 +101,15 @@ is_noise_body() {
 }
 
 # --- Iteration budget ---------------------------------------------------------
+require_uint() {
+	local name="$1"
+	local value="$2"
+	if ! [[ "$value" =~ ^[0-9]+$ ]]; then
+		fail "HUMAN_REQUIRED" "$name must be a base-10 unsigned integer (got '$value')"
+	fi
+}
+require_uint GENERATION "$GENERATION"
+require_uint MAX_ITERATIONS "$MAX_ITERATIONS"
 if [ "$GENERATION" -gt "$MAX_ITERATIONS" ]; then
 	fail "HUMAN_REQUIRED" "correction budget exhausted (generation $GENERATION > max $MAX_ITERATIONS); recurring or unbounded findings need a human"
 fi
@@ -134,9 +143,9 @@ CODERABBIT_BLOCKING="$(printf '%s' "$REVIEWS_JSON" | jq -r --arg head "$HEAD_SHA
 UNRESOLVED_BLOCKING="$(printf '%s' "$THREADS_JSON" | jq -r '
 	[.data.repository.pullRequest.reviewThreads.nodes[]?
 		| select(.isResolved != true)
-		| .comments.nodes[0] // empty
-		| select(.author.login != null)
-		| .body // "" as $b
+		| .comments.nodes[0] as $c
+		| select($c != null and $c.author.login != null)
+		| ($c.body // "") as $b
 		| select(($b | ascii_downcase | test("review budget|rate limit|rate-limit|upgrade to get a review|no credit|quota")) | not)
 	] | length')"
 

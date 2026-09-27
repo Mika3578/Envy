@@ -88,6 +88,16 @@ jobs:
         shell: bash
         run: bash .github/scripts/pr-gate-conclusions.selftest.sh
 
+      - name: BugSplat SDK import self-test
+        shell: pwsh
+        run: pwsh scripts/import-bugsplat-sdk.selftest.ps1
+
+      - name: Installer Main.iss UTF-8 copyright guard
+        shell: bash
+        run: |
+          bash .github/scripts/check-installer-main-iss-encoding.sh
+          bash .github/scripts/check-installer-main-iss-encoding.selftest.sh
+
       - name: Format-check self-test
         shell: bash
         run: |
@@ -155,6 +165,7 @@ jobs:
           configuration: Release
           run-tests: "true"
           upload-binaries: ${{ github.event_name != 'pull_request' }}
+          envy-bugsplat-database: ${{ (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && vars.ENVY_BUGSPLAT_DATABASE || '' }}
 
   build-win32-release:
     name: Build Win32 Release

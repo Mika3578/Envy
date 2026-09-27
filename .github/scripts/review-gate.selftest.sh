@@ -129,6 +129,10 @@ THREADS27='{"data":{"repository":{"pullRequest":{"reviewThreads":{"nodes":[{"isR
 run_case "27-pr298-regression" "HUMAN_REQUIRED" \
 	"$(R "[{\"user\":{\"login\":\"sourcery-ai[bot]\"},\"state\":\"COMMENTED\",\"commit_id\":\"$HEAD_A\",\"submitted_at\":\"2026-09-25T11:51:38Z\",\"id\":1,\"body\":\"you have used your review budget\"},{\"user\":{\"login\":\"cursor[bot]\"},\"state\":\"APPROVED\",\"commit_id\":\"$HEAD_A\",\"submitted_at\":\"2026-09-25T11:53:31Z\",\"id\":2,\"body\":\"Approved: Bugbot clean\"},{\"user\":{\"login\":\"copilot-pull-request-reviewer[bot]\"},\"state\":\"COMMENTED\",\"commit_id\":\"$HEAD_A\",\"submitted_at\":\"2026-09-25T11:54:16Z\",\"id\":3,\"body\":\"Needs a closer look. Findings: None. Final human review required.\"}]")" \
 	"$THREADS27"
+# 29. malformed GENERATION fails closed before budget compare
+run_case "29-generation-non-numeric" "HUMAN_REQUIRED" '[]' "$empty_threads" GENERATION=10abc MAX_ITERATIONS=3
+# 30. multi-digit generation within budget still evaluates
+run_case "30-generation-ten" "COPILOT_PENDING" '[]' "$empty_threads" GENERATION=10 MAX_ITERATIONS=10
 # 28. fully clean happy path
 run_case "28-happy-path" "READY_TO_MERGE" \
 	"$(R "[{\"user\":{\"login\":\"coderabbitai[bot]\"},\"state\":\"COMMENTED\",\"commit_id\":\"$HEAD_A\",\"submitted_at\":\"t\",\"id\":1,\"body\":\"Clean\"},{\"user\":{\"login\":\"copilot-pull-request-reviewer[bot]\"},\"state\":\"APPROVED\",\"commit_id\":\"$HEAD_A\",\"submitted_at\":\"t\",\"id\":2,\"body\":\"Ready to approve\"}]")" \
