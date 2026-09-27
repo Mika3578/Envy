@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 
-#include "bench_harness.h"
-
 #include "StdAfx.h"
+
+#include "bench_harness.h"
 
 #include <cstdint>
 #include <filesystem>
