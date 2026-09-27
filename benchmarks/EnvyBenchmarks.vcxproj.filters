@@ -22,6 +22,6 @@
     <ClCompile Include="bench_protocol.cpp"><Filter>Workloads</Filter></ClCompile>
     <ClCompile Include="bench_hash.cpp"><Filter>Workloads</Filter></ClCompile>
     <ClCompile Include="bench_fileio.cpp"><Filter>Workloads</Filter></ClCompile>
-    <ClCompile Include="..\Envy\Buffer.cpp"><Filter>Production</Filter></ClCompile>
+    <ClCompile Include="buffer_production_tu.cpp"><Filter>Production</Filter></ClCompile>
   </ItemGroup>
 </Project>

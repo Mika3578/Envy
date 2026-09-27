@@ -162,9 +162,7 @@
     <ClCompile Include="bench_protocol.cpp" />
     <ClCompile Include="bench_hash.cpp" />
     <ClCompile Include="bench_fileio.cpp" />
-    <ClCompile Include="..\Envy\Buffer.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="buffer_production_tu.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="StdAfx.h" />
