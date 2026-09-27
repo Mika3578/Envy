@@ -20,17 +20,41 @@ import sys
 from pathlib import Path
 
 text = Path(sys.argv[1]).read_text(encoding="utf-8")
-block = re.search(
-    r"name:\s*develop\b.*?required_status_checks:\s*\n\s*strict:.*?contexts:\s*\n((?:\s+- \"[^\"]+\"\n)+)",
+develop = re.search(
+    r"(?ms)^\s*-\s*name:\s*develop\s*$.*?(?=^\s*-\s*name:\s|\Z)",
     text,
-    re.S,
 )
-if not block:
+if not develop:
+    raise SystemExit("could not locate develop branch protection block")
+block = develop.group(0)
+ctx_match = re.search(r"(?m)^(\s*)contexts:\s*$", block)
+if not ctx_match:
     raise SystemExit("could not parse develop required_status_checks contexts")
-for line in block.group(1).splitlines():
-    m = re.match(r'\s+- "([^"]+)"\s*$', line)
-    if m:
-        print(m.group(1))
+list_indent = len(ctx_match.group(1)) + 2
+contexts = []
+for line in block[ctx_match.end() :].splitlines():
+    if not line.strip():
+        continue
+    indent = len(line) - len(line.lstrip(" "))
+    if indent < list_indent:
+        break
+    stripped = line.strip()
+    if stripped.startswith("#"):
+        continue
+    if not stripped.startswith("- "):
+        raise SystemExit(f"unexpected line in contexts list: {line!r}")
+    value = stripped[2:].strip()
+    if not value:
+        raise SystemExit("empty context entry in contexts list")
+    if value[0] == '"' and value[-1] == '"' and len(value) >= 2:
+        value = value[1:-1]
+    elif value[0] in "\"'":
+        raise SystemExit(f"malformed quoted context entry: {line!r}")
+    contexts.append(value)
+if not contexts:
+    raise SystemExit("develop contexts list was empty")
+for name in contexts:
+    print(name)
 PY
 }
 
@@ -144,6 +168,30 @@ if [[ -z "${no_names//[$'\t\n\r ']/}" ]]; then
 	echo "OK   pr-gate-policy-sync negative: gate without add_must/add_skip is empty"
 else
 	echo "FAIL pr-gate-policy-sync negative: gate without add_must/add_skip must be empty" >&2
+	neg_fail=1
+fi
+
+cat >"$neg_tmp/mixed-contexts.yml" <<'EOF'
+branches:
+  - name: develop
+    protection:
+      required_status_checks:
+        strict: true
+        contexts:
+          - "Quoted First"
+          # inline comment must not truncate the list
+          - Unquoted Second
+          - "Quoted Third"
+EOF
+
+set +e
+mixed_out="$(extract_required_contexts "$neg_tmp/mixed-contexts.yml" 2>/dev/null)"
+mixed_rc=$?
+set -e
+if [[ "$mixed_rc" -eq 0 && "$mixed_out" == $'Quoted First\nUnquoted Second\nQuoted Third' ]]; then
+	echo "OK   pr-gate-policy-sync negative: mixed contexts list parses completely"
+else
+	echo "FAIL pr-gate-policy-sync negative: mixed contexts must parse all entries (rc=$mixed_rc)" >&2
 	neg_fail=1
 fi
 
