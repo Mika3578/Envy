@@ -199,9 +199,15 @@ void CBTInfo::Clear()
 	m_nTotalUpload		= 0;
 	m_nTotalDownload	= 0;
 
-	for (POSITION pos = m_pFiles.GetHeadPosition(); pos;)
-		delete m_pFiles.GetNext( pos );
-	m_pFiles.RemoveAll();
+	{
+		std::vector<CBTFile*> apPendingDelete;
+		apPendingDelete.reserve(static_cast<size_t>(m_pFiles.GetCount()));
+		for (POSITION pos = m_pFiles.GetHeadPosition(); pos;)
+			apPendingDelete.push_back(m_pFiles.GetNext(pos));
+		m_pFiles.RemoveAll();
+		for (CBTFile* pFile : apPendingDelete)
+			delete pFile;
+	}
 
 	m_nEncoding			= Settings.BitTorrent.TorrentCodePage;
 	m_tCreationDate		= 0;
@@ -314,8 +320,8 @@ void CBTInfo::Serialize(CArchive& ar)
 	{
 		ar << nVersion;
 
-		SerializeOut( ar, m_oBTH );
-		if ( ! m_oBTH ) return;
+		SerializeOut(ar, m_oBTH);
+		if (!m_oBTH) return;
 
 		ar << m_nSize;
 		ar << m_nBlockSize;
@@ -381,8 +387,8 @@ void CBTInfo::Serialize(CArchive& ar)
 		if ( nVersion > INTERNAL_VERSION && nVersion != 1000 )
 			AfxThrowUserException();
 
-		SerializeIn( ar, m_oBTH, nVersion );
-		if ( ! m_oBTH )
+		SerializeIn(ar, m_oBTH, nVersion);
+		if (!m_oBTH)
 			return;
 
 		ar >> m_nSize;
@@ -1125,12 +1131,12 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 
 	// Get the piece stuff
 	const CBENode* pPL = pInfo->GetNode( "piece length" );
-	if ( ! pPL || ! pPL->IsType( CBENode::beInt ) ) return FALSE;
+	if (!pPL || !pPL->IsType(CBENode::beInt)) return FALSE;
 	m_nBlockSize = (DWORD)pPL->GetInt();
-	if ( ! m_nBlockSize ) return FALSE;
+	if (!m_nBlockSize) return FALSE;
 
 	const CBENode* pHash = pInfo->GetNode( "pieces" );
-	if ( ! pHash || ! pHash->IsType( CBENode::beString ) ) return FALSE;
+	if (!pHash || !pHash->IsType(CBENode::beString)) return FALSE;
 	if (pHash->m_nValue % Hashes::Sha1Hash::byteCount) return FALSE;
 	const DWORD nPieceCount = (DWORD)(pHash->m_nValue / Hashes::Sha1Hash::byteCount);
 	if (!nPieceCount || !BtPieceHashDeclaredCountValid(nPieceCount)) return FALSE;
