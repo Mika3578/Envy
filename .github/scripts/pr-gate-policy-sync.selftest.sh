@@ -35,7 +35,8 @@ PY
 }
 
 extract_gate_names() {
-	grep -E 'add_(must|skip) "' "$1" | sed -E 's/.*"(.*)".*/\1/' | sort -u
+	# Match executable add_must/add_skip only (not commented-out examples).
+	grep -E '^[[:space:]]*add_(must|skip) "' "$1" | sed -E 's/.*"(.*)".*/\1/' | sort -u
 }
 
 contexts_text="$(extract_required_contexts "$settings")" || {
@@ -143,6 +144,25 @@ if [[ -z "${no_names//[$'\t\n\r ']/}" ]]; then
 	echo "OK   pr-gate-policy-sync negative: gate without add_must/add_skip is empty"
 else
 	echo "FAIL pr-gate-policy-sync negative: gate without add_must/add_skip must be empty" >&2
+	neg_fail=1
+fi
+
+cat >"$neg_tmp/comment-only-add-must.sh" <<'EOF'
+#!/usr/bin/env bash
+# add_must "Ghost Check"
+filter=all
+add_must "Real Check"
+EOF
+chmod +x "$neg_tmp/comment-only-add-must.sh"
+
+comment_names="$(extract_gate_names "$neg_tmp/comment-only-add-must.sh" 2>/dev/null || true)"
+if [[ "$comment_names" == "Real Check" ]]; then
+	echo "OK   pr-gate-policy-sync negative: commented add_must is ignored"
+elif [[ "$comment_names" == *"Ghost Check"* ]]; then
+	echo "FAIL pr-gate-policy-sync negative: commented add_must must not count as coverage" >&2
+	neg_fail=1
+else
+	echo "FAIL pr-gate-policy-sync negative: unexpected gate name extraction: $comment_names" >&2
 	neg_fail=1
 fi
 

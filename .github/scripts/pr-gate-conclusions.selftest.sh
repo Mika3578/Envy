@@ -343,6 +343,17 @@ else
 	echo "OK   malformed-json-fails"
 fi
 
+set +e
+printf '' | pr_gate_latest_check_rows "$HEAD_A" >/dev/null
+empty_rc=$?
+set -e
+if [[ "$empty_rc" -eq 0 ]]; then
+	echo "FAIL empty-check-runs-input-fails" >&2
+	fail=1
+else
+	echo "OK   empty-check-runs-input-fails"
+fi
+
 # A malformed newer record must not be ignored in favor of an older success.
 json_malformed_run="$(check_json '[
   {"id":1,"name":"Format Check","status":"completed","conclusion":"success","head_sha":"'"$HEAD_A"'"},

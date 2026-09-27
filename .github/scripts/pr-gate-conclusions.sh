@@ -108,6 +108,8 @@ def expected_app_id(check_name):
 
 decoder = json.JSONDecoder()
 text = sys.stdin.read().strip()
+if not text:
+	raise SystemExit("check-runs response was empty")
 idx = 0
 latest = {}
 while idx < len(text):
