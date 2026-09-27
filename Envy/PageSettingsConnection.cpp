@@ -258,11 +258,11 @@ void CConnectionSettingsPage::OnOK()
 	if ( m_sOutHost.CompareNoCase( strAutomatic ) == 0 )
 		m_sOutHost.Empty();
 
-	bool bOldEnableUPnP	= Settings.Connection.EnableUPnP;
-	DWORD nOldInPort	= Settings.Connection.InPort;
-	Settings.Connection.FirewallState	= m_wndCanAccept.GetCurSel();
-	Settings.Connection.InHost			= m_sInHost;
-	Settings.Connection.InPort			= m_nInPort < 65535 ? m_nInPort : 65535;
+	bool bOldEnableUPnP = Settings.Connection.EnableUPnP;
+	DWORD nOldInPort = Settings.Connection.InPort;
+	Settings.Connection.FirewallState = m_wndCanAccept.GetCurSel();
+	Settings.Connection.InHost = m_sInHost;
+	Settings.Connection.InPort = m_nInPort < 65535 ? m_nInPort : 65535;
 
 	// Obsolete for reference & deletion
 	//if ( m_bEnableUPnP && ( (DWORD)m_nInPort != Settings.Connection.InPort || ! Settings.Connection.EnableUPnP ) )
@@ -280,8 +280,8 @@ void CConnectionSettingsPage::OnOK()
 	Settings.Connection.InSpeed				= (DWORD)Settings.ParseVolume( m_sInSpeed, Kilobits );
 	Settings.Connection.OutSpeed			= (DWORD)Settings.ParseVolume( m_sOutSpeed, Kilobits );
 	Settings.Connection.IgnoreLocalIP		= m_bIgnoreLocalIP != FALSE;
-	Settings.Connection.TimeoutConnect		= m_nTimeoutConnection * 1000;
-	Settings.Connection.TimeoutHandshake	= m_nTimeoutHandshake  * 1000;
+	Settings.Connection.TimeoutConnect = m_nTimeoutConnection * 1000;
+	Settings.Connection.TimeoutHandshake = m_nTimeoutHandshake * 1000;
 
 	UpdateData();
 
@@ -350,12 +350,11 @@ void CConnectionSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 	m_wndOutSpeed.ResetContent();
 
 	// Add canonical capacity presets (shared with the connection wizard).
-	for ( unsigned int nPreset = 0; nPreset < TransferConnectionCapacityPresetCount(); ++nPreset )
+	for (unsigned int nPreset = 0; nPreset < TransferConnectionCapacityPresetCount(); ++nPreset)
 	{
-		const DWORD nKilobits = TransferConnectionCapacityPresetKilobits( nPreset );
-		CString strSpeed = Settings.SmartSpeed( nKilobits, Kilobits );
-		if ( Settings.ParseVolume( strSpeed, Kilobits )
-			&& m_wndInSpeed.FindStringExact( -1, strSpeed ) == CB_ERR )
+		const DWORD nKilobits = TransferConnectionCapacityPresetKilobits(nPreset);
+		CString strSpeed = Settings.SmartSpeed(nKilobits, Kilobits);
+		if (Settings.ParseVolume(strSpeed, Kilobits) && m_wndInSpeed.FindStringExact(-1, strSpeed) == CB_ERR)
 		{
 			m_wndInSpeed.AddString( strSpeed );
 			m_wndOutSpeed.AddString( strSpeed );

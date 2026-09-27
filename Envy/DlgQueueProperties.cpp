@@ -292,11 +292,10 @@ void CQueuePropertiesDlg::OnRotateEnable()
 
 void CQueuePropertiesDlg::OnHScroll(UINT /*nSBCode*/, UINT /*nPos*/, CScrollBar* /*pScrollBar*/)
 {
-	DWORD nLimit = TransferBandwidthReferenceUploadBytes( Settings.Bandwidth.Uploads,
-	    Settings.Connection.OutSpeed );
+	DWORD nLimit = TransferBandwidthReferenceUploadBytes(Settings.Bandwidth.Uploads,
+	                                                     Settings.Connection.OutSpeed);
 
-	int nOtherPoints = (int)UploadQueues.GetTotalBandwidthPoints( !( m_pQueue->m_nProtocols & (1<<PROTOCOL_ED2K) ) )
-					 - (int)m_pQueue->m_nBandwidthPoints;
+	int nOtherPoints = (int)UploadQueues.GetTotalBandwidthPoints(!(m_pQueue->m_nProtocols & (1 << PROTOCOL_ED2K))) - (int)m_pQueue->m_nBandwidthPoints;
 	if ( nOtherPoints < 0 )
 		nOtherPoints = 0;
 

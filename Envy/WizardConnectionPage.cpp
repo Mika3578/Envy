@@ -155,12 +155,12 @@ BOOL CWizardConnectionPage::OnInitDialog()
 
 	// Translation: |Dial-up Modem|ISDN 128K|DSL 768K|DSL 1.5|Cable 3|DSL 4|DSL2 8|FIOS 10|DSL2 12|FIOS 15|FIOS 20|FIOS 25|FIOS 30|FIOS 50|100|200|300|400|Gigabit|T1|T3|LAN|OC3
 
-	for ( unsigned int nPreset = 0; nPreset < TransferConnectionCapacityPresetCount(); ++nPreset )
+	for (unsigned int nPreset = 0; nPreset < TransferConnectionCapacityPresetCount(); ++nPreset)
 	{
-		const DWORD nKilobits = TransferConnectionCapacityPresetKilobits( nPreset );
-		strTemp = SpeedFormat( static_cast<double>( nKilobits ) );
-		m_wndDownloadSpeed.AddString( strTemp );
-		m_wndUploadSpeed.AddString( strTemp );
+		const DWORD nKilobits = TransferConnectionCapacityPresetKilobits(nPreset);
+		strTemp = SpeedFormat(static_cast<double>(nKilobits));
+		m_wndDownloadSpeed.AddString(strTemp);
+		m_wndUploadSpeed.AddString(strTemp);
 	}
 
 	strTemp.Format( L"%lu kbps", Settings.Connection.InSpeed );
@@ -315,14 +315,14 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	{
 		CString strSpeed;
 
-		m_wndDownloadSpeed.GetWindowText( strSpeed );
-		nDownloadSpeed = TransferConnectionCapacityParseKilobitsTextDword( strSpeed );
+		m_wndDownloadSpeed.GetWindowText(strSpeed);
+		nDownloadSpeed = TransferConnectionCapacityParseKilobitsTextDword(strSpeed);
 
-		m_wndUploadSpeed.GetWindowText( strSpeed );
-		nUploadSpeed = TransferConnectionCapacityParseKilobitsTextDword( strSpeed );
+		m_wndUploadSpeed.GetWindowText(strSpeed);
+		nUploadSpeed = TransferConnectionCapacityParseKilobitsTextDword(strSpeed);
 	}
 
-	if ( nDownloadSpeed < 2 || nUploadSpeed < 2 )
+	if (nDownloadSpeed < 2 || nUploadSpeed < 2)
 	{
 		MsgBox( IDS_WIZARD_NEED_SPEED, MB_ICONEXCLAMATION );
 		return -1;
@@ -337,7 +337,7 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	//	Settings.Connection.OutSpeed = 40960;
 	//}
 
-	if ( TransferConnectionCapacityShouldSetWizardUploadDefault( Settings.Live.FirstRun ) )
+	if (TransferConnectionCapacityShouldSetWizardUploadDefault(Settings.Live.FirstRun))
 	{
 		Settings.Bandwidth.Uploads = TransferBandwidthUploadLimitFromOutboundKilobits(
 		    Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor);

@@ -1414,9 +1414,9 @@ QWORD CSettings::ParseVolume(const CString& strVolume, int nReturnUnits) const
 // CSettings::CheckBandwidth
 
 DWORD CSettings::GetOutgoingBandwidth() const
-{	// Heuristic outbound KB/s for UI gates — not the socket transfer cap.
-	return TransferOutgoingBandwidthHeuristicKBps( Settings.Bandwidth.Uploads,
-	    Settings.Connection.OutSpeed );
+{ // Heuristic outbound KB/s for UI gates — not the socket transfer cap.
+	return TransferOutgoingBandwidthHeuristicKBps(Settings.Bandwidth.Uploads,
+	                                              Settings.Connection.OutSpeed);
 }
 
 bool CSettings::GetValue(LPCTSTR pszPath, VARIANT* value)

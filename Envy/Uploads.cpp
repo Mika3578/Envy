@@ -168,27 +168,27 @@ DWORD CUploads::GetBandwidthLimit() const
 {
 	const DWORD nUserLimit = Settings.Bandwidth.Uploads;
 	const unsigned long long nCapacityBytes =
-	    TransferConnectionKilobitsToBytesPerSecond( Settings.Connection.OutSpeed );
+	    TransferConnectionKilobitsToBytesPerSecond(Settings.Connection.OutSpeed);
 
 	unsigned long long nLimited;
-	if ( TransferBandwidthSettingIsUnlimited( nUserLimit ) )
+	if (TransferBandwidthSettingIsUnlimited(nUserLimit))
 		nLimited = 0xFFFFFFFFull;
 	else
 		nLimited = nUserLimit;
 
 	// Limit if hub mode (~50%)
-	if ( Settings.Uploads.HubUnshare && ( Neighbours.IsG2Hub() || Neighbours.IsG1Ultrapeer() ) )
+	if (Settings.Uploads.HubUnshare && (Neighbours.IsG2Hub() || Neighbours.IsG1Ultrapeer()))
 	{
-		if ( TransferBandwidthSettingIsUnlimited( nUserLimit ) )
+		if (TransferBandwidthSettingIsUnlimited(nUserLimit))
 			nLimited = nCapacityBytes * Settings.Bandwidth.HubUploads / 100ull;
 		else
 			nLimited = nLimited * Settings.Bandwidth.HubUploads / 100ull;
 	}
 
 	// Limit if torrents are active (~90%)	Note same cap value given to both torrents and others!  Deceptive simple headroom.
-	if ( UploadQueues.m_pTorrentQueue->m_nMinTransfers )	// ( Uploads.m_nTorrentSpeed > 0 )
+	if (UploadQueues.m_pTorrentQueue->m_nMinTransfers) // ( Uploads.m_nTorrentSpeed > 0 )
 	{
-		if ( TransferBandwidthSettingIsUnlimited( nUserLimit ) && nLimited == 0xFFFFFFFFull )
+		if (TransferBandwidthSettingIsUnlimited(nUserLimit) && nLimited == 0xFFFFFFFFull)
 			nLimited = nCapacityBytes * Settings.BitTorrent.BandwidthPercentage / 100ull;
 		else
 			nLimited = nLimited * Settings.BitTorrent.BandwidthPercentage / 100ull;

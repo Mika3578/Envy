@@ -1019,12 +1019,12 @@ void CDownloads::OnRun()
 	DWORD nTotalTransfers		= 0;	// Total transfers
 	DWORD nTotalBandwidth		= 0;	// Total bandwidth in use
 	DWORD nRunningTransfers		= 0;	// Number of transfers that are downloading and transfering data
-	DWORD nRunningTransfersED2K	= 0;	// Number of ed2k transfers that are downloading and transfering data
-	DWORD nTotalBandwidthED2K	= 0;	// Total ed2k bandwidth in use.
+	DWORD nRunningTransfersED2K = 0;    // Number of ed2k transfers that are downloading and transfering data
+	DWORD nTotalBandwidthED2K = 0;      // Total ed2k bandwidth in use.
 
-	DWORD nBandwidthAvailable = TransferEffectiveDownloadLimitBytes( Settings.Bandwidth.Downloads );
+	DWORD nBandwidthAvailable = TransferEffectiveDownloadLimitBytes(Settings.Bandwidth.Downloads);
 	DWORD nBandwidthAvailableED2K = 0;
-	BOOL bDonkeyRatioActive		= FALSE;
+	BOOL bDonkeyRatioActive = FALSE;
 
 	{	// Lock transfers section
 		CList<CDownloadTransfer*> pTransfersToLimit;
