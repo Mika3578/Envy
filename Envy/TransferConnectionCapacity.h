@@ -119,17 +119,15 @@ inline TransferConnectionCapacityParseResult TransferConnectionCapacityParseKilo
 	wchar_t szUnitScan[192] = {};
 	const wchar_t* pszUnits = psz;
 	const wchar_t* pszParen = wcschr(psz, L'(');
-	if (pszParen != NULL)
+	if (pszParen != NULL && pszParen > psz)
 	{
+		const size_t nMax = sizeof(szUnitScan) / sizeof(szUnitScan[0]);
 		size_t nChars = static_cast<size_t>(pszParen - psz);
-		if (nChars >= (sizeof(szUnitScan) / sizeof(szUnitScan[0])))
-			nChars = (sizeof(szUnitScan) / sizeof(szUnitScan[0])) - 1;
-		if (nChars > 0)
-		{
-			wmemcpy(szUnitScan, psz, nChars);
-			szUnitScan[nChars] = L'\0';
-			pszUnits = szUnitScan;
-		}
+		size_t i = 0;
+		for (; i < nChars && i + 1 < nMax; ++i)
+			szUnitScan[i] = psz[i];
+		szUnitScan[i] = L'\0';
+		pszUnits = szUnitScan;
 	}
 
 	const bool bGigabit = TransferConnectionCapacityContainsUnit(pszUnits, L"gbps") ||
