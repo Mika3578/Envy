@@ -1,0 +1,54 @@
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share an **idea** or UX proposal. A Discussion does **not** mean the feature is accepted.
+        When scope is clear, maintainers track implementation in an [Issue](https://github.com/Mika3578/Envy/issues).
+        Check [status.md](https://github.com/Mika3578/Envy/blob/develop/docs/10_dev/status.md) for current capability vocabulary.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / user need
+      description: What pain or use case motivates this?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed idea
+    validations:
+      required: true
+  - type: checkboxes
+    id: protocols
+    attributes:
+      label: Protocols or areas affected
+      options:
+        - BitTorrent
+        - ED2K / eMule interop
+        - Kad
+        - Gnutella (G1)
+        - Gnutella2 (G2)
+        - Direct Connect (NMDC)
+        - Library / search / UI
+        - Build / CI / packaging
+        - Other / cross-cutting
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Expected benefit
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility / interoperability considerations
+  - type: input
+    id: existing
+    attributes:
+      label: Related Issue or Discussion
+      description: Link or number if one already exists.
+      placeholder: "#123 or https://github.com/Mika3578/Envy/discussions/..."

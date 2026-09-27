@@ -1,0 +1,24 @@
+title: "[General] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use **General** for project conversation that does not fit another category.
+        Search [existing discussions](https://github.com/Mika3578/Envy/discussions) first.
+
+        - Questions with a clear answer → [**Q&A**](https://github.com/Mika3578/Envy/discussions/new?category=q-a)
+        - Feature ideas → [**Ideas**](https://github.com/Mika3578/Envy/discussions/new?category=ideas)
+        - Confirmed bugs → [Issues](https://github.com/Mika3578/Envy/issues/new/choose)
+        - Security → [private advisory](https://github.com/Mika3578/Envy/security/advisories/new) (not public)
+  - type: textarea
+    id: topic
+    attributes:
+      label: Topic
+      description: What would you like to discuss?
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Context, links, or background (keep logs sanitized).

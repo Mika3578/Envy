@@ -1,0 +1,13 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Maintainers:** use Announcements for releases, preview builds, milestones, and official project news.
+        Community members — please use [**General**](https://github.com/Mika3578/Envy/discussions/new?category=general) or [**Q&A**](https://github.com/Mika3578/Envy/discussions/new?category=q-a) instead.
+  - type: textarea
+    id: announcement
+    attributes:
+      label: Announcement draft
+      description: Maintainer use only — summary, links to Releases/docs, calls for testers.
+    validations:
+      required: true

@@ -1,0 +1,37 @@
+title: "[Q&A] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask installation, configuration, usage, or build questions here.
+        For **confirmed defects**, open a [bug report Issue](https://github.com/Mika3578/Envy/issues/new/choose) instead.
+        Do not post security vulnerabilities publicly — see [SECURITY.md](https://github.com/Mika3578/Envy/blob/develop/.github/SECURITY.md).
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Installation / upgrades
+        - Configuration / settings
+        - Using Envy (UI / transfers / search)
+        - Build / development setup
+        - Protocol behavior (general)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Envy version or commit
+      placeholder: "4.2.0-preview.1 or commit abc1234"
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you tried already
+      description: Optional — docs read, settings changed, etc.

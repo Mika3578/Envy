@@ -214,3 +214,7 @@ See `docs/50_user/crash-reports.md`.
 ## Security
 
 See `.github/SECURITY.md`. Never open public issues for security bugs.
+
+## Community (GitHub Discussions)
+
+Use [GitHub Discussions](https://github.com/Mika3578/Envy/discussions) for questions, ideas, preview/interoperability feedback, and contributor conversation. Confirmed bugs and scoped engineering work stay in **Issues**. See [docs/community/DISCUSSIONS.md](../docs/community/DISCUSSIONS.md) for category intent, templates, and moderation notes.

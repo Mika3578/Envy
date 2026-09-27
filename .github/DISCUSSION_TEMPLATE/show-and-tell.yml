@@ -1,0 +1,20 @@
+title: "[Show and tell] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Show skins, workflows, docs, or other **non-secret** work related to Envy.
+        For **preview builds** and **protocol interoperability** reports, prefer the pinned
+        *Preview testing and protocol interoperability reports* discussion (see Discussions home)
+        or copy the interoperability template from [docs/community/DISCUSSIONS.md](https://github.com/Mika3578/Envy/blob/develop/docs/community/DISCUSSIONS.md).
+  - type: textarea
+    id: showcase
+    attributes:
+      label: What are you sharing?
+    validations:
+      required: true
+  - type: textarea
+    id: links
+    attributes:
+      label: Links or screenshots (sanitized)
+      description: No credentials, private IPs, or infringing content.

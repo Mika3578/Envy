@@ -2,7 +2,16 @@ blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
     url: https://github.com/mika3578/envy/security/advisories/new
-    about: Please report security issues privately, never via public issues.
-  - name: Discussion / question
-    url: https://github.com/mika3578/envy/discussions
-    about: General questions about using Envy.
+    about: Please report security issues privately, never via public issues or Discussions.
+  - name: Question / help (Q&A)
+    url: https://github.com/Mika3578/Envy/discussions/new?category=q-a
+    about: Installation, configuration, usage, and build setup — use Q&A, not Issues.
+  - name: Idea or early feature proposal
+    url: https://github.com/Mika3578/Envy/discussions/new?category=ideas
+    about: Brainstorming before an issue is scoped — not a commitment to implement.
+  - name: Preview / interoperability feedback
+    url: https://github.com/Mika3578/Envy/discussions
+    about: Structured testing reports — see pinned interoperability thread or docs/community/DISCUSSIONS.md.
+  - name: All Discussions
+    url: https://github.com/Mika3578/Envy/discussions
+    about: Community hub — see pinned welcome and contributor threads.
