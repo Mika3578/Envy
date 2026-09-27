@@ -320,6 +320,27 @@ else
 	echo "OK   gitleaks-wrong-app-id-warns"
 fi
 
+# Non-pinned third-party checks must not spam app-id warnings.
+json_advisory_app="$(check_json '[
+  {"id":1,"name":"cubic · AI code reviewer","status":"completed","conclusion":"neutral","head_sha":"'"$HEAD_A"'","app":{"id":999001}}
+]')"
+set +e
+advisory_stderr="$(
+	printf '%s\n' "$json_advisory_app" | pr_gate_latest_check_rows "$HEAD_A" 2>&1 >/dev/null
+)"
+advisory_rc=$?
+set -e
+if [[ "$advisory_rc" -ne 0 ]]; then
+	echo "FAIL advisory-app-no-warn: parser exited $advisory_rc" >&2
+	fail=1
+elif [[ "$advisory_stderr" == *"WARN pr-gate:"* ]]; then
+	echo "FAIL advisory-app-no-warn: unexpected app-id diagnostic" >&2
+	printf '%s\n' "$advisory_stderr" >&2
+	fail=1
+else
+	echo "OK   advisory-app-no-warn"
+fi
+
 # API error-shaped payload fails explicitly.
 set +e
 printf '%s\n' '{"message":"bad credentials"}' | pr_gate_latest_check_rows "$HEAD_A" >/dev/null
