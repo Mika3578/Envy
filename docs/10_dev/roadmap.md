@@ -27,7 +27,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 - **G2 / G1 / NMDC:** implemented and in scope to preserve. **ADC/ADCS hub protocol is not implemented** (NMDC-side `ADCGet`/`ADCSND` ≠ ADC hubs). Feature depth vs latest ADC-EXT / gtk-gnutella unverified.
 - **BitTorrent v1:** Solid (DHT, ut_metadata, ut_pex, lt_tex, web seeds, trackers)
 - **BitTorrent v2:** Library-only (Merkle tree + SHA-256); no wire protocol
-- **ED2K:** Core transfers + SourceEx2 (0x83/0x84) present; Hello honesty for AICH/SecureIdent/CryptLayer/Ext Multipacket. Compressed upload send path is **implemented** (#252) but live-unverified; AICH C2C, Ext Multipacket handlers, Buddy/REASK, and live eMule/aMule interop still open (#160). **SecureIdent RSA is not implemented** (#75; do not advertise).
+- **ED2K:** Core transfers + SourceEx2 (0x83/0x84) wire format aligned to eMule/aMule locally; Hello honesty for AICH/SecureIdent/CryptLayer/Ext Multipacket. Compressed upload send path is **implemented** (#252) but live-unverified; AICH C2C, Ext Multipacket handlers, Buddy/REASK, and live eMule/aMule interop still open (#160). **SecureIdent RSA is not implemented** (#75; do not advertise).
 - **Kademlia (active: `Kademlia.cpp` only):** Bootstrap, ping, find_node, HELLO, SEARCH/PUBLISH **wire handlers** present; **source SEARCH_RES → `AddSourceED2K`** for HighID types 1/4 with outstanding-search context (keyword hits never create sources). **TCP firewall-detection baseline** (`FIREWALLED_REQ`/`RES` + ACK count) present; UDP firewall tester / Buddy / UDP keys absent; outbound store-answer framing still simplified; live Kad2 interop **unverified**. Legacy `KadProtocol.cpp` / `KBucket` / `KadStorage` require undefined `ENVY_LEGACY_KADEMLIA` and are **inactive**.
 - **IPv6:** Utilities exist, core connections IPv4-only (`docs/ipv6/PLAN.md`); prefer portable address types in #89
 - **Headless / RPC:** not implemented (MFC GUI + limited Remote web UI); #161
@@ -67,7 +67,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 - FileIdentifier support
 - AICH hash tree building and verification (C2C recovery protocol still TODO)
 - Concatenated UDP packet parsing fix
-- SourceEx2 — REQUESTSOURCES2 (0x83) / ANSWERSOURCES2 (0x84) in `EDClient.cpp`; advertised via nOpt2 bit 10; IPv4-only tuples (`SOURCE_EXCHANGE_INTEROP_NOTES.md`)
+- SourceEx2 — REQUESTSOURCES2 (0x83) / ANSWERSOURCES2 (0x84) wire format in `EDClient.cpp` aligned to eMule/aMule; advertised via nOpt2 bit 10; IPv4-only tuples; live interop unverified (#160) (`SOURCE_EXCHANGE_INTEROP_NOTES.md`)
 - SecureIdent **safe disable** (#75): `ED2K_VERSION_SECUREID = 0`; peers never marked verified; inbound SecureIdent packets ignored
 
 ### Not implemented (do not list as done)
