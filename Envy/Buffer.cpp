@@ -20,7 +20,11 @@
 // http://shareaza.sourceforge.net/mediawiki/index.php/Developers.Code.CBuffer
 // http://getenvy.com/archives/envywiki/Developers.Code.CBuffer.html
 
+#ifdef ENVY_BENCHMARK_BUILD
+#include "../benchmarks/StdAfx.h"
+#else
 #include "StdAfx.h"
+#endif
 #include "Buffer.h"
 #include "PacketLengthValidate.h"
 //#include "Statistics.h"
