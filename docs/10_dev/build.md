@@ -280,6 +280,61 @@ x64/Win32 Release (PRs) and after Release+Debug (`develop` pushes).
 
 See `tests/INTEGRATION_TEST_README.md` and `tests/MANUAL_CRYPTO_TESTING_GUIDE.md`.
 
+## Compilation database (`compile_commands.json`)
+
+**SonarQube for VS Code**, **clangd**, and other C/C++ tools need a
+[compilation database](https://clang.llvm.org/docs/JSONCompilationDatabase.html)
+at the repository root (`compile_commands.json` for Release|x64). Optional Win32:
+`-Platform Win32 -Output compile_commands.win32.json`. Both outputs are
+**gitignored**; generate locally after cloning or when MSVC project settings change.
+
+### Prerequisites
+
+- **PowerShell 7** (`pwsh`)
+- **Visual Studio 2026** with the Desktop C++ workload and toolset **v145**
+- **Win32 extraction only:** run `scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static`
+  first so Win32 projects resolve Crashpad paths the same way as CI
+
+### Generate (recommended: Release | x64)
+
+From the repository root:
+
+```bat
+scripts\generate-compile-commands.cmd
+```
+
+or:
+
+```powershell
+.\scripts\generate-compile-commands.ps1
+```
+
+This writes `compile_commands.json` using Microsoft's
+[msbuild-extractor-sample](https://github.com/microsoft/msbuild-extractor-sample)
+(design-time MSBuild evaluation — no full solution build). The pinned extractor
+binary is cached under `.local/msbuild-extractor/` on first run.
+
+Options:
+
+| Flag / parameter | Purpose |
+|------------------|---------|
+| `-Platform Win32` | Win32 compile commands (adds vcpkg manifest properties) |
+| `-Configuration Debug` | Debug instead of Release |
+| `-Output <path>` | Non-default output file |
+| `-Validate` | Compile each entry with `cl.exe /c` (slow; proves correctness) |
+| `-ExtractorPath <exe>` | Use a local `msbuild-extractor-sample.exe` |
+| `-SkipDownload` | Fail if the cached extractor is missing |
+
+Configuration defaults live in `scripts/msbuild-extractor.envy.json` (solution
+path, `PlatformToolset=v145`, `WindowsTargetPlatformVersion=10.0`).
+
+**Limitations:** MIDL-generated headers (`EnvyOM.h`, etc.) and other build-only
+artifacts may be absent until you have built the solution at least once. Regenerate
+after retargeting SDK/toolset or changing `.vcxproj` compile flags.
+
+GitHub **SonarCloud** analysis does not use this file (Automatic Analysis on
+`develop`/PRs). It is for local IDE analysis only.
+
 ## 📁 Build Output Structure
 
 ```

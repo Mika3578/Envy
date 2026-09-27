@@ -133,7 +133,9 @@ Do not reintroduce mutable `@vN` tags for external actions.
 ### Follow-ups
 
 - Parser fuzzers / sanitizers on nightly (out of the PR gate).
-- clang-tidy with a real Windows `compile_commands.json`.
+- clang-tidy PR workflow wired to the Windows `compile_commands.json` from
+  `scripts/generate-compile-commands.ps1` (file generation is scripted; CI tidy
+  still uses best-effort flags today).
 - After CodeQL is complete on every PR for several merges: tighten Protect
   develop Code Scanning thresholds for CodeQL/Gitleaks to the strictest
   supported values (do not change thresholds before that evidence).
