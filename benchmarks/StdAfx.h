@@ -17,6 +17,14 @@
 
 #include <sdkddkver.h>
 
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #ifndef _SECURE_ATL
 #define _SECURE_ATL 1
 #endif
@@ -26,9 +34,19 @@
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS
 #define _AFX_NO_MFC_CONTROLS_IN_DIALOGS
 
+// MFC 14.5x + lean Windows headers: atlhandler.h references WTS_ALPHATYPE before
+// winuser.h is fully visible through the static MFC console include graph.
+#ifndef WTS_ALPHATYPE
+typedef enum _WTS_ALPHATYPE
+{
+	WTS_ALPHA_UNKNOWN = 0,
+	WTS_ALPHA_RGB = 1,
+	WTS_ALPHA_ARGB = 2,
+} WTS_ALPHATYPE;
+#endif
+
 #pragma warning(push, 0)
 
-#include <WinUser.h>
 #include <afxwin.h>
 #include <afxext.h>
 
