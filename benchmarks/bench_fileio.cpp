@@ -21,11 +21,13 @@ namespace
 
 std::filesystem::path BenchScratchRoot()
 {
-	const char* local = std::getenv("LOCALAPPDATA");
-	if (local == nullptr || local[0] == '\0')
+	wchar_t local_app_data[MAX_PATH] = {};
+	const DWORD length = GetEnvironmentVariableW(L"LOCALAPPDATA", local_app_data, MAX_PATH);
+	if (length == 0 || length >= MAX_PATH)
 		return {};
 
-	std::filesystem::path root = std::filesystem::path(local) / "Envy" / "BenchmarkScratch";
+	std::filesystem::path root =
+		std::filesystem::path(local_app_data) / L"Envy" / L"BenchmarkScratch";
 	std::error_code ec;
 	std::filesystem::create_directories(root, ec);
 	if (ec)
