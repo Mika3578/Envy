@@ -9,7 +9,7 @@
 #include "bench_harness.h"
 
 #include <cstdint>
-#include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -18,11 +18,17 @@
 namespace
 {
 
-std::filesystem::path BenchTempRoot()
+std::filesystem::path BenchScratchRoot()
 {
-	std::filesystem::path root = std::filesystem::temp_directory_path() / "EnvyBenchmarks";
+	const char* local = std::getenv("LOCALAPPDATA");
+	if (local == nullptr || local[0] == '\0')
+		return {};
+
+	std::filesystem::path root = std::filesystem::path(local) / "Envy" / "BenchmarkScratch";
 	std::error_code ec;
 	std::filesystem::create_directories(root, ec);
+	if (ec)
+		return {};
 	return root;
 }
 
@@ -37,10 +43,16 @@ std::vector<std::uint8_t> MakePayload(std::size_t size)
 std::uint64_t SequentialWrite(std::size_t bytes, std::size_t files)
 {
 	const auto payload = MakePayload(bytes);
-	const auto root = BenchTempRoot() / "write";
+	const auto scratch_root = BenchScratchRoot();
+	if (scratch_root.empty())
+		return 0;
+
+	const auto root = scratch_root / "write";
 	std::error_code ec;
 	std::filesystem::remove_all(root, ec);
 	std::filesystem::create_directories(root, ec);
+	if (ec)
+		return 0;
 
 	std::uint64_t sink = 0;
 	for (std::size_t f = 0; f < files; ++f)
@@ -51,6 +63,8 @@ std::uint64_t SequentialWrite(std::size_t bytes, std::size_t files)
 			return 0;
 		out.write(reinterpret_cast<const char*>(payload.data()),
 		          static_cast<std::streamsize>(payload.size()));
+		if (!out.good())
+			return 0;
 		sink ^= static_cast<std::uint64_t>(out.tellp());
 	}
 
@@ -61,17 +75,27 @@ std::uint64_t SequentialWrite(std::size_t bytes, std::size_t files)
 std::uint64_t SequentialRead(std::size_t bytes, std::size_t files)
 {
 	const auto payload = MakePayload(bytes);
-	const auto root = BenchTempRoot() / "read";
+	const auto scratch_root = BenchScratchRoot();
+	if (scratch_root.empty())
+		return 0;
+
+	const auto root = scratch_root / "read";
 	std::error_code ec;
 	std::filesystem::remove_all(root, ec);
 	std::filesystem::create_directories(root, ec);
+	if (ec)
+		return 0;
 
 	for (std::size_t f = 0; f < files; ++f)
 	{
 		const auto path = root / ("bench-" + std::to_string(f) + ".bin");
 		std::ofstream out(path, std::ios::binary | std::ios::trunc);
+		if (!out)
+			return 0;
 		out.write(reinterpret_cast<const char*>(payload.data()),
 		          static_cast<std::streamsize>(payload.size()));
+		if (!out.good())
+			return 0;
 	}
 
 	std::uint64_t sink = 0;
@@ -80,7 +104,13 @@ std::uint64_t SequentialRead(std::size_t bytes, std::size_t files)
 	{
 		const auto path = root / ("bench-" + std::to_string(f) + ".bin");
 		std::ifstream in(path, std::ios::binary);
+		if (!in)
+			return 0;
 		in.read(reinterpret_cast<char*>(scratch.data()), static_cast<std::streamsize>(scratch.size()));
+		if (!in.good() && !in.eof())
+			return 0;
+		if (in.gcount() != static_cast<std::streamsize>(scratch.size()))
+			return 0;
 		sink ^= scratch[0] ^ static_cast<std::uint64_t>(in.gcount());
 	}
 

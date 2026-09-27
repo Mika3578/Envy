@@ -21,6 +21,12 @@ bool HasPathTraversal(const std::string& path)
 {
 	if (path.find("..") != std::string::npos)
 		return true;
+	if (!path.empty() && (path[0] == '/' || path[0] == '\\'))
+		return true;
+	if (path.size() >= 2 && path[1] == ':')
+		return true;
+	if (path.rfind("\\\\", 0) == 0)
+		return true;
 	return false;
 }
 

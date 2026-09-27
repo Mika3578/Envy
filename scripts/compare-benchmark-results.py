@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 from typing import Any, Dict, List, Tuple
 
@@ -16,7 +17,17 @@ from typing import Any, Dict, List, Tuple
 MAX_FILE_BYTES = 8 * 1024 * 1024
 
 
+def validate_results_path(path: str) -> None:
+    if not path or len(path) > 4096:
+        raise ValueError("invalid path length")
+    if ".." in path:
+        raise ValueError("path traversal in results path")
+    if os.path.basename(path) in ("", ".", ".."):
+        raise ValueError("invalid results filename")
+
+
 def load_document(path: str) -> Dict[str, Any]:
+    validate_results_path(path)
     with open(path, "rb") as f:
         data = f.read(MAX_FILE_BYTES + 1)
     if len(data) > MAX_FILE_BYTES:
