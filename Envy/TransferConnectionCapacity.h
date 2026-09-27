@@ -22,7 +22,7 @@ inline unsigned int TransferConnectionCapacityPresetCount()
 	// Sorted ascending; no duplicates. Ki-based Mb/s/Gb/s labels (×1024).
 	static const DWORD kPresets[] = {
 		56, 128, 256, 384, 512, 640, 768, 1024, 1544, 1550, 2048, 3072, 4096, 5120,
-		8192, 10240, 12288, 16384, 20480, 24576, 25400, 30720, 45000, 44800, 50800,
+		8192, 10240, 12288, 16384, 20480, 24576, 25400, 30720, 44800, 45000, 50800,
 		77000, 102400, 155000, 204800, 307200, 409600, 512000, 972800, 1024000,
 		2621440, 5242880, 10485760
 	};
@@ -33,7 +33,7 @@ inline DWORD TransferConnectionCapacityPresetKilobits(unsigned int nIndex)
 {
 	static const DWORD kPresets[] = {
 		56, 128, 256, 384, 512, 640, 768, 1024, 1544, 1550, 2048, 3072, 4096, 5120,
-		8192, 10240, 12288, 16384, 20480, 24576, 25400, 30720, 45000, 44800, 50800,
+		8192, 10240, 12288, 16384, 20480, 24576, 25400, 30720, 44800, 45000, 50800,
 		77000, 102400, 155000, 204800, 307200, 409600, 512000, 972800, 1024000,
 		2621440, 5242880, 10485760
 	};
@@ -102,19 +102,28 @@ inline TransferConnectionCapacityParseResult TransferConnectionCapacityParseKilo
 		return oResult;
 	}
 
-	const bool bGigabit = TransferConnectionCapacityContainsUnit(psz, L"gbps") ||
-	                      TransferConnectionCapacityContainsUnit(psz, L"gb/s") ||
-	                      (TransferConnectionCapacityContainsUnit(psz, L"g") &&
-	                       !TransferConnectionCapacityContainsUnit(psz, L"kbps") &&
-	                       !TransferConnectionCapacityContainsUnit(psz, L"mbps"));
-	const bool bMegabit = !bGigabit &&
+	const bool bKilobit = TransferConnectionCapacityContainsUnit(psz, L"kbps") ||
+	                      TransferConnectionCapacityContainsUnit(psz, L"kb/s");
+	const bool bGigabit = !bKilobit &&
+	                      (TransferConnectionCapacityContainsUnit(psz, L"gbps") ||
+	                       TransferConnectionCapacityContainsUnit(psz, L"gb/s") ||
+	                       (TransferConnectionCapacityContainsUnit(psz, L"g") &&
+	                        !TransferConnectionCapacityContainsUnit(psz, L"mbps")));
+	const bool bMegabit = !bKilobit && !bGigabit &&
 	                      (TransferConnectionCapacityContainsUnit(psz, L"mbps") ||
-	                       TransferConnectionCapacityContainsUnit(psz, L"mb/s") ||
-	                       (TransferConnectionCapacityContainsUnit(psz, L"m") &&
-	                        !TransferConnectionCapacityContainsUnit(psz, L"kbps")));
+	                       TransferConnectionCapacityContainsUnit(psz, L"mb/s"));
 
 	unsigned long long nKilobits = 0;
-	if (bGigabit)
+	if (bKilobit)
+	{
+		if (val > static_cast<double>(0xFFFFFFFFull))
+		{
+			oResult.eStatus = TransferConnectionCapacityParseStatus::Overflow;
+			return oResult;
+		}
+		nKilobits = static_cast<unsigned long long>(val);
+	}
+	else if (bGigabit)
 	{
 		const double nScaled = val * 1024.0 * 1024.0;
 		if (nScaled > static_cast<double>(0xFFFFFFFFull))
