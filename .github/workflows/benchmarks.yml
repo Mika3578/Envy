@@ -1,0 +1,108 @@
+name: Benchmarks
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - "benchmarks/**"
+      - "scripts/compare-benchmark-results.py"
+      - "scripts/compare-benchmark-results.selftest.sh"
+      - ".github/workflows/benchmarks.yml"
+  push:
+    branches: [develop]
+    paths:
+      - "benchmarks/**"
+      - "scripts/compare-benchmark-results.py"
+      - "scripts/compare-benchmark-results.selftest.sh"
+      - ".github/workflows/benchmarks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmarks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLATFORM_TOOLSET: v145
+
+jobs:
+  compare-selftest:
+    name: Compare script self-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+      - name: Run compare-benchmark-results self-test
+        run: bash scripts/compare-benchmark-results.selftest.sh
+
+  benchmark-x64-release:
+    name: EnvyBenchmarks x64 Release
+    needs: compare-selftest
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 45
+    env:
+      MSBUILD_PARALLEL: /m:1
+      MSBUILD_USE_MULTI_TOOL_TASK: false
+      SOLUTION: Visual Studio\Envy.sln
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+
+      - uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57  # v3
+        with:
+          msbuild-architecture: x64
+
+      - name: Bootstrap vcpkg (manifest not required for EnvyBenchmarks)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "$env:VCPKG_INSTALLATION_ROOT")) {
+            git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
+            & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
+            echo "VCPKG_INSTALLATION_ROOT=$env:GITHUB_WORKSPACE/vcpkg" >> $env:GITHUB_ENV
+          }
+
+      - name: Build EnvyBenchmarks (Release x64)
+        shell: cmd
+        run: |
+          msbuild "benchmarks\EnvyBenchmarks.vcxproj" ^
+            %MSBUILD_PARALLEL% ^
+            /nologo /verbosity:minimal ^
+            /p:Configuration=Release ^
+            /p:Platform=x64 ^
+            /p:PlatformToolset=%PLATFORM_TOOLSET% ^
+            /p:WindowsTargetPlatformVersion=10.0
+
+      - name: Run harness self-test
+        shell: cmd
+        run: |
+          set "EXE=benchmarks\Release x64\EnvyBenchmarks.exe"
+          if not exist "%EXE%" exit /b 1
+          "%EXE%" --self-test
+
+      - name: Run CI benchmark slice
+        shell: cmd
+        run: |
+          set "EXE=benchmarks\Release x64\EnvyBenchmarks.exe"
+          "%EXE%" --ci --json benchmark-results.json > benchmark-summary.txt
+          type benchmark-summary.txt
+
+      - name: Job summary
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path benchmark-summary.txt) {
+            Get-Content benchmark-summary.txt | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+          }
+
+      - name: Upload benchmark artifacts
+        if: success()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6
+        with:
+          name: envy-benchmarks-x64-release
+          path: |
+            benchmark-results.json
+            benchmark-summary.txt
+            benchmarks/Release x64/EnvyBenchmarks.exe
+          if-no-files-found: error
+          retention-days: 14

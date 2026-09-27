@@ -364,7 +364,7 @@ Reference: eMule eSE. Not a short-term goal. Preconditions: stable Envy IPv6, st
 - [ ] Create dependency register + ownership map (2d) — **In progress on develop** (`docs/DEPENDENCIES.md` exists but remains an incomplete seed).
 - [x] Add threat model and secure-coding checklist (2d)
 - [ ] Expand tests for protocol parser/state-machine paths (5d)
-- [ ] Establish baseline metrics (startup, memory, throughput) (3d) — tracked as [#111](https://github.com/Mika3578/Envy/issues/111)
+- [ ] Establish baseline metrics (startup, memory, throughput) (3d) — foundation harness in progress via `EnvyBenchmarks` (`docs/10_dev/benchmarks.md`); issue [#111](https://github.com/Mika3578/Envy/issues/111) remains open for transfer/lock families
 
 ### Runtime performance (audit 2026-09-10)
 
