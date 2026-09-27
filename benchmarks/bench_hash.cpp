@@ -10,15 +10,6 @@
 
 #include "bench_harness.h"
 
-#ifdef WIN64
-#define NTDDI_VERSION 0x06000000
-#define _WIN32_WINNT 0x0600
-#else
-#define NTDDI_VERSION 0x05010200
-#define _WIN32_WINNT 0x0501
-#endif
-#include <sdkddkver.h>
-
 #include "../HashLib/HashLib.h"
 
 #include <array>
@@ -112,58 +103,58 @@ void RegisterHashCase(BenchRegistry& registry,
 
 void BenchRegisterHashWorkloads(BenchRegistry& registry)
 {
-	const auto small = MakePayload(256);
-	const auto piece = MakePayload(256 * 1024);
-	const auto large = MakePayload(4 * 1024 * 1024);
+	const auto payload_small = MakePayload(256);
+	const auto payload_piece = MakePayload(256 * 1024);
+	const auto payload_large = MakePayload(4 * 1024 * 1024);
 
 	RegisterHashCase(registry,
 	                 "sha1/256B",
-	                 small,
+	                 payload_small,
 	                 5000,
-	                 [small]()
-	                 { return HashBuffer<CSHA, 20>(small, 1); });
+	                 [payload_small]()
+	                 { return HashBuffer<CSHA, 20>(payload_small, 1); });
 	RegisterHashCase(registry,
 	                 "md5/256B",
-	                 small,
+	                 payload_small,
 	                 5000,
-	                 [small]()
-	                 { return HashBuffer<CMD5, 16>(small, 1); });
+	                 [payload_small]()
+	                 { return HashBuffer<CMD5, 16>(payload_small, 1); });
 	RegisterHashCase(registry,
 	                 "md4/256B",
-	                 small,
+	                 payload_small,
 	                 5000,
-	                 [small]()
-	                 { return HashBuffer<CMD4, 16>(small, 1); });
+	                 [payload_small]()
+	                 { return HashBuffer<CMD4, 16>(payload_small, 1); });
 
 	RegisterHashCase(registry,
 	                 "sha1/256KiB",
-	                 piece,
+	                 payload_piece,
 	                 200,
-	                 [piece]()
-	                 { return HashBuffer<CSHA, 20>(piece, 1); });
+	                 [payload_piece]()
+	                 { return HashBuffer<CSHA, 20>(payload_piece, 1); });
 	RegisterHashCase(registry,
 	                 "ed2k/256KiB",
-	                 piece,
+	                 payload_piece,
 	                 200,
-	                 [piece]()
-	                 { return HashEd2k(piece, 1); });
+	                 [payload_piece]()
+	                 { return HashEd2k(payload_piece, 1); });
 	RegisterHashCase(registry,
 	                 "tiger/256KiB",
-	                 piece,
+	                 payload_piece,
 	                 200,
-	                 [piece]()
-	                 { return HashTiger(piece, 1); });
+	                 [payload_piece]()
+	                 { return HashTiger(payload_piece, 1); });
 
 	RegisterHashCase(registry,
 	                 "sha1/4MiB",
-	                 large,
+	                 payload_large,
 	                 10,
-	                 [large]()
-	                 { return HashBuffer<CSHA, 20>(large, 1); });
+	                 [payload_large]()
+	                 { return HashBuffer<CSHA, 20>(payload_large, 1); });
 	RegisterHashCase(registry,
 	                 "ed2k/4MiB",
-	                 large,
+	                 payload_large,
 	                 10,
-	                 [large]()
-	                 { return HashEd2k(large, 1); });
+	                 [payload_large]()
+	                 { return HashEd2k(payload_large, 1); });
 }
