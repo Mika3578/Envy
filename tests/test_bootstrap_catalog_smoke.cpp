@@ -275,7 +275,12 @@ static bool LoadRepoDataFile( const char* name, std::wstring* wide )
 	FILE* fp = nullptr;
 	for ( const std::string& path : paths )
 	{
+#if defined( _MSC_VER )
+		if ( fopen_s( &fp, path.c_str(), "rb" ) != 0 )
+			fp = nullptr;
+#else
 		fp = fopen( path.c_str(), "rb" );
+#endif
 		if ( fp )
 			break;
 	}
