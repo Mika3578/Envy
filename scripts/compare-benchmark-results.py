@@ -10,11 +10,14 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
-from typing import Any, Dict, List, Tuple
+from pathlib import Path
+from typing import Any, Dict, List
 
 
 MAX_FILE_BYTES = 8 * 1024 * 1024
+_SAFE_RESULTS_PATH = re.compile(r"^[\w./\\\-]+$")
 
 
 def validate_results_path(path: str) -> None:
@@ -24,14 +27,30 @@ def validate_results_path(path: str) -> None:
         raise ValueError("path traversal in results path")
     if os.path.basename(path) in ("", ".", ".."):
         raise ValueError("invalid results filename")
+    if not _SAFE_RESULTS_PATH.match(path):
+        raise ValueError("results path contains disallowed characters")
+
+
+def resolve_results_file(path: str) -> Path:
+    """Return a resolved regular file path after validation (CLI input is untrusted)."""
+    validate_results_path(path)
+    candidate = Path(path)
+    if candidate.is_symlink():
+        raise ValueError("symlinks not allowed for results files")
+    try:
+        resolved = candidate.resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise ValueError("results file not found") from exc
+    if not resolved.is_file():
+        raise ValueError("results path is not a regular file")
+    return resolved
 
 
 def load_document(path: str) -> Dict[str, Any]:
-    validate_results_path(path)
-    with open(path, "rb") as f:
-        data = f.read(MAX_FILE_BYTES + 1)
+    file_path = resolve_results_file(path)
+    data = file_path.read_bytes()
     if len(data) > MAX_FILE_BYTES:
-        raise ValueError(f"file too large: {path}")
+        raise ValueError("file too large")
     text = data.decode("utf-8")
     doc = json.loads(text)
     if not isinstance(doc, dict):
