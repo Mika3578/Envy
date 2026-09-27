@@ -1,7 +1,7 @@
 //
 // EDClient.cpp
 //
-// This file is part of Envy (getenvy.com) � 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -71,7 +71,7 @@ static char THIS_FILE[] = __FILE__;
 // Safe disable (#75): Envy does not implement eMule RSA SecureIdent yet.
 // Do not advertise the capability, do not send fake MD5 challenges/responses,
 // and never mark a peer verified. Inbound SecureIdent packets are ignored
-// without dropping the ED2K connection — SecureIdent is not required for
+// without dropping the ED2K connection �” SecureIdent is not required for
 // Hello, sources, or file transfer.
 
 void CEDClient::GenerateSecureIdent()
@@ -134,7 +134,7 @@ BOOL CEDClient::VerifySecureIdentResponse(const BYTE* response) const
 {
 	// Historical MD5/non-zero acceptance removed. Real eMule SecureIdent
 	// requires verifying an RSA signature over the challenge with the peer's
-	// published public key — not implemented yet.
+	// published public key �” not implemented yet.
 	const DWORD nLength = response ? 6u : 0u;
 	return Ed2kSecureIdentAcceptResponse( response, nLength );
 }
@@ -1399,7 +1399,7 @@ void CEDClient::SendHello(BYTE nType)
 	// 3 - UDP Port
 	CEDTag( ED2K_CT_UDPPORTS, htons( Network.m_pHost.sin_port ) ).Write( pPacket );
 
-	// 4 - Feature Versions 1 (advertise only implemented capabilities — #87)
+	// 4 - Feature Versions 1 (advertise only implemented capabilities �” #87)
 	BYTE nExtendedRequests = (BYTE)min ( Settings.eDonkey.ExtendedRequest, (DWORD)ED2K_VERSION_EXTENDEDREQUEST );
 	DWORD nOpt1 = Ed2kPackFeatureVersions1(
 		Ed2kAichAdvertisedVersion(),			// 0: no C2C AICH handlers yet
@@ -2533,7 +2533,7 @@ BOOL CEDClient::OnAskSharedDirs(CEDPacket* /*pPacket*/)
 
 BOOL CEDClient::OnViewSharedDir(CEDPacket* pPacket)
 {
-	// Wire: <len 2><Directory len> — reject before ReadEDString can throw / clamp.
+	// Wire: <len 2><Directory len> �” reject before ReadEDString can throw / clamp.
 	if (!Ed2kEdStringHeaderOk(pPacket->GetRemaining()))
 	{
 		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
@@ -3376,7 +3376,7 @@ BOOL CEDClient::OnPublicIpAnswer(CEDPacket* pPacket)
 	const DWORD tNow = GetTickCount();
 	if (!m_oPublicIpQuery.TryConsumeAnswer(tNow))
 	{
-		// Unsolicited / duplicate / expired — do not mutate identity.
+		// Unsolicited / duplicate / expired �” do not mutate identity.
 		DEBUG_ONLY(theApp.Message(MSG_DEBUG,
 		                          L"[ED2K] Ignoring unsolicited/stale PUBLICIP_ANSWER from %s",
 		                          (LPCTSTR)m_sAddress));
@@ -3445,7 +3445,7 @@ BOOL CEDClient::OnC2cCallback(CEDPacket* pPacket)
 		return TRUE;
 	}
 
-	// File must be known (share or incomplete download) — same gate as eMule.
+	// File must be known (share or incomplete download) �” same gate as eMule.
 	Hashes::Ed2kHash oFileHash(
 	    *reinterpret_cast<const Hashes::Ed2kHash::RawStorage*>(oFields.fileHash));
 	BOOL bKnownFile = FALSE;

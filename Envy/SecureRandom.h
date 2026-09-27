@@ -28,9 +28,9 @@
 // Fills pBuffer with nLength cryptographically secure random bytes.
 //
 // Priority:
-// 1. BCryptGenRandom(..., BCRYPT_USE_SYSTEM_PREFERRED_RNG) — preferred on Win10+
-// 2. CryptGenRandom(hLegacyProv) — only when a valid CryptoAPI provider is passed
-// 3. FALSE — never rand()
+// 1. BCryptGenRandom(..., BCRYPT_USE_SYSTEM_PREFERRED_RNG) �” preferred on Win10+
+// 2. CryptGenRandom(hLegacyProv) �” only when a valid CryptoAPI provider is passed
+// 3. FALSE �” never rand()
 //
 // Returns FALSE on null buffer, zero length, size_t truncation, or RNG failure.
 // On FALSE, pBuffer contents are unspecified; callers must not use them.
@@ -40,7 +40,7 @@ inline BOOL SecureRandomFill(BYTE* pBuffer, size_t nLength, HCRYPTPROV hLegacyPr
 	if ( ! pBuffer || nLength == 0 )
 		return FALSE;
 
-	// BCryptGenRandom takes ULONG — reject oversized requests rather than truncate.
+	// BCryptGenRandom takes ULONG �” reject oversized requests rather than truncate.
 	if ( nLength > static_cast< size_t >( (ULONG)-1 ) )
 		return FALSE;
 

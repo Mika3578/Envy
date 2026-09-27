@@ -1,7 +1,7 @@
 //
 // Images.h
 //
-// This file is part of Envy (getenvy.com) © 2010-2015
+// This file is part of Envy (getenvy.com) Â© 2010-2015
 // All work here is original and released as-is under Persistent Public Domain [PPD]
 //
 

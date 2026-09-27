@@ -1,7 +1,7 @@
 //
 // EDClient.h
 //
-// This file is part of Envy (getenvy.com) � 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2006 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -56,7 +56,7 @@ public:
 	DWORD		m_nEmCompatible;
 	DWORD		m_nSoftwareVersion;
 
-	// SecureID authentication (RSA SecureIdent not implemented — see SecureIdentPolicy.h / #75)
+	// SecureID authentication (RSA SecureIdent not implemented �” see SecureIdentPolicy.h / #75)
 	BYTE		m_nSecureIdent[6];		// Reserved challenge/response buffer for future RSA SecureIdent
 	DWORD		m_nSecureIdentState;	// ED2K_SECUREIDENT_STATE_*; verified only after real RSA
 

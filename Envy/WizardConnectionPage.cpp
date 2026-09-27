@@ -1,7 +1,7 @@
 //
 // WizardConnectionPage.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2020
+// This file is part of Envy (getenvy.com) Â© 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it

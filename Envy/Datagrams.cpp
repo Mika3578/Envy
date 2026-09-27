@@ -1,7 +1,7 @@
 //
 // Datagrams.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) Â© 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -411,7 +411,7 @@ BOOL CDatagrams::Send(const SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease,
 
 	if (!bCreated)
 	{
-		// Fragment count exceeded G2_SGP_FRAGMENT_MAX — reclaim and fail closed.
+		// Fragment count exceeded G2_SGP_FRAGMENT_MAX ï¿½â€ reclaim and fail closed.
 		if (pDG->m_pBuffer)
 		{
 			pDG->m_pBuffer->m_pNext = m_pBufferFree;

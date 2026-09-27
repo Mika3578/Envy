@@ -1845,7 +1845,7 @@ void CEnvyApp::InitResources()
 			::GetLastError() );
 	}
 
-	// Seeds cosmetic GetRandomNum() fallback only — never used for security tokens (#78).
+	// Seeds cosmetic GetRandomNum() fallback only �” never used for security tokens (#78).
 	srand( GetTickCount() );
 
 	m_hHookKbd   = SetWindowsHookEx( WH_KEYBOARD, (HOOKPROC)KbdHook, NULL, AfxGetThread()->m_nThreadID );

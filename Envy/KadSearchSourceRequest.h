@@ -67,7 +67,7 @@ inline bool KadDecodeSearchSourceFileSize(
 
 // App-trigger policy for calling SearchSource from ED2K download source
 // acquisition. Period is wall-clock ms (GetTickCount style); tLastTrigger==0
-// means never triggered. Size must be known — FileSize is required on the wire.
+// means never triggered. Size must be known �” FileSize is required on the wire.
 inline bool KadMayTriggerSourceSearch(
     bool bEnableKad,
     bool bKadInitialized,

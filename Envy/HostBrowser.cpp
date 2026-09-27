@@ -1,7 +1,7 @@
 //
 // HostBrowser.cpp
 //
-// This file is part of Envy (getenvy.com) � 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -535,7 +535,7 @@ BOOL CHostBrowser::OnNewFile(const CLibraryFile* pFile)
 		DeleteFileEx(pFile->GetPath(), TRUE, TRUE, TRUE);
 		// OnNewFile runs under Library.m_pSection (OnVerifyDownload). Do not
 		// take Transfers.m_pSection here (Stop does). DC browse owns no
-		// CTransfer socket — clear idle state inline.
+		// CTransfer socket �” clear idle state inline.
 		m_nState = hbsNull;
 		m_tPushed = 0;
 		m_sFileListUrl.Empty();
@@ -578,7 +578,7 @@ BOOL CHostBrowser::LoadDC(LPCTSTR pszFile, CQueryHit*& pHits, CStringList* pFold
 	if (pBuffer.m_nLength == 0 || !DcFileListUncompressedOk(pBuffer.m_nLength))
 		return FALSE;
 
-	// Bounded UTF-8 walker (depth/entries during parse) — not CXMLElement::FromString.
+	// Bounded UTF-8 walker (depth/entries during parse) �” not CXMLElement::FromString.
 	std::vector<DcFileListEntry> oEntries;
 	std::vector<std::string> oFolderUtf8;
 	const DcFileListStatus nSt = DcParseFileListingXml(

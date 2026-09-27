@@ -117,7 +117,7 @@ inline bool ApplySkinMetric(
 }
 
 //////////////////////////////////////////////////////////////////////
-// point + size → CRect-like corners (left, top, right, bottom)
+// point + size �’ CRect-like corners (left, top, right, bottom)
 
 struct SkinParsedRect
 {
@@ -159,7 +159,7 @@ inline bool ParseSkinPointSizeRect(
 // Part name suffix truncation (. / Hover / Down / Alt markers)
 
 // Mirrors historical FindOneOf(L".HDA") truncation used to recover the base
-// part name (e.g. CloseHover → Close). Returns false when no truncate index
+// part name (e.g. CloseHover �’ Close). Returns false when no truncate index
 // exists (including FindOneOf == -1 and index 0).
 inline bool TruncateSkinPartNameSuffix( LPCWSTR pszName, wchar_t* pszOut, size_t cchOut )
 {

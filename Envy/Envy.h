@@ -1,7 +1,7 @@
 //
 // Envy.h
 //
-// This file is part of Envy (getenvy.com) � 2016-2020
+// This file is part of Envy (getenvy.com) © 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -358,7 +358,7 @@ struct CompareNums
 	}
 };
 
-// Generate cryptographically secure random bytes (fail closed — never rand()).
+// Generate cryptographically secure random bytes (fail closed �” never rand()).
 // Implementation: SecureRandomFill via BCryptGenRandom, optional CryptGenRandom.
 BOOL GenerateCryptographicBytes(BYTE* pBuffer, size_t nLength);
 
@@ -375,7 +375,7 @@ inline T GetRandomNum(const T& min, const T& max)
 			return static_cast< T >( (double)nRandom  * ( (double)max - (double)min + 1 ) / ( (double)static_cast< T >( -1 ) + 1 ) + min );
 	}
 
-	// Cosmetic fallback only — not for security-sensitive values (#78).
+	// Cosmetic fallback only �” not for security-sensitive values (#78).
 	return static_cast< T >( (double)rand() * ( max - min + 1 ) / ( (double)RAND_MAX + 1 ) + min );
 }
 

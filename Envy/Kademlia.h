@@ -256,7 +256,7 @@ private:
 	KadStore m_sourceStore;  // File hash -> published source entries
 	DWORD m_lastStoreCleanup;
 
-	// SEARCH_RES → ED2K source delivery (impl at EOF of Kademlia.cpp).
+	// SEARCH_RES �’ ED2K source delivery (impl at EOF of Kademlia.cpp).
 	void DeliverSourceCandidate(const BYTE* pFileHash, const KadSourceCandidate& cand);
 	void ProcessSearchResponseDelivery(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	// Outstanding searches: target hash + kind + expiry; no CDownload*.

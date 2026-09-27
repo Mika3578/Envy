@@ -2,7 +2,7 @@
 * qrencode.c
 * Amalgated subset of LibQREncode
 *
-* This file is part of Envy (getenvy.com) © 2016-2018
+* This file is part of Envy (getenvy.com) Â© 2016-2018
 * Portions copyright PeerProject 2016 and Kentaro Fukuchi 2006-2012 <kentaro@fukuchi.org>
 *
 * This library is free software; you can redistribute it and/or

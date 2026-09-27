@@ -1,7 +1,7 @@
 //
 // QuerySearch.cpp
 //
-// This file is part of Envy (getenvy.com) � 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -904,7 +904,7 @@ void CQuerySearch::ReadGGEP(CG1Packet* pPacket)
 		{
 			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) )
 			{
-				// Zero-length "H" leaves m_pBuffer NULL — guard before type byte.
+				// Zero-length "H" leaves m_pBuffer NULL �” guard before type byte.
 				if ( ! GgepItemHasTypeByte( pItemPos->m_pBuffer, pItemPos->m_nLength ) )
 					continue;
 

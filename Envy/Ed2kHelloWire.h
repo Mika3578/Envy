@@ -286,7 +286,7 @@ inline BOOL Ed2kHelloBodyFindIntTag(
 	return FALSE;
 }
 
-// TCP packet → body pointer/length (skips 0xE3 + length + opcode).
+// TCP packet �’ body pointer/length (skips 0xE3 + length + opcode).
 inline BOOL Ed2kHelloTcpStripHeader(
 	const BYTE* pPacket, size_t nPacket, BYTE* pOpcode, const BYTE** ppBody, size_t* pBodyLen)
 {

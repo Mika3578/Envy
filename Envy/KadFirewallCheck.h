@@ -40,7 +40,7 @@ constexpr size_t KAD_FW_RES_SIZE = 4;
 constexpr size_t KAD_FW_ACK_SIZE = 0;
 constexpr size_t KAD_FW2_REQ_MIN_SIZE = 19;
 
-// eMule opcodes.h KADEMLIAFIREWALLCHECKS — concurrent outbound checks.
+// eMule opcodes.h KADEMLIAFIREWALLCHECKS �” concurrent outbound checks.
 constexpr size_t KAD_FW_MAX_OUTSTANDING_CHECKS = 4;
 constexpr size_t KAD_FW_MAX_INBOUND_PROBES = 4;
 constexpr size_t KAD_FW_MAX_RATE_ENTRIES = 64;
@@ -161,7 +161,7 @@ struct KadFwInboundReqResult
 	WORD tcpPort = 0;
 	DWORD observedIpHost = 0;
 	bool sendResponse = false;
-	bool recordTcpProbe = false; // intent only — not proof of TCP reachability
+	bool recordTcpProbe = false; // intent only �” not proof of TCP reachability
 };
 
 struct KadFwIpObservation
@@ -305,7 +305,7 @@ inline KadFwParseStatus KadParseFirewalledAck(size_t len)
 inline BYTE KadFirewalledReqOpcodeForVersion(BYTE kadVersion)
 {
 	// Outbound: send 0x50 to all versions (v7+ still accept it). Do not emit
-	// FIREWALLED2_REQ here — connect-options/crypt are out of this slice.
+	// FIREWALLED2_REQ here �” connect-options/crypt are out of this slice.
 	(void)kadVersion;
 	return KAD_OP_FIREWALLED_REQ;
 }

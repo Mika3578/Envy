@@ -8,7 +8,7 @@
 // member stays at static zero-init (false) and InitKademlia never runs even
 // when EnableKadHello / KadFindValue default to true.
 //
-// Missing-key load semantics match CSettings::Item::Load → CRegistry::GetBool(
+// Missing-key load semantics match CSettings::Item::Load �’ CRegistry::GetBool(
 // section, name, bDefault ): absent value returns bDefault.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026

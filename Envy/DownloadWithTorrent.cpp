@@ -1,7 +1,7 @@
 ﻿//
 // DownloadWithTorrent.cpp
 //
-// This file is part of Envy (getenvy.com) � 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -566,7 +566,7 @@ BOOL CDownloadWithTorrent::GenerateTorrentDownloadID()
 	m_pPeerID[ 6 ] = theApp.m_szVersion[3];		// 0
 	m_pPeerID[ 7 ] = '-';
 
-	// Random characters for the rest of the Client ID (CSPRNG — anti-spoof padding)
+	// Random characters for the rest of the Client ID (CSPRNG �” anti-spoof padding)
 	if ( ! GenerateCryptographicBytes( &m_pPeerID[ 8 ], 12 ) )
 	{
 		theApp.Message( MSG_ERROR, L"BitTorrent Peer ID: secure RNG unavailable" );

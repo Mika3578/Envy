@@ -389,7 +389,7 @@ void CRemoteSecurity::AddSecurityHeaders(CString& headers, bool isSecureConnecti
 
 bool CRemoteSecurity::GenerateSecureId(size_t length, std::string& out)
 {
-	// length is hex character count (even); CSPRNG only — fail closed (#78)
+	// length is hex character count (even); CSPRNG only �” fail closed (#78)
 	return SecureRandomHexId(length, out);
 }
 
@@ -492,7 +492,7 @@ bool CRemoteSecurity::VerifyPassword(const std::string& password, const std::str
 	if ( parts.size() == 3 && parts[ 0 ] == "sha256-salted" )
 		return FallbackVerifyPassword( password, hashString );
 
-	// Legacy settings SHA1 (exactly 40 hex chars) — UTF-16 heritage from PageSettingsRemote
+	// Legacy settings SHA1 (exactly 40 hex chars) �” UTF-16 heritage from PageSettingsRemote
 	return VerifyLegacySHA1( password, hashString );
 }
 

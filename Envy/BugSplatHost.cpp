@@ -40,7 +40,7 @@ RtlGetVersionFn ResolveRtlGetVersion(HMODULE hNtdll)
 	const FARPROC proc = GetProcAddress(hNtdll, "RtlGetVersion");
 	if (proc == nullptr)
 		return nullptr;
-	return reinterpret_cast<RtlGetVersionFn>(proc); // NOSONAR cpp:S3630 (FARPROC → stdcall fn)
+	return reinterpret_cast<RtlGetVersionFn>(proc); // NOSONAR cpp:S3630 (FARPROC �’ stdcall fn)
 }
 
 void ApplyCrashReportingDefaults()
@@ -107,7 +107,7 @@ BOOL EnsureBugSplatStarted()
 		State().client.reset();
 		return FALSE;
 	}
-	catch (...) // NOSONAR cpp:S2738 — vendor SDK boundary; must not abort Envy startup
+	catch (...) // NOSONAR cpp:S2738 �” vendor SDK boundary; must not abort Envy startup
 	{
 		State().client.reset();
 		return FALSE;

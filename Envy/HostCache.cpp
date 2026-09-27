@@ -1,7 +1,7 @@
 //
 // HostCache.cpp
 //
-// This file is part of Envy (getenvy.com)  2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -1467,7 +1467,7 @@ void CHostCacheHost::Serialize(CArchive& ar, int nVersion) // HOSTCACHE_SER_VER
 			ar >> m_nKADVersion;
 
 		// Ser v2+ stores m_nCodePage. Legacy archive 1000 predates the field
-		// (nVersion 1000 >= 2 numerically) — never read it from that format.
+		// (nVersion 1000 >= 2 numerically) �” never read it from that format.
 		if (nVersion >= 2 && nVersion != 1000)
 			ar >> m_nCodePage;
 		else

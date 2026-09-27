@@ -1,7 +1,7 @@
 //
 // Settings.cpp
 //
-// This file is part of Envy (getenvy.com) � 2016-2020
+// This file is part of Envy (getenvy.com) © 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -518,7 +518,7 @@ void CSettings::Load()
 	Add( L"eDonkey", L"AICHHashSetTimeout", &eDonkey.AICHHashSetTimeout, 30, 1, 5, 300, L" s" );
 	Add( L"eDonkey", L"AICHRecover", &eDonkey.AICHRecover, true );
 
-	// Master Kad switch (InitKademlia). Must be registered — distinct from EnableKadHello.
+	// Master Kad switch (InitKademlia). Must be registered �” distinct from EnableKadHello.
 	Add( Ed2kEnableKadSection(), Ed2kEnableKadName(), &eDonkey.EnableKad, Ed2kEnableKadDefault() );
 	Add( L"eDonkey", L"EnableKadHello", &eDonkey.EnableKadHello, true );
 	Add( L"eDonkey", L"KadFindValue", &eDonkey.KadFindValue, true );

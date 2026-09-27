@@ -16,7 +16,7 @@
 #include <windows.h>
 
 // Same sentinel as Envy SIZE_UNKNOWN (~0ULL); keep this header MFC-free.
-// Reserved for the literal "-1" $ADCGET length token only — never accepted
+// Reserved for the literal "-1" $ADCGET length token only �” never accepted
 // as an all-digits unsigned decimal (would collide with 2^64-1).
 constexpr ULONGLONG DC_ADC_LENGTH_UNTIL_END = ~0ULL;
 

@@ -332,8 +332,8 @@ void CBTCrypto::DeriveRC4Keys() {
 	if (!m_bHasInfoHash) return;
 
 	// Derive encryption keys from shared secret + info hash
-	// Key A = SHA1("keyA" + S + SKEY) — used by initiator to encrypt
-	// Key B = SHA1("keyB" + S + SKEY) — used by responder to encrypt
+	// Key A = SHA1("keyA" + S + SKEY) �” used by initiator to encrypt
+	// Key B = SHA1("keyB" + S + SKEY) �” used by responder to encrypt
 	const BYTE* pSKEY = (const BYTE*)&m_oInfoHash[0];
 
 	BYTE keyA[MSE_HASH_LEN], keyB[MSE_HASH_LEN];
@@ -675,7 +675,7 @@ bool CBTCrypto::ProcessHandshake(CBuffer* pInput, CBuffer* pOutput) {
 			return false;
 		}
 
-		// Stall in MSE_AWAITING_IA — RC4 already advanced past len(IA).
+		// Stall in MSE_AWAITING_IA �” RC4 already advanced past len(IA).
 		if (iaLen > 0 && pInput->m_nLength < iaLen)
 		{
 			m_nPendingIaLen = iaLen;

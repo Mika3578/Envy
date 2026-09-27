@@ -27,7 +27,7 @@ enum
 };
 
 // Hello FeatureVersions SecureIdent nibble. Must stay 0 while RSA verification
-// is unimplemented — Envy must not claim a capability it cannot enforce.
+// is unimplemented �” Envy must not claim a capability it cannot enforce.
 inline BYTE Ed2kSecureIdentAdvertisedVersion()
 {
 	return 0;
@@ -42,7 +42,7 @@ inline BOOL Ed2kSecureIdentIsImplemented()
 
 // Reject every SecureIdent response until RSA verification exists.
 // Length, null, zero-fill, non-zero bytes, and legacy MD5-shaped payloads
-// are all refused — none prove peer identity.
+// are all refused �” none prove peer identity.
 inline BOOL Ed2kSecureIdentAcceptResponse(const BYTE* pResponse, DWORD nLength)
 {
 	(void)pResponse;
@@ -64,7 +64,7 @@ inline DWORD Ed2kSecureIdentStateAfterRejectedResponse()
 	return ED2K_SECUREIDENT_STATE_NONE;
 }
 
-// SecureIdent is authentication/trust only — never a prerequisite for ED2K
+// SecureIdent is authentication/trust only �” never a prerequisite for ED2K
 // Hello, source use, or file transfer.
 inline BOOL Ed2kRequiresSecureIdentForTransfer()
 {

@@ -2,7 +2,7 @@
 // FirewallWfasPolicy.h
 //
 // Pure helpers for Windows Firewall with Advanced Security (WFAS) profile
-// bitmasks (#166 / D-009 P1). No COM — shared with EnvyTests.
+// bitmasks (#166 / D-009 P1). No COM �” shared with EnvyTests.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
@@ -23,7 +23,7 @@ inline BOOL WfasProfileBitEnabled( long nMask, long nProfileBit )
 }
 
 // True when every set profile bit in nMask reports exceptions allowed
-// (blockAllInbound == FALSE). Empty mask → FALSE.
+// (blockAllInbound == FALSE). Empty mask �’ FALSE.
 inline BOOL WfasExceptionsAllowedForMask( long nMask, BOOL bDomainAllows, BOOL bPrivateAllows, BOOL bPublicAllows )
 {
 	if ( nMask == 0 )
