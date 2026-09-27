@@ -5,6 +5,8 @@ name: PR Gate
 # dismiss-stale on push, thread resolution; last-push approval is off).
 # Always requires Analyze (c-cpp|javascript-typescript|csharp) and Format Check.
 # Stricter than GitHub: must_pass rejects skipped/neutral.
+# cancelled check-runs are pending (superseded concurrency) until replaced or
+# TIMEOUT_SEC; they are never success. True failures fail immediately.
 
 on:
   pull_request:

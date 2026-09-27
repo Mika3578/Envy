@@ -110,6 +110,9 @@ Measured timings, critical path, and CI cost notes live in
   changed hunks only (legacy off-diff lines do not fail). Major version pinned
   to 18 in CI.
 - PR Gate requires `success` for must_pass checks (rejects `skipped`/`neutral`).
+  `cancelled` is pending (wait for a replacement generation or the existing
+  timeout), never success. `failure` / `timed_out` / `action_required` /
+  `startup_failure` / `stale` still fail immediately.
 - Gitleaks and Dependency Review stay. Dependency Review runs when manifests
   change; vcpkg sanity always runs (required name).
 

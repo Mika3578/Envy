@@ -6,6 +6,10 @@
 # Semantic gate (stricter than GitHub required-check permissiveness):
 #   must_pass → success only
 #   may_skip  → success or skipped (neutral fails)
+#   cancelled → pending (wait for a replacement generation or timeout)
+#   failure/timed_out/action_required/startup_failure/stale → fail immediately
+# Cancelled is never success. A superseded cancelled without replacement
+# fails only when TIMEOUT_SEC elapses.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -30,6 +34,8 @@ add_skip() { may_skip+=("$1"); }
 
 add_must "Lint build files"
 add_must "secret-scan"
+add_must "gitleaks"
+add_must "SonarCloud Code Analysis"
 add_must "Vcpkg manifest sanity"
 # Code Scanning expects all three develop CodeQL configurations on every PR.
 add_must "Analyze (c-cpp)"
@@ -74,31 +80,26 @@ while true; do
 		exit 1
 	fi
 
-	json_head="$(gh api --paginate "repos/${REPO}/commits/${SHA}/check-runs")"
+	# filter defaults to latest; PR Gate must see every generation to pick by id.
+	check_runs_qs="?filter=all&per_page=100"
+	json_head="$(gh api --paginate "repos/${REPO}/commits/${SHA}/check-runs${check_runs_qs}")"
 	json_merge=""
 	if [[ -n "${MERGE_SHA:-}" && "${MERGE_SHA}" != "${SHA}" ]]; then
-		json_merge="$(gh api --paginate "repos/${REPO}/commits/${MERGE_SHA}/check-runs")"
+		json_merge="$(gh api --paginate "repos/${REPO}/commits/${MERGE_SHA}/check-runs${check_runs_qs}")"
 	fi
 	json="${json_head}"$'\n'"${json_merge}"
 
-	mapfile -t rows < <(printf '%s\n' "$json" | jq -s -r '
-		[ .[] | .check_runs[]? ]
-		| map(select(.name != null and .name != "PR Gate"))
-		| group_by(.name)
-		| map(sort_by(.id) | last)
-		| .[]
-		| [.name, (.status // ""), (.conclusion // "")]
-		| @tsv
-	')
+	rows_text="$(printf '%s\n' "$json" | pr_gate_latest_check_rows "$SHA" "${MERGE_SHA:-}")" || {
+		echo "::error::Failed to parse check-run payloads." >&2
+		exit 1
+	}
+	mapfile -t rows <<<"$rows_text"
 
 	declare -A status_by_name=()
 	declare -A conclusion_by_name=()
 	for row in "${rows[@]:-}"; do
 		[[ -z "$row" ]] && continue
-		name="${row%%$'\t'*}"
-		rest="${row#*$'\t'}"
-		st="${rest%%$'\t'*}"
-		conc="${rest#*$'\t'}"
+		IFS=$'\t' read -r name st conc _head <<<"$row"
 		status_by_name["$name"]="$st"
 		conclusion_by_name["$name"]="$conc"
 	done
@@ -118,33 +119,34 @@ while true; do
 			echo "- $name: waiting" >>"$summary_tmp"
 			return
 		fi
-		if [[ "$st" != "completed" ]]; then
-			pending+=("$name ($st)")
-			echo "- $name: $st" >>"$summary_tmp"
-			return
-		fi
-		if is_bad_conclusion "$conc"; then
+		local outcome
+		outcome="$(classify_gate_outcome "$st" "$conc" "$allow_skip")"
+		case "$outcome" in
+		pending)
+			if [[ "$st" == "completed" && "$conc" == "cancelled" ]]; then
+				pending+=("$name (cancelled; waiting for replacement)")
+				echo "- $name: cancelled (waiting for replacement)" >>"$summary_tmp"
+			elif [[ -z "$st" ]]; then
+				pending+=("$name (not reported yet)")
+				echo "- $name: waiting" >>"$summary_tmp"
+			else
+				pending+=("$name ($st)")
+				echo "- $name: $st" >>"$summary_tmp"
+			fi
+			;;
+		failed)
 			failed+=("$name ($conc)")
 			echo "- $name: $conc" >>"$summary_tmp"
-			return
-		fi
-		if [[ "$allow_skip" == "true" ]]; then
-			if is_ok_may_skip "$conc"; then
-				ok+=("$name ($conc)")
-				echo "- $name: $conc" >>"$summary_tmp"
-				return
-			fi
-			failed+=("$name ($conc; may_skip rejects neutral/other)")
-			echo "- $name: $conc (unexpected for may_skip)" >>"$summary_tmp"
-			return
-		fi
-		if is_ok_must_pass "$conc"; then
+			;;
+		ok)
 			ok+=("$name ($conc)")
 			echo "- $name: $conc" >>"$summary_tmp"
-			return
-		fi
-		failed+=("$name ($conc; must_pass requires success)")
-		echo "- $name: $conc (must_pass requires success)" >>"$summary_tmp"
+			;;
+		*)
+			failed+=("$name (unexpected classifier $outcome)")
+			echo "- $name: unexpected classifier $outcome" >>"$summary_tmp"
+			;;
+		esac
 	}
 
 	for name in "${must_pass[@]}"; do

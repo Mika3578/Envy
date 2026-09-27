@@ -88,6 +88,10 @@ jobs:
         shell: bash
         run: bash .github/scripts/pr-gate-conclusions.selftest.sh
 
+      - name: PR Gate policy sync self-test
+        shell: bash
+        run: bash .github/scripts/pr-gate-policy-sync.selftest.sh
+
       - name: BugSplat SDK import self-test
         shell: pwsh
         run: pwsh scripts/import-bugsplat-sdk.selftest.ps1
