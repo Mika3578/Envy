@@ -228,6 +228,5 @@ inline BOOL Ed2kSourceEx2LooksLikeLegacyEnvyRequest(const BYTE* pData, DWORD nLe
 	if (pData == NULL)
 		return FALSE;
 
-	return nLength == Ed2kSourceEx2LegacyEnvyRequestBytes32()
-	    || nLength == Ed2kSourceEx2LegacyEnvyRequestBytes64();
+	return nLength == Ed2kSourceEx2LegacyEnvyRequestBytes32() || nLength == Ed2kSourceEx2LegacyEnvyRequestBytes64();
 }
