@@ -217,13 +217,17 @@ Branch model:
       `Related to #123` belong in PR/issue text (and in the curated squash
       body when applicable), not in source comments.
     - **`develop` squash merges (title, body, references).** Merges onto
-      `develop` are squash-only. Use the **PR title** as the squash commit
-      title (`type(scope): short description` in English; no tool/agent
+      `develop` are squash-only. Use the **PR title** as the base squash
+      commit title (`type(scope): short description` in English; no tool/agent
       names). With live GitHub `squash_merge_commit_title: PR_TITLE` (verify
-      under Settings → General → Pull Requests), the squash title matches the
-      PR title verbatim—there is no automatic `(#n)` suffix. Include `(#n)`
-      in the PR title only when you want it in `develop` history; link issues
-      in the curated squash body with `Fixes #123` / `Related to #123`. The
+      under Settings → General → Pull Requests), start from the PR title; do
+      **not** normally insert `(#n)` into contributor-authored PR titles
+      merely to influence `develop` history. At manual squash merge, inspect
+      GitHub's generated commit-title preview: if it already shows `(#n)`, keep
+      that suffix exactly once; if it does not and the maintainer deliberately
+      wants a PR number in history, add `(#n)` exactly once—never duplicate
+      `(... (#356) (#356))`. Issue references belong primarily in the curated
+      squash body (`Fixes #123` / `Closes #123` / `Related to #123`). The
       repository default keeps GitHub from auto-filling a noisy body: live
       GitHub currently uses `squash_merge_commit_message: BLANK` (Probot
       Settings keys `squash_merge_commit_title` /
