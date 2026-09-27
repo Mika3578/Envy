@@ -103,8 +103,8 @@ CBTInfo::~CBTInfo()
 	// Do not call Clear() from the destructor (cpp:S1048): full reset touches MFC
 	// paths Sonar treats as potentially throwing. Release owned file nodes and
 	// piece-hash storage only.
-	for ( POSITION pos = m_pFiles.GetHeadPosition(); pos; )
-		delete m_pFiles.GetNext( pos );
+	for (POSITION pos = m_pFiles.GetHeadPosition(); pos;)
+		delete m_pFiles.GetNext(pos);
 	m_pFiles.RemoveAll();
 	m_pBlockBTH.clear();
 	m_nBlockCount = 0;
