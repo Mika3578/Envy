@@ -18,8 +18,20 @@ List exact commands/checks run and outcomes.
 - Performance impact:
 - Rollback plan:
 
+## Squash Commit Summary
+<!-- Curated text for GitHub's squash "Extended description" at merge time.
+     Describe the final merged change only—not review/CI/process history. -->
+
+Issue reference:
+`Fixes #...` / `Closes #...` / `Related to #...` / `None`
+
+Final technical summary:
+- ...
+- ...
+
 ## Checklist
 - [ ] Changes are scoped and reviewable
+- [ ] No AI-tool attribution, assistant `Co-authored-by`, or personal emails in contributor text (`AGENTS.md` rule 16)
 - [ ] Tests added/updated where practical
 - [ ] Documentation updated
 - [ ] Changelog updated

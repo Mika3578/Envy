@@ -20,6 +20,15 @@ Use this playbook to keep PRs small, reviewable, and operationally safe.
 
 Use `.github/CONTRIBUTING.md` as the canonical source for the linear-history workflow and exact `git fetch` / `git rebase origin/develop` / `git push --force-with-lease` commands.
 
+## PR finalization (before squash merge to `develop`)
+
+Canonical policy lives in `AGENTS.md` (hard rule 16 and workflow item 12). Before
+manual merge: align PR title with the intended squash title; keep the PR
+description current; fill or refresh **Squash Commit Summary** in the PR body
+(`.github/pull_request_template.md`); verify `Fixes` / `Closes` / `Related to`
+wording; ensure summary bullets describe the final head and exclude process-only
+text (no AI attribution, bot summaries, or "fix CI" noise).
+
 ## Documentation PR Checklist
 
 ### Testing expectations

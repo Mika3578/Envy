@@ -1,0 +1,96 @@
+name: Authorship hygiene
+
+# Isolated from security.yml so PR Gate does not see a skipped secret-scan check
+# from pull_request_target Security runs.
+
+on:
+  pull_request_target:
+    branches: [main, master, develop]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+  pull_request_review:
+    types: [submitted, edited]
+  pull_request_review_comment:
+    types: [created, edited, deleted]
+  issue_comment:
+    types: [created, edited, deleted]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: authorship-hygiene-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  authorship-hygiene:
+    if: >
+      github.event_name == 'pull_request_target' ||
+      github.event_name == 'pull_request_review' ||
+      github.event_name == 'pull_request_review_comment' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          fetch-depth: 0
+      - name: Authorship hygiene (commits, PR text, added lines)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${BASE_SHA:-}" || -z "${HEAD_SHA:-}" ]]; then
+            BASE_SHA="$(gh api "repos/${REPO}/pulls/${PR_NUMBER}" --jq .base.sha)"
+            HEAD_SHA="$(gh api "repos/${REPO}/pulls/${PR_NUMBER}" --jq .head.sha)"
+          fi
+          if [[ -n "${PR_NUMBER:-}" ]]; then
+            git fetch --no-tags origin \
+              "${BASE_SHA}" \
+              "+refs/pull/${PR_NUMBER}/head:refs/remotes/origin/pr/${PR_NUMBER}"
+          fi
+          trusted="${RUNNER_TEMP}/authorship-checker"
+          mkdir -p "$trusted"
+          if [[ -n "${BASE_SHA:-}" ]] && git cat-file -e "${BASE_SHA}:.github/scripts/check-agent-attribution.py" 2>/dev/null; then
+            git show "${BASE_SHA}:.github/scripts/check-agent-attribution.py" >"${trusted}/check-agent-attribution.py"
+            echo "Using authorship checker from base ${BASE_SHA}"
+          else
+            echo "::warning::Authorship checker not on base ref yet; bootstrap pass (no fail) until merge."
+            exit 0
+          fi
+          work="$(mktemp -d)"
+          python3 - "$work" <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          work = Path(sys.argv[1])
+          event_path = os.environ.get("GITHUB_EVENT_PATH")
+          event = {}
+          if event_path:
+              event = json.loads(Path(event_path).read_text(encoding="utf-8"))
+          pr = event.get("pull_request") or {}
+          (work / "title.txt").write_text(pr.get("title") or "", encoding="utf-8")
+          (work / "body.md").write_text(pr.get("body") or "", encoding="utf-8")
+          PY
+          if [[ ! -s "$work/title.txt" ]]; then
+            gh api "repos/${REPO}/pulls/${PR_NUMBER}" --jq .title >"$work/title.txt"
+            gh api "repos/${REPO}/pulls/${PR_NUMBER}" --jq -r '.body // ""' >"$work/body.md"
+          fi
+          cmd=(
+            python3 "${trusted}/check-agent-attribution.py"
+            --pr-title "$work/title.txt"
+            --pr-body "$work/body.md"
+            --github-repo "$REPO"
+            --github-pr "$PR_NUMBER"
+          )
+          if [[ -n "${BASE_SHA:-}" && -n "${HEAD_SHA:-}" ]]; then
+            cmd+=(--from "$BASE_SHA" --to "$HEAD_SHA" --diff)
+          fi
+          ATTRIBUTION_CI_ANNOTATE=1 "${cmd[@]}"
+          rm -rf "$work"

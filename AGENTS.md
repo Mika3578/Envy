@@ -101,9 +101,16 @@ Branch model:
     Human CONTRIBUTING text must match this rule (no `claude/` exception).
 12. **Controlled autonomy at the merge gate**. An assistant **may** create a
     work branch, commit/push on that branch, open a **draft** PR, mark the
-    PR ready-for-review, address reviews, fix CI, update the branch with
-    `develop`, and enable **squash auto-merge**. GitHub will merge only when
-    the live **Protect develop** ruleset is satisfied, including:
+    PR ready-for-review, address reviews, fix CI, and update the branch with
+    `develop`. **Do not** enable squash auto-merge when rule 16 requires a
+    maintainer-curated squash body (the default for `develop` with live
+    `squash_merge_commit_message: BLANK`): GitHub auto-merge cannot populate
+    the squash Extended description field, so the maintainer performs a
+    **manual squash merge** and pastes the **Squash Commit Summary** from the
+    PR. Squash auto-merge remains available only when a separate, reviewed
+    automation path can set the squash body without dumping the full PR text.
+    GitHub will merge only when the live **Protect develop** ruleset is
+    satisfied, including:
     - at least one GitHub review with state **APPROVED** from a reviewer
       other than the PR author (Protect develop live requirement). In this
       solo-maintainer repository, **GitHub Copilot Code Review may satisfy
@@ -169,6 +176,90 @@ Branch model:
     change. GitHub Code Quality complements — and does not replace — the C++
     gates (MSVC builds/tests, SonarCloud, CodeQL/security analysis and targeted
     regression tests).
+16. **Authorship, privacy, and source comments (hard).** The repository
+    documents the software and its architecture, not the tool or agent that
+    produced a change. Git history and GitHub PRs/issues keep process
+    history; source comments keep technical meaning.
+    - **Do not** add `Co-authored-by` trailers for AI assistants, agents,
+      Cursor, Copilot, Codex, Claude, ChatGPT, OpenAI, Anthropic, or other
+      tools. Those tools are not Git co-authors. Do not add `Generated-by`,
+      `Generated with`, `Created with`, `AI-generated`, or equivalent
+      advertising signatures to commits or contributor-authored PR text.
+    - GitHub bot comments, reviews, and auto-generated summary blocks
+      (CodeRabbit, Cubic, Amazon Q, Sonar, Copilot summaries, and similar)
+      are allowed on the PR conversation. The authorship scanner ignores
+      recognized bot output; it enforces policy on commits, added source
+      lines, and contributor-authored PR title/body text.
+    - Agents must never invent a git identity and must never commit as
+      Cursor, Copilot, Codex, or another assistant. Use a GitHub noreply
+      address (`scripts/configure-git-noreply.sh`) and set
+      `user.useConfigOnly=true`. Humans use
+      `<id>+<login>@users.noreply.github.com`.
+    - **Do not** publish personal email addresses in commits, PR titles or
+      bodies, GitHub comments you write as the contributor, documentation,
+      tests, CI scripts, or source comments. CI uses a positive allowlist
+      (GitHub noreply domains and documented technical mailboxes). Do not
+      maintain a denylist of real personal addresses.
+    - Human `Co-authored-by` trailers remain valid when a real person
+      co-authored the change **and** the trailer uses a GitHub noreply
+      address. Dependabot `Signed-off-by` is allowed. This repository does
+      **not** require DCO `Signed-off-by` on first-party commits. Other
+      attribution trailers must not smuggle a personal mailbox.
+    - **Pull request titles** are English, short, and technical. Prefer
+      `type(scope): short description` (`feat`, `fix`, `docs`, `refactor`,
+      `perf`, `test`, `build`, `ci`, `chore`, `security`). Do not put agent
+      names, tool brands, emails, `Co-authored-by`, or marketing text in the
+      title. No arbitrary character-limit CI rule.
+    - **Pull request descriptions** are the detailed review artifact:
+      problem/motivation, changes, validation, risks/compatibility,
+      documentation, and related issues. They are **not** copied wholesale
+      into the squash commit body. `Fixes #123` / `Closes #123` /
+      `Related to #123` belong in PR/issue text (and in the curated squash
+      body when applicable), not in source comments.
+    - **`develop` squash merges (title, body, references).** Merges onto
+      `develop` are squash-only. Use the **PR title** as the base squash
+      commit title (`type(scope): short description` in English; no tool/agent
+      names). With live GitHub `squash_merge_commit_title: PR_TITLE` (verify
+      under Settings → General → Pull Requests), start from the PR title; do
+      **not** normally insert `(#n)` into contributor-authored PR titles
+      merely to influence `develop` history. At manual squash merge, inspect
+      GitHub's generated commit-title preview: if it already shows `(#n)`, keep
+      that suffix exactly once; if it does not and the maintainer deliberately
+      wants a PR number in history, add `(#n)` exactly once—never duplicate
+      `(... (#356) (#356))`. Issue references belong primarily in the curated
+      squash body (`Fixes #123` / `Closes #123` / `Related to #123`). The
+      repository default keeps GitHub from auto-filling a noisy body: live
+      GitHub currently uses `squash_merge_commit_message: BLANK` (Probot
+      Settings keys `squash_merge_commit_title` /
+      `squash_merge_commit_message` when adopted). **`BLANK` means do not
+      auto-populate** from the full PR description or intermediate commit
+      messages; it does **not** mean the final squash body should stay empty.
+      Before merge, the maintainer (manual squash merge) or reviewed merge
+      automation must supply a **concise technical squash body**—typically by
+      pasting the **Squash Commit Summary** from the PR into GitHub's squash
+      **Extended description** field (see
+      `.github/pull_request_template.md`). That body must summarize the
+      **final** change for `git log`, not review process.
+      When the change fully resolves an issue, start with `Fixes #123.` or
+      `Closes #123.`; when only related, `Related to #123.`; prefer `#123`
+      over same-repo URLs. Follow with roughly 1–5 bullets: root problem,
+      resulting behavior, important compatibility/security/reliability
+      effects, and meaningful regression coverage when useful. The squash
+      body must **not** include AI/tool attribution, `Generated-by`,
+      AI `Co-authored-by`, review-bot summaries, "address review comments",
+      "fix CI", intermediate commit history, personal emails, PR template
+      checkboxes, or full CI logs. Normal GitHub noreply commit authorship is
+      fine and is not a `Co-authored-by` trailer.
+    - Source-code comments explain a non-obvious constraint, protocol rule,
+      invariant, limitation, security reason, or interoperability subtlety.
+      Prefer a self-contained technical explanation. A rare issue/PR
+      reference is allowed only when it is truly indispensable and no
+      reasonable standalone explanation exists. Do **not** write process-only
+      comments such as `Requested by Copilot review` or `Cursor changed this`.
+    - Never delete copyright, licence, AUTHORS, historical contributor
+      notices, third-party provenance, or legally required attribution.
+    - Agents must **not** rewrite published `develop`/`main` history as
+      routine cleanup.
 
 ---
 
@@ -228,11 +319,20 @@ patterns you will see and should preserve:
 - Concurrency: `CCriticalSection`, `CSingleLock` (MFC), not
   `std::mutex`, unless wrapping pure standalone helpers.
 - Comments: write **why**, not **what**. Don't paraphrase the code.
-- File headers: keep the existing copyright block intact when editing
-  an existing file; do not add new copyright lines for incremental
-  edits.
-- Preserve the encoding and BOM of legacy source files. Do not bulk-convert
-  mixed ISO-8859 / UTF-8 files as a side effect of an unrelated change.
+- **Copyright and licensing** (see also hard rule 16):
+  - **Third-party / inherited** notices (Shareaza, PeerProject, eMule,
+    dependencies, other upstreams): preserve exactly; do not extend their
+    year ranges or claim ownership without upstream/licensing evidence.
+  - **First-party Envy**: do not bump the copyright year only because a file
+    was touched. No year-only updates for formatting, mechanical, generated,
+    trivial, or documentation-only edits. Substantive first-party code changes
+    may update metadata per repository copyright policy; prefer dedicated
+    copyright-maintenance PRs over scattered year edits in feature work.
+  - **New first-party files**: use the repository canonical header; prefer
+    `SPDX-License-Identifier: AGPL-3.0-or-later` when the file licence is
+    verified.
+  - **Encoding**: preserve legacy encoding and BOM. Never re-encode a file
+    solely to edit a copyright header.
 
 ---
 
@@ -312,9 +412,20 @@ When you take on a task you are expected to:
     sequencing, decisions, or blockers. Do not create duplicate status docs.
     If no documentation change is required, state why in the PR/final report.
 11. **Do not silently remove validation or compatibility assets.** Tests,
-    coverage, workflows, fixtures, protocol evidence, docs, runtime resources,
-    and legacy compatibility paths may be removed only when the PR explicitly
-    explains why and supplies an equivalent or intentional retirement plan.
+   coverage, workflows, fixtures, protocol evidence, docs, runtime resources,
+   and legacy compatibility paths may be removed only when the PR explicitly
+   explains why and supplies an equivalent or intentional retirement plan.
+12. **PR finalization before manual squash merge.** When cleaning up a PR for
+   merge, ensure the PR title matches the intended squash title; the PR
+   description reflects the current head; the **Squash Commit Summary** in the
+   PR body (template section) is current and describes the **final** diff; issue
+   reference semantics (`Fixes` / `Closes` / `Related to`) are correct; and the
+   summary bullets exclude process-only text forbidden in squash bodies. Do not
+   enable squash auto-merge when a curated squash body is required (rule 16;
+   live `BLANK` default). If a PR predates the template, add or update an
+   equivalent summary block instead of rewriting unrelated sections. Do not treat
+   the PR as merge-ready until those items hold alongside required CI and review
+   gates.
 
 ---
 
