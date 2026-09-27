@@ -115,15 +115,31 @@ inline TransferConnectionCapacityParseResult TransferConnectionCapacityParseKilo
 		return oResult;
 	}
 
-	// Evaluate larger units before kbps/kb/s so parenthetical "(128 KB/s)" does not hijack mbps strings.
-	const bool bGigabit = TransferConnectionCapacityContainsUnit(psz, L"gbps") ||
-	                      TransferConnectionCapacityContainsUnit(psz, L"gb/s");
+	// Wizard combo text includes byte/sec hints in "(...)"; ignore those for unit detection.
+	wchar_t szUnitScan[192] = {};
+	const wchar_t* pszUnits = psz;
+	const wchar_t* pszParen = wcschr(psz, L'(');
+	if (pszParen != NULL)
+	{
+		size_t nChars = static_cast<size_t>(pszParen - psz);
+		if (nChars >= (sizeof(szUnitScan) / sizeof(szUnitScan[0])))
+			nChars = (sizeof(szUnitScan) / sizeof(szUnitScan[0])) - 1;
+		if (nChars > 0)
+		{
+			wmemcpy(szUnitScan, psz, nChars);
+			szUnitScan[nChars] = L'\0';
+			pszUnits = szUnitScan;
+		}
+	}
+
+	const bool bGigabit = TransferConnectionCapacityContainsUnit(pszUnits, L"gbps") ||
+	                      TransferConnectionCapacityContainsUnit(pszUnits, L"gb/s");
 	const bool bMegabit = !bGigabit &&
-	                      (TransferConnectionCapacityContainsUnit(psz, L"mbps") ||
-	                       TransferConnectionCapacityContainsUnit(psz, L"mb/s"));
+	                      (TransferConnectionCapacityContainsUnit(pszUnits, L"mbps") ||
+	                       TransferConnectionCapacityContainsUnit(pszUnits, L"mb/s"));
 	const bool bKilobit = !bGigabit && !bMegabit &&
-	                      (TransferConnectionCapacityContainsUnit(psz, L"kbps") ||
-	                       TransferConnectionCapacityContainsUnit(psz, L"kb/s"));
+	                      (TransferConnectionCapacityContainsUnit(pszUnits, L"kbps") ||
+	                       TransferConnectionCapacityContainsUnit(pszUnits, L"kb/s"));
 
 	unsigned long long nKilobits = 0;
 	if (bKilobit)
