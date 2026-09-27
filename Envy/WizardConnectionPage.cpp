@@ -29,6 +29,7 @@
 #include "HostCache.h"
 #include "UploadQueues.h"
 #include "TransferSettingsLimits.h"
+#include "TransferConnectionCapacity.h"
 #include "DiscoveryServices.h"
 #include "DlgHelp.h"
 
@@ -154,11 +155,10 @@ BOOL CWizardConnectionPage::OnInitDialog()
 
 	// Translation: |Dial-up Modem|ISDN 128K|DSL 768K|DSL 1.5|Cable 3|DSL 4|DSL2 8|FIOS 10|DSL2 12|FIOS 15|FIOS 20|FIOS 25|FIOS 30|FIOS 50|100|200|300|400|Gigabit|T1|T3|LAN|OC3
 
-	const double nSpeeds[] = { 28.8, 33.6, 56, 64, 128, 256, 384, 512, 640, 768, 1024, 1536, 2048, 3072, 4096, 5120, 6144, 7200, 8192, 10240, 12288, 16384, 20480, 24576, 30720, 45050, 50800, 77000, 102400, 204800, 307200, 409600, 972800, 0 };
-	for ( int nSpeed = 0; nSpeeds[ nSpeed ]; nSpeed++ )
+	for ( unsigned int nPreset = 0; nPreset < TransferConnectionCapacityPresetCount(); ++nPreset )
 	{
-		// Populate "0000 kbps  (0.00 MB/s)"
-		strTemp = SpeedFormat( nSpeeds[ nSpeed ] );
+		const DWORD nKilobits = TransferConnectionCapacityPresetKilobits( nPreset );
+		strTemp = SpeedFormat( static_cast<double>( nKilobits ) );
 		m_wndDownloadSpeed.AddString( strTemp );
 		m_wndUploadSpeed.AddString( strTemp );
 	}
@@ -314,23 +314,12 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	else
 	{
 		CString strSpeed;
-		double nTemp;
 
 		m_wndDownloadSpeed.GetWindowText( strSpeed );
-		if ( _stscanf( strSpeed, L"%lf", &nTemp ) == 1 )
-		{
-			if ( nTemp < 400 && strSpeed.Find( L"mbps" ) )
-				nTemp *= 1024;
-			nDownloadSpeed = (DWORD)nTemp;
-		}
+		nDownloadSpeed = TransferConnectionCapacityParseKilobitsTextDword( strSpeed );
 
 		m_wndUploadSpeed.GetWindowText( strSpeed );
-		if ( _stscanf( strSpeed, L"%lf", &nTemp ) == 1 )
-		{
-			if ( nTemp < 400 && strSpeed.Find( L"mbps" ) )
-				nTemp *= 1024;
-			nUploadSpeed = (DWORD)nTemp;
-		}
+		nUploadSpeed = TransferConnectionCapacityParseKilobitsTextDword( strSpeed );
 	}
 
 	if ( nDownloadSpeed < 2 || nUploadSpeed < 2 )
@@ -348,9 +337,11 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	//	Settings.Connection.OutSpeed = 40960;
 	//}
 
-	// Set upload limit with configured outbound headroom (same helper as Connection page).
-	Settings.Bandwidth.Uploads = TransferBandwidthUploadLimitFromOutboundKilobits(
-	    Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor);
+	if ( TransferConnectionCapacityShouldSetWizardUploadDefault( Settings.Live.FirstRun ) )
+	{
+		Settings.Bandwidth.Uploads = TransferBandwidthUploadLimitFromOutboundKilobits(
+		    Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor);
+	}
 
 	Settings.eDonkey.MaxLinks = nUploadSpeed < 130 ? 100 : 250;
 	Settings.OnChangeConnectionSpeed();

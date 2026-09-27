@@ -19,6 +19,7 @@
 #include "StdAfx.h"
 #include "Settings.h"
 #include "TransferSettingsLimits.h"
+#include "TransferConnectionCapacity.h"
 #include "PageSettingsConnection.h"
 #include "DlgHelp.h"
 #include "Network.h"
@@ -259,8 +260,6 @@ void CConnectionSettingsPage::OnOK()
 
 	bool bOldEnableUPnP	= Settings.Connection.EnableUPnP;
 	DWORD nOldInPort	= Settings.Connection.InPort;
-	DWORD nOldOutSpeed	= Settings.Connection.OutSpeed;
-
 	Settings.Connection.FirewallState	= m_wndCanAccept.GetCurSel();
 	Settings.Connection.InHost			= m_sInHost;
 	Settings.Connection.InPort			= m_nInPort < 65535 ? m_nInPort : 65535;
@@ -283,12 +282,6 @@ void CConnectionSettingsPage::OnOK()
 	Settings.Connection.IgnoreLocalIP		= m_bIgnoreLocalIP != FALSE;
 	Settings.Connection.TimeoutConnect		= m_nTimeoutConnection * 1000;
 	Settings.Connection.TimeoutHandshake	= m_nTimeoutHandshake  * 1000;
-
-	if ( Settings.Connection.OutSpeed != nOldOutSpeed )
-	{
-		Settings.Bandwidth.Uploads = TransferBandwidthUploadLimitFromOutboundKilobits(
-		    Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor);
-	}
 
 	UpdateData();
 
@@ -356,16 +349,11 @@ void CConnectionSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 	m_wndInSpeed.ResetContent();
 	m_wndOutSpeed.ResetContent();
 
-	// Add the new ones
-	const DWORD nSpeeds[] =
+	// Add canonical capacity presets (shared with the connection wizard).
+	for ( unsigned int nPreset = 0; nPreset < TransferConnectionCapacityPresetCount(); ++nPreset )
 	{
-		56, 128, 256, 384, 512, 640, 768, 1024, 1550, 2048, 3072,
-		4096, 5120, 8192, 10240, 12288, 24576, 45000, 102400, 155000
-	};
-
-	for ( int nSpeed = 0; nSpeed < sizeof( nSpeeds ) / sizeof( DWORD ); nSpeed++ )
-	{
-		CString strSpeed = Settings.SmartSpeed( nSpeeds[ nSpeed ], Kilobits );
+		const DWORD nKilobits = TransferConnectionCapacityPresetKilobits( nPreset );
+		CString strSpeed = Settings.SmartSpeed( nKilobits, Kilobits );
 		if ( Settings.ParseVolume( strSpeed, Kilobits )
 			&& m_wndInSpeed.FindStringExact( -1, strSpeed ) == CB_ERR )
 		{

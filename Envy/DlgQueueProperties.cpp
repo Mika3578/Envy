@@ -24,6 +24,7 @@
 #include "DlgQueueProperties.h"
 #include "LiveList.h"
 #include "CoolInterface.h"
+#include "TransferSettingsLimits.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -291,11 +292,8 @@ void CQueuePropertiesDlg::OnRotateEnable()
 
 void CQueuePropertiesDlg::OnHScroll(UINT /*nSBCode*/, UINT /*nPos*/, CScrollBar* /*pScrollBar*/)
 {
-	DWORD nTotal = Settings.Connection.OutSpeed * 1024 / 8;
-	DWORD nLimit = Settings.Bandwidth.Uploads;
-
-	if ( nLimit == 0 || nLimit > nTotal )
-		nLimit = nTotal;
+	DWORD nLimit = TransferBandwidthReferenceUploadBytes( Settings.Bandwidth.Uploads,
+	    Settings.Connection.OutSpeed );
 
 	int nOtherPoints = (int)UploadQueues.GetTotalBandwidthPoints( !( m_pQueue->m_nProtocols & (1<<PROTOCOL_ED2K) ) )
 					 - (int)m_pQueue->m_nBandwidthPoints;

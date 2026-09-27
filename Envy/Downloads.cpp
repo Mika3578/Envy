@@ -1022,8 +1022,7 @@ void CDownloads::OnRun()
 	DWORD nRunningTransfersED2K	= 0;	// Number of ed2k transfers that are downloading and transfering data
 	DWORD nTotalBandwidthED2K	= 0;	// Total ed2k bandwidth in use.
 
-	DWORD nBandwidthAvailable = min((Settings.Bandwidth.Downloads ? Settings.Bandwidth.Downloads : 0xffffffffu),
-	                                TransferConnectionKilobitsToBytesPerSecondDword(Settings.Connection.InSpeed));
+	DWORD nBandwidthAvailable = TransferEffectiveDownloadLimitBytes( Settings.Bandwidth.Downloads );
 	DWORD nBandwidthAvailableED2K = 0;
 	BOOL bDonkeyRatioActive		= FALSE;
 

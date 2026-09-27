@@ -165,6 +165,8 @@ inline DWORD TransferBandwidthBytesToSetting(unsigned long long nBytes)
 }
 
 // Connection.InSpeed / OutSpeed are stored in kilobits per second (Kb/s).
+// They describe declared link capacity for tuning/UI — not an implicit user
+// transfer cap when Bandwidth.* is unlimited (see #342).
 // Effective bytes/s = Kb/s * 1024 / 8 (multiply before divide; 64-bit intermediate).
 inline unsigned long long TransferConnectionKilobitsToBytesPerSecond(unsigned long long nKilobitsPerSecond)
 {
@@ -198,6 +200,34 @@ inline DWORD TransferBandwidthUploadLimitFromOutboundKilobits(DWORD nOutSpeedKil
 	const unsigned long long nLimited =
 	    TransferBandwidthApplyUsablePercent(nCapacity, nFreeBandwidthFactor);
 	return TransferBandwidthBytesToSetting(nLimited);
+}
+
+// User transfer cap in bytes/s for download/upload limiters. Unlimited -> no cap.
+inline DWORD TransferEffectiveDownloadLimitBytes(DWORD nUserDownloadsBytesPerSecond)
+{
+	if (TransferBandwidthSettingIsUnlimited(nUserDownloadsBytesPerSecond))
+		return 0xFFFFFFFFu;
+	return nUserDownloadsBytesPerSecond;
+}
+
+// Reference bytes/s for queue sliders / ED2K point split when the user cap is unlimited.
+inline DWORD TransferBandwidthReferenceUploadBytes(DWORD nUserUploadsBytesPerSecond,
+                                                   DWORD nOutSpeedKilobitsPerSecond)
+{
+	if (!TransferBandwidthSettingIsUnlimited(nUserUploadsBytesPerSecond))
+		return nUserUploadsBytesPerSecond;
+	return TransferConnectionKilobitsToBytesPerSecondDword(nOutSpeedKilobitsPerSecond);
+}
+
+// Heuristic outbound KB/s for UI gates (enable networks, torrent caps). Not a wire limiter.
+inline DWORD TransferOutgoingBandwidthHeuristicKBps(DWORD nUserUploadsBytesPerSecond,
+                                                    DWORD nOutSpeedKilobitsPerSecond)
+{
+	static const DWORD nKiloByte = 1024u;
+	if (TransferBandwidthSettingIsUnlimited(nUserUploadsBytesPerSecond))
+		return nOutSpeedKilobitsPerSecond / 8u;
+	const DWORD nUserKB = nUserUploadsBytesPerSecond / nKiloByte;
+	return nUserKB;
 }
 
 inline DWORD TransferBandwidthApplyPercentToBytes(DWORD nBytesPerSecond, unsigned int nPercent)

@@ -568,11 +568,9 @@ DWORD CUploadQueues::GetMinimumDonkeyBandwidth()
 {
 	CQuickLock oLock( m_pSection );
 
-	DWORD nTotal = TransferConnectionKilobitsToBytesPerSecondDword(Settings.Connection.OutSpeed);
-	DWORD nLimit = Settings.Bandwidth.Uploads;
+	DWORD nLimit = TransferBandwidthReferenceUploadBytes( Settings.Bandwidth.Uploads,
+	    Settings.Connection.OutSpeed );
 	DWORD nDonkeyPoints = 0, nTotalPoints = 0, nBandwidth = 0;
-
-	if ( nLimit == 0 || nLimit > nTotal ) nLimit = nTotal;
 
 	for ( POSITION pos = GetIterator(); pos; )
 	{
