@@ -1281,6 +1281,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="BTPacket.h" />
     <ClInclude Include="BTTrackerRequest.h" />
     <ClInclude Include="Buffer.h" />
+    <ClInclude Include="BufferImpl.inc" />
     <ClInclude Include="ChatCore.h" />
     <ClInclude Include="ChatSession.h" />
     <ClInclude Include="ChatSessionValidate.h" />
