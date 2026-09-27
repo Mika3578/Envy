@@ -162,7 +162,13 @@ while idx < len(text):
 		app_id = app.get("id")
 		if not isinstance(app_id, int) or isinstance(app_id, bool):
 			raise SystemExit("check-runs response included an invalid check_run app id")
-		if app_id != expected_app_id(name):
+		expected_id = expected_app_id(name)
+		if app_id != expected_id:
+			print(
+				f"WARN pr-gate: ignoring check_run for {name}: "
+				f"app.id {app_id} != expected {expected_id}",
+				file=sys.stderr,
+			)
 			continue
 		current = latest.get(name)
 		if current is None or run_id > current[0]:

@@ -303,6 +303,23 @@ json_wrong_app="$(check_json '[
 got="$(select_conc "$HEAD_A" "$json_wrong_app" "gitleaks")"
 expect_out select-gitleaks-app-id "${TSV_COMPLETED_FAILURE}${HEAD_A}" printf '%s' "$got"
 
+set +e
+wrong_app_stderr="$(
+	printf '%s\n' "$json_wrong_app" | pr_gate_latest_check_rows "$HEAD_A" "$MERGE_A" 2>&1 >/dev/null
+)"
+wrong_app_warn_rc=$?
+set -e
+if [[ "$wrong_app_warn_rc" -ne 0 ]]; then
+	echo "FAIL gitleaks-wrong-app-id-warns: parser exited $wrong_app_warn_rc" >&2
+	fail=1
+elif [[ "$wrong_app_stderr" != *"app.id 15368 != expected 57789"* ]]; then
+	echo "FAIL gitleaks-wrong-app-id-warns: missing app-id diagnostic" >&2
+	printf '%s\n' "$wrong_app_stderr" >&2
+	fail=1
+else
+	echo "OK   gitleaks-wrong-app-id-warns"
+fi
+
 # API error-shaped payload fails explicitly.
 set +e
 printf '%s\n' '{"message":"bad credentials"}' | pr_gate_latest_check_rows "$HEAD_A" >/dev/null

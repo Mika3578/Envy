@@ -98,13 +98,17 @@ PR Gate, Analyze (c-cpp), SonarCloud Code Analysis (`12526`).
 (javascript-typescript), Analyze (csharp); optionally builds / Remote JS /
 Dependency review per classify.
 
-**PR Gate policy guard:** `pr-gate-policy-sync.selftest.sh` compares live
-documented Protect develop contexts in `.github/settings.yml` to every
-`add_must` / `add_skip` name in `pr-gate.sh` (excluding PR Gate itself).
+**PR Gate policy guard:** `pr-gate-policy-sync.selftest.sh` performs a
+**one-way** coverage check: every documented Protect develop required context
+in `.github/settings.yml` (except PR Gate) must appear in an `add_must` or
+`add_skip` line in `pr-gate.sh`. It does **not** prove the reverse (extra gate
+names, or that `settings.yml` matches the live ruleset API). `.github/settings.yml`
+is a documented mirror of ruleset `16457466`, not a runtime ruleset fetch.
 Check-run polling uses `filter=all&per_page=100` so generation selection by
 check-run `id` is not undermined by the API default `filter=latest`.
 Non–GitHub Actions required contexts (`gitleaks`, SonarCloud) are matched by
-`check_run.app.id` against ruleset `integration_id` values in the parser.
+`check_run.app.id` against ruleset `integration_id` values in the parser; a
+name match with a wrong `app.id` is ignored with a stderr warning (fail-closed).
 
 ---
 
