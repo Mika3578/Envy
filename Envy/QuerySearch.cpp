@@ -904,7 +904,7 @@ void CQuerySearch::ReadGGEP(CG1Packet* pPacket)
 		{
 			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) )
 			{
-				// Zero-length "H" leaves m_pBuffer NULL �” guard before type byte.
+				// Zero-length "H" leaves m_pBuffer NULL — guard before type byte.
 				if ( ! GgepItemHasTypeByte( pItemPos->m_pBuffer, pItemPos->m_nLength ) )
 					continue;
 

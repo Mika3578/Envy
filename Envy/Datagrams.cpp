@@ -411,7 +411,7 @@ BOOL CDatagrams::Send(const SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease,
 
 	if (!bCreated)
 	{
-		// Fragment count exceeded G2_SGP_FRAGMENT_MAX ï¿½â€ reclaim and fail closed.
+		// Fragment count exceeded G2_SGP_FRAGMENT_MAX — reclaim and fail closed.
 		if (pDG->m_pBuffer)
 		{
 			pDG->m_pBuffer->m_pNext = m_pBufferFree;

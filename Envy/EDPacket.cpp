@@ -1471,7 +1471,7 @@ BOOL CEDTag::Read(CEDPacket* pPacket, BOOL bUnicode)
 		}
 		else
 		{
-			// Unknown tag type �” speculative skip. Prefer STRING framing when the
+			// Unknown tag type — speculative skip. Prefer STRING framing when the
 			// length claim fits; otherwise fail-closed (do not guess INT and desync).
 			theApp.Message( MSG_DEBUG, L"Unknown ED2K tag type 0x%02x - skipping tag value", m_nType );
 
@@ -1487,7 +1487,7 @@ BOOL CEDTag::Read(CEDPacket* pPacket, BOOL bUnicode)
 			}
 			else if (nValueLen > ED2K_UNKNOWN_TAG_STRING_SKIP_MAX)
 			{
-				// Length too large for STRING heuristic �” try INT (4 bytes from nPos).
+				// Length too large for STRING heuristic — try INT (4 bytes from nPos).
 				pPacket->m_nPosition = nPos;
 				if (pPacket->GetRemaining() < 4)
 					return FALSE;
@@ -1495,7 +1495,7 @@ BOOL CEDTag::Read(CEDPacket* pPacket, BOOL bUnicode)
 			}
 			else
 			{
-				// Plausible STRING length that does not fit remaining �” fail-closed.
+				// Plausible STRING length that does not fit remaining — fail-closed.
 				return FALSE;
 			}
 		}
@@ -1643,7 +1643,7 @@ BOOL CEDTag::Read(CFile* pFile)
 		}
 		else
 		{
-			// Unknown tag type �” same speculative skip as wire path (#81).
+			// Unknown tag type — same speculative skip as wire path (#81).
 			theApp.Message( MSG_DEBUG, L"Unknown ED2K tag type 0x%02x - skipping tag value", m_nType );
 
 			const ULONGLONG nPos = pFile->GetPosition();

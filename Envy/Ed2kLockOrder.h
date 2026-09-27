@@ -9,7 +9,7 @@
 
 #pragma once
 
-// Documented order (outer �’ inner):
+// Documented order (outer → inner):
 //   1. CEDClients::m_pSection
 //   2. CTransfers::m_pSection
 //

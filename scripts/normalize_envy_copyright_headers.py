@@ -70,9 +70,13 @@ def normalize_line(line: bytes, fix_comments: bool) -> bytes:
 				if old in new_line:
 					new_line = new_line.replace(old, new)
 	if fix_comments and is_comment_line(new_line):
-		for old, new in COMMENT_CP1252_TO_UTF8:
-			if old in new_line:
-				new_line = new_line.replace(old, new)
+		# CP1252 byte replacements must not run on valid UTF-8 (e.g. em dash ends in 0x94).
+		try:
+			new_line.decode("utf-8")
+		except UnicodeDecodeError:
+			for old, new in COMMENT_CP1252_TO_UTF8:
+				if old in new_line:
+					new_line = new_line.replace(old, new)
 	return new_line
 
 

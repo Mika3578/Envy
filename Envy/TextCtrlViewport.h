@@ -2,7 +2,7 @@
 // TextCtrlViewport.h
 //
 // Pure viewport / scroll math for CTextCtrl (System/Network log).
-// Shared with EnvyTests �” no MFC dependency beyond windows.h BOOL.
+// Shared with EnvyTests — no MFC dependency beyond windows.h BOOL.
 //
 // Semantics: nPosition is the first visible visual line (0-based),
 // top-aligned when content fits; follow-bottom only when already at end.

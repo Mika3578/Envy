@@ -5,11 +5,11 @@
 // No MFC, no sockets, no UI. Suitable for EnvyTests and later fuzzing (#229/#91).
 //
 // File versions (little-endian integer fields unless noted):
-//   v0 legacy     �” leading count != 0, 25-byte records, type byte (not Kad version)
-//   v1            �” marker 0, version 1, count, 25-byte records + Kad version
-//   v2            �” marker 0, version 2, count, 34-byte records (UDP-key + verified)
-//   v3 normal     �” marker 0, version 3, edition 0, count, 34-byte records
-//   v3 bootstrap  �” marker 0, version 3, edition 1, count, 25-byte records
+//   v0 legacy     — leading count != 0, 25-byte records, type byte (not Kad version)
+//   v1            — marker 0, version 1, count, 25-byte records + Kad version
+//   v2            — marker 0, version 2, count, 34-byte records (UDP-key + verified)
+//   v3 normal     — marker 0, version 3, edition 0, count, 34-byte records
+//   v3 bootstrap  — marker 0, version 3, edition 1, count, 25-byte records
 //
 // IP on disk is the four IPv4 octets in network order, which matches
 // eMule CContact::GetIPAddress() written via WriteUInt32 on little-endian

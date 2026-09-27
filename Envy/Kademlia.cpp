@@ -1513,7 +1513,7 @@ void CKademlia::SendSearchSourceRequest(const KadContact& contact, const KadId& 
 	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_SEARCH_SOURCE_REQ, ED2K_PROTOCOL_KAD);
 	if (!pPacket) return;
 
-	// <FileHash 16><FileSize 8> �” see KadSearchSourceRequest.h / aMule framing.
+	// <FileHash 16><FileSize 8> — see KadSearchSourceRequest.h / aMule framing.
 	pPacket->Write(targetId, KAD_ID_SIZE);
 	pPacket->WriteInt64(nFileSize);
 
@@ -1558,7 +1558,7 @@ void CKademlia::SendPublishSourceRequest(const KadContact& contact, const KadId&
 }
 
 //////////////////////////////////////////////////////////////////////
-// SEARCH_RES �’ ED2K source delivery
+// SEARCH_RES → ED2K source delivery
 
 void CKademlia::DeliverSourceCandidate(const BYTE* pFileHash, const KadSourceCandidate& cand)
 {

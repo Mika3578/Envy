@@ -143,7 +143,7 @@ inline BOOL DcBrowseTargetsEqual(const char* pszNickA, const char* pszHubA, unsi
 
 // Browse Host must paint the FileListing folder tree whenever there are files
 // or empty directories. Callers must invoke that paint while they still own
-// the hit chain �” CNetwork::OnQueryHits takes ownership and may delete it.
+// the hit chain — CNetwork::OnQueryHits takes ownership and may delete it.
 inline BOOL DcBrowseShareTreeNeeded(const void* pHits, BOOL bHasFolders)
 {
 	return pHits != NULL || bHasFolders;

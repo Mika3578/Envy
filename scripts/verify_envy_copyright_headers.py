@@ -29,6 +29,16 @@ def verify_file(path: Path) -> list[str]:
 	data = path.read_bytes()
 	issues: list[str] = []
 	rel = path.relative_to(ROOT).as_posix()
+	if data.startswith(b"\xff\xfe") or data.startswith(b"\xfe\xff"):
+		return []
+	try:
+		data.decode("utf-8")
+	except UnicodeDecodeError:
+		# Legacy mixed encodings remain in some sources; this check targets UTF-8 banners.
+		pass
+	else:
+		if b"\xe2\x80\xe2\x80" in data:
+			issues.append("suspect doubled UTF-8 punctuation (mojibake from CP1252 pass)")
 	has_banner = b"getenvy.com)" in data
 	if not has_banner:
 		return []

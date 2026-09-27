@@ -61,7 +61,7 @@ inline BOOL BtShouldRemoveSizeMarkerAfterPeek(BOOL bReturningKeepAlive, DWORD nL
 // QueryHit XML "{deflate}" path uses "nSize - 10" (9-byte marker + trailing NUL
 // included in fixed nXMLSize). Require nSize > 10 so subtraction cannot underflow.
 // CG1Packet::ReadXML uses "len - 9" because it measures length until HIT_SEP/NUL
-// (separator already excluded). Both are correct for their framing �” see #119.
+// (separator already excluded). Both are correct for their framing — see #119.
 inline BOOL G1QueryHitDeflateXmlLengthOk(int nSize)
 {
 	return nSize > 10;
@@ -97,7 +97,7 @@ inline DWORD G1PacketTotalLength(LONG nPayloadLength)
 }
 
 // G1 QueryHit QHD: claimed XML length must leave room for the trailing GUID
-// (16 bytes), including when nXmlSize is 0. Fail-closed �” do not soft-clamp
+// (16 bytes), including when nXmlSize is 0. Fail-closed — do not soft-clamp
 // nXMLSize to 0 (#81).
 constexpr DWORD G1_QUERYHIT_GUID_BYTES = 16u;
 
@@ -123,7 +123,7 @@ inline BOOL GgepInflateOutputOk(DWORD nOutput)
 	return nOutput > 0 && nOutput <= GGEP_INFLATE_MAX;
 }
 
-// ED2K preview frame size vs remaining packet bytes �” compare unsigned so a
+// ED2K preview frame size vs remaining packet bytes — compare unsigned so a
 // high-bit frame size cannot bypass the bound via a signed cast.
 inline BOOL Ed2kPreviewFrameFits(DWORD nFrameSize, DWORD nRemaining)
 {
@@ -546,7 +546,7 @@ inline BOOL G2FrameLengthFits(DWORD nBufferLength, DWORD nBodyLen, DWORD nLenLen
 }
 
 // G2 HIT_WRAP / routing embeds a GNUTELLAPACKET (#81).
-// m_nLength is signed LONG �” negative values must not enter unsigned
+// m_nLength is signed LONG — negative values must not enter unsigned
 // "remaining >= header + length" math or (DWORD) cast before Write.
 // Absolute payload ceiling matches Settings.Gnutella.MaximumPacket (256 KiB)
 // for wrapped G2->G1 conversion; CG1Packet::New only rejects negatives so

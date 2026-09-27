@@ -2,17 +2,17 @@
 // AdaptiveListColumns.h
 //
 // Pure report-list column width allocation for DPI-aware layouts.
-// Shared with EnvyTests �” no MFC dependency.
+// Shared with EnvyTests — no MFC dependency.
 //
 // Column kinds:
-//   Fixed    �” small fields (ports, counts); preferred == min == max after scale
-//   Bounded  �” address / time / client / country; start at preferred, shrink toward
+//   Fixed    — small fields (ports, counts); preferred == min == max after scale
+//   Bounded  — address / time / client / country; start at preferred, shrink toward
 //              min when the row is too wide; max clamps sticky/preferred (no leftover grow)
-//   Flexible �” name / description / title; absorb leftover width by weight
+//   Flexible — name / description / title; absorb leftover width by weight
 //
 // Sticky widths (user-resized) are kept and clamped to the scaled [min, max]
 // for that column (fixed/bounded max matters; flexible max is usually INT_MAX).
-// No registry I/O belongs here �” callers must not SaveList from WM_SIZE.
+// No registry I/O belongs here — callers must not SaveList from WM_SIZE.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //

@@ -16,7 +16,7 @@
 //
 // Capability: peer Hello MiscOptions1 compression nibble / MuleInfo
 // ET_COMPRESSION must be version 1 (eMule m_byDataCompVer == 1).
-// Fallback: compress2 failure OR compressed size >= source size �’ SENDINGPART.
+// Fallback: compress2 failure OR compressed size >= source size → SENDINGPART.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
@@ -28,7 +28,7 @@
 #include <cstdint>
 #include <cstring>
 
-// Opcodes (mirror EDPacket.h �” keep header free of EDPacket/MFC).
+// Opcodes (mirror EDPacket.h — keep header free of EDPacket/MFC).
 #ifndef ED2K_C2C_COMPRESSEDPART
 #define ED2K_C2C_COMPRESSEDPART 0x40
 #endif
@@ -171,7 +171,7 @@ inline BOOL Ed2kShouldAttemptCompressedUpload(
 	return Ed2kCompressedUploadSourceRangeOk(nStart, nSourceLen);
 }
 
-// eMule ShouldCompressBasedOnFilename �” skip already-compressed containers.
+// eMule ShouldCompressBasedOnFilename — skip already-compressed containers.
 // Case-insensitive ASCII extension check; empty name allows compression.
 inline BOOL Ed2kCompressedUploadFilenameAllows(LPCWSTR pszName)
 {

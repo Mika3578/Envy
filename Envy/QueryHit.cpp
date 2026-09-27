@@ -928,7 +928,7 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 	if ( G1QueryHitDeflateXmlLengthOk( nSize ) &&
 		 strncmp( (LPCSTR)pRaw.get(), "{deflate}", 9 ) == 0 )
 	{
-		// Deflate data �” cap inflate to block zip-bomb DoS (#81).
+		// Deflate data — cap inflate to block zip-bomb DoS (#81).
 		DWORD nRealSize = 0;
 		auto_array<BYTE> pText(CZLib::Decompress(
 		    pRaw.get() + 9, nSize - 10, &nRealSize, G1_DEFLATE_XML_INFLATE_MAX));
@@ -1133,7 +1133,7 @@ void CQueryHit::ReadGGEP(CG1Packet* pPacket)
 		{
 			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) )
 			{
-				// Zero-length "H" leaves m_pBuffer NULL �” guard before type byte.
+				// Zero-length "H" leaves m_pBuffer NULL — guard before type byte.
 				if ( ! GgepItemHasTypeByte( pItemPos->m_pBuffer, pItemPos->m_nLength ) )
 					continue;
 

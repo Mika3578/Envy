@@ -658,7 +658,7 @@ BOOL CUploadTransferED2K::DispatchNextChunk()
 
 		const bool bI64Offset = Ed2kCompressedUploadNeedsI64(nOffset, nEndExclusive) != FALSE;
 
-		// Peer Hello/MuleInfo compression version only �” never our advertise bit.
+		// Peer Hello/MuleInfo compression version only — never our advertise bit.
 		const DWORD nPeerCompVer = m_pClient ? (DWORD)m_pClient->m_bEmDeflate : 0u;
 		BOOL bChunkHandled = FALSE;
 
@@ -675,7 +675,7 @@ BOOL CUploadTransferED2K::DispatchNextChunk()
 			if (!ReadFile(m_nFileBase + nOffset, pSource.get(), nSourceLen, &nRead) ||
 			    nRead != nSourceLen)
 			{
-				// Incomplete read �” do not send a truncated COMPRESSEDPART stream.
+				// Incomplete read — do not send a truncated COMPRESSEDPART stream.
 				return FALSE;
 			}
 

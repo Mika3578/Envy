@@ -3,7 +3,7 @@
 //
 // NMDC hub text encode/decode using an explicit Windows code page.
 // Default 0 resolves to CP_ACP (system ANSI), matching DC++ blank hub encoding.
-// ADC/ADCS is out of scope �” never apply these helpers to ADC UTF-8 framing.
+// ADC/ADCS is out of scope — never apply these helpers to ADC UTF-8 framing.
 //
 // Pure helpers (std::wstring / std::string) so EnvyTests can cover them without MFC.
 //
@@ -73,7 +73,7 @@ inline std::string EncodeNmdcText(__in LPCWSTR pszString, __in UINT nCodePage)
 	const UINT cp = DcResolveNmdcCodePage(nCodePage);
 	const int nWide = static_cast<int>(wcslen(pszString));
 	BOOL bUsedDefault = FALSE;
-	// lpDefaultChar "?" �” deterministic substitution when a glyph is missing in the code page.
+	// lpDefaultChar "?" — deterministic substitution when a glyph is missing in the code page.
 	// (UTF-8 ignores lpDefaultChar; every Unicode scalar is representable.)
 	const bool bUtf8 = (cp == CP_UTF8);
 	const DWORD dwFlags = bUtf8 ? 0 : WC_NO_BEST_FIT_CHARS;

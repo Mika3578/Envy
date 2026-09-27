@@ -56,7 +56,7 @@ public:
 	DWORD		m_nEmCompatible;
 	DWORD		m_nSoftwareVersion;
 
-	// SecureID authentication (RSA SecureIdent not implemented �” see SecureIdentPolicy.h / #75)
+	// SecureID authentication (RSA SecureIdent not implemented — see SecureIdentPolicy.h / #75)
 	BYTE		m_nSecureIdent[6];		// Reserved challenge/response buffer for future RSA SecureIdent
 	DWORD		m_nSecureIdentState;	// ED2K_SECUREIDENT_STATE_*; verified only after real RSA
 

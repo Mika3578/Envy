@@ -2,7 +2,7 @@
 // Ed2kLowIdCallback.h
 //
 // Pure ED2K/eMule LowID callback + PUBLICIP packet/state helpers (no MFC / network).
-// Phase-1 baseline for #87 �” not Buddy/firewall completion.
+// Phase-1 baseline for #87 — not Buddy/firewall completion.
 //
 // Protocol evidence (aMule / eMule Community):
 //   OP_PUBLICIP_REQ (0x97): empty body; answer with peer's observed IPv4.
@@ -337,7 +337,7 @@ inline BOOL Ed2kServerCallbackRequestedParse(const BYTE* pData, DWORD nLen, DWOR
 	return TRUE;
 }
 
-// LowID identity: ClientID alone is insufficient �” server endpoint must match (CEDClient::Equals).
+// LowID identity: ClientID alone is insufficient — server endpoint must match (CEDClient::Equals).
 inline BOOL Ed2kLowIdPeersEqual(DWORD nIdA, DWORD nServerIpA, DWORD nIdB, DWORD nServerIpB)
 {
 	if (!Ed2kIsLowIdValue(nIdA) || !Ed2kIsLowIdValue(nIdB))

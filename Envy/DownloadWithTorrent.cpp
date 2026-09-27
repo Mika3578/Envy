@@ -566,7 +566,7 @@ BOOL CDownloadWithTorrent::GenerateTorrentDownloadID()
 	m_pPeerID[ 6 ] = theApp.m_szVersion[3];		// 0
 	m_pPeerID[ 7 ] = '-';
 
-	// Random characters for the rest of the Client ID (CSPRNG �” anti-spoof padding)
+	// Random characters for the rest of the Client ID (CSPRNG — anti-spoof padding)
 	if ( ! GenerateCryptographicBytes( &m_pPeerID[ 8 ], 12 ) )
 	{
 		theApp.Message( MSG_ERROR, L"BitTorrent Peer ID: secure RNG unavailable" );

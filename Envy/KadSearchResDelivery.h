@@ -75,7 +75,7 @@ constexpr BYTE KAD_ED2K_TAG_SHORTSTRING = 0x11;
 
 // aMule/eMule source types accepted for HighID direct TCP (types 1 and 4).
 // Types 3/5 (buddy) and 6 (direct UDP callback) need Buddy/callback paths
-// that are out of scope for this slice �” refuse delivery rather than invent
+// that are out of scope for this slice — refuse delivery rather than invent
 // an incorrect ED2K server-push mapping.
 constexpr BYTE KAD_SOURCE_TYPE_HIGHID = 1;
 constexpr BYTE KAD_SOURCE_TYPE_HIGHID_LARGE = 4;
@@ -479,7 +479,7 @@ inline bool KadConsumeSearchResTag(KadByteCursor& cur, KadSourceCandidate& cand)
 		}
 		else
 		{
-			// Named string keys are optional metadata �” skip the name then value.
+			// Named string keys are optional metadata — skip the name then value.
 			if (!KadSearchResTagLengthOk(nNameLen))
 				return false;
 			if (!cur.Skip(nNameLen))
@@ -673,7 +673,7 @@ inline void KadAppendHighIdSourceEntry(
 	KadAppendCompactIntTag(buf, KAD_ED2K_TAG_UINT16, KAD_TAG_SOURCEPORT, tcpPort);
 	if (bExtraUnknownOptional)
 	{
-		// Optional unknown name-ID UINT8 tag (0xEE) �” must not corrupt parser.
+		// Optional unknown name-ID UINT8 tag (0xEE) — must not corrupt parser.
 		KadAppendCompactIntTag(buf, KAD_ED2K_TAG_UINT8, 0xEE, 0x42);
 	}
 }

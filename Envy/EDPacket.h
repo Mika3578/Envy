@@ -284,9 +284,9 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define ED2K_C2C_PEERCACHE_QUERY		0x94	// *DEPRECATED*
 #define ED2K_C2C_PEERCACHE_ANSWER		0x95	// *DEPRECATED*
 #define ED2K_C2C_PEERCACHE_ACK			0x96	// *DEPRECATED*
-#define ED2K_C2C_PUBLICIP_REQ 0x97              // (null) �” answer with peer's observed IPv4
+#define ED2K_C2C_PUBLICIP_REQ 0x97              // (null) — answer with peer's observed IPv4
 #define ED2K_C2C_PUBLICIP_ANSWER 0x98           // <IPv4 4> (LE dword / sockaddr s_addr form)
-#define ED2K_C2C_CALLBACK 0x99                  // <KadCheck 16><FileHash 16><IP 4><TCPPort 2> (Buddy�’LowID)
+#define ED2K_C2C_CALLBACK 0x99                  // <KadCheck 16><FileHash 16><IP 4><TCPPort 2> (Buddy→LowID)
 #define ED2K_C2C_REASKCALLBACKTCP 0x9A          // Buddy-only reask relay (phase 2; not handled)
 #define ED2K_C2C_AICHREQUEST			0x9B	// *DEPRECATED* <HASH 16><uint16><HASH aichhashlen>
 #define ED2K_C2C_AICHANSWER				0x9C	// *DEPRECATED* <HASH 16><uint16><HASH aichhashlen> <data>
@@ -300,7 +300,7 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define ED2K_C2C_MULTIPACKET_EXT		0xA4	// *DEPRECATED*
 #define ED2K_C2C_CHATCAPTCHAREQ			0xA5	// <tags 1>[tags]<Captcha BITMAP>
 #define ED2K_C2C_CHATCAPTCHARES			0xA6	// <status 1>
-#define ED2K_C2C_FWCHECKUDPREQ 0xA7             // <Inter_Port 2><Extern_Port 2><KadUDPKey 4> *Support required for Kadversion >= 6 (UDP firewall �” not this slice)
+#define ED2K_C2C_FWCHECKUDPREQ 0xA7             // <Inter_Port 2><Extern_Port 2><KadUDPKey 4> *Support required for Kadversion >= 6 (UDP firewall — not this slice)
 #define ED2K_C2C_KAD_FWTCPCHECK_ACK		0xA8	// (null/reserved), replaces KADEMLIA_FIREWALLED_ACK_RES, *Support required for Kadversion >= 7
 #define ED2K_C2C_MULTIPACKET_EXT2		0xA9	// <FileIdentifier> ... (MultiPacket Ext2)
 #define ED2K_C2C_MULTIPACKETANSWER_EXT2	0xB0	// <FileIdentifier> ... (MultiPacket Answer Ext2)
@@ -618,7 +618,7 @@ public:
 #define ED2K_VERSION_EXTENDEDREQUEST 0x02	// Note: Defined at run time. 0, 1, or 2
 
 // Historical AICH version constant. Hello advertisement uses
-// Ed2kAichAdvertisedVersion() (currently 0 �” no C2C AICH handlers).
+// Ed2kAichAdvertisedVersion() (currently 0 — no C2C AICH handlers).
 #define ED2K_VERSION_AICH			0x01
 // Advertise 0 until eMule-compatible RSA SecureIdent verification exists (#75).
 // Claiming 0x03 previously implied working SecureIdent while Envy only ran a

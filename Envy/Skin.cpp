@@ -397,7 +397,7 @@ BOOL CSkin::LoadFromString(const CString& strXML, const CString& strPath)
 BOOL CSkin::LoadFromXML(CXMLElement* pXML, const CString& strPath)
 {
 	// Start true so section results AND into a meaningful aggregate.
-	// Note: load is not transactional �” earlier sections' mutations remain
+	// Note: load is not transactional — earlier sections' mutations remain
 	// applied if a later section fails (documented SkinEngineP0 limitation).
 	SkinLoadSuccessState oLoad;
 
