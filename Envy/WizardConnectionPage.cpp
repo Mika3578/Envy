@@ -1,7 +1,7 @@
 //
 // WizardConnectionPage.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2020
+// This file is part of Envy (getenvy.com) ù 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -121,7 +121,7 @@ BOOL CWizardConnectionPage::OnInitDialog()
 	m_wndType.SetItemData(15, 204800 );	// 200
 	m_wndType.SetItemData(16, 307200 );	// 300
 	m_wndType.SetItemData(17, 409600 );	// 400
-	m_wndType.SetItemData(18, 972800 );	// 950 Gig
+	m_wndType.SetItemData(18, 1024000 );	// 1 Gb/s (Ki-based preset)
 	m_wndType.SetItemData(19, 1544 );	// T1
 	m_wndType.SetItemData(20, 44800 );	// T3
 	m_wndType.SetItemData(21, 102400 );	// LAN 100
@@ -147,7 +147,7 @@ BOOL CWizardConnectionPage::OnInitDialog()
 	m_mapSpeed[ 204800 ]	= 204800;	// 200
 	m_mapSpeed[ 307200 ]	= 307200;	// 300
 	m_mapSpeed[ 409600 ]	= 409600;	// 400
-	m_mapSpeed[ 972800 ]	= 921600;	// 950
+	m_mapSpeed[ 1024000 ]	= 921600;	// 1 Gb/s upload headroom (legacy wizard ratio)
 	m_mapSpeed[ 1544 ]		= 1544; 	// T1
 	m_mapSpeed[ 44800 ]		= 44800;	// T3
 	m_mapSpeed[ 102400 ]	= 102400;	// LAN
