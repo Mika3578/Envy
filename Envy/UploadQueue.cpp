@@ -23,6 +23,7 @@
 #include "UploadQueue.h"
 #include "UploadQueues.h"
 #include "UploadTransferED2K.h"
+#include "TransferSettingsLimits.h"
 #include "EDClient.h"
 #include "QuerySearch.h"
 #include "Neighbours.h"
@@ -368,8 +369,11 @@ DWORD CUploadQueue::GetBandwidthLimit(DWORD nTransfers) const
 		if ( pOther != this ) nTotalPoints += pOther->GetBandwidthPoints();
 	}
 
-	return Uploads.GetBandwidthLimit() *
-		( nLocalPoints + Settings.Uploads.ThrottleMode ) / max( 1ul, nTotalPoints );
+	const unsigned long long nShare =
+	    static_cast<unsigned long long>(Uploads.GetBandwidthLimit()) *
+	    static_cast<unsigned long long>(nLocalPoints + Settings.Uploads.ThrottleMode) /
+	    static_cast<unsigned long long>(max(1ul, nTotalPoints));
+	return TransferBandwidthBytesToSetting(nShare);
 }
 
 DWORD CUploadQueue::GetAvailableBandwidth() const

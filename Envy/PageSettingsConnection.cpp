@@ -224,14 +224,18 @@ BOOL CConnectionSettingsPage::OnKillActive()
 {
 	UpdateData();
 
-	if ( ! Settings.ParseVolume( m_sInSpeed, Kilobits ) )
+	const TransferConnectionCapacityParseResult oIn =
+	    TransferConnectionCapacityParseKilobitsText(m_sInSpeed);
+	if (oIn.eStatus != TransferConnectionCapacityParseStatus::Ok)
 	{
 		MsgBox( IDS_SETTINGS_NEED_BANDWIDTH, MB_ICONEXCLAMATION );
 		m_wndInSpeed.SetFocus();
 		return FALSE;
 	}
 
-	if ( ! Settings.ParseVolume( m_sOutSpeed, Kilobits ) )
+	const TransferConnectionCapacityParseResult oOut =
+	    TransferConnectionCapacityParseKilobitsText(m_sOutSpeed);
+	if (oOut.eStatus != TransferConnectionCapacityParseStatus::Ok)
 	{
 		MsgBox( IDS_SETTINGS_NEED_BANDWIDTH, MB_ICONEXCLAMATION );
 		m_wndOutSpeed.SetFocus();
@@ -277,8 +281,8 @@ void CConnectionSettingsPage::OnOK()
 	Settings.Connection.EnableUPnP			= m_bEnableUPnP != FALSE;
 	Settings.Connection.InBind				= m_bInBind != FALSE;
 	Settings.Connection.OutHost				= m_sOutHost;
-	Settings.Connection.InSpeed				= (DWORD)Settings.ParseVolume( m_sInSpeed, Kilobits );
-	Settings.Connection.OutSpeed			= (DWORD)Settings.ParseVolume( m_sOutSpeed, Kilobits );
+	Settings.Connection.InSpeed = TransferConnectionCapacityParseKilobitsTextDword(m_sInSpeed);
+	Settings.Connection.OutSpeed = TransferConnectionCapacityParseKilobitsTextDword(m_sOutSpeed);
 	Settings.Connection.IgnoreLocalIP		= m_bIgnoreLocalIP != FALSE;
 	Settings.Connection.TimeoutConnect = m_nTimeoutConnection * 1000;
 	Settings.Connection.TimeoutHandshake = m_nTimeoutHandshake * 1000;

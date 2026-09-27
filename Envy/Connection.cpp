@@ -891,8 +891,11 @@ DWORD CConnection::TCPBandwidthMeter::CalculateLimit(DWORD tNow, DWORD nBandwidt
 	// Is this running in Maximum mode (strict limit)
 	if ( bMaxMode )
 	{
-		// Adjust limit for the time elapsed since last time
-		nLimit = nLimit * ( tNow - tLastLimit ) / 1000;
+		// Adjust limit for the time elapsed since last time (64-bit: multigigabit * ms).
+		const unsigned long long nElapsedLimit =
+		    static_cast<unsigned long long>(nLimit) *
+		    static_cast<unsigned long long>(tNow - tLastLimit) / 1000ull;
+		nLimit = nElapsedLimit > 0xFFFFFFFFull ? 0xFFFFFFFFu : static_cast<DWORD>(nElapsedLimit);
 
 		// nData = speed limit in bytes per second - bytes we read in the last second
 		// nLimit = speed limit in bytes per second * elapsed time

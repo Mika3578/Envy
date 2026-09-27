@@ -157,8 +157,6 @@ inline bool TransferBandwidthSettingIsUnlimited(DWORD nBytesPerSecond)
 
 inline DWORD TransferBandwidthBytesToSetting(unsigned long long nBytes)
 {
-	if (nBytes == 0)
-		return TransferBandwidthUnlimitedValue();
 	if (nBytes > 0xFFFFFFFFull)
 		return 0xFFFFFFFFul;
 	return static_cast<DWORD>(nBytes);

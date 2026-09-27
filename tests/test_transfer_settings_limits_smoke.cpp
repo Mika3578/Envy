@@ -111,9 +111,14 @@ static bool test_bandwidth_token_unknown_not_unlimited()
 	return TransferBandwidthTokenIsUnlimited(L"garbage") == false && TransferBandwidthTokenIsUnlimited(L"-") == false;
 }
 
-static bool test_bandwidth_bytes_to_setting_zero_unlimited()
+static bool test_bandwidth_bytes_to_setting_zero_preserved()
 {
-	return TransferBandwidthBytesToSetting(0) == TransferBandwidthUnlimitedValue();
+	return TransferBandwidthBytesToSetting(0) == 0u;
+}
+
+static bool test_bandwidth_share_bytes_zero_points()
+{
+	return TransferBandwidthShareBytes(1024u, 0u, 100u) == 0u;
 }
 
 static bool test_bandwidth_bytes_to_setting_typical()
@@ -473,7 +478,9 @@ static bool test_bandwidth_share_bytes_10g_no_wrap()
 {
 	const DWORD nRef = TransferConnectionKilobitsToBytesPerSecondDword(10485760u);
 	const DWORD nShare = TransferBandwidthShareBytes(nRef, 30u, 100u);
-	return nShare > 0u && nShare < nRef;
+	const unsigned long long nExpected =
+	    static_cast<unsigned long long>(nRef) * 30ull / 100ull;
+	return nShare == static_cast<DWORD>(nExpected);
 }
 
 static bool test_capacity_parse_gbps()
@@ -518,8 +525,10 @@ void register_transfer_settings_limits_smoke_tests(TestSuite& suite)
 	               test_bandwidth_token_numeric_is_limited);
 	suite.add_test("transfer_bandwidth_token_unknown_not_unlimited",
 	               test_bandwidth_token_unknown_not_unlimited);
-	suite.add_test("transfer_bandwidth_bytes_to_setting_zero_unlimited",
-	               test_bandwidth_bytes_to_setting_zero_unlimited);
+	suite.add_test("transfer_bandwidth_bytes_to_setting_zero_preserved",
+	               test_bandwidth_bytes_to_setting_zero_preserved);
+	suite.add_test("transfer_bandwidth_share_bytes_zero_points",
+	               test_bandwidth_share_bytes_zero_points);
 	suite.add_test("transfer_bandwidth_bytes_to_setting_typical",
 	               test_bandwidth_bytes_to_setting_typical);
 	suite.add_test("transfer_bandwidth_bytes_to_setting_overflow_clamps",
