@@ -18,6 +18,8 @@ issue volume on the New Code period when the leak baseline is broad
   `ThirdParty/BugSplat/**`, excluded from Sonar as a vendor tree; only SDK files
   listed in `SDK-HASHES.json` are the immutable verified payload and must not be
   patched for Sonar style rules).
+- `site/**` is excluded as static GitHub Pages HTML/CSS (community surface, not
+  MFC product code); see `site/README.md`.
 - Do **not** exclude first-party `Envy/`, `TorrentEnvy/`, `Remote/`, or
   first-party tests to silence ratings.
 - Do **not** relax Quality Gate thresholds (duplication ≤ 3%, Reliability /
