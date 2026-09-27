@@ -174,9 +174,10 @@ static bool test_standard_request_not_legacy_hash_byte16()
 	if (nLen != 19)
 		return false;
 
-	for (BYTE b16 : { (BYTE)1, (BYTE)2, (BYTE)3, (BYTE)4, (BYTE)0xAB })
+	static const BYTE kHashByte16Cases[] = { 1, 2, 3, 4, 0xAB };
+	for (size_t i = 0; i < sizeof(kHashByte16Cases); ++i)
 	{
-		buf[16] = b16;
+		buf[16] = kHashByte16Cases[i];
 		if (Ed2kSourceEx2LooksLikeLegacyEnvyRequest(buf.data(), nLen) == TRUE)
 			return false;
 	}
@@ -212,13 +213,14 @@ static bool test_request_version_negotiation()
 	fill_synthetic_hash(hash);
 	std::array<BYTE, 32> buf = {};
 
-	for (BYTE v : { (BYTE)0, (BYTE)5, (BYTE)255 })
+	static const BYTE kUnsupportedVersions[] = { 0, 5, 255 };
+	for (size_t i = 0; i < sizeof(kUnsupportedVersions); ++i)
 	{
-		if (Ed2kSourceEx2WriteRequest(buf.data(), (DWORD)buf.size(), v, 0, hash) != 0)
+		if (Ed2kSourceEx2WriteRequest(buf.data(), (DWORD)buf.size(), kUnsupportedVersions[i], 0, hash) != 0)
 			return false;
 	}
 
-	for (BYTE v : { (BYTE)1, (BYTE)2, (BYTE)3, (BYTE)4 })
+	for (BYTE v = 1; v <= 4; ++v)
 	{
 		if (Ed2kSourceEx2NegotiatedAnswerVersion(v) != v)
 			return false;
