@@ -103,13 +103,8 @@ CBTInfo::~CBTInfo()
 	// Do not call Clear() from the destructor (cpp:S1048): full reset touches MFC
 	// paths Sonar treats as potentially throwing. Release owned file nodes and
 	// piece-hash storage only.
-	POSITION pos = m_pFiles.GetHeadPosition();
-	while (pos)
-	{
-		CBTFile* pFile = m_pFiles.GetNext(pos);
-		delete pFile;
-	}
-	m_pFiles.RemoveAll();
+	while (!m_pFiles.IsEmpty())
+		delete m_pFiles.RemoveHead();
 	m_pBlockBTH.clear();
 	m_nBlockCount = 0;
 	m_nBlockSize = 0;
@@ -203,7 +198,7 @@ void CBTInfo::Clear()
 	m_nTotalUpload		= 0;
 	m_nTotalDownload	= 0;
 
-	for ( POSITION pos = m_pFiles.GetHeadPosition(); pos; )
+	for (POSITION pos = m_pFiles.GetHeadPosition(); pos;)
 		delete m_pFiles.GetNext( pos );
 	m_pFiles.RemoveAll();
 
@@ -330,7 +325,7 @@ void CBTInfo::Serialize(CArchive& ar)
 		ar << nStoreCount;
 		for (DWORD i = 0; i < nStoreCount; ++i)
 		{
-			ar.Write( &m_pBlockBTH[ i ][ 0 ], Hashes::BtPureHash::byteCount );
+			ar.Write(&m_pBlockBTH[i][0], Hashes::BtPureHash::byteCount);
 		}
 
 		ar << m_nTotalUpload;
@@ -396,7 +391,7 @@ void CBTInfo::Serialize(CArchive& ar)
 
 		// Parse into temporaries so ReadArchive failure never leaves count/vector split.
 		{
-			std::vector< Hashes::BtPureHash > oNewBlockBTH;
+			std::vector<Hashes::BtPureHash> oNewBlockBTH;
 			if (nLoadBlockCount)
 			{
 				if (!BtPieceHashDeclaredCountValid(nLoadBlockCount))
@@ -409,7 +404,7 @@ void CBTInfo::Serialize(CArchive& ar)
 
 				for (DWORD i = 0; i < nLoadBlockCount; ++i)
 				{
-					ReadArchive( ar, &oNewBlockBTH[ i ][ 0 ], Hashes::BtPureHash::byteCount );
+					ReadArchive(ar, &oNewBlockBTH[i][0], Hashes::BtPureHash::byteCount);
 				}
 			}
 
@@ -1147,11 +1142,11 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 		if (!BtPieceHashReadyToCommit(nPieceCount, oNewBlockBTH.size()))
 			return FALSE;
 		m_nBlockCount = nPieceCount;
-		m_pBlockBTH.swap( oNewBlockBTH );
+		m_pBlockBTH.swap(oNewBlockBTH);
 	}
 
 	// Hash info
-	if ( const CBENode* pSHA1 = pInfo->GetNode( "sha1" ) )
+	if (const CBENode* pSHA1 = pInfo->GetNode("sha1"))
 	{
 		if ( ! pSHA1->IsType( CBENode::beString ) || pSHA1->m_nValue != Hashes::Sha1Hash::byteCount ) return FALSE;
 		m_oSHA1 = *static_cast< const Hashes::BtHash::RawStorage* >( pSHA1->m_pValue );
@@ -1575,7 +1570,7 @@ BOOL CBTInfo::FinishBlockTest(DWORD nBlock)
 
 	Hashes::BtHash oBTH;
 	m_pTestSHA1.Finish();
-	m_pTestSHA1.GetHash( &oBTH[ 0 ] );
+	m_pTestSHA1.GetHash(&oBTH[0]);
 	oBTH.validate();
 
 	return m_pBlockBTH[ nBlock ] == oBTH;
