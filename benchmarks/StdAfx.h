@@ -17,6 +17,8 @@
 
 #include <sdkddkver.h>
 
+#include <WinUser.h>
+
 #ifndef VC_EXTRALEAN
 #define VC_EXTRALEAN
 #endif

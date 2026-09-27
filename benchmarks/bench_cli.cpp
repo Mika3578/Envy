@@ -17,17 +17,15 @@ bool IsOption(const char* arg, const char* name)
 	return std::strcmp(arg, name) == 0;
 }
 
-bool HasPathTraversal(const std::string& path)
+bool IsSimpleOutputFilename(const std::string& path)
 {
+	if (path.empty() || path.size() > 128)
+		return false;
 	if (path.find("..") != std::string::npos)
-		return true;
-	if (!path.empty() && (path[0] == '/' || path[0] == '\\'))
-		return true;
-	if (path.size() >= 2 && path[1] == ':')
-		return true;
-	if (path.rfind("\\\\", 0) == 0)
-		return true;
-	return false;
+		return false;
+	if (path.find_first_of("/\\:") != std::string::npos)
+		return false;
+	return true;
 }
 
 } // namespace
