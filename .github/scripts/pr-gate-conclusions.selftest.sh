@@ -320,6 +320,30 @@ else
 	echo "OK   gitleaks-wrong-app-id-warns"
 fi
 
+json_sonar_wrong_app="$(check_json '[
+  {"id":1,"name":"SonarCloud Code Analysis","status":"completed","conclusion":"success","head_sha":"'"$HEAD_A"'","app":{"id":15368}},
+  {"id":2,"name":"SonarCloud Code Analysis","status":"completed","conclusion":"failure","head_sha":"'"$HEAD_A"'","app":{"id":12526}}
+]')"
+got="$(select_conc "$HEAD_A" "$json_sonar_wrong_app" "SonarCloud Code Analysis")"
+expect_out select-sonarcloud-app-id "${TSV_COMPLETED_FAILURE}${HEAD_A}" printf '%s' "$got"
+
+set +e
+sonar_wrong_stderr="$(
+	printf '%s\n' "$json_sonar_wrong_app" | pr_gate_latest_check_rows "$HEAD_A" "$MERGE_A" 2>&1 >/dev/null
+)"
+sonar_wrong_rc=$?
+set -e
+if [[ "$sonar_wrong_rc" -ne 0 ]]; then
+	echo "FAIL sonarcloud-wrong-app-id-warns: parser exited $sonar_wrong_rc" >&2
+	fail=1
+elif [[ "$sonar_wrong_stderr" != *"app.id 15368 != expected 12526"* ]]; then
+	echo "FAIL sonarcloud-wrong-app-id-warns: missing app-id diagnostic" >&2
+	printf '%s\n' "$sonar_wrong_stderr" >&2
+	fail=1
+else
+	echo "OK   sonarcloud-wrong-app-id-warns"
+fi
+
 # Non-pinned third-party checks must not spam app-id warnings.
 json_advisory_app="$(check_json '[
   {"id":1,"name":"cubic · AI code reviewer","status":"completed","conclusion":"neutral","head_sha":"'"$HEAD_A"'","app":{"id":999001}}
