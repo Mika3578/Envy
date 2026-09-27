@@ -424,4 +424,40 @@ else:
 print("parse_paginated_json ok")
 PY
 
+# Injection regressions: malformed git refs and paths must fail closed.
+if run_scan --from "$BASE" --to "HEAD;echo pwned"; then
+	echo "FAIL: shell metacharacters in --to must be rejected"
+	exit 1
+fi
+if run_scan --from "../../../etc/passwd" --to "$HEAD"; then
+	echo "FAIL: traversal in --from must be rejected"
+	exit 1
+fi
+echo 'ok' >"$TMP/safe-body.md"
+if ! run_scan --pr-body "$TMP/safe-body.md"; then
+	echo "FAIL: temp PR body path must remain readable"
+	exit 1
+fi
+if run_scan --pr-body "$TMP/../$TMP/not-there/../../etc/passwd"; then
+	echo "FAIL: traversal in --pr-body must be rejected"
+	exit 1
+fi
+
+"${PYTHON:-python3}" - "$ROOT/.github/scripts/check-agent-attribution.py" <<'PY'
+import importlib.util
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location("authscan", path)
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+try:
+    mod.gh_api_list("repos/evil/owner;rm -rf/pulls/1/comments")
+except ValueError:
+    pass
+else:
+    raise AssertionError("malformed gh api path must be rejected")
+print("gh_api_list validation ok")
+PY
+
 echo "check-agent-attribution.selftest passed"

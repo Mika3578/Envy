@@ -68,6 +68,13 @@ ALLOWED_TECHNICAL_EMAILS = {
     "security@github.com",
 }
 ALLOWED_PROJECT_EMAILS: set[str] = set()
+GIT_FULL_SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
+GH_API_LIST_PATH_RE = re.compile(
+    r"^repos/(?P<owner>[A-Za-z0-9_.-]+)/(?P<repo>[A-Za-z0-9_.-]+)/"
+    r"(?P<kind>issues|pulls)/(?P<number>[0-9]+)/(?P<tail>comments|reviews)$"
+)
+GITHUB_REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+
 BOT_COMMENT_LOGINS = {
     "dependabot[bot]",
     "github-actions[bot]",
@@ -128,8 +135,75 @@ def emails_in_text(text: str) -> list[str]:
     return found
 
 
-def git(*args: str) -> str:
-    return subprocess.check_output(["git", *args], text=True, errors="replace")
+def require_full_sha(value: str, label: str) -> str:
+    value = value.strip()
+    if not GIT_FULL_SHA_RE.fullmatch(value):
+        raise ValueError(f"{label} must be a 40-character git object id")
+    return value.lower()
+
+
+def normalize_to_sha(to_sha: str) -> str:
+    to_sha = to_sha.strip()
+    if to_sha == "HEAD":
+        return git_check_output(["git", "rev-parse", "HEAD"]).strip()
+    return require_full_sha(to_sha, "to")
+
+
+def git_check_output(argv: list[str]) -> str:
+    if not argv or argv[0] != "git":
+        raise RuntimeError("internal: expected git argv")
+    return subprocess.check_output(argv, text=True, errors="replace")
+
+
+def git_diff(parent: str, child: str) -> str:
+    return git_check_output(
+        [
+            "git",
+            "diff",
+            "-U0",
+            require_full_sha(parent, "parent"),
+            require_full_sha(child, "child"),
+        ]
+    )
+
+
+def git_rev_list_range(from_sha: str, to_sha: str) -> list[str]:
+    start = require_full_sha(from_sha, "from")
+    end = require_full_sha(to_sha, "to")
+    out = git_check_output(["git", "rev-list", f"{start}..{end}"])
+    return [line.strip() for line in out.splitlines() if line.strip()]
+
+
+def git_rev_parse_parent(commit: str) -> str:
+    commit = require_full_sha(commit, "commit")
+    return git_check_output(["git", "rev-parse", f"{commit}^"]).strip()
+
+
+def git_log_field(commit: str, fmt: str) -> str:
+    commit = require_full_sha(commit, "commit")
+    allowed = {"%ae", "%an", "%ce", "%cn", "%B"}
+    if fmt not in allowed:
+        raise RuntimeError(f"unsupported git log format: {fmt}")
+    return git_check_output(["git", "log", "-1", f"--format={fmt}", commit]).strip()
+
+
+def read_bounded_input_file(path_str: str, label: str, errors: list[str]) -> str | None:
+    if "\0" in path_str:
+        report(errors, f"{label}: invalid path")
+        return None
+    path = Path(path_str)
+    if any(part == ".." for part in path.parts):
+        report(errors, f"{label}: path traversal is not allowed")
+        return None
+    try:
+        resolved = path.expanduser().resolve(strict=False)
+    except OSError:
+        report(errors, f"{label}: invalid path")
+        return None
+    if not resolved.is_file():
+        report(errors, f"{label} file not found: {resolved}")
+        return None
+    return resolved.read_text(encoding="utf-8", errors="replace")
 
 
 def report(errors: list[str], msg: str) -> None:
@@ -216,13 +290,17 @@ def scan_identity(errors: list[str], label: str, name: str, email: str) -> None:
 
 
 def scan_commits(errors: list[str], from_sha: str, to_sha: str) -> None:
-    commits = git("rev-list", f"{from_sha}..{to_sha}").splitlines()
+    try:
+        commits = git_rev_list_range(from_sha, to_sha)
+    except ValueError as exc:
+        report(errors, str(exc))
+        return
     for commit in commits:
-        email = git("log", "-1", "--format=%ae", commit).strip()
-        name = git("log", "-1", "--format=%an", commit).strip()
-        cemail = git("log", "-1", "--format=%ce", commit).strip()
-        cname = git("log", "-1", "--format=%cn", commit).strip()
-        body = git("log", "-1", "--format=%B", commit)
+        email = git_log_field(commit, "%ae")
+        name = git_log_field(commit, "%an")
+        cemail = git_log_field(commit, "%ce")
+        cname = git_log_field(commit, "%cn")
+        body = git_log_field(commit, "%B")
         short = commit[:12]
         scan_identity(errors, f"commit {short} author", name, email)
         scan_identity(errors, f"commit {short} committer", cname, cemail)
@@ -320,15 +398,20 @@ def _scan_added_diff_line(errors: list[str], payload: str, skip_signatures: bool
 
 
 def scan_diff(errors: list[str], from_sha: str, to_sha: str) -> None:
-    _scan_diff_patch(errors, git("diff", "-U0", from_sha, to_sha))
-    for commit in git("rev-list", f"{from_sha}..{to_sha}").splitlines():
-        if not commit:
-            continue
+    try:
+        start = require_full_sha(from_sha, "from")
+        end = require_full_sha(to_sha, "to")
+        commits = git_rev_list_range(start, end)
+    except ValueError as exc:
+        report(errors, str(exc))
+        return
+    _scan_diff_patch(errors, git_diff(start, end))
+    for commit in commits:
         try:
-            parent = git("rev-parse", f"{commit}^").strip()
+            parent = git_rev_parse_parent(commit)
         except subprocess.CalledProcessError:
             continue
-        patch = git("diff", "-U0", parent, commit)
+        patch = git_diff(parent, commit)
         if patch.strip():
             _scan_diff_patch(errors, patch)
 
@@ -341,11 +424,10 @@ def scan_file(errors: list[str], label: str, path: Path) -> None:
     scan_text(errors, label, text)
 
 
-def scan_pr_file(errors: list[str], label: str, path: Path) -> None:
-    if not path.is_file():
-        report(errors, f"{label} file not found: {path}")
+def scan_pr_file(errors: list[str], label: str, path_str: str) -> None:
+    text = read_bounded_input_file(path_str, label, errors)
+    if text is None:
         return
-    text = path.read_text(encoding="utf-8", errors="replace")
     scan_pr_text(errors, label, text)
 
 
@@ -370,6 +452,9 @@ def parse_paginated_json(raw: str, url: str) -> list:
 
 
 def gh_api_list(url: str) -> list:
+    url = url.strip()
+    if not GH_API_LIST_PATH_RE.fullmatch(url):
+        raise ValueError(f"unsupported GitHub API list path: {url}")
     raw = subprocess.check_output(["gh", "api", "--paginate", url], text=True)
     return parse_paginated_json(raw, url)
 
@@ -413,23 +498,38 @@ def main() -> int:
     errors: list[str] = []
 
     if args.from_sha:
-        scan_commits(errors, args.from_sha, args.to_sha)
-        if args.diff:
-            scan_diff(errors, args.from_sha, args.to_sha)
+        try:
+            to_sha = normalize_to_sha(args.to_sha)
+        except ValueError as exc:
+            report(errors, str(exc))
+            to_sha = ""
+        if to_sha:
+            scan_commits(errors, args.from_sha, to_sha)
+            if args.diff:
+                scan_diff(errors, args.from_sha, to_sha)
     if args.pr_body:
-        scan_pr_file(errors, "pull request body", Path(args.pr_body))
+        scan_pr_file(errors, "pull request body", args.pr_body)
     if args.pr_title:
-        title_path = Path(args.pr_title)
-        if not title_path.is_file():
-            report(errors, f"pull request title file not found: {title_path}")
-        else:
-            scan_pr_title(errors, "pull request title", title_path.read_text(encoding="utf-8", errors="replace"))
+        title_text = read_bounded_input_file(args.pr_title, "pull request title", errors)
+        if title_text is not None:
+            scan_pr_title(errors, "pull request title", title_text)
     if args.pr_comments:
-        scan_pr_file(errors, "pull request comments", Path(args.pr_comments))
+        scan_pr_file(errors, "pull request comments", args.pr_comments)
     if args.github_repo and args.github_pr:
-        text = collect_human_review_text(args.github_repo, args.github_pr)
-        if text:
-            scan_pr_text(errors, "pull request comments", text)
+        review_text = ""
+        if not GITHUB_REPO_RE.fullmatch(args.github_repo.strip()):
+            report(errors, "github repo must be owner/name")
+        elif not re.fullmatch(r"[0-9]+", args.github_pr.strip()):
+            report(errors, "github pr number must be digits only")
+        else:
+            try:
+                review_text = collect_human_review_text(
+                    args.github_repo.strip(), args.github_pr.strip()
+                )
+            except ValueError as exc:
+                report(errors, str(exc))
+        if review_text:
+            scan_pr_text(errors, "pull request comments", review_text)
 
     if errors:
         print("Authorship hygiene check failed. See AGENTS.md hard rule 16.", file=sys.stderr)
