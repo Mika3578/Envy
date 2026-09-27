@@ -226,7 +226,7 @@ json_same_time="$(check_json '[
   {"id":2,"name":"Vcpkg manifest sanity","status":"completed","conclusion":"success","head_sha":"'"$HEAD_A"'","started_at":"2026-09-21T18:00:00Z"}
 ]')"
 got="$(select_conc "$HEAD_A" "$json_same_time" "Vcpkg manifest sanity")"
-expected_same_time="$(printf 'completed\tsuccess\t%s' "$HEAD_A")"
+expected_same_time="${TSV_COMPLETED_SUCCESS}${HEAD_A}"
 expect_out select-same-timestamp-id-tiebreak "$expected_same_time" printf '%s' "$got"
 
 # Regression: generation order follows check-run ID, not runner start time.
