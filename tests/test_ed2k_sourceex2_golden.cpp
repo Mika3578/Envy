@@ -401,7 +401,13 @@ static bool test_answer_count_mul_overflow()
 	BYTE ver = 0;
 	WORD count = 0;
 	DWORD recLen = 0;
-	return Ed2kSourceEx2ParseAnswerHeader(pkt.data(), (DWORD)pkt.size(), &ver, pkt.data() + 1, &count, &recLen) == Ed2kSourceEx2ParseCountOverflow;
+	return Ed2kSourceEx2ParseAnswerHeader(pkt.data(), (DWORD)pkt.size(), &ver, pkt.data() + 1, &count, &recLen) == Ed2kSourceEx2ParseRecordTruncated;
+}
+
+static bool test_answer_count_mul_guard()
+{
+	DWORD nTotal = 0;
+	return Ed2kSourceEx2MulRecordBytes(2, MAXDWORD / 2u + 1u, &nTotal) == FALSE;
 }
 
 static bool test_answer_truncated_header()
