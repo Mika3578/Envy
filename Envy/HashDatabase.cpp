@@ -199,17 +199,18 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 	size_t nBestPos = 0;
 	BOOL bHaveBest = FALSE;
 	DWORD nBestOverhead = 0xFFFFFFFF;
-	DWORD nCount;
 
-	for ( pIndex = m_pIndex, nCount = m_nIndex; nCount; nCount--, pIndex++ )
+	DWORD nCount = m_nIndex;
+	for ( HASHDB_INDEX* pCandidate = m_pIndex;
+		nCount; nCount--, pCandidate++ )
 	{
-		if ( pIndex->nIndex == 0 && pIndex->nLength >= nLength )
+		if ( pCandidate->nIndex == 0 && pCandidate->nLength >= nLength )
 		{
-			const DWORD nOverhead = pIndex->nLength - nLength;
+			const DWORD nOverhead = pCandidate->nLength - nLength;
 
 			if ( nOverhead < nBestOverhead )
 			{
-				const ptrdiff_t nDiff = pIndex - m_pIndex;
+				const ptrdiff_t nDiff = pCandidate - m_pIndex;
 				ASSERT( nDiff >= 0 && static_cast< DWORD >( nDiff ) < m_nBuffer );
 				nBestPos = static_cast< size_t >( nDiff );
 				bHaveBest = TRUE;

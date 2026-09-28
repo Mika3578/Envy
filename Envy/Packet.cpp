@@ -501,8 +501,8 @@ CPacketPool::CPacketPool()
 // Delete this packet pool
 CPacketPool::~CPacketPool()
 {
-	// Free all the packets in this pool before the destructor frees this packet pool object itself
-	Clear();
+	// Derived packet pools own the concrete FreePoolImpl() and clear themselves
+	// before this base destructor runs; calling the pure virtual hook here is UB.
 }
 
 //////////////////////////////////////////////////////////////////////
