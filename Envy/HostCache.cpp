@@ -399,13 +399,13 @@ CHostCacheHostPtr CHostCacheList::Add(LPCTSTR pszHost, WORD nPort, DWORD tSeen, 
 			return NULL;
 	}
 
-	return Add( NULL, nPort, tSeen, pszVendor, nUptime, nCurrentLeaves, nLeafLimit, strHost, pbAdded );
+	return Add(NULL, nPort, tSeen, pszVendor, nUptime, nCurrentLeaves, nLeafLimit, strHost, pbAdded);
 }
 
 CHostCacheHostPtr CHostCacheList::Add(const IN_ADDR* pAddress, WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime, DWORD nCurrentLeaves, DWORD nLeafLimit, LPCTSTR szAddress, bool* pbAdded)
 {
 	ASSERT( pAddress || szAddress );
-	if ( pbAdded )
+	if (pbAdded)
 		*pbAdded = false;
 
 	if ( ! nPort )
@@ -462,7 +462,7 @@ CHostCacheHostPtr CHostCacheList::Add(const IN_ADDR* pAddress, WORD nPort, DWORD
 			m_HostsTime.insert( pHost );
 
 			m_nCookie++;
-			if ( pbAdded )
+			if (pbAdded)
 				*pbAdded = true;
 		}
 	}

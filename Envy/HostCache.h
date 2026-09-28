@@ -188,8 +188,8 @@ public:
 	DWORD				m_nCookie;
 	mutable CMutex		m_pSection;
 
-	CHostCacheHostPtr	Add(const IN_ADDR* pAddress, WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0, DWORD nCurrentLeaves = 0, DWORD nLeafLimit = 0, LPCTSTR szAddress = NULL, bool* pbAdded = NULL);
-	CHostCacheHostPtr 	Add(LPCTSTR pszHost, WORD nPort = 0, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0, DWORD nCurrentLeaves = 0, DWORD nLeafLimit = 0, bool* pbAdded = NULL); 	// Add host in form "{IP|FQDN}[:Port][SeenTime]"
+	CHostCacheHostPtr Add(const IN_ADDR* pAddress, WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0, DWORD nCurrentLeaves = 0, DWORD nLeafLimit = 0, LPCTSTR szAddress = NULL, bool* pbAdded = NULL);
+	CHostCacheHostPtr Add(LPCTSTR pszHost, WORD nPort = 0, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0, DWORD nCurrentLeaves = 0, DWORD nLeafLimit = 0, bool* pbAdded = NULL); // Add host in form "{IP|FQDN}[:Port][SeenTime]"
 	void				Update(CHostCacheHostPtr pHost, WORD nPort = 0, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0, DWORD nCurrentLeaves = 0, DWORD nLeafLimit = 0);
 	CHostCacheMapItr	Remove(CHostCacheHostPtr pHost);
 	CHostCacheMapItr	Remove(const IN_ADDR* pAddress);
