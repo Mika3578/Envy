@@ -63,9 +63,9 @@ X http://gwebcache.spearforensics.com/
 X http://www.myfoxy.net/gwc/cgi-bin/fc
 X http://gwc.gofoxy.net:2108/gwc/cgi-bin/fc
 
-# Kad nodes.dat is NOT listed here: DefaultServices has no nodes.dat type yet,
-# HostCache::ImportNodes currently accepts nodes.dat new-format version 1 only,
-# and Kad2 remains partial (#86 / #160). Do not advertise Kad as complete.
+# Kad nodes.dat (HTTPS only, validated before import; Kad2 still partial #86/#160).
+K https://upd.emule-security.org/nodes.dat
+K https://shortypower.org/nodes.dat
 #
 # ADC/ADCS hub protocol is not implemented (#163). Hublists may mix NMDC and
 # ADC; import already skips adc:// and adcs://.

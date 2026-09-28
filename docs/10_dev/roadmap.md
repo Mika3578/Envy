@@ -27,7 +27,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 - **G2 / G1 / NMDC:** implemented and in scope to preserve. **ADC/ADCS hub protocol is not implemented** (NMDC-side `ADCGet`/`ADCSND` ≠ ADC hubs). Feature depth vs latest ADC-EXT / gtk-gnutella unverified.
 - **BitTorrent v1:** Solid (DHT, ut_metadata, ut_pex, lt_tex, web seeds, trackers)
 - **BitTorrent v2:** Library-only (Merkle tree + SHA-256); no wire protocol
-- **ED2K:** Core transfers + SourceEx2 (0x83/0x84) present; Hello honesty for AICH/SecureIdent/CryptLayer/Ext Multipacket. Compressed upload send path is **implemented** (#252) but live-unverified; AICH C2C, Ext Multipacket handlers, Buddy/REASK, and live eMule/aMule interop still open (#160). **SecureIdent RSA is not implemented** (#75; do not advertise).
+- **ED2K:** Core transfers + SourceEx2 (0x83/0x84) wire format aligned to eMule/aMule locally; Hello honesty for AICH/SecureIdent/CryptLayer/Ext Multipacket. Compressed upload send path is **implemented** (#252) but live-unverified; AICH C2C, Ext Multipacket handlers, Buddy/REASK, and live eMule/aMule interop still open (#160). **SecureIdent RSA is not implemented** (#75; do not advertise).
 - **Kademlia (active: `Kademlia.cpp` only):** Bootstrap, ping, find_node, HELLO, SEARCH/PUBLISH **wire handlers** present; **source SEARCH_RES → `AddSourceED2K`** for HighID types 1/4 with outstanding-search context (keyword hits never create sources). **TCP firewall-detection baseline** (`FIREWALLED_REQ`/`RES` + ACK count) present; UDP firewall tester / Buddy / UDP keys absent; outbound store-answer framing still simplified; live Kad2 interop **unverified**. Legacy `KadProtocol.cpp` / `KBucket` / `KadStorage` require undefined `ENVY_LEGACY_KADEMLIA` and are **inactive**.
 - **IPv6:** Utilities exist, core connections IPv4-only (`docs/ipv6/PLAN.md`); prefer portable address types in #89
 - **Headless / RPC:** not implemented (MFC GUI + limited Remote web UI); #161
@@ -67,7 +67,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 - FileIdentifier support
 - AICH hash tree building and verification (C2C recovery protocol still TODO)
 - Concatenated UDP packet parsing fix
-- SourceEx2 — REQUESTSOURCES2 (0x83) / ANSWERSOURCES2 (0x84) in `EDClient.cpp`; advertised via nOpt2 bit 10; IPv4-only tuples (`SOURCE_EXCHANGE_INTEROP_NOTES.md`)
+- SourceEx2 — REQUESTSOURCES2 (0x83) / ANSWERSOURCES2 (0x84) wire format in `EDClient.cpp` aligned to eMule/aMule; advertised via nOpt2 bit 10; IPv4-only tuples; live interop unverified (#160) (`SOURCE_EXCHANGE_INTEROP_NOTES.md`)
 - SecureIdent **safe disable** (#75): `ED2K_VERSION_SECUREID = 0`; peers never marked verified; inbound SecureIdent packets ignored
 
 ### Not implemented (do not list as done)
@@ -102,7 +102,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 ### Done (wire surface in `Kademlia.cpp` — not app-complete)
 - BOOTSTRAP_REQ/RES, PING/PONG, FIND_NODE, HELLO handlers
 - Routing table — XOR zone tree (`Envy/KadRoutingTable.h`): `CanSplit` (K=10, KBASE=4, KK=5, max depth 127, 128-bit `zonePrefix`), LRU/type liveness, 1-slot replacement cache, stale-zone FIND_NODE refresh (arm +10s then 1h), `/24` diversity (2/bin, 10 global, 1 IP). HELLO_RES verify requires outstanding HELLO_REQ. Local tests only; live DHT evidence remains #160.
-- nodes.dat import via `HostCache` (**implemented** for local files: legacy v0 + new-format v1/v2/v3; v3 bootstrap edition bounded). Remote HTTP `nodes.dat` is not wired. Not a complete Kad bootstrap/interop claim.
+- nodes.dat import via `HostCache` (**implemented** for local files and validated HTTPS cold-start fallback: legacy v0 + new-format v1/v2/v3; v3 bootstrap edition bounded). Not a complete Kad bootstrap/interop claim.
 - Rate limiting, blacklist integration
 - Request tracking, IP endianness
 
@@ -125,7 +125,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 | **UDP hole punching** | NAT traversal for firewalled nodes (historical Kad2; not Ember/eSE overlays) | P0 |
 | ~~Firewall self-check~~ | TCP Unknown/Testing/Open/Firewalled via ACK consensus; UDP state remains Unknown | Done (partial) |
 | **Wire EnableKadHello / KadFindValue** | Settings exist but are not read by `Kademlia.cpp` | Medium |
-| **Kad remote nodes.dat download** | HTTPS discovery type + size/timeout/atomic replace. Local ImportNodes v1/v2/v3 is done. Coordinate with #86/#160. Do not advertise Kad complete. | P1 |
+| ~~**Kad remote nodes.dat download**~~ | Validated HTTPS discovery type + bounded request/response + atomic replace with `.lkg`. Local ImportNodes v1/v2/v3 is done. Coordinate with #86/#160. Do not advertise Kad complete. | Done (cold-start slice; live interop remains P1) |
 | **Kad6** | Experimental IPv6 overlay (eMule eSE). Distinct from Kad2. | P3 |
 
 ---
@@ -245,11 +245,11 @@ Aligned with `docs/DEVELOPMENT_PLAN.md`.
 8. Incremental `EnvyCore` / MFC split (#91 → #161; eMule Qt, aMule, aria2-next).
 9. Evaluate daemon / CLI / REST or JSON-RPC.
 10. Cross-platform foundations doc + decisions (D-012…D-015); Linux/macOS remain `planned`.
-10a. Bootstrap remaining work after the 2026-09-18 catalogue refresh: importer caps, Kad `nodes.dat` source type, last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`).
+10a. Bootstrap remaining work after the 2026-09-18 catalogue refresh: importer caps and last-known-good remote catalogue (`docs/30_protocols/bootstrap-sources.md`).
 ### P1 — Bootstrap follow-ups
 - After the 2026-09-18 catalogue refresh (`docs/30_protocols/bootstrap-sources.md`):
   - Importer caps for `server.met` / hublist / GWC (P0 potential).
-  - Kad remote `nodes.dat` discovery type (HTTPS). Local `ImportNodes` v1/v2/v3 + empty-cache local file path is implemented. Coordinate with #86/#160. Do not advertise Kad complete.
+  - Kad remote `nodes.dat` discovery type is implemented for validated HTTPS cold-start fallback. Local `ImportNodes` v1/v2/v3 + empty-cache local file path is implemented. Coordinate with #86/#160. Do not advertise Kad complete.
   - Last-known-good remote catalogue (async, never block startup).
 
 ### P1/P2 — BitTorrent (do not drop)

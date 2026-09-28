@@ -32,7 +32,7 @@ Do not read “a class/route exists” as “supported”.
 | HEAD used for this audit | original `a47d42e`; reverified on `93f623c` |
 | Open development PRs | 2 (`#242` this audit, `#243` Crashpad draft) — under the max-3 cap |
 | Live rulesets | `Protect develop` (`16457466`), `Protect main` (`16457407`) |
-| CI | Two-speed Actions (`build.yml`, `pr-gate.yml`, CodeQL, Format, Documentation, …) |
+| CI | Two-speed Actions (`build.yml`, CodeQL, Format, Documentation, …) |
 | Tests | `tests/EnvyTests` smoke suite (MSVC); Remote JS tests under `Remote/tests` |
 
 Relevant **open issues already covering part of this mission** (do not duplicate):

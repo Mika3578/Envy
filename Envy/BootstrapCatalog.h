@@ -29,6 +29,7 @@ constexpr int BootstrapMinG2Services = 3;
 constexpr int BootstrapMinG1Services = 2;
 constexpr int BootstrapMinEd2kMet = 2;
 constexpr int BootstrapMinDcHublists = 2;
+constexpr int BootstrapMinKadNodesDat = 1;
 
 // Cap HostCache BT hosts copied for DHT cold-start (not a protocol limit).
 constexpr int BootstrapDhtRouterPingCap = 8;
@@ -51,6 +52,7 @@ enum class BootstrapServiceClass
 	Ed2kMet,     // D
 	DcHublist,   // H or C
 	GnutellaUdp, // U (uhc / ukhl / host)
+	KadNodesDat, // K (HTTPS nodes.dat bootstrap)
 	Blocked,     // X
 	Comment
 };
@@ -116,6 +118,18 @@ inline bool BootstrapIsWebUrl(const wchar_t* psz, size_t nLen)
 	else
 		return false;
 	return nLen >= nScheme + 3 && psz[nScheme] == L':' && psz[nScheme + 1] == L'/' && psz[nScheme + 2] == L'/';
+}
+
+inline bool BootstrapIsHttpsUrl(const wchar_t* psz, size_t nLen)
+{
+	if (psz == nullptr || nLen < 8)
+		return false;
+	return BootstrapFoldAscii(psz[0]) == L'h' &&
+	       BootstrapFoldAscii(psz[1]) == L't' &&
+	       BootstrapFoldAscii(psz[2]) == L't' &&
+	       BootstrapFoldAscii(psz[3]) == L'p' &&
+	       BootstrapFoldAscii(psz[4]) == L's' &&
+	       psz[5] == L':' && psz[6] == L'/' && psz[7] == L'/';
 }
 
 inline bool BootstrapLooksLikeHostPort(const wchar_t* psz, size_t nLen)
@@ -219,6 +233,7 @@ inline BootstrapServiceClass BootstrapClassifyServiceType(wchar_t cType)
 	case L'C':
 	case L'H': return BootstrapServiceClass::DcHublist;
 	case L'U': return BootstrapServiceClass::GnutellaUdp;
+	case L'K': return BootstrapServiceClass::KadNodesDat;
 	case L'X': return BootstrapServiceClass::Blocked;
 	case L'#': return BootstrapServiceClass::Comment;
 	default: return BootstrapServiceClass::Unrecognized;
@@ -251,6 +266,7 @@ inline bool BootstrapServiceTypeNeedsUrl(BootstrapServiceClass nClass)
 	case BootstrapServiceClass::G1Gwc:
 	case BootstrapServiceClass::Ed2kMet:
 	case BootstrapServiceClass::DcHublist:
+	case BootstrapServiceClass::KadNodesDat:
 	case BootstrapServiceClass::Blocked:
 		return true;
 	default:
@@ -304,6 +320,8 @@ inline BootstrapParseStatus BootstrapParseServiceLine(
 		return BootstrapParseStatus::Invalid;
 
 	if (BootstrapServiceTypeNeedsUrl(nClass) && !BootstrapIsWebUrl(pszEndpoint, nEndpoint))
+		return BootstrapParseStatus::Invalid;
+	if (nClass == BootstrapServiceClass::KadNodesDat && !BootstrapIsHttpsUrl(pszEndpoint, nEndpoint))
 		return BootstrapParseStatus::Invalid;
 	if (nClass == BootstrapServiceClass::GnutellaUdp && !BootstrapLooksLikeUdpDiscovery(pszEndpoint, nEndpoint))
 		return BootstrapParseStatus::Invalid;

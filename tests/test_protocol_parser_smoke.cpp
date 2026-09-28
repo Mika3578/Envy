@@ -50,40 +50,17 @@ static bool test_source_body_zero_record_size()
 
 static bool test_source_ex2_request_min_header()
 {
-	return Ed2kSourceEx2RequestMinBytes() == 22u;
+	return Ed2kSourceEx2RequestMinBytes() == 19u;
 }
 
 static bool test_source_ex2_answer_min_header()
 {
-	return Ed2kSourceEx2AnswerMinBytes() == 18u;
+	return Ed2kSourceEx2AnswerHeaderMinBytes() == 19u;
 }
 
-static bool test_source_ex2_legacy_high32_consumed()
+static bool test_source_ex2_version_supported_range()
 {
-	const DWORD nRemainingAfterLow = 6;
-	return Ed2kSourceEx2LegacyHigh32Bytes( 0, nRemainingAfterLow ) == 4u;
-}
-
-static bool test_source_ex2_legacy_high32_skipped_short()
-{
-	return Ed2kSourceEx2LegacyHigh32Bytes( 0, 5 ) == 0u;
-}
-
-static bool test_source_ex2_legacy_high32_skipped_nonzero_low()
-{
-	return Ed2kSourceEx2LegacyHigh32Bytes( 1024, 10 ) == 0u;
-}
-
-static bool test_source_ex2_options_tail_present()
-{
-	const DWORD nRemaining = 4 + 2;
-	const DWORD nLegacy = Ed2kSourceEx2LegacyHigh32Bytes( 0, 6 );
-	return Ed2kSourceEx2HasOptionsBytes( nRemaining - nLegacy ) == TRUE;
-}
-
-static bool test_source_ex2_options_tail_missing()
-{
-	return Ed2kSourceEx2HasOptionsBytes( 1 ) == FALSE;
+	return Ed2kSourceEx2VersionSupported(0) == FALSE && Ed2kSourceEx2VersionSupported(1) == TRUE && Ed2kSourceEx2VersionSupported(4) == TRUE && Ed2kSourceEx2VersionSupported(5) == FALSE;
 }
 
 static bool test_source_ex2_answer_malformed_count()
@@ -766,23 +743,19 @@ static bool test_g2_sgp_reassembly_bounds()
 void register_protocol_parser_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("ed2k_source_body_exact_fit", test_source_body_valid_exact);
-	suite.add_test( "ed2k_source_body_empty", test_source_body_valid_empty );
-	suite.add_test( "ed2k_source_body_truncated", test_source_body_truncated );
-	suite.add_test( "ed2k_source_body_count_overflow", test_source_body_count_overflow );
-	suite.add_test( "ed2k_source_body_zero_record", test_source_body_zero_record_size );
-	suite.add_test( "ed2k_source_ex2_request_min_header", test_source_ex2_request_min_header );
-	suite.add_test( "ed2k_source_ex2_answer_min_header", test_source_ex2_answer_min_header );
-	suite.add_test( "ed2k_source_ex2_legacy_high32", test_source_ex2_legacy_high32_consumed );
-	suite.add_test( "ed2k_source_ex2_legacy_skip_short", test_source_ex2_legacy_high32_skipped_short );
-	suite.add_test( "ed2k_source_ex2_legacy_skip_nonzero", test_source_ex2_legacy_high32_skipped_nonzero_low );
-	suite.add_test( "ed2k_source_ex2_options_present", test_source_ex2_options_tail_present );
-	suite.add_test( "ed2k_source_ex2_options_missing", test_source_ex2_options_tail_missing );
-	suite.add_test( "ed2k_source_ex2_answer_truncated", test_source_ex2_answer_malformed_count );
+	suite.add_test("ed2k_source_body_empty", test_source_body_valid_empty);
+	suite.add_test("ed2k_source_body_truncated", test_source_body_truncated);
+	suite.add_test("ed2k_source_body_count_overflow", test_source_body_count_overflow);
+	suite.add_test("ed2k_source_body_zero_record", test_source_body_zero_record_size);
+	suite.add_test("ed2k_source_ex2_request_min_header", test_source_ex2_request_min_header);
+	suite.add_test("ed2k_source_ex2_answer_min_header", test_source_ex2_answer_min_header);
+	suite.add_test("ed2k_source_ex2_version_range", test_source_ex2_version_supported_range);
+	suite.add_test("ed2k_source_ex2_answer_truncated", test_source_ex2_answer_malformed_count);
 
-	suite.add_test( "ed2k_readbuffer_length_zero", test_ed2k_readbuffer_length_zero );
-	suite.add_test( "ed2k_readbuffer_length_one", test_ed2k_readbuffer_length_one_empty_body );
-	suite.add_test( "ed2k_readbuffer_exceeds_buffer", test_ed2k_readbuffer_length_exceeds_buffer );
-	suite.add_test( "ed2k_readbuffer_valid_body", test_ed2k_readbuffer_length_valid_body );
+	suite.add_test("ed2k_readbuffer_length_zero", test_ed2k_readbuffer_length_zero);
+	suite.add_test("ed2k_readbuffer_length_one", test_ed2k_readbuffer_length_one_empty_body);
+	suite.add_test("ed2k_readbuffer_exceeds_buffer", test_ed2k_readbuffer_length_exceeds_buffer);
+	suite.add_test("ed2k_readbuffer_valid_body", test_ed2k_readbuffer_length_valid_body);
 
 	suite.add_test( "bt_true_keepalive_length_zero", test_bt_true_keepalive_length_zero );
 	suite.add_test( "bt_extension_length_one_not_keepalive", test_bt_extension_length_one_not_keepalive );

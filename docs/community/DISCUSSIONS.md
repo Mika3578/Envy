@@ -9,14 +9,16 @@ Scope: How Envy uses GitHub Discussions versus Issues, category intent, template
 
 | Use **Issues** for | Use **Discussions** for |
 | --- | --- |
-| Confirmed bugs and regressions | Questions and troubleshooting |
-| Security/correctness work ([SECURITY.md](../../.github/SECURITY.md)) | Brainstorming and early feature exploration |
+| Confirmed bugs and regressions (never security vulnerabilities) | Questions and troubleshooting |
+| Scoped engineering work with acceptance criteria | Brainstorming and early feature exploration |
 | Scoped features with acceptance criteria | Design exploration before scoping |
 | Measurable engineering tasks | Preview-build and interoperability feedback |
 | | Contributor introductions and onboarding chat |
 | | Official announcements (maintainer-led) |
 
-Do not move well-scoped P0/P1 engineering work into Discussions.
+Security vulnerabilities must use the private advisory process in
+`.github/SECURITY.md`, not public Issues or Discussions. Do not move
+well-scoped P0/P1 engineering work into Discussions.
 
 ## Category map (live on GitHub)
 
@@ -26,7 +28,7 @@ Do not move well-scoped P0/P1 engineering work into Discussions.
 | General | `general` | Broad conversation; onboarding |
 | Q&A | `q-a` | Help — GitHub **accepted answer** enabled |
 | Ideas | `ideas` | Feature proposals before Issues |
-| Polls | `polls` | Non-binding preference checks |
+| Polls | — | GitHub does not support category forms for Polls; use General or Ideas for non-binding preference checks |
 | Show and tell | `show-and-tell` | Showcases; not primary interop reporting |
 
 ### Recommended category additions (manual GitHub UI)

@@ -385,6 +385,7 @@ $(EnvyCrashPostBuildCmd)</Command>
   <ItemGroup>
     <ClInclude Include="BitTorrentDHT\dht.c" />
     <ClCompile Include="Kademlia.cpp" />
+    <ClCompile Include="KadBootstrapColdStart.cpp" />
     <ClCompile Include="KademliaPlatform.cpp" />
     <ClCompile Include="KBucket.cpp" />
     <ClCompile Include="KadProtocol.cpp" />
@@ -1356,6 +1357,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="AdaptiveListLayout.h" />
     <ClInclude Include="BootstrapCatalog.h" />
     <ClInclude Include="KadNodesDat.h" />
+    <ClInclude Include="KadBootstrapColdStart.h" />
     <ClInclude Include="Ed2kHelloCapabilities.h" />
     <ClInclude Include="Ed2kCompressedUpload.h" />
     <ClInclude Include="Ed2kLowIdCallback.h" />
