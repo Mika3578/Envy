@@ -342,6 +342,9 @@
     <ClCompile Include="Kademlia.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="KadBootstrapColdStart.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Library.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -2965,6 +2968,9 @@
     </ClInclude>
     <ClInclude Include="Kademlia.cpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KadBootstrapColdStart.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="KademliaPlatform.cpp">
       <Filter>Source Files</Filter>
