@@ -200,6 +200,7 @@ protected:
 	{
 	public:
 		virtual ~CBTTrackerPacketPool() { Clear(FreePool); }
+
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);

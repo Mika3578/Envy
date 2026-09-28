@@ -45,6 +45,7 @@ protected:
 	{
 	public:
 		virtual ~CDCPacketPool() { Clear(FreePool); }
+
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);

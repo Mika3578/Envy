@@ -260,6 +260,7 @@ protected:
 	{
 	public:
 		virtual ~CG2PacketPool() { Clear(FreePool); }
+
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);
