@@ -319,7 +319,7 @@ void CBTInfo::Serialize(CArchive& ar)
 		ar << m_nSize;
 		ar << m_nBlockSize;
 		if (!BtPieceHashStorageConsistent(m_nBlockCount, m_pBlockBTH.size()) ||
-			m_pBlockBTH.size() > static_cast<size_t>(BTINFO_MAX_PIECE_COUNT))
+		    m_pBlockBTH.size() > static_cast<size_t>(BTINFO_MAX_PIECE_COUNT))
 			AfxThrowUserException();
 
 		const DWORD nStoreCount = BtPieceHashSerializeStoreCount(
