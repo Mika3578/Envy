@@ -56,7 +56,12 @@ def verify_file(path: Path) -> list[str]:
 		return []
 	issues.extend(comment_line_mojibake_issues(data))
 	for line_number, line in enumerate(data.splitlines(), start=1):
-		if b"getenvy.com)" not in line or b"20" not in line:
+		if b"getenvy.com)" not in line:
+			continue
+		if any(marker in line for marker in BAD_COPYRIGHT_MARKERS):
+			issues.append(f"line {line_number}: legacy copyright marker byte sequence")
+			continue
+		if b"20" not in line:
 			continue
 		if (
 			GOOD_COPYRIGHT_MARKER in line
@@ -64,13 +69,10 @@ def verify_file(path: Path) -> list[str]:
 			or b"getenvy.com) - " in line
 		):
 			continue
-		if any(marker in line for marker in BAD_COPYRIGHT_MARKERS):
-			issues.append(f"line {line_number}: legacy copyright marker byte sequence")
-		else:
-			issues.append(
-				f"line {line_number}: getenvy.com banner with year "
-				"but no UTF-8 © marker"
-			)
+		issues.append(
+			f"line {line_number}: getenvy.com banner with year "
+			"but no UTF-8 © marker"
+		)
 	return [f"{rel}: {msg}" for msg in issues]
 
 

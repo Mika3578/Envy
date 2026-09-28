@@ -115,7 +115,12 @@ def main() -> int:
 	parser.add_argument(
 		"--no-comment-cp1252",
 		action="store_true",
-		help="Only fix getenvy.com copyright banner bytes.",
+		help="Deprecated compatibility option; comment conversion is opt-in.",
+	)
+	parser.add_argument(
+		"--fix-comment-cp1252",
+		action="store_true",
+		help="Also convert CP1252 punctuation in // comment lines.",
 	)
 	parser.add_argument(
 		"--dry-run",
@@ -123,7 +128,7 @@ def main() -> int:
 		help="Report files that would change without writing.",
 	)
 	args = parser.parse_args()
-	fix_comments = not args.no_comment_cp1252
+	fix_comments = args.fix_comment_cp1252 and not args.no_comment_cp1252
 
 	changed: list[str] = []
 	for path in git_ls_envy_sources():
