@@ -46,7 +46,7 @@ def git_ls_envy_sources() -> list[Path]:
 	)
 	paths: list[Path] = []
 	for line in out.splitlines():
-		if line.endswith((".cpp", ".h", ".inl", ".c")):
+		if line.endswith((".cpp", ".h", ".hpp", ".inl", ".c")):
 			paths.append(ROOT / line)
 	return paths
 

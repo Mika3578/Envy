@@ -1,7 +1,7 @@
 //
 // FileFragments/Queue.hpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) Â© 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008
 //
 // Envy is free software; you can redistribute it and/or
