@@ -58,7 +58,7 @@ def is_comment_line(line: bytes) -> bool:
 
 def normalize_line(line: bytes, fix_comments: bool) -> bytes:
 	new_line = line
-	if is_comment_line(new_line) and b"getenvy.com)" in new_line and b"20" in new_line:
+	if b"getenvy.com)" in new_line and b"20" in new_line:
 		if b"getenvy.com) (C)" in new_line:
 			pass
 		elif b"getenvy.com) - " in new_line or b"getenvy.com) -" in new_line:
