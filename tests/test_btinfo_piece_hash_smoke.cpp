@@ -68,7 +68,7 @@ static bool test_total_bytes_one()
 	return BtPieceHashTotalBytes(1, n) && n == BTINFO_PIECE_HASH_BYTES;
 }
 
-static bool test_total_bytes_overflow_invalid()
+static bool test_total_bytes_over_max_rejected()
 {
 	size_t n = 0;
 	return !BtPieceHashTotalBytes(0xFFFFFFFFu, n);
@@ -101,15 +101,21 @@ static bool test_block_index_uses_vector_when_stale_count()
 
 static bool test_truncated_load_class_rejected()
 {
-	// Declared 5 hashes but only 3 bytes present in buffer — commit must fail.
+	// Declared 5 hashes but only 3 vector entries are present — commit must fail.
 	return !BtPieceHashReadyToCommit(5, 3);
 }
 
 static bool test_reuse_after_clear_metadata()
 {
-	uint32_t count = 0;
-	uint32_t blockSize = 0;
-	size_t vec = 0;
+	uint32_t count = 7;
+	uint32_t blockSize = 16384;
+	size_t vec = 7;
+	if (BtPieceHashClearStateValid(count, blockSize, vec))
+		return false;
+
+	count = 0;
+	blockSize = 0;
+	vec = 0;
 	return BtPieceHashClearStateValid(count, blockSize, vec);
 }
 
@@ -126,7 +132,7 @@ void register_btinfo_piece_hash_smoke_tests(TestSuite& suite)
 	suite.add_test("BTInfo piece hash over max piece count invalid", test_declared_count_over_max_invalid);
 	suite.add_test("BTInfo piece hash total bytes zero", test_total_bytes_zero);
 	suite.add_test("BTInfo piece hash total bytes one block", test_total_bytes_one);
-	suite.add_test("BTInfo piece hash total bytes overflow invalid", test_total_bytes_overflow_invalid);
+	suite.add_test("BTInfo piece hash total bytes over max rejected", test_total_bytes_over_max_rejected);
 	suite.add_test("BTInfo piece hash load commit consistent", test_load_commit_consistent);
 	suite.add_test("BTInfo piece hash load commit rejects mismatch", test_load_commit_rejects_count_vector_mismatch);
 	suite.add_test("BTInfo piece hash load commit rejects over max", test_load_commit_rejects_over_max);

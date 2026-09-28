@@ -199,15 +199,8 @@ void CBTInfo::Clear()
 	m_nTotalUpload		= 0;
 	m_nTotalDownload	= 0;
 
-	{
-		std::vector<CBTFile*> apPendingDelete;
-		apPendingDelete.reserve(static_cast<size_t>(m_pFiles.GetCount()));
-		for (POSITION pos = m_pFiles.GetHeadPosition(); pos;)
-			apPendingDelete.push_back(m_pFiles.GetNext(pos));
-		m_pFiles.RemoveAll();
-		for (CBTFile* pFile : apPendingDelete)
-			delete pFile;
-	}
+	while (!m_pFiles.IsEmpty())
+		delete m_pFiles.RemoveHead();
 
 	m_nEncoding			= Settings.BitTorrent.TorrentCodePage;
 	m_tCreationDate		= 0;
@@ -325,10 +318,14 @@ void CBTInfo::Serialize(CArchive& ar)
 
 		ar << m_nSize;
 		ar << m_nBlockSize;
+		if (!BtPieceHashStorageConsistent(m_nBlockCount, m_pBlockBTH.size()) ||
+			m_pBlockBTH.size() > static_cast<size_t>(BTINFO_MAX_PIECE_COUNT))
+			AfxThrowUserException();
+
 		const DWORD nStoreCount = BtPieceHashSerializeStoreCount(
 		    m_nBlockCount, m_pBlockBTH.size());
 		if (nStoreCount != m_nBlockCount)
-			m_nBlockCount = nStoreCount;
+			AfxThrowUserException();
 		ar << nStoreCount;
 		for (DWORD i = 0; i < nStoreCount; ++i)
 		{
