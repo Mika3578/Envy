@@ -34,13 +34,17 @@ def git_ls_envy_sources() -> list[Path]:
 
 def comment_line_mojibake_issues(data: bytes) -> list[str]:
 	issues: list[str] = []
-	for line in data.splitlines():
+	for line_number, line in enumerate(data.splitlines(), start=1):
 		if not line.lstrip().startswith(b"//"):
 			continue
 		if b"\xef\xbf\xbd" in line:
-			issues.append("U+FFFD replacement character in // comment")
+			issues.append(
+				f"line {line_number}: U+FFFD replacement character in // comment"
+			)
 		if b"\xe2\x80\xe2\x80" in line:
-			issues.append("doubled UTF-8 punctuation in // comment (mojibake)")
+			issues.append(
+				f"line {line_number}: doubled UTF-8 punctuation in // comment (mojibake)"
+			)
 	return issues
 
 
@@ -48,26 +52,25 @@ def verify_file(path: Path) -> list[str]:
 	data = path.read_bytes()
 	issues: list[str] = []
 	rel = path.relative_to(ROOT).as_posix()
-	if data.startswith(b"\xff\xfe") or data.startswith(b"\xfe\xff"):
+	if data.startswith((b"\xff\xfe", b"\xfe\xff")):
 		return []
 	issues.extend(comment_line_mojibake_issues(data))
-	if b"getenvy.com)" in data:
-		ascii_banner = b"getenvy.com) (C)" in data or b"getenvy.com) - " in data
-		if not ascii_banner and GOOD_COPYRIGHT_MARKER not in data:
-			for marker in BAD_COPYRIGHT_MARKERS:
-				if marker in data:
-					issues.append("legacy copyright marker byte sequence")
-					break
-			else:
-				for line in data.splitlines():
-					if b"getenvy.com)" in line and b"20" in line:
-						if (
-							GOOD_COPYRIGHT_MARKER not in line
-							and b"(C)" not in line
-							and b") - " not in line
-						):
-							issues.append("getenvy.com banner with year but no UTF-8 © marker")
-						break
+	for line_number, line in enumerate(data.splitlines(), start=1):
+		if b"getenvy.com)" not in line or b"20" not in line:
+			continue
+		if (
+			GOOD_COPYRIGHT_MARKER in line
+			or b"getenvy.com) (C)" in line
+			or b"getenvy.com) - " in line
+		):
+			continue
+		if any(marker in line for marker in BAD_COPYRIGHT_MARKERS):
+			issues.append(f"line {line_number}: legacy copyright marker byte sequence")
+		else:
+			issues.append(
+				f"line {line_number}: getenvy.com banner with year "
+				"but no UTF-8 © marker"
+			)
 	return [f"{rel}: {msg}" for msg in issues]
 
 
