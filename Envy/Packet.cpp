@@ -520,7 +520,7 @@ void CPacketPool::Clear(void (*pFreePool)(CPacket*))
 		CPacket* pPool = m_pPools.GetAt( nIndex );
 
 		// Delete the packet pool, freeing the memory of the 256 packets in it
-		pFreePool( pPool );
+		pFreePool(pPool);
 	}
 
 	// Clear all the member variables of this packet pool object

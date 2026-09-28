@@ -110,7 +110,7 @@ protected:
 
 	public:
 		// Delete this CG1PacketPool object
-		virtual ~CG1PacketPool() { Clear( FreePool ); }	// Call the Clear method to free all the arrays of packets
+		virtual ~CG1PacketPool() { Clear(FreePool); } // Call the Clear method to free all the arrays of packets
 
 	protected:
 		// Create a new array of packets, and free one
@@ -204,7 +204,7 @@ inline void CG1Packet::CG1PacketPool::NewPoolImpl(int nSize, CPacket*& pPool, in
 inline void CG1Packet::CG1PacketPool::FreePoolImpl(CPacket* pPacket)
 {
 	// Delete the array of packets
-	delete [] (CG1Packet*)pPacket;
+	delete[] (CG1Packet*)pPacket;
 }
 
 inline void CG1Packet::CG1PacketPool::FreePool(CPacket* pPacket)

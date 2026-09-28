@@ -185,9 +185,9 @@ HASHDB_INDEX* CHashDatabase::Lookup(DWORD nIndex, DWORD nType) const
 HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLength)
 {
 	ASSERT( m_bOpen );
-	HASHDB_INDEX* pExisting = Lookup( nIndex, nType );
+	HASHDB_INDEX* pExisting = Lookup(nIndex, nType);
 
-	if ( pExisting )
+	if (pExisting)
 	{
 		if ( pExisting->nLength == nLength )
 			return pExisting;
@@ -246,7 +246,7 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 	}
 
 	pResult->nIndex = nIndex;
-	pResult->nType  = nType;
+	pResult->nType = nType;
 
 	return pResult;
 }
