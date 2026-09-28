@@ -6,7 +6,7 @@ name: Crash Probe
 on:
   pull_request:
     branches: [main, develop]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled, unlabeled]
     paths:
       - "tools/crash-probe/**"
       - ".github/workflows/crash-probe.yml"
@@ -46,6 +46,7 @@ jobs:
   probe:
     name: Crash Probe (${{ matrix.backend }}, ${{ matrix.platform }})
     needs: consent
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')
     runs-on: windows-2025-vs2026
     timeout-minutes: 120
     strategy:

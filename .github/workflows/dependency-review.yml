@@ -3,7 +3,7 @@ name: Dependency review
 on:
   pull_request:
     branches: [main, master, develop]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled, unlabeled]
 
 permissions:
   contents: read

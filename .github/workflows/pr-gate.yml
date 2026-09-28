@@ -3,13 +3,13 @@ name: PR Gate
 # Waits for classified CI checks for this PR. Does NOT approve, does NOT merge,
 # and does NOT replace Protect develop review requirements (≥1 APPROVED,
 # dismiss-stale on push, thread resolution; last-push approval is off).
-# Always requires Analyze (c-cpp|javascript-typescript|csharp) and Format Check.
+# Requires C++/JS analysis and Format Check in every phase; C# in full phases.
 # Stricter than GitHub: must_pass rejects skipped/neutral.
 
 on:
   pull_request:
     branches: [main, develop]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled, unlabeled]
 
 permissions:
   contents: read
@@ -22,13 +22,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  phase:
+    uses: ./.github/workflows/pr-phase.yml
+
   changes:
     name: Classify (gate)
     uses: ./.github/workflows/classify-changes.yml
 
   gate:
     name: PR Gate
-    needs: changes
+    needs: [changes, phase]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -39,18 +42,18 @@ jobs:
           fetch-depth: 1
 
       - name: Fail if classification failed
-        if: needs.changes.result != 'success'
+        if: needs.changes.result != 'success' || needs.phase.result != 'success'
         run: |
           echo "::error::Change classification did not succeed (${{ needs.changes.result }})."
           exit 1
 
       - name: Wait for expected PR checks
-        if: needs.changes.result == 'success'
+        if: needs.changes.result == 'success' && needs.phase.result == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           MERGE_SHA: ${{ github.sha }}
-          RUN_WINDOWS_BUILD: ${{ needs.changes.outputs.run_windows_build }}
+          CI_PHASE: ${{ needs.phase.outputs.phase }}
           RUN_REMOTE_JS: ${{ needs.changes.outputs.run_remote_js }}
           RUN_DEP_REVIEW: ${{ needs.changes.outputs.run_dep_review }}
           TIMEOUT_SEC: "3000"

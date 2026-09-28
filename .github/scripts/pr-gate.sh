@@ -18,7 +18,6 @@ TIMEOUT_SEC="${TIMEOUT_SEC:-3000}"
 POLL_SEC="${POLL_SEC:-15}"
 SELF_NAME="${SELF_NAME:-PR Gate}"
 
-RUN_WINDOWS_BUILD="${RUN_WINDOWS_BUILD:-false}"
 RUN_REMOTE_JS="${RUN_REMOTE_JS:-false}"
 RUN_DEP_REVIEW="${RUN_DEP_REVIEW:-false}"
 
@@ -28,34 +27,13 @@ may_skip=()
 add_must() { must_pass+=("$1"); }
 add_skip() { may_skip+=("$1"); }
 
-add_must "Lint build files"
-add_must "secret-scan"
-add_must "Vcpkg manifest sanity"
-# Code Scanning expects all three develop CodeQL configurations on every PR.
-add_must "Analyze (c-cpp)"
-add_must "Analyze (javascript-typescript)"
-add_must "Analyze (csharp)"
-# Required Format Check — success no-op when no first-party C/C++ hunks.
-add_must "Format Check"
-# Protect develop requires Documentation Check; the job always emits success
-# (full check or classify no-op). Keep it must_pass so a silent skip cannot
-# green-wash the gate.
-add_must "Documentation Check"
+# shellcheck source=pr-gate-policy.sh
+source "${SCRIPT_DIR}/pr-gate-policy.sh"
+pr_gate_policy
 
-if [[ "$RUN_WINDOWS_BUILD" == "true" ]]; then
-	add_must "Build x64 Release"
-	add_must "Build Win32 Release"
-else
-	add_skip "Build x64 Release"
-	add_skip "Build Win32 Release"
-fi
-
-if [[ "$RUN_REMOTE_JS" == "true" ]]; then
-	add_must "Remote JS Security Tests"
-fi
-
-if [[ "$RUN_DEP_REVIEW" == "true" ]]; then
-	add_must "Dependency review"
+echo "Validation phase: ${CI_PHASE:-full}"
+if [[ "${CI_PHASE:-full}" == draft ]]; then
+	echo "DEFERRED: Windows builds, EnvyTests and C# analysis are not certified by this Draft gate."
 fi
 
 echo "Must pass: ${must_pass[*]:-(none)}"
