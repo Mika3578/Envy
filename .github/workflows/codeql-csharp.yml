@@ -1,21 +1,17 @@
 name: CodeQL C# Manual Build
 
-# Always runs on every PR/push — no classify-changes dependency. Code Scanning
-# on develop expects the csharp configuration on every PR.
+# C# analysis uses Windows and is deferred until live-test/Ready on develop.
+# Full phases always publish the configuration expected by Code Scanning.
 
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled, unlabeled]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  security-events: write
-  actions: read
-  pull-requests: read
+permissions: {}
 
 concurrency:
   group: codeql-csharp-${{ github.event.pull_request.number || github.run_id }}
@@ -25,23 +21,48 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  phase:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/pr-phase.yml
+
   analyze-csharp:
     name: Analyze (csharp)
-    runs-on: windows-2025-vs2026
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+      pull-requests: read
+    needs: phase
+    if: always()
+    runs-on: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')) && 'windows-2025-vs2026' || 'ubuntu-latest' }}
     timeout-minutes: 60
 
     steps:
+      - name: Fail if phase selection failed
+        if: needs.phase.result != 'success'
+        run: exit 1
+
+      - name: C# analysis deferred during Draft stabilization
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft && !contains(github.event.pull_request.labels.*.name, 'stage:live-test')
+        run: |
+          echo '::notice::DEFERRED: no C# Windows build or CodeQL analysis ran.'
+          echo 'C# analysis is DEFERRED until live-test/Ready. No SARIF validation is certified.' >> "$GITHUB_STEP_SUMMARY"
+
       - name: Checkout
+        if: github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 1
 
       - name: Add MSBuild to PATH
+        if: github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57  # v3
         with:
           msbuild-architecture: x64
 
       - name: Initialize CodeQL (manual C# build)
+        if: github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
         with:
           languages: csharp
@@ -50,6 +71,7 @@ jobs:
           queries: security-and-quality
 
       - name: Build SkinUpdater solution (Release, Any CPU)
+        if: github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         shell: cmd
         run: |
           msbuild "Languages\Tools\SkinUpdater\SkinUpdater.sln" ^
@@ -60,6 +82,7 @@ jobs:
             /p:Platform="Any CPU"
 
       - name: Perform CodeQL Analysis
+        if: github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
         with:
           category: /language:csharp
