@@ -10,7 +10,7 @@
   and requires clang-format on PATH (ci-fast alone may only warn if missing).
 
   This is the Windows-native counterpart of a portable ./ci/verify.sh. It does not
-  replace GitHub-required checks (CodeQL, Sonar, gitleaks, PR Gate).
+  replace GitHub-required checks (CodeQL, Sonar, and secret scanning).
 
 .EXAMPLE
   .\scripts\ci-verify.ps1
