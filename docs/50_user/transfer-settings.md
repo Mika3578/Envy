@@ -77,7 +77,7 @@ load the defaults below.
 | --- | --- | --- |
 | **Connection capacity** | `Connection.InSpeed`, `Connection.OutSpeed` | Declared or estimated link speed in **Kb/s** (Ki-based presets, e.g. 100 Mb/s ≈ 102400 Kb/s). Used for concurrency tiers (`OnChangeConnectionSpeed`), neighbour policy, monitor scale, warnings, scheduler-derived limits, and queue **reference** bandwidth when the user cap is Unlimited. |
 | **Transfer limit** | `Bandwidth.Downloads`, `Bandwidth.Uploads` | Optional user cap in **bytes/s**. `0` / Unlimited = no additional user rate cap. |
-| **Scheduler** | `Scheduler.cpp` | May intentionally write concrete `Bandwidth.*` values from capacity (day/night profiles). That is an explicit scheduled cap, not the hidden Unlimited ceiling removed in #342. |
+| **Scheduler** | `Scheduler.cpp` | May intentionally write concrete `Bandwidth.*` values from capacity (day/night profiles). That is an explicit scheduled cap, not the hidden Unlimited ceiling removed in #342. Hub and torrent percentage policies may also compound against the declared capacity when both are active. |
 
 Changing capacity on Settings → Connection does **not** rewrite `Bandwidth.Uploads` or `Bandwidth.Downloads`. The connection wizard seeds upload headroom from outbound capacity **only on first run** (`Live.FirstRun`).
 
