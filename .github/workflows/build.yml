@@ -13,7 +13,7 @@ on:
       - Data/**
   pull_request:
     branches: [main, develop]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled, unlabeled]
   workflow_dispatch:
     inputs:
       configuration:
@@ -23,9 +23,7 @@ on:
         type: choice
         options: [Release, Debug]
 
-permissions:
-  contents: read
-  pull-requests: write
+permissions: {}
 
 concurrency:
   group: build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -36,12 +34,22 @@ env:
   PLATFORM_TOOLSET: v145
 
 jobs:
+  phase:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/pr-phase.yml
+
   changes:
     name: Classify (build)
+    permissions:
+      contents: read
+      pull-requests: read
     uses: ./.github/workflows/classify-changes.yml
 
   lint-build-files:
     name: Lint build files
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -84,9 +92,8 @@ jobs:
         shell: bash
         run: bash .github/scripts/classify-changes.selftest.sh
 
-      - name: PR Gate conclusions self-test
-        shell: bash
-        run: bash .github/scripts/pr-gate-conclusions.selftest.sh
+      - name: PR lifecycle regression tests
+        run: python3 .github/scripts/pr-phase.selftest.py
 
       - name: BugSplat SDK import self-test
         shell: pwsh
@@ -108,17 +115,20 @@ jobs:
 
   build-x64-release:
     name: Build x64 Release
-    needs: changes
-    # Always emit this required context on PRs (even when classify says no
-    # Windows build). Skipped required checks block Protect develop.
-    # See docs/10_dev/CI_AUDIT_2026-09.md (Documentation Check always-emit).
+    permissions:
+      contents: read
+    needs: [changes, phase]
+    # Keep the context visible; Draft success only certifies phase deferral.
+    # Every Ready/live-test PR runs the actual build, including docs-only PRs.
     if: >
       always() && (
         github.event_name == 'pull_request' ||
         github.event_name == 'push' ||
         (github.event_name == 'workflow_dispatch' && inputs.configuration == 'Release')
       )
-    runs-on: ${{ (github.event_name != 'pull_request' || needs.changes.outputs.run_windows_build == 'true') && 'windows-2025-vs2026' || 'ubuntu-latest' }}
+    # Runner selection uses immutable PR event data; phase output is advisory
+    # and must not be able to suppress required Windows validation.
+    runs-on: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')) && 'windows-2025-vs2026' || 'ubuntu-latest' }}
     timeout-minutes: 120
     # Hosted runners hit C1083 (PCH permission denied) when Envy.pch is built
     # under parallel CL/MSBuild; keep /m:1 until a measured A/B on
@@ -127,49 +137,41 @@ jobs:
       MSBUILD_PARALLEL: /m:1
       MSBUILD_USE_MULTI_TOOL_TASK: false
     steps:
-      - name: Superseded run (classification cancelled)
-        if: needs.changes.result == 'cancelled'
-        run: |
-          echo "::notice::Classification cancelled (superseded); Build x64 Release no-op success."
-
       - name: Fail if classification failed
-        if: needs.changes.result != 'success' && needs.changes.result != 'cancelled'
+        if: needs.changes.result != 'success' || needs.phase.result != 'success'
         run: |
-          echo "::error::Change classification did not succeed (${{ needs.changes.result }})."
+          echo "::error::Path/phase classification did not succeed."
           exit 1
 
-      - name: Build not required for this change set
-        if: github.event_name == 'pull_request' && needs.changes.result == 'success' && needs.changes.outputs.run_windows_build != 'true'
+      - name: Windows validation deferred during Draft stabilization
+        if: needs.changes.result == 'success' && github.event_name == 'pull_request' && github.event.pull_request.draft && !contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         run: |
-          echo "::notice::Build x64 Release no-op (classify run_windows_build=false)."
+          echo "::notice::DEFERRED: x64 Windows build and EnvyTests have NOT run. Maintainer must request stage:live-test."
+          echo "DEFERRED: no x64 Windows validation or runtime test. PR remains Draft." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Checkout
         if: >
-          needs.changes.result == 'success' && (
-            github.event_name != 'pull_request' ||
-            needs.changes.outputs.run_windows_build == 'true'
-          )
+          needs.changes.result == 'success' && (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test'))
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 1
 
       - name: Build x64 Release
         if: >
-          needs.changes.result == 'success' && (
-            github.event_name != 'pull_request' ||
-            needs.changes.outputs.run_windows_build == 'true'
-          )
+          needs.changes.result == 'success' && (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test'))
         uses: ./.github/actions/windows-msbuild
         with:
           platform: x64
           configuration: Release
           run-tests: "true"
-          upload-binaries: ${{ github.event_name != 'pull_request' }}
+          upload-binaries: "true"
           envy-bugsplat-database: ${{ (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && vars.ENVY_BUGSPLAT_DATABASE || '' }}
 
   build-win32-release:
     name: Build Win32 Release
-    needs: changes
+    permissions:
+      contents: read
+    needs: [changes, phase]
     # Always emit this required context on PRs (mirror Build x64 Release).
     if: >
       always() && (
@@ -177,53 +179,45 @@ jobs:
         github.event_name == 'push' ||
         (github.event_name == 'workflow_dispatch' && inputs.configuration == 'Release')
       )
-    runs-on: ${{ (github.event_name != 'pull_request' || needs.changes.outputs.run_windows_build == 'true') && 'windows-2025-vs2026' || 'ubuntu-latest' }}
+    runs-on: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')) && 'windows-2025-vs2026' || 'ubuntu-latest' }}
     timeout-minutes: 120
     env:
       MSBUILD_PARALLEL: /m:1
       MSBUILD_USE_MULTI_TOOL_TASK: false
     steps:
-      - name: Superseded run (classification cancelled)
-        if: needs.changes.result == 'cancelled'
-        run: |
-          echo "::notice::Classification cancelled (superseded); Build Win32 Release no-op success."
-
       - name: Fail if classification failed
-        if: needs.changes.result != 'success' && needs.changes.result != 'cancelled'
+        if: needs.changes.result != 'success' || needs.phase.result != 'success'
         run: |
-          echo "::error::Change classification did not succeed (${{ needs.changes.result }})."
+          echo "::error::Path/phase classification did not succeed."
           exit 1
 
-      - name: Build not required for this change set
-        if: github.event_name == 'pull_request' && needs.changes.result == 'success' && needs.changes.outputs.run_windows_build != 'true'
+      - name: Windows validation deferred during Draft stabilization
+        if: needs.changes.result == 'success' && github.event_name == 'pull_request' && github.event.pull_request.draft && !contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         run: |
-          echo "::notice::Build Win32 Release no-op (classify run_windows_build=false)."
+          echo "::notice::DEFERRED: Win32 Windows build and EnvyTests have NOT run. Maintainer must request stage:live-test."
+          echo "DEFERRED: no Win32 Windows validation or runtime test. PR remains Draft." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Checkout
         if: >
-          needs.changes.result == 'success' && (
-            github.event_name != 'pull_request' ||
-            needs.changes.outputs.run_windows_build == 'true'
-          )
+          needs.changes.result == 'success' && (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test'))
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 1
 
       - name: Build Win32 Release
         if: >
-          needs.changes.result == 'success' && (
-            github.event_name != 'pull_request' ||
-            needs.changes.outputs.run_windows_build == 'true'
-          )
+          needs.changes.result == 'success' && (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test'))
         uses: ./.github/actions/windows-msbuild
         with:
           platform: Win32
           configuration: Release
           run-tests: "true"
-          upload-binaries: ${{ github.event_name != 'pull_request' }}
+          upload-binaries: "true"
 
   build-debug:
     name: Build ${{ matrix.platform }} Debug
+    permissions:
+      contents: read
     needs: changes
     if: >
       github.event_name == 'push' ||

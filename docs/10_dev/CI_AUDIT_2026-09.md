@@ -5,6 +5,15 @@ rulesets, dependency automation, local verify scripts.
 **Method:** Live GitHub API + recent workflow runs (not chat history).
 **Repo tip at audit:** `develop` @ `fc04d85` (after #214).
 
+> **Current status (2026-09-28, PR #381):** The sections below are the
+> historical baseline for the former PR Gate architecture. PR #381 removes
+> that duplicate poller and keeps Draft/live-test/Ready phase selection in
+> the native workflows. The target ruleset changes are separate GitHub
+> operations: remove PR Gate, required signatures, duplicate gitleaks and
+> required Documentation Check, and disable Copilot review-on-push. These
+> changes are now applied to Protect develop; the sections below remain the
+> historical baseline.
+
 ---
 
 ## 1. Executive summary

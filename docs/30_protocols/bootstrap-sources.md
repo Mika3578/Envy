@@ -14,14 +14,14 @@ Scope: Cold-start catalogues shipped with Envy. Not a claim that every protocol 
 
 Do not copy B back into A. Do not compile bootstrap IPs into `.cpp` / `.h`. The old `CDiscoveryServices::AddDefaults()` built-in string list is **commented out**; if the data files are missing, Envy does not invent a second C++ list.
 
-Status vocabulary: catalogue refresh is **implemented** for the shipped files; remote last-known-good is **planned**; local Kad `nodes.dat` v1/v2/v3 parsing is **implemented**; remote Kad `nodes.dat` download is **planned** and does **not** make Kad2 complete.
+Status vocabulary: catalogue refresh is **implemented** for the shipped files; remote last-known-good is **planned**; local Kad `nodes.dat` v1/v2/v3 parsing is **implemented**; remote validated Kad `nodes.dat` cold-start download is **implemented** (HTTPS `K` rows, size-capped validation, same-directory replace with `.lkg` backup) and does **not** make Kad2 routing/search interop complete.
 
 ## Cold-start by protocol
 
 | Network | Status | Cold-start path |
 | --- | --- | --- |
 | ED2K | implemented (list download) | `DefaultServices.dat` `D` URLs → `server.met` import into HostCache. No static server IPs. |
-| Kad2 | partial | Empty `HostCache.Kademlia` → import local `DataPath\nodes.dat` (and optional eMule/aMule `nodes.dat`). Parser accepts legacy v0 + new-format v1/v2/v3 (`Envy/KadNodesDat.h`). v3 edition 1 contributes at most 50 XOR-closest contacts. No shipped `K` hosts. Remote HTTP `nodes.dat` not wired. `CKademlia::Bootstrap()` still needs imported contacts; Kad2 remains partial / unverified. See #86 / #160. |
+| Kad2 | partial | Empty `HostCache.Kademlia` → import local `DataPath\nodes.dat` (and optional eMule/aMule `nodes.dat`); if no usable contacts remain, try HTTPS `K` rows in `DefaultServices.dat` (`nodes.dat`, size-capped, validated, atomic replace with `.lkg`). Parser accepts legacy v0 + new-format v1/v2/v3 (`Envy/KadNodesDat.h`). v3 edition 1 contributes at most 50 XOR-closest contacts. `CKademlia::Bootstrap()` still needs live routing; Kad2 remains partial / unverified (#86 / #160). |
 | Gnutella 1 | implemented (bootstrap) | gtk-gnutella UHCs (`U uhc:…`) plus multi-network GWCs. |
 | Gnutella2 | implemented (bootstrap) | Independent GWCs (jayl.de, bj.ddns.net, 4octets, trillinux). |
 | DC NMDC | implemented (hublist) | Three HTTPS hublists. `adc://` / `adcs://` skipped until #163. |
@@ -38,6 +38,13 @@ Status vocabulary: catalogue refresh is **implemented** for the shipped files; r
 | `https://shortypower.org/server.met` | shortypower | yes | Independent; 30 servers, `0x0E`, last-modified 2026-09-18 20:59 UTC |
 
 Removed: static IPs in `DefaultServers.dat` (TV Underground / eDonkey Server No1–3 / 2019 Peerates IP); `peerates.net` (last-modified 2021); `gruk.org` (HTML, not `.met`); `emule-server.de` (last-modified 2009); `www.emule-security.org/server.met` (404). Setting `eDonkey.ServerListURL` default is the eMule-Security HTTPS URL.
+
+### Kad `nodes.dat`
+
+| URL | Operator | HTTPS | Notes |
+| --- | --- | --- | --- |
+| `https://upd.emule-security.org/nodes.dat` | eMule-Security | yes | Validated and imported only when local Kad sources leave no usable contacts |
+| `https://shortypower.org/nodes.dat` | shortypower | yes | Independent fallback; validated and imported only when local Kad sources leave no usable contacts |
 
 ### Gnutella 1 UHC
 
@@ -98,7 +105,7 @@ Justified runtime / product URLs, **not** P2P bootstrap:
 ## Follow-ups (not this slice)
 
 - Parser hardening for `server.met` / hublist BZip2 / GWC (size, inflate, entry caps) — P0 potential; see #82 and related importer PRs
-- Kad **remote** `nodes.dat` discovery type (HTTPS, size/timeout cap, atomic replace). Local v1/v2/v3 parsing is implemented; do not announce Kad complete (#86 / #160)
+- Kad importer/runtime hardening beyond cold-start `nodes.dat` download; bootstrap HTTP timeout enforcement remains bounded through WinINet `InternetSetOption` options (live interop still #86 / #160)
 - Last-known-good remote catalogue (async, ETag, atomic replace, never block startup)
 - Scheduled GitHub workflow that **reports** source health and never auto-merges `develop`
 
