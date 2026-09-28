@@ -275,8 +275,8 @@ runs:
       if: ${{ success() && inputs.upload-binaries == 'true' && inputs.configuration == 'Release' }}
       shell: pwsh
       env:
-        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        PR_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
         BUILD_PLATFORM: ${{ inputs.platform }}
       run: |
         $exe = "Envy/Release $env:BUILD_PLATFORM/Envy.exe"

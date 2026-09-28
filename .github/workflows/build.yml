@@ -126,7 +126,9 @@ jobs:
         github.event_name == 'push' ||
         (github.event_name == 'workflow_dispatch' && inputs.configuration == 'Release')
       )
-    runs-on: ${{ needs.phase.outputs.full_validation == 'true' && 'windows-2025-vs2026' || 'ubuntu-latest' }}
+    # Runner selection uses immutable PR event data; phase output is advisory
+    # and must not be able to suppress required Windows validation.
+    runs-on: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')) && 'windows-2025-vs2026' || 'ubuntu-latest' }}
     timeout-minutes: 120
     # Hosted runners hit C1083 (PCH permission denied) when Envy.pch is built
     # under parallel CL/MSBuild; keep /m:1 until a measured A/B on
@@ -142,21 +144,21 @@ jobs:
           exit 1
 
       - name: Windows validation deferred during Draft stabilization
-        if: needs.changes.result == 'success' && needs.phase.outputs.phase == 'draft'
+        if: needs.changes.result == 'success' && github.event_name == 'pull_request' && github.event.pull_request.draft && !contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         run: |
           echo "::notice::DEFERRED: x64 Windows build and EnvyTests have NOT run. Maintainer must request stage:live-test."
           echo "DEFERRED: no x64 Windows validation or runtime test. PR remains Draft." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Checkout
         if: >
-          needs.changes.result == 'success' && needs.phase.outputs.full_validation == 'true'
+          needs.changes.result == 'success' && (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test'))
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 1
 
       - name: Build x64 Release
         if: >
-          needs.changes.result == 'success' && needs.phase.outputs.full_validation == 'true'
+          needs.changes.result == 'success' && (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test'))
         uses: ./.github/actions/windows-msbuild
         with:
           platform: x64
@@ -177,7 +179,7 @@ jobs:
         github.event_name == 'push' ||
         (github.event_name == 'workflow_dispatch' && inputs.configuration == 'Release')
       )
-    runs-on: ${{ needs.phase.outputs.full_validation == 'true' && 'windows-2025-vs2026' || 'ubuntu-latest' }}
+    runs-on: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')) && 'windows-2025-vs2026' || 'ubuntu-latest' }}
     timeout-minutes: 120
     env:
       MSBUILD_PARALLEL: /m:1
@@ -190,21 +192,21 @@ jobs:
           exit 1
 
       - name: Windows validation deferred during Draft stabilization
-        if: needs.changes.result == 'success' && needs.phase.outputs.phase == 'draft'
+        if: needs.changes.result == 'success' && github.event_name == 'pull_request' && github.event.pull_request.draft && !contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         run: |
           echo "::notice::DEFERRED: Win32 Windows build and EnvyTests have NOT run. Maintainer must request stage:live-test."
           echo "DEFERRED: no Win32 Windows validation or runtime test. PR remains Draft." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Checkout
         if: >
-          needs.changes.result == 'success' && needs.phase.outputs.full_validation == 'true'
+          needs.changes.result == 'success' && (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test'))
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 1
 
       - name: Build Win32 Release
         if: >
-          needs.changes.result == 'success' && needs.phase.outputs.full_validation == 'true'
+          needs.changes.result == 'success' && (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test'))
         uses: ./.github/actions/windows-msbuild
         with:
           platform: Win32

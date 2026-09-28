@@ -232,7 +232,6 @@ branches:
           - "Lint build files"
           - "Vcpkg manifest sanity"
           - "Format Check"
-          - "Documentation Check"
           - "secret-scan"
           - "Analyze (c-cpp)"
           - "SonarCloud Code Analysis"

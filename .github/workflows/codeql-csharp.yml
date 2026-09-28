@@ -35,7 +35,7 @@ jobs:
       pull-requests: read
     needs: phase
     if: always()
-    runs-on: ${{ needs.phase.outputs.full_validation == 'true' && 'windows-2025-vs2026' || 'ubuntu-latest' }}
+    runs-on: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')) && 'windows-2025-vs2026' || 'ubuntu-latest' }}
     timeout-minutes: 60
 
     steps:
@@ -44,25 +44,25 @@ jobs:
         run: exit 1
 
       - name: C# analysis deferred during Draft stabilization
-        if: needs.phase.outputs.phase == 'draft'
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft && !contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         run: |
           echo '::notice::DEFERRED: no C# Windows build or CodeQL analysis ran.'
           echo 'C# analysis is DEFERRED until live-test/Ready. No SARIF validation is certified.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Checkout
-        if: needs.phase.outputs.full_validation == 'true'
+        if: github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           fetch-depth: 1
 
       - name: Add MSBuild to PATH
-        if: needs.phase.outputs.full_validation == 'true'
+        if: github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57  # v3
         with:
           msbuild-architecture: x64
 
       - name: Initialize CodeQL (manual C# build)
-        if: needs.phase.outputs.full_validation == 'true'
+        if: github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
         with:
           languages: csharp
@@ -71,7 +71,7 @@ jobs:
           queries: security-and-quality
 
       - name: Build SkinUpdater solution (Release, Any CPU)
-        if: needs.phase.outputs.full_validation == 'true'
+        if: github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         shell: cmd
         run: |
           msbuild "Languages\Tools\SkinUpdater\SkinUpdater.sln" ^
@@ -82,7 +82,7 @@ jobs:
             /p:Platform="Any CPU"
 
       - name: Perform CodeQL Analysis
-        if: needs.phase.outputs.full_validation == 'true'
+        if: github.event_name != 'pull_request' || !github.event.pull_request.draft || contains(github.event.pull_request.labels.*.name, 'stage:live-test')
         uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
         with:
           category: /language:csharp

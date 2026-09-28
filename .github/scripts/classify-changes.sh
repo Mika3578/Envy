@@ -155,8 +155,7 @@ while IFS= read -r f; do
 	.github/workflows/classify-changes.yml | \
 	.github/scripts/classify-changes.sh | \
 	.github/workflows/pr-phase.yml | \
-	.github/scripts/pr-phase.py | \
-	.github/scripts/ci-phase-policy.sh)
+	.github/scripts/pr-phase.py)
 		workflow=true
 		force_all_pr=true
 		classified=true

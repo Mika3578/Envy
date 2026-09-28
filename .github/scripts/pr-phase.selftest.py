@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression tests for CI phase transitions and the transitional gate policy."""
+"""Regression tests for CI phase selection."""
 
 import importlib.util
 import itertools
@@ -15,7 +15,6 @@ SCRIPTS = Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location("pr_phase", SCRIPTS / "pr-phase.py")
 PHASE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PHASE)
-BASH = os.environ.get("BASH_EXE", "bash")
 
 
 def payload(draft, labels=(), action="synchronize"):
@@ -65,38 +64,6 @@ class PhaseTests(unittest.TestCase):
             )
             self.assertEqual(output.read_text(), "phase=draft\nfull_validation=false\n")
             self.assertEqual(result.stdout, output.read_text())
-
-
-class GateTests(unittest.TestCase):
-    def policy(self, phase, remote="false", deps="false"):
-        result = subprocess.run(
-            [BASH, "-c", 'set -euo pipefail; add_must() { printf "%s\\n" "$1"; }; source ./ci-phase-policy.sh; ci_phase_policy'],
-            cwd=SCRIPTS, env={**os.environ, "CI_PHASE": phase,
-                              "RUN_REMOTE_JS": remote, "RUN_DEP_REVIEW": deps},
-            capture_output=True, text=True,
-        )
-        return result
-
-    def test_draft_excludes_only_deferred_windows_checks(self):
-        draft = set(self.policy("draft", "true", "true").stdout.splitlines())
-        full = set(self.policy("ready", "true", "true").stdout.splitlines())
-        self.assertEqual(full - draft, {"Analyze (csharp)", "Build x64 Release", "Build Win32 Release"})
-        self.assertEqual(draft - full, set())
-        self.assertTrue({"Analyze (c-cpp)", "Analyze (javascript-typescript)", "secret-scan",
-                         "Format Check", "Documentation Check", "Lint build files",
-                         "Vcpkg manifest sanity", "Remote JS Security Tests", "Dependency review"} <= draft)
-
-    def test_full_policy_does_not_skip_builds_for_docs(self):
-        for phase in ("ready", "live-test", "full"):
-            result = self.policy(phase)
-            self.assertEqual(result.returncode, 0)
-            self.assertIn("Build x64 Release", result.stdout)
-            self.assertIn("Build Win32 Release", result.stdout)
-            self.assertNotIn("Dependency review", result.stdout)
-            self.assertNotIn("Remote JS Security Tests", result.stdout)
-
-    def test_invalid_phase_fails(self):
-        self.assertNotEqual(self.policy("unknown").returncode, 0)
 
 
 if __name__ == "__main__":

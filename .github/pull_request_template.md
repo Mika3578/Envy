@@ -16,7 +16,7 @@ List exact commands/checks run and outcomes.
 <!-- Keep Draft until the maintainer applies stage:live-test, obtains artifacts,
      tests the application, and manually clicks Ready for review. CI is not a
      runtime attestation. New commits require reassessment of this evidence. -->
-- Tested HEAD / base / built commit:
+- Tested HEAD / base / built commit (maintainer only):
 - Artifact/run and runtime result (maintainer only):
 - [ ] Maintainer performed the live test before marking Ready
 

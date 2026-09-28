@@ -81,8 +81,8 @@ the GHAS gitleaks status remain visible but are advisory duplicates; the live
 Protect develop ruleset no longer requires them as status contexts.
 
 Cheap Draft PRs still **emit** `Build x64 Release` and
-`Build Win32 Release` as success no-ops on `ubuntu-latest` when classify
-selects the Draft phase. The job and summary explicitly say DEFERRED: no
+`Build Win32 Release` as success no-ops on `ubuntu-latest` when `pr-phase`
+reports the Draft phase. The job and summary explicitly say DEFERRED: no
 Windows build or EnvyTests ran. These contexts certify scheduling only while
 Draft; Ready always runs the real jobs. GitHub accepts skipped/neutral checks,
 so neither a skipped job nor a Draft green context is build evidence. Path or

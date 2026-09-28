@@ -131,8 +131,9 @@ Branch model:
       claim a setting is enforced until the ruleset confirms it;
     - all review threads resolved and no active **CHANGES_REQUESTED**;
     - all **required** status checks green; branch up to date with `develop`;
-    - PR not a draft; squash-only on `develop`; signed commits; force pushes
-      blocked; no ruleset bypass.
+    - PR not a draft; squash-only on `develop`; force pushes blocked; no
+      ruleset bypass. Signed commits are not required for branch commits by
+      the live `Protect develop` ruleset.
     - The live ruleset is authoritative when it differs from repository
       templates. Protect develop now keeps signatures optional on branch
       commits; the final squash commit remains subject to the repository's
