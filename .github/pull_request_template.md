@@ -12,6 +12,14 @@
 ## Validation
 List exact commands/checks run and outcomes.
 
+### Maintainer runtime checkpoint
+<!-- Keep Draft until the maintainer applies stage:live-test, obtains artifacts,
+     tests the application, and manually clicks Ready for review. CI is not a
+     runtime attestation. New commits require reassessment of this evidence. -->
+- Tested HEAD / base / built commit:
+- Artifact/run and runtime result (maintainer only):
+- [ ] Maintainer performed the live test before marking Ready
+
 ## Risk Assessment
 - Breaking changes:
 - Security impact:
