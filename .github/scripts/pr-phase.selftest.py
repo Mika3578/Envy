@@ -70,7 +70,7 @@ class PhaseTests(unittest.TestCase):
 class GateTests(unittest.TestCase):
     def policy(self, phase, remote="false", deps="false"):
         result = subprocess.run(
-            [BASH, "-c", 'set -euo pipefail; add_must() { printf "%s\\n" "$1"; }; source ./pr-gate-policy.sh; pr_gate_policy'],
+            [BASH, "-c", 'set -euo pipefail; add_must() { printf "%s\\n" "$1"; }; source ./ci-phase-policy.sh; ci_phase_policy'],
             cwd=SCRIPTS, env={**os.environ, "CI_PHASE": phase,
                               "RUN_REMOTE_JS": remote, "RUN_DEP_REVIEW": deps},
             capture_output=True, text=True,

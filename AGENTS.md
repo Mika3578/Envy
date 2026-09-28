@@ -133,6 +133,10 @@ Branch model:
     - all **required** status checks green; branch up to date with `develop`;
     - PR not a draft; squash-only on `develop`; signed commits; force pushes
       blocked; no ruleset bypass.
+    - The live ruleset is authoritative when it differs from repository
+      templates. Protect develop now keeps signatures optional on branch
+      commits; the final squash commit remains subject to the repository's
+      signed-commit policy where applicable.
     Additionally apply the usual change-quality gates (sufficient tests;
     no unvalidated risky protocol/crypto/auth/threading/locking/memory or
     undocumented wire-format change). For high-risk areas (ED2K/eMule,

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Policy only; check-run selection/conclusion handling stays in pr-gate.sh.
+# Expected check names for phase regression tests.
 
-pr_gate_policy() {
+ci_phase_policy() {
 	case "${CI_PHASE:-full}" in
 	draft | live-test | ready | full) ;;
 	*) echo "::error::Invalid CI_PHASE" >&2; return 1 ;;

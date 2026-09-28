@@ -153,13 +153,10 @@ while IFS= read -r f; do
 		classified=true
 		;;
 	.github/workflows/classify-changes.yml | \
-	.github/workflows/pr-gate.yml | \
 	.github/scripts/classify-changes.sh | \
-	.github/scripts/pr-gate.sh | \
-	.github/scripts/pr-gate-conclusions.sh | \
 	.github/workflows/pr-phase.yml | \
 	.github/scripts/pr-phase.py | \
-	.github/scripts/pr-gate-policy.sh)
+	.github/scripts/ci-phase-policy.sh)
 		workflow=true
 		force_all_pr=true
 		classified=true

@@ -74,10 +74,11 @@ Do not rename these without a maintainer ruleset update. Use the correct
 GitHub App `integration_id` when editing the ruleset (Actions `15368`,
 SonarCloud `12526`, GHAS/gitleaks `57789`).
 
-`Build x64 Release`, `Build Win32 Release`, `Lint build files`,
-`Vcpkg manifest sanity`, `Format Check`, `Documentation Check`,
-`secret-scan`, `gitleaks` (GHAS check from SARIF upload), `PR Gate`,
-`Analyze (c-cpp)`, `SonarCloud Code Analysis`.
+The target native contexts are `Build x64 Release`, `Build Win32 Release`,
+`Lint build files`, `Vcpkg manifest sanity`, `Format Check`, `secret-scan`,
+`Analyze (c-cpp)`, and `SonarCloud Code Analysis`. Documentation Check and
+the GHAS gitleaks status remain visible but are advisory duplicates; the live
+Protect develop ruleset no longer requires them as status contexts.
 
 Cheap Draft PRs still **emit** `Build x64 Release` and
 `Build Win32 Release` as success no-ops on `ubuntu-latest` when classify
@@ -96,8 +97,8 @@ allowlist matches every changed file, and GitHub records an actual
 `APPROVED` review. An assessment is not an approval. See
 [KNOWN_INCONSISTENCIES](../00_index/KNOWN_INCONSISTENCIES.md) and
 [CI_AUDIT_2026-09](CI_AUDIT_2026-09.md). Dismiss stale on push remains on,
-`require_last_push_approval` off, conversations resolved, signed commits,
-force pushes blocked. PR Gate is CI wait only.
+`require_last_push_approval` off, conversations resolved, and force pushes
+blocked. Branch commits are not required to be signed by Protect develop.
 
 See [devsecops-envy.md](devsecops-envy.md) for the full stack map.
 Measured timings, critical path, and CI cost notes live in
@@ -117,7 +118,6 @@ Measured timings, critical path, and CI cost notes live in
 - Format Check is required and **blocking** via `clang-format-diff-18` on
   changed hunks only (legacy off-diff lines do not fail). Major version pinned
   to 18 in CI.
-- PR Gate requires `success` for must_pass checks (rejects `skipped`/`neutral`).
 - Gitleaks and Dependency Review stay. Dependency Review runs when manifests
   change; vcpkg sanity always runs (required name).
 
@@ -154,40 +154,17 @@ Do not reintroduce mutable `@vN` tags for external actions.
 
 ## Automation reference
 
-### Transitional PR Gate inventory
+### Native PR lifecycle
 
-Snapshot verified against Protect develop on 2026-09-28. No ruleset changes
-are part of this implementation. A successful Draft gate covers only the cheap
-lane; it never means Ready or mergeable. Full-phase checks reject skipped and
-neutral conclusions. Cancelled check generations remain pending until a
-replacement generation appears or the poller times out; other terminal
-failures still fail immediately. The poller requests all check-run generations
-and selects the latest observed generation, preventing label-driven
-concurrency from failing the replacement before it is registered.
+PR #381 removes the PR Gate poller and its duplicate conclusion machine.
+Drafts run the cheap lane; `stage:live-test` and Ready run the full Windows,
+CodeQL, and test-capable lane. Each workflow emits its own check conclusion,
+so mergeability is determined by native checks plus review rules, not by a
+second workflow that polls those checks.
 
-| Context | Direct required | Draft PR Gate | Full PR Gate |
-| --- | --- | --- | --- |
-| Build x64 Release, Build Win32 Release | yes | deferred, not awaited | success; includes EnvyTests |
-| Lint build files, Vcpkg manifest sanity | yes | success | success |
-| Format Check, Documentation Check | yes | success | success |
-| secret-scan | yes | success | success |
-| gitleaks | yes, app 57789 | ruleset only | ruleset only |
-| Analyze (c-cpp) | yes | success | success |
-| Analyze (javascript-typescript) | no | success | success |
-| Analyze (csharp) | no | deferred, not awaited | success |
-| Remote JS Security Tests | no | success when classified | success when classified |
-| Dependency review | no | success when classified | success when classified |
-| SonarCloud Code Analysis | yes, app 12526 | external service; ruleset only | ruleset only |
-| authorship-hygiene | no | independent workflow | independent workflow |
-
-Sonar and other external Apps keep their current triggers; repository YAML
-does not configure them. An unavailable required service remains a blocker;
-optional reviewer outages do not. Do not remove the poller until the indirect
-requirements above have direct contexts or native `needs` validation, all
-full-phase checks are evidenced, and the maintainer approves the later migration.
-PR #346's superseded-generation fix and PR #349's semantic gate were closed as
-obsolete when PR #381 became the sole lifecycle implementation. Do not add a
-second semantic gate alongside the phase-aware PR Gate.
+PR #346's superseded-generation fix and PR #349's semantic gate are obsolete
+once the live ruleset no longer requires PR Gate. Their closure is a GitHub
+operation outside this repository change.
 Keep the obsolete requester for merged #294/#354 until native Copilot refresh
 has been demonstrated. Do not create its replacement in this PR.
 
@@ -283,9 +260,9 @@ the final diff. This PR is itself in that category.
 
 The existing authorship workflow is retained: read-only permissions, scanner
 extracted from base, PR commits/text inspected as data. Its `pull_request_target`
-path does not run PR code; review/comment event entry points can still use
-PR-controlled YAML. This is not a universal trusted-policy guarantee. No new
-privileged trigger is introduced. Build errors use summaries/artifacts rather
+path does not run PR code and it runs only on PR lifecycle/content changes;
+review/comment events do not retrigger it. This is not a universal
+trusted-policy guarantee. No new privileged trigger is introduced. Build errors use summaries/artifacts rather
 than PR comments, removing the build token's PR write permission and extra
 subscription events. Approval tools disabled in Cursor are a product control;
 GitHub `pull-requests: write` itself does not distinguish comment from approval.
@@ -293,8 +270,10 @@ Verify actual tool/token exposure instead of claiming a prompt is a hard ACL.
 
 Maintainer preparation: create `stage:live-test` and `needs-human` labels;
 disable approval/competing writer automations; inspect GitHub Copilot approval
-and counting UI settings and path allowlists. Do not change Protect develop.
-Governance changes cannot count on Copilot approval as a substitute for explicit
+and counting UI settings and path allowlists. Do not change Protect develop
+from repository YAML. Removing PR Gate, required signatures, duplicate status
+checks, or Copilot review-on-push requires a separately reviewed GitHub
+ruleset operation. Governance changes cannot count on Copilot approval as a substitute for explicit
 maintainer inspection; the required non-author approval still applies.
 
 Dogfood on the Draft implementation PR:
