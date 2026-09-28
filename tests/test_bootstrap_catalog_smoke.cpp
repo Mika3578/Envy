@@ -76,11 +76,13 @@ const wchar_t* kShippedServices =
 	L"D https://shortypower.org/server.met\n"
 	L"H https://dchublist.org/hublist.xml.bz2\n"
 	L"H https://dchublist.ru/hublist.xml.bz2\n"
-	L"H https://te-home.net/?do=hublist&get=hublist.xml.bz2\n";
+	L"H https://te-home.net/?do=hublist&get=hublist.xml.bz2\n"
+	L"K https://upd.emule-security.org/nodes.dat\n"
+	L"K https://shortypower.org/nodes.dat\n";
 
-void CountServices(const wchar_t* blob, int* nWeb, int* nG2, int* nG1, int* nMet, int* nHub)
+void CountServices(const wchar_t* blob, int* nWeb, int* nG2, int* nG1, int* nMet, int* nHub, int* nNodesDat)
 {
-	*nWeb = *nG2 = *nG1 = *nMet = *nHub = 0;
+	*nWeb = *nG2 = *nG1 = *nMet = *nHub = *nNodesDat = 0;
 	const wchar_t* p = blob;
 	while ( p && *p )
 	{
@@ -116,6 +118,8 @@ void CountServices(const wchar_t* blob, int* nWeb, int* nG2, int* nG1, int* nMet
 				++(*nMet);
 			if ( cls == BootstrapServiceClass::DcHublist )
 				++(*nHub);
+			if ( cls == BootstrapServiceClass::KadNodesDat )
+				++(*nNodesDat);
 		}
 		p = eol ? eol + 1 : p + nLine;
 		if ( !eol )
@@ -230,15 +234,29 @@ static bool test_fold_ascii_only()
 		&& ! BootstrapWideEqualsNoCase( &angstrom, 1, &angstromSmall, 1 );
 }
 
+static bool test_kad_nodes_dat_rejects_http_url()
+{
+	return ParseService( L"K http://upd.emule-security.org/nodes.dat", nullptr )
+		== BootstrapParseStatus::Invalid;
+}
+
+static bool test_kad_nodes_dat_accepts_https_url()
+{
+	ServiceRow row = {};
+	return ParseService( L"K https://upd.emule-security.org/nodes.dat", &row )
+		== BootstrapParseStatus::Ok && row.type == L'K';
+}
+
 static bool test_shipped_catalogue_meets_minima()
 {
-	int nWeb = 0, nG2 = 0, nG1 = 0, nMet = 0, nHub = 0;
-	CountServices( kShippedServices, &nWeb, &nG2, &nG1, &nMet, &nHub );
+	int nWeb = 0, nG2 = 0, nG1 = 0, nMet = 0, nHub = 0, nNodesDat = 0;
+	CountServices( kShippedServices, &nWeb, &nG2, &nG1, &nMet, &nHub, &nNodesDat );
 	return nWeb >= BootstrapMinWebCaches
 		&& nG2 >= BootstrapMinG2Services
 		&& nG1 >= BootstrapMinG1Services
 		&& nMet >= BootstrapMinEd2kMet
-		&& nHub >= BootstrapMinDcHublists;
+		&& nHub >= BootstrapMinDcHublists
+		&& nNodesDat >= BootstrapMinKadNodesDat;
 }
 
 static bool test_shipped_catalogue_no_static_ed2k_ip()
@@ -299,14 +317,16 @@ static bool test_shipped_default_services_dat()
 	std::wstring wide;
 	if ( ! LoadRepoDataFile( "DefaultServices.dat", &wide ) )
 		return false;
-	int nWeb = 0, nG2 = 0, nG1 = 0, nMet = 0, nHub = 0;
-	CountServices( wide.c_str(), &nWeb, &nG2, &nG1, &nMet, &nHub );
+	int nWeb = 0, nG2 = 0, nG1 = 0, nMet = 0, nHub = 0, nNodesDat = 0;
+	CountServices( wide.c_str(), &nWeb, &nG2, &nG1, &nMet, &nHub, &nNodesDat );
 	return nWeb >= BootstrapMinWebCaches
 		&& nG2 >= BootstrapMinG2Services
 		&& nG1 >= BootstrapMinG1Services
 		&& nMet >= BootstrapMinEd2kMet
 		&& nHub >= BootstrapMinDcHublists
+		&& nNodesDat >= BootstrapMinKadNodesDat
 		&& wide.find( L"https://upd.emule-security.org/server.met" ) != std::wstring::npos
+		&& wide.find( L"https://upd.emule-security.org/nodes.dat" ) != std::wstring::npos
 		&& wide.find( L"176.103.48.36" ) == std::wstring::npos;
 }
 
@@ -432,6 +452,8 @@ void register_bootstrap_catalog_smoke_tests( TestSuite& suite )
 	suite.add_test( "bootstrap_server_unknown_type", test_server_unknown_type );
 	suite.add_test( "bootstrap_dedup_case_insensitive", test_dedup_case_insensitive );
 	suite.add_test( "bootstrap_fold_ascii_only", test_fold_ascii_only );
+	suite.add_test( "bootstrap_kad_nodes_dat_rejects_http", test_kad_nodes_dat_rejects_http_url );
+	suite.add_test( "bootstrap_kad_nodes_dat_accepts_https", test_kad_nodes_dat_accepts_https_url );
 	suite.add_test( "bootstrap_shipped_catalogue_meets_minima", test_shipped_catalogue_meets_minima );
 	suite.add_test( "bootstrap_shipped_catalogue_no_static_ed2k_ip", test_shipped_catalogue_no_static_ed2k_ip );
 	suite.add_test( "bootstrap_shipped_catalogue_no_getenvy_gwc", test_shipped_catalogue_no_getenvy_gwc );

@@ -62,6 +62,11 @@ check interop-wf-docs-only "$F_INTEROP_WF" docs_only false
 check force-remote "$F_QUALITY" run_remote_js true
 check codeql-config-remote "$F_CODEQL" run_remote_js false
 
+for lifecycle_file in .github/workflows/pr-phase.yml .github/scripts/pr-phase.py; do
+	check "lifecycle-remote-${lifecycle_file##*/}" "$lifecycle_file" run_remote_js true
+	check "lifecycle-deps-${lifecycle_file##*/}" "$lifecycle_file" run_dep_review true
+done
+
 # Dead CodeQL/Format classifier flags must be gone.
 absent() {
 	local name="$1"

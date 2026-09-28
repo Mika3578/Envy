@@ -1,39 +1,26 @@
 name: Authorship hygiene
 
-# Isolated from security.yml so PR Gate does not see a skipped secret-scan check
-# from pull_request_target Security runs.
+# Isolated from security.yml so secret scanning remains independently visible.
 
 on:
   pull_request_target:
     branches: [main, master, develop]
     types: [opened, synchronize, reopened, ready_for_review, edited]
-  pull_request_review:
-    types: [submitted, edited]
-  pull_request_review_comment:
-    types: [created, edited, deleted]
-  issue_comment:
-    types: [created, edited, deleted]
 
 permissions:
   contents: read
 
 concurrency:
-  group: authorship-hygiene-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  group: authorship-hygiene-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   authorship-hygiene:
-    if: >
-      github.event_name == 'pull_request_target' ||
-      github.event_name == 'pull_request_review' ||
-      github.event_name == 'pull_request_review_comment' ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
-      issues: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
@@ -43,7 +30,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail

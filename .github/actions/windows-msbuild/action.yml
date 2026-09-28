@@ -207,11 +207,9 @@ runs:
         if-no-files-found: ignore
         retention-days: ${{ github.event_name == 'pull_request' && 7 || 14 }}
 
-    - name: Surface build errors to step summary and PR comment
+    - name: Surface build errors to step summary
       if: ${{ failure() && github.event_name == 'pull_request' }}
       shell: pwsh
-      env:
-        GH_TOKEN: ${{ github.token }}
       run: |
         $errLog = "build-${{ inputs.platform }}-${{ inputs.configuration }}.errors.log"
         $warnLog = "build-${{ inputs.platform }}-${{ inputs.configuration }}.warnings.log"
@@ -272,10 +270,30 @@ runs:
 
         $bodyText = $body -join "`n"
         [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, $bodyText + "`n", [System.Text.UTF8Encoding]::new($false))
-        [System.IO.File]::WriteAllText("comment-body.md", $bodyText, [System.Text.UTF8Encoding]::new($false))
-        gh pr comment ${{ github.event.pull_request.number }} `
-          --repo ${{ github.repository }} `
-          --body-file comment-body.md
+
+    - name: Record artifact provenance
+      if: ${{ success() && inputs.upload-binaries == 'true' && inputs.configuration == 'Release' }}
+      shell: pwsh
+      env:
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        PR_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+        BUILD_PLATFORM: ${{ inputs.platform }}
+      run: |
+        $exe = "Envy/Release $env:BUILD_PLATFORM/Envy.exe"
+        if (-not (Test-Path -LiteralPath $exe)) { throw "Missing runtime: $exe" }
+        $setups = @(Get-ChildItem -LiteralPath Builds -Filter *.exe -File)
+        if ($setups.Count -ne 1) { throw 'Expected one usable setup executable' }
+        @{
+          head = $env:PR_HEAD_SHA
+          base = $env:PR_BASE_SHA
+          built_commit = (git rev-parse HEAD)
+          run_id = $env:GITHUB_RUN_ID
+          run_attempt = $env:GITHUB_RUN_ATTEMPT
+          platform = $env:BUILD_PLATFORM
+          runtime_sha256 = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
+          setup_sha256 = (Get-FileHash -LiteralPath $setups[0].FullName -Algorithm SHA256).Hash
+          runtime_test = 'NOT PERFORMED; maintainer checkpoint required'
+        } | ConvertTo-Json | Set-Content -LiteralPath artifact-provenance.json -Encoding utf8
 
     - name: Upload binaries
       if: ${{ success() && inputs.upload-binaries == 'true' && inputs.configuration == 'Release' }}
@@ -283,6 +301,7 @@ runs:
       with:
         name: envy-${{ inputs.platform }}-${{ inputs.configuration }}
         path: |
+          artifact-provenance.json
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.exe
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.pdb
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatMonitor.exe
@@ -294,8 +313,8 @@ runs:
           Envy/**/Release/*.dll
           Plugins/**/Release/*.dll
           Builds/**
-        if-no-files-found: warn
-        retention-days: 14
+        if-no-files-found: error
+        retention-days: ${{ github.event_name == 'pull_request' && 7 || 14 }}
 
     - name: Upload Release PDBs
       if: ${{ success() && inputs.upload-binaries == 'true' && inputs.configuration == 'Release' }}
