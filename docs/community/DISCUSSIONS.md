@@ -10,7 +10,7 @@ Scope: How Envy uses GitHub Discussions versus Issues, category intent, template
 | Use **Issues** for | Use **Discussions** for |
 | --- | --- |
 | Confirmed bugs and regressions | Questions and troubleshooting |
-| Security/correctness work ([SECURITY.md](../.github/SECURITY.md)) | Brainstorming and early feature exploration |
+| Security/correctness work ([SECURITY.md](../../.github/SECURITY.md)) | Brainstorming and early feature exploration |
 | Scoped features with acceptance criteria | Design exploration before scoping |
 | Measurable engineering tasks | Preview-build and interoperability feedback |
 | | Contributor introductions and onboarding chat |
@@ -45,7 +45,7 @@ Optional renames (UI only): align **Q&A** emoji to `:question:` and **Ideas** de
 
 ## Category forms
 
-Repository forms live in [`.github/DISCUSSION_TEMPLATE/`](../.github/DISCUSSION_TEMPLATE/). They apply per category slug when merged to the default branch.
+Repository forms live in [`.github/DISCUSSION_TEMPLATE/`](../../.github/DISCUSSION_TEMPLATE/). They apply per category slug when merged to the default branch.
 
 ## Canonical pinned discussions
 
@@ -56,7 +56,7 @@ Maintainers should pin (UI — no public pin API):
 3. **Preview testing and protocol interoperability reports** — template below
 4. **Envy modernization roadmap and project direction** — links to roadmap/status only
 
-Draft bodies for (2)–(4) ship in the `community/discussion-templates` PR under `docs/community/canonical-discussions/` when present, or recreate from this file’s interoperability section.
+Draft bodies for (2)–(4) are available in [`canonical-discussions/`](canonical-discussions/), or can be recreated from this file’s interoperability section.
 
 ## Interoperability report template
 
@@ -99,4 +99,4 @@ Do not claim live interoperability where [status.md](../10_dev/status.md) marks 
 
 ## Issue template routing
 
-[`.github/ISSUE_TEMPLATE/config.yml`](../.github/ISSUE_TEMPLATE/config.yml) `contact_links` direct general questions and early ideas to the appropriate Discussion categories without blocking bug reports.
+[`.github/ISSUE_TEMPLATE/config.yml`](../../.github/ISSUE_TEMPLATE/config.yml) `contact_links` direct general questions and early ideas to the appropriate Discussion categories without blocking bug reports.

@@ -25,15 +25,15 @@ body:
     attributes:
       label: Protocols or areas affected
       options:
-        - BitTorrent
-        - ED2K / eMule interop
-        - Kad
-        - Gnutella (G1)
-        - Gnutella2 (G2)
-        - Direct Connect (NMDC)
-        - Library / search / UI
-        - Build / CI / packaging
-        - Other / cross-cutting
+        - label: BitTorrent
+        - label: ED2K / eMule interop
+        - label: Kad
+        - label: Gnutella (G1)
+        - label: Gnutella2 (G2)
+        - label: Direct Connect (NMDC)
+        - label: Library / search / UI
+        - label: Build / CI / packaging
+        - label: Other / cross-cutting
   - type: textarea
     id: benefit
     attributes:
