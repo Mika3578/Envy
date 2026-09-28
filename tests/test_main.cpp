@@ -16,6 +16,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite);
 void register_secureident_policy_smoke_tests(TestSuite& suite);
 void register_ed2k_hello_capabilities_smoke_tests(TestSuite& suite);
 void register_ed2k_hello_golden_tests(TestSuite& suite);
+void register_ed2k_sourceex2_golden_tests(TestSuite& suite);
 void register_ed2k_kad_settings_smoke_tests(TestSuite& suite);
 void register_ed2k_compressed_upload_smoke_tests(TestSuite& suite);
 void register_webhook_registration_smoke_tests(TestSuite& suite);
@@ -60,6 +61,7 @@ int main(int argc, char** argv)
 	register_secureident_policy_smoke_tests(suite);
 	register_ed2k_hello_capabilities_smoke_tests(suite);
 	register_ed2k_hello_golden_tests(suite);
+	register_ed2k_sourceex2_golden_tests(suite);
 	register_ed2k_kad_settings_smoke_tests(suite);
 	register_ed2k_compressed_upload_smoke_tests(suite);
 	register_webhook_registration_smoke_tests(suite);
