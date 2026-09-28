@@ -1139,10 +1139,27 @@ int CHostCache::ImportValidatedNodesDat(const BYTE* pData, DWORD nLength, KadBoo
 		return 0;
 	}
 
-	CMemFile pMem;
-	pMem.Write(pData, nLength);
-	pMem.Seek(0, CFile::begin);
-	const int nImported = ImportNodes(&pMem);
+	int nImported = 0;
+	try
+	{
+		CMemFile pMem;
+		pMem.Write(pData, nLength);
+		pMem.Seek(0, CFile::begin);
+		nImported = ImportNodes(&pMem);
+	}
+	catch (CException* pException)
+	{
+		pException->Delete();
+		if (KadBootstrapRestoreNodesDatAfterRejectedImport(bHadPriorNodesDat, strFile, strLkg))
+		{
+			if (pnFailureOut != NULL)
+				*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+		}
+		else if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+		return 0;
+	}
+
 	if (nImported <= 0)
 	{
 		if (KadBootstrapRestoreNodesDatAfterRejectedImport(bHadPriorNodesDat, strFile, strLkg))
