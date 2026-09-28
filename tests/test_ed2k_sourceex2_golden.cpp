@@ -477,7 +477,7 @@ static bool test_answer_golden_header_layout_v2()
 	return nLen == 47 && memcmp(pkt.data(), kExpectedPrefix, 19) == 0;
 }
 
-// Mirrors CEDClient::OnSourceRequest2: records first, then WriteGetPointer prefix insert.
+// Exercises the shared production header writer after records-first prefix insertion.
 static bool test_answer_edclient_safe_prefix_insert()
 {
 	std::array<BYTE, 512> records = {};
@@ -491,10 +491,9 @@ static bool test_answer_edclient_safe_prefix_insert()
 
 	BYTE hash[16];
 	fill_synthetic_hash(hash);
-	body[0] = 1;
-	memcpy(body.data() + 1, hash, 16);
-	body[17] = (BYTE)(nSources & 0xFF);
-	body[18] = (BYTE)((nSources >> 8) & 0xFF);
+	if (!Ed2kSourceEx2WriteAnswerHeader(
+			body.data(), nPrefix, 1, hash, nSources))
+		return false;
 
 	BYTE ver = 0;
 	WORD count = 0;
@@ -536,6 +535,7 @@ void register_ed2k_sourceex2_golden_tests(TestSuite& suite)
 	suite.add_test("ed2k_sx2_answer_golden_header_v2", test_answer_golden_header_layout_v2);
 	suite.add_test("ed2k_sx2_answer_safe_prefix_insert", test_answer_edclient_safe_prefix_insert);
 	suite.add_test("ed2k_sx2_answer_count_mul_overflow", test_answer_count_mul_overflow);
+	suite.add_test("ed2k_sx2_answer_count_mul_guard", test_answer_count_mul_guard);
 	suite.add_test("ed2k_sx2_answer_truncated_header", test_answer_truncated_header);
 	suite.add_test("ed2k_sx2_answer_unsupported_version", test_answer_unsupported_version);
 	suite.add_test("ed2k_sx2_answer_trailing_rejected", test_answer_trailing_bytes_rejected);

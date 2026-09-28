@@ -3206,10 +3206,12 @@ BOOL CEDClient::OnSourceRequest2(CEDPacket* pPacket)
 			return TRUE;
 		}
 
-		*pStart++ = nAnswerVersion;
-		memcpy(pStart, &oHash[0], Hashes::Ed2kHash::byteCount);
-		pStart += Hashes::Ed2kHash::byteCount;
-		*(WORD*)pStart = WORD(nCount);
+		if (!Ed2kSourceEx2WriteAnswerHeader(
+				pStart, nPrefix, nAnswerVersion, &oHash[0], (WORD)nCount))
+		{
+			pReply->Release();
+			return TRUE;
+		}
 		Send(pReply, FALSE);
 	}
 

@@ -22,6 +22,7 @@
 #pragma once
 
 #include <windows.h>
+#include <cstring>
 
 #ifndef ED2K_SOURCEEXCHANGE2_VERSION
 #define ED2K_SOURCEEXCHANGE2_VERSION 4
@@ -55,6 +56,22 @@ inline constexpr DWORD Ed2kSourceEx2AnswerHeaderMinBytes()
 inline BOOL Ed2kSourceEx2VersionSupported(BYTE nVersion)
 {
 	return nVersion >= 1 && nVersion <= ED2K_SOURCEEXCHANGE2_VERSION_MAX;
+}
+
+inline BOOL Ed2kSourceEx2WriteAnswerHeader(
+	BYTE* pOut, DWORD nCapacity, BYTE nVersion, const BYTE* pHash16, WORD nCount)
+{
+	if (pOut == NULL || pHash16 == NULL || nCapacity < Ed2kSourceEx2AnswerHeaderMinBytes())
+		return FALSE;
+
+	if (!Ed2kSourceEx2VersionSupported(nVersion))
+		return FALSE;
+
+	pOut[0] = nVersion;
+	std::memcpy(pOut + 1, pHash16, 16);
+	pOut[17] = (BYTE)(nCount & 0xFF);
+	pOut[18] = (BYTE)((nCount >> 8) & 0xFF);
+	return TRUE;
 }
 
 inline DWORD Ed2kSourceEx2AnswerRecordBytes(BYTE nVersion)
