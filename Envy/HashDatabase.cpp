@@ -201,10 +201,10 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 	DWORD nBestOverhead = 0xFFFFFFFF;
 
 	DWORD nCount = m_nIndex;
-	for ( HASHDB_INDEX* pCandidate = m_pIndex;
-		nCount; nCount--, pCandidate++ )
+	for (HASHDB_INDEX* pCandidate = m_pIndex;
+	     nCount; nCount--, pCandidate++)
 	{
-		if ( pCandidate->nIndex == 0 && pCandidate->nLength >= nLength )
+		if (pCandidate->nIndex == 0 && pCandidate->nLength >= nLength)
 		{
 			const DWORD nOverhead = pCandidate->nLength - nLength;
 
