@@ -31,6 +31,7 @@
 #include "XML.h"
 #include "BootstrapCatalog.h"
 #include "KadNodesDat.h"
+#include "KadBootstrapColdStart.h"
 #include "GProfile.h"
 
 #ifdef _DEBUG
@@ -1062,6 +1063,101 @@ int CHostCache::ImportNodes(CFile* pFile)
 	return nServers;
 }
 
+int CHostCache::ImportValidatedNodesDat(const BYTE* pData, DWORD nLength, KadBootstrapAcquireResult* pnFailureOut)
+{
+	if (pnFailureOut != NULL)
+		*pnFailureOut = KadBootstrapAcquireParseFailed;
+
+	if (pData == NULL || nLength == 0)
+	{
+		if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquireEmptyBody;
+		return 0;
+	}
+
+	if (nLength > KadBootstrapHttpMaxBytes())
+	{
+		if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquireOversized;
+		return 0;
+	}
+
+	KadNodesDatResult oParsed = {};
+	const KadBootstrapAcquireResult nAcquire = KadBootstrapValidateDownloadedBody(pData, nLength, &oParsed);
+	if (nAcquire != KadBootstrapAcquireOk)
+	{
+		if (pnFailureOut != NULL)
+			*pnFailureOut = nAcquire;
+		return 0;
+	}
+
+	const CString strFile = Settings.General.DataPath + L"nodes.dat";
+	const CString strTemp = strFile + L".tmp";
+	const CString strLkg = strFile + L".lkg";
+	const bool bHadPriorNodesDat = (GetFileAttributes(strFile) != INVALID_FILE_ATTRIBUTES);
+
+	CFile pOut;
+	if (!pOut.Open(strTemp, CFile::modeWrite | CFile::modeCreate | CFile::shareExclusive))
+	{
+		DeleteFile(strTemp);
+		if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+		return 0;
+	}
+
+	try
+	{
+		pOut.Write(pData, nLength);
+		pOut.Close();
+	}
+	catch (CException* pException)
+	{
+		pException->Delete();
+		pOut.Abort();
+		DeleteFile(strTemp);
+		if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+		return 0;
+	}
+
+	if (bHadPriorNodesDat)
+	{
+		if (!CopyFile(strFile, strLkg, FALSE))
+		{
+			DeleteFile(strTemp);
+			if (pnFailureOut != NULL)
+				*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+			return 0;
+		}
+	}
+
+	if (!MoveFileEx(strTemp, strFile, MOVEFILE_REPLACE_EXISTING))
+	{
+		DeleteFile(strTemp);
+		if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+		return 0;
+	}
+
+	CMemFile pMem;
+	pMem.Write(pData, nLength);
+	pMem.Seek(0, CFile::begin);
+	const int nImported = ImportNodes(&pMem);
+	if (nImported <= 0)
+	{
+		if (KadBootstrapRestoreNodesDatAfterRejectedImport(bHadPriorNodesDat, strFile, strLkg))
+		{
+			if (pnFailureOut != NULL)
+				*pnFailureOut = KadBootstrapAcquireNoAcceptedContacts;
+		}
+		else if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+		return 0;
+	}
+
+	return nImported;
+}
+
 bool CHostCache::EnoughServers(PROTOCOLID nProtocol) const
 {
 	switch ( nProtocol )
@@ -1151,6 +1247,16 @@ bool CHostCache::CheckMinimumServers(PROTOCOLID nProtocol)
 	}
 
 	// ToDo: Try local Shareaza Servers.dat too
+
+	if (EnoughServers(nProtocol))
+		return true;
+
+	if (nProtocol == PROTOCOL_KAD)
+	{
+		if (Settings.eDonkey.EnableKad && KadBootstrapColdStartMayRequest(GetTickCount()))
+			DiscoveryServices.Execute(PROTOCOL_KAD, 1);
+		return EnoughServers(nProtocol);
+	}
 
 	if ( EnoughServers( nProtocol ) )
 		return true;
