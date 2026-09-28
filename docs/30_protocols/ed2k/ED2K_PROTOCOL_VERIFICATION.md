@@ -218,7 +218,7 @@ Since no Examples folder exists in the repository, verification was performed ag
 | Compressed Transfers | No | Standard | ✅ Implemented |
 | SecureID Authentication | No | Standard | ⚠️ Safely disabled (#75); RSA not implemented |
 | CryptLayer Encryption | No | Standard | ✅ Implemented |
-| Source Exchange v2 | No | Standard | ✅ Implemented |
+| Source Exchange v2 | No | Standard | ✅ Wire format corrected locally; live interop unverified (#160) |
 | MultiPacket Ext2 | No | Standard | ✅ Implemented |
 | Kademlia DHT (Kad2) | No | Standard | ✅ Implemented |
 | IPv6 Support | No | Some clients | ⚠️ Partial helpers; core still IPv4 |

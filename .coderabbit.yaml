@@ -1,8 +1,8 @@
 # CodeRabbit configuration for Mika3578/Envy
 # Install the CodeRabbit GitHub App on this public repo for free OSS reviews.
 # Reviews are ADVISORY only — they must never be the sole merge blocker.
-# Merge authority remains: MSVC builds, EnvyTests, Format, PR Gate, CodeQL,
-# gitleaks, Sonar (per develop ruleset).
+# Merge authority remains: MSVC builds, EnvyTests, Format, CodeQL, secret
+# scanning, and Sonar (per the develop ruleset).
 
 language: en-US
 
