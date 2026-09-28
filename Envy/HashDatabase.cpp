@@ -235,7 +235,7 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 				if ( m_nIndex ) CopyMemory( pNew, m_pIndex, sizeof( HASHDB_INDEX ) * m_nIndex );
 				HASHDB_INDEX* pOld = m_pIndex;
 				m_pIndex = pNew;
-				delete [] pOld;
+				delete[] pOld;
 			}
 			else
 				m_pIndex = pNew;
