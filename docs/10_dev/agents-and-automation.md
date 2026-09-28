@@ -159,11 +159,11 @@ Do not reintroduce mutable `@vN` tags for external actions.
 Snapshot verified against Protect develop on 2026-09-28. No ruleset changes
 are part of this implementation. A successful Draft gate covers only the cheap
 lane; it never means Ready or mergeable. Full-phase checks reject skipped and
-neutral conclusions. Cancelled/timed-out/failed checks still fail the existing
-poller; its latest numeric check-ID selection and pagination are unchanged.
-The cancelled/superseded race in #346 remains an explicit dogfood risk, not a
-reason to merge that PR first. If it actually blocks dogfood, investigate that
-run and salvage the minimum validated fix, with its tests.
+neutral conclusions. Cancelled check generations remain pending until a
+replacement generation appears or the poller times out; other terminal
+failures still fail immediately. The poller requests all check-run generations
+and selects the latest observed generation, preventing label-driven
+concurrency from failing the replacement before it is registered.
 
 | Context | Direct required | Draft PR Gate | Full PR Gate |
 | --- | --- | --- | --- |
@@ -185,7 +185,9 @@ does not configure them. An unavailable required service remains a blocker;
 optional reviewer outages do not. Do not remove the poller until the indirect
 requirements above have direct contexts or native `needs` validation, all
 full-phase checks are evidenced, and the maintainer approves the later migration.
-Keep #346 and #349 open during rollout; do not merge #349's semantic gate.
+PR #346's superseded-generation fix and PR #349's semantic gate were closed as
+obsolete when PR #381 became the sole lifecycle implementation. Do not add a
+second semantic gate alongside the phase-aware PR Gate.
 Keep the obsolete requester for merged #294/#354 until native Copilot refresh
 has been demonstrated. Do not create its replacement in this PR.
 
@@ -311,7 +313,7 @@ Dogfood on the Draft implementation PR:
    cycle and a fresh Copilot review on the new HEAD. Check stale-review behavior
    when an actual approval existed; COMMENTED reviews are not approvals.
 6. Exercise recurrence/budget stop and inspect cancelled/superseded runs.
-   Stop before ruleset migration, requester removal, or closing #346/#349.
+   Stop before ruleset migration or requester removal.
 
 Measure Windows runner minutes against matched previous runs (not guessed
 prices), CI elapsed time, one conversation per PR, zero overlapping writers,

@@ -46,6 +46,27 @@ expect skip-neutral is_ok_may_skip neutral 1
 expect skip-unknown is_ok_may_skip other 1
 expect skip-empty is_ok_may_skip "" 1
 
+expect_outcome() {
+	local name="$1"
+	local want="$2"
+	shift 2
+	local got
+	got="$(classify_gate_outcome "$@")"
+	if [[ "$got" != "$want" ]]; then
+		echo "FAIL $name: classify_gate_outcome $* => $got want $want"
+		fail=1
+	else
+		echo "OK   $name"
+	fi
+}
+
+expect_outcome outcome-pending-running pending in_progress ""
+expect_outcome outcome-pending-cancelled pending completed cancelled
+expect_outcome outcome-ok-success ok completed success
+expect_outcome outcome-ok-skipped ok completed skipped true
+expect_outcome outcome-failed-skipped failed completed skipped
+expect_outcome outcome-failed-failure failed completed failure
+
 # Process-substitution false-green demonstration + checked capture helper.
 capture_checked() {
 	# Captures stdout of a command; propagates non-zero exit (unlike mapfile < <()).

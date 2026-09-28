@@ -6,6 +6,8 @@
 # Semantic gate (stricter than GitHub required-check permissiveness):
 #   must_pass → success only
 #   may_skip  → success or skipped (neutral fails)
+#   cancelled → pending until the replacement generation appears or timeout
+#   other terminal failures → fail immediately
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -52,10 +54,13 @@ while true; do
 		exit 1
 	fi
 
-	json_head="$(gh api --paginate "repos/${REPO}/commits/${SHA}/check-runs")"
+	# The API defaults to the latest check-run generation. The gate must inspect
+	# all generations so a cancelled run cannot mask its replacement.
+	check_runs_query="?filter=all&per_page=100"
+	json_head="$(gh api --paginate "repos/${REPO}/commits/${SHA}/check-runs${check_runs_query}")"
 	json_merge=""
 	if [[ -n "${MERGE_SHA:-}" && "${MERGE_SHA}" != "${SHA}" ]]; then
-		json_merge="$(gh api --paginate "repos/${REPO}/commits/${MERGE_SHA}/check-runs")"
+		json_merge="$(gh api --paginate "repos/${REPO}/commits/${MERGE_SHA}/check-runs${check_runs_query}")"
 	fi
 	json="${json_head}"$'\n'"${json_merge}"
 
@@ -96,33 +101,31 @@ while true; do
 			echo "- $name: waiting" >>"$summary_tmp"
 			return
 		fi
-		if [[ "$st" != "completed" ]]; then
-			pending+=("$name ($st)")
-			echo "- $name: $st" >>"$summary_tmp"
-			return
-		fi
-		if is_bad_conclusion "$conc"; then
-			failed+=("$name ($conc)")
-			echo "- $name: $conc" >>"$summary_tmp"
-			return
-		fi
-		if [[ "$allow_skip" == "true" ]]; then
-			if is_ok_may_skip "$conc"; then
-				ok+=("$name ($conc)")
-				echo "- $name: $conc" >>"$summary_tmp"
-				return
+		local outcome
+		outcome="$(classify_gate_outcome "$st" "$conc" "$allow_skip")"
+		case "$outcome" in
+		pending)
+			if [[ "$st" == "completed" && "$conc" == "cancelled" ]]; then
+				pending+=("$name (cancelled; waiting for replacement)")
+				echo "- $name: cancelled (waiting for replacement)" >>"$summary_tmp"
+			else
+				pending+=("$name ($st)")
+				echo "- $name: $st" >>"$summary_tmp"
 			fi
-			failed+=("$name ($conc; may_skip rejects neutral/other)")
-			echo "- $name: $conc (unexpected for may_skip)" >>"$summary_tmp"
-			return
-		fi
-		if is_ok_must_pass "$conc"; then
+			;;
+		ok)
 			ok+=("$name ($conc)")
 			echo "- $name: $conc" >>"$summary_tmp"
-			return
-		fi
-		failed+=("$name ($conc; must_pass requires success)")
-		echo "- $name: $conc (must_pass requires success)" >>"$summary_tmp"
+			;;
+		failed)
+			failed+=("$name ($conc)")
+			echo "- $name: $conc" >>"$summary_tmp"
+			;;
+		*)
+			failed+=("$name (unexpected gate outcome)")
+			echo "- $name: unexpected gate outcome" >>"$summary_tmp"
+			;;
+		esac
 	}
 
 	for name in "${must_pass[@]}"; do
