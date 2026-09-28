@@ -11,11 +11,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled, unlabeled]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  security-events: write
-  actions: read
-  pull-requests: read
+permissions: {}
 
 concurrency:
   group: codeql-csharp-${{ github.event.pull_request.number || github.run_id }}
@@ -26,10 +22,17 @@ env:
 
 jobs:
   phase:
+    permissions:
+      contents: read
     uses: ./.github/workflows/pr-phase.yml
 
   analyze-csharp:
     name: Analyze (csharp)
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+      pull-requests: read
     needs: phase
     if: always()
     runs-on: ${{ needs.phase.outputs.full_validation == 'true' && 'windows-2025-vs2026' || 'ubuntu-latest' }}

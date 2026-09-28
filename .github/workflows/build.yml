@@ -23,9 +23,7 @@ on:
         type: choice
         options: [Release, Debug]
 
-permissions:
-  contents: read
-  pull-requests: read
+permissions: {}
 
 concurrency:
   group: build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -37,14 +35,21 @@ env:
 
 jobs:
   phase:
+    permissions:
+      contents: read
     uses: ./.github/workflows/pr-phase.yml
 
   changes:
     name: Classify (build)
+    permissions:
+      contents: read
+      pull-requests: read
     uses: ./.github/workflows/classify-changes.yml
 
   lint-build-files:
     name: Lint build files
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -114,6 +119,8 @@ jobs:
 
   build-x64-release:
     name: Build x64 Release
+    permissions:
+      contents: read
     needs: [changes, phase]
     # Keep the context visible; Draft success only certifies phase deferral.
     # Every Ready/live-test PR runs the actual build, including docs-only PRs.
@@ -164,6 +171,8 @@ jobs:
 
   build-win32-release:
     name: Build Win32 Release
+    permissions:
+      contents: read
     needs: [changes, phase]
     # Always emit this required context on PRs (mirror Build x64 Release).
     if: >
@@ -209,6 +218,8 @@ jobs:
 
   build-debug:
     name: Build ${{ matrix.platform }} Debug
+    permissions:
+      contents: read
     needs: changes
     if: >
       github.event_name == 'push' ||
