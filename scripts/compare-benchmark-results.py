@@ -48,7 +48,8 @@ def resolve_results_file(path: str) -> Path:
 
 def load_document(path: str) -> Dict[str, Any]:
     file_path = resolve_results_file(path)
-    data = file_path.read_bytes()
+    with file_path.open("rb") as stream:
+        data = stream.read(MAX_FILE_BYTES + 1)
     if len(data) > MAX_FILE_BYTES:
         raise ValueError("file too large")
     text = data.decode("utf-8")

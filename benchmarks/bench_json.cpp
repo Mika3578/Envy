@@ -9,6 +9,7 @@
 #include "bench_json.h"
 
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <limits>
 
@@ -123,6 +124,12 @@ bool BenchWriteResultsJsonToFile(const BenchEnvironment& env,
                                  const char* path)
 {
 	if (path == nullptr || path[0] == '\0')
+		return false;
+
+	std::error_code ec;
+	const std::filesystem::file_status status =
+		std::filesystem::symlink_status(path, ec);
+	if (ec || (std::filesystem::exists(status) && std::filesystem::is_symlink(status)))
 		return false;
 
 	std::string json;

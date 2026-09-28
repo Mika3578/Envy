@@ -27,6 +27,8 @@ bool IsSimpleOutputFilename(const std::string& path)
 		return false;
 	if (path.find_first_of("/\\:") != std::string::npos)
 		return false;
+	if (path.find('%') != std::string::npos)
+		return false;
 	return true;
 }
 
