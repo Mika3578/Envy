@@ -266,20 +266,20 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 
 // eMule Client - Client, TCP
 #define	ED2K_C2C_EMULEINFO				0x01	//
-#define	ED2K_C2C_EMULEINFOANSWER		0x02	//
-#define ED2K_C2C_COMPRESSEDPART			0x40	// <HASH 16><von 4><size 4><Daten len:size>
-#define ED2K_C2C_QUEUERANKING			0x60	// <RANG 2>
-#define ED2K_C2C_FILEDESC				0x61	// <len 2><NAME len>
-#define ED2K_C2C_REQUESTSOURCES			0x81	// *DEPRECATED* <HASH 16>
-#define ED2K_C2C_ANSWERSOURCES			0x82	// *DEPRECATED*
-#define ED2K_C2C_REQUESTSOURCES2		0x83	// <HASH 16><Version 1><Options 2>
-#define ED2K_C2C_ANSWERSOURCES2			0x84	// <Version 1>[content]
-#define ED2K_C2C_PUBLICKEY				0x85	// <len 1><pubkey len>
-#define ED2K_C2C_SIGNATURE				0x86	// v1: <len 1><signature len>  v2:<len 1><signature len><sigIPused 1>
-#define ED2K_C2C_SECIDENTSTATE			0x87	// <state 1><rndchallenge 4>
-#define ED2K_C2C_REQUESTPREVIEW			0x90	// <HASH 16>
-#define ED2K_C2C_PREVIEWANWSER			0x91	// <HASH 16><frames 1>{frames * <len 4><frame len>}
-#define ED2K_C2C_MULTIPACKET			0x92	// *DEPRECATED*
+#define ED2K_C2C_EMULEINFOANSWER 0x02           //
+#define ED2K_C2C_COMPRESSEDPART 0x40            // <HASH 16><von 4><size 4><Daten len:size>
+#define ED2K_C2C_QUEUERANKING 0x60              // <RANG 2>
+#define ED2K_C2C_FILEDESC 0x61                  // <len 2><NAME len>
+#define ED2K_C2C_REQUESTSOURCES 0x81            // *DEPRECATED* <HASH 16>
+#define ED2K_C2C_ANSWERSOURCES 0x82             // *DEPRECATED*
+#define ED2K_C2C_REQUESTSOURCES2 0x83           // Standalone: <Version 1><Options 2><HASH 16>. Multipacket sub-op: version+options only (hash in parent).
+#define ED2K_C2C_ANSWERSOURCES2 0x84            // <Version 1><HASH 16><Count 2>[records]
+#define ED2K_C2C_PUBLICKEY 0x85                 // <len 1><pubkey len>
+#define ED2K_C2C_SIGNATURE 0x86                 // v1: <len 1><signature len>  v2:<len 1><signature len><sigIPused 1>
+#define ED2K_C2C_SECIDENTSTATE 0x87             // <state 1><rndchallenge 4>
+#define ED2K_C2C_REQUESTPREVIEW 0x90            // <HASH 16>
+#define ED2K_C2C_PREVIEWANWSER 0x91             // <HASH 16><frames 1>{frames * <len 4><frame len>}
+#define ED2K_C2C_MULTIPACKET 0x92               // *DEPRECATED*
 #define ED2K_C2C_MULTIPACKETANSWER		0x93	// *DEPRECATED*
 #define ED2K_C2C_PEERCACHE_QUERY		0x94	// *DEPRECATED*
 #define ED2K_C2C_PEERCACHE_ANSWER		0x95	// *DEPRECATED*

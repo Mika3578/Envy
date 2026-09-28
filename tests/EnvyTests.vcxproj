@@ -181,6 +181,7 @@
     <ClCompile Include="test_secureident_policy_smoke.cpp" />
     <ClCompile Include="test_ed2k_hello_capabilities_smoke.cpp" />
     <ClCompile Include="test_ed2k_hello_golden.cpp" />
+    <ClCompile Include="test_ed2k_sourceex2_golden.cpp" />
     <ClCompile Include="test_ed2k_kad_settings_smoke.cpp" />
     <ClCompile Include="test_ed2k_compressed_upload_smoke.cpp" />
     <ClCompile Include="test_webhook_registration_smoke.cpp" />
@@ -203,6 +204,7 @@
     <ClCompile Include="test_adaptive_list_columns_smoke.cpp" />
     <ClCompile Include="test_bootstrap_catalog_smoke.cpp" />
     <ClCompile Include="test_kad_nodes_dat.cpp" />
+    <ClCompile Include="test_kad_bootstrap_cold_start_smoke.cpp" />
     <ClCompile Include="test_transfer_settings_limits_smoke.cpp" />
     <ClCompile Include="test_kad_search_res_delivery_smoke.cpp" />
     <ClCompile Include="test_kad_search_source_request_smoke.cpp" />
@@ -212,6 +214,7 @@
     <ClCompile Include="test_crash_report_policy_smoke.cpp" />
     <ClCompile Include="test_ed2k_lowid_callback_smoke.cpp" />
     <ClCompile Include="test_albumfolder_mountcollection_smoke.cpp" />
+    <ClCompile Include="test_btinfo_piece_hash_smoke.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />

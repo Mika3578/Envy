@@ -12,7 +12,7 @@ Humans retain authority on risky protocol/network/crypto changes.
 ```text
 Cursor Agent → PR → CodeRabbit (advisory)
                   → reviewdog/clang-tidy (advisory)
-                  → MSVC + EnvyTests + Format + PR Gate
+                  → MSVC + EnvyTests + Format
                   → CodeQL + Sonar + gitleaks
                   → squash auto-merge (update branch + required checks)
                   → develop
@@ -29,13 +29,16 @@ it. Prefer strict required checks + update-branch + squash auto-merge.
 | `.\scripts\ci-verify.ps1` | Local MSVC gate: ci-fast + Envy x64 Release + EnvyTests x64 + run tests |
 | `.\scripts\ci-verify.ps1 -Full` | Also Envy/EnvyTests Win32 + run Win32 tests; **requires** clang-format on PATH |
 
-These approximate GitHub gates; they do **not** replace CodeQL/Sonar/gitleaks/PR Gate.
+These approximate GitHub gates; they do **not** replace CodeQL, Sonar, or
+secret scanning.
 
 ## Merge blockers (develop ruleset)
 
-BLOCK (required status checks): Build x64 Release, Build Win32 Release,
-Lint build files, Vcpkg manifest sanity, Format Check, Documentation Check,
-secret-scan, gitleaks, PR Gate, Analyze (c-cpp), SonarCloud Code Analysis.
+Target required status checks: Build x64 Release, Build Win32 Release,
+Lint build files, Vcpkg manifest sanity, Format Check, secret-scan,
+Analyze (c-cpp), and SonarCloud Code Analysis. Documentation Check and the
+duplicate gitleaks status remain visible as advisory checks; Protect develop
+does not require them as status contexts.
 
 SonarCloud Automatic Analysis exclusions for vendored trees:
 `docs/10_dev/sonarcloud-exclusions.md` / `.sonarcloud.properties`. Do not
@@ -43,7 +46,7 @@ relax Quality Gate thresholds to pass.
 (Docs-only PRs: Build x64/Win32 emit ubuntu success no-ops when classify
 `run_windows_build=false` — never leave those required contexts SKIPPED.)
 
-BLOCK (native GitHub review rules on Protect develop — not replaceable by PR Gate):
+BLOCK (native GitHub review rules on Protect develop):
 
 - **Live Protect develop (re-verified 2026-09-20):** ≥ **1** approving GitHub
   review from a reviewer other than the PR author. GitHub Copilot Code Review
@@ -53,18 +56,19 @@ BLOCK (native GitHub review rules on Protect develop — not replaceable by PR G
 - Dismiss stale reviews on new commits (**on**)
 - Require approval of the most recent reviewable push (**off** — intentional)
 - Resolve all review conversations / threads
-- Signed commits; force pushes blocked (`non_fast_forward`)
+- Force pushes blocked (`non_fast_forward`); branch commits are not required
+  to be signed by Protect develop.
 - Code scanning merge protection: CodeQL + Gitleaks (current thresholds)
 - GitHub **Code Quality** severity **All** (live). Code Quality complements —
   it does not replace — SonarCloud/CodeQL/MSVC/tests for the C++ core.
-- Copilot ruleset: `review_on_push` **off**, draft review **off** (live).
+- Copilot ruleset target: `review_on_push` **off**, draft review **off**.
 - No draft; squash only on `develop`; linear history; **no bypass actors**
 
 ADVISORY: CodeRabbit, clang-tidy + reviewdog, Snyk (when present), Cursor Bugbot
 (optional / paid — not primary).
 
-Never require CodeRabbit or Bugbot as the sole merge gate. PR Gate only waits
-on classified CI checks; it does **not** approve or merge.
+Never require CodeRabbit or Bugbot as the sole merge gate. Native checks and
+GitHub review rules are the merge authority.
 
 ## Dependency automation
 
@@ -132,13 +136,13 @@ comparison notes.
      `AGENTS.md`). Leave the list **blank** only for a one-shot merge
      where Copilot must count on a governance PR (then apply the globs
      immediately after).
-   - Protect develop already requests Copilot on ready-for-review and
-     on push; keep draft review **off**.
+   - Protect develop should request Copilot only for the final stable review;
+     keep review-on-push and draft review **off**.
    Assessment ≠ approval. Copilot-authored PRs still need a human.
    A Copilot `APPROVED` review is not proof of correctness (business
    logic, production behavior, missed security, performance, or
    architecture). Independent checks (builds, EnvyTests when C++
-   changes, CodeQL, SonarCloud, gitleaks, secret-scan, PR Gate) stay
+   changes, CodeQL, SonarCloud, gitleaks, and secret-scan) stay
    required.
 4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks + **≥1 GitHub APPROVED review** on `Protect develop`.
 5. **Protect develop (live, re-verified 2026-09-20)** — Source of truth is
@@ -152,8 +156,8 @@ comparison notes.
      solo-maintainer/agent workflow
    - Allowed merge methods: **squash** only
    - Require branches up to date before merging: **on**
-   - Signed commits: **on**; block force pushes: **on**; deletion blocked;
-     bypass list: **empty**
+   - Signed commits: **off for develop**; block force
+     pushes: **on**; deletion blocked; bypass list: **empty**
    - Code scanning: CodeQL + Gitleaks with existing thresholds unless a
      separate measured change justifies tightening
    - GitHub Code Quality: severity **All** (live)
@@ -165,8 +169,8 @@ comparison notes.
    requests** ON; **Allow Copilot approvals to count toward merge
    requirements** ON; path allowlist as in item 3 (exclude
    review-governance and infra). Automatic review on each push is deliberately
-   off in Protect develop; request the final Copilot review after PR Gate is
-   green. These toggles and globs are not on the ruleset API. See
+   off in Protect develop; request the final Copilot review after native
+   checks are green. These toggles and globs are not on the ruleset API. See
    [Using AI-Approved Pull Requests Safely with GitHub Copilot](https://www.c-sharpcorner.com/article/using-ai-approved-pull-requests-safely-with-github-copilot/).
 7. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 

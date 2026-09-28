@@ -17,6 +17,7 @@
 //
 
 #include "StdAfx.h"
+#include "Ed2kSourceEx2Wire.h"
 #include "Settings.h"
 #include "Envy.h"
 #include "Download.h"
@@ -740,24 +741,15 @@ BOOL CDownloadTransferED2K::SendPrimaryRequest()
 		// Set 'last asked for sources' time
 		m_tSourceRequest = tNow;
 
-		if ( m_pClient->m_bEmSupportsSourceEx2 )
+		if (m_pClient->m_bEmSupportsSourceEx2)
 		{
-			// Use SourceEx2 (0x83) when peer supports it
-			pPacket = CEDPacket::New( ED2K_C2C_REQUESTSOURCES2, ED2K_PROTOCOL_EMULE );
-			pPacket->Write( m_pDownload->m_oED2K );
-			// File size (4 bytes low, or 8 bytes for large files)
-			if ( m_pDownload->m_nSize > 0xFFFFFFFF )
-			{
-				pPacket->WriteLongLE( 0 );
-				pPacket->WriteLongLE( (DWORD)( m_pDownload->m_nSize >> 32 ) );
-			}
-			else
-			{
-				pPacket->WriteLongLE( (DWORD)m_pDownload->m_nSize );
-			}
-			pPacket->WriteShortLE( 0 );	// Options (none for now)
-			Send( pPacket );
-			theApp.Message( MSG_DEBUG, L"[ED2K] %s: Sent REQUESTSOURCES2", (LPCTSTR)m_sAddress );
+			// Use SourceEx2 (0x83) when peer supports it (eMule/aMule wire order).
+			pPacket = CEDPacket::New(ED2K_C2C_REQUESTSOURCES2, ED2K_PROTOCOL_EMULE);
+			pPacket->WriteByte(ED2K_SOURCEEXCHANGE2_VERSION);
+			pPacket->WriteShortLE(0); // Reserved options (none supported yet)
+			pPacket->Write(m_pDownload->m_oED2K);
+			Send(pPacket);
+			theApp.Message(MSG_DEBUG, L"[ED2K] %s: Sent REQUESTSOURCES2", (LPCTSTR)m_sAddress);
 		}
 		else
 		{
