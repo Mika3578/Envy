@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "BTInfo.h"
+#include "BTInfoPieceHash.h"
 #include "BENode.h"
 #include "Buffer.h"
 #include "PacketLengthValidate.h"
@@ -99,7 +100,15 @@ CBTInfo::CBTInfo(const CBTInfo& oSource)
 
 CBTInfo::~CBTInfo()
 {
-	Clear();
+	// Clear() may throw on legacy MFC paths; swallow so the destructor stays
+	// noexcept from the caller's perspective (Sonar cpp:S1048).
+	try
+	{
+		Clear();
+	}
+	catch (...)
+	{
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -184,13 +193,14 @@ const CString& CBTInfo::CBTFile::FindFile()
 void CBTInfo::Clear()
 {
 	m_pBlockBTH.clear();
+	m_nBlockCount = 0;
+	m_nBlockSize = 0;
 
 	m_nTotalUpload		= 0;
 	m_nTotalDownload	= 0;
 
-	for ( POSITION pos = m_pFiles.GetHeadPosition(); pos; )
-		delete m_pFiles.GetNext( pos );
-	m_pFiles.RemoveAll();
+	while (!m_pFiles.IsEmpty())
+		delete m_pFiles.RemoveHead();
 
 	m_nEncoding			= Settings.BitTorrent.TorrentCodePage;
 	m_tCreationDate		= 0;
@@ -303,15 +313,23 @@ void CBTInfo::Serialize(CArchive& ar)
 	{
 		ar << nVersion;
 
-		SerializeOut( ar, m_oBTH );
-		if ( ! m_oBTH ) return;
+		SerializeOut(ar, m_oBTH);
+		if (!m_oBTH) return;
 
 		ar << m_nSize;
 		ar << m_nBlockSize;
-		ar << m_nBlockCount;
-		for ( DWORD i = 0; i < m_nBlockCount; ++i )
+		if (!BtPieceHashStorageConsistent(m_nBlockCount, m_pBlockBTH.size()) ||
+		    m_pBlockBTH.size() > static_cast<size_t>(BTINFO_MAX_PIECE_COUNT))
+			AfxThrowUserException();
+
+		const DWORD nStoreCount = BtPieceHashSerializeStoreCount(
+		    m_nBlockCount, m_pBlockBTH.size());
+		if (nStoreCount != m_nBlockCount)
+			AfxThrowUserException();
+		ar << nStoreCount;
+		for (DWORD i = 0; i < nStoreCount; ++i)
 		{
-			ar.Write( &m_pBlockBTH[ i ][ 0 ], Hashes::BtPureHash::byteCount );
+			ar.Write(&m_pBlockBTH[i][0], Hashes::BtPureHash::byteCount);
 		}
 
 		ar << m_nTotalUpload;
@@ -366,28 +384,38 @@ void CBTInfo::Serialize(CArchive& ar)
 		if ( nVersion > INTERNAL_VERSION && nVersion != 1000 )
 			AfxThrowUserException();
 
-		SerializeIn( ar, m_oBTH, nVersion );
-		if ( ! m_oBTH )
+		SerializeIn(ar, m_oBTH, nVersion);
+		if (!m_oBTH)
 			return;
 
 		ar >> m_nSize;
 		ar >> m_nBlockSize;
-		ar >> m_nBlockCount;
+		DWORD nLoadBlockCount = 0;
+		ar >> nLoadBlockCount;
 
-		// Fill a temporary vector first so a ReadArchive failure keeps the previous
-		// piece-hash buffer intact. Zero block count swaps in an empty vector.
+		// Parse into temporaries so ReadArchive failure never leaves count/vector split.
 		{
-			std::vector< Hashes::BtPureHash > oNewBlockBTH;
-			if ( m_nBlockCount )
+			std::vector<Hashes::BtPureHash> oNewBlockBTH;
+			if (nLoadBlockCount)
 			{
-				oNewBlockBTH.resize( m_nBlockCount );
+				if (!BtPieceHashDeclaredCountValid(nLoadBlockCount))
+					AfxThrowUserException();
+				size_t nHashBytes = 0;
+				if (!BtPieceHashTotalBytes(nLoadBlockCount, nHashBytes))
+					AfxThrowUserException();
 
-				for ( DWORD i = 0; i < m_nBlockCount; ++i )
+				oNewBlockBTH.resize(nLoadBlockCount);
+
+				for (DWORD i = 0; i < nLoadBlockCount; ++i)
 				{
-					ReadArchive( ar, &oNewBlockBTH[ i ][ 0 ], Hashes::BtPureHash::byteCount );
+					ReadArchive(ar, &oNewBlockBTH[i][0], Hashes::BtPureHash::byteCount);
 				}
 			}
 
+			if (!BtPieceHashReadyToCommit(nLoadBlockCount, oNewBlockBTH.size()))
+				AfxThrowUserException();
+
+			m_nBlockCount = nLoadBlockCount;
 			m_pBlockBTH.swap( oNewBlockBTH );
 		}
 
@@ -1100,26 +1128,29 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 
 	// Get the piece stuff
 	const CBENode* pPL = pInfo->GetNode( "piece length" );
-	if ( ! pPL || ! pPL->IsType( CBENode::beInt ) ) return FALSE;
+	if (!pPL || !pPL->IsType(CBENode::beInt)) return FALSE;
 	m_nBlockSize = (DWORD)pPL->GetInt();
-	if ( ! m_nBlockSize ) return FALSE;
+	if (!m_nBlockSize) return FALSE;
 
 	const CBENode* pHash = pInfo->GetNode( "pieces" );
-	if ( ! pHash || ! pHash->IsType( CBENode::beString ) ) return FALSE;
-	if ( pHash->m_nValue % Hashes::Sha1Hash::byteCount ) return FALSE;
-	m_nBlockCount = (DWORD)( pHash->m_nValue / Hashes::Sha1Hash::byteCount );
-	if ( ! m_nBlockCount || m_nBlockCount > 209716 ) return FALSE;
+	if (!pHash || !pHash->IsType(CBENode::beString)) return FALSE;
+	if (pHash->m_nValue % Hashes::Sha1Hash::byteCount) return FALSE;
+	const DWORD nPieceCount = (DWORD)(pHash->m_nValue / Hashes::Sha1Hash::byteCount);
+	if (!nPieceCount || !BtPieceHashDeclaredCountValid(nPieceCount)) return FALSE;
 
 	{
-		std::vector< Hashes::BtPureHash > oNewBlockBTH( m_nBlockCount );
-		std::copy( static_cast< const Hashes::BtHash::RawStorage* >( pHash->m_pValue ),
-			static_cast< const Hashes::BtHash::RawStorage* >( pHash->m_pValue ) + m_nBlockCount,
-			oNewBlockBTH.begin() );
-		m_pBlockBTH.swap( oNewBlockBTH );
+		std::vector<Hashes::BtPureHash> oNewBlockBTH(nPieceCount);
+		std::copy(static_cast<const Hashes::BtHash::RawStorage*>(pHash->m_pValue),
+		          static_cast<const Hashes::BtHash::RawStorage*>(pHash->m_pValue) + nPieceCount,
+		          oNewBlockBTH.begin());
+		if (!BtPieceHashReadyToCommit(nPieceCount, oNewBlockBTH.size()))
+			return FALSE;
+		m_nBlockCount = nPieceCount;
+		m_pBlockBTH.swap(oNewBlockBTH);
 	}
 
 	// Hash info
-	if ( const CBENode* pSHA1 = pInfo->GetNode( "sha1" ) )
+	if (const CBENode* pSHA1 = pInfo->GetNode("sha1"))
 	{
 		if ( ! pSHA1->IsType( CBENode::beString ) || pSHA1->m_nValue != Hashes::Sha1Hash::byteCount ) return FALSE;
 		m_oSHA1 = *static_cast< const Hashes::BtHash::RawStorage* >( pSHA1->m_pValue );
@@ -1538,12 +1569,12 @@ BOOL CBTInfo::FinishBlockTest(DWORD nBlock)
 {
 	ASSERT( IsAvailable() );
 
-	if ( m_pBlockBTH.empty() || nBlock >= m_nBlockCount )
+	if (!BtPieceHashBlockIndexInRange(m_nBlockCount, m_pBlockBTH.size(), nBlock))
 		return FALSE;
 
 	Hashes::BtHash oBTH;
 	m_pTestSHA1.Finish();
-	m_pTestSHA1.GetHash( &oBTH[ 0 ] );
+	m_pTestSHA1.GetHash(&oBTH[0]);
 	oBTH.validate();
 
 	return m_pBlockBTH[ nBlock ] == oBTH;

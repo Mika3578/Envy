@@ -1,7 +1,7 @@
 //
 // DiscoveryServices.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2020
+// This file is part of Envy (getenvy.com) Â 2016-2020
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -21,6 +21,8 @@
 #include "Envy.h"
 #include "DiscoveryServices.h"
 #include "BootstrapCatalog.h"
+#include "KadBootstrapColdStart.h"
+#include "KadNodesDat.h"
 #include "Buffer.h"
 #include "PacketLengthValidate.h"
 #include "Network.h"
@@ -102,11 +104,12 @@ DWORD CDiscoveryServices::GetCount(CDiscoveryService::Type nType /*dsNull*/, PRO
 		const CDiscoveryService* ptr = m_pList.GetNext( pos );
 		if ( ( nType == CDiscoveryService::dsNull ) || ( ptr->m_nType == nType ) )	// If we're counting all types, or it matches
 		{
-			if (  nProtocol == PROTOCOL_NULL ||									// If we're counting all protocols
-				( nProtocol == PROTOCOL_G1   && ptr->m_bGnutella1 ) ||			// Or we're counting G1 and it matches
-				( nProtocol == PROTOCOL_G2   && ptr->m_bGnutella2 ) ||			// Or we're counting G2 and it matches
-				( nProtocol == PROTOCOL_ED2K && ptr->m_nType == CDiscoveryService::dsServerList ) || 	// Or we're counting ED2K
-				( nProtocol == PROTOCOL_DC   && ptr->m_nType == CDiscoveryService::dsServerList ) )		// Or we're counting DC++
+			if (nProtocol == PROTOCOL_NULL ||                      // If we're counting all protocols
+			    (nProtocol == PROTOCOL_G1 && ptr->m_bGnutella1) || // Or we're counting G1 and it matches
+			    (nProtocol == PROTOCOL_G2 && ptr->m_bGnutella2) || // Or we're counting G2 and it matches
+			    (nProtocol == PROTOCOL_ED2K && ptr->m_nType == CDiscoveryService::dsServerList && ptr->m_nProtocolID == PROTOCOL_ED2K) ||
+			    (nProtocol == PROTOCOL_DC && ptr->m_nType == CDiscoveryService::dsServerList && ptr->m_nProtocolID == PROTOCOL_DC) ||
+			    (nProtocol == PROTOCOL_KAD && ptr->m_nType == CDiscoveryService::dsServerList && ptr->m_nProtocolID == PROTOCOL_KAD))
 			{
 				nCount++;
 			}
@@ -151,8 +154,22 @@ BOOL CDiscoveryServices::Add(LPCTSTR pszAddress, CDiscoveryService::Type nType, 
 
 	case CDiscoveryService::dsServerList:
 		if ( CheckWebCacheValid( pszAddress ) )
-			pService = new CDiscoveryService( nType, strAddress,
-				( nProtocol == PROTOCOL_DC || strAddress.Find( L"hublist", 6 ) > 6 || strAddress.Find( L".xml.bz2", 8 ) > 8 ) ? PROTOCOL_DC : PROTOCOL_ED2K );
+		{
+			PROTOCOLID nListProtocol = nProtocol;
+			if (nListProtocol == PROTOCOL_NULL || nListProtocol == PROTOCOL_ANY)
+			{
+				if (strAddress.Find(L"nodes.dat", 6) > 6)
+					nListProtocol = PROTOCOL_KAD;
+				else if (strAddress.Find(L"hublist", 6) > 6 || strAddress.Find(L".xml.bz2", 8) > 8)
+					nListProtocol = PROTOCOL_DC;
+				else
+					nListProtocol = PROTOCOL_ED2K;
+			}
+			if (nListProtocol == PROTOCOL_KAD &&
+			    !BootstrapIsHttpsUrl(strAddress, static_cast<size_t>(strAddress.GetLength())))
+				return FALSE;
+			pService = new CDiscoveryService(nType, strAddress, nListProtocol);
+		}
 		break;
 
 	case CDiscoveryService::dsGnutella:
@@ -212,8 +229,12 @@ BOOL CDiscoveryServices::Add(LPCTSTR pszAddress, CDiscoveryService::Type nType, 
 	if ( pService == NULL )
 		return FALSE;
 
-	// Set the appropriate protocol flags
-	switch ( nProtocol )
+	// Set the appropriate protocol flags (server-list rows carry the resolved protocol ID).
+	PROTOCOLID nFlagProtocol = nProtocol;
+	if (pService->m_nType == CDiscoveryService::dsServerList)
+		nFlagProtocol = pService->m_nProtocolID;
+
+	switch (nFlagProtocol)
 	{
 	case PROTOCOL_G2:
 		pService->m_bGnutella2 = TRUE;
@@ -225,6 +246,7 @@ BOOL CDiscoveryServices::Add(LPCTSTR pszAddress, CDiscoveryService::Type nType, 
 		break;
 	case PROTOCOL_ED2K:
 	case PROTOCOL_DC:
+	case PROTOCOL_KAD:
 		pService->m_bGnutella2 = FALSE;
 		pService->m_bGnutella1 = FALSE;
 		break;
@@ -588,7 +610,7 @@ void CDiscoveryServices::Serialize(CArchive& ar)
 
 BOOL CDiscoveryServices::EnoughServices() const
 {
-	int nWebCacheCount = 0, nServerMetCount = 0, nHubListCount = 0;	// Types of services
+	int nWebCacheCount = 0, nServerMetCount = 0, nHubListCount = 0, nKadNodesCount = 0;
 	int nG1Count = 0, nG2Count = 0;									// Protocols
 
 	for ( POSITION pos = m_pList.GetHeadPosition(); pos; )
@@ -608,8 +630,12 @@ BOOL CDiscoveryServices::EnoughServices() const
 		}
 		else if ( pService->m_nType == CDiscoveryService::dsServerList )
 		{
-			if ( pService->m_nProtocolID == PROTOCOL_DC ) nHubListCount++;
-			else /*if ( pService->m_nProtocolID == PROTOCOL_ED2K )*/ nServerMetCount++;
+			if (pService->m_nProtocolID == PROTOCOL_DC)
+				nHubListCount++;
+			else if (pService->m_nProtocolID == PROTOCOL_KAD)
+				nKadNodesCount++;
+			else
+				nServerMetCount++;
 		}
 	}
 
@@ -617,7 +643,8 @@ BOOL CDiscoveryServices::EnoughServices() const
 	        (nG2Count >= BootstrapMinG2Services) &&                                        // At least 3 G2 services
 	        (nG1Count >= BootstrapMinG1Services || !Settings.Gnutella1.ShowInterface) &&   // At least 2 G1 services, if exposed
 	        (nServerMetCount >= BootstrapMinEd2kMet || !Settings.eDonkey.ShowInterface) && // At least 2 server.met, if exposed
-	        (nHubListCount >= BootstrapMinDcHublists || !Settings.DC.ShowInterface));      // At least 2 hublist, if exposed
+	        (nHubListCount >= BootstrapMinDcHublists || !Settings.DC.ShowInterface) &&     // At least 2 hublist, if exposed
+	        (nKadNodesCount >= BootstrapMinKadNodesDat || !Settings.eDonkey.EnableKad));   // Kad nodes.dat when Kad enabled
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -678,6 +705,10 @@ void CDiscoveryServices::AddDefaults()
 					break;
 				case 'D':
 					if ( Add( strService, CDiscoveryService::dsServerList, PROTOCOL_ED2K ) ) // eDonkey service
+						nCount++;
+					break;
+				case 'K':
+					if (Add(strService, CDiscoveryService::dsServerList, PROTOCOL_KAD))
 						nCount++;
 					break;
 				case 'C':
@@ -974,6 +1005,7 @@ BOOL CDiscoveryServices::Execute(PROTOCOLID nProtocol /*PROTOCOL_NULL*/, USHORT 
 	BOOL bG1Required = FALSE;
 	BOOL bEdRequired = FALSE;
 	BOOL bDCRequired = FALSE;
+	BOOL bKadRequired = FALSE;
 
 	if ( Settings.Experimental.LAN_Mode )
 	{
@@ -1001,6 +1033,12 @@ BOOL CDiscoveryServices::Execute(PROTOCOLID nProtocol /*PROTOCOL_NULL*/, USHORT 
 			Settings.DC.AutoDiscovery &&
 			( nForceDiscovery == 1 || ! HostCache.EnoughServers( PROTOCOL_DC ) );
 			// || tNow >= m_tHubsQueried + 60 * 60 * 240 );		// ~10 days  ToDo: Settings.DC.HubListQueryPeriod
+
+		bKadRequired = Settings.eDonkey.EnableKad &&
+		               (nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_KAD) &&
+		               Settings.eDonkey.AutoDiscovery &&
+		               KadBootstrapColdStartMayRequest(GetTickCount()) &&
+		               (nForceDiscovery == 1 || !HostCache.EnoughServers(PROTOCOL_KAD));
 	}
 
 	// Broadcast discovery
@@ -1017,11 +1055,22 @@ BOOL CDiscoveryServices::Execute(PROTOCOLID nProtocol /*PROTOCOL_NULL*/, USHORT 
 		}
 	}
 
-	if ( nProtocol == PROTOCOL_NULL )	// All hosts are wanted G2/G1/ED/DC
-		return  ( ! bG1Required || RequestRandomService( PROTOCOL_G1 ) ) &&
-				( ! bG2Required || RequestRandomService( PROTOCOL_G2 ) ) &&
-				( ! bEdRequired || RequestRandomService( PROTOCOL_ED2K ) ) &&
-				( ! bDCRequired || RequestRandomService( PROTOCOL_DC ) );
+	if (nProtocol == PROTOCOL_NULL) // All hosts are wanted G2/G1/ED/DC/Kad
+	{
+		// One request owns m_pRequest and the discovery worker at a time.
+		// Queueing several protocols here would cancel each earlier request.
+		if (bG1Required)
+			return RequestRandomService(PROTOCOL_G1);
+		if (bG2Required)
+			return RequestRandomService(PROTOCOL_G2);
+		if (bEdRequired)
+			return RequestRandomService(PROTOCOL_ED2K);
+		if (bDCRequired)
+			return RequestRandomService(PROTOCOL_DC);
+		if (bKadRequired)
+			return RequestRandomService(PROTOCOL_KAD);
+		return TRUE;
+	}
 	if ( bG2Required )	// Only G2
 		return RequestRandomService( PROTOCOL_G2 );
 	if ( bG1Required )	// Only G1
@@ -1030,6 +1079,8 @@ BOOL CDiscoveryServices::Execute(PROTOCOLID nProtocol /*PROTOCOL_NULL*/, USHORT 
 		return RequestRandomService( PROTOCOL_ED2K );
 	if ( bDCRequired )	// Only DC++
 		return RequestRandomService( PROTOCOL_DC );
+	if (bKadRequired)
+		return RequestRandomService(PROTOCOL_KAD);
 
 	return TRUE;	// No Discovery needed
 
@@ -1120,6 +1171,9 @@ BOOL CDiscoveryServices::RequestRandomService(PROTOCOLID nProtocol)
 		return RequestWebCache( FALSE, pService, wcmHosts, nProtocol );
 	}
 
+	if (nProtocol == PROTOCOL_KAD)
+		KadBootstrapColdStartOnDownloadFailure(KadBootstrapPhaseNoCandidate);
+
 	return FALSE;
 }
 
@@ -1165,8 +1219,11 @@ CDiscoveryService* CDiscoveryServices::GetRandomService(PROTOCOLID nProtocol)
 			break;
 		case PROTOCOL_ED2K:
 		case PROTOCOL_DC:
-			if ( pService->m_nType == CDiscoveryService::dsServerList &&
-				( tNow > pService->m_tAccessed + pService->m_nAccessPeriod ) )
+		case PROTOCOL_KAD:
+			if (pService->m_nType == CDiscoveryService::dsServerList &&
+			    pService->m_nProtocolID == nProtocol &&
+			    (nProtocol == PROTOCOL_KAD ||
+			     tNow > pService->m_tAccessed + pService->m_nAccessPeriod))
 				pServices.Add( pService );
 			break;
 		//default:
@@ -1250,7 +1307,7 @@ BOOL CDiscoveryServices::RequestWebCache(BOOL bForced, CDiscoveryService* pServi
 	DWORD nHosts = 0;
 	const DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
-	if ( nMode == wcmServerList && nProtocol != PROTOCOL_ED2K && nProtocol != PROTOCOL_DC )
+	if (nMode == wcmServerList && nProtocol != PROTOCOL_ED2K && nProtocol != PROTOCOL_DC && nProtocol != PROTOCOL_KAD)
 		nProtocol = pService->m_nProtocolID;
 
 	switch ( nProtocol )
@@ -1266,6 +1323,9 @@ BOOL CDiscoveryServices::RequestWebCache(BOOL bForced, CDiscoveryService* pServi
 		break;
 	case PROTOCOL_DC:
 		nHosts = HostCache.DC.GetCount();
+		break;
+	case PROTOCOL_KAD:
+		nHosts = HostCache.Kademlia.GetCount();
 		break;
 	default:
 		ASSERT( FALSE );
@@ -1920,22 +1980,38 @@ BOOL CDiscoveryServices::RunWebCacheUpdate()
 //////////////////////////////////////////////////////////////////////
 // CDiscoveryServices HTTP request
 
-BOOL CDiscoveryServices::SendWebCacheRequest(const CString& strURL)
+BOOL CDiscoveryServices::SendWebCacheRequest(const CString& strURL, DWORD nMaxResponseBytes,
+                                             KadBootstrapColdStartPhase* pnFailurePhase)
 {
-//	strURL += L"&client=" _T(VENDOR_CODE) L"&version=" + theApp.m_sVersion;  // Obsolete
+	//	strURL += L"&client=" _T(VENDOR_CODE) L"&version=" + theApp.m_sVersion;  // Obsolete
 
-	if ( strURL.IsEmpty() || ! m_pRequest.SetURL( strURL ) )
+	if (pnFailurePhase != NULL)
+		*pnFailurePhase = KadBootstrapPhaseResponseMalformed;
+	if (strURL.IsEmpty() || !m_pRequest.SetURL(strURL))
 		return FALSE;
 
-	theApp.Message( MSG_DEBUG | MSG_FACILITY_OUTGOING, L"[DiscoveryServices] Request: %s", (LPCTSTR)strURL );
+	theApp.Message(MSG_DEBUG | MSG_FACILITY_OUTGOING, L"[DiscoveryServices] Request: %s", (LPCTSTR)strURL);
 
-	m_pRequest.LimitContentLength(DISCOVERY_HTTP_RESPONSE_MAX);
+	m_pRequest.LimitContentLength(nMaxResponseBytes);
 	bool bSuccess = m_pRequest.Execute(false);
 
-	theApp.Message( MSG_DEBUG | MSG_FACILITY_INCOMING, L"[DiscoveryServices] Request status: %d %s", m_pRequest.GetStatusCode(), (LPCTSTR)m_pRequest.GetStatusString() );
+	theApp.Message(MSG_DEBUG | MSG_FACILITY_INCOMING, L"[DiscoveryServices] Request status: %d %s", m_pRequest.GetStatusCode(), (LPCTSTR)m_pRequest.GetStatusString());
 
 	if (!bSuccess)
+	{
+		if (pnFailurePhase != NULL)
+			*pnFailurePhase = m_pRequest.GetStatusCode() == 0
+			                      ? KadBootstrapPhaseTimeout
+			                      : KadBootstrapPhaseResponseMalformed;
 		return FALSE;
+	}
+	const CBuffer* pRawBuffer = m_pRequest.GetResponseBuffer();
+	if (pRawBuffer == NULL)
+	{
+		if (pnFailurePhase != NULL)
+			*pnFailurePhase = KadBootstrapPhaseRejectedSize;
+		return FALSE;
+	}
 	if (!m_pRequest.InflateResponse())
 		return FALSE; // Deflate/gzip over DISCOVERY_HTTP_RESPONSE_MAX
 
@@ -1945,6 +2021,15 @@ BOOL CDiscoveryServices::SendWebCacheRequest(const CString& strURL)
 
 	return TRUE;
 }
+
+namespace
+{
+void KadBootstrapReportServerListFailure(PROTOCOLID nProtocol, KadBootstrapColdStartPhase nPhase)
+{
+	if (nProtocol == PROTOCOL_KAD)
+		KadBootstrapColdStartOnDownloadFailure(nPhase);
+}
+} // namespace
 
 //////////////////////////////////////////////////////////////////////
 // CDiscoveryServices execute server.met or hublist request, note ::RunWebCacheFile()
@@ -1958,35 +2043,72 @@ BOOL CDiscoveryServices::RunServerList()
 	if ( m_nWebCache != wcmServerList )
 		ASSERT( FALSE );
 
-	if ( ! Check( m_pWebCache, CDiscoveryService::dsServerList ) )
+	if (!Check(m_pWebCache, CDiscoveryService::dsServerList))
 		return FALSE;
 
 	m_pWebCache->OnAccess();
 	m_pWebCache->OnGivenHosts();
 
 	const CString strURL = m_pWebCache->m_sAddress;
+	const PROTOCOLID nListProtocol = m_pWebCache->m_nProtocolID;
 
 	pLock.Unlock();
 
-	if ( ! SendWebCacheRequest( strURL ) )
+	const DWORD nMaxResponse = (nListProtocol == PROTOCOL_KAD) ? KadBootstrapHttpMaxBytes() : DISCOVERY_HTTP_RESPONSE_MAX;
+	KadBootstrapColdStartPhase nFailurePhase = KadBootstrapPhaseResponseMalformed;
+	if (nListProtocol == PROTOCOL_KAD)
+	{
+		if (!BootstrapIsHttpsUrl(strURL, static_cast<size_t>(strURL.GetLength())))
+		{
+			KadBootstrapReportServerListFailure(nListProtocol, KadBootstrapPhaseResponseMalformed);
+			return FALSE;
+		}
+		m_pRequest.SetTimeout(KadBootstrapHttpTimeoutMs());
+		m_pRequest.SetFollowRedirects(false);
+	}
+
+	if (!SendWebCacheRequest(strURL, nMaxResponse,
+	                         nListProtocol == PROTOCOL_KAD ? &nFailurePhase : NULL))
+	{
+		KadBootstrapReportServerListFailure(nListProtocol, nFailurePhase);
 		return FALSE;
+	}
 
 	const CBuffer* pBuffer = m_pRequest.GetResponseBuffer();
 	if (pBuffer == NULL || pBuffer->m_pBuffer == NULL || !DiscoveryHttpResponseOk(pBuffer->m_nLength))
+	{
+		KadBootstrapReportServerListFailure(nListProtocol, KadBootstrapPhaseResponseMalformed);
 		return FALSE;
-
-	CMemFile pFile;
-	pFile.Write( pBuffer->m_pBuffer, pBuffer->m_nLength );
-	pFile.Seek( 0, CFile::begin );
+	}
 
 	if ( ! pLock.Lock( 250 ) )
 		return FALSE;
 
-	if ( ! Check( m_pWebCache, CDiscoveryService::dsServerList ) )
+	if (!Check(m_pWebCache, CDiscoveryService::dsServerList))
 		return FALSE;
 
-	const int nHosts = m_pWebCache->m_nProtocolID == PROTOCOL_DC ?
-		HostCache.ImportHubList( &pFile ) : HostCache.ImportMET( &pFile );
+	int nHosts = 0;
+	if (nListProtocol == PROTOCOL_KAD)
+	{
+		KadBootstrapAcquireResult nAcquire = KadBootstrapAcquireParseFailed;
+		nHosts = HostCache.ImportValidatedNodesDat(pBuffer->m_pBuffer, pBuffer->m_nLength, &nAcquire);
+		if (nHosts <= 0)
+		{
+			KadBootstrapReportServerListFailure(nListProtocol, KadBootstrapPhaseFromAcquireResult(nAcquire));
+			return FALSE;
+		}
+
+		KadBootstrapColdStartOnDownloadSuccess();
+		theApp.Message(MSG_NOTICE, L"Kad cold-start bootstrap imported %d contacts from %s", nHosts, (LPCTSTR)strURL);
+	}
+	else
+	{
+		CMemFile pFile;
+		pFile.Write(pBuffer->m_pBuffer, pBuffer->m_nLength);
+		pFile.Seek(0, CFile::begin);
+
+		nHosts = nListProtocol == PROTOCOL_DC ? HostCache.ImportHubList(&pFile) : HostCache.ImportMET(&pFile);
+	}
 
 	if ( ! nHosts ) return FALSE;
 

@@ -18,6 +18,8 @@
 
 #pragma once
 
+enum KadBootstrapAcquireResult : int;
+
 class CNeighbour;
 class CG1Packet;
 class CHostCacheHost;
@@ -186,8 +188,8 @@ public:
 	DWORD				m_nCookie;
 	mutable CMutex		m_pSection;
 
-	CHostCacheHostPtr	Add(const IN_ADDR* pAddress, WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0, DWORD nCurrentLeaves = 0, DWORD nLeafLimit = 0, LPCTSTR szAddress = NULL);
-	CHostCacheHostPtr 	Add(LPCTSTR pszHost, WORD nPort = 0, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0, DWORD nCurrentLeaves = 0, DWORD nLeafLimit = 0); 	// Add host in form "{IP|FQDN}[:Port][SeenTime]"
+	CHostCacheHostPtr Add(const IN_ADDR* pAddress, WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0, DWORD nCurrentLeaves = 0, DWORD nLeafLimit = 0, LPCTSTR szAddress = NULL, bool* pbAdded = NULL);
+	CHostCacheHostPtr Add(LPCTSTR pszHost, WORD nPort = 0, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0, DWORD nCurrentLeaves = 0, DWORD nLeafLimit = 0, bool* pbAdded = NULL); // Add host in form "{IP|FQDN}[:Port][SeenTime]"
 	void				Update(CHostCacheHostPtr pHost, WORD nPort = 0, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0, DWORD nCurrentLeaves = 0, DWORD nLeafLimit = 0);
 	CHostCacheMapItr	Remove(CHostCacheHostPtr pHost);
 	CHostCacheMapItr	Remove(const IN_ADDR* pAddress);
@@ -294,7 +296,8 @@ public:
 	int					Import(LPCTSTR pszFile, BOOL bFreshOnly = FALSE);
 	int					ImportHubList(CFile* pFile);	// Import DC++ hub list .xml.bz2 file
 	int					ImportMET(CFile* pFile);		// Import eDonkey2000 servers .met file
-	int ImportNodes(CFile* pFile);                      // Import Kademlia nodes.dat (v0–v3)
+	int ImportNodes(CFile* pFile, CArray<CHostCacheHostPtr>* pAddedHosts = NULL, int* pnAddedHosts = NULL); // Import Kademlia nodes.dat (v0–v3)
+	int ImportValidatedNodesDat(const BYTE* pData, DWORD nLength, KadBootstrapAcquireResult* pnFailureOut = NULL);
 	//int				ImportCache(CFile* pFile);		// ToDo: Support custom G2/Gnutella import/export .xml/.dat
 
 	bool				CheckMinimumServers(PROTOCOLID nProtocol);

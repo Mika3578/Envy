@@ -33,15 +33,17 @@ static char THIS_FILE[] = __FILE__;
 // CHttpRequest construction
 
 CHttpRequest::CHttpRequest()
-	: m_hInternet	( NULL )
-	, m_nLimit		( 0 )
-	, m_nStatusCode	( 0 )
-//	, m_pPost		( NULL )
-	, m_pResponse	( NULL )
-	, m_hNotifyWnd	( NULL )
-	, m_nNotifyMsg	( NULL )
-	, m_nNotifyParam( NULL )
-	, m_bUseCookie	( true )
+    : m_hInternet(NULL)
+    , m_nLimit(0)
+    , m_nTimeoutMs(0)
+    , m_nStatusCode(0)
+    //	, m_pPost		( NULL )
+    , m_pResponse(NULL)
+    , m_hNotifyWnd(NULL)
+    , m_nNotifyMsg(NULL)
+    , m_nNotifyParam(NULL)
+    , m_bUseCookie(true)
+    , m_bFollowRedirects(true)
 {
 }
 
@@ -60,8 +62,10 @@ void CHttpRequest::Clear()
 	m_sURL.Empty();
 	m_sRequestHeaders.Empty();
 
-	m_nLimit		= 0;
-	m_nStatusCode	= 0;
+	m_nLimit = 0;
+	m_nTimeoutMs = 0;
+	m_bFollowRedirects = true;
+	m_nStatusCode = 0;
 
 	m_sStatusString.Empty();
 	m_pResponseHeaders.RemoveAll();
@@ -129,6 +133,18 @@ void CHttpRequest::LimitContentLength(DWORD nLimit)
 {
 	if ( IsPending() ) return;
 	m_nLimit = nLimit;
+}
+
+void CHttpRequest::SetTimeout(DWORD nTimeoutMs)
+{
+	if (IsPending()) return;
+	m_nTimeoutMs = nTimeoutMs;
+}
+
+void CHttpRequest::SetFollowRedirects(bool bFollow)
+{
+	if (IsPending()) return;
+	m_bFollowRedirects = bFollow;
 }
 
 void CHttpRequest::SetNotify(HWND hWnd, UINT nMsg, WPARAM wParam)
@@ -245,20 +261,27 @@ void CHttpRequest::Cancel()
 
 void CHttpRequest::OnRun()
 {
-	ASSERT( ! m_sURL.IsEmpty() );	// ToDo: Track Failures from CBTTrackerRequest::OnRun()
-	ASSERT( m_pResponse == NULL );
+	ASSERT(!m_sURL.IsEmpty()); // ToDo: Track Failures from CBTTrackerRequest::OnRun()
+	ASSERT(m_pResponse == NULL);
 
-	if ( m_sURL.GetLength() < 14 )
-		return;		// Torrent Crash Prevention
+	if (m_sURL.GetLength() < 14)
+		return; // Torrent Crash Prevention
 
 	m_hInternet = CNetwork::SafeInternetOpen();
-	if ( m_hInternet )
+	if (m_hInternet)
 	{
-		HINTERNET hURL = CNetwork::InternetOpenUrl( m_hInternet,
-			m_sURL, m_sRequestHeaders, m_sRequestHeaders.GetLength(),
-			INTERNET_FLAG_KEEP_CONNECTION | INTERNET_FLAG_RELOAD | INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_NO_CACHE_WRITE |
-			( m_bUseCookie ? 0 : INTERNET_FLAG_NO_COOKIES ) );
-		if ( hURL )
+		if (m_nTimeoutMs > 0)
+		{
+			InternetSetOption(m_hInternet, INTERNET_OPTION_CONNECT_TIMEOUT, &m_nTimeoutMs, sizeof m_nTimeoutMs);
+			InternetSetOption(m_hInternet, INTERNET_OPTION_SEND_TIMEOUT, &m_nTimeoutMs, sizeof m_nTimeoutMs);
+			InternetSetOption(m_hInternet, INTERNET_OPTION_RECEIVE_TIMEOUT, &m_nTimeoutMs, sizeof m_nTimeoutMs);
+		}
+		HINTERNET hURL = CNetwork::InternetOpenUrl(m_hInternet,
+		                                           m_sURL, m_sRequestHeaders, m_sRequestHeaders.GetLength(),
+		                                           INTERNET_FLAG_KEEP_CONNECTION | INTERNET_FLAG_RELOAD | INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_NO_CACHE_WRITE |
+		                                               (m_bFollowRedirects ? 0 : INTERNET_FLAG_NO_AUTO_REDIRECT) |
+		                                               (m_bUseCookie ? 0 : INTERNET_FLAG_NO_COOKIES));
+		if (hURL)
 		{
 			DWORD nLength = 255;
 			BYTE nNull = 0;
@@ -309,7 +332,9 @@ void CHttpRequest::OnRun()
 						break;
 					}
 				}
-				if ( IsThreadEnabled() && nRemaining == 0 )
+				const bool bAtContentLimit = m_nLimit > 0 && m_pResponse != NULL &&
+				                             m_pResponse->m_nLength >= m_nLimit;
+				if (IsThreadEnabled() && m_pResponse != NULL && (nRemaining == 0 || bAtContentLimit))
 				{
 					nLength = 0;
 					HttpQueryInfo( hURL, HTTP_QUERY_RAW_HEADERS, &nNull, &nLength, 0 );

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Normalize Envy source headers to UTF-8 (copyright and common comment punctuation).
+"""Normalize Envy source headers to UTF-8.
 
-Replaces legacy Windows-1252 / invalid UTF-8 bytes on getenvy.com banner lines and
-in // comment lines with proper UTF-8 sequences. Intentional ASCII forms are kept:
-(getenvy.com) (C) ... and (getenvy.com) - ...
+Replaces legacy Windows-1252 / invalid UTF-8 bytes on getenvy.com banner lines.
+Comment-line punctuation conversion is opt-in with ``--fix-comment-cp1252``.
+Intentional ASCII forms are kept: (getenvy.com) (C) ... and (getenvy.com) - ...
 """
 
 from __future__ import annotations
@@ -113,11 +113,6 @@ def normalize_file(path: Path, fix_comments: bool, dry_run: bool) -> bool:
 def main() -> int:
 	parser = argparse.ArgumentParser(description=__doc__)
 	parser.add_argument(
-		"--no-comment-cp1252",
-		action="store_true",
-		help="Deprecated compatibility option; comment conversion is opt-in.",
-	)
-	parser.add_argument(
 		"--fix-comment-cp1252",
 		action="store_true",
 		help="Also convert CP1252 punctuation in // comment lines.",
@@ -128,7 +123,7 @@ def main() -> int:
 		help="Report files that would change without writing.",
 	)
 	args = parser.parse_args()
-	fix_comments = args.fix_comment_cp1252 and not args.no_comment_cp1252
+	fix_comments = args.fix_comment_cp1252
 
 	changed: list[str] = []
 	for path in git_ls_envy_sources():

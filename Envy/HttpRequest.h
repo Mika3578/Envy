@@ -34,10 +34,12 @@ public:
 	CString		GetURL() const;
 	BOOL		SetURL(LPCTSTR pszURL);
 	void		AddHeader(LPCTSTR pszKey, LPCTSTR pszValue);
-	void		SetPostData(LPCVOID pBody, DWORD nBody);
-	void		LimitContentLength(DWORD nLimit);
-	void		SetNotify(HWND hWnd, UINT nMsg, WPARAM wParam = 0);
-	int			GetStatusCode() const;
+	void SetPostData(LPCVOID pBody, DWORD nBody);
+	void LimitContentLength(DWORD nLimit);
+	void SetTimeout(DWORD nTimeoutMs);
+	void SetFollowRedirects(bool bFollow);
+	void SetNotify(HWND hWnd, UINT nMsg, WPARAM wParam = 0);
+	int GetStatusCode() const;
 	bool		GetStatusSuccess() const;
 	CString		GetStatusString() const;
 	CString		GetHeader(LPCTSTR pszName) const;
@@ -50,15 +52,18 @@ public:
 	void		EnableCookie(bool bEnable);
 	void		Cancel();
 
-// Data
+	// Data
 public:
-	CString		m_sURL;
+	CString m_sURL;
+
 protected:
-	HINTERNET	m_hInternet;
-	CString		m_sRequestHeaders;
-	bool		m_bUseCookie;
-	DWORD		m_nLimit;
-	int			m_nStatusCode;
+	HINTERNET m_hInternet;
+	CString m_sRequestHeaders;
+	bool m_bUseCookie;
+	bool m_bFollowRedirects;
+	DWORD m_nLimit;
+	DWORD m_nTimeoutMs;
+	int m_nStatusCode;
 	CString		m_sStatusString;
 //	CBuffer*	m_pPost;
 	CBuffer*	m_pResponse;

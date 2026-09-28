@@ -1,0 +1,36 @@
+name: PR validation phase
+
+on:
+  workflow_call:
+    outputs:
+      phase:
+        value: ${{ jobs.phase.outputs.phase }}
+      full_validation:
+        value: ${{ jobs.phase.outputs.full_validation }}
+
+permissions:
+  contents: read
+
+jobs:
+  phase:
+    name: Select validation phase
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      phase: ${{ steps.phase.outputs.phase }}
+      full_validation: ${{ steps.phase.outputs.full_validation }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Select phase (not merge eligibility)
+        id: phase
+        run: python3 .github/scripts/pr-phase.py
+      - name: Explain validation scope
+        env:
+          PHASE: ${{ steps.phase.outputs.phase }}
+        run: |
+          echo "Validation phase: $PHASE" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$PHASE" = draft ]; then
+            echo 'Windows validation is DEFERRED; no Windows build or runtime test is certified.' >> "$GITHUB_STEP_SUMMARY"
+          fi

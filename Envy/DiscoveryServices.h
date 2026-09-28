@@ -19,6 +19,9 @@
 #pragma once
 
 #include "HttpRequest.h"
+#include "PacketLengthValidate.h"
+
+enum KadBootstrapColdStartPhase : int;
 
 #define DSGnutellaTCP		"gnutella1:host:"
 #define DSGnutella2TCP		"gnutella2:host:"
@@ -154,10 +157,11 @@ protected:
 	CDiscoveryService*	GetRandomWebCache(PROTOCOLID nProtocol, BOOL bWorkingOnly, CDiscoveryService* pExclude = NULL, BOOL bForUpdate = FALSE);
 	BOOL				RequestWebCache(BOOL bForced, CDiscoveryService* pService, Mode nMode, PROTOCOLID nProtocol = PROTOCOL_NULL);
 	BOOL				RunWebCacheGet(BOOL bCache);
-	BOOL				RunWebCacheUpdate();
-	BOOL				RunServerList();	// RunWebCacheFile() -was RunServerMet()
-	BOOL				SendWebCacheRequest(const CString& strURL);
-	BOOL				EnoughServices() const;
+	BOOL RunWebCacheUpdate();
+	BOOL RunServerList(); // RunWebCacheFile() -was RunServerMet()
+	BOOL SendWebCacheRequest(const CString& strURL, DWORD nMaxResponseBytes = DISCOVERY_HTTP_RESPONSE_MAX,
+	                         KadBootstrapColdStartPhase* pnFailurePhase = NULL);
+	BOOL EnoughServices() const;
 	void				AddDefaults();
 	void				MergeURLs();
 	void				OnRun();

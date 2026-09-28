@@ -3124,70 +3124,95 @@ BOOL CEDClient::OnSourceAnswer(CEDPacket* pPacket)
 
 //////////////////////////////////////////////////////////////////////
 // CEDClient source request v2 (SourceEx2)
-// Format: <HASH 16><FileSizeLow 4>[FileSizeHigh 4 (legacy, detected heuristically when Low==0 and >=6 bytes remain)]<Options 2>
-// Note: This eMule-inherited wire format is ambiguous for a 32-bit zero size; parser resolves by packet length heuristic.
+// Format: <Version 1><Options 2><HASH 16> (eMule/aMule)
 
 BOOL CEDClient::OnSourceRequest2(CEDPacket* pPacket)
 {
-	if ( pPacket->GetRemaining() < Ed2kSourceEx2RequestMinBytes() )
+	const DWORD nBody = pPacket->GetRemaining();
+	if (nBody != Ed2kSourceEx2RequestMinBytes())
 	{
-		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 		return TRUE;
+	}
+
+	BYTE hashBytes[16];
+	BYTE nRequestedVersion = 0;
+	WORD nRequestedOptions = 0;
+	const Ed2kSourceEx2ParseStatus st = Ed2kSourceEx2ParseRequest(
+	    pPacket->m_pBuffer + pPacket->m_nPosition, nBody, hashBytes, &nRequestedVersion, &nRequestedOptions);
+
+	pPacket->Remove(Ed2kSourceEx2RequestMinBytes());
+
+	if (st != Ed2kSourceEx2ParseOk)
+	{
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
+		return TRUE;
+	}
+
+	if (nRequestedOptions != 0)
+	{
+		theApp.Message(MSG_DEBUG, L"[ED2K] %s: SourceEx2 request reserved options 0x%04x",
+		               (LPCTSTR)m_sAddress, nRequestedOptions);
 	}
 
 	Hashes::Ed2kHash oHash;
-	pPacket->Read( oHash );
+	memcpy(&oHash[0], hashBytes, Hashes::Ed2kHash::byteCount);
+	oHash.validate();
 
-	DWORD nFileSizeLow = pPacket->ReadLongLE();
-
-	// SourceEx2 request file size can be 32-bit, or legacy 64-bit format (<0><high32>).
-	// Legacy form is detected heuristically (Low32 == 0 and enough bytes for <high32><Options>),
-	// which is an on-wire ambiguity inherited from eMule.
-	if ( const DWORD nLegacy = Ed2kSourceEx2ConsumeLegacyHigh32( nFileSizeLow, pPacket->GetRemaining() ) )
-		(void)pPacket->ReadLongLE();
-
-	if ( ! Ed2kSourceEx2HasOptionsBytes( pPacket->GetRemaining() ) )
+	const BYTE nAnswerVersion = Ed2kSourceEx2NegotiatedAnswerVersion(nRequestedVersion);
+	if (nAnswerVersion == 0)
 	{
-		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 		return TRUE;
 	}
 
-	(void)pPacket->ReadShortLE();
-
-	CEDPacket* pReply = CEDPacket::New( ED2K_C2C_ANSWERSOURCES2, ED2K_PROTOCOL_EMULE );
+	CEDPacket* pReply = CEDPacket::New(ED2K_C2C_ANSWERSOURCES2, ED2K_PROTOCOL_EMULE);
 	int nCount = 0;
 
-	if ( CDownload* pDownload = Downloads.FindByED2K( oHash, TRUE ) )
+	if (CDownload* pDownload = Downloads.FindByED2K(oHash, TRUE))
 	{
-		for ( POSITION posSource = pDownload->GetIterator(); posSource; )
+		for (POSITION posSource = pDownload->GetIterator(); posSource;)
 		{
 			CDownloadSource* pSource = pDownload->GetNext( posSource );
 
-			if ( pSource->m_nProtocol == PROTOCOL_ED2K && pSource->m_bReadContent )
+			if (pSource->m_nProtocol == PROTOCOL_ED2K && pSource->m_bReadContent)
 			{
-				pReply->WriteLongLE( pSource->m_pAddress.S_un.S_addr );
-				pReply->WriteShortLE( pSource->m_nPort );
-				pReply->WriteLongLE( pSource->m_pServerAddress.S_un.S_addr );
-				pReply->WriteShortLE( (WORD)pSource->m_nServerPort );
-				pReply->Write( pSource->m_oGUID );
+				pReply->WriteLongLE(pSource->m_pAddress.S_un.S_addr);
+				pReply->WriteShortLE(pSource->m_nPort);
+				pReply->WriteLongLE(pSource->m_pServerAddress.S_un.S_addr);
+				pReply->WriteShortLE((WORD)pSource->m_nServerPort);
+
+				if (nAnswerVersion >= 2)
+					pReply->Write(pSource->m_oGUID);
+
+				if (nAnswerVersion >= 4)
+					pReply->WriteByte(0); // Crypt options: not advertised / not required
+
 				nCount++;
 			}
 		}
 	}
 
-	if ( pReply->m_nLength > 0 )
+	if (nCount > 0)
 	{
-		BYTE* pStart = pReply->WriteGetPointer( Hashes::Ed2kHash::byteCount + 2, 0 );
-		if ( pStart == NULL )
+		// Same safe pattern as OnSourceRequest: append records first, then insert the
+		// fixed header at offset 0 (WriteGetPointer must not be held across writes).
+		const DWORD nPrefix = 1u + Hashes::Ed2kHash::byteCount + 2u;
+		BYTE* pStart = pReply->WriteGetPointer(nPrefix, 0);
+
+		if (pStart == NULL)
 		{
 			pReply->Release();
 			return TRUE;
 		}
 
-		*reinterpret_cast< Hashes::Ed2kHash::RawStorage* >( pStart ) = oHash.storage();
-		pStart += Hashes::Ed2kHash::byteCount;
-		*(WORD*)pStart = WORD( nCount );
-		Send( pReply, FALSE );
+		if (!Ed2kSourceEx2WriteAnswerHeader(
+		        pStart, nPrefix, nAnswerVersion, &oHash[0], (WORD)nCount))
+		{
+			pReply->Release();
+			return TRUE;
+		}
+		Send(pReply, FALSE);
 	}
 
 	pReply->Release();
@@ -3196,45 +3221,67 @@ BOOL CEDClient::OnSourceRequest2(CEDPacket* pPacket)
 
 //////////////////////////////////////////////////////////////////////
 // CEDClient source answer v2 (SourceEx2)
-// Format: <HASH 16><Count 2>[<ClientID 4><Port 2><ServerIP 4><ServerPort 2><GUID 16>]*
+// Format: <Version 1><HASH 16><Count 2>[version-dependent records]
 
 BOOL CEDClient::OnSourceAnswer2(CEDPacket* pPacket)
 {
-	if ( ! Settings.Library.SourceMesh ) return TRUE;
+	if (!Settings.Library.SourceMesh) return TRUE;
 
-	if ( pPacket->GetRemaining() < Ed2kSourceEx2AnswerMinBytes() )
+	const DWORD nBody = pPacket->GetRemaining();
+	if (nBody < Ed2kSourceEx2AnswerHeaderMinBytes())
 	{
-		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
 		return TRUE;
 	}
+
+	// Fail-closed on the full packet before consuming bytes (hostile length/count).
+	BYTE hashPreview[16];
+	BYTE nVersionPreview = 0;
+	WORD nCountPreview = 0;
+	DWORD nRecordsLen = 0;
+	const Ed2kSourceEx2ParseStatus st = Ed2kSourceEx2ParseAnswerHeader(
+	    pPacket->m_pBuffer + pPacket->m_nPosition, nBody, &nVersionPreview, hashPreview, &nCountPreview, &nRecordsLen);
+
+	if (st != Ed2kSourceEx2ParseOk)
+	{
+		theApp.Message(MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType);
+		return TRUE;
+	}
+
+	const BYTE nVersion = nVersionPreview;
+	const WORD nCount = nCountPreview;
+
+	(void)pPacket->ReadByte();
 
 	Hashes::Ed2kHash oHash;
-	pPacket->Read( oHash );
-	DWORD nCount = pPacket->ReadShortLE();
+	pPacket->Read(oHash);
 
-	// SourceEx2 always includes GUID (28 bytes per source)
-	const DWORD nSourceSize = Ed2kSourceEx2SourceRecordBytes();
-	if ( ! ValidateSourcePacketBody( pPacket, nCount, nSourceSize ) )
+	(void)pPacket->ReadShortLE();
+
+	if (CDownload* pDownload = Downloads.FindByED2K(oHash))
 	{
-		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
-		return TRUE;
-	}
+		if (pDownload->IsCompleted() || pDownload->IsMoving()) return TRUE;
 
-	if ( CDownload* pDownload = Downloads.FindByED2K( oHash ) )
-	{
-		if ( pDownload->IsCompleted() || pDownload->IsMoving() ) return TRUE;
-
-		while ( nCount-- > 0 )
+		for (WORD i = 0; i < nCount; ++i)
 		{
-			DWORD nClientID   = pPacket->ReadLongLE();
-			WORD nClientPort  = pPacket->ReadShortLE();
-			DWORD nServerIP   = pPacket->ReadLongLE();
-			WORD nServerPort  = pPacket->ReadShortLE();
+			DWORD nClientID = pPacket->ReadLongLE();
+			WORD nClientPort = pPacket->ReadShortLE();
+			DWORD nServerIP = pPacket->ReadLongLE();
+			WORD nServerPort = pPacket->ReadShortLE();
 
 			Hashes::Guid oGUID;
-			pPacket->Read( oGUID );
-			pDownload->AddSourceED2K( nClientID, nClientPort, nServerIP, nServerPort, oGUID );
+			if (nVersion >= 2)
+				pPacket->Read(oGUID);
+
+			if (nVersion >= 4)
+				(void)pPacket->ReadByte();
+
+			pDownload->AddSourceED2K(nClientID, nClientPort, nServerIP, nServerPort, oGUID);
 		}
+	}
+	else
+	{
+		pPacket->Remove(nRecordsLen);
 	}
 
 	return TRUE;
