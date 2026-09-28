@@ -3207,7 +3207,7 @@ BOOL CEDClient::OnSourceRequest2(CEDPacket* pPacket)
 		}
 
 		if (!Ed2kSourceEx2WriteAnswerHeader(
-				pStart, nPrefix, nAnswerVersion, &oHash[0], (WORD)nCount))
+		        pStart, nPrefix, nAnswerVersion, &oHash[0], (WORD)nCount))
 		{
 			pReply->Release();
 			return TRUE;

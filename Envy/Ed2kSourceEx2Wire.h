@@ -59,7 +59,7 @@ inline BOOL Ed2kSourceEx2VersionSupported(BYTE nVersion)
 }
 
 inline BOOL Ed2kSourceEx2WriteAnswerHeader(
-	BYTE* pOut, DWORD nCapacity, BYTE nVersion, const BYTE* pHash16, WORD nCount)
+    BYTE* pOut, DWORD nCapacity, BYTE nVersion, const BYTE* pHash16, WORD nCount)
 {
 	if (pOut == NULL || pHash16 == NULL || nCapacity < Ed2kSourceEx2AnswerHeaderMinBytes())
 		return FALSE;
