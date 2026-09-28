@@ -9,6 +9,9 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx</Extensions>
     </Filter>
+    <Filter Include="Source Files\ed2k">
+      <UniqueIdentifier>{A7E3C1D2-4F8B-4E91-9C2D-1B5E6F0A3D84}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="test_main.cpp">
@@ -19,6 +22,9 @@
     </ClCompile>
     <ClCompile Include="test_protocol_parser_smoke.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test_ed2k_sourceex2_golden.cpp">
+      <Filter>Source Files\ed2k</Filter>
     </ClCompile>
     <ClCompile Include="test_ed2k_hello_golden.cpp">
       <Filter>Source Files</Filter>
@@ -81,6 +87,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test_kad_nodes_dat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test_kad_bootstrap_cold_start_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test_transfer_settings_limits_smoke.cpp">

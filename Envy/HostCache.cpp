@@ -31,6 +31,7 @@
 #include "XML.h"
 #include "BootstrapCatalog.h"
 #include "KadNodesDat.h"
+#include "KadBootstrapColdStart.h"
 #include "GProfile.h"
 
 #ifdef _DEBUG
@@ -380,7 +381,7 @@ void CHostCacheList::Clear()
 //////////////////////////////////////////////////////////////////////
 // CHostCacheList host add
 
-CHostCacheHostPtr CHostCacheList::Add(LPCTSTR pszHost, WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime, DWORD nCurrentLeaves, DWORD nLeafLimit)
+CHostCacheHostPtr CHostCacheList::Add(LPCTSTR pszHost, WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime, DWORD nCurrentLeaves, DWORD nLeafLimit, bool* pbAdded)
 {
 	CString strHost( pszHost );
 	strHost.Trim();
@@ -398,12 +399,14 @@ CHostCacheHostPtr CHostCacheList::Add(LPCTSTR pszHost, WORD nPort, DWORD tSeen, 
 			return NULL;
 	}
 
-	return Add( NULL, nPort, tSeen, pszVendor, nUptime, nCurrentLeaves, nLeafLimit, strHost );
+	return Add(NULL, nPort, tSeen, pszVendor, nUptime, nCurrentLeaves, nLeafLimit, strHost, pbAdded);
 }
 
-CHostCacheHostPtr CHostCacheList::Add(const IN_ADDR* pAddress, WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime, DWORD nCurrentLeaves, DWORD nLeafLimit, LPCTSTR szAddress)
+CHostCacheHostPtr CHostCacheList::Add(const IN_ADDR* pAddress, WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime, DWORD nCurrentLeaves, DWORD nLeafLimit, LPCTSTR szAddress, bool* pbAdded)
 {
 	ASSERT( pAddress || szAddress );
+	if (pbAdded)
+		*pbAdded = false;
 
 	if ( ! nPort )
 		nPort = protocolPorts[ m_nProtocol ];	// Use default port
@@ -459,6 +462,8 @@ CHostCacheHostPtr CHostCacheList::Add(const IN_ADDR* pAddress, WORD nPort, DWORD
 			m_HostsTime.insert( pHost );
 
 			m_nCookie++;
+			if (pbAdded)
+				*pbAdded = true;
 		}
 	}
 	else
@@ -988,7 +993,7 @@ int CHostCache::ImportMET(CFile* pFile)
 	return nServers;
 }
 
-int CHostCache::ImportNodes(CFile* pFile)
+int CHostCache::ImportNodes(CFile* pFile, CArray<CHostCacheHostPtr>* pAddedHosts, int* pnAddedHosts)
 {
 	if (!pFile)
 		return 0;
@@ -1043,10 +1048,13 @@ int CHostCache::ImportNodes(CFile* pFile)
 		CopyMemory(&oGUID[0], c.id, Hashes::Guid::byteCount);
 		oGUID.validate();
 
+		bool bAdded = false;
 		CHostCacheHostPtr pCache = Kademlia.Add(
-		    &pAddress, c.tcpPort ? c.tcpPort : c.udpPort);
+		    &pAddress, c.tcpPort ? c.tcpPort : c.udpPort, 0, NULL, 0, 0, 0, NULL, &bAdded);
 		if (pCache)
 		{
+			if (bAdded && pAddedHosts != NULL && pnAddedHosts != NULL)
+				pAddedHosts->SetAt((*pnAddedHosts)++, pCache);
 			pCache->m_oGUID = oGUID;
 			pCache->m_sDescription = oGUID.toString();
 			pCache->m_nUDPPort = c.udpPort;
@@ -1060,6 +1068,125 @@ int CHostCache::ImportNodes(CFile* pFile)
 	               nServers, oResult.acceptedCount, oResult.fileVersion,
 	               oResult.bootstrapEdition ? L", bootstrap edition" : L"");
 	return nServers;
+}
+
+int CHostCache::ImportValidatedNodesDat(const BYTE* pData, DWORD nLength, KadBootstrapAcquireResult* pnFailureOut)
+{
+	if (pnFailureOut != NULL)
+		*pnFailureOut = KadBootstrapAcquireParseFailed;
+
+	if (pData == NULL || nLength == 0)
+	{
+		if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquireEmptyBody;
+		return 0;
+	}
+
+	if (nLength > KadBootstrapHttpMaxBytes())
+	{
+		if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquireOversized;
+		return 0;
+	}
+
+	KadNodesDatResult oParsed = {};
+	const KadBootstrapAcquireResult nAcquire = KadBootstrapValidateDownloadedBody(pData, nLength, &oParsed);
+	if (nAcquire != KadBootstrapAcquireOk)
+	{
+		if (pnFailureOut != NULL)
+			*pnFailureOut = nAcquire;
+		return 0;
+	}
+
+	const CString strFile = Settings.General.DataPath + L"nodes.dat";
+	const CString strTemp = strFile + L".tmp";
+	const CString strLkg = strFile + L".lkg";
+	const bool bHadPriorNodesDat = (GetFileAttributes(strFile) != INVALID_FILE_ATTRIBUTES);
+
+	CFile pOut;
+	if (!pOut.Open(strTemp, CFile::modeWrite | CFile::modeCreate | CFile::shareExclusive))
+	{
+		DeleteFile(strTemp);
+		if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+		return 0;
+	}
+
+	try
+	{
+		pOut.Write(pData, nLength);
+		pOut.Close();
+	}
+	catch (CException* pException)
+	{
+		pException->Delete();
+		pOut.Abort();
+		DeleteFile(strTemp);
+		if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+		return 0;
+	}
+
+	if (bHadPriorNodesDat)
+	{
+		if (!CopyFile(strFile, strLkg, FALSE))
+		{
+			DeleteFile(strTemp);
+			if (pnFailureOut != NULL)
+				*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+			return 0;
+		}
+	}
+
+	if (!MoveFileEx(strTemp, strFile, MOVEFILE_REPLACE_EXISTING))
+	{
+		DeleteFile(strTemp);
+		if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+		return 0;
+	}
+
+	CArray<CHostCacheHostPtr> oAddedHosts;
+	oAddedHosts.SetSize(KadNodesDatNormalImportCap);
+	int nAddedHosts = 0;
+	int nImported = 0;
+	try
+	{
+		CMemFile pMem;
+		pMem.Write(pData, nLength);
+		pMem.Seek(0, CFile::begin);
+		nImported = ImportNodes(&pMem, &oAddedHosts, &nAddedHosts);
+	}
+	catch (CException* pException)
+	{
+		pException->Delete();
+		while (nAddedHosts > 0)
+			Kademlia.Remove(oAddedHosts[--nAddedHosts]);
+		if (KadBootstrapRestoreNodesDatAfterRejectedImport(bHadPriorNodesDat, strFile, strLkg))
+		{
+			if (pnFailureOut != NULL)
+				*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+		}
+		else if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+		return 0;
+	}
+
+	if (nImported <= 0)
+	{
+		while (nAddedHosts > 0)
+			Kademlia.Remove(oAddedHosts[--nAddedHosts]);
+		if (KadBootstrapRestoreNodesDatAfterRejectedImport(bHadPriorNodesDat, strFile, strLkg))
+		{
+			if (pnFailureOut != NULL)
+				*pnFailureOut = KadBootstrapAcquireNoAcceptedContacts;
+		}
+		else if (pnFailureOut != NULL)
+			*pnFailureOut = KadBootstrapAcquirePersistenceFailed;
+		return 0;
+	}
+
+	return nImported;
 }
 
 bool CHostCache::EnoughServers(PROTOCOLID nProtocol) const
@@ -1151,6 +1278,16 @@ bool CHostCache::CheckMinimumServers(PROTOCOLID nProtocol)
 	}
 
 	// ToDo: Try local Shareaza Servers.dat too
+
+	if (EnoughServers(nProtocol))
+		return true;
+
+	if (nProtocol == PROTOCOL_KAD)
+	{
+		if (Settings.eDonkey.EnableKad && KadBootstrapColdStartMayRequest(GetTickCount()))
+			DiscoveryServices.Execute(PROTOCOL_KAD, 1);
+		return EnoughServers(nProtocol);
+	}
 
 	if ( EnoughServers( nProtocol ) )
 		return true;

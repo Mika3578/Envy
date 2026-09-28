@@ -171,18 +171,12 @@ jobs:
     # Classify failure fails this job explicitly; when classify succeeds and
     # docs are out of scope, report success via no-op so Protect develop never
     # waits on a skipped/missing check (see docs/10_dev/CI_AUDIT_2026-09.md).
-    # When classify is cancelled (concurrency supersede), emit success no-op
-    # so a cancelled parent run does not leave a failed required check.
+    # A cancelled classifier must not certify documentation validation.
     if: always() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
 
     steps:
-      - name: Superseded run (classification cancelled)
-        if: needs.changes.result == 'cancelled'
-        run: |
-          echo "::notice::Classification cancelled (superseded); Documentation Check no-op success."
-
       - name: Fail if classification failed
-        if: needs.changes.result != 'success' && needs.changes.result != 'cancelled'
+        if: needs.changes.result != 'success'
         run: |
           echo "::error::Change classification did not succeed (${{ needs.changes.result }})."
           exit 1
