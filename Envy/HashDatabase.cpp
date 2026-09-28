@@ -189,7 +189,7 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 
 	if (pExisting)
 	{
-		if ( pExisting->nLength == nLength )
+		if (pExisting->nLength == nLength)
 			return pExisting;
 
 		pExisting->nIndex = 0;

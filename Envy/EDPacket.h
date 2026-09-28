@@ -127,6 +127,7 @@ protected:
 	{
 	public:
 		virtual ~CEDPacketPool() { Clear(FreePool); }
+
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);
