@@ -28,6 +28,18 @@ static const DWORD kPresets[] = {
 };
 static const unsigned int kPresetCount =
     static_cast<unsigned int>(sizeof(kPresets) / sizeof(kPresets[0]));
+
+struct WizardProfile
+{
+	DWORD nDownloadKilobits;
+	DWORD nUploadKilobits;
+};
+
+static const WizardProfile kWizardProfiles[] = {
+	{ 56, 36 }, { 128, 128 }, { 768, 128 }, { 1536, 256 }, { 3100, 2040 }, { 4096, 768 }, { 8192, 1024 }, { 10240, 2048 }, { 12288, 2048 }, { 16384, 5120 }, { 20480, 5120 }, { 25400, 10240 }, { 30720, 10240 }, { 50800, 20480 }, { 102400, 102400 }, { 204800, 204800 }, { 307200, 307200 }, { 409600, 409600 }, { 1024000, 921600 }, { 1544, 1544 }, { 44800, 44800 }, { 102400, 102400 }, { 155000, 155000 }
+};
+static const unsigned int kWizardProfileCount =
+    static_cast<unsigned int>(sizeof(kWizardProfiles) / sizeof(kWizardProfiles[0]));
 } // namespace TransferConnectionCapacityDetail
 
 inline unsigned int TransferConnectionCapacityPresetCount()
@@ -40,6 +52,25 @@ inline DWORD TransferConnectionCapacityPresetKilobits(unsigned int nIndex)
 	if (nIndex >= TransferConnectionCapacityDetail::kPresetCount)
 		return 0;
 	return TransferConnectionCapacityDetail::kPresets[nIndex];
+}
+
+inline unsigned int TransferConnectionCapacityWizardProfileCount()
+{
+	return TransferConnectionCapacityDetail::kWizardProfileCount;
+}
+
+inline DWORD TransferConnectionCapacityWizardProfileDownload(unsigned int nIndex)
+{
+	if (nIndex >= TransferConnectionCapacityDetail::kWizardProfileCount)
+		return 0;
+	return TransferConnectionCapacityDetail::kWizardProfiles[nIndex].nDownloadKilobits;
+}
+
+inline DWORD TransferConnectionCapacityWizardProfileUpload(unsigned int nIndex)
+{
+	if (nIndex >= TransferConnectionCapacityDetail::kWizardProfileCount)
+		return 0;
+	return TransferConnectionCapacityDetail::kWizardProfiles[nIndex].nUploadKilobits;
 }
 
 inline bool TransferConnectionCapacityShouldSyncUploadLimitOnConnectionApply()
@@ -95,6 +126,12 @@ inline bool TransferConnectionCapacityContainsUnit(const wchar_t* psz, const wch
 	return TransferWcsContainsNoCase(psz, pszUnit);
 }
 
+inline bool TransferConnectionCapacityContainsByteUnit(const wchar_t* psz)
+{
+	return wcsstr(psz, L"B/s") != NULL || wcsstr(psz, L"KB/s") != NULL ||
+	       wcsstr(psz, L"MB/s") != NULL || wcsstr(psz, L"GB/s") != NULL;
+}
+
 // Parse wizard / connection free-text capacity into Kb/s (multigig-safe).
 inline TransferConnectionCapacityParseResult TransferConnectionCapacityParseKilobitsText(
     const wchar_t* pszText)
@@ -129,6 +166,9 @@ inline TransferConnectionCapacityParseResult TransferConnectionCapacityParseKilo
 		szUnitScan[i] = L'\0';
 		pszUnits = szUnitScan;
 	}
+
+	if (TransferConnectionCapacityContainsByteUnit(pszUnits))
+		return oResult;
 
 	const bool bGigabit = TransferConnectionCapacityContainsUnit(pszUnits, L"gbps") ||
 	                      TransferConnectionCapacityContainsUnit(pszUnits, L"gb/s");

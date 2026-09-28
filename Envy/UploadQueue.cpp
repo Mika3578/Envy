@@ -403,7 +403,7 @@ DWORD CUploadQueue::GetAvailableBandwidth() const
 	const unsigned long long nReserveThreshold =
 	    static_cast<unsigned long long>(nTotal) *
 	    static_cast<unsigned long long>(Settings.Uploads.FreeBandwidthFactor) / 100ull;
-	if ( static_cast<unsigned long long>(nAvailable) < nReserveThreshold ) return 0;
+	if (static_cast<unsigned long long>(nAvailable) < nReserveThreshold) return 0;
 
 	return nAvailable;
 }

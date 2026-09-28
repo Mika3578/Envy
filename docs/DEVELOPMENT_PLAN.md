@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-26
+- **Last Updated:** 2026-09-28
+- **Changelog Entry:** 2026-09-28 — #367: derive named wizard connection profiles from the shared capacity model, reject ambiguous byte-per-second input, register the new capacity header in the MSBuild project, and align Unlimited upload documentation. #343/#344/#345 remain out of scope.
 - **Changelog Entry:** 2026-09-26 — #341 transfer bandwidth correctness: `TransferSettingsLimits.h` Kb/s→bytes/s and upload-headroom helpers (64-bit intermediates, DWORD saturation); fix Connection page integer-order bug (`92/100→0`); align Scheduler/Downloads/Uploads/UploadQueues/Datagrams paths. Slot/queue presets (#343/#344/#345) unchanged.
 - **Changelog Entry:** 2026-09-25 — #298: rebase BitTorrent keep-alive framing onto current `develop`; resolve CHANGELOG/DEVELOPMENT_PLAN with library (#301) and UI (#297) entries.
 - **Changelog Entry:** 2026-09-20 — #88/#91 BitTorrent keep-alive framing: `CBTPacket::ReadBuffer` now leaves the following frame prefix intact when returning a keep-alive; EnvyTests cover keep-alive marker removal and keep-alive+choke sequencing.

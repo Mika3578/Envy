@@ -103,56 +103,17 @@ BOOL CWizardConnectionPage::OnInitDialog()
 	CString strTemp;
 
 	// Set dropdown download values:  (Text via resource editor)
-	m_wndType.SetItemData( 0, 56 );		// Dial-up Modem
-	m_wndType.SetItemData( 1, 128 );	// ISDN 128K
-	m_wndType.SetItemData( 2, 768 );	// DSL  768K
-	m_wndType.SetItemData( 3, 1536 );	// DSL  1.5
-	m_wndType.SetItemData( 4, 3100 );	// Cable 3
-	m_wndType.SetItemData( 5, 4096 );	// DSL  4
-	m_wndType.SetItemData( 6, 8192 );	// DSL2 8
-	m_wndType.SetItemData( 7, 10240 );	// FIOS 10
-	m_wndType.SetItemData( 8, 12288 );	// DSL2 12
-	m_wndType.SetItemData( 9, 16384 );	// FIOS 15
-	m_wndType.SetItemData(10, 20480 );	// FIOS 20
-	m_wndType.SetItemData(11, 25400 );	// FIOS 25
-	m_wndType.SetItemData(12, 30720 );	// FIOS 30
-	m_wndType.SetItemData(13, 50800 );	// FIOS 50
-	m_wndType.SetItemData(14, 102400 );	// 100
-	m_wndType.SetItemData(15, 204800 );	// 200
-	m_wndType.SetItemData(16, 307200 );	// 300
-	m_wndType.SetItemData(17, 409600 );	// 400
-	m_wndType.SetItemData(18, 1024000 );	// 1 Gb/s (Ki-based preset)
-	m_wndType.SetItemData(19, 1544 );	// T1
-	m_wndType.SetItemData(20, 44800 );	// T3
-	m_wndType.SetItemData(21, 102400 );	// LAN 100
-	m_wndType.SetItemData(22, 155000 );	// OC3
+	for (unsigned int nProfile = 0;
+	     nProfile < TransferConnectionCapacityWizardProfileCount();
+	     ++nProfile)
+	{
+		m_wndType.SetItemData(
+		    static_cast<int>(nProfile),
+		    TransferConnectionCapacityWizardProfileDownload(nProfile));
+	}
 	m_wndType.SetCurSel( -1 );
 
 	// Set corresponding uploads:  (Must match above)
-	m_mapSpeed[ 56 ]		= 36;		// Dial-up Modem
-	m_mapSpeed[ 128 ]		= 128;		// ISDN 128K
-	m_mapSpeed[ 768 ]		= 128;		// DSL  768K
-	m_mapSpeed[ 1536 ]		= 256;		// DSL  1.5
-	m_mapSpeed[ 4096 ]		= 768;		// DSL  4
-	m_mapSpeed[ 3100 ]		= 2040;		// Cable 3
-	m_mapSpeed[ 8192 ]		= 1024;		// DSL2 8
-	m_mapSpeed[ 10240 ]		= 2048;		// FIOS 10
-	m_mapSpeed[ 12288 ]		= 2048;		// DSL2 12
-	m_mapSpeed[ 16384 ]		= 5120;		// FIOS 15
-	m_mapSpeed[ 20480 ]		= 5120;		// FIOS 20
-	m_mapSpeed[ 25400 ]		= 10240;	// FIOS 25
-	m_mapSpeed[ 30720 ]		= 10240;	// FIOS 30
-	m_mapSpeed[ 50800 ]		= 20480;	// FIOS 50
-	m_mapSpeed[ 102400 ]	= 102400;	// 100
-	m_mapSpeed[ 204800 ]	= 204800;	// 200
-	m_mapSpeed[ 307200 ]	= 307200;	// 300
-	m_mapSpeed[ 409600 ]	= 409600;	// 400
-	m_mapSpeed[ 1024000 ]	= 921600;	// 1 Gb/s upload headroom (legacy wizard ratio)
-	m_mapSpeed[ 1544 ]		= 1544; 	// T1
-	m_mapSpeed[ 44800 ]		= 44800;	// T3
-	m_mapSpeed[ 102400 ]	= 102400;	// LAN
-	m_mapSpeed[ 155000 ]	= 155000;	// OC3
-
 	// Translation: |Dial-up Modem|ISDN 128K|DSL 768K|DSL 1.5|Cable 3|DSL 4|DSL2 8|FIOS 10|DSL2 12|FIOS 15|FIOS 20|FIOS 25|FIOS 30|FIOS 50|100|200|300|400|Gigabit|T1|T3|LAN|OC3
 
 	for (unsigned int nPreset = 0; nPreset < TransferConnectionCapacityPresetCount(); ++nPreset)
@@ -186,7 +147,7 @@ BOOL CWizardConnectionPage::OnInitDialog()
 
 		// Initially try Shareaza's port to accomodate possible existing port-forwarding (with conflict)
 		const CString strRegPath = L"Software\\Shareaza\\Shareaza\\Connection";
-		DWORD nType = 0, nEnabled = 1, nPort, nSize = sizeof( m_nPort );
+		DWORD nType = 0, nEnabled = 1, nPort, nSize = sizeof(m_nPort);
 
 		CString strRegName = L"EnableUPnP";
 		LONG nErrorCode = SHRegGetUSValue( (LPCTSTR)strRegPath, (LPCTSTR)strRegName,
@@ -195,11 +156,11 @@ BOOL CWizardConnectionPage::OnInitDialog()
 		if ( nErrorCode == ERROR_SUCCESS && nEnabled == 0 )	// Plug'n'Play disabled, assume deliberately
 		{
 			strRegName = L"InPort";
-			nErrorCode = SHRegGetUSValue( (LPCTSTR)strRegPath, (LPCTSTR)strRegName,
-				&nType, (PBYTE)&nPort, &nSize, FALSE, NULL, 0 );
+			nErrorCode = SHRegGetUSValue((LPCTSTR)strRegPath, (LPCTSTR)strRegName,
+			                             &nType, (PBYTE)&nPort, &nSize, FALSE, NULL, 0);
 
-			if ( nErrorCode == ERROR_SUCCESS && nPort > 1024 && nPort <= 65535 ) 	//&& nType == REG_DWORD && nSize == sizeof( nPort ) )
-				m_nPort	= nPort;
+			if (nErrorCode == ERROR_SUCCESS && nPort > 1024 && nPort <= 65535) //&& nType == REG_DWORD && nSize == sizeof( nPort ) )
+				m_nPort = nPort;
 		}
 	}
 
@@ -257,7 +218,9 @@ void CWizardConnectionPage::OnSelChangeConnectionType()
 	const DWORD nSpeed = static_cast< DWORD >( m_wndType.GetItemData( nIndex ) );
 
 	m_wndDownloadSpeed.SetWindowText( SpeedFormat( (double)nSpeed ) );
-	m_wndUploadSpeed.SetWindowText( SpeedFormat( (double)m_mapSpeed[ nSpeed ] ) );
+	m_wndUploadSpeed.SetWindowText(
+	    SpeedFormat(static_cast<double>(
+	        TransferConnectionCapacityWizardProfileUpload(static_cast<unsigned int>(nIndex)))));
 }
 
 void CWizardConnectionPage::OnChangeConnectionSpeed()
@@ -309,7 +272,7 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	if ( nIndex >= 0 )
 	{
 		nDownloadSpeed = static_cast< DWORD >( m_wndType.GetItemData( nIndex ) );
-		nUploadSpeed = m_mapSpeed[ nDownloadSpeed ];
+		nUploadSpeed = TransferConnectionCapacityWizardProfileUpload(static_cast<unsigned int>(nIndex));
 	}
 	else
 	{

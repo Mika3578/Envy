@@ -52,8 +52,6 @@ protected:
 	DWORD		m_nPort;
 	short		m_nProgressSteps;
 
-	std::map < const DWORD, DWORD > m_mapSpeed;
-
 	CString		SpeedFormat(const double nSpeed) const;
 
 protected:

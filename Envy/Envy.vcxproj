@@ -1361,6 +1361,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="Ed2kLowIdCallback.h" />
     <ClInclude Include="Ed2kKadSettingsPolicy.h" />
     <ClInclude Include="DcHublistSources.h" />
+    <ClInclude Include="TransferConnectionCapacity.h" />
     <ClInclude Include="TransferSettingsLimits.h" />
     <ClInclude Include="TransferState.h" />
     <ClInclude Include="SkinEngineP0.h" />
