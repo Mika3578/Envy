@@ -509,7 +509,7 @@ CPacketPool::~CPacketPool()
 // CPacketPool clear
 
 // Delete all the packet objects that this packet pool points to, and return the member variables to defaults
-void CPacketPool::Clear()
+void CPacketPool::Clear(void (*pFreePool)(CPacket*))
 {
 	// Loop from the end of the pointer array back to the start
 	// GetSize returns the number of pointers in the array, start nIndex on the last one
@@ -520,7 +520,7 @@ void CPacketPool::Clear()
 		CPacket* pPool = m_pPools.GetAt( nIndex );
 
 		// Delete the packet pool, freeing the memory of the 256 packets in it
-		FreePoolImpl( pPool );		// Calls up higher on the inheritance tree
+		pFreePool( pPool );
 	}
 
 	// Clear all the member variables of this packet pool object

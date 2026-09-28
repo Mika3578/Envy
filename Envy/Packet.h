@@ -477,7 +477,7 @@ protected:
 
 protected:
 	// Delete all the packet pools, and make a new one
-	void Clear();		// Delete all the packet pools in this CPacketPool object
+	void Clear(void (*pFreePool)(CPacket*));		// Delete all the packet pools in this CPacketPool object
 	void NewPool(); 	// Create a new packet pool, which is an array that can hold 256 packets, and add it to the list here
 
 	// Methods inheriting classes implement to allocate and free arrays of 256 packets

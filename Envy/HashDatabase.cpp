@@ -185,17 +185,17 @@ HASHDB_INDEX* CHashDatabase::Lookup(DWORD nIndex, DWORD nType) const
 HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLength)
 {
 	ASSERT( m_bOpen );
-	HASHDB_INDEX* pIndex = Lookup( nIndex, nType );
+	HASHDB_INDEX* pExisting = Lookup( nIndex, nType );
 
-	if ( pIndex )
+	if ( pExisting )
 	{
-		if ( pIndex->nLength == nLength )
-			return pIndex;
+		if ( pExisting->nLength == nLength )
+			return pExisting;
 
-		pIndex->nIndex = 0;
-		pIndex = NULL;
+		pExisting->nIndex = 0;
 	}
 
+	HASHDB_INDEX* pResult = NULL;
 	size_t nBestPos = 0;
 	BOOL bHaveBest = FALSE;
 	DWORD nBestOverhead = 0xFFFFFFFF;
@@ -222,7 +222,7 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 
 	if ( bHaveBest )
 	{
-		pIndex = m_pIndex + nBestPos;
+		pResult = m_pIndex + nBestPos;
 	}
 	else
 	{
@@ -238,17 +238,17 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 			m_pIndex = pNew;
 		}
 
-		pIndex = m_pIndex + m_nIndex++;
-		pIndex->nOffset = m_nOffset;
-		pIndex->nLength = nLength;
+		pResult = m_pIndex + m_nIndex++;
+		pResult->nOffset = m_nOffset;
+		pResult->nLength = nLength;
 
 		m_nOffset += nLength;
 	}
 
-	pIndex->nIndex = nIndex;
-	pIndex->nType  = nType;
+	pResult->nIndex = nIndex;
+	pResult->nType  = nType;
 
-	return pIndex;
+	return pResult;
 }
 
 //////////////////////////////////////////////////////////////////////
