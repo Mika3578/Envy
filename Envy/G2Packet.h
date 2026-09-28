@@ -259,10 +259,11 @@ protected:
 	class CG2PacketPool : public CPacketPool
 	{
 	public:
-		virtual ~CG2PacketPool() { Clear(); }
+		virtual ~CG2PacketPool() { Clear(FreePool); }
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);
+		static void FreePool(CPacket* pPool);
 	};
 
 	static CG2PacketPool POOL;
@@ -325,4 +326,9 @@ inline void CG2Packet::CG2PacketPool::NewPoolImpl(int nSize, CPacket*& pPool, in
 inline void CG2Packet::CG2PacketPool::FreePoolImpl(CPacket* pPacket)
 {
 	delete [] (CG2Packet*)pPacket;
+}
+
+inline void CG2Packet::CG2PacketPool::FreePool(CPacket* pPacket)
+{
+	delete[] (CG2Packet*)pPacket;
 }

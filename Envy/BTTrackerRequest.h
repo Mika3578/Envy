@@ -199,10 +199,11 @@ protected:
 	class CBTTrackerPacketPool : public CPacketPool
 	{
 	public:
-		virtual ~CBTTrackerPacketPool() { Clear(); }
+		virtual ~CBTTrackerPacketPool() { Clear(FreePool); }
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);
+		static void FreePool(CPacket* pPool);
 	};
 
 	static CBTTrackerPacketPool POOL;
@@ -236,6 +237,11 @@ inline void CBTTrackerPacket::CBTTrackerPacketPool::NewPoolImpl(int nSize, CPack
 inline void CBTTrackerPacket::CBTTrackerPacketPool::FreePoolImpl(CPacket* pPacket)
 {
 	delete [] (CBTTrackerPacket*)pPacket;
+}
+
+inline void CBTTrackerPacket::CBTTrackerPacketPool::FreePool(CPacket* pPacket)
+{
+	delete[] (CBTTrackerPacket*)pPacket;
 }
 
 

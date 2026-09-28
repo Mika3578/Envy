@@ -44,10 +44,11 @@ protected:
 	class CDCPacketPool : public CPacketPool
 	{
 	public:
-		virtual ~CDCPacketPool() { Clear(); }
+		virtual ~CDCPacketPool() { Clear(FreePool); }
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);
+		static void FreePool(CPacket* pPool);
 	};
 
 	static CDCPacketPool POOL;
@@ -92,6 +93,11 @@ inline void CDCPacket::CDCPacketPool::NewPoolImpl(int nSize, CPacket*& pPool, in
 inline void CDCPacket::CDCPacketPool::FreePoolImpl(CPacket* pPacket)
 {
 	delete [] (CDCPacket*)pPacket;
+}
+
+inline void CDCPacket::CDCPacketPool::FreePool(CPacket* pPacket)
+{
+	delete[] (CDCPacket*)pPacket;
 }
 
 #define DC_PROTOCOL_MIN_LEN	3

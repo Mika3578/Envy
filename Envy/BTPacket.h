@@ -162,10 +162,11 @@ protected:
 	class CBTPacketPool : public CPacketPool
 	{
 	public:
-		virtual ~CBTPacketPool() { Clear(); }
+		virtual ~CBTPacketPool() { Clear(FreePool); }
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);
+		static void FreePool(CPacket* pPool);
 	};
 
 	static CBTPacketPool POOL;
@@ -201,6 +202,11 @@ inline void CBTPacket::CBTPacketPool::NewPoolImpl(int nSize, CPacket*& pPool, in
 inline void CBTPacket::CBTPacketPool::FreePoolImpl(CPacket* pPacket)
 {
 	delete [] (CBTPacket*)pPacket;
+}
+
+inline void CBTPacket::CBTPacketPool::FreePool(CPacket* pPacket)
+{
+	delete[] (CBTPacket*)pPacket;
 }
 
 #pragma pack(push, 1)
