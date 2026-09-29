@@ -191,9 +191,9 @@ inline TransferConnectionCapacityParseResult TransferConnectionCapacityParseKilo
 
 		double nBytesPerSecond = val;
 		if (bGigabyte)
-			nBytesPerSecond *= 1024.0 * 1024.0;
+			nBytesPerSecond *= 1024.0 * 1024.0 * 1024.0;
 		else if (bMegabyte)
-			nBytesPerSecond *= 1024.0;
+			nBytesPerSecond *= 1024.0 * 1024.0;
 		else if (bKilobyte)
 			nBytesPerSecond *= 1024.0;
 
