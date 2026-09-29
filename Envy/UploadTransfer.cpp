@@ -295,7 +295,8 @@ void CUploadTransfer::LongTermAverage(DWORD tNow)
 	{
 		m_nBandwidth = TransferBandwidthBytesToMeterLimit(Settings.Bandwidth.Uploads);
 	}
-	else if ( nAverage < m_nBandwidth * ( 100 - Settings.Uploads.ClampdownFactor ) / 100 )
+	else if ( !TransferBandwidthMeterLimitIsUnlimited(m_nBandwidth) &&
+		nAverage < m_nBandwidth * ( 100 - Settings.Uploads.ClampdownFactor ) / 100 )
 	{
 		DWORD nOld = m_nBandwidth;
 
@@ -304,7 +305,8 @@ void CUploadTransfer::LongTermAverage(DWORD tNow)
 		theApp.Message( MSG_DEBUG, L"Changing upload throttle on %s from %s to %s",
 			m_sAddress, Settings.SmartSpeed( nOld ), Settings.SmartSpeed( m_nBandwidth ) );
 	}
-	else if ( m_pQueue && m_pQueue->GetAvailableBandwidth() )
+	else if ( !TransferBandwidthMeterLimitIsUnlimited(m_nBandwidth) &&
+		m_pQueue && m_pQueue->GetAvailableBandwidth() )
 	{
 		ZeroMemory( m_nAverageRate, sizeof( m_nAverageRate ) );
 
