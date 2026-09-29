@@ -44,6 +44,8 @@ jobs:
           REPO="${REPOSITORY#*/}"
 
           # Inline finding titles for this review (untrusted text; parsed as data only).
+          # REVIEW_ID is from the trusted review event; require digits, then expose to jq via
+          # env.REVIEW_ID | tonumber — never interpolate the ID into the jq program string.
           if ! [[ "${REVIEW_ID}" =~ ^[0-9]+$ ]]; then
             echo "Invalid REVIEW_ID" >&2
             exit 1
