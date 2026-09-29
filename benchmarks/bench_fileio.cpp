@@ -29,12 +29,16 @@ std::filesystem::path BenchScratchRoot()
 	const DWORD length = GetEnvironmentVariableW(L"LOCALAPPDATA", local_app_data, MAX_PATH);
 	if (length == 0 || length >= MAX_PATH)
 		return {};
+	if (!BenchPathHasNoReparseAncestors(std::filesystem::path(local_app_data)))
+		return {};
 
 	std::filesystem::path root =
 		std::filesystem::path(local_app_data) / L"Envy" / L"BenchmarkScratch";
 	std::error_code ec;
 	std::filesystem::create_directories(root, ec);
 	if (ec)
+		return {};
+	if (!BenchPathHasNoReparseAncestors(root))
 		return {};
 	return root;
 }
@@ -58,6 +62,21 @@ bool BenchPathIsReparsePoint(const std::filesystem::path& path)
 	if (attr == INVALID_FILE_ATTRIBUTES)
 		return false;
 	return (attr & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
+}
+
+bool BenchPathHasNoReparseAncestors(const std::filesystem::path& path)
+{
+	if (path.empty())
+		return false;
+
+	std::filesystem::path current;
+	for (const auto& part : path)
+	{
+		current /= part;
+		if (BenchPathIsReparsePoint(current))
+			return false;
+	}
+	return true;
 }
 
 bool BenchPathConfinedUnder(const std::filesystem::path& root, const std::filesystem::path& candidate)
@@ -108,12 +127,19 @@ bool BenchWritePayloadExclusive(const std::filesystem::path& path,
 	DWORD written = 0;
 	const BOOL ok = WriteFile(hFile, payload.data(), static_cast<DWORD>(payload.size()), &written,
 	                          nullptr);
-	CloseHandle(hFile);
 	if (!ok || written != payload.size())
 	{
+		CloseHandle(hFile);
 		DeleteFileW(path.c_str());
 		return false;
 	}
+	if (!FlushFileBuffers(hFile))
+	{
+		CloseHandle(hFile);
+		DeleteFileW(path.c_str());
+		return false;
+	}
+	CloseHandle(hFile);
 	return true;
 }
 
@@ -140,8 +166,18 @@ bool BenchRewritePayload(const std::filesystem::path& path,
 	DWORD written = 0;
 	const BOOL ok = WriteFile(hFile, payload.data(), static_cast<DWORD>(payload.size()), &written,
 	                          nullptr);
+	if (!ok || written != payload.size())
+	{
+		CloseHandle(hFile);
+		return false;
+	}
+	if (!FlushFileBuffers(hFile))
+	{
+		CloseHandle(hFile);
+		return false;
+	}
 	CloseHandle(hFile);
-	return ok && written == payload.size();
+	return true;
 }
 
 struct WriteFixture
@@ -169,7 +205,8 @@ bool PrepareWriteFiles(const std::shared_ptr<WriteFixture>& fixture)
 	std::error_code ec;
 	std::filesystem::remove_all(fixture->root, ec);
 	std::filesystem::create_directories(fixture->root, ec);
-	if (ec || BenchPathIsReparsePoint(fixture->root))
+	if (ec || !BenchPathHasNoReparseAncestors(fixture->root) ||
+	    BenchPathIsReparsePoint(fixture->root))
 	{
 		ReportFileIoFailure("create write scratch directory");
 		return false;
@@ -210,8 +247,7 @@ BenchWorkloadResult SequentialWriteOnly(const std::shared_ptr<WriteFixture>& fix
 	for (std::size_t f = 0; f < fixture->files; ++f)
 	{
 		const auto path = fixture->root / ("bench-" + std::to_string(f) + ".bin");
-		if (!BenchPathConfinedUnder(fixture->root, path) ||
-		    !BenchRewritePayload(path, fixture->payload))
+		if (!BenchRewritePayload(path, fixture->payload))
 		{
 			ReportFileIoFailure("rewrite write target");
 			return BenchFail();
@@ -247,7 +283,8 @@ bool PrepareReadFiles(const std::shared_ptr<ReadFixture>& fixture)
 	std::error_code ec;
 	std::filesystem::remove_all(fixture->root, ec);
 	std::filesystem::create_directories(fixture->root, ec);
-	if (ec || BenchPathIsReparsePoint(fixture->root))
+	if (ec || !BenchPathHasNoReparseAncestors(fixture->root) ||
+	    BenchPathIsReparsePoint(fixture->root))
 	{
 		ReportFileIoFailure("create read scratch directory");
 		return false;
@@ -295,11 +332,6 @@ BenchWorkloadResult SequentialReadOnly(const std::shared_ptr<ReadFixture>& fixtu
 	for (std::size_t f = 0; f < fixture->files; ++f)
 	{
 		const auto path = fixture->root / ("bench-" + std::to_string(f) + ".bin");
-		if (BenchPathIsReparsePoint(path) || !BenchPathConfinedUnder(fixture->root, path))
-		{
-			ReportFileIoFailure("read target path unsafe");
-			return BenchFail();
-		}
 		std::ifstream in(path, std::ios::binary);
 		if (!in)
 		{
