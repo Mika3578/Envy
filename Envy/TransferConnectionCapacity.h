@@ -240,6 +240,24 @@ inline TransferConnectionCapacityParseResult TransferConnectionCapacityParseKilo
 		}
 		nKilobits = static_cast<unsigned long long>(nScaled);
 	}
+	else if (!TransferConnectionCapacityContainsByteUnit(pszUnits) &&
+	         (TransferConnectionCapacityContainsUnit(pszUnits, L"b/s") ||
+	          TransferConnectionCapacityContainsUnit(pszUnits, L"bps")))
+	{
+		// Settings.SmartSpeed with RatesUnit == 1 can emit raw bits/s (e.g. 104857600 b/s).
+		const double nKilobitsScaled = val / 1024.0;
+		if (!std::isfinite(nKilobitsScaled) || nKilobitsScaled < 0.0)
+		{
+			oResult.eStatus = TransferConnectionCapacityParseStatus::Negative;
+			return oResult;
+		}
+		if (nKilobitsScaled > static_cast<double>(0xFFFFFFFFull))
+		{
+			oResult.eStatus = TransferConnectionCapacityParseStatus::Overflow;
+			return oResult;
+		}
+		nKilobits = static_cast<unsigned long long>(nKilobitsScaled);
+	}
 	else
 	{
 		// kbps / Kb/s or bare number from "NNNN kbps (...)" wizard strings.

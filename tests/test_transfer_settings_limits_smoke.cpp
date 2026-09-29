@@ -470,6 +470,12 @@ static bool test_capacity_parse_byte_units_to_kilobits()
 	       oKb.eStatus == TransferConnectionCapacityParseStatus::Ok && oKb.nKilobitsPerSecond == 4096ull;
 }
 
+static bool test_capacity_parse_bits_per_sec_smart_speed()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"104857600 b/s");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Ok && o.nKilobitsPerSecond == 102400ull;
+}
+
 static bool test_wizard_profiles_use_canonical_gigabit_capacity()
 {
 	return TransferConnectionCapacityWizardProfileDownload(18) == 1024000u &&
@@ -629,6 +635,8 @@ void register_transfer_settings_limits_smoke_tests(TestSuite& suite)
 	               test_capacity_parse_wizard_mbps_with_kbs_parenthetical);
 	suite.add_test("transfer_capacity_parse_byte_units_to_kilobits",
 	               test_capacity_parse_byte_units_to_kilobits);
+	suite.add_test("transfer_capacity_parse_bits_per_sec_smart_speed",
+	               test_capacity_parse_bits_per_sec_smart_speed);
 	suite.add_test("transfer_wizard_profiles_use_canonical_gigabit_capacity",
 	               test_wizard_profiles_use_canonical_gigabit_capacity);
 	suite.add_test("transfer_capacity_parse_rejects_nan",
