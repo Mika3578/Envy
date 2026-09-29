@@ -52,50 +52,173 @@ void ReportFileIoFailure(const char* detail)
 	std::fprintf(stderr, "fileio workload failure: %s\n", detail);
 }
 
-BenchWorkloadResult SequentialWrite(std::size_t bytes, std::size_t files)
+bool BenchPathIsReparsePoint(const std::filesystem::path& path)
 {
-	const auto payload = MakePayload(bytes);
+	const DWORD attr = GetFileAttributesW(path.c_str());
+	if (attr == INVALID_FILE_ATTRIBUTES)
+		return false;
+	return (attr & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
+}
+
+bool BenchPathConfinedUnder(const std::filesystem::path& root, const std::filesystem::path& candidate)
+{
+	std::error_code ec;
+	const auto root_canon = std::filesystem::weakly_canonical(root, ec);
+	if (ec)
+		return false;
+	const auto file_canon = std::filesystem::weakly_canonical(candidate, ec);
+	if (ec)
+		return false;
+	const auto root_prefix = root_canon.native();
+	const auto file_prefix = file_canon.native();
+	if (file_prefix.size() < root_prefix.size())
+		return false;
+	if (file_prefix.compare(0, root_prefix.size(), root_prefix) != 0)
+		return false;
+	if (file_prefix.size() > root_prefix.size())
+	{
+		const wchar_t next = file_prefix[root_prefix.size()];
+		if (next != L'\\' && next != L'/')
+			return false;
+	}
+	return true;
+}
+
+bool BenchWritePayloadExclusive(const std::filesystem::path& path,
+                                const std::vector<std::uint8_t>& payload)
+{
+	if (BenchPathIsReparsePoint(path))
+		return false;
+
+	const HANDLE hFile = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW,
+	                                 FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
+	                                 nullptr);
+	if (hFile == INVALID_HANDLE_VALUE)
+		return false;
+
+	BY_HANDLE_FILE_INFORMATION info{};
+	if (!GetFileInformationByHandle(hFile, &info) ||
+	    (info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
+	{
+		CloseHandle(hFile);
+		DeleteFileW(path.c_str());
+		return false;
+	}
+
+	DWORD written = 0;
+	const BOOL ok = WriteFile(hFile, payload.data(), static_cast<DWORD>(payload.size()), &written,
+	                          nullptr);
+	CloseHandle(hFile);
+	if (!ok || written != payload.size())
+	{
+		DeleteFileW(path.c_str());
+		return false;
+	}
+	return true;
+}
+
+bool BenchRewritePayload(const std::filesystem::path& path,
+                         const std::vector<std::uint8_t>& payload)
+{
+	if (BenchPathIsReparsePoint(path))
+		return false;
+
+	const HANDLE hFile = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, TRUNCATE_EXISTING,
+	                                 FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
+	                                 nullptr);
+	if (hFile == INVALID_HANDLE_VALUE)
+		return false;
+
+	BY_HANDLE_FILE_INFORMATION info{};
+	if (!GetFileInformationByHandle(hFile, &info) ||
+	    (info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
+	{
+		CloseHandle(hFile);
+		return false;
+	}
+
+	DWORD written = 0;
+	const BOOL ok = WriteFile(hFile, payload.data(), static_cast<DWORD>(payload.size()), &written,
+	                          nullptr);
+	CloseHandle(hFile);
+	return ok && written == payload.size();
+}
+
+struct WriteFixture
+{
+	std::filesystem::path root;
+	std::size_t bytes = 0;
+	std::size_t files = 0;
+	std::vector<std::uint8_t> payload;
+};
+
+bool PrepareWriteFiles(const std::shared_ptr<WriteFixture>& fixture)
+{
+	if (!fixture)
+		return false;
+
 	const auto scratch_root = BenchScratchRoot();
 	if (scratch_root.empty())
 	{
 		ReportFileIoFailure("LOCALAPPDATA / scratch root unavailable");
-		return BenchFail();
+		return false;
 	}
 
-	const auto root = scratch_root / "write";
+	fixture->payload = MakePayload(fixture->bytes);
+	fixture->root = scratch_root / "write";
 	std::error_code ec;
-	std::filesystem::remove_all(root, ec);
-	std::filesystem::create_directories(root, ec);
-	if (ec)
+	std::filesystem::remove_all(fixture->root, ec);
+	std::filesystem::create_directories(fixture->root, ec);
+	if (ec || BenchPathIsReparsePoint(fixture->root))
 	{
 		ReportFileIoFailure("create write scratch directory");
+		return false;
+	}
+
+	for (std::size_t f = 0; f < fixture->files; ++f)
+	{
+		const auto path = fixture->root / ("bench-" + std::to_string(f) + ".bin");
+		if (!BenchPathConfinedUnder(fixture->root, path) ||
+		    !BenchWritePayloadExclusive(path, fixture->payload))
+		{
+			ReportFileIoFailure("create write target");
+			return false;
+		}
+	}
+	return true;
+}
+
+void CleanupWriteFiles(const std::shared_ptr<WriteFixture>& fixture)
+{
+	if (!fixture || fixture->root.empty())
+		return;
+	std::error_code ec;
+	std::filesystem::remove_all(fixture->root, ec);
+	fixture->root.clear();
+}
+
+BenchWorkloadResult SequentialWriteOnly(const std::shared_ptr<WriteFixture>& fixture)
+{
+	if (!fixture || fixture->root.empty() || fixture->bytes == 0 || fixture->files == 0 ||
+	    fixture->payload.size() != fixture->bytes)
+	{
+		ReportFileIoFailure("write fixture not prepared");
 		return BenchFail();
 	}
 
 	std::uint64_t sink = 0;
-	for (std::size_t f = 0; f < files; ++f)
+	for (std::size_t f = 0; f < fixture->files; ++f)
 	{
-		const auto path = root / ("bench-" + std::to_string(f) + ".bin");
-		std::ofstream out(path, std::ios::binary | std::ios::trunc);
-		if (!out)
+		const auto path = fixture->root / ("bench-" + std::to_string(f) + ".bin");
+		if (!BenchPathConfinedUnder(fixture->root, path) ||
+		    !BenchRewritePayload(path, fixture->payload))
 		{
-			ReportFileIoFailure("open write target");
+			ReportFileIoFailure("rewrite write target");
 			return BenchFail();
 		}
-		out.write(reinterpret_cast<const char*>(payload.data()),
-		          static_cast<std::streamsize>(payload.size()));
-		out.flush();
-		if (!out.good())
-		{
-			ReportFileIoFailure("write/flush payload");
-			return BenchFail();
-		}
-		// Do not inspect stream state after close(); flush already published durable bytes.
-		out.close();
-		sink ^= static_cast<std::uint64_t>(payload.size()) ^ static_cast<std::uint64_t>(f + 1);
+		sink ^= static_cast<std::uint64_t>(fixture->payload.size()) ^
+		        static_cast<std::uint64_t>(f + 1);
 	}
-
-	std::filesystem::remove_all(root, ec);
 	return BenchOk(sink);
 }
 
@@ -124,7 +247,7 @@ bool PrepareReadFiles(const std::shared_ptr<ReadFixture>& fixture)
 	std::error_code ec;
 	std::filesystem::remove_all(fixture->root, ec);
 	std::filesystem::create_directories(fixture->root, ec);
-	if (ec)
+	if (ec || BenchPathIsReparsePoint(fixture->root))
 	{
 		ReportFileIoFailure("create read scratch directory");
 		return false;
@@ -133,21 +256,12 @@ bool PrepareReadFiles(const std::shared_ptr<ReadFixture>& fixture)
 	for (std::size_t f = 0; f < fixture->files; ++f)
 	{
 		const auto path = fixture->root / ("bench-" + std::to_string(f) + ".bin");
-		std::ofstream out(path, std::ios::binary | std::ios::trunc);
-		if (!out)
+		if (!BenchPathConfinedUnder(fixture->root, path) ||
+		    !BenchWritePayloadExclusive(path, payload))
 		{
 			ReportFileIoFailure("open read-setup target");
 			return false;
 		}
-		out.write(reinterpret_cast<const char*>(payload.data()),
-		          static_cast<std::streamsize>(payload.size()));
-		out.flush();
-		if (!out.good())
-		{
-			ReportFileIoFailure("write/flush read-setup payload");
-			return false;
-		}
-		out.close();
 	}
 
 	fixture->scratch.assign(fixture->bytes, 0);
@@ -181,6 +295,11 @@ BenchWorkloadResult SequentialReadOnly(const std::shared_ptr<ReadFixture>& fixtu
 	for (std::size_t f = 0; f < fixture->files; ++f)
 	{
 		const auto path = fixture->root / ("bench-" + std::to_string(f) + ".bin");
+		if (BenchPathIsReparsePoint(path) || !BenchPathConfinedUnder(fixture->root, path))
+		{
+			ReportFileIoFailure("read target path unsafe");
+			return BenchFail();
+		}
 		std::ifstream in(path, std::ios::binary);
 		if (!in)
 		{
@@ -210,11 +329,19 @@ void RegisterWrite(BenchRegistry& registry,
                    std::size_t bytes,
                    std::size_t files)
 {
+	auto fixture = std::make_shared<WriteFixture>();
+	fixture->bytes = bytes;
+	fixture->files = files;
+
 	BenchRegistry::Entry e{};
 	e.group = "fileio";
 	e.name = name;
-	e.workload = [bytes, files]()
-	{ return SequentialWrite(bytes, files); };
+	e.setup = [fixture]()
+	{ return PrepareWriteFiles(fixture); };
+	e.teardown = [fixture]()
+	{ CleanupWriteFiles(fixture); };
+	e.workload = [fixture]()
+	{ return SequentialWriteOnly(fixture); };
 	e.warmup_samples = 1;
 	e.timed_samples = 5;
 	e.iterations_per_sample = 1;
