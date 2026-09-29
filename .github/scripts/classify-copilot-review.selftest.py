@@ -52,13 +52,34 @@ class ClassifyCopilotReviewTests(unittest.TestCase):
     def test_closer_look_none_is_diagnostic_not_clean(self):
         out = classify_fixture("closer-look-none-en-pot.json")
         self.assertEqual(out["classification"], MOD.CLASSIFICATION_CLOSER_LOOK_DIAGNOSTIC)
-        self.assertTrue(out["requires_fixer"])
+        self.assertFalse(out["requires_fixer"])
+        self.assertTrue(out["requires_human"])
         self.assertIn("en.pot", out["rationale"])
 
     def test_closer_look_none_with_resolved_section(self):
         out = classify_fixture("closer-look-none-resolved.json")
         self.assertEqual(out["classification"], MOD.CLASSIFICATION_CLOSER_LOOK_DIAGNOSTIC)
+        self.assertFalse(out["requires_fixer"])
         self.assertGreaterEqual(len(out["resolved_since_last_titles"]), 1)
+
+    def test_assessment_approved_without_github_approved(self):
+        fixture = load_fixture("approved-none.json")
+        fixture["state"] = "COMMENTED"
+        out = MOD.classify_review(MOD.review_input_from_github(fixture))
+        self.assertEqual(out["classification"], MOD.CLASSIFICATION_HUMAN_REQUIRED)
+        self.assertFalse(out["requires_fixer"])
+        self.assertTrue(out["requires_human"])
+
+    def test_quota_blocked(self):
+        out = classify_fixture("copilot-quota.json")
+        self.assertEqual(out["classification"], MOD.CLASSIFICATION_QUOTA_BLOCKED)
+        self.assertTrue(out["requires_human"])
+        self.assertFalse(out["requires_fixer"])
+
+    def test_diff_too_large(self):
+        out = classify_fixture("copilot-diff-too-large.json")
+        self.assertEqual(out["classification"], MOD.CLASSIFICATION_DIFF_TOO_LARGE)
+        self.assertTrue(out["requires_human"])
 
     def test_human_validation_rationale(self):
         out = classify_fixture("closer-look-human-validation.json")

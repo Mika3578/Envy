@@ -8,7 +8,7 @@
 - **Local verify:** `scripts/ci-fast.ps1`, `scripts/ci-verify.ps1` (see [devsecops-envy.md](devsecops-envy.md)).
 - **Versioning:** `scripts/auto-version.ps1`, `scripts/bump-version.ps1`, `version.json`
 - **Build:** `build_all.ps1` (local full-matrix build via MSBuild)
-- **AI / review:** CodeRabbit (advisory, `.coderabbit.yaml`), clang-tidy→reviewdog on PRs, `.github/copilot-instructions.md`, `.cursor/rules/`
+- **AI / review:** CodeRabbit (advisory, `.coderabbit.yaml`), clang-tidy→reviewdog on PRs, `.github/copilot-instructions.md`, `.cursor/rules/`; advisory HEAD-scoped **PR Review Gate**; manual idempotent final Copilot request; Copilot outcome classifier
 - **Cloud Agent Linux env:** `.cursor/environment.json` provisions clang-format-18/clang-tidy (CI-aligned) plus cppcheck as an extra local tool, and `Remote/tests` npm deps (not a Windows MSVC substitute)
 - **Dependencies:** Dependabot **vcpkg only**; Renovate for GitHub Actions (root `renovate.json`, including `forkProcessing: "enabled"` because this repo is a fork)
 
@@ -173,8 +173,42 @@ second workflow that polls those checks.
 PR #346's superseded-generation fix and PR #349's semantic gate are obsolete
 once the live ruleset no longer requires PR Gate. Their closure is a GitHub
 operation outside this repository change.
-Keep the obsolete requester for merged #294/#354 until PR #383 lands on
-`develop`. Do not duplicate the final review requester in other PRs.
+
+### HEAD-scoped PR Review Gate (advisory)
+
+`.github/workflows/review-gate.yml` is an **advisory** diagnostic. It is
+**not** a Protect develop required check and does not approve, merge, dismiss
+reviews, or resolve threads. It acquires a read-only snapshot and evaluates
+`.github/scripts/evaluate-pr-review-gate.py` against the current HEAD SHA.
+
+The gate separates two questions:
+
+- **review_complete** — a Copilot review finished for `head_sha` (`COMMENTED`
+  or `APPROVED` is enough for this gate).
+- **merge_approval_valid** — a real GitHub `review.state == APPROVED` exists
+  for that same HEAD (assessment text or the word "Approved" is never enough).
+
+Stale reviews (`commit_id != HEAD` or `DISMISSED` after push) never count.
+`dismiss_stale_reviews_on_push` stays enabled on Protect develop. Copilot
+`review_on_push` stays **off**; final reviews are requested manually after
+cheap reviewers and grouped fixes stabilize the HEAD.
+
+Generation budget: at most **3** distinct Copilot HEAD generations. Exceeding
+that stops with `GENERATION_BUDGET_EXCEEDED` / human inspection.
+
+### Final Copilot request (manual, idempotent)
+
+`.github/workflows/request-copilot-review.yml` (`workflow_dispatch` only)
+runs `.github/scripts/request-final-copilot-review.sh`. Before requesting:
+
+1. refuse Draft / non-`develop` / unresolved threads / red required checks;
+2. if a completed Copilot review already exists for the current HEAD → no-op;
+3. if a Copilot review request or request-marker already exists for that HEAD → wait;
+4. otherwise clear+re-request Copilot once (preserving human/team reviewers)
+   and post `<!-- envy-final-copilot-request:v1 -->` for the SHA.
+
+No fixed `sleep` waits. This replaces the temporary #294/#354-only requester
+and supersedes the narrower scope of PR #383 once this lands.
 
 ### Copilot review outcome interpreter (after review)
 
@@ -187,15 +221,13 @@ authority; Protect develop stays authoritative.
 
 Deterministic parsing lives in `.github/scripts/classify-copilot-review.py`.
 Classifications include `APPROVED`, `ACTIONABLE_FINDINGS`,
-`CLOSER_LOOK_DIAGNOSTIC`, `VALIDATION_MISSING`, `HUMAN_REQUIRED`, and
-`REVIEW_ERROR`. The essential case is `Needs a closer look` +
-`Findings: None` → `CLOSER_LOOK_DIAGNOSTIC` (fixer wakes for a targeted
-closure audit; **do not** treat as “no issues” and **do not** auto re-request
-Copilot).
+`CLOSER_LOOK_DIAGNOSTIC`, `VALIDATION_MISSING`, `HUMAN_REQUIRED`,
+`REVIEW_ERROR`, `COPILOT_QUOTA_BLOCKED`, and `COPILOT_DIFF_TOO_LARGE`.
 
-Depends on PR #382 (review decision policy docs/skill) and PR #383 (manual
-final Copilot request after final-candidate). Rebase this branch after both
-merge; do not fork competing requester logic.
+`Needs a closer look` + `Findings: None` → `CLOSER_LOOK_DIAGNOSTIC` with
+`requires_fixer=false` and `requires_human=true`. Do **not** modify code
+arbitrarily and do **not** auto re-request Copilot. A green assessment without
+`review.state == APPROVED` is never merge approval.
 
 Loop guards: repeat `CLOSER_LOOK_DIAGNOSTIC` on the same HEAD and rationale
 fingerprint without new findings escalates to `HUMAN_REQUIRED`. The outcome
@@ -203,6 +235,11 @@ workflow accepts only machine-authored outcome comments whose embedded review
 ID is a real Copilot review on the current HEAD; it does not track treated
 thread IDs, so the conversation ledger remains responsible for thread-level
 deduplication.
+
+Manual Copilot settings that remain outside repository YAML (verify in
+Settings → Copilot / ruleset UI): approve-and-count toggles, optional path
+allowlist, Balanced effort. Protect develop currently keeps
+`review_on_push: false` and `review_draft_pull_requests: false`.
 
 ### One subscribed Envy PR Stabilizer (external setup)
 
@@ -248,21 +285,20 @@ latest bot-authored `envy-copilot-review-outcome:v1` comment and the submitted
 Copilot overview together. The workflow correlates the outcome's review ID
 and HEAD with a submitted Copilot review; ordinary PR comments are untrusted
 and must not drive fixer or stop behavior. When classification is
- `CLOSER_LOOK_DIAGNOSTIC`, build a
-topic ledger from the rationale (and recent Copilot history); classify each
-topic as `ACTIONABLE`, `ALREADY_FIXED`, `VALIDATION_MISSING`, `FALSE_POSITIVE`,
-`HUMAN_REQUIRED`, or `UNKNOWN`. Never re-request Copilot solely because
-`Findings: None`. After a real fix and push, wait for CI and let #383's
-final-candidate requester trigger the next review. Infrastructure, quota,
-baseline or unavailable-secret failures require a human, not code churn.
+`CLOSER_LOOK_DIAGNOSTIC`, stop automatic code churn and produce a diagnostic
+topic ledger for human confirmation. Never re-request Copilot solely because
+`Findings: None`. After a real grouped fix and push, wait for CI, then use the
+idempotent final Copilot requester once the HEAD is stable. Infrastructure,
+quota, baseline or unavailable-secret failures require a human, not code churn.
 
 Read the remote HEAD before work and again before push. If it changed, stop and
 reconcile ownership; never force or overwrite another writer. Make one coherent
 batch, run targeted tests, create a signed commit using the configured human
 GitHub noreply identity, and push once. Verify GitHub reports the signature.
 Reply with commit/test evidence and resolve only genuinely fixed threads after
-the push; do not silently dismiss disputed or uncertain findings. Let native
-Copilot review-on-push and CI run. No automatic reviewer requests.
+the push; do not silently dismiss disputed or uncertain findings. Let CI run;
+do not auto-request Copilot on every push. Use the idempotent final requester
+only after the HEAD is stable. No automatic reviewer requests.
 
 Draft budget: three pushed batches total. Ready budget: two total. Phase toggles,
 replays, successful tests or resumed conversations do not reset these counters.

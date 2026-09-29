@@ -30,6 +30,8 @@ CLASSIFICATION_CLOSER_LOOK_DIAGNOSTIC = "CLOSER_LOOK_DIAGNOSTIC"
 CLASSIFICATION_VALIDATION_MISSING = "VALIDATION_MISSING"
 CLASSIFICATION_HUMAN_REQUIRED = "HUMAN_REQUIRED"
 CLASSIFICATION_REVIEW_ERROR = "REVIEW_ERROR"
+CLASSIFICATION_QUOTA_BLOCKED = "COPILOT_QUOTA_BLOCKED"
+CLASSIFICATION_DIFF_TOO_LARGE = "COPILOT_DIFF_TOO_LARGE"
 CLASSIFICATION_NON_COPILOT = "NON_COPILOT"
 CLASSIFICATION_MALFORMED = "MALFORMED"
 
@@ -37,6 +39,13 @@ _OVERVIEW_MARKER = re.compile(r"<!--\s*ccr-overview-v2\s*-->", re.I)
 _ERROR_BODY = re.compile(
     r"^Copilot encountered an error and was unable to review",
     re.I | re.M,
+)
+_QUOTA_BODY = re.compile(
+    r"(?i)\b(quota|rate\s*limit|usage\s*limit)\b",
+)
+_DIFF_TOO_LARGE_BODY = re.compile(
+    r"(?i)(too\s+large|diff\s+is\s+too\s+large|exceeds\s+the\s+maximum|"
+    r"unable\s+to\s+review\s+because.{0,40}size)",
 )
 _HEADING = re.compile(
     r"^###\s*(?:\S+\s+)?(?P<label>Approved|Approval recommended|"
@@ -129,6 +138,14 @@ def parse_copilot_overview(body: str) -> ParsedOverview:
     if not body or not body.strip():
         return ParsedOverview(ASSESSMENT_UNKNOWN, "", None, None, malformed=True)
 
+    if _QUOTA_BODY.search(body) and (
+        "unable" in body.lower() or "cannot" in body.lower() or "error" in body.lower()
+    ):
+        return ParsedOverview(ASSESSMENT_ERROR, body.strip(), None, None)
+
+    if _DIFF_TOO_LARGE_BODY.search(body):
+        return ParsedOverview(ASSESSMENT_ERROR, body.strip(), None, None)
+
     if _ERROR_BODY.search(body):
         return ParsedOverview(ASSESSMENT_ERROR, body.strip(), None, None)
 
@@ -199,12 +216,19 @@ def classify_review(review: ReviewInput) -> dict[str, Any]:
         )
 
     parsed = parse_copilot_overview(review.body)
+    body_lower = (review.body or "").lower()
 
     if parsed.assessment == ASSESSMENT_ERROR:
+        if _QUOTA_BODY.search(review.body or ""):
+            error_class = CLASSIFICATION_QUOTA_BLOCKED
+        elif _DIFF_TOO_LARGE_BODY.search(review.body or ""):
+            error_class = CLASSIFICATION_DIFF_TOO_LARGE
+        else:
+            error_class = CLASSIFICATION_REVIEW_ERROR
         return _result(
             review,
             assessment=ASSESSMENT_ERROR,
-            classification=CLASSIFICATION_REVIEW_ERROR,
+            classification=error_class,
             requires_fixer=False,
             requires_human=True,
             parsed=parsed,
@@ -223,6 +247,7 @@ def classify_review(review: ReviewInput) -> dict[str, Any]:
     open_count = _effective_finding_count(parsed, review.open_finding_titles)
     github_state = (review.github_review_state or "").upper()
 
+    # Text containing "Approved" is never enough; GitHub state is authoritative.
     if github_state == "APPROVED" and parsed.assessment == ASSESSMENT_APPROVED:
         classification = CLASSIFICATION_APPROVED
         requires_fixer = False
@@ -232,19 +257,23 @@ def classify_review(review: ReviewInput) -> dict[str, Any]:
         requires_fixer = True
         requires_human = False
     elif parsed.assessment == ASSESSMENT_NEEDS_CLOSER_LOOK and open_count == 0:
+        # Findings: None must not trigger arbitrary code churn. Stop with a
+        # diagnostic for human/stabilizer confirmation instead.
         classification = CLASSIFICATION_CLOSER_LOOK_DIAGNOSTIC
-        requires_fixer = True
-        requires_human = False
+        requires_fixer = False
+        requires_human = True
         if parsed.rationale and _HUMAN_HINTS.search(parsed.rationale):
             classification = CLASSIFICATION_HUMAN_REQUIRED
-            requires_fixer = False
-            requires_human = True
         elif parsed.rationale and _VALIDATION_HINTS.search(parsed.rationale):
             classification = CLASSIFICATION_VALIDATION_MISSING
+        elif "approved" in body_lower and github_state != "APPROVED":
+            # Guard against mistaking assessment/body wording for approval.
+            requires_human = True
     elif parsed.assessment in (
         ASSESSMENT_APPROVAL_RECOMMENDED,
         ASSESSMENT_APPROVED,
     ):
+        # Assessment green without GitHub APPROVED is not merge approval.
         classification = CLASSIFICATION_HUMAN_REQUIRED
         requires_fixer = False
         requires_human = True

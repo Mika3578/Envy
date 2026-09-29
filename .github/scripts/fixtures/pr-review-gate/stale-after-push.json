@@ -1,0 +1,64 @@
+{
+  "checks": [
+    {
+      "name": "Build x64 Release",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Build Win32 Release",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Lint build files",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Vcpkg manifest sanity",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Format Check",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "secret-scan",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Analyze (c-cpp)",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "SonarCloud Code Analysis",
+      "state": "SUCCESS"
+    }
+  ],
+  "head_stable": true,
+  "required_contexts": [
+    "Build x64 Release",
+    "Build Win32 Release",
+    "Lint build files",
+    "Vcpkg manifest sanity",
+    "Format Check",
+    "secret-scan",
+    "Analyze (c-cpp)",
+    "SonarCloud Code Analysis"
+  ],
+  "copilot_outcome": {},
+  "threads": [],
+  "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "changed_files": 3,
+  "reviews": [
+    {
+      "body": "<!-- ccr-overview-v2 -->\n### Approved\n",
+      "submitted_at": "2026-09-29T11:00:00Z",
+      "state": "DISMISSED",
+      "id": 10,
+      "commit_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "user": {
+        "login": "copilot-pull-request-reviewer[bot]"
+      }
+    }
+  ],
+  "copilot_generation_count": 1
+}

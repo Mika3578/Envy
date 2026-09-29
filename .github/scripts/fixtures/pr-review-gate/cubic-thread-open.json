@@ -1,0 +1,80 @@
+{
+  "checks": [
+    {
+      "name": "Build x64 Release",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Build Win32 Release",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Lint build files",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Vcpkg manifest sanity",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Format Check",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "secret-scan",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Analyze (c-cpp)",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "SonarCloud Code Analysis",
+      "state": "SUCCESS"
+    }
+  ],
+  "head_stable": true,
+  "required_contexts": [
+    "Build x64 Release",
+    "Build Win32 Release",
+    "Lint build files",
+    "Vcpkg manifest sanity",
+    "Format Check",
+    "secret-scan",
+    "Analyze (c-cpp)",
+    "SonarCloud Code Analysis"
+  ],
+  "copilot_outcome": {
+    "assessment": "APPROVED",
+    "finding_count": 0,
+    "classification": "APPROVED"
+  },
+  "threads": [
+    {
+      "comments": [
+        {
+          "body": "fix encoding",
+          "user": {
+            "login": "cubic-dev-ai[bot]"
+          }
+        }
+      ],
+      "isResolved": false
+    }
+  ],
+  "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "changed_files": 3,
+  "reviews": [
+    {
+      "body": "ok",
+      "submitted_at": "2026-09-29T12:00:00Z",
+      "state": "APPROVED",
+      "id": 15,
+      "commit_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "user": {
+        "login": "copilot-pull-request-reviewer[bot]"
+      }
+    }
+  ],
+  "copilot_generation_count": 1
+}
