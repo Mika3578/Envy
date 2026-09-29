@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ENVY = ROOT / "Envy"
 
 COPYRIGHT_CANONICAL = b"getenvy.com) \xc2\xa9 "
+COPYRIGHT_ASCII_LEGACY = b"getenvy.com) (C) "
 
 COPYRIGHT_REPLACEMENTS: tuple[tuple[bytes, bytes], ...] = (
 	(b"getenvy.com) \x9d ", COPYRIGHT_CANONICAL),
@@ -56,7 +57,17 @@ def is_comment_line(line: bytes) -> bool:
 	return stripped.startswith(b"//")
 
 
-def normalize_line(line: bytes, fix_comments: bool) -> bytes:
+def file_bytes_are_utf8(data: bytes) -> bool:
+	if data.startswith(b"\xff\xfe") or data.startswith(b"\xfe\xff"):
+		return False
+	try:
+		data.decode("utf-8")
+	except UnicodeDecodeError:
+		return False
+	return True
+
+
+def normalize_line(line: bytes, fix_comments: bool, use_ascii_copyright: bool) -> bytes:
 	new_line = line
 	if b"getenvy.com)" in new_line and b"20" in new_line:
 		if b"getenvy.com) (C)" in new_line:
@@ -65,10 +76,13 @@ def normalize_line(line: bytes, fix_comments: bool) -> bytes:
 			pass
 		elif COPYRIGHT_CANONICAL in new_line:
 			pass
+		elif COPYRIGHT_ASCII_LEGACY in new_line:
+			pass
 		else:
-			for old, new in COPYRIGHT_REPLACEMENTS:
+			target = COPYRIGHT_ASCII_LEGACY if use_ascii_copyright else COPYRIGHT_CANONICAL
+			for old, _ in COPYRIGHT_REPLACEMENTS:
 				if old in new_line:
-					new_line = new_line.replace(old, new)
+					new_line = new_line.replace(old, target)
 	if fix_comments and is_comment_line(new_line):
 		# CP1252 byte replacements must not run on valid UTF-8 (e.g. em dash ends in 0x94).
 		try:
@@ -84,6 +98,7 @@ def normalize_file(path: Path, fix_comments: bool, dry_run: bool) -> bool:
 	data = path.read_bytes()
 	if data.startswith(b"\xff\xfe") or data.startswith(b"\xfe\xff"):
 		return False
+	use_ascii_copyright = not file_bytes_are_utf8(data)
 	ends_with_nl = data.endswith(b"\n") or data.endswith(b"\r\n")
 	# Preserve original newline style per line.
 	parts = data.splitlines(keepends=True)
@@ -94,7 +109,7 @@ def normalize_file(path: Path, fix_comments: bool, dry_run: bool) -> bool:
 	changed = False
 	out_parts: list[bytes] = []
 	for part in parts:
-		fixed = normalize_line(part, fix_comments)
+		fixed = normalize_line(part, fix_comments, use_ascii_copyright)
 		if fixed != part:
 			changed = True
 		out_parts.append(fixed)
