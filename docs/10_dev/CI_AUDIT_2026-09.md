@@ -201,7 +201,7 @@ Build matrix (~8m) and Static Analysis (~9m) finish earlier
 | --- | --- |
 | Default `permissions` least-privilege | Mostly yes; Build/Dep-review need `pull-requests: write` for comments |
 | Action SHA pins | Yes (Renovate digests for Actions) |
-| `pull_request_target` | `labeler.yml` + `dependabot-auto-merge.yml` only (no untrusted checkout of PR HEAD; auto-merge never approves — Dependabot login gate only) |
+| `pull_request_target` | `authorship-hygiene.yml`, `labeler.yml`, `dependabot-auto-merge.yml` — maintainer must allow via repo Actions policy before **2026-11-02** (see `docs/10_dev/agents-and-automation.md`); none execute PR workflow YAML; auto-merge never approves (Dependabot login gate only) |
 | Cache poisoning | vcpkg binary cache writable from PR jobs — GitHub restricts cache writes from forks; same-repo PRs share cache (accepted risk) |
 | gitleaks binary | Version + SHA256 pinned in `security.yml` |
 | Secrets in PR workflows | Uses `GITHUB_TOKEN` only for listed scopes |

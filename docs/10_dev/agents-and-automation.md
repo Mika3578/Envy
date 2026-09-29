@@ -147,10 +147,56 @@ Do not reintroduce mutable `@vN` tags for external actions.
   supported values (do not change thresholds before that evidence).
 - Evaluate `security-extended` / `security-and-quality` for C++/JS in a
   measured advisory window before expanding blocking query suites.
-- Before 2026-11-02: migrate or explicitly authorize
-  `pull_request_target` for Dependabot auto-merge (GitHub default will block
-  it on public repos unless policy is set). Current workflow does not
-  checkout/execute PR code.
+- Before 2026-11-02: configure the repository **Actions execution policy**
+  for `pull_request_target` (see
+  [GitHub `pull_request_target` policy](#github-pull_request_target-execution-policy-deadline-2026-11-02)).
+  Until then GitHub runs workflows in **evaluate mode** and surfaces
+  workflow-file annotations on every run.
+
+### GitHub `pull_request_target` execution policy (deadline 2026-11-02)
+
+Public repositories will **block** new runs of workflows triggered by
+`pull_request_target` unless the repository owner configures an Actions
+**workflow execution policy** that allows them. GitHub shows this as:
+
+`Workflow execution policy warning (evaluate mode): .github/workflows/<file>#L1`
+
+The annotation is **informational today**; it is **not** a failed check. After
+**2026-11-02**, the workflows below stop firing until policy is set.
+
+**Maintainer checklist (GitHub UI — not changeable from repository YAML):**
+
+1. Open **Settings → Actions → General** for `Mika3578/Envy`
+   (`https://github.com/Mika3578/Envy/settings/actions`).
+2. Locate the **Workflow permissions** / **`pull_request_target` workflow
+   execution** control (wording varies; see GitHub’s current UI).
+3. Follow [Using `pull_request_target` securely — default policy](https://gh.io/securely-using-pull_request_target#default-policy-for-pull_request_target)
+   and **allow** the trusted workflows this repository relies on (allowlist
+   by workflow file path when the UI offers that option).
+4. Re-run any open PR that only showed the evaluate-mode warning, or push an
+   empty commit, and confirm `authorship-hygiene`, `label`, and
+   `Auto-merge safe Dependabot PRs` still start on `pull_request_target`
+   events.
+5. Record the date and chosen policy mode in a maintainer note (issue or
+   `.local/DEV_TRACKER.md`); do not commit personal mailboxes or tokens.
+
+**Workflows that use `pull_request_target` today:**
+
+| Check name (approx.) | Workflow file | Why `pull_request_target` | Trust model (summary) |
+| --- | --- | --- | --- |
+| Authorship hygiene | `.github/workflows/authorship-hygiene.yml` | Scan PR title/body and commit range with a checker taken from **base** `develop`, while PR jobs cannot grant `pull-requests: read` on untrusted forks the same way | Read-only `contents`; checker script from base SHA; PR diff fetched as data; **does not** run PR workflow code |
+| `label` | `.github/workflows/labeler.yml` | Apply labels from `.github/labeler.yml` on the default branch for fork PRs | No PR HEAD checkout; `contents: read`, `pull-requests: write` |
+| Auto-merge safe Dependabot PRs | `.github/workflows/dependabot-auto-merge.yml` | Enable squash auto-merge wait for Dependabot without executing PR workflows | `if: dependabot[bot]`; metadata via `dependabot/fetch-metadata`; **never** approves; merge still gated by Protect develop |
+
+No other workflow in this repository should add `pull_request_target` without
+the same maintainer security review called out in `AGENTS.md` (hard rule 12).
+
+**Benign “error” annotations:** `authorship-hygiene` sets
+`concurrency.cancel-in-progress: true` per PR number. Rapid successive PR
+events cancel an in-flight run with
+`Canceling since a higher priority waiting request for authorship-hygiene-<n> exists`.
+GitHub lists canceled jobs under Annotations; the **latest** run’s check
+conclusion is authoritative (usually **pass**).
 
 ## Automation reference
 
