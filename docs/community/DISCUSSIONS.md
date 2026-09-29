@@ -51,7 +51,7 @@ Repository forms live in [`.github/DISCUSSION_TEMPLATE/`](../../.github/DISCUSSI
 
 ## Canonical pinned discussions
 
-Maintainers should pin (UI — no public pin API):
+Maintainers should pin (GitHub UI, or GraphQL `pinDiscussion` / `unpinDiscussion` when the token has the required repository permissions):
 
 1. **Welcome to Envy Discussions** — scope, doc links, Issues vs Discussions
 2. **How to contribute, test, and help Envy** — CONTRIBUTING, AGENTS, roles
