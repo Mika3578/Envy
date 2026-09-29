@@ -6,7 +6,9 @@ thresholds.
 
 ## Purpose
 
-- Measure current hot-path behavior **without changing production code**.
+- Measure current hot-path behavior via a **separate** benchmark executable; this PR may
+  also land targeted production fixes in measured seams (for example `BufferImpl.inc`
+  inflate/DIME bounds) documented in the PR body.
 - Emit human-readable summaries and machine-readable JSON for local or CI comparison.
 - Provide evidence infrastructure for follow-ups (#112–#114, #343–#345).
 

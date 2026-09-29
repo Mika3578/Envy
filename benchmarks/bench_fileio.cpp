@@ -49,6 +49,14 @@ std::filesystem::path BenchScratchRoot()
 	return root;
 }
 
+std::filesystem::path BenchUniqueWorkloadRoot(const std::filesystem::path& scratch_root,
+                                              const wchar_t* label)
+{
+	const std::wstring leaf = std::wstring(label) + L"-" + std::to_wstring(GetTickCount64()) +
+	                          L"-" + std::to_wstring(GetCurrentProcessId());
+	return scratch_root / leaf;
+}
+
 std::vector<std::uint8_t> MakePayload(std::size_t size)
 {
 	std::vector<std::uint8_t> data(size);
@@ -187,7 +195,8 @@ bool BenchReadFilePayload(const std::filesystem::path& path, std::vector<std::ui
 		return false;
 	}
 
-	const LARGE_INTEGER file_size = { .QuadPart = static_cast<LONGLONG>(out.size()) };
+	LARGE_INTEGER file_size = {};
+	file_size.QuadPart = static_cast<LONGLONG>(out.size());
 	LARGE_INTEGER actual_size{};
 	if (!GetFileSizeEx(hFile, &actual_size) || actual_size.QuadPart != file_size.QuadPart)
 	{
@@ -260,9 +269,8 @@ bool PrepareWriteFiles(const std::shared_ptr<WriteFixture>& fixture)
 	}
 
 	fixture->payload = MakePayload(fixture->bytes);
-	fixture->root = scratch_root / "write";
+	fixture->root = BenchUniqueWorkloadRoot(scratch_root, L"write");
 	std::error_code ec;
-	std::filesystem::remove_all(fixture->root, ec);
 	if (!BenchExistingAncestorsSafeBeforeCreate(fixture->root))
 	{
 		ReportFileIoFailure("write scratch path blocked");
@@ -344,9 +352,8 @@ bool PrepareReadFiles(const std::shared_ptr<ReadFixture>& fixture)
 		return false;
 	}
 
-	fixture->root = scratch_root / "read";
+	fixture->root = BenchUniqueWorkloadRoot(scratch_root, L"read");
 	std::error_code ec;
-	std::filesystem::remove_all(fixture->root, ec);
 	if (!BenchExistingAncestorsSafeBeforeCreate(fixture->root))
 	{
 		ReportFileIoFailure("read scratch path blocked");
