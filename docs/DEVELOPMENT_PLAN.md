@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-28
+- **Last Updated:** 2026-09-29
+- **Changelog Entry:** 2026-09-29 — P2P ecosystem audit (`docs/30_protocols/P2P_ECOSYSTEM_AUDIT_2026-09.md`); refresh `REFERENCE_IMPLEMENTATIONS.md` (amule-org/amule, BT/DC/G1 matrix, BEP-55). GitHub tracker cross-check on priority issues; new issues for storage-aware hashing and incremental library watcher. Research/documentation only — no feature implementation in this pass.
 - **Changelog Entry:** 2026-09-28 — #363: correct ED2K SourceEx2 request/answer framing, add versioned record validation and golden vectors, and document the live interop gap.
 - **Changelog Entry:** 2026-09-28 — #381 simplification: remove the duplicate PR Gate poller and conclusion helpers; keep Draft → `stage:live-test` → Ready phase selection and native workflow checks. Protect develop now removes PR Gate, required signatures, duplicate gitleaks status, and required Documentation Check, with Copilot review-on-push disabled. Cursor automations remain external manual operations.
 - **Changelog Entry:** 2026-09-28 — Staged validation: Draft defers Windows builds/C# analysis; manual `stage:live-test` and Ready run both Release builds, EnvyTests and provenance-tagged artifacts. One subscription-based fixer is specified with Draft 3 / Ready 2 batch limits. Rollout blockers: maintainer must disable the existing approval automation, create lifecycle labels, verify subscriptions/signing and perform runtime/Ready dogfood. See `10_dev/agents-and-automation.md`.
@@ -135,6 +136,7 @@
 - **Changelog Entry:** 2026-09-19 — Agent workflow: after every PR push use `gh pr checks --required --watch --fail-fast --interval 5` (no arbitrary CI sleeps); see `AGENTS.md` §5.
 - **Changelog Entry:** 2026-09-19 — #81: ED2K `COMPRESSEDPART` / `COMPRESSEDPART_I64` stream inflate capped at one part or the remaining file size, whichever is smaller (`ED2K_COMPRESSEDPART_INFLATE_MAX` / `Ed2kCompressedPartInflateBudget` / `Ed2kCompressedPartInflateOk`) before `SubmitData`; `CEDClient::OnPacket` propagates inflate rejection.
 - **Changelog Entry:** 2026-09-19 — #81: GGEP DEFLATE inflate capped at 256 KiB (`GGEP_INFLATE_MAX` / `GgepInflateOutputOk`).
+- **Changelog Entry:** 2026-09-29 — P2P ecosystem audit: `docs/30_protocols/P2P_ECOSYSTEM_AUDIT_2026-09.md`; `REFERENCE_IMPLEMENTATIONS.md` updated (amule-org/amule, BT/DC/G1 references, BEP-55). Tracker cross-check comments on #86–#88, #111, #161, #163, #229–#231, #233, #239, #311, #318–#319, #344; new issues for storage-aware hashing and incremental library watcher. No implementation PR (research pass).
 - **Changelog Entry:** 2026-09-19 — #81: `CBuffer::InflateStreamTo` default `nMaxOutput=0` to `CBUFFER_INFLATE_STREAM_MAX` (32 MiB) for Neighbour G1/G2 deflate backlog; G1/G2/ED/DC `OnRead` fail-closes on inflate error; `CBufferInflateStreamOutputOk` smoke coverage.
 - **Changelog Entry:** 2026-09-19 — #81: `CBuffer::Inflate`/`Ungzip` default `nMaxOutput=0` to `CBUFFER_INFLATE_MAX` (32 MiB); `CBufferInflateOutputOk` smoke coverage.
 - **Changelog Entry:** 2026-09-19 — #81/#82: Browse Host HTTP peer `Content-Length` / buffered body capped at 32 MiB (`HostBrowserHttpBodyOk` / `HostBrowserHttpBufferOk`); strict decimal Content-Length; InflateStreamTo output cap on deflate path.

@@ -1,7 +1,7 @@
 # Protocol documentation
 
 Status: active
-Last updated: 2026-09-19
+Last updated: 2026-09-29
 Scope: Index of Envy protocol docs and external references.
 Source of truth: specifications first; Envy code second; reference clients third. See `REFERENCE_IMPLEMENTATIONS.md`.
 
@@ -10,6 +10,7 @@ Envy is a multi-network client. Protocol work on ED2K/Kad does not replace BitTo
 | Area | Envy docs | Specifications | Reference implementations |
 | --- | --- | --- | --- |
 | Policy | [REFERENCE_IMPLEMENTATIONS.md](REFERENCE_IMPLEMENTATIONS.md) | Specs listed in that document | eMule Community, aMule, others |
+| Ecosystem audit (2026-09) | [P2P_ECOSYSTEM_AUDIT_2026-09.md](P2P_ECOSYSTEM_AUDIT_2026-09.md) | Same as policy row | Cross-client gap research; not a status claim |
 | Bootstrap catalogues | [bootstrap-sources.md](bootstrap-sources.md) | Shipped `DefaultServices.dat` / `DefaultServers.dat` vs learned HostCache/Discovery | Not a completeness claim for Kad or ADC |
 | ED2K | [ed2k/](ed2k/README.md) | eDonkey/eMule notes, aMule wiki, ED2K URI | eMule Community (P0), aMule (P0) |
 | Kad | [kad/](kad/README.md) | Kademlia paper; Kad2 via eMule/aMule | eMule Community, aMule; Ember/eSE are not Kad2 |
