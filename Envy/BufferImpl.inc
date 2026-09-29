@@ -650,7 +650,10 @@ bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndO
 
 		// Make sure the receiving buffer is large enough to hold at least 1KB
 		if ( ! oBuffer.EnsureBuffer( nLength ) )
-			break;
+		{
+			InflateStreamCleanup( pStream );
+			return false;
+		}
 
 		// Tell the z_stream structure where to work
 		pStream->next_in   = m_pBuffer;				// Decompress the data from here
@@ -988,7 +991,12 @@ BOOL CBuffer::ReadDIME(
 
 	// Skip forward a distance determined by the lengths we just read
 	DWORD nSkip = 12 + ( ( nID + 3 ) & ~3 ) + ( ( nType + 3 ) & ~3 );
-	if ( m_nLength < nSkip + ( ( *pnBody + 3 ) & ~3 ) )
+	const DWORD nBody = *pnBody;
+	// Reject padded-body overflow: (nBody + 3) & ~3 wraps for near-UINT_MAX lengths.
+	if ( nBody > UINT_MAX - 3 )
+		return FALSE;
+	const DWORD nPaddedBody = ( nBody + 3 ) & ~3;
+	if ( m_nLength < nSkip || m_nLength - nSkip < nPaddedBody )
 		return FALSE;					// Make sure the buffer is big enough to skip this far forward
 
 	// Read psID, a GUID in hexadecimal encoding
