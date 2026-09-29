@@ -10,8 +10,8 @@ contact_links:
     url: https://github.com/Mika3578/Envy/discussions/new?category=ideas
     about: Brainstorming before an issue is scoped — not a commitment to implement.
   - name: Preview / interoperability feedback
-    url: https://github.com/Mika3578/Envy/discussions
-    about: Structured testing reports — see pinned interoperability thread or docs/community/DISCUSSIONS.md.
+    url: https://github.com/Mika3578/Envy/discussions/new?category=show-and-tell
+    about: Structured testing reports — template in docs/community/DISCUSSIONS.md and canonical-discussions/preview-interoperability.md.
   - name: All Discussions
     url: https://github.com/Mika3578/Envy/discussions
     about: Community hub — see pinned welcome and contributor threads.

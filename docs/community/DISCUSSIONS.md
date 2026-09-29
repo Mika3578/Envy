@@ -49,6 +49,20 @@ Optional renames (UI only): align **Q&A** emoji to `:question:` and **Ideas** de
 
 Repository forms live in [`.github/DISCUSSION_TEMPLATE/`](../../.github/DISCUSSION_TEMPLATE/). They apply per category slug when merged to the default branch.
 
+## Canonical thread routing
+
+Use this map when opening or pinning discussions so community traffic lands in the right category and template:
+
+| Canonical topic | GitHub category slug | Draft body / form |
+| --- | --- | --- |
+| Welcome / scope | `general` | Maintainer-authored pin (see below) |
+| Contributor onboarding | `general` | [`canonical-discussions/how-to-contribute.md`](canonical-discussions/how-to-contribute.md) |
+| Preview / interoperability | `show-and-tell` (or `q-a` when troubleshooting) | [`canonical-discussions/preview-interoperability.md`](canonical-discussions/preview-interoperability.md) |
+| Roadmap / direction (non-binding) | `ideas` | [`canonical-discussions/roadmap-direction.md`](canonical-discussions/roadmap-direction.md) |
+| Release / milestone news | `announcements` | Maintainer-authored pin |
+
+Issue chooser links in [`.github/ISSUE_TEMPLATE/config.yml`](../../.github/ISSUE_TEMPLATE/config.yml) must stay aligned with the slugs above (`q-a`, `ideas`, Discussions hub).
+
 ## Canonical pinned discussions
 
 Maintainers should pin (GitHub UI, or GraphQL `pinDiscussion` / `unpinDiscussion` when the token has the required repository permissions):
