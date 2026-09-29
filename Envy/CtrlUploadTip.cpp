@@ -1,7 +1,7 @@
 //
 // CtrlUploadTip.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -207,6 +207,9 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 	DrawRule( pDC, &pt );
 
 	CString strStatus, strSpeed, strTransfer, strText, strOf;
+	CString strLimit = TransferBandwidthMeterLimitIsUnlimited(pUpload->m_nBandwidth)
+		? CString(TransferBandwidthUnlimitedDisplayToken())
+		: Settings.SmartSpeed( pUpload->m_nBandwidth );
 	LoadString( strOf, IDS_GENERAL_OF );
 
 	if ( pUpload->GetMaxSpeed() > 10 )
@@ -214,7 +217,7 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 		strSpeed.Format( L"%s %s %s  (%s)",
 			(LPCTSTR)Settings.SmartSpeed( pUpload->GetMeasuredSpeed() ),
 			(LPCTSTR)strOf,
-			(LPCTSTR)Settings.SmartSpeed( pUpload->m_nBandwidth ),
+			(LPCTSTR)strLimit,
 			(LPCTSTR)Settings.SmartSpeed( pUpload->GetMaxSpeed() ) );
 	}
 	else
@@ -222,7 +225,7 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 		strSpeed.Format( L"%s %s %s",
 			(LPCTSTR)Settings.SmartSpeed( pUpload->GetMeasuredSpeed() ),
 			(LPCTSTR)strOf,
-			(LPCTSTR)Settings.SmartSpeed( pUpload->m_nBandwidth ) );
+			(LPCTSTR)strLimit );
 	}
 
 	if ( pUpload->m_nSize > 1 )

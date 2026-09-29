@@ -171,6 +171,11 @@ inline DWORD TransferBandwidthBytesToMeterLimit(DWORD nBytesPerSecond)
 	return nBytesPerSecond;
 }
 
+inline bool TransferBandwidthMeterLimitIsUnlimited(DWORD nBytesPerSecond)
+{
+	return nBytesPerSecond == 0xFFFFFFFFu;
+}
+
 // Connection.InSpeed / OutSpeed are stored in kilobits per second (Kb/s).
 // They describe declared link capacity for tuning/UI — not an implicit user
 // transfer cap when Bandwidth.* is unlimited (see #342).
