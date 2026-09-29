@@ -143,7 +143,7 @@ $extractorArgs = @(
 ) + $extraProps
 
 if ($Validate) {
-	$args += '--validate'
+	$extractorArgs += '--validate'
 }
 
 Write-Host "MSBuild:    $msbuild" -ForegroundColor DarkGray
