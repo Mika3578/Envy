@@ -8,6 +8,7 @@
 
 #include "bench_json.h"
 
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <limits>

@@ -631,6 +631,9 @@ bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndO
 		{
 			if (pStream->avail_in > 0)
 			{
+				// Neighbour streaming may pause at the backlog cap with zlib input pending.
+				if (pbEndOfStream != NULL)
+					break;
 				InflateStreamCleanup(pStream);
 				return false;
 			}
