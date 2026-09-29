@@ -208,8 +208,12 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 	DrawRule( pDC, &pt );
 
 	CString strStatus, strSpeed, strTransfer, strText, strOf;
+	CString strUnlimited;
+	LoadString(strUnlimited, IDS_SETTINGS_BANDWIDTH_UNLIMITED);
+	if (strUnlimited.IsEmpty())
+		strUnlimited = TransferBandwidthUnlimitedDisplayToken();
 	CString strLimit = TransferBandwidthMeterLimitIsUnlimited(pUpload->m_nBandwidth)
-	                       ? CString(TransferBandwidthUnlimitedDisplayToken())
+	                       ? strUnlimited
 	                       : Settings.SmartSpeed(pUpload->m_nBandwidth);
 	LoadString(strOf, IDS_GENERAL_OF);
 
