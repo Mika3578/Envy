@@ -20,7 +20,7 @@ namespace
 
 volatile std::uint32_t g_protocol_sink = 0;
 
-std::uint64_t BenchBtLengths(std::size_t batch)
+BenchWorkloadResult BenchBtLengths(std::size_t batch)
 {
 	std::uint32_t acc = 0;
 	const DWORD lengths[] = { 0, 1, 2, 4, 1024, BT_PACKET_LENGTH_MAX, BT_PACKET_LENGTH_MAX + 1 };
@@ -32,23 +32,24 @@ std::uint64_t BenchBtLengths(std::size_t batch)
 		acc += BtExtensionPayloadLengthOk(n) ? 4u : 0u;
 	}
 	g_protocol_sink = acc;
-	return acc;
+	return BenchOk(acc);
 }
 
-std::uint64_t BenchEd2kLengths(std::size_t batch)
+BenchWorkloadResult BenchEd2kLengths(std::size_t batch)
 {
 	std::uint32_t acc = 0;
 	for (std::size_t i = 0; i < batch; ++i)
 	{
 		const DWORD body = static_cast<DWORD>(1 + (i % 4096));
 		acc += Ed2kTcpPacketLengthOk(512, 5, body) ? 1u : 0u;
-		acc += Ed2kPreviewFrameAcceptable(128, 256) ? 2u : 0u;
+		// Vary frame inputs so Release cannot constant-fold the predicate away.
+		acc += Ed2kPreviewFrameAcceptable(static_cast<DWORD>(i % 512), 256) ? 2u : 0u;
 	}
 	g_protocol_sink = acc;
-	return acc;
+	return BenchOk(acc);
 }
 
-std::uint64_t BenchG1Lengths(std::size_t batch)
+BenchWorkloadResult BenchG1Lengths(std::size_t batch)
 {
 	std::uint32_t acc = 0;
 	const DWORD max_total = 256 * 1024;
@@ -56,13 +57,14 @@ std::uint64_t BenchG1Lengths(std::size_t batch)
 	{
 		const LONG payload = static_cast<LONG>(1000 + (i % 5000));
 		acc += G1PacketTotalLengthOk(payload, max_total) ? 1u : 0u;
-		acc += G1QueryHitXmlFits(100, 200) ? 2u : 0u;
+		// Vary XML size so Release cannot constant-fold the counted predicate away.
+		acc += G1QueryHitXmlFits(static_cast<DWORD>(i % 201), 200) ? 2u : 0u;
 	}
 	g_protocol_sink = acc;
-	return acc;
+	return BenchOk(acc);
 }
 
-std::uint64_t BenchG2Lengths(std::size_t batch)
+BenchWorkloadResult BenchG2Lengths(std::size_t batch)
 {
 	std::uint32_t acc = 0;
 	for (std::size_t i = 0; i < batch; ++i)
@@ -72,7 +74,7 @@ std::uint64_t BenchG2Lengths(std::size_t batch)
 		acc += G2SubpacketPayloadFits(200, body, 4) ? 2u : 0u;
 	}
 	g_protocol_sink = acc;
-	return acc;
+	return BenchOk(acc);
 }
 
 void RegisterProtocol(BenchRegistry& registry,

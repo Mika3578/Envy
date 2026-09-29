@@ -10,8 +10,9 @@
 
 #include <cstdio>
 #include <filesystem>
-#include <fstream>
 #include <limits>
+#include <string>
+#include <vector>
 
 namespace
 {
@@ -59,6 +60,112 @@ void AppendFiniteDouble(std::string& out, double value)
 	char buf[64];
 	std::snprintf(buf, sizeof(buf), "%.17g", value);
 	out += buf;
+}
+
+bool PathHasSymlinkComponent(const std::filesystem::path& path)
+{
+	std::error_code ec;
+	const std::filesystem::path absolute = std::filesystem::absolute(path, ec);
+	if (ec)
+		return true;
+
+	std::vector<std::filesystem::path> parts;
+	for (const auto& part : absolute)
+		parts.push_back(part);
+	if (parts.empty())
+		return true;
+
+	std::filesystem::path current;
+	for (std::size_t i = 0; i < parts.size(); ++i)
+	{
+		if (current.empty())
+			current = parts[i];
+		else
+			current /= parts[i];
+
+		const std::filesystem::file_status status =
+			std::filesystem::symlink_status(current, ec);
+		if (ec)
+		{
+			// Missing leaf is fine for create; missing intermediate is an error.
+			return i + 1 != parts.size();
+		}
+		if (std::filesystem::is_symlink(status))
+			return true;
+	}
+	return false;
+}
+
+bool WriteExclusiveReplace(const std::filesystem::path& final_path, const std::string& json)
+{
+	if (json.size() > static_cast<std::size_t>((std::numeric_limits<DWORD>::max)()))
+		return false;
+
+	std::error_code ec;
+	std::filesystem::path parent = final_path.parent_path();
+	if (parent.empty())
+		parent = std::filesystem::path(L".");
+	const std::filesystem::path temp_path =
+		parent / (final_path.filename().wstring() + L".tmp." + std::to_wstring(GetCurrentProcessId()));
+
+	const std::filesystem::file_status temp_status =
+		std::filesystem::symlink_status(temp_path, ec);
+	if (!ec && std::filesystem::exists(temp_status))
+	{
+		if (std::filesystem::is_symlink(temp_status))
+			return false;
+		std::filesystem::remove(temp_path, ec);
+		if (ec)
+			return false;
+	}
+
+	const std::wstring temp_w = temp_path.wstring();
+	const std::wstring final_w = final_path.wstring();
+
+	// CREATE_NEW + OPEN_REPARSE_POINT: exclusive create that will not follow a
+	// pre-existing symlink at the temp path (and fails closed if one appears).
+	HANDLE handle = CreateFileW(temp_w.c_str(),
+	                            GENERIC_WRITE,
+	                            0,
+	                            nullptr,
+	                            CREATE_NEW,
+	                            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
+	                            nullptr);
+	if (handle == INVALID_HANDLE_VALUE)
+		return false;
+
+	BY_HANDLE_FILE_INFORMATION info{};
+	if (!GetFileInformationByHandle(handle, &info) ||
+	    (info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
+	{
+		CloseHandle(handle);
+		DeleteFileW(temp_w.c_str());
+		return false;
+	}
+
+	DWORD written = 0;
+	const BOOL write_ok = WriteFile(handle,
+	                                json.data(),
+	                                static_cast<DWORD>(json.size()),
+	                                &written,
+	                                nullptr);
+	const BOOL flush_ok = write_ok ? FlushFileBuffers(handle) : FALSE;
+	CloseHandle(handle);
+
+	if (!write_ok || !flush_ok || written != static_cast<DWORD>(json.size()))
+	{
+		DeleteFileW(temp_w.c_str());
+		return false;
+	}
+
+	if (!MoveFileExW(temp_w.c_str(),
+	                 final_w.c_str(),
+	                 MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+	{
+		DeleteFileW(temp_w.c_str());
+		return false;
+	}
+	return true;
 }
 
 } // namespace
@@ -126,19 +233,13 @@ bool BenchWriteResultsJsonToFile(const BenchEnvironment& env,
 	if (path == nullptr || path[0] == '\0')
 		return false;
 
-	std::error_code ec;
-	const std::filesystem::file_status status =
-		std::filesystem::symlink_status(path, ec);
-	if (ec || (std::filesystem::exists(status) && std::filesystem::is_symlink(status)))
+	const std::filesystem::path final_path(path);
+	if (PathHasSymlinkComponent(final_path))
 		return false;
 
 	std::string json;
 	if (!BenchWriteResultsJson(env, measurements, json))
 		return false;
 
-	std::ofstream out(path, std::ios::binary | std::ios::trunc);
-	if (!out)
-		return false;
-	out.write(json.data(), static_cast<std::streamsize>(json.size()));
-	return out.good();
+	return WriteExclusiveReplace(final_path, json);
 }

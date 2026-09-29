@@ -33,7 +33,7 @@ std::vector<std::uint8_t> MakePayload(std::size_t size)
 	return data;
 }
 
-std::uint64_t RunAppend(const std::vector<std::uint8_t>& chunk, std::size_t repeats)
+BenchWorkloadResult RunAppend(const std::vector<std::uint8_t>& chunk, std::size_t repeats)
 {
 	CBuffer buffer;
 	std::uint64_t sink = 0;
@@ -42,10 +42,10 @@ std::uint64_t RunAppend(const std::vector<std::uint8_t>& chunk, std::size_t repe
 		buffer.Add(chunk.data(), chunk.size());
 		sink ^= buffer.m_nLength;
 	}
-	return sink;
+	return BenchOk(sink);
 }
 
-std::uint64_t RunRemoveFront(const std::vector<std::uint8_t>& chunk, std::size_t cycles)
+BenchWorkloadResult RunRemoveFront(const std::vector<std::uint8_t>& chunk, std::size_t cycles)
 {
 	CBuffer buffer;
 	buffer.Add(chunk.data(), chunk.size());
@@ -56,12 +56,13 @@ std::uint64_t RunRemoveFront(const std::vector<std::uint8_t>& chunk, std::size_t
 		if (buffer.m_nLength < step)
 			buffer.Add(chunk.data(), chunk.size());
 		buffer.Remove(step);
-		sink ^= buffer.m_nLength;
+		// Include capacity so a drained buffer still produces a nonzero sink.
+		sink ^= buffer.m_nLength ^ buffer.GetBufferSize() ^ static_cast<std::uint64_t>(i + 1);
 	}
-	return sink;
+	return BenchOk(sink);
 }
 
-std::uint64_t RunAlternating(const std::vector<std::uint8_t>& chunk, std::size_t cycles)
+BenchWorkloadResult RunAlternating(const std::vector<std::uint8_t>& chunk, std::size_t cycles)
 {
 	CBuffer buffer;
 	std::uint64_t sink = 0;
@@ -72,12 +73,11 @@ std::uint64_t RunAlternating(const std::vector<std::uint8_t>& chunk, std::size_t
 			buffer.Remove(chunk.size() / 2 + 1);
 		sink ^= buffer.m_nLength ^ buffer.GetBufferSize();
 	}
-	return sink;
+	return BenchOk(sink);
 }
 
-std::uint64_t RunPacketLike(std::size_t packet_count)
+BenchWorkloadResult RunPacketLike(const std::vector<std::uint8_t>& payload, std::size_t packet_count)
 {
-	const auto payload = MakePayload(512);
 	CBuffer buffer;
 	std::uint64_t sink = 0;
 	for (std::size_t i = 0; i < packet_count; ++i)
@@ -87,12 +87,11 @@ std::uint64_t RunPacketLike(std::size_t packet_count)
 			buffer.Remove(256);
 		sink ^= buffer.m_nLength;
 	}
-	return sink;
+	return BenchOk(sink);
 }
 
 void RegisterOne(BenchRegistry& registry,
                  const char* name,
-                 std::size_t chunk_size,
                  std::size_t iterations,
                  std::uint64_t warmup,
                  std::uint64_t samples,
@@ -135,28 +134,29 @@ void BenchRegisterBufferWorkloads(BenchRegistry& registry)
 	{
 		const auto payload = MakePayload(sc.size);
 		const std::string append_name = std::string("append/") + sc.tag;
-		RegisterOne(registry, append_name.c_str(), sc.size, sc.iterations, 2, 7, [payload, sc]()
+		RegisterOne(registry, append_name.c_str(), sc.iterations, 2, 7, [payload]()
 		            { return RunAppend(payload, 1); }, sc.size, 1);
 
 		const std::string remove_name = std::string("remove/") + sc.tag;
-		RegisterOne(registry, remove_name.c_str(), sc.size, sc.iterations / 2 + 1, 2, 7, [payload, sc]()
-		            { return RunRemoveFront(payload, 4); }, sc.size, 4);
+		RegisterOne(registry, remove_name.c_str(), sc.iterations / 2 + 1, 2, 7, [payload]()
+		            { return RunRemoveFront(payload, 4); }, 4 * sc.size, 4);
 
 		const std::string alt_name = std::string("alt/") + sc.tag;
-		RegisterOne(registry, alt_name.c_str(), sc.size, sc.iterations / 4 + 1, 2, 7, [payload, sc]()
-		            { return RunAlternating(payload, 8); }, sc.size, 8);
+		RegisterOne(registry, alt_name.c_str(), sc.iterations / 4 + 1, 2, 7, [payload]()
+		            { return RunAlternating(payload, 8); }, 8 * sc.size, 8);
 	}
 
-	RegisterOne(registry, "packet/stream", 512, 5000, 2, 7, []()
-	            { return RunPacketLike(200); }, 512 * 200, 200);
+	const auto packet_payload = MakePayload(512);
+	RegisterOne(registry, "packet/stream", 5000, 2, 7, [packet_payload]()
+	            { return RunPacketLike(packet_payload, 200); }, 512 * 200, 200);
 
 	const auto large = MakePayload(2 * 1024 * 1024);
-	RegisterOne(registry, "retained/2MiB", large.size(), 20, 2, 5, [large]()
+	RegisterOne(registry, "retained/2MiB", 20, 2, 5, [large]()
 	            {
 			CBuffer buffer;
 			buffer.Add(large.data(), large.size());
 			std::uint64_t sink = buffer.m_nLength ^ buffer.GetBufferSize();
 			buffer.Remove(large.size() / 4);
 			sink ^= buffer.m_nLength;
-			return sink; }, large.size(), 2);
+			return BenchOk(sink); }, large.size(), 2);
 }

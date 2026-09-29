@@ -14,7 +14,8 @@ cat >"$BASE" <<'EOF'
   "schema_version": "1",
   "environment": {"architecture": "x64", "configuration": "Release", "platform": "windows", "toolset": "1950", "compiler": "msvc"},
   "benchmarks": [
-    {"group": "buffer", "name": "append/1KiB", "iterations_per_sample": 1, "sample_count": 3, "median_ns": 1000, "min_ns": 900, "max_ns": 1100, "bytes_per_sample": 1024, "ops_per_sample": 1, "throughput_bytes_per_sec": 0, "checksum_sink": 1}
+    {"group": "buffer", "name": "append/1KiB", "iterations_per_sample": 1, "sample_count": 3, "median_ns": 1000, "min_ns": 900, "max_ns": 1100, "bytes_per_sample": 1024, "ops_per_sample": 1, "throughput_bytes_per_sec": 0, "checksum_sink": 1},
+    {"group": "fileio", "name": "write/256KiB", "iterations_per_sample": 1, "sample_count": 3, "median_ns": 3000, "min_ns": 2800, "max_ns": 3200, "bytes_per_sample": 262144, "ops_per_sample": 1, "throughput_bytes_per_sec": 0, "checksum_sink": 4}
   ]
 }
 EOF
@@ -32,9 +33,13 @@ EOF
 
 python3 "$ROOT/scripts/compare-benchmark-results.py" "$BASE" "$HEAD" | grep -q "buffer/append/1KiB"
 python3 "$ROOT/scripts/compare-benchmark-results.py" "$BASE" "$HEAD" | grep -q "missing base"
+python3 "$ROOT/scripts/compare-benchmark-results.py" "$BASE" "$HEAD" | grep -q "missing head"
 
-if python3 "$ROOT/scripts/compare-benchmark-results.py" "$BASE" "$TMP/missing.json" 2>/dev/null; then
+if OUTPUT="$(python3 "$ROOT/scripts/compare-benchmark-results.py" "$BASE" "$TMP/missing.json" 2>&1)"; then
 	echo "expected failure for missing file" >&2
+	exit 1
+elif [[ "$OUTPUT" != *"results file not found"* ]]; then
+	echo "expected 'results file not found', got: $OUTPUT" >&2
 	exit 1
 fi
 

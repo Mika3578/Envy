@@ -58,7 +58,8 @@ Invalid arguments print an error and exit non-zero.
 5. Throughput (`throughput_bytes_per_sec`) is derived from median duration and bytes
    touched per sample — not a separate measurement.
 6. A `checksum_sink` records workload side effects so the compiler cannot delete the
-   timed work.
+   timed work. Workloads return `BenchWorkloadResult` so setup/I/O failures abort the
+   suite instead of publishing a zero checksum as a successful sample.
 
 Hosted GitHub Actions runners are noisy. Treat small percentage swings as
 informational only. Do not use hosted CI as a blocking regression gate.
@@ -99,10 +100,10 @@ No hostnames, personal paths, or secrets are written.
 
 | Group | Production seam | Notes |
 | --- | --- | --- |
-| `buffer/*` | `Envy/BufferImpl.inc` (via `Buffer.cpp` / `buffer_production_tu.cpp`) | append, remove, alternating, packet-like, retained 2 MiB |
+| `buffer/*` | `Envy/BufferImpl.inc` (via `Buffer.cpp` / `buffer_production_tu.cpp`) | append, remove, alternating, packet-like, retained 2 MiB. Compression methods (`Deflate`/`Inflate`/`BZip`) are **not** compiled into this target: the benchmark PCH deliberately omits zlib/Bzlib (production `Envy/StdAfx.h` includes them). Including them would pull `CZLib`/`Settings`/`Envy` into the harness. |
 | `protocol/*` | `Envy/PacketLengthValidate.h` | BT/ED2K/G1/G2 framing predicates |
 | `hash/*` | `HashLib` | SHA-1, MD5, MD4, ED2K, Tiger/TTH file hashing |
-| `fileio/*` | Scratch under `%LOCALAPPDATA%\\Envy\\BenchmarkScratch` | sequential read/write, multi-file |
+| `fileio/*` | Scratch under `%LOCALAPPDATA%\\Envy\\BenchmarkScratch` | sequential write; reads prepare files in setup outside timing |
 
 **Not yet measured:** transfer concurrency, lock hold/wait, socket churn, `CTransferFile`
 contention (#114), or synthetic scheduler metrics (#343–#345). The JSON schema leaves

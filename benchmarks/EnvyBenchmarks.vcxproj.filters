@@ -10,6 +10,9 @@
     <Filter Include="Production">
       <UniqueIdentifier>{67DA6AB6-FC0F-4FFE-879F-0F9C8F2E2C9E}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{D8C0B2A1-5E3F-4A9C-8B71-2F6D4E9A1C03}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp"><Filter>Source</Filter></ClCompile>
@@ -23,5 +26,11 @@
     <ClCompile Include="bench_hash.cpp"><Filter>Workloads</Filter></ClCompile>
     <ClCompile Include="bench_fileio.cpp"><Filter>Workloads</Filter></ClCompile>
     <ClCompile Include="buffer_production_tu.cpp"><Filter>Production</Filter></ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="StdAfx.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="bench_harness.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="bench_json.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="bench_cli.h"><Filter>Header Files</Filter></ClInclude>
   </ItemGroup>
 </Project>

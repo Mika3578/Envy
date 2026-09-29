@@ -8,11 +8,13 @@
 
 #include "bench_harness.h"
 
+#include "bench_cli.h"
 #include "bench_json.h"
 
 #include <algorithm>
 #include <cerrno>
 #include <cmath>
+#include <cstdio>
 #include <limits>
 #include <numeric>
 
@@ -39,6 +41,15 @@ bool MatchesFilter(const std::string& group, const std::string& name, const std:
 	if (group.rfind(prefix, 0) == 0)
 		return true;
 	return false;
+}
+
+bool InvokeWorkload(const BenchWorkloadFn& workload, std::uint64_t& checksum)
+{
+	const BenchWorkloadResult result = workload();
+	if (!result.ok)
+		return false;
+	checksum ^= result.checksum;
+	return true;
 }
 
 } // namespace
@@ -122,9 +133,33 @@ bool RunBenchmarkSuite(const BenchRunOptions& options, std::vector<BenchMeasurem
 		if (samples == 0 || entry.iterations_per_sample == 0)
 			return false;
 
+		if (entry.setup && !entry.setup())
+		{
+			std::fprintf(stderr, "benchmark setup failed: %s/%s\n",
+			             entry.group.c_str(), entry.name.c_str());
+			return false;
+		}
+
+		struct TeardownGuard
+		{
+			const BenchTeardownFn& fn;
+			~TeardownGuard()
+			{
+				if (fn)
+					fn();
+			}
+		} teardown_guard{ entry.teardown };
+
 		std::uint64_t checksum = 0;
 		for (std::uint64_t w = 0; w < warmup; ++w)
-			checksum ^= entry.workload();
+		{
+			if (!InvokeWorkload(entry.workload, checksum))
+			{
+				std::fprintf(stderr, "benchmark workload failed during warmup: %s/%s\n",
+				             entry.group.c_str(), entry.name.c_str());
+				return false;
+			}
+		}
 
 		std::vector<double> sample_ns;
 		sample_ns.reserve(static_cast<std::size_t>(samples));
@@ -133,7 +168,14 @@ bool RunBenchmarkSuite(const BenchRunOptions& options, std::vector<BenchMeasurem
 		{
 			const auto t0 = Clock::now();
 			for (std::uint64_t i = 0; i < entry.iterations_per_sample; ++i)
-				checksum ^= entry.workload();
+			{
+				if (!InvokeWorkload(entry.workload, checksum))
+				{
+					std::fprintf(stderr, "benchmark workload failed: %s/%s\n",
+					             entry.group.c_str(), entry.name.c_str());
+					return false;
+				}
+			}
 			const auto t1 = Clock::now();
 			sample_ns.push_back(ToNanoseconds(t1 - t0));
 		}
@@ -183,6 +225,31 @@ bool BenchSelfTest()
 		if (BenchParseDoubleStrict("12x", parsed))
 			return false;
 		if (BenchParseDoubleStrict("", parsed))
+			return false;
+	}
+
+	{
+		BenchCliOptions cli{};
+		std::string error;
+		char exe0[] = "EnvyBenchmarks.exe";
+		char json_flag[] = "--json";
+		char bad_percent_name[] = "out%.json";
+		char* bad_percent[] = { exe0, json_flag, bad_percent_name };
+		if (BenchParseArgs(3, bad_percent, cli, error))
+			return false;
+		char bad_dotdot_name[] = "..out.json";
+		char* bad_dotdot[] = { exe0, json_flag, bad_dotdot_name };
+		if (BenchParseArgs(3, bad_dotdot, cli, error))
+			return false;
+		char bad_slash_name[] = "dir/out.json";
+		char* bad_slash[] = { exe0, json_flag, bad_slash_name };
+		if (BenchParseArgs(3, bad_slash, cli, error))
+			return false;
+		char good_name[] = "results.json";
+		char* good[] = { exe0, json_flag, good_name };
+		if (!BenchParseArgs(3, good, cli, error))
+			return false;
+		if (cli.json_output_path != "results.json")
 			return false;
 	}
 

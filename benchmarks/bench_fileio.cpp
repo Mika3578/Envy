@@ -2,6 +2,8 @@
 // bench_fileio.cpp
 //
 // Baseline sequential temp-file I/O (no TransferFiles / locking).
+// Read workloads prepare input files in setup (outside timing) and only
+// measure sequential reads in the timed path.
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
@@ -11,8 +13,10 @@
 #include "bench_harness.h"
 
 #include <cstdint>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -43,19 +47,30 @@ std::vector<std::uint8_t> MakePayload(std::size_t size)
 	return data;
 }
 
-std::uint64_t SequentialWrite(std::size_t bytes, std::size_t files)
+void ReportFileIoFailure(const char* detail)
+{
+	std::fprintf(stderr, "fileio workload failure: %s\n", detail);
+}
+
+BenchWorkloadResult SequentialWrite(std::size_t bytes, std::size_t files)
 {
 	const auto payload = MakePayload(bytes);
 	const auto scratch_root = BenchScratchRoot();
 	if (scratch_root.empty())
-		return 0;
+	{
+		ReportFileIoFailure("LOCALAPPDATA / scratch root unavailable");
+		return BenchFail();
+	}
 
 	const auto root = scratch_root / "write";
 	std::error_code ec;
 	std::filesystem::remove_all(root, ec);
 	std::filesystem::create_directories(root, ec);
 	if (ec)
-		return 0;
+	{
+		ReportFileIoFailure("create write scratch directory");
+		return BenchFail();
+	}
 
 	std::uint64_t sink = 0;
 	for (std::size_t f = 0; f < files; ++f)
@@ -63,74 +78,157 @@ std::uint64_t SequentialWrite(std::size_t bytes, std::size_t files)
 		const auto path = root / ("bench-" + std::to_string(f) + ".bin");
 		std::ofstream out(path, std::ios::binary | std::ios::trunc);
 		if (!out)
-			return 0;
+		{
+			ReportFileIoFailure("open write target");
+			return BenchFail();
+		}
 		out.write(reinterpret_cast<const char*>(payload.data()),
 		          static_cast<std::streamsize>(payload.size()));
 		if (!out.good())
-			return 0;
-		sink ^= static_cast<std::uint64_t>(out.tellp());
+		{
+			ReportFileIoFailure("write payload");
+			return BenchFail();
+		}
+		// Do not inspect stream state after close(); MSVC clears failbit unpredictably.
+		out.close();
+		sink ^= static_cast<std::uint64_t>(payload.size()) ^ static_cast<std::uint64_t>(f + 1);
 	}
 
 	std::filesystem::remove_all(root, ec);
-	return sink;
+	return BenchOk(sink);
 }
 
-std::uint64_t SequentialRead(std::size_t bytes, std::size_t files)
+struct ReadFixture
 {
-	const auto payload = MakePayload(bytes);
+	std::filesystem::path root;
+	std::size_t bytes = 0;
+	std::size_t files = 0;
+};
+
+bool PrepareReadFiles(const std::shared_ptr<ReadFixture>& fixture)
+{
+	if (!fixture)
+		return false;
+
+	const auto payload = MakePayload(fixture->bytes);
 	const auto scratch_root = BenchScratchRoot();
 	if (scratch_root.empty())
-		return 0;
-
-	const auto root = scratch_root / "read";
-	std::error_code ec;
-	std::filesystem::remove_all(root, ec);
-	std::filesystem::create_directories(root, ec);
-	if (ec)
-		return 0;
-
-	for (std::size_t f = 0; f < files; ++f)
 	{
-		const auto path = root / ("bench-" + std::to_string(f) + ".bin");
+		ReportFileIoFailure("LOCALAPPDATA / scratch root unavailable");
+		return false;
+	}
+
+	fixture->root = scratch_root / "read";
+	std::error_code ec;
+	std::filesystem::remove_all(fixture->root, ec);
+	std::filesystem::create_directories(fixture->root, ec);
+	if (ec)
+	{
+		ReportFileIoFailure("create read scratch directory");
+		return false;
+	}
+
+	for (std::size_t f = 0; f < fixture->files; ++f)
+	{
+		const auto path = fixture->root / ("bench-" + std::to_string(f) + ".bin");
 		std::ofstream out(path, std::ios::binary | std::ios::trunc);
 		if (!out)
-			return 0;
+		{
+			ReportFileIoFailure("open read-setup target");
+			return false;
+		}
 		out.write(reinterpret_cast<const char*>(payload.data()),
 		          static_cast<std::streamsize>(payload.size()));
 		if (!out.good())
-			return 0;
+		{
+			ReportFileIoFailure("write read-setup payload");
+			return false;
+		}
+		out.close();
+	}
+	return true;
+}
+
+void CleanupReadFiles(const std::shared_ptr<ReadFixture>& fixture)
+{
+	if (!fixture || fixture->root.empty())
+		return;
+	std::error_code ec;
+	std::filesystem::remove_all(fixture->root, ec);
+	fixture->root.clear();
+}
+
+BenchWorkloadResult SequentialReadOnly(const std::shared_ptr<ReadFixture>& fixture)
+{
+	if (!fixture || fixture->root.empty() || fixture->bytes == 0 || fixture->files == 0)
+	{
+		ReportFileIoFailure("read fixture not prepared");
+		return BenchFail();
 	}
 
 	std::uint64_t sink = 0;
-	std::vector<std::uint8_t> scratch(bytes);
-	for (std::size_t f = 0; f < files; ++f)
+	std::vector<std::uint8_t> scratch(fixture->bytes);
+	for (std::size_t f = 0; f < fixture->files; ++f)
 	{
-		const auto path = root / ("bench-" + std::to_string(f) + ".bin");
+		const auto path = fixture->root / ("bench-" + std::to_string(f) + ".bin");
 		std::ifstream in(path, std::ios::binary);
 		if (!in)
-			return 0;
+		{
+			ReportFileIoFailure("open read target");
+			return BenchFail();
+		}
 		in.read(reinterpret_cast<char*>(scratch.data()), static_cast<std::streamsize>(scratch.size()));
 		if (!in.good() && !in.eof())
-			return 0;
+		{
+			ReportFileIoFailure("read payload");
+			return BenchFail();
+		}
 		if (in.gcount() != static_cast<std::streamsize>(scratch.size()))
-			return 0;
-		sink ^= scratch[0] ^ static_cast<std::uint64_t>(in.gcount());
+		{
+			ReportFileIoFailure("short read");
+			return BenchFail();
+		}
+		sink ^= scratch[0] ^ static_cast<std::uint64_t>(in.gcount()) ^ static_cast<std::uint64_t>(f + 1);
 	}
-
-	std::filesystem::remove_all(root, ec);
-	return sink;
+	return BenchOk(sink);
 }
 
-void RegisterFile(BenchRegistry& registry,
-                  const char* name,
-                  std::size_t bytes,
-                  std::size_t files,
-                  BenchWorkloadFn fn)
+void RegisterWrite(BenchRegistry& registry,
+                   const char* name,
+                   std::size_t bytes,
+                   std::size_t files)
 {
 	BenchRegistry::Entry e{};
 	e.group = "fileio";
 	e.name = name;
-	e.workload = std::move(fn);
+	e.workload = [bytes, files]()
+	{ return SequentialWrite(bytes, files); };
+	e.warmup_samples = 1;
+	e.timed_samples = 5;
+	e.iterations_per_sample = 1;
+	e.bytes_per_iteration = bytes * files;
+	e.ops_per_iteration = files;
+	registry.Register(std::move(e));
+}
+
+void RegisterRead(BenchRegistry& registry,
+                  const char* name,
+                  std::size_t bytes,
+                  std::size_t files)
+{
+	auto fixture = std::make_shared<ReadFixture>();
+	fixture->bytes = bytes;
+	fixture->files = files;
+
+	BenchRegistry::Entry e{};
+	e.group = "fileio";
+	e.name = name;
+	e.setup = [fixture]()
+	{ return PrepareReadFiles(fixture); };
+	e.teardown = [fixture]()
+	{ CleanupReadFiles(fixture); };
+	e.workload = [fixture]()
+	{ return SequentialReadOnly(fixture); };
 	e.warmup_samples = 1;
 	e.timed_samples = 5;
 	e.iterations_per_sample = 1;
@@ -146,28 +244,8 @@ void BenchRegisterFileIoWorkloads(BenchRegistry& registry)
 	const std::size_t chunk = 256 * 1024;
 	const std::size_t multi = 8;
 
-	RegisterFile(registry,
-	             "write/256KiB",
-	             chunk,
-	             1,
-	             [chunk]()
-	             { return SequentialWrite(chunk, 1); });
-	RegisterFile(registry,
-	             "read/256KiB",
-	             chunk,
-	             1,
-	             [chunk]()
-	             { return SequentialRead(chunk, 1); });
-	RegisterFile(registry,
-	             "write/8x256KiB",
-	             chunk,
-	             multi,
-	             [chunk, multi]()
-	             { return SequentialWrite(chunk, multi); });
-	RegisterFile(registry,
-	             "read/8x256KiB",
-	             chunk,
-	             multi,
-	             [chunk, multi]()
-	             { return SequentialRead(chunk, multi); });
+	RegisterWrite(registry, "write/256KiB", chunk, 1);
+	RegisterRead(registry, "read/256KiB", chunk, 1);
+	RegisterWrite(registry, "write/8x256KiB", chunk, multi);
+	RegisterRead(registry, "read/8x256KiB", chunk, multi);
 }

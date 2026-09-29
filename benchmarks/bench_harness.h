@@ -45,7 +45,30 @@ struct BenchMeasurement
 	std::uint64_t checksum_sink = 0;
 };
 
-using BenchWorkloadFn = std::function<std::uint64_t()>;
+// Workload success is separate from the anti-DCE checksum sink.
+// A failed sample must abort the suite (do not publish timings).
+struct BenchWorkloadResult
+{
+	bool ok = false;
+	std::uint64_t checksum = 0;
+};
+
+inline BenchWorkloadResult BenchOk(std::uint64_t checksum)
+{
+	return BenchWorkloadResult{ true, checksum };
+}
+
+inline BenchWorkloadResult BenchFail()
+{
+	return BenchWorkloadResult{ false, 0 };
+}
+
+// std::function is intentional: workloads capture fixtures/payloads at
+// registration. Type-erasure cost is negligible next to the timed work
+// (file I/O, hashing, large CBuffer batches); keep the registry simple.
+using BenchWorkloadFn = std::function<BenchWorkloadResult()>;
+using BenchSetupFn = std::function<bool()>;
+using BenchTeardownFn = std::function<void()>;
 
 class BenchRegistry
 {
@@ -55,6 +78,8 @@ public:
 		std::string group;
 		std::string name;
 		BenchWorkloadFn workload;
+		BenchSetupFn setup;
+		BenchTeardownFn teardown;
 		std::uint64_t warmup_samples = 2;
 		std::uint64_t timed_samples = 7;
 		std::uint64_t iterations_per_sample = 1;

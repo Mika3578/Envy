@@ -1,8 +1,10 @@
 //
 // bench_buffer_support.cpp
 //
-// Links production Buffer.cpp helpers not pulled in by the minimal benchmark PCH.
-// UTF8Decode matches Envy/Strings.cpp (ReadLine path only).
+// Link-only UTF8Decode shim for production BufferImpl.inc (ReadLine path).
+// Must stay behavior-identical to Envy/Strings.cpp UTF8Decode overloads.
+// Buffer foundation workloads do not call ReadLine; compiling all of
+// Strings.cpp would pull unrelated Envy string surface into this target.
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //

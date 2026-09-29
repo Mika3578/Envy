@@ -29,7 +29,7 @@ std::vector<std::uint8_t> MakePayload(std::size_t size)
 }
 
 template<typename Hasher, std::size_t HashLen>
-std::uint64_t HashBuffer(const std::vector<std::uint8_t>& data, std::size_t repeats)
+BenchWorkloadResult HashBuffer(const std::vector<std::uint8_t>& data, std::size_t repeats)
 {
 	std::array<std::uint8_t, HashLen> digest{};
 	std::uint64_t sink = 0;
@@ -42,10 +42,10 @@ std::uint64_t HashBuffer(const std::vector<std::uint8_t>& data, std::size_t repe
 		hasher.GetHash(digest.data());
 		sink ^= digest[0];
 	}
-	return sink;
+	return BenchOk(sink);
 }
 
-std::uint64_t HashEd2k(const std::vector<std::uint8_t>& data, std::size_t repeats)
+BenchWorkloadResult HashEd2k(const std::vector<std::uint8_t>& data, std::size_t repeats)
 {
 	std::uint64_t sink = 0;
 	for (std::size_t r = 0; r < repeats; ++r)
@@ -54,15 +54,15 @@ std::uint64_t HashEd2k(const std::vector<std::uint8_t>& data, std::size_t repeat
 		ed2k.BeginFile(static_cast<uint64>(data.size()));
 		ed2k.AddToFile(data.data(), static_cast<uint32>(data.size()));
 		if (!ed2k.FinishFile())
-			return 0;
+			return BenchFail();
 		std::array<std::uint8_t, 16> digest{};
 		ed2k.GetRoot(digest.data());
 		sink ^= digest[0];
 	}
-	return sink;
+	return BenchOk(sink);
 }
 
-std::uint64_t HashTiger(const std::vector<std::uint8_t>& data, std::size_t repeats)
+BenchWorkloadResult HashTiger(const std::vector<std::uint8_t>& data, std::size_t repeats)
 {
 	std::uint64_t sink = 0;
 	for (std::size_t r = 0; r < repeats; ++r)
@@ -72,13 +72,13 @@ std::uint64_t HashTiger(const std::vector<std::uint8_t>& data, std::size_t repea
 		if (!data.empty())
 			tiger.AddToFile(data.data(), static_cast<uint32>(data.size()));
 		if (!tiger.FinishFile())
-			return 0;
+			return BenchFail();
 		std::array<std::uint8_t, 24> digest{};
 		if (!tiger.GetRoot(digest.data()))
-			return 0;
+			return BenchFail();
 		sink ^= digest[0];
 	}
-	return sink;
+	return BenchOk(sink);
 }
 
 void RegisterHashCase(BenchRegistry& registry,

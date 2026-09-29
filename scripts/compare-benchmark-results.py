@@ -31,17 +31,38 @@ def validate_results_path(path: str) -> None:
         raise ValueError("results path contains disallowed characters")
 
 
+def _path_has_symlink_component(candidate: Path) -> bool:
+    """True if any existing path component (including parents) is a symlink."""
+    try:
+        absolute = candidate if candidate.is_absolute() else (Path.cwd() / candidate)
+        absolute = absolute.absolute()
+    except OSError as exc:
+        raise ValueError("unable to resolve results path") from exc
+
+    current = Path(absolute.anchor) if absolute.anchor else Path()
+    parts = absolute.parts[1:] if absolute.anchor else absolute.parts
+    for part in parts:
+        current = current / part
+        try:
+            # Check the component itself (do not require the target to exist).
+            if current.is_symlink():
+                return True
+        except OSError as exc:
+            raise ValueError("unable to inspect results path") from exc
+    return False
+
+
 def resolve_results_file(path: str) -> Path:
     """Return a resolved regular file path after validation (CLI input is untrusted)."""
     validate_results_path(path)
     candidate = Path(path)
-    if candidate.is_symlink():
+    if _path_has_symlink_component(candidate):
         raise ValueError("symlinks not allowed for results files")
     try:
         resolved = candidate.resolve(strict=True)
     except FileNotFoundError as exc:
         raise ValueError("results file not found") from exc
-    if not resolved.is_file():
+    if not resolved.is_file() or resolved.is_symlink():
         raise ValueError("results path is not a regular file")
     return resolved
 
@@ -67,6 +88,19 @@ def bench_key(entry: Dict[str, Any]) -> str:
     return f"{group}/{name}"
 
 
+def parse_median_ns(key: str, median: Any) -> float:
+    # bool is a subclass of int; reject it explicitly.
+    if isinstance(median, bool) or not isinstance(median, (int, float)):
+        raise ValueError(f"invalid median_ns for {key}")
+    try:
+        value = float(median)
+    except (OverflowError, ValueError) as exc:
+        raise ValueError(f"invalid median_ns for {key}") from exc
+    if not math.isfinite(value) or value < 0.0:
+        raise ValueError(f"invalid median_ns for {key}")
+    return value
+
+
 def parse_benchmarks(doc: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     items = doc.get("benchmarks")
     if not isinstance(items, list):
@@ -76,9 +110,9 @@ def parse_benchmarks(doc: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
         if not isinstance(item, dict):
             raise ValueError("benchmark entry must be an object")
         key = bench_key(item)
-        median = item.get("median_ns")
-        if not isinstance(median, (int, float)) or not math.isfinite(float(median)):
-            raise ValueError(f"invalid median_ns for {key}")
+        if key in out:
+            raise ValueError(f"duplicate benchmark {key}")
+        parse_median_ns(key, item.get("median_ns"))
         out[key] = item
     return out
 
@@ -107,8 +141,8 @@ def compare(base_path: str, head_path: str) -> int:
             print(f"{key:<40} {'present':>14} {'—':>14} {'missing head':>14}")
             missing += 1
             continue
-        b = float(base[key]["median_ns"])
-        h = float(head[key]["median_ns"])
+        b = parse_median_ns(key, base[key]["median_ns"])
+        h = parse_median_ns(key, head[key]["median_ns"])
         delta = h - b
         print(f"{key:<40} {format_ns(b):>14} {format_ns(h):>14} {format_ns(delta):>14}")
 

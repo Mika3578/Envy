@@ -52,5 +52,11 @@ typedef enum _WTS_ALPHATYPE
 
 #pragma warning(pop)
 
+// Intentionally omit zlib/Bzlib headers. Production Envy/StdAfx.h includes them so
+// BufferImpl.inc compiles Deflate/Inflate/BZip paths; this foundation slice times
+// append/remove/packet-like CBuffer work only. Including the headers would require
+// linking CZLib (Envy/ZLib.cpp -> Settings/Envy) and Bzlib into the harness.
+// Documented in docs/10_dev/benchmarks.md.
+
 #include <cstdint>
 #include <cstring>
