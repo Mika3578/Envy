@@ -57,6 +57,19 @@ def is_comment_line(line: bytes) -> bool:
 	return stripped.startswith(b"//")
 
 
+def replace_cp1252_bytes_once(line: bytes, mapping: tuple[tuple[bytes, bytes], ...]) -> bytes:
+	"""Replace single-byte CP1252 sequences without rescanning emitted UTF-8."""
+	table = {old: new for old, new in mapping}
+	out = bytearray()
+	for byte in line:
+		replacement = table.get(bytes((byte,)))
+		if replacement is not None:
+			out.extend(replacement)
+		else:
+			out.append(byte)
+	return bytes(out)
+
+
 def file_bytes_are_utf8(data: bytes) -> bool:
 	if data.startswith(b"\xff\xfe") or data.startswith(b"\xfe\xff"):
 		return False
@@ -90,9 +103,7 @@ def normalize_line(line: bytes, fix_comments: bool, use_ascii_copyright: bool) -
 		try:
 			new_line.decode("utf-8")
 		except UnicodeDecodeError:
-			for old, new in COMMENT_CP1252_TO_UTF8:
-				if old in new_line:
-					new_line = new_line.replace(old, new)
+			new_line = replace_cp1252_bytes_once(new_line, COMMENT_CP1252_TO_UTF8)
 	return new_line
 
 
