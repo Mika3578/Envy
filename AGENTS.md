@@ -158,14 +158,15 @@ Branch model:
     **Never** bypass GitHub rulesets, required checks, or branch
     protections (`--admin`, elevated PATs, force-push to protected refs).
     Never push to `main`/`develop`/`legacy` directly.
-13. **Soft target of 5 active development PRs**. Before opening a new PR, count
-    open **development** PRs (Dependabot/Renovate PRs do **not** count).
-    Prefer staying at or below **5**. Opening a sixth (or more) is allowed only
-    with a concrete documented reason in the PR body (for example a blocking
-    reliability or security fix, a required CI hotfix, or a dependency that
-    cannot wait for an existing PR to merge). Prefer finishing or merging
-    existing PRs first. Overflow is not a loophole for unbounded parallel work,
-    and “small/quick/tooling” is not by itself a reason.
+13. **Parallel work (no numeric cap on PRs, issues, or Discussions).** Open a
+    PR, issue, or Discussion when the scope is ready and reviewable. There is
+    **no** repository rule that forbids opening more than N items; do not defer
+    documentation, research, security, or small focused PRs solely because other
+    PRs are already open. Dependabot/Renovate PRs are out of scope for any
+    informal “development PR” count. **Practical guidance only:** prefer
+    finishing or merging overlapping work before starting duplicate scopes; call
+    out related open PRs/issues in the body when touch points overlap. Quality
+    gates and review capacity remain the real limits—not an arbitrary PR tally.
 14. **EnvyCore portability (new interfaces only).** New APIs that belong
     to the future portable core must not expose MFC or Win32 types when a
     reasonable portable abstraction exists (`CString`, `CFile`, MFC
@@ -408,8 +409,8 @@ When you take on a task you are expected to:
 3. **Open a draft PR** if one does not exist. Match the PR template at
    `.github/pull_request_template.md`. Mark ready-for-review and enable
    squash auto-merge only under hard rule 12.
-4. **Respect the soft target of 5 development PRs** (hard rule 13) before
-   opening anything new. Overflow needs a documented reason in the PR body.
+4. **Rule 13:** no fixed cap on open PRs, issues, or Discussions—open when
+   ready; note related open work when scopes overlap.
 5. **Tick the checkboxes** in the PR template that genuinely apply -
    don't blanket-check them.
 6. **CI wait (no arbitrary sleeps).** After any push tied to a PR, never
