@@ -1,4 +1,4 @@
-Paste as **Preview testing and protocol interoperability reports** (category: **General** until **Testing & Interoperability** exists).
+Paste as **Preview testing and protocol interoperability reports** in category **Show and tell** (`show-and-tell`) until a dedicated **Testing & Interoperability** category exists on GitHub.
 
 ---
 

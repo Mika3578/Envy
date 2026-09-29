@@ -29,7 +29,7 @@ well-scoped P0/P1 engineering work into Discussions.
 | Q&A | `q-a` | Help — GitHub **accepted answer** enabled |
 | Ideas | `ideas` | Feature proposals before Issues |
 | Polls | — | GitHub does not support category forms for Polls; use General or Ideas for non-binding preference checks |
-| Show and tell | `show-and-tell` | Showcases; not primary interop reporting |
+| Show and tell | `show-and-tell` | Showcases; canonical home for preview/interop reports until **Testing & Interoperability** exists |
 
 ### Recommended category additions (manual GitHub UI)
 
