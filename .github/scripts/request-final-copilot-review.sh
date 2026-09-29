@@ -198,6 +198,55 @@ evaluate_eligibility() {
 	return 0
 }
 
+graphql_mutation_ok() {
+	local response="$1"
+	if [[ -z "$response" ]]; then
+		echo "::error::Empty GraphQL response from GitHub API." >&2
+		return 1
+	fi
+	if echo "$response" | jq -e '.errors? | length > 0' >/dev/null 2>&1; then
+		echo "::error::GraphQL mutation failed: $(echo "$response" | jq -c '.errors')" >&2
+		return 1
+	fi
+	return 0
+}
+
+fetch_preserved_reviewer_ids() {
+	local user_ids='[]'
+	local team_ids='[]'
+	local cursor=""
+	local has_next="true"
+
+	while [[ "$has_next" == "true" ]]; do
+		local snap
+		if ! snap="$(gh api graphql -f query='query($o:String!,$n:String!,$p:Int!,$after:String){
+			repository(owner:$o,name:$n){
+				pullRequest(number:$p){
+					reviewRequests(first:100,after:$after){
+						nodes{requestedReviewer{__typename ... on User{id login} ... on Team{id slug} ... on Bot{id login}}}
+						pageInfo{hasNextPage endCursor}
+					}
+				}
+			}
+		}' -f o="$OWNER" -f n="$REPO" -F p="$PR_NUMBER" -f after="$cursor" 2>/dev/null)"; then
+			echo "::error::Failed to list existing review requests for PR #${PR_NUMBER}." >&2
+			return 1
+		fi
+
+		user_ids="$(jq -c --argjson users "$user_ids" \
+			'($users + [.data.repository.pullRequest.reviewRequests.nodes[] | select(.requestedReviewer.__typename=="User") | .requestedReviewer.id]) | unique' \
+			<<<"$snap")"
+		team_ids="$(jq -c --argjson teams "$team_ids" \
+			'($teams + [.data.repository.pullRequest.reviewRequests.nodes[] | select(.requestedReviewer.__typename=="Team") | .requestedReviewer.id]) | unique' \
+			<<<"$snap")"
+
+		has_next="$(echo "$snap" | jq -r '.data.repository.pullRequest.reviewRequests.pageInfo.hasNextPage')"
+		cursor="$(echo "$snap" | jq -r '.data.repository.pullRequest.reviewRequests.pageInfo.endCursor // empty')"
+	done
+
+	printf '%s\n%s\n' "$user_ids" "$team_ids"
+}
+
 request_copilot_refresh() {
 	local pr_node_id="$1"
 	local head_oid_before="$2"
@@ -211,21 +260,41 @@ request_copilot_refresh() {
 		exit 0
 	fi
 
-	local bot_node snap user_ids team_ids
-	bot_node="$(gh api '/users/copilot-pull-request-reviewer%5Bbot%5D' --jq .node_id)"
+	local bot_node user_ids team_ids reviewer_lines clear_resp add_resp
+	if ! bot_node="$(gh api '/users/copilot-pull-request-reviewer%5Bbot%5D' --jq .node_id 2>/dev/null)"; then
+		echo "::error::Could not resolve Copilot reviewer bot node ID." >&2
+		exit 1
+	fi
+	if [[ -z "$bot_node" || "$bot_node" == "null" ]]; then
+		echo "::error::Copilot reviewer bot node ID was empty." >&2
+		exit 1
+	fi
 
-	snap="$(gh api graphql -f query='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewRequests(first:20){nodes{requestedReviewer{__typename ... on User{id login} ... on Team{id slug} ... on Bot{id login}}}}}}}' \
-		-f o="$OWNER" -f n="$REPO" -F p="$PR_NUMBER")"
-	user_ids="$(echo "$snap" | jq -c '[.data.repository.pullRequest.reviewRequests.nodes[] | select(.requestedReviewer.__typename=="User") | .requestedReviewer.id]')"
-	team_ids="$(echo "$snap" | jq -c '[.data.repository.pullRequest.reviewRequests.nodes[] | select(.requestedReviewer.__typename=="Team") | .requestedReviewer.id]')"
+	mapfile -t reviewer_lines < <(fetch_preserved_reviewer_ids)
+	user_ids="${reviewer_lines[0]}"
+	team_ids="${reviewer_lines[1]}"
 
-	gh api graphql --input - <<EOF
+	if ! clear_resp="$(gh api graphql --input - <<EOF
 {"query":"mutation(\$pr:ID!){requestReviews(input:{pullRequestId:\$pr,botIds:[],userIds:[],teamIds:[],union:false}){clientMutationId}}","variables":{"pr":"$pr_node_id"}}
 EOF
+)"; then
+		echo "::error::Failed to clear existing review requests before re-requesting Copilot." >&2
+		exit 1
+	fi
+	if ! graphql_mutation_ok "$clear_resp"; then
+		exit 1
+	fi
 
-	gh api graphql --input - <<EOF
+	if ! add_resp="$(gh api graphql --input - <<EOF
 {"query":"mutation(\$pr:ID!,\$bots:[ID!]!,\$users:[ID!]!,\$teams:[ID!]!){requestReviews(input:{pullRequestId:\$pr,botIds:\$bots,userIds:\$users,teamIds:\$teams,union:false}){clientMutationId}}","variables":{"pr":"$pr_node_id","bots":["$bot_node"],"users":$user_ids,"teams":$team_ids}}
 EOF
+)"; then
+		echo "::error::Failed to request Copilot review after clearing reviewers." >&2
+		exit 1
+	fi
+	if ! graphql_mutation_ok "$add_resp"; then
+		exit 1
+	fi
 
 	write_summary "Final Copilot review requested" \
 		"" \
