@@ -6,6 +6,8 @@ on:
     paths:
       - "benchmarks/**"
       - "Envy/BufferImpl.inc"
+      - "Envy/Buffer.h"
+      - "Envy/Strings.h"
       - "Envy/PacketLengthValidate.h"
       - "HashLib/**"
       - "scripts/compare-benchmark-results.py"
@@ -16,6 +18,8 @@ on:
     paths:
       - "benchmarks/**"
       - "Envy/BufferImpl.inc"
+      - "Envy/Buffer.h"
+      - "Envy/Strings.h"
       - "Envy/PacketLengthValidate.h"
       - "HashLib/**"
       - "scripts/compare-benchmark-results.py"
