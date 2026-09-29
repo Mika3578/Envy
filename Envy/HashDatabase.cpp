@@ -185,32 +185,31 @@ HASHDB_INDEX* CHashDatabase::Lookup(DWORD nIndex, DWORD nType) const
 HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLength)
 {
 	ASSERT( m_bOpen );
-	HASHDB_INDEX* pExisting = Lookup(nIndex, nType);
+	HASHDB_INDEX* pIndex = Lookup( nIndex, nType );
 
-	if (pExisting)
+	if ( pIndex )
 	{
-		if (pExisting->nLength == nLength)
-			return pExisting;
+		if ( pIndex->nLength == nLength )
+			return pIndex;
 
-		pExisting->nIndex = 0;
+		pIndex->nIndex = 0;
+		pIndex = NULL;
 	}
 
-	HASHDB_INDEX* pResult = NULL;
 	size_t nBestPos = 0;
 	BOOL bHaveBest = FALSE;
 	DWORD nBestOverhead = 0xFFFFFFFF;
+	DWORD nCount;
 
-	DWORD nCount = m_nIndex;
-	for (HASHDB_INDEX* pCandidate = m_pIndex;
-	     nCount; nCount--, pCandidate++)
+	for ( pIndex = m_pIndex, nCount = m_nIndex; nCount; nCount--, pIndex++ )
 	{
-		if (pCandidate->nIndex == 0 && pCandidate->nLength >= nLength)
+		if ( pIndex->nIndex == 0 && pIndex->nLength >= nLength )
 		{
-			const DWORD nOverhead = pCandidate->nLength - nLength;
+			const DWORD nOverhead = pIndex->nLength - nLength;
 
 			if ( nOverhead < nBestOverhead )
 			{
-				const ptrdiff_t nDiff = pCandidate - m_pIndex;
+				const ptrdiff_t nDiff = pIndex - m_pIndex;
 				ASSERT( nDiff >= 0 && static_cast< DWORD >( nDiff ) < m_nBuffer );
 				nBestPos = static_cast< size_t >( nDiff );
 				bHaveBest = TRUE;
@@ -222,7 +221,7 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 
 	if ( bHaveBest )
 	{
-		pResult = m_pIndex + nBestPos;
+		pIndex = m_pIndex + nBestPos;
 	}
 	else
 	{
@@ -233,25 +232,22 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 			if ( m_pIndex )
 			{
 				if ( m_nIndex ) CopyMemory( pNew, m_pIndex, sizeof( HASHDB_INDEX ) * m_nIndex );
-				HASHDB_INDEX* pOld = m_pIndex;
-				m_pIndex = pNew;
-				delete[] pOld;
+				delete [] m_pIndex;
 			}
-			else
-				m_pIndex = pNew;
+			m_pIndex = pNew;
 		}
 
-		pResult = m_pIndex + m_nIndex++;
-		pResult->nOffset = m_nOffset;
-		pResult->nLength = nLength;
+		pIndex = m_pIndex + m_nIndex++;
+		pIndex->nOffset = m_nOffset;
+		pIndex->nLength = nLength;
 
 		m_nOffset += nLength;
 	}
 
-	pResult->nIndex = nIndex;
-	pResult->nType = nType;
+	pIndex->nIndex = nIndex;
+	pIndex->nType  = nType;
 
-	return pResult;
+	return pIndex;
 }
 
 //////////////////////////////////////////////////////////////////////

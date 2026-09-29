@@ -1,7 +1,7 @@
 //
 // G2Packet.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) (C) 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -259,12 +259,10 @@ protected:
 	class CG2PacketPool : public CPacketPool
 	{
 	public:
-		virtual ~CG2PacketPool() { Clear(FreePool); }
-
+		virtual ~CG2PacketPool() { Clear(); }
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);
-		static void FreePool(CPacket* pPool);
 	};
 
 	static CG2PacketPool POOL;
@@ -327,9 +325,4 @@ inline void CG2Packet::CG2PacketPool::NewPoolImpl(int nSize, CPacket*& pPool, in
 inline void CG2Packet::CG2PacketPool::FreePoolImpl(CPacket* pPacket)
 {
 	delete [] (CG2Packet*)pPacket;
-}
-
-inline void CG2Packet::CG2PacketPool::FreePool(CPacket* pPacket)
-{
-	delete[] (CG2Packet*)pPacket;
 }

@@ -3,7 +3,8 @@
 """Normalize Envy source headers to UTF-8.
 
 Replaces legacy Windows-1252 / invalid UTF-8 bytes on getenvy.com banner lines.
-Comment-line punctuation conversion is opt-in with ``--fix-comment-cp1252``.
+Comment-line CP1252 conversion is intentionally unsupported: valid UTF-8 files cannot
+contain raw CP1252 comment bytes, and legacy encodings must stay byte-stable (#350).
 Intentional ASCII forms are kept: (getenvy.com) (C) ... and (getenvy.com) - ...
 """
 
@@ -27,18 +28,6 @@ COPYRIGHT_REPLACEMENTS: tuple[tuple[bytes, bytes], ...] = (
 	(b"getenvy.com) \xc2\x9d ", COPYRIGHT_CANONICAL),
 )
 
-# CP1252 punctuation often found in legacy // comments (not valid UTF-8 as raw bytes).
-COMMENT_CP1252_TO_UTF8: tuple[tuple[bytes, bytes], ...] = (
-	(b"\x96", b"\xe2\x80\x93"),  # en dash
-	(b"\x97", b"\xe2\x80\x94"),  # em dash
-	(b"\x91", b"\xe2\x80\x98"),  # left single quote
-	(b"\x92", b"\xe2\x80\x99"),  # right single quote
-	(b"\x93", b"\xe2\x80\x9c"),  # left double quote
-	(b"\x94", b"\xe2\x80\x9d"),  # right double quote
-	(b"\x85", b"\xe2\x80\xa6"),  # ellipsis
-)
-
-
 def git_ls_envy_sources() -> list[Path]:
 	out = subprocess.check_output(
 		["git", "ls-files", "Envy"],
@@ -52,24 +41,6 @@ def git_ls_envy_sources() -> list[Path]:
 	return paths
 
 
-def is_comment_line(line: bytes) -> bool:
-	stripped = line.lstrip()
-	return stripped.startswith(b"//")
-
-
-def replace_cp1252_bytes_once(line: bytes, mapping: tuple[tuple[bytes, bytes], ...]) -> bytes:
-	"""Replace single-byte CP1252 sequences without rescanning emitted UTF-8."""
-	table = {old: new for old, new in mapping}
-	out = bytearray()
-	for byte in line:
-		replacement = table.get(bytes((byte,)))
-		if replacement is not None:
-			out.extend(replacement)
-		else:
-			out.append(byte)
-	return bytes(out)
-
-
 def file_bytes_are_utf8(data: bytes) -> bool:
 	if data.startswith(b"\xff\xfe") or data.startswith(b"\xfe\xff"):
 		return False
@@ -80,7 +51,7 @@ def file_bytes_are_utf8(data: bytes) -> bool:
 	return True
 
 
-def normalize_line(line: bytes, fix_comments: bool, use_ascii_copyright: bool) -> bytes:
+def normalize_line(line: bytes, use_ascii_copyright: bool) -> bytes:
 	new_line = line
 	if b"getenvy.com)" in new_line and b"20" in new_line:
 		if b"getenvy.com) (C)" in new_line:
@@ -98,16 +69,10 @@ def normalize_line(line: bytes, fix_comments: bool, use_ascii_copyright: bool) -
 			for old, _ in COPYRIGHT_REPLACEMENTS:
 				if old in new_line:
 					new_line = new_line.replace(old, target)
-	# Comment CP1252 fixes apply only on UTF-8 sources; legacy encodings stay byte-stable (#350).
-	if fix_comments and is_comment_line(new_line) and not use_ascii_copyright:
-		try:
-			new_line.decode("utf-8")
-		except UnicodeDecodeError:
-			new_line = replace_cp1252_bytes_once(new_line, COMMENT_CP1252_TO_UTF8)
 	return new_line
 
 
-def normalize_file(path: Path, fix_comments: bool, dry_run: bool) -> bool:
+def normalize_file(path: Path, dry_run: bool) -> bool:
 	data = path.read_bytes()
 	if data.startswith(b"\xff\xfe") or data.startswith(b"\xfe\xff"):
 		return False
@@ -122,7 +87,7 @@ def normalize_file(path: Path, fix_comments: bool, dry_run: bool) -> bool:
 	changed = False
 	out_parts: list[bytes] = []
 	for part in parts:
-		fixed = normalize_line(part, fix_comments, use_ascii_copyright)
+		fixed = normalize_line(part, use_ascii_copyright)
 		if fixed != part:
 			changed = True
 		out_parts.append(fixed)
@@ -141,23 +106,17 @@ def normalize_file(path: Path, fix_comments: bool, dry_run: bool) -> bool:
 def main() -> int:
 	parser = argparse.ArgumentParser(description=__doc__)
 	parser.add_argument(
-		"--fix-comment-cp1252",
-		action="store_true",
-		help="Also convert CP1252 punctuation in // comment lines.",
-	)
-	parser.add_argument(
 		"--dry-run",
 		action="store_true",
 		help="Report files that would change without writing.",
 	)
 	args = parser.parse_args()
-	fix_comments = args.fix_comment_cp1252
 
 	changed: list[str] = []
 	for path in git_ls_envy_sources():
 		if not path.is_file():
 			continue
-		if normalize_file(path, fix_comments, args.dry_run):
+		if normalize_file(path, args.dry_run):
 			changed.append(str(path.relative_to(ROOT)).replace("\\", "/"))
 
 	for rel in sorted(changed):

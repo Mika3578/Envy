@@ -1,7 +1,7 @@
 //
 // BTPacket.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) (C) 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -162,12 +162,10 @@ protected:
 	class CBTPacketPool : public CPacketPool
 	{
 	public:
-		virtual ~CBTPacketPool() { Clear(FreePool); }
-
+		virtual ~CBTPacketPool() { Clear(); }
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);
-		static void FreePool(CPacket* pPool);
 	};
 
 	static CBTPacketPool POOL;
@@ -203,11 +201,6 @@ inline void CBTPacket::CBTPacketPool::NewPoolImpl(int nSize, CPacket*& pPool, in
 inline void CBTPacket::CBTPacketPool::FreePoolImpl(CPacket* pPacket)
 {
 	delete [] (CBTPacket*)pPacket;
-}
-
-inline void CBTPacket::CBTPacketPool::FreePool(CPacket* pPacket)
-{
-	delete[] (CBTPacket*)pPacket;
 }
 
 #pragma pack(push, 1)

@@ -1,7 +1,7 @@
 //
 // BTTrackerRequest.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) (C) 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -199,12 +199,10 @@ protected:
 	class CBTTrackerPacketPool : public CPacketPool
 	{
 	public:
-		virtual ~CBTTrackerPacketPool() { Clear(FreePool); }
-
+		virtual ~CBTTrackerPacketPool() { Clear(); }
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);
-		static void FreePool(CPacket* pPool);
 	};
 
 	static CBTTrackerPacketPool POOL;
@@ -238,11 +236,6 @@ inline void CBTTrackerPacket::CBTTrackerPacketPool::NewPoolImpl(int nSize, CPack
 inline void CBTTrackerPacket::CBTTrackerPacketPool::FreePoolImpl(CPacket* pPacket)
 {
 	delete [] (CBTTrackerPacket*)pPacket;
-}
-
-inline void CBTTrackerPacket::CBTTrackerPacketPool::FreePool(CPacket* pPacket)
-{
-	delete[] (CBTTrackerPacket*)pPacket;
 }
 
 

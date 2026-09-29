@@ -126,12 +126,10 @@ protected:
 	class CEDPacketPool : public CPacketPool
 	{
 	public:
-		virtual ~CEDPacketPool() { Clear(FreePool); }
-
+		virtual ~CEDPacketPool() { Clear(); }
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);
-		static void FreePool(CPacket* pPool);
 	};
 
 	static CEDPacketPool POOL;
@@ -196,11 +194,6 @@ inline void CEDPacket::CEDPacketPool::NewPoolImpl(int nSize, CPacket*& pPool, in
 }
 
 inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
-{
-	delete[] (CEDPacket*)pPacket;
-}
-
-inline void CEDPacket::CEDPacketPool::FreePool(CPacket* pPacket)
 {
 	delete [] (CEDPacket*)pPacket;
 }

@@ -1,7 +1,7 @@
 //
 // Packet.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) (C) 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -501,15 +501,15 @@ CPacketPool::CPacketPool()
 // Delete this packet pool
 CPacketPool::~CPacketPool()
 {
-	// Derived packet pools own the concrete FreePoolImpl() and clear themselves
-	// before this base destructor runs; calling the pure virtual hook here is UB.
+	// Free all the packets in this pool before the destructor frees this packet pool object itself
+	Clear();
 }
 
 //////////////////////////////////////////////////////////////////////
 // CPacketPool clear
 
 // Delete all the packet objects that this packet pool points to, and return the member variables to defaults
-void CPacketPool::Clear(void (*pFreePool)(CPacket*))
+void CPacketPool::Clear()
 {
 	// Loop from the end of the pointer array back to the start
 	// GetSize returns the number of pointers in the array, start nIndex on the last one
@@ -520,7 +520,7 @@ void CPacketPool::Clear(void (*pFreePool)(CPacket*))
 		CPacket* pPool = m_pPools.GetAt( nIndex );
 
 		// Delete the packet pool, freeing the memory of the 256 packets in it
-		pFreePool(pPool);
+		FreePoolImpl( pPool );		// Calls up higher on the inheritance tree
 	}
 
 	// Clear all the member variables of this packet pool object

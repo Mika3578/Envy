@@ -1,7 +1,7 @@
 //
 // DCPacket.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) (C) 2016-2018
 // Portions copyright Shareaza 2010 and PeerProject 2010-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -44,12 +44,10 @@ protected:
 	class CDCPacketPool : public CPacketPool
 	{
 	public:
-		virtual ~CDCPacketPool() { Clear(FreePool); }
-
+		virtual ~CDCPacketPool() { Clear(); }
 	protected:
 		virtual void NewPoolImpl(int nSize, CPacket*& pPool, int& nPitch);
 		virtual void FreePoolImpl(CPacket* pPool);
-		static void FreePool(CPacket* pPool);
 	};
 
 	static CDCPacketPool POOL;
@@ -94,11 +92,6 @@ inline void CDCPacket::CDCPacketPool::NewPoolImpl(int nSize, CPacket*& pPool, in
 inline void CDCPacket::CDCPacketPool::FreePoolImpl(CPacket* pPacket)
 {
 	delete [] (CDCPacket*)pPacket;
-}
-
-inline void CDCPacket::CDCPacketPool::FreePool(CPacket* pPacket)
-{
-	delete[] (CDCPacket*)pPacket;
 }
 
 #define DC_PROTOCOL_MIN_LEN	3
