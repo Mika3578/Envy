@@ -162,6 +162,15 @@ inline DWORD TransferBandwidthBytesToSetting(unsigned long long nBytes)
 	return static_cast<DWORD>(nBytes);
 }
 
+// CTransfer::m_nBandwidth is the TCP meter limit (bytes/s). Registry unlimited (0)
+// must not reach the meter as zero or uploads stall in CalculateLimit.
+inline DWORD TransferBandwidthBytesToMeterLimit(DWORD nBytesPerSecond)
+{
+	if (TransferBandwidthSettingIsUnlimited(nBytesPerSecond))
+		return 0xFFFFFFFFu;
+	return nBytesPerSecond;
+}
+
 // Connection.InSpeed / OutSpeed are stored in kilobits per second (Kb/s).
 // They describe declared link capacity for tuning/UI — not an implicit user
 // transfer cap when Bandwidth.* is unlimited (see #342).

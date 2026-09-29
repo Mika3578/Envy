@@ -205,7 +205,8 @@ DWORD CUploadTransfer::GetMeasuredSpeed()
 void CUploadTransfer::SetSpeedLimit(DWORD nLimit)
 {
 	ZeroMemory( m_nAverageRate, sizeof m_nAverageRate );
-	m_nBandwidth	= m_bPriority ? Settings.Bandwidth.Uploads : nLimit;
+	const DWORD nChosen = m_bPriority ? Settings.Bandwidth.Uploads : nLimit;
+	m_nBandwidth = TransferBandwidthBytesToMeterLimit(nChosen);
 	m_tAverageTime	= 0;
 	m_nAveragePos	= 0;
 }
