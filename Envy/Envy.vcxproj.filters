@@ -2033,6 +2033,9 @@
     <ClInclude Include="KadNodesDat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TransferConnectionCapacity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="TransferSettingsLimits.h">
       <Filter>Header Files</Filter>
     </ClInclude>
