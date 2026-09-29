@@ -166,10 +166,12 @@ The annotation is **informational today**; it is **not** a failed check. After
 
 **Maintainer checklist (GitHub UI — not changeable from repository YAML):**
 
-1. Open **Settings → Actions → General** for `Mika3578/Envy`
+1. Open **Settings → Actions → Policies** for `Mika3578/Envy`
    (`https://github.com/Mika3578/Envy/settings/actions`).
-2. Locate the **Workflow permissions** / **`pull_request_target` workflow
-   execution** control (wording varies; see GitHub’s current UI).
+2. Locate the **`pull_request_target` workflow execution policy** and its
+   allow rule (wording varies; see GitHub’s current UI). Do not confuse this
+   with the separate **Workflow permissions** control under **Actions →
+   General**.
 3. Follow [Using `pull_request_target` securely — default policy](https://gh.io/securely-using-pull_request_target#default-policy-for-pull_request_target)
    and **allow** the trusted workflows this repository relies on (allowlist
    by workflow file path when the UI offers that option).
@@ -189,7 +191,9 @@ The annotation is **informational today**; it is **not** a failed check. After
 | Auto-merge safe Dependabot PRs | `.github/workflows/dependabot-auto-merge.yml` | Enable squash auto-merge wait for Dependabot without executing PR workflows | `if: dependabot[bot]`; metadata via `dependabot/fetch-metadata`; **never** approves; merge still gated by Protect develop |
 
 No other workflow in this repository should add `pull_request_target` without
-the same maintainer security review called out in `AGENTS.md` (hard rule 12).
+the same maintainer security review called out in `AGENTS.md` (Workflow →
+Staged PR validation: workflow definitions and new `pull_request_target`
+triggers require explicit maintainer review).
 
 **Benign “error” annotations:** `authorship-hygiene` sets
 `concurrency.cancel-in-progress: true` per PR number. Rapid successive PR
