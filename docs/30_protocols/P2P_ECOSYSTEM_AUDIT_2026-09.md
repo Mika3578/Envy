@@ -167,7 +167,7 @@ Full candidate verification for **A–F** (prompt section 7):
 
 ## 5. Existing issue mapping (priority list)
 
-Issues receiving **2026-09 ecosystem cross-check** comments on GitHub: #86, #87, #88, #111, #161, #163, #162, #229, #230, #231, #233, #239, #311, #318, #319, #344.
+Issues receiving **2026-09 ecosystem cross-check** comments on GitHub: #86, #87, #88, #111, #161, #163, #162, #229, #230, #231, #233, #239, #311, #318, #319, #343, #344.
 
 New issues created from this audit: #384 (storage-aware hashing); #385 (incremental shared-library watcher).
 
