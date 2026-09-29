@@ -66,6 +66,8 @@ credible defect such as:
   risk-specific evidence required below;
 - weakening, skipping, renaming around, or bypassing a required
   build/test/static-analysis/security/quality gate;
+- removing or omitting a required gate, even when no replacement failure is
+  visible in the current check list;
 - a governance change that weakens approval, self-review, or merge protection;
 - a branch name that violates `AGENTS.md`.
 
@@ -125,8 +127,8 @@ Submit `APPROVED` when **all** of these hold:
 - Required Protect develop checks are green. If they are still running, do not
   manufacture a failure; use COMMENT as needed and perform a later final
   review.
-- No unresolved blocking review thread and no active `CHANGES_REQUESTED`
-  remains.
+- No unresolved review thread, no active `CHANGES_REQUESTED` remains, and no
+  required gate is missing, skipped, or bypassed.
 - The PR body describes the current HEAD and its **Squash Commit Summary**
   satisfies `AGENTS.md` rule 16.
 - The change does not weaken a required quality/security/merge gate.

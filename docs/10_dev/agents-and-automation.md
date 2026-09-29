@@ -106,7 +106,7 @@ Treat Copilot as the final approval reviewer, not as a reason to rerun an
 expensive review after every small correction. A final Copilot review should
 be requested only when the PR is a **final candidate**: current HEAD, Ready,
 up to date with `develop`, required checks green, actionable findings fixed,
-blocking threads resolved, risk-specific evidence present, and the PR body /
+all review threads resolved, risk-specific evidence present, and the PR body /
 Squash Commit Summary aligned with that HEAD.
 
 Earlier Copilot reviews may still provide findings. Pending CI by itself is not
