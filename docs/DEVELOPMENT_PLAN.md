@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-28
+- **Last Updated:** 2026-09-29
+- **Changelog Entry:** 2026-09-29 — Copilot review outcome interpreter (draft PR): deterministic classifier for Copilot overview assessments; `Needs a closer look` + `Findings: None` → closure audit, not blind re-review. Depends on #382/#383 landing first; no new merge authority.
 - **Changelog Entry:** 2026-09-28 — #363: correct ED2K SourceEx2 request/answer framing, add versioned record validation and golden vectors, and document the live interop gap.
 - **Changelog Entry:** 2026-09-28 — #381 simplification: remove the duplicate PR Gate poller and conclusion helpers; keep Draft → `stage:live-test` → Ready phase selection and native workflow checks. Protect develop now removes PR Gate, required signatures, duplicate gitleaks status, and required Documentation Check, with Copilot review-on-push disabled. Cursor automations remain external manual operations.
 - **Changelog Entry:** 2026-09-28 — Staged validation: Draft defers Windows builds/C# analysis; manual `stage:live-test` and Ready run both Release builds, EnvyTests and provenance-tagged artifacts. One subscription-based fixer is specified with Draft 3 / Ready 2 batch limits. Rollout blockers: maintainer must disable the existing approval automation, create lifecycle labels, verify subscriptions/signing and perform runtime/Ready dogfood. See `10_dev/agents-and-automation.md`.

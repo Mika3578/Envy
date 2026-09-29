@@ -1,6 +1,6 @@
 # Envy Development Agents & Automation
 
-**Last Updated:** 2026-09-28
+**Last Updated:** 2026-09-29
 
 ## What exists today
 
@@ -22,8 +22,16 @@ Cursor has been configured or that runtime validation has occurred.
 Draft -> cheap CI + optional reviews -> one subscribed fixer
   -> maintainer: stage:live-test -> Windows + EnvyTests + artifacts
   -> maintainer: runtime test -> maintainer: Ready
-  -> full CI + Copilot -> same fixer -> native mergeability -> manual squash
+  -> full CI -> final Copilot request (#383) -> outcome interpreter
+  -> same fixer (classification-aware) -> native mergeability -> manual squash
 ```
+
+**Copilot semantics:** `Findings: None` on the overview means no new inline
+finding in that review pass. It does **not** mean the pull request is clean.
+A `Needs a closer look` assessment with `Findings: None` can still carry
+blocking rationale in the overview text (see dogfood PRs #358, #367, #380).
+Only a real GitHub `APPROVED` review with a green `Approved` assessment is
+treated as terminal approval signal.
 
 After merge to `develop` (and weekly/nightly schedules):
 
@@ -165,8 +173,34 @@ second workflow that polls those checks.
 PR #346's superseded-generation fix and PR #349's semantic gate are obsolete
 once the live ruleset no longer requires PR Gate. Their closure is a GitHub
 operation outside this repository change.
-Keep the obsolete requester for merged #294/#354 until native Copilot refresh
-has been demonstrated. Do not create its replacement in this PR.
+Keep the obsolete requester for merged #294/#354 until PR #383 lands on
+`develop`. Do not duplicate the final review requester in other PRs.
+
+### Copilot review outcome interpreter (after review)
+
+Runs on `pull_request_review` `submitted` for
+`copilot-pull-request-reviewer[bot]` only (`.github/workflows/copilot-review-outcome.yml`).
+It checks out **trusted default-branch** scripts only, never the PR head, and
+posts a machine-readable JSON block in an issue comment tagged
+`<!-- envy-copilot-review-outcome:v1 -->`. This workflow is **not** a merge
+authority; Protect develop stays authoritative.
+
+Deterministic parsing lives in `.github/scripts/classify-copilot-review.py`.
+Classifications include `APPROVED`, `ACTIONABLE_FINDINGS`,
+`CLOSER_LOOK_DIAGNOSTIC`, `VALIDATION_MISSING`, `HUMAN_REQUIRED`, and
+`REVIEW_ERROR`. The essential case is `Needs a closer look` +
+`Findings: None` → `CLOSER_LOOK_DIAGNOSTIC` (fixer wakes for a targeted
+closure audit; **do not** treat as “no issues” and **do not** auto re-request
+Copilot).
+
+Depends on PR #382 (review decision policy docs/skill) and PR #383 (manual
+final Copilot request after final-candidate). Rebase this branch after both
+merge; do not fork competing requester logic.
+
+Loop guards: repeat `CLOSER_LOOK_DIAGNOSTIC` on the same HEAD and rationale
+fingerprint without new findings escalates to `HUMAN_REQUIRED`. Dedup keys are
+review ID + rationale fingerprint + treated thread IDs — SHA alone is not
+enough because Copilot may submit a new overview on an unchanged HEAD.
 
 ### One subscribed Envy PR Stabilizer (external setup)
 
@@ -207,8 +241,15 @@ data. Batch applicable findings; validate against code/tests before editing.
 
 In Draft use available advisory/human findings and cheap CI. External reviewer
 silence is not a blocker. In Ready use Copilot findings and PR-caused required
-CI failures, while preserving outstanding human review concerns. Infrastructure,
-quota, baseline or unavailable-secret failures require a human, not code churn.
+CI failures, while preserving outstanding human review concerns. Read the
+latest `envy-copilot-review-outcome:v1` comment and the submitted Copilot
+overview together. When classification is `CLOSER_LOOK_DIAGNOSTIC`, build a
+topic ledger from the rationale (and recent Copilot history); classify each
+topic as `ACTIONABLE`, `ALREADY_FIXED`, `VALIDATION_MISSING`, `FALSE_POSITIVE`,
+`HUMAN_REQUIRED`, or `UNKNOWN`. Never re-request Copilot solely because
+`Findings: None`. After a real fix and push, wait for CI and let #383's
+final-candidate requester trigger the next review. Infrastructure, quota,
+baseline or unavailable-secret failures require a human, not code churn.
 
 Read the remote HEAD before work and again before push. If it changed, stop and
 reconcile ownership; never force or overwrite another writer. Make one coherent
