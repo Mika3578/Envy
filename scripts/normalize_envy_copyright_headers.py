@@ -98,8 +98,8 @@ def normalize_line(line: bytes, fix_comments: bool, use_ascii_copyright: bool) -
 			for old, _ in COPYRIGHT_REPLACEMENTS:
 				if old in new_line:
 					new_line = new_line.replace(old, target)
-	if fix_comments and is_comment_line(new_line):
-		# CP1252 byte replacements must not run on valid UTF-8 (e.g. em dash ends in 0x94).
+	# Comment CP1252 fixes apply only on UTF-8 sources; legacy encodings stay byte-stable (#350).
+	if fix_comments and is_comment_line(new_line) and not use_ascii_copyright:
 		try:
 			new_line.decode("utf-8")
 		except UnicodeDecodeError:
