@@ -126,6 +126,14 @@ static bool test_bandwidth_bytes_to_setting_typical()
 	return TransferBandwidthBytesToSetting(1024) == 1024 && TransferBandwidthBytesToSetting(0xFFFFFFFFull) == 0xFFFFFFFFul;
 }
 
+static bool test_bandwidth_meter_limit_unlimited_display()
+{
+	return TransferBandwidthMeterLimitIsUnlimited(
+		       TransferBandwidthBytesToMeterLimit(TransferBandwidthUnlimitedValue())) &&
+	       !TransferBandwidthMeterLimitIsUnlimited(
+		       TransferBandwidthBytesToMeterLimit(8192u));
+}
+
 static bool test_bandwidth_bytes_to_meter_limit_unlimited()
 {
 	return TransferBandwidthBytesToMeterLimit(TransferBandwidthUnlimitedValue()) == 0xFFFFFFFFu &&
@@ -558,6 +566,8 @@ void register_transfer_settings_limits_smoke_tests(TestSuite& suite)
 	               test_bandwidth_share_bytes_zero_points);
 	suite.add_test("transfer_bandwidth_bytes_to_setting_typical",
 	               test_bandwidth_bytes_to_setting_typical);
+	suite.add_test("transfer_bandwidth_meter_limit_unlimited_display",
+	               test_bandwidth_meter_limit_unlimited_display);
 	suite.add_test("transfer_bandwidth_bytes_to_meter_limit_unlimited",
 	               test_bandwidth_bytes_to_meter_limit_unlimited);
 	suite.add_test("transfer_bandwidth_bytes_to_setting_overflow_clamps",

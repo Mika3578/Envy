@@ -208,24 +208,24 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 
 	CString strStatus, strSpeed, strTransfer, strText, strOf;
 	CString strLimit = TransferBandwidthMeterLimitIsUnlimited(pUpload->m_nBandwidth)
-		? CString(TransferBandwidthUnlimitedDisplayToken())
-		: Settings.SmartSpeed( pUpload->m_nBandwidth );
-	LoadString( strOf, IDS_GENERAL_OF );
+	                       ? CString(TransferBandwidthUnlimitedDisplayToken())
+	                       : Settings.SmartSpeed(pUpload->m_nBandwidth);
+	LoadString(strOf, IDS_GENERAL_OF);
 
 	if ( pUpload->GetMaxSpeed() > 10 )
 	{
-		strSpeed.Format( L"%s %s %s  (%s)",
-			(LPCTSTR)Settings.SmartSpeed( pUpload->GetMeasuredSpeed() ),
-			(LPCTSTR)strOf,
-			(LPCTSTR)strLimit,
-			(LPCTSTR)Settings.SmartSpeed( pUpload->GetMaxSpeed() ) );
+		strSpeed.Format(L"%s %s %s  (%s)",
+		                (LPCTSTR)Settings.SmartSpeed(pUpload->GetMeasuredSpeed()),
+		                (LPCTSTR)strOf,
+		                (LPCTSTR)strLimit,
+		                (LPCTSTR)Settings.SmartSpeed(pUpload->GetMaxSpeed()));
 	}
 	else
 	{
-		strSpeed.Format( L"%s %s %s",
-			(LPCTSTR)Settings.SmartSpeed( pUpload->GetMeasuredSpeed() ),
-			(LPCTSTR)strOf,
-			(LPCTSTR)strLimit );
+		strSpeed.Format(L"%s %s %s",
+		                (LPCTSTR)Settings.SmartSpeed(pUpload->GetMeasuredSpeed()),
+		                (LPCTSTR)strOf,
+		                (LPCTSTR)strLimit);
 	}
 
 	if ( pUpload->m_nSize > 1 )
