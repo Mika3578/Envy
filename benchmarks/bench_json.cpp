@@ -101,23 +101,18 @@ bool WriteExclusiveReplace(const std::filesystem::path& final_path, const std::s
 	if (json.size() > static_cast<std::size_t>((std::numeric_limits<DWORD>::max)()))
 		return false;
 
-	std::error_code ec;
 	std::filesystem::path parent = final_path.parent_path();
 	if (parent.empty())
 		parent = std::filesystem::path(L".");
-	const std::filesystem::path temp_path =
-		parent / (final_path.filename().wstring() + L".tmp." + std::to_wstring(GetCurrentProcessId()));
 
-	const std::filesystem::file_status temp_status =
-		std::filesystem::symlink_status(temp_path, ec);
-	if (!ec && std::filesystem::exists(temp_status))
-	{
-		if (std::filesystem::is_symlink(temp_status))
-			return false;
-		std::filesystem::remove(temp_path, ec);
-		if (ec)
-			return false;
-	}
+	// Unique temp name: never delete a colliding path (could be unrelated data).
+	FILETIME ft{};
+	GetSystemTimeAsFileTime(&ft);
+	const std::filesystem::path temp_path =
+		parent /
+		(final_path.filename().wstring() + L".tmp." + std::to_wstring(GetCurrentProcessId()) + L"." +
+		 std::to_wstring((static_cast<std::uint64_t>(ft.dwHighDateTime) << 32) |
+		                 ft.dwLowDateTime));
 
 	const std::wstring temp_w = temp_path.wstring();
 	const std::wstring final_w = final_path.wstring();

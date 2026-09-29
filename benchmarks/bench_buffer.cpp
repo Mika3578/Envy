@@ -133,22 +133,34 @@ void BenchRegisterBufferWorkloads(BenchRegistry& registry)
 	for (const SizeCase& sc : cases)
 	{
 		const auto payload = MakePayload(sc.size);
+		// Batch production ops inside one workload call so the timed sample
+		// measures CBuffer work, not per-iteration harness/result overhead.
 		const std::string append_name = std::string("append/") + sc.tag;
-		RegisterOne(registry, append_name.c_str(), sc.iterations, 2, 7, [payload]()
-		            { return RunAppend(payload, 1); }, sc.size, 1);
+		RegisterOne(registry, append_name.c_str(), 1, 2, 7,
+		            [payload, n = sc.iterations]()
+		            { return RunAppend(payload, n); },
+		            sc.size * sc.iterations, sc.iterations);
 
+		const std::size_t remove_cycles = 4 * (sc.iterations / 2 + 1);
 		const std::string remove_name = std::string("remove/") + sc.tag;
-		RegisterOne(registry, remove_name.c_str(), sc.iterations / 2 + 1, 2, 7, [payload]()
-		            { return RunRemoveFront(payload, 4); }, 4 * sc.size, 4);
+		RegisterOne(registry, remove_name.c_str(), 1, 2, 7,
+		            [payload, remove_cycles]()
+		            { return RunRemoveFront(payload, remove_cycles); },
+		            remove_cycles * sc.size, remove_cycles);
 
+		const std::size_t alt_cycles = 8 * (sc.iterations / 4 + 1);
 		const std::string alt_name = std::string("alt/") + sc.tag;
-		RegisterOne(registry, alt_name.c_str(), sc.iterations / 4 + 1, 2, 7, [payload]()
-		            { return RunAlternating(payload, 8); }, 8 * sc.size, 8);
+		RegisterOne(registry, alt_name.c_str(), 1, 2, 7,
+		            [payload, alt_cycles]()
+		            { return RunAlternating(payload, alt_cycles); },
+		            alt_cycles * sc.size, alt_cycles);
 	}
 
 	const auto packet_payload = MakePayload(512);
-	RegisterOne(registry, "packet/stream", 5000, 2, 7, [packet_payload]()
-	            { return RunPacketLike(packet_payload, 200); }, 512 * 200, 200);
+	RegisterOne(registry, "packet/stream", 1, 2, 7,
+	            [packet_payload]()
+	            { return RunPacketLike(packet_payload, 200 * 5000); },
+	            512ull * 200 * 5000, 200ull * 5000);
 
 	const auto large = MakePayload(2 * 1024 * 1024);
 	RegisterOne(registry, "retained/2MiB", 20, 2, 5, [large]()

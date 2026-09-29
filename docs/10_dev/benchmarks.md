@@ -59,7 +59,8 @@ Invalid arguments print an error and exit non-zero.
    touched per sample — not a separate measurement.
 6. A `checksum_sink` records workload side effects so the compiler cannot delete the
    timed work. Workloads return `BenchWorkloadResult` so setup/I/O failures abort the
-   suite instead of publishing a zero checksum as a successful sample.
+   suite instead of publishing a zero checksum as a successful sample. File writes
+   `flush()` and check stream state before `close()` so late flush errors fail closed.
 
 Hosted GitHub Actions runners are noisy. Treat small percentage swings as
 informational only. Do not use hosted CI as a blocking regression gate.

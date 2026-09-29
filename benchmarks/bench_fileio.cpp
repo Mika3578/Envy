@@ -84,12 +84,13 @@ BenchWorkloadResult SequentialWrite(std::size_t bytes, std::size_t files)
 		}
 		out.write(reinterpret_cast<const char*>(payload.data()),
 		          static_cast<std::streamsize>(payload.size()));
+		out.flush();
 		if (!out.good())
 		{
-			ReportFileIoFailure("write payload");
+			ReportFileIoFailure("write/flush payload");
 			return BenchFail();
 		}
-		// Do not inspect stream state after close(); MSVC clears failbit unpredictably.
+		// Do not inspect stream state after close(); flush already published durable bytes.
 		out.close();
 		sink ^= static_cast<std::uint64_t>(payload.size()) ^ static_cast<std::uint64_t>(f + 1);
 	}
@@ -103,6 +104,7 @@ struct ReadFixture
 	std::filesystem::path root;
 	std::size_t bytes = 0;
 	std::size_t files = 0;
+	std::vector<std::uint8_t> scratch;
 };
 
 bool PrepareReadFiles(const std::shared_ptr<ReadFixture>& fixture)
@@ -139,13 +141,16 @@ bool PrepareReadFiles(const std::shared_ptr<ReadFixture>& fixture)
 		}
 		out.write(reinterpret_cast<const char*>(payload.data()),
 		          static_cast<std::streamsize>(payload.size()));
+		out.flush();
 		if (!out.good())
 		{
-			ReportFileIoFailure("write read-setup payload");
+			ReportFileIoFailure("write/flush read-setup payload");
 			return false;
 		}
 		out.close();
 	}
+
+	fixture->scratch.assign(fixture->bytes, 0);
 	return true;
 }
 
@@ -166,8 +171,13 @@ BenchWorkloadResult SequentialReadOnly(const std::shared_ptr<ReadFixture>& fixtu
 		return BenchFail();
 	}
 
+	if (fixture->scratch.size() != fixture->bytes)
+	{
+		ReportFileIoFailure("read scratch not prepared");
+		return BenchFail();
+	}
+
 	std::uint64_t sink = 0;
-	std::vector<std::uint8_t> scratch(fixture->bytes);
 	for (std::size_t f = 0; f < fixture->files; ++f)
 	{
 		const auto path = fixture->root / ("bench-" + std::to_string(f) + ".bin");
@@ -177,18 +187,20 @@ BenchWorkloadResult SequentialReadOnly(const std::shared_ptr<ReadFixture>& fixtu
 			ReportFileIoFailure("open read target");
 			return BenchFail();
 		}
-		in.read(reinterpret_cast<char*>(scratch.data()), static_cast<std::streamsize>(scratch.size()));
+		in.read(reinterpret_cast<char*>(fixture->scratch.data()),
+		        static_cast<std::streamsize>(fixture->scratch.size()));
 		if (!in.good() && !in.eof())
 		{
 			ReportFileIoFailure("read payload");
 			return BenchFail();
 		}
-		if (in.gcount() != static_cast<std::streamsize>(scratch.size()))
+		if (in.gcount() != static_cast<std::streamsize>(fixture->scratch.size()))
 		{
 			ReportFileIoFailure("short read");
 			return BenchFail();
 		}
-		sink ^= scratch[0] ^ static_cast<std::uint64_t>(in.gcount()) ^ static_cast<std::uint64_t>(f + 1);
+		sink ^= fixture->scratch[0] ^ static_cast<std::uint64_t>(in.gcount()) ^
+		        static_cast<std::uint64_t>(f + 1);
 	}
 	return BenchOk(sink);
 }

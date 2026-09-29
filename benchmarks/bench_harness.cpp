@@ -133,13 +133,6 @@ bool RunBenchmarkSuite(const BenchRunOptions& options, std::vector<BenchMeasurem
 		if (samples == 0 || entry.iterations_per_sample == 0)
 			return false;
 
-		if (entry.setup && !entry.setup())
-		{
-			std::fprintf(stderr, "benchmark setup failed: %s/%s\n",
-			             entry.group.c_str(), entry.name.c_str());
-			return false;
-		}
-
 		struct TeardownGuard
 		{
 			const BenchTeardownFn& fn;
@@ -149,6 +142,14 @@ bool RunBenchmarkSuite(const BenchRunOptions& options, std::vector<BenchMeasurem
 					fn();
 			}
 		} teardown_guard{ entry.teardown };
+
+		// Teardown runs even when setup fails so partial scratch is cleaned up.
+		if (entry.setup && !entry.setup())
+		{
+			std::fprintf(stderr, "benchmark setup failed: %s/%s\n",
+			             entry.group.c_str(), entry.name.c_str());
+			return false;
+		}
 
 		std::uint64_t checksum = 0;
 		for (std::uint64_t w = 0; w < warmup; ++w)
