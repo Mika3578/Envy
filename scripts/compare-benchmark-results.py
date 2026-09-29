@@ -11,6 +11,7 @@ import json
 import math
 import os
 import re
+import stat
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -67,10 +68,117 @@ def resolve_results_file(path: str) -> Path:
     return resolved
 
 
+def _read_regular_file_bytes(file_path: Path, max_bytes: int) -> bytes:
+    """Read bytes from an already-resolved path without following a swapped-in symlink."""
+    if os.name == "nt":
+        return _read_regular_file_bytes_windows(file_path, max_bytes)
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(file_path, flags)
+    try:
+        mode = os.fstat(fd).st_mode
+        if not stat.S_ISREG(mode):
+            raise ValueError("results path is not a regular file")
+    except BaseException:
+        os.close(fd)
+        raise
+    with os.fdopen(fd, "rb") as stream:
+        return stream.read(max_bytes + 1)
+
+
+def _read_regular_file_bytes_windows(file_path: Path, max_bytes: int) -> bytes:
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    GENERIC_READ = 0x80000000
+    FILE_SHARE_READ = 1
+    OPEN_EXISTING = 3
+    FILE_ATTRIBUTE_NORMAL = 0x80
+    FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000
+    FILE_ATTRIBUTE_REPARSE_POINT = 0x400
+    INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
+
+    CreateFileW = kernel32.CreateFileW
+    CreateFileW.argtypes = [
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.HANDLE,
+    ]
+    CreateFileW.restype = wintypes.HANDLE
+
+    GetFileInformationByHandle = kernel32.GetFileInformationByHandle
+    GetFileInformationByHandle.argtypes = [wintypes.HANDLE, wintypes.LPVOID]
+    GetFileInformationByHandle.restype = wintypes.BOOL
+
+    ReadFile = kernel32.ReadFile
+    ReadFile.argtypes = [
+        wintypes.HANDLE,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD),
+        wintypes.LPVOID,
+    ]
+    ReadFile.restype = wintypes.BOOL
+
+    CloseHandle = kernel32.CloseHandle
+    CloseHandle.argtypes = [wintypes.HANDLE]
+    CloseHandle.restype = wintypes.BOOL
+
+    class BY_HANDLE_FILE_INFORMATION(ctypes.Structure):
+        _fields_ = [
+            ("dwFileAttributes", wintypes.DWORD),
+            ("ftCreationTime", wintypes.FILETIME),
+            ("ftLastAccessTime", wintypes.FILETIME),
+            ("ftLastWriteTime", wintypes.FILETIME),
+            ("dwVolumeSerialNumber", wintypes.DWORD),
+            ("nFileSizeHigh", wintypes.DWORD),
+            ("nFileSizeLow", wintypes.DWORD),
+            ("nNumberOfLinks", wintypes.DWORD),
+            ("nFileIndexHigh", wintypes.DWORD),
+            ("nFileIndexLow", wintypes.DWORD),
+        ]
+
+    path_w = str(file_path)
+    handle = CreateFileW(
+        path_w,
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        None,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
+        None,
+    )
+    if handle == INVALID_HANDLE_VALUE:
+        raise OSError(ctypes.get_last_error(), "unable to open results file")
+
+    try:
+        info = BY_HANDLE_FILE_INFORMATION()
+        if not GetFileInformationByHandle(handle, ctypes.byref(info)):
+            raise OSError(ctypes.get_last_error(), "unable to inspect results file")
+        if info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT:
+            raise ValueError("symlinks not allowed for results files")
+
+        size = (info.nFileSizeHigh << 32) + info.nFileSizeLow
+        to_read = min(size, max_bytes + 1)
+        if to_read == 0:
+            return b""
+
+        buf = (ctypes.c_ubyte * to_read)()
+        read = wintypes.DWORD(0)
+        if not ReadFile(handle, buf, to_read, ctypes.byref(read), None):
+            raise OSError(ctypes.get_last_error(), "unable to read results file")
+        return bytes(buf[: read.value])
+    finally:
+        CloseHandle(handle)
+
+
 def load_document(path: str) -> Dict[str, Any]:
     file_path = resolve_results_file(path)
-    with file_path.open("rb") as stream:
-        data = stream.read(MAX_FILE_BYTES + 1)
+    data = _read_regular_file_bytes(file_path, MAX_FILE_BYTES)
     if len(data) > MAX_FILE_BYTES:
         raise ValueError("file too large")
     text = data.decode("utf-8")
