@@ -196,7 +196,7 @@ BOOL CUploadQueue::Enqueue(CUploadTransfer* pUpload, BOOL bForce, BOOL bStart)
 		if ( GetTransferCount() <= m_nMinTransfers )
 			SpreadBandwidth();
 		else
-			pUpload->SetSpeedLimit( GetBandwidthLimit() / max( 1ul, m_nMinTransfers ) );
+			pUpload->SetSpeedLimit(GetBandwidthLimit() / max(1ul, m_nMinTransfers));
 	}
 
 	return TRUE;
