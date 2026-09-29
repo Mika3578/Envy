@@ -23,6 +23,9 @@
 namespace
 {
 
+bool BenchPathIsReparsePoint(const std::filesystem::path& path);
+bool BenchPathHasNoReparseAncestors(const std::filesystem::path& path);
+
 std::filesystem::path BenchScratchRoot()
 {
 	wchar_t local_app_data[MAX_PATH] = {};
