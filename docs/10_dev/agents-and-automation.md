@@ -100,6 +100,26 @@ allowlist matches every changed file, and GitHub records an actual
 `require_last_push_approval` off, conversations resolved, and force pushes
 blocked. Branch commits are not required to be signed by Protect develop.
 
+### Final Copilot approval review
+
+Treat Copilot as the final approval reviewer, not as a reason to rerun an
+expensive review after every small correction. A final Copilot review should
+be requested only when the PR is a **final candidate**: current HEAD, Ready,
+up to date with `develop`, required checks green, actionable findings fixed,
+blocking threads resolved, risk-specific evidence present, and the PR body /
+Squash Commit Summary aligned with that HEAD.
+
+Earlier Copilot reviews may still provide findings. Pending CI by itself is not
+a defect; a later review is required for final approval. Review instructions
+distinguish blocking defects from non-blocking suggestions: high-risk code can
+be approved when its required evidence is adequate, while optional refactors,
+style preferences, and speculative concerns do not prevent approval. The
+decision procedure is `.github/skills/code-review/SKILL.md`.
+
+Review-governance changes remain a special case: they must be compared with
+base `develop` and receive the explicit maintainer review required by
+`AGENTS.md`. Copilot approval never substitutes for that human checkpoint.
+
 See [devsecops-envy.md](devsecops-envy.md) for the full stack map.
 Measured timings, critical path, and CI cost notes live in
 [CI_AUDIT_2026-09.md](CI_AUDIT_2026-09.md).
