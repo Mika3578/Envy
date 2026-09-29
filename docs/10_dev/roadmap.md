@@ -294,7 +294,7 @@ Canonical list, trust order, and “do not copy” notes: `docs/30_protocols/REF
 | Priority | Project | Role |
 | ---: | --- | --- |
 | P0 | [eMule Community](https://github.com/irwir/eMule) | ED2K/Kad2 wire reference |
-| P0 | [aMule](https://github.com/amule-project/amule) | Interop + daemon architecture |
+| P0 | [aMule](https://github.com/amule-org/amule) | Interop + daemon architecture |
 | P1 | [eMule Qt](https://github.com/ModderMule/emule-qt) | core/UI, IPC, REST |
 | P1 | [eMule AI](https://github.com/eMuleAI/eMuleAI) | IPv6 / reachability (not ED2K-normative) |
 | P1 | [aria2-next](https://github.com/AnInsomniacy/aria2-next) | engine, RPC, BT + ED2K tests |
