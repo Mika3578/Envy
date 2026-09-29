@@ -58,7 +58,8 @@ _WS = re.compile(r"\s+")
 
 _HUMAN_HINTS = re.compile(
     r"(?i)\b("
-    r"maintainer(?:\s+only)?|human\s+validation|final\s+human|"
+    r"maintainer(?:\s+only)?\s+(?:review|validation)\s+required|"
+    r"human\s+validation|final\s+human|"
     r"subjective|governance\s+decision|policy\s+decision|"
     r"requires?\s+(?:a\s+)?human|manual\s+review\s+required|"
     r"out\s+of\s+scope\s+for\s+automation"
@@ -236,6 +237,7 @@ def classify_review(review: ReviewInput) -> dict[str, Any]:
         requires_human = False
         if parsed.rationale and _HUMAN_HINTS.search(parsed.rationale):
             classification = CLASSIFICATION_HUMAN_REQUIRED
+            requires_fixer = False
             requires_human = True
         elif parsed.rationale and _VALIDATION_HINTS.search(parsed.rationale):
             classification = CLASSIFICATION_VALIDATION_MISSING

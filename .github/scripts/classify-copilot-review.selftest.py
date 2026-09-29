@@ -64,6 +64,7 @@ class ClassifyCopilotReviewTests(unittest.TestCase):
         out = classify_fixture("closer-look-human-validation.json")
         self.assertEqual(out["classification"], MOD.CLASSIFICATION_HUMAN_REQUIRED)
         self.assertTrue(out["requires_human"])
+        self.assertFalse(out["requires_fixer"])
 
     def test_validation_missing_rationale(self):
         out = classify_fixture("closer-look-validation-missing.json")

@@ -53,11 +53,19 @@ jobs:
           export REVIEW_ID
           OPEN_TITLES="$(gh api "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/comments" \
             --paginate \
-            --jq '[.[] | select(.pull_request_review_id == (env.REVIEW_ID | tonumber)) | .body] | map(split("\n")[0])')"
+            --jq '[.[] | select(.pull_request_review_id == (env.REVIEW_ID | tonumber)) | .body] ' \
+            | jq -s 'add | map(split("\n")[0])')"
+
+          VALID_REVIEW_IDS="$(gh api "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/reviews" \
+            --paginate \
+            --jq '[.[] | select(.user.login == "copilot-pull-request-reviewer[bot]") | .id] ' \
+            | jq -s 'add')"
 
           PRIOR_OUTCOMES="$(gh api "repos/${OWNER}/${REPO}/issues/${PR_NUMBER}/comments" \
             --paginate \
-            --jq '[.[] | select(.body | test("<!-- envy-copilot-review-outcome:v1 -->")) | .body] | map(capture("(?s)<!-- envy-copilot-review-outcome:v1 -->[\\s\\S]*?```json\\n(?<json>[\\s\\S]*?)\\n```") | .json | fromjson)' \
+            --jq '[.[] | select(.user.login == "github-actions[bot]") | .body | select(test("<!-- envy-copilot-review-outcome:v1 -->")) | capture("(?s)<!-- envy-copilot-review-outcome:v1 -->[\\s\\S]*?```json\\n(?<json>[\\s\\S]*?)\\n```") | .json | fromjson]' \
+            | jq -s --argjson valid_ids "$VALID_REVIEW_IDS" --arg head_sha "${{ github.event.pull_request.head.sha }}" \
+              'add | map(select((.review_id | tonumber) as $id | ($valid_ids | index($id)) != null) | select(.head_sha == $head_sha))' \
             || echo '[]')"
 
           printf '%s' "$REVIEW_JSON" | python3 .github/scripts/classify-copilot-review.py \
@@ -68,9 +76,10 @@ jobs:
 
           python3 - <<'PY'
           import json
+          import os
           from pathlib import Path
           outcome = json.loads(Path("outcome.json").read_text(encoding="utf-8"))
-          summary = Path.environ["GITHUB_STEP_SUMMARY"]
+          summary = os.environ["GITHUB_STEP_SUMMARY"]
           with open(summary, "a", encoding="utf-8") as handle:
               handle.write("## Copilot review outcome\n\n")
               handle.write(f"- Classification: `{outcome['classification']}`\n")
@@ -105,4 +114,4 @@ jobs:
             --method POST \
             -H "Accept: application/vnd.github+json" \
             "/repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
-            -f body@"$BODY_FILE"
+            -f "body=@${BODY_FILE}"
