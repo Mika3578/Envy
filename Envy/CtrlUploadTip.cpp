@@ -29,6 +29,7 @@
 #include "UploadQueue.h"
 #include "UploadQueues.h"
 #include "UploadTransfer.h"
+#include "TransferSettingsLimits.h"
 #include "GraphLine.h"
 #include "GraphItem.h"
 #include "FragmentedFile.h"
