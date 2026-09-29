@@ -1,6 +1,6 @@
 # Envy Development Agents & Automation
 
-**Last Updated:** 2026-09-28
+**Last Updated:** 2026-09-29
 
 ## What exists today
 
@@ -165,8 +165,27 @@ second workflow that polls those checks.
 PR #346's superseded-generation fix and PR #349's semantic gate are obsolete
 once the live ruleset no longer requires PR Gate. Their closure is a GitHub
 operation outside this repository change.
-Keep the obsolete requester for merged #294/#354 until native Copilot refresh
-has been demonstrated. Do not create its replacement in this PR.
+
+### Final Copilot review (manual dispatch)
+
+Workflow [`.github/workflows/request-copilot-review.yml`](../../.github/workflows/request-copilot-review.yml)
+runs only on **`workflow_dispatch`** with a **`pr_number`** input. It does **not**
+run on every push or `synchronize`, so it does not create a review loop.
+
+Intended lifecycle after Draft stabilization, maintainer live test, and **Ready
+for Review**:
+
+```
+Ready → required checks green → review threads resolved → no CHANGES_REQUESTED
+  → maintainer runs "Request final Copilot review" for that PR number
+  → workflow verifies eligibility → clears/re-requests Copilot on current HEAD
+  → preserves existing human/team reviewer requests
+```
+
+The job **requests** Copilot Code Review only. It never submits `APPROVED`,
+merges, enables auto-merge, dismisses human reviews, or resolves threads.
+Copilot path allowlists and counting remain repository UI settings on Protect
+develop; this workflow does not verify allowlist coverage.
 
 ### One subscribed Envy PR Stabilizer (external setup)
 
