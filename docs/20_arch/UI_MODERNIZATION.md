@@ -46,7 +46,7 @@ Do **not** claim “UI modernization complete” after one or two screens.
 | PR | Title | Branch | Status |
 | --- | --- | --- | --- |
 | #292 | refactor(hashstring): drop register storage class (#84) | `refactor/hashstring-drop-register` | **MERGED** 2026-09-20 |
-| #293 | chore(workflow): consolidate agent rules and strict review policy | `chore/consolidate-agent-workflow` | **MERGED** 2026-09-20 (replaced hard max-3 with soft target of 5) |
+| #293 | chore(workflow): consolidate agent rules and strict review policy | `chore/consolidate-agent-workflow` | **MERGED** 2026-09-20 (historical policy change; current AGENTS.md has no numeric PR cap) |
 | #294 | test(interop): prepare current ED2K/Kad live evidence runs (#160) | `test/ed2k-kad-live-interop-evidence` | **MERGED** 2026-09-20 |
 
 Phase 0 PR opened after #292 freed capacity under the then-current hard max-3. Current policy: soft open-PR target of 5 (`AGENTS.md` / #293).

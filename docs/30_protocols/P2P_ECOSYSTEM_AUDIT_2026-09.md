@@ -17,7 +17,7 @@ This document is the **detailed** ecosystem cross-check. The reference list stay
 | Source | Count / notes |
 | --- | --- |
 | Open issues | 81 |
-| Open PRs | 12 (soft target ≈5 development PRs — **no doc PR opened** for this pass) |
+| Open PRs | 12 (snapshot at audit start; no numeric repository cap applies) |
 | Discussions | 1 |
 | Open development PR themes | CI review automation (#383/#382), benchmarks (#368), connection capacity (#367), NMDC (#358), tooling (#380/#379/#351), community (#370/#369), dependency automation (#327) |
 
@@ -43,7 +43,7 @@ For each upstream finding: Envy code search → open/closed issues → open PRs 
 
 ## 2. Active repository matrix (verified sample)
 
-**Projects examined:** 42 repositories across ED2K/Kad, BitTorrent, Direct Connect, Gnutella/G2, Soulseek (architecture), and modern P2P architecture (not new Envy protocols).
+**Projects examined:** 41 repositories across ED2K/Kad, BitTorrent, Direct Connect, Gnutella/G2, Soulseek (architecture), and modern P2P architecture (not new Envy protocols).
 
 | Repository | Class | Last meaningful activity (evidence) | Primary Envy use |
 | --- | --- | --- | --- |
@@ -112,7 +112,7 @@ For each upstream finding: Envy code search → open/closed issues → open PRs 
 
 ### 3.2 BitTorrent
 
-**Upstream:** libtorrent 2.1.2 (2026-09-25); BEP-55 implemented in libtorrent ([#8884](https://github.com/arvidn/libtorrent/issues/8884)) and Transmission ([#3705](https://github.com/transmission/transmission/issues/3705)). WebTorrent default-on trajectory in libtorrent 2.1.x.
+**Upstream:** libtorrent 2.1.2 (2026-09-25); BEP-55 implementation evidence is recorded for Transmission ([#3705](https://github.com/transmission/transmission/issues/3705)). WebTorrent default-on trajectory in libtorrent 2.1.x.
 
 **Envy evidence:** #88 tracks uTP/v2/IPv6 PEX; `Services/LibUTP` vendored, **unused** (`docs/10_dev/status.md`). BEP-55 not explicit in #88 body (addressed via issue update).
 
