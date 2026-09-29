@@ -90,7 +90,7 @@ Code references complement these documents; they do not replace them.
 ### BitTorrent
 
 - BEP index: <https://www.bittorrent.org/beps/bep_0000.html>
-- Especially: BEP 3 (v1), BEP 5 (DHT), BEP 6 (Fast Extension), BEP 9 (magnet), BEP 10 (LTEP), BEP 11 (PEX), BEP 15 (UDP tracker), BEP 29 (uTP), BEP 32 (IPv6 DHT), **BEP 55 (uTP hole punching)**, BEP 52 (v2)
+- Especially: BEP 3 (v1), BEP 5 (DHT), BEP 6 (Fast Extension), BEP 9 (magnet), BEP 10 (LTEP), BEP 11 (PEX), BEP 15 (UDP tracker), BEP 29 (uTP), BEP 32 (IPv6 DHT), BEP 52 (v2), **BEP 55 (uTP hole punching)**
 
 ### Gnutella / Gnutella2
 
@@ -114,7 +114,7 @@ Code references complement these documents; they do not replace them.
 - **Role:** Primary wire-compatibility reference for ED2K and Kad2.
 - **Reuse as ideas:** Hello/MuleInfo, userhash, ClientID, HighID/LowID, callbacks, capability bits, compression, multipacket, search, Source Exchange, AICH, credits, Kad2 bootstrap/routing/search/publish, firewall check, Buddy, historical NAT traversal, and the real RSA SecureIdent protocol.
 - **Do not copy blindly:** Windows/MFC structure, credit-system policy, UI, and any local mods. Adapt packet semantics to Envy’s existing engines.
-- **Status class:** normative/reference for ED2K/Kad2 behaviour. Still second to written specs where those exist.
+- **Status class:** active reference for ED2K/Kad2 behaviour. Still second to written specs where those exist.
 
 ### aMule — P0, active reference
 
@@ -122,7 +122,7 @@ Code references complement these documents; they do not replace them.
 - **Role:** Second live interop target and a daemon/GUI/Web/CLI architecture reference.
 - **Reuse as ideas:** ED2K/Kad interop tests (Envy ↔ aMule), HighID/LowID, callbacks, source exchange, headless `amuled` + remote GUI/Web/CLI split, cross-platform behaviour notes, upload I/O and library verification patterns (2026 releases).
 - **Do not copy blindly:** wxWidgets/GTK specifics, aMule External Connections protocol as a drop-in Envy API, or Linux-only assumptions.
-- **Status class:** interoperability (and architecture for headless).
+- **Status class:** active reference for interoperability (and headless architecture).
 
 Expected live interop (planned, not currently claimed): Envy ↔ eMule Community, Envy ↔ aMule, and ideally eMule ↔ Envy ↔ aMule.
 
@@ -132,7 +132,7 @@ Expected live interop (planned, not currently claimed): Envy ↔ eMule Community
 - **Role:** Incremental engine/GUI decoupling: daemon, IPC, Web UI, REST.
 - **Reuse as ideas:** `EnvyCore` → protocol engines → transfer engine → library/search → stable internal API/IPC → MFC frontend, with later Web/CLI frontends. Incremental migration only; no rewrite.
 - **Do not copy blindly:** Qt, a new IPC schema, or a big-bang extraction of Envy into a separate process.
-- **Status class:** architecture.
+- **Status class:** active reference for architecture.
 
 ### eMule AI — P1, active experimental
 

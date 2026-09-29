@@ -174,16 +174,12 @@ comparison notes.
    [Using AI-Approved Pull Requests Safely with GitHub Copilot](https://www.c-sharpcorner.com/article/using-ai-approved-pull-requests-safely-with-github-copilot/).
 7. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 
-## Agent PR back-pressure
+## Agent PR parallel work
 
-
-Soft target of **5** active development PRs (canonical rule in `AGENTS.md`).
-Prefer finishing or merging existing PRs first. Opening a sixth (or more)
-needs a concrete documented reason in the PR body (blocking reliability or
-security fix, required CI hotfix, or a dependency that cannot wait). Overflow
-is not a loophole for unbounded parallel work, and “small/quick/tooling” is
-not by itself a reason. Dependabot/Renovate PRs are outside the agent target
-but should stay grouped.
+There is no numeric cap on active development PRs. Prefer finishing or
+merging overlapping work before starting duplicate scopes; review capacity and
+quality gates remain the practical limits. Dependabot and Renovate work should
+stay grouped where possible.
 
 ## Related
 

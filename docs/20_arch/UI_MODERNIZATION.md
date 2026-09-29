@@ -49,7 +49,7 @@ Do **not** claim “UI modernization complete” after one or two screens.
 | #293 | chore(workflow): consolidate agent rules and strict review policy | `chore/consolidate-agent-workflow` | **MERGED** 2026-09-20 (historical policy change; current AGENTS.md has no numeric PR cap) |
 | #294 | test(interop): prepare current ED2K/Kad live evidence runs (#160) | `test/ed2k-kad-live-interop-evidence` | **MERGED** 2026-09-20 |
 
-Phase 0 PR opened after #292 freed capacity under the then-current hard max-3. Current policy: soft open-PR target of 5 (`AGENTS.md` / #293).
+Phase 0 PR opened after #292 freed capacity under the historical hard max-3. Current policy has no numeric open-PR cap (`AGENTS.md` / #293).
 
 ### Existing UI / DPI work already merged (reuse)
 
@@ -379,7 +379,7 @@ Follow live Protect develop ruleset and AGENTS.md:
 
 - Squash-only, signed commits, ≥1 non-author APPROVED review
 - Required checks green; no ruleset bypass
-- Soft open development PR target of 5 (historical hard max-3 superseded by #293)
+- Historical hard max-3/open-PR target policy superseded by the current no-cap rule
 - After push: `gh pr checks <PR> --repo Mika3578/Envy --required --watch --fail-fast --interval 5`
 
 ---

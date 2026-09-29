@@ -1,7 +1,7 @@
 # Envy Development Roadmap
 
 Status: active
-Last updated: 2026-09-20
+Last updated: 2026-09-29
 Scope: Technical itemization of Envy modernization. Strategic sequence is `docs/DEVELOPMENT_PLAN.md`.
 Source of truth: `docs/10_dev/status.md` for current vs planned; `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` for external projects.
 Portability foundations: `docs/20_arch/PORTABILITY_PLAN.md` (Linux/macOS = **planned**, not supported).

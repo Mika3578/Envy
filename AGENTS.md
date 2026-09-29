@@ -162,8 +162,7 @@ Branch model:
     PR, issue, or Discussion when the scope is ready and reviewable. There is
     **no** repository rule that forbids opening more than N items; do not defer
     documentation, research, security, or small focused PRs solely because other
-    PRs are already open. Dependabot/Renovate PRs are out of scope for any
-    informal “development PR” count. **Practical guidance only:** prefer
+    **Practical guidance only:** prefer
     finishing or merging overlapping work before starting duplicate scopes; call
     out related open PRs/issues in the body when touch points overlap. Quality
     gates and review capacity remain the real limits—not an arbitrary PR tally.

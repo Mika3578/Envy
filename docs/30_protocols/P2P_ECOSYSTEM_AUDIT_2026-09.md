@@ -49,7 +49,7 @@ For each upstream finding: Envy code search → open/closed issues → open PRs 
 | --- | --- | --- | --- |
 | [amule-org/amule](https://github.com/amule-org/amule) | active reference | Releases 3.0.0–3.1.0 (2026-06–09); core PRs e.g. [#1686](https://github.com/amule-org/amule/pull/1686), [#1638](https://github.com/amule-org/amule/pull/1638) | ED2K/Kad interop, headless, upload I/O |
 | [amule-project/amule](https://github.com/amule-project/amule) | historical redirect | `pushed_at` 2026-06; superseded by **amule-org** | Legacy links only |
-| [irwir/eMule](https://github.com/irwir/eMule) | active reference | `pushed_at` 2026-08 | P0 ED2K/Kad wire |
+| [irwir/eMule](https://github.com/irwir/eMule) | historical reference | No qualifying 2025–2026 functional activity verified | P0 ED2K/Kad wire |
 | [eMuleAI/eMuleAI](https://github.com/eMuleAI/eMuleAI) | active experimental | README + issues (NAT, uTP, IPv6 claims); [#174](https://github.com/eMuleAI/eMuleAI/issues/174) endgame | Reachability ideas; not normative |
 | [ModderMule/emule-qt](https://github.com/ModderMule/emule-qt) | active reference | Qt6/C++23 ED2K/Kad fork | #161 architecture |
 | [emulebb/emulebb](https://github.com/emulebb/emulebb) | active reference | `pushed_at` 2026-09 | Library, REST, VPN binding patterns |
@@ -89,7 +89,7 @@ For each upstream finding: Envy code search → open/closed issues → open PRs 
 | [hyphanet/fred](https://github.com/hyphanet/fred) | active reference | Distributed storage | Architecture only |
 | [schollz/croc](https://github.com/schollz/croc) | active reference | Direct transfer | Not multi-network |
 
-**Reclassified as historical / low priority for veille:** IronMule, karthiUTH/emulemorph, fmpfeifer Shareaza IPv6 forks (pre-2020 meaningful code); **sharelin** discontinued.
+**Reclassified as historical / low priority for monitoring:** IronMule, karthiUTH/emulemorph, fmpfeifer Shareaza IPv6 forks (pre-2020 meaningful code); **sharelin** discontinued.
 
 ---
 
