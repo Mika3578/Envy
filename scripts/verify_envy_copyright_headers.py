@@ -23,6 +23,16 @@ BAD_COPYRIGHT_MARKERS = (
 GOOD_COPYRIGHT_MARKER = b"getenvy.com) \xc2\xa9 "
 
 
+def file_bytes_are_utf8(data: bytes) -> bool:
+	if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+		return False
+	try:
+		data.decode("utf-8")
+	except UnicodeDecodeError:
+		return False
+	return True
+
+
 def git_ls_envy_sources() -> list[Path]:
 	out = subprocess.check_output(["git", "ls-files", "Envy"], cwd=ROOT, text=True)
 	return [
@@ -54,6 +64,7 @@ def verify_file(path: Path) -> list[str]:
 	rel = path.relative_to(ROOT).as_posix()
 	if data.startswith((b"\xff\xfe", b"\xfe\xff")):
 		return []
+	file_utf8 = file_bytes_are_utf8(data)
 	issues.extend(comment_line_mojibake_issues(data))
 	for line_number, line in enumerate(data.splitlines(), start=1):
 		if b"getenvy.com)" not in line:
@@ -62,6 +73,11 @@ def verify_file(path: Path) -> list[str]:
 			issues.append(f"line {line_number}: legacy copyright marker byte sequence")
 			continue
 		if b"20" not in line:
+			continue
+		if GOOD_COPYRIGHT_MARKER in line and not file_utf8:
+			issues.append(
+				f"line {line_number}: UTF-8 copyright marker in non-UTF-8 source"
+			)
 			continue
 		if (
 			GOOD_COPYRIGHT_MARKER in line
