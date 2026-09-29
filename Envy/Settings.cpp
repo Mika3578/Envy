@@ -54,7 +54,7 @@ CSettings::CSettings()
 {
 	// Reset 'live' values.
 	Live.FirstRun					= false;
-	Live.WizardUploadLimitSeeded	= false;
+	Live.WizardUploadLimitSeeded = false;
 	Live.AutoClose					= false;
 	Live.AdultWarning				= false;
 	Live.MaliciousWarning			= false;

@@ -708,7 +708,7 @@ public:
 		bool		LoadWindowState;
 		bool		AutoClose;
 		bool		FirstRun;				// Is this the first time Envy is being run?
-		bool		WizardUploadLimitSeeded; // Session-only: wizard default upload limit applied once
+		bool WizardUploadLimitSeeded;       // Session-only: wizard default upload limit applied once
 	} Live;
 
 	struct sRemote
