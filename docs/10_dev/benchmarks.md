@@ -6,9 +6,9 @@ thresholds.
 
 ## Purpose
 
-- Measure current hot-path behavior via a **separate** benchmark executable; this PR may
-  also land targeted production fixes in measured seams (for example `BufferImpl.inc`
-  inflate/DIME bounds) documented in the PR body.
+- Measure hot paths via a **separate** benchmark executable. The same PR also ships
+  production fixes in measured seams (`BufferImpl.inc` streaming inflate cap /
+  `Z_STREAM_END` handling, DIME padded-body bounds); see `CHANGELOG.md` (Fixed).
 - Emit human-readable summaries and machine-readable JSON for local or CI comparison.
 - Provide evidence infrastructure for follow-ups (#112–#114, #343–#345).
 
