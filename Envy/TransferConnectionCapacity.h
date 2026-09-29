@@ -78,9 +78,10 @@ inline bool TransferConnectionCapacityShouldSyncUploadLimitOnConnectionApply()
 	return false;
 }
 
-inline bool TransferConnectionCapacityShouldSetWizardUploadDefault(bool bFirstRun)
+inline bool TransferConnectionCapacityShouldSetWizardUploadDefault(bool bFirstRun,
+                                                                   bool bWizardUploadLimitSeeded)
 {
-	return bFirstRun;
+	return bFirstRun && !bWizardUploadLimitSeeded;
 }
 
 // Connection settings Apply: preserve explicit Bandwidth.Uploads (OutSpeed is capacity only).

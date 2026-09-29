@@ -300,10 +300,12 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	//	Settings.Connection.OutSpeed = 40960;
 	//}
 
-	if (TransferConnectionCapacityShouldSetWizardUploadDefault(Settings.Live.FirstRun))
+	if (TransferConnectionCapacityShouldSetWizardUploadDefault(Settings.Live.FirstRun,
+	                                                           Settings.Live.WizardUploadLimitSeeded))
 	{
 		Settings.Bandwidth.Uploads = TransferBandwidthUploadLimitFromOutboundKilobits(
 		    Settings.Connection.OutSpeed, Settings.Uploads.FreeBandwidthFactor);
+		Settings.Live.WizardUploadLimitSeeded = true;
 	}
 
 	Settings.eDonkey.MaxLinks = nUploadSpeed < 130 ? 100 : 250;

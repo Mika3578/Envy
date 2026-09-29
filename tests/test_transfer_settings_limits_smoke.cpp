@@ -403,8 +403,9 @@ static bool test_connection_apply_does_not_sync_upload_limit()
 
 static bool test_wizard_upload_default_only_first_run()
 {
-	return TransferConnectionCapacityShouldSetWizardUploadDefault(true) == true &&
-	       TransferConnectionCapacityShouldSetWizardUploadDefault(false) == false;
+	return TransferConnectionCapacityShouldSetWizardUploadDefault(true, false) == true &&
+	       TransferConnectionCapacityShouldSetWizardUploadDefault(false, false) == false &&
+	       TransferConnectionCapacityShouldSetWizardUploadDefault(true, true) == false;
 }
 
 static bool test_capacity_presets_include_modern_values()
