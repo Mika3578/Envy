@@ -634,11 +634,16 @@ bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndO
 				InflateStreamCleanup(pStream);
 				return false;
 			}
-			// Output cap with no input left is only success when the stream ended.
+			// Complete-body callers (pbEndOfStream NULL): cap without Z_STREAM_END is failure.
+			// Neighbour streaming passes pbEndOfStream and may pause at the backlog cap.
 			if (nResult != Z_STREAM_END)
 			{
-				InflateStreamCleanup(pStream);
-				return false;
+				if (pbEndOfStream == NULL)
+				{
+					InflateStreamCleanup(pStream);
+					return false;
+				}
+				break;
 			}
 			break;
 		}
