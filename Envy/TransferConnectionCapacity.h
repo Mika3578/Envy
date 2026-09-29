@@ -167,9 +167,6 @@ inline TransferConnectionCapacityParseResult TransferConnectionCapacityParseKilo
 		pszUnits = szUnitScan;
 	}
 
-	if (TransferConnectionCapacityContainsByteUnit(pszUnits))
-		return oResult;
-
 	const bool bGigabit = TransferConnectionCapacityContainsUnit(pszUnits, L"gbps") ||
 	                      TransferConnectionCapacityContainsUnit(pszUnits, L"gb/s");
 	const bool bMegabit = !bGigabit &&
@@ -180,7 +177,41 @@ inline TransferConnectionCapacityParseResult TransferConnectionCapacityParseKilo
 	                       TransferConnectionCapacityContainsUnit(pszUnits, L"kb/s"));
 
 	unsigned long long nKilobits = 0;
-	if (bKilobit)
+	if (TransferConnectionCapacityContainsByteUnit(pszUnits))
+	{
+		// Settings.SmartSpeed may show KB/s or MB/s when General.RatesInBytes is enabled.
+		const bool bGigabyte = TransferConnectionCapacityContainsUnit(pszUnits, L"gb/s");
+		const bool bMegabyte = !bGigabyte &&
+		                       (TransferConnectionCapacityContainsUnit(pszUnits, L"mb/s") ||
+		                        TransferConnectionCapacityContainsUnit(pszUnits, L"mB/s"));
+		const bool bKilobyte = !bGigabyte && !bMegabyte &&
+		                       (TransferConnectionCapacityContainsUnit(pszUnits, L"kb/s") ||
+		                        TransferConnectionCapacityContainsUnit(pszUnits, L"kB/s") ||
+		                        TransferConnectionCapacityContainsUnit(pszUnits, L"KB/s"));
+
+		double nBytesPerSecond = val;
+		if (bGigabyte)
+			nBytesPerSecond *= 1024.0 * 1024.0;
+		else if (bMegabyte)
+			nBytesPerSecond *= 1024.0;
+		else if (bKilobyte)
+			nBytesPerSecond *= 1024.0;
+
+		if (!std::isfinite(nBytesPerSecond) || nBytesPerSecond < 0.0)
+		{
+			oResult.eStatus = TransferConnectionCapacityParseStatus::Negative;
+			return oResult;
+		}
+
+		const double nKilobitsScaled = nBytesPerSecond / 128.0;
+		if (nKilobitsScaled > static_cast<double>(0xFFFFFFFFull))
+		{
+			oResult.eStatus = TransferConnectionCapacityParseStatus::Overflow;
+			return oResult;
+		}
+		nKilobits = static_cast<unsigned long long>(nKilobitsScaled);
+	}
+	else if (bKilobit)
 	{
 		if (val > static_cast<double>(0xFFFFFFFFull))
 		{
