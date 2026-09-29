@@ -74,9 +74,11 @@ def normalize_line(line: bytes, fix_comments: bool, use_ascii_copyright: bool) -
 			pass
 		elif b"getenvy.com) - " in new_line or b"getenvy.com) -" in new_line:
 			pass
-		elif COPYRIGHT_CANONICAL in new_line:
-			pass
 		elif COPYRIGHT_ASCII_LEGACY in new_line:
+			pass
+		elif use_ascii_copyright and COPYRIGHT_CANONICAL in new_line:
+			new_line = new_line.replace(COPYRIGHT_CANONICAL, COPYRIGHT_ASCII_LEGACY)
+		elif COPYRIGHT_CANONICAL in new_line:
 			pass
 		else:
 			target = COPYRIGHT_ASCII_LEGACY if use_ascii_copyright else COPYRIGHT_CANONICAL
