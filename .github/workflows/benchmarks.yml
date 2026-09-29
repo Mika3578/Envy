@@ -5,6 +5,9 @@ on:
     branches: [develop]
     paths:
       - "benchmarks/**"
+      - "Envy/BufferImpl.inc"
+      - "Envy/PacketLengthValidate.h"
+      - "HashLib/**"
       - "scripts/compare-benchmark-results.py"
       - "scripts/compare-benchmark-results.selftest.sh"
       - ".github/workflows/benchmarks.yml"
@@ -12,6 +15,9 @@ on:
     branches: [develop]
     paths:
       - "benchmarks/**"
+      - "Envy/BufferImpl.inc"
+      - "Envy/PacketLengthValidate.h"
+      - "HashLib/**"
       - "scripts/compare-benchmark-results.py"
       - "scripts/compare-benchmark-results.selftest.sh"
       - ".github/workflows/benchmarks.yml"
@@ -45,7 +51,6 @@ jobs:
     env:
       MSBUILD_PARALLEL: /m:1
       MSBUILD_USE_MULTI_TOOL_TASK: false
-      SOLUTION: Visual Studio\Envy.sln
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
 
@@ -85,7 +90,9 @@ jobs:
         run: |
           set "EXE=benchmarks\Release x64\EnvyBenchmarks.exe"
           "%EXE%" --ci --json benchmark-results.json > benchmark-summary.txt
+          set "BENCH_EXIT=%ERRORLEVEL%"
           type benchmark-summary.txt
+          exit /b %BENCH_EXIT%
 
       - name: Job summary
         if: always()
@@ -104,5 +111,6 @@ jobs:
             benchmark-results.json
             benchmark-summary.txt
             benchmarks/Release x64/EnvyBenchmarks.exe
+            benchmarks/Release x64/HashLib.dll
           if-no-files-found: error
           retention-days: 14
