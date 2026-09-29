@@ -167,11 +167,19 @@ def _read_regular_file_bytes_windows(file_path: Path, max_bytes: int) -> bytes:
         if to_read == 0:
             return b""
 
-        buf = (ctypes.c_ubyte * to_read)()
-        read = wintypes.DWORD(0)
-        if not ReadFile(handle, buf, to_read, ctypes.byref(read), None):
-            raise OSError(ctypes.get_last_error(), "unable to read results file")
-        return bytes(buf[: read.value])
+        chunks: list[bytes] = []
+        remaining = to_read
+        while remaining > 0:
+            chunk_cap = min(remaining, 1 << 20)
+            buf = (ctypes.c_ubyte * chunk_cap)()
+            read = wintypes.DWORD(0)
+            if not ReadFile(handle, buf, chunk_cap, ctypes.byref(read), None):
+                raise OSError(ctypes.get_last_error(), "unable to read results file")
+            if read.value == 0:
+                raise OSError("unexpected EOF while reading results file")
+            chunks.append(bytes(buf[: read.value]))
+            remaining -= read.value
+        return b"".join(chunks)
     finally:
         CloseHandle(handle)
 
