@@ -45,19 +45,22 @@ function Get-RepoRoot {
 }
 
 function Resolve-MsBuild {
+	$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+	if (Test-Path -LiteralPath $vswhere) {
+		# Prefer the newest installation that can load v145 projects (VS 2026 / 18.x), not an older side-by-side MSBuild.
+		$found = & $vswhere -latest -prerelease -version '[18.0,19.0)' `
+			-requires Microsoft.Component.MSBuild `
+			-find 'MSBuild\**\Bin\amd64\MSBuild.exe' 2>$null | Select-Object -First 1
+		if ($found) { return $found }
+	}
 	$candidates = @(
 		'C:\Program Files\Microsoft Visual Studio\18\Insiders\MSBuild\Current\Bin\amd64\MSBuild.exe',
 		'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\amd64\MSBuild.exe',
-		'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
+		'C:\Program Files\Microsoft Visual Studio\18\Professional\MSBuild\Current\Bin\amd64\MSBuild.exe',
+		'C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\amd64\MSBuild.exe'
 	)
 	foreach ($c in $candidates) {
 		if (Test-Path -LiteralPath $c) { return $c }
-	}
-	$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-	if (Test-Path -LiteralPath $vswhere) {
-		$found = & $vswhere -latest -prerelease -requires Microsoft.Component.MSBuild `
-			-find 'MSBuild\**\Bin\amd64\MSBuild.exe' 2>$null | Select-Object -First 1
-		if ($found) { return $found }
 	}
 	throw 'MSBuild.exe not found. Install Visual Studio 2026 (v145) with the C++ workload.'
 }
