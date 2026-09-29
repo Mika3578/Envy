@@ -25,6 +25,7 @@ namespace
 
 bool BenchPathIsReparsePoint(const std::filesystem::path& path);
 bool BenchPathHasNoReparseAncestors(const std::filesystem::path& path);
+bool BenchExistingAncestorsSafeBeforeCreate(const std::filesystem::path& path);
 
 std::filesystem::path BenchScratchRoot()
 {
@@ -37,6 +38,8 @@ std::filesystem::path BenchScratchRoot()
 
 	std::filesystem::path root =
 		std::filesystem::path(local_app_data) / L"Envy" / L"BenchmarkScratch";
+	if (!BenchExistingAncestorsSafeBeforeCreate(root))
+		return {};
 	std::error_code ec;
 	std::filesystem::create_directories(root, ec);
 	if (ec)
@@ -80,6 +83,24 @@ bool BenchPathHasNoReparseAncestors(const std::filesystem::path& path)
 			return false;
 	}
 	return true;
+}
+
+bool BenchExistingAncestorsSafeBeforeCreate(const std::filesystem::path& path)
+{
+	if (path.empty())
+		return false;
+
+	std::filesystem::path current;
+	for (const auto& part : path)
+	{
+		current /= part;
+		std::error_code ec;
+		if (!std::filesystem::exists(current, ec) || ec)
+			continue;
+		if (BenchPathIsReparsePoint(current))
+			return false;
+	}
+	return BenchPathHasNoReparseAncestors(path);
 }
 
 bool BenchPathConfinedUnder(const std::filesystem::path& root, const std::filesystem::path& candidate)
@@ -207,6 +228,11 @@ bool PrepareWriteFiles(const std::shared_ptr<WriteFixture>& fixture)
 	fixture->root = scratch_root / "write";
 	std::error_code ec;
 	std::filesystem::remove_all(fixture->root, ec);
+	if (!BenchExistingAncestorsSafeBeforeCreate(fixture->root))
+	{
+		ReportFileIoFailure("write scratch path blocked");
+		return false;
+	}
 	std::filesystem::create_directories(fixture->root, ec);
 	if (ec || !BenchPathHasNoReparseAncestors(fixture->root) ||
 	    BenchPathIsReparsePoint(fixture->root))
@@ -250,7 +276,8 @@ BenchWorkloadResult SequentialWriteOnly(const std::shared_ptr<WriteFixture>& fix
 	for (std::size_t f = 0; f < fixture->files; ++f)
 	{
 		const auto path = fixture->root / ("bench-" + std::to_string(f) + ".bin");
-		if (!BenchRewritePayload(path, fixture->payload))
+		if (!BenchPathConfinedUnder(fixture->root, path) || BenchPathIsReparsePoint(path) ||
+		    !BenchRewritePayload(path, fixture->payload))
 		{
 			ReportFileIoFailure("rewrite write target");
 			return BenchFail();
@@ -285,6 +312,11 @@ bool PrepareReadFiles(const std::shared_ptr<ReadFixture>& fixture)
 	fixture->root = scratch_root / "read";
 	std::error_code ec;
 	std::filesystem::remove_all(fixture->root, ec);
+	if (!BenchExistingAncestorsSafeBeforeCreate(fixture->root))
+	{
+		ReportFileIoFailure("read scratch path blocked");
+		return false;
+	}
 	std::filesystem::create_directories(fixture->root, ec);
 	if (ec || !BenchPathHasNoReparseAncestors(fixture->root) ||
 	    BenchPathIsReparsePoint(fixture->root))
@@ -335,6 +367,11 @@ BenchWorkloadResult SequentialReadOnly(const std::shared_ptr<ReadFixture>& fixtu
 	for (std::size_t f = 0; f < fixture->files; ++f)
 	{
 		const auto path = fixture->root / ("bench-" + std::to_string(f) + ".bin");
+		if (!BenchPathConfinedUnder(fixture->root, path) || BenchPathIsReparsePoint(path))
+		{
+			ReportFileIoFailure("read target outside scratch");
+			return BenchFail();
+		}
 		std::ifstream in(path, std::ios::binary);
 		if (!in)
 		{
