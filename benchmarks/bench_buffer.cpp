@@ -133,33 +133,75 @@ void BenchRegisterBufferWorkloads(BenchRegistry& registry)
 	for (const SizeCase& sc : cases)
 	{
 		const auto payload = MakePayload(sc.size);
-		// Batch production ops inside one workload call so the timed sample
-		// measures CBuffer work, not per-iteration harness/result overhead.
+		// Batch harness iterations inside one workload call, but keep each
+		// logical op on a fresh CBuffer (same lifetime as the previous
+		// iterations_per_sample loop) so we do not turn append/remove into a
+		// single growing O(n²) buffer.
 		const std::string append_name = std::string("append/") + sc.tag;
 		RegisterOne(registry, append_name.c_str(), 1, 2, 7,
 		            [payload, n = sc.iterations]()
-		            { return RunAppend(payload, n); },
+		            {
+				std::uint64_t sink = 0;
+				for (std::size_t i = 0; i < n; ++i)
+				{
+					const BenchWorkloadResult r = RunAppend(payload, 1);
+					if (!r.ok)
+						return r;
+					sink ^= r.checksum;
+				}
+				return BenchOk(sink);
+			},
 		            sc.size * sc.iterations, sc.iterations);
 
-		const std::size_t remove_cycles = 4 * (sc.iterations / 2 + 1);
+		const std::size_t remove_iters = sc.iterations / 2 + 1;
 		const std::string remove_name = std::string("remove/") + sc.tag;
 		RegisterOne(registry, remove_name.c_str(), 1, 2, 7,
-		            [payload, remove_cycles]()
-		            { return RunRemoveFront(payload, remove_cycles); },
-		            remove_cycles * sc.size, remove_cycles);
+		            [payload, remove_iters]()
+		            {
+				std::uint64_t sink = 0;
+				for (std::size_t i = 0; i < remove_iters; ++i)
+				{
+					const BenchWorkloadResult r = RunRemoveFront(payload, 4);
+					if (!r.ok)
+						return r;
+					sink ^= r.checksum;
+				}
+				return BenchOk(sink);
+			},
+		            4 * sc.size * remove_iters, 4 * remove_iters);
 
-		const std::size_t alt_cycles = 8 * (sc.iterations / 4 + 1);
+		const std::size_t alt_iters = sc.iterations / 4 + 1;
 		const std::string alt_name = std::string("alt/") + sc.tag;
 		RegisterOne(registry, alt_name.c_str(), 1, 2, 7,
-		            [payload, alt_cycles]()
-		            { return RunAlternating(payload, alt_cycles); },
-		            alt_cycles * sc.size, alt_cycles);
+		            [payload, alt_iters]()
+		            {
+				std::uint64_t sink = 0;
+				for (std::size_t i = 0; i < alt_iters; ++i)
+				{
+					const BenchWorkloadResult r = RunAlternating(payload, 8);
+					if (!r.ok)
+						return r;
+					sink ^= r.checksum;
+				}
+				return BenchOk(sink);
+			},
+		            8 * sc.size * alt_iters, 8 * alt_iters);
 	}
 
 	const auto packet_payload = MakePayload(512);
 	RegisterOne(registry, "packet/stream", 1, 2, 7,
 	            [packet_payload]()
-	            { return RunPacketLike(packet_payload, 200 * 5000); },
+	            {
+			std::uint64_t sink = 0;
+			for (std::size_t i = 0; i < 5000; ++i)
+			{
+				const BenchWorkloadResult r = RunPacketLike(packet_payload, 200);
+				if (!r.ok)
+					return r;
+				sink ^= r.checksum;
+			}
+			return BenchOk(sink);
+		},
 	            512ull * 200 * 5000, 200ull * 5000);
 
 	const auto large = MakePayload(2 * 1024 * 1024);

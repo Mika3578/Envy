@@ -135,13 +135,21 @@ bool RunBenchmarkSuite(const BenchRunOptions& options, std::vector<BenchMeasurem
 
 		struct TeardownGuard
 		{
-			const BenchTeardownFn& fn;
-			~TeardownGuard()
+			const BenchTeardownFn* fn = nullptr;
+			~TeardownGuard() noexcept
 			{
-				if (fn)
-					fn();
+				if (fn == nullptr || !*fn)
+					return;
+				try
+				{
+					(*fn)();
+				}
+				catch (...)
+				{
+					// Destructors must not throw (Sonar cpp:S1048).
+				}
 			}
-		} teardown_guard{ entry.teardown };
+		} teardown_guard{ entry.teardown ? &entry.teardown : nullptr };
 
 		// Teardown runs even when setup fails so partial scratch is cleaned up.
 		if (entry.setup && !entry.setup())
