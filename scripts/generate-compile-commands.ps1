@@ -34,9 +34,12 @@ $ExtractorSha256 = '543C5CC6B57A1B3EB46B11E56B8F35A9CA8676106426BDE6041CA2DC2E06
 $ExtractorUrl = "https://github.com/microsoft/msbuild-extractor-sample/releases/download/$ExtractorVersion/msbuild-extractor-sample.exe"
 
 function Get-RepoRoot {
-	$fromGit = git rev-parse --show-toplevel 2>$null
-	if ($LASTEXITCODE -eq 0 -and $fromGit) {
-		return $fromGit.Trim()
+	$git = Get-Command git -ErrorAction SilentlyContinue
+	if ($git) {
+		$fromGit = & git rev-parse --show-toplevel 2>$null
+		if ($LASTEXITCODE -eq 0 -and $fromGit) {
+			return $fromGit.Trim()
+		}
 	}
 	return (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 }
@@ -76,7 +79,15 @@ function Get-ExtractorExe {
 	$exeName = "msbuild-extractor-sample-$ExtractorVersion.exe"
 	$cached = Join-Path $cacheDir $exeName
 	if (Test-Path -LiteralPath $cached) {
-		return $cached
+		$cachedHash = (Get-FileHash -LiteralPath $cached -Algorithm SHA256).Hash
+		if ($cachedHash -eq $ExtractorSha256) {
+			return $cached
+		}
+		Write-Warning "Cached extractor SHA256 mismatch (got $cachedHash, expected $ExtractorSha256); removing and redownloading."
+		Remove-Item -LiteralPath $cached -Force -ErrorAction Stop
+		if ($NoDownload) {
+			throw "Cached extractor at $cached failed SHA256 verification. Run without -SkipDownload or pass a verified -ExtractorPath."
+		}
 	}
 	if ($NoDownload) {
 		throw "Extractor not cached at $cached. Run without -SkipDownload or pass -ExtractorPath."

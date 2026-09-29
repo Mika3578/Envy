@@ -1,6 +1,4 @@
 {
-	// Envy defaults for microsoft/msbuild-extractor-sample (design-time compile_commands.json).
-	// Invoked by scripts/generate-compile-commands.ps1; paths are relative to this file.
 	"solutions": [
 		"../Visual Studio/Envy.sln"
 	],
