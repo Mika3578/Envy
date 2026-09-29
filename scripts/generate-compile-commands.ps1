@@ -134,7 +134,7 @@ if ($Platform -eq 'Win32') {
 	)
 }
 
-$args = @(
+$extractorArgs = @(
 	'--config', $configPath,
 	'-c', $Configuration,
 	'-a', $Platform,
@@ -151,7 +151,7 @@ Write-Host "Extractor:  $extractor" -ForegroundColor DarkGray
 Write-Host "Output:     $Output" -ForegroundColor DarkGray
 Write-Host "Config:     $Configuration | $Platform" -ForegroundColor DarkGray
 
-& $extractor @args
+& $extractor @extractorArgs
 if ($LASTEXITCODE -ne 0) {
 	throw "msbuild-extractor-sample failed (exit $LASTEXITCODE)."
 }
