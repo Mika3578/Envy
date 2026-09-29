@@ -171,7 +171,8 @@ inline TransferConnectionCapacityParseResult TransferConnectionCapacityParseKilo
 	                      TransferConnectionCapacityContainsUnit(pszUnits, L"gb/s");
 	const bool bMegabit = !bGigabit &&
 	                      (TransferConnectionCapacityContainsUnit(pszUnits, L"mbps") ||
-	                       TransferConnectionCapacityContainsUnit(pszUnits, L"mb/s"));
+	                       (TransferConnectionCapacityContainsUnit(pszUnits, L"mb/s") &&
+	                        wcsstr(pszUnits, L"MB/s") == NULL && wcsstr(pszUnits, L"mB/s") == NULL));
 	const bool bKilobit = !bGigabit && !bMegabit &&
 	                      (TransferConnectionCapacityContainsUnit(pszUnits, L"kbps") ||
 	                       TransferConnectionCapacityContainsUnit(pszUnits, L"kb/s"));
@@ -180,14 +181,11 @@ inline TransferConnectionCapacityParseResult TransferConnectionCapacityParseKilo
 	if (TransferConnectionCapacityContainsByteUnit(pszUnits))
 	{
 		// Settings.SmartSpeed may show KB/s or MB/s when General.RatesInBytes is enabled.
-		const bool bGigabyte = TransferConnectionCapacityContainsUnit(pszUnits, L"gb/s");
+		const bool bGigabyte = wcsstr(pszUnits, L"GB/s") != NULL || wcsstr(pszUnits, L"Gb/s") != NULL;
 		const bool bMegabyte = !bGigabyte &&
-		                       (TransferConnectionCapacityContainsUnit(pszUnits, L"mb/s") ||
-		                        TransferConnectionCapacityContainsUnit(pszUnits, L"mB/s"));
+		                       (wcsstr(pszUnits, L"MB/s") != NULL || wcsstr(pszUnits, L"mB/s") != NULL);
 		const bool bKilobyte = !bGigabyte && !bMegabyte &&
-		                       (TransferConnectionCapacityContainsUnit(pszUnits, L"kb/s") ||
-		                        TransferConnectionCapacityContainsUnit(pszUnits, L"kB/s") ||
-		                        TransferConnectionCapacityContainsUnit(pszUnits, L"KB/s"));
+		                       (wcsstr(pszUnits, L"KB/s") != NULL || wcsstr(pszUnits, L"kB/s") != NULL);
 
 		double nBytesPerSecond = val;
 		if (bGigabyte)
