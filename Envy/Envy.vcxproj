@@ -1343,6 +1343,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="DcBrowse.h" />
     <ClInclude Include="DcFileListValidate.h" />
     <ClInclude Include="DcAdcGetValidate.h" />
+    <ClInclude Include="DcMaxedOutValidate.h" />
     <ClInclude Include="NetworkJobValidate.h" />
     <ClInclude Include="SecureIdentPolicy.h" />
     <ClInclude Include="RemoteBase64.h" />

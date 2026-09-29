@@ -5056,6 +5056,10 @@ msgstr ""
 msgid "Can't fetch more sources for download \"%s\" because there is no network connection."
 msgstr ""
 
+#: string;20277
+msgid "Download host %s is busy, waiting in queue at position #%i (\"%s\")."
+msgstr ""
+
 #: string;20280
 msgid "Download host's tiger-tree data is corrupt or internally inconsistent, ignoring it."
 msgstr ""

@@ -2009,6 +2009,9 @@
     <ClInclude Include="DcAdcGetValidate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DcMaxedOutValidate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="NetworkJobValidate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
