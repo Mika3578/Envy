@@ -159,20 +159,35 @@ class ClassifyCopilotReviewTests(unittest.TestCase):
         self.assertNotIn("rm -rf", proc.stderr)
 
     def test_cli_round_trip_fixture(self):
-        fixture = FIXTURES / "approved-none.json"
+        fixture = load_fixture("approved-none.json")
         proc = subprocess.run(
             [
                 sys.executable,
                 str(SCRIPTS / "classify-copilot-review.py"),
                 "--review-json",
-                str(fixture),
+                "-",
             ],
+            input=json.dumps(fixture),
             capture_output=True,
             text=True,
             check=True,
         )
         data = json.loads(proc.stdout)
         self.assertEqual(data["classification"], MOD.CLASSIFICATION_APPROVED)
+
+    def test_cli_rejects_file_review_json_path(self):
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPTS / "classify-copilot-review.py"),
+                "--review-json",
+                str(FIXTURES / "approved-none.json"),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("invalid choice", proc.stderr)
 
 
 if __name__ == "__main__":

@@ -44,9 +44,14 @@ jobs:
           REPO="${REPOSITORY#*/}"
 
           # Inline finding titles for this review (untrusted text; parsed as data only).
+          if ! [[ "${REVIEW_ID}" =~ ^[0-9]+$ ]]; then
+            echo "Invalid REVIEW_ID" >&2
+            exit 1
+          fi
+          export REVIEW_ID
           OPEN_TITLES="$(gh api "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/comments" \
             --paginate \
-            --jq "[.[] | select(.pull_request_review_id == ${REVIEW_ID}) | .body] | map(split(\"\n\")[0])")"
+            --jq '[.[] | select(.pull_request_review_id == (env.REVIEW_ID | tonumber)) | .body] | map(split("\n")[0])')"
 
           PRIOR_OUTCOMES="$(gh api "repos/${OWNER}/${REPO}/issues/${PR_NUMBER}/comments" \
             --paginate \
@@ -57,7 +62,7 @@ jobs:
             --review-json - \
             --open-findings-json "$OPEN_TITLES" \
             --prior-outcomes-json "$PRIOR_OUTCOMES" \
-            --output outcome.json
+            > outcome.json
 
           python3 - <<'PY'
           import json

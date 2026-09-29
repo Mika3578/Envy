@@ -12,7 +12,7 @@ import hashlib
 import json
 import re
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Iterable, Mapping, Sequence
 
 COPILOT_REVIEWER_LOGIN = "copilot-pull-request-reviewer[bot]"
@@ -356,7 +356,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--review-json",
-        help="GitHub review object JSON (file path or '-' for stdin)",
+        default="-",
+        choices=["-"],
+        help="Read GitHub review object JSON from stdin (only '-' is supported)",
     )
     parser.add_argument(
         "--open-findings-json",
@@ -368,16 +370,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         default="[]",
         help="JSON array of prior machine outcomes for loop detection",
     )
-    parser.add_argument(
-        "--output",
-        help="Write JSON result to file (default stdout)",
-    )
     args = parser.parse_args(argv)
 
-    if not args.review_json:
-        parser.error("--review-json is required")
-
-    review_raw = _load_json_arg(args.review_json)
+    review_raw = _load_review_json()
     open_titles = json.loads(args.open_findings_json)
     prior_outcomes = json.loads(args.prior_outcomes_json)
     if not isinstance(open_titles, list):
@@ -396,19 +391,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     outcome = apply_loop_guards(outcome, prior_outcomes)
 
     payload = json.dumps(outcome, indent=2, ensure_ascii=False) + "\n"
-    if args.output:
-        with open(args.output, "w", encoding="utf-8") as handle:
-            handle.write(payload)
-    else:
-        sys.stdout.write(payload)
+    sys.stdout.write(payload)
     return 0
 
 
-def _load_json_arg(value: str) -> dict[str, Any]:
-    if value == "-":
-        return json.load(sys.stdin)
-    with open(value, encoding="utf-8") as handle:
-        data = json.load(handle)
+def _load_review_json() -> dict[str, Any]:
+    data = json.load(sys.stdin)
     if not isinstance(data, dict):
         raise SystemExit("review JSON must be an object")
     return data
