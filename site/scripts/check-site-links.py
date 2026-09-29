@@ -3,6 +3,7 @@
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 SITE = Path(__file__).resolve().parents[1]
 HTML = list(SITE.glob("*.html"))
@@ -14,7 +15,8 @@ for path in HTML:
     for raw in LINK_RE.findall(text):
         if raw.startswith(("http://", "https://", "mailto:", "#")):
             continue
-        target = (path.parent / raw).resolve()
+        parsed = urlsplit(raw)
+        target = (path.parent / parsed.path).resolve()
         try:
             target.relative_to(SITE.resolve())
         except ValueError:

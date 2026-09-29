@@ -48,7 +48,7 @@ Never merge the two without explicit labeling.
 | Era | Windows positioning |
 | --- | --- |
 | Historical Envy 1.x–4.x | Windows client (historical installers on SourceForge / GitHub) |
-| Current fork | Windows 10 1809+; x64 primary; Win32 legacy Stage A ([`README.md`](../../README.md)) |
+| Current fork | Windows 10 1809+; x64 primary; Win32 legacy Stage A ([`AGENTS.md`](../../AGENTS.md), [`status.md`](../10_dev/status.md)) |
 
 ## Sources
 

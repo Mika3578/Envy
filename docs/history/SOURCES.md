@@ -34,7 +34,7 @@ Do not publish **uncertain** rows as facts in user-facing copy.
 | Historical project site `http://getenvy.com` | 2010s–2020s | [Wayback Machine snapshots](https://web.archive.org/web/*/http://getenvy.com/) | archived primary source | strongly supported | Prefer dated archive URLs in links |
 | SourceForge project `getenvy` hosts historical downloads and descriptions | 2016+ | [SourceForge getenvy](https://sourceforge.net/projects/getenvy/) | archived primary source | strongly supported | User reviews are opinion, not specs |
 | Mika3578/Envy is a fork of GetEnvy/Envy with active modernization on `develop` | 2025–2026 | [Mika3578/Envy](https://github.com/Mika3578/Envy); [`docs/10_dev/devsecops-envy.md`](../10_dev/devsecops-envy.md) | primary project source | verified | |
-| Draft preview release `v4.2.0-preview.1` on maintained fork | 2026-09 | [Mika3578/Envy releases](https://github.com/Mika3578/Envy/releases) | primary project source | verified | Draft/preview — not stable GA |
+| Planned preview release `v4.2.0-preview.1` on maintained fork | 2026-09 | [Mika3578/Envy releases](https://github.com/Mika3578/Envy/releases) | primary project source | planned | Target pending publication; not a verified release |
 | Current Windows x64 is primary product; ED2K/Kad interop partial/unverified live | 2026 | [`docs/10_dev/status.md`](../10_dev/status.md) | primary project source | verified | Canonical **current** truth |
 | CHANGELOG narrative dates for “Envy 1.0.0.0” in 2022 conflict with GetEnvy tags in 2016–2017 | — | [`CHANGELOG.md`](../../CHANGELOG.md) vs GetEnvy releases | source-code evidence | verified | Site/Wiki follow tags + ledger, not unchecked CHANGELOG prose |
 

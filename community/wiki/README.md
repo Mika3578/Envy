@@ -15,12 +15,13 @@ After the community PR merges and content is approved:
 
 ```bash
 git clone https://github.com/Mika3578/Envy.wiki.git /tmp/envy-wiki
-cp community/wiki/*.md /tmp/envy-wiki/
+find community/wiki -maxdepth 1 -name '*.md' ! -name README.md -exec cp {} /tmp/envy-wiki/ \;
 cd /tmp/envy-wiki
 git add -A
 git status
 git commit -m "docs(wiki): sync from community/wiki source"
-git push origin master
+git diff -- . ':!README.md'
+git push origin HEAD
 ```
 
 GitHub Wiki default branch may be `master` or `main`; use `git branch` in the clone.

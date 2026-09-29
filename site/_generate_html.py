@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """One-shot generator for static site pages. Run from repo root if pages need regeneration."""
+from html import escape
 from pathlib import Path
 
 SITE = Path(__file__).resolve().parent
@@ -21,6 +22,8 @@ NAV = [
 
 
 def shell(current: str, title: str, description: str, body: str) -> str:
+    title = escape(title)
+    description = escape(description, quote=True)
     nav_items = []
     for href, label in NAV:
         cur = ' aria-current="page"' if href == current else ""
@@ -60,7 +63,7 @@ def shell(current: str, title: str, description: str, body: str) -> str:
 {body}
   </main>
   <footer class="site-footer">
-    <p>Envy is AGPL-3.0-or-later. Community site source: <a href="{REPO}/tree/develop/site">{REPO}/site</a>.
+    <p>Envy is AGPL-3.0-or-later. Community site source: <a href="{REPO}/tree/develop/site">{REPO}/tree/develop/site</a>.
     Current implementation status is defined in the <a href="{DEVELOP}/docs/10_dev/status.md">repository status matrix</a>, not on this site alone.</p>
   </footer>
 </body>
@@ -283,6 +286,6 @@ PAGES = {
 
 for filename, (title, desc, body) in PAGES.items():
     html = shell(filename, title, desc, body)
-    (SITE / filename).write_text(html, encoding="utf-8")
+    (SITE / filename).write_text(html, encoding="utf-8", newline="\n")
 
 print(f"Wrote {len(PAGES)} pages to {SITE}")
