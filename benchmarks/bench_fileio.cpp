@@ -167,6 +167,41 @@ bool BenchWritePayloadExclusive(const std::filesystem::path& path,
 	return true;
 }
 
+bool BenchReadFilePayload(const std::filesystem::path& path, std::vector<std::uint8_t>& out)
+{
+	if (BenchPathIsReparsePoint(path))
+		return false;
+
+	const HANDLE hFile = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+	                                 OPEN_EXISTING,
+	                                 FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
+	                                 nullptr);
+	if (hFile == INVALID_HANDLE_VALUE)
+		return false;
+
+	BY_HANDLE_FILE_INFORMATION info{};
+	if (!GetFileInformationByHandle(hFile, &info) ||
+	    (info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
+	{
+		CloseHandle(hFile);
+		return false;
+	}
+
+	const LARGE_INTEGER file_size = { .QuadPart = static_cast<LONGLONG>(out.size()) };
+	LARGE_INTEGER actual_size{};
+	if (!GetFileSizeEx(hFile, &actual_size) || actual_size.QuadPart != file_size.QuadPart)
+	{
+		CloseHandle(hFile);
+		return false;
+	}
+
+	DWORD read = 0;
+	const BOOL ok =
+	    ReadFile(hFile, out.data(), static_cast<DWORD>(out.size()), &read, nullptr);
+	CloseHandle(hFile);
+	return ok && read == out.size();
+}
+
 bool BenchRewritePayload(const std::filesystem::path& path,
                          const std::vector<std::uint8_t>& payload)
 {
@@ -372,25 +407,13 @@ BenchWorkloadResult SequentialReadOnly(const std::shared_ptr<ReadFixture>& fixtu
 			ReportFileIoFailure("read target outside scratch");
 			return BenchFail();
 		}
-		std::ifstream in(path, std::ios::binary);
-		if (!in)
-		{
-			ReportFileIoFailure("open read target");
-			return BenchFail();
-		}
-		in.read(reinterpret_cast<char*>(fixture->scratch.data()),
-		        static_cast<std::streamsize>(fixture->scratch.size()));
-		if (!in.good() && !in.eof())
+		if (!BenchReadFilePayload(path, fixture->scratch))
 		{
 			ReportFileIoFailure("read payload");
 			return BenchFail();
 		}
-		if (in.gcount() != static_cast<std::streamsize>(fixture->scratch.size()))
-		{
-			ReportFileIoFailure("short read");
-			return BenchFail();
-		}
-		sink ^= fixture->scratch[0] ^ static_cast<std::uint64_t>(in.gcount()) ^
+		sink ^= fixture->scratch[0] ^
+		        static_cast<std::uint64_t>(fixture->scratch.size()) ^
 		        static_cast<std::uint64_t>(f + 1);
 	}
 	return BenchOk(sink);

@@ -629,8 +629,13 @@ bool CBuffer::InflateStreamTo(CBuffer& oBuffer, z_streamp& pStream, BOOL* pbEndO
 		// Zip-bomb / HTTP body cap: never grow oBuffer past nMaxOutput
 		if (oBuffer.m_nLength >= nMaxOutput)
 		{
-			// Exact-cap completion is OK when no compressed input remains.
 			if (pStream->avail_in > 0)
+			{
+				InflateStreamCleanup(pStream);
+				return false;
+			}
+			// Output cap with no input left is only success when the stream ended.
+			if (nResult != Z_STREAM_END)
 			{
 				InflateStreamCleanup(pStream);
 				return false;
