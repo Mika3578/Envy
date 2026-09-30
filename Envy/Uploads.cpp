@@ -194,6 +194,9 @@ DWORD CUploads::GetBandwidthLimit() const
 			nLimited = nLimited * Settings.BitTorrent.BandwidthPercentage / 100ull;
 	}
 
+	// Preserve the meter unlimited sentinel; BytesToSetting saturates finite caps only.
+	if (nLimited == 0xFFFFFFFFull)
+		return TransferBandwidthMeterUnlimitedValue();
 	return TransferBandwidthBytesToSetting(nLimited);
 }
 

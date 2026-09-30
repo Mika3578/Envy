@@ -123,34 +123,45 @@ static bool test_bandwidth_share_bytes_zero_points()
 
 static bool test_bandwidth_bytes_to_setting_typical()
 {
-	return TransferBandwidthBytesToSetting(1024) == 1024 && TransferBandwidthBytesToSetting(0xFFFFFFFFull) == 0xFFFFFFFFul;
+	return TransferBandwidthBytesToSetting(1024) == 1024 &&
+	       TransferBandwidthBytesToSetting(TransferBandwidthMaxFiniteBytesPerSecond()) ==
+	           TransferBandwidthMaxFiniteBytesPerSecond();
 }
 
 static bool test_bandwidth_meter_limit_unlimited_display()
 {
 	return TransferBandwidthMeterLimitIsUnlimited(
-		       TransferBandwidthBytesToMeterLimit(TransferBandwidthUnlimitedValue())) &&
+	           TransferBandwidthBytesToMeterLimit(TransferBandwidthUnlimitedValue())) &&
 	       !TransferBandwidthMeterLimitIsUnlimited(
-		       TransferBandwidthBytesToMeterLimit(8192u));
+	           TransferBandwidthBytesToMeterLimit(8192u));
 }
 
 static bool test_bandwidth_bytes_to_meter_limit_unlimited()
 {
-	return TransferBandwidthBytesToMeterLimit(TransferBandwidthUnlimitedValue()) == 0xFFFFFFFFu &&
-	       TransferBandwidthBytesToMeterLimit(8192u) == 8192u;
+	return TransferBandwidthBytesToMeterLimit(TransferBandwidthUnlimitedValue()) ==
+	           TransferBandwidthMeterUnlimitedValue() &&
+	       TransferBandwidthBytesToMeterLimit(8192u) == 8192u &&
+	       TransferBandwidthBytesToMeterLimit(TransferBandwidthMeterUnlimitedValue()) ==
+	           TransferBandwidthMaxFiniteBytesPerSecond();
 }
 
 static bool test_bandwidth_divide_share_preserves_unlimited()
 {
-	return TransferBandwidthDivideShare(0xFFFFFFFFu, 2u) == 0xFFFFFFFFu &&
-	       TransferBandwidthDivideShare(0xFFFFFFFFu, 1u) == 0xFFFFFFFFu &&
+	return TransferBandwidthDivideShare(TransferBandwidthMeterUnlimitedValue(), 2u) ==
+	           TransferBandwidthMeterUnlimitedValue() &&
+	       TransferBandwidthDivideShare(TransferBandwidthMeterUnlimitedValue(), 1u) ==
+	           TransferBandwidthMeterUnlimitedValue() &&
 	       TransferBandwidthDivideShare(1000u, 2u) == 500u &&
 	       TransferBandwidthDivideShare(1000u, 0u) == 0u;
 }
 
 static bool test_bandwidth_bytes_to_setting_overflow_clamps()
 {
-	return TransferBandwidthBytesToSetting(0x100000000ull) == 0xFFFFFFFFul && TransferBandwidthBytesToSetting(~0ull) == 0xFFFFFFFFul;
+	return TransferBandwidthBytesToSetting(0x100000000ull) ==
+	           TransferBandwidthMaxFiniteBytesPerSecond() &&
+	       TransferBandwidthBytesToSetting(~0ull) == TransferBandwidthMaxFiniteBytesPerSecond() &&
+	       TransferBandwidthBytesToSetting(0xFFFFFFFFull) ==
+	           TransferBandwidthMaxFiniteBytesPerSecond();
 }
 
 static unsigned long long legacy_headroom_buggy_formula(DWORD nOutSpeedKbps, unsigned int nFreeBandwidthFactor)
@@ -195,7 +206,8 @@ static bool test_connection_kbps_overflow_boundary_no_wrap()
 
 static bool test_connection_kbps_saturation_to_dword()
 {
-	return TransferConnectionKilobitsToBytesPerSecondDword(50000000u) == 0xFFFFFFFFul;
+	return TransferConnectionKilobitsToBytesPerSecondDword(50000000u) ==
+	       TransferBandwidthMaxFiniteBytesPerSecond();
 }
 
 static bool test_bandwidth_apply_usable_percent_factors()

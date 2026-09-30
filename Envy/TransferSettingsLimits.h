@@ -155,10 +155,23 @@ inline bool TransferBandwidthSettingIsUnlimited(DWORD nBytesPerSecond)
 	return nBytesPerSecond == TransferBandwidthUnlimitedValue();
 }
 
+// Meter-only unlimited sentinel. Must never be emitted for a finite persisted
+// Bandwidth.* setting: DWORD can store 0xFFFFFFFF as an explicit cap.
+inline DWORD TransferBandwidthMeterUnlimitedValue()
+{
+	return 0xFFFFFFFFu;
+}
+
+// Largest finite bytes/s that may be stored or returned as a user/setting cap.
+inline DWORD TransferBandwidthMaxFiniteBytesPerSecond()
+{
+	return 0xFFFFFFFEu;
+}
+
 inline DWORD TransferBandwidthBytesToSetting(unsigned long long nBytes)
 {
-	if (nBytes > 0xFFFFFFFFull)
-		return 0xFFFFFFFFul;
+	if (nBytes > TransferBandwidthMaxFiniteBytesPerSecond())
+		return TransferBandwidthMaxFiniteBytesPerSecond();
 	return static_cast<DWORD>(nBytes);
 }
 
@@ -167,25 +180,27 @@ inline DWORD TransferBandwidthBytesToSetting(unsigned long long nBytes)
 inline DWORD TransferBandwidthBytesToMeterLimit(DWORD nBytesPerSecond)
 {
 	if (TransferBandwidthSettingIsUnlimited(nBytesPerSecond))
-		return 0xFFFFFFFFu;
+		return TransferBandwidthMeterUnlimitedValue();
+	// A persisted/saturated 0xFFFFFFFF is a finite DWORD max, not unlimited.
+	if (nBytesPerSecond == TransferBandwidthMeterUnlimitedValue())
+		return TransferBandwidthMaxFiniteBytesPerSecond();
 	return nBytesPerSecond;
 }
 
 inline bool TransferBandwidthMeterLimitIsUnlimited(DWORD nBytesPerSecond)
 {
-	return nBytesPerSecond == 0xFFFFFFFFu;
+	return nBytesPerSecond == TransferBandwidthMeterUnlimitedValue();
 }
 
 // Split a queue budget across nCount transfers without turning the unlimited
-// (Sonar re-trigger: keep helper next to meter unlimited sentinel.)
-// meter sentinel (0xFFFFFFFF) into a finite per-transfer cap. Dividing that
-// sentinel would make LongTermAverage clampdown treat the share as limited.
+// meter sentinel into a finite per-transfer cap. Dividing that sentinel would
+// make LongTermAverage clampdown treat the share as limited.
 inline DWORD TransferBandwidthDivideShare(DWORD nTotalBytesPerSecond, DWORD nCount)
 {
 	if (nCount == 0)
 		return 0;
 	if (TransferBandwidthMeterLimitIsUnlimited(nTotalBytesPerSecond))
-		return 0xFFFFFFFFu;
+		return TransferBandwidthMeterUnlimitedValue();
 	return nTotalBytesPerSecond / nCount;
 }
 
@@ -230,9 +245,7 @@ inline DWORD TransferBandwidthUploadLimitFromOutboundKilobits(DWORD nOutSpeedKil
 // User transfer cap in bytes/s for download/upload limiters. Unlimited -> no cap.
 inline DWORD TransferEffectiveDownloadLimitBytes(DWORD nUserDownloadsBytesPerSecond)
 {
-	if (TransferBandwidthSettingIsUnlimited(nUserDownloadsBytesPerSecond))
-		return 0xFFFFFFFFu;
-	return nUserDownloadsBytesPerSecond;
+	return TransferBandwidthBytesToMeterLimit(nUserDownloadsBytesPerSecond);
 }
 
 // Reference bytes/s for queue sliders / ED2K point split when the user cap is unlimited.

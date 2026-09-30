@@ -277,18 +277,20 @@ void CUploadTransfer::LongTermAverage(DWORD tNow)
 	if ( tNow < m_tAverageTime + 2000 || m_nAverageRate[ m_nAveragePos ] == 0 ) return;
 
 	m_tAverageTime = tNow;
-	m_nAveragePos = ( m_nAveragePos + 1 ) % ULA_SLOTS;
+	m_nAveragePos = (m_nAveragePos + 1) % ULA_SLOTS;
 
-	DWORD nAverage = 0;
+	// 64-bit sum: at multi-Gb/s rates, 16 DWORD samples can exceed 2^32.
+	unsigned long long nAverageSum = 0;
 
 	for (int nPos = 0; nPos < ULA_SLOTS; nPos++)
 	{
 		if (m_nAverageRate[nPos] == 0) return;
-		nAverage += m_nAverageRate[nPos];
+		nAverageSum += m_nAverageRate[nPos];
 	}
 
 	m_nAverageRate[m_nAveragePos] = 0;
-	nAverage = nAverage / ULA_SLOTS * 9 / 8;
+	nAverageSum = nAverageSum / ULA_SLOTS * 9 / 8;
+	DWORD nAverage = TransferBandwidthBytesToSetting(nAverageSum);
 	nAverage = max(nAverage, Settings.Uploads.ClampdownFloor);
 
 	if (m_bPriority)

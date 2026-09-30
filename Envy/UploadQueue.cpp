@@ -358,8 +358,14 @@ DWORD CUploadQueue::GetBandwidthPoints(DWORD nTransfers) const
 
 DWORD CUploadQueue::GetBandwidthLimit(DWORD nTransfers) const
 {
-	DWORD nLocalPoints = GetBandwidthPoints( nTransfers );
-	if ( nLocalPoints == 0 ) return 0;
+	DWORD nLocalPoints = GetBandwidthPoints(nTransfers);
+	if (nLocalPoints == 0) return 0;
+
+	const DWORD nGlobal = Uploads.GetBandwidthLimit();
+	// Point weighting must not collapse the global unlimited meter sentinel
+	// into a finite per-queue share when multiple queues contribute points.
+	if (TransferBandwidthMeterLimitIsUnlimited(nGlobal))
+		return TransferBandwidthMeterUnlimitedValue();
 
 	DWORD nTotalPoints = nLocalPoints;
 
@@ -371,7 +377,7 @@ DWORD CUploadQueue::GetBandwidthLimit(DWORD nTransfers) const
 	}
 
 	const unsigned long long nShare =
-	    static_cast<unsigned long long>(Uploads.GetBandwidthLimit()) *
+	    static_cast<unsigned long long>(nGlobal) *
 	    static_cast<unsigned long long>(nLocalPoints + Settings.Uploads.ThrottleMode) /
 	    static_cast<unsigned long long>(max(1ul, nTotalPoints));
 	return TransferBandwidthBytesToSetting(nShare);

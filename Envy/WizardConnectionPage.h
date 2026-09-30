@@ -32,33 +32,32 @@ public:
 	CWizardConnectionPage();
 	virtual ~CWizardConnectionPage();
 
-	enum
-	{
-		IDD = IDD_WIZARD_CONNECTION
-	};
+	enum { IDD = IDD_WIZARD_CONNECTION };
 
 protected:
-	CComboBox m_wndType;
-	CComboBox m_wndDownloadSpeed;
-	CComboBox m_wndUploadSpeed;
-	CComboBox m_wndUPnP;
-	CEdit m_wndPort;
-	CButton m_wndRandom;
-	CStatic m_wndStatus;
-	CStatic m_wndTest;
+	CComboBox	m_wndType;
+	CComboBox	m_wndDownloadSpeed;
+	CComboBox	m_wndUploadSpeed;
+	CComboBox	m_wndUPnP;
+	CEdit		m_wndPort;
+	CButton		m_wndRandom;
+	CStatic		m_wndStatus;
+	CStatic		m_wndTest;
 	CProgressCtrl m_wndProgress;
-	CToolTipCtrl m_ToolTip; // Port hint
+	CToolTipCtrl m_ToolTip;		// Port hint
 
-	bool m_bQueryDiscoveries;
-	bool m_bUpdateServers;
-	BOOL m_bRandom;
-	DWORD m_nPort;
-	short m_nProgressSteps;
+	bool		m_bQueryDiscoveries;
+	bool		m_bUpdateServers;
+	BOOL		m_bRandom;
+	DWORD		m_nPort;
+	short		m_nProgressSteps;
 
-	CString SpeedFormat(const double nSpeed) const;
+	std::map < const DWORD, DWORD > m_mapSpeed;
+
+	CString		SpeedFormat(const double nSpeed) const;
 
 protected:
-	void OnRun();
+	void		OnRun();
 
 	virtual void DoDataExchange(CDataExchange* pDX);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
