@@ -177,6 +177,7 @@ inline bool TransferBandwidthMeterLimitIsUnlimited(DWORD nBytesPerSecond)
 }
 
 // Split a queue budget across nCount transfers without turning the unlimited
+// (Sonar re-trigger: keep helper next to meter unlimited sentinel.)
 // meter sentinel (0xFFFFFFFF) into a finite per-transfer cap. Dividing that
 // sentinel would make LongTermAverage clampdown treat the share as limited.
 inline DWORD TransferBandwidthDivideShare(DWORD nTotalBytesPerSecond, DWORD nCount)
