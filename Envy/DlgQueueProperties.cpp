@@ -24,6 +24,7 @@
 #include "DlgQueueProperties.h"
 #include "LiveList.h"
 #include "CoolInterface.h"
+#include "TransferSettingsLimits.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -291,27 +292,29 @@ void CQueuePropertiesDlg::OnRotateEnable()
 
 void CQueuePropertiesDlg::OnHScroll(UINT /*nSBCode*/, UINT /*nPos*/, CScrollBar* /*pScrollBar*/)
 {
-	DWORD nTotal = Settings.Connection.OutSpeed * 1024 / 8;
-	DWORD nLimit = Settings.Bandwidth.Uploads;
+	DWORD nLimit = TransferBandwidthReferenceUploadBytes(Settings.Bandwidth.Uploads,
+	                                                     Settings.Connection.OutSpeed);
 
-	if ( nLimit == 0 || nLimit > nTotal )
-		nLimit = nTotal;
-
-	int nOtherPoints = (int)UploadQueues.GetTotalBandwidthPoints( !( m_pQueue->m_nProtocols & (1<<PROTOCOL_ED2K) ) )
-					 - (int)m_pQueue->m_nBandwidthPoints;
-	if ( nOtherPoints < 0 )
+	int nOtherPoints = (int)UploadQueues.GetTotalBandwidthPoints(!(m_pQueue->m_nProtocols & (1 << PROTOCOL_ED2K))) - (int)m_pQueue->m_nBandwidthPoints;
+	if (nOtherPoints < 0)
 		nOtherPoints = 0;
 
 	int nLocalPoints = m_wndBandwidthSlider.GetPos();
 	int nTotalPoints = nLocalPoints + nOtherPoints;
 
-	DWORD nBandwidth = nLimit * nLocalPoints / max( 1, nTotalPoints );
+	const DWORD nBandwidth = TransferBandwidthShareBytes(
+	    nLimit, static_cast<unsigned int>(nLocalPoints), static_cast<unsigned int>(max(1, nTotalPoints)));
 
 	CString str;
-	str.Format( L"%u%% (%i/%i)", ( 100 * nBandwidth ) / nLimit, nLocalPoints, nTotalPoints );
+	const unsigned int nPercent =
+	    nLimit > 0 ? static_cast<unsigned int>(
+	                     static_cast<unsigned long long>(nBandwidth) * 100ull /
+	                     static_cast<unsigned long long>(nLimit))
+	               : 0u;
+	str.Format(L"%u%% (%i/%i)", nPercent, nLocalPoints, nTotalPoints);
 
-	m_wndBandwidthPoints.SetWindowText( str );
-	m_wndBandwidthValue.SetWindowText( Settings.SmartSpeed( nBandwidth ) + L'+' );
+	m_wndBandwidthPoints.SetWindowText(str);
+	m_wndBandwidthValue.SetWindowText(Settings.SmartSpeed(nBandwidth) + L'+');
 }
 
 void CQueuePropertiesDlg::OnOK()

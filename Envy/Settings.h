@@ -692,22 +692,23 @@ public:
 
 	struct sLive
 	{
-		bool		DiskSpaceStop;			// Has Envy paused all downloads due to critical disk space?
-		bool		DiskSpaceWarning;		// Has the user been warned of low disk space?
-		bool		DiskWriteWarning;		// Has the user been warned of write problems?
-		bool		AdultWarning;			// Has the user been warned about the adult filter?
-		bool		UploadLimitWarning;		// Has the user been warned about the ed2k/BT ratio?
-		bool		QueueLimitWarning;		// Has the user been warned about limiting the max Q position accepted?
-		bool		DonkeyServerWarning;	// Has the user been warned about having an empty server list?
-		bool		DefaultED2KServersLoaded; // Has Envy already loaded default ED2K servers?
-		bool		DefaultDCServersLoaded;	  // Has Envy already loaded default DC++ servers?
-		bool		MaliciousWarning;		// Is the warning dialog triggered? (Single case at startup)
-		CString		LastDuplicateHash;		// Stores the hash of the file about which the warning was shown
-		DWORD		BandwidthScaleIn;		// MonitorBar Download slider setting
-		DWORD		BandwidthScaleOut;		// MonitorBar Upload slider setting
-		bool		LoadWindowState;
-		bool		AutoClose;
-		bool		FirstRun;				// Is this the first time Envy is being run?
+		bool DiskSpaceStop;            // Has Envy paused all downloads due to critical disk space?
+		bool DiskSpaceWarning;         // Has the user been warned of low disk space?
+		bool DiskWriteWarning;         // Has the user been warned of write problems?
+		bool AdultWarning;             // Has the user been warned about the adult filter?
+		bool UploadLimitWarning;       // Has the user been warned about the ed2k/BT ratio?
+		bool QueueLimitWarning;        // Has the user been warned about limiting the max Q position accepted?
+		bool DonkeyServerWarning;      // Has the user been warned about having an empty server list?
+		bool DefaultED2KServersLoaded; // Has Envy already loaded default ED2K servers?
+		bool DefaultDCServersLoaded;   // Has Envy already loaded default DC++ servers?
+		bool MaliciousWarning;         // Is the warning dialog triggered? (Single case at startup)
+		CString LastDuplicateHash;     // Stores the hash of the file about which the warning was shown
+		DWORD BandwidthScaleIn;        // MonitorBar Download slider setting
+		DWORD BandwidthScaleOut;       // MonitorBar Upload slider setting
+		bool LoadWindowState;
+		bool AutoClose;
+		bool FirstRun;                // Is this the first time Envy is being run?
+		bool WizardUploadLimitSeeded; // Session-only: wizard default upload limit applied once
 	} Live;
 
 	struct sRemote

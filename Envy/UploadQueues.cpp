@@ -566,17 +566,15 @@ void CUploadQueues::Validate()
 
 DWORD CUploadQueues::GetMinimumDonkeyBandwidth()
 {
-	CQuickLock oLock( m_pSection );
+	CQuickLock oLock(m_pSection);
 
-	DWORD nTotal = TransferConnectionKilobitsToBytesPerSecondDword(Settings.Connection.OutSpeed);
-	DWORD nLimit = Settings.Bandwidth.Uploads;
+	DWORD nLimit = TransferBandwidthReferenceUploadBytes(Settings.Bandwidth.Uploads,
+	                                                     Settings.Connection.OutSpeed);
 	DWORD nDonkeyPoints = 0, nTotalPoints = 0, nBandwidth = 0;
 
-	if ( nLimit == 0 || nLimit > nTotal ) nLimit = nTotal;
-
-	for ( POSITION pos = GetIterator(); pos; )
+	for (POSITION pos = GetIterator(); pos;)
 	{
-		CUploadQueue* pQueue = GetNext( pos );
+		CUploadQueue* pQueue = GetNext(pos);
 
 		nTotalPoints += pQueue->m_nBandwidthPoints;
 
@@ -584,9 +582,9 @@ DWORD CUploadQueues::GetMinimumDonkeyBandwidth()
 			nDonkeyPoints += pQueue->m_nBandwidthPoints;
 	}
 
-	if ( nTotalPoints < 1 ) nTotalPoints = 1;
+	if (nTotalPoints < 1) nTotalPoints = 1;
 
-	nBandwidth = nLimit * nDonkeyPoints / nTotalPoints;
+	nBandwidth = TransferBandwidthShareBytes(nLimit, nDonkeyPoints, nTotalPoints);
 
 	return nBandwidth;
 }

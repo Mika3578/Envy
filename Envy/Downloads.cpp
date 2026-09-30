@@ -1014,20 +1014,19 @@ void CDownloads::OnRun()
 	// Run downloads, update bandwidth settings and allows
 	m_tBandwidthLastCalc = tNow;
 
-	DWORD nActiveDownloads		= 0;	// Number of downloads that are doing something
-	DWORD nActiveTransfers		= 0;	// Number of transfers that are in the downloading state
-	DWORD nTotalTransfers		= 0;	// Total transfers
-	DWORD nTotalBandwidth		= 0;	// Total bandwidth in use
-	DWORD nRunningTransfers		= 0;	// Number of transfers that are downloading and transfering data
-	DWORD nRunningTransfersED2K	= 0;	// Number of ed2k transfers that are downloading and transfering data
-	DWORD nTotalBandwidthED2K	= 0;	// Total ed2k bandwidth in use.
+	DWORD nActiveDownloads = 0;                 // Number of downloads that are doing something
+	DWORD nActiveTransfers = 0;                 // Number of transfers that are in the downloading state
+	DWORD nTotalTransfers = 0;                  // Total transfers
+	unsigned long long nTotalBandwidth = 0;     // Total bandwidth in use (64-bit; multi-Gb/s aggregate)
+	DWORD nRunningTransfers = 0;                // Number of transfers that are downloading and transfering data
+	DWORD nRunningTransfersED2K = 0;            // Number of ed2k transfers that are downloading and transfering data
+	unsigned long long nTotalBandwidthED2K = 0; // Total ed2k bandwidth in use.
 
-	DWORD nBandwidthAvailable = min((Settings.Bandwidth.Downloads ? Settings.Bandwidth.Downloads : 0xffffffffu),
-	                                TransferConnectionKilobitsToBytesPerSecondDword(Settings.Connection.InSpeed));
+	DWORD nBandwidthAvailable = TransferEffectiveDownloadLimitBytes(Settings.Bandwidth.Downloads);
 	DWORD nBandwidthAvailableED2K = 0;
-	BOOL bDonkeyRatioActive		= FALSE;
+	BOOL bDonkeyRatioActive = FALSE;
 
-	{	// Lock transfers section
+	{ // Lock transfers section
 		CList<CDownloadTransfer*> pTransfersToLimit;
 		++m_nRunCookie;
 
@@ -1150,30 +1149,33 @@ void CDownloads::OnRun()
 		}
 
 		oLock.Unlock();
-	} 	// End of transfers section lock
+	} // End of transfers section lock
 
 	// Update limit assigned to new transfers
-//	if ( nBandwidthAvailable > nTotalBandwidth )
-//		m_nLimitNew = nBandwidthAvailable - nTotalBandwidth;
-//	else
-//		m_nLimitNew = Settings.Bandwidth.Request;
+	//	if ( nBandwidthAvailable > nTotalBandwidth )
+	//		m_nLimitNew = nBandwidthAvailable - nTotalBandwidth;
+	//	else
+	//		m_nLimitNew = Settings.Bandwidth.Request;
 
 	// Save bandwidth stats, Update allows
 	m_nTransfers = nActiveTransfers;
-	m_nBandwidth = nTotalBandwidth;
+	m_nBandwidth = TransferBandwidthBytesToSetting(nTotalBandwidth);
 
 	m_bAllowMoreDownloads = nActiveDownloads < Settings.Downloads.MaxFiles;
 	m_bAllowMoreTransfers = nTotalTransfers < Settings.Downloads.MaxTransfers;
 
 	// Set "bandwidth use is near maximum" timers
-	// beware that the MAX setting uses a limit of 0 internally,
+	// beware that Unlimited uses the meter sentinel internally,
 	// so we need to catch that case first
-	if ( nBandwidthAvailable != 0 && ( nTotalBandwidth * 1.1 ) >= nBandwidthAvailable )
+	if (!TransferBandwidthMeterLimitIsUnlimited(nBandwidthAvailable) &&
+	    nBandwidthAvailable != 0 &&
+	    (static_cast<double>(nTotalBandwidth) * 1.1) >= nBandwidthAvailable)
 		m_tBandwidthAtMax = tNow;
-	if ( nBandwidthAvailableED2K != 0 && ( nTotalBandwidthED2K * 1.1 ) >= nBandwidthAvailableED2K )
+	if (nBandwidthAvailableED2K != 0 &&
+	    (static_cast<double>(nTotalBandwidthED2K) * 1.1) >= nBandwidthAvailableED2K)
 		m_tBandwidthAtMaxED2K = tNow;
 
-	DownloadGroups.Save( FALSE );
+	DownloadGroups.Save(FALSE);
 }
 
 //////////////////////////////////////////////////////////////////////

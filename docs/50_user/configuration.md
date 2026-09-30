@@ -39,7 +39,7 @@ For power users:
 
 See [transfer-settings.md](transfer-settings.md) for the live Uploads page mapping.
 
-- **Bandwidth Limit**: Global upload cap (`Bandwidth.Uploads`). **Unlimited** (stores `0`; legacy UI token `MAX` still accepted). Effective send rate is still bounded by the connection uplink.
+- **Bandwidth Limit**: Global upload cap (`Bandwidth.Uploads`). **Unlimited** (stores `0`; legacy UI token `MAX` still accepted) adds no user transfer-rate cap. Hub and torrent policies may still scale the effective cap using declared connection capacity; when both apply, their percentages compound.
 - **Throttle**: Average (soft) vs Maximum (strict) — not a generic “mode”.
 - **Max uploads per host**: Simultaneous upload transfers per IPv4 address (`Uploads.MaxPerHost`, default **2**, range 1–64).
 - **Queues**: Historical Small/Large/Partial/eDonkey rules; drag reorders immediately. Do not delete.

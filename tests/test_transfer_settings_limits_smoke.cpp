@@ -11,6 +11,7 @@
 
 #include "test_framework.h"
 #include "../Envy/TransferSettingsLimits.h"
+#include "../Envy/TransferConnectionCapacity.h"
 
 #include <cwchar>
 #include <map>
@@ -110,25 +111,63 @@ static bool test_bandwidth_token_unknown_not_unlimited()
 	return TransferBandwidthTokenIsUnlimited(L"garbage") == false && TransferBandwidthTokenIsUnlimited(L"-") == false;
 }
 
-static bool test_bandwidth_bytes_to_setting_zero_unlimited()
+static bool test_bandwidth_bytes_to_setting_zero_preserved()
 {
-	return TransferBandwidthBytesToSetting(0) == TransferBandwidthUnlimitedValue();
+	return TransferBandwidthBytesToSetting(0) == 0u;
+}
+
+static bool test_bandwidth_share_bytes_zero_points()
+{
+	return TransferBandwidthShareBytes(1024u, 0u, 100u) == 0u;
 }
 
 static bool test_bandwidth_bytes_to_setting_typical()
 {
-	return TransferBandwidthBytesToSetting(1024) == 1024 && TransferBandwidthBytesToSetting(0xFFFFFFFFull) == 0xFFFFFFFFul;
+	return TransferBandwidthBytesToSetting(1024) == 1024 &&
+	       TransferBandwidthBytesToSetting(TransferBandwidthMaxFiniteBytesPerSecond()) ==
+	           TransferBandwidthMaxFiniteBytesPerSecond();
+}
+
+static bool test_bandwidth_meter_limit_unlimited_display()
+{
+	return TransferBandwidthMeterLimitIsUnlimited(
+	           TransferBandwidthBytesToMeterLimit(TransferBandwidthUnlimitedValue())) &&
+	       !TransferBandwidthMeterLimitIsUnlimited(
+	           TransferBandwidthBytesToMeterLimit(8192u));
+}
+
+static bool test_bandwidth_bytes_to_meter_limit_unlimited()
+{
+	return TransferBandwidthBytesToMeterLimit(TransferBandwidthUnlimitedValue()) ==
+	           TransferBandwidthMeterUnlimitedValue() &&
+	       TransferBandwidthBytesToMeterLimit(8192u) == 8192u &&
+	       TransferBandwidthBytesToMeterLimit(TransferBandwidthMeterUnlimitedValue()) ==
+	           TransferBandwidthMaxFiniteBytesPerSecond();
+}
+
+static bool test_bandwidth_divide_share_preserves_unlimited()
+{
+	return TransferBandwidthDivideShare(TransferBandwidthMeterUnlimitedValue(), 2u) ==
+	           TransferBandwidthMeterUnlimitedValue() &&
+	       TransferBandwidthDivideShare(TransferBandwidthMeterUnlimitedValue(), 1u) ==
+	           TransferBandwidthMeterUnlimitedValue() &&
+	       TransferBandwidthDivideShare(1000u, 2u) == 500u &&
+	       TransferBandwidthDivideShare(1000u, 0u) == 0u;
 }
 
 static bool test_bandwidth_bytes_to_setting_overflow_clamps()
 {
-	return TransferBandwidthBytesToSetting(0x100000000ull) == 0xFFFFFFFFul && TransferBandwidthBytesToSetting(~0ull) == 0xFFFFFFFFul;
+	return TransferBandwidthBytesToSetting(0x100000000ull) ==
+	           TransferBandwidthMaxFiniteBytesPerSecond() &&
+	       TransferBandwidthBytesToSetting(~0ull) == TransferBandwidthMaxFiniteBytesPerSecond() &&
+	       TransferBandwidthBytesToSetting(0xFFFFFFFFull) ==
+	           TransferBandwidthMaxFiniteBytesPerSecond();
 }
 
 static unsigned long long legacy_headroom_buggy_formula(DWORD nOutSpeedKbps, unsigned int nFreeBandwidthFactor)
 {
-	return static_cast<unsigned long long>( nOutSpeedKbps / 8 ) *
-	    static_cast<unsigned long long>( ( 100 - nFreeBandwidthFactor ) / 100 ) * 1024ull;
+	return static_cast<unsigned long long>(nOutSpeedKbps / 8) *
+	       static_cast<unsigned long long>((100 - nFreeBandwidthFactor) / 100) * 1024ull;
 }
 
 static bool test_connection_kbps_to_bytes_zero()
@@ -167,7 +206,8 @@ static bool test_connection_kbps_overflow_boundary_no_wrap()
 
 static bool test_connection_kbps_saturation_to_dword()
 {
-	return TransferConnectionKilobitsToBytesPerSecondDword(50000000u) == 0xFFFFFFFFul;
+	return TransferConnectionKilobitsToBytesPerSecondDword(50000000u) ==
+	       TransferBandwidthMaxFiniteBytesPerSecond();
 }
 
 static bool test_bandwidth_apply_usable_percent_factors()
@@ -207,7 +247,7 @@ static bool test_bandwidth_torrent_percent_multigig_no_dword_wrap()
 	const DWORD nBase = TransferConnectionKilobitsToBytesPerSecondDword(10000000);
 	const unsigned long long nScaled = static_cast<unsigned long long>(nBase) * 90ull / 100ull;
 	const DWORD nExpected = TransferBandwidthBytesToSetting(nScaled);
-	const DWORD nWrapped = ( nBase * 90 ) / 100;
+	const DWORD nWrapped = (nBase * 90) / 100;
 	return nExpected != 0 && nWrapped != nExpected;
 }
 
@@ -362,6 +402,166 @@ static bool test_max_per_host_invalid_registry_clamped()
 	return LoadMaxPerHost(store) == 64;
 }
 
+static bool test_effective_download_unlimited_not_capped_by_capacity()
+{
+	const DWORD nLegacyIn = 4096u;
+	const DWORD nCapBytes = TransferConnectionKilobitsToBytesPerSecondDword(nLegacyIn);
+	return TransferEffectiveDownloadLimitBytes(TransferBandwidthUnlimitedValue()) == 0xFFFFFFFFu &&
+	       TransferEffectiveDownloadLimitBytes(TransferBandwidthUnlimitedValue()) > nCapBytes;
+}
+
+static bool test_effective_download_finite_user_limit()
+{
+	return TransferEffectiveDownloadLimitBytes(128000u) == 128000u;
+}
+
+static bool test_outgoing_heuristic_unlimited_uses_capacity()
+{
+	return TransferOutgoingBandwidthHeuristicKBps(0, 768u) == 96u &&
+	       TransferOutgoingBandwidthHeuristicKBps(0, 4096u) == 512u;
+}
+
+static bool test_outgoing_heuristic_finite_user_limit()
+{
+	const DWORD nUser = 256u * 1024u;
+	return TransferOutgoingBandwidthHeuristicKBps(nUser, 4096u) == 256u;
+}
+
+static bool test_connection_apply_does_not_sync_upload_limit()
+{
+	const DWORD nExplicitUpload = 128000u;
+	const DWORD nAfterApply = TransferBandwidthUploadAfterConnectionSettingsApply(
+	    nExplicitUpload, 10485760u, 8u);
+	return nAfterApply == nExplicitUpload;
+}
+
+static bool test_wizard_upload_default_only_first_run()
+{
+	return TransferConnectionCapacityShouldSetWizardUploadDefault(true, false) == true &&
+	       TransferConnectionCapacityShouldSetWizardUploadDefault(false, false) == false &&
+	       TransferConnectionCapacityShouldSetWizardUploadDefault(true, true) == false;
+}
+
+static bool test_capacity_presets_include_modern_values()
+{
+	bool b100 = false, b300 = false, b500 = false, b1g = false, b25 = false, b5 = false, b10 = false;
+	for (unsigned int i = 0; i < TransferConnectionCapacityPresetCount(); ++i)
+	{
+		const DWORD n = TransferConnectionCapacityPresetKilobits(i);
+		if (n == 102400u)
+			b100 = true;
+		if (n == 307200u)
+			b300 = true;
+		if (n == 512000u)
+			b500 = true;
+		if (n == 1024000u)
+			b1g = true;
+		if (n == 2621440u)
+			b25 = true;
+		if (n == 5242880u)
+			b5 = true;
+		if (n == 10485760u)
+			b10 = true;
+	}
+	return b100 && b300 && b500 && b1g && b25 && b5 && b10;
+}
+
+static bool test_capacity_presets_sorted_unique()
+{
+	DWORD nPrev = 0;
+	for (unsigned int i = 0; i < TransferConnectionCapacityPresetCount(); ++i)
+	{
+		const DWORD n = TransferConnectionCapacityPresetKilobits(i);
+		if (n <= nPrev)
+			return false;
+		nPrev = n;
+	}
+	return true;
+}
+
+static bool test_capacity_parse_kbps_wizard_string()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"102400 kbps    (12.50 MB/s)");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Ok && o.nKilobitsPerSecond == 102400ull;
+}
+
+static bool test_capacity_parse_mbps()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"100 mbps     (12.50 MB/s)");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Ok && o.nKilobitsPerSecond == 102400ull;
+}
+
+static bool test_capacity_parse_wizard_mbps_with_kbs_parenthetical()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"1.0 mbps    (128 KB/s)");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Ok && o.nKilobitsPerSecond == 1024ull;
+}
+
+static bool test_capacity_parse_byte_units_to_kilobits()
+{
+	const auto oMb = TransferConnectionCapacityParseKilobitsText(L"100 MB/s");
+	const auto oKb = TransferConnectionCapacityParseKilobitsText(L"512.0 KB/s");
+	return oMb.eStatus == TransferConnectionCapacityParseStatus::Ok && oMb.nKilobitsPerSecond == 819200ull &&
+	       oKb.eStatus == TransferConnectionCapacityParseStatus::Ok && oKb.nKilobitsPerSecond == 4096ull;
+}
+
+static bool test_capacity_parse_bits_per_sec_smart_speed()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"104857600 b/s");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Ok && o.nKilobitsPerSecond == 102400ull;
+}
+
+static bool test_wizard_profiles_use_canonical_gigabit_capacity()
+{
+	return TransferConnectionCapacityWizardProfileDownload(18) == 1024000u &&
+	       TransferConnectionCapacityWizardProfileUpload(18) == 921600u;
+}
+
+static bool test_capacity_parse_rejects_nan()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"nan mbps");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Negative;
+}
+
+static bool test_capacity_parse_garbage_not_gigabit()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"100 garbage");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Ok && o.nKilobitsPerSecond == 100ull;
+}
+
+static bool test_bandwidth_share_bytes_10g_no_wrap()
+{
+	const DWORD nRef = TransferConnectionKilobitsToBytesPerSecondDword(10485760u);
+	const DWORD nShare = TransferBandwidthShareBytes(nRef, 30u, 100u);
+	const unsigned long long nExpected =
+	    static_cast<unsigned long long>(nRef) * 30ull / 100ull;
+	return nShare == static_cast<DWORD>(nExpected);
+}
+
+static bool test_capacity_parse_gbps()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"10 gbps");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Ok && o.nKilobitsPerSecond == 10485760ull;
+}
+
+static bool test_capacity_parse_malformed()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"not-a-speed");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Malformed;
+}
+
+static bool test_capacity_parse_negative()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"-50 mbps");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Negative;
+}
+
+static bool test_capacity_parse_overflow()
+{
+	const auto o = TransferConnectionCapacityParseKilobitsText(L"50000 gbps");
+	return o.eStatus == TransferConnectionCapacityParseStatus::Overflow;
+}
+
 void register_transfer_settings_limits_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("transfer_bandwidth_unlimited_value_is_zero",
@@ -380,10 +580,18 @@ void register_transfer_settings_limits_smoke_tests(TestSuite& suite)
 	               test_bandwidth_token_numeric_is_limited);
 	suite.add_test("transfer_bandwidth_token_unknown_not_unlimited",
 	               test_bandwidth_token_unknown_not_unlimited);
-	suite.add_test("transfer_bandwidth_bytes_to_setting_zero_unlimited",
-	               test_bandwidth_bytes_to_setting_zero_unlimited);
+	suite.add_test("transfer_bandwidth_bytes_to_setting_zero_preserved",
+	               test_bandwidth_bytes_to_setting_zero_preserved);
+	suite.add_test("transfer_bandwidth_share_bytes_zero_points",
+	               test_bandwidth_share_bytes_zero_points);
 	suite.add_test("transfer_bandwidth_bytes_to_setting_typical",
 	               test_bandwidth_bytes_to_setting_typical);
+	suite.add_test("transfer_bandwidth_meter_limit_unlimited_display",
+	               test_bandwidth_meter_limit_unlimited_display);
+	suite.add_test("transfer_bandwidth_bytes_to_meter_limit_unlimited",
+	               test_bandwidth_bytes_to_meter_limit_unlimited);
+	suite.add_test("transfer_bandwidth_divide_share_preserves_unlimited",
+	               test_bandwidth_divide_share_preserves_unlimited);
 	suite.add_test("transfer_bandwidth_bytes_to_setting_overflow_clamps",
 	               test_bandwidth_bytes_to_setting_overflow_clamps);
 	suite.add_test("transfer_connection_kbps_to_bytes_zero",
@@ -444,4 +652,46 @@ void register_transfer_settings_limits_smoke_tests(TestSuite& suite)
 	               test_max_per_host_save_reload);
 	suite.add_test("transfer_max_per_host_invalid_registry_clamped",
 	               test_max_per_host_invalid_registry_clamped);
+	suite.add_test("transfer_effective_download_unlimited_not_capped_by_capacity",
+	               test_effective_download_unlimited_not_capped_by_capacity);
+	suite.add_test("transfer_effective_download_finite_user_limit",
+	               test_effective_download_finite_user_limit);
+	suite.add_test("transfer_outgoing_heuristic_unlimited_uses_capacity",
+	               test_outgoing_heuristic_unlimited_uses_capacity);
+	suite.add_test("transfer_outgoing_heuristic_finite_user_limit",
+	               test_outgoing_heuristic_finite_user_limit);
+	suite.add_test("transfer_connection_apply_does_not_sync_upload_limit",
+	               test_connection_apply_does_not_sync_upload_limit);
+	suite.add_test("transfer_wizard_upload_default_only_first_run",
+	               test_wizard_upload_default_only_first_run);
+	suite.add_test("transfer_capacity_presets_include_modern_values",
+	               test_capacity_presets_include_modern_values);
+	suite.add_test("transfer_capacity_presets_sorted_unique",
+	               test_capacity_presets_sorted_unique);
+	suite.add_test("transfer_capacity_parse_kbps_wizard_string",
+	               test_capacity_parse_kbps_wizard_string);
+	suite.add_test("transfer_capacity_parse_mbps",
+	               test_capacity_parse_mbps);
+	suite.add_test("transfer_capacity_parse_wizard_mbps_with_kbs_parenthetical",
+	               test_capacity_parse_wizard_mbps_with_kbs_parenthetical);
+	suite.add_test("transfer_capacity_parse_byte_units_to_kilobits",
+	               test_capacity_parse_byte_units_to_kilobits);
+	suite.add_test("transfer_capacity_parse_bits_per_sec_smart_speed",
+	               test_capacity_parse_bits_per_sec_smart_speed);
+	suite.add_test("transfer_wizard_profiles_use_canonical_gigabit_capacity",
+	               test_wizard_profiles_use_canonical_gigabit_capacity);
+	suite.add_test("transfer_capacity_parse_rejects_nan",
+	               test_capacity_parse_rejects_nan);
+	suite.add_test("transfer_capacity_parse_garbage_not_gigabit",
+	               test_capacity_parse_garbage_not_gigabit);
+	suite.add_test("transfer_bandwidth_share_bytes_10g_no_wrap",
+	               test_bandwidth_share_bytes_10g_no_wrap);
+	suite.add_test("transfer_capacity_parse_gbps",
+	               test_capacity_parse_gbps);
+	suite.add_test("transfer_capacity_parse_malformed",
+	               test_capacity_parse_malformed);
+	suite.add_test("transfer_capacity_parse_negative",
+	               test_capacity_parse_negative);
+	suite.add_test("transfer_capacity_parse_overflow",
+	               test_capacity_parse_overflow);
 }
