@@ -176,6 +176,18 @@ inline bool TransferBandwidthMeterLimitIsUnlimited(DWORD nBytesPerSecond)
 	return nBytesPerSecond == 0xFFFFFFFFu;
 }
 
+// Split a queue budget across nCount transfers without turning the unlimited
+// meter sentinel (0xFFFFFFFF) into a finite per-transfer cap. Dividing that
+// sentinel would make LongTermAverage clampdown treat the share as limited.
+inline DWORD TransferBandwidthDivideShare(DWORD nTotalBytesPerSecond, DWORD nCount)
+{
+	if (nCount == 0)
+		return 0;
+	if (TransferBandwidthMeterLimitIsUnlimited(nTotalBytesPerSecond))
+		return 0xFFFFFFFFu;
+	return nTotalBytesPerSecond / nCount;
+}
+
 // Connection.InSpeed / OutSpeed are stored in kilobits per second (Kb/s).
 // They describe declared link capacity for tuning/UI — not an implicit user
 // transfer cap when Bandwidth.* is unlimited (see #342).

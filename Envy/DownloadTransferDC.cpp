@@ -1,7 +1,7 @@
 //
 // DownloadTransferDC.cpp
 //
-// This file is part of Envy (getenvy.com) ù 2016-2018
+// This file is part of Envy (getenvy.com) (C) 2016-2018
 // Portions copyright Shareaza 2010 and PeerProject 2010-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -28,6 +28,7 @@
 #include "DcAdcGetValidate.h"
 #include "DcBrowse.h"
 #include "DcFileListValidate.h"
+#include "DcMaxedOutValidate.h"
 #include "Library.h"
 #include "Neighbour.h"
 #include "Neighbours.h"
@@ -424,17 +425,17 @@ BOOL CDownloadTransferDC::OnQueue(int nQueue)
 
 	m_tRequest	= GetTickCount();
 
-	m_nQueuePos	= nQueue;
-	m_nQueueLen	= 0;	// ToDo: Read total upload slots
+	m_nQueuePos = static_cast<DWORD>(nQueue);
+	m_nQueueLen = 0; // NMDC $MaxedOut rank only - total queue length unknown
 
-	if ( Settings.Downloads.QueueLimit && m_nQueuePos > Settings.Downloads.QueueLimit )
+	if (DcNmdcShouldDropQueuePosition(m_nQueuePos, Settings.Downloads.QueueLimit))
 	{
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_QUEUE_HUGE, (LPCTSTR)m_sAddress, (LPCTSTR)m_pDownload->GetDisplayName(), m_nQueuePos );
 		Close( TRI_FALSE );
 		return FALSE;
 	}
 
-	theApp.Message( MSG_INFO, IDS_DOWNLOAD_QUEUED, (LPCTSTR)m_sAddress, m_nQueuePos, m_nQueueLen, (LPCTSTR)m_sQueueName );
+	theApp.Message(MSG_INFO, IDS_DOWNLOAD_QUEUED_RANK, (LPCTSTR)m_sAddress, m_nQueuePos, (LPCTSTR)m_sQueueName);
 	return TRUE;
 }
 

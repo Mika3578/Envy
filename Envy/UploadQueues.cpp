@@ -582,7 +582,7 @@ DWORD CUploadQueues::GetMinimumDonkeyBandwidth()
 			nDonkeyPoints += pQueue->m_nBandwidthPoints;
 	}
 
-	if ( nTotalPoints < 1 ) nTotalPoints = 1;
+	if (nTotalPoints < 1) nTotalPoints = 1;
 
 	nBandwidth = TransferBandwidthShareBytes(nLimit, nDonkeyPoints, nTotalPoints);
 

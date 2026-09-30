@@ -186,17 +186,18 @@ BOOL CUploadQueue::Enqueue(CUploadTransfer* pUpload, BOOL bForce, BOOL bStart)
 		}
 	}
 
-	m_pQueued.Add( pUpload );
+	m_pQueued.Add(pUpload);
 	pUpload->m_pQueue = this;
 
-	if ( bStart )
+	if (bStart)
 	{
-		StartImpl( pUpload );
+		StartImpl(pUpload);
 
-		if ( GetTransferCount() <= m_nMinTransfers )
+		if (GetTransferCount() <= m_nMinTransfers)
 			SpreadBandwidth();
 		else
-			pUpload->SetSpeedLimit(GetBandwidthLimit() / max(1ul, m_nMinTransfers));
+			pUpload->SetSpeedLimit(
+			    TransferBandwidthDivideShare(GetBandwidthLimit(), max(1ul, m_nMinTransfers)));
 	}
 
 	return TRUE;
@@ -362,11 +363,11 @@ DWORD CUploadQueue::GetBandwidthLimit(DWORD nTransfers) const
 
 	DWORD nTotalPoints = nLocalPoints;
 
-	CQuickLock oLock( UploadQueues.m_pSection );
-	for ( POSITION pos = UploadQueues.GetIterator(); pos; )
+	CQuickLock oLock(UploadQueues.m_pSection);
+	for (POSITION pos = UploadQueues.GetIterator(); pos;)
 	{
-		CUploadQueue* pOther = UploadQueues.GetNext( pos );
-		if ( pOther != this ) nTotalPoints += pOther->GetBandwidthPoints();
+		CUploadQueue* pOther = UploadQueues.GetNext(pos);
+		if (pOther != this) nTotalPoints += pOther->GetBandwidthPoints();
 	}
 
 	const unsigned long long nShare =
@@ -380,10 +381,10 @@ DWORD CUploadQueue::GetAvailableBandwidth() const
 {
 	DWORD nTransfers = GetTransferCount();
 
-	if ( nTransfers < m_nMinTransfers )
+	if (nTransfers < m_nMinTransfers)
 	{
-		nTransfers ++;
-		return GetBandwidthLimit( nTransfers ) / nTransfers;
+		nTransfers++;
+		return TransferBandwidthDivideShare(GetBandwidthLimit(nTransfers), nTransfers);
 	}
 
 	DWORD nTotal = GetBandwidthLimit();
@@ -399,7 +400,7 @@ DWORD CUploadQueue::GetAvailableBandwidth() const
 
 	DWORD nAvailable = nTotal - nUsed;
 
-	if ( nAvailable < Settings.Uploads.FreeBandwidthValue ) return 0;
+	if (nAvailable < Settings.Uploads.FreeBandwidthValue) return 0;
 	const unsigned long long nReserveThreshold =
 	    static_cast<unsigned long long>(nTotal) *
 	    static_cast<unsigned long long>(Settings.Uploads.FreeBandwidthFactor) / 100ull;
@@ -410,8 +411,9 @@ DWORD CUploadQueue::GetAvailableBandwidth() const
 
 DWORD CUploadQueue::GetPredictedBandwidth() const
 {
-	return GetBandwidthLimit( m_nMinTransfers ) /
-		min( max( m_nMinTransfers, 1ul ), GetTransferCount() + 1 );
+	return TransferBandwidthDivideShare(
+	    GetBandwidthLimit(m_nMinTransfers),
+	    min(max(m_nMinTransfers, 1ul), GetTransferCount() + 1));
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -420,14 +422,14 @@ DWORD CUploadQueue::GetPredictedBandwidth() const
 void CUploadQueue::SpreadBandwidth()
 {
 	const DWORD nCount = GetTransferCount();
-	if ( nCount == 0 )
+	if (nCount == 0)
 		return;
 
-	const DWORD nLimit = GetBandwidthLimit() / nCount;
-	for ( POSITION pos = m_pActive.GetHeadPosition(); pos; )
+	const DWORD nLimit = TransferBandwidthDivideShare(GetBandwidthLimit(), nCount);
+	for (POSITION pos = m_pActive.GetHeadPosition(); pos;)
 	{
-		CUploadTransfer* pActive = m_pActive.GetNext( pos );
-		pActive->SetSpeedLimit( nLimit );
+		CUploadTransfer* pActive = m_pActive.GetNext(pos);
+		pActive->SetSpeedLimit(nLimit);
 	}
 }
 
@@ -444,13 +446,18 @@ void CUploadQueue::RescaleBandwidth()
 	}
 
 	const DWORD nTotal = GetBandwidthLimit();
-	if ( nTotal == 0 )
+	if (nTotal == 0)
 		return;
+	if (TransferBandwidthMeterLimitIsUnlimited(nTotal))
+	{
+		SpreadBandwidth();
+		return;
+	}
 
 	DWORD nAllocated = 0;
-	for ( POSITION pos = m_pActive.GetHeadPosition(); pos; )
+	for (POSITION pos = m_pActive.GetHeadPosition(); pos;)
 	{
-		CUploadTransfer* pActive = m_pActive.GetNext( pos );
+		CUploadTransfer* pActive = m_pActive.GetNext(pos);
 		nAllocated += pActive->GetMaxSpeed();
 	}
 

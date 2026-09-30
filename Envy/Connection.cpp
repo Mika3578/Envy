@@ -865,31 +865,31 @@ void CConnection::SendHTML(UINT nResourceID)
 // TCPBandwidthMeter Utility routines
 
 // Calculate the number of bytes available for use
-DWORD CConnection::TCPBandwidthMeter::CalculateLimit(DWORD tNow, DWORD nBandwidthScale, bool bMaxMode /*false*/ ) const
+DWORD CConnection::TCPBandwidthMeter::CalculateLimit(DWORD tNow, DWORD nBandwidthScale, bool bMaxMode /*false*/) const
 {
-	DWORD tCutoff = tNow - METER_SECOND;			// Time period for bytes
-	if ( bMaxMode )
-		tCutoff += METER_MINIMUM;					// Adjust time period for Maximum mode limit (Default is Average)
-	DWORD nData = CalculateUsage( tCutoff, true );	// #bytes in the time period
+	DWORD tCutoff = tNow - METER_SECOND; // Time period for bytes
+	if (bMaxMode)
+		tCutoff += METER_MINIMUM;                // Adjust time period for Maximum mode limit (Default is Average)
+	DWORD nData = CalculateUsage(tCutoff, true); // #bytes in the time period
 
 	// nLimit is the speed limit (bytes/second)
-	DWORD nLimit = *pLimit;							// Get the speed limit
+	DWORD nLimit = *pLimit; // Get the speed limit
 
-	if ( nBandwidthScale < 100 )					// The scale is turned down and we should use it
+	if (nBandwidthScale < 100) // The scale is turned down and we should use it
 	{
 		const unsigned long long nScaled =
 		    static_cast<unsigned long long>(nLimit) * static_cast<unsigned long long>(nBandwidthScale) / 100ull;
 		nLimit = nScaled > 0xFFFFFFFFull ? 0xFFFFFFFFu : static_cast<DWORD>(nScaled);
 	}
-	else if ( nBandwidthScale > 100 )
-		nLimit = 0xFFFFFFFF;						// Remove limit based on MAX scale
+	else if (nBandwidthScale > 100)
+		nLimit = 0xFFFFFFFF; // Remove limit based on MAX scale
 
 	// nLimit - nData is the number of bytes still available for this time period
 	// Set nData to this, or 0 if we're over the limit
 	nData >= nLimit ? nData = 0 : nData = nLimit - nData;
 
 	// Is this running in Maximum mode (strict limit)
-	if ( bMaxMode )
+	if (bMaxMode)
 	{
 		// Adjust limit for the time elapsed since last time (64-bit: multigigabit * ms).
 		const unsigned long long nElapsedLimit =

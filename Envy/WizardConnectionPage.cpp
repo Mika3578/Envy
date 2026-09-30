@@ -111,7 +111,7 @@ BOOL CWizardConnectionPage::OnInitDialog()
 		    static_cast<int>(nProfile),
 		    TransferConnectionCapacityWizardProfileDownload(nProfile));
 	}
-	m_wndType.SetCurSel( -1 );
+	m_wndType.SetCurSel(-1);
 
 	// Set corresponding uploads:  (Must match above)
 	// Translation: |Dial-up Modem|ISDN 128K|DSL 768K|DSL 1.5|Cable 3|DSL 4|DSL2 8|FIOS 10|DSL2 12|FIOS 15|FIOS 20|FIOS 25|FIOS 30|FIOS 50|100|200|300|400|Gigabit|T1|T3|LAN|OC3
@@ -124,21 +124,21 @@ BOOL CWizardConnectionPage::OnInitDialog()
 		m_wndUploadSpeed.AddString(strTemp);
 	}
 
-	strTemp.Format( L"%lu kbps", Settings.Connection.InSpeed );
-	m_wndDownloadSpeed.SetWindowText( strTemp );
-	strTemp.Format( L"%lu kbps", Settings.Connection.OutSpeed );
-	m_wndUploadSpeed.SetWindowText( strTemp );
+	strTemp.Format(L"%lu kbps", Settings.Connection.InSpeed);
+	m_wndDownloadSpeed.SetWindowText(strTemp);
+	strTemp.Format(L"%lu kbps", Settings.Connection.OutSpeed);
+	m_wndUploadSpeed.SetWindowText(strTemp);
 
-	m_wndUPnP.AddString( LoadString( IDS_GENERAL_YES ) );
-	m_wndUPnP.AddString( LoadString( IDS_GENERAL_NO ) );
-	m_wndUPnP.SetCurSel( Settings.Connection.EnableUPnP ? 0 : 1 );
+	m_wndUPnP.AddString(LoadString(IDS_GENERAL_YES));
+	m_wndUPnP.AddString(LoadString(IDS_GENERAL_NO));
+	m_wndUPnP.SetCurSel(Settings.Connection.EnableUPnP ? 0 : 1);
 
-	m_bRandom = ( Settings.Connection.RandomPort == true );
-	m_nPort	= Settings.Connection.InPort;
+	m_bRandom = (Settings.Connection.RandomPort == true);
+	m_nPort = Settings.Connection.InPort;
 
-	if ( Settings.Live.FirstRun && m_nPort == protocolPorts[ PROTOCOL_G2 ] )
+	if (Settings.Live.FirstRun && m_nPort == protocolPorts[PROTOCOL_G2])
 	{
-		m_nPort	= protocolPorts[ PROTOCOL_NULL ];		// Substitute Non-standard Port (6480)
+		m_nPort = protocolPorts[PROTOCOL_NULL]; // Substitute Non-standard Port (6480)
 
 		// Obsolete check:
 		//CString strRegName = L"InPort";
@@ -150,10 +150,10 @@ BOOL CWizardConnectionPage::OnInitDialog()
 		DWORD nType = 0, nEnabled = 1, nPort, nSize = sizeof(m_nPort);
 
 		CString strRegName = L"EnableUPnP";
-		LONG nErrorCode = SHRegGetUSValue( (LPCTSTR)strRegPath, (LPCTSTR)strRegName,
-			&nType, (PBYTE)&nEnabled, &nSize, FALSE, NULL, 0 );
+		LONG nErrorCode = SHRegGetUSValue((LPCTSTR)strRegPath, (LPCTSTR)strRegName,
+		                                  &nType, (PBYTE)&nEnabled, &nSize, FALSE, NULL, 0);
 
-		if ( nErrorCode == ERROR_SUCCESS && nEnabled == 0 )	// Plug'n'Play disabled, assume deliberately
+		if (nErrorCode == ERROR_SUCCESS && nEnabled == 0) // Plug'n'Play disabled, assume deliberately
 		{
 			strRegName = L"InPort";
 			nErrorCode = SHRegGetUSValue((LPCTSTR)strRegPath, (LPCTSTR)strRegName,
@@ -208,16 +208,16 @@ void CWizardConnectionPage::OnXButtonDown(UINT /*nFlags*/, UINT nButton, CPoint 
 
 void CWizardConnectionPage::OnSelChangeConnectionType()
 {
-//	m_wndDownloadSpeed.SetWindowText( L"" );
-//	m_wndUploadSpeed.SetWindowText( L"" );
+	//	m_wndDownloadSpeed.SetWindowText( L"" );
+	//	m_wndUploadSpeed.SetWindowText( L"" );
 
 	const int nIndex = m_wndType.GetCurSel();
-	if ( nIndex < 0 )
+	if (nIndex < 0)
 		return;
 
-	const DWORD nSpeed = static_cast< DWORD >( m_wndType.GetItemData( nIndex ) );
+	const DWORD nSpeed = static_cast<DWORD>(m_wndType.GetItemData(nIndex));
 
-	m_wndDownloadSpeed.SetWindowText( SpeedFormat( (double)nSpeed ) );
+	m_wndDownloadSpeed.SetWindowText(SpeedFormat((double)nSpeed));
 	m_wndUploadSpeed.SetWindowText(
 	    SpeedFormat(static_cast<double>(
 	        TransferConnectionCapacityWizardProfileUpload(static_cast<unsigned int>(nIndex)))));
@@ -269,9 +269,9 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	DWORD nDownloadSpeed = 0, nUploadSpeed = 0;
 	const int nIndex = m_wndType.GetCurSel();
 
-	if ( nIndex >= 0 )
+	if (nIndex >= 0)
 	{
-		nDownloadSpeed = static_cast< DWORD >( m_wndType.GetItemData( nIndex ) );
+		nDownloadSpeed = static_cast<DWORD>(m_wndType.GetItemData(nIndex));
 		nUploadSpeed = TransferConnectionCapacityWizardProfileUpload(static_cast<unsigned int>(nIndex));
 	}
 	else
@@ -287,7 +287,7 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 
 	if (nDownloadSpeed < 2 || nUploadSpeed < 2)
 	{
-		MsgBox( IDS_WIZARD_NEED_SPEED, MB_ICONEXCLAMATION );
+		MsgBox(IDS_WIZARD_NEED_SPEED, MB_ICONEXCLAMATION);
 		return -1;
 	}
 

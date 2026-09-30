@@ -140,6 +140,14 @@ static bool test_bandwidth_bytes_to_meter_limit_unlimited()
 	       TransferBandwidthBytesToMeterLimit(8192u) == 8192u;
 }
 
+static bool test_bandwidth_divide_share_preserves_unlimited()
+{
+	return TransferBandwidthDivideShare(0xFFFFFFFFu, 2u) == 0xFFFFFFFFu &&
+	       TransferBandwidthDivideShare(0xFFFFFFFFu, 1u) == 0xFFFFFFFFu &&
+	       TransferBandwidthDivideShare(1000u, 2u) == 500u &&
+	       TransferBandwidthDivideShare(1000u, 0u) == 0u;
+}
+
 static bool test_bandwidth_bytes_to_setting_overflow_clamps()
 {
 	return TransferBandwidthBytesToSetting(0x100000000ull) == 0xFFFFFFFFul && TransferBandwidthBytesToSetting(~0ull) == 0xFFFFFFFFul;
@@ -570,6 +578,8 @@ void register_transfer_settings_limits_smoke_tests(TestSuite& suite)
 	               test_bandwidth_meter_limit_unlimited_display);
 	suite.add_test("transfer_bandwidth_bytes_to_meter_limit_unlimited",
 	               test_bandwidth_bytes_to_meter_limit_unlimited);
+	suite.add_test("transfer_bandwidth_divide_share_preserves_unlimited",
+	               test_bandwidth_divide_share_preserves_unlimited);
 	suite.add_test("transfer_bandwidth_bytes_to_setting_overflow_clamps",
 	               test_bandwidth_bytes_to_setting_overflow_clamps);
 	suite.add_test("transfer_connection_kbps_to_bytes_zero",

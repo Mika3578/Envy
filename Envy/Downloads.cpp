@@ -1014,19 +1014,19 @@ void CDownloads::OnRun()
 	// Run downloads, update bandwidth settings and allows
 	m_tBandwidthLastCalc = tNow;
 
-	DWORD nActiveDownloads		= 0;	// Number of downloads that are doing something
-	DWORD nActiveTransfers		= 0;	// Number of transfers that are in the downloading state
-	DWORD nTotalTransfers		= 0;	// Total transfers
-	DWORD nTotalBandwidth		= 0;	// Total bandwidth in use
-	DWORD nRunningTransfers		= 0;	// Number of transfers that are downloading and transfering data
-	DWORD nRunningTransfersED2K = 0;    // Number of ed2k transfers that are downloading and transfering data
-	DWORD nTotalBandwidthED2K = 0;      // Total ed2k bandwidth in use.
+	DWORD nActiveDownloads = 0;      // Number of downloads that are doing something
+	DWORD nActiveTransfers = 0;      // Number of transfers that are in the downloading state
+	DWORD nTotalTransfers = 0;       // Total transfers
+	DWORD nTotalBandwidth = 0;       // Total bandwidth in use
+	DWORD nRunningTransfers = 0;     // Number of transfers that are downloading and transfering data
+	DWORD nRunningTransfersED2K = 0; // Number of ed2k transfers that are downloading and transfering data
+	DWORD nTotalBandwidthED2K = 0;   // Total ed2k bandwidth in use.
 
 	DWORD nBandwidthAvailable = TransferEffectiveDownloadLimitBytes(Settings.Bandwidth.Downloads);
 	DWORD nBandwidthAvailableED2K = 0;
 	BOOL bDonkeyRatioActive = FALSE;
 
-	{	// Lock transfers section
+	{ // Lock transfers section
 		CList<CDownloadTransfer*> pTransfersToLimit;
 		++m_nRunCookie;
 
@@ -1149,13 +1149,13 @@ void CDownloads::OnRun()
 		}
 
 		oLock.Unlock();
-	} 	// End of transfers section lock
+	} // End of transfers section lock
 
 	// Update limit assigned to new transfers
-//	if ( nBandwidthAvailable > nTotalBandwidth )
-//		m_nLimitNew = nBandwidthAvailable - nTotalBandwidth;
-//	else
-//		m_nLimitNew = Settings.Bandwidth.Request;
+	//	if ( nBandwidthAvailable > nTotalBandwidth )
+	//		m_nLimitNew = nBandwidthAvailable - nTotalBandwidth;
+	//	else
+	//		m_nLimitNew = Settings.Bandwidth.Request;
 
 	// Save bandwidth stats, Update allows
 	m_nTransfers = nActiveTransfers;

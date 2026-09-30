@@ -296,7 +296,7 @@ void CQueuePropertiesDlg::OnHScroll(UINT /*nSBCode*/, UINT /*nPos*/, CScrollBar*
 	                                                     Settings.Connection.OutSpeed);
 
 	int nOtherPoints = (int)UploadQueues.GetTotalBandwidthPoints(!(m_pQueue->m_nProtocols & (1 << PROTOCOL_ED2K))) - (int)m_pQueue->m_nBandwidthPoints;
-	if ( nOtherPoints < 0 )
+	if (nOtherPoints < 0)
 		nOtherPoints = 0;
 
 	int nLocalPoints = m_wndBandwidthSlider.GetPos();
@@ -313,8 +313,8 @@ void CQueuePropertiesDlg::OnHScroll(UINT /*nSBCode*/, UINT /*nPos*/, CScrollBar*
 	               : 0u;
 	str.Format(L"%u%% (%i/%i)", nPercent, nLocalPoints, nTotalPoints);
 
-	m_wndBandwidthPoints.SetWindowText( str );
-	m_wndBandwidthValue.SetWindowText( Settings.SmartSpeed( nBandwidth ) + L'+' );
+	m_wndBandwidthPoints.SetWindowText(str);
+	m_wndBandwidthValue.SetWindowText(Settings.SmartSpeed(nBandwidth) + L'+');
 }
 
 void CQueuePropertiesDlg::OnOK()

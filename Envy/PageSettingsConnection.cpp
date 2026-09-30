@@ -228,7 +228,7 @@ BOOL CConnectionSettingsPage::OnKillActive()
 	    TransferConnectionCapacityParseKilobitsText(m_sInSpeed);
 	if (oIn.eStatus != TransferConnectionCapacityParseStatus::Ok)
 	{
-		MsgBox( IDS_SETTINGS_NEED_BANDWIDTH, MB_ICONEXCLAMATION );
+		MsgBox(IDS_SETTINGS_NEED_BANDWIDTH, MB_ICONEXCLAMATION);
 		m_wndInSpeed.SetFocus();
 		return FALSE;
 	}
@@ -237,7 +237,7 @@ BOOL CConnectionSettingsPage::OnKillActive()
 	    TransferConnectionCapacityParseKilobitsText(m_sOutSpeed);
 	if (oOut.eStatus != TransferConnectionCapacityParseStatus::Ok)
 	{
-		MsgBox( IDS_SETTINGS_NEED_BANDWIDTH, MB_ICONEXCLAMATION );
+		MsgBox(IDS_SETTINGS_NEED_BANDWIDTH, MB_ICONEXCLAMATION);
 		m_wndOutSpeed.SetFocus();
 		return FALSE;
 	}
@@ -259,7 +259,7 @@ void CConnectionSettingsPage::OnOK()
 	else
 		m_bInBind = TRUE;
 
-	if ( m_sOutHost.CompareNoCase( strAutomatic ) == 0 )
+	if (m_sOutHost.CompareNoCase(strAutomatic) == 0)
 		m_sOutHost.Empty();
 
 	bool bOldEnableUPnP = Settings.Connection.EnableUPnP;
@@ -277,13 +277,13 @@ void CConnectionSettingsPage::OnOK()
 	//		Network.UPnPFinder->StartDiscovery();
 	//}
 
-	Settings.Connection.RandomPort			= ( m_bInRandom && m_nInPort == 0 );
-	Settings.Connection.EnableUPnP			= m_bEnableUPnP != FALSE;
-	Settings.Connection.InBind				= m_bInBind != FALSE;
-	Settings.Connection.OutHost				= m_sOutHost;
+	Settings.Connection.RandomPort = (m_bInRandom && m_nInPort == 0);
+	Settings.Connection.EnableUPnP = m_bEnableUPnP != FALSE;
+	Settings.Connection.InBind = m_bInBind != FALSE;
+	Settings.Connection.OutHost = m_sOutHost;
 	Settings.Connection.InSpeed = TransferConnectionCapacityParseKilobitsTextDword(m_sInSpeed);
 	Settings.Connection.OutSpeed = TransferConnectionCapacityParseKilobitsTextDword(m_sOutSpeed);
-	Settings.Connection.IgnoreLocalIP		= m_bIgnoreLocalIP != FALSE;
+	Settings.Connection.IgnoreLocalIP = m_bIgnoreLocalIP != FALSE;
 	Settings.Connection.TimeoutConnect = m_nTimeoutConnection * 1000;
 	Settings.Connection.TimeoutHandshake = m_nTimeoutHandshake * 1000;
 
@@ -360,8 +360,8 @@ void CConnectionSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 		CString strSpeed = Settings.SmartSpeed(nKilobits, Kilobits);
 		if (Settings.ParseVolume(strSpeed, Kilobits) && m_wndInSpeed.FindStringExact(-1, strSpeed) == CB_ERR)
 		{
-			m_wndInSpeed.AddString( strSpeed );
-			m_wndOutSpeed.AddString( strSpeed );
+			m_wndInSpeed.AddString(strSpeed);
+			m_wndOutSpeed.AddString(strSpeed);
 		}
 	}
 

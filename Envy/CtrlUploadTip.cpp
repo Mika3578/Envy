@@ -205,7 +205,7 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 	pt.x -= Flags.Width + 9;
 	pt.y += TIP_TEXTHEIGHT + 2;
 
-	DrawRule( pDC, &pt );
+	DrawRule(pDC, &pt);
 
 	CString strStatus, strSpeed, strTransfer, strText, strOf;
 	CString strUnlimited;
@@ -217,7 +217,7 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 	                       : Settings.SmartSpeed(pUpload->m_nBandwidth);
 	LoadString(strOf, IDS_GENERAL_OF);
 
-	if ( pUpload->GetMaxSpeed() > 10 )
+	if (pUpload->GetMaxSpeed() > 10)
 	{
 		strSpeed.Format(L"%s %s %s  (%s)",
 		                (LPCTSTR)Settings.SmartSpeed(pUpload->GetMeasuredSpeed()),
@@ -233,13 +233,13 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 		                (LPCTSTR)strLimit);
 	}
 
-	if ( pUpload->m_nSize > 1 )
+	if (pUpload->m_nSize > 1)
 	{
-		strTransfer.Format( L"%s %s %s  (%.2f%%)",
-			(LPCTSTR)Settings.SmartVolume( pUpload->m_nUploaded ),
-			(LPCTSTR)strOf,
-			(LPCTSTR)Settings.SmartVolume( pUpload->m_nSize ),
-			float( pUpload->m_nUploaded * 10240 / pUpload->m_nSize ) / 100.00f );
+		strTransfer.Format(L"%s %s %s  (%.2f%%)",
+		                   (LPCTSTR)Settings.SmartVolume(pUpload->m_nUploaded),
+		                   (LPCTSTR)strOf,
+		                   (LPCTSTR)Settings.SmartVolume(pUpload->m_nSize),
+		                   float(pUpload->m_nUploaded * 10240 / pUpload->m_nSize) / 100.00f);
 	}
 	else
 	{

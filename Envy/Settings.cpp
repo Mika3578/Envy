@@ -53,23 +53,23 @@ CSettings Settings;
 CSettings::CSettings()
 {
 	// Reset 'live' values.
-	Live.FirstRun					= false;
+	Live.FirstRun = false;
 	Live.WizardUploadLimitSeeded = false;
-	Live.AutoClose					= false;
-	Live.AdultWarning				= false;
-	Live.MaliciousWarning			= false;
-	Live.DiskSpaceStop				= false;
-	Live.DiskSpaceWarning			= false;
-	Live.DiskWriteWarning			= false;
-	Live.UploadLimitWarning			= false;
-	Live.QueueLimitWarning			= false;
-	Live.DonkeyServerWarning		= false;
-	Live.DefaultED2KServersLoaded	= false;
-	Live.DefaultDCServersLoaded		= false;
-	Live.LoadWindowState			= false;
-	Live.BandwidthScaleIn			= 101;
-	Live.BandwidthScaleOut			= 101;
-	Live.LastDuplicateHash			= L"";
+	Live.AutoClose = false;
+	Live.AdultWarning = false;
+	Live.MaliciousWarning = false;
+	Live.DiskSpaceStop = false;
+	Live.DiskSpaceWarning = false;
+	Live.DiskWriteWarning = false;
+	Live.UploadLimitWarning = false;
+	Live.QueueLimitWarning = false;
+	Live.DonkeyServerWarning = false;
+	Live.DefaultED2KServersLoaded = false;
+	Live.DefaultDCServersLoaded = false;
+	Live.LoadWindowState = false;
+	Live.BandwidthScaleIn = 101;
+	Live.BandwidthScaleOut = 101;
+	Live.LastDuplicateHash = L"";
 }
 
 CSettings::~CSettings()

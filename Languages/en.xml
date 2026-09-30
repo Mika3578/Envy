@@ -3047,7 +3047,7 @@
 	<string id="20273" text="Resuming download of &quot;%s&quot;."/>
 	<string id="20275" text="Querying for more sources for download &quot;%s&quot; on %i connections..."/>
 	<string id="20276" text="Can't fetch more sources for download &quot;%s&quot; because there is no network connection."/>
-	<!--string id="20277" text="Resolving &quot;%s&quot; to download &quot;%s&quot;..."-->
+	<string id="20277" text="Download host %s is busy, waiting in queue at position #%i (&quot;%s&quot;)."/>
 	<!--string id="20278" text="Unable to resolve &quot;%s&quot;."-->
 	<string id="20280" text="Download host's tiger-tree data is corrupt or internally inconsistent, ignoring it."/>
 	<string id="20281" text="Download host's tiger-tree does not match expected root value."/>

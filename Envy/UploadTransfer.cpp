@@ -204,12 +204,12 @@ DWORD CUploadTransfer::GetMeasuredSpeed()
 
 void CUploadTransfer::SetSpeedLimit(DWORD nLimit)
 {
-	ZeroMemory( m_nAverageRate, sizeof m_nAverageRate );
+	ZeroMemory(m_nAverageRate, sizeof m_nAverageRate);
 	m_nBandwidth = m_bPriority
-		? TransferBandwidthBytesToMeterLimit(Settings.Bandwidth.Uploads)
-		: nLimit;
-	m_tAverageTime	= 0;
-	m_nAveragePos	= 0;
+	                   ? TransferBandwidthBytesToMeterLimit(Settings.Bandwidth.Uploads)
+	                   : nLimit;
+	m_tAverageTime = 0;
+	m_nAveragePos = 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -281,39 +281,39 @@ void CUploadTransfer::LongTermAverage(DWORD tNow)
 
 	DWORD nAverage = 0;
 
-	for ( int nPos = 0; nPos < ULA_SLOTS; nPos++ )
+	for (int nPos = 0; nPos < ULA_SLOTS; nPos++)
 	{
-		if ( m_nAverageRate[ nPos ] == 0 ) return;
-		nAverage += m_nAverageRate[ nPos ];
+		if (m_nAverageRate[nPos] == 0) return;
+		nAverage += m_nAverageRate[nPos];
 	}
 
-	m_nAverageRate[ m_nAveragePos ] = 0;
+	m_nAverageRate[m_nAveragePos] = 0;
 	nAverage = nAverage / ULA_SLOTS * 9 / 8;
-	nAverage = max( nAverage, Settings.Uploads.ClampdownFloor );
+	nAverage = max(nAverage, Settings.Uploads.ClampdownFloor);
 
-	if ( m_bPriority )
+	if (m_bPriority)
 	{
 		m_nBandwidth = TransferBandwidthBytesToMeterLimit(Settings.Bandwidth.Uploads);
 	}
-	else if ( !TransferBandwidthMeterLimitIsUnlimited(m_nBandwidth) &&
-		nAverage < m_nBandwidth * ( 100 - Settings.Uploads.ClampdownFactor ) / 100 )
+	else if (!TransferBandwidthMeterLimitIsUnlimited(m_nBandwidth) &&
+	         nAverage < m_nBandwidth * (100 - Settings.Uploads.ClampdownFactor) / 100)
 	{
 		DWORD nOld = m_nBandwidth;
 
-		m_nBandwidth = min( nAverage, m_nBandwidth );
+		m_nBandwidth = min(nAverage, m_nBandwidth);
 
-		theApp.Message( MSG_DEBUG, L"Changing upload throttle on %s from %s to %s",
-			m_sAddress, Settings.SmartSpeed( nOld ), Settings.SmartSpeed( m_nBandwidth ) );
+		theApp.Message(MSG_DEBUG, L"Changing upload throttle on %s from %s to %s",
+		               m_sAddress, Settings.SmartSpeed(nOld), Settings.SmartSpeed(m_nBandwidth));
 	}
-	else if ( !TransferBandwidthMeterLimitIsUnlimited(m_nBandwidth) &&
-		m_pQueue && m_pQueue->GetAvailableBandwidth() )
+	else if (!TransferBandwidthMeterLimitIsUnlimited(m_nBandwidth) &&
+	         m_pQueue && m_pQueue->GetAvailableBandwidth())
 	{
-		ZeroMemory( m_nAverageRate, sizeof( m_nAverageRate ) );
+		ZeroMemory(m_nAverageRate, sizeof(m_nAverageRate));
 
 		DWORD nOld = m_nBandwidth;
-		DWORD nIncrease = m_pQueue->GetAvailableBandwidth() / ( m_pQueue->GetTransferCount() + 1 );
+		DWORD nIncrease = m_pQueue->GetAvailableBandwidth() / (m_pQueue->GetTransferCount() + 1);
 
-		if ( nIncrease + m_nBandwidth < m_nMaxRate )
+		if (nIncrease + m_nBandwidth < m_nMaxRate)
 			m_nBandwidth += nIncrease;
 		else
 			m_nBandwidth = m_nMaxRate;
