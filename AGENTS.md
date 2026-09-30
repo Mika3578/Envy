@@ -274,11 +274,12 @@ Local (Windows + VS 2026):
 
 ```cmd
 msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
-  /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 ^
-  /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
+ /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0
 ```
 
-CI mirrors this exactly - see `.github/workflows/build.yml`.
+CI uses the same x64 command. Win32 builds additionally pass
+`/p:VcpkgEnableManifest=true /p:VcpkgTriplet=x86-windows-static` because
+the project intentionally disables manifest consumption for x64.
 
 HashLib unit tests (post-Phase 4):
 
@@ -438,27 +439,35 @@ When you take on a task you are expected to:
    across N files, write a Python/PowerShell script under
    `Visual Studio/` (or a tmp script you delete), run it, commit the
    resulting diff. Don't hand-edit 40 files.
-10. **Keep documentation truthful in the same PR.** Update docs when behavior,
+10. **Validate files you actually modified** before finishing (not files merely
+   opened). Check for new `U+FFFD` / `EF BF BD`, new Unicode C1 controls or
+   mojibake in modified lines, unintended encoding or copyright/license header
+   byte changes, EOL-only churn, unrelated formatting, secrets, machine-specific
+   paths, and spurious comment/header rewrites. A functional PR must not rewrite
+   unrelated non-ASCII bytes in legacy sources; encoding migration belongs in
+   dedicated PRs under issue #350. Opening a file must not trigger whole-file cleanup.
+   See `docs/10_dev/development-environment.md` and issue #350.
+11. **Keep documentation truthful in the same PR.** Update docs when behavior,
     APIs, protocol handling, UI/config, build/CI, security, performance, or
     troubleshooting changes. Update `CHANGELOG.md` for release/user-visible
     changes; update `docs/DEVELOPMENT_PLAN.md` for strategic scope,
     sequencing, decisions, or blockers. Do not create duplicate status docs.
     If no documentation change is required, state why in the PR/final report.
-11. **Do not silently remove validation or compatibility assets.** Tests,
-   coverage, workflows, fixtures, protocol evidence, docs, runtime resources,
-   and legacy compatibility paths may be removed only when the PR explicitly
-   explains why and supplies an equivalent or intentional retirement plan.
-12. **PR finalization before manual squash merge.** When cleaning up a PR for
-   merge, ensure the PR title matches the intended squash title; the PR
-   description reflects the current head; the **Squash Commit Summary** in the
-   PR body (template section) is current and describes the **final** diff; issue
-   reference semantics (`Fixes` / `Closes` / `Related to`) are correct; and the
-   summary bullets exclude process-only text forbidden in squash bodies. Do not
-   enable squash auto-merge when a curated squash body is required (rule 16;
-   live `BLANK` default). If a PR predates the template, add or update an
-   equivalent summary block instead of rewriting unrelated sections. Do not treat
-   the PR as merge-ready until those items hold alongside required CI and review
-   gates.
+12. **Do not silently remove validation or compatibility assets.** Tests,
+    coverage, workflows, fixtures, protocol evidence, docs, runtime resources,
+    and legacy compatibility paths may be removed only when the PR explicitly
+    explains why and supplies an equivalent or intentional retirement plan.
+13. **PR finalization before manual squash merge.** When cleaning up a PR for
+    merge, ensure the PR title matches the intended squash title; the PR
+    description reflects the current head; the **Squash Commit Summary** in the
+    PR body (template section) is current and describes the **final** diff; issue
+    reference semantics (`Fixes` / `Closes` / `Related to`) are correct; and the
+    summary bullets exclude process-only text forbidden in squash bodies. Do not
+    enable squash auto-merge when a curated squash body is required (rule 16;
+    live `BLANK` default). If a PR predates the template, add or update an
+    equivalent summary block instead of rewriting unrelated sections. Do not treat
+    the PR as merge-ready until those items hold alongside required CI and review
+    gates.
 
 ---
 

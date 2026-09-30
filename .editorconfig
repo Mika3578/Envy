@@ -1,12 +1,16 @@
+# Envy editor defaults. See docs/10_dev/development-environment.md (encoding: #350).
 root = true
 
 [*]
-charset = utf-8
+# Do not set charset here. Hundreds of first-party C/C++ files use historical
+# single-byte header bytes that are not valid UTF-8; forcing utf-8 can rewrite
+# them to U+FFFD on save (EditorConfig / VS Code charset=utf-8).
 end_of_line = crlf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
 [*.{cpp,cxx,cc,h,hpp,hxx,inl,c}]
+charset = unset
 indent_style = tab
 indent_size = 4
 tab_width = 4
@@ -17,6 +21,7 @@ indent_size = 2
 end_of_line = crlf
 
 [*.{yml,yaml,json}]
+charset = utf-8
 indent_style = space
 indent_size = 2
 end_of_line = lf
@@ -27,11 +32,13 @@ indent_style = space
 indent_size = 2
 
 [*.{ps1,psm1,psd1}]
+charset = unset
 end_of_line = crlf
 indent_style = space
 indent_size = 4
 
 [*.md]
+charset = utf-8
 trim_trailing_whitespace = false
 indent_style = space
 indent_size = 2
@@ -39,7 +46,44 @@ indent_size = 2
 [Makefile]
 indent_style = tab
 
-[*.{xml,iss}]
+[*.{xml}]
+charset = unset
 indent_style = space
 indent_size = 2
 end_of_line = crlf
+
+# Language packs are UTF-8 (#350). Many still carry a legacy UTF-8 BOM; leave
+# charset unset so editors do not strip those BOMs on save (byte preservation).
+# BOM-less catalogs (en/fr/alt) stay BOM-less without an explicit utf-8 force.
+[Languages/*.xml]
+charset = unset
+indent_style = space
+indent_size = 2
+end_of_line = crlf
+
+# Legacy language-pack ISS may still be non-UTF-8; Main.iss is UTF-8 (#350).
+[Installer/Scripts/Languages.iss]
+charset = unset
+indent_style = space
+indent_size = 2
+end_of_line = crlf
+
+[*.iss]
+charset = unset
+indent_style = space
+indent_size = 2
+end_of_line = crlf
+
+[Installer/Scripts/Main.iss]
+charset = utf-8
+indent_style = space
+indent_size = 2
+end_of_line = crlf
+
+[.github/**]
+charset = utf-8
+end_of_line = lf
+
+[docs/**]
+charset = utf-8
+end_of_line = lf
