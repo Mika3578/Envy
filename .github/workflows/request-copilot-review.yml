@@ -1,7 +1,7 @@
-# Temporary: re-request Copilot code review for selected PRs only.
+# Temporary: re-request Copilot code review for PR #294 and #354 only.
 # Agent tokens cannot call requestReviewers (403); Actions GITHUB_TOKEN can.
 # Safe after merge: jobs are gated to explicit PR numbers (never run again once merged).
-# Follow-up: delete this workflow once the listed PRs have landed.
+# Follow-up: delete this workflow once #294 and #354 have landed.
 #
 # Important: requestReviews(union:true) is a no-op when Copilot is already on the
 # review-request list — it does not emit ReviewRequestedEvent and does not start
@@ -16,9 +16,9 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: "PR number (294, 354, or 367)"
+        description: "PR number (294 or 354)"
         required: true
-        default: "367"
+        default: "354"
 
 permissions:
   contents: read
@@ -35,12 +35,12 @@ jobs:
     if: >
       (
         github.event_name == 'pull_request' &&
-        contains(fromJSON('[294,354,367]'), github.event.pull_request.number) &&
+        contains(fromJSON('[294,354]'), github.event.pull_request.number) &&
         github.event.pull_request.draft == false &&
         github.event.pull_request.head.repo.full_name == github.repository
       ) || (
         github.event_name == 'workflow_dispatch' &&
-        contains(fromJSON('["294","354","367"]'), github.event.inputs.pr_number)
+        contains(fromJSON('["294","354"]'), github.event.inputs.pr_number)
       )
     runs-on: ubuntu-latest
     timeout-minutes: 5

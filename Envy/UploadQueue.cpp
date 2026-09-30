@@ -394,9 +394,12 @@ DWORD CUploadQueue::GetAvailableBandwidth() const
 	}
 
 	DWORD nTotal = GetBandwidthLimit();
+	if (TransferBandwidthMeterLimitIsUnlimited(nTotal))
+		return TransferBandwidthMeterUnlimitedValue();
+
 	DWORD nUsed = 0;
 
-	for ( POSITION pos = m_pActive.GetHeadPosition(); pos; )
+	for (POSITION pos = m_pActive.GetHeadPosition(); pos;)
 	{
 		CUploadTransfer* pActive = m_pActive.GetNext( pos );
 		nUsed += pActive->GetMaxSpeed();
