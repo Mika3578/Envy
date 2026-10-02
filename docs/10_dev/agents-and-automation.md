@@ -138,6 +138,34 @@ To upgrade an action:
 
 Do not reintroduce mutable `@vN` tags for external actions.
 
+## GitHub `pull_request_target` execution policy (deadline 2026-11-02)
+
+GitHub is tightening which repositories may run `pull_request_target` workflows
+on public repos unless an org/repo execution policy explicitly allows them.
+Use this checklist **before** adding or re-enabling any privileged workflow,
+and before the platform deadline.
+
+Maintainer checklist:
+
+1. **Inventory** workflows on `pull_request_target`. After governance
+   simplification the only ones are `.github/workflows/labeler.yml` and
+   `.github/workflows/authorship-hygiene.yml`. Confirm each uses read-only or
+   minimal scopes, does not `checkout` untrusted PR head code for execution,
+   and does not treat review comments as commands.
+2. **Removed auto-merge:** `.github/workflows/dependabot-auto-merge.yml` is
+   deleted in this PR. Do not restore bot approval/auto-merge without a
+   separately reviewed design. Merge Dependabot PRs manually or via native
+   rules that do not execute PR-controlled scripts.
+3. **Repository settings:** GitHub → Settings → Actions → General → *Fork pull
+   request workflows* / workflow permissions. Record the chosen policy in
+   `docs/DEVELOPMENT_PLAN.md` when it changes.
+4. **New workflows:** Any future `pull_request_target` or `workflow_run` that
+   could execute PR code requires explicit maintainer review of the final diff
+   and a recorded decision — see `AGENTS.md` hard rules and
+   [pr-workflow.md](pr-workflow.md) trust section.
+5. **Verification:** `rg pull_request_target .github/workflows` on `develop`
+   after merge; re-run this checklist when GitHub announces policy changes.
+
 ### Follow-ups
 
 - Parser fuzzers / sanitizers on nightly (out of the PR gate).
@@ -147,10 +175,9 @@ Do not reintroduce mutable `@vN` tags for external actions.
   supported values (do not change thresholds before that evidence).
 - Evaluate `security-extended` / `security-and-quality` for C++/JS in a
   measured advisory window before expanding blocking query suites.
-- Before 2026-11-02: migrate or explicitly authorize
-  `pull_request_target` for Dependabot auto-merge (GitHub default will block
-  it on public repos unless policy is set). Current workflow does not
-  checkout/execute PR code.
+- Before 2026-11-02: complete the
+  [`pull_request_target` maintainer checklist](#github-pull_request_target-execution-policy-deadline-2026-11-02)
+  and record any org/repo execution-policy choice.
 
 ## Automation reference
 
