@@ -174,7 +174,11 @@ Branch model:
     and count toward Protect develop on pull requests that touch these paths
     when repository Copilot settings allow approval and counting and the path
     allowlist matches every changed file (a **blank** allowlist matches all
-    paths). Weakening governance remains `CHANGES_REQUESTED`; tightening or
+    paths). That is intentional for this solo-maintainer repo so governance
+    PRs can receive a counted Copilot review without a separate UI path list;
+    `.github/skills/code-review/SKILL.md` still forbids `APPROVED` on diffs
+    that weaken merge gates, and squash merge stays **manual** with a curated
+    body (`AGENTS.md` rule 16). Weakening governance remains `CHANGES_REQUESTED`; tightening or
     clarifying is OK.
     **Never** bypass GitHub rulesets, required checks, or branch
     protections (`--admin`, elevated PATs, force-push to protected refs).

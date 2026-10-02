@@ -57,6 +57,16 @@ class AuditRulesetTests(unittest.TestCase):
         self.assertIn("Migration refused", command)
         self.assertNotIn("--method PUT", command)
 
+    def test_migration_refuses_live_copilot_when_desired_omits_it(self):
+        live = desired_ruleset()
+        desired = desired_ruleset()
+        desired["rules"] = [
+            rule for rule in desired["rules"] if rule.get("type") != "copilot_code_review"
+        ]
+        command = AUDIT.migration_command("Mika3578/Envy", 1, desired, live)
+        self.assertIn("Migration refused", command)
+        self.assertNotIn("--method PUT", command)
+
     def test_migration_refuses_extra_required_context(self):
         live = desired_ruleset()
         gate = next(rule for rule in live["rules"] if rule["type"] == "required_status_checks")

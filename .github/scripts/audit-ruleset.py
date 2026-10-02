@@ -243,8 +243,6 @@ def migration_command(
     # Refuse to print a destructive replacement when an enforced gate is absent
     # or changed. A maintainer must reconcile the desired snapshot explicitly.
     for rule in (live or {}).get("rules", []):
-        if rule.get("type") == "copilot_code_review":
-            continue
         if rule not in payload["rules"]:
             return "# Migration refused: reconcile extra or differing live protection rules before generating a PUT."
     body = json.dumps(payload, indent=2)
