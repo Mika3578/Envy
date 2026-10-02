@@ -154,6 +154,9 @@ foreach ($crt in @(
 	'msvcp140.dll',
 	'msvcp140_1.dll',
 	'msvcp140_2.dll',
+	'concrt140.dll',
+	'ucrtbase.dll',
+	'vcomp140.dll',
 	'crashpad_wer.dll'
 ))
 {
