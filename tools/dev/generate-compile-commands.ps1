@@ -179,6 +179,75 @@ function Get-ClCommandForSource
     return "`"$ClExe`" $argsOut"
 }
 
+function Convert-TlogFilesToCompileCommands
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.IO.FileInfo[]]$TlogFiles,
+        [Parameter(Mandatory = $true)]
+        [string]$ClExe
+    )
+
+    $entries = @{}
+    foreach ($tlog in $TlogFiles)
+    {
+        # MSVC layout: <Project>\<IntDir>\<Project>.tlog\CL.command.*.tlog
+        $projectDir = $tlog.Directory.Parent.Parent.FullName
+        # MSVC CL.command tlogs are UTF-16 LE (BOM); match production readers.
+        $lines = Get-Content -LiteralPath $tlog.FullName -Encoding unicode
+        for ($i = 0; $i -lt $lines.Count - 1; $i++)
+        {
+            $srcLine = $lines[$i]
+            if (-not $srcLine.StartsWith('^')) { continue }
+            $src = $srcLine.Substring(1).Trim()
+            $clArgs = $lines[$i + 1].Trim()
+            if ([string]::IsNullOrWhiteSpace($clArgs)) { continue }
+
+            $srcParts = @(Split-TlogSourceMarker -Marker $src)
+            $resolvedSources = @(
+                foreach ($part in $srcParts)
+                {
+                    Resolve-TlogSourcePath -Source $part -Marker $src
+                }
+            )
+
+            foreach ($srcPath in $resolvedSources)
+            {
+                $command = Get-ClCommandForSource -ClExe $ClExe -ClArgs $clArgs `
+                    -SourcePath $srcPath -BatchSources $resolvedSources
+                $entries[$srcPath] = [ordered]@{
+                    directory = $projectDir
+                    file      = $srcPath
+                    command   = $command
+                }
+            }
+        }
+    }
+
+    return $entries
+}
+
+function Write-CompileCommandsJson
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Entries,
+        [Parameter(Mandatory = $true)]
+        [string]$OutPath
+    )
+
+    $list = @($Entries.Values)
+    if ($list.Count -eq 1)
+    {
+        $json = '[' + (ConvertTo-Json -InputObject $list[0] -Depth 4 -Compress) + ']'
+    }
+    else
+    {
+        $json = ConvertTo-Json -InputObject $list -Depth 4
+    }
+    [System.IO.File]::WriteAllText($OutPath, $json, [System.Text.UTF8Encoding]::new($false))
+}
+
 function Invoke-GenerateCompileCommandsSelfTest
 {
     $single = @(Split-TlogSourceMarker -Marker 'C:\src\a.cpp')
@@ -245,6 +314,110 @@ function Invoke-GenerateCompileCommandsSelfTest
         throw "SelfTest: quoted batched command missing target TU: $cmdQuoted"
     }
 
+    # End-to-end: UTF-16 LE fixture through Convert-TlogFilesToCompileCommands + JSON.
+    $fixtureRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
+        'envy-compile-commands-selftest-' + [guid]::NewGuid().ToString('n'))
+    try
+    {
+        $projName = 'FakeProj'
+        $intDir = 'Release x64'
+        $tlogDir = Join-Path $fixtureRoot "$projName\$intDir\$projName.tlog"
+        New-Item -ItemType Directory -Path $tlogDir -Force | Out-Null
+        $srcDir = Join-Path $fixtureRoot 'sources'
+        New-Item -ItemType Directory -Path $srcDir -Force | Out-Null
+
+        $srcA = [System.IO.Path]::GetFullPath((Join-Path $srcDir 'a.cpp'))
+        $srcB = [System.IO.Path]::GetFullPath((Join-Path $srcDir 'b.cpp'))
+        $srcC = [System.IO.Path]::GetFullPath((Join-Path $srcDir 'c.cpp'))
+        $clExe = [System.IO.Path]::GetFullPath((Join-Path $fixtureRoot 'cl.exe'))
+
+        $tlogPath = Join-Path $tlogDir 'CL.command.1.tlog'
+        $tlogText = @(
+            "^$srcA"
+            "/c /nologo /Foa.obj $srcA"
+            "^$srcB|$srcC"
+            "/c /nologo $srcB $srcC"
+            "^`"$srcA`"|`"$srcB`""
+            "/c /nologo `"$srcA`" `"$srcB`""
+        ) -join "`r`n"
+        [System.IO.File]::WriteAllText($tlogPath, $tlogText + "`r`n", [System.Text.Encoding]::Unicode)
+
+        $tlogFile = Get-Item -LiteralPath $tlogPath
+        $entries = Convert-TlogFilesToCompileCommands -TlogFiles @($tlogFile) -ClExe $clExe
+        $expectedProjectDir = [System.IO.Path]::GetFullPath((Join-Path $fixtureRoot $projName))
+
+        if ($entries.Count -ne 3)
+        {
+            throw "SelfTest: expected 3 compile entries from fixture tlog, got $($entries.Count)"
+        }
+
+        foreach ($path in @($srcA, $srcB, $srcC))
+        {
+            if (-not $entries.ContainsKey($path))
+            {
+                throw "SelfTest: missing compile entry for $path"
+            }
+            $entry = $entries[$path]
+            if ($entry.directory -ne $expectedProjectDir)
+            {
+                throw "SelfTest: directory mismatch for ${path}: got '$($entry.directory)', expected '$expectedProjectDir'"
+            }
+            if ($entry.file -ne $path)
+            {
+                throw "SelfTest: file mismatch for ${path}: got '$($entry.file)'"
+            }
+            if ($entry.command -notmatch [regex]::Escape($clExe))
+            {
+                throw "SelfTest: command missing cl.exe for ${path}: $($entry.command)"
+            }
+            if ($entry.command -notmatch [regex]::Escape([System.IO.Path]::GetFileName($path)))
+            {
+                throw "SelfTest: command missing target TU for ${path}: $($entry.command)"
+            }
+        }
+
+        # Last batched record wins for a.cpp; sibling b.cpp must be stripped.
+        $cmdA = $entries[$srcA].command
+        if ($cmdA -match [regex]::Escape([System.IO.Path]::GetFileName($srcB)))
+        {
+            throw "SelfTest: e2e batched command for a.cpp still references b.cpp: $cmdA"
+        }
+
+        $cmdB = $entries[$srcB].command
+        if ($cmdB -match [regex]::Escape([System.IO.Path]::GetFileName($srcC)))
+        {
+            throw "SelfTest: e2e batched command for b.cpp still references c.cpp: $cmdB"
+        }
+        if ($cmdB -notmatch [regex]::Escape([System.IO.Path]::GetFileName($srcB)))
+        {
+            throw "SelfTest: e2e batched command for b.cpp missing b.cpp: $cmdB"
+        }
+
+        $outJson = Join-Path $fixtureRoot 'compile_commands.json'
+        Write-CompileCommandsJson -Entries $entries -OutPath $outJson
+        $parsed = Get-Content -LiteralPath $outJson -Raw -Encoding utf8 | ConvertFrom-Json
+        if (@($parsed).Count -ne 3)
+        {
+            throw "SelfTest: JSON entry count mismatch: $(@($parsed).Count)"
+        }
+        foreach ($item in @($parsed))
+        {
+            if ([string]::IsNullOrWhiteSpace($item.directory) -or
+                [string]::IsNullOrWhiteSpace($item.file) -or
+                [string]::IsNullOrWhiteSpace($item.command))
+            {
+                throw "SelfTest: JSON entry missing required fields: $($item | ConvertTo-Json -Compress)"
+            }
+        }
+    }
+    finally
+    {
+        if (Test-Path -LiteralPath $fixtureRoot)
+        {
+            Remove-Item -LiteralPath $fixtureRoot -Recurse -Force
+        }
+    }
+
     Write-Host 'generate-compile-commands.ps1 -SelfTest OK'
 }
 
@@ -291,49 +464,7 @@ if ($tlogFiles.Count -eq 0)
     throw "No CL.command.*.tlog found. Build Envy in Visual Studio ($Configuration) first."
 }
 
-$entries = @{}
-foreach ($tlog in $tlogFiles)
-{
-    $projectDir = $tlog.Directory.Parent.Parent.FullName
-    $lines = Get-Content -LiteralPath $tlog.FullName
-    for ($i = 0; $i -lt $lines.Count - 1; $i++)
-    {
-        $srcLine = $lines[$i]
-        if (-not $srcLine.StartsWith('^')) { continue }
-        $src = $srcLine.Substring(1).Trim()
-        $clArgs = $lines[$i + 1].Trim()
-        if ([string]::IsNullOrWhiteSpace($clArgs)) { continue }
-
-        $srcParts = @(Split-TlogSourceMarker -Marker $src)
-        $resolvedSources = @(
-            foreach ($part in $srcParts)
-            {
-                Resolve-TlogSourcePath -Source $part -Marker $src
-            }
-        )
-
-        foreach ($srcPath in $resolvedSources)
-        {
-            $command = Get-ClCommandForSource -ClExe $clExe -ClArgs $clArgs `
-                -SourcePath $srcPath -BatchSources $resolvedSources
-            $entries[$srcPath] = [ordered]@{
-                directory = $projectDir
-                file      = $srcPath
-                command   = $command
-            }
-        }
-    }
-}
-
+$entries = Convert-TlogFilesToCompileCommands -TlogFiles $tlogFiles -ClExe $clExe
 $outPath = Join-Path $repoRoot 'compile_commands.json'
-$list = @($entries.Values)
-if ($list.Count -eq 1)
-{
-    $json = '[' + (ConvertTo-Json -InputObject $list[0] -Depth 4 -Compress) + ']'
-}
-else
-{
-    $json = ConvertTo-Json -InputObject $list -Depth 4
-}
-[System.IO.File]::WriteAllText($outPath, $json, [System.Text.UTF8Encoding]::new($false))
+Write-CompileCommandsJson -Entries $entries -OutPath $outPath
 Write-Host "Wrote $($entries.Count) compile commands to $outPath (from $($tlogFiles.Count) tlog file(s), config $Configuration)."
