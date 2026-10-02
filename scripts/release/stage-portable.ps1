@@ -135,6 +135,39 @@ Copy-FileRequired (Join-Path $repo "Envy\$platformDir\Envy.exe") $dest
 Copy-FileRequired (Join-Path $repo "TorrentEnvy\$platformDir\TorrentEnvy.exe") $dest
 Copy-FileRequired (Join-Path $repo "Unpacker\$platformDir\Unpacker.exe") $dest
 
+# --- Crash-reporting runtime (mirrors Installer/Scripts/Main.iss) ---
+# x64 ships BugSplat; Win32 ships Crashpad. CRT companions are copied when the
+# build tree provides them, matching Inno's skipifsourcedoesntexist semantics.
+if ($Platform -eq 'x64')
+{
+	Copy-FileRequired (Join-Path $repo "Envy\$platformDir\BugSplatMonitor.exe") $dest
+	Copy-FileRequired (Join-Path $repo "Envy\$platformDir\BugSplatWer.dll") $dest
+	Copy-FileRequired (Join-Path $repo "Envy\$platformDir\BugSplatRc.dll") $dest
+}
+else
+{
+	Copy-FileRequired (Join-Path $repo "Envy\$platformDir\crashpad_handler.exe") $dest
+}
+foreach ($crt in @(
+	'vcruntime140.dll',
+	'vcruntime140_1.dll',
+	'msvcp140.dll',
+	'msvcp140_1.dll',
+	'msvcp140_2.dll',
+	'crashpad_wer.dll'
+))
+{
+	$src = Join-Path $repo "Envy\$platformDir\$crt"
+	if (Test-Path -LiteralPath $src)
+	{
+		Copy-FileRequired $src $dest
+	}
+	else
+	{
+		Write-Host "  ! optional missing: $src"
+	}
+}
+
 # --- Service / shared DLLs at app root (and selected copies under Plugins) ---
 $serviceDlls = @(
 	@{ Src = "Services\zlib\$platformDir\zlibwapi.dll"; AlsoPlugins = $true },
@@ -292,6 +325,7 @@ $required = @(
 	'Envy.exe',
 	'TorrentEnvy.exe',
 	'Unpacker.exe',
+	$(if ($Platform -eq 'x64') { 'BugSplatMonitor.exe' } else { 'crashpad_handler.exe' }),
 	'Data',
 	'Schemas',
 	'Skins',

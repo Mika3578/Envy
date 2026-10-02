@@ -82,10 +82,20 @@ ThirdParty/BugSplat/
 ```
 
 `BugSplatMonitor.exe` and companion DLLs are **vendor `/MD` PEs** (unlike Envy's `/MT`
-link). `CopyBugSplatRuntime.cmd` copies the SDK binaries and, when `dumpbin` and the
-VS `vc_redist.x64` CRT folder are available, also copies required `vcruntime140*.dll`
-/ `msvcp140*.dll` next to `Envy.exe`. Official installers must ship those DLLs when
-the monitor reports them as dependents.
+link). `CopyBugSplatRuntime.cmd` copies the SDK binaries and **fail-closed** uses
+`dumpbin /dependents` (via `scripts/lib/EnvyVcTools.psm1`, preferring the active
+`VCToolsInstallDir` from MSBuild) to copy required `vcruntime140*.dll` / `msvcp140*.dll`
+next to `Envy.exe`. If `dumpbin` cannot be resolved, the post-build step fails instead
+of skipping validation, so the build output that installers and portable staging consume
+reliably contains them; the release workflow additionally verifies the complete set.
+
+The imported `BugSplat.lib` static libraries reference PDB paths from BugSplat's
+internal build agents (`BugSplat.pdb`, `BugSplatSharedMemory.pdb`). The committed SDK
+slice does **not** include those PDBs. Envy x64 links with `/ignore:4099` in
+`Envy.CrashReporting.props`. The flag is project-wide for the x64 link, not scoped to
+the vendored libs, but first-party objects always emit their own PDBs, so in practice
+only the vendored static libs trigger LNK4099; Envy still generates its own PDBs via
+normal project settings.
 
 ## Licensing
 

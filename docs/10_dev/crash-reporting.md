@@ -69,7 +69,7 @@ new architecture review. Evidence and pinned hashes:
 ## Tests
 
 - `tools/bugsplat-mt-probe/` — `/MT` + `/MTd` **link** gate against official `lib/mt` (no live crash or BugSplat database). `/MT` CRT classification is also covered by `scripts/import-bugsplat-sdk.selftest.ps1` (Lint build files).
-- **CI (x64 Release):** `verify-bugsplat-sdk-committed.ps1` (SHA-256 vs `SDK-HASHES.json` + Authenticode on committed PE files via `Test-BugSplatCommittedSdkTree`) and `verify-bugsplat-output-layout.ps1` (`BugSplatMonitor.exe` MSVC dependents next to `Envy.exe` via `dumpbin /dependents`). Post-build `CopyBugSplatRuntime.cmd` fail-closed copies monitor + `BugSplatWer.dll` + `BugSplatRc.dll` and MSVC redist when required. None of these drive a consent dialog or upload.
+- **CI (x64 Release/Debug):** `verify-bugsplat-sdk-committed.ps1` (SHA-256 vs `SDK-HASHES.json` + Authenticode on committed PE files via `Test-BugSplatCommittedSdkTree`) and `verify-bugsplat-output-layout.ps1` (`BugSplatMonitor.exe` MSVC dependents next to `Envy.exe` via `dumpbin /dependents`; fails if `dumpbin` is missing when the monitor is present). Post-build `CopyBugSplatRuntime.cmd` fail-closed copies monitor + `BugSplatWer.dll` + `BugSplatRc.dll` and MSVC redist when `dumpbin` reports dependents (`CopyBugSplatVcRuntime.ps1` + `EnvyVcTools.psm1`, `VCToolsInstallDir` from MSBuild). Self-test: `scripts/copy-bugsplat-vc-runtime.selftest.ps1` (Lint job). None of these drive a consent dialog or upload.
 - `tools/crash-probe/` — disposable Crashpad probes (Win32 + comparison); BugSplat x64 end-to-end crash/upload remains a **manual** maintainer check with a disposable database (not in CI).
 - `tests/test_crash_report_policy_smoke.cpp` — policy helpers (no live crash).
 
