@@ -7,6 +7,7 @@
 
 #include "StdAfx.h"
 #include "RemoteSecurity.h"
+#include "RemoteAccessValidate.h"
 #include "RemoteBase64.h"
 #include "RemotePasswordPolicy.h"
 #include "Settings.h"
@@ -34,38 +35,48 @@ CCriticalSection CRemoteSecurity::m_failedLoginLock;
 
 bool CRemoteSecurity::IsRemoteAccessAllowed(const IN_ADDR& clientIP)
 {
-	// Always allow localhost (127.0.0.1)
-	if (clientIP.s_addr == htonl(INADDR_LOOPBACK)) {
-		return true;
-	}
+	return IsRemoteAccessAllowed(clientIP, NULL);
+}
 
-	// Check deprecated AllowExternal setting (backward compatibility)
-	if (Settings.Remote.AllowExternal) {
-		return true;
-	}
+bool CRemoteSecurity::IsRemoteAccessAllowed(const IN_ADDR& clientIP, LPCTSTR pszClientAddress)
+{
+	const bool bAllowExternal = Settings.Remote.AllowExternal != FALSE;
+	const bool bAllowWAN = Settings.Remote.AllowWAN != FALSE;
+	const bool bAllowLAN = Settings.Remote.AllowLAN != FALSE;
+	const bool bHasCidr = !Settings.Remote.AllowedCIDRs.empty();
 
-	// Check WAN access (with warning in UI)
-	if (Settings.Remote.AllowWAN) {
-		// WAN access explicitly enabled
-		return true;
-	}
+	bool bPrivate = false;
+	bool bSubnet = false;
+	bool bInCidr = false;
 
-	// Check LAN access
-	if (Settings.Remote.AllowLAN) {
-		if (IsPrivateIP(clientIP) || IsLocalSubnet(clientIP)) {
-			return true;
+	// Defer adapter/CIDR work until Core could still use those results.
+	if (!RemoteClientIsLoopback(clientIP, pszClientAddress))
+	{
+		const RemoteBindKind bindKind =
+		    ClassifyRemoteBindAddress(Settings.Remote.BindAddress);
+		if (bindKind == RemoteBindKind::NonLocalhost &&
+		    !bAllowExternal && !bAllowWAN)
+		{
+			bInCidr = bHasCidr && IsInCIDRList(clientIP, Settings.Remote.AllowedCIDRs);
+			if (bAllowLAN && !(bHasCidr && bInCidr))
+			{
+				bPrivate = IsPrivateIP(clientIP);
+				bSubnet = !bPrivate && IsLocalSubnet(clientIP);
+			}
 		}
 	}
 
-	// Check explicit CIDR whitelist
-	if (!Settings.Remote.AllowedCIDRs.empty()) {
-		if (IsInCIDRList(clientIP, Settings.Remote.AllowedCIDRs)) {
-			return true;
-		}
-	}
-
-	// Default: deny access
-	return false;
+	return RemoteAccessAllowedCore(
+	    clientIP,
+	    pszClientAddress,
+	    bAllowExternal,
+	    bAllowWAN,
+	    bAllowLAN,
+	    bHasCidr,
+	    Settings.Remote.BindAddress,
+	    bPrivate,
+	    bSubnet,
+	    bInCidr);
 }
 
 bool CRemoteSecurity::IsPrivateIP(const IN_ADDR& ip)
