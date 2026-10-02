@@ -16,8 +16,8 @@
   do not treat them as current. Repository Copilot UI toggles that still
   need manual verification are **Allow Copilot to approve pull requests**,
   **Allow Copilot approvals to count toward merge requirements**, review
-  effort **Balanced**, and the optional path allowlist (Stage-3 docs/i18n
-  globs in `docs/10_dev/devsecops-envy.md`; excludes review-governance).
+  effort **Balanced**, and whether the path allowlist is blank (recommended
+  here; see `docs/10_dev/devsecops-envy.md`).
   Automatic Copilot review on each push is deliberately off in Protect
   develop (`copilot_code_review` enabled, `review_on_push: false`);
   it is not a remaining UI gap. An AI comment/assessment alone is not an

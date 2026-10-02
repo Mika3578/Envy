@@ -12,6 +12,29 @@ An **approval assessment** ("ready to approve") is not an `APPROVED` review
 and does not satisfy Protect develop. Submit `APPROVED` only when the
 gates below hold and repository Copilot approval settings allow it.
 
+## When to run (request timing)
+
+Maintainers and agents request Copilot Code Review when the pull request is
+**mergeable** toward `develop`: not a draft, required Protect develop checks
+green, branch up to date with `develop`, review threads resolved, and no
+outstanding `CHANGES_REQUESTED` that still applies. Re-request on each new
+head once mergeability returns (Copilot review-on-push stays off in Protect
+develop by design).
+
+## Review outcome (must use GitHub review state)
+
+- **No blocking findings** on the current head and the gates in
+  **Submit `APPROVED` when** below all hold: submit **`APPROVED`**. Do not
+  stop at overview comments, nit-only threads, or a verbal "looks good" when
+  nothing blocking remains. GitHub’s default review type is **Comment**; with
+  repository **Auto-approval** enabled, Copilot must leave an **`Approve`**
+  review event on GitHub, not only the overview **approval assessment** (see
+  [GitHub Docs — Pull request approvals from Copilot](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/using-copilot-code-review#pull-request-approvals-from-copilot)).
+- **Blocking findings:** submit **`CHANGES_REQUESTED`** and/or actionable
+  inline comments. Do not **`APPROVED`** until they are fixed or explicitly
+  withdrawn and mergeability returns; then re-review and **`APPROVED`** when
+  clean.
+
 ## Risk class
 
 **Low-risk (docs/i18n/adapters):** `docs/**`, `*.mdc`,
@@ -49,8 +72,8 @@ request a human; do not `APPROVED`.
 - **Review-governance:** required CI green, and the diff must not reduce
   required approvals, required checks, Copilot self-approval bans, or
   quality gates. Tightening/clarifying is OK. Weakening is
-  `CHANGES_REQUESTED`. Recommended path allowlist excludes these files,
-  so Copilot's `APPROVED` does not count unless the allowlist is blank.
+  `CHANGES_REQUESTED`. Copilot may submit `APPROVED` when these gates hold
+  and repository Copilot settings allow counting on the changed paths.
 
 ## Submit `APPROVED` when all of the following hold
 

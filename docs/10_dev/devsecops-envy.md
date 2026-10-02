@@ -14,13 +14,12 @@ Cursor Agent → PR → CodeRabbit (advisory)
                   → reviewdog/clang-tidy (advisory)
                   → MSVC + EnvyTests + Format
                   → CodeQL + Sonar + gitleaks
-                  → maintainer manual squash (approval + current required checks)
+                  → squash auto-merge (update branch + required checks)
                   → develop
 ```
 
 Personal repositories may not support Merge Queue; **do not block** on enabling
-it. Use strict required checks, an up-to-date branch, genuine non-author
-approval, and maintainer manual squash with a curated technical body.
+it. Prefer strict required checks + update-branch + squash auto-merge.
 
 ## Local commands
 
@@ -60,10 +59,8 @@ BLOCK (native GitHub review rules on Protect develop):
 - Force pushes blocked (`non_fast_forward`); branch commits are not required
   to be signed by Protect develop.
 - Code scanning merge protection: CodeQL + Gitleaks (current thresholds)
-- GitHub **Code Quality** severity **All** (live). Desired
-  `protect-develop.desired.json` preserves it explicitly; this PR does not
-  demote or remove the gate. Code Quality complements — it does not replace —
-  SonarCloud/CodeQL/MSVC/tests for the C++ core.
+- GitHub **Code Quality** severity **All** (live). Code Quality complements —
+  it does not replace — SonarCloud/CodeQL/MSVC/tests for the C++ core.
 - Copilot ruleset target: `review_on_push` **off**, draft review **off**.
 - No draft; squash only on `develop`; linear history; **no bypass actors**
 
@@ -104,7 +101,7 @@ Do not add `regex` to `enabledManagers` unless a real `customManagers` regex ent
 | Qodo / PR-Agent | Manual on high-risk PRs only | Optional |
 | Cursor Bugbot | Exceptional / paid | Not primary |
 
-High-risk paths (additional evidence before manual merge): G1/G2, ED2K/Kad, BitTorrent, NMDC/ADC,
+High-risk paths (extra bar before auto-merge): G1/G2, ED2K/Kad, BitTorrent, NMDC/ADC,
 Network/NAT, packet parsing, crypto, threading/locking, serialization, Remote.
 Require a regression/protocol test, explicit “no wire-format change”, or reference
 comparison notes.
@@ -128,25 +125,64 @@ comparison notes.
    - **Allow Copilot to approve pull requests:** ON
    - **Allow Copilot approvals to count toward merge requirements:** ON
    - Path allowlist (≤15 globs; every changed file must match, or the
-     approval does not count). Recommended Stage-3 list:
-     `docs/**`, `**/*.mdc`, `.github/ISSUE_TEMPLATE/**`,
-     `.github/CONTRIBUTING.md`, `.cursor/**`, `.continue/**`,
-     `.clinerules`, `.windsurfrules`, `.cursorrules`, `Languages/**`,
-     `CHANGELOG.md`, `MODERNIZATION.md`.
-     Exclude review-governance (`AGENTS.md`, `.github/copilot-instructions.md`,
-     `.github/skills/**`) and infra (`.github/settings.yml`,
-     `.github/workflows/**`). Do not use `**/*.md` (it would include
-     `AGENTS.md`). Keep those governance exclusions; use explicit human review for
-     governance changes rather than temporarily widening Copilot counting.
-   - Protect develop should request Copilot only for the final stable review;
-     keep review-on-push and draft review **off**.
+     approval does not count). For this solo-maintainer repository, leave the
+     allowlist **blank** so Copilot approvals count on every pull request,
+     including review-governance (`.github/settings.yml`,
+     `.github/workflows/**`, `AGENTS.md`, `.github/skills/**`) and infra,
+     while `.github/skills/code-review/SKILL.md` still blocks `APPROVED` on
+     diffs that weaken merge gates. Optional narrow Stage-3 globs (docs and
+     adapters only) remain documented in the code-review skill for teams that
+     want extra UI-side restriction; they are not the default here.
+   - Protect develop should request Copilot when the pull request is
+     **mergeable** (required checks green, up to date, not draft); keep
+     review-on-push and draft review **off**.
    Assessment ≠ approval. Copilot-authored PRs still need a human.
    A Copilot `APPROVED` review is not proof of correctness (business
    logic, production behavior, missed security, performance, or
    architecture). Independent checks (builds, EnvyTests when C++
    changes, CodeQL, SonarCloud, gitleaks, and secret-scan) stay
    required.
-4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Use **maintainer manual squash** + update-branch + strict required checks + **≥1 non-author GitHub APPROVED review** on `Protect develop`.
+
+   **How merge proof works (GitHub, public preview since 2026-09-01):** By
+   default Copilot leaves a **Comment** review, which does **not** satisfy
+   Protect develop. With **both** Auto-approval toggles on (see above), Copilot
+   can submit a real **`APPROVED`** review on the current head when it considers
+   the pull request ready. The **approval assessment** in the overview comment
+   is informational only and never counts. New commits dismiss Copilot’s
+   approval like a human’s; re-request after mergeability returns. Official
+   references:
+   [Using Copilot code review](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/using-copilot-code-review),
+   [Configure code review](https://docs.github.com/en/copilot/how-tos/copilot-on-github/set-up-copilot/configure-code-review),
+   [Changelog: Copilot can approve PRs](https://github.blog/changelog/2026-09-01-copilot-code-review-can-now-approve-pull-requests/).
+
+   **Request review when mergeable** (review-on-push stays off):
+
+   ```powershell
+   gh pr edit <N> --repo Mika3578/Envy --add-reviewer copilot-pull-request-reviewer
+   ```
+
+   Copilot reads `.github/copilot-instructions.md` and
+   `.github/skills/code-review/SKILL.md` from the **PR head** branch; those
+   files require **`APPROVED`** when there are no blocking findings.
+
+   **Verify approval counts before merge:**
+
+   ```powershell
+   gh pr view <N> --repo Mika3578/Envy --json mergeable,mergeStateStatus,reviewDecision
+   gh api repos/Mika3578/Envy/pulls/<N>/reviews --jq ^
+     "[.[] | select(.user.login==\"copilot-pull-request-reviewer\") | {state, commit_id, submitted_at}] | last"
+   ```
+
+   Expect `state: APPROVED` on the PR head commit, `reviewDecision: APPROVED`
+   (or mergeable with approval satisfied), and merge blocked only by
+   non-review gates if any remain. If you only see `COMMENTED` or an overview
+   assessment, the UI toggles, org policy, or path allowlist still block
+   counting — or auto-approval did not run; re-request on a mergeable head.
+
+   **Org/enterprise:** If counting stays off, check organization Copilot policy
+   (“Count Copilot approvals toward merge requirements”) is not **Disabled
+   everywhere** for this repository.
+4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks + **≥1 GitHub APPROVED review** on `Protect develop`.
 5. **Protect develop (live, re-verified 2026-09-20)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing
    docs):
@@ -166,15 +202,7 @@ comparison notes.
    - Restrict code coverage: **off for now** — do not enable until PR coverage
      data is uploaded reliably and a baseline has been measured
    - Copilot ruleset: review new pushes **off**; review drafts **off**
-6. **GitHub Copilot Code Review (repository UI — manual verify):** Settings →
-   Copilot → Code review: effort **Balanced**; **Allow Copilot to approve pull
-   requests** ON; **Allow Copilot approvals to count toward merge
-   requirements** ON; path allowlist as in item 3 (exclude
-   review-governance and infra). Automatic review on each push is deliberately
-   off in Protect develop; request the final Copilot review after native
-   checks are green. These toggles and globs are not on the ruleset API. See
-   [Using AI-Approved Pull Requests Safely with GitHub Copilot](https://www.c-sharpcorner.com/article/using-ai-approved-pull-requests-safely-with-github-copilot/).
-7. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
+6. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 
 ## Agent PR back-pressure
 

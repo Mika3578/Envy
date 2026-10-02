@@ -29,11 +29,11 @@ repository:
   default_branch: develop
   allow_squash_merge: true
   allow_merge_commit: false
-  allow_auto_merge: false
-  # Global repo defaults. Protect develop enforces squash-only via ruleset.
-  # Target squash settings (verify Settings → General → Pull Requests):
-  #   squash_merge_commit_title: PR_TITLE (desired; live COMMIT_OR_PR_TITLE on 2026-10-01)
-  #   squash_merge_commit_message: BLANK  (maintainer supplies the curated technical summary)
+  # Global repo default. Protect develop still enforces squash-only via ruleset.
+  # Live GitHub squash defaults (verify in Settings → General → Pull Requests):
+  #   squash_merge_commit_title: PR_TITLE
+  #   squash_merge_commit_message: BLANK  (no auto PR-body dump; maintainer
+  #   still supplies a concise squash body at merge — see AGENTS.md rule 16)
   allow_rebase_merge: true
   delete_branch_on_merge: true
   enable_automated_security_fixes: true
@@ -204,15 +204,17 @@ milestones:
 # Probot Settings does NOT model these ruleset-only options — set them on the
 # GitHub ruleset (UI or Rulesets API), not as invented YAML keys here:
 #   - required_review_thread_resolution: true
-#   - require_last_push_approval: false
+#   - require_last_push_approval: false  (intentional; dismiss-stale is on)
 #   - dismiss_stale_reviews_on_push: true
 #   - allowed_merge_methods: ["squash"] only (develop ruleset)
-#   - required_signatures: false on develop
+#   - required_signatures: false on develop (live Protect develop)
 #   - bypass_actors: [] (none)
+#   - non_fast_forward / block force pushes
 #   - code_scanning: CodeQL + Gitleaks
-#   - Copilot review-on-push: off; approval counts only when enabled and recorded as APPROVED
-# Authoritative desired ruleset: .github/rulesets/protect-develop.desired.json
-# Drift audit: python .github/scripts/audit-ruleset.py
+#   - GitHub Code Quality severity (live: All)
+#   - Copilot review-on-push (live: off) / draft review (live: off)
+#   - Copilot approve/count UI toggles + optional path allowlist (blank recommended; manual verify in Settings → Copilot)
+#   - code coverage rule (intentionally off until reliable PR coverage upload exists)
 branches:
   - name: develop
     protection:
@@ -223,7 +225,7 @@ branches:
         require_code_owner_reviews: false
       required_status_checks:
         strict: true
-        # Eight contexts verified on 2026-10-01; preserve SonarCloud.
+        # Exact contexts required by the live Protect develop ruleset.
         contexts:
           - "Build x64 Release"
           - "Build Win32 Release"

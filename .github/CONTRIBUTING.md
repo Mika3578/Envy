@@ -54,11 +54,11 @@ fast-forward-only and rebase feature branches before opening or updating PRs.
 
 - Merge commits: **disabled**
 - Squash merge: **enabled** (required path onto `develop`)
-- Desired squash defaults: **PR title** and **blank auto-fill**
-  (`PR_TITLE` / `BLANK`). The 2026-10-01 audit observed
-  `COMMIT_OR_PR_TITLE` / `COMMIT_MESSAGES`; settings are not changed by
-  documentation. Inspect the generated title and replace the generated body
-  before the manual squash. **Policy still requires**
+- Squash merge title default: **PR title** (live GitHub:
+  `squash_merge_commit_title: PR_TITLE`)
+- Squash merge message default: **blank auto-fill** (live GitHub:
+  `squash_merge_commit_message: BLANK`) — prevents GitHub from dumping the
+  full PR body or all branch commits into `develop`. **Policy still requires**
   a concise technical squash body at merge time; copy it from the **Squash
   Commit Summary** section of your PR (see `.github/pull_request_template.md`).
   Canonical rules: `AGENTS.md` hard rule 16.
@@ -153,7 +153,9 @@ hold (enforced by the live GitHub ruleset, not by CI alone):
    Copilot to approve **and** count toward merge requirements, any path
    allowlist matches every changed file, and GitHub records an actual
    `APPROVED` review. CodeRabbit/advisory comments and Copilot's approval
-   assessment alone do not satisfy the gate.
+   assessment alone do not satisfy the gate. Request Copilot Code Review when
+   the PR is **mergeable**; when Copilot finds no blocking issues on that
+   head, it must submit **`APPROVED`** (see `.github/skills/code-review/SKILL.md`).
 3. That approval remains valid for the **current** head: stale approvals are
    **dismissed on new pushes**. `Require approval of the most recent
    reviewable push` is **off** (intentional for the solo-maintainer +
