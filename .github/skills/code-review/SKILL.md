@@ -12,6 +12,43 @@ An **approval assessment** ("ready to approve") is not an `APPROVED` review
 and does not satisfy Protect develop. Submit `APPROVED` only when the
 gates below hold and repository Copilot approval settings allow it.
 
+## When to run (request timing)
+
+Maintainers and agents request Copilot Code Review only when the pull
+request is **mergeable** toward `develop` (**not a draft** — no agent or
+maintainer review request in Draft; cheap CI and thread treatment only,
+required Protect
+develop checks green, branch up to date with `develop`, no outstanding
+`CHANGES_REQUESTED` that still applies) **and every review comment thread
+on the current head is treated** (`AGENTS.md` §5: fix or justified reply,
+then resolve on GitHub). Request **one**
+Copilot review on that stable head — not while untreated threads remain and
+not after every partial fix batch (Copilot review-on-push stays off in
+Protect develop by design). Re-request only when a **new head** requires it
+and treatment is complete again.
+
+## Correction agents (must not request reviews in Draft)
+
+Repository correction/stabilizer agents treat review threads and push fix
+batches; they **do not** request Copilot Code Review, other review products,
+or human reviewers, and they do not approve or merge (`AGENTS.md` §5).
+Request Copilot only from a maintainer when `AGENTS.md` §5 workflow
+expectations for thread treatment and review timing are satisfied.
+
+## Review outcome (must use GitHub review state)
+
+- **No blocking findings** on the current head and the gates in
+  **Submit `APPROVED` when** below all hold: submit **`APPROVED`**. Do not
+  stop at overview comments, nit-only threads, or a verbal "looks good" when
+  nothing blocking remains. GitHub’s default review type is **Comment**; with
+  repository **Auto-approval** enabled, Copilot must leave an **`Approve`**
+  review event on GitHub, not only the overview **approval assessment** (see
+  [GitHub Docs — Pull request approvals from Copilot](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/using-copilot-code-review#pull-request-approvals-from-copilot)).
+- **Blocking findings:** submit **`CHANGES_REQUESTED`** and/or actionable
+  inline comments. Do not **`APPROVED`** until they are fixed or explicitly
+  withdrawn and mergeability returns; then re-review and **`APPROVED`** when
+  clean.
+
 ## Risk class
 
 **Low-risk (docs/i18n/adapters):** `docs/**`, `*.mdc`,
@@ -49,12 +86,19 @@ request a human; do not `APPROVED`.
 - **Review-governance:** required CI green, and the diff must not reduce
   required approvals, required checks, Copilot self-approval bans, or
   quality gates. Tightening/clarifying is OK. Weakening is
-  `CHANGES_REQUESTED`. Recommended path allowlist excludes these files,
-  so Copilot's `APPROVED` does not count unless the allowlist is blank.
+  `CHANGES_REQUESTED`. Do **not** submit `APPROVED` when any changed path is
+  review-governance (`AGENTS.md`, `.github/copilot-instructions.md`,
+  `.github/skills/**`); require an independent human reviewer
+  (`AGENTS.md` hard rule 12). Copilot may submit `APPROVED` for other risk
+  classes only when the matching gates hold and repository Copilot settings
+  allow counting on the changed paths. Manual squash merge stays required
+  (`AGENTS.md` rule 16).
 
 ## Submit `APPROVED` when all of the following hold
 
 - The pull request is not a draft and is not Copilot-authored.
+- No changed path is review-governance (`AGENTS.md`,
+  `.github/copilot-instructions.md`, `.github/skills/**`).
 - Required Protect develop checks are green. If CI is still running, wait.
 - No unresolved review threads and no outstanding `CHANGES_REQUESTED`.
 - Squash Commit Summary in the PR body matches the final head and satisfies
