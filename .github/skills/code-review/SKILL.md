@@ -72,12 +72,18 @@ request a human; do not `APPROVED`.
 - **Review-governance:** required CI green, and the diff must not reduce
   required approvals, required checks, Copilot self-approval bans, or
   quality gates. Tightening/clarifying is OK. Weakening is
-  `CHANGES_REQUESTED`. Copilot may submit `APPROVED` when these gates hold
-  and repository Copilot settings allow counting on the changed paths.
+  `CHANGES_REQUESTED`. Do **not** submit `APPROVED` when any changed path is
+  review-governance (`AGENTS.md`, `.github/copilot-instructions.md`,
+  `.github/skills/**`); require an independent human reviewer
+  (`AGENTS.md` hard rule 12). Copilot may submit `APPROVED` for other risk
+  classes only when the matching gates hold and repository Copilot settings
+  allow counting on the changed paths.
 
 ## Submit `APPROVED` when all of the following hold
 
 - The pull request is not a draft and is not Copilot-authored.
+- No changed path is review-governance (`AGENTS.md`,
+  `.github/copilot-instructions.md`, `.github/skills/**`).
 - Required Protect develop checks are green. If CI is still running, wait.
 - No unresolved review threads and no outstanding `CHANGES_REQUESTED`.
 - Squash Commit Summary in the PR body matches the final head and satisfies
