@@ -15,7 +15,9 @@ gates below hold and repository Copilot approval settings allow it.
 ## When to run (request timing)
 
 Maintainers and agents request Copilot Code Review only when the pull
-request is **mergeable** toward `develop` (not a draft, required Protect
+request is **mergeable** toward `develop` (**not a draft** — no agent or
+maintainer review request in Draft; cheap CI and thread treatment only,
+required Protect
 develop checks green, branch up to date with `develop`, no outstanding
 `CHANGES_REQUESTED` that still applies) **and every review comment thread
 on the current head is treated** (`AGENTS.md` §5 *Review comment
@@ -25,12 +27,14 @@ not after every partial fix batch (Copilot review-on-push stays off in
 Protect develop by design). Re-request only when a **new head** requires it
 and treatment is complete again.
 
-## Correction agents (must not request Copilot)
+## Correction agents (must not request reviews in Draft)
 
 Repository correction/stabilizer agents treat review threads and push fix
-batches; they **do not** request Copilot Code Review, approve, or merge.
-Request Copilot only from a maintainer (or one explicit final step) when
-`AGENTS.md` §5 *Review and Copilot economy* pre-request checklist is satisfied.
+batches; they **do not** request Copilot Code Review, other review products,
+or human reviewers while the pull request is a **draft**, and they do not
+approve or merge. Request Copilot only from a maintainer (or one explicit
+final step after **Ready**) when `AGENTS.md` §5 *Review and Copilot economy*
+pre-request checklist is satisfied.
 
 ## Review outcome (must use GitHub review state)
 

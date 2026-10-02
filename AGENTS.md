@@ -124,8 +124,9 @@ Branch model:
       approval with GitHub Actions or a self-approval workflow. Copilot
       cloud-agent PRs still need a non-Copilot reviewer;
     - Request **GitHub Copilot Code Review** only when the pull request is
-      **mergeable** toward `develop` (not a draft, required status checks
-      green, branch up to date with `develop`, no outstanding
+      **mergeable** toward `develop` (not a draft — assistants and correction
+      agents must not request Copilot or any other review product in Draft;
+      required status checks green, branch up to date with `develop`, no outstanding
       `CHANGES_REQUESTED` that still applies) **and every review comment
       thread on the current head is treated** (see §5 *Review comment
       handling*). Re-request **once** after a new head only when treatment
@@ -378,7 +379,9 @@ automatic correction batches during Draft and two during Ready. It must stop
 with `needs-human` when a finding recurs twice, correctness is uncertain,
 signing/permissions fail, equivalent CI failures persist after two attempts,
 or subjective governance changes are needed. Phase toggles never reset budgets.
-It must never approve, request reviewers, merge, enable auto-merge, change
+It must never approve, request reviewers, **request any automated or manual
+code review** (Copilot, Bugbot, `@coderabbitai review`, `request_copilot_review`,
+or similar), merge, enable auto-merge, change
 settings/rulesets, force-push, or push to protected branches. Disable the
 existing approval automation before testing the correction agent. The phase
 transitions and merge stay manual even where rule 12 otherwise permits more.
@@ -435,6 +438,8 @@ current head:
 
 **Do not request Copilot** when:
 
+- Pull request is still a **draft** (same as Protect develop: no merge-gate
+  review pass; agents must not trigger reviews in Draft either).
 - Any thread is still untreated or unresolved.
 - The **same head** already has a Copilot review and the diff meaningfully
   unchanged (do not re-request to “refresh” merge status).
@@ -451,9 +456,11 @@ per partial fix. See token-budget patterns in community PR-review skills
 (e.g. cap thread payload, avoid parallel “verdict” calls per comment when
 count is high).
 
-Correction agents **must not** request Copilot reviews, approve, or merge;
-they treat threads and push fix batches until `needs-human` or the checklist
-above is satisfied for a maintainer’s single final Copilot request.
+Correction agents **must not** request Copilot reviews, **any other review
+product**, or human reviewer requests while the pull request is a **draft**;
+they must not approve or merge. They treat threads and push fix batches until
+the maintainer marks Ready and the pre-request checklist above is satisfied for
+a maintainer’s single final Copilot request.
 
 ### Mandatory preflight before editing
 
@@ -626,7 +633,8 @@ acceptable engineering quality:
   push) over full-repo sweeps and repeated identical analysis.
 - **GitHub Copilot Code Review** model choice is controlled by GitHub; still
   follow mergeable-request and **`APPROVED`-when-clean** policy to avoid extra
-  review rounds. Do not treat advisory bots (CodeRabbit, Sourcery, etc.) as
+  review rounds. **Do not request any review product while the PR is Draft.**
+  Do not treat advisory bots (CodeRabbit, Sourcery, etc.) as
   substitutes for required gates.
 - Escalate to a more capable model only when a cheaper approach has failed with
   new information, or when the maintainer explicitly approves the upgrade.

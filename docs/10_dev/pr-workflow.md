@@ -43,8 +43,12 @@ Read every finding, including resolved threads and overview text, at current HEA
 
 The correction service owns one persistent conversation and one exclusive writer
 per PR. It is authorized to proactively inspect all review surfaces, correct
-demonstrated defects and PR-caused CI failures, run tests, commit/push the existing
-feature branch, and request reviews from configured reviewer products. It does
+demonstrated defects and PR-caused CI failures, run tests, and commit/push the
+existing feature branch. It must **not** request Copilot, other automated
+review products, or human reviewers while the pull request is a **draft**;
+review requests belong only after the maintainer marks **Ready** and the
+`AGENTS.md` §5 checklist is satisfied (typically one Copilot pass on a stable
+treated head). It does
 not need a new user request for each correction batch. There is no fixed Draft,
 Ready or per-finding attempt limit. Preserve the complete attempt history;
 recurrence requires a new diagnosis, targeted regression evidence and a changed
@@ -65,8 +69,11 @@ Automate Draft stabilization, supported free re-review, targeted checks and CI
 recovery. The coordinator may apply the live-test label and mark Ready only after
 real full validation and applicable runtime/artifact evidence cover the exact
 HEAD and base. A Draft deferral, silence, quota/error response or missing reviewer
-is not validation. Keep Copilot out of Draft and request it after stabilization;
-later fixes must pass CI and free re-review before a fresh final request. Keep
+is not validation. **No review spam in Draft:** agents must not request Copilot,
+Bugbot, CodeRabbit, or human reviewers while `isDraft` is true — same posture
+as `review_on_push=false` and cheap CI only until Ready. After stabilization,
+request Copilot once when mergeable; later fixes must pass CI before a fresh
+final request. Keep
 review_on_push=false and preserve human/team reviewers. The correction agent
 must never approve, dismiss reviews, merge, enable auto-merge, change repository
 settings/rulesets, force-push, or push protected branches. Workflow/governance

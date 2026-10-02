@@ -10,6 +10,9 @@ relevant protocol/architecture docs.
 
 For Copilot Code Review, follow `.github/skills/code-review/SKILL.md`.
 
+- Do **not** request or invoke Copilot Code Review while the pull request is a
+  **draft**. Correction agents and other assistants follow the same rule for
+  **any** review product (Bugbot, CodeRabbit, human reviewer requests).
 - Do **not** request Copilot Code Review until every review thread on the
   current head is **treated** (`AGENTS.md` §5): fix in code or reply with
   technical justification, then resolve on GitHub. One Copilot request per
@@ -28,6 +31,7 @@ For Copilot Code Review, follow `.github/skills/code-review/SKILL.md`.
 - A Copilot `APPROVED` review is not proof of correctness; required CI and
   security checks stay independent.
 - Minimize cost: see **Model and token economy** in root `AGENTS.md` §8.
-- **Review economy:** do not request Copilot to poll status. Treat and resolve
-  all threads first; one Copilot review per stable head when
-  `AGENTS.md` §5 *Review and Copilot economy* checklist is complete.
+- **Review economy:** no review requests in **Draft**; do not request Copilot to
+  poll status. Treat and resolve all threads first; one Copilot review per
+  stable **Ready** head when `AGENTS.md` §5 *Review and Copilot economy*
+  checklist is complete.
