@@ -14,6 +14,13 @@ rulesets, dependency automation, local verify scripts.
 > changes are now applied to Protect develop; the sections below remain the
 > historical baseline.
 
+**Protect develop required-check target for PR #327 (not yet live):** `Build x64
+Release`, `Build Win32 Release`, `Lint build files`, `Vcpkg manifest sanity`,
+`Dependency review`, `Format Check`, `secret-scan`, `Analyze (c-cpp)`,
+`SonarCloud Code Analysis`. `Dependency review` is its own workflow
+(`.github/workflows/dependency-review.yml`), not a `PR Gate` poller job. After
+#327 merges, verify the live ruleset matches `.github/settings.yml`.
+
 ---
 
 ## 1. Executive summary
@@ -49,8 +56,8 @@ historical snapshot**, not current live state.
 
 **Pre-change findings resolved in this PR:** empty NuGet restore (~22 s/job
 no-op) skipped; Documentation Check always emits a terminal conclusion;
-PR build logs upload on failure only. PR Gate keeps script-default
-`POLL_SEC=15` (no 10 s override — API quota headroom).
+PR build logs upload on failure only. Required checks are native workflow
+conclusions (Protect develop); there is no `PR Gate` poller.
 
 ---
 
@@ -58,13 +65,14 @@ PR build logs upload on failure only. PR Gate keeps script-default
 
 ```text
 PR opened/updated
-  ├─ Classify (×4 reusable calls: Build, Quality, Deps, PR Gate)
+  ├─ Classify (×3 reusable calls: Build, Quality, Deps)
   ├─ Fast (ubuntu): Format Check, secret-scan, Vcpkg sanity, Lint build files,
-  │                 Dependency review?, Docs?, Remote JS?, labeler, clang-tidy PR
+  │                 Dependency review (standalone), Docs?, Remote JS?, labeler,
+  │                 clang-tidy PR
   ├─ Windows: Build x64 Release + Build Win32 Release (if classify)
   ├─ CodeQL: Analyze (c-cpp) ubuntu build-mode:none | (js) | (csharp) Windows
   ├─ External: SonarCloud, gitleaks app, Snyk (advisory)
-  └─ PR Gate: poll until must_pass / may_skip set is terminal
+  └─ Protect develop: required native check conclusions (no PR Gate poller)
 
 Push develop/main
   ├─ Build: Release x64+Win32 + Debug x64+Win32
@@ -77,35 +85,37 @@ Push develop/main
 
 | Workflow/job | Trigger | Function | Depends | Duration (typ.) | Critical? | Required? | Redundancy | Runner cost |
 | --- | --- | --- | ---: | ---: | --- | --- | --- | --- |
-| Classify (×4) | PR via workflow_call | Path buckets | — | ~8–10 s each | No | No | Same script ×4 | Low (ubuntu) |
+| Classify (×3) | PR via workflow_call | Path buckets | — | ~8–10 s each | No | No | Same script ×3 | Low (ubuntu) |
 | Lint build files | PR/push Build | Toolset/self-tests | — | ~13 s | Yes (fast fail) | Yes | — | Low |
 | Build x64 Release | PR if classify / push | MSVC + EnvyTests | Classify | **~6.5–7 min** | **Yes** | Yes | vs CodeQL push rebuild | **High** (Win) |
 | Build Win32 Release | PR if classify / push | MSVC + EnvyTests | Classify | ~5–7 min | Parallel | Yes | — | High |
 | Build Debug matrix | push `main`/`develop` + Debug `workflow_dispatch` | x64+Win32 Debug | Classify | ~5–8 min | No (PR) | Protect main requires Debug | — | High |
 | Format Check | PR | clang-format-18 hunks | — | ~15 s | Fast feedback | Yes | Manual format-check.yml | Low |
 | Documentation Check | PR (no-op when docs flag false) | README notice + link check | Classify | ~45–60 s when docs; seconds for no-op | Soft | Yes (ruleset) | link check `continue-on-error` | Low |
-| Remote JS tests | PR if Remote / push | npm test | Classify | ~10 s | When Remote | PR Gate if classify | — | Low |
+| Remote JS tests | PR if Remote / push | npm test | Classify | ~10 s | When Remote | Yes when classify | — | Low |
 | secret-scan | PR/push/weekly | gitleaks binary + SARIF | — | ~20–25 s | Yes | Yes | + gitleaks app | Low |
 | Vcpkg manifest sanity | PR | jq schema | — | ~7 s | Fast | Yes | — | Low |
-| Dependency review | PR if deps | GH dependency-review | Classify | ~10 s | When deps | PR Gate if classify | — | Low |
+| Dependency review | PR | GH dependency-review | — | ~10 s | Yes | Yes (direct ruleset when enabled) | — | Low |
 | Analyze (c-cpp) PR | PR | CodeQL no-build | — | **~6.5–7 min** | **Yes** | Yes | lighter than push | Med (ubuntu) |
 | Analyze (c-cpp) push | push/schedule | Traced MSBuild + analyze | — | **~32–33 min** | Post-merge | ruleset/CS | Rebuilds vs Build job | **Very high** |
-| Analyze (javascript-typescript) | PR/push | CodeQL | — | ~1 min | Parallel | PR Gate | — | Low |
-| Analyze (csharp) | PR/push | SkinUpdater MSBuild | — | ~3–4 min | Parallel | PR Gate | Small surface | Med (Win) |
-| PR Gate | PR | Wait classified checks | Classify | = critical path | Merge UX | Yes | Polls Actions | Low |
+| Analyze (javascript-typescript) | PR/push | CodeQL | — | ~1 min | Parallel | Yes | — | Low |
+| Analyze (csharp) | PR/push | SkinUpdater MSBuild | — | ~3–4 min | Parallel | Yes | Small surface | Med (Win) |
+| ~~PR Gate~~ | — | Removed in #381 | — | — | — | No | Replaced by native required checks | — |
 | Static Analysis | push/nightly | MSVC /analyze | — | ~8–9 min | Advisory | No | Soft fail | High |
 | clang-tidy PR | PR paths | reviewdog | — | ~30 s | Advisory | No | — | Low |
 | Release | tags | Installers/ZIP | — | long | Release | — | — | High |
 | Stale / labeler | schedule/PR | Hygiene | — | seconds | No | No | — | Low |
 
-**Protect develop required contexts (live ruleset `16457466`):**
+**Protect develop required contexts (historical snapshot `16457466`, 2026-09-19):**
 Build x64 Release, Build Win32 Release, Lint build files, Vcpkg manifest sanity,
 Format Check, Documentation Check, secret-scan, gitleaks (app `57789`),
 PR Gate, Analyze (c-cpp), SonarCloud Code Analysis (`12526`).
 
-**PR Gate additionally requires (not all ruleset-required):** Analyze
-(javascript-typescript), Analyze (csharp); optionally builds / Remote JS /
-Dependency review per classify.
+**Former PR Gate poller (removed in #381) additionally waited on (not all
+ruleset-required):** Dependency review, Analyze (javascript-typescript),
+Analyze (csharp); optionally builds / Remote JS per classify. After #381,
+those workflows report their own conclusions; see the live checklist at the
+top of this file.
 
 ---
 
@@ -200,8 +210,8 @@ Build matrix (~8m) and Static Analysis (~9m) finish earlier
 | Control | Status |
 | --- | --- |
 | Default `permissions` least-privilege | Mostly yes; Build/Dep-review need `pull-requests: write` for comments |
-| Action SHA pins | Yes (Renovate digests for Actions) |
-| `pull_request_target` | `labeler.yml` + `dependabot-auto-merge.yml` only (no untrusted checkout of PR HEAD; auto-merge never approves — Dependabot login gate only) |
+| Action SHA pins | Yes (full commit SHA pins with version comments; Dependabot owns updates) |
+| `pull_request_target` | `labeler.yml` only |
 | Cache poisoning | vcpkg binary cache writable from PR jobs — GitHub restricts cache writes from forks; same-repo PRs share cache (accepted risk) |
 | gitleaks binary | Version + SHA256 pinned in `security.yml` |
 | Secrets in PR workflows | Uses `GITHUB_TOKEN` only for listed scopes |
@@ -303,7 +313,7 @@ Sources (primary first):
 | Idea | Source | Gain | Cost | Risk | Maint. | Rec. |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | Concurrency cancel PR | GH / qBT | High on busy PRs | Low | Low | Low | **Done** |
-| SHA-pin Actions | GH secure use | Security | Low | Low | Renovate | **Done** |
+| SHA-pin Actions | GH secure use | Security | Low | Low | Dependabot | **Done** |
 | Path-aware PR builds | Envy #116 | High | Med | Med | Med | **Done** |
 | CodeQL none on PR | Envy #116 | ~25 min | Precision | Med | Low | **Keep** |
 | Skip empty NuGet | This audit | ~22 s/job | Low | Low | Low | **Done** |

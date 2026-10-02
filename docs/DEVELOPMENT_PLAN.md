@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-28
+- **Last Updated:** 2026-09-29
+- **Changelog Entry:** 2026-09-29 — #327: retire Renovate; Dependabot owns vcpkg, `Remote/tests` npm, and GitHub Actions; docs/ownership inventory aligned; Dependency Review on PRs targeting `main`/`master`/`develop`; **Repository Status** CI/merge text aligned with post-#381 (no PR Gate poller; optional branch-commit signatures).
 - **Changelog Entry:** 2026-09-28 — #367: separate declared connection capacity from explicit transfer limits, preserve user caps, share capacity presets, and add transfer-limit regression coverage.
 - **Changelog Entry:** 2026-09-28 — #363: correct ED2K SourceEx2 request/answer framing, add versioned record validation and golden vectors, and document the live interop gap.
 - **Changelog Entry:** 2026-09-28 — #381 simplification: remove the duplicate PR Gate poller and conclusion helpers; keep Draft → `stage:live-test` → Ready phase selection and native workflow checks. Protect develop now removes PR Gate, required signatures, duplicate gitleaks status, and required Documentation Check, with Copilot review-on-push disabled. Cursor automations remain external manual operations.
@@ -229,18 +230,17 @@
 - **History:** `develop` was rewritten to a linear history with no merge commits; the pre-rewrite snapshot is preserved as the immutable tag `backup/develop-before-linear-rewrite` (local mutable backup/rollback branches were removed after the rewrite stabilized).
 - **Local hygiene:** use `git pull --ff-only` on `develop`; rebase feature branches with `git rebase origin/develop` and `git push --force-with-lease`.
 - **Branch protection:** the active `Protect develop` ruleset requires pull
-  requests, linear history, signed commits, ≥1 APPROVED review, dismiss-stale
-  approvals, conversation resolution, code scanning (CodeQL+Gitleaks), passing
-  required checks, and blocks force-pushes/deletions. `.github/settings.yml`
-  mirrors the Probot-capable subset; the ruleset is the source of truth.
-- CI uses a two-speed model: change-aware PR jobs for Windows/Remote/deps plus
-  full integration on `develop` / scheduled analysis. Every PR always runs
-  CodeQL Analyze (c-cpp), (javascript-typescript), and (csharp), plus blocking
-  Format Check. Those `pull_request` workflows also run on `ready_for_review`.
-  The live `Protect develop` ruleset requires the eleven named
-  contexts listed in `.github/settings.yml`. `PR Gate` waits for classified CI
-  (and always for the three CodeQL jobs + Format Check) — it is not a review
-  substitute. See `docs/10_dev/agents-and-automation.md`.
+  requests, linear history, ≥1 APPROVED review, dismiss-stale approvals,
+  conversation resolution, code scanning (CodeQL+Gitleaks), passing required
+  checks, and blocks force-pushes/deletions. Branch commits are not required to
+  be signed by the live ruleset; squash commits may still be subject to separate
+  signed-commit policy. `.github/settings.yml` mirrors the Probot-capable subset;
+  the live ruleset is the source of truth.
+- CI uses staged validation (Draft cheap lane; `stage:live-test` and Ready full
+  Windows/C# lane). Native workflow conclusions satisfy **Protect develop**; there
+  is no aggregate PR Gate poller (#381). Dependency Review runs on every pull
+  request targeting `main`, `master`, or `develop`. See `docs/10_dev/agents-and-automation.md` and
+  `docs/10_dev/dependency-automation.md`.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
 ## Canonical Documentation Split
@@ -272,8 +272,9 @@ Policy: specification first, interoperability implementation second. See D-008 i
 
 ## Current Status
 ### Done
-- CI workflows for build/quality/security exist, with a change-aware PR gate
-  and full validation after merge to `develop`.
+- CI workflows for build/quality/security exist with staged validation:
+  Draft runs the cheap lane, `stage:live-test` and Ready run full Windows/C#
+  validation, and native workflow conclusions provide the merge checks.
 - Hash-focused unit tests integrated in repo and workflows.
 - Audit and core documentation baseline established.
 - Remote CRITICAL/HIGH security items: CSRF (#77), PBKDF2 passwords (#79), CSPRNG (#78), CSP/redirects/rate limit, and Remote XSS HTML escape on `Add()` (#76). Remaining Remote security follow-ups tracked separately if found.

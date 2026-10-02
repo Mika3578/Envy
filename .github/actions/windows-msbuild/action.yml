@@ -73,7 +73,7 @@ runs:
       with:
         path: |
           ${{ github.workspace }}/vcpkg_cache
-        key: vcpkg-v3-${{ runner.os }}-${{ inputs.platform }}-${{ env.PLATFORM_TOOLSET }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+        key: vcpkg-v3-${{ runner.os }}-${{ inputs.platform }}-${{ env.PLATFORM_TOOLSET }}-${{ hashFiles('vcpkg.json') }}
         restore-keys: |
           vcpkg-v3-${{ runner.os }}-${{ inputs.platform }}-${{ env.PLATFORM_TOOLSET }}-
           vcpkg-v3-${{ runner.os }}-${{ inputs.platform }}-
@@ -84,6 +84,9 @@ runs:
         if (-not (Test-Path "$env:VCPKG_INSTALLATION_ROOT")) {
           git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
           & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
+          if ($LASTEXITCODE -ne 0) {
+            throw "vcpkg bootstrap failed with exit code $LASTEXITCODE"
+          }
           echo "VCPKG_INSTALLATION_ROOT=$env:GITHUB_WORKSPACE/vcpkg" >> $env:GITHUB_ENV
         }
         echo "VCPKG_BINARY_SOURCES=clear;files,$($env:GITHUB_WORKSPACE)/vcpkg_cache,readwrite" >> $env:GITHUB_ENV

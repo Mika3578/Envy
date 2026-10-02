@@ -14,6 +14,8 @@
   copies crashpad_handler.exe from vcpkg_installed.
 
   This script is the local equivalent of the CI restore step. It does not clone vcpkg unless -CloneVcpkg is passed.
+  With -CloneVcpkg it also aligns the repo-local vcpkg checkout with vcpkg.json's builtin-baseline before
+  bootstrapping, so local installs use the same pinned tool revision as the release workflow.
 
 .EXAMPLE
   .\scripts\bootstrap-vcpkg.ps1
@@ -79,9 +81,47 @@ function Install-LocalVcpkg {
 		}
 	}
 
+	# Mirror the release workflow: align the repo-local checkout with
+# vcpkg.json's builtin-baseline so a -CloneVcpkg install cannot silently
+# use a different vcpkg tool revision than the pinned release path.
+# An existing checkout is checked and realigned too, and its executable
+# is re-bootstrapped when the revision moves.
+	$manifest = Join-Path $Root 'vcpkg.json'
+	if (-not (Test-Path -LiteralPath $manifest)) {
+		throw "vcpkg.json was not found at $manifest; cannot resolve the builtin-baseline pin."
+	}
+	$baseline = (Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).'builtin-baseline'
+	if (-not $baseline) {
+		throw 'vcpkg.json is missing builtin-baseline; refusing to bootstrap an unpinned vcpkg tip.'
+	}
+	if ($baseline -notmatch '^[0-9a-fA-F]{40}$') {
+		throw "vcpkg.json builtin-baseline must be a 40-hex git commit (got '$baseline')."
+	}
+	$head = & git -C $vcpkgDir rev-parse HEAD
+	if ($LASTEXITCODE -ne 0) {
+		throw "git rev-parse HEAD failed in $vcpkgDir (exit $LASTEXITCODE)."
+	}
+	$headMoved = $false
+	if ($head.Trim() -ne $baseline) {
+		& git -C $vcpkgDir fetch --depth 1 origin $baseline
+		if ($LASTEXITCODE -ne 0) {
+			throw "Failed to fetch vcpkg baseline $baseline (exit $LASTEXITCODE)."
+		}
+		& git -C $vcpkgDir checkout --detach $baseline
+		if ($LASTEXITCODE -ne 0) {
+			throw "Failed to checkout vcpkg baseline $baseline (exit $LASTEXITCODE). The checkout may have uncommitted changes."
+		}
+		$detached = (& git -C $vcpkgDir rev-parse HEAD).Trim()
+		if ($detached -ne $baseline) {
+			throw "vcpkg HEAD $detached does not match required baseline $baseline."
+		}
+		$headMoved = $true
+		Write-Host "Aligned vcpkg with builtin-baseline $baseline." -ForegroundColor DarkCyan
+	}
+
 	$exe = Join-Path $vcpkgDir 'vcpkg.exe'
 	$unix = Join-Path $vcpkgDir 'vcpkg'
-	if ((Test-Path -LiteralPath $exe) -or (Test-Path -LiteralPath $unix)) {
+	if (-not $headMoved -and ((Test-Path -LiteralPath $exe) -or (Test-Path -LiteralPath $unix))) {
 		if (Test-Path -LiteralPath $exe) { return $exe }
 		return $unix
 	}
@@ -91,10 +131,16 @@ function Install-LocalVcpkg {
 	$onWindows = $env:OS -eq 'Windows_NT'
 	if ($onWindows -and (Test-Path -LiteralPath $bootstrapBat)) {
 		Write-Host 'Bootstrapping vcpkg.exe...' -ForegroundColor DarkCyan
-		& $bootstrapBat -disableMetrics
+		& $bootstrapBat -disableMetrics | ForEach-Object { Write-Host $_ }
+		if ($LASTEXITCODE -ne 0) {
+			throw "vcpkg bootstrap failed with exit code $LASTEXITCODE."
+		}
 	} elseif (Test-Path -LiteralPath $bootstrapSh) {
 		Write-Host 'Bootstrapping vcpkg...' -ForegroundColor DarkCyan
-		& $bootstrapSh -disableMetrics
+		& $bootstrapSh -disableMetrics | ForEach-Object { Write-Host $_ }
+		if ($LASTEXITCODE -ne 0) {
+			throw "vcpkg bootstrap failed with exit code $LASTEXITCODE."
+		}
 	} else {
 		throw "vcpkg bootstrap script was not found under $vcpkgDir"
 	}
@@ -109,6 +155,13 @@ function Resolve-VcpkgExe {
 		[Parameter(Mandatory = $true)][string]$Root,
 		[switch]$AllowClone
 	)
+
+	# Only the repo-local checkout may be realigned to vcpkg.json's
+	# builtin-baseline, so with -CloneVcpkg it must be resolved before any
+	# VCPKG_ROOT/PATH hit; otherwise an existing clone keeps a stale revision.
+	if ($AllowClone -and (Test-Path -LiteralPath (Join-Path $Root 'vcpkg'))) {
+		return (Install-LocalVcpkg -Root $Root)
+	}
 
 	$existing = Find-ExistingVcpkg -Root $Root
 	if ($existing) {
