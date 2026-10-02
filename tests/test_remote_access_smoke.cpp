@@ -198,12 +198,16 @@ static bool test_invalid_bind_fail_closed_denies_lan()
 	       ClassifyRemoteBindAddress(L"127.0.0.1:80") == RemoteBindKind::Invalid &&
 	       ClassifyRemoteBindAddress(L"::1junk") == RemoteBindKind::Invalid &&
 	       ClassifyRemoteBindAddress(L"1:2") == RemoteBindKind::Invalid &&
+	       ClassifyRemoteBindAddress(L"1:::") == RemoteBindKind::Invalid &&
 	       ClassifyRemoteBindAddress(L"1:::2") == RemoteBindKind::Invalid &&
 	       ClassifyRemoteBindAddress(L"12345::1") == RemoteBindKind::Invalid &&
+	       ClassifyRemoteBindAddress(L"[::1]:80") == RemoteBindKind::Invalid &&
 	       ClassifyRemoteBindAddress(L"[127.0.0.1]") == RemoteBindKind::Invalid &&
 	       ClassifyRemoteBindAddress(L"[192.168.0.1]") == RemoteBindKind::Invalid &&
 	       ClassifyRemoteBindAddress(L"[localhost]") == RemoteBindKind::Invalid &&
 	       ClassifyRemoteBindAddress(L"[127.0.0.1") == RemoteBindKind::Invalid &&
+	       ClassifyRemoteBindAddress(L"locahost") == RemoteBindKind::Invalid &&
+	       ClassifyRemoteBindAddress(L"garbage") == RemoteBindKind::Invalid &&
 	       ClassifyRemoteBindAddress(L"2001:db8::ffff:1") == RemoteBindKind::NonLocalhost &&
 	       ClassifyRemoteBindAddress(L"0:0:0:0:0:0:0:1") == RemoteBindKind::LocalhostOnly &&
 	       ClassifyRemoteBindAddress(L"::01") == RemoteBindKind::LocalhostOnly &&
@@ -244,6 +248,17 @@ static bool test_invalid_bind_fail_closed_denies_lan()
 	           true,
 	           false,
 	           L"256.0.0.1",
+	           true,
+	           true,
+	           false) &&
+	       !RemoteAccessAllowedCore(
+	           oLan,
+	           NULL,
+	           false,
+	           true,
+	           true,
+	           false,
+	           L"locahost",
 	           true,
 	           true,
 	           false);

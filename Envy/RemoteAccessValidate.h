@@ -279,7 +279,9 @@ inline RemoteBindKind ClassifyRemoteBindAddress(LPCTSTR pszBindAddress)
 
 	// Dotted IPv4: once the value starts with a digit, treat syntax errors as
 	// Invalid (fail closed) rather than NonLocalhost so AllowWAN/LAN cannot
-	// reopen. Hostnames / non-digit starts remain NonLocalhost.
+	// reopen. BindAddress is an IP/policy value only: the sole accepted name
+	// is "localhost" (handled above). Typos such as "locahost" or other
+	// non-IP text are Invalid so AllowLAN/WAN/CIDR cannot reopen.
 	// Bracketed forms are only valid for IPv6 literals, which always contain
 	// ':' (handled above). A bracketed value here (e.g. "[127.0.0.1]") is
 	// not a valid bind address: fail closed instead of treating it as a
@@ -289,7 +291,7 @@ inline RemoteBindKind ClassifyRemoteBindAddress(LPCTSTR pszBindAddress)
 	if (*psz == L'[')
 		return RemoteBindKind::Invalid;
 	if (*psz < L'0' || *psz > L'9')
-		return RemoteBindKind::NonLocalhost;
+		return RemoteBindKind::Invalid;
 
 	for (int i = 0; i < 4; ++i)
 	{
