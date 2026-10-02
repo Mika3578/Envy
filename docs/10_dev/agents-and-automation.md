@@ -217,9 +217,13 @@ Read the remote HEAD before work and again before push. If it changed, stop and
 reconcile ownership; never force or overwrite another writer. Make one coherent
 batch, run targeted tests, create a signed commit using the configured human
 GitHub noreply identity, and push once. Verify GitHub reports the signature.
-Reply with commit/test evidence and resolve only genuinely fixed threads after
-the push; do not silently dismiss disputed or uncertain findings. Let CI run;
-when the PR is mergeable toward `develop`, request Copilot Code Review per
+Reply with commit/test evidence when the finding is fixed. When no code
+change is warranted, reply with a standalone technical justification on the
+thread. Resolve a thread on GitHub only after it is **treated** (fix on the
+current head or justified reply). Do not resolve without a reply; do not
+request Copilot Code Review while untreated threads remain. Let CI run;
+when every thread on the head is treated and the PR is mergeable toward
+`develop`, request **one** Copilot Code Review per stable head per
 `AGENTS.md` rule 12 (Copilot review-on-push stays off). Do not request other
 reviewers automatically unless the maintainer asks.
 
