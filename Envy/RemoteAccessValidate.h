@@ -189,6 +189,8 @@ inline bool RemoteParseIpv6Literal(LPCTSTR psz, size_t nLen, unsigned short (&gr
 				return false;
 			bDouble = true;
 			++i;
+			if (i < nLen && psz[i] == L':')
+				return false; // reject ::: and other empty segments
 		}
 	}
 
@@ -248,8 +250,12 @@ inline RemoteBindKind ClassifyRemoteBindAddress(LPCTSTR pszBindAddress)
 
 	if (_tcsicmp(pszBindAddress, L"localhost") == 0)
 		return RemoteBindKind::LocalhostOnly;
-	if (RemoteAddressStringIsIpv6Loopback(pszBindAddress))
+	if (_tcscmp(pszBindAddress, L"::1") == 0)
 		return RemoteBindKind::LocalhostOnly;
+	// Bind parser accepts IPv6 literals only (no [::1]:port); client helpers may
+	// accept bracketed loopback with a port, but bind values must not.
+	if (_tcsncmp(pszBindAddress, L"[::1]:", 6) == 0 && pszBindAddress[6] != 0)
+		return RemoteBindKind::Invalid;
 
 	// Colon-containing values must be complete IPv6 literals (optionally
 	// bracketed, optionally with an embedded IPv4 tail). Dotted forms with a
