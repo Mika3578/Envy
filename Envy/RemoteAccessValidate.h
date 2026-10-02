@@ -57,17 +57,6 @@ inline bool RemoteAddressStringIsIpv6Loopback(LPCTSTR pszClientAddress)
 	return true;
 }
 
-inline bool RemoteClientIsLoopback(const IN_ADDR& clientIP, LPCTSTR pszClientAddress)
-{
-	// Prefer IPv6-shaped peer text. AcceptFrom may fill m_sAddress via InetNtop
-	// while m_pHost remains SOCKADDR_IN; those IPv4 bytes are not an IPv4 peer
-	// for dual-stack sockets and must not classify a non-loopback IPv6 peer as
-	// loopback when they coincidentally start with 127 (D-017).
-	if (pszClientAddress != NULL && _tcschr(pszClientAddress, L':') != NULL)
-		return RemoteAddressStringIsIpv6Loopback(pszClientAddress);
-	return RemoteIpv4IsLoopback(clientIP);
-}
-
 // Trim leading/trailing space and tab. Returns the start pointer; nLen is the
 // trimmed character count (may be 0). Callers must not read past nLen.
 inline LPCTSTR RemoteTrimBindAddressWhitespace(LPCTSTR pszBindAddress, size_t& nLen)
@@ -224,6 +213,36 @@ inline bool RemoteIpv6GroupsAreLoopback(const unsigned short (&groups)[8])
 	if (groups[5] == 0xFFFFu || groups[5] == 0)
 		return (groups[6] >> 8) == 127u;
 	return false;
+}
+
+inline bool RemoteClientIsLoopback(const IN_ADDR& clientIP, LPCTSTR pszClientAddress)
+{
+	// Prefer IPv6-shaped peer text. AcceptFrom may fill m_sAddress via InetNtop
+	// while m_pHost remains SOCKADDR_IN; those IPv4 bytes are not an IPv4 peer
+	// for dual-stack sockets and must not classify a non-loopback IPv6 peer as
+	// loopback when they coincidentally start with 127 (D-017).
+	if (pszClientAddress != NULL && _tcschr(pszClientAddress, L':') != NULL)
+	{
+		if (RemoteAddressStringIsIpv6Loopback(pszClientAddress))
+			return true;
+		// InetNtop may emit mapped/canonical forms (::ffff:127.0.0.1, ::01,
+		// 0:0:0:0:0:0:0:1) that the narrow ::1 helper rejects; reuse the same
+		// group classification as BindAddress.
+		size_t nLen = 0;
+		LPCTSTR psz = RemoteTrimBindAddressWhitespace(pszClientAddress, nLen);
+		if (psz == NULL || nLen == 0)
+			return false;
+		if (nLen >= 2 && psz[0] == L'[' && psz[nLen - 1] == L']')
+		{
+			++psz;
+			nLen -= 2;
+		}
+		unsigned short groups[8];
+		if (!RemoteParseIpv6Literal(psz, nLen, groups))
+			return false;
+		return RemoteIpv6GroupsAreLoopback(groups);
+	}
+	return RemoteIpv4IsLoopback(clientIP);
 }
 
 // BindAddress classification for fail-closed authorization.

@@ -68,9 +68,15 @@ static bool test_client_loopback_prefers_ipv6_peer_string()
 	const IN_ADDR oFakeLoopOctet = make_ipv4_octets(127, 1, 2, 3);
 	const IN_ADDR oLan = make_ipv4_octets(10, 0, 0, 5);
 	wchar_t szDocPrefix[32];
+	wchar_t szMappedLoop[40];
+	wchar_t szMappedLan[40];
 	swprintf_s(szDocPrefix, 32, L"2001:db8::%u", 1u);
+	swprintf_s(szMappedLoop, 40, L"::ffff:%u.%u.%u.%u", 127u, 0u, 0u, 1u);
+	swprintf_s(szMappedLan, 40, L"::ffff:%u.%u.%u.%u", 10u, 0u, 0u, 5u);
 	return !RemoteClientIsLoopback(oFakeLoopOctet, szDocPrefix) &&
 	       RemoteClientIsLoopback(oLan, L"::1") &&
+	       RemoteClientIsLoopback(oLan, szMappedLoop) &&
+	       !RemoteClientIsLoopback(oFakeLoopOctet, szMappedLan) &&
 	       RemoteClientIsLoopback(oFakeLoopOctet, NULL) &&
 	       !RemoteClientIsLoopback(oLan, NULL);
 }
