@@ -296,4 +296,26 @@ git add Envy/LegacyInvalid.cpp
 git commit -q -m "add utf8 c1 on legacy invalid line"
 run_check_expect_fail "$LEGACY_INVALID_BASE" "$(git rev-parse HEAD)"
 
+# FAIL: uppercase Windows source suffix must still be scanned on Linux CI
+git checkout -q -B upper-suffix "$BASE"
+printf '// header\r\nvoid u();\r\n' >Envy/Upper.CPP
+git add Envy/Upper.CPP
+git commit -q -m "upper cpp base"
+UPPER_BASE="$(git rev-parse HEAD)"
+printf '// header\r\nvoid u();\r\n// \xef\xbf\xbd\r\n' >Envy/Upper.CPP
+git add Envy/Upper.CPP
+git commit -q -m "upper cpp fffd"
+run_check_expect_fail "$UPPER_BASE" "$(git rev-parse HEAD)"
+
+# FAIL: non-ASCII filename must not be skipped by core.quotepath quoting
+git checkout -q -B nonascii-name "$BASE"
+printf '// header\r\nvoid n();\r\n' >"Envy/é.cpp"
+git add "Envy/é.cpp"
+git commit -q -m "nonascii name base"
+NONASCII_BASE="$(git rev-parse HEAD)"
+printf '// header\r\nvoid n();\r\n// \xef\xbf\xbd\r\n' >"Envy/é.cpp"
+git add "Envy/é.cpp"
+git commit -q -m "nonascii name fffd"
+run_check_expect_fail "$NONASCII_BASE" "$(git rev-parse HEAD)"
+
 echo "OK   check-source-encoding.selftest"

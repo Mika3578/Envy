@@ -144,6 +144,7 @@ class ChangedPath:
 
 
 def git_changed_paths(repo_root: str, base: str, head: str) -> list[ChangedPath]:
+    # -z avoids core.quotepath mangling so non-ASCII names stay lossless.
     r = subprocess.run(
         [
             "git",
@@ -151,34 +152,46 @@ def git_changed_paths(repo_root: str, base: str, head: str) -> list[ChangedPath]
             repo_root,
             "diff",
             "--name-status",
+            "-z",
             "-M",
             f"{base}...{head}",
         ],
         capture_output=True,
         check=True,
-        text=True,
     )
     out: list[ChangedPath] = []
-    for line in r.stdout.splitlines():
-        if not line.strip():
+    fields = [f.decode("utf-8", "surrogateescape") for f in r.stdout.split(b"\0") if f]
+    i = 0
+    while i < len(fields):
+        status = fields[i]
+        i += 1
+        if status.startswith("R") or status.startswith("C"):
+            if i + 1 >= len(fields):
+                break
+            base_path = fields[i]
+            head_path = fields[i + 1]
+            i += 2
+            out.append(ChangedPath(head_path=head_path, base_path=base_path))
             continue
-        parts = line.split("\t")
-        status = parts[0]
-        if status.startswith("R") and len(parts) >= 3:
-            out.append(ChangedPath(head_path=parts[2], base_path=parts[1]))
-        elif status == "D":
+        if i >= len(fields):
+            break
+        path = fields[i]
+        i += 1
+        if status == "D":
             continue
-        elif status in ("A", "M", "C") and len(parts) >= 2:
-            out.append(ChangedPath(head_path=parts[1], base_path=parts[1]))
+        if status in ("A", "M", "T"):
+            out.append(ChangedPath(head_path=path, base_path=path))
     return out
 
 
 def is_scanned_path(path: str) -> bool:
     if not any(path.startswith(p) for p in FIRST_PARTY_PREFIXES):
         return False
-    if path.endswith(SOURCE_SUFFIXES):
+    # Windows source classes: suffix match must be case-insensitive on Linux CI.
+    lower = path.lower()
+    if lower.endswith(SOURCE_SUFFIXES):
         return True
-    if path.endswith(ISS_SUFFIX):
+    if lower.endswith(ISS_SUFFIX):
         return True
     return False
 
