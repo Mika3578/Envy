@@ -2,7 +2,8 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-28
+- **Last Updated:** 2026-09-30
+- **Changelog Entry:** 2026-09-30 — #394: expand always-on PR CodeQL to python and GitHub Actions (`actions`); keep C# deferred in cheap Draft (live-test/Ready); document Default-setup migration and classifier comments.
 - **Changelog Entry:** 2026-09-28 — #367: separate declared connection capacity from explicit transfer limits, preserve user caps, share capacity presets, and add transfer-limit regression coverage.
 - **Changelog Entry:** 2026-09-28 — #363: correct ED2K SourceEx2 request/answer framing, add versioned record validation and golden vectors, and document the live interop gap.
 - **Changelog Entry:** 2026-09-28 — #381 simplification: remove the duplicate PR Gate poller and conclusion helpers; keep Draft → `stage:live-test` → Ready phase selection and native workflow checks. Protect develop now removes PR Gate, required signatures, duplicate gitleaks status, and required Documentation Check, with Copilot review-on-push disabled. Cursor automations remain external manual operations.
@@ -235,12 +236,14 @@
   mirrors the Probot-capable subset; the ruleset is the source of truth.
 - CI uses a two-speed model: change-aware PR jobs for Windows/Remote/deps plus
   full integration on `develop` / scheduled analysis. Every PR always runs
-  CodeQL Analyze (c-cpp), (javascript-typescript), and (csharp), plus blocking
-  Format Check. Those `pull_request` workflows also run on `ready_for_review`.
-  The live `Protect develop` ruleset requires the eleven named
-  contexts listed in `.github/settings.yml`. `PR Gate` waits for classified CI
-  (and always for the three CodeQL jobs + Format Check) — it is not a review
-  substitute. See `docs/10_dev/agents-and-automation.md`.
+  CodeQL Analyze (c-cpp), (javascript-typescript), (python), and (actions),
+  plus blocking Format Check; C# analysis runs in full phases (live-test /
+  Ready) and is deferred in cheap Draft. Those `pull_request` workflows also
+  run on `ready_for_review`. The live `Protect develop` ruleset requires the
+  named contexts listed in `.github/settings.yml` and
+  `docs/10_dev/agents-and-automation.md`. Native workflow conclusions and
+  conversation resolution determine mergeability — there is no aggregate PR
+  Gate. See `docs/10_dev/agents-and-automation.md`.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
 ## Canonical Documentation Split

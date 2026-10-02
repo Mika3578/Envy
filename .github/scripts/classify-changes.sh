@@ -4,9 +4,11 @@
 # Outputs GitHub Actions flags (true/false) to $GITHUB_OUTPUT when set,
 # otherwise prints them to stdout. Non-PR events force a full run.
 #
-# CodeQL (c-cpp / javascript-typescript / csharp) and Format Check always run
-# on every PR via their own workflows/jobs — they are intentionally NOT gated
-# here (avoids Code Scanning "configuration not found" and false-green format).
+# Always-on on every PR (not gated here): CodeQL c-cpp / javascript-typescript /
+# python / actions, plus Format Check. C# CodeQL is deferred in cheap Draft and
+# runs in live-test/Ready (see codeql-csharp.yml) — do not list it as always-on.
+# Keeping these outside classify-changes avoids Code Scanning "configuration not
+# found" and false-green format when the classifier fails.
 #
 # Optional:
 #   CLASSIFY_FILES   newline-separated path list (skips GitHub API)
