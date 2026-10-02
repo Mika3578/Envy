@@ -14,12 +14,13 @@ Cursor Agent → PR → CodeRabbit (advisory)
                   → reviewdog/clang-tidy (advisory)
                   → MSVC + EnvyTests + Format
                   → CodeQL + Sonar + gitleaks
-                  → squash auto-merge (update branch + required checks)
+                  → maintainer manual squash (approval + current required checks)
                   → develop
 ```
 
 Personal repositories may not support Merge Queue; **do not block** on enabling
-it. Prefer strict required checks + update-branch + squash auto-merge.
+it. Use strict required checks, an up-to-date branch, genuine non-author
+approval, and maintainer manual squash with a curated technical body.
 
 ## Local commands
 
@@ -59,8 +60,10 @@ BLOCK (native GitHub review rules on Protect develop):
 - Force pushes blocked (`non_fast_forward`); branch commits are not required
   to be signed by Protect develop.
 - Code scanning merge protection: CodeQL + Gitleaks (current thresholds)
-- GitHub **Code Quality** severity **All** (live). Code Quality complements —
-  it does not replace — SonarCloud/CodeQL/MSVC/tests for the C++ core.
+- GitHub **Code Quality** severity **All** (live). Desired
+  `protect-develop.desired.json` preserves it explicitly; this PR does not
+  demote or remove the gate. Code Quality complements — it does not replace —
+  SonarCloud/CodeQL/MSVC/tests for the C++ core.
 - Copilot ruleset target: `review_on_push` **off**, draft review **off**.
 - No draft; squash only on `develop`; linear history; **no bypass actors**
 
@@ -101,7 +104,7 @@ Do not add `regex` to `enabledManagers` unless a real `customManagers` regex ent
 | Qodo / PR-Agent | Manual on high-risk PRs only | Optional |
 | Cursor Bugbot | Exceptional / paid | Not primary |
 
-High-risk paths (extra bar before auto-merge): G1/G2, ED2K/Kad, BitTorrent, NMDC/ADC,
+High-risk paths (additional evidence before manual merge): G1/G2, ED2K/Kad, BitTorrent, NMDC/ADC,
 Network/NAT, packet parsing, crypto, threading/locking, serialization, Remote.
 Require a regression/protocol test, explicit “no wire-format change”, or reference
 comparison notes.
@@ -133,9 +136,8 @@ comparison notes.
      Exclude review-governance (`AGENTS.md`, `.github/copilot-instructions.md`,
      `.github/skills/**`) and infra (`.github/settings.yml`,
      `.github/workflows/**`). Do not use `**/*.md` (it would include
-     `AGENTS.md`). Leave the list **blank** only for a one-shot merge
-     where Copilot must count on a governance PR (then apply the globs
-     immediately after).
+     `AGENTS.md`). Keep those governance exclusions; use explicit human review for
+     governance changes rather than temporarily widening Copilot counting.
    - Protect develop should request Copilot only for the final stable review;
      keep review-on-push and draft review **off**.
    Assessment ≠ approval. Copilot-authored PRs still need a human.
@@ -144,7 +146,7 @@ comparison notes.
    architecture). Independent checks (builds, EnvyTests when C++
    changes, CodeQL, SonarCloud, gitleaks, and secret-scan) stay
    required.
-4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks + **≥1 GitHub APPROVED review** on `Protect develop`.
+4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Use **maintainer manual squash** + update-branch + strict required checks + **≥1 non-author GitHub APPROVED review** on `Protect develop`.
 5. **Protect develop (live, re-verified 2026-09-20)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing
    docs):
