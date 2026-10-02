@@ -187,6 +187,7 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 
 	m_nOffset			= SIZE_UNKNOWN;
 	m_nPosition			= 0;
+	m_nContentLength	= SIZE_UNKNOWN;
 	m_bWantBackwards	= FALSE;
 	m_bRecvBackwards	= FALSE;
 	m_bTigerFetch		= FALSE;
@@ -570,6 +571,17 @@ BOOL CDownloadTransferHTTP::OnRead()
 		{
 		case dtsRequesting:
 			if (!ReadResponseLine()) return FALSE;
+			if (m_nState == dtsRequesting)
+			{
+				if (GetInputLength() >= 16u * 1024u)
+				{
+					theApp.Message(MSG_ERROR, L"Rejected oversized metadata headers from %s",
+					               (LPCTSTR)m_sAddress);
+					Close(TRI_FALSE);
+					return FALSE;
+				}
+				break;
+			}
 			if (m_nState != dtsHeaders) break;
 
 		case dtsHeaders:
@@ -602,6 +614,17 @@ BOOL CDownloadTransferHTTP::OnRead()
 		{
 		case dtsRequesting:
 			if (!ReadResponseLine()) return FALSE;
+			if (m_nState == dtsRequesting)
+			{
+				if (GetInputLength() >= 16u * 1024u)
+				{
+					theApp.Message(MSG_ERROR, L"Rejected oversized metadata headers from %s",
+					               (LPCTSTR)m_sAddress);
+					Close(TRI_FALSE);
+					return FALSE;
+				}
+				break;
+			}
 			if (m_nState != dtsHeaders) break;
 
 		case dtsHeaders:
@@ -641,6 +664,17 @@ BOOL CDownloadTransferHTTP::OnRead()
 	{
 	case dtsRequesting:
 		if ( ! ReadResponseLine() ) return FALSE;
+		if ( m_nState == dtsRequesting )
+		{
+			if ( GetInputLength() >= 16u * 1024u )
+			{
+				theApp.Message( MSG_ERROR, L"Rejected oversized HTTP headers from %s",
+				               (LPCTSTR)m_sAddress );
+				Close( TRI_FALSE );
+				return FALSE;
+			}
+			break;
+		}
 		if ( m_nState != dtsHeaders ) break;
 
 	case dtsHeaders:
@@ -1250,6 +1284,13 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			Close(TRI_FALSE);
 			return FALSE;
 		}
+		if (m_nContentLength == 0)
+		{
+			theApp.Message(MSG_ERROR, L"Rejected empty THEX response from %s",
+			               (LPCTSTR)m_sAddress);
+			Close(TRI_FALSE);
+			return FALSE;
+		}
 		if ( m_nContentLength == SIZE_UNKNOWN && ! m_bKeepAlive )
 		{
 			// This should fix the PHEX TTH problem with closed connection.
@@ -1848,7 +1889,7 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 		     (m_nLength > 0 && pInput->m_nLength < m_nLength)))
 			return TRUE;
 
-		if (!bDropped && !m_bTigerAbandon && m_nLength != SIZE_UNKNOWN && m_nLength > 0)
+		if (!m_bTigerAbandon && m_nLength != SIZE_UNKNOWN && m_nLength > 0)
 		{
 			theApp.Message(MSG_DEBUG, L"THEX DIME: malformed header on complete buffered response");
 			Close(TRI_FALSE);
