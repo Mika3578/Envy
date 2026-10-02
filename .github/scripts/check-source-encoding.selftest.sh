@@ -18,7 +18,8 @@ mkdir -p Envy Installer/Scripts
 run_check() {
 	local base="$1"
 	local head="$2"
-	CHECK_ENCODING_ROOT="$TMP" CHECK_ENCODING_LIB="$LIB" BASE_SHA="$base" HEAD_SHA="$head" bash "$SCRIPT"
+	# Clear ambient CI event payload so fixture repos never inherit real PR labels.
+	GITHUB_EVENT_PATH="" CHECK_ENCODING_ROOT="$TMP" CHECK_ENCODING_LIB="$LIB" BASE_SHA="$base" HEAD_SHA="$head" bash "$SCRIPT"
 }
 
 run_check_with_event() {
