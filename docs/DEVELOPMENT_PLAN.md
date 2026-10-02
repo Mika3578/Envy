@@ -2,7 +2,10 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-28
+- **Last Updated:** 2026-09-30
+- **Changelog Entry:** 2026-09-30 — #393: share one `XmlParseBudget` across G1 per-hit `ReadXML` extensions and the trailer; THEX/MetaFetch receive caps; reject keep-alive unknown THEX length; finish buffered known-length MetaFetch on drop; parse THEX headers before the 16 KiB header-phase fail-closed; `PeekDIME` rejects oversized DIME `text/xml` before buffering the body.
+- **Changelog Entry:** 2026-09-30 — #393: gate G1 hit XML raw allocation and charge shared G2 METADATA character budget before `ReadString`; add EnvyTests filter entry for the peer-XML smoke test.
+- **Changelog Entry:** 2026-09-30 — #393: share peer XML parse budgets across multi-fragment G1/G2 metadata and gate profile/query `ReadString` behind the 256 KiB pre-materialization cap.
 - **Changelog Entry:** 2026-09-28 — #367: separate declared connection capacity from explicit transfer limits, preserve user caps, share capacity presets, and add transfer-limit regression coverage.
 - **Changelog Entry:** 2026-09-28 — #363: correct ED2K SourceEx2 request/answer framing, add versioned record validation and golden vectors, and document the live interop gap.
 - **Changelog Entry:** 2026-09-28 — #381 simplification: remove the duplicate PR Gate poller and conclusion helpers; keep Draft → `stage:live-test` → Ready phase selection and native workflow checks. Protect develop now removes PR Gate, required signatures, duplicate gitleaks status, and required Documentation Check, with Copilot review-on-push disabled. Cursor automations remain external manual operations.

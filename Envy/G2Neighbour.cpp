@@ -1,7 +1,7 @@
 //
 // G2Neighbour.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -42,6 +42,7 @@
 #include "GProfile.h"
 #include "Uploads.h"
 #include "XML.h"
+#include "XmlParseValidate.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -1440,17 +1441,24 @@ BOOL CG2Neighbour::OnProfileDelivery(CG2Packet* pPacket)
 
 	G2_PACKET nType;
 	DWORD nLength;
+	XmlParseBudget oBudget = XmlParseBudget::PeerDefaults();
 
 	while ( pPacket->ReadPacket( nType, nLength ) )
 	{
 		const DWORD nOffset = pPacket->m_nPosition + nLength;
 
-		if ( nType == G2_PACKET_XML )
+		if (nType == G2_PACKET_XML)
 		{
-			if ( CXMLElement* pXML = CXMLElement::FromString( pPacket->ReadString( nLength ), TRUE ) )
+			// Bound before ReadString; oversized XML still advances via nOffset.
+			if (nLength > 0 && nLength <= XML_PEER_PARSE_CHARS_MAX &&
+			    oBudget.ConsumeChars(nLength))
 			{
-				if ( m_pProfile == NULL ) m_pProfile = new CGProfile();
-				if ( ! m_pProfile->FromXML( pXML ) ) delete pXML;
+				if (CXMLElement* pXML = CXMLElement::FromPeerString(
+				        pPacket->ReadString(nLength), TRUE, NULL, &oBudget))
+				{
+					if (m_pProfile == NULL) m_pProfile = new CGProfile();
+					if (!m_pProfile->FromXML(pXML)) delete pXML;
+				}
 			}
 		}
 

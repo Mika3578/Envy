@@ -1,7 +1,7 @@
 //
 // DownloadTransferHTTP.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -31,6 +31,7 @@
 #include "Buffer.h"
 #include "GProfile.h"
 #include "XML.h"
+#include "XmlParseValidate.h"
 #include "VendorCache.h"
 #include "Transfers.h"
 #include "Security.h" // Vendors
@@ -46,29 +47,30 @@ static char THIS_FILE[] = __FILE__;
 // CDownloadTransferHTTP construction
 
 CDownloadTransferHTTP::CDownloadTransferHTTP(CDownloadSource* pSource)
-	: CDownloadTransfer( pSource, PROTOCOL_HTTP )
-	, m_nRequests		( 0 )
-	, m_tContent		( 0 )
-	, m_bBadResponse	( FALSE )
-	, m_bBusyFault		( FALSE )
-	, m_bRangeFault		( FALSE )
-	, m_bKeepAlive		( FALSE )
-	, m_bTigerFetch 	( FALSE )
-	, m_bTigerIgnore	( FALSE )
-	, m_bMetaFetch		( FALSE )
-	, m_bGotRange		( FALSE )
-	, m_bGotRanges		( FALSE )
-	, m_bQueueFlag		( FALSE )
-	, m_nRetryDelay 	( Settings.Downloads.RetryDelay )
-	, m_nRetryAfter 	( 0 )
-	, m_bRedirect		( FALSE )
-	, m_bGzip			( FALSE )
-	, m_bCompress		( FALSE )
-	, m_bDeflate		( FALSE )
-	, m_bChunked		( FALSE )
-	, m_ChunkState		( Header )
-	, m_nChunkLength	( SIZE_UNKNOWN )
-	, m_nContentLength	( SIZE_UNKNOWN )
+    : CDownloadTransfer(pSource, PROTOCOL_HTTP)
+    , m_nRequests(0)
+    , m_tContent(0)
+    , m_bBadResponse(FALSE)
+    , m_bBusyFault(FALSE)
+    , m_bRangeFault(FALSE)
+    , m_bKeepAlive(FALSE)
+    , m_bTigerFetch(FALSE)
+    , m_bTigerIgnore(FALSE)
+    , m_bTigerAbandon(FALSE)
+    , m_bMetaFetch(FALSE)
+    , m_bGotRange(FALSE)
+    , m_bGotRanges(FALSE)
+    , m_bQueueFlag(FALSE)
+    , m_nRetryDelay(Settings.Downloads.RetryDelay)
+    , m_nRetryAfter(0)
+    , m_bRedirect(FALSE)
+    , m_bGzip(FALSE)
+    , m_bCompress(FALSE)
+    , m_bDeflate(FALSE)
+    , m_bChunked(FALSE)
+    , m_ChunkState(Header)
+    , m_nChunkLength(SIZE_UNKNOWN)
+    , m_nContentLength(SIZE_UNKNOWN)
 {
 }
 
@@ -556,6 +558,83 @@ BOOL CDownloadTransferHTTP::OnRun()
 
 BOOL CDownloadTransferHTTP::OnRead()
 {
+	// Metadata fetches use a capped receive path for the whole response so a
+	// close-delimited peer cannot grow m_pInput past XML_PEER_PARSE_CHARS_MAX
+	// while headers are still being parsed (before dtsMetadata).
+	if (m_bMetaFetch)
+	{
+		if (!ReceiveMetadataInput())
+			return FALSE;
+
+		switch (m_nState)
+		{
+		case dtsRequesting:
+			if (!ReadResponseLine()) return FALSE;
+			if (m_nState != dtsHeaders) break;
+
+		case dtsHeaders:
+			if (!ReadHeaders()) return FALSE;
+			// OnHeadersComplete already ran ReadMetadata when it set dtsMetadata,
+			// so a body buffered with the headers was consumed there. Running the
+			// reader again in the same read would wait on the emptied buffer and
+			// misreport a completed fetch as unfinished (OnDropped then fails a
+			// succeeded transfer). Later reads dispatch through case dtsMetadata.
+			break;
+
+		case dtsMetadata:
+			return ReadMetadata();
+
+		case dtsFlushing:
+			return ReadFlush();
+		}
+
+		return TRUE;
+	}
+
+	// THEX fetches likewise cap the whole response (headers + body) so an
+	// unbounded CDownloadTransfer::OnRead cannot fill m_pInput before dtsTiger.
+	if (m_bTigerFetch)
+	{
+		if (!ReceiveTigerInput())
+			return FALSE;
+
+		switch (m_nState)
+		{
+		case dtsRequesting:
+			if (!ReadResponseLine()) return FALSE;
+			if (m_nState != dtsHeaders) break;
+
+		case dtsHeaders:
+			if (!ReadHeaders()) return FALSE;
+			// Header-phase receive is capped at 16 KiB. Fail closed only after
+			// attempting to parse headers so a short header block plus a
+			// prefetched body prefix is not rejected as "oversized headers".
+			// OnHeadersComplete already ran ReadTiger when it set dtsTiger, so
+			// never fall into the body reader in the same read; later reads
+			// dispatch through case dtsTiger.
+			if (m_nState != dtsTiger)
+			{
+				const DWORD nHeaderCap = 16u * 1024u;
+				if (GetInputLength() >= nHeaderCap)
+				{
+					theApp.Message(MSG_ERROR, L"Rejected oversized THEX headers from %s",
+					               (LPCTSTR)m_sAddress);
+					Close(TRI_FALSE);
+					return FALSE;
+				}
+			}
+			break;
+
+		case dtsTiger:
+			return ReadTiger();
+
+		case dtsFlushing:
+			return ReadFlush();
+		}
+
+		return TRUE;
+	}
+
 	CDownloadTransfer::OnRead();
 
 	switch ( m_nState )
@@ -570,12 +649,6 @@ BOOL CDownloadTransferHTTP::OnRead()
 
 	case dtsDownloading:
 		return ReadContent();
-
-	case dtsTiger:
-		return ReadTiger();
-
-	case dtsMetadata:
-		return ReadMetadata();
 
 	case dtsFlushing:
 		return ReadFlush();
@@ -759,13 +832,16 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		if ( strValue.CompareNoCase( L"close" ) == 0 ) m_bKeepAlive = FALSE;
 		break;
 
-	case 'l':		// "Content-Length"
-		{
-			QWORD nTotal;
-			if ( _stscanf( strValue, L"%I64u", &nTotal ) == 1 && nTotal > 0 )
-				m_nContentLength = nTotal;
-		}
-		break;
+	case 'l': // "Content-Length"
+	{
+		QWORD nTotal;
+		// Accept 0 (empty body) for metadata/THEX fetches only; file downloads
+		// keep SIZE_UNKNOWN so a zero length cannot complete them with no data.
+		if (_stscanf(strValue, L"%I64u", &nTotal) == 1 && nTotal < SIZE_UNKNOWN &&
+		    (nTotal > 0 || m_bMetaFetch || m_bTigerFetch))
+			m_nContentLength = nTotal;
+	}
+	break;
 
 	case 'r':		// "Content-Range"
 		{
@@ -1164,6 +1240,16 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 	}
 	else if ( m_bTigerFetch )
 	{
+		// Keep-alive unknown Content-Length has no completion signal for DIME;
+		// reject it like MetaFetch. Close-delimited unknown length is finalized
+		// in OnDropped.
+		if (m_nContentLength == SIZE_UNKNOWN && m_bKeepAlive)
+		{
+			theApp.Message(MSG_ERROR, L"Rejected unbounded keep-alive THEX from %s",
+			               (LPCTSTR)m_sAddress);
+			Close(TRI_FALSE);
+			return FALSE;
+		}
 		if ( m_nContentLength == SIZE_UNKNOWN && ! m_bKeepAlive )
 		{
 			// This should fix the PHEX TTH problem with closed connection.
@@ -1202,10 +1288,43 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 	}
 	else if ( m_bMetaFetch )
 	{
+		// Cap known Content-Length before buffering/materializing peer metadata XML.
+		// Close-delimited unknown length is finalized in OnDropped (byte-capped).
+		// Chunked metadata is rejected: dtsMetadata has no chunk decoder (unlike
+		// ReadContent), so accepting Transfer-Encoding: chunked would feed framing
+		// bytes to the XML parser or hang keep-alive transfers.
+		if (m_bChunked)
+		{
+			theApp.Message(MSG_ERROR, L"Rejected chunked peer metadata from %s",
+			               (LPCTSTR)m_sAddress);
+			Close(TRI_FALSE);
+			return FALSE;
+		}
+		if (m_nContentLength != SIZE_UNKNOWN &&
+		    m_nContentLength > XML_PEER_PARSE_CHARS_MAX)
+		{
+			theApp.Message(MSG_ERROR, L"Rejected oversized peer metadata from %s",
+			               (LPCTSTR)m_sAddress);
+			Close(TRI_FALSE);
+			return FALSE;
+		}
+		if (m_nContentLength == SIZE_UNKNOWN && m_bKeepAlive)
+		{
+			theApp.Message(MSG_ERROR, L"Rejected unbounded keep-alive peer metadata from %s",
+			               (LPCTSTR)m_sAddress);
+			Close(TRI_FALSE);
+			return FALSE;
+		}
+
 		if ( ! m_bGotRange )
 		{
 			m_nOffset = 0;
 			m_nLength = m_nContentLength;
+		}
+		else if (m_nLength != SIZE_UNKNOWN && m_nLength > XML_PEER_PARSE_CHARS_MAX)
+		{
+			Close(TRI_FALSE);
+			return FALSE;
 		}
 
 		SetState( dtsMetadata );
@@ -1461,23 +1580,113 @@ BOOL CDownloadTransferHTTP::ReadContent()
 }
 
 //////////////////////////////////////////////////////////////////////
+// CDownloadTransferHTTP receive THEX (byte-capped)
+
+BOOL CDownloadTransferHTTP::ReceiveTigerInput()
+{
+	// Header phase: bound receive at 16 KiB (no tree slack). Do not fail closed
+	// here - OnRead parses headers first; a single read may include a valid
+	// body prefix after short headers. Body phase: XML + tree slack, fail closed.
+	const DWORD nTreeSlack = 16u * 1024u * 1024u;
+	const DWORD nHeaderCap = 16u * 1024u;
+	if (m_nState == dtsTiger)
+	{
+		const DWORD nBodyCap = XML_PEER_PARSE_CHARS_MAX + nTreeSlack;
+		if (!OnReadBounded(nBodyCap))
+			return FALSE;
+		if (GetInputLength() >= nBodyCap)
+		{
+			theApp.Message(MSG_ERROR, L"Rejected oversized THEX/DIME payload from %s",
+			               (LPCTSTR)m_sAddress);
+			Close(TRI_FALSE);
+			return FALSE;
+		}
+		return TRUE;
+	}
+
+	return OnReadBounded(nHeaderCap);
+}
+
+//////////////////////////////////////////////////////////////////////
+// CDownloadTransferHTTP receive Metadata (byte-capped)
+
+BOOL CDownloadTransferHTTP::ReceiveMetadataInput()
+{
+	// Body budget is XML_PEER_PARSE_CHARS_MAX (+1 overflow detect). While the
+	// status/headers are still in m_pInput (before dtsMetadata), allow a small
+	// header slack so a Content-Length of exactly the body max is not rejected
+	// merely because header bytes share the buffer.
+	const DWORD nHeaderSlack = (m_nState == dtsMetadata) ? 0u : (16u * 1024u);
+	const DWORD nHardCap = XML_PEER_PARSE_CHARS_MAX + 1u + nHeaderSlack;
+	if (!OnReadBounded(nHardCap))
+		return FALSE;
+
+	// Incomplete headers at the hard cap: ReadHeaders() returns TRUE when no
+	// complete line is available, which would otherwise spin forever.
+	if (m_nState != dtsMetadata && GetInputLength() >= nHardCap)
+	{
+		theApp.Message(MSG_ERROR, L"Rejected oversized peer metadata headers from %s",
+		               (LPCTSTR)m_sAddress);
+		Close(TRI_FALSE);
+		return FALSE;
+	}
+
+	// Enforce the body-only cap once headers have been consumed.
+	if (m_nState == dtsMetadata && GetInputLength() > XML_PEER_PARSE_CHARS_MAX)
+	{
+		theApp.Message(MSG_ERROR, L"Rejected oversized peer metadata from %s",
+		               (LPCTSTR)m_sAddress);
+		Close(TRI_FALSE);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
 // CDownloadTransferHTTP read Metadata
 
-BOOL CDownloadTransferHTTP::ReadMetadata()
+BOOL CDownloadTransferHTTP::ReadMetadata(bool bDropped)
 {
 	CLockedBuffer pInput( GetInput() );
 
-	if ( pInput->m_nLength < m_nLength ) return TRUE;
+	// Cap while buffering so close-delimited bodies cannot grow without bound.
+	if (pInput->m_nLength > XML_PEER_PARSE_CHARS_MAX)
+	{
+		Close(TRI_FALSE);
+		return FALSE;
+	}
 
-	CString strXML = pInput->ReadString( (DWORD)m_nLength, CP_UTF8 );
+	QWORD nBody = m_nLength;
+	if (nBody == SIZE_UNKNOWN)
+	{
+		// Close-delimited responses are complete only when the connection drops.
+		// OnDropped sets m_nLength / m_nContentLength from the final buffer.
+		// Keep-alive unknown length is rejected at response accept time.
+		return TRUE;
+	}
+	else if (nBody > XML_PEER_PARSE_CHARS_MAX)
+	{
+		Close(TRI_FALSE);
+		return FALSE;
+	}
 
-	if ( CXMLElement* pXML = CXMLElement::FromString( strXML, TRUE ) )
+	if (pInput->m_nLength < nBody) return TRUE;
+
+	CString strXML = pInput->ReadString((DWORD)nBody, CP_UTF8);
+
+	if (CXMLElement* pXML = CXMLElement::FromPeerString(strXML, TRUE))
 	{
 		m_pDownload->MergeMetadata( pXML );
 		delete pXML;
 	}
 
-	pInput->Remove( (DWORD)m_nLength );
+	pInput->Remove((DWORD)nBody);
+
+	// On a dropped connection OnDropped closes (and deletes) the transfer right
+	// after this call; StartNextFragment can Close first, so never run it here.
+	if (bDropped)
+		return TRUE;
 
 	return StartNextFragment();
 }
@@ -1496,10 +1705,10 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 
 	CLockedBuffer pInput( GetInput() );
 
-	if ( pInput->m_nLength < m_nLength ) return TRUE;
-
 	if ( m_sContentType.CompareNoCase( L"application/tigertree-breadthfirst" ) == 0 )
 	{
+		if (pInput->m_nLength < m_nLength) return TRUE;
+
 		m_pDownload->SetTigerTree( pInput->m_pBuffer, (DWORD)m_nLength );
 		pInput->Remove( (DWORD)m_nLength );
 	}
@@ -1507,19 +1716,68 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 			  m_sContentType.CompareNoCase( L"application/binary" ) == 0 )
 	{
 		CString strID, strType, strUUID = L"x";
-		DWORD nFlags, nBody;
+		DWORD nFlags, nBody, nHeader;
 
-		while ( pInput->ReadDIME( &nFlags, &strID, &strType, &nBody ) )
+		// Process DIME records as their headers become visible so oversized
+		// text/xml bodies are rejected before ReadDIME waits for the full body.
+		// m_nLength is the unconsumed Content-Length remaining across ReadTiger
+		// calls (decremented when a record is fully consumed or abandoned) so
+		// multi-record responses split across reads can complete under
+		// keep-alive. An abandoned response stops parsing and drains below.
+		while (!m_bTigerAbandon && pInput->PeekDIME(&nFlags, &strID, &strType, &nBody, &nHeader))
 		{
 			theApp.Message( MSG_DEBUG, L"THEX DIME: %u, '%s', '%s', %u", nFlags, (LPCTSTR)strID, (LPCTSTR)strType, nBody );
 
-			if ( ( nFlags & 1 ) && strType.CompareNoCase( L"text/xml" ) == 0 && nBody < 1024*1024 )
+			if (strType.CompareNoCase(L"text/xml") == 0 &&
+			    (nBody == 0 || nBody > XML_PEER_PARSE_CHARS_MAX))
+			{
+				theApp.Message(MSG_DEBUG, L"THEX DIME: rejecting oversized text/xml body (%u)", nBody);
+				// Close() on the drop path would delete the transfer while
+				// OnDropped still uses it; report failure so OnDropped
+				// fail-closes instead of resuming the source.
+				if (bDropped) return FALSE;
+				Close(TRI_FALSE);
+				return FALSE;
+			}
+
+			// (nBody + 3) & ~3 must not wrap a DWORD. Values near MAXDWORD
+			// (e.g. 0xfffffffe) make nPaddedBody 0 so the availability check
+			// passes with only the header present; ReadDIME then hands the
+			// huge declared length to SetTigerTree/SetHashset.
+			if (nBody > MAXDWORD - 3u)
+			{
+				theApp.Message(MSG_DEBUG, L"THEX DIME: rejecting unpaddable body length (%u)", nBody);
+				if (bDropped) return FALSE;
+				Close(TRI_FALSE);
+				return FALSE;
+			}
+
+			const DWORD nPaddedBody = (nBody + 3) & ~3;
+			if (nPaddedBody > MAXDWORD - nHeader ||
+			    pInput->m_nLength < nHeader + nPaddedBody)
+			{
+				break; // wait for the remainder of this record's body
+			}
+
+			const DWORD nRecordBytes = nHeader + nPaddedBody;
+			if (m_nLength != SIZE_UNKNOWN && nRecordBytes > m_nLength)
+			{
+				theApp.Message(MSG_DEBUG, L"THEX DIME: record exceeds remaining Content-Length");
+				if (bDropped) return FALSE;
+				Close(TRI_FALSE);
+				return FALSE;
+			}
+
+			if (!pInput->ReadDIME(&nFlags, &strID, &strType, &nBody))
+				break;
+
+			if ((nFlags & 1) && strType.CompareNoCase(L"text/xml") == 0)
 			{
 				BOOL bSize = FALSE, bDigest = FALSE, bEncoding = FALSE;
 
 				CString strXML = pInput->ReadString( nBody, CP_UTF8 );
 
-				if ( CXMLElement* pXML = CXMLElement::FromString( strXML ) )
+				if (CXMLElement* pXML = CXMLElement::FromPeerString(strXML))
 				{
 					if ( pXML->IsNamed( L"hashtree" ) )
 					{
@@ -1545,7 +1803,22 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 
 				theApp.Message( MSG_DEBUG, L"THEX XML: size=%i, digest=%i, encoding=%i", bSize, bDigest, bEncoding );
 
-				if ( ! bSize || ! bDigest || ! bEncoding ) break;
+				if (!bSize || !bDigest || !bEncoding)
+				{
+					// ReadDIME consumed only this record's header, so the
+					// abandoned record must be accounted here (drop its body
+					// and padding, stop counting its bytes) or the wait below
+					// stalls a fully received keep-alive body. The rest of the
+					// response is often still undelivered, so drain it below
+					// instead of clearing it now: leftover Content-Length
+					// bytes would otherwise be parsed as the next response
+					// and desynchronize a keep-alive connection.
+					pInput->Remove(nPaddedBody);
+					if (m_nLength != SIZE_UNKNOWN)
+						m_nLength -= nRecordBytes;
+					m_bTigerAbandon = TRUE;
+					break;
+				}
 			}
 			else if ( ( strID == strUUID || strID.IsEmpty() ) && strType.CompareNoCase( L"http://open-content.net/spec/thex/breadthfirst" ) == 0 )
 			{
@@ -1556,11 +1829,38 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 				m_pDownload->SetHashset( pInput->m_pBuffer, nBody );
 			}
 
-			pInput->Remove( ( nBody + 3 ) & ~3 );
+			pInput->Remove(nPaddedBody);
+			if (m_nLength != SIZE_UNKNOWN)
+				m_nLength -= nRecordBytes;
 			//if ( nFlags & 2 ) break;	// No break here to consider multiple networks.
 		}
 
+		// Wait when Content-Length bytes remain (or close-delimited unknown
+		// length; keep-alive unknown is rejected at accept). Do not Clear a
+		// partial DIME buffer. m_nLength is persisted across ReadTiger calls.
+		// A complete buffered body that PeekDIME cannot parse is malformed:
+		// waiting on it alone would spin forever because no further bytes
+		// will arrive, so fail closed instead. An abandoned response reaches
+		// the same completion with an unprocessed remainder; drain it so the
+		// next request starts on a synchronized keep-alive connection.
+		if (!bDropped &&
+		    (m_nLength == SIZE_UNKNOWN ||
+		     (m_nLength > 0 && pInput->m_nLength < m_nLength)))
+			return TRUE;
+
+		if (!bDropped && !m_bTigerAbandon && m_nLength != SIZE_UNKNOWN && m_nLength > 0)
+		{
+			theApp.Message(MSG_DEBUG, L"THEX DIME: malformed header on complete buffered response");
+			Close(TRI_FALSE);
+			return FALSE;
+		}
+
+		m_bTigerAbandon = FALSE;
 		pInput->Clear();
+	}
+	else if (pInput->m_nLength < m_nLength)
+	{
+		return TRUE;
 	}
 
 	// m_bKeepAlive == FALSE means that it was not keep-alive, so should just get disconnected after reading DIME message.
@@ -1648,11 +1948,49 @@ void CDownloadTransferHTTP::OnDropped()
 		// Closed connection with no content length, so assume content length equal to the size of buffer when the connection gets cut.
 		// It is important to set it because the DIME decoding code check if the content length is equals to size of buffer.
 		m_nLength = m_nContentLength = GetInputLength();
-		ReadTiger( true );
+		if (!ReadTiger(true))
+		{
+			// ReadTiger rejected the DIME response; fail closed like the live
+			// path instead of resuming the source.
+			Close(TRI_FALSE);
+			return; // Closed (and deleted) the transfer
+		}
 		// CDownloadTransfer::Close will resume the closed connection
 		if ( m_pSource )
 			m_pSource->m_bCloseConn = TRUE;
 		Close( TRI_TRUE );
+	}
+	else if (m_nState == dtsMetadata)
+	{
+		// Close-delimited (unknown Content-Length): body is complete on drop.
+		// Known Content-Length with Connection: close: finish when the full
+		// body is already buffered (including Content-Length: 0); fail only
+		// when the buffered length is short.
+		if (m_nContentLength != SIZE_UNKNOWN)
+		{
+			if (GetInputLength() < m_nContentLength)
+			{
+				theApp.Message(MSG_ERROR, L"Incomplete peer metadata from %s",
+				               (LPCTSTR)m_sAddress);
+				Close(TRI_FALSE);
+				return;
+			}
+			m_nLength = m_nContentLength;
+		}
+		else
+		{
+			m_nLength = m_nContentLength = GetInputLength();
+			if (m_nLength == 0 || m_nLength > XML_PEER_PARSE_CHARS_MAX)
+			{
+				Close(TRI_FALSE);
+				return;
+			}
+		}
+		if (!ReadMetadata(true))
+			return; // ReadMetadata closed (and deleted) the transfer
+		if (m_pSource)
+			m_pSource->m_bCloseConn = TRUE;
+		Close(TRI_TRUE);
 	}
 	else if ( m_bBusyFault || m_bQueueFlag )
 	{

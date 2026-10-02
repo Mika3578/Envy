@@ -36,6 +36,7 @@
 #include "Schema.h"
 #include "ZLib.h"
 #include "XML.h"
+#include "XmlParseValidate.h"
 #include "GGEP.h"
 #include "PacketLengthValidate.h"
 
@@ -108,6 +109,9 @@ CQueryHit* CQueryHit::FromG1Packet(CG1Packet* pPacket, int* pnHops)
 	CQueryHit* pLastHit		= NULL;
 	CXMLElement* pXML		= NULL;
 	Hashes::Guid oQueryID;
+	// One peer budget for the whole G1 hit packet so per-hit ReadXML extensions
+	// and the trailer metadata block cannot each reset the node/char caps.
+	XmlParseBudget oMetaBudget = XmlParseBudget::PeerDefaults();
 
 	try
 	{
@@ -151,7 +155,7 @@ CQueryHit* CQueryHit::FromG1Packet(CG1Packet* pPacket, int* pnHops)
 			pHit->m_nPort		= nPort;
 			pHit->m_nSpeed		= nSpeed;
 
-			pHit->ReadG1Packet( pPacket );
+			pHit->ReadG1Packet(pPacket, &oMetaBudget);
 
 			if ( pFirstHit )
 				pLastHit = pLastHit->m_pNext = pHit.Detach();
@@ -259,7 +263,7 @@ CQueryHit* CQueryHit::FromG1Packet(CG1Packet* pPacket, int* pnHops)
 		if (nXMLSize > 0)
 		{
 			pPacket->Seek(Hashes::Guid::byteCount + nXMLSize, CG1Packet::seekEnd);
-			pXML = ReadXML(pPacket, nXMLSize);
+			pXML = ReadXML(pPacket, nXMLSize, &oMetaBudget);
 			if (!pXML && nXMLSize > 4)
 				theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Invalid compressed metadata.  Vendor: %s", (pVendor) ? pVendor->m_sName : L"?");
 		}
@@ -318,6 +322,9 @@ CQueryHit* CQueryHit::FromG2Packet(CG2Packet* pPacket, int* pnHops)
 	CQueryHit* pFirstHit	= NULL;
 	CQueryHit* pLastHit		= NULL;
 	CXMLElement* pXML		= NULL;
+	// One peer budget for the whole HIT so sibling METADATA children cannot
+	// each reset the node/char caps while still grafting onto pXML.
+	XmlParseBudget oMetaBudget = XmlParseBudget::PeerDefaults();
 
 	Hashes::Guid oSearchID;
 	Hashes::Guid oClientID;
@@ -368,7 +375,7 @@ CQueryHit* CQueryHit::FromG2Packet(CG2Packet* pPacket, int* pnHops)
 					if ( ! pHit )
 						AfxThrowMemoryException();
 
-					pHit->ReadG2Packet( pPacket, nLength );
+					pHit->ReadG2Packet(pPacket, nLength, &oMetaBudget);
 
 					if ( pFirstHit )
 						pLastHit = pLastHit->m_pNext = pHit.Detach();
@@ -508,71 +515,81 @@ CQueryHit* CQueryHit::FromG2Packet(CG2Packet* pPacket, int* pnHops)
 
 			case G2_PACKET_METADATA:
 				{
-					CString strXML = pPacket->ReadString( nLength );
-					LPCTSTR pszXML = strXML;
-					while ( pszXML && *pszXML )
-					{
-						CXMLElement* pPart = CXMLElement::FromString( pszXML, TRUE );
-						if ( ! pPart )
-							break;
+				    if (nLength == 0 || nLength > XML_PEER_PARSE_CHARS_MAX)
+					    break;
+				    // Charge the shared hit-level budget before ReadString so later
+				    // sibling METADATA children cannot materialize past the aggregate cap.
+				    if (oMetaBudget.m_nChars >= oMetaBudget.m_nMaxChars ||
+				        nLength > oMetaBudget.m_nMaxChars - oMetaBudget.m_nChars ||
+				        !oMetaBudget.ConsumeChars(nLength))
+					    break;
+				    CString strXML = pPacket->ReadString(nLength);
+				    LPCTSTR pszXML = strXML;
+				    while (pszXML && *pszXML)
+				    {
+					    // Shared oMetaBudget across sibling METADATA children and
+					    // concatenated <?xml fragments inside each child.
+					    CXMLElement* pPart = CXMLElement::FromPeerString(pszXML, TRUE, NULL, &oMetaBudget);
+					    if (!pPart)
+						    break;
 
-						if ( ! pXML ) pXML = new CXMLElement( NULL, L"Metadata" );
-						pXML->AddElement( pPart );
+					    if (!pXML) pXML = new CXMLElement(NULL, L"Metadata");
+					    pXML->AddElement(pPart);
 
-						pszXML = _tcsstr( pszXML + 1, L"<?xml" );
-					}
-				}
-				break;
+					    pszXML = _tcsstr(pszXML + 1, L"<?xml");
+				    }
+			    }
+			    break;
 
-			case G2_PACKET_BROWSE_HOST:
-				bBrowseHost |= 1;
-				break;
+			    case G2_PACKET_BROWSE_HOST:
+				    bBrowseHost |= 1;
+				    break;
 
-			case G2_PACKET_BROWSE_PROFILE:
-				bBrowseHost |= 2;
-				break;
+			    case G2_PACKET_BROWSE_PROFILE:
+				    bBrowseHost |= 2;
+				    break;
 
-			case G2_PACKET_PEER_CHAT:
-				bPeerChat = TRUE;
-				break;
+			    case G2_PACKET_PEER_CHAT:
+				    bPeerChat = TRUE;
+				    break;
 
-			case G2_PACKET_PEER_BUSY:
-				bBusy = TRUE;
-				break;
+			    case G2_PACKET_PEER_BUSY:
+				    bBusy = TRUE;
+				    break;
 
-			case G2_PACKET_PEER_UNSTABLE:
-				bStable = FALSE;
-				break;
+			    case G2_PACKET_PEER_UNSTABLE:
+				    bStable = FALSE;
+				    break;
 
-			case G2_PACKET_PEER_FIREWALLED:
-				bPush = TRUE;
-				break;
+			    case G2_PACKET_PEER_FIREWALLED:
+				    bPush = TRUE;
+				    break;
 
-			case G2_PACKET_PEER_STATUS:
-				if ( nLength > 0 )
-				{
-					BYTE nStatus = pPacket->ReadByte();
+			    case G2_PACKET_PEER_STATUS:
+				    if (nLength > 0)
+				    {
+					    BYTE nStatus = pPacket->ReadByte();
 
-					bBusy	= ( nStatus & G2_SS_BUSY ) ? TRUE : FALSE;
-					bPush	= ( nStatus & G2_SS_PUSH ) ? TRUE : FALSE;
-					bStable	= ( nStatus & G2_SS_STABLE ) ? TRUE : FALSE;
+					    bBusy = (nStatus & G2_SS_BUSY) ? TRUE : FALSE;
+					    bPush = (nStatus & G2_SS_PUSH) ? TRUE : FALSE;
+					    bStable = (nStatus & G2_SS_STABLE) ? TRUE : FALSE;
 
-					if ( nLength >= 1+4+2+1 )
-					{
-						nGroupState[0][0] = TRUE;
-						nGroupState[0][3] = pPacket->ReadLongBE();
-						nGroupState[0][1] = pPacket->ReadShortBE();
-						nGroupState[0][2] = pPacket->ReadByte();
-					}
-				}
-				else
-					theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G2] Hit Error: Got peer status with invalid length (%u bytes)", nLength );
+					    if (nLength >= 1 + 4 + 2 + 1)
+					    {
+						    nGroupState[0][0] = TRUE;
+						    nGroupState[0][3] = pPacket->ReadLongBE();
+						    nGroupState[0][1] = pPacket->ReadShortBE();
+						    nGroupState[0][2] = pPacket->ReadByte();
+					    }
+				    }
+				    else
+					    theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G2] Hit Error: Got peer status with invalid length (%u bytes)", nLength);
 
-				break;
+				    break;
 
-			default:
-				theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G2] Hit Error: Got unknown type (0x%08I64x +%u)", nType, pPacket->m_nPosition - 8 );
-			}
+			    default:
+				    theApp.Message(MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G2] Hit Error: Got unknown type (0x%08I64x +%u)", nType, pPacket->m_nPosition - 8);
+			    }
 
 			pPacket->m_nPosition = nSkip;
 		}
@@ -910,10 +927,15 @@ CQueryHit* CQueryHit::FromDCPacket(CDCPacket* pPacket, UINT nNmdcCodePage)
 //////////////////////////////////////////////////////////////////////
 // CQueryHit XML metadata reader
 
-CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
+CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize, XmlParseBudget* pBudget)
 {
 	if ( nSize < 2 )
 		return NULL;	// Empty packet
+
+	// Bound raw allocation before new[]/Read. Allow a short marker prefix
+	// ({deflate}/{plaintext}/{}) above the peer XML character budget.
+	if (nSize > (int)(XML_PEER_PARSE_CHARS_MAX + 11))
+		return NULL;
 
 	auto_array< BYTE > pRaw( new BYTE[ nSize ] );
 	if ( ! pRaw.get() )
@@ -954,6 +976,16 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 		pszXML = pRaw.get();
 	}
 
+	if (!pszXML || nSize <= 0 || nSize > (int)XML_PEER_PARSE_CHARS_MAX)
+		return NULL;
+
+	XmlParseBudget oLocal = XmlParseBudget::PeerDefaults();
+	XmlParseBudget* pActive = pBudget ? pBudget : &oLocal;
+	if (pActive->m_nChars >= pActive->m_nMaxChars ||
+	    (DWORD)nSize > pActive->m_nMaxChars - pActive->m_nChars ||
+	    !pActive->ConsumeChars((DWORD)nSize))
+		return NULL;
+
 	CXMLElement* pRoot = NULL;
 	for ( ; nSize && pszXML; pszXML++, nSize-- )
 	{
@@ -970,7 +1002,9 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 			( pszXML[ 3 ] == 'm' || pszXML[ 3 ] == 'M' ) &&
 			( pszXML[ 4 ] == 'l' || pszXML[ 4 ] == 'L' ) )
 		{
-			CXMLElement* pXML = CXMLElement::FromBytes( pszXML, nSize, TRUE );
+			// Share node/depth budget across concatenated G1 hit XML fragments
+			// and with any earlier per-hit ReadXML charges on the same packet.
+			CXMLElement* pXML = CXMLElement::FromPeerBytes(pszXML, nSize, TRUE, pActive);
 
 			pszXML += 4;
 			nSize -= 4;
@@ -1070,7 +1104,7 @@ BOOL CQueryHit::CheckValid() const
 //////////////////////////////////////////////////////////////////////
 // CQueryHit G1 result entry reader
 
-void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
+void CQueryHit::ReadG1Packet(CG1Packet* pPacket, XmlParseBudget* pBudget)
 {
 	m_nIndex	= pPacket->ReadLongLE();
 	m_nSize		= pPacket->ReadLongLE();
@@ -1103,8 +1137,8 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 		}
 		else if ( nPeek == '<' || nPeek == '{' )
 		{
-			// XML extensions
-			pPacket->ReadXML( m_pSchema, m_pXML );
+			// XML extensions — share packet-lifetime budget when provided.
+			pPacket->ReadXML(m_pSchema, m_pXML, pBudget);
 		}
 		else	// if ( nPeek == G1_PACKET_HIT_SEP )
 		{
@@ -1275,10 +1309,14 @@ void CQueryHit::ParseAttributes(const Hashes::Guid& oClientID, CVendorPtr pVendo
 //////////////////////////////////////////////////////////////////////
 // CQueryHit G2 result entry reader
 
-void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
+void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength, XmlParseBudget* pBudget)
 {
 	DWORD nPacket, nEnd = pPacket->m_nPosition + nLength;
 	G2_PACKET nType;
+	// Prefer the HIT-lifetime budget from FromG2Packet so many file descriptors
+	// cannot each reset PeerDefaults and multiply retained XML nodes.
+	XmlParseBudget oLocalBudget = XmlParseBudget::PeerDefaults();
+	XmlParseBudget* pActiveBudget = pBudget ? pBudget : &oLocalBudget;
 
 	m_bResolveURL = FALSE;
 
@@ -1364,7 +1402,8 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 			break;
 
 		case G2_PACKET_METADATA:
-			if ( nPacket > 0 )
+			if (nPacket > 0 && nPacket <= XML_PEER_PARSE_CHARS_MAX &&
+			    pActiveBudget->ConsumeChars(nPacket))
 			{
 				CString strXML = pPacket->ReadString( nPacket );	// Not null terminated
 				if ( strXML.GetLength() != (int)nPacket )
@@ -1376,7 +1415,7 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 				{
 					theApp.Message( MSG_DEBUG, L"[G2] Hit Error: Got extra metadata (%s)", (LPCTSTR)strXML );
 				}
-				else if ( ( m_pXML = CXMLElement::FromString( strXML ) ) != NULL )
+				else if ((m_pXML = CXMLElement::FromPeerString(strXML, FALSE, NULL, pActiveBudget)) != NULL)
 				{
 					if ( ! SchemaCache.Normalize( m_pSchema, m_pXML ) )
 					{
@@ -1385,11 +1424,28 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 						theApp.Message( MSG_DEBUG, L"[G2] Hit Error: Got unknown metadata schema (%s)", (LPCTSTR)strXML );
 					}
 				}
+				else if (pActiveBudget->m_nNodes >= pActiveBudget->m_nMaxNodes ||
+				         pActiveBudget->m_bDepthCapped)
+				{
+					// AddNode fails only at the shared node cap and EnterElement
+					// only at the shared depth cap, so this XML is well-formed but
+					// unfunded: omit it and keep the hits already parsed from this
+					// packet instead of discarding them all.
+					theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Metadata exceeds shared parse budget (%s)", (LPCTSTR)strXML);
+				}
 				else
 				{
 					theApp.Message( MSG_DEBUG, L"[G2] Hit Error: Got invalid metadata (%s)", (LPCTSTR)strXML );
 					AfxThrowUserException();
 				}
+			}
+			else if (nPacket > XML_PEER_PARSE_CHARS_MAX)
+			{
+				theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Got oversized metadata (%u)", nPacket);
+			}
+			else if (nPacket > 0)
+			{
+				theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Metadata exceeds shared parse budget (%u)", nPacket);
 			}
 			else
 			{
@@ -1449,25 +1505,39 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 			break;
 
 		case G2_PACKET_COMMENT:
+			// Bound before ReadString; charge the shared HIT budget so comments
+			// cannot bypass ConsumeChars after earlier METADATA fragments.
+			if (nPacket > XML_PEER_PARSE_CHARS_MAX ||
+			    !pActiveBudget->ConsumeChars(nPacket))
 			{
-				CString strXML = pPacket->ReadString( nPacket );	// Not null terminated
-				if ( strXML.GetLength() != (int)nPacket )
+				theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Got oversized comment (%u)", nPacket);
+				break;
+			}
+			{
+				CString strXML = pPacket->ReadString(nPacket); // Not null terminated
+				if (strXML.GetLength() != (int)nPacket)
 				{
-					theApp.Message( MSG_DEBUG, L"[G2] Hit Error: Got too short comment (%s)", (LPCTSTR)strXML );
+					theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Got too short comment (%s)", (LPCTSTR)strXML);
 					AfxThrowUserException();
 				}
-				if ( CXMLElement* pComment = CXMLElement::FromString( strXML ) )
+				if (CXMLElement* pComment = CXMLElement::FromPeerString(strXML, FALSE, NULL, pActiveBudget))
 				{
 					m_nRating = -1;
-					_stscanf( pComment->GetAttributeValue( L"rating" ), L"%i", &m_nRating );
-					m_nRating = max( 0, min( 6, m_nRating + 1 ) );
+					_stscanf(pComment->GetAttributeValue(L"rating"), L"%i", &m_nRating);
+					m_nRating = max(0, min(6, m_nRating + 1));
 					m_sComments = pComment->GetValue();
-					m_sComments.Replace( L"{n}", L"\r\n" );
+					m_sComments.Replace(L"{n}", L"\r\n");
 					delete pComment;
+				}
+				else if (pActiveBudget->m_nNodes >= pActiveBudget->m_nMaxNodes ||
+				         pActiveBudget->m_bDepthCapped)
+				{
+					// Shared node or depth cap reached: omit the comment, keep the hit.
+					theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Comment exceeds shared parse budget (%s)", (LPCTSTR)strXML);
 				}
 				else
 				{
-					theApp.Message( MSG_DEBUG, L"[G2] Hit Error: Got invalid comment (%s)", (LPCTSTR)strXML );
+					theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Got invalid comment (%s)", (LPCTSTR)strXML);
 					AfxThrowUserException();
 				}
 			}
@@ -1475,12 +1545,12 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 
 		case G2_PACKET_PREVIEW_URL:
 			m_bPreview = TRUE;
-			if ( nPacket != 0 )
-				m_sPreview = pPacket->ReadString( nPacket );
+			if (nPacket != 0)
+				m_sPreview = pPacket->ReadString(nPacket);
 			break;
 
 		case G2_PACKET_BOGUS:
-			if ( ! Settings.Experimental.LAN_Mode )
+			if (!Settings.Experimental.LAN_Mode)
 				m_bBogus = TRUE;
 			break;
 
@@ -1489,15 +1559,15 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 			break;
 
 		default:
-			theApp.Message( MSG_DEBUG, L"[G2] Hit Error: Got unknown type (0x%08I64x +%u)", nType, pPacket->m_nPosition - 8 );
+			theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Got unknown type (0x%08I64x +%u)", nType, pPacket->m_nPosition - 8);
 		}
 
 		pPacket->m_nPosition = nSkip;
 	}
 
-	if ( ! HasHash() )
+	if (!HasHash())
 		AfxThrowUserException();
-		//theApp.Message( MSG_DEBUG, L"[G2] Hit Error: Got no hash" );
+	//theApp.Message( MSG_DEBUG, L"[G2] Hit Error: Got no hash" );
 }
 
 //////////////////////////////////////////////////////////////////////
