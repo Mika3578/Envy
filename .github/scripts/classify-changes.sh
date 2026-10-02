@@ -400,7 +400,7 @@ fi
 docs_only=false
 if [[ "$cpp" == false && "$build" == false && "$remote" == false && \
       "$csharp" == false && "$dependencies" == false && "$workflow" == false && \
-      "$other" == false && "$docs" == true ]]; then
+      "$other" == false && "$docs" == true && "$risk_high" == false ]]; then
 	docs_only=true
 	run_x64=false
 	run_win32=false

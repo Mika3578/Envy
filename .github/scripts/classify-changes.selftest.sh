@@ -78,6 +78,9 @@ check interop-wf-docs-only "$F_INTEROP_WF" docs_only false
 check ci-only-win32 "$F_CI_ONLY" run_win32_release false
 check ci-only-x64 "$F_CI_ONLY" run_x64_release false
 check ruleset-risk-high "$F_RULESET" risk_level high
+readonly F_AGENTS='AGENTS.md'
+check agents-not-docs-only "$F_AGENTS" docs_only false
+check agents-risk-high "$F_AGENTS" risk_level high
 check ruleset-runtime-separate "$F_RULESET" needs_runtime_test false
 check workflow-runtime-separate "$F_WORKFLOW" needs_runtime_test false
 check remote-js-runtime-separate "$F_REMOTE" needs_runtime_test false

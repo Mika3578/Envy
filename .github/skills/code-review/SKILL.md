@@ -87,8 +87,10 @@ request a human; do not `APPROVED`.
 - **Review-governance:** required CI green, and the diff must not reduce
   required approvals, required checks, Copilot self-approval bans, or
   quality gates. Tightening/clarifying is OK. Weakening is
-  `CHANGES_REQUESTED`. Copilot may submit `APPROVED` when these gates hold
-  and repository Copilot settings allow counting on the changed paths.
+  `CHANGES_REQUESTED`. When repository Copilot settings allow counting on
+  the changed paths, Copilot may submit `APPROVED` only if this diff does
+  **not** weaken gates — never approve a PR-head skill edit that removes
+  those checks. Manual squash merge stays required (`AGENTS.md` rule 16).
 
 ## Submit `APPROVED` when all of the following hold
 
