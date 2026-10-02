@@ -74,14 +74,31 @@ jobs:
         if: github.event_name != 'pull_request'
         shell: pwsh
         run: |
-          if (-not (Test-Path "$env:VCPKG_INSTALLATION_ROOT")) {
-            git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
-            & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
-            if ($LASTEXITCODE -ne 0) {
-              throw "vcpkg bootstrap failed with exit code $LASTEXITCODE"
-            }
-            echo "VCPKG_INSTALLATION_ROOT=$env:GITHUB_WORKSPACE/vcpkg" >> $env:GITHUB_ENV
+          $vcpkgRoot = Join-Path $env:GITHUB_WORKSPACE "vcpkg"
+          if (-not (Test-Path (Join-Path $vcpkgRoot ".git"))) {
+            git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
           }
+          $vcpkgManifest = Join-Path $env:GITHUB_WORKSPACE "vcpkg.json"
+          $baseline = (Get-Content $vcpkgManifest -Raw | ConvertFrom-Json)."builtin-baseline"
+          if (-not $baseline) {
+            throw "vcpkg.json is missing builtin-baseline; refusing to bootstrap an unpinned vcpkg tip."
+          }
+          if ($baseline -notmatch '^[0-9a-fA-F]{40}$') {
+            throw "vcpkg.json builtin-baseline must be a 40-hex git commit (got '$baseline')."
+          }
+          git -C $vcpkgRoot fetch --depth 1 origin $baseline
+          if ($LASTEXITCODE -ne 0) { throw "Failed to fetch vcpkg baseline $baseline (exit $LASTEXITCODE)." }
+          git -C $vcpkgRoot checkout --detach $baseline
+          if ($LASTEXITCODE -ne 0) { throw "Failed to checkout vcpkg baseline $baseline (exit $LASTEXITCODE)." }
+          $detached = (git -C $vcpkgRoot rev-parse HEAD).Trim()
+          if ($detached -ne $baseline) {
+            throw "vcpkg HEAD $detached does not match required baseline $baseline."
+          }
+          & "$vcpkgRoot/bootstrap-vcpkg.bat" -disableMetrics
+          if ($LASTEXITCODE -ne 0) {
+            throw "vcpkg bootstrap failed with exit code $LASTEXITCODE"
+          }
+          echo "VCPKG_INSTALLATION_ROOT=$vcpkgRoot" >> $env:GITHUB_ENV
           echo "VCPKG_BINARY_SOURCES=clear;files,$($env:GITHUB_WORKSPACE)/vcpkg_cache,readwrite" >> $env:GITHUB_ENV
 
       - name: Install vcpkg dependencies (manifest mode)
