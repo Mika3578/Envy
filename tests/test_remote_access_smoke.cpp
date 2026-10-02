@@ -60,6 +60,21 @@ static bool test_ipv6_loopback_string()
 	       !RemoteAddressStringIsIpv6Loopback(szLoopbackV4);
 }
 
+static bool test_client_loopback_prefers_ipv6_peer_string()
+{
+	// Simulate AcceptFrom dual-stack: m_sAddress is IPv6 text while m_pHost
+	// still holds SOCKADDR_IN bytes that look like 127.x.x.x. Policy must
+	// follow the peer string, not the IPv4 structure.
+	const IN_ADDR oFakeLoopOctet = make_ipv4_octets(127, 1, 2, 3);
+	const IN_ADDR oLan = make_ipv4_octets(10, 0, 0, 5);
+	wchar_t szDocPrefix[32];
+	swprintf_s(szDocPrefix, 32, L"2001:db8::%u", 1u);
+	return !RemoteClientIsLoopback(oFakeLoopOctet, szDocPrefix) &&
+	       RemoteClientIsLoopback(oLan, L"::1") &&
+	       RemoteClientIsLoopback(oFakeLoopOctet, NULL) &&
+	       !RemoteClientIsLoopback(oLan, NULL);
+}
+
 static bool test_localhost_bind_blocks_lan_when_enabled()
 {
 	const IN_ADDR oLan = make_ipv4_octets(10, 0, 0, 5);
@@ -298,6 +313,8 @@ void register_remote_access_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("remote_ipv4_loopback", test_ipv4_loopback);
 	suite.add_test("remote_ipv6_loopback_string", test_ipv6_loopback_string);
+	suite.add_test("remote_client_loopback_prefers_ipv6_peer_string",
+	               test_client_loopback_prefers_ipv6_peer_string);
 	suite.add_test("remote_localhost_bind_blocks_lan", test_localhost_bind_blocks_lan_when_enabled);
 	suite.add_test("remote_localhost_bind_range_blocks_lan", test_localhost_bind_range_blocks_lan);
 	suite.add_test("remote_localhost_bind_allows_loopback", test_localhost_bind_allows_loopback);

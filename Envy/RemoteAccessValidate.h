@@ -59,9 +59,13 @@ inline bool RemoteAddressStringIsIpv6Loopback(LPCTSTR pszClientAddress)
 
 inline bool RemoteClientIsLoopback(const IN_ADDR& clientIP, LPCTSTR pszClientAddress)
 {
-	if (RemoteIpv4IsLoopback(clientIP))
-		return true;
-	return RemoteAddressStringIsIpv6Loopback(pszClientAddress);
+	// Prefer IPv6-shaped peer text. AcceptFrom may fill m_sAddress via InetNtop
+	// while m_pHost remains SOCKADDR_IN; those IPv4 bytes are not an IPv4 peer
+	// for dual-stack sockets and must not classify a non-loopback IPv6 peer as
+	// loopback when they coincidentally start with 127 (D-017).
+	if (pszClientAddress != NULL && _tcschr(pszClientAddress, L':') != NULL)
+		return RemoteAddressStringIsIpv6Loopback(pszClientAddress);
+	return RemoteIpv4IsLoopback(clientIP);
 }
 
 // Trim leading/trailing space and tab. Returns the start pointer; nLen is the
