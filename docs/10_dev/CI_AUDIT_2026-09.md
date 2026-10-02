@@ -39,13 +39,14 @@ SonarCloud required, PR Gate stricter than GitHub skip semantics.
 - Four identical classify jobs per PR (~8–10 s each) — centralizing is P3.
 - Repository Copilot UI approve/count toggles, Balanced effort, and the
   optional Stage-3 path allowlist still need manual UI verification (not
-  on the ruleset API). Automatic review is already live via Protect develop.
+  on the ruleset API). Copilot code review is enabled with **review-on-push off**
+  (mergeable-head requests only; see `docs/10_dev/devsecops-envy.md`).
 
 **Live Protect develop re-verification (2026-09-20):** required approvals **1**,
-Code Quality severity **All**, Copilot `review_on_push` **on**, draft review
+Code Quality severity **All**, Copilot `review_on_push` **off**, draft review
 **off**, coverage restriction **off**. Older rows below that show approvals
-**0** / Code Quality `notes` / `review_on_push: false` are the **2026-09-19
-historical snapshot**, not current live state.
+**0** / Code Quality `notes` / `review_on_push: true` are **stale historical
+snapshots**, not current live state.
 
 **Pre-change findings resolved in this PR:** empty NuGet restore (~22 s/job
 no-op) skipped; Documentation Check always emits a terminal conclusion;
@@ -324,7 +325,7 @@ Sources (primary first):
 
 1. **Reconcile Protect develop ruleset:** **Done for ruleset knobs
    2026-09-20** — live now has 1 approval, Code Quality = All,
-   review-on-push on, draft review off. Remaining: verify repository Copilot
+   review-on-push **off**, draft review off. Remaining: verify repository Copilot
    UI approve/count toggles, Balanced effort, and **blank** path allowlist
    (`docs/10_dev/devsecops-envy.md` item 3 — verification commands).
 2. **Documentation Check always reports** a terminal conclusion — **Done**

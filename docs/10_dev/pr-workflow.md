@@ -49,11 +49,14 @@ review products, or human reviewers while the pull request is a **draft**;
 review requests belong only after the maintainer marks **Ready** and the
 `AGENTS.md` §5 checklist is satisfied (typically one Copilot pass on a stable
 treated head). It does
-not need a new user request for each correction batch. There is no fixed Draft,
-Ready or per-finding attempt limit. Preserve the complete attempt history;
-recurrence requires a new diagnosis, targeted regression evidence and a changed
-approach, not an automatic two-attempt human stop or an identical retry loop.
-Respect actual provider quotas and the operator's compute/time allocation.
+not need a new user request for each correction batch. Batch limits match
+`AGENTS.md` §5 and the Stabilizer starter text in
+`docs/10_dev/agents-and-automation.md`: at most **three** automatic correction
+pushes in Draft and **two** in Ready; stop when a finding recurs twice, CI
+persists after two equivalent attempts, or governance needs a human decision.
+Preserve attempt history; recurrence requires a new diagnosis and changed
+approach, not an identical retry loop. Respect actual provider quotas and the
+operator's compute/time allocation.
 
 When uncertain, research specifications, official documentation, maintained
 reference implementations and working public GitHub examples before escalating.

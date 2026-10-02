@@ -141,9 +141,11 @@ comparison notes.
      approval does not count). For this solo-maintainer repository, leave the
      allowlist **blank** so Copilot approvals count on every pull request,
      including review-governance (`.github/settings.yml`,
-     `.github/workflows/**`, `AGENTS.md`, `.github/skills/**`) and infra,
-     while `.github/skills/code-review/SKILL.md` still blocks `APPROVED` on
-     diffs that weaken merge gates. Optional narrow Stage-3 globs (docs and
+     `.github/workflows/**`, `AGENTS.md`, `.github/skills/**`) and infra.
+     A blank UI allowlist does **not** remove review discipline: Copilot reads
+     the skill and changed files from the PR head, must not `APPROVED` when the
+     diff weakens merge gates, and the maintainer still performs manual squash
+     merge. Optional narrow Stage-3 globs (docs and
      adapters only) remain documented in the code-review skill for teams that
      want extra UI-side restriction; they are not the default here.
    - Protect develop should request Copilot when the pull request is

@@ -47,9 +47,10 @@ Summary; do not enable auto-merge while that body must be supplied manually.
 ### Testing expectations
 - Validate changed workflows/jobs with at least one representative run.
 - Capture required vs advisory check impact.
-- Draft PRs may defer Windows builds; this is not build evidence. Every
-  live-test/Ready PR runs actual x64 and Win32 Release builds and EnvyTests,
-  including docs-only PRs.
+- Draft PRs without `stage:live-test` stay on the cheap lane (Windows product
+  builds deferred by `pr-phase` / classify — intentional, not missing CI).
+  That deferral is not build evidence. Every live-test or Ready PR runs actual
+  x64 and Win32 Release builds and EnvyTests, including docs-only PRs.
   See `docs/10_dev/pr-workflow.md`.
 
 ### Documentation expectations
