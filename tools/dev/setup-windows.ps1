@@ -62,38 +62,70 @@ Write-Section 'Visual Studio / MSBuild'
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 if (Test-Path -LiteralPath $vswhere)
 {
+    # Envy requires v145 tools plus optional MFC/ATL components (StdAfx.h).
     $installPath = & $vswhere -latest -prerelease -products * `
         -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
         -requires Microsoft.VisualStudio.Component.VC.v145.x86.x64 `
+        -requires Microsoft.VisualStudio.Component.VC.ATL `
+        -requires Microsoft.VisualStudio.Component.VC.ATLMFC `
         -property installationPath 2>$null | Select-Object -First 1
     if (-not [string]::IsNullOrWhiteSpace($installPath))
     {
         $displayName = & $vswhere -latest -prerelease -products * `
             -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
             -requires Microsoft.VisualStudio.Component.VC.v145.x86.x64 `
+            -requires Microsoft.VisualStudio.Component.VC.ATL `
+            -requires Microsoft.VisualStudio.Component.VC.ATLMFC `
             -property displayName 2>$null | Select-Object -First 1
         $installVersion = & $vswhere -latest -prerelease -products * `
             -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
             -requires Microsoft.VisualStudio.Component.VC.v145.x86.x64 `
+            -requires Microsoft.VisualStudio.Component.VC.ATL `
+            -requires Microsoft.VisualStudio.Component.VC.ATLMFC `
             -property installationVersion 2>$null | Select-Object -First 1
-        Write-Host "  OK   $displayName $installVersion (v145 tools)"
+        Write-Host "  OK   $displayName $installVersion (v145 + ATL/MFC)"
         Write-Host "       $installPath"
     }
     else
     {
-        # Fall back to generic VC tools probe so the message can distinguish missing VS vs missing v145.
-        $anyVc = & $vswhere -latest -prerelease -products * `
+        $v145Path = & $vswhere -latest -prerelease -products * `
             -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -requires Microsoft.VisualStudio.Component.VC.v145.x86.x64 `
             -property installationPath 2>$null | Select-Object -First 1
-        if (-not [string]::IsNullOrWhiteSpace($anyVc))
+        if (-not [string]::IsNullOrWhiteSpace($v145Path))
         {
-            Write-Host '  MISS Visual Studio C++ toolset v145 (vswhere)'
-            $issues += 'Install the MSVC v145 (VS 2026) x86/x64 build tools component.'
+            $hasAtl = -not [string]::IsNullOrWhiteSpace((& $vswhere -latest -prerelease -products * `
+                    -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+                    -requires Microsoft.VisualStudio.Component.VC.v145.x86.x64 `
+                    -requires Microsoft.VisualStudio.Component.VC.ATL `
+                    -property installationPath 2>$null | Select-Object -First 1))
+            $hasMfc = -not [string]::IsNullOrWhiteSpace((& $vswhere -latest -prerelease -products * `
+                    -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+                    -requires Microsoft.VisualStudio.Component.VC.v145.x86.x64 `
+                    -requires Microsoft.VisualStudio.Component.VC.ATLMFC `
+                    -property installationPath 2>$null | Select-Object -First 1))
+            $missing = @()
+            if (-not $hasAtl) { $missing += 'ATL' }
+            if (-not $hasMfc) { $missing += 'MFC' }
+            Write-Host ("  MISS Visual Studio C++ {0} for v145 (vswhere)" -f ($missing -join '/'))
+            $issues += ('Install C++ {0} for the latest MSVC/v145 toolset via Visual Studio Installer (Desktop development with C++ → ATL/MFC).' -f ($missing -join ' and '))
         }
         else
         {
-            Write-Host '  MISS Visual Studio with VC++ tools (vswhere)'
-            $issues += 'Install Visual Studio 2026 with Desktop development with C++ (toolset v145).'
+            # Distinguish missing VS vs missing v145 when ATL/MFC is not the blocker.
+            $anyVc = & $vswhere -latest -prerelease -products * `
+                -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+                -property installationPath 2>$null | Select-Object -First 1
+            if (-not [string]::IsNullOrWhiteSpace($anyVc))
+            {
+                Write-Host '  MISS Visual Studio C++ toolset v145 (vswhere)'
+                $issues += 'Install the MSVC v145 (VS 2026) x86/x64 build tools component.'
+            }
+            else
+            {
+                Write-Host '  MISS Visual Studio with VC++ tools (vswhere)'
+                $issues += 'Install Visual Studio 2026 with Desktop development with C++ (toolset v145, ATL, and MFC).'
+            }
         }
     }
 }
