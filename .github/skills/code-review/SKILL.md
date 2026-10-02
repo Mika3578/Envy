@@ -31,10 +31,9 @@ and treatment is complete again.
 
 Repository correction/stabilizer agents treat review threads and push fix
 batches; they **do not** request Copilot Code Review, other review products,
-or human reviewers while the pull request is a **draft**, and they do not
-approve or merge. Request Copilot only from a maintainer (or one explicit
-final step after **Ready**) when `AGENTS.md` §5 workflow expectations for
-thread treatment and review timing are satisfied.
+or human reviewers, and they do not approve or merge (`AGENTS.md` §5).
+Request Copilot only from a maintainer when `AGENTS.md` §5 workflow
+expectations for thread treatment and review timing are satisfied.
 
 ## Review outcome (must use GitHub review state)
 
