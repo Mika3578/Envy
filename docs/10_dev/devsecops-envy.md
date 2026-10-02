@@ -101,6 +101,19 @@ Do not add `regex` to `enabledManagers` unless a real `customManagers` regex ent
 | Qodo / PR-Agent | Manual on high-risk PRs only | Optional |
 | Cursor Bugbot | Exceptional / paid | Not primary |
 
+**Copilot request discipline** (see `AGENTS.md` §5 *Review and Copilot economy*):
+
+- GitHub default: one review per PR unless ruleset **Review new pushes** is on
+  ([Configure code review](https://docs.github.com/en/copilot/how-tos/copilot-on-github/set-up-copilot/configure-code-review)).
+  Envy keeps review-on-push **off** on Protect develop.
+- Auto-approval and **count toward merge requirements** must be enabled for a
+  real `APPROVED` state; assessment-only output does not satisfy Protect develop
+  ([Using Copilot code review](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/using-copilot-code-review)).
+- Agents: treat and **resolve** all threads, batch fixes, then **one** Copilot
+  request per stable head — not per thread, not during Draft correction batches.
+- OSS pattern: PR readiness checklist before any sponsored review (CI green,
+  mergeable, test plan) — e.g. community `copilot-instructions.md` checklists.
+
 High-risk paths (extra bar before auto-merge): G1/G2, ED2K/Kad, BitTorrent, NMDC/ADC,
 Network/NAT, packet parsing, crypto, threading/locking, serialization, Remote.
 Require a regression/protocol test, explicit “no wire-format change”, or reference

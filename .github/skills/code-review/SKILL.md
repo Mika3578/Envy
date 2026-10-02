@@ -25,6 +25,13 @@ not after every partial fix batch (Copilot review-on-push stays off in
 Protect develop by design). Re-request only when a **new head** requires it
 and treatment is complete again.
 
+## Correction agents (must not request Copilot)
+
+Repository correction/stabilizer agents treat review threads and push fix
+batches; they **do not** request Copilot Code Review, approve, or merge.
+Request Copilot only from a maintainer (or one explicit final step) when
+`AGENTS.md` §5 *Review and Copilot economy* pre-request checklist is satisfied.
+
 ## Review outcome (must use GitHub review state)
 
 - **No blocking findings** on the current head and the gates in

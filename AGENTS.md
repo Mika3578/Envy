@@ -410,6 +410,51 @@ rule when they left an unresolved thread. Do not spend Copilot review rounds
 to discover outstanding human or bot threads — clear them first, then request
 **one** Copilot review on the stable head.
 
+### Review and Copilot economy (quality over volume)
+
+GitHub’s default is **one** Copilot review per pull request unless **Review new
+pushes** is enabled in a ruleset ([Configure code
+review](https://docs.github.com/en/copilot/how-tos/copilot-on-github/set-up-copilot/configure-code-review)).
+Protect develop keeps **review-on-push off** on purpose: each extra Copilot
+pass costs tokens and often repeats findings ([Copilot Stack diagnostic
+notes](https://thecopilotstack.com/blog/copilot-code-review-not-running/)).
+Envy adds a **human/agent gate** so Copilot is not requested “to see what
+happens.”
+
+**Pre-request checklist** — request Copilot only when **all** are true on the
+current head:
+
+- Pull request is **not a draft** (final merge gate pass).
+- **Required** Protect develop checks are green.
+- Branch is **mergeable** toward `develop` (up to date, no blocking check).
+- **Every** review thread is **treated** (fix on head or justified reply) and
+  **resolved** on GitHub.
+- You expect **no further code push** before merge, **or** you accept exactly
+  **one** Copilot re-review after the final push once treatment is complete
+  again.
+
+**Do not request Copilot** when:
+
+- Any thread is still untreated or unresolved.
+- The **same head** already has a Copilot review and the diff meaningfully
+  unchanged (do not re-request to “refresh” merge status).
+- You are **mid-batch** in the correction agent loop (fix and push first; see
+  `docs/10_dev/agents-and-automation.md` batch budgets).
+- The only remaining work is advisory-bot noise you have not triaged.
+- The goal is to **poll** CI or thread state (use `gh pr checks`, GraphQL, or
+  the PR UI instead).
+
+**Agent pattern (common in OSS review skills):** fetch unresolved threads once,
+dedupe by file/concern, fix or justify in **coherent pushes**, resolve threads,
+then **one** Copilot review on the stable head — not one review per thread or
+per partial fix. See token-budget patterns in community PR-review skills
+(e.g. cap thread payload, avoid parallel “verdict” calls per comment when
+count is high).
+
+Correction agents **must not** request Copilot reviews, approve, or merge;
+they treat threads and push fix batches until `needs-human` or the checklist
+above is satisfied for a maintainer’s single final Copilot request.
+
 ### Mandatory preflight before editing
 
 Before modifying code, build files, CI, or committed project policy:

@@ -197,6 +197,10 @@ and branch CI; reuse this conversation. No polling and no new agent per event.
 Never approve, request reviewers, dismiss reviews, merge, enable auto-merge,
 change repository settings/rulesets, weaken checks, force-push, or push to
 develop/main/legacy. Never set stage:live-test or mark the PR Ready.
+**Never request GitHub Copilot Code Review** during correction loops — treat
+threads, push fix batches, resolve when justified; the maintainer (or one
+explicit final automation step after the checklist in `AGENTS.md` §5) requests
+**one** Copilot review per stable treated head.
 
 At each wake, read current HEAD/phase and current findings/check results.
 Reconcile stale events with current code. Track HEAD plus review/comment IDs

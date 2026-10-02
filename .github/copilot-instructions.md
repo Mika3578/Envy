@@ -28,3 +28,6 @@ For Copilot Code Review, follow `.github/skills/code-review/SKILL.md`.
 - A Copilot `APPROVED` review is not proof of correctness; required CI and
   security checks stay independent.
 - Minimize cost: see **Model and token economy** in root `AGENTS.md` §8.
+- **Review economy:** do not request Copilot to poll status. Treat and resolve
+  all threads first; one Copilot review per stable head when
+  `AGENTS.md` §5 *Review and Copilot economy* checklist is complete.
