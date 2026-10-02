@@ -99,6 +99,10 @@ jobs:
         shell: pwsh
         run: pwsh scripts/import-bugsplat-sdk.selftest.ps1
 
+      - name: BugSplat VC runtime copy self-test
+        shell: pwsh
+        run: pwsh scripts/copy-bugsplat-vc-runtime.selftest.ps1
+
       - name: Installer Main.iss UTF-8 copyright guard
         shell: bash
         run: |

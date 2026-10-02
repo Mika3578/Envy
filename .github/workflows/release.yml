@@ -227,6 +227,25 @@ jobs:
             Write-Error "Envy.exe missing from staged portable artifacts."
             exit 1
           }
+          $crashRuntime = if ("${{ matrix.platform }}" -eq "x64") { "BugSplatMonitor.exe" } else { "crashpad_handler.exe" }
+          $crashPath = Join-Path $env:GITHUB_WORKSPACE "artifacts\portable\$crashRuntime"
+          if (-not (Test-Path -LiteralPath $crashPath)) {
+            Write-Error "$crashRuntime missing from staged portable artifacts."
+            exit 1
+          }
+          # Fail closed on the complete x64 crash-runtime dependency set:
+          # BugSplatMonitor.exe is a vendor /MD PE, so a portable tree
+          # without its CRT companions cannot start the crash reporter
+          # outside a Visual Studio installation.
+          if ("${{ matrix.platform }}" -eq "x64") {
+            foreach ($dll in @('vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'msvcp140_2.dll')) {
+              $dllPath = Join-Path $env:GITHUB_WORKSPACE "artifacts\portable\$dll"
+              if (-not (Test-Path -LiteralPath $dllPath)) {
+                Write-Error "$dll missing from staged portable artifacts (required by BugSplatMonitor.exe)."
+                exit 1
+              }
+            }
+          }
           ./scripts/release/verify-version.ps1 -Tag $env:RELEASE_TAG -EnvyExePath $exe
 
       - name: Upload artifacts

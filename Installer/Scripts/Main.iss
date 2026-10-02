@@ -424,9 +424,18 @@ Source: "Envy\{#ConfigurationName} {#PlatformName}\Envy.pdb"; DestDir: "{app}"; 
 ;Source: "Services\*.pdb"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 
 #if PlatformName == "x64"
-Source: "{#VisualStudioPath}\VC\redist\debug_nonredist\x64\Microsoft.VC{#VisualCVersion}0.DebugCRT\vcruntime{#VisualCVersion}0d.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
-Source: "c:\Program Files (x86)\Windows Kits\10\bin\x64\ucrt\ucrtbased.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist replacesameversion overwritereadonly uninsrestartdelete uninsremovereadonly sortfilesbyextension
+; Prefer post-build BugSplat CRT copies from the output dir (active VS/v145 toolchain).
+; Required with BugSplatMonitor.exe - do not skip; fail the installer if missing.
+Source: "Envy\{#ConfigurationName} {#PlatformName}\vcruntime140d.dll"; DestDir: "{app}"; Flags: replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
+Source: "Envy\{#ConfigurationName} {#PlatformName}\vcruntime140_1d.dll"; DestDir: "{app}"; Flags: replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
+Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140d.dll"; DestDir: "{app}"; Flags: replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
+Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140_1d.dll"; DestDir: "{app}"; Flags: replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
+Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140_2d.dll"; DestDir: "{app}"; Flags: replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
+Source: "Envy\{#ConfigurationName} {#PlatformName}\ucrtbased.dll"; DestDir: "{app}"; Flags: replacesameversion overwritereadonly uninsrestartdelete uninsremovereadonly sortfilesbyextension
 #else
+; Win32 Debug uses Crashpad (not BugSplat /MD). Keep only the historical
+; optional UCRT debug companion; do not invent VS14 DebugCRT companions that
+; the active v145 toolchain will not provide at the hard-coded path.
 Source: "{#VisualStudioPath}\VC\redist\debug_nonredist\x86\Microsoft.VC{#VisualCVersion}0.DebugCRT\vcruntime{#VisualCVersion}0d.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
 Source: "c:\Program Files (x86)\Windows Kits\10\bin\x86\ucrt\ucrtbased.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist replacesameversion overwritereadonly uninsrestartdelete uninsremovereadonly sortfilesbyextension
 #endif
