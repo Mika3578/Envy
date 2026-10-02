@@ -1,9 +1,9 @@
 {
-	"recommendations": [
-		"EditorConfig.EditorConfig",
-		"llvm-vs-code-extensions.vscode-clangd"
-	],
-	"unwantedRecommendations": [
-		"ms-vscode.cpptools"
-	]
+  "recommendations": [
+    "EditorConfig.EditorConfig",
+    "llvm-vs-code-extensions.vscode-clangd"
+  ],
+  "unwantedRecommendations": [
+    "ms-vscode.cpptools"
+  ]
 }
