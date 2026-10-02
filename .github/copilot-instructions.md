@@ -28,4 +28,3 @@ For Copilot Code Review, follow `.github/skills/code-review/SKILL.md`.
 - Never approve a pull request authored by Copilot cloud agent.
 - A Copilot `APPROVED` review is not proof of correctness; required CI and
   security checks stay independent.
-- Minimize cost: see **Model and token economy** in root `AGENTS.md` §8.
