@@ -22,7 +22,7 @@
   Do not leave the allowlist blank: that would let Copilot count on
   self-modifying governance PRs.
   Automatic Copilot review on each push is deliberately off in Protect
-  develop (`copilot_code_review` enabled, `review_on_push: false`);
+  develop (`copilot_code_review` enabled; live `review_on_push: false`, desired fragment preserves `false`; activation is outside this PR);
   it is not a remaining UI gap. An AI comment/assessment alone is not an
   `APPROVED` review. See `docs/10_dev/CI_AUDIT_2026-09.md` and
   `docs/10_dev/devsecops-envy.md`.

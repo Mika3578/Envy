@@ -1,0 +1,268 @@
+#!/usr/bin/env python3
+"""Small persistent finding ledger helpers for the correction loop.
+
+Conversation-scoped JSON only. Does not approve, merge, or call GitHub.
+Fingerprint = sha256(normalized source|path|title)[:16].
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import sys
+from typing import Any, Mapping, MutableMapping, Sequence
+
+STATUS_OPEN = "open"
+STATUS_FIXED_PENDING = "fixed_pending_rereview"
+STATUS_RESOLVED = "resolved"
+STATUS_NEEDS_HUMAN = "needs_human"
+
+MAX_AUTOFIX_ATTEMPTS = None
+
+
+def check_review_history(
+    reviews: Any, current_review_id: int, prior_outcomes: Any
+) -> int:
+    """Reject missing durable state even when prior reviews target older HEADs."""
+    if not isinstance(reviews, list):
+        raise ValueError("review history JSON must be an array")
+    if isinstance(current_review_id, bool) or current_review_id <= 0:
+        raise ValueError("review ID must be positive")
+    if not isinstance(prior_outcomes, list):
+        raise ValueError("Complete prior outcome records are required; refusing to reset correction history")
+    covered = set()
+    for outcome in prior_outcomes:
+        if (not isinstance(outcome, Mapping) or not str(outcome.get("review_id") or "").isdigit()
+                or not isinstance(outcome.get("finding_ledger"), list)
+                or not isinstance(outcome.get("classification"), str)
+                or not outcome.get("classification") or not isinstance(outcome.get("head_sha"), str)
+                or not outcome.get("head_sha")):
+            raise ValueError("Invalid durable outcome schema")
+        review_id = int(outcome["review_id"])
+        if review_id <= 0 or review_id in covered:
+            raise ValueError("Duplicate or invalid durable review ID")
+        covered.add(review_id)
+        for entry in outcome["finding_ledger"]:
+            if (not isinstance(entry, Mapping) or not entry.get("fingerprint")
+                    or isinstance(entry.get("attempts"), bool) or not isinstance(entry.get("attempts"), int)
+                    or entry["attempts"] < 0 or entry.get("status") not in {
+                        STATUS_OPEN, STATUS_FIXED_PENDING, STATUS_RESOLVED, STATUS_NEEDS_HUMAN}):
+                raise ValueError("Invalid durable finding schema")
+    prior_ids = set()
+    for review in reviews:
+        if not isinstance(review, Mapping) or not isinstance(review.get("user"), Mapping):
+            raise ValueError("review history contains an invalid review")
+        if review["user"].get("login") not in {
+                "Copilot", "copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}:
+            continue
+        review_id = review.get("id")
+        if isinstance(review_id, bool) or not isinstance(review_id, int) or review_id <= 0:
+            raise ValueError("Copilot review history contains an invalid review ID")
+        if review_id < current_review_id:
+            prior_ids.add(review_id)
+    if not prior_ids.issubset(covered):
+        raise ValueError(
+            "Prior Copilot review IDs are not completely covered by durable outcomes; "
+            "refusing to reset correction history"
+        )
+    return len(prior_ids)
+
+
+def fingerprint(source: str, path: str, title: str, location: str = "") -> str:
+    # Stable identity is source|path|title. Location is metadata only so a
+    # fixer that moves the same defect to another line cannot reset attempts.
+    _ = location
+    key = (
+        f"{(source or '').strip().lower()}|"
+        f"{(path or '').strip().lower()}|"
+        f"{(title or '').strip().lower()}"
+    )
+    key = " ".join(key.split())
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
+
+
+def upsert_finding(
+    ledger: list[dict[str, Any]],
+    *,
+    source: str,
+    path: str,
+    title: str,
+    head_sha: str,
+    location: str = "",
+) -> dict[str, Any]:
+    fp = fingerprint(source, path, title, location)
+    # Overview-only titles can acquire an inline path later. Reuse the existing
+    # identity and attempts; ambiguous cross-path matches require human review.
+    candidates = [item for item in ledger
+                  if fingerprint(item.get("source", ""), "", item.get("title", ""))
+                  == fingerprint(source, "", title)
+                  and (not path or not item.get("path")
+                       or str(item.get("path")).strip().lower() == path.strip().lower())]
+    if len(candidates) > 1:
+        active = [
+            item
+            for item in candidates
+            if item.get("status") in {STATUS_OPEN, STATUS_FIXED_PENDING}
+        ]
+        if len(active) > 1:
+            for item in candidates:
+                item["status"] = STATUS_NEEDS_HUMAN
+            return candidates[0]
+        for item in candidates:
+            item["status"] = STATUS_NEEDS_HUMAN
+        if len(active) == 1:
+            candidates = active
+        else:
+            candidates = [
+                max(candidates, key=lambda item: int(item.get("attempts") or 0))
+            ]
+    for item in ledger:
+        if item.get("fingerprint") == fp or item in candidates:
+            if path and not item.get("path"):
+                item["path"] = path
+            if location and not item.get("location"):
+                item["location"] = location
+            item["last_seen_head"] = head_sha
+            item["times_seen"] = int(item.get("times_seen") or 0) + 1
+            if item.get("status") == STATUS_RESOLVED:
+                item["status"] = STATUS_OPEN
+            return item
+    entry = {
+        "id": f"{source}-{fp}",
+        "fingerprint": fp,
+        "source": source,
+        "path": path,
+        "title": title,
+        "location": location,
+        "first_seen_head": head_sha,
+        "last_seen_head": head_sha,
+        "times_seen": 1,
+        "attempts": 0,
+        "status": STATUS_OPEN,
+        "correction_commit": "",
+    }
+    ledger.append(entry)
+    return entry
+
+
+def mark_fix_attempt(
+    ledger: list[dict[str, Any]], fingerprint_value: str, commit: str
+) -> dict[str, Any] | None:
+    for item in ledger:
+        if item.get("fingerprint") == fingerprint_value:
+            item["attempts"] = int(item.get("attempts") or 0) + 1
+            item["correction_commit"] = commit
+            if item.get("status") != STATUS_NEEDS_HUMAN:
+                item["status"] = STATUS_FIXED_PENDING
+            return item
+    return None
+
+
+def merge_active_findings(inline_findings, outcome):
+    """Retain overview-only findings alongside inline locations and budgets."""
+    findings = [dict(item) for item in inline_findings if item.get("title")]
+    titles = {str(item["title"]) for item in findings}
+    for key in ("open_finding_titles", "previously_missed_titles", "suppressed_comment_titles"):
+        for title in outcome.get(key) or []:
+            if title and title not in titles:
+                findings.append({"title": title, "path": "", "line": None})
+                titles.add(title)
+    return findings
+
+
+def reconcile_after_review(
+    ledger: list[dict[str, Any]],
+    active_fingerprints: Sequence[str],
+    head_sha: str,
+) -> list[dict[str, Any]]:
+    """Resolve absent technical findings without clearing a human stop."""
+    active = set(active_fingerprints)
+    for item in ledger:
+        fp = str(item.get("fingerprint") or "")
+        if fp in active:
+            item["last_seen_head"] = head_sha
+            if item.get("status") == STATUS_FIXED_PENDING:
+                # Still present after a claimed fix → count toward human stop.
+                item["times_seen"] = int(item.get("times_seen") or 0) + 1
+                item["status"] = STATUS_OPEN
+        elif item.get("status") in {
+            STATUS_OPEN,
+            STATUS_FIXED_PENDING,
+        }:
+            item["status"] = STATUS_RESOLVED
+    return ledger
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    p_fp = sub.add_parser("fingerprint", help="Print fingerprint for source/path/title")
+    p_fp.add_argument("--source", required=True)
+    p_fp.add_argument("--path", default="")
+    p_fp.add_argument("--title", required=True)
+    p_fp.add_argument("--location", default="")
+
+    p_up = sub.add_parser("upsert", help="Upsert finding into ledger JSON on stdin")
+    p_up.add_argument("--source", required=True)
+    p_up.add_argument("--path", default="")
+    p_up.add_argument("--title", required=True)
+    p_up.add_argument("--head-sha", required=True)
+    p_up.add_argument("--location", default="")
+
+    p_fix = sub.add_parser(
+        "mark-fix",
+        help="Record a correction-agent fix attempt (stdin ledger JSON → stdout)",
+    )
+    p_fix.add_argument("--fingerprint", required=True)
+    p_fix.add_argument("--commit", required=True)
+
+    p_history = sub.add_parser("check-history", help="Reject missing prior review state")
+    p_history.add_argument("--review-id", required=True, type=int)
+    p_history.add_argument("--prior-outcomes-json", required=True)
+
+    args = parser.parse_args(argv)
+    if args.cmd == "check-history":
+        try:
+            count = check_review_history(
+                json.load(sys.stdin), args.review_id, json.loads(args.prior_outcomes_json)
+            )
+        except (ValueError, TypeError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        print(f"Prior Copilot review IDs: {count}; durable state guard passed")
+        return 0
+    if args.cmd == "fingerprint":
+        sys.stdout.write(
+            fingerprint(args.source, args.path, args.title, args.location) + "\n"
+        )
+        return 0
+    if args.cmd == "upsert":
+        ledger = json.load(sys.stdin)
+        if not isinstance(ledger, list):
+            raise SystemExit("ledger JSON must be an array")
+        upsert_finding(
+            ledger,
+            source=args.source,
+            path=args.path,
+            title=args.title,
+            head_sha=args.head_sha,
+            location=args.location,
+        )
+        sys.stdout.write(json.dumps(ledger, indent=2) + "\n")
+        return 0
+    if args.cmd == "mark-fix":
+        ledger = json.load(sys.stdin)
+        if not isinstance(ledger, list):
+            raise SystemExit("ledger JSON must be an array")
+        updated = mark_fix_attempt(ledger, args.fingerprint, args.commit)
+        if updated is None:
+            raise SystemExit(f"fingerprint not found: {args.fingerprint}")
+        sys.stdout.write(json.dumps(ledger, indent=2) + "\n")
+        return 0
+    raise SystemExit(f"unknown command {args.cmd}")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

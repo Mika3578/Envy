@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+"""Offline tests for evaluate-review-loop.py."""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import sys
+import unittest
+from pathlib import Path
+
+SCRIPTS = Path(__file__).resolve().parent
+_SPEC = importlib.util.spec_from_file_location(
+    "evaluate_review_loop_mod", SCRIPTS / "evaluate-review-loop.py"
+)
+MOD = importlib.util.module_from_spec(_SPEC)
+sys.modules[_SPEC.name] = MOD
+_SPEC.loader.exec_module(MOD)
+
+HEAD = "a" * 40
+OLD = "b" * 40
+
+
+def snap(**kwargs):
+    base = {
+        "head_sha": HEAD,
+        "review": {"commit_id": HEAD, "state": "APPROVED", "id": 1},
+        "classification": "APPROVED",
+        "requires_fixer": False,
+        "requires_human": False,
+        "review_decision": "",
+        "unresolved_threads": 0,
+        "open_finding_titles": [],
+        "previously_missed_titles": [],
+        "suppressed_comment_titles": [],
+        "finding_ledger": [],
+        "required_checks": [{"name": "Format Check", "state": "SUCCESS"}],
+    }
+    base.update(kwargs)
+    return base
+
+
+class EvaluateReviewLoopTests(unittest.TestCase):
+    def test_requested_changes_with_technical_findings_can_be_corrected(self):
+        out = MOD.evaluate_review_loop(snap(review_decision="CHANGES_REQUESTED",
+            classification="ACTIONABLE_FINDINGS", requires_fixer=True,
+            open_finding_titles=["Bounds defect"]))
+        self.assertEqual(out["decision"], MOD.DECISION_FIX_AGAIN)
+        self.assertNotEqual(out["decision"], MOD.DECISION_CLEAN)
+
+    def test_human_blocker_precedes_concrete_fixer_work(self):
+        out = MOD.evaluate_review_loop(snap(
+            classification="ACTIONABLE_FINDINGS", requires_fixer=True,
+            requires_human=True, open_finding_titles=["Parsing bug"],
+        ))
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+
+    def test_clean_approved_current_head(self):
+        out = MOD.evaluate_review_loop(snap())
+        self.assertEqual(out["decision"], MOD.DECISION_CLEAN)
+        self.assertIn("no active technical findings", out["reason"])
+
+    def test_approved_classification_with_commented_state_not_clean(self):
+        out = MOD.evaluate_review_loop(
+            snap(review={"commit_id": HEAD, "state": "COMMENTED", "id": 1})
+        )
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+
+    def test_approved_with_requires_human_not_clean(self):
+        out = MOD.evaluate_review_loop(snap(requires_human=True))
+        self.assertNotEqual(out["decision"], MOD.DECISION_CLEAN)
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+
+    def test_stale_review_never_clean(self):
+        out = MOD.evaluate_review_loop(
+            snap(review={"commit_id": OLD, "state": "APPROVED", "id": 1})
+        )
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+        self.assertIn("older commit", out["reason"])
+
+    def test_previously_missed_is_fix_again(self):
+        out = MOD.evaluate_review_loop(
+            snap(
+                classification="ACTIONABLE_FINDINGS",
+                requires_fixer=True,
+                previously_missed_titles=["BOM bypass"],
+            )
+        )
+        self.assertEqual(out["decision"], MOD.DECISION_FIX_AGAIN)
+        self.assertTrue(any("Previously missed" in r for r in out["reasons"]))
+
+    def test_empty_threads_not_clean_without_approved(self):
+        out = MOD.evaluate_review_loop(
+            snap(
+                classification="CLOSER_LOOK_DIAGNOSTIC",
+                requires_fixer=True,
+                unresolved_threads=0,
+                open_finding_titles=[],
+            )
+        )
+        self.assertEqual(out["decision"], MOD.DECISION_FIX_AGAIN)
+
+    def test_human_only_closer_look(self):
+        out = MOD.evaluate_review_loop(
+            snap(
+                classification="HUMAN_REQUIRED",
+                requires_fixer=False,
+                requires_human=True,
+            )
+        )
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+
+    def test_repeated_finding_budget(self):
+        out = MOD.evaluate_review_loop(
+            snap(
+                classification="ACTIONABLE_FINDINGS",
+                requires_fixer=True,
+                open_finding_titles=["BOM bypass"],
+                finding_ledger=[
+                    {
+                        "fingerprint": "bom-header",
+                        "attempts": 2,
+                        "status": "fixed_pending_rereview",
+                    }
+                ],
+            )
+        )
+        self.assertEqual(out["decision"], MOD.DECISION_FIX_AGAIN)
+
+    def test_global_human_decision_survives_clean_review_without_findings(self):
+        out = MOD.evaluate_review_loop(snap(human_stop_review_ids=["prior-human-review"]))
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+        self.assertIn("persistent human decision", out["reason"])
+
+    def test_non_list_required_checks_not_clean(self):
+        out = MOD.evaluate_review_loop(snap(required_checks="oops"))
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+        self.assertIn("empty", out["reason"])
+    def test_empty_required_checks_not_clean(self):
+        out = MOD.evaluate_review_loop(snap(required_checks=[]))
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+        self.assertIn("empty", out["reason"])
+
+    def test_approved_state_without_classification_not_clean(self):
+        out = MOD.evaluate_review_loop(
+            snap(
+                classification="",
+                review={"commit_id": HEAD, "state": "APPROVED", "id": 1},
+            )
+        )
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+
+    def test_failing_required_check(self):
+        out = MOD.evaluate_review_loop(
+            snap(
+                required_checks=[{"name": "secret-scan", "state": "FAILURE"}],
+            )
+        )
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+        self.assertIn("failing", out["reason"])
+
+    def test_no_review(self):
+        out = MOD.evaluate_review_loop(snap(review={}))
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+        self.assertIn("no review yet", out["reason"])
+
+    def test_cli_round_trip(self):
+        import subprocess
+
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPTS / "evaluate-review-loop.py"),
+            ],
+            input=json.dumps(snap()),
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        data = json.loads(proc.stdout)
+        self.assertEqual(data["decision"], MOD.DECISION_CLEAN)
+
+
+if __name__ == "__main__":
+    unittest.main()

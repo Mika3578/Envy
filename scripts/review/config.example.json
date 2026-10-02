@@ -1,0 +1,101 @@
+{
+  "repository": "Mika3578/Envy",
+  "maintainer_login": "Mika3578",
+  "state_dir": "C:/Users/Mika/dev/Envy/.local/review-service/state",
+  "executor": "codex",
+  "executor_timeout_seconds": 1800,
+  "validation_timeout_seconds": 1800,
+  "activation_reviewed": false,
+  "competing_writers_disabled": false,
+  "allow_live_test_transition": false,
+  "allow_ready_transition": false,
+  "allow_final_copilot_request": false,
+  "prs": [
+    {
+      "number": 397,
+      "worktree": "C:/Users/Mika/dev/Envy/.local/pr-rewrite/ci-trusted-copilot-review-loop",
+      "reviewers": [
+        {
+          "login": "coderabbitai[bot]",
+          "command": "@coderabbitai full review",
+          "complete_scope_verified": false
+        },
+        {
+          "login": "cubic-dev-ai[bot]",
+          "command": "@cubic-dev-ai review this PR",
+          "complete_scope_verified": false
+        },
+        {
+          "login": "amazon-q-developer[bot]",
+          "command": "/q review",
+          "complete_scope_verified": false
+        },
+        {
+          "login": "sourcery-ai[bot]",
+          "command": "@sourcery-ai review",
+          "complete_scope_verified": false
+        }
+      ],
+      "validation_commands": [
+        [
+          "{python}",
+          ".github/scripts/classify-copilot-review.selftest.py"
+        ],
+        [
+          "{python}",
+          ".github/scripts/evaluate-review-loop.selftest.py"
+        ],
+        [
+          "{python}",
+          ".github/scripts/finding-ledger.selftest.py"
+        ],
+        [
+          "{python}",
+          "scripts/review/service.selftest.py"
+        ]
+      ],
+      "runtime_evidence": {},
+      "trusted_reviewer_logins": [
+        "cursor[bot]"
+      ],
+      "review_window_seconds": 600
+    }
+  ],
+  "candidate_reviewers": [
+    {
+      "name": "Qodo",
+      "enabled": false,
+      "reason": "Verify current app installation, free entitlement and Draft re-review pilot"
+    },
+    {
+      "name": "LlamaPReview",
+      "enabled": false,
+      "reason": "Verify installation and Draft re-review pilot"
+    },
+    {
+      "name": "Cubic",
+      "enabled": false,
+      "reason": "Envy installation access verified; Draft scope and completion contract require pilot"
+    },
+    {
+      "name": "Amazon Q",
+      "enabled": false,
+      "reason": "Envy installation access verified; Draft scope and completion contract require pilot"
+    },
+    {
+      "name": "PR-Agent",
+      "enabled": false,
+      "reason": "Configure and measure model quality/cost"
+    },
+    {
+      "name": "OpenCodeReview",
+      "enabled": false,
+      "reason": "Configure and measure model quality/cost"
+    }
+  ],
+  "host_isolation_verified": false,
+  "executor_launcher": [],
+  "validation_launcher": [],
+  "trusted_hooks_path": "",
+  "max_executor_input_bytes": 1048576
+}

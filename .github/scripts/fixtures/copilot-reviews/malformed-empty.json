@@ -1,0 +1,8 @@
+{
+  "id": 9000000010,
+  "user": { "login": "copilot-pull-request-reviewer[bot]" },
+  "state": "COMMENTED",
+  "submitted_at": "2026-09-29T12:09:00Z",
+  "commit_id": "4444444444444444444444444444444444444444",
+  "body": ""
+}

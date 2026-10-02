@@ -1,0 +1,519 @@
+# Interpret submitted Copilot Code Review outcomes for the PR stabilizer.
+# Read-only assessment artifact; PR-controlled workflow output is untrusted.
+# Scripts must already exist on the default branch (fail closed — no PR-head bootstrap).
+name: Copilot review outcome
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  statuses: read
+
+concurrency:
+  # Serialize assessments per PR. Superseded pending events are recovered from
+  # the fetched review history; artifacts never update durable ledger state.
+  group: envy-review-loop-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  interpret:
+    name: Classify Copilot review
+    outputs:
+      publish: ${{ steps.classify.outputs.publish }}
+    if: >-
+      contains(fromJSON('["Copilot","copilot-pull-request-reviewer","copilot-pull-request-reviewer[bot]"]'), github.event.review.user.login) &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.base.ref == 'develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted default branch scripts
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          sparse-checkout: |
+            .github/scripts/classify-copilot-review.py
+            .github/scripts/evaluate-review-loop.py
+            .github/scripts/finding-ledger.py
+            scripts/review/required_checks.py
+          sparse-checkout-cone-mode: false
+
+      - name: Require review-loop scripts on the default branch
+        run: |
+          set -euo pipefail
+          for f in \
+            .github/scripts/classify-copilot-review.py \
+            .github/scripts/evaluate-review-loop.py \
+            .github/scripts/finding-ledger.py \
+            scripts/review/required_checks.py
+          do
+            if [[ ! -f "$f" ]]; then
+              echo "::error::$f is missing on the default branch; refusing to bootstrap from PR head."
+              exit 1
+            fi
+          done
+
+      - name: Classify submitted Copilot review and evaluate loop decision
+        id: classify
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REVIEW_ID: ${{ github.event.review.id }}
+          REVIEW_COMMIT_ID: ${{ github.event.review.commit_id }}
+          REVIEW_JSON: ${{ toJson(github.event.review) }}
+        run: |
+          set -euo pipefail
+          echo "publish=true" >>"$GITHUB_OUTPUT"
+          OWNER="${REPOSITORY%%/*}"
+          REPO="${REPOSITORY#*/}"
+
+          if ! [[ "${REVIEW_ID}" =~ ^[0-9]+$ ]]; then
+            echo "Invalid REVIEW_ID" >&2
+            exit 1
+          fi
+          export REVIEW_ID
+
+          # Live PR head — never trust the review-event head alone for CLEAN.
+          LIVE_HEAD="$(gh api "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}" --jq '.head.sha')"
+          if [[ -z "${LIVE_HEAD}" || "${LIVE_HEAD}" == "null" ]]; then
+            echo "::error::Could not resolve live PR head SHA." >&2
+            exit 1
+          fi
+          export LIVE_HEAD
+          echo "Live PR head: ${LIVE_HEAD}"
+          echo "Review commit: ${REVIEW_COMMIT_ID}"
+
+          # Only the newest Copilot review for the live HEAD may publish.
+          NEWEST_FOR_HEAD="$(gh api "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/reviews" --paginate \
+            | jq -s --arg head "$LIVE_HEAD" --arg rid "$REVIEW_ID" \
+              'add // []
+               | map(select((.user.login=="Copilot" or .user.login=="copilot-pull-request-reviewer" or .user.login=="copilot-pull-request-reviewer[bot]") and .commit_id==$head))
+               | sort_by(.submitted_at // .id)
+               | last
+               | (.id|tostring) == $rid')"
+          if [[ "$NEWEST_FOR_HEAD" != "true" ]]; then
+            echo "::notice::Skipping non-latest Copilot review $REVIEW_ID for HEAD ${LIVE_HEAD:0:7}."
+            echo "publish=false" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+
+          # Open findings = first-line titles + path/line from *unresolved Copilot* threads.
+          # Human unresolved threads are counted separately (NEEDS_HUMAN).
+          OPEN_TITLES="$(OWNER="$OWNER" REPO="$REPO" PR_NUMBER="$PR_NUMBER" python3 - <<'PY'
+          import json, os, subprocess, sys
+          from pathlib import Path
+          owner = os.environ["OWNER"]
+          repo = os.environ["REPO"]
+          pr = int(os.environ["PR_NUMBER"])
+          query = """
+          query($o:String!,$n:String!,$p:Int!,$c:String){
+            repository(owner:$o,name:$n){
+              pullRequest(number:$p){
+                reviewThreads(first:100, after:$c){
+                  pageInfo{ hasNextPage endCursor }
+                  nodes{
+                    isResolved
+                    path
+                    comments(first:100){
+                      pageInfo{ hasNextPage endCursor }
+                      nodes{ body author{ login __typename } originalLine line }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          """
+          findings = []
+          human_unresolved = 0
+          cursor = None
+          while True:
+              args = [
+                  "gh", "api", "graphql",
+                  "-f", f"query={query}",
+                  "-f", f"o={owner}",
+                  "-f", f"n={repo}",
+                  "-F", f"p={pr}",
+              ]
+              if cursor:
+                  args.extend(["-f", f"c={cursor}"])
+              raw = subprocess.check_output(args, text=True)
+              data = json.loads(raw)
+              conn = data["data"]["repository"]["pullRequest"]["reviewThreads"]
+              for node in conn["nodes"]:
+                  if node.get("isResolved"):
+                      continue
+                  comments = (node.get("comments") or {}).get("nodes") or []
+                  if not comments:
+                      continue
+                  copilot_logins = {
+                      "Copilot",
+                      "copilot-pull-request-reviewer",
+                      "copilot-pull-request-reviewer[bot]",
+                  }
+                  authors = [
+                      ((c.get("author") or {}).get("login") or "")
+                      for c in comments
+                  ]
+                  if node["comments"]["pageInfo"]["hasNextPage"]:
+                      raise ValueError("Incomplete thread comments; assessment cannot certify cleanliness")
+                  pr_author = json.loads(subprocess.check_output([
+                      "gh", "api", f"repos/{owner}/{repo}/pulls/{pr}"], text=True))["user"]["login"]
+                  # Contributor acknowledgements do not create human-only stops.
+                  # Inspect every fetched reply for an independent human reviewer.
+                  has_human = any(
+                      (c.get("author") or {}).get("__typename") == "User"
+                      and (c.get("author") or {}).get("login") not in copilot_logins | {pr_author}
+                      for c in comments
+                  )
+                  if has_human:
+                      human_unresolved += 1
+                  body = comments[0].get("body") or ""
+                  title = body.split("\n", 1)[0].strip()
+                  if authors and authors[0] in copilot_logins and title:
+                      line = comments[0].get("originalLine")
+                      if line is None:
+                          line = comments[0].get("line")
+                      findings.append({
+                          "title": title,
+                          "path": node.get("path") or "",
+                          "line": line,
+                      })
+              page = conn["pageInfo"]
+              if not page.get("hasNextPage"):
+                  break
+              cursor = page.get("endCursor") or ""
+              if not cursor:
+                  print("::error::reviewThreads reported hasNextPage without endCursor", file=sys.stderr)
+                  sys.exit(1)
+          Path("human_unresolved.txt").write_text(str(human_unresolved), encoding="utf-8")
+          Path("open_findings.json").write_text(json.dumps(findings), encoding="utf-8")
+          print(json.dumps([f["title"] for f in findings]))
+          PY
+          )"
+          HUMAN_UNRESOLVED="$(cat human_unresolved.txt 2>/dev/null || echo 0)"
+          export HUMAN_UNRESOLVED
+
+          # Comments share a bot identity across PR-controlled workflows and
+          # cannot authenticate durable budgets. Read only maintainer-reviewed
+          # state committed to the immutable default-branch checkout.
+          POLICY_SHA="$(git rev-parse HEAD)"
+          LEDGER_PATH=".github/review-ledgers/pr-${PR_NUMBER}.json"
+          PRIOR_OUTCOMES_FILE="$(mktemp)"
+          if git cat-file -e "${POLICY_SHA}:${LEDGER_PATH}" 2>/dev/null; then
+            git show "${POLICY_SHA}:${LEDGER_PATH}" >"$PRIOR_OUTCOMES_FILE"
+          else
+            printf '[]' >"$PRIOR_OUTCOMES_FILE"
+          fi
+          if ! jq -e 'type=="array"' "$PRIOR_OUTCOMES_FILE" >/dev/null; then
+            echo "::error::Invalid default-branch ledger; maintainer migration required."
+            exit 1
+          fi
+          PRIOR_OUTCOMES="$(cat "$PRIOR_OUTCOMES_FILE")"
+          rm -f "$PRIOR_OUTCOMES_FILE"
+          PRIOR_COUNT="$(jq 'length' <<<"$PRIOR_OUTCOMES")"
+          # Historical reviews still own correction attempts after a HEAD change.
+          # A current-HEAD-only filter would silently bootstrap an empty ledger.
+          gh api "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/reviews" --paginate \
+            | jq -s 'add // []' \
+            | python3 .github/scripts/finding-ledger.py check-history \
+                --review-id "$REVIEW_ID" --prior-outcomes-json "$PRIOR_OUTCOMES"
+          printf '%s' "$REVIEW_JSON" | python3 .github/scripts/classify-copilot-review.py \
+            --review-json - \
+            --open-findings-json "$OPEN_TITLES" \
+            --prior-outcomes-json "$PRIOR_OUTCOMES" \
+            > outcome.json
+
+          # GraphQL reviewDecision (not present on REST pull payloads).
+          REVIEW_DECISION="$(gh api graphql -f query='
+            query($o:String!,$n:String!,$p:Int!){
+              repository(owner:$o,name:$n){
+                pullRequest(number:$p){ reviewDecision }
+              }
+            }' -f o="$OWNER" -f n="$REPO" -F p="$PR_NUMBER" \
+            --jq '.data.repository.pullRequest.reviewDecision // empty')"
+
+          # Paginate review threads; fail closed if pageInfo is incomplete.
+          UNRESOLVED="$(OWNER="$OWNER" REPO="$REPO" PR_NUMBER="$PR_NUMBER" python3 - <<'PY'
+          import json, os, subprocess, sys
+          owner = os.environ["OWNER"]
+          repo = os.environ["REPO"]
+          pr = int(os.environ["PR_NUMBER"])
+          query = """
+          query($o:String!,$n:String!,$p:Int!,$c:String){
+            repository(owner:$o,name:$n){
+              pullRequest(number:$p){
+                reviewThreads(first:100, after:$c){
+                  pageInfo{ hasNextPage endCursor }
+                  nodes{ isResolved }
+                }
+              }
+            }
+          }
+          """
+          unresolved = 0
+          cursor = None
+          while True:
+              args = [
+                  "gh", "api", "graphql",
+                  "-f", f"query={query}",
+                  "-f", f"o={owner}",
+                  "-f", f"n={repo}",
+                  "-F", f"p={pr}",
+              ]
+              # First page must pass GraphQL null, not an empty string cursor.
+              if cursor:
+                  args.extend(["-f", f"c={cursor}"])
+              raw = subprocess.check_output(args, text=True)
+              data = json.loads(raw)
+              conn = data["data"]["repository"]["pullRequest"]["reviewThreads"]
+              for node in conn["nodes"]:
+                  if not node.get("isResolved"):
+                      unresolved += 1
+              page = conn["pageInfo"]
+              if not page.get("hasNextPage"):
+                  break
+              cursor = page.get("endCursor") or ""
+              if not cursor:
+                  print("::error::reviewThreads reported hasNextPage without endCursor", file=sys.stderr)
+                  sys.exit(1)
+          print(unresolved)
+          PY
+          )"
+          export OWNER REPO
+
+          # Read every required context for this exact commit, including missing receipts.
+          CHECKS_JSON="$(mktemp)"
+          python3 scripts/review/required_checks.py --repository "$REPOSITORY" --head "$LIVE_HEAD" >"$CHECKS_JSON"
+          jq -e '.checks | type=="array" and length>0' "$CHECKS_JSON" >/dev/null
+          CHECKS="$(jq '.checks' "$CHECKS_JSON")"
+
+          # Re-sample live HEAD immediately before evaluation; abort if it changed
+          # after the earlier API work (concurrency does not cancel on push alone).
+          LIVE_HEAD_NOW="$(gh api "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}" --jq '.head.sha')"
+          if [[ -z "${LIVE_HEAD_NOW}" || "${LIVE_HEAD_NOW}" == "null" ]]; then
+            echo "::error::Could not re-resolve live PR head SHA before evaluation." >&2
+            exit 1
+          fi
+          if [[ "${LIVE_HEAD_NOW}" != "${LIVE_HEAD}" ]]; then
+            echo "::error::PR HEAD changed during snapshot collection (${LIVE_HEAD} -> ${LIVE_HEAD_NOW}); aborting stale evaluation." >&2
+            exit 1
+          fi
+          export REVIEW_DECISION UNRESOLVED CHECKS PRIOR_OUTCOMES LIVE_HEAD REVIEW_COMMIT_ID
+
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, ".github/scripts")
+          import importlib.util
+          spec = importlib.util.spec_from_file_location(
+              "finding_ledger", ".github/scripts/finding-ledger.py"
+          )
+          fl = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(fl)
+
+          outcome = json.loads(Path("outcome.json").read_text(encoding="utf-8"))
+          live_head = os.environ["LIVE_HEAD"]
+          review_commit = os.environ.get("REVIEW_COMMIT_ID") or outcome.get("head_sha") or ""
+
+          prior = json.loads(os.environ.get("PRIOR_OUTCOMES") or "[]")
+          ledger: list = []
+          prior_outcome: dict | None = None
+          # Prefer the newest outcome that carries a ledger (comments are oldest-first).
+          for item in reversed(prior):
+              if isinstance(item, dict) and isinstance(item.get("finding_ledger"), list):
+                  ledger = list(item["finding_ledger"])
+                  prior_outcome = item
+                  break
+
+          # When HEAD advanced after a FIX_AGAIN decision *and* this review
+          # targets the live HEAD, treat the new commit as a correction attempt.
+          # Do not increment attempts from a stale review event after a push.
+          classification_early = str(outcome.get("classification") or "")
+          technical_for_attempts = (outcome.get("requires_fixer") or classification_early == "APPROVED") and not outcome.get("requires_human") and classification_early in {
+              "APPROVED",
+              "ACTIONABLE_FINDINGS",
+              "CLOSER_LOOK_DIAGNOSTIC",
+          }
+          if prior_outcome is not None:
+              prior_decision = str(prior_outcome.get("loop_decision") or "").upper()
+              prior_head = str(prior_outcome.get("head_sha") or "")
+              if (
+                  technical_for_attempts
+                  and prior_decision == "FIX_AGAIN"
+                  and prior_head
+                  and prior_head != live_head
+                  and review_commit
+                  and review_commit == live_head
+              ):
+                  for entry in list(ledger):
+                      status = str(entry.get("status") or "").lower()
+                      fp = str(entry.get("fingerprint") or "")
+                      if not fp:
+                          continue
+                      if status in {"open", "fixed_pending_rereview"}:
+                          fl.mark_fix_attempt(ledger, fp, live_head)
+
+          # Stale review events must not mutate the persistent ledger.
+          stale_review = (not review_commit) or review_commit != live_head
+          classification = str(outcome.get("classification") or "")
+          # Reconcile only for a complete technical review; human/quota/error
+          # outcomes usually have no open_titles and would falsely resolve prior work.
+          technical_review = classification in {
+              "APPROVED",
+              "ACTIONABLE_FINDINGS",
+              "CLOSER_LOOK_DIAGNOSTIC",
+          } and (outcome.get("requires_fixer") or (
+              classification == "APPROVED" and not outcome.get("requires_human")))
+
+          open_findings = []
+          findings_path = Path("open_findings.json")
+          if findings_path.is_file():
+              raw_findings = json.loads(findings_path.read_text(encoding="utf-8"))
+              if isinstance(raw_findings, list):
+                  open_findings = [x for x in raw_findings if isinstance(x, dict)]
+          open_findings = fl.merge_active_findings(open_findings, outcome)
+          open_titles = [str(item["title"]) for item in open_findings]
+          # Rationale-only fixer work (no inline titles) still needs a ledger
+          # fingerprint so autofix attempts can be counted across HEADs.
+          if (
+              not open_titles
+              and outcome.get("requires_fixer")
+              and technical_review
+              and not stale_review
+          ):
+              rationale = str(outcome.get("rationale") or "").strip()
+              title = ""
+              if rationale:
+                  title = rationale.split("\n", 1)[0].strip()
+              if not title:
+                  title = f"fixer:{outcome.get('classification') or 'unknown'}"
+              open_titles = [title]
+              open_findings = [{"title": title, "path": "", "line": None}]
+
+          if stale_review:
+              print(
+                  f"::notice::Skipping ledger mutation for stale review "
+                  f"({review_commit[:7]} != {live_head[:7]})."
+              )
+          elif not technical_review:
+              print(
+                  f"::notice::Skipping ledger reconcile for non-technical "
+                  f"classification ({classification or 'empty'})."
+              )
+          else:
+              active_fps = []
+              seen_titles = set()
+              for item in open_findings:
+                  title = str(item.get("title") or "").strip()
+                  if not title:
+                      continue
+                  seen_titles.add(title)
+                  path_value = str(item.get("path") or "")
+                  line = item.get("line")
+                  location = "" if line is None else f"L{line}"
+                  entry = fl.upsert_finding(
+                      ledger,
+                      source="copilot",
+                      path=path_value,
+                      title=title,
+                      head_sha=live_head,
+                      location=location,
+                  )
+                  active_fps.append(entry["fingerprint"])
+              for title in open_titles:
+                  if title in seen_titles:
+                      continue
+                  entry = fl.upsert_finding(
+                      ledger,
+                      source="copilot",
+                      path="",
+                      title=title,
+                      head_sha=live_head,
+                  )
+                  active_fps.append(entry["fingerprint"])
+              ledger = fl.reconcile_after_review(ledger, active_fps, live_head)
+
+          snapshot = {
+              "head_sha": live_head,
+              "review": {
+                  "commit_id": review_commit,
+                  "state": outcome.get("github_review_state"),
+                  "id": outcome.get("review_id"),
+              },
+              "classification": outcome.get("classification"),
+              "requires_fixer": outcome.get("requires_fixer"),
+              "requires_human": outcome.get("requires_human"),
+              "review_decision": os.environ.get("REVIEW_DECISION", ""),
+              "unresolved_threads": int(os.environ.get("UNRESOLVED", "0") or 0),
+              "human_unresolved_threads": int(os.environ.get("HUMAN_UNRESOLVED", "0") or 0),
+              "open_finding_titles": open_titles,
+              "previously_missed_titles": outcome.get("previously_missed_titles") or [],
+              "suppressed_comment_titles": outcome.get("suppressed_comment_titles") or [],
+              "finding_ledger": ledger,
+              "human_stop_review_ids": outcome.get("human_stop_review_ids") or [],
+              "required_checks": json.loads(os.environ.get("CHECKS", "[]") or "[]"),
+          }
+          Path("snapshot.json").write_text(json.dumps(snapshot), encoding="utf-8")
+          Path("ledger.json").write_text(json.dumps(ledger), encoding="utf-8")
+          PY
+
+          python3 .github/scripts/evaluate-review-loop.py < snapshot.json > decision.json
+
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          outcome = json.loads(Path("outcome.json").read_text(encoding="utf-8"))
+          decision = json.loads(Path("decision.json").read_text(encoding="utf-8"))
+          ledger = json.loads(Path("ledger.json").read_text(encoding="utf-8"))
+          outcome["loop_decision"] = decision.get("decision")
+          outcome["loop_reason"] = decision.get("reason")
+          outcome["loop_reasons"] = decision.get("reasons")
+          outcome["head_sha"] = os.environ["LIVE_HEAD"]
+          outcome["review_commit_id"] = os.environ.get("REVIEW_COMMIT_ID")
+          outcome["finding_ledger"] = ledger
+          Path("outcome.json").write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+          summary = os.environ["GITHUB_STEP_SUMMARY"]
+          with open(summary, "a", encoding="utf-8") as handle:
+              handle.write("## Review-loop outcome\n\n")
+              handle.write(f"- Loop decision: `{decision.get('decision')}`\n")
+              handle.write(f"- Reason: `{decision.get('reason')}`\n")
+              for reason in decision.get("reasons") or []:
+                  handle.write(f"  - {reason}\n")
+              handle.write(f"- Live HEAD: `{os.environ['LIVE_HEAD']}`\n")
+              handle.write(f"- Review commit: `{os.environ.get('REVIEW_COMMIT_ID')}`\n")
+              handle.write(f"- Classification: `{outcome['classification']}`\n")
+              handle.write(f"- Assessment: `{outcome['assessment']}`\n")
+              handle.write(f"- GitHub review state: `{outcome['github_review_state']}`\n")
+              handle.write(f"- Findings: `{outcome['finding_count']}`\n")
+              missed = outcome.get("previously_missed_titles") or []
+              suppressed = outcome.get("suppressed_comment_titles") or []
+              handle.write(f"- Previously missed: `{len(missed)}`\n")
+              handle.write(f"- Suppressed comments: `{len(suppressed)}`\n")
+              handle.write(f"- Ledger entries: `{len(ledger)}`\n")
+              handle.write(f"- Requires fixer: `{outcome['requires_fixer']}`\n")
+              handle.write(f"- Requires human: `{outcome['requires_human']}`\n")
+              handle.write("\n```json\n")
+              handle.write(json.dumps(outcome, indent=2))
+              handle.write("\n```\n")
+          PY
+
+      - name: Upload untrusted assessment for maintainer inspection
+        if: steps.classify.outputs.publish == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: review-assessment-${{ github.event.pull_request.number }}-${{ github.event.review.id }}
+          path: outcome.json
+          if-no-files-found: error
+          retention-days: 14

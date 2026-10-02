@@ -1,0 +1,8 @@
+{
+  "id": 9000000009,
+  "user": { "login": "human-reviewer" },
+  "state": "APPROVED",
+  "submitted_at": "2026-09-29T12:08:00Z",
+  "commit_id": "3333333333333333333333333333333333333333",
+  "body": "Looks good to me."
+}

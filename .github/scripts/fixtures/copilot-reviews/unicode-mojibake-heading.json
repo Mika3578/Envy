@@ -1,0 +1,8 @@
+{
+  "id": 9000000011,
+  "user": { "login": "copilot-pull-request-reviewer[bot]" },
+  "state": "COMMENTED",
+  "submitted_at": "2026-09-29T12:10:00Z",
+  "commit_id": "5555555555555555555555555555555555555555",
+  "body": "<!-- ccr-overview-v2 -->\n\n## Copilot review overview\n\n### \u00f0\u009f\u0094\u00b5 Needs a closer look\n\nPackaging and toolset references still need reconciliation.\n\n**Review effort:** Lite  \n**Findings:** None\n"
+}

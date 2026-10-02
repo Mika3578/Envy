@@ -1,0 +1,8 @@
+{
+  "id": 9000000090,
+  "user": { "login": "copilot-pull-request-reviewer[bot]" },
+  "state": "COMMENTED",
+  "submitted_at": "2026-09-30T10:17:45Z",
+  "commit_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "body": "<!-- ccr-overview-v2 -->\n\n## Copilot review overview\n\n### 🔵 Needs a closer look\n\nThe PR-controlled write workflow and BOM-related encoding-guard bypass must be resolved.\n\n**Review effort:** Balanced  \n**Findings:** None\n\n<details>\n<summary><strong>Resolved since last review (1)</strong></summary>\n\n- VS discovery may select instance without v145\n</details>\n\n<details>\n<summary><strong>Previously missed (2)</strong></summary>\n\nIn code that hasn't changed since last review\n\n<details>\n<summary><picture><img src=\"https://example.invalid/medium.png\" alt=\"Medium severity\" width=\"62\" height=\"18\" align=\"texttop\"></picture> Removing UTF-8 policy breaks language catalog validation</summary>\n\n`.editorconfig:57`\n\nThis override removes the repository UTF-8 policy from language catalogs.\n</details>\n\n<details>\n<summary><picture><img src=\"https://example.invalid/medium.png\" alt=\"Medium severity\" width=\"62\" height=\"18\" align=\"texttop\"></picture> UTF-8 BOM bypasses copyright header validation</summary>\n\n`.github/scripts/check_source_encoding_lib.py:255`\n\nA UTF-8 BOM prevents the first copyright line from matching startswith.\n</details>\n</details>\n"
+}

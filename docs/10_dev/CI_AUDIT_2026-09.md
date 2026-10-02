@@ -1,3 +1,5 @@
+> Current verification (2026-10-01) supersedes historical settings below: one non-author approval, review-on-push off, eight required checks, and Code Quality severity all. Older zero-approval or review-on-push-on rows are historical only.
+
 # CI/CD audit — Envy (Mika3578/Envy) — 2026-09-19
 
 **Scope:** GitHub Actions, required checks, Protect develop / Protect main
@@ -48,6 +50,12 @@ Code Quality severity **All**, Copilot `review_on_push` **off**, draft review
 **off**, coverage restriction **off**. Older rows below that show approvals
 **0** / Code Quality `notes` / `review_on_push: true` are **stale historical
 snapshots**, not current live state.
+
+**Historical observation (2026-09-30), superseded on 2026-10-01:** the previous
+zero-approval statement is not the current requirement. The live ruleset
+requires one non-author approval, thread resolution, eight checks and Code
+Quality severity All. Copilot `review_on_push` and draft review remain off.
+No change enabling review-on-push is proposed in this PR.
 
 **Pre-change findings resolved in this PR:** empty NuGet restore (~22 s/job
 no-op) skipped; Documentation Check always emits a terminal conclusion;

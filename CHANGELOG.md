@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Trusted review loop (HEAD freshness + body findings)** — Replace the temporary PR-gated requester with a develop-only exceptional `workflow_dispatch` tool; retain the live approval requirement of one and `review_on_push=false`. Add overview classifier + `evaluate-review-loop.py` (`CLEAN` / `FIX_AGAIN` / `NEEDS_HUMAN` + reason codes), finding-ledger helpers, and read-only assessment artifacts serialized per PR. Parses Previously missed / Suppressed comments; stale reviews of older SHAs never count as CLEAN.
+
 ### Fixed
 - **Connection capacity vs transfer limits (#342)** — `Connection.InSpeed` / `OutSpeed` remain declared link capacity (Kb/s) for tuning, warnings, and scheduler-derived caps; `Bandwidth.Downloads` / `Uploads` (bytes/s, `0` = Unlimited) are the only user transfer-rate caps. Unlimited downloads/uploads no longer inherit a hidden ceiling from legacy default capacity (4096/768 Kb/s). Changing capacity on Settings → Connection no longer overwrites explicit upload limits; the first-run wizard still seeds upload headroom once. One canonical capacity preset list (56 Kb/s–10 Gb/s Ki-based) is shared by the Connection page and wizard, with multigig-safe manual parsing.
 - **NMDC `$MaxedOut` queue rank handling (#329)** — Treat an empty `$MaxedOut|` token as busy, while numeric tokens carry only a validated queue position; unknown total queue length remains zero. Add EnvyTests coverage for malformed, overflow, and queue-limit cases.

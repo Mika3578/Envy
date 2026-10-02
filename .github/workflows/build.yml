@@ -98,6 +98,15 @@ jobs:
       - name: Ruleset audit self-test
         run: python3 .github/scripts/audit-ruleset.selftest.py
 
+      - name: Review-loop regression tests
+        run: |
+          python3 .github/scripts/classify-copilot-review.selftest.py
+          python3 .github/scripts/evaluate-review-loop.selftest.py
+          python3 .github/scripts/finding-ledger.selftest.py
+          python3 scripts/review/service.selftest.py
+          python3 scripts/review/required_checks.selftest.py
+          bash .github/scripts/request-final-copilot-review.selftest.sh
+
       - name: BugSplat SDK import self-test
         shell: pwsh
         run: pwsh scripts/import-bugsplat-sdk.selftest.ps1

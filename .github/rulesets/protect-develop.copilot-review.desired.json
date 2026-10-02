@@ -1,0 +1,23 @@
+{
+  "_comment": "Read-only policy snapshot. Preserve review_on_push=false until a separate human-reviewed activation; this PR does not apply live settings.",
+  "type": "copilot_code_review",
+  "parameters": {
+    "review_on_push": false,
+    "review_draft_pull_requests": false
+  },
+  "live_observed_2026-09-30": {
+    "superseded": true,
+    "note": "Historical observation; current enforceable state is recorded below."
+  },
+  "notes": [
+    "Preserve one non-author approval and every existing CI/security/quality gate.",
+    "CLEAN/FIX_AGAIN/NEEDS_HUMAN is classification, never a GitHub approval.",
+    "The exceptional requester remains disabled until its trusted environment is verified.",
+    "PR #395 owns common policy; this PR owns the review classifier and finding ledger."
+  ],
+  "live_observed_2026-10-01": {
+    "review_on_push": false,
+    "review_draft_pull_requests": false,
+    "required_approving_review_count": 1
+  }
+}
