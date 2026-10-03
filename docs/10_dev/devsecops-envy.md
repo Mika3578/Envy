@@ -196,8 +196,7 @@ comparison notes.
 
    ```powershell
    gh pr view <N> --repo Mika3578/Envy --json mergeable,mergeStateStatus,reviewDecision
-   gh api repos/Mika3578/Envy/pulls/<N>/reviews --jq ^
-     "[.[] | select(.user.login==\"copilot-pull-request-reviewer\") | {state, commit_id, submitted_at}] | last"
+   gh api repos/Mika3578/Envy/pulls/<N>/reviews --jq "[.[] | select(.user.login==\"copilot-pull-request-reviewer\") | {state, commit_id, submitted_at}] | last"
    ```
 
    Expect `state: APPROVED` on the PR head commit, `reviewDecision: APPROVED`
