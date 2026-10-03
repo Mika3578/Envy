@@ -124,14 +124,18 @@ is_high_risk_path() {
 	AGENTS.md | MODERNIZATION.md)
 		return 0
 		;;
-	.github/settings.yml | .github/CODEOWNERS | .github/dependabot.yml | \
-	.github/scripts/classify-changes.sh | .github/scripts/audit-ruleset.py)
+	.github/settings.yml | .github/CODEOWNERS | .github/dependabot.yml)
 		return 0
 		;;
 	.github/copilot-instructions.md | .github/pull_request_template.md)
 		return 0
 		;;
 	esac
+	# Gate scripts and their self-tests define merge/CI policy; treat the
+	# whole tree as privileged (independent human approval required).
+	if match_prefix "$f" ".github/scripts/"; then
+		return 0
+	fi
 	if match_prefix "$f" ".github/rulesets/" || \
 	   match_prefix "$f" ".github/skills/" || \
 	   match_prefix "$f" ".github/workflows/" || \

@@ -89,6 +89,15 @@ check installer-runtime 'Installer/Envy.iss' needs_runtime_test true
 check force-remote "$F_QUALITY" run_remote_js true
 check codeql-config-remote "$F_CODEQL" run_remote_js false
 
+for governance_file in \
+	.github/scripts/classify-changes.sh \
+	.github/scripts/audit-ruleset.py \
+	.github/scripts/pr-phase.py \
+	.github/scripts/format-check.sh
+do
+	check "governance-risk-${governance_file##*/}" "$governance_file" risk_level high
+done
+# classify/audit-ruleset also force full PR applicability (Remote + dep review).
 for governance_file in .github/scripts/classify-changes.sh .github/scripts/audit-ruleset.py; do
 	check "governance-remote-${governance_file##*/}" "$governance_file" run_remote_js true
 	check "governance-deps-${governance_file##*/}" "$governance_file" run_dep_review true
