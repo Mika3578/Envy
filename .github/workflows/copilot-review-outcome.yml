@@ -39,6 +39,8 @@ jobs:
             .github/scripts/classify-copilot-review.py
             .github/scripts/evaluate-review-loop.py
             .github/scripts/finding-ledger.py
+            .github/scripts/collect-final-review-snapshot.py
+            .github/scripts/final-review-gate.py
             scripts/review/required_checks.py
           sparse-checkout-cone-mode: false
 
@@ -49,6 +51,8 @@ jobs:
             .github/scripts/classify-copilot-review.py \
             .github/scripts/evaluate-review-loop.py \
             .github/scripts/finding-ledger.py \
+            .github/scripts/collect-final-review-snapshot.py \
+            .github/scripts/final-review-gate.py \
             scripts/review/required_checks.py
           do
             if [[ ! -f "$f" ]]; then
@@ -247,56 +251,32 @@ jobs:
             }' -f o="$OWNER" -f n="$REPO" -F p="$PR_NUMBER" \
             --jq '.data.repository.pullRequest.reviewDecision // empty')"
 
-          # Paginate review threads; fail closed if pageInfo is incomplete.
-          UNRESOLVED="$(OWNER="$OWNER" REPO="$REPO" PR_NUMBER="$PR_NUMBER" python3 - <<'PY'
-          import json, os, subprocess, sys
+          THREADS="$(OWNER="$OWNER" REPO="$REPO" PR_NUMBER="$PR_NUMBER" LIVE_HEAD="$LIVE_HEAD" python3 - <<'PY'
+          import importlib.util
+          import json
+          import os
+          from pathlib import Path
+
           owner = os.environ["OWNER"]
           repo = os.environ["REPO"]
           pr = int(os.environ["PR_NUMBER"])
-          query = """
-          query($o:String!,$n:String!,$p:Int!,$c:String){
-            repository(owner:$o,name:$n){
-              pullRequest(number:$p){
-                reviewThreads(first:100, after:$c){
-                  pageInfo{ hasNextPage endCursor }
-                  nodes{ isResolved }
-                }
-              }
-            }
-          }
-          """
-          unresolved = 0
-          cursor = None
-          while True:
-              args = [
-                  "gh", "api", "graphql",
-                  "-f", f"query={query}",
-                  "-f", f"o={owner}",
-                  "-f", f"n={repo}",
-                  "-F", f"p={pr}",
-              ]
-              # First page must pass GraphQL null, not an empty string cursor.
-              if cursor:
-                  args.extend(["-f", f"c={cursor}"])
-              raw = subprocess.check_output(args, text=True)
-              data = json.loads(raw)
-              if data.get("errors"):
-                  print("::error::GraphQL reviewThreads returned errors", file=sys.stderr)
-                  sys.exit(1)
-              conn = data["data"]["repository"]["pullRequest"]["reviewThreads"]
-              for node in conn["nodes"]:
-                  if not node.get("isResolved"):
-                      unresolved += 1
-              page = conn["pageInfo"]
-              if not page.get("hasNextPage"):
-                  break
-              cursor = page.get("endCursor") or ""
-              if not cursor:
-                  print("::error::reviewThreads reported hasNextPage without endCursor", file=sys.stderr)
-                  sys.exit(1)
-          print(unresolved)
+          head = os.environ["LIVE_HEAD"]
+          spec = importlib.util.spec_from_file_location(
+              "collect_final_review_snapshot_mod",
+              Path(".github/scripts/collect-final-review-snapshot.py"),
+          )
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          unresolved, untreated = mod.thread_disposition(owner, repo, pr, head)
+          print(json.dumps({"unresolved": unresolved, "untreated": untreated}))
           PY
           )"
+          UNRESOLVED="$(echo "$THREADS" | jq -r '.unresolved')"
+          UNTREATED="$(echo "$THREADS" | jq -r '.untreated')"
+          if [[ ! "$UNRESOLVED" =~ ^[0-9]+$ || ! "$UNTREATED" =~ ^[0-9]+$ ]]; then
+            echo "::error::Thread disposition snapshot is incomplete." >&2
+            exit 1
+          fi
           export OWNER REPO
 
           # Read every required context for this exact commit, including missing receipts.
@@ -316,7 +296,7 @@ jobs:
             echo "::error::PR HEAD changed during snapshot collection (${LIVE_HEAD} -> ${LIVE_HEAD_NOW}); aborting stale evaluation." >&2
             exit 1
           fi
-          export REVIEW_DECISION UNRESOLVED CHECKS PRIOR_OUTCOMES LIVE_HEAD REVIEW_COMMIT_ID
+          export REVIEW_DECISION UNRESOLVED UNTREATED CHECKS PRIOR_OUTCOMES LIVE_HEAD REVIEW_COMMIT_ID
 
           python3 - <<'PY'
           import json
@@ -467,6 +447,7 @@ jobs:
               "review_decision": os.environ.get("REVIEW_DECISION", ""),
               "unresolved_threads": int(os.environ.get("UNRESOLVED", "0") or 0),
               "human_unresolved_threads": int(os.environ.get("HUMAN_UNRESOLVED", "0") or 0),
+              "untreated_threads": int(os.environ["UNTREATED"]),
               "open_finding_titles": open_titles,
               "previously_missed_titles": outcome.get("previously_missed_titles") or [],
               "suppressed_comment_titles": outcome.get("suppressed_comment_titles") or [],

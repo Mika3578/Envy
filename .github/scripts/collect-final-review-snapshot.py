@@ -125,9 +125,8 @@ def paginate_files(repository: str, pr: int) -> list[str]:
     return file_inventory_paths(expected, entries)
 
 
-def count_thread_dispositions(nodes: list) -> tuple[int, int]:
-    """Return (unresolved, resolved-without-non-Copilot-reply). Fail closed."""
-    copilot = GATE.COPILOT_LOGINS
+def count_thread_dispositions(nodes: list, head_sha: str = "") -> tuple[int, int]:
+    """Return (unresolved, resolved-without-authorized-HEAD-disposition). Fail closed."""
     unresolved = 0
     untreated = 0
     for node in nodes:
@@ -136,22 +135,18 @@ def count_thread_dispositions(nodes: list) -> tuple[int, int]:
         comments = node.get("comments") or {}
         if comments.get("pageInfo", {}).get("hasNextPage"):
             raise RuntimeError("incomplete review thread comments")
-        authors = [
-            str((item.get("author") or {}).get("login") or "")
-            for item in (comments.get("nodes") or [])
-            if isinstance(item, dict)
-        ]
-        if not authors:
+        items = [item for item in (comments.get("nodes") or []) if isinstance(item, dict)]
+        if not items:
             raise RuntimeError("review thread has no comments")
         if not node.get("isResolved"):
             unresolved += 1
             continue
-        if not any(login and login not in copilot for login in authors[1:]):
+        if GATE.resolved_thread_is_untreated(items, head_sha):
             untreated += 1
     return unresolved, untreated
 
 
-def thread_disposition(owner: str, repo: str, pr: int) -> tuple[int, int]:
+def thread_disposition(owner: str, repo: str, pr: int, head_sha: str = "") -> tuple[int, int]:
     query = """
     query($o:String!,$n:String!,$p:Int!,$after:String){
       repository(owner:$o,name:$n){
@@ -161,7 +156,7 @@ def thread_disposition(owner: str, repo: str, pr: int) -> tuple[int, int]:
               isResolved
               comments(first:100){
                 pageInfo { hasNextPage }
-                nodes { author { login } }
+                nodes { author { login __typename } commit { oid } }
               }
             }
             pageInfo { hasNextPage endCursor }
@@ -195,7 +190,9 @@ def thread_disposition(owner: str, repo: str, pr: int) -> tuple[int, int]:
         if not pr_data:
             raise RuntimeError("pull request missing from GraphQL")
         threads = pr_data.get("reviewThreads") or {}
-        more_unresolved, more_untreated = count_thread_dispositions(list(threads.get("nodes") or []))
+        more_unresolved, more_untreated = count_thread_dispositions(
+            list(threads.get("nodes") or []), head_sha
+        )
         unresolved += more_unresolved
         untreated += more_untreated
         page = threads.get("pageInfo") or {}
@@ -325,7 +322,7 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         if isinstance(user, dict)
     )
     reviews = paginate_reviews(repository, pr)
-    unresolved, untreated_threads = thread_disposition(owner, repo, pr)
+    unresolved, untreated_threads = thread_disposition(owner, repo, pr, head)
     snapshot = {
         "pr_number": pr,
         "head_sha": head,
@@ -351,7 +348,7 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
     }
     latest = GATE.latest_copilot_review(reviews, head)
     if latest:
-        unresolved, untreated_threads = thread_disposition(owner, repo, pr)
+        unresolved, untreated_threads = thread_disposition(owner, repo, pr, head)
         snapshot["unresolved_threads"] = max(int(snapshot["unresolved_threads"]), unresolved)
         snapshot["untreated_threads"] = max(int(snapshot["untreated_threads"]), untreated_threads)
         snapshot["snapshot_phase"] = "post_copilot_review"

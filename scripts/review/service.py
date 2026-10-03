@@ -87,11 +87,30 @@ def run(argv, *, cwd=None, data=None, env=None, allowed=(0,), timeout=300,
     ]
     for worker in workers:
         worker.start()
-    try:
-        if data is not None:
+    deadline = time.monotonic() + timeout
+    writer_done = threading.Event()
+
+    def writer():
+        try:
             proc.stdin.write(data)
             proc.stdin.close()
-        proc.wait(timeout=timeout)
+        except (BrokenPipeError, OSError):
+            pass
+        finally:
+            writer_done.set()
+
+    if data is not None:
+        threading.Thread(target=writer, daemon=True).start()
+    else:
+        writer_done.set()
+    try:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise subprocess.TimeoutExpired(argv, timeout)
+        proc.wait(timeout=remaining)
+        if not writer_done.wait(timeout=max(0.001, deadline - time.monotonic())):
+            proc.kill()
+            raise subprocess.TimeoutExpired(argv, timeout)
     except subprocess.TimeoutExpired:
         proc.kill()
         proc.wait()
@@ -135,7 +154,7 @@ def collect(number):
     query = '''query($o:String!,$r:String!,$n:Int!,$c:String){repository(owner:$o,name:$r){
       pullRequest(number:$n){reviewThreads(first:100,after:$c){
         pageInfo{hasNextPage endCursor} nodes{id isResolved comments(first:100){
-          pageInfo{hasNextPage} nodes{databaseId author{login}}}}
+          pageInfo{hasNextPage} nodes{databaseId author{login __typename} commit{oid}}}}
       }}}}'''
     threads, cursor, seen = [], None, set()
     while True:
@@ -169,17 +188,35 @@ def collect(number):
 
 
 def threads_blocking_final_review(snapshot):
+    head = str(snapshot["pr"]["head"]["sha"])
     for thread in snapshot["threads"]:
         comments = thread.get("comments") or {}
         nodes = comments.get("nodes") or []
-        authors = [str((item.get("author") or {}).get("login") or "") for item in nodes]
         if not thread.get("isResolved"):
             return True
-        if not authors:
-            return True
-        if not any(login and login not in COPILOT for login in authors[1:]):
+        if _resolved_thread_is_untreated(nodes, head):
             return True
     return False
+
+
+def _resolved_thread_is_untreated(nodes, head):
+    if not nodes:
+        return True
+    root = nodes[0]
+    root_commit = str(((root.get("commit") or {}).get("oid") or root.get("commit_id") or ""))
+    for item in nodes[1:]:
+        author = item.get("author") or {}
+        login = str(author.get("login") or "")
+        typename = str(author.get("__typename") or author.get("type") or "")
+        if typename != "User" or not login or login in COPILOT or login.endswith("[bot]") or "copilot" in login.lower():
+            continue
+        reply_commit = str(((item.get("commit") or {}).get("oid") or item.get("commit_id") or ""))
+        if head and root_commit == head:
+            if reply_commit == head:
+                return False
+            continue
+        return False
+    return True
 
 
 def identity(pr):

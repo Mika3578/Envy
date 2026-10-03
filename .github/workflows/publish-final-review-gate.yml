@@ -104,8 +104,12 @@ jobs:
                   text=True,
               )
               if proc.returncode != 0:
-                  sys.exit(2)
-              pulls = json.loads(proc.stdout or "[]")
+                  print("commit pulls lookup failed", file=sys.stderr)
+                  sys.exit(1)
+              try:
+                  pulls = json.loads(proc.stdout or "[]")
+              except json.JSONDecodeError:
+                  sys.exit(1)
               numbers = [
                   item.get("number")
                   for item in pulls
@@ -130,13 +134,13 @@ jobs:
           print(pr)
           PY
           )" || status=$?
-          if [[ "${status:-0}" -eq 2 || -z "${pr:-}" ]]; then
+          if [[ "${status:-0}" -eq 2 ]]; then
             echo "::notice::No pull request associated with this event; skipping gate publish."
             echo "skip=1" >>"$GITHUB_OUTPUT"
             echo "number=0" >>"$GITHUB_OUTPUT"
             exit 0
           fi
-          if [[ "${status:-0}" -ne 0 ]]; then
+          if [[ "${status:-0}" -ne 0 || -z "${pr:-}" ]]; then
             echo "::error::Could not resolve a numeric pull request id."
             exit 1
           fi

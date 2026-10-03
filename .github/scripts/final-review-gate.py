@@ -107,6 +107,49 @@ def _looks_like_copilot(login: str) -> bool:
     return "copilot" in lowered and "swe-agent" not in lowered
 
 
+def is_authorized_disposition_author(login: str, *, typename: str = "", user_type: str = "") -> bool:
+    """Human User replies only. Bots and Copilot never treat a thread."""
+    if user_type and str(user_type) != "User":
+        return False
+    if typename and str(typename) != "User":
+        return False
+    if not typename and not user_type:
+        return False
+    if not login or _is_copilot(login) or _looks_like_copilot(login) or login.endswith("[bot]"):
+        return False
+    return True
+
+
+def comment_commit_oid(item: Mapping[str, Any]) -> str:
+    commit = item.get("commit")
+    if isinstance(commit, Mapping):
+        return str(commit.get("oid") or "")
+    return str(item.get("commit_id") or "")
+
+
+def resolved_thread_is_untreated(comments: Sequence[Any], head_sha: str) -> bool:
+    """True when a resolved thread has no authorized current-HEAD disposition."""
+    nodes = [item for item in comments if isinstance(item, Mapping)]
+    if not nodes:
+        return True
+    root_commit = comment_commit_oid(nodes[0])
+    head = str(head_sha or "")
+    for item in nodes[1:]:
+        author = item.get("author") if isinstance(item.get("author"), Mapping) else {}
+        login = str(author.get("login") or "")
+        typename = str(author.get("__typename") or "")
+        user_type = str(author.get("type") or "")
+        if not is_authorized_disposition_author(login, typename=typename, user_type=user_type):
+            continue
+        reply_commit = comment_commit_oid(item)
+        if head and root_commit == head:
+            if reply_commit == head:
+                return False
+            continue
+        return False
+    return True
+
+
 def reviews_for_head(reviews: Sequence[Mapping[str, Any]], head_sha: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for review in reviews or []:
@@ -542,6 +585,10 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         return {"request": False, "reason": "CHANGES_REQUESTED"}
     if int(snapshot.get("unresolved_threads") or 0) > 0:
         return {"request": False, "reason": "unresolved threads"}
+    if not isinstance(snapshot.get("untreated_threads"), int) or snapshot["untreated_threads"] < 0:
+        return {"request": False, "reason": "untreated threads unknown"}
+    if snapshot["untreated_threads"] > 0:
+        return {"request": False, "reason": "untreated threads"}
     untreated_keys = (
         "untreated_pr_level_findings",
         "previously_missed_titles",
@@ -552,14 +599,18 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     raw_checks = snapshot.get("required_checks")
     if not isinstance(raw_checks, list) or not raw_checks:
         return {"request": False, "reason": "required CI unknown"}
+    external_required = 0
     for check in raw_checks:
         if not isinstance(check, Mapping):
             return {"request": False, "reason": "required CI unknown"}
         if str(check.get("name") or "") == GATE_CONTEXT:
             continue
+        external_required += 1
         state = str(check.get("state") or "").upper()
         if state in PENDING_CHECK_STATES or state not in PASSING_CHECK_STATES:
             return {"request": False, "reason": f"required CI not green: {check.get('name')}"}
+    if external_required == 0:
+        return {"request": False, "reason": "required checks snapshot has no external contexts"}
     reasons.append("stable HEAD eligible for one Copilot request")
     return {"request": True, "reason": reasons[0]}
 

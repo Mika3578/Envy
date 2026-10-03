@@ -459,6 +459,16 @@ class FinalReviewGateTests(unittest.TestCase):
         out = MOD.should_request_copilot(snap(reviews=[], current_head_sha=OLD))
         self.assertFalse(out["request"])
 
+    def test_should_request_blocks_untreated_threads(self):
+        out = MOD.should_request_copilot(snap(reviews=[], untreated_threads=1))
+        self.assertFalse(out["request"])
+
+    def test_should_request_blocks_self_only_required_check(self):
+        out = MOD.should_request_copilot(
+            snap(reviews=[], required_checks=[{"name": "Final review gate", "state": "SUCCESS"}])
+        )
+        self.assertFalse(out["request"])
+
     def test_resolved_without_reply_blocks_success(self):
         out = MOD.evaluate_final_review_gate(snap(untreated_threads=1))
         self.assertEqual(out["state"], MOD.STATE_FAILURE)

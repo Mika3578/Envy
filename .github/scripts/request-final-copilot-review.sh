@@ -69,7 +69,7 @@ fetch_pr_json() {
 						isResolved
 						comments(first:100){
 							pageInfo{hasNextPage}
-							nodes{author{login}}
+							nodes{author{login __typename} commit{oid}}
 						}
 					}
 					pageInfo{hasNextPage endCursor}
@@ -77,7 +77,12 @@ fetch_pr_json() {
 			}
 		}
 	}' -f o="$OWNER" -f n="$REPO" -F p="$PR_NUMBER" 2>/dev/null)"; then
-		note_ineligible "Pull request #${PR_NUMBER} was not found in \`${REPOSITORY}\`."
+		note_ineligible "Could not load a complete GraphQL snapshot for pull request #${PR_NUMBER}."
+		write_summary "Final Copilot review not requested"
+		return 1
+	fi
+	if ! echo "$pr_json" | jq -e 'type=="object" and ((.errors // []) | length == 0) and (.data.repository.pullRequest | type=="object") and (.data.repository.pullRequest | has("reviewThreads"))' >/dev/null 2>&1; then
+		note_ineligible "GraphQL snapshot for pull request #${PR_NUMBER} is incomplete or returned errors."
 		write_summary "Final Copilot review not requested"
 		return 1
 	fi
@@ -86,6 +91,7 @@ fetch_pr_json() {
 
 has_unresolved_threads() {
 	local pr_json="$1"
+	local head_oid="$2"
 	local unresolved
 	unresolved="$(echo "$pr_json" | jq '[.data.repository.pullRequest.reviewThreads.nodes[]? | select(.isResolved == false)] | length')"
 	if [[ "$unresolved" != "0" ]]; then
@@ -100,13 +106,22 @@ has_unresolved_threads() {
 		return 0
 	fi
 	local untreated
-	untreated="$(echo "$pr_json" | jq --argjson copilot '["Copilot","copilot-pull-request-reviewer","copilot-pull-request-reviewer[bot]"]' '
+	untreated="$(echo "$pr_json" | jq --arg head "$head_oid" --argjson copilot '["Copilot","copilot-pull-request-reviewer","copilot-pull-request-reviewer[bot]"]' '
 		[.data.repository.pullRequest.reviewThreads.nodes[]?
 			| select(.isResolved == true)
+			| . as $thread
 			| select(
-				([.comments.nodes[1:][]?.author.login // empty]
-					| map(select(. as $login | ($copilot | index($login) | not)))
-					| length) == 0
+				([($thread.comments.nodes[1:] // [])[]
+					| select(
+						(.author.__typename == "User")
+						and ((.author.login // "") | endswith("[bot]") | not)
+						and (.author.login as $login | ($copilot | index($login) | not))
+						and (
+							((($thread.comments.nodes[0].commit.oid // "") != $head) and ($head != ""))
+							or ((.commit.oid // "") == $head)
+						)
+					)
+				] | length) == 0
 			)
 		] | length')"
 	if [[ "$untreated" != "0" ]]; then
@@ -141,9 +156,9 @@ required_checks_ok() {
 		rm -f "$checks_json"
 		return 1
 	fi
-	count="$(jq '.checks | length' "$checks_json")"
+	count="$(jq '[.checks[] | select(.name != "Final review gate")] | length' "$checks_json")"
 	if [[ "$count" == "0" ]]; then
-		note_ineligible "Could not read required status checks for PR #${PR_NUMBER} (token or API limitation)."
+		note_ineligible "Required checks snapshot has no external contexts for PR #${PR_NUMBER}."
 		rm -f "$checks_json"
 		return 1
 	fi
@@ -151,6 +166,9 @@ required_checks_ok() {
 	while IFS=$'\t' read -r name state; do
 		name="${name//$'\r'/}"
 		state="${state//$'\r'/}"
+		if [[ "$name" == "Final review gate" ]]; then
+			continue
+		fi
 		case "$state" in
 		SUCCESS | NEUTRAL | SKIPPED) ;;
 		PENDING | QUEUED | IN_PROGRESS)
@@ -206,7 +224,7 @@ evaluate_eligibility() {
 	if [[ "$review_decision" == "CHANGES_REQUESTED" ]]; then
 		note_ineligible "Pull request #${PR_NUMBER} has an active \`CHANGES_REQUESTED\` review decision."
 	fi
-	if has_unresolved_threads "$pr_json"; then
+	if has_unresolved_threads "$pr_json" "$head_oid"; then
 		last="${INELIGIBLE_REASONS[-1]-}"
 		if [[ "$last" != *"inconclusive"* && "$last" != *"disposition"* ]]; then
 			note_ineligible "Pull request #${PR_NUMBER} has unresolved review conversation threads."

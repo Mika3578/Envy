@@ -46,6 +46,22 @@ class ServiceTests(unittest.TestCase):
             mod.publish_disposition(1, source, disposition, head, base, snap)
             publish.assert_called_once()
 
+    def test_bot_reply_does_not_clear_final_review_blocker(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        snap["threads"] = [{"isResolved": True, "comments": {"nodes": [
+            {"author": {"login": "copilot-pull-request-reviewer", "__typename": "Bot"},
+             "commit": {"oid": "a" * 40}},
+            {"author": {"login": "cursor[bot]", "__typename": "Bot"},
+             "commit": {"oid": "a" * 40}},
+        ]}}]
+        state = {"handled": {}, "stops": {}, "requests": {}}
+        entry = {"number": 1, "reviewers": [{"login": "bot"}]}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": "a" * 40, "base": "b" * 40}
+        mod.final_review({}, entry, snap, state, None)
+        self.assertNotIn("phase", state)
+
     def test_unavailable_bot_does_not_block_stable_draft(self):
         snap = snapshot()
         state = {"handled": {}, "stops": {}, "requests": {}}
@@ -321,8 +337,10 @@ class ServiceTests(unittest.TestCase):
         snap["reviews"] = [{"id": 2, "user": {"login": "copilot-pull-request-reviewer"},
                             "body": "Finding", "commit_id": "a" * 40, "state": "COMMENTED"}]
         snap["threads"] = [{"isResolved": True, "comments": {"nodes": [
-            {"databaseId": 1, "author": {"login": "copilot-pull-request-reviewer"}},
-            {"databaseId": 2, "author": {"login": "alice"}},
+            {"databaseId": 1, "author": {"login": "copilot-pull-request-reviewer", "__typename": "Bot"},
+             "commit": {"oid": "a" * 40}},
+            {"databaseId": 2, "author": {"login": "alice", "__typename": "User"},
+             "commit": {"oid": "a" * 40}},
         ]}}]
         head, base = "a" * 40, "b" * 40
         entry = {

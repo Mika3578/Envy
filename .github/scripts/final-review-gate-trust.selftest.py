@@ -76,6 +76,8 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertNotIn("pull-requests: write", pub)
         self.assertNotIn("statuses: write", pub)
         self.assertIn("github.event.check_run.name != 'Final review gate'", pub)
+        self.assertIn('status:-0}" -eq 2', pub)
+        self.assertNotIn('status:-0}" -eq 2 || -z "${pr:-}"', pub)
 
     def test_pr_modifying_evaluator_does_not_change_publisher_checkout(self):
         pub = PUBLISHER.read_text(encoding="utf-8")
@@ -99,8 +101,9 @@ class FinalReviewGateTrustTests(unittest.TestCase):
 
     def test_outcome_collector_fails_closed_on_graphql_errors(self):
         text = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")
-        self.assertIn('data.get("errors")', text)
-        self.assertIn("GraphQL reviewThreads returned errors", text)
+        self.assertIn("untreated_threads", text)
+        self.assertIn("thread_disposition", text)
+        self.assertIn("GraphQL reviewThreads query returned errors", (ROOT / ".github" / "scripts" / "collect-final-review-snapshot.py").read_text(encoding="utf-8"))
 
     def test_changing_probe_and_scripts_cannot_self_green(self):
         probe = PROBE.read_text(encoding="utf-8")

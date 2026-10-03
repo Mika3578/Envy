@@ -62,10 +62,19 @@ class CollectSnapshotTests(unittest.TestCase):
                     "isResolved": True,
                     "comments": {
                         "pageInfo": {"hasNextPage": False},
-                        "nodes": [{"author": {"login": "copilot-pull-request-reviewer[bot]"}}],
+                        "nodes": [
+                            {
+                                "author": {
+                                    "login": "copilot-pull-request-reviewer[bot]",
+                                    "__typename": "Bot",
+                                },
+                                "commit": {"oid": HEAD},
+                            }
+                        ],
                     },
                 }
-            ]
+            ],
+            HEAD,
         )
         self.assertEqual(unresolved, 0)
         self.assertEqual(untreated, 1)
@@ -78,14 +87,78 @@ class CollectSnapshotTests(unittest.TestCase):
                     "comments": {
                         "pageInfo": {"hasNextPage": False},
                         "nodes": [
-                            {"author": {"login": "copilot-pull-request-reviewer[bot]"}},
-                            {"author": {"login": "alice"}},
+                            {
+                                "author": {
+                                    "login": "copilot-pull-request-reviewer[bot]",
+                                    "__typename": "Bot",
+                                },
+                                "commit": {"oid": HEAD},
+                            },
+                            {
+                                "author": {"login": "alice", "__typename": "User"},
+                                "commit": {"oid": HEAD},
+                            },
                         ],
                     },
                 }
-            ]
+            ],
+            HEAD,
         )
         self.assertEqual((unresolved, untreated), (0, 0))
+
+    def test_bot_reply_does_not_treat_current_head_thread(self):
+        unresolved, untreated = MOD.count_thread_dispositions(
+            [
+                {
+                    "isResolved": True,
+                    "comments": {
+                        "pageInfo": {"hasNextPage": False},
+                        "nodes": [
+                            {
+                                "author": {
+                                    "login": "copilot-pull-request-reviewer[bot]",
+                                    "__typename": "Bot",
+                                },
+                                "commit": {"oid": HEAD},
+                            },
+                            {
+                                "author": {"login": "cursor[bot]", "__typename": "Bot"},
+                                "commit": {"oid": HEAD},
+                            },
+                        ],
+                    },
+                }
+            ],
+            HEAD,
+        )
+        self.assertEqual((unresolved, untreated), (0, 1))
+
+    def test_old_commit_reply_does_not_treat_current_head_thread(self):
+        unresolved, untreated = MOD.count_thread_dispositions(
+            [
+                {
+                    "isResolved": True,
+                    "comments": {
+                        "pageInfo": {"hasNextPage": False},
+                        "nodes": [
+                            {
+                                "author": {
+                                    "login": "copilot-pull-request-reviewer[bot]",
+                                    "__typename": "Bot",
+                                },
+                                "commit": {"oid": HEAD},
+                            },
+                            {
+                                "author": {"login": "alice", "__typename": "User"},
+                                "commit": {"oid": "b" * 40},
+                            },
+                        ],
+                    },
+                }
+            ],
+            HEAD,
+        )
+        self.assertEqual((unresolved, untreated), (0, 1))
 
     def test_resolved_human_thread_without_reply_is_untreated(self):
         unresolved, untreated = MOD.count_thread_dispositions(
