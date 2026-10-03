@@ -41,13 +41,20 @@ class CommandFailure(RuntimeError):
         self.diagnostics = result.stdout + "\n" + result.stderr
 
 
-def run(argv, *, cwd=None, data=None, env=None, allowed=(0,), timeout=300):
+def run(argv, *, cwd=None, data=None, env=None, allowed=(0,), timeout=300,
+        max_output_bytes=8 * 1024 * 1024):
+    if isinstance(max_output_bytes, bool) or not isinstance(max_output_bytes, int) or max_output_bytes <= 0:
+        raise ValueError("Command output limit must be a positive byte count")
     result = subprocess.run(argv, cwd=cwd, input=data, text=True, encoding="utf-8",
                             errors="replace", capture_output=True, env=env, timeout=timeout)
+    stdout = result.stdout or ""
+    stderr = result.stderr or ""
+    if len(stdout.encode("utf-8")) + len(stderr.encode("utf-8")) > max_output_bytes:
+        raise ValueError("command output exceeds configured resource limit")
     if result.returncode not in allowed:
         # Output can contain private data. Retain diagnostics only in host state.
         raise CommandFailure(argv, result)
-    return result.stdout
+    return stdout
 
 
 def gh_json(args, **kwargs):
@@ -342,7 +349,8 @@ HOST_POLICY:
         env["GH_CONFIG_DIR"] = empty
         raw = run(config.get("executor_launcher", []) + executor_argv(config["executor"], state), cwd=worktree, env=env,
                   data=bounded_input(prompt, payload, config.get("max_executor_input_bytes", 1048576)), timeout=config["executor_timeout_seconds"],
-                  allowed=(0, 1))
+                  allowed=(0, 1),
+                  max_output_bytes=config.get("max_executor_output_bytes", 1048576))
     response = None
     for line in raw.splitlines():
         event = json.loads(line)
@@ -493,12 +501,6 @@ def final_review(config, entry, snapshot, state, store):
     if snapshot["pr"]["draft"] and not any(label["name"] == "stage:live-test"
                                            for label in snapshot["pr"]["labels"]):
         state["phase"] = "DRAFT_STABLE"
-        if config.get("allow_live_test_transition"):
-            run(["gh", "pr", "edit", str(number), "--repo", REPOSITORY,
-                 "--add-label", "stage:live-test"])
-            run(["gh", "pr", "checks", str(number), "--repo", REPOSITORY,
-                 "--required", "--watch", "--fail-fast", "--interval", "5"], timeout=None)
-            state["phase"] = "AWAITING_RUNTIME"
         return
     # Attestations are host-owned operator evidence, never PR comments or agent claims.
     runtime = entry.get("runtime_evidence", {})
@@ -515,16 +517,8 @@ def final_review(config, entry, snapshot, state, store):
     if identity(current) != (head, base):
         raise ValueError("HEAD/base changed before final review")
     if current["draft"]:
-        if not config.get("allow_ready_transition"):
-            state["phase"] = "DRAFT_STABLE"
-            return
-        graphql_mutation("mutation($id:ID!){markPullRequestReadyForReview(input:{pullRequestId:$id}){pullRequest{id}}}",
-                         {"id": current["node_id"]})
-        run(["gh", "pr", "checks", str(number), "--repo", REPOSITORY,
-             "--required", "--watch", "--fail-fast", "--interval", "5"], timeout=None)
-        snapshot = collect(number)
-        if identity(snapshot["pr"]) != (head, base) or not checks_pass(snapshot):
-            raise ValueError("Ready checks must finish on the attested HEAD/base")
+        state["phase"] = "DRAFT_STABLE"
+        return
     key = f"copilot:{head}:{base}"
     copilot_on_head = any(
         r["user"]["login"] in COPILOT

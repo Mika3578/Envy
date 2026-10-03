@@ -266,12 +266,11 @@ def fetch_graphql_pr_gate_fields(owner: str, repo: str, pr: int, expected_head: 
     return graphql_pr_gate_fields(payload, expected_head)
 
 
-def collect(repository: str, pr: int) -> dict[str, Any]:
-    owner, _, repo = repository.partition("/")
-    pr_json = gh_json(["api", f"repos/{repository}/pulls/{pr}"])
+def require_open_default_same_repo(
+    pr_json: dict[str, Any], repository: str, repo_json: dict[str, Any]
+) -> None:
     if str(pr_json.get("state") or "").lower() != "open":
         raise RuntimeError("pull request is not open")
-    repo_json = gh_json(["api", f"repos/{repository}"])
     default_branch = str(repo_json.get("default_branch") or "")
     base_ref = str((pr_json.get("base") or {}).get("ref") or "")
     if not default_branch or base_ref != default_branch:
@@ -279,6 +278,13 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
     head_repo = str(((pr_json.get("head") or {}).get("repo") or {}).get("full_name") or "")
     if head_repo != repository:
         raise RuntimeError("pull request head is not this repository")
+
+
+def collect(repository: str, pr: int) -> dict[str, Any]:
+    owner, _, repo = repository.partition("/")
+    pr_json = gh_json(["api", f"repos/{repository}/pulls/{pr}"])
+    repo_json = gh_json(["api", f"repos/{repository}"])
+    require_open_default_same_repo(pr_json, repository, repo_json)
     head = str(pr_json.get("head", {}).get("sha") or "")
     if not head:
         raise RuntimeError("PR HEAD SHA is missing")
@@ -306,12 +312,12 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         capture_output=True,
         text=True,
     )
-    checks: list[dict[str, Any]] = []
-    if checks_proc.returncode == 0 and checks_proc.stdout.strip():
-        payload = json.loads(checks_proc.stdout)
-        checks = payload.get("checks") if isinstance(payload, dict) else []
-        if not isinstance(checks, list):
-            checks = []
+    if checks_proc.returncode != 0:
+        raise RuntimeError(checks_proc.stderr.strip() or "required checks collection failed")
+    payload = json.loads(checks_proc.stdout)
+    checks = payload.get("checks") if isinstance(payload, dict) else []
+    if not isinstance(checks, list) or not checks:
+        raise RuntimeError("required checks snapshot is empty")
     requested = gh_json(["api", f"repos/{repository}/pulls/{pr}/requested_reviewers"])
     pending_copilot = any(
         (user.get("login") in GATE.COPILOT_LOGINS)
@@ -376,9 +382,13 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
             for title in snapshot["open_finding_titles"]
             if title and title not in snapshot["previously_missed_titles"]
         ]
-    # Re-read HEAD after collection (race 1).
+    # Re-read eligibility and HEAD after collection (race 1).
     fresh = gh_json(["api", f"repos/{repository}/pulls/{pr}"])
+    repo_json = gh_json(["api", f"repos/{repository}"])
+    require_open_default_same_repo(fresh, repository, repo_json)
     snapshot["current_head_sha"] = str(fresh.get("head", {}).get("sha") or "")
+    if not snapshot["current_head_sha"]:
+        raise RuntimeError("PR HEAD SHA is missing")
     return snapshot
 
 

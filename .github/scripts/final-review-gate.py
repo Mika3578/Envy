@@ -140,6 +140,7 @@ def human_approved_on_head(
     author_login: str = "",
 ) -> bool:
     author = str(author_login or "").casefold()
+    latest: dict[str, Mapping[str, Any]] = {}
     for review in reviews_for_head(reviews, head_sha):
         login = _login(review)
         user = review.get("user") if isinstance(review.get("user"), Mapping) else {}
@@ -149,9 +150,10 @@ def human_approved_on_head(
             continue
         if author and login.casefold() == author:
             continue
-        if str(review.get("state") or "").upper() == "APPROVED":
-            return True
-    return False
+        latest[login.casefold()] = review
+    return any(
+        str(review.get("state") or "").upper() == "APPROVED" for review in latest.values()
+    )
 
 
 def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:

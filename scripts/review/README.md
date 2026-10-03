@@ -82,8 +82,9 @@ requests after ambiguous network failures. Reconcile such requests manually from
 the provider's receipt before resetting their state.
 
 When all received findings have dispositions, no human decisions or unresolved
-threads remain and all live required checks are present and green,
-`allow_live_test_transition` may trigger live-test. Bot responses are optional.
+threads remain and all live required checks are present and green, the worker
+enters `DRAFT_STABLE` and waits. It never applies `stage:live-test` and never
+marks the pull request Ready. Bot responses are optional.
 A shared configured review opportunity defaults to 600 seconds after a request;
 missing responses then release that advisory wait. Quota/unavailable responses
 back off requests (24 hours by default), without blocking corrections or Ready.
@@ -92,8 +93,8 @@ Ready and the final Copilot request require host-owned `runtime_evidence` with
 the exact `head` and `base`, a 64-character `artifact_sha256`, `tested_by`, and
 `release_x64`, `release_win32`, `envy_tests`, `live_runtime` all equal to `passed`.
 Those fields must describe real runs; they are not a checklist to fill blindly.
-Set `allow_ready_transition` and `allow_final_copilot_request` only after the
-controlled pilot. New HEAD/base invalidates evidence. Copilot is requested once
+The worker never marks Ready. `allow_final_copilot_request` is only for a Ready
+PR after the controlled pilot. New HEAD/base invalidates evidence. Copilot is requested once
 per validated HEAD/base, preserving all human/team requests. A request or quota
 response never constitutes APPROVED. Merge remains manual.
 

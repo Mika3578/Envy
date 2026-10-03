@@ -210,6 +210,33 @@ class FinalReviewGateTests(unittest.TestCase):
         self.assertTrue(out["privileged_paths"])
         self.assertIn("human APPROVED", out["reason"])
 
+    def test_dismissed_human_approval_does_not_count(self):
+        out = MOD.evaluate_final_review_gate(
+            snap(
+                changed_files=["AGENTS.md"],
+                reviews=[
+                    {
+                        "user": {"login": COPILOT},
+                        "commit_id": HEAD,
+                        "state": "APPROVED",
+                    },
+                    {
+                        "user": {"login": "bob"},
+                        "commit_id": HEAD,
+                        "state": "APPROVED",
+                    },
+                    {
+                        "user": {"login": "bob"},
+                        "commit_id": HEAD,
+                        "state": "DISMISSED",
+                    },
+                ],
+            )
+        )
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+        self.assertTrue(out["privileged_paths"])
+        self.assertIn("independent human APPROVED", out["reason"])
+
     def test_privileged_with_human_and_copilot_success(self):
         out = MOD.evaluate_final_review_gate(
             snap(

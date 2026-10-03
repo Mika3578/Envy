@@ -7,9 +7,8 @@
   "validation_timeout_seconds": 1800,
   "activation_reviewed": false,
   "competing_writers_disabled": false,
-  "allow_live_test_transition": false,
-  "allow_ready_transition": false,
   "allow_final_copilot_request": false,
+  "max_executor_output_bytes": 1048576,
   "prs": [
     {
       "number": 397,

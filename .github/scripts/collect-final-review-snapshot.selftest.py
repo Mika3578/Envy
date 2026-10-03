@@ -99,6 +99,30 @@ class CollectSnapshotTests(unittest.TestCase):
         )
         self.assertEqual(paths, ["Envy/Buffer.cpp", "AGENTS.md"])
 
+    def test_closed_or_retargeted_pr_fails_closed(self):
+        repo = {"default_branch": "develop"}
+        with self.assertRaises(RuntimeError):
+            MOD.require_open_default_same_repo(
+                {"state": "closed", "base": {"ref": "develop"},
+                 "head": {"repo": {"full_name": "Mika3578/Envy"}}},
+                "Mika3578/Envy",
+                repo,
+            )
+        with self.assertRaises(RuntimeError):
+            MOD.require_open_default_same_repo(
+                {"state": "open", "base": {"ref": "main"},
+                 "head": {"repo": {"full_name": "Mika3578/Envy"}}},
+                "Mika3578/Envy",
+                repo,
+            )
+        with self.assertRaises(RuntimeError):
+            MOD.require_open_default_same_repo(
+                {"state": "open", "base": {"ref": "develop"},
+                 "head": {"repo": {"full_name": "other/fork"}}},
+                "Mika3578/Envy",
+                repo,
+            )
+
     def test_file_inventory_fails_closed_when_truncated(self):
         with self.assertRaises(RuntimeError):
             MOD.file_inventory_paths(2, [{"filename": "Envy/Buffer.cpp"}])

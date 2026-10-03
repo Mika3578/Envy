@@ -55,6 +55,31 @@ class ServiceTests(unittest.TestCase):
         mod.final_review({}, entry, snap, state, None)
         self.assertEqual(state["phase"], "DRAFT_STABLE")
 
+    def test_config_cannot_apply_live_test_or_ready(self):
+        snap = snapshot()
+        state = {"handled": {}, "stops": {}, "requests": {}}
+        entry = {"number": 1, "reviewers": [{"login": "bot"}]}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": "a" * 40, "base": "b" * 40}
+        with patch.object(mod, "run") as run:
+            with patch.object(mod, "graphql_mutation") as mutate:
+                mod.final_review(
+                    {"allow_live_test_transition": True, "allow_ready_transition": True},
+                    entry,
+                    snap,
+                    state,
+                    None,
+                )
+                run.assert_not_called()
+                mutate.assert_not_called()
+        self.assertEqual(state["phase"], "DRAFT_STABLE")
+
+    def test_executor_output_is_byte_bounded(self):
+        with patch.object(mod.subprocess, "run") as fake:
+            fake.return_value = subprocess.CompletedProcess(["x"], 0, stdout="x" * 50, stderr="")
+            with self.assertRaises(ValueError):
+                mod.run(["x"], max_output_bytes=10)
+
     def test_changes_requested_blocks_draft_stable_and_copilot(self):
         snap = snapshot()
         snap["pr"]["review_decision"] = "CHANGES_REQUESTED"
