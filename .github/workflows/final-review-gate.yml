@@ -1,13 +1,10 @@
 # Advisory exact-HEAD Final review gate.
 #
 # Posts commit status context "Final review gate" on the current PR HEAD SHA.
-# Not a Protect develop required check in this PR (staged rollout; depends on
-# #395 landing first). Do not enable auto-merge here.
-#
-# Trust: evaluate scripts are loaded from the default branch. This workflow file
-# still comes from the PR on pull_request events until it exists on develop.
-# check_run / pull_request_review use the default-branch workflow after merge.
-# Never checkout or execute PR HEAD code.
+# Not a Protect develop required check in this PR. Auto-merge stays off.
+# Scripts are loaded from the default branch. Never checkout PR HEAD code.
+# check_run is omitted until this workflow exists on develop (those events
+# always load the default-branch file).
 name: Final review gate
 
 on:
@@ -29,7 +26,6 @@ permissions:
   pull-requests: read
   checks: read
   statuses: write
-  actions: read
 
 concurrency:
   group: final-review-gate-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.run_id }}
@@ -39,34 +35,21 @@ jobs:
   evaluate:
     name: Evaluate final review gate
     if: >
-      (github.event_name != 'pull_request' ||
-       github.event.pull_request.head.repo.full_name == github.repository) &&
-      (github.event_name != 'pull_request_review' ||
-       github.event.pull_request.head.repo.full_name == github.repository)
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Resolve PR number
         id: pr
         env:
-          EVENT_NAME: ${{ github.event_name }}
           PR_FROM_EVENT: ${{ github.event.pull_request.number }}
           INPUT_PR: ${{ github.event.inputs.pr_number }}
-          EVENT_PATH: ${{ github.event_path }}
         run: |
           set -euo pipefail
           pr="${PR_FROM_EVENT:-}"
           if [[ -z "$pr" || "$pr" == "null" ]]; then
             pr="${INPUT_PR:-}"
-          fi
-          if [[ -z "$pr" || "$pr" == "null" ]]; then
-            pr="$(python3 - <<'PY'
-          import json, os
-          event = json.load(open(os.environ["EVENT_PATH"], encoding="utf-8"))
-          prs = (event.get("check_run") or {}).get("pull_requests") or []
-          print(prs[0]["number"] if prs else "")
-          PY
-          )"
           fi
           if [[ ! "$pr" =~ ^[0-9]+$ ]]; then
             echo "::error::Could not resolve pull request number for Final review gate."
@@ -82,6 +65,7 @@ jobs:
           sparse-checkout: |
             .github/scripts/final-review-gate.py
             .github/scripts/collect-final-review-snapshot.py
+            .github/scripts/publish-final-review-gate.py
             .github/scripts/classify-copilot-review.py
             scripts/review/required_checks.py
           sparse-checkout-cone-mode: false
@@ -94,6 +78,7 @@ jobs:
           for f in \
             .github/scripts/final-review-gate.py \
             .github/scripts/collect-final-review-snapshot.py \
+            .github/scripts/publish-final-review-gate.py \
             scripts/review/required_checks.py
           do
             if [[ ! -f "$f" ]]; then
@@ -103,133 +88,22 @@ jobs:
           done
           echo "missing=$missing" >>"$GITHUB_OUTPUT"
 
-      - name: Collect snapshot and evaluate
-        id: eval
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
-          SCRIPTS_MISSING: ${{ steps.scripts.outputs.missing }}
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json, os, subprocess, sys
-          from pathlib import Path
-
-          repo = os.environ["REPOSITORY"]
-          pr = os.environ["PR_NUMBER"]
-          missing = os.environ.get("SCRIPTS_MISSING") == "1"
-
-          def live_head():
-              proc = subprocess.run(
-                  ["gh", "api", f"repos/{repo}/pulls/{pr}", "--jq", ".head.sha"],
-                  check=False, capture_output=True, text=True,
-              )
-              return proc.returncode, (proc.stdout or "").strip()
-
-          if missing:
-              rc, sha = live_head()
-              result = {
-                  "context": "Final review gate",
-                  "state": "pending" if rc == 0 and sha else "error",
-                  "reason": "gate scripts not on default branch yet",
-                  "reasons": ["gate scripts not on default branch yet"],
-                  "publish_sha": sha,
-                  "allow_publish": bool(sha),
-              }
-              Path("/tmp/gate-result.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-              print(json.dumps(result, indent=2))
-              sys.exit(0)
-
-          collect = subprocess.run(
-              [sys.executable, ".github/scripts/collect-final-review-snapshot.py"],
-              check=False, capture_output=True, text=True,
-          )
-          Path("/tmp/gate-snapshot.json").write_text(collect.stdout or "{}", encoding="utf-8")
-          if collect.returncode != 0:
-              rc, sha = live_head()
-              result = {
-                  "context": "Final review gate",
-                  "state": "error",
-                  "reason": "snapshot collection failed",
-                  "publish_sha": sha,
-                  "allow_publish": bool(sha),
-              }
-              Path("/tmp/gate-result.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-              print(collect.stderr, file=sys.stderr)
-              print(json.dumps(result, indent=2))
-              sys.exit(0)
-
-          eval_proc = subprocess.run(
-              [sys.executable, ".github/scripts/final-review-gate.py", "--evaluate"],
-              input=collect.stdout, check=False, capture_output=True, text=True,
-          )
-          result = json.loads(eval_proc.stdout or "{}") if eval_proc.returncode == 0 else {
-              "context": "Final review gate",
-              "state": "error",
-              "reason": "evaluator failed",
-          }
-          snap = json.loads(collect.stdout or "{}")
-          rc, live = live_head()
-          if rc != 0 or not live:
-              result["state"] = "error"
-              result["reason"] = "could not re-read current HEAD before publish"
-              result["publish_sha"] = ""
-              result["allow_publish"] = False
-          elif live != snap.get("current_head_sha") or (
-              result.get("state") == "success" and live != result.get("publish_sha")
-          ):
-              result["state"] = "pending"
-              result["reason"] = "HEAD changed before status publish; refusing stale success"
-              result["publish_sha"] = live
-              result["allow_publish"] = True
-          Path("/tmp/gate-result.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-          print(json.dumps(result, indent=2))
-          PY
-
-      - name: Publish commit status on current HEAD
+      - name: Evaluate and publish SHA-bound status
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SCRIPTS_MISSING: ${{ steps.scripts.outputs.missing }}
         run: |
           set -euo pipefail
-          if [[ ! -f /tmp/gate-result.json ]]; then
-            echo "::error::gate result missing"
-            exit 1
+          if [[ "${SCRIPTS_MISSING}" == "1" ]]; then
+            sha="$(gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}" --jq .head.sha)"
+            gh api -X POST "repos/${REPOSITORY}/statuses/${sha}" \
+              -f state=pending \
+              -f context="Final review gate" \
+              -f description="gate scripts not on default branch yet" \
+              -f "target_url=${RUN_URL}"
+            exit 0
           fi
-          python3 - <<'PY'
-          import json, os, subprocess, sys
-          result = json.load(open("/tmp/gate-result.json", encoding="utf-8"))
-          repo = os.environ["REPOSITORY"]
-          pr = os.environ["PR_NUMBER"]
-          proc = subprocess.run(
-              ["gh", "api", f"repos/{repo}/pulls/{pr}", "--jq", ".head.sha"],
-              check=False, capture_output=True, text=True,
-          )
-          live = (proc.stdout or "").strip()
-          state = result.get("state") or "error"
-          if state == "success" and (not live or live != result.get("publish_sha")):
-              state = "pending"
-              desc = "HEAD mismatch at publish; refusing stale success"
-          else:
-              desc = str(result.get("reason") or state)[:120]
-          sha = live or result.get("publish_sha")
-          if not sha:
-              print("No SHA to publish", file=sys.stderr)
-              sys.exit(1)
-          if state == "success" and sha != live:
-              print("Refusing success on non-current SHA", file=sys.stderr)
-              sys.exit(1)
-          subprocess.run(
-              [
-                  "gh", "api", "-X", "POST", f"repos/{repo}/statuses/{sha}",
-                  "-f", f"state={state}",
-                  "-f", "context=Final review gate",
-                  "-f", f"description={desc}",
-                  "-f", f"target_url={os.environ['RUN_URL']}",
-              ],
-              check=True,
-          )
-          PY
+          python3 .github/scripts/publish-final-review-gate.py
