@@ -198,9 +198,9 @@ git clone https://github.com/mika3578/envy.git
 cd envy
 git checkout develop
 
-:: 2. Bootstrap vcpkg (manifest mode auto-enabled by VS 2026)
-git clone https://github.com/microsoft/vcpkg.git
-.\vcpkg\bootstrap-vcpkg.bat
+:: 2. Bootstrap vcpkg (clones if needed and detaches to vcpkg.json
+::    builtin-baseline; same pin as CI/release)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-vcpkg.ps1 -CloneVcpkg
 
 :: 3. (Optional) Force re-target of every vcxproj
 cd "Visual Studio"
