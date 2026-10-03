@@ -55,7 +55,11 @@ PRIVILEGED_PREFIXES = (
 PASSING_CHECK_STATES = required_check_policy.PASSING_CHECK_STATES
 GATE_PASSING_CHECK_STATES = required_check_policy.GATE_PASSING_CHECK_STATES
 PENDING_CHECK_STATES = required_check_policy.PENDING_CHECK_STATES
-UNREADY_MERGE_STATES = frozenset({"", "UNKNOWN", "BEHIND", "DIRTY", "UNSTABLE"})
+# Gate SUCCESS requires a fully mergeable head. Copilot *request* eligibility
+# still allows BLOCKED/HAS_HOOKS because Copilot APPROVED is often what clears
+# the review-gate BLOCKED state (CLEAN-only before request would deadlock).
+GATE_SUCCESS_MERGE_STATES = frozenset({"CLEAN"})
+REQUEST_MERGE_STATES = frozenset({"CLEAN", "BLOCKED", "HAS_HOOKS"})
 
 SUCCESS_COPILOT_CLASSIFICATIONS = frozenset({"APPROVED"})
 BLOCKING_COPILOT_CLASSIFICATIONS = frozenset(
@@ -436,7 +440,7 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         return _result(STATE_PENDING, reasons, snapshot, metrics, privileged=privileged)
 
     merge_state = str(snapshot.get("merge_state_status") or "").upper()
-    if merge_state in UNREADY_MERGE_STATES:
+    if merge_state not in GATE_SUCCESS_MERGE_STATES:
         reasons.append(f"merge state not ready for gate success: {merge_state or '<missing>'}")
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
 
@@ -605,7 +609,10 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         return {"request": False, "reason": gate["reasons"][0] if gate["reasons"] else "fail closed"}
     if str(snapshot.get("review_decision") or "").upper() == "CHANGES_REQUESTED":
         return {"request": False, "reason": "CHANGES_REQUESTED"}
-    if int(snapshot.get("unresolved_threads") or 0) > 0:
+    unresolved = snapshot.get("unresolved_threads")
+    if not isinstance(unresolved, int) or unresolved < 0:
+        return {"request": False, "reason": "unresolved threads unknown"}
+    if unresolved > 0:
         return {"request": False, "reason": "unresolved threads"}
     if not isinstance(snapshot.get("untreated_threads"), int) or snapshot["untreated_threads"] < 0:
         return {"request": False, "reason": "untreated threads unknown"}
@@ -620,7 +627,7 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     if any(snapshot.get(key) for key in untreated_keys):
         return {"request": False, "reason": "untreated findings remain"}
     merge_state = str(snapshot.get("merge_state_status") or "").upper()
-    if merge_state in UNREADY_MERGE_STATES:
+    if merge_state not in REQUEST_MERGE_STATES:
         return {
             "request": False,
             "reason": f"merge state not ready for Copilot: {merge_state or '<missing>'}",

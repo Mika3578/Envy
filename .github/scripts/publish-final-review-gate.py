@@ -110,6 +110,14 @@ def main() -> int:
     if not live:
         print("could not re-read current HEAD before publish", file=sys.stderr)
         return 1
+    collected_head = str(snapshot.get("current_head_sha") or "")
+    if live != collected_head or live != str(result.get("publish_sha") or live):
+        # Any HEAD race invalidates the collected result, not only SUCCESS.
+        state = "pending"
+        desc = "HEAD changed before status publish; refusing stale gate result"
+        post_check_run(repository, live, state, desc, run_url)
+        print(json.dumps({"state": state, "reason": desc, "publish_sha": live}, indent=2))
+        return 0
     if state == "success":
         try:
             live_snapshot = collect_mod.collect(repository, pr)
@@ -117,15 +125,12 @@ def main() -> int:
             state = str(result.get("state") or "error")
             desc = str(result.get("reason") or state)
             live = str(live_snapshot.get("current_head_sha") or live)
+            if live != collected_head:
+                state = "pending"
+                desc = "HEAD changed during post-success revalidation; refusing stale success"
         except Exception as exc:  # noqa: BLE001 — fail closed
             state = "error"
             desc = f"post-success revalidation failed: {exc}"
-    if state == "success" and live != result.get("publish_sha"):
-        state = "pending"
-        desc = "HEAD changed before status publish; refusing stale success"
-    if state == "success" and live != snapshot.get("current_head_sha"):
-        state = "pending"
-        desc = "HEAD changed before status publish; refusing stale success"
     post_check_run(repository, live, state, desc, run_url)
     print(json.dumps({"state": state, "reason": desc, "publish_sha": live}, indent=2))
     return 0

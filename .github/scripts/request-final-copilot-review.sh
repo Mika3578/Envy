@@ -60,6 +60,7 @@ fetch_pr_json() {
 				mergeStateStatus
 				author{login __typename}
 				headRepository{nameWithOwner}
+				labels(first:50){nodes{name}}
 				reviewRequests(first:100){
 					nodes{requestedReviewer{__typename ... on Bot{login} ... on User{login}}}
 				}
@@ -255,6 +256,9 @@ evaluate_eligibility() {
 		fi
 	fi
 	case "$merge_state" in
+	CLEAN | BLOCKED | HAS_HOOKS)
+		# BLOCKED/HAS_HOOKS remain eligible: Copilot APPROVED often clears BLOCKED.
+		;;
 	BEHIND)
 		note_ineligible "Pull request #${PR_NUMBER} is \`BEHIND\` \`develop\`; update the branch before the final Copilot review."
 		;;
@@ -264,8 +268,8 @@ evaluate_eligibility() {
 	DIRTY)
 		note_ineligible "Pull request #${PR_NUMBER} merge state is \`DIRTY\` (conflicts or unresolved merge state)."
 		;;
-	UNKNOWN | "")
-		note_ineligible "Pull request #${PR_NUMBER} merge state is \`${merge_state:-<missing>}\`; retry after GitHub finishes computing mergeability."
+	UNKNOWN | "" | *)
+		note_ineligible "Pull request #${PR_NUMBER} merge state is \`${merge_state:-<missing>}\`; not Ready for the final Copilot review."
 		;;
 	esac
 

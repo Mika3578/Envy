@@ -184,9 +184,10 @@ def require_eligible_pr(pr):
 
 
 def merge_state_ready_for_copilot(pr):
-    """REST mergeable_state must be known and not behind/dirty/unstable."""
+    """REST mergeable_state allowlist. blocked/has_hooks stay eligible so the
+    Copilot request is not deadlocked behind the approval it is meant to obtain."""
     state = str((pr or {}).get("mergeable_state") or "").lower()
-    return state not in {"", "unknown", "behind", "dirty", "unstable"}
+    return state in {"clean", "blocked", "has_hooks"}
 
 
 def collect(number):
@@ -909,8 +910,12 @@ def final_review(config, entry, snapshot, state, store):
         if threads_blocking_final_review(fresh):
             state["phase"] = "FIX_AGAIN"
             return
-        if str(fresh["pr"].get("review_decision") or "").upper() == "CHANGES_REQUESTED":
+        decision = str(fresh["pr"].get("review_decision") or "").upper()
+        if decision == "CHANGES_REQUESTED":
             state["phase"] = "CHANGES_REQUESTED"
+            return
+        if decision != "APPROVED":
+            state["phase"] = "FIX_AGAIN"
             return
         latest_fresh = latest_copilot_review(fresh["reviews"], head)
         if latest_fresh is None or str(latest_fresh.get("state") or "").upper() != "APPROVED":
@@ -1078,7 +1083,9 @@ def process(config, entry, store, *, observe):
         store.save(number, state)
         state["phase"] = "WAITING_REVIEWS"
         snapshot = collect(number)
-    request_free(entry, snapshot, state, store)
+    # Correction agents must not request any review product while Draft.
+    if not snapshot["pr"].get("draft"):
+        request_free(entry, snapshot, state, store)
     final_review(config, entry, snapshot, state, store)
     store.save(number, state)
     return {"pr": number, "phase": state.get("phase", "WAITING_REVIEWS"), "head": head,

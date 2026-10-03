@@ -486,6 +486,13 @@ class FinalReviewGateTests(unittest.TestCase):
                 out = MOD.should_request_copilot(snap(reviews=[], merge_state_status=state))
                 self.assertFalse(out["request"])
                 self.assertIn("merge state not ready", out["reason"])
+        allowed = MOD.should_request_copilot(snap(reviews=[], merge_state_status="BLOCKED"))
+        self.assertTrue(allowed["request"])
+
+    def test_should_request_rejects_non_int_unresolved_threads(self):
+        out = MOD.should_request_copilot(snap(reviews=[], unresolved_threads=None))
+        self.assertFalse(out["request"])
+        self.assertEqual(out["reason"], "unresolved threads unknown")
 
     def test_success_requires_ready_merge_state(self):
         out = MOD.evaluate_final_review_gate(snap(merge_state_status="BEHIND"))

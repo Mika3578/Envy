@@ -170,6 +170,10 @@ def reconstruct_prior_outcomes_from_reviews(
                 "head_sha": head_sha,
                 "classification": classification,
                 "finding_ledger": json.loads(json.dumps(ledger)),
+                "finding_count": outcome.get("finding_count"),
+                "rationale_fingerprint": outcome.get("rationale_fingerprint") or "",
+                "requires_human": bool(outcome.get("requires_human")),
+                "requires_fixer": bool(outcome.get("requires_fixer")),
             }
         )
     return outcomes
