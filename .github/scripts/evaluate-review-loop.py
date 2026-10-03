@@ -10,7 +10,13 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
 from typing import Any, Mapping, Sequence
+
+_REVIEW = Path(__file__).resolve().parents[2] / "scripts" / "review"
+if str(_REVIEW) not in sys.path:
+    sys.path.insert(0, str(_REVIEW))
+import required_checks as required_check_policy  # noqa: E402
 
 DECISION_CLEAN = "CLEAN"
 DECISION_FIX_AGAIN = "FIX_AGAIN"
@@ -41,10 +47,8 @@ REASON_REQUIRED_CI_PENDING = "required check pending"
 REASON_CLEAN = "latest review of current HEAD has no active technical findings"
 REASON_MALFORMED = "review overview could not be classified"
 
-PASSING_CHECK_STATES = frozenset({"SUCCESS", "NEUTRAL"})
-PENDING_CHECK_STATES = frozenset(
-    {"PENDING", "QUEUED", "IN_PROGRESS", "WAITING", "REQUESTED"}
-)
+PASSING_CHECK_STATES = required_check_policy.PASSING_CHECK_STATES
+PENDING_CHECK_STATES = required_check_policy.PENDING_CHECK_STATES
 
 MAX_AUTOFIX_ATTEMPTS = None  # History is retained; attempts alone do not stop correction.
 

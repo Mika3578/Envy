@@ -212,13 +212,8 @@ jobs:
           if git cat-file -e "${POLICY_SHA}:${LEDGER_PATH}" 2>/dev/null; then
             git show "${POLICY_SHA}:${LEDGER_PATH}" >"$PRIOR_OUTCOMES_FILE"
           else
-            PRIOR_COPILOT="$(jq '[.[] | select(.user.login=="Copilot" or .user.login=="copilot-pull-request-reviewer" or .user.login=="copilot-pull-request-reviewer[bot]")] | length' "$REVIEWS_FILE")"
-            if [[ "${PRIOR_COPILOT}" != "0" ]]; then
-              echo "::error::Default branch has no ${LEDGER_PATH} but this PR already has Copilot reviews; maintainer ledger migration is required."
-              rm -f "$PRIOR_OUTCOMES_FILE" "$REVIEWS_FILE"
-              exit 1
-            fi
-            printf '[]' >"$PRIOR_OUTCOMES_FILE"
+            python3 .github/scripts/finding-ledger.py reconstruct-history \
+              --review-id "$REVIEW_ID" <"$REVIEWS_FILE" >"$PRIOR_OUTCOMES_FILE"
           fi
           if ! jq -e 'type=="array"' "$PRIOR_OUTCOMES_FILE" >/dev/null; then
             echo "::error::Invalid default-branch ledger; maintainer migration required."

@@ -66,6 +66,10 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertNotIn("pull_request.head.sha", pub)
         self.assertNotIn("github.head_ref", pub)
         self.assertNotIn("allow-unsafe-pr-checkout", pub)
+        self.assertIn(".github/scripts/classify-copilot-review.py", pub)
+        self.assertIn("pull_request_review_comment:", PROBE.read_text(encoding="utf-8"))
+        self.assertIn("pull_request_review_thread:", PROBE.read_text(encoding="utf-8"))
+        self.assertIn("Final review gate probe", pub)
         self.assertIn("contents: read", pub)
         self.assertNotIn("contents: write", pub)
         self.assertNotIn("pull-requests: write", pub)
@@ -76,6 +80,12 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn("ref: ${{ github.event.repository.default_branch }}", pub)
         self.assertIn(".github/scripts/final-review-gate.py", pub)
         self.assertIn(".github/scripts/publish-final-review-gate.py", pub)
+        self.assertIn(".github/scripts/classify-copilot-review.py", pub)
+
+    def test_coderabbit_does_not_review_drafts(self):
+        text = (ROOT / ".coderabbit.yaml").read_text(encoding="utf-8")
+        self.assertIn("drafts: false", text)
+        self.assertNotIn("drafts: true", text)
 
     def test_changing_probe_and_scripts_cannot_self_green(self):
         probe = PROBE.read_text(encoding="utf-8")
@@ -133,6 +143,10 @@ class FinalReviewGateTrustTests(unittest.TestCase):
             ],
             "finding_ledger": [],
             "copilot_request_pending": False,
+            "review_decision_source": "graphql",
+            "review_decision_unavailable": False,
+            "pr_author_login": "alice",
+            "copilot_classification": "APPROVED",
         }
         ok = mod.evaluate_final_review_gate(snapshot)
         self.assertEqual(ok["state"], mod.STATE_SUCCESS)

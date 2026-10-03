@@ -104,6 +104,7 @@ jobs:
           python3 .github/scripts/evaluate-review-loop.selftest.py
           python3 .github/scripts/final-review-gate.selftest.py
           python3 .github/scripts/final-review-gate-trust.selftest.py
+          python3 .github/scripts/collect-final-review-snapshot.selftest.py
           python3 .github/scripts/finding-ledger.selftest.py
           python3 scripts/review/service.selftest.py
           python3 scripts/review/required_checks.selftest.py

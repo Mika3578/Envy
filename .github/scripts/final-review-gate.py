@@ -13,7 +13,13 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
 from typing import Any, Mapping, Sequence
+
+_REVIEW = Path(__file__).resolve().parents[2] / "scripts" / "review"
+if str(_REVIEW) not in sys.path:
+    sys.path.insert(0, str(_REVIEW))
+import required_checks as required_check_policy  # noqa: E402
 
 GATE_CONTEXT = "Final review gate"
 
@@ -43,15 +49,23 @@ PRIVILEGED_PREFIXES = (
     ".github/scripts/",
 )
 
-PASSING_CHECK_STATES = frozenset({"SUCCESS", "NEUTRAL", "SKIPPED"})
-PENDING_CHECK_STATES = frozenset(
-    {"PENDING", "QUEUED", "IN_PROGRESS", "WAITING", "REQUESTED", "EXPECTED"}
-)
+PASSING_CHECK_STATES = required_check_policy.PASSING_CHECK_STATES
+PENDING_CHECK_STATES = required_check_policy.PENDING_CHECK_STATES
 
-RETRYABLE_COPILOT = frozenset(
-    {"COPILOT_QUOTA_BLOCKED", "COPILOT_DIFF_TOO_LARGE", "REVIEW_ERROR"}
+SUCCESS_COPILOT_CLASSIFICATIONS = frozenset({"APPROVED"})
+BLOCKING_COPILOT_CLASSIFICATIONS = frozenset(
+    {
+        "MALFORMED",
+        "CLOSER_LOOK_DIAGNOSTIC",
+        "VALIDATION_MISSING",
+        "ACTIONABLE_FINDINGS",
+        "HUMAN_REQUIRED",
+        "COPILOT_QUOTA_BLOCKED",
+        "COPILOT_DIFF_TOO_LARGE",
+        "REVIEW_ERROR",
+        "NON_COPILOT",
+    }
 )
-
 
 def is_privileged_path(path: str) -> bool:
     normalized = (path or "").replace("\\", "/").lstrip("/")
@@ -116,11 +130,16 @@ def latest_copilot_review(
 
 
 def human_approved_on_head(
-    reviews: Sequence[Mapping[str, Any]], head_sha: str
+    reviews: Sequence[Mapping[str, Any]],
+    head_sha: str,
+    author_login: str = "",
 ) -> bool:
+    author = str(author_login or "").casefold()
     for review in reviews_for_head(reviews, head_sha):
         login = _login(review)
-        if not login or _is_copilot(login) or login.endswith("[bot]"):
+        if not login or _is_copilot(login) or _looks_like_copilot(login) or login.endswith("[bot]"):
+            continue
+        if author and login.casefold() == author:
             continue
         if str(review.get("state") or "").upper() == "APPROVED":
             return True
@@ -214,6 +233,24 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         reasons.append("pre-Copilot snapshot cannot publish success")
         return _result(STATE_PENDING, reasons, snapshot, metrics, privileged=privileged, allow_publish=False)
 
+    if snapshot.get("review_decision_source") != "graphql":
+        return _result(
+            STATE_ERROR,
+            ["reviewDecision must be fetched through GraphQL"],
+            snapshot,
+            metrics,
+            allow_publish=False,
+            privileged=privileged,
+        )
+    if snapshot.get("review_decision_unavailable"):
+        return _result(
+            STATE_ERROR,
+            ["reviewDecision is unavailable"],
+            snapshot,
+            metrics,
+            allow_publish=False,
+            privileged=privileged,
+        )
     review_decision = str(snapshot.get("review_decision") or "").upper()
     if review_decision == "CHANGES_REQUESTED":
         reasons.append("active CHANGES_REQUESTED")
@@ -330,11 +367,36 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         reasons.append(f"Copilot review state {copilot_state} is not APPROVED")
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
 
+    if snapshot.get("classifier_missing"):
+        return _result(
+            STATE_ERROR,
+            ["classify-copilot-review.py is missing on the trusted default branch"],
+            snapshot,
+            metrics,
+            allow_publish=False,
+            privileged=privileged,
+        )
+    classification = str(snapshot.get("copilot_classification") or "")
+    if not classification:
+        return _result(
+            STATE_ERROR,
+            ["Copilot classification is missing"],
+            snapshot,
+            metrics,
+            allow_publish=False,
+            privileged=privileged,
+        )
+    if classification in BLOCKING_COPILOT_CLASSIFICATIONS or classification not in SUCCESS_COPILOT_CLASSIFICATIONS:
+        reasons.append(f"Copilot classification {classification} is not APPROVED")
+        return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
+
     if str(copilot.get("commit_id") or "") != head:
         reasons.append("Copilot review.commit_id does not match current HEAD")
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
 
-    if privileged and not human_approved_on_head(reviews, head):
+    if privileged and not human_approved_on_head(
+        reviews, head, str(snapshot.get("pr_author_login") or "")
+    ):
         reasons.append("privileged governance paths require independent human APPROVED")
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=True)
 
@@ -401,7 +463,9 @@ def revalidate_gate_before_success(
 
 
 def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
-    """At most one final Copilot request per SHA unless a retryable error."""
+    """At most one accepted Copilot review request per SHA. Transport failures
+    before a submitted review may retry because no review exists yet.
+    """
     gate = evaluate_final_review_gate(snapshot)
     head = str(snapshot.get("head_sha") or "")
     reasons: list[str] = []
@@ -414,9 +478,6 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     reviews = snapshot.get("reviews") if isinstance(snapshot.get("reviews"), list) else []
     copilot = latest_copilot_review(reviews, head)
     if copilot and not copilot.get("_unknown_copilot_identity"):
-        classification = str(snapshot.get("copilot_classification") or "")
-        if classification in RETRYABLE_COPILOT:
-            return {"request": True, "reason": f"retryable Copilot outcome {classification}"}
         return {"request": False, "reason": "Copilot already reviewed this HEAD"}
     if gate["state"] in {STATE_ERROR}:
         return {"request": False, "reason": gate["reasons"][0] if gate["reasons"] else "fail closed"}

@@ -234,6 +234,14 @@ graphql_mutation_ok() {
 	return 0
 }
 
+reviewer_sets_unchanged() {
+	local users_a="$1"
+	local teams_a="$2"
+	local users_b="$3"
+	local teams_b="$4"
+	[[ "$users_a" == "$users_b" && "$teams_a" == "$teams_b" ]]
+}
+
 fetch_preserved_reviewer_ids() {
 	local user_ids='[]'
 	local team_ids='[]'
@@ -289,7 +297,7 @@ request_copilot_refresh() {
 	local pr_node_id="$1"
 	local head_oid_before="$2"
 	local pr_json head_oid_after
-	local max_reviews_per_head=2
+	local max_reviews_per_head=1
 
 	if ! pr_json="$(fetch_pr_json)"; then
 		exit 0
@@ -329,26 +337,9 @@ request_copilot_refresh() {
 		exit 1
 	fi
 	if [[ "$head_review_count" -ge "$max_reviews_per_head" ]]; then
-		note_ineligible "Copilot review generation limit (${max_reviews_per_head}) reached for HEAD \`${head_oid_before:0:7}\`."
+		note_ineligible "Copilot already reviewed HEAD \`${head_oid_before:0:7}\`; one accepted request per SHA."
 		write_summary "Final Copilot review not requested"
 		exit 0
-	fi
-	if [[ "$head_review_count" -ge 1 ]]; then
-		# Allow retry only when the latest same-HEAD Copilot review is an explicit
-		# quota/error/diff-too-large outcome; otherwise treat as complete.
-		latest_body="$(gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}/reviews" --paginate \
-			| jq -s --arg head "$head_oid_before" --arg bot "$COPILOT_REVIEWER_BOT" \
-				'add // [] | map(select((.user.login == $bot or .user.login == "Copilot" or .user.login == "copilot-pull-request-reviewer") and .commit_id == $head)) | sort_by(.submitted_at // .id) | last // {}')"
-		retryable=0
-		retry_classification="$(printf '%s' "$latest_body" | python3 .github/scripts/classify-copilot-review.py --review-json - | jq -r '.classification')"
-		if [[ "$retry_classification" == REVIEW_ERROR || "$retry_classification" == COPILOT_QUOTA_BLOCKED || "$retry_classification" == COPILOT_DIFF_TOO_LARGE ]]; then
-			retryable=1
-		fi
-		if [[ "$retryable" -ne 1 ]]; then
-			note_ineligible "Copilot already reviewed HEAD \`${head_oid_before:0:7}\` (${head_review_count} review(s)); skipping duplicate request."
-			write_summary "Final Copilot review not requested"
-			exit 0
-		fi
 	fi
 
 	local bot_node user_ids team_ids clear_resp add_resp restore_resp
@@ -419,6 +410,19 @@ EOF
 		write_summary "Final Copilot review not requested"
 		exit 0
 	fi
+	preserved_raw_again="$(fetch_preserved_reviewer_ids)" || {
+		echo "::error::Failed to re-read reviewer IDs immediately before clear." >&2
+		exit 1
+	}
+	user_ids_again="$(printf '%s\n' "$preserved_raw_again" | sed -n '1p')"
+	team_ids_again="$(printf '%s\n' "$preserved_raw_again" | sed -n '2p')"
+	if ! reviewer_sets_unchanged "$user_ids" "$team_ids" "$user_ids_again" "$team_ids_again"; then
+		note_ineligible "Human/team reviewer requests changed before clear; aborting so a newly added reviewer is not dropped."
+		write_summary "Final Copilot review not requested"
+		exit 0
+	fi
+	user_ids="$user_ids_again"
+	team_ids="$team_ids_again"
 	RESTORE_PR_NODE="$pr_node_id"
 	RESTORE_USER_IDS="$user_ids"
 	RESTORE_TEAM_IDS="$team_ids"

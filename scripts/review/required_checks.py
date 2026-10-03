@@ -5,6 +5,13 @@ import json
 import re
 import subprocess
 
+# Canonical required-check conclusions for Envy. SKIPPED is the documented
+# deferred/N/A receipt (Draft Windows lanes, inapplicable matrix legs).
+PASSING_CHECK_STATES = frozenset({"SUCCESS", "NEUTRAL", "SKIPPED"})
+PENDING_CHECK_STATES = frozenset(
+    {"PENDING", "QUEUED", "IN_PROGRESS", "WAITING", "REQUESTED", "EXPECTED"}
+)
+
 
 def gh(args):
     return json.loads(subprocess.check_output(["gh", "api", *args], text=True, encoding="utf-8"))

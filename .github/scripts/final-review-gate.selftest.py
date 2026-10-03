@@ -29,6 +29,10 @@ def snap(**kwargs):
         "current_head_sha": HEAD,
         "is_draft": False,
         "review_decision": "APPROVED",
+        "review_decision_source": "graphql",
+        "review_decision_unavailable": False,
+        "pr_author_login": "alice",
+        "copilot_classification": "APPROVED",
         "unresolved_threads": 0,
         "untreated_pr_level_findings": [],
         "previously_missed_titles": [],
@@ -191,7 +195,7 @@ class FinalReviewGateTests(unittest.TestCase):
                         "state": "APPROVED",
                     },
                     {
-                        "user": {"login": "Mika3578"},
+                        "user": {"login": "bob"},
                         "commit_id": HEAD,
                         "state": "APPROVED",
                     },
@@ -269,6 +273,96 @@ class FinalReviewGateTests(unittest.TestCase):
         out = MOD.revalidate_gate_before_success(first, live)
         self.assertNotEqual(out["state"], MOD.STATE_SUCCESS)
         self.assertFalse(out["allow_publish"])
+
+
+    def test_graphql_changes_requested_blocks_success(self):
+        out = MOD.evaluate_final_review_gate(snap(review_decision="CHANGES_REQUESTED"))
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+        self.assertIn("CHANGES_REQUESTED", out["reason"])
+
+    def test_review_decision_unavailable_fail_closed(self):
+        out = MOD.evaluate_final_review_gate(snap(review_decision_unavailable=True))
+        self.assertEqual(out["state"], MOD.STATE_ERROR)
+        self.assertFalse(out["allow_publish"])
+
+    def test_rest_review_decision_source_fail_closed(self):
+        out = MOD.evaluate_final_review_gate(snap(review_decision_source="rest"))
+        self.assertEqual(out["state"], MOD.STATE_ERROR)
+
+    def test_author_cannot_satisfy_privileged_human_approval(self):
+        out = MOD.evaluate_final_review_gate(
+            snap(
+                pr_author_login="alice",
+                changed_files=["AGENTS.md"],
+                reviews=[
+                    {"user": {"login": COPILOT}, "commit_id": HEAD, "state": "APPROVED"},
+                    {"user": {"login": "alice"}, "commit_id": HEAD, "state": "APPROVED"},
+                ],
+            )
+        )
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+        self.assertIn("independent human APPROVED", out["reason"])
+
+    def test_bot_cannot_satisfy_privileged_human_approval(self):
+        out = MOD.evaluate_final_review_gate(
+            snap(
+                changed_files=["AGENTS.md"],
+                reviews=[
+                    {"user": {"login": COPILOT}, "commit_id": HEAD, "state": "APPROVED"},
+                    {
+                        "user": {"login": "github-actions[bot]"},
+                        "commit_id": HEAD,
+                        "state": "APPROVED",
+                    },
+                ],
+            )
+        )
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+
+    def test_approved_github_state_malformed_classification_blocked(self):
+        out = MOD.evaluate_final_review_gate(snap(copilot_classification="MALFORMED"))
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+
+    def test_approved_github_state_closer_look_blocked(self):
+        out = MOD.evaluate_final_review_gate(
+            snap(copilot_classification="CLOSER_LOOK_DIAGNOSTIC")
+        )
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+
+    def test_approved_github_state_validation_missing_blocked(self):
+        out = MOD.evaluate_final_review_gate(snap(copilot_classification="VALIDATION_MISSING"))
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+
+    def test_missing_classification_fail_closed(self):
+        out = MOD.evaluate_final_review_gate(snap(copilot_classification=""))
+        self.assertEqual(out["state"], MOD.STATE_ERROR)
+        self.assertFalse(out["allow_publish"])
+
+    def test_classifier_missing_flag_fail_closed(self):
+        out = MOD.evaluate_final_review_gate(snap(classifier_missing=True))
+        self.assertEqual(out["state"], MOD.STATE_ERROR)
+
+    def test_canonical_skipped_required_check_is_passing(self):
+        out = MOD.evaluate_final_review_gate(
+            snap(required_checks=[{"name": "Build x64 Release", "state": "SKIPPED"}])
+        )
+        self.assertEqual(out["state"], MOD.STATE_SUCCESS)
+
+    def test_quota_review_does_not_retry_same_sha(self):
+        out = MOD.should_request_copilot(
+            snap(
+                copilot_classification="COPILOT_QUOTA_BLOCKED",
+                reviews=[
+                    {
+                        "user": {"login": COPILOT},
+                        "commit_id": HEAD,
+                        "state": "COMMENTED",
+                    }
+                ],
+            )
+        )
+        self.assertFalse(out["request"])
+        self.assertIn("already reviewed", out["reason"])
 
 
 if __name__ == "__main__":

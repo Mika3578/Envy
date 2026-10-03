@@ -128,10 +128,71 @@ def unresolved_threads(owner: str, repo: str, pr: int) -> int:
             raise RuntimeError("reviewThreads hasNextPage without endCursor")
 
 
+def graphql_pr_gate_fields(payload: Any, expected_head: str) -> dict[str, Any]:
+    """Bind GraphQL reviewDecision and author to the exact HEAD. Fail closed."""
+    if not isinstance(payload, dict):
+        raise RuntimeError("GraphQL reviewDecision payload is missing")
+    if payload.get("errors"):
+        raise RuntimeError("GraphQL reviewDecision query returned errors")
+    pr_data = (((payload.get("data") or {}).get("repository") or {}).get("pullRequest"))
+    if not isinstance(pr_data, dict):
+        raise RuntimeError("GraphQL pull request payload is missing")
+    gql_head = str(pr_data.get("headRefOid") or "")
+    if not expected_head or gql_head != expected_head:
+        raise RuntimeError("GraphQL headRefOid does not match the collected PR HEAD")
+    author = pr_data.get("author")
+    login = ""
+    if isinstance(author, dict):
+        login = str(author.get("login") or "")
+    if not login:
+        raise RuntimeError("GraphQL PR author login is unavailable")
+    if "reviewDecision" not in pr_data:
+        raise RuntimeError("GraphQL reviewDecision field is unavailable")
+    decision = pr_data.get("reviewDecision")
+    if decision is not None and not isinstance(decision, str):
+        raise RuntimeError("GraphQL reviewDecision is malformed")
+    return {
+        "review_decision": str(decision or ""),
+        "review_decision_source": "graphql",
+        "pr_author_login": login,
+        "review_decision_unavailable": False,
+    }
+
+
+def fetch_graphql_pr_gate_fields(owner: str, repo: str, pr: int, expected_head: str) -> dict[str, Any]:
+    query = """
+    query($o:String!,$n:String!,$p:Int!){
+      repository(owner:$o,name:$n){
+        pullRequest(number:$p){
+          reviewDecision
+          headRefOid
+          author { login }
+        }
+      }
+    }
+    """
+    payload = gh_json(
+        [
+            "api",
+            "graphql",
+            "-f",
+            f"query={query}",
+            "-f",
+            f"o={owner}",
+            "-f",
+            f"n={repo}",
+            "-F",
+            f"p={pr}",
+        ]
+    )
+    return graphql_pr_gate_fields(payload, expected_head)
+
+
 def collect(repository: str, pr: int) -> dict[str, Any]:
     owner, _, repo = repository.partition("/")
     pr_json = gh_json(["api", f"repos/{repository}/pulls/{pr}"])
     head = str(pr_json.get("head", {}).get("sha") or "")
+    gate_fields = fetch_graphql_pr_gate_fields(owner, repo, pr, head)
     checks_proc = subprocess.run(
         [
             sys.executable,
@@ -163,7 +224,10 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         "head_sha": head,
         "current_head_sha": head,
         "is_draft": bool(pr_json.get("draft")),
-        "review_decision": str(pr_json.get("review_decision") or ""),
+        "review_decision": gate_fields["review_decision"],
+        "review_decision_source": "graphql",
+        "review_decision_unavailable": False,
+        "pr_author_login": gate_fields["pr_author_login"],
         "unresolved_threads": unresolved_threads(owner, repo, pr),
         "untreated_pr_level_findings": [],
         "previously_missed_titles": [],
@@ -185,7 +249,12 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         snapshot["snapshot_phase"] = "post_copilot_review"
         snapshot["post_review_reread"] = True
     classify_path = SCRIPTS / "classify-copilot-review.py"
-    if latest and classify_path.is_file():
+    if latest:
+        if not classify_path.is_file():
+            snapshot["classifier_missing"] = True
+            snapshot["api_error"] = True
+            snapshot["api_error_message"] = "classify-copilot-review.py is missing"
+            return snapshot
         spec = importlib.util.spec_from_file_location(
             "classify_copilot_review_mod", classify_path
         )
@@ -196,6 +265,10 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         snapshot["suppressed_comment_titles"] = list(outcome.get("suppressed_comment_titles") or [])
         snapshot["open_finding_titles"] = list(outcome.get("open_finding_titles") or [])
         snapshot["copilot_classification"] = str(outcome.get("classification") or "")
+        if not snapshot["copilot_classification"]:
+            snapshot["api_error"] = True
+            snapshot["api_error_message"] = "Copilot classification is empty"
+            return snapshot
         snapshot["untreated_pr_level_findings"] = [
             title
             for title in snapshot["open_finding_titles"]
@@ -226,6 +299,9 @@ def main() -> int:
             "changed_files": [],
             "required_checks": [],
             "unresolved_threads": None,
+            "review_decision_unavailable": True,
+            "review_decision_source": "",
+            "copilot_classification": "",
         }
     sys.stdout.write(json.dumps(snapshot, indent=2) + "\n")
     return 0

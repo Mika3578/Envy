@@ -94,6 +94,45 @@ def check_review_history(
     return len(prior_ids)
 
 
+def reconstruct_prior_outcomes_from_reviews(
+    reviews: Any, current_review_id: int
+) -> list[dict[str, Any]]:
+    """Cover prior Copilot review IDs from GitHub review objects (no PR-writable ledger)."""
+    if not isinstance(reviews, list):
+        raise ValueError("review history JSON must be an array")
+    if isinstance(current_review_id, bool) or current_review_id <= 0:
+        raise ValueError("review ID must be positive")
+    outcomes: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    for review in reviews:
+        if not isinstance(review, Mapping) or not isinstance(review.get("user"), Mapping):
+            raise ValueError("review history contains an invalid review")
+        if review["user"].get("login") not in {
+            "Copilot",
+            "copilot-pull-request-reviewer",
+            "copilot-pull-request-reviewer[bot]",
+        }:
+            continue
+        review_id = review.get("id")
+        if isinstance(review_id, bool) or not isinstance(review_id, int) or review_id <= 0:
+            raise ValueError("Copilot review history contains an invalid review ID")
+        if review_id >= current_review_id or review_id in seen:
+            continue
+        head_sha = str(review.get("commit_id") or "")
+        if not head_sha:
+            raise ValueError("Copilot review history is missing commit_id")
+        seen.add(review_id)
+        outcomes.append(
+            {
+                "review_id": review_id,
+                "head_sha": head_sha,
+                "classification": "RECONSTRUCTED_FROM_GITHUB_REVIEW",
+                "finding_ledger": [],
+            }
+        )
+    return outcomes
+
+
 def fingerprint(source: str, path: str, title: str, location: str = "") -> str:
     # Stable identity is source|path|title. Location is metadata only so a
     # fixer that moves the same defect to another line cannot reset attempts.
@@ -246,8 +285,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_history = sub.add_parser("check-history", help="Reject missing prior review state")
     p_history.add_argument("--review-id", required=True, type=int)
     p_history.add_argument("--prior-outcomes-json", required=True)
+    p_rebuild = sub.add_parser(
+        "reconstruct-history",
+        help="Cover prior Copilot review IDs from GitHub reviews (stdin reviews JSON)",
+    )
+    p_rebuild.add_argument("--review-id", required=True, type=int)
 
     args = parser.parse_args(argv)
+    if args.cmd == "reconstruct-history":
+        try:
+            outcomes = reconstruct_prior_outcomes_from_reviews(json.load(sys.stdin), args.review_id)
+        except (ValueError, TypeError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        sys.stdout.write(json.dumps(outcomes) + "\n")
+        return 0
     if args.cmd == "check-history":
         try:
             count = check_review_history(
