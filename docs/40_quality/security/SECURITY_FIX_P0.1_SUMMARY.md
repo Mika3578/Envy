@@ -4,6 +4,9 @@
 **Priority:** P0 (Critical)
 **Status:** ✅ Implemented
 
+> **Historical note (2026-09):** Early P0.1 text described `BindAddress` as an “IP to bind.” Current behavior (D-017 / #392) treats `Settings.Remote.BindAddress` as a **localhost-only access-policy gate**, not a socket bind address. Prefer `docs/20_arch/remote-api.md` and `docs/50_user/reference/COMPLETE_SETTINGS_REFERENCE.md` for the live contract.
+
+
 ---
 
 ## 📋 Changes Made
@@ -18,7 +21,7 @@ struct sRemote
     bool        Enable;
     CString     Username;
     CString     Password;
-    CString     BindAddress;            // New: IP to bind (default: "127.0.0.1")
+    CString     BindAddress;            // Access-policy gate: localhost-only when set to loopback (D-017; not a socket bind)
     bool        AllowExternal;          // New: External access (default: false)
     DWORD       RateLimitRequests;      // New: Max requests/minute (default: 10)
     DWORD       RateLimitWindow;        // New: Window in ms (default: 60000)
@@ -28,7 +31,7 @@ struct sRemote
 **File:** `Envy/Settings.cpp:662-667`
 
 Default values added:
-- `BindAddress = "127.0.0.1"` (localhost only)
+- `BindAddress = "127.0.0.1"` (localhost-only access policy by default; not a listen bind)
 - `AllowExternal = false` (no external access)
 - `RateLimitRequests = 10` (10 requests per minute)
 - `RateLimitWindow = 60000` (60 second window)
@@ -55,7 +58,7 @@ else if ( ::StartsWith( m_sRequest, _P( L"/remote" ) ) )
 
 **After:**
 - Verification that source address is localhost (127.0.0.1) by default
-- Verification against `Settings.Remote.BindAddress` if configured
+- When `Settings.Remote.BindAddress` is a loopback/localhost value, only loopback clients are admitted (policy gate; the HTTP listener bind path is separate)
 - Rejection if `AllowExternal = false` and IP not authorized
 - Error message logged for unauthorized access attempts
 
@@ -109,11 +112,12 @@ else if ( ::StartsWith( m_sRequest, _P( L"/remote" ) ) )
 
 ### Validation Tests
 
-1. **Test Localhost Binding:**
+1. **Test Localhost Access Policy:**
    ```bash
-   # From external machine
+   # With BindAddress=127.0.0.1 (default), non-loopback clients are rejected by the Remote allow gate
+   # (listener may still accept the TCP connection; authorization fails)
    curl http://<EXTERNAL_IP>:<PORT>/remote/
-   # Expected: Connection refused or timeout
+   # Expected: unauthorized / access denied (not treated as localhost)
    ```
 
 2. **Test Rate Limiting:**
@@ -144,11 +148,11 @@ else if ( ::StartsWith( m_sRequest, _P( L"/remote" ) ) )
 
 ## ✅ Acceptance Criteria
 
-- [x] Remote interface binds to localhost by default
-- [x] Option for external binding (disabled by default)
+- [x] Remote access defaults to localhost-only policy via `BindAddress` (not a socket bind)
+- [x] Option for external access via `AllowExternal` (disabled by default; not a socket bind)
 - [x] Rate limiting: 10 requests/minute per IP
 - [x] CSRF protection with cryptographic tokens
-- [x] Tests: Interface not accessible from external network by default
+- [x] Tests: Remote HTML authorization denies non-loopback clients by default (listener may still accept the TCP connection)
 
 ---
 
@@ -163,7 +167,7 @@ else if ( ::StartsWith( m_sRequest, _P( L"/remote" ) ) )
 
 ## ⚠️ Important Notes
 
-- **By default:** Remote is **ONLY** accessible from localhost
+- **By default:** Remote admits **ONLY** localhost/loopback clients when `BindAddress` is a loopback policy value
 - **External access:** Requires explicit configuration (`AllowExternal = true`)
 - **Rate limiting:** Can be adjusted in Settings if necessary
 - **CSRF:** Tokens generated automatically, transparent to user
