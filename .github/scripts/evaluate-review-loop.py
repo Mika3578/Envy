@@ -33,6 +33,7 @@ REASON_PRE_REVIEW_SNAPSHOT = "pre-Copilot snapshot cannot decide CLEAN"
 REASON_STALE_REVIEW = "latest review is for an older commit"
 REASON_CHANGES_REQUESTED = "active CHANGES_REQUESTED decision"
 REASON_UNRESOLVED_THREADS = "unresolved review threads remain"
+REASON_UNTREATED_THREADS = "resolved threads lack a current-HEAD disposition reply"
 REASON_HUMAN_UNRESOLVED = "unresolved human review threads remain"
 REASON_BODY_FINDINGS = "review body still has active findings"
 REASON_PREVIOUSLY_MISSED = "Previously missed findings remain"
@@ -105,6 +106,15 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         )
     unresolved_threads = snapshot["unresolved_threads"]
     human_unresolved = snapshot["human_unresolved_threads"]
+    if not isinstance(snapshot.get("untreated_threads"), int) or snapshot["untreated_threads"] < 0:
+        return _result(
+            DECISION_NEEDS_HUMAN,
+            ["untreated thread count is missing"],
+            head_sha=str(snapshot.get("head_sha") or ""),
+            review_sha=str((snapshot.get("review") or {}).get("commit_id") or ""),
+            note="Refuse CLEAN without a complete thread snapshot.",
+        )
+    untreated_threads = snapshot["untreated_threads"]
     open_titles = [str(x) for x in (snapshot.get("open_finding_titles") or [])]
     previously_missed = [
         str(x) for x in (snapshot.get("previously_missed_titles") or [])
@@ -222,6 +232,8 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
 
     if unresolved_threads > 0:
         reasons.append(f"{REASON_UNRESOLVED_THREADS}: {unresolved_threads}")
+    if untreated_threads > 0:
+        reasons.append(f"{REASON_UNTREATED_THREADS}: {untreated_threads}")
 
     if open_titles:
         reasons.append(f"{REASON_INLINE_FINDINGS}: {len(open_titles)}")
@@ -281,7 +293,7 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
             review_sha=review_sha,
         )
 
-    if requires_fixer or previously_missed or suppressed or open_titles or unresolved_threads > 0:
+    if requires_fixer or previously_missed or suppressed or open_titles or unresolved_threads > 0 or untreated_threads > 0:
         if classification == "CLOSER_LOOK_DIAGNOSTIC" and not (
             previously_missed or suppressed or open_titles
         ):
@@ -376,6 +388,10 @@ def coalesce_post_review_reads(
     merged["unresolved_threads"] = max(
         int(first.get("unresolved_threads") or 0),
         int(second.get("unresolved_threads") or 0),
+    )
+    merged["untreated_threads"] = max(
+        int(first.get("untreated_threads") or 0),
+        int(second.get("untreated_threads") or 0),
     )
     for key in (
         "open_finding_titles",

@@ -258,6 +258,19 @@ class FinalReviewGateTests(unittest.TestCase):
         self.assertEqual(out["state"], MOD.STATE_SUCCESS)
         self.assertTrue(out["privileged_paths"])
 
+    def test_self_only_gate_check_cannot_succeed(self):
+        out = MOD.evaluate_final_review_gate(
+            snap(required_checks=[{"name": "Final review gate", "state": "SUCCESS"}])
+        )
+        self.assertNotEqual(out["state"], MOD.STATE_SUCCESS)
+
+    def test_scripts_review_is_privileged(self):
+        out = MOD.evaluate_final_review_gate(
+            snap(changed_files=["scripts/review/required_checks.py"])
+        )
+        self.assertTrue(out["privileged_paths"])
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+
     def test_pr_cannot_count_own_gate_check(self):
         out = MOD.evaluate_final_review_gate(
             snap(

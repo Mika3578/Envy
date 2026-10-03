@@ -75,8 +75,35 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(state["phase"], "DRAFT_STABLE")
 
     def test_executor_output_is_byte_bounded(self):
-        with patch.object(mod.subprocess, "run") as fake:
-            fake.return_value = subprocess.CompletedProcess(["x"], 0, stdout="x" * 50, stderr="")
+        class FakeProc:
+            def __init__(self):
+                self.stdout = type("S", (), {"read": lambda self, n: "x" * 50, "close": lambda self: None})()
+                # First read returns overflow, second empty — use a counter instead.
+
+        reads = {"out": ["x" * 50, ""], "err": [""]}
+
+        class Stream:
+            def __init__(self, key):
+                self.key = key
+            def read(self, _n):
+                items = reads[self.key]
+                return items.pop(0) if items else ""
+            def close(self):
+                return None
+
+        class Proc:
+            def __init__(self):
+                self.stdout = Stream("out")
+                self.stderr = Stream("err")
+                self.stdin = type("I", (), {"write": lambda self, data: None, "close": lambda self: None})()
+                self.returncode = 0
+                self.killed = False
+            def kill(self):
+                self.killed = True
+            def wait(self, timeout=None):
+                return 0
+
+        with patch.object(mod.subprocess, "Popen", return_value=Proc()):
             with self.assertRaises(ValueError):
                 mod.run(["x"], max_output_bytes=10)
 
@@ -293,7 +320,10 @@ class ServiceTests(unittest.TestCase):
         snap["pr"]["draft"] = False
         snap["reviews"] = [{"id": 2, "user": {"login": "copilot-pull-request-reviewer"},
                             "body": "Finding", "commit_id": "a" * 40, "state": "COMMENTED"}]
-        snap["threads"] = [{"isResolved": True}]
+        snap["threads"] = [{"isResolved": True, "comments": {"nodes": [
+            {"databaseId": 1, "author": {"login": "copilot-pull-request-reviewer"}},
+            {"databaseId": 2, "author": {"login": "alice"}},
+        ]}}]
         head, base = "a" * 40, "b" * 40
         entry = {
             "number": 1,

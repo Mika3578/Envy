@@ -175,8 +175,8 @@ Branch model:
     targeted CI/security validation. Privileged governance paths
     (`AGENTS.md`, `.github/copilot-instructions.md`, `.github/skills/**`,
     `.github/settings.yml`, `.github/workflows/**`, `.github/rulesets/**`,
-    and gate scripts under `.github/scripts/` that define merge/review
-    policy) are high-risk: do not reduce required approvals, required
+    gate scripts under `.github/scripts/`, and `scripts/review/` helpers that
+    define merge/review/CI gate policy) are high-risk: do not reduce required approvals, required
     checks, or self-approval bans through those edits. Copilot must **not**
     be the sole counted approval on a pull request that changes any of
     those paths — Copilot reads instructions and the review skill from the

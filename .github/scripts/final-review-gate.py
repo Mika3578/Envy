@@ -47,6 +47,7 @@ PRIVILEGED_PREFIXES = (
     ".github/workflows/",
     ".github/rulesets/",
     ".github/scripts/",
+    "scripts/review/",
 )
 
 PASSING_CHECK_STATES = required_check_policy.PASSING_CHECK_STATES
@@ -340,6 +341,7 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         )
     pending_ci = False
     failing_ci = False
+    external_required = 0
     for check in raw_checks:
         if not isinstance(check, Mapping):
             return _result(
@@ -353,6 +355,7 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         name = str(check.get("name") or "")
         if name == GATE_CONTEXT:
             continue
+        external_required += 1
         state = str(check.get("state") or "").upper()
         if state in PENDING_CHECK_STATES or not state:
             pending_ci = True
@@ -360,6 +363,15 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         elif state not in PASSING_CHECK_STATES:
             failing_ci = True
             reasons.append(f"required check failing: {name} ({state})")
+    if external_required == 0:
+        return _result(
+            STATE_ERROR,
+            ["required checks snapshot has no external contexts"],
+            snapshot,
+            metrics,
+            allow_publish=False,
+            privileged=privileged,
+        )
     if failing_ci:
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
     if pending_ci:
@@ -481,11 +493,13 @@ def revalidate_gate_before_success(
         live["state"] = STATE_ERROR
         live["allow_publish"] = False
         return live
+    external_required = 0
     for check in raw_checks:
         if not isinstance(check, Mapping):
             continue
         if str(check.get("name") or "") == GATE_CONTEXT:
             continue
+        external_required += 1
         state = str(check.get("state") or "").upper()
         if state in PENDING_CHECK_STATES or state not in PASSING_CHECK_STATES:
             live["state"] = STATE_PENDING if state in PENDING_CHECK_STATES else STATE_FAILURE
@@ -493,6 +507,12 @@ def revalidate_gate_before_success(
             live["reasons"] = [f"required CI not green at publish: {check.get('name')}"]
             live["reason"] = live["reasons"][0]
             return live
+    if external_required == 0:
+        live["state"] = STATE_ERROR
+        live["allow_publish"] = False
+        live["reasons"] = ["required checks snapshot has no external contexts"]
+        live["reason"] = live["reasons"][0]
+        return live
     return live
 
 

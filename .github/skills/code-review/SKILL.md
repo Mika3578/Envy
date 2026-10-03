@@ -60,7 +60,8 @@ final step after **Ready**) when `AGENTS.md` §5 is satisfied.
 `.github/copilot-instructions.md`, `.github/skills/**`,
 `.github/settings.yml`, `.github/workflows/**`, `.github/rulesets/**`,
 and `.github/scripts/` files that classify changes, audit rulesets, or
-otherwise define merge/review/CI gate policy. Copilot loads instructions
+otherwise define merge/review/CI gate policy, plus `scripts/review/`
+helpers loaded by those publishers (`required_checks.py`, host worker). Copilot loads instructions
 and this skill from the **PR head**; an `APPROVED` from Copilot on a PR
 that edits those files is a self-authorization loop. When **any** such
 path changes: do **not** submit `APPROVED` — use `COMMENTED` or

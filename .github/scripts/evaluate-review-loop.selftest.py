@@ -31,6 +31,7 @@ def snap(**kwargs):
         "review_decision": "",
         "unresolved_threads": 0,
         "human_unresolved_threads": 0,
+        "untreated_threads": 0,
         "open_finding_titles": [],
         "previously_missed_titles": [],
         "suppressed_comment_titles": [],
@@ -266,6 +267,10 @@ class EvaluateReviewLoopTests(unittest.TestCase):
         del payload["unresolved_threads"]
         out = MOD.evaluate_review_loop(payload)
         self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+
+    def test_untreated_resolved_threads_not_clean(self):
+        out = MOD.evaluate_review_loop(snap(untreated_threads=1))
+        self.assertNotEqual(out["decision"], MOD.DECISION_CLEAN)
 
 
 if __name__ == "__main__":

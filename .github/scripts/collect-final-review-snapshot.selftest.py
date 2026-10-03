@@ -87,6 +87,20 @@ class CollectSnapshotTests(unittest.TestCase):
         )
         self.assertEqual((unresolved, untreated), (0, 0))
 
+    def test_resolved_human_thread_without_reply_is_untreated(self):
+        unresolved, untreated = MOD.count_thread_dispositions(
+            [
+                {
+                    "isResolved": True,
+                    "comments": {
+                        "pageInfo": {"hasNextPage": False},
+                        "nodes": [{"author": {"login": "alice"}}],
+                    },
+                }
+            ]
+        )
+        self.assertEqual((unresolved, untreated), (0, 1))
+
     def test_file_inventory_includes_rename_source(self):
         paths = MOD.file_inventory_paths(
             1,

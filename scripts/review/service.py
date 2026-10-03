@@ -19,7 +19,9 @@ import string
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+from types import SimpleNamespace
 import unicodedata
 
 from required_checks import collect_checks, commit_checks, PASSING_CHECK_STATES, PENDING_CHECK_STATES
@@ -45,14 +47,65 @@ def run(argv, *, cwd=None, data=None, env=None, allowed=(0,), timeout=300,
         max_output_bytes=8 * 1024 * 1024):
     if isinstance(max_output_bytes, bool) or not isinstance(max_output_bytes, int) or max_output_bytes <= 0:
         raise ValueError("Command output limit must be a positive byte count")
-    result = subprocess.run(argv, cwd=cwd, input=data, text=True, encoding="utf-8",
-                            errors="replace", capture_output=True, env=env, timeout=timeout)
-    stdout = result.stdout or ""
-    stderr = result.stderr or ""
-    if len(stdout.encode("utf-8")) + len(stderr.encode("utf-8")) > max_output_bytes:
+    proc = subprocess.Popen(
+        argv,
+        cwd=cwd,
+        env=env,
+        stdin=subprocess.PIPE if data is not None else subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    lock = threading.Lock()
+    chunks = {"out": [], "err": [], "n": 0, "over": False}
+
+    def reader(stream, key):
+        try:
+            while True:
+                piece = stream.read(4096)
+                if not piece:
+                    break
+                encoded = piece.encode("utf-8")
+                with lock:
+                    if chunks["over"]:
+                        break
+                    chunks["n"] += len(encoded)
+                    if chunks["n"] > max_output_bytes:
+                        chunks["over"] = True
+                chunks[key].append(piece)
+                if chunks["over"]:
+                    proc.kill()
+                    break
+        finally:
+            stream.close()
+
+    workers = [
+        threading.Thread(target=reader, args=(proc.stdout, "out")),
+        threading.Thread(target=reader, args=(proc.stderr, "err")),
+    ]
+    for worker in workers:
+        worker.start()
+    try:
+        if data is not None:
+            proc.stdin.write(data)
+            proc.stdin.close()
+        proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+        for worker in workers:
+            worker.join()
+        raise
+    for worker in workers:
+        worker.join()
+    stdout = "".join(chunks["out"])
+    stderr = "".join(chunks["err"])
+    if chunks["over"]:
         raise ValueError("command output exceeds configured resource limit")
+    result = SimpleNamespace(returncode=proc.returncode, stdout=stdout, stderr=stderr)
     if result.returncode not in allowed:
-        # Output can contain private data. Retain diagnostics only in host state.
         raise CommandFailure(argv, result)
     return stdout
 
@@ -81,7 +134,8 @@ def collect(number):
     owner, repo = REPOSITORY.split("/")
     query = '''query($o:String!,$r:String!,$n:Int!,$c:String){repository(owner:$o,name:$r){
       pullRequest(number:$n){reviewThreads(first:100,after:$c){
-        pageInfo{hasNextPage endCursor} nodes{id isResolved comments(first:1){nodes{databaseId}}}
+        pageInfo{hasNextPage endCursor} nodes{id isResolved comments(first:100){
+          pageInfo{hasNextPage} nodes{databaseId author{login}}}}
       }}}}'''
     threads, cursor, seen = [], None, set()
     while True:
@@ -103,6 +157,8 @@ def collect(number):
         if not cursor or cursor in seen:
             raise ValueError("Incomplete or repeated thread cursor")
         seen.add(cursor)
+    if any((thread.get("comments") or {}).get("pageInfo", {}).get("hasNextPage") for thread in threads):
+        raise ValueError("Incomplete review thread comments")
     snapshot["threads"] = threads
     snapshot.update(collect_checks(REPOSITORY, pr["head"]["sha"]))
     snapshot["publisher_login"] = gh_json(["api", "user"])["login"]
@@ -110,6 +166,20 @@ def collect(number):
     if identity(current) != identity(pr):
         raise ValueError("HEAD/base changed during collection; reconcile again")
     return snapshot
+
+
+def threads_blocking_final_review(snapshot):
+    for thread in snapshot["threads"]:
+        comments = thread.get("comments") or {}
+        nodes = comments.get("nodes") or []
+        authors = [str((item.get("author") or {}).get("login") or "") for item in nodes]
+        if not thread.get("isResolved"):
+            return True
+        if not authors:
+            return True
+        if not any(login and login not in COPILOT for login in authors[1:]):
+            return True
+    return False
 
 
 def identity(pr):
@@ -493,7 +563,7 @@ def final_review(config, entry, snapshot, state, store):
     if any(state["handled"].get(s["key"], {}).get("head") != head
            or state["handled"].get(s["key"], {}).get("base") != base for s in trusted_sources(entry, snapshot)):
         return
-    if any(not t["isResolved"] for t in snapshot["threads"]):
+    if threads_blocking_final_review(snapshot):
         return
     if str(snapshot["pr"].get("review_decision") or "").upper() == "CHANGES_REQUESTED":
         state["phase"] = "CHANGES_REQUESTED"
@@ -533,7 +603,7 @@ def final_review(config, entry, snapshot, state, store):
         if identity(fresh["pr"]) != (head, base):
             state["phase"] = "WAITING_COPILOT_REVIEW"
             return
-        if any(not t["isResolved"] for t in fresh["threads"]):
+        if threads_blocking_final_review(fresh):
             state["phase"] = "FIX_AGAIN"
             return
         if str(fresh["pr"].get("review_decision") or "").upper() == "CHANGES_REQUESTED":
@@ -672,6 +742,9 @@ def process(config, entry, store, *, observe):
             raise ValueError("Publication needs green required checks at the validated HEAD/base")
         by_key = {source["key"]: source for source in pending}
         for disposition in result["dispositions"]:
+            snapshot = collect(number)
+            if identity(snapshot["pr"]) != (head, base):
+                raise ValueError("HEAD/base changed during publication; preserve local patch")
             key = disposition["key"]
             if disposition["status"] == "needs_decision":
                 state["stops"].setdefault(key, {"evidence": disposition["evidence"], "head": head})

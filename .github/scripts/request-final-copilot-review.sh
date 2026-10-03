@@ -65,7 +65,13 @@ fetch_pr_json() {
 				}
 				reviewThreads(first:100){
 					totalCount
-					nodes{isResolved}
+					nodes{
+						isResolved
+						comments(first:100){
+							pageInfo{hasNextPage}
+							nodes{author{login}}
+						}
+					}
 					pageInfo{hasNextPage endCursor}
 				}
 			}
@@ -87,6 +93,24 @@ has_unresolved_threads() {
 	fi
 	if [[ "$(echo "$pr_json" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage')" == "true" ]]; then
 		note_ineligible "Unresolved review-thread check is inconclusive (more than 100 threads); resolve threads or ask a maintainer to verify manually."
+		return 0
+	fi
+	if [[ "$(echo "$pr_json" | jq '[.data.repository.pullRequest.reviewThreads.nodes[]? | .comments.pageInfo.hasNextPage == true] | any')" == "true" ]]; then
+		note_ineligible "Review-thread disposition check is inconclusive (comment pagination truncated)."
+		return 0
+	fi
+	local untreated
+	untreated="$(echo "$pr_json" | jq --argjson copilot '["Copilot","copilot-pull-request-reviewer","copilot-pull-request-reviewer[bot]"]' '
+		[.data.repository.pullRequest.reviewThreads.nodes[]?
+			| select(.isResolved == true)
+			| select(
+				([.comments.nodes[1:][]?.author.login // empty]
+					| map(select(. as $login | ($copilot | index($login) | not)))
+					| length) == 0
+			)
+		] | length')"
+	if [[ "$untreated" != "0" ]]; then
+		note_ineligible "Pull request #${PR_NUMBER} has resolved review threads without a current-HEAD disposition reply."
 		return 0
 	fi
 	return 1
@@ -183,7 +207,8 @@ evaluate_eligibility() {
 		note_ineligible "Pull request #${PR_NUMBER} has an active \`CHANGES_REQUESTED\` review decision."
 	fi
 	if has_unresolved_threads "$pr_json"; then
-		if [[ "${#INELIGIBLE_REASONS[@]}" -eq 0 ]] || [[ "${INELIGIBLE_REASONS[-1]}" != *"inconclusive"* ]]; then
+		last="${INELIGIBLE_REASONS[-1]-}"
+		if [[ "$last" != *"inconclusive"* && "$last" != *"disposition"* ]]; then
 			note_ineligible "Pull request #${PR_NUMBER} has unresolved review conversation threads."
 		fi
 	fi

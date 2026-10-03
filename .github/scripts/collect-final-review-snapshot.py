@@ -146,7 +146,7 @@ def count_thread_dispositions(nodes: list) -> tuple[int, int]:
         if not node.get("isResolved"):
             unresolved += 1
             continue
-        if authors[0] in copilot and not any(login and login not in copilot for login in authors[1:]):
+        if not any(login and login not in copilot for login in authors[1:]):
             untreated += 1
     return unresolved, untreated
 
