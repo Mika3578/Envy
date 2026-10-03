@@ -127,12 +127,16 @@ def comment_commit_oid(item: Mapping[str, Any]) -> str:
     return str(item.get("commit_id") or "")
 
 
-def resolved_thread_is_untreated(comments: Sequence[Any], head_sha: str) -> bool:
-    """True when a resolved thread has no authorized current-HEAD disposition."""
+def resolved_thread_is_untreated(comments: Sequence[Any], head_sha: str, *, outdated: bool = False) -> bool:
+    """True when a resolved thread has no authorized disposition for this HEAD.
+
+    GitHub review replies keep the original review-commit OID, so an outdated
+    thread cannot carry a live-HEAD commit on the reply. Live (non-outdated)
+    threads still require the reply commit to equal the current HEAD.
+    """
     nodes = [item for item in comments if isinstance(item, Mapping)]
     if not nodes:
         return True
-    root_commit = comment_commit_oid(nodes[0])
     head = str(head_sha or "")
     for item in nodes[1:]:
         author = item.get("author") if isinstance(item.get("author"), Mapping) else {}
@@ -142,11 +146,10 @@ def resolved_thread_is_untreated(comments: Sequence[Any], head_sha: str) -> bool
         if not is_authorized_disposition_author(login, typename=typename, user_type=user_type):
             continue
         reply_commit = comment_commit_oid(item)
-        if head and root_commit == head:
-            if reply_commit == head:
-                return False
-            continue
-        return False
+        if head and reply_commit == head:
+            return False
+        if outdated:
+            return False
     return True
 
 

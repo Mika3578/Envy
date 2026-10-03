@@ -174,6 +174,34 @@ class CollectSnapshotTests(unittest.TestCase):
         )
         self.assertEqual((unresolved, untreated), (0, 1))
 
+    def test_outdated_thread_with_user_reply_is_treated(self):
+        unresolved, untreated = MOD.count_thread_dispositions(
+            [
+                {
+                    "isResolved": True,
+                    "isOutdated": True,
+                    "comments": {
+                        "pageInfo": {"hasNextPage": False},
+                        "nodes": [
+                            {
+                                "author": {
+                                    "login": "copilot-pull-request-reviewer[bot]",
+                                    "__typename": "Bot",
+                                },
+                                "commit": {"oid": "b" * 40},
+                            },
+                            {
+                                "author": {"login": "alice", "__typename": "User"},
+                                "commit": {"oid": "b" * 40},
+                            },
+                        ],
+                    },
+                }
+            ],
+            HEAD,
+        )
+        self.assertEqual((unresolved, untreated), (0, 0))
+
     def test_file_inventory_includes_rename_source(self):
         paths = MOD.file_inventory_paths(
             1,

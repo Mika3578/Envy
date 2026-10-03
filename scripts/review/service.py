@@ -45,8 +45,10 @@ class CommandFailure(RuntimeError):
 
 def run(argv, *, cwd=None, data=None, env=None, allowed=(0,), timeout=300,
         max_output_bytes=8 * 1024 * 1024):
-    if isinstance(max_output_bytes, bool) or not isinstance(max_output_bytes, int) or max_output_bytes <= 0:
+    if max_output_bytes is None or isinstance(max_output_bytes, bool) or not isinstance(max_output_bytes, int) or max_output_bytes <= 0:
         raise ValueError("Command output limit must be a positive byte count")
+    if timeout is not None and (isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or timeout <= 0):
+        raise ValueError("Command timeout must be a positive number of seconds or None")
     proc = subprocess.Popen(
         argv,
         cwd=cwd,
@@ -87,7 +89,7 @@ def run(argv, *, cwd=None, data=None, env=None, allowed=(0,), timeout=300,
     ]
     for worker in workers:
         worker.start()
-    deadline = time.monotonic() + timeout
+    deadline = None if timeout is None else time.monotonic() + timeout
     writer_done = threading.Event()
 
     def writer():
@@ -104,13 +106,17 @@ def run(argv, *, cwd=None, data=None, env=None, allowed=(0,), timeout=300,
     else:
         writer_done.set()
     try:
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            raise subprocess.TimeoutExpired(argv, timeout)
-        proc.wait(timeout=remaining)
-        if not writer_done.wait(timeout=max(0.001, deadline - time.monotonic())):
-            proc.kill()
-            raise subprocess.TimeoutExpired(argv, timeout)
+        if deadline is None:
+            proc.wait()
+            writer_done.wait()
+        else:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise subprocess.TimeoutExpired(argv, timeout)
+            proc.wait(timeout=remaining)
+            if not writer_done.wait(timeout=max(0.001, deadline - time.monotonic())):
+                proc.kill()
+                raise subprocess.TimeoutExpired(argv, timeout)
     except subprocess.TimeoutExpired:
         proc.kill()
         proc.wait()
@@ -153,7 +159,7 @@ def collect(number):
     owner, repo = REPOSITORY.split("/")
     query = '''query($o:String!,$r:String!,$n:Int!,$c:String){repository(owner:$o,name:$r){
       pullRequest(number:$n){reviewThreads(first:100,after:$c){
-        pageInfo{hasNextPage endCursor} nodes{id isResolved comments(first:100){
+        pageInfo{hasNextPage endCursor} nodes{id isResolved isOutdated comments(first:100){
           pageInfo{hasNextPage} nodes{databaseId author{login __typename} commit{oid}}}}
       }}}}'''
     threads, cursor, seen = [], None, set()
@@ -194,16 +200,14 @@ def threads_blocking_final_review(snapshot):
         nodes = comments.get("nodes") or []
         if not thread.get("isResolved"):
             return True
-        if _resolved_thread_is_untreated(nodes, head):
+        if _resolved_thread_is_untreated(nodes, head, outdated=bool(thread.get("isOutdated"))):
             return True
     return False
 
 
-def _resolved_thread_is_untreated(nodes, head):
+def _resolved_thread_is_untreated(nodes, head, *, outdated=False):
     if not nodes:
         return True
-    root = nodes[0]
-    root_commit = str(((root.get("commit") or {}).get("oid") or root.get("commit_id") or ""))
     for item in nodes[1:]:
         author = item.get("author") or {}
         login = str(author.get("login") or "")
@@ -211,11 +215,10 @@ def _resolved_thread_is_untreated(nodes, head):
         if typename != "User" or not login or login in COPILOT or login.endswith("[bot]") or "copilot" in login.lower():
             continue
         reply_commit = str(((item.get("commit") or {}).get("oid") or item.get("commit_id") or ""))
-        if head and root_commit == head:
-            if reply_commit == head:
-                return False
-            continue
-        return False
+        if head and reply_commit == head:
+            return False
+        if outdated:
+            return False
     return True
 
 
@@ -482,10 +485,11 @@ HOST_POLICY:
 
 
 def checks_pass(snapshot):
-    required = set(snapshot.get("required_names", []))
-    observed = {c["name"] for c in snapshot["checks"]}
+    required = {name for name in snapshot.get("required_names", []) if name != "Final review gate"}
+    checks = [c for c in snapshot["checks"] if c["name"] != "Final review gate"]
+    observed = {c["name"] for c in checks}
     return bool(required) and required.issubset(observed) and all(
-        c["state"] in PASS for c in snapshot["checks"])
+        c["state"] in PASS for c in checks)
 
 
 def patch_digest(worktree):
@@ -632,6 +636,11 @@ def final_review(config, entry, snapshot, state, store):
         and r.get("commit_id") == head
         and str(r.get("state") or "").upper() in {"COMMENTED", "APPROVED", "CHANGES_REQUESTED", "DISMISSED"}
         for r in snapshot["reviews"])
+    copilot_approved = any(
+        r["user"]["login"] in COPILOT
+        and r.get("commit_id") == head
+        and str(r.get("state") or "").upper() == "APPROVED"
+        for r in snapshot["reviews"])
     if state.get("requests", {}).get(key) and not copilot_on_head:
         state["phase"] = "WAITING_COPILOT_REVIEW"
         return
@@ -645,6 +654,9 @@ def final_review(config, entry, snapshot, state, store):
             return
         if str(fresh["pr"].get("review_decision") or "").upper() == "CHANGES_REQUESTED":
             state["phase"] = "CHANGES_REQUESTED"
+            return
+        if not copilot_approved:
+            state["phase"] = "FIX_AGAIN"
             return
         state["phase"] = "FINAL_REVIEW_RECEIVED"
         return
@@ -715,8 +727,15 @@ def process(config, entry, store, *, observe):
     state.pop("patch_owner_head", None)
     store.save(number, state)
     worktree = Path(entry["worktree"])
-    git = lambda *args: run(["git", *args], cwd=worktree).strip()
-    hooks = git("config", "--path", "core.hooksPath")
+    hooks_path = Path(config["trusted_hooks_path"]).resolve()
+    def git(*args):
+        env = minimal_environment()
+        return run(
+            ["git", "-c", f"core.hooksPath={hooks_path}", *args],
+            cwd=worktree,
+            env=env,
+        ).strip()
+    hooks = run(["git", "config", "--path", "core.hooksPath"], cwd=worktree).strip()
     if not Path(hooks).is_absolute() or Path(hooks).resolve() != Path(config["trusted_hooks_path"]).resolve():
         raise ValueError("Publication hooks do not match the frozen reviewed installation")
     if state.get("executor_owner_uncertain"):

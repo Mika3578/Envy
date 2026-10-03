@@ -67,6 +67,7 @@ fetch_pr_json() {
 					totalCount
 					nodes{
 						isResolved
+						isOutdated
 						comments(first:100){
 							pageInfo{hasNextPage}
 							nodes{author{login __typename} commit{oid}}
@@ -117,8 +118,8 @@ has_unresolved_threads() {
 						and ((.author.login // "") | endswith("[bot]") | not)
 						and (.author.login as $login | ($copilot | index($login) | not))
 						and (
-							((($thread.comments.nodes[0].commit.oid // "") != $head) and ($head != ""))
-							or ((.commit.oid // "") == $head)
+							((.commit.oid // "") == $head)
+							or ($thread.isOutdated == true)
 						)
 					)
 				] | length) == 0

@@ -363,6 +363,62 @@ class ServiceTests(unittest.TestCase):
             mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
         self.assertEqual(state["phase"], "FIX_AGAIN")
 
+    def test_commented_copilot_is_not_final_review_received(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        snap["reviews"] = [{"id": 2, "user": {"login": "copilot-pull-request-reviewer"},
+                            "body": "Changes recommended", "commit_id": "a" * 40, "state": "COMMENTED"}]
+        snap["threads"] = []
+        head, base = "a" * 40, "b" * 40
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {f"copilot:{head}:{base}": {"status": "requested"}}}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": head, "base": base}
+        pull = {"head": {"sha": head}, "base": {"sha": base}, "draft": False, "node_id": "PR"}
+        with patch.object(mod, "gh_json", return_value=pull), patch.object(mod, "collect", return_value=snap):
+            mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
+        self.assertEqual(state["phase"], "FIX_AGAIN")
+
+    def test_checks_pass_ignores_final_review_gate(self):
+        snap = snapshot()
+        snap["required_names"] = ["Build", "Final review gate"]
+        snap["checks"] = [
+            {"name": "Build", "state": "SUCCESS"},
+            {"name": "Final review gate", "state": "PENDING"},
+        ]
+        self.assertTrue(mod.checks_pass(snap))
+
+    def test_run_accepts_unbounded_timeout(self):
+        class Stream:
+            def read(self, _n):
+                return ""
+            def close(self):
+                return None
+
+        class Proc:
+            def __init__(self):
+                self.stdout = Stream()
+                self.stderr = Stream()
+                self.returncode = 0
+            def wait(self, timeout=None):
+                self.waited_with = timeout
+                return 0
+            def kill(self):
+                return None
+
+        with patch.object(mod.subprocess, "Popen", return_value=Proc()) as popen:
+            out = mod.run(["true"], timeout=None)
+        self.assertEqual(out, "")
+
     def test_no_final_request_with_late_finding_or_human_stop(self):
         snap = snapshot()
         state = {"handled": {}, "stops": {}}

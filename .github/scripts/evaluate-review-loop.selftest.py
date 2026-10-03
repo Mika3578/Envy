@@ -262,6 +262,12 @@ class EvaluateReviewLoopTests(unittest.TestCase):
         out = MOD.evaluate_review_loop(snap(required_checks=[]))
         self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
 
+    def test_self_only_final_review_gate_is_not_clean(self):
+        out = MOD.evaluate_review_loop(
+            snap(required_checks=[{"name": "Final review gate", "state": "SUCCESS"}])
+        )
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+
     def test_missing_unresolved_count_not_clean(self):
         payload = snap()
         del payload["unresolved_threads"]

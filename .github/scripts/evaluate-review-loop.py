@@ -187,13 +187,25 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         )
 
     # Required CI
+    external_required = 0
     for check in checks:
         name = str(check.get("name") or "unknown")
+        if name == "Final review gate":
+            continue
+        external_required += 1
         state = str(check.get("state") or "").upper()
         if state in PENDING_CHECK_STATES:
             reasons.append(f"{REASON_REQUIRED_CI_PENDING}: {name}")
         elif state not in PASSING_CHECK_STATES:
             reasons.append(f"{REASON_REQUIRED_CI_FAILING}: {name} ({state})")
+    if external_required == 0:
+        return _result(
+            DECISION_NEEDS_HUMAN,
+            ["required checks snapshot has no external contexts"],
+            head_sha=head_sha,
+            review_sha=review_sha,
+            note="Refuse CLEAN without independent required CI.",
+        )
     if any(REASON_REQUIRED_CI_FAILING in r for r in reasons):
         return _result(
             DECISION_NEEDS_HUMAN,

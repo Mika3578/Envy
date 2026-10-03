@@ -141,7 +141,9 @@ def count_thread_dispositions(nodes: list, head_sha: str = "") -> tuple[int, int
         if not node.get("isResolved"):
             unresolved += 1
             continue
-        if GATE.resolved_thread_is_untreated(items, head_sha):
+        if GATE.resolved_thread_is_untreated(
+            items, head_sha, outdated=bool(node.get("isOutdated"))
+        ):
             untreated += 1
     return unresolved, untreated
 
@@ -154,6 +156,7 @@ def thread_disposition(owner: str, repo: str, pr: int, head_sha: str = "") -> tu
           reviewThreads(first:100, after:$after){
             nodes {
               isResolved
+              isOutdated
               comments(first:100){
                 pageInfo { hasNextPage }
                 nodes { author { login __typename } commit { oid } }
@@ -189,13 +192,18 @@ def thread_disposition(owner: str, repo: str, pr: int, head_sha: str = "") -> tu
         pr_data = (((data.get("data") or {}).get("repository") or {}).get("pullRequest"))
         if not pr_data:
             raise RuntimeError("pull request missing from GraphQL")
-        threads = pr_data.get("reviewThreads") or {}
-        more_unresolved, more_untreated = count_thread_dispositions(
-            list(threads.get("nodes") or []), head_sha
-        )
+        threads = pr_data.get("reviewThreads")
+        if not isinstance(threads, dict):
+            raise RuntimeError("reviewThreads snapshot is missing")
+        nodes = threads.get("nodes")
+        page = threads.get("pageInfo")
+        if not isinstance(nodes, list) or not isinstance(page, dict):
+            raise RuntimeError("reviewThreads snapshot is malformed")
+        if not isinstance(page.get("hasNextPage"), bool):
+            raise RuntimeError("reviewThreads pagination is malformed")
+        more_unresolved, more_untreated = count_thread_dispositions(nodes, head_sha)
         unresolved += more_unresolved
         untreated += more_untreated
-        page = threads.get("pageInfo") or {}
         if not page.get("hasNextPage"):
             return unresolved, untreated
         after = page.get("endCursor")
