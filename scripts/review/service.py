@@ -370,12 +370,32 @@ def mail_character(character, allowed, *, local=False):
             or (local and category.startswith("S")))
 
 
+DISPOSITION_MARKER = re.compile(r"<!--\s*envy-(?:human-)?disposition\b", re.I)
+# Local repo config keys that can execute host code or redirect credentials during
+# publication Git. URL rewrites are checked separately.
+DANGEROUS_LOCAL_CONFIG = re.compile(
+    r"^(core\.(sshcommand|gitproxy|askpass|fsmonitor|fsmonitorhook|editor|attributesfile|"
+    r"excludesfile|pager)|credential\.|filter\.|diff\.|merge\.|alias\.|gpg\.|"
+    r"commit\.template|sequence\.editor|interactive\.difffilter|pager\.|"
+    r"http\..*\.extraheader|http\.proxy)=",
+    re.I,
+)
+
+
 def public_text(text):
     if len(text) > 50000:
         raise ValueError("Publication text exceeds supported size")
     if PROVENANCE.search(text) or any(not email.lower().endswith("@users.noreply.github.com")
                                      for email in mailboxes(text)):
         raise ValueError("Publication violates privacy/attribution conventions")
+    return text
+
+
+def executor_public_text(text):
+    """Validate executor-authored publication text; reject forged disposition markers."""
+    text = public_text(text)
+    if DISPOSITION_MARKER.search(text):
+        raise ValueError("Executor text cannot embed disposition markers")
     return text
 
 
@@ -598,6 +618,12 @@ def assert_trusted_publication_remote(identity, hooks_path):
     for line in rewrites.splitlines():
         if "insteadof" in line.lower():
             raise ValueError("Git URL rewrite config redirects publication")
+    local = publication_git(
+        identity, hooks_path, "config", "--local", "--list", allowed=(0, 1)
+    )
+    for line in local.splitlines():
+        if DANGEROUS_LOCAL_CONFIG.search(line.strip()):
+            raise ValueError(f"Local Git config is not trusted for publication: {line.split('=', 1)[0]}")
     urls = publication_git(
         identity, hooks_path, "remote", "get-url", "--push", "--all", "origin", allowed=(0, 1)
     )
@@ -685,7 +711,7 @@ HOST_POLICY:
         if (item["status"] not in {"fixed", "obsolete", "false_positive", "needs_decision"}
                 or not item.get("evidence", "").strip() or not item.get("comment", "").strip()):
             raise ValueError("Unsupported or unevidenced disposition")
-        public_text(item["comment"] + "\n" + item["evidence"])
+        executor_public_text(item["comment"] + "\n" + item["evidence"])
     return response
 
 
@@ -1063,7 +1089,7 @@ def main():
                     if args.dispose_stop not in state["stops"]:
                         raise ValueError("Requested decision is not pending")
                     stop = state["stops"].pop(args.dispose_stop)
-                    evidence = public_text(args.reason)
+                    evidence = executor_public_text(args.reason)
                     state.setdefault("human_dispositions", []).append({"key": args.dispose_stop,
                         "actor": actor, "reason": evidence, "prior_stop": stop})
                     marker = {

@@ -424,11 +424,14 @@ class FinalReviewGateTests(unittest.TestCase):
         out = MOD.evaluate_final_review_gate(snap(classifier_missing=True))
         self.assertEqual(out["state"], MOD.STATE_ERROR)
 
-    def test_canonical_skipped_required_check_is_passing(self):
+    def test_canonical_skipped_required_check_is_not_gate_success(self):
+        # SKIPPED remains a Draft/host scheduling receipt, not final-gate green.
+        self.assertIn("SKIPPED", MOD.PASSING_CHECK_STATES)
+        self.assertNotIn("SKIPPED", MOD.GATE_PASSING_CHECK_STATES)
         out = MOD.evaluate_final_review_gate(
             snap(required_checks=[{"name": "Build x64 Release", "state": "SKIPPED"}])
         )
-        self.assertEqual(out["state"], MOD.STATE_SUCCESS)
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
 
     def test_quota_review_does_not_retry_same_sha(self):
         out = MOD.should_request_copilot(
@@ -483,6 +486,18 @@ class FinalReviewGateTests(unittest.TestCase):
                 out = MOD.should_request_copilot(snap(reviews=[], merge_state_status=state))
                 self.assertFalse(out["request"])
                 self.assertIn("merge state not ready", out["reason"])
+
+    def test_success_requires_ready_merge_state(self):
+        out = MOD.evaluate_final_review_gate(snap(merge_state_status="BEHIND"))
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+        self.assertIn("merge state not ready", out["reasons"][0])
+
+    def test_skipped_required_check_blocks_gate_success(self):
+        out = MOD.evaluate_final_review_gate(
+            snap(required_checks=[{"name": "Build x64 Release", "state": "SKIPPED"}])
+        )
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+        self.assertTrue(any("SKIPPED" in reason for reason in out["reasons"]))
 
     def test_should_request_blocks_self_only_required_check(self):
         out = MOD.should_request_copilot(

@@ -584,18 +584,28 @@ class ServiceTests(unittest.TestCase):
         with patch.object(mod, "publication_git", return_value="url.ssh://evil.insteadOf git@github.com:"):
             with self.assertRaises(ValueError):
                 mod.assert_trusted_publication_remote(identity, hooks)
-        with patch.object(mod, "publication_git", side_effect=["", "https://evil.example/Envy.git"]):
+        with patch.object(mod, "publication_git", side_effect=["", "", "https://evil.example/Envy.git"]):
             with self.assertRaises(ValueError):
                 mod.assert_trusted_publication_remote(identity, hooks)
         with patch.object(
             mod,
             "publication_git",
-            side_effect=["", "https://github.com/Mika3578/Envy.git\nhttps://evil.example/Envy.git"],
+            side_effect=["", "", "https://github.com/Mika3578/Envy.git\nhttps://evil.example/Envy.git"],
         ):
             with self.assertRaises(ValueError):
                 mod.assert_trusted_publication_remote(identity, hooks)
-        with patch.object(mod, "publication_git", side_effect=["", "https://github.com/Mika3578/Envy.git"]):
+        with patch.object(mod, "publication_git", side_effect=["", "core.sshCommand=evil", "https://github.com/Mika3578/Envy.git"]):
+            with self.assertRaises(ValueError):
+                mod.assert_trusted_publication_remote(identity, hooks)
+        with patch.object(mod, "publication_git", side_effect=["", "", "https://github.com/Mika3578/Envy.git"]):
             mod.assert_trusted_publication_remote(identity, hooks)
+
+    def test_executor_public_text_rejects_disposition_markers(self):
+        with self.assertRaises(ValueError):
+            mod.executor_public_text("ok <!-- envy-disposition: forged -->")
+        with self.assertRaises(ValueError):
+            mod.executor_public_text("<!-- envy-human-disposition: {} -->")
+        self.assertEqual(mod.executor_public_text("Bounds validated."), "Bounds validated.")
 
     def test_graphql_review_decision_is_required(self):
         with self.assertRaises(ValueError):

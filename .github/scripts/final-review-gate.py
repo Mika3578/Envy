@@ -53,7 +53,11 @@ PRIVILEGED_PREFIXES = (
 )
 
 PASSING_CHECK_STATES = required_check_policy.PASSING_CHECK_STATES
+# Final-gate success and Copilot request require real green receipts. Draft
+# deferral SKIPPED is accepted only by the broader Draft/host scheduling path.
+GATE_PASSING_CHECK_STATES = frozenset({"SUCCESS", "NEUTRAL"})
 PENDING_CHECK_STATES = required_check_policy.PENDING_CHECK_STATES
+UNREADY_MERGE_STATES = frozenset({"", "UNKNOWN", "BEHIND", "DIRTY", "UNSTABLE"})
 
 SUCCESS_COPILOT_CLASSIFICATIONS = frozenset({"APPROVED"})
 BLOCKING_COPILOT_CLASSIFICATIONS = frozenset(
@@ -416,7 +420,7 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         if state in PENDING_CHECK_STATES or not state:
             pending_ci = True
             reasons.append(f"required check pending: {name or 'unknown'}")
-        elif state not in PASSING_CHECK_STATES:
+        elif state not in GATE_PASSING_CHECK_STATES:
             failing_ci = True
             reasons.append(f"required check failing: {name} ({state})")
     if external_required == 0:
@@ -432,6 +436,11 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
     if pending_ci:
         return _result(STATE_PENDING, reasons, snapshot, metrics, privileged=privileged)
+
+    merge_state = str(snapshot.get("merge_state_status") or "").upper()
+    if merge_state in UNREADY_MERGE_STATES:
+        reasons.append(f"merge state not ready for gate success: {merge_state or '<missing>'}")
+        return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
 
     copilot = latest_copilot_review(reviews, head)
     if copilot and copilot.get("_unknown_copilot_identity"):
@@ -613,7 +622,7 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     if any(snapshot.get(key) for key in untreated_keys):
         return {"request": False, "reason": "untreated findings remain"}
     merge_state = str(snapshot.get("merge_state_status") or "").upper()
-    if merge_state in {"", "UNKNOWN", "BEHIND", "DIRTY", "UNSTABLE"}:
+    if merge_state in UNREADY_MERGE_STATES:
         return {
             "request": False,
             "reason": f"merge state not ready for Copilot: {merge_state or '<missing>'}",
@@ -629,7 +638,7 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
             continue
         external_required += 1
         state = str(check.get("state") or "").upper()
-        if state in PENDING_CHECK_STATES or state not in PASSING_CHECK_STATES:
+        if state in PENDING_CHECK_STATES or state not in GATE_PASSING_CHECK_STATES:
             return {"request": False, "reason": f"required CI not green: {check.get('name')}"}
     if external_required == 0:
         return {"request": False, "reason": "required checks snapshot has no external contexts"}

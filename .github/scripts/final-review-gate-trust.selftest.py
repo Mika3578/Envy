@@ -203,6 +203,7 @@ class FinalReviewGateTrustTests(unittest.TestCase):
             "copilot_request_pending": False,
             "review_decision_source": "graphql",
             "review_decision_unavailable": False,
+            "merge_state_status": "CLEAN",
             "pr_author_login": "alice",
             "copilot_classification": "APPROVED",
         }
