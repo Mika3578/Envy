@@ -629,6 +629,13 @@ def apply_loop_guards(
     guarded = dict(outcome)
     if detect_repeat_closer_look(guarded, prior_outcomes):
         guarded["loop_guard"] = "repeat_closer_look_requires_changed_diagnosis"
+        guarded["requires_human"] = True
+        guarded["requires_fixer"] = False
+        review_id = str(guarded.get("review_id") or "unknown")
+        stops = [str(x) for x in (guarded.get("human_stop_review_ids") or [])]
+        if review_id not in stops:
+            stops.append(review_id)
+        guarded["human_stop_review_ids"] = stops
     stops = []
     for prior in prior_outcomes:
         if prior.get("classification") not in {CLASSIFICATION_HUMAN_REQUIRED, CLASSIFICATION_VALIDATION_MISSING}:

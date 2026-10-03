@@ -206,13 +206,23 @@ jobs:
           POLICY_SHA="$(git rev-parse HEAD)"
           LEDGER_PATH=".github/review-ledgers/pr-${PR_NUMBER}.json"
           PRIOR_OUTCOMES_FILE="$(mktemp)"
+          REVIEWS_FILE="$(mktemp)"
+          gh api "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/reviews" --paginate \
+            | jq -s 'add // []' >"$REVIEWS_FILE"
           if git cat-file -e "${POLICY_SHA}:${LEDGER_PATH}" 2>/dev/null; then
             git show "${POLICY_SHA}:${LEDGER_PATH}" >"$PRIOR_OUTCOMES_FILE"
           else
+            PRIOR_COPILOT="$(jq '[.[] | select(.user.login=="Copilot" or .user.login=="copilot-pull-request-reviewer" or .user.login=="copilot-pull-request-reviewer[bot]")] | length' "$REVIEWS_FILE")"
+            if [[ "${PRIOR_COPILOT}" != "0" ]]; then
+              echo "::error::Default branch has no ${LEDGER_PATH} but this PR already has Copilot reviews; maintainer ledger migration is required."
+              rm -f "$PRIOR_OUTCOMES_FILE" "$REVIEWS_FILE"
+              exit 1
+            fi
             printf '[]' >"$PRIOR_OUTCOMES_FILE"
           fi
           if ! jq -e 'type=="array"' "$PRIOR_OUTCOMES_FILE" >/dev/null; then
             echo "::error::Invalid default-branch ledger; maintainer migration required."
+            rm -f "$REVIEWS_FILE"
             exit 1
           fi
           PRIOR_OUTCOMES="$(cat "$PRIOR_OUTCOMES_FILE")"
@@ -220,10 +230,10 @@ jobs:
           PRIOR_COUNT="$(jq 'length' <<<"$PRIOR_OUTCOMES")"
           # Historical reviews still own correction attempts after a HEAD change.
           # A current-HEAD-only filter would silently bootstrap an empty ledger.
-          gh api "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/reviews" --paginate \
-            | jq -s 'add // []' \
-            | python3 .github/scripts/finding-ledger.py check-history \
-                --review-id "$REVIEW_ID" --prior-outcomes-json "$PRIOR_OUTCOMES"
+          python3 .github/scripts/finding-ledger.py check-history \
+                --review-id "$REVIEW_ID" --prior-outcomes-json "$PRIOR_OUTCOMES" \
+                <"$REVIEWS_FILE"
+          rm -f "$REVIEWS_FILE"
           printf '%s' "$REVIEW_JSON" | python3 .github/scripts/classify-copilot-review.py \
             --review-json - \
             --open-findings-json "$OPEN_TITLES" \

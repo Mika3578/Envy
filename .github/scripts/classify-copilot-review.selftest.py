@@ -224,7 +224,9 @@ class ClassifyCopilotReviewTests(unittest.TestCase):
         ]
         guarded = MOD.apply_loop_guards(current, prior)
         self.assertEqual(guarded["classification"], MOD.CLASSIFICATION_CLOSER_LOOK_DIAGNOSTIC)
-        self.assertTrue(guarded["requires_fixer"])
+        self.assertFalse(guarded["requires_fixer"])
+        self.assertTrue(guarded["requires_human"])
+        self.assertIn(str(current["review_id"]), guarded["human_stop_review_ids"])
         self.assertEqual(guarded.get("loop_guard"), "repeat_closer_look_requires_changed_diagnosis")
 
     def test_prior_human_decision_without_findings_is_sticky(self):

@@ -47,7 +47,9 @@ advisory until a maintainer adds it to Protect develop; auto-merge stays off.
    secret/profile variables. Supply an isolated executor profile explicitly.
    Configure `trusted_hooks_path` as an absolute, frozen reviewed installation
    outside PR worktrees; its dependencies must also be host-owned. Normal hooks
-   and signing still run. Publication refuses an unconfigured isolation boundary.
+   and signing still run. Publication refuses an unconfigured isolation boundary. Supply
+   `trusted_policy_path` as an absolute host copy of `AGENTS.md` outside PR
+   worktrees; the executor treats any worktree `AGENTS.md` as untrusted data.
    Invoke
    the same command without `--observe` to execute one reconciliation. Use an
    operator-owned scheduler for recurring invocations; `register-task.ps1`

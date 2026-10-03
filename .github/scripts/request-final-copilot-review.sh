@@ -406,6 +406,19 @@ EOF
 		echo "::error::Preserved reviewer ID payload was incomplete." >&2
 		exit 1
 	fi
+	if ! pr_json="$(fetch_pr_json)"; then
+		exit 0
+	fi
+	head_oid_after="$(echo "$pr_json" | jq -r '.data.repository.pullRequest.headRefOid')"
+	if [[ "$head_oid_after" != "$head_oid_before" ]]; then
+		note_ineligible "HEAD changed after listing reviewers (\`${head_oid_before:0:7}\` -> \`${head_oid_after:0:7}\`); re-run after the branch is stable."
+		write_summary "Final Copilot review not requested"
+		exit 0
+	fi
+	if ! evaluate_eligibility "$pr_json"; then
+		write_summary "Final Copilot review not requested"
+		exit 0
+	fi
 	RESTORE_PR_NODE="$pr_node_id"
 	RESTORE_USER_IDS="$user_ids"
 	RESTORE_TEAM_IDS="$team_ids"

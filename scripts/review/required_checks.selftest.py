@@ -23,6 +23,20 @@ class CheckTests(unittest.TestCase):
         receipts = checks.commit_checks("new", ["Build"], [run], [status])
         self.assertEqual({item["state"] for item in receipts}, {"SUCCESS", "FAILURE"})
 
+    def test_unrelated_app_cannot_satisfy_required_receipt(self):
+        required = [{"context": "Build", "integration_id": 15368}]
+        foreign = dict(name="Build", head_sha="new", id=9, status="completed",
+                       conclusion="success", app={"id": 1})
+        native = dict(name="Build", head_sha="new", id=10, status="queued",
+                      conclusion=None, app={"id": 15368})
+        receipts = checks.commit_checks("new", required, [foreign, native], [])
+        self.assertEqual(receipts[0]["state"], "QUEUED")
+        status = dict(context="Build", id=11, state="success")
+        self.assertEqual(
+            checks.commit_checks("new", required, [foreign], [status])[0]["state"],
+            "PENDING",
+        )
+
     def test_empty_policy_and_wrong_repository_fail_closed(self):
         with patch.object(checks, "gh", return_value=[]):
             with self.assertRaises(ValueError):

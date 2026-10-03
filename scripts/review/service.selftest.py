@@ -55,6 +55,16 @@ class ServiceTests(unittest.TestCase):
         mod.final_review({}, entry, snap, state, None)
         self.assertEqual(state["phase"], "DRAFT_STABLE")
 
+    def test_changes_requested_blocks_draft_stable_and_copilot(self):
+        snap = snapshot()
+        snap["pr"]["review_decision"] = "CHANGES_REQUESTED"
+        state = {"handled": {}, "stops": {}, "requests": {}}
+        entry = {"number": 1, "reviewers": [{"login": "bot"}]}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": "a" * 40, "base": "b" * 40}
+        mod.final_review({}, entry, snap, state, None)
+        self.assertEqual(state["phase"], "CHANGES_REQUESTED")
+
     def test_optional_review_wait_expires_without_approval(self):
         snap = snapshot()
         state = {"handled": {}, "stops": {}, "requests": {
@@ -112,6 +122,12 @@ class ServiceTests(unittest.TestCase):
             config["executor_launcher"] = ["relative-launcher"]
             with self.assertRaises(ValueError):
                 mod.check_host_paths(config, host / "config.json", host / "state")
+            nested = host / "pr"
+            nested.mkdir()
+            untrusted = nested / "AGENTS.md"
+            untrusted.write_text("untrusted", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                mod.load_trusted_policy({"trusted_policy_path": str(untrusted)}, nested)
 
     def test_untrusted_publication_has_bounded_parsing(self):
         self.assertFalse(mod.technical_title("ci(" + "x:" * 30000))
@@ -243,13 +259,21 @@ class ServiceTests(unittest.TestCase):
             {"type": "thread.started", "thread_id": "same-pr-session"},
             {"type": "item.completed", "item": {"type": "agent_message", "text": json.dumps(result)}}))
         state = {"session": "", "attempts": [], "handled": {}, "stops": {}}
-        with patch.object(mod, "run", return_value=output) as call:
-            out = mod.execute({"executor": "codex", "executor_timeout_seconds": 2},
-                              {"worktree": "."}, state, snap, pending)
-            self.assertEqual(out, result)
-            self.assertEqual(state["session"], "same-pr-session")
-            self.assertIn("UNTRUSTED", call.call_args.kwargs["data"])
-            self.assertNotIn("GH_TOKEN", call.call_args.kwargs["env"])
+        with tempfile.TemporaryDirectory() as directory:
+            policy = Path(directory) / "AGENTS.md"
+            policy.write_text("HOST RULES\n", encoding="utf-8")
+            with patch.object(mod, "run", return_value=output) as call:
+                out = mod.execute(
+                    {"executor": "codex", "executor_timeout_seconds": 2,
+                     "trusted_policy_path": str(policy)},
+                    {"worktree": str(Path.cwd())}, state, snap, pending)
+                self.assertEqual(out, result)
+                self.assertEqual(state["session"], "same-pr-session")
+                self.assertIn("UNTRUSTED", call.call_args.kwargs["data"])
+                self.assertIn("HOST_POLICY", call.call_args.kwargs["data"])
+                self.assertIn("HOST RULES", call.call_args.kwargs["data"])
+                self.assertIn("worktree AGENTS.md", call.call_args.kwargs["data"])
+                self.assertNotIn("GH_TOKEN", call.call_args.kwargs["env"])
 
 
 if __name__ == "__main__":

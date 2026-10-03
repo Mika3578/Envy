@@ -97,5 +97,6 @@
   "executor_launcher": [],
   "validation_launcher": [],
   "trusted_hooks_path": "",
+  "trusted_policy_path": "",
   "max_executor_input_bytes": 1048576
 }

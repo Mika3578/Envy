@@ -10,10 +10,39 @@ def gh(args):
     return json.loads(subprocess.check_output(["gh", "api", *args], text=True, encoding="utf-8"))
 
 
+def required_specs(required):
+    specs = []
+    for item in required:
+        if isinstance(item, str):
+            specs.append({"context": item, "integration_id": None})
+            continue
+        context = str(item.get("context") or item.get("name") or "")
+        if not context:
+            raise ValueError("Required check context is missing")
+        integration = item.get("integration_id")
+        if integration is None:
+            raise ValueError("Required check integration_id is missing")
+        specs.append({"context": context, "integration_id": int(integration)})
+    return specs
+
+
+def _matches_integration(app, integration_id):
+    if integration_id is None:
+        return True
+    if not isinstance(app, dict) or app.get("id") is None:
+        return False
+    return int(app["id"]) == int(integration_id)
+
+
 def commit_checks(head, required, runs, statuses):
+    specs = required_specs(required)
+    names = {spec["context"] for spec in specs}
     latest = {}
     for item in runs:
-        if item.get("head_sha") != head or item["name"] not in required:
+        if item.get("head_sha") != head or item["name"] not in names:
+            continue
+        spec = next((row for row in specs if row["context"] == item["name"]), None)
+        if spec is None or not _matches_integration(item.get("app"), spec["integration_id"]):
             continue
         # REST exposes creation IDs, not created_at. Never sort by started_at:
         # an older generation can start after its replacement.
@@ -23,7 +52,12 @@ def commit_checks(head, required, runs, statuses):
             latest[name] = (key, {"name": item["name"],
                 "state": str(state or "PENDING").upper(), "link": item.get("html_url", "")})
     for item in statuses:
-        if item["context"] not in required:
+        # Commit statuses have no GitHub App id. They cannot satisfy a ruleset
+        # receipt that names an integration.
+        if item["context"] not in names:
+            continue
+        spec = next((row for row in specs if row["context"] == item["context"]), None)
+        if spec is None or spec["integration_id"] is not None:
             continue
         key, name = item["id"], (item["context"], "status")
         if name not in latest or key > latest[name][0]:
@@ -32,7 +66,7 @@ def commit_checks(head, required, runs, statuses):
     checks = [latest[name][1] for name in sorted(latest)]
     observed = {item["name"] for item in checks}
     checks.extend({"name": name, "state": "PENDING", "link": ""}
-                  for name in sorted(set(required) - observed))
+                  for name in sorted(names - observed))
     return checks
 
 
@@ -41,16 +75,19 @@ def collect_checks(repository, head):
         raise ValueError("Expected the Envy fork and an exact commit ID")
     prefix = f"repos/{repository}"
     rules = gh([f"{prefix}/rules/branches/develop"])
-    required = sorted({check["context"] for rule in rules
+    required = required_specs([
+        {"context": check["context"], "integration_id": check["integration_id"]}
+        for rule in rules
         if rule["type"] == "required_status_checks"
-        for check in rule["parameters"]["required_status_checks"]})
+        for check in rule["parameters"]["required_status_checks"]
+    ])
     if not required:
         raise ValueError("Required check policy is missing")
     run_pages = gh([f"{prefix}/commits/{head}/check-runs?per_page=100", "--paginate", "--slurp"])
     runs = [item for page in run_pages for item in page["check_runs"]]
     status_pages = gh([f"{prefix}/commits/{head}/statuses?per_page=100", "--paginate", "--slurp"])
     statuses = [item for page in status_pages for item in page]
-    return {"head": head, "required_names": required,
+    return {"head": head, "required_names": [spec["context"] for spec in required],
             "checks": commit_checks(head, required, runs, statuses)}
 
 
