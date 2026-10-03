@@ -418,7 +418,10 @@ recovery. **Only the maintainer** applies `stage:live-test` or marks Ready.
 A Draft deferral, silence, quota/error response or missing reviewer is not
 validation. Keep Copilot out of Draft and request it once per stable Ready HEAD
 after cheaper CI/bots and treated findings; later fixes must pass CI and address
-received findings before a fresh final request. Unavailable free re-reviews do
+received findings before a fresh final request. That request is a
+synchronization barrier: do not terminate or report CLEAN on the pre-request
+snapshot; wait until a Copilot review exists for the expected HEAD, then
+evaluate a fresh post-review snapshot. Unavailable free re-reviews do
 not block that request. Keep `review_on_push=false`,
 `review_draft_pull_requests=false`, and preserve human/team reviewers. The
 advisory commit status `Final review gate` is SHA-bound and fail-closed;

@@ -210,6 +210,10 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         reasons.append("pull request is Draft")
         return _result(STATE_PENDING, reasons, snapshot, metrics, privileged=privileged)
 
+    if snapshot.get("snapshot_phase") == "pre_copilot_request":
+        reasons.append("pre-Copilot snapshot cannot publish success")
+        return _result(STATE_PENDING, reasons, snapshot, metrics, privileged=privileged, allow_publish=False)
+
     review_decision = str(snapshot.get("review_decision") or "").upper()
     if review_decision == "CHANGES_REQUESTED":
         reasons.append("active CHANGES_REQUESTED")
@@ -341,6 +345,59 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         metrics,
         privileged=privileged,
     )
+
+
+def revalidate_gate_before_success(
+    evaluated: Mapping[str, Any], live_snapshot: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Fail closed: never publish SUCCESS from a stale pre-success snapshot."""
+    live = evaluate_final_review_gate(live_snapshot)
+    evaluated_head = str(evaluated.get("head_sha") or "")
+    live_head = str(live_snapshot.get("current_head_sha") or live_snapshot.get("head_sha") or "")
+    if str(evaluated.get("state") or "") != STATE_SUCCESS:
+        return dict(evaluated)
+    if not live_head or live_head != evaluated_head:
+        live["state"] = STATE_PENDING
+        live["allow_publish"] = False
+        live["reasons"] = [f"HEAD changed during evaluation ({evaluated_head[:7]} -> {live_head[:7] or 'missing'}); refuse stale success"]
+        live["reason"] = live["reasons"][0]
+        return live
+    if live.get("state") != STATE_SUCCESS:
+        live["allow_publish"] = False
+        return live
+    copilot = latest_copilot_review(live_snapshot.get("reviews") or [], live_head)
+    unresolved = live_snapshot.get("unresolved_threads")
+    decision = str(live_snapshot.get("review_decision") or "").upper()
+    if (
+        not copilot
+        or str(copilot.get("commit_id") or "") != live_head
+        or not isinstance(unresolved, int)
+        or unresolved > 0
+        or decision == "CHANGES_REQUESTED"
+    ):
+        live["state"] = STATE_FAILURE if decision == "CHANGES_REQUESTED" or (isinstance(unresolved, int) and unresolved > 0) else STATE_PENDING
+        live["allow_publish"] = False
+        live["reasons"] = ["post-success revalidation failed; refuse stale success"]
+        live["reason"] = live["reasons"][0]
+        return live
+    raw_checks = live_snapshot.get("required_checks")
+    if not isinstance(raw_checks, list) or not raw_checks:
+        live["state"] = STATE_ERROR
+        live["allow_publish"] = False
+        return live
+    for check in raw_checks:
+        if not isinstance(check, Mapping):
+            continue
+        if str(check.get("name") or "") == GATE_CONTEXT:
+            continue
+        state = str(check.get("state") or "").upper()
+        if state in PENDING_CHECK_STATES or state not in PASSING_CHECK_STATES:
+            live["state"] = STATE_PENDING if state in PENDING_CHECK_STATES else STATE_FAILURE
+            live["allow_publish"] = False
+            live["reasons"] = [f"required CI not green at publish: {check.get('name')}"]
+            live["reason"] = live["reasons"][0]
+            return live
+    return live
 
 
 def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:

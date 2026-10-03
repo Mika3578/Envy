@@ -175,8 +175,15 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         "finding_ledger": [],
         "copilot_request_pending": pending_copilot,
         "api_error": False,
+        "snapshot_phase": "pre_copilot_request",
     }
     latest = GATE.latest_copilot_review(reviews, head)
+    if latest:
+        snapshot["unresolved_threads"] = max(
+            int(snapshot["unresolved_threads"]), unresolved_threads(owner, repo, pr)
+        )
+        snapshot["snapshot_phase"] = "post_copilot_review"
+        snapshot["post_review_reread"] = True
     classify_path = SCRIPTS / "classify-copilot-review.py"
     if latest and classify_path.is_file():
         spec = importlib.util.spec_from_file_location(
@@ -218,7 +225,7 @@ def main() -> int:
             "reviews": [],
             "changed_files": [],
             "required_checks": [],
-            "unresolved_threads": 0,
+            "unresolved_threads": None,
         }
     sys.stdout.write(json.dumps(snapshot, indent=2) + "\n")
     return 0

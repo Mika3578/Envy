@@ -526,27 +526,44 @@ def final_review(config, entry, snapshot, state, store):
         if identity(snapshot["pr"]) != (head, base) or not checks_pass(snapshot):
             raise ValueError("Ready checks must finish on the attested HEAD/base")
     key = f"copilot:{head}:{base}"
-    if key in state["requests"] or any(r["user"]["login"] in COPILOT
-            and r.get("commit_id") == head for r in snapshot["reviews"]):
-        state["phase"] = "FINAL_REVIEW_PENDING_OR_COMPLETE"
+    copilot_on_head = any(
+        r["user"]["login"] in COPILOT
+        and r.get("commit_id") == head
+        and str(r.get("state") or "").upper() in {"COMMENTED", "APPROVED", "CHANGES_REQUESTED", "DISMISSED"}
+        for r in snapshot["reviews"])
+    if state.get("requests", {}).get(key) and not copilot_on_head:
+        state["phase"] = "WAITING_COPILOT_REVIEW"
+        return
+    if copilot_on_head:
+        fresh = collect(number)
+        if identity(fresh["pr"]) != (head, base):
+            state["phase"] = "WAITING_COPILOT_REVIEW"
+            return
+        if any(not t["isResolved"] for t in fresh["threads"]):
+            state["phase"] = "FIX_AGAIN"
+            return
+        if str(fresh["pr"].get("review_decision") or "").upper() == "CHANGES_REQUESTED":
+            state["phase"] = "CHANGES_REQUESTED"
+            return
+        state["phase"] = "FINAL_REVIEW_RECEIVED"
         return
     requests = gh_json(["api", f"repos/{REPOSITORY}/pulls/{number}/requested_reviewers"])
     if not isinstance(requests.get("users"), list):
         raise ValueError("Requested-reviewer response is incomplete")
     if any(r["login"] in COPILOT
            for r in requests["users"]):
-        state["phase"] = "FINAL_REVIEW_PENDING_OR_COMPLETE"
+        state["phase"] = "WAITING_COPILOT_REVIEW"
         return
     if not config.get("allow_final_copilot_request"):
         state["phase"] = "FINAL_REVIEW_ELIGIBLE"
         return
-    state["requests"][key] = {"status": "requesting"}
+    state.setdefault("requests", {})[key] = {"status": "requesting"}
     store.save(number, state)
     # union=true adds only Copilot; never clear existing human/team requests.
     graphql_mutation('''mutation($id:ID!){requestReviewsByLogin(input:{pullRequestId:$id,
       botLogins:["copilot-pull-request-reviewer"],union:true}){pullRequest{id}}}''', {"id": current["node_id"]})
     state["requests"][key] = {"status": "requested"}
-    state["phase"] = "FINAL_REVIEW_PENDING_OR_COMPLETE"
+    state["phase"] = "WAITING_COPILOT_REVIEW"
 
 
 def process(config, entry, store, *, observe):

@@ -180,6 +180,76 @@ class EvaluateReviewLoopTests(unittest.TestCase):
         data = json.loads(proc.stdout)
         self.assertEqual(data["decision"], MOD.DECISION_CLEAN)
 
+    def test_pre_review_snapshot_never_clean_after_copilot_request(self):
+        pre = snap(snapshot_phase=MOD.SNAPSHOT_PRE_COPILOT_REQUEST, unresolved_threads=0)
+        out = MOD.decide_after_copilot_request(pre, pre)
+        self.assertEqual(out["decision"], MOD.DECISION_WAITING_COPILOT)
+        self.assertFalse(out["merge_ready"])
+
+    def test_post_review_new_thread_is_fix_again(self):
+        pre = snap(snapshot_phase=MOD.SNAPSHOT_PRE_COPILOT_REQUEST, unresolved_threads=0)
+        post = snap(
+            snapshot_phase=MOD.SNAPSHOT_POST_COPILOT_REVIEW,
+            review={"commit_id": HEAD, "state": "COMMENTED", "id": 9},
+            classification="ACTIONABLE_FINDINGS",
+            requires_fixer=True,
+            unresolved_threads=1,
+            open_finding_titles=["PowerShell caret"],
+        )
+        out = MOD.decide_after_copilot_request(pre, post)
+        self.assertEqual(out["decision"], MOD.DECISION_FIX_AGAIN)
+        self.assertFalse(out["merge_ready"])
+        self.assertNotEqual(MOD.evaluate_review_loop(pre)["decision"], MOD.DECISION_CLEAN)
+
+    def test_overview_finding_without_thread_is_fix_again(self):
+        out = MOD.evaluate_review_loop(
+            snap(
+                snapshot_phase=MOD.SNAPSHOT_POST_COPILOT_REVIEW,
+                review={"commit_id": HEAD, "state": "COMMENTED", "id": 9},
+                classification="ACTIONABLE_FINDINGS",
+                requires_fixer=True,
+                unresolved_threads=0,
+                open_finding_titles=["Overview bounds defect"],
+            )
+        )
+        self.assertEqual(out["decision"], MOD.DECISION_FIX_AGAIN)
+        self.assertFalse(out["merge_ready"])
+
+    def test_stale_old_sha_review_ignored_when_head_moved(self):
+        out = MOD.evaluate_review_loop(
+            snap(
+                head_sha=HEAD,
+                copilot_request_pending=True,
+                review={"commit_id": OLD, "state": "COMMENTED", "id": 3},
+            )
+        )
+        self.assertEqual(out["decision"], MOD.DECISION_WAITING_COPILOT)
+        self.assertFalse(out["merge_ready"])
+        self.assertNotEqual(out["decision"], MOD.DECISION_CLEAN)
+
+    def test_late_thread_visibility_uses_stricter_reread(self):
+        first = snap(
+            snapshot_phase=MOD.SNAPSHOT_POST_COPILOT_REVIEW,
+            review={"commit_id": HEAD, "state": "COMMENTED", "id": 9},
+            classification="ACTIONABLE_FINDINGS",
+            requires_fixer=True,
+            unresolved_threads=0,
+            open_finding_titles=[],
+        )
+        second = snap(
+            snapshot_phase=MOD.SNAPSHOT_POST_COPILOT_REVIEW,
+            review={"commit_id": HEAD, "state": "COMMENTED", "id": 9},
+            classification="ACTIONABLE_FINDINGS",
+            requires_fixer=True,
+            unresolved_threads=1,
+            open_finding_titles=["Late thread"],
+        )
+        merged = MOD.coalesce_post_review_reads(first, second)
+        out = MOD.evaluate_review_loop(merged)
+        self.assertEqual(merged["unresolved_threads"], 1)
+        self.assertEqual(out["decision"], MOD.DECISION_FIX_AGAIN)
+        self.assertFalse(out["merge_ready"])
+
 
 if __name__ == "__main__":
     unittest.main()

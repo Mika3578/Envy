@@ -15,8 +15,15 @@ from typing import Any, Mapping, Sequence
 DECISION_CLEAN = "CLEAN"
 DECISION_FIX_AGAIN = "FIX_AGAIN"
 DECISION_NEEDS_HUMAN = "NEEDS_HUMAN"
+DECISION_WAITING_COPILOT = "WAITING_COPILOT_REVIEW"
+
+SNAPSHOT_PRE_COPILOT_REQUEST = "pre_copilot_request"
+SNAPSHOT_POST_COPILOT_REVIEW = "post_copilot_review"
+COMPLETE_REVIEW_STATES = frozenset({"COMMENTED", "APPROVED", "CHANGES_REQUESTED", "DISMISSED"})
 
 REASON_NO_REVIEW = "no review yet for current HEAD"
+REASON_WAITING_COPILOT = "waiting for Copilot review on current HEAD"
+REASON_PRE_REVIEW_SNAPSHOT = "pre-Copilot snapshot cannot decide CLEAN"
 REASON_STALE_REVIEW = "latest review is for an older commit"
 REASON_CHANGES_REQUESTED = "active CHANGES_REQUESTED decision"
 REASON_UNRESOLVED_THREADS = "unresolved review threads remain"
@@ -56,6 +63,21 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
                        ["persistent human decision requires authenticated disposition"],
                        head_sha=head_sha,
                        review_sha=str((snapshot.get("review") or {}).get("commit_id") or ""))
+    if snapshot.get("snapshot_phase") == SNAPSHOT_PRE_COPILOT_REQUEST:
+        return _result(
+            DECISION_WAITING_COPILOT,
+            [REASON_PRE_REVIEW_SNAPSHOT],
+            head_sha=head_sha,
+            review_sha=str((snapshot.get("review") or {}).get("commit_id") or ""),
+            note="A Copilot request is a synchronization barrier; reuse of the pre-request snapshot is forbidden.",
+        )
+    if snapshot.get("planned_push") or snapshot.get("local_changes"):
+        return _result(
+            DECISION_FIX_AGAIN,
+            ["HEAD is not stable (planned push or local changes)"],
+            head_sha=head_sha,
+            review_sha=str((snapshot.get("review") or {}).get("commit_id") or ""),
+        )
     review = snapshot.get("review") or {}
     classification = str(snapshot.get("classification") or "")
     requires_fixer = bool(snapshot.get("requires_fixer"))
@@ -85,6 +107,13 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     review_sha = str(review.get("commit_id") or review.get("head_sha") or "")
 
     if not review or not review_sha:
+        if snapshot.get("copilot_request_pending"):
+            return _result(
+                DECISION_WAITING_COPILOT,
+                [REASON_WAITING_COPILOT],
+                head_sha=head_sha,
+                review_sha=review_sha,
+            )
         return _result(
             DECISION_NEEDS_HUMAN,
             [REASON_NO_REVIEW],
@@ -103,12 +132,28 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         )
 
     if review_sha != head_sha:
+        if snapshot.get("copilot_request_pending"):
+            return _result(
+                DECISION_WAITING_COPILOT,
+                [f"{REASON_WAITING_COPILOT}; {REASON_STALE_REVIEW} (review={_short(review_sha)} head={_short(head_sha)})"],
+                head_sha=head_sha,
+                review_sha=review_sha,
+                note="A late review for an old SHA is ignored; a new Copilot review is required for the current HEAD.",
+            )
         return _result(
             DECISION_NEEDS_HUMAN,
             [f"{REASON_STALE_REVIEW} (review={_short(review_sha)} head={_short(head_sha)})"],
             head_sha=head_sha,
             review_sha=review_sha,
             note="Stale reviews never validate a newer HEAD; wait for a fresh review.",
+        )
+    review_state = str(review.get("state") or "").upper()
+    if snapshot.get("copilot_request_pending") and review_state not in COMPLETE_REVIEW_STATES:
+        return _result(
+            DECISION_WAITING_COPILOT,
+            [REASON_WAITING_COPILOT],
+            head_sha=head_sha,
+            review_sha=review_sha,
         )
 
     # Required CI
@@ -299,6 +344,58 @@ def _repeated_findings(ledger: Sequence[Mapping[str, Any]]) -> list[str]:
     return out
 
 
+def coalesce_post_review_reads(
+    first: Mapping[str, Any], second: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Keep the stricter of two bounded post-review API reads.
+
+    Review threads and overview findings can appear slightly after the
+    review submission event. One read is never treated as definitive.
+    """
+    merged = dict(second)
+    merged["unresolved_threads"] = max(
+        int(first.get("unresolved_threads") or 0),
+        int(second.get("unresolved_threads") or 0),
+    )
+    for key in (
+        "open_finding_titles",
+        "previously_missed_titles",
+        "suppressed_comment_titles",
+        "untreated_pr_level_findings",
+    ):
+        left = [str(x) for x in (first.get(key) or [])]
+        right = [str(x) for x in (second.get(key) or [])]
+        merged[key] = list(dict.fromkeys(left + right))
+    merged["snapshot_phase"] = SNAPSHOT_POST_COPILOT_REVIEW
+    return merged
+
+
+def decide_after_copilot_request(
+    pre_review_snapshot: Mapping[str, Any] | None,
+    post_review_snapshot: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Synchronization barrier: never terminate on the pre-request snapshot."""
+    if pre_review_snapshot is not None and post_review_snapshot is pre_review_snapshot:
+        return _result(
+            DECISION_WAITING_COPILOT,
+            [REASON_PRE_REVIEW_SNAPSHOT],
+            head_sha=str((pre_review_snapshot or {}).get("head_sha") or ""),
+            review_sha="",
+            note="The stabilizer must wait for a Copilot review and a fresh post-review snapshot.",
+        )
+    if post_review_snapshot is None:
+        head = str((pre_review_snapshot or {}).get("head_sha") or "")
+        return _result(
+            DECISION_WAITING_COPILOT,
+            [REASON_WAITING_COPILOT],
+            head_sha=head,
+            review_sha="",
+        )
+    if post_review_snapshot.get("snapshot_phase") == SNAPSHOT_PRE_COPILOT_REQUEST:
+        return evaluate_review_loop(post_review_snapshot)
+    return evaluate_review_loop(post_review_snapshot)
+
+
 def _result(
     decision: str,
     reasons: Sequence[str],
@@ -315,6 +412,7 @@ def _result(
         "head_sha": head_sha,
         "review_sha": review_sha,
         "max_autofix_attempts": MAX_AUTOFIX_ATTEMPTS,
+        "merge_ready": decision == DECISION_CLEAN,
     }
     if note:
         payload["note"] = note

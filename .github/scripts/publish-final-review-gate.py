@@ -95,6 +95,16 @@ def main() -> int:
     if not live:
         print("could not re-read current HEAD before publish", file=sys.stderr)
         return 1
+    if state == "success":
+        try:
+            live_snapshot = COLLECT.collect(repository, pr)
+            result = GATE.revalidate_gate_before_success(result, live_snapshot)
+            state = str(result.get("state") or "error")
+            desc = str(result.get("reason") or state)
+            live = str(live_snapshot.get("current_head_sha") or live)
+        except Exception as exc:  # noqa: BLE001 — fail closed
+            state = "error"
+            desc = f"post-success revalidation failed: {exc}"
     if state == "success" and live != result.get("publish_sha"):
         state = "pending"
         desc = "HEAD changed before status publish; refusing stale success"

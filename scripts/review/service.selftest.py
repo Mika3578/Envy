@@ -241,6 +241,55 @@ class ServiceTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     mod.graphql_mutation("query", {})
 
+    def test_copilot_request_waits_instead_of_completing(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        head, base = "a" * 40, "b" * 40
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {f"copilot:{head}:{base}": {"status": "requested"}}}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": head, "base": base}
+        pull = {"head": {"sha": head}, "base": {"sha": base}, "draft": False, "node_id": "PR"}
+        with patch.object(mod, "gh_json", return_value=pull):
+            mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
+        self.assertEqual(state["phase"], "WAITING_COPILOT_REVIEW")
+
+    def test_copilot_review_with_new_thread_is_fix_again(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        snap["reviews"] = [{"id": 2, "user": {"login": "copilot-pull-request-reviewer"},
+                            "body": "Finding", "commit_id": "a" * 40, "state": "COMMENTED"}]
+        snap["threads"] = [{"isResolved": True}]
+        head, base = "a" * 40, "b" * 40
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {f"copilot:{head}:{base}": {"status": "requested"}}}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": head, "base": base}
+        fresh = dict(snap)
+        fresh["threads"] = [{"isResolved": False}]
+        pull = {"head": {"sha": head}, "base": {"sha": base}, "draft": False, "node_id": "PR"}
+        with patch.object(mod, "gh_json", return_value=pull), patch.object(mod, "collect", return_value=fresh):
+            mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
+        self.assertEqual(state["phase"], "FIX_AGAIN")
+
     def test_no_final_request_with_late_finding_or_human_stop(self):
         snap = snapshot()
         state = {"handled": {}, "stops": {}}

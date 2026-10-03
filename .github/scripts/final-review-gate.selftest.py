@@ -229,6 +229,47 @@ class FinalReviewGateTests(unittest.TestCase):
         data = json.loads(proc.stdout)
         self.assertEqual(data["state"], MOD.STATE_SUCCESS)
 
+    def test_post_review_new_thread_not_success(self):
+        pre = snap(unresolved_threads=0, reviews=[])
+        self.assertTrue(MOD.should_request_copilot(pre)["request"])
+        post = snap(
+            reviews=[{"user": {"login": COPILOT}, "commit_id": HEAD, "state": "COMMENTED"}],
+            unresolved_threads=1,
+            open_finding_titles=["PowerShell caret"],
+        )
+        gate = MOD.evaluate_final_review_gate(post)
+        self.assertNotEqual(gate["state"], MOD.STATE_SUCCESS)
+        self.assertFalse(gate.get("allow_publish") and gate["state"] == MOD.STATE_SUCCESS)
+
+    def test_overview_finding_without_thread_not_success(self):
+        out = MOD.evaluate_final_review_gate(
+            snap(
+                unresolved_threads=0,
+                open_finding_titles=["Overview bounds defect"],
+                reviews=[{"user": {"login": COPILOT}, "commit_id": HEAD, "state": "COMMENTED"}],
+            )
+        )
+        self.assertNotEqual(out["state"], MOD.STATE_SUCCESS)
+
+    def test_pre_copilot_snapshot_cannot_publish_success(self):
+        out = MOD.evaluate_final_review_gate(snap(snapshot_phase="pre_copilot_request"))
+        self.assertNotEqual(out["state"], MOD.STATE_SUCCESS)
+
+    def test_revalidate_refuses_success_when_late_thread_appears(self):
+        first = MOD.evaluate_final_review_gate(snap())
+        self.assertEqual(first["state"], MOD.STATE_SUCCESS)
+        live = snap(unresolved_threads=1)
+        out = MOD.revalidate_gate_before_success(first, live)
+        self.assertNotEqual(out["state"], MOD.STATE_SUCCESS)
+        self.assertFalse(out["allow_publish"])
+
+    def test_revalidate_refuses_success_when_head_moved(self):
+        first = MOD.evaluate_final_review_gate(snap())
+        live = snap(current_head_sha=OLD, head_sha=OLD, reviews=[])
+        out = MOD.revalidate_gate_before_success(first, live)
+        self.assertNotEqual(out["state"], MOD.STATE_SUCCESS)
+        self.assertFalse(out["allow_publish"])
+
 
 if __name__ == "__main__":
     unittest.main()
