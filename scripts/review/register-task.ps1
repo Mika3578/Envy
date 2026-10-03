@@ -4,10 +4,34 @@ param(
     [Parameter(Mandatory)][string]$Python,
     [switch]$EnableCorrections
 )
+param(
+    [Parameter(Mandatory)][string]$Service,
+    [Parameter(Mandatory)][string]$Config,
+    [Parameter(Mandatory)][string]$Python,
+    [switch]$EnableCorrections
+)
 $ErrorActionPreference = 'Stop'
-$taskService = (Resolve-Path -LiteralPath $Service).Path
+function Convert-HostOwnedPath {
+    param([Parameter(Mandatory)][string]$Raw, [Parameter(Mandatory)][string[]]$ForbiddenRoots)
+    $full = (Resolve-Path -LiteralPath $Raw).Path
+    foreach ($root in $ForbiddenRoots) {
+        if (-not $root) { continue }
+        $resolvedRoot = [System.IO.Path]::GetFullPath($root)
+        if ($full.StartsWith($resolvedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "Scheduled-task path '$full' is inside managed worktree '$resolvedRoot'."
+        }
+    }
+    return $full
+}
 $taskConfig = (Resolve-Path -LiteralPath $Config).Path
-$taskPython = (Resolve-Path -LiteralPath $Python).Path
+$configObject = Get-Content -LiteralPath $taskConfig -Raw | ConvertFrom-Json
+$forbidden = @()
+foreach ($entry in @($configObject.prs)) {
+    if ($entry.worktree) { $forbidden += [string]$entry.worktree }
+}
+$taskService = Convert-HostOwnedPath -Raw $Service -ForbiddenRoots $forbidden
+$taskPython = Convert-HostOwnedPath -Raw $Python -ForbiddenRoots $forbidden
+$taskConfig = Convert-HostOwnedPath -Raw $taskConfig -ForbiddenRoots $forbidden
 foreach ($taskPath in @($taskService, $taskConfig, $taskPython)) {
     if ($taskPath.Contains('"')) { throw 'Task paths cannot contain quote characters.' }
 }

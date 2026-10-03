@@ -182,6 +182,12 @@ class FinalReviewGateTests(unittest.TestCase):
     def test_request_once_when_stable_without_review(self):
         out = MOD.should_request_copilot(snap(reviews=[]))
         self.assertTrue(out["request"])
+        blocked = MOD.should_request_copilot(snap(reviews=[], requires_human=True))
+        self.assertFalse(blocked["request"])
+        blocked = MOD.should_request_copilot(snap(reviews=[], loop_guard="persistent_human_decision"))
+        self.assertFalse(blocked["request"])
+        blocked = MOD.should_request_copilot(snap(reviews=[], human_stop_review_ids=["1"]))
+        self.assertFalse(blocked["request"])
 
     def test_head_change_during_evaluation_no_stale_success(self):
         out = MOD.evaluate_final_review_gate(snap(current_head_sha=OLD))

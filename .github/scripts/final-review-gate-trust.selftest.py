@@ -48,7 +48,11 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertNotIn("contents: write", probe)
         self.assertNotIn("pull-requests: write", probe)
         self.assertNotIn("publish-final-review-gate.py", probe)
-        self.assertNotIn("gh api -X POST", probe)
+        self.assertNotIn("gh api", probe)
+        self.assertNotIn("check-runs", probe)
+        self.assertNotIn('context="Final review gate"', probe)
+        self.assertIn("permissions: {}", probe)
+        self.assertGreaterEqual(probe.count("permissions: {}"), 2)
         self.assertNotIn("repos/${REPOSITORY}/statuses/", probe)
         self.assertTrue(_on_pull_request_merge_commit(probe))
 
@@ -138,6 +142,7 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertNotIn("pr = numbers[0]", text)
         self.assertIn("steps.scripts.outputs.missing != '1'", text)
         self.assertIn("Publish pending gate when default-branch scripts are missing", text)
+        self.assertIn("Convert-HostOwnedPath", (ROOT / "scripts" / "review" / "register-task.ps1").read_text(encoding="utf-8"))
 
     def test_final_copilot_request_is_non_destructive_union(self):
         text = (ROOT / ".github" / "scripts" / "request-final-copilot-review.sh").read_text(encoding="utf-8")

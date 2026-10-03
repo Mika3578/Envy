@@ -586,6 +586,8 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     copilot = latest_copilot_review(reviews, head)
     if copilot and not copilot.get("_unknown_copilot_identity"):
         return {"request": False, "reason": "Copilot already reviewed this HEAD"}
+    if snapshot.get("requires_human") or snapshot.get("loop_guard") or snapshot.get("human_stop_review_ids"):
+        return {"request": False, "reason": "persistent human stop"}
     if gate["state"] in {STATE_ERROR}:
         return {"request": False, "reason": gate["reasons"][0] if gate["reasons"] else "fail closed"}
     if str(snapshot.get("review_decision") or "").upper() == "CHANGES_REQUESTED":
