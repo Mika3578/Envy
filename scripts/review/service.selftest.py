@@ -567,6 +567,13 @@ class ServiceTests(unittest.TestCase):
         with patch.object(mod, "publication_git", side_effect=["", "https://evil.example/Envy.git"]):
             with self.assertRaises(ValueError):
                 mod.assert_trusted_publication_remote(identity, hooks)
+        with patch.object(
+            mod,
+            "publication_git",
+            side_effect=["", "https://github.com/Mika3578/Envy.git\nhttps://evil.example/Envy.git"],
+        ):
+            with self.assertRaises(ValueError):
+                mod.assert_trusted_publication_remote(identity, hooks)
         with patch.object(mod, "publication_git", side_effect=["", "https://github.com/Mika3578/Envy.git"]):
             mod.assert_trusted_publication_remote(identity, hooks)
 

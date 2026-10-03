@@ -318,6 +318,14 @@ fetch_preserved_reviewer_ids() {
 			echo "::error::Failed to list existing review requests for PR #${PR_NUMBER}." >&2
 			return 1
 		fi
+		if echo "$snap" | jq -e '((.errors // []) | length) > 0' >/dev/null; then
+			echo "::error::GraphQL reviewRequests query returned errors." >&2
+			return 1
+		fi
+		if ! echo "$snap" | jq -e '.data.repository.pullRequest.reviewRequests.pageInfo.hasNextPage | type == "boolean"' >/dev/null; then
+			echo "::error::reviewRequests pagination is missing or invalid." >&2
+			return 1
+		fi
 
 		user_ids="$(jq -c --argjson users "$user_ids" \
 			'($users + [.data.repository.pullRequest.reviewRequests.nodes[] | select(.requestedReviewer.__typename=="User") | .requestedReviewer.id]) | unique' \

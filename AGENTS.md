@@ -427,7 +427,7 @@ advisory commit status `Final review gate` is SHA-bound and fail-closed.
 It is published only by a default-branch workflow (`pull_request_target` /
 `workflow_run`); PR-controlled `pull_request` YAML must not hold
 `statuses:write` for that context.
-do not treat `copilot-pull-request-reviewer` check success as APPROVED.
+Do not treat `copilot-pull-request-reviewer` check success as APPROVED.
 The correction agent must never approve, dismiss reviews, request Copilot while
 the PR is Draft, merge, enable auto-merge, change repository settings/rulesets,
 force-push, or push protected branches. Workflow/governance activation still

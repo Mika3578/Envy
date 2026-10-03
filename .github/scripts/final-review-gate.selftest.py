@@ -484,6 +484,10 @@ class FinalReviewGateTests(unittest.TestCase):
         self.assertEqual(latest["id"], 9)
         self.assertEqual(latest["state"], "COMMENTED")
 
+    def test_persistent_human_stop_blocks_success(self):
+        out = MOD.evaluate_final_review_gate(snap(requires_human=True, loop_guard="persistent_human_decision"))
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+
 
 if __name__ == "__main__":
     unittest.main()

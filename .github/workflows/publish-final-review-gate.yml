@@ -202,8 +202,43 @@ jobs:
           done
           echo "missing=$missing" >>"$GITHUB_OUTPUT"
 
+      - name: Publish pending gate when default-branch scripts are missing
+        if: steps.pr.outputs.skip != '1' && steps.scripts.outputs.missing == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          sha="$(gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}" --jq .head.sha)"
+          if [[ ! "$sha" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::Could not read current HEAD to publish a pending gate."
+            exit 1
+          fi
+          export SHA="$sha"
+          python3 - <<'PY'
+          import json, os, subprocess
+          payload = {
+            "name": "Final review gate",
+            "head_sha": os.environ["SHA"],
+            "status": "in_progress",
+            "details_url": os.environ.get("RUN_URL") or "",
+            "output": {
+              "title": "Final review gate",
+              "summary": "gate scripts not on default branch yet",
+            },
+          }
+          subprocess.run(
+            ["gh", "api", "-X", "POST", f"repos/{os.environ['REPOSITORY']}/check-runs", "--input", "-"],
+            input=json.dumps(payload),
+            text=True,
+            check=True,
+          )
+          PY
+
       - name: Evaluate live GitHub state and publish SHA-bound status
-        if: steps.pr.outputs.skip != '1'
+        if: steps.pr.outputs.skip != '1' && steps.scripts.outputs.missing != '1'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}

@@ -136,6 +136,8 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn("commits/{sha}/pulls", text)
         self.assertIn("len(set(eligible)) != 1", text)
         self.assertNotIn("pr = numbers[0]", text)
+        self.assertIn("steps.scripts.outputs.missing != '1'", text)
+        self.assertIn("Publish pending gate when default-branch scripts are missing", text)
 
     def test_review_history_file_survives_until_check_history(self):
         text = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")

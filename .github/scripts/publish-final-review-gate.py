@@ -13,17 +13,16 @@ SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 import importlib.util
 
-_COLLECT_SPEC = importlib.util.spec_from_file_location(
-    "collect_final_review_snapshot", SCRIPTS / "collect-final-review-snapshot.py"
-)
-COLLECT = importlib.util.module_from_spec(_COLLECT_SPEC)
-_COLLECT_SPEC.loader.exec_module(COLLECT)
+GATE_CONTEXT = "Final review gate"
 
-_GATE_SPEC = importlib.util.spec_from_file_location(
-    "final_review_gate_mod", SCRIPTS / "final-review-gate.py"
-)
-GATE = importlib.util.module_from_spec(_GATE_SPEC)
-_GATE_SPEC.loader.exec_module(GATE)
+
+def load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise FileNotFoundError(path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def live_head(repository: str, pr: int) -> str:
@@ -41,21 +40,21 @@ def live_head(repository: str, pr: int) -> str:
 def post_check_run(repository: str, sha: str, state: str, description: str, target_url: str) -> None:
     if state == "pending":
         payload = {
-            "name": GATE.GATE_CONTEXT,
+            "name": GATE_CONTEXT,
             "head_sha": sha,
             "status": "in_progress",
             "details_url": target_url,
-            "output": {"title": GATE.GATE_CONTEXT, "summary": description[:1024]},
+            "output": {"title": GATE_CONTEXT, "summary": description[:1024]},
         }
     else:
         conclusion = "success" if state == "success" else "failure"
         payload = {
-            "name": GATE.GATE_CONTEXT,
+            "name": GATE_CONTEXT,
             "head_sha": sha,
             "status": "completed",
             "conclusion": conclusion,
             "details_url": target_url,
-            "output": {"title": GATE.GATE_CONTEXT, "summary": description[:1024]},
+            "output": {"title": GATE_CONTEXT, "summary": description[:1024]},
         }
     subprocess.run(
         [
@@ -92,9 +91,11 @@ def main() -> int:
         post_check_run(repository, sha, state, desc, run_url)
         print(json.dumps({"state": state, "reason": desc, "publish_sha": sha}, indent=2))
         return 0
+    collect_mod = load_module("collect_final_review_snapshot", SCRIPTS / "collect-final-review-snapshot.py")
+    gate_mod = load_module("final_review_gate_mod", SCRIPTS / "final-review-gate.py")
     try:
-        snapshot = COLLECT.collect(repository, pr)
-        result = GATE.evaluate_final_review_gate(snapshot)
+        snapshot = collect_mod.collect(repository, pr)
+        result = gate_mod.evaluate_final_review_gate(snapshot)
     except Exception as exc:  # noqa: BLE001 — fail closed
         sha = live_head(repository, pr)
         if not sha:
@@ -111,8 +112,8 @@ def main() -> int:
         return 1
     if state == "success":
         try:
-            live_snapshot = COLLECT.collect(repository, pr)
-            result = GATE.revalidate_gate_before_success(result, live_snapshot)
+            live_snapshot = collect_mod.collect(repository, pr)
+            result = gate_mod.revalidate_gate_before_success(result, live_snapshot)
             state = str(result.get("state") or "error")
             desc = str(result.get("reason") or state)
             live = str(live_snapshot.get("current_head_sha") or live)

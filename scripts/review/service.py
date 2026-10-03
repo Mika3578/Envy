@@ -528,9 +528,15 @@ def assert_trusted_publication_remote(identity, hooks_path):
     for line in rewrites.splitlines():
         if "insteadof" in line.lower():
             raise ValueError("Git URL rewrite config redirects publication")
-    push_url = publication_git(identity, hooks_path, "remote", "get-url", "--push", "origin")
-    if push_url.rstrip("/") not in ALLOWED_PUSH_URLS:
-        raise ValueError("origin push URL is not the trusted GitHub remote")
+    urls = publication_git(
+        identity, hooks_path, "remote", "get-url", "--push", "--all", "origin", allowed=(0, 1)
+    )
+    push_urls = [url.rstrip("/") for url in urls.splitlines() if url.strip()]
+    if not push_urls:
+        raise ValueError("origin push URL is missing")
+    for push_url in push_urls:
+        if push_url not in ALLOWED_PUSH_URLS:
+            raise ValueError("origin push URL is not the trusted GitHub remote")
 
 
 def executor_argv(executable, state):
@@ -856,7 +862,7 @@ def process(config, entry, store, *, observe):
     def git(*args):
         return publication_git(locked, hooks_path, *args)
     assert_trusted_publication_remote(locked, hooks_path)
-    hooks = run(["git", "config", "--path", "core.hooksPath"], cwd=worktree).strip()
+    hooks = git("config", "--path", "core.hooksPath")
     if not Path(hooks).is_absolute() or Path(hooks).resolve() != Path(config["trusted_hooks_path"]).resolve():
         raise ValueError("Publication hooks do not match the frozen reviewed installation")
     if state.get("executor_owner_uncertain"):

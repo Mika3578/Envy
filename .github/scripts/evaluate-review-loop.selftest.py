@@ -29,6 +29,7 @@ def snap(**kwargs):
         "requires_fixer": False,
         "requires_human": False,
         "review_decision": "APPROVED",
+        "review_decision_source": "graphql",
         "unresolved_threads": 0,
         "human_unresolved_threads": 0,
         "untreated_threads": 0,
@@ -64,6 +65,11 @@ class EvaluateReviewLoopTests(unittest.TestCase):
 
     def test_empty_graphql_decision_is_not_clean(self):
         out = MOD.evaluate_review_loop(snap(review_decision=""))
+        self.assertNotEqual(out["decision"], MOD.DECISION_CLEAN)
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+
+    def test_non_graphql_review_decision_is_not_clean(self):
+        out = MOD.evaluate_review_loop(snap(review_decision_source="rest"))
         self.assertNotEqual(out["decision"], MOD.DECISION_CLEAN)
         self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
 
