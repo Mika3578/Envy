@@ -1,4 +1,4 @@
-> Current verification (2026-10-01) supersedes historical settings below: one non-author approval, review-on-push off, eight required checks, and Code Quality severity all. Older zero-approval or review-on-push-on rows are historical only.
+> Current verification (2026-10-03) supersedes historical settings below: live Protect develop `required_approving_review_count` is **0** (ruleset 16457466). Documented merge policy remains one independent non-author `APPROVED` (and independent human `APPROVED` for privileged governance). Review-on-push is off, eight required checks, and Code Quality severity all. Older one-approval or review-on-push-on rows are historical or target policy, not the live 2026-10-03 observation.
 
 # CI/CD audit — Envy (Mika3578/Envy) — 2026-09-19
 

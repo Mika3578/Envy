@@ -30,7 +30,11 @@ if grep -q 'local max_reviews_per_head=2' .github/scripts/request-final-copilot-
  exit 1
 fi
 grep -q 'local max_reviews_per_head=1' .github/scripts/request-final-copilot-review.sh
-grep -q 'reviewer_sets_unchanged' .github/scripts/request-final-copilot-review.sh
+grep -q 'union:true' .github/scripts/request-final-copilot-review.sh
+if grep -q 'userIds:\[\]' .github/scripts/request-final-copilot-review.sh; then
+ echo 'FAIL destructive empty reviewer clear still present' >&2
+ exit 1
+fi
 
 # A failed lookup captured by command substitution must propagate failure.
 gh() { return 1; }

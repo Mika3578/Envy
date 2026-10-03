@@ -324,7 +324,7 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     if review_decision != "APPROVED":
         reasons.append(f"reviewDecision is {review_decision or 'empty'}, not APPROVED")
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
-    if snapshot.get("requires_human") or snapshot.get("loop_guard"):
+    if snapshot.get("requires_human") or snapshot.get("loop_guard") or snapshot.get("human_stop_review_ids"):
         reasons.append("persistent human stop is still active")
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
 

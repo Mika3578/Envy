@@ -404,34 +404,16 @@ request_copilot_refresh() {
 		exit 1
 	fi
 
-	restore_preserved_reviewers() {
-		local why="$1"
-		echo "::error::${why}" >&2
-		if ! restore_resp="$(gh api graphql --input - <<EOF
-{"query":"mutation(\$pr:ID!,\$users:[ID!]!,\$teams:[ID!]!){requestReviews(input:{pullRequestId:\$pr,botIds:[],userIds:\$users,teamIds:\$teams,union:false}){clientMutationId}}","variables":{"pr":"$RESTORE_PR_NODE","users":$RESTORE_USER_IDS,"teams":$RESTORE_TEAM_IDS}}
-EOF
-)"; then
-			echo "::error::UNRECOVERABLE: failed to restore preserved human/team reviewers after clear; review requests may be empty." >&2
-			return 1
-		fi
-		if ! graphql_mutation_ok "$restore_resp"; then
-			echo "::error::UNRECOVERABLE: restore GraphQL mutation reported errors; review requests may be empty." >&2
-			return 1
-		fi
-		REVIEWERS_CLEARED=0
-		return 0
-	}
-
-	# Re-run the full eligibility predicate (state, draft, review decision,
-	# threads, merge state, required checks) and re-capture the reviewer set
-	# immediately before the destructive clear so a change during the run cannot
-	# mutate review requests on a now-ineligible PR or drop a newly added reviewer.
+	# Re-run the full eligibility predicate immediately before requesting Copilot
+	# with union:true. Do not clear existing reviewers: a human/team request added
+	# during the race must remain, and an empty userIds/teamIds replacement would
+	# drop it.
 	if ! pr_json="$(fetch_pr_json)"; then
 		exit 0
 	fi
 	head_oid_after="$(echo "$pr_json" | jq -r '.data.repository.pullRequest.headRefOid')"
 	if [[ "$head_oid_after" != "$head_oid_before" ]]; then
-		note_ineligible "HEAD changed before clear/re-request (\`${head_oid_before:0:7}\`  \`${head_oid_after:0:7}\`); re-run after the branch is stable."
+		note_ineligible "HEAD changed before Copilot request (\`${head_oid_before:0:7}\`  \`${head_oid_after:0:7}\`); re-run after the branch is stable."
 		write_summary "Final Copilot review not requested"
 		exit 0
 	fi
@@ -440,7 +422,7 @@ EOF
 		exit 0
 	fi
 	preserved_raw="$(fetch_preserved_reviewer_ids)" || {
-		echo "::error::Failed to fetch preserved reviewer IDs before clear/re-request." >&2
+		echo "::error::Failed to fetch preserved reviewer IDs before Copilot request." >&2
 		exit 1
 	}
 	user_ids="$(printf '%s\n' "$preserved_raw" | sed -n '1p')"
@@ -463,52 +445,30 @@ EOF
 		exit 0
 	fi
 	preserved_raw_again="$(fetch_preserved_reviewer_ids)" || {
-		echo "::error::Failed to re-read reviewer IDs immediately before clear." >&2
+		echo "::error::Failed to re-read reviewer IDs immediately before Copilot request." >&2
 		exit 1
 	}
 	user_ids_again="$(printf '%s\n' "$preserved_raw_again" | sed -n '1p')"
 	team_ids_again="$(printf '%s\n' "$preserved_raw_again" | sed -n '2p')"
 	if ! reviewer_sets_unchanged "$user_ids" "$team_ids" "$user_ids_again" "$team_ids_again"; then
-		note_ineligible "Human/team reviewer requests changed before clear; aborting so a newly added reviewer is not dropped."
+		note_ineligible "Human/team reviewer requests changed before Copilot request; aborting so a newly added reviewer is not dropped."
 		write_summary "Final Copilot review not requested"
 		exit 0
 	fi
 	user_ids="$user_ids_again"
 	team_ids="$team_ids_again"
-	RESTORE_PR_NODE="$pr_node_id"
-	RESTORE_USER_IDS="$user_ids"
-	RESTORE_TEAM_IDS="$team_ids"
-	REVIEWERS_CLEARED=0
-	# A cancelled or terminated runner after the clear must not leave the PR
-	# with no human/team review requests.
-	trap 'if [[ "${REVIEWERS_CLEARED}" == "1" ]]; then restore_preserved_reviewers "Interrupted after clearing reviewers; restoring preserved human/team reviewers." || true; fi' EXIT
-	trap 'exit 143' TERM INT
-	# A transport failure cannot prove the server did not apply the clear.
-	REVIEWERS_CLEARED=1
-	if ! clear_resp="$(gh api graphql --input - <<EOF
-{"query":"mutation(\$pr:ID!){requestReviews(input:{pullRequestId:\$pr,botIds:[],userIds:[],teamIds:[],union:false}){clientMutationId}}","variables":{"pr":"$pr_node_id"}}
-EOF
-)"; then
-		echo "::error::Failed to clear existing review requests before re-requesting Copilot." >&2
-		exit 1
-	fi
-	if ! graphql_mutation_ok "$clear_resp"; then
-		exit 1
-	fi
-	REVIEWERS_CLEARED=1
 
 	if ! add_resp="$(gh api graphql --input - <<EOF
-{"query":"mutation(\$pr:ID!,\$bots:[ID!]!,\$users:[ID!]!,\$teams:[ID!]!){requestReviews(input:{pullRequestId:\$pr,botIds:\$bots,userIds:\$users,teamIds:\$teams,union:false}){clientMutationId}}","variables":{"pr":"$pr_node_id","bots":["$bot_node"],"users":$user_ids,"teams":$team_ids}}
+{"query":"mutation(\$pr:ID!,\$bots:[ID!]!,\$users:[ID!]!,\$teams:[ID!]!){requestReviews(input:{pullRequestId:\$pr,botIds:\$bots,userIds:\$users,teamIds:\$teams,union:true}){clientMutationId}}","variables":{"pr":"$pr_node_id","bots":["$bot_node"],"users":$user_ids,"teams":$team_ids}}
 EOF
 )"; then
-		restore_preserved_reviewers "Failed to request Copilot review after clearing reviewers; restoring preserved human/team reviewers." || echo "::error::Restoration failed; EXIT will retry. Maintainer recovery is required if retry fails." >&2
+		echo "::error::Failed to request Copilot review." >&2
 		exit 1
 	fi
 	if ! graphql_mutation_ok "$add_resp"; then
-		restore_preserved_reviewers "Copilot re-request GraphQL mutation failed; restoring preserved human/team reviewers." || echo "::error::Restoration failed; EXIT will retry. Maintainer recovery is required if retry fails." >&2
+		echo "::error::Copilot request GraphQL mutation failed." >&2
 		exit 1
 	fi
-	REVIEWERS_CLEARED=0
 
 	write_summary "Final Copilot review requested" \
 		"" \

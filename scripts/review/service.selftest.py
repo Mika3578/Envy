@@ -2,6 +2,7 @@
 """Offline trust, persistence, publication and executor tests; no credentials."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -590,6 +591,32 @@ class ServiceTests(unittest.TestCase):
             mod.graphql_review_decision(
                 {"reviewDecision": "APPROVED", "headRefOid": "b" * 40}, "a" * 40
             )
+        with self.assertRaises(ValueError):
+            mod.graphql_review_decision({"reviewDecision": "APPROVED"}, "a" * 40)
+        with self.assertRaises(ValueError):
+            mod.graphql_review_decision({"reviewDecision": "APPROVED", "headRefOid": ""}, "a" * 40)
+
+    def test_publication_git_uses_absolute_host_git(self):
+        identity = {"worktree": Path("D:/wt"), "git_dir": Path("D:/wt/.git")}
+        with patch.object(mod, "trusted_git_executable", return_value="C:/Program Files/Git/cmd/git.exe"):
+            with patch.object(mod, "run", return_value="ok\n") as run:
+                out = mod.publication_git(identity, Path("D:/hooks"), "status")
+        self.assertEqual(out, "ok")
+        argv = run.call_args[0][0]
+        self.assertTrue(os.path.isabs(argv[0]))
+        self.assertNotEqual(argv[0], "git")
+
+    def test_trusted_git_skips_cwd(self):
+        with tempfile.TemporaryDirectory() as raw:
+            cwd = Path(raw)
+            decoy = cwd / ("git.exe" if os.name == "nt" else "git")
+            decoy.write_text("echo decoy\n", encoding="utf-8")
+            if os.name != "nt":
+                decoy.chmod(0o755)
+            with patch.object(mod.os, "environ", {"PATH": str(cwd) + os.pathsep + os.environ.get("PATH", "")}):
+                with patch.object(mod.Path, "cwd", return_value=cwd):
+                    resolved = Path(mod.trusted_git_executable()).resolve()
+            self.assertNotEqual(resolved, decoy.resolve())
 
     def test_failed_copilot_request_keeps_unknown_marker(self):
         snap = snapshot()

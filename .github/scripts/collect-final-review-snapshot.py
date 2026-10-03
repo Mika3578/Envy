@@ -422,6 +422,11 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         snapshot["copilot_classification"] = str(outcome.get("classification") or "")
         snapshot["requires_human"] = bool(outcome.get("requires_human"))
         snapshot["requires_fixer"] = bool(outcome.get("requires_fixer"))
+        snapshot["human_stop_review_ids"] = [
+            str(item) for item in (outcome.get("human_stop_review_ids") or []) if str(item)
+        ]
+        if snapshot["human_stop_review_ids"]:
+            snapshot["requires_human"] = True
         if outcome.get("loop_guard"):
             snapshot["loop_guard"] = str(outcome.get("loop_guard"))
         if not snapshot["copilot_classification"]:

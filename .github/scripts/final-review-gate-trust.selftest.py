@@ -139,6 +139,12 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn("steps.scripts.outputs.missing != '1'", text)
         self.assertIn("Publish pending gate when default-branch scripts are missing", text)
 
+    def test_final_copilot_request_is_non_destructive_union(self):
+        text = (ROOT / ".github" / "scripts" / "request-final-copilot-review.sh").read_text(encoding="utf-8")
+        self.assertIn("union:true", text)
+        self.assertNotIn("userIds:[]", text)
+        self.assertNotIn("REVIEWERS_CLEARED", text)
+
     def test_review_history_file_survives_until_check_history(self):
         text = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")
         before, after = text.split("finding-ledger.py check-history", 1)

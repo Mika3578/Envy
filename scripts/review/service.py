@@ -26,6 +26,8 @@ import unicodedata
 
 from required_checks import collect_checks, commit_checks, PASSING_CHECK_STATES, PENDING_CHECK_STATES
 
+SHA1_HEX = re.compile(r"^[0-9a-fA-F]{40}$")
+
 REPOSITORY = "Mika3578/Envy"
 BRANCH = re.compile(r"^(feat|fix|docs|refactor|perf|test|build|ci|chore|hotfix|security)/[a-z0-9][a-z0-9-]*$")
 TITLE_TYPES = {"feat", "fix", "docs", "refactor", "perf", "test", "build", "ci", "chore", "security"}
@@ -214,7 +216,7 @@ def collect(number):
         raise ValueError("Incomplete review thread comments")
     snapshot["threads"] = threads
     snapshot["pr"]["review_decision"] = graphql_decision
-    if graphql_head and graphql_head != pr["head"]["sha"]:
+    if not graphql_head or graphql_head != pr["head"]["sha"]:
         raise ValueError("HEAD changed during GraphQL collection")
     snapshot.update(collect_checks(REPOSITORY, pr["head"]["sha"]))
     snapshot["publisher_login"] = gh_json(["api", "user"])["login"]
@@ -261,8 +263,13 @@ def graphql_review_decision(pr_node, expected_head=""):
     if not isinstance(pr_node, dict) or "reviewDecision" not in pr_node:
         raise ValueError("GraphQL reviewDecision is missing")
     oid = str(pr_node.get("headRefOid") or "")
-    if expected_head and oid and oid != expected_head:
-        raise ValueError("HEAD changed during GraphQL collection")
+    if not SHA1_HEX.fullmatch(oid):
+        raise ValueError("GraphQL headRefOid is missing")
+    if expected_head:
+        if not SHA1_HEX.fullmatch(str(expected_head)):
+            raise ValueError("Expected HEAD SHA is missing")
+        if oid != expected_head:
+            raise ValueError("HEAD changed during GraphQL collection")
     return str(pr_node.get("reviewDecision") or "")
 
 
@@ -448,6 +455,29 @@ def load_trusted_policy(config, worktree):
     return text
 
 
+def trusted_git_executable():
+    names = ("git.exe", "git.cmd", "git") if os.name == "nt" else ("git",)
+    try:
+        cwd = Path.cwd().resolve()
+    except OSError:
+        cwd = None
+    for directory in os.environ.get("PATH", "").split(os.pathsep):
+        if not directory:
+            continue
+        root = Path(directory)
+        try:
+            resolved_dir = root.resolve()
+        except OSError:
+            continue
+        if cwd is not None and resolved_dir == cwd:
+            continue
+        for name in names:
+            candidate = resolved_dir / name
+            if candidate.is_file():
+                return str(candidate.resolve())
+    raise ValueError("Trusted Git executable is missing from PATH")
+
+
 def host_owned_executable(raw, worktrees):
     path = Path(raw)
     if not path.is_absolute():
@@ -479,14 +509,15 @@ def gitdir_pointer_target(worktree):
 def git_identity(worktree):
     worktree = Path(worktree).resolve()
     env = minimal_environment()
-    toplevel = Path(run(["git", "rev-parse", "--show-toplevel"], cwd=worktree, env=env).strip()).resolve()
-    git_dir = Path(run(["git", "rev-parse", "--absolute-git-dir"], cwd=worktree, env=env).strip()).resolve()
+    git = trusted_git_executable()
+    toplevel = Path(run([git, "rev-parse", "--show-toplevel"], cwd=worktree, env=env).strip()).resolve()
+    git_dir = Path(run([git, "rev-parse", "--absolute-git-dir"], cwd=worktree, env=env).strip()).resolve()
     if toplevel != worktree:
         raise ValueError("Git toplevel does not match the configured worktree")
     pointer = gitdir_pointer_target(worktree)
     if pointer is not None and pointer != git_dir:
         raise ValueError("Git gitdir pointer redirects away from the resolved git-dir")
-    worktree_cfg = run(["git", "config", "--get", "core.worktree"], cwd=worktree, env=env, allowed=(0, 1)).strip()
+    worktree_cfg = run([git, "config", "--get", "core.worktree"], cwd=worktree, env=env, allowed=(0, 1)).strip()
     if worktree_cfg:
         configured = Path(worktree_cfg).resolve()
         if configured != worktree:
@@ -498,7 +529,7 @@ def publication_git(identity, hooks_path, *args, allowed=(0,)):
     env = minimal_environment()
     return run(
         [
-            "git",
+            trusted_git_executable(),
             "--git-dir",
             str(identity["git_dir"]),
             "--work-tree",
@@ -628,8 +659,10 @@ def checks_pass(snapshot):
 
 
 def patch_digest(worktree):
-    digest = hashlib.sha256(run(["git", "diff", "HEAD", "--binary"], cwd=worktree).encode())
-    names = run(["git", "ls-files", "--others", "--exclude-standard", "-z"], cwd=worktree)
+    git = trusted_git_executable()
+    env = minimal_environment()
+    digest = hashlib.sha256(run([git, "diff", "HEAD", "--binary"], cwd=worktree, env=env).encode())
+    names = run([git, "ls-files", "--others", "--exclude-standard", "-z"], cwd=worktree, env=env)
     root = Path(worktree).resolve()
     for name in sorted(filter(None, names.split("\0"))):
         path = (root / name).resolve()
@@ -872,6 +905,7 @@ def process(config, entry, store, *, observe):
             or git("branch", "--show-current") != snapshot["pr"]["head"]["ref"]
             or git("rev-parse", "HEAD") != head):
         raise ValueError("Worktree is dirty, on another branch or not at remote HEAD; preserve and reconcile")
+    result = {"commit_title": "", "dispositions": []}
     if pending or any(c["state"] not in PASS | WAIT for c in snapshot["checks"]):
         state["patch_owner_head"] = head
         state["executor_owner_uncertain"] = True
@@ -904,7 +938,10 @@ def process(config, entry, store, *, observe):
                 run(config["validation_launcher"] + [sys.executable if arg == "{python}" else arg for arg in command],
                     cwd=worktree, env=env, timeout=config["validation_timeout_seconds"])
         git("diff", "--check")
-        if git("status", "--porcelain"):
+        dirty = git("status", "--porcelain")
+        if any(item.get("status") == "fixed" for item in result.get("dispositions") or []) and not dirty:
+            raise ValueError("fixed disposition requires a validated patch")
+        if dirty:
             if git_identity(worktree) != locked:
                 raise ValueError("Git worktree or git-dir changed before publication")
             assert_trusted_publication_remote(locked, hooks_path)
@@ -996,7 +1033,11 @@ def main():
                 state["last_error"] = {"reason": str(exc), "diagnostics": getattr(exc, "diagnostics", "")}
                 # An early refusal must never adopt somebody else's dirty work.
                 if state.get("patch_owner_head"):
-                    local_head = run(["git", "rev-parse", "HEAD"], cwd=entry["worktree"]).strip()
+                    local_head = run(
+                        [trusted_git_executable(), "rev-parse", "HEAD"],
+                        cwd=entry["worktree"],
+                        env=minimal_environment(),
+                    ).strip()
                     if local_head == state["patch_owner_head"]:
                         state["owned_patch"] = patch_digest(entry["worktree"])
                     state.pop("patch_owner_head", None)
