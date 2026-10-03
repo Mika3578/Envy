@@ -793,6 +793,8 @@ CQuerySearchPtr CQuerySearch::FromPacket(CPacket* pPacket, const SOCKADDR_IN* pE
 BOOL CQuerySearch::ReadG1Packet(CG1Packet* pPacket, const SOCKADDR_IN* pEndpoint)
 {
 	m_nHops = pPacket->m_nHops;
+	// One peer XML budget for G1 query extensions (ENVY-SEC-003), matching G2.
+	XmlParseBudget oQueryXmlBudget = XmlParseBudget::PeerDefaults();
 
 	if ( pEndpoint )
 		m_pEndpoint = *pEndpoint;
@@ -863,8 +865,8 @@ BOOL CQuerySearch::ReadG1Packet(CG1Packet* pPacket, const SOCKADDR_IN* pEndpoint
 		}
 		else if ( nPeek == '<' || nPeek == '{' )
 		{
-			// XML extensions
-			pPacket->ReadXML( m_pSchema, m_pXML );
+			// XML extensions — peer-sourced; share oQueryXmlBudget.
+			pPacket->ReadXML( m_pSchema, m_pXML, &oQueryXmlBudget );
 		}
 		else	// if ( nPeek == 0 || nPeek == G1_PACKET_HIT_SEP )
 		{

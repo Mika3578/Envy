@@ -937,6 +937,17 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize, XmlParseBudget* p
 	if (nSize > (int)(XML_PEER_PARSE_CHARS_MAX + 11))
 		return NULL;
 
+	// Shared packet budget: once earlier hit/trailer XML exhausted the char
+	// budget, do not materialize further extension buffers (many hits each
+	// <=256 KiB would otherwise allocate before the post-read reject).
+	XmlParseBudget oLocal = XmlParseBudget::PeerDefaults();
+	XmlParseBudget* pActive = pBudget ? pBudget : &oLocal;
+	if (pActive->m_nChars >= pActive->m_nMaxChars)
+		return NULL;
+	const DWORD nRemaining = pActive->m_nMaxChars - pActive->m_nChars;
+	if ((DWORD)nSize > nRemaining + 11u)
+		return NULL;
+
 	auto_array< BYTE > pRaw( new BYTE[ nSize ] );
 	if ( ! pRaw.get() )
 		return NULL;	// Out of memory
@@ -966,12 +977,12 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize, XmlParseBudget* p
 		pszXML = pRaw.get() + 11;
 		nSize -= 11;
 	}
-	else if ( nSize >= 2 && strncmp( (LPCSTR)pRaw.get(), "{}", 2 ) == 0 )
+	else if (nSize >= 2 && strncmp((LPCSTR)pRaw.get(), "{}", 2) == 0)
 	{
 		pszXML = pRaw.get() + 2;
 		nSize -= 2;
 	}
-	else if ( nSize > 1 )
+	else if (nSize > 1)
 	{
 		pszXML = pRaw.get();
 	}
@@ -979,8 +990,6 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize, XmlParseBudget* p
 	if (!pszXML || nSize <= 0 || nSize > (int)XML_PEER_PARSE_CHARS_MAX)
 		return NULL;
 
-	XmlParseBudget oLocal = XmlParseBudget::PeerDefaults();
-	XmlParseBudget* pActive = pBudget ? pBudget : &oLocal;
 	if (pActive->m_nChars >= pActive->m_nMaxChars ||
 	    (DWORD)nSize > pActive->m_nMaxChars - pActive->m_nChars ||
 	    !pActive->ConsumeChars((DWORD)nSize))
@@ -1300,7 +1309,7 @@ void CQueryHit::ParseAttributes(const Hashes::Guid& oClientID, CVendorPtr pVendo
 	if ( nFlags[0] & G1_QHD_STABLE )
 		m_bStable	= ( nFlags[1] & G1_QHD_STABLE ) ? TRI_TRUE : TRI_FALSE;
 	if ( nFlags[0] & G1_QHD_SPEED )
-		m_bMeasured	= ( nFlags[1] & G1_QHD_SPEED ) ? TRI_TRUE : TRI_FALSE;
+		m_bMeasured = (nFlags[1] & G1_QHD_SPEED) ? TRI_TRUE : TRI_FALSE;
 
 	if ( Settings.Experimental.LAN_Mode )
 		m_bPush = TRI_FALSE;	// No push in LAN mode
@@ -1406,7 +1415,7 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength, XmlParseBudget* 
 			    pActiveBudget->ConsumeChars(nPacket))
 			{
 				CString strXML = pPacket->ReadString( nPacket );	// Not null terminated
-				if ( strXML.GetLength() != (int)nPacket )
+				if (strXML.GetLength() != (int)nPacket)
 				{
 					theApp.Message( MSG_DEBUG, L"[G2] Hit Error: Got too short metadata (%s)", (LPCTSTR)strXML );
 					AfxThrowUserException();
@@ -1417,11 +1426,11 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength, XmlParseBudget* 
 				}
 				else if ((m_pXML = CXMLElement::FromPeerString(strXML, FALSE, NULL, pActiveBudget)) != NULL)
 				{
-					if ( ! SchemaCache.Normalize( m_pSchema, m_pXML ) )
+					if (!SchemaCache.Normalize(m_pSchema, m_pXML))
 					{
 						m_pXML->Delete();
 						m_pXML = NULL;
-						theApp.Message( MSG_DEBUG, L"[G2] Hit Error: Got unknown metadata schema (%s)", (LPCTSTR)strXML );
+						theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Got unknown metadata schema (%s)", (LPCTSTR)strXML);
 					}
 				}
 				else if (pActiveBudget->m_nNodes >= pActiveBudget->m_nMaxNodes ||
@@ -1435,7 +1444,7 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength, XmlParseBudget* 
 				}
 				else
 				{
-					theApp.Message( MSG_DEBUG, L"[G2] Hit Error: Got invalid metadata (%s)", (LPCTSTR)strXML );
+					theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Got invalid metadata (%s)", (LPCTSTR)strXML);
 					AfxThrowUserException();
 				}
 			}
@@ -1498,10 +1507,10 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength, XmlParseBudget* 
 			break;
 
 		case G2_PACKET_PARTIAL:
-			if ( nPacket >= 4 )
+			if (nPacket >= 4)
 				m_nPartial = pPacket->ReadLongBE();
 			else
-				theApp.Message( MSG_DEBUG, L"[G2] Hit Error: Got invalid partial" );
+				theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Got invalid partial");
 			break;
 
 		case G2_PACKET_COMMENT:

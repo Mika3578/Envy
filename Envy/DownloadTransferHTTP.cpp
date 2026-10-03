@@ -1986,9 +1986,32 @@ void CDownloadTransferHTTP::OnDropped()
 	{
 		// This is basically for PHEX DIME download
 		theApp.Message( MSG_DEBUG, L"Reading THEX from the closed connection..." );
-		// Closed connection with no content length, so assume content length equal to the size of buffer when the connection gets cut.
-		// It is important to set it because the DIME decoding code check if the content length is equals to size of buffer.
-		m_nLength = m_nContentLength = GetInputLength();
+		if (m_nContentLength != SIZE_UNKNOWN)
+		{
+			// Known Content-Length: m_nLength is the unconsumed remainder. Do
+			// not overwrite it with GetInputLength() — a keep-alive drop with
+			// an empty/short body would look complete and resume the source.
+			if (m_nLength != SIZE_UNKNOWN && GetInputLength() < m_nLength)
+			{
+				theApp.Message(MSG_ERROR, L"Incomplete THEX from %s",
+				               (LPCTSTR)m_sAddress);
+				Close(TRI_FALSE);
+				return;
+			}
+		}
+		else
+		{
+			// Close-delimited unknown length: finalize from the buffer when
+			// the connection is cut (legacy PHEX). Empty body fails closed.
+			m_nLength = m_nContentLength = GetInputLength();
+			if (m_nLength == 0)
+			{
+				theApp.Message(MSG_ERROR, L"Incomplete THEX from %s",
+				               (LPCTSTR)m_sAddress);
+				Close(TRI_FALSE);
+				return;
+			}
+		}
 		if (!ReadTiger(true))
 		{
 			// ReadTiger rejected the DIME response; fail closed like the live
@@ -1997,9 +2020,9 @@ void CDownloadTransferHTTP::OnDropped()
 			return; // Closed (and deleted) the transfer
 		}
 		// CDownloadTransfer::Close will resume the closed connection
-		if ( m_pSource )
+		if (m_pSource)
 			m_pSource->m_bCloseConn = TRUE;
-		Close( TRI_TRUE );
+		Close(TRI_TRUE);
 	}
 	else if (m_nState == dtsMetadata)
 	{
