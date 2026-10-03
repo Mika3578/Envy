@@ -63,6 +63,11 @@ def _short(sha: str | None) -> str:
 def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     """Return decision + ordered reason codes for one PR HEAD snapshot."""
     head_sha = str(snapshot.get("head_sha") or "")
+    if snapshot.get("api_error") or snapshot.get("review_decision_unavailable"):
+        return _result(DECISION_NEEDS_HUMAN,
+                       ["snapshot API error or reviewDecision unavailable"],
+                       head_sha=head_sha,
+                       review_sha=str((snapshot.get("review") or {}).get("commit_id") or ""))
     if snapshot.get("human_stop_review_ids"):
         return _result(DECISION_NEEDS_HUMAN,
                        ["persistent human decision requires authenticated disposition"],

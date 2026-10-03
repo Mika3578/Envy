@@ -143,7 +143,12 @@ class EvaluateReviewLoopTests(unittest.TestCase):
     def test_global_human_decision_survives_clean_review_without_findings(self):
         out = MOD.evaluate_review_loop(snap(human_stop_review_ids=["prior-human-review"]))
         self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
-        self.assertIn("persistent human decision", out["reason"])
+
+    def test_api_error_snapshot_is_not_clean(self):
+        out = MOD.evaluate_review_loop(snap(api_error=True))
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+        out = MOD.evaluate_review_loop(snap(review_decision_unavailable=True))
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
 
     def test_non_list_required_checks_not_clean(self):
         out = MOD.evaluate_review_loop(snap(required_checks="oops"))

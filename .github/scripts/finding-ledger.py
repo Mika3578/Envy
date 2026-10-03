@@ -175,6 +175,51 @@ def reconstruct_prior_outcomes_from_reviews(
     return outcomes
 
 
+DISPOSITION_MARKER = "<!-- envy-human-disposition:"
+
+
+def attach_human_dispositions(outcomes: list[dict[str, Any]], comments: Any) -> list[dict[str, Any]]:
+    """Overlay maintainer stop dispositions published as PR issue comments."""
+    found: dict[str, dict[str, str]] = {}
+    for comment in comments or []:
+        if not isinstance(comment, Mapping):
+            continue
+        user = comment.get("user") if isinstance(comment.get("user"), Mapping) else {}
+        login = str(user.get("login") or "")
+        if login != "Mika3578":
+            continue
+        body = str(comment.get("body") or "")
+        start = body.find(DISPOSITION_MARKER)
+        if start < 0:
+            continue
+        rest = body[start + len(DISPOSITION_MARKER) :]
+        end = rest.find("-->")
+        if end < 0:
+            continue
+        try:
+            payload = json.loads(rest[:end].strip())
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        review_id = str(payload.get("review_id") or "")
+        evidence = str(payload.get("evidence") or "").strip()
+        if review_id and payload.get("status") == "resolved" and evidence:
+            found[review_id] = {
+                "actor": login,
+                "status": "resolved",
+                "evidence": evidence,
+            }
+    attached = []
+    for outcome in outcomes:
+        item = dict(outcome)
+        disposition = found.get(str(item.get("review_id") or ""))
+        if disposition:
+            item["human_disposition"] = disposition
+        attached.append(item)
+    return attached
+
+
 def fingerprint(source: str, path: str, title: str, location: str = "") -> str:
     # Stable identity is source|path|title. Location is metadata only so a
     # fixer that moves the same defect to another line cannot reset attempts.

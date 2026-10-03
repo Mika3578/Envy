@@ -455,12 +455,20 @@ def load_trusted_policy(config, worktree):
     return text
 
 
-def trusted_git_executable():
+def trusted_git_executable(*forbidden_roots):
     names = ("git.exe", "git.cmd", "git") if os.name == "nt" else ("git",)
     try:
         cwd = Path.cwd().resolve()
     except OSError:
         cwd = None
+    forbidden = []
+    if cwd is not None:
+        forbidden.append(cwd)
+    for root in forbidden_roots:
+        try:
+            forbidden.append(Path(root).resolve())
+        except OSError:
+            continue
     for directory in os.environ.get("PATH", "").split(os.pathsep):
         if not directory:
             continue
@@ -469,12 +477,21 @@ def trusted_git_executable():
             resolved_dir = root.resolve()
         except OSError:
             continue
-        if cwd is not None and resolved_dir == cwd:
+        blocked = False
+        for tree in forbidden:
+            if resolved_dir == tree or resolved_dir.is_relative_to(tree):
+                blocked = True
+                break
+        if blocked:
             continue
         for name in names:
             candidate = resolved_dir / name
-            if candidate.is_file():
-                return str(candidate.resolve())
+            if not candidate.is_file():
+                continue
+            resolved = candidate.resolve()
+            if any(resolved == tree or resolved.is_relative_to(tree) for tree in forbidden):
+                continue
+            return str(resolved)
     raise ValueError("Trusted Git executable is missing from PATH")
 
 
@@ -509,7 +526,7 @@ def gitdir_pointer_target(worktree):
 def git_identity(worktree):
     worktree = Path(worktree).resolve()
     env = minimal_environment()
-    git = trusted_git_executable()
+    git = trusted_git_executable(worktree)
     toplevel = Path(run([git, "rev-parse", "--show-toplevel"], cwd=worktree, env=env).strip()).resolve()
     git_dir = Path(run([git, "rev-parse", "--absolute-git-dir"], cwd=worktree, env=env).strip()).resolve()
     if toplevel != worktree:
@@ -529,7 +546,7 @@ def publication_git(identity, hooks_path, *args, allowed=(0,)):
     env = minimal_environment()
     return run(
         [
-            trusted_git_executable(),
+            trusted_git_executable(identity["worktree"]),
             "--git-dir",
             str(identity["git_dir"]),
             "--work-tree",
@@ -659,7 +676,7 @@ def checks_pass(snapshot):
 
 
 def patch_digest(worktree):
-    git = trusted_git_executable()
+    git = trusted_git_executable(worktree)
     env = minimal_environment()
     digest = hashlib.sha256(run([git, "diff", "HEAD", "--binary"], cwd=worktree, env=env).encode())
     names = run([git, "ls-files", "--others", "--exclude-standard", "-z"], cwd=worktree, env=env)
@@ -1020,8 +1037,25 @@ def main():
                     if args.dispose_stop not in state["stops"]:
                         raise ValueError("Requested decision is not pending")
                     stop = state["stops"].pop(args.dispose_stop)
+                    evidence = public_text(args.reason)
                     state.setdefault("human_dispositions", []).append({"key": args.dispose_stop,
-                        "actor": actor, "reason": public_text(args.reason), "prior_stop": stop})
+                        "actor": actor, "reason": evidence, "prior_stop": stop})
+                    marker = {
+                        "review_id": str(args.dispose_stop),
+                        "actor": actor,
+                        "status": "resolved",
+                        "evidence": evidence,
+                    }
+                    gh_json(
+                        ["api", f"repos/{REPOSITORY}/issues/{entry['number']}/comments",
+                         "--method", "POST", "--input", "-"],
+                        data=json.dumps({
+                            "body": (
+                                f"<!-- envy-human-disposition: {json.dumps(marker, ensure_ascii=False)} -->\n"
+                                "Maintainer disposition recorded for a persistent human stop."
+                            )
+                        }),
+                    )
                     store.save(entry["number"], state)
                     print(json.dumps({"pr": entry["number"], "phase": "MAINTAINER_DISPOSITION_RECORDED"}))
                     continue
@@ -1034,7 +1068,7 @@ def main():
                 # An early refusal must never adopt somebody else's dirty work.
                 if state.get("patch_owner_head"):
                     local_head = run(
-                        [trusted_git_executable(), "rev-parse", "HEAD"],
+                        [trusted_git_executable(entry["worktree"]), "rev-parse", "HEAD"],
                         cwd=entry["worktree"],
                         env=minimal_environment(),
                     ).strip()

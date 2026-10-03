@@ -211,6 +211,15 @@ class FindingLedgerTests(unittest.TestCase):
         self.assertEqual(outcomes[0]["review_id"], 10)
         self.assertTrue(outcomes[0]["finding_ledger"])
 
+    def test_attach_human_dispositions_from_pr_comments(self):
+        outcomes = [{"review_id": 10, "classification": "HUMAN_REQUIRED"}]
+        comments = [{
+            "user": {"login": "Mika3578"},
+            "body": '<!-- envy-human-disposition: {"review_id": "10", "status": "resolved", "evidence": "validated"} -->',
+        }]
+        attached = MOD.attach_human_dispositions(outcomes, comments)
+        self.assertEqual(attached[0]["human_disposition"]["status"], "resolved")
+
 
 if __name__ == "__main__":
     unittest.main()

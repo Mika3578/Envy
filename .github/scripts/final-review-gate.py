@@ -33,6 +33,8 @@ COPILOT_LOGINS = frozenset(
         "Copilot",
         "copilot-pull-request-reviewer",
         "copilot-pull-request-reviewer[bot]",
+        "copilot-swe-agent",
+        "copilot-swe-agent[bot]",
     }
 )
 
@@ -103,8 +105,7 @@ def _is_copilot(login: str) -> bool:
 
 
 def _looks_like_copilot(login: str) -> bool:
-    lowered = login.lower()
-    return "copilot" in lowered and "swe-agent" not in lowered
+    return "copilot" in login.lower()
 
 
 def is_authorized_disposition_author(login: str, *, typename: str = "", user_type: str = "") -> bool:
@@ -294,6 +295,11 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     if snapshot.get("is_draft"):
         reasons.append("pull request is Draft")
         return _result(STATE_PENDING, reasons, snapshot, metrics, privileged=privileged)
+
+    author = str(snapshot.get("pr_author_login") or "")
+    if _is_copilot(author) or _looks_like_copilot(author):
+        reasons.append("Copilot-authored pull requests cannot self-approve")
+        return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
 
     if snapshot.get("snapshot_phase") == "pre_copilot_request":
         reasons.append("pre-Copilot snapshot cannot publish success")

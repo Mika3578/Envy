@@ -89,6 +89,9 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn(".github/scripts/final-review-gate.py", pub)
         self.assertIn(".github/scripts/publish-final-review-gate.py", pub)
         self.assertIn(".github/scripts/classify-copilot-review.py", pub)
+        self.assertIn(".github/scripts/finding-ledger.py", PUBLISHER.read_text(encoding="utf-8"))
+        outcome = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")
+        self.assertIn("GraphQL reviewDecision query returned errors", outcome)
 
     def test_coderabbit_does_not_review_drafts(self):
         text = (ROOT / ".coderabbit.yaml").read_text(encoding="utf-8")
@@ -149,6 +152,9 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn("union:true", text)
         self.assertNotIn("userIds:[]", text)
         self.assertNotIn("REVIEWERS_CLEARED", text)
+        outcome = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")
+        self.assertIn("GraphQL reviewDecision query returned errors", outcome)
+        self.assertNotIn("param(\n    [Parameter(Mandatory)][string]$Service,\n    [Parameter(Mandatory)][string]$Config,\n    [Parameter(Mandatory)][string]$Python,\n    [switch]$EnableCorrections\n)\nparam(", (ROOT / "scripts" / "review" / "register-task.ps1").read_text(encoding="utf-8").replace("\r\n", "\n"))
 
     def test_review_history_file_survives_until_check_history(self):
         text = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")

@@ -496,6 +496,10 @@ class FinalReviewGateTests(unittest.TestCase):
         out = MOD.evaluate_final_review_gate(snap(human_stop_review_ids=["prior-human-review"]))
         self.assertEqual(out["state"], MOD.STATE_FAILURE)
 
+    def test_copilot_authored_pr_cannot_self_approve(self):
+        out = MOD.evaluate_final_review_gate(snap(pr_author_login="copilot-swe-agent[bot]"))
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+
 
 if __name__ == "__main__":
     unittest.main()

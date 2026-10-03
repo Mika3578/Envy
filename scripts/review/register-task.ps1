@@ -4,12 +4,6 @@ param(
     [Parameter(Mandatory)][string]$Python,
     [switch]$EnableCorrections
 )
-param(
-    [Parameter(Mandatory)][string]$Service,
-    [Parameter(Mandatory)][string]$Config,
-    [Parameter(Mandatory)][string]$Python,
-    [switch]$EnableCorrections
-)
 $ErrorActionPreference = 'Stop'
 function Convert-HostOwnedPath {
     param([Parameter(Mandatory)][string]$Raw, [Parameter(Mandatory)][string[]]$ForbiddenRoots)

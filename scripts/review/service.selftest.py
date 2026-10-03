@@ -617,6 +617,13 @@ class ServiceTests(unittest.TestCase):
                 with patch.object(mod.Path, "cwd", return_value=cwd):
                     resolved = Path(mod.trusted_git_executable()).resolve()
             self.assertNotEqual(resolved, decoy.resolve())
+            nested = cwd / "bin"
+            nested.mkdir()
+            nested_decoy = nested / ("git.exe" if os.name == "nt" else "git")
+            nested_decoy.write_text("echo decoy\n", encoding="utf-8")
+            with patch.object(mod.os, "environ", {"PATH": str(nested) + os.pathsep + os.environ.get("PATH", "")}):
+                resolved = Path(mod.trusted_git_executable(cwd)).resolve()
+            self.assertNotEqual(resolved, nested_decoy.resolve())
 
     def test_failed_copilot_request_keeps_unknown_marker(self):
         snap = snapshot()

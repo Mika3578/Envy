@@ -81,6 +81,39 @@ def paginate_reviews(repository: str, pr: int) -> list[dict[str, Any]]:
     return reviews
 
 
+def paginate_issue_comments(repository: str, pr: int) -> list[dict[str, Any]]:
+    proc = subprocess.run(
+        [
+            "gh",
+            "api",
+            f"repos/{repository}/issues/{pr}/comments",
+            "--paginate",
+            "--jq",
+            ".[]",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(proc.stderr.strip() or "issue comments paginate failed")
+    comments: list[dict[str, Any]] = []
+    decoder = json.JSONDecoder()
+    text = proc.stdout.lstrip()
+    idx = 0
+    while idx < len(text):
+        while idx < len(text) and text[idx].isspace():
+            idx += 1
+        if idx >= len(text):
+            break
+        obj, end = decoder.raw_decode(text, idx)
+        if not isinstance(obj, dict):
+            raise RuntimeError("issue comment page item is not an object")
+        comments.append(obj)
+        idx = end
+    return comments
+
+
 GITHUB_PR_FILES_CAP = 3000
 
 
@@ -413,6 +446,7 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
             snapshot["api_error_message"] = "Copilot review id is missing"
             return snapshot
         prior = LEDGER.reconstruct_prior_outcomes_from_reviews(reviews, latest_id)
+        prior = LEDGER.attach_human_dispositions(prior, paginate_issue_comments(repository, pr))
         snapshot["finding_ledger"] = list((prior[-1].get("finding_ledger") or [])) if prior else []
         outcome = classify.classify_review(classify.review_input_from_github(latest))
         outcome = classify.apply_loop_guards(outcome, prior)
