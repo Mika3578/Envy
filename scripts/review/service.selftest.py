@@ -205,6 +205,10 @@ class ServiceTests(unittest.TestCase):
             untrusted.write_text("untrusted", encoding="utf-8")
             with self.assertRaises(ValueError):
                 mod.load_trusted_policy({"trusted_policy_path": str(untrusted)}, nested)
+            missing_hooks = host / "missing-hooks"
+            config = {"prs": [{"worktree": str(nested)}], "trusted_hooks_path": str(missing_hooks)}
+            with self.assertRaises(ValueError):
+                mod.check_host_paths(config, host / "config.json", host / "state")
 
     def test_untrusted_publication_has_bounded_parsing(self):
         self.assertFalse(mod.technical_title("ci(" + "x:" * 30000))
@@ -299,6 +303,7 @@ class ServiceTests(unittest.TestCase):
     def test_resume_exact_conversation_no_unsafe_flags(self):
         args = mod.executor_argv("codex", {"session": "session-for-this-pr"})
         self.assertEqual(args[1:4], ["exec", "resume", "session-for-this-pr"])
+        self.assertIn("project_doc_max_bytes=0", args)
         self.assertNotIn("--last", args)
         self.assertNotIn("--dangerously-bypass-approvals-and-sandbox", args)
 

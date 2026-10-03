@@ -452,6 +452,7 @@ jobs:
               "requires_fixer": outcome.get("requires_fixer"),
               "requires_human": outcome.get("requires_human"),
               "review_decision": os.environ.get("REVIEW_DECISION", ""),
+              "review_decision_source": "graphql",
               "unresolved_threads": int(os.environ.get("UNRESOLVED", "0") or 0),
               "human_unresolved_threads": int(os.environ.get("HUMAN_UNRESOLVED", "0") or 0),
               "untreated_threads": int(os.environ["UNTREATED"]),

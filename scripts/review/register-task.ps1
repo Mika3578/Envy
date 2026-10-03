@@ -10,8 +10,21 @@ function Convert-HostOwnedPath {
     $full = (Resolve-Path -LiteralPath $Raw).Path
     foreach ($root in $ForbiddenRoots) {
         if (-not $root) { continue }
-        $resolvedRoot = [System.IO.Path]::GetFullPath($root)
-        if ($full.StartsWith($resolvedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        if (-not (Test-Path -LiteralPath $root)) {
+            throw "Managed worktree '$root' does not exist."
+        }
+        $resolvedRoot = (Resolve-Path -LiteralPath $root).Path
+        $fullNorm = $full.TrimEnd('\', '/')
+        $rootNorm = $resolvedRoot.TrimEnd('\', '/')
+        if ($fullNorm.Equals($rootNorm, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "Scheduled-task path '$full' is inside managed worktree '$resolvedRoot'."
+        }
+        $sep = [System.IO.Path]::DirectorySeparatorChar
+        $alt = [System.IO.Path]::AltDirectorySeparatorChar
+        if ($fullNorm.StartsWith($rootNorm + $sep, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "Scheduled-task path '$full' is inside managed worktree '$resolvedRoot'."
+        }
+        if ($alt -ne $sep -and $fullNorm.StartsWith($rootNorm + $alt, [System.StringComparison]::OrdinalIgnoreCase)) {
             throw "Scheduled-task path '$full' is inside managed worktree '$resolvedRoot'."
         }
     }

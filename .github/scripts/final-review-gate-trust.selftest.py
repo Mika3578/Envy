@@ -155,6 +155,8 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         outcome = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")
         self.assertIn("GraphQL reviewDecision query returned errors", outcome)
         self.assertNotIn("param(\n    [Parameter(Mandatory)][string]$Service,\n    [Parameter(Mandatory)][string]$Config,\n    [Parameter(Mandatory)][string]$Python,\n    [switch]$EnableCorrections\n)\nparam(", (ROOT / "scripts" / "review" / "register-task.ps1").read_text(encoding="utf-8").replace("\r\n", "\n"))
+        self.assertIn('"review_decision_source": "graphql"', outcome)
+        self.assertIn("Resolve-Path -LiteralPath $root", (ROOT / "scripts" / "review" / "register-task.ps1").read_text(encoding="utf-8"))
 
     def test_review_history_file_survives_until_check_history(self):
         text = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")

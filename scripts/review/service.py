@@ -421,7 +421,10 @@ def check_host_paths(config, config_path, state_dir):
         hooks = Path(config["trusted_hooks_path"])
         if not hooks.is_absolute():
             raise ValueError("Frozen publication hooks must use an absolute host path")
-        additional.append(hooks.resolve())
+        resolved = hooks.resolve()
+        if not resolved.is_dir():
+            raise ValueError("Frozen publication hooks must be an existing host directory")
+        additional.append(resolved)
     if config.get("trusted_policy_path"):
         policy = Path(config["trusted_policy_path"])
         if not policy.is_absolute():
@@ -593,7 +596,7 @@ def executor_argv(executable, state):
     if state["session"]:
         args += ["resume", state["session"]]
     args += ["--json", "--ignore-user-config", "-c", 'sandbox_mode="workspace-write"',
-             "-c", 'approval_policy="never"', "-"]
+             "-c", 'approval_policy="never"', "-c", "project_doc_max_bytes=0", "-"]
     return args
 
 
