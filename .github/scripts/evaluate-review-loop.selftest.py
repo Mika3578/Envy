@@ -268,11 +268,12 @@ class EvaluateReviewLoopTests(unittest.TestCase):
         self.assertEqual(out["decision"], MOD.DECISION_FIX_AGAIN)
         self.assertFalse(out["merge_ready"])
 
-    def test_canonical_skipped_required_check_does_not_force_needs_human(self):
+    def test_canonical_skipped_required_check_is_not_clean(self):
         out = MOD.evaluate_review_loop(
             snap(required_checks=[{"name": "Build x64 Release", "state": "SKIPPED"}])
         )
-        self.assertEqual(out["decision"], MOD.DECISION_CLEAN)
+        self.assertNotEqual(out["decision"], MOD.DECISION_CLEAN)
+        self.assertFalse(out["merge_ready"])
 
     def test_missing_required_check_still_fail_closed(self):
         out = MOD.evaluate_review_loop(snap(required_checks=[]))

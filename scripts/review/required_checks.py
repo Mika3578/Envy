@@ -8,6 +8,8 @@ import subprocess
 # Canonical required-check conclusions for Envy. SKIPPED is the documented
 # deferred/N/A receipt (Draft Windows lanes, inapplicable matrix legs).
 PASSING_CHECK_STATES = frozenset({"SUCCESS", "NEUTRAL", "SKIPPED"})
+# Ready/final-review paths must not treat Draft deferral SKIPPED as green.
+GATE_PASSING_CHECK_STATES = frozenset({"SUCCESS", "NEUTRAL"})
 PENDING_CHECK_STATES = frozenset(
     {"PENDING", "QUEUED", "IN_PROGRESS", "WAITING", "REQUESTED", "EXPECTED"}
 )

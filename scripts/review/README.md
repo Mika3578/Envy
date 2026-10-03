@@ -53,8 +53,10 @@ advisory until a maintainer adds it to Protect develop; auto-merge stays off.
    Invoke
    the same command without `--observe` to execute one reconciliation. Use an
    operator-owned scheduler for recurring invocations; `register-task.ps1`
-   provides an observation-first Windows adapter. Scheduler intervals reconcile
-   new events; CI always uses `gh pr checks --required --watch` immediately.
+   provides an observation-first Windows adapter and requires explicit
+   `-ManagedWorktreeRoots` (never derived only from the config file).
+   Scheduler intervals reconcile new events; CI always uses
+   `gh pr checks --required --watch` immediately.
 
 The scheduler must run a frozen reviewed copy, not follow the changing PR copy.
 The native OS lock covers collection, correction, publication and CI watching.

@@ -53,9 +53,7 @@ PRIVILEGED_PREFIXES = (
 )
 
 PASSING_CHECK_STATES = required_check_policy.PASSING_CHECK_STATES
-# Final-gate success and Copilot request require real green receipts. Draft
-# deferral SKIPPED is accepted only by the broader Draft/host scheduling path.
-GATE_PASSING_CHECK_STATES = frozenset({"SUCCESS", "NEUTRAL"})
+GATE_PASSING_CHECK_STATES = required_check_policy.GATE_PASSING_CHECK_STATES
 PENDING_CHECK_STATES = required_check_policy.PENDING_CHECK_STATES
 UNREADY_MERGE_STATES = frozenset({"", "UNKNOWN", "BEHIND", "DIRTY", "UNSTABLE"})
 

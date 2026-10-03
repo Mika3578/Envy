@@ -49,6 +49,7 @@ REASON_CLEAN = "latest review of current HEAD has no active technical findings"
 REASON_MALFORMED = "review overview could not be classified"
 
 PASSING_CHECK_STATES = required_check_policy.PASSING_CHECK_STATES
+GATE_PASSING_CHECK_STATES = required_check_policy.GATE_PASSING_CHECK_STATES
 PENDING_CHECK_STATES = required_check_policy.PENDING_CHECK_STATES
 
 MAX_AUTOFIX_ATTEMPTS = None  # History is retained; attempts alone do not stop correction.
@@ -202,7 +203,7 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         state = str(check.get("state") or "").upper()
         if state in PENDING_CHECK_STATES:
             reasons.append(f"{REASON_REQUIRED_CI_PENDING}: {name}")
-        elif state not in PASSING_CHECK_STATES:
+        elif state not in GATE_PASSING_CHECK_STATES:
             reasons.append(f"{REASON_REQUIRED_CI_FAILING}: {name} ({state})")
     if external_required == 0:
         return _result(

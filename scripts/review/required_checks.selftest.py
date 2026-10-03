@@ -39,6 +39,7 @@ class CheckTests(unittest.TestCase):
 
     def test_skipped_is_canonical_passing_state(self):
         self.assertIn("SKIPPED", checks.PASSING_CHECK_STATES)
+        self.assertNotIn("SKIPPED", checks.GATE_PASSING_CHECK_STATES)
         run = dict(name="Build", head_sha="new", id=3, status="completed", conclusion="skipped")
         self.assertEqual(checks.commit_checks("new", ["Build"], [run], [])[0]["state"], "SKIPPED")
 

@@ -171,7 +171,10 @@ required_checks_ok() {
 			continue
 		fi
 		case "$state" in
-		SUCCESS | NEUTRAL | SKIPPED) ;;
+		SUCCESS | NEUTRAL) ;;
+		SKIPPED)
+			note_ineligible "Required check \`${name}\` is \`SKIPPED\` (Draft/N/A receipt; not Ready green)."
+			;;
 		PENDING | QUEUED | IN_PROGRESS)
 			note_ineligible "Required check \`${name}\` is still \`${state}\` for the current HEAD."
 			;;

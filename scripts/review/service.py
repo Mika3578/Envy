@@ -24,7 +24,13 @@ import time
 from types import SimpleNamespace
 import unicodedata
 
-from required_checks import collect_checks, commit_checks, PASSING_CHECK_STATES, PENDING_CHECK_STATES
+from required_checks import (
+    collect_checks,
+    commit_checks,
+    GATE_PASSING_CHECK_STATES,
+    PASSING_CHECK_STATES,
+    PENDING_CHECK_STATES,
+)
 
 SHA1_HEX = re.compile(r"^[0-9a-fA-F]{40}$")
 
@@ -35,6 +41,7 @@ MAIL_LOCAL = frozenset(string.ascii_letters + string.digits + ".!#$%&'*+/=?^_`{|
 MAIL_DOMAIN = frozenset(string.ascii_letters + string.digits + ".-")
 PROVENANCE = re.compile(r"(?i)co-authored-by:|generated[- ]by|generated\s+with|created\s+with|ai[- ]generated")
 PASS = PASSING_CHECK_STATES
+GATE_PASS = GATE_PASSING_CHECK_STATES
 WAIT = PENDING_CHECK_STATES
 COPILOT = {"Copilot", "copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}
 
@@ -377,7 +384,7 @@ DANGEROUS_LOCAL_CONFIG = re.compile(
     r"^(core\.(sshcommand|gitproxy|askpass|fsmonitor|fsmonitorhook|editor|attributesfile|"
     r"excludesfile|pager)|credential\.|filter\.|diff\.|merge\.|alias\.|gpg\.|"
     r"commit\.template|sequence\.editor|interactive\.difffilter|pager\.|"
-    r"http\..*\.extraheader|http\.proxy)=",
+    r"include\.|includeif\.|http\..*\.extraheader|http\.proxy)=",
     re.I,
 )
 
@@ -622,8 +629,18 @@ def assert_trusted_publication_remote(identity, hooks_path):
         identity, hooks_path, "config", "--local", "--list", allowed=(0, 1)
     )
     for line in local.splitlines():
+        key = line.strip().split("=", 1)[0].lower()
+        if key.startswith("include.") or key.startswith("includeif."):
+            raise ValueError("Local Git include config is not trusted for publication")
         if DANGEROUS_LOCAL_CONFIG.search(line.strip()):
             raise ValueError(f"Local Git config is not trusted for publication: {line.split('=', 1)[0]}")
+    # Effective config expands includes; reject dangerous keys from any included file.
+    effective = publication_git(identity, hooks_path, "config", "--list", allowed=(0, 1))
+    for line in effective.splitlines():
+        if DANGEROUS_LOCAL_CONFIG.search(line.strip()):
+            raise ValueError(
+                f"Effective Git config is not trusted for publication: {line.split('=', 1)[0]}"
+            )
     urls = publication_git(
         identity, hooks_path, "remote", "get-url", "--push", "--all", "origin", allowed=(0, 1)
     )
@@ -716,11 +733,12 @@ HOST_POLICY:
 
 
 def checks_pass(snapshot):
+    # Ready/final-review advancement matches GATE_PASSING (no Draft SKIPPED).
     required = {name for name in snapshot.get("required_names", []) if name != "Final review gate"}
     checks = [c for c in snapshot["checks"] if c["name"] != "Final review gate"]
     observed = {c["name"] for c in checks}
     return bool(required) and required.issubset(observed) and all(
-        c["state"] in PASS for c in checks)
+        c["state"] in GATE_PASS for c in checks)
 
 
 def patch_digest(worktree):

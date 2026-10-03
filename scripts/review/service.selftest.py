@@ -542,8 +542,12 @@ class ServiceTests(unittest.TestCase):
                 self.assertIn("worktree AGENTS.md", call.call_args.kwargs["data"])
                 self.assertNotIn("GH_TOKEN", call.call_args.kwargs["env"])
 
-    def test_skipped_is_shared_passing_state(self):
+    def test_skipped_is_shared_passing_but_not_gate_green(self):
         self.assertIn("SKIPPED", mod.PASS)
+        self.assertNotIn("SKIPPED", mod.GATE_PASS)
+        snap = snapshot()
+        snap["checks"] = [{"name": "Build", "state": "SKIPPED"}]
+        self.assertFalse(mod.checks_pass(snap))
 
     def test_copilot_request_uses_requestReviews(self):
         text = Path(__file__).with_name("service.py").read_text(encoding="utf-8")
@@ -581,23 +585,30 @@ class ServiceTests(unittest.TestCase):
     def test_publication_rejects_url_rewrites_and_untrusted_origin(self):
         identity = {"worktree": Path("D:/wt"), "git_dir": Path("D:/wt/.git")}
         hooks = Path("D:/hooks")
+        # Calls: url rewrites, local list, effective list, push URLs.
         with patch.object(mod, "publication_git", return_value="url.ssh://evil.insteadOf git@github.com:"):
             with self.assertRaises(ValueError):
                 mod.assert_trusted_publication_remote(identity, hooks)
-        with patch.object(mod, "publication_git", side_effect=["", "", "https://evil.example/Envy.git"]):
+        with patch.object(mod, "publication_git", side_effect=["", "", "", "https://evil.example/Envy.git"]):
             with self.assertRaises(ValueError):
                 mod.assert_trusted_publication_remote(identity, hooks)
         with patch.object(
             mod,
             "publication_git",
-            side_effect=["", "", "https://github.com/Mika3578/Envy.git\nhttps://evil.example/Envy.git"],
+            side_effect=["", "", "", "https://github.com/Mika3578/Envy.git\nhttps://evil.example/Envy.git"],
         ):
             with self.assertRaises(ValueError):
                 mod.assert_trusted_publication_remote(identity, hooks)
-        with patch.object(mod, "publication_git", side_effect=["", "core.sshCommand=evil", "https://github.com/Mika3578/Envy.git"]):
+        with patch.object(mod, "publication_git", side_effect=["", "core.sshCommand=evil", "", "https://github.com/Mika3578/Envy.git"]):
             with self.assertRaises(ValueError):
                 mod.assert_trusted_publication_remote(identity, hooks)
-        with patch.object(mod, "publication_git", side_effect=["", "", "https://github.com/Mika3578/Envy.git"]):
+        with patch.object(mod, "publication_git", side_effect=["", "include.path=evil.cfg", "", "https://github.com/Mika3578/Envy.git"]):
+            with self.assertRaises(ValueError):
+                mod.assert_trusted_publication_remote(identity, hooks)
+        with patch.object(mod, "publication_git", side_effect=["", "", "core.sshCommand=from-include", "https://github.com/Mika3578/Envy.git"]):
+            with self.assertRaises(ValueError):
+                mod.assert_trusted_publication_remote(identity, hooks)
+        with patch.object(mod, "publication_git", side_effect=["", "", "", "https://github.com/Mika3578/Envy.git"]):
             mod.assert_trusted_publication_remote(identity, hooks)
 
     def test_executor_public_text_rejects_disposition_markers(self):
