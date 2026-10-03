@@ -391,7 +391,9 @@ DANGEROUS_LOCAL_CONFIG = re.compile(
     r"^(core\.(sshcommand|gitproxy|askpass|fsmonitor|fsmonitorhook|editor|attributesfile|"
     r"excludesfile|pager)|credential\.|filter\.|diff\.|merge\.|alias\.|gpg\.|"
     r"commit\.template|sequence\.editor|interactive\.difffilter|pager\.|"
-    r"include\.|includeif\.|http\..*\.extraheader|http\.proxy)=",
+    r"include\.|includeif\.|http\.proxy|"
+    r"http\.(sslverify|sslcainfo|sslcapath)|"
+    r"http\..*\.(extraheader|sslverify|sslcainfo|sslcapath))=",
     re.I,
 )
 

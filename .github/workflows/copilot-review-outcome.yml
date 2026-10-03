@@ -158,9 +158,17 @@ jobs:
               for node in conn["nodes"]:
                   if node.get("isResolved"):
                       continue
-                  comments = (node.get("comments") or {}).get("nodes") or []
-                  if not comments:
-                      continue
+                  comments_conn = node.get("comments")
+                  if not isinstance(comments_conn, dict):
+                      raise ValueError("Unresolved thread comments payload is malformed")
+                  page_info = comments_conn.get("pageInfo")
+                  if not isinstance(page_info, dict) or not isinstance(page_info.get("hasNextPage"), bool):
+                      raise ValueError("Unresolved thread comment pagination is malformed")
+                  if page_info["hasNextPage"]:
+                      raise ValueError("Incomplete thread comments; assessment cannot certify cleanliness")
+                  comments = comments_conn.get("nodes")
+                  if not isinstance(comments, list) or not comments:
+                      raise ValueError("Unresolved thread has no comments; assessment cannot certify cleanliness")
                   copilot_logins = {
                       "Copilot",
                       "copilot-pull-request-reviewer",
@@ -170,8 +178,6 @@ jobs:
                       ((c.get("author") or {}).get("login") or "")
                       for c in comments
                   ]
-                  if node["comments"]["pageInfo"]["hasNextPage"]:
-                      raise ValueError("Incomplete thread comments; assessment cannot certify cleanliness")
                   # Contributor acknowledgements do not create human-only stops.
                   # Inspect every fetched reply for an independent human reviewer.
                   has_human = any(

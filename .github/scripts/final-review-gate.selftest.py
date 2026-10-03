@@ -499,6 +499,14 @@ class FinalReviewGateTests(unittest.TestCase):
         self.assertEqual(out["state"], MOD.STATE_FAILURE)
         self.assertTrue(any("SKIPPED" in reason for reason in out["reasons"]))
 
+    def test_revalidate_rejects_skipped_required_check(self):
+        ok = MOD.evaluate_final_review_gate(snap())
+        self.assertEqual(ok["state"], MOD.STATE_SUCCESS)
+        live = snap(required_checks=[{"name": "Build x64 Release", "state": "SKIPPED"}])
+        out = MOD.revalidate_gate_before_success(ok, live)
+        self.assertNotEqual(out["state"], MOD.STATE_SUCCESS)
+        self.assertFalse(out["allow_publish"])
+
     def test_should_request_blocks_self_only_required_check(self):
         out = MOD.should_request_copilot(
             snap(reviews=[], required_checks=[{"name": "Final review gate", "state": "SUCCESS"}])

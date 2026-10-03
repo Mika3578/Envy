@@ -605,6 +605,9 @@ class ServiceTests(unittest.TestCase):
         with patch.object(mod, "publication_git", side_effect=["", "include.path=evil.cfg", "", "https://github.com/Mika3578/Envy.git"]):
             with self.assertRaises(ValueError):
                 mod.assert_trusted_publication_remote(identity, hooks)
+        with patch.object(mod, "publication_git", side_effect=["", "http.sslVerify=false", "", "https://github.com/Mika3578/Envy.git"]):
+            with self.assertRaises(ValueError):
+                mod.assert_trusted_publication_remote(identity, hooks)
         with patch.object(mod, "publication_git", side_effect=["", "", "core.sshCommand=from-include", "https://github.com/Mika3578/Envy.git"]):
             with self.assertRaises(ValueError):
                 mod.assert_trusted_publication_remote(identity, hooks)

@@ -82,7 +82,25 @@ fetch_pr_json() {
 		write_summary "Final Copilot review not requested"
 		return 1
 	fi
-	if ! echo "$pr_json" | jq -e 'type=="object" and ((.errors // []) | length == 0) and (.data.repository.pullRequest | type=="object") and (.data.repository.pullRequest | has("reviewThreads"))' >/dev/null 2>&1; then
+	if ! echo "$pr_json" | jq -e '
+		type=="object"
+		and ((.errors // []) | length == 0)
+		and (.data.repository.pullRequest | type=="object")
+		and (.data.repository.pullRequest | has("reviewDecision"))
+		and (.data.repository.pullRequest | has("mergeStateStatus"))
+		and (.data.repository.pullRequest | has("headRefOid"))
+		and (.data.repository.pullRequest.reviewThreads | type=="object")
+		and (.data.repository.pullRequest.reviewThreads.nodes | type=="array")
+		and (.data.repository.pullRequest.reviewThreads.pageInfo | type=="object")
+		and (.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage | type=="boolean")
+		and all(
+			.data.repository.pullRequest.reviewThreads.nodes[];
+			(.comments | type=="object")
+			and (.comments.pageInfo | type=="object")
+			and (.comments.pageInfo.hasNextPage | type=="boolean")
+			and (.comments.nodes | type=="array")
+		)
+	' >/dev/null 2>&1; then
 		note_ineligible "GraphQL snapshot for pull request #${PR_NUMBER} is incomplete or returned errors."
 		write_summary "Final Copilot review not requested"
 		return 1

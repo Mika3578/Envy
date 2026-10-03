@@ -564,7 +564,7 @@ def revalidate_gate_before_success(
             continue
         external_required += 1
         state = str(check.get("state") or "").upper()
-        if state in PENDING_CHECK_STATES or state not in PASSING_CHECK_STATES:
+        if state in PENDING_CHECK_STATES or state not in GATE_PASSING_CHECK_STATES:
             live["state"] = STATE_PENDING if state in PENDING_CHECK_STATES else STATE_FAILURE
             live["allow_publish"] = False
             live["reasons"] = [f"required CI not green at publish: {check.get('name')}"]
