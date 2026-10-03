@@ -469,6 +469,13 @@ class FinalReviewGateTests(unittest.TestCase):
         out = MOD.should_request_copilot(snap(reviews=[], untreated_threads=1))
         self.assertFalse(out["request"])
 
+    def test_should_request_blocks_suppressed_comment_titles(self):
+        out = MOD.should_request_copilot(
+            snap(reviews=[], suppressed_comment_titles=["Include suppressed comment titles"])
+        )
+        self.assertFalse(out["request"])
+        self.assertEqual(out["reason"], "untreated findings remain")
+
     def test_should_request_blocks_self_only_required_check(self):
         out = MOD.should_request_copilot(
             snap(reviews=[], required_checks=[{"name": "Final review gate", "state": "SUCCESS"}])

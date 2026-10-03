@@ -162,12 +162,24 @@ def pages(endpoint):
     return [item for page in result for item in page]
 
 
+def require_eligible_pr(pr):
+    """Open same-fork functional branch targeting develop. Fail closed on races."""
+    head = pr.get("head") if isinstance(pr, dict) else None
+    base = pr.get("base") if isinstance(pr, dict) else None
+    repo = (head or {}).get("repo") if isinstance(head, dict) else None
+    if (not isinstance(pr, dict) or not isinstance(head, dict) or not isinstance(base, dict)
+            or not isinstance(repo, dict)
+            or repo.get("full_name") != REPOSITORY
+            or base.get("ref") != "develop"
+            or pr.get("state") != "open"
+            or not BRANCH.fullmatch(str(head.get("ref") or ""))):
+        raise ValueError("Only open same-fork functional branches targeting develop are eligible")
+
+
 def collect(number):
     prefix = f"repos/{REPOSITORY}"
     pr = gh_json(["api", f"{prefix}/pulls/{number}"])
-    if (pr["head"]["repo"]["full_name"] != REPOSITORY or pr["base"]["ref"] != "develop"
-            or pr["state"] != "open" or not BRANCH.fullmatch(pr["head"]["ref"])):
-        raise ValueError("Only open same-fork functional branches targeting develop are eligible")
+    require_eligible_pr(pr)
     snapshot = {"pr": pr, "reviews": pages(f"{prefix}/pulls/{number}/reviews"),
                 "inline": pages(f"{prefix}/pulls/{number}/comments"),
                 "comments": pages(f"{prefix}/issues/{number}/comments"),
@@ -221,6 +233,7 @@ def collect(number):
     snapshot.update(collect_checks(REPOSITORY, pr["head"]["sha"]))
     snapshot["publisher_login"] = gh_json(["api", "user"])["login"]
     current = gh_json(["api", f"{prefix}/pulls/{number}"])
+    require_eligible_pr(current)
     if identity(current) != identity(pr):
         raise ValueError("HEAD/base changed during collection; reconcile again")
     return snapshot
@@ -813,6 +826,7 @@ def final_review(config, entry, snapshot, state, store):
         state["phase"] = "AWAITING_RUNTIME"
         return
     current = gh_json(["api", f"repos/{REPOSITORY}/pulls/{number}"])
+    require_eligible_pr(current)
     if identity(current) != (head, base):
         raise ValueError("HEAD/base changed before final review")
     if current["draft"]:

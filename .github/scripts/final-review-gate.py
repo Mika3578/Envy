@@ -608,6 +608,7 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         "untreated_pr_level_findings",
         "previously_missed_titles",
         "open_finding_titles",
+        "suppressed_comment_titles",
     )
     if any(snapshot.get(key) for key in untreated_keys):
         return {"request": False, "reason": "untreated findings remain"}

@@ -25,6 +25,19 @@ def snapshot():
             "checks": [{"name": "Build", "state": "SUCCESS"}]}
 
 
+def eligible_pull(head, base, **extra):
+    pull = {
+        "state": "open",
+        "draft": False,
+        "node_id": "PR",
+        "head": {"sha": head, "ref": "ci/trusted-copilot-review-loop",
+                 "repo": {"full_name": "Mika3578/Envy"}},
+        "base": {"sha": base, "ref": "develop"},
+    }
+    pull.update(extra)
+    return pull
+
+
 class ServiceTests(unittest.TestCase):
     def test_internationalized_mailboxes_cannot_be_published(self):
         for local, domain in (("\u7528\u6237", "example.net"), ("user", "ex\u00e4mple.net"),
@@ -340,7 +353,7 @@ class ServiceTests(unittest.TestCase):
         state = {"handled": {}, "stops": {}, "requests": {f"copilot:{head}:{base}": {"status": "requested"}}}
         for source in mod.trusted_sources(entry, snap):
             state["handled"][source["key"]] = {"head": head, "base": base}
-        pull = {"head": {"sha": head}, "base": {"sha": base}, "draft": False, "node_id": "PR"}
+        pull = eligible_pull(head, base)
         with patch.object(mod, "gh_json", return_value=pull):
             mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
         self.assertEqual(state["phase"], "WAITING_COPILOT_REVIEW")
@@ -372,7 +385,7 @@ class ServiceTests(unittest.TestCase):
             state["handled"][source["key"]] = {"head": head, "base": base}
         fresh = dict(snap)
         fresh["threads"] = [{"isResolved": False}]
-        pull = {"head": {"sha": head}, "base": {"sha": base}, "draft": False, "node_id": "PR"}
+        pull = eligible_pull(head, base)
         with patch.object(mod, "gh_json", return_value=pull), patch.object(mod, "collect", return_value=fresh):
             mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
         self.assertEqual(state["phase"], "FIX_AGAIN")
@@ -397,7 +410,7 @@ class ServiceTests(unittest.TestCase):
         state = {"handled": {}, "stops": {}, "requests": {f"copilot:{head}:{base}": {"status": "requested"}}}
         for source in mod.trusted_sources(entry, snap):
             state["handled"][source["key"]] = {"head": head, "base": base}
-        pull = {"head": {"sha": head}, "base": {"sha": base}, "draft": False, "node_id": "PR"}
+        pull = eligible_pull(head, base)
         with patch.object(mod, "gh_json", return_value=pull), patch.object(mod, "collect", return_value=snap):
             mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
         self.assertEqual(state["phase"], "FIX_AGAIN")
@@ -425,7 +438,7 @@ class ServiceTests(unittest.TestCase):
         fresh = dict(snap)
         fresh["reviews"] = [{"id": 3, "user": {"login": "copilot-pull-request-reviewer"},
                              "body": "Changes recommended", "commit_id": "a" * 40, "state": "COMMENTED"}]
-        pull = {"head": {"sha": head}, "base": {"sha": base}, "draft": False, "node_id": "PR"}
+        pull = eligible_pull(head, base)
         with patch.object(mod, "gh_json", return_value=pull), patch.object(mod, "collect", return_value=fresh):
             mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
         self.assertEqual(state["phase"], "FIX_AGAIN")
@@ -456,7 +469,7 @@ class ServiceTests(unittest.TestCase):
         state = {"handled": {}, "stops": {}, "requests": {f"copilot:{head}:{base}": {"status": "requested"}}}
         for source in mod.trusted_sources(entry, snap):
             state["handled"][source["key"]] = {"head": head, "base": base}
-        pull = {"head": {"sha": head}, "base": {"sha": base}, "draft": False, "node_id": "PR"}
+        pull = eligible_pull(head, base)
         with patch.object(mod, "gh_json", return_value=pull), patch.object(mod, "collect", return_value=snap):
             mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
         self.assertEqual(state["phase"], "FIX_AGAIN")
@@ -651,13 +664,51 @@ class ServiceTests(unittest.TestCase):
             def save(self, *_args):
                 pass
 
-        pull = {"head": {"sha": head}, "base": {"sha": base}, "draft": False, "node_id": "PR"}
+        pull = eligible_pull(head, base)
         with patch.object(mod, "gh_json", side_effect=[pull, {"users": []}, {"node_id": "BOT"}]), patch.object(
             mod, "graphql_mutation", side_effect=ValueError("network")
         ):
             with self.assertRaises(ValueError):
                 mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, Store())
         self.assertEqual(state["requests"][f"copilot:{head}:{base}"]["status"], "unknown")
+
+    def test_require_eligible_pr_rejects_closed_or_retargeted(self):
+        head, base = "a" * 40, "b" * 40
+        good = eligible_pull(head, base)
+        mod.require_eligible_pr(good)
+        closed = eligible_pull(head, base, state="closed")
+        with self.assertRaises(ValueError):
+            mod.require_eligible_pr(closed)
+        retargeted = eligible_pull(head, base)
+        retargeted["base"]["ref"] = "main"
+        with self.assertRaises(ValueError):
+            mod.require_eligible_pr(retargeted)
+        tool_branch = eligible_pull(head, base)
+        tool_branch["head"]["ref"] = "cursor/fix-foo"
+        with self.assertRaises(ValueError):
+            mod.require_eligible_pr(tool_branch)
+
+    def test_final_review_rejects_closed_pr_matching_identity(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        head, base = "a" * 40, "b" * 40
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {}}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": head, "base": base}
+        closed = eligible_pull(head, base, state="closed")
+        with patch.object(mod, "gh_json", return_value=closed):
+            with self.assertRaises(ValueError):
+                mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
 
 
 if __name__ == "__main__":
