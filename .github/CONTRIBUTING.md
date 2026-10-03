@@ -150,10 +150,16 @@ hold (enforced by the live GitHub ruleset, not by CI alone):
 2. **At least one** GitHub review with state **APPROVED** from a reviewer other
    than the PR author. In this solo-maintainer repository, GitHub Copilot Code
    Review may satisfy this requirement only when repository settings allow
-   Copilot to approve **and** count toward merge requirements, any path
-   allowlist matches every changed file, and GitHub records an actual
-   `APPROVED` review. CodeRabbit/advisory comments and Copilot's approval
-   assessment alone do not satisfy the gate.
+   Copilot to approve **and** count toward merge requirements, the path
+   allowlist matches every changed file (privileged governance paths must
+   stay outside that allowlist), and GitHub records an actual `APPROVED`
+   review. Pull requests that change privileged governance paths require an
+   independent human approval — Copilot must not be the sole counted
+   reviewer (see `.github/skills/code-review/SKILL.md`). CodeRabbit/advisory
+   comments and Copilot's approval assessment alone do not satisfy the gate.
+   Request Copilot Code Review when the PR is **mergeable**; when Copilot
+   finds no blocking issues on that head **and** no privileged governance
+   path changed, it must submit **`APPROVED`**.
 3. That approval remains valid for the **current** head: stale approvals are
    **dismissed on new pushes**. `Require approval of the most recent
    reviewable push` is **off** (intentional for the solo-maintainer +

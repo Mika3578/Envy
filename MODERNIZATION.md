@@ -77,7 +77,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 - [x] `.github/CODEOWNERS`, `SECURITY.md`, PR template, 3 issue templates
 - [x] Workflows: `build.yml`, `codeql.yml`, `dependency-review.yml`,
       `clang-tidy.yml`, `format-check.yml`, `release.yml`, `stale.yml`,
-      `labeler.yml`, `copilot-setup-steps.yml`, `dependabot-auto-merge.yml`
+      `labeler.yml`, `copilot-setup-steps.yml`
 - [x] `Visual Studio/SetVS2026.bat` + `SetVS2026.ps1` (retarget scripts)
 - [x] Mechanical migration: 142 `<PlatformToolset>` -> v145 across 45 projects
 - [x] Removed `_ATL_XP_TARGETING` (66 sites) and `ENVY_USE_ASM` (2 sites)
@@ -154,7 +154,8 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 | `.github/workflows/stale.yml` | daily | Mark stale after 90d (issue) / 45d (PR) |
 | `.github/workflows/labeler.yml` | PR | Auto-label by paths (build, ci, core, plugins, ...) |
 | `.github/workflows/copilot-setup-steps.yml` | manual | Pre-warm Copilot environment |
-| `.github/workflows/dependabot-auto-merge.yml` | Dependabot PR | Auto-approve+merge actions minor/patch only |
+
+Removed in governance PR #395: `dependabot-auto-merge.yml` (Dependabot merges stay manual).
 
 ### Bots and automation
 
@@ -162,7 +163,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
   - vcpkg, weekly (Monday 07:00 Europe/Paris), single "vcpkg-baseline"
     group that advances the `builtin-baseline` commit hash.
   - GitHub Actions, weekly, `actions-minor-patch` group.
-- **Auto-merge bot**: minor/patch GitHub Actions only - human review
+- **Dependabot merges:** manual review (no auto-merge bot); human review
   required for vcpkg baseline bumps (can change native lib ABI).
 - **Stale bot**: auto-close after inactivity (issues 90+14d, PRs 45+21d).
 - **Labeler**: auto-tag PRs based on touched paths.
