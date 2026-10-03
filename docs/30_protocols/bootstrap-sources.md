@@ -1,7 +1,7 @@
 # Bootstrap sources versus discovered hosts
 
 Status: active
-Last updated: 2026-09-19
+Last updated: 2026-10-04
 Scope: Cold-start catalogues shipped with Envy. Not a claim that every protocol is complete.
 
 **Bootstrap sources ≠ discovered peers/servers.** Envy already keeps those layers apart:
@@ -28,23 +28,24 @@ Status vocabulary: catalogue refresh is **implemented** for the shipped files; r
 | ADC/ADCS | not implemented | `adc://` / `adcs://` rows are ignored; NMDC rows in the same hublists are still imported. Do not treat import as ADC support. |
 | BitTorrent DHT | implemented (bootstrap) | `DefaultServers.dat` `B` DNS routers loaded into HostCache. `CDHT::Connect` inserts cached node IDs; if none exist it sends BEP 5 `find_node` to up to 8 HostCache BitTorrent hosts (blocking DNS capped at 3 names; empty cache reloads `DefaultServers.dat`). No extra C++ DNS list. If the catalogue file is missing or every name fails DNS, DHT still marks connected and waits for later PEX/tracker nodes — D-012 forbids compiling `router.bittorrent.com` (or any replacement) into `.cpp`. Successful nodes persist in `HostCache.dat`. |
 
-## Shipped sources (audited 2026-09-18)
+## Shipped sources (reviewed 2026-10-04)
 
 ### ED2K `server.met`
 
 | URL | Operator | HTTPS | Notes |
 | --- | --- | --- | --- |
-| `https://upd.emule-security.org/server.met` | eMule-Security | yes | Official list; 12 servers, `0xE0`, last-modified 2026-09-18 16:04 UTC |
-| `https://shortypower.org/server.met` | shortypower | yes | Independent; 30 servers, `0x0E`, last-modified 2026-09-18 20:59 UTC |
+| `https://upd.emule-security.org/server.met` | eMule-Security | yes | 12 records, `0xE0`, HTTP 200; last-modified 2026-10-03 15:02 UTC |
+| `https://shortypower.org/server.met` | shortypower | yes | 27 records, `0x0E`, HTTP 200; last-modified 2026-10-03 21:59 UTC |
 
-Removed: static IPs in `DefaultServers.dat` (TV Underground / eDonkey Server No1–3 / 2019 Peerates IP); `peerates.net` (last-modified 2021); `gruk.org` (HTML, not `.met`); `emule-server.de` (last-modified 2009); `www.emule-security.org/server.met` (404). Setting `eDonkey.ServerListURL` default is the eMule-Security HTTPS URL.
+Removed: static IPs in `DefaultServers.dat` (TV Underground / eDonkey Server No1–3 / 2019 Peerates IP); `peerates.net` (last-modified 2021); `gruk.org` (cleartext alternative; 2026-10-04 returned binary `.met`, correcting the earlier HTML observation); `emule-server.de` (last-modified 2009); `www.emule-security.org/server.met` (404). Setting `eDonkey.ServerListURL` default is the eMule-Security HTTPS URL.
 
 ### Kad `nodes.dat`
 
 | URL | Operator | HTTPS | Notes |
 | --- | --- | --- | --- |
 | `https://upd.emule-security.org/nodes.dat` | eMule-Security | yes | Validated and imported only when local Kad sources leave no usable contacts |
-| `https://shortypower.org/nodes.dat` | shortypower | yes | Independent fallback; validated and imported only when local Kad sources leave no usable contacts |
+
+Removed: `https://shortypower.org/nodes.dat` returned HTTP 404 on 2026-10-04. The remaining source returned 5112 bytes, v2, 150 records. One HTTPS source satisfies `BootstrapMinKadNodesDat`; independent fallback remains desirable but must be validated before inclusion.
 
 ### Gnutella 1 UHC
 
@@ -61,7 +62,7 @@ Removed: `uhc.gtk-gnutella.nl:15749` (obsolete port); HTTP GWC rows that pointed
 
 ### Gnutella / G2 GWebCache
 
-Live `hostfile=1` responses on 2026-09-18 (HTTP; TLS name mismatch on `midian.jayl.de`):
+The first three returned HTTP 200 with `H|address:port|age` records on 2026-10-04. `dkac.trillinux.org` timed out in this bounded check; retained as an independently operated source previously responsive on 2026-09-18, not certified live. HTTP remains an ecosystem limitation; no silent TLS downgrade was added.
 
 | URL | Type | Operator |
 | --- | --- | --- |
@@ -76,9 +77,9 @@ Removed as dead or parked: `cache.getenvy.com/*` (lander), `gwctest.zapto.org`, 
 
 | URL | Operator | Mix |
 | --- | --- | --- |
-| `https://dchublist.org/hublist.xml.bz2` | dchublist.org | 249 hubs; NMDC + some ADC/ADCS |
-| `https://dchublist.ru/hublist.xml.bz2` | dchublist.ru | 92 hubs; NMDC |
-| `https://te-home.net/?do=hublist&get=hublist.xml.bz2` | Team Elite | 240 hubs; mixed |
+| `https://dchublist.org/hublist.xml.bz2` | dchublist.org | HTTP 200, valid BZip2/XML; mixed |
+| `https://dchublist.ru/hublist.xml.bz2` | dchublist.ru | HTTP 200, valid BZip2/XML; NMDC |
+| `https://hublist.pwiam.com/hublist.xml.bz2` | PWiAM | Mixed XML hublist; HTTP 200, valid BZip2/XML |
 
 `DC.HubListURL` default is the dchublist.org HTTPS URL. `dchublist.com` 301s to Team Elite; `tankafett.biz` 301s to an HTML page, not `hublist.xml.bz2`.
 
@@ -86,13 +87,47 @@ Removed as dead or parked: `cache.getenvy.com/*` (lander), `gwctest.zapto.org`, 
 
 | Host | Reference |
 | --- | --- |
-| `dht.transmissionbt.com:6881` | Transmission `tr-dht.cc` |
-| `router.bittorrent.com:6881` | still in qBittorrent defaults |
-| `dht.libtorrent.org:25401` | libtorrent bootstrap node |
+| `dht.transmissionbt.com:6881` | libtorrent documented alternative; BEP 5 response observed |
+| `router.bittorrent.com:6881` | libtorrent documented alternative; DNS resolves, one UDP probe timed out |
+| `dht.libtorrent.org:25401` | libtorrent default; BEP 5 response observed |
 
 Removed: `router.utorrent.com`, `router.bitcomet.com` (no DNS), `dht.aelitis.com` (Vuze). Persistence of working nodes remains `CDHT::Disconnect` → `HostCache.dat`.
 
 `CHostCacheList::Add` stores unresolved DNS names with `m_pAddress = INADDR_ANY` (`Network.Resolve(..., FALSE)` does not call DNS). `CHostCacheMap` is a `std::multimap`, so the three shipped `B` rows all insert under `0.0.0.0` without dropping later names; `Find(IN_ADDR)` returns NULL for `INADDR_ANY` by design; `CDHT::Connect` iterates `m_HostsTime` and still copies all three. Debug `ASSERT(m_Hosts.size() == m_HostsTime.size())` remains true. Rewriting HostCache keying for hostname-only rows is a follow-up, not this catalogue slice.
+
+
+## October audit: hard-coded defaults and validation limits
+
+Audited `develop` at `59695b173bac6510388aa90f29cd88d60db35b74`. Existing work: #215 (catalogue/parser refresh) and #365 (Kad cold-start) are implemented; #419 owns catalogue reconciliation and the still-open persisted-service migration. #420 owns service display/provenance. No protocol or loader change is included in this reconciliation.
+
+| Location | Value / role | Decision |
+| --- | --- | --- |
+| `Envy/Settings.cpp`, `eDonkey.ServerListURL` | HTTPS eMule-Security `server.met` | Keep; fresh binary list observed |
+| `Envy/DcHublistSources.h`, `DC.HubListURL` | HTTPS dchublist.org | Keep; operator publishes this URL, BZip2/XML observed |
+| `Envy/Settings.cpp`, `BitTorrent.DefaultTracker` | `udp://tracker.openbittorrent.com:80/announce` | DNS failed in this audit; replacement deferred for private-torrent safety (#317) |
+| `Envy/BTInfo.cpp`, rejected single tracker fallback | Uses `DefaultTracker` before the private flag is processed | Do not make a public replacement live until #317 prevents this fallback for private torrents |
+| `Envy/BTPacket.h` | LSD `239.192.152.143:6771` | BEP 14 protocol constant; retain, not a service catalogue |
+| `Envy/EDPacket.h` | ED2K LAN multicast `224.0.0.1:5000` | Existing protocol constant; retain in this data-only slice |
+| `Envy/Settings.cpp`, `SmartUpgrade` | Old ED2K/DC URL comparisons | Migration identities, not active bootstrap providers; retain |
+| `Envy/BTPacket.cpp`, DHT connect | HostCache/catalogue routers | No independent active C++ DNS seed list found |
+| Other `Data/` resources | Vendor links, message/security filters, schemas, images, GeoIP | Not bootstrap sources; do not refresh them as host catalogues |
+| `Envy/Envy.h`, Bitprints/website/update/help URLs | Product/metadata services | Separate maintenance scope; not peer discovery |
+| `TorrentEnvy/` | User-supplied tracker builder fields | No second shipped bootstrap list found |
+
+[OpenTrackr](https://opentrackr.org/) publishes `udp://tracker.opentrackr.org:1337/announce`; a BEP 15 connect probe returned a matching transaction and connection ID. This probe announces **no** infohash and is not proof of announce/scrape interoperability. The default is deliberately not changed in this PR: `CBTInfo::LoadTorrentTree` can replace an unsupported tracker (including HTTPS) before it reads `private=1`. Making the fallback reachable could expose private-torrent announces. Track the required guard under #317, HTTPS support under #88, and default migration/custom-value preservation under #418.
+
+Validation used bounded HTTP GETs (12 s, 1 MiB read cap), normal TLS certificate verification, binary headers/counts, BZip2/XML decoding, DNS and one bounded BEP 5 `find_node` probe per router. Transmission and libtorrent replied with matching transactions; BitTorrent timed out. These are point-in-time observations, not guarantees of uptime or full Envy runtime interoperability. No peer IPs from responses are added to shipped data. No live UHC UDP interoperability is claimed; the six retained endpoints are present in maintained gtk-gnutella `boot_hosts` (three additional peer ports there are not needed for the minimum catalogue).
+
+The offline catalogue test compares parsed active source identities with the vetted set, rejecting invalid or unexpected extra rows rather than merely checking minima. Blocked `X` rows remain security entries and are not bootstrap providers. Existing `Discovery.dat` is not migrated by this PR; #419 remains open.
+
+Primary references consulted:
+
+- [BEP 5 DHT](https://www.bittorrent.org/beps/bep_0005.html), [BEP 14 LSD](https://www.bittorrent.org/beps/bep_0014.html), [BEP 15 UDP tracker](https://www.bittorrent.org/beps/bep_0015.html), [BEP 27 private torrents](https://www.bittorrent.org/beps/bep_0027.html).
+- [eMule-Security server list](https://www.emule-security.org/serverlist/) and [shortypower](https://shortypower.org/). The operator page advertises HTTP; working HTTPS was checked directly and retained.
+- [aMule getting started](https://wiki.amule.org/wiki/Getting_Started): explains server.met/nodes.dat roles, but its old gruk/peerates examples are not evidence of current endpoint health.
+- [gtk-gnutella UHC implementation](https://github.com/gtk-gnutella/gtk-gnutella/blob/devel/src/core/uhc.c), [Shareaza discovery lineage](https://github.com/ivan386/Shareaza/blob/master/shareaza/DiscoveryServices.cpp): references for G1/UHC and GWC roles; not a requirement to import their entire catalogue.
+- [dchublist.org operator instructions](https://dchublist.org/), [PWiAM operator](https://hublist.pwiam.com/), [AirDC++ maintained defaults](https://github.com/airdcpp/airdcpp-windows/blob/master/airdcpp/airdcpp/settings/SettingsManager.cpp): its `HUBLIST_SERVERS` includes all three retained operators; hublist/client references; mixed hublist contents do not grant ENVY ADC/ADCS support.
+- [libtorrent bootstrap settings](https://libtorrent.org/reference-Settings.html#dht_bootstrap_nodes), [qBittorrent session implementation](https://github.com/qbittorrent/qBittorrent/blob/master/src/base/bittorrent/sessionimpl.cpp), [Transmission DHT implementation](https://github.com/transmission/transmission/blob/main/libtransmission/tr-dht.cc). The current libtorrent documentation, rather than older qBittorrent/Transmission attribution, directly supports all three retained names.
 
 ## Remaining C++ network addresses (not this catalogue)
 
@@ -111,4 +146,4 @@ Justified runtime / product URLs, **not** P2P bootstrap:
 
 ## Wire-format impact
 
-None. Catalogue files and HostCache/Discovery loaders are local. DHT still uses BEP 5 `find_node` toward bootstrap routers.
+None. This change edits shipped catalogues, documentation and offline tests only. DHT still uses BEP 5 `find_node` toward bootstrap routers.
