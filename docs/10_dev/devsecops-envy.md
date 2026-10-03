@@ -1,6 +1,6 @@
 # Envy DevSecOps map (cost-minimal, Windows-first)
 
-**Last Updated:** 2026-09-19
+**Last Updated:** 2026-10-03
 **Repo:** [Mika3578/Envy](https://github.com/Mika3578/Envy) (not upstream GetEnvy/Envy)
 **Full measured CI audit:** [CI_AUDIT_2026-09.md](CI_AUDIT_2026-09.md)
 
@@ -14,12 +14,14 @@ Cursor Agent → PR → CodeRabbit (advisory)
                   → reviewdog/clang-tidy (advisory)
                   → MSVC + EnvyTests + Format
                   → CodeQL + Sonar + gitleaks
-                  → squash auto-merge (update branch + required checks)
+                  → independent APPROVED review + resolved threads
+                  → maintainer manual squash (curated body; auto-merge off)
                   → develop
 ```
 
 Personal repositories may not support Merge Queue; **do not block** on enabling
-it. Prefer strict required checks + update-branch + squash auto-merge.
+it. Prefer strict required checks, update-branch, and **manual squash merge**
+with a curated squash body (`AGENTS.md` rule 16). Keep GitHub auto-merge **off**.
 
 ## Local commands
 
@@ -43,8 +45,10 @@ does not require them as status contexts.
 SonarCloud Automatic Analysis exclusions for vendored trees:
 `docs/10_dev/sonarcloud-exclusions.md` / `.sonarcloud.properties`. Do not
 relax Quality Gate thresholds to pass.
-(Docs-only PRs: Build x64/Win32 emit ubuntu success no-ops when classify
-`run_windows_build=false` — never leave those required contexts SKIPPED.)
+Windows Builds: Draft without `stage:live-test` may emit an ubuntu deferral
+notice (not a Windows build). Ready and `stage:live-test` always run real
+x64 + Win32 Release + EnvyTests, including docs-only PRs. Classifier path
+flags never skip those Ready/live-test jobs.
 
 BLOCK (native GitHub review rules on Protect develop):
 

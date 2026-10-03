@@ -30,7 +30,16 @@ PRs do not need a live ENVY run.
 - [ ] Review threads resolved
 - [ ] Governance/ruleset PRs: maintainer will apply ruleset patch after merge (no auto-merge on this PR)
 
+## Squash Commit Summary
+Paste this into the GitHub squash **Extended description** at merge
+(`AGENTS.md` rule 16). Keep it short; do not copy the full PR body.
+
 Issue reference: `Fixes #...` / `Closes #...` / `Related to #...` / `None`
+
+- Root problem:
+- Resulting behavior:
+- Compatibility / security / reliability (if any):
+- Regression coverage (if any):
 
 ## Checklist
 - [ ] Changes are scoped and reviewable

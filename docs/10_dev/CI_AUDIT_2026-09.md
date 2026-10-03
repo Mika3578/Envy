@@ -334,10 +334,11 @@ Sources (primary first):
    (`if: always()` no-op path when classify says docs out of scope; cancelled
    classify from concurrency supersede also emits success no-op so a superseded
    run does not fail the required context).
-2b. **Build x64/Win32 Release always report** on PRs — **Done** (same pattern:
-   `if: always()`; ubuntu no-op when `run_windows_build=false`; real MSBuild on
-   `windows-2025-vs2026` when true). Strict Protect develop treats SKIPPED
-   required contexts as unsatisfied.
+2b. **Build x64/Win32 Release always report** on PRs — **Updated**:
+   `if: always()` so Protect develop never sees SKIPPED. Draft without
+   `stage:live-test` may emit an ubuntu deferral notice (not a Windows
+   build). Ready and `stage:live-test` always run real MSBuild + EnvyTests,
+   including docs-only PRs. Path classify does **not** skip those jobs.
 
 ### P1 — Reliability / notable time
 

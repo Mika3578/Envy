@@ -38,10 +38,10 @@ pre-request checklist is satisfied.
 
 ## Review outcome (must use GitHub review state)
 
-- **No blocking findings** on the current head and the gates in
-  **Submit `APPROVED` when** below all hold: submit **`APPROVED`**. Do not
-  stop at overview comments, nit-only threads, or a verbal "looks good" when
-  nothing blocking remains. GitHub’s default review type is **Comment**; with
+- **No blocking findings** on the current head **and** every condition in
+  **Submit `APPROVED` when** below is satisfied: submit a real GitHub
+  **`APPROVED`** review. Do not stop at overview comments, nit-only threads,
+  or a verbal "looks good". GitHub’s default review type is **Comment**; with
   repository **Auto-approval** enabled, Copilot must leave an **`Approve`**
   review event on GitHub, not only the overview **approval assessment** (see
   [GitHub Docs — Pull request approvals from Copilot](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/using-copilot-code-review#pull-request-approvals-from-copilot)).

@@ -100,9 +100,10 @@ Branch model:
     The branch name describes **the change**, never the tool that produced it.
     Human CONTRIBUTING text must match this rule (no `claude/` exception).
 12. **Controlled autonomy at the merge gate**. An assistant **may** create a
-    work branch, commit/push on that branch, open a **draft** PR, mark the
-    PR ready-for-review, address reviews, fix CI, and update the branch with
-    `develop`. **Do not** enable squash auto-merge when rule 16 requires a
+    work branch, commit/push on that branch, open a **draft** PR, treat
+    reviews, fix CI, and update the branch with `develop`. **Only the
+    maintainer** applies `stage:live-test`, marks Ready, and squash-merges
+    (see §5). **Do not** enable squash auto-merge when rule 16 requires a
     maintainer-curated squash body (the default for `develop` with live
     `squash_merge_commit_message: BLANK`): GitHub auto-merge cannot populate
     the squash Extended description field, so the maintainer performs a
@@ -472,8 +473,8 @@ When you take on a task you are expected to:
 2. **Push only to your feature branch** (never `develop`, `main`, or
    `legacy`) with `git push -u origin <branch>`.
 3. **Open a draft PR** if one does not exist. Match the PR template at
-   `.github/pull_request_template.md`. Mark ready-for-review and enable
-   squash auto-merge only under hard rule 12.
+   `.github/pull_request_template.md`. Do **not** apply `stage:live-test`,
+   mark Ready, or enable squash auto-merge (maintainer-only; rule 16).
 4. **Respect the soft target of 5 development PRs** (hard rule 13) before
    opening anything new. Overflow needs a documented reason in the PR body.
 5. **Tick the checkboxes** in the PR template that genuinely apply -
@@ -490,8 +491,8 @@ When you take on a task you are expected to:
    `gh run view <RUN_ID> --log-failed` (statuses alone are not enough);
    for external checks (e.g. SonarCloud), use the linked provider’s
    diagnostics, then fix, push once, and watch again. On success:
-   immediately verify review threads, ruleset, and squash auto-merge —
-   do not insert idle delays. Request GitHub Copilot Code Review only after
+   immediately verify review threads and the live ruleset — do not enable
+   auto-merge. Request GitHub Copilot Code Review only after
    every review thread on the head is **treated** (fix or justified reply,
    then resolved) and the PR is mergeable — see rule 12 and §5 *Review
    comment handling*; do not re-request Copilot between partial batches. For a single Actions workflow:

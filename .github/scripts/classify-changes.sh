@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Classify pull-request paths into CI buckets and change risk.
 #
-# Exposes consumed GitHub Actions flags through $GITHUB_OUTPUT. Advisory lane
-# and risk diagnostics remain stdout-only. Non-PR events force a full run.
+# Exposes consumed GitHub Actions flags through $GITHUB_OUTPUT. Risk-level
+# stays stdout-only. Windows Release jobs are NOT gated by this script:
+# Draft without stage:live-test may defer; Ready and stage:live-test always
+# run real x64 + Win32 Release + EnvyTests (including docs-only).
 #
-# Required merge contexts must always be emitted by workflows (job runs with
-# success no-op when a dimension is not applicable). Do not skip entire
-# workflows with path filters when a context is required.
+# Required merge contexts must always be emitted by workflows. Do not skip
+# entire workflows with path filters when a context is required.
 #
 # Optional:
 #   CLASSIFY_FILES   newline-separated path list (skips GitHub API)
@@ -38,15 +39,10 @@ emit_all() {
 	write_out docs "$value"
 	write_out workflow "$value"
 	write_out docs_only "false"
-	write_diagnostic run_x64_release "$value"
-	write_diagnostic run_win32_release "$value"
-	write_diagnostic run_windows_build "$value"
 	write_out run_remote_js "$value"
 	write_out run_dep_review "$value"
 	write_out run_docs_check "$value"
-	write_diagnostic run_csharp_analysis "$value"
 	write_diagnostic risk_level "high"
-	write_diagnostic needs_runtime_test "$value"
 }
 
 if [[ "$EVENT_NAME" != "pull_request" ]]; then
@@ -82,15 +78,10 @@ if [[ -z "${files//[$'\t\r\n ']/}" ]]; then
 	write_out docs true
 	write_out workflow false
 	write_out docs_only true
-	write_diagnostic run_x64_release false
-	write_diagnostic run_win32_release false
-	write_diagnostic run_windows_build false
 	write_out run_remote_js false
 	write_out run_dep_review false
 	write_out run_docs_check true
-	write_diagnostic run_csharp_analysis false
 	write_diagnostic risk_level low
-	write_diagnostic needs_runtime_test false
 	exit 0
 fi
 
@@ -104,10 +95,7 @@ workflow=false
 other=false
 risk_high=false
 risk_low_only=true
-needs_runtime=false
 
-force_x64=false
-force_win32=false
 force_remote=false
 force_dep_review=false
 force_all_pr=false
@@ -213,8 +201,6 @@ while IFS= read -r f; do
 	.github/actions/windows-msbuild/*)
 		workflow=true
 		build=true
-		force_x64=true
-		force_win32=true
 		classified=true
 		;;
 	.github/workflows/codeql.yml | .github/codeql/*)
@@ -274,8 +260,6 @@ while IFS= read -r f; do
 	vcpkg.json | vcpkg-configuration.json)
 		dependencies=true
 		build=true
-		force_x64=true
-		force_win32=true
 		force_dep_review=true
 		classified=true
 		;;
@@ -355,40 +339,20 @@ while IFS= read -r f; do
 		classified=true
 	fi
 
-	if match_prefix "$f" "Installer/" || match_prefix "$f" "Skins/" || match_prefix "$f" "Envy/Page" || match_prefix "$f" "Envy/Dlg" || match_prefix "$f" "Envy/Ctrl"; then
-		needs_runtime=true
-	fi
-
 	if [[ "$classified" == false ]]; then
 		other=true
 	fi
 done <<<"$files"
 
 if [[ "$force_all_pr" == true ]]; then
-	force_x64=true
-	force_win32=true
 	force_dep_review=true
 	force_remote=true
 fi
 
-run_x64=false
-run_win32=false
 run_remote_js=false
 run_dep_review=false
 run_docs_check=false
-run_csharp=false
 
-if [[ "$cpp" == true || "$build" == true || "$force_x64" == true || "$other" == true ]]; then
-	run_x64=true
-fi
-if [[ "$cpp" == true || "$build" == true || "$force_win32" == true || "$other" == true ]]; then
-	run_win32=true
-fi
-# Docs-only and Remote-only JS changes do not need Windows Release builds.
-if [[ "$remote" == true && "$cpp" == false && "$build" == false && "$force_x64" == false && "$other" == false ]]; then
-	run_x64=false
-	run_win32=false
-fi
 if [[ "$force_remote" == true ]]; then
 	run_remote_js=true
 fi
@@ -401,31 +365,14 @@ fi
 if [[ "$docs" == true ]]; then
 	run_docs_check=true
 fi
-if [[ "$csharp" == true ]]; then
-	run_csharp=true
-fi
 
 docs_only=false
 if [[ "$cpp" == false && "$build" == false && "$remote" == false && \
       "$csharp" == false && "$dependencies" == false && "$workflow" == false && \
       "$other" == false && "$docs" == true && "$risk_high" == false ]]; then
 	docs_only=true
-	run_x64=false
-	run_win32=false
 	run_remote_js=false
 	run_dep_review=false
-	run_csharp=false
-fi
-
-# Pure CI/workflow/metadata changes (no product sources): x64 smoke via lint job;
-# skip expensive Win32 unless build/release paths changed.
-if [[ "$workflow" == true && "$cpp" == false && "$build" == false && "$other" == false && "$docs_only" == false ]]; then
-	if [[ "$force_win32" == false ]]; then
-		run_win32=false
-	fi
-	if [[ "$force_x64" == false && "$force_win32" == false ]]; then
-		run_x64=false
-	fi
 fi
 
 risk_level=normal
@@ -435,8 +382,8 @@ elif [[ "$risk_low_only" == true ]]; then
 	risk_level=low
 fi
 
-# High-risk governance still requires maintainer review; runtime validation
-# is requested separately by product-path classification above.
+# High-risk governance still requires maintainer review. Ready/live-test
+# Windows builds are gated by PR draft/label in build.yml, not here.
 
 echo "Changed files:"
 echo "$files"
@@ -450,12 +397,7 @@ write_out dependencies "$dependencies"
 write_out docs "$docs"
 write_out workflow "$workflow"
 write_out docs_only "$docs_only"
-write_diagnostic run_x64_release "$run_x64"
-write_diagnostic run_win32_release "$run_win32"
-write_diagnostic run_windows_build "$run_x64"
 write_out run_remote_js "$run_remote_js"
 write_out run_dep_review "$run_dep_review"
 write_out run_docs_check "$run_docs_check"
-write_diagnostic run_csharp_analysis "$run_csharp"
 write_diagnostic risk_level "$risk_level"
-write_diagnostic needs_runtime_test "$needs_runtime"
