@@ -187,7 +187,7 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 
 	m_nOffset			= SIZE_UNKNOWN;
 	m_nPosition			= 0;
-	m_nContentLength	= SIZE_UNKNOWN;
+	m_nContentLength = SIZE_UNKNOWN;
 	m_bWantBackwards	= FALSE;
 	m_bRecvBackwards	= FALSE;
 	m_bTigerFetch		= FALSE;
@@ -664,13 +664,13 @@ BOOL CDownloadTransferHTTP::OnRead()
 	{
 	case dtsRequesting:
 		if ( ! ReadResponseLine() ) return FALSE;
-		if ( m_nState == dtsRequesting )
+		if (m_nState == dtsRequesting)
 		{
-			if ( GetInputLength() >= 16u * 1024u )
+			if (GetInputLength() >= 16u * 1024u)
 			{
-				theApp.Message( MSG_ERROR, L"Rejected oversized HTTP headers from %s",
-				               (LPCTSTR)m_sAddress );
-				Close( TRI_FALSE );
+				theApp.Message(MSG_ERROR, L"Rejected oversized HTTP headers from %s",
+				               (LPCTSTR)m_sAddress);
+				Close(TRI_FALSE);
 				return FALSE;
 			}
 			break;
