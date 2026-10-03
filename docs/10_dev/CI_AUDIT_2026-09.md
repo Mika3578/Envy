@@ -37,9 +37,10 @@ SonarCloud required, PR Gate stricter than GitHub skip semantics.
 - MSBuild `/m:1` is intentional (PCH C1083) and must not be “optimized”
   without a re-benchmark.
 - Four identical classify jobs per PR (~8–10 s each) — centralizing is P3.
-- Repository Copilot UI approve/count toggles, Balanced effort, and the
-  optional Stage-3 path allowlist still need manual UI verification (not
-  on the ruleset API). Copilot code review is enabled with **review-on-push off**
+- Repository Copilot UI approve/count toggles, Balanced effort, and a
+  **non-blank** Stage-3 path allowlist that **excludes** privileged
+  governance paths still need manual UI verification (not on the ruleset
+  API). Copilot code review is enabled with **review-on-push off**
   (mergeable-head requests only; see `docs/10_dev/devsecops-envy.md`).
 
 **Live Protect develop re-verification (2026-09-20):** required approvals **1**,
@@ -326,7 +327,8 @@ Sources (primary first):
 1. **Reconcile Protect develop ruleset:** **Done for ruleset knobs
    2026-09-20** — live now has 1 approval, Code Quality = All,
    review-on-push **off**, draft review off. Remaining: verify repository Copilot
-   UI approve/count toggles, Balanced effort, and **blank** path allowlist
+   UI approve/count toggles, Balanced effort, and a **non-blank** path
+   allowlist that excludes privileged governance paths
    (`docs/10_dev/devsecops-envy.md` item 3 — verification commands).
 2. **Documentation Check always reports** a terminal conclusion — **Done**
    (`if: always()` no-op path when classify says docs out of scope; cancelled
@@ -410,9 +412,10 @@ Documented; not unified in this PR (would either slow local or risk CI flakes).
 ## 14. Follow-ups (out of this PR)
 
 - Manual GitHub Settings → Copilot → Code review only: confirm approve/count
-  ON, effort **Balanced**, and optional Stage-3 path allowlist. Protect
-  develop ruleset knobs (1 approval, Code Quality All, automatic Copilot
-  review + review-on-push, draft review off) are already applied.
+  ON, effort **Balanced**, and a **non-blank** path allowlist excluding
+  privileged governance paths (`docs/10_dev/devsecops-envy.md`). Protect
+  develop ruleset knobs (1 approval, Code Quality All, review-on-push off,
+  draft review off) are already applied.
 - P2: vcpkg registry fetch / downloads cache experiment.
 - P3: single classify fan-out.
 - P4: controlled `/m` + MTT A/B on a throwaway branch.

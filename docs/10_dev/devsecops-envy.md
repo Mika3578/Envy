@@ -138,16 +138,24 @@ comparison notes.
    - **Allow Copilot to approve pull requests:** ON
    - **Allow Copilot approvals to count toward merge requirements:** ON
    - Path allowlist (≤15 globs; every changed file must match, or the
-     approval does not count). For this solo-maintainer repository, leave the
-     allowlist **blank** so Copilot approvals count on every pull request,
-     including review-governance (`.github/settings.yml`,
-     `.github/workflows/**`, `AGENTS.md`, `.github/skills/**`) and infra.
-     A blank UI allowlist does **not** remove review discipline: Copilot reads
-     the skill and changed files from the PR head, must not `APPROVED` when the
-     diff weakens merge gates, and the maintainer still performs manual squash
-     merge. Optional narrow Stage-3 globs (docs and
-     adapters only) remain documented in the code-review skill for teams that
-     want extra UI-side restriction; they are not the default here.
+     approval does **not** count). Do **not** leave the allowlist blank:
+     a blank list matches every path and would let Copilot’s `APPROVED`
+     count on privileged governance changes (`AGENTS.md`,
+     `.github/copilot-instructions.md`, `.github/skills/**`,
+     `.github/settings.yml`, `.github/workflows/**`, `.github/rulesets/**`,
+     and gate scripts under `.github/scripts/`). Those files are loaded
+     from the PR head, so counted Copilot approval on them is a
+     self-authorization loop. Prefer an ordinary-code allowlist such as:
+     `Envy/**`, `HashLib/**`, `Plugins/**`, `TorrentEnvy/**`,
+     `Unpacker/**`, `SkinBuilder/**`, `Remote/**`, `Services/**`,
+     `tests/**`, `docs/**`, `Languages/**`, `Skins/**`, `Data/**`,
+     `Installer/**`, `Visual Studio/**` (adjust within the 15-glob cap).
+     Omit `AGENTS.md` and `.github/**` from the allowlist. PRs that touch
+     privileged paths then need an independent human `APPROVED` even if
+     Copilot comments. Skill
+     `.github/skills/code-review/SKILL.md` also forbids Copilot
+     `APPROVED` on those paths (defense in depth; UI allowlist is the
+     independent control). Manual squash merge stays required.
    - Protect develop should request Copilot when the pull request is
      **mergeable** (required checks green, up to date, not draft); keep
      review-on-push and draft review **off**.

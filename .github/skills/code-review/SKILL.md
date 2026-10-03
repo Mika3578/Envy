@@ -57,21 +57,30 @@ pre-request checklist is satisfied.
 `.cursor/**`, `.continue/**`, `.clinerules`, `.windsurfrules`,
 `.cursorrules`, `Languages/**`, `CHANGELOG.md`, `MODERNIZATION.md`.
 
-**High-risk review-governance:** `AGENTS.md`,
-`.github/copilot-instructions.md`, `.github/skills/**`.
+**Privileged governance (never Copilot-only approval):** `AGENTS.md`,
+`.github/copilot-instructions.md`, `.github/skills/**`,
+`.github/settings.yml`, `.github/workflows/**`, `.github/rulesets/**`,
+and `.github/scripts/` files that classify changes, audit rulesets, or
+otherwise define merge/review/CI gate policy. Copilot loads instructions
+and this skill from the **PR head**; an `APPROVED` from Copilot on a PR
+that edits those files is a self-authorization loop. When **any** such
+path changes: do **not** submit `APPROVED` — use `COMMENTED` or
+`CHANGES_REQUESTED` and require an independent human (non-Copilot)
+approval. Repository Copilot path allowlists must exclude these paths
+(`docs/10_dev/devsecops-envy.md`).
 
 **Default — high-risk code/infra:** every other path, including
 `Envy/**`, `HashLib/**`, `Plugins/**`, `Services/**`, `TorrentEnvy/**`,
 `Visual Studio/**`, `scripts/**`, `Remote/**`, `Unpacker/**`,
-`SkinBuilder/**`, `Repository/**`, `.github/workflows/**`,
-`.github/settings.yml`, installer, protocol, crypto, auth, networking,
-packet parse, threading, locking, memory, and root build/version files.
-Unclassified paths use this class; do not treat them as low-risk.
+`SkinBuilder/**`, `Repository/**`, installer, protocol, crypto, auth,
+networking, packet parse, threading, locking, memory, and root
+build/version files. Unclassified paths use this class; do not treat
+them as low-risk.
 
 If **any** changed file is high-risk, treat the whole pull request as
 high-risk, **except** comment-only diffs on code/infra paths (not on
-review-governance files). Copilot cloud-agent authored PRs: comment and
-request a human; do not `APPROVED`.
+privileged governance files). Copilot cloud-agent authored PRs: comment
+and request a human; do not `APPROVED`.
 
 ## Evidence by risk
 
@@ -84,17 +93,19 @@ request a human; do not `APPROVED`.
 - **Workflows / `.github/settings.yml` / installer / other code/infra:**
   targeted CI or security validation (required checks green; no secrets,
   permissions, or protection weakening). Wire-format text is not enough.
-- **Review-governance:** required CI green, and the diff must not reduce
-  required approvals, required checks, Copilot self-approval bans, or
-  quality gates. Tightening/clarifying is OK. Weakening is
-  `CHANGES_REQUESTED`. When repository Copilot settings allow counting on
-  the changed paths, Copilot may submit `APPROVED` only if this diff does
-  **not** weaken gates — never approve a PR-head skill edit that removes
-  those checks. Manual squash merge stays required (`AGENTS.md` rule 16).
+- **Privileged governance:** required CI green, and the diff must not
+  reduce required approvals, required checks, Copilot self-approval bans,
+  or quality gates. Tightening/clarifying is OK. Weakening is
+  `CHANGES_REQUESTED`. Copilot must **not** submit `APPROVED` when any
+  privileged governance path changes — even if the UI allowlist would
+  allow counting — because the skill and instructions are PR-controlled.
+  Manual squash merge stays required (`AGENTS.md` rule 16).
 
 ## Submit `APPROVED` when all of the following hold
 
 - The pull request is not a draft and is not Copilot-authored.
+- **No privileged governance path** is in the diff (see Risk class). If any
+  is present, stop at `COMMENTED` / `CHANGES_REQUESTED` and require a human.
 - Required Protect develop checks are green. If CI is still running, wait.
 - No unresolved review threads and no outstanding `CHANGES_REQUESTED`.
 - Squash Commit Summary in the PR body matches the final head and satisfies
@@ -117,5 +128,7 @@ request a human; do not `APPROVED`.
 - Crypto/auth/threading/locking/memory change lacks targeted validation.
 - Workflow/infra/settings.yml or other unclassified code/infra change
   lacks targeted CI/security validation.
-- Review-governance change weakens merge gates or self-approval bans.
+- Privileged governance change weakens merge gates or self-approval bans.
+- Any privileged governance path is in the diff and the only proposed
+  counted approval would be Copilot (leave `COMMENTED`; human required).
 - Branch naming uses a tool/agent prefix (`cursor/`, `claude/`, …).

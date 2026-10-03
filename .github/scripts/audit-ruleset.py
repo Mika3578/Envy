@@ -56,12 +56,20 @@ def validate_repo(repo: str) -> str:
 
 
 def fetch_live_ruleset(repo: str, ruleset_id: int) -> dict[str, Any]:
+    """Fetch one ruleset via `gh api` without a shell.
+
+    Trust boundary: `validate_repo` restricts OWNER/REPO to a safe charset;
+    `ruleset_id` must be a positive int. Arguments are passed as an argv
+    list with `shell=False`, so shell metacharacters cannot be interpreted
+    even if validation were bypassed. Do not switch to `shell=True` or
+    interpolate into a shell string.
+    """
     safe_repo = validate_repo(repo)
     if ruleset_id <= 0:
         raise ValueError("--ruleset-id must be a positive integer")
-    # argv list only (shell=False). safe_repo is OWNER/REPO charset-validated;
-    # ruleset_id is a positive int. No untrusted shell metacharacters reach gh.
     api_path = "repos/{}/rulesets/{}".format(safe_repo, ruleset_id)
+    # argv list + shell=False: not shell injection. nosemgrep marks the
+    # intentional trusted-subprocess pattern for static scanners.
     result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
         ["gh", "api", api_path],
         capture_output=True,

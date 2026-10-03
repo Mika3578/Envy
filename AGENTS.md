@@ -115,12 +115,13 @@ Branch model:
       other than the PR author (Protect develop live requirement). In this
       solo-maintainer repository, **GitHub Copilot Code Review may satisfy
       that approval** only when repository Copilot settings allow Copilot to
-      approve **and** count toward merge requirements, any path allowlist
-      matches every changed file, and GitHub records an actual `APPROVED`
-      review. An approval *assessment* or an AI comment (CodeRabbit, Amazon Q,
-      Sourcery, Copilot summary, etc.) is not an approval. A Copilot
-      `APPROVED` review is not proof of correctness; required CI and
-      security checks stay independent. Never manufacture
+      approve **and** count toward merge requirements, the path allowlist
+      matches every changed file (privileged governance paths must stay
+      outside that allowlist — see below), and GitHub records an actual
+      `APPROVED` review. An approval *assessment* or an AI comment
+      (CodeRabbit, Amazon Q, Sourcery, Copilot summary, etc.) is not an
+      approval. A Copilot `APPROVED` review is not proof of correctness;
+      required CI and security checks stay independent. Never manufacture
       approval with GitHub Actions or a self-approval workflow. Copilot
       cloud-agent PRs still need a non-Copilot reviewer;
     - Request **GitHub Copilot Code Review** only when the pull request is
@@ -134,11 +135,14 @@ Branch model:
       threads are still open or between partial fix batches. Follow
       `.github/skills/code-review/SKILL.md`.
     - When Copilot reviews that head and finds **no blocking defects** under
-      the skill, it must submit a GitHub review with state **APPROVED** — not
-      comment-only and not an approval assessment alone. If it finds blocking
-      issues, use `CHANGES_REQUESTED` or actionable inline comments; after
-      fixes land and mergeability returns, re-review and **`APPROVED` when
-      nothing blocking remains**;
+      the skill **and** no privileged governance path changed, it must
+      submit a GitHub review with state **APPROVED** — not comment-only and
+      not an approval assessment alone. If privileged governance paths
+      changed, leave `COMMENTED`/`CHANGES_REQUESTED` and require a human.
+      If it finds blocking issues, use `CHANGES_REQUESTED` or actionable
+      inline comments; after fixes land and mergeability returns, re-review
+      and **`APPROVED` when nothing blocking remains** (still subject to
+      the privileged-path rule);
     - stale approvals are dismissed when new commits are pushed
       (`require_last_push_approval` remains **off** so a valid non-author
       approval, including Copilot when enabled, can satisfy the count);
@@ -167,19 +171,23 @@ Branch model:
     locking, and memory-lifetime changes need targeted tests or explicit
     validation of that risk; wire-format text does not cover them.
     Workflow, `.github/settings.yml`, and installer/infra changes need
-    targeted CI/security validation. Review-governance files (`AGENTS.md`,
-    `.github/copilot-instructions.md`, `.github/skills/**`) are high-risk:
-    do not reduce required approvals, required checks, or self-approval
-    bans through those edits. Copilot Code Review may still submit `APPROVED`
-    and count toward Protect develop on pull requests that touch these paths
-    when repository Copilot settings allow approval and counting and the path
-    allowlist matches every changed file (a **blank** allowlist matches all
-    paths). That is intentional for this solo-maintainer repo so governance
-    PRs can receive a counted Copilot review without a separate UI path list;
-    `.github/skills/code-review/SKILL.md` still forbids `APPROVED` on diffs
-    that weaken merge gates, and squash merge stays **manual** with a curated
-    body (`AGENTS.md` rule 16). Weakening governance remains `CHANGES_REQUESTED`; tightening or
-    clarifying is OK.
+    targeted CI/security validation. Privileged governance paths
+    (`AGENTS.md`, `.github/copilot-instructions.md`, `.github/skills/**`,
+    `.github/settings.yml`, `.github/workflows/**`, `.github/rulesets/**`,
+    and gate scripts under `.github/scripts/` that define merge/review
+    policy) are high-risk: do not reduce required approvals, required
+    checks, or self-approval bans through those edits. Copilot must **not**
+    be the sole counted approval on a pull request that changes any of
+    those paths — Copilot reads instructions and the review skill from the
+    PR head, so a blank path allowlist would let a governance PR rewrite
+    the rules used to judge its own `APPROVED`. Keep those paths outside
+    the repository Copilot path allowlist (see
+    `docs/10_dev/devsecops-envy.md`), and require an independent human
+    (non-Copilot) `APPROVED` for them. `.github/skills/code-review/SKILL.md`
+    must not submit `APPROVED` when privileged governance paths change.
+    Weakening governance remains `CHANGES_REQUESTED`; tightening or
+    clarifying is OK. Squash merge stays **manual** with a curated body
+    (rule 16).
     **Never** bypass GitHub rulesets, required checks, or branch
     protections (`--admin`, elevated PATs, force-push to protected refs).
     Never push to `main`/`develop`/`legacy` directly.
@@ -419,52 +427,15 @@ to discover outstanding human or bot threads — clear them first, then request
 
 ### Review and Copilot economy (quality over volume)
 
-GitHub’s default is **one** Copilot review per pull request unless **Review new
-pushes** is enabled in a ruleset ([Configure code
-review](https://docs.github.com/en/copilot/how-tos/copilot-on-github/set-up-copilot/configure-code-review)).
-Protect develop keeps **review-on-push off** on purpose: each extra Copilot
-pass costs tokens and often repeats findings ([Copilot Stack diagnostic
-notes](https://thecopilotstack.com/blog/copilot-code-review-not-running/)).
-Envy adds a **human/agent gate** so Copilot is not requested “to see what
-happens.”
-
-**Pre-request checklist** — request Copilot only when **all** are true on the
-current head:
-
-- Pull request is **not a draft** (final merge gate pass).
-- **Required** Protect develop checks are green.
-- Branch is **mergeable** toward `develop` (up to date, no blocking check).
-- **Every** review thread is **treated** (fix on head or justified reply) and
-  **resolved** on GitHub.
-- You expect **no further code push** before merge, **or** you accept exactly
-  **one** Copilot re-review after the final push once treatment is complete
-  again.
-
-**Do not request Copilot** when:
-
-- Pull request is still a **draft** (same as Protect develop: no merge-gate
-  review pass; agents must not trigger reviews in Draft either).
-- Any thread is still untreated or unresolved.
-- The **same head** already has a Copilot review and the diff meaningfully
-  unchanged (do not re-request to “refresh” merge status).
-- You are **mid-batch** in the correction agent loop (fix and push first; see
-  `docs/10_dev/agents-and-automation.md` batch budgets).
-- The only remaining work is advisory-bot noise you have not triaged.
-- The goal is to **poll** CI or thread state (use `gh pr checks`, GraphQL, or
-  the PR UI instead).
-
-**Agent pattern (common in OSS review skills):** fetch unresolved threads once,
-dedupe by file/concern, fix or justify in **coherent pushes**, resolve threads,
-then **one** Copilot review on the stable head — not one review per thread or
-per partial fix. See token-budget patterns in community PR-review skills
-(e.g. cap thread payload, avoid parallel “verdict” calls per comment when
-count is high).
-
-Correction agents **must not** request Copilot reviews, **any other review
-product**, or human reviewer requests while the pull request is a **draft**;
-they must not approve or merge. They treat threads and push fix batches until
-the maintainer marks Ready and the pre-request checklist above is satisfied for
-a maintainer’s single final Copilot request.
+Protect develop keeps Copilot **review-on-push off** and **draft review
+off**. Request Copilot only once on a stable **Ready** head when the
+pre-request checklist in `.github/skills/code-review/SKILL.md` (*When to
+run*) and §5 *Review comment handling* above are satisfied: not Draft,
+required checks green, mergeable toward `develop`, every thread treated and
+resolved, no mid-batch re-request. Correction agents must not request any
+review product while the PR is Draft and must not approve or merge.
+Privileged governance paths need an independent human `APPROVED` (`AGENTS.md`
+rule 12; skill Risk class).
 
 ### Mandatory preflight before editing
 

@@ -98,6 +98,19 @@ class AuditRulesetTests(unittest.TestCase):
         self.assertTrue(any("required_approving_review_count" in line for line in drift))
 
     @patch.object(AUDIT.subprocess, "run")
+    def test_fetch_uses_argv_list_without_shell(self, run):
+        run.return_value = type("Result", (), {
+            "returncode": 0,
+            "stdout": '{"id": 1}',
+            "stderr": "",
+        })()
+        value = AUDIT.fetch_live_ruleset("Mika3578/Envy", 16457466)
+        self.assertEqual(value, {"id": 1})
+        args, kwargs = run.call_args
+        self.assertEqual(args[0], ["gh", "api", "repos/Mika3578/Envy/rulesets/16457466"])
+        self.assertFalse(kwargs.get("shell", True))
+
+    @patch.object(AUDIT.subprocess, "run")
     def test_malformed_gh_json_has_diagnostic(self, run):
         run.return_value = type("Result", (), {
             "returncode": 0,
