@@ -1,6 +1,6 @@
 # Envy Development Agents & Automation
 
-**Last Updated:** 2026-09-28
+**Last Updated:** 2026-10-03
 
 ## What exists today
 
@@ -192,8 +192,11 @@ second workflow that polls those checks.
 PR #346's superseded-generation fix and PR #349's semantic gate are obsolete
 once the live ruleset no longer requires PR Gate. Their closure is a GitHub
 operation outside this repository change.
-Keep the obsolete requester for merged #294/#354 until native Copilot refresh
-has been demonstrated. Do not create its replacement in this PR.
+The temporary `request-copilot-review.yml` helper for merged #294/#354 is
+**deleted in this PR**. After Ready, request GitHub Copilot Code Review
+manually (or via one explicit final automation step once threads are treated
+and the head is mergeable toward `develop`). Do not recreate an automatic
+Copilot requester without a separately reviewed design.
 
 ### One subscribed Envy PR Stabilizer (external setup)
 
