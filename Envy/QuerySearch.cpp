@@ -866,7 +866,7 @@ BOOL CQuerySearch::ReadG1Packet(CG1Packet* pPacket, const SOCKADDR_IN* pEndpoint
 		else if ( nPeek == '<' || nPeek == '{' )
 		{
 			// XML extensions — peer-sourced; share oQueryXmlBudget.
-			pPacket->ReadXML( m_pSchema, m_pXML, &oQueryXmlBudget );
+			pPacket->ReadXML(m_pSchema, m_pXML, &oQueryXmlBudget);
 		}
 		else	// if ( nPeek == 0 || nPeek == G1_PACKET_HIT_SEP )
 		{
