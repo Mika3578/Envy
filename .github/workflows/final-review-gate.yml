@@ -17,8 +17,6 @@ on:
     types: [submitted, dismissed]
   pull_request_review_thread:
     types: [resolved, unresolved]
-  check_run:
-    types: [completed]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -41,9 +39,6 @@ jobs:
   evaluate:
     name: Evaluate final review gate
     if: >
-      github.event.repository.fork == false &&
-      (github.event_name != 'check_run' ||
-       github.event.check_run.name != 'Evaluate final review gate') &&
       (github.event_name != 'pull_request' ||
        github.event.pull_request.head.repo.full_name == github.repository) &&
       (github.event_name != 'pull_request_review' ||
