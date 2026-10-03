@@ -697,6 +697,94 @@ class ServiceTests(unittest.TestCase):
                 mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, Store())
         self.assertEqual(state["requests"][f"copilot:{head}:{base}"]["status"], "unknown")
 
+    def test_pre_mutation_copilot_request_failure_is_retryable(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        snap["reviews"] = []
+        head, base = "a" * 40, "b" * 40
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {}}
+
+        class Store:
+            def save(self, *_args):
+                pass
+
+        pull = eligible_pull(head, base)
+        with patch.object(mod, "gh_json", side_effect=[pull, {"users": []}, {"node_id": ""}]):
+            with self.assertRaises(ValueError):
+                mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, Store())
+        self.assertNotIn(f"copilot:{head}:{base}", state["requests"])
+
+    def test_github_approved_with_overview_findings_is_fix_again(self):
+        body = (
+            "<!-- ccr-overview-v2 -->\n## Copilot review overview\n\n"
+            "### ✅ Approved\n\nLooks fine.\n\n**Review effort:** 1\n\n"
+            "**Findings:** None\n\n"
+            "<details><summary><strong>Previously missed (1)</strong></summary>"
+            "<details><summary>Overlooked race</summary></details></details>\n"
+        )
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        snap["pr"]["review_decision"] = "APPROVED"
+        snap["reviews"] = [{"id": 2, "user": {"login": "copilot-pull-request-reviewer"},
+                            "body": body, "commit_id": "a" * 40, "state": "APPROVED"}]
+        snap["threads"] = []
+        head, base = "a" * 40, "b" * 40
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {f"copilot:{head}:{base}": {"status": "requested"}}}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": head, "base": base}
+        pull = eligible_pull(head, base)
+        with patch.object(mod, "gh_json", return_value=pull), patch.object(mod, "collect", return_value=snap):
+            mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
+        self.assertEqual(state["phase"], "FIX_AGAIN")
+
+    def test_clean_classified_approved_is_final_review_received(self):
+        fixture = Path(__file__).resolve().parents[2] / ".github" / "scripts" / "fixtures" / "copilot-reviews" / "approved-none.json"
+        body = json.loads(fixture.read_text(encoding="utf-8"))["body"]
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        snap["pr"]["review_decision"] = "APPROVED"
+        snap["reviews"] = [{"id": 2, "user": {"login": "copilot-pull-request-reviewer"},
+                            "body": body, "commit_id": "a" * 40, "state": "APPROVED"}]
+        snap["threads"] = []
+        head, base = "a" * 40, "b" * 40
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {f"copilot:{head}:{base}": {"status": "requested"}}}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": head, "base": base}
+        pull = eligible_pull(head, base)
+        with patch.object(mod, "gh_json", return_value=pull), patch.object(mod, "collect", return_value=snap):
+            mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
+        self.assertEqual(state["phase"], "FINAL_REVIEW_RECEIVED")
+
     def test_require_eligible_pr_rejects_closed_or_retargeted(self):
         head, base = "a" * 40, "b" * 40
         good = eligible_pull(head, base)

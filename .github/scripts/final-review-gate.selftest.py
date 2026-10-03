@@ -547,6 +547,17 @@ class FinalReviewGateTests(unittest.TestCase):
         out = MOD.evaluate_final_review_gate(snap(pr_author_login="copilot-swe-agent[bot]"))
         self.assertEqual(out["state"], MOD.STATE_FAILURE)
 
+    def test_copilot_logins_exclude_swe_coding_agent(self):
+        self.assertNotIn("copilot-swe-agent", MOD.COPILOT_LOGINS)
+        self.assertNotIn("copilot-swe-agent[bot]", MOD.COPILOT_LOGINS)
+        self.assertIn("copilot-pull-request-reviewer[bot]", MOD.COPILOT_LOGINS)
+        # SWE-agent must not satisfy "Copilot already reviewed this HEAD".
+        reviews = [{"id": 1, "user": {"login": "copilot-swe-agent[bot]"},
+                    "commit_id": HEAD, "state": "COMMENTED"}]
+        self.assertIsNone(MOD.latest_copilot_review(reviews, HEAD))
+        out = MOD.should_request_copilot(snap(reviews=reviews))
+        self.assertNotEqual(out.get("reason"), "Copilot already reviewed this HEAD")
+
 
 if __name__ == "__main__":
     unittest.main()

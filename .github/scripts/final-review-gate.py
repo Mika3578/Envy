@@ -28,13 +28,24 @@ STATE_FAILURE = "failure"
 STATE_PENDING = "pending"
 STATE_ERROR = "error"
 
+# Code Review reviewer aliases only. The Copilot SWE coding agent must never
+# satisfy "Copilot already reviewed this SHA" / gate SUCCESS — that identity is
+# classified NON_COPILOT and would otherwise deadlock the final request.
 COPILOT_LOGINS = frozenset(
     {
         "Copilot",
         "copilot-pull-request-reviewer",
         "copilot-pull-request-reviewer[bot]",
+    }
+)
+# Known non-reviewer Copilot identities: ignore for latest-review matching so
+# they neither count as "already reviewed" nor trip unknown-identity ERROR.
+NON_REVIEWER_COPILOT_LOGINS = frozenset(
+    {
         "copilot-swe-agent",
         "copilot-swe-agent[bot]",
+        "github-copilot",
+        "github-copilot[bot]",
     }
 )
 
@@ -177,6 +188,8 @@ def latest_copilot_review(
     matched: list[dict[str, Any]] = []
     for review in reviews_for_head(reviews, head_sha):
         login = _login(review)
+        if login in NON_REVIEWER_COPILOT_LOGINS:
+            continue
         if _is_copilot(login):
             matched.append(review)
         elif _looks_like_copilot(login):

@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 from contextlib import contextmanager
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -58,6 +59,61 @@ def latest_copilot_review(reviews, head):
     if not matched:
         return None
     return max(matched, key=lambda review: (int(review.get("id") or 0), str(review.get("submitted_at") or "")))
+
+
+def load_copilot_classifier():
+    """Load the host-installed trusted Copilot overview classifier."""
+    path = Path(__file__).resolve().parents[2] / ".github" / "scripts" / "classify-copilot-review.py"
+    if not path.is_file():
+        raise ValueError("classify-copilot-review.py is missing from the host installation")
+    name = "classify_copilot_review_mod"
+    existing = sys.modules.get(name)
+    if existing is not None and getattr(existing, "classify_review", None):
+        return existing
+    spec = importlib.util.spec_from_file_location(name, path)
+    classify = importlib.util.module_from_spec(spec)
+    sys.modules[name] = classify
+    spec.loader.exec_module(classify)
+    return classify
+
+
+def open_finding_titles_from_threads(threads):
+    titles = []
+    for thread in threads or []:
+        if thread.get("isResolved"):
+            continue
+        nodes = ((thread.get("comments") or {}).get("nodes") or [])
+        if not nodes:
+            continue
+        body = str(nodes[0].get("body") or "").strip()
+        if not body:
+            continue
+        titles.append(body.splitlines()[0][:200])
+    return titles
+
+
+def copilot_overview_is_clean(classify, review, *, threads=None, prior_reviews=None):
+    """True only when the trusted classifier reports clean APPROVED."""
+    titles = open_finding_titles_from_threads(threads)
+    outcome = classify.classify_review(
+        classify.review_input_from_github(review, open_finding_titles=titles)
+    )
+    prior = []
+    latest_id = review.get("id")
+    for item in prior_reviews or []:
+        if item.get("id") == latest_id:
+            continue
+        user = item.get("user") if isinstance(item.get("user"), dict) else {}
+        if user.get("login") not in COPILOT:
+            continue
+        prior.append(classify.classify_review(classify.review_input_from_github(item)))
+    if hasattr(classify, "apply_loop_guards"):
+        outcome = classify.apply_loop_guards(outcome, prior)
+    return (
+        str(outcome.get("classification") or "") == classify.CLASSIFICATION_APPROVED
+        and not outcome.get("requires_fixer")
+        and not outcome.get("requires_human")
+    )
 
 
 class CommandFailure(RuntimeError):
@@ -921,6 +977,18 @@ def final_review(config, entry, snapshot, state, store):
         if latest_fresh is None or str(latest_fresh.get("state") or "").upper() != "APPROVED":
             state["phase"] = "FIX_AGAIN"
             return
+        # GitHub APPROVED alone is insufficient: overview Previously missed /
+        # Suppressed / closer-look findings must still go through the trusted
+        # classifier before FINAL_REVIEW_RECEIVED.
+        classify = load_copilot_classifier()
+        if not copilot_overview_is_clean(
+            classify,
+            latest_fresh,
+            threads=fresh.get("threads"),
+            prior_reviews=fresh.get("reviews"),
+        ):
+            state["phase"] = "FIX_AGAIN"
+            return
         state["phase"] = "FINAL_REVIEW_RECEIVED"
         return
     requests = gh_json(["api", f"repos/{REPOSITORY}/pulls/{number}/requested_reviewers"])
@@ -935,11 +1003,13 @@ def final_review(config, entry, snapshot, state, store):
         return
     state.setdefault("requests", {})[key] = {"status": "requesting"}
     store.save(number, state)
+    mutation_attempted = False
     try:
         bot = gh_json(["api", "/users/copilot-pull-request-reviewer%5Bbot%5D"])
         bot_id = str(bot.get("node_id") or "")
         if not bot_id:
             raise ValueError("Copilot reviewer bot node ID is unavailable")
+        mutation_attempted = True
         graphql_mutation(
             """mutation($pr:ID!,$bots:[ID!]!){
               requestReviews(input:{pullRequestId:$pr,botIds:$bots,union:true}){
@@ -955,8 +1025,14 @@ def final_review(config, entry, snapshot, state, store):
         ):
             raise ValueError("Copilot review request was not created")
     except Exception:
-        # GitHub may already have accepted requestReviews; do not retry this SHA.
-        state["requests"][key] = {"status": "unknown"}
+        if mutation_attempted:
+            # Ambiguous post-mutation failure: GitHub may already have accepted
+            # requestReviews; do not retry this SHA.
+            state["requests"][key] = {"status": "unknown"}
+        else:
+            # Definitive pre-mutation failure (e.g. missing bot node ID) must
+            # remain retryable for the one allowed request on this HEAD.
+            state["requests"].pop(key, None)
         store.save(number, state)
         raise
     state["requests"][key] = {"status": "requested"}
