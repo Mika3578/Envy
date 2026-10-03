@@ -423,7 +423,10 @@ snapshot; wait until a Copilot review exists for the expected HEAD, then
 evaluate a fresh post-review snapshot. Unavailable free re-reviews do
 not block that request. Keep `review_on_push=false`,
 `review_draft_pull_requests=false`, and preserve human/team reviewers. The
-advisory commit status `Final review gate` is SHA-bound and fail-closed;
+advisory commit status `Final review gate` is SHA-bound and fail-closed.
+It is published only by a default-branch workflow (`pull_request_target` /
+`workflow_run`); PR-controlled `pull_request` YAML must not hold
+`statuses:write` for that context.
 do not treat `copilot-pull-request-reviewer` check success as APPROVED.
 The correction agent must never approve, dismiss reviews, request Copilot while
 the PR is Draft, merge, enable auto-merge, change repository settings/rulesets,

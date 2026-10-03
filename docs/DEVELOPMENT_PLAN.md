@@ -1,7 +1,7 @@
 # DEVELOPMENT PLAN (LIVING)
 
 - **Last Updated:** 2026-10-03
-- **Changelog Entry:** 2026-10-03 — #397 adds stable-HEAD Copilot (one request per SHA) plus advisory SHA-bound `Final review gate`. `review_on_push` stays false; auto-merge stays off; required-check rollout waits until the workflow exists on `develop`. D-022.
+- **Changelog Entry:** 2026-10-03 — #397 adds stable-HEAD Copilot (one request per SHA) plus advisory SHA-bound `Final review gate` published only from a default-branch workflow. `review_on_push` stays false; auto-merge stays off; required-check rollout waits until the workflow exists on `develop`. D-022.
 
 - **Changelog Entry:** 2026-10-01 — Finalization of #395 preserves one non-author approval, all eight live required contexts, CodeQL/Gitleaks and GitHub Code Quality (severity All). Retain the staged Draft/live-test/Ready workflow and manual maintainer transitions; squash summaries remain curated. #397 owns review outcome tracking, not merge authority.
 

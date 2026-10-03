@@ -1,107 +1,31 @@
-# Advisory exact-HEAD Final review gate.
+# Unprivileged PR-controlled probe. No statuses/checks/contents write.
 #
-# Posts commit status context "Final review gate" on the current PR HEAD SHA.
-# Not a Protect develop required check in this PR. Auto-merge stays off.
-# Scripts are loaded from the default branch. Never checkout PR HEAD code.
-# check_run is omitted until this workflow exists on develop (those events
-# always load the default-branch file).
-name: Final review gate
+# GitHub runs pull_request / pull_request_review workflows from the PR merge
+# commit (https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target).
+# This file must never publish commit status "Final review gate".
+# The authoritative publisher is publish-final-review-gate.yml on the default
+# branch (base-branch + workflow_run triggers).
+name: Final review gate probe
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   pull_request_review:
     types: [submitted, dismissed]
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: Pull request number
-        required: true
-        type: string
 
-permissions:
-  contents: read
-  pull-requests: read
-  checks: read
-  statuses: write
+permissions: {}
 
 concurrency:
-  group: final-review-gate-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.run_id }}
+  group: final-review-gate-probe-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  evaluate:
-    name: Evaluate final review gate
-    if: >
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+  probe:
+    name: Probe final review gate
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 2
     steps:
-      - name: Resolve PR number
-        id: pr
-        env:
-          PR_FROM_EVENT: ${{ github.event.pull_request.number }}
-          INPUT_PR: ${{ github.event.inputs.pr_number }}
+      - name: Do not publish the gate from PR-controlled YAML
         run: |
-          set -euo pipefail
-          pr="${PR_FROM_EVENT:-}"
-          if [[ -z "$pr" || "$pr" == "null" ]]; then
-            pr="${INPUT_PR:-}"
-          fi
-          if [[ ! "$pr" =~ ^[0-9]+$ ]]; then
-            echo "::error::Could not resolve pull request number for Final review gate."
-            exit 1
-          fi
-          echo "number=$pr" >>"$GITHUB_OUTPUT"
-
-      - name: Checkout gate scripts from default branch
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          persist-credentials: false
-          sparse-checkout: |
-            .github/scripts/final-review-gate.py
-            .github/scripts/collect-final-review-snapshot.py
-            .github/scripts/publish-final-review-gate.py
-            .github/scripts/classify-copilot-review.py
-            scripts/review/required_checks.py
-          sparse-checkout-cone-mode: false
-
-      - name: Require trusted scripts on the default branch
-        id: scripts
-        run: |
-          set -euo pipefail
-          missing=0
-          for f in \
-            .github/scripts/final-review-gate.py \
-            .github/scripts/collect-final-review-snapshot.py \
-            .github/scripts/publish-final-review-gate.py \
-            scripts/review/required_checks.py
-          do
-            if [[ ! -f "$f" ]]; then
-              echo "::warning::$f is missing on the default branch; gate stays non-success (staged rollout)."
-              missing=1
-            fi
-          done
-          echo "missing=$missing" >>"$GITHUB_OUTPUT"
-
-      - name: Evaluate and publish SHA-bound status
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          SCRIPTS_MISSING: ${{ steps.scripts.outputs.missing }}
-        run: |
-          set -euo pipefail
-          if [[ "${SCRIPTS_MISSING}" == "1" ]]; then
-            sha="$(gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}" --jq .head.sha)"
-            gh api -X POST "repos/${REPOSITORY}/statuses/${sha}" \
-              -f state=pending \
-              -f context="Final review gate" \
-              -f description="gate scripts not on default branch yet" \
-              -f "target_url=${RUN_URL}"
-            exit 0
-          fi
-          python3 .github/scripts/publish-final-review-gate.py
+          echo "Authoritative Final review gate status is published only by the default-branch workflow."

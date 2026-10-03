@@ -12,7 +12,7 @@
     ]
   },
   "rollout": [
-    "A. Implement evaluator and workflow on #397 (this PR).",
+    "A. Implement evaluator on #397; publish only from default-branch pull_request_target/workflow_run.",
     "B. Keep the status advisory (not required).",
     "C. Merge #397 after independent human APPROVED (privileged governance).",
     "D. Observe real PRs posting the status on current HEAD.",
