@@ -370,6 +370,18 @@ inline bool RemoteAccessAllowedCore(
 	if (RemoteClientIsLoopback(clientIP, pszClientAddress))
 		return true;
 
+	// IPv4 private/subnet/CIDR flags are meaningless for an IPv6 peer string
+	// (AcceptFrom / InetNtop). Fail closed until D-017 adds IPv6-aware checks.
+	bool bPrivate = bIsPrivateIP;
+	bool bSubnet = bIsLocalSubnet;
+	bool bInCidr = bIsInCidrList;
+	if (pszClientAddress != NULL && _tcschr(pszClientAddress, L':') != NULL)
+	{
+		bPrivate = false;
+		bSubnet = false;
+		bInCidr = false;
+	}
+
 	// BindAddress is not applied to a socket (D-017). When it names localhost only,
 	// non-loopback clients cannot use AllowLAN/WAN/CIDR unless AllowExternal is set.
 	// Malformed/oversized bind values deny LAN/WAN/CIDR (fail closed), but the
@@ -385,9 +397,9 @@ inline bool RemoteAccessAllowedCore(
 		return true;
 	if (bAllowWAN)
 		return true;
-	if (bAllowLAN && (bIsPrivateIP || bIsLocalSubnet))
+	if (bAllowLAN && (bPrivate || bSubnet))
 		return true;
-	if (bHasCidrWhitelist && bIsInCidrList)
+	if (bHasCidrWhitelist && bInCidr)
 		return true;
 
 	return false;

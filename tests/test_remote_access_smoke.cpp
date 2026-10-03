@@ -285,6 +285,39 @@ static bool test_invalid_bind_fail_closed_denies_lan()
 	           false);
 }
 
+static bool test_ipv6_peer_ignores_ipv4_lan_cidr_flags()
+{
+	// Non-loopback IPv6 peer text must not be admitted via IPv4 private/subnet/
+	// CIDR flags that may be derived from unrelated SOCKADDR_IN bytes.
+	const IN_ADDR oFakePrivate = make_ipv4_octets(10, 0, 0, 5);
+	wchar_t szDocPrefix[32];
+	wchar_t szAnyBind[16];
+	swprintf_s(szDocPrefix, 32, L"2001:db8::%u", 1u);
+	format_ipv4_bind(szAnyBind, 16, 0, 0, 0, 0);
+	return !RemoteAccessAllowedCore(
+	           oFakePrivate,
+	           szDocPrefix,
+	           false,
+	           false,
+	           true,
+	           true,
+	           szAnyBind,
+	           true,
+	           true,
+	           true) &&
+	       RemoteAccessAllowedCore(
+	           oFakePrivate,
+	           szDocPrefix,
+	           false,
+	           true,
+	           false,
+	           false,
+	           szAnyBind,
+	           true,
+	           true,
+	           true);
+}
+
 static bool test_invalid_bind_allow_external_override_applies()
 {
 	// An invalid bind value denies LAN/WAN/CIDR but the documented explicit
@@ -331,6 +364,8 @@ void register_remote_access_smoke_tests(TestSuite& suite)
 	               test_localhost_bind_allow_external_admits_lan);
 	suite.add_test("remote_invalid_bind_fail_closed_denies_lan",
 	               test_invalid_bind_fail_closed_denies_lan);
+	suite.add_test("remote_ipv6_peer_ignores_ipv4_lan_cidr_flags",
+	               test_ipv6_peer_ignores_ipv4_lan_cidr_flags);
 	suite.add_test("remote_invalid_bind_allow_external_override_applies",
 	               test_invalid_bind_allow_external_override_applies);
 	suite.add_test("remote_bind_rejects_oversized_ipv4_octets",

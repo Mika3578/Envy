@@ -50,7 +50,11 @@ bool CRemoteSecurity::IsRemoteAccessAllowed(const IN_ADDR& clientIP, LPCTSTR psz
 	bool bInCidr = false;
 
 	// Defer adapter/CIDR work until Core could still use those results.
-	if (!RemoteClientIsLoopback(clientIP, pszClientAddress))
+	// IPv4-only helpers must not consult SOCKADDR_IN when AcceptFrom stored an
+	// IPv6 peer string in m_sAddress; those bytes are not the peer (D-017).
+	const bool bIpv6Peer =
+	    pszClientAddress != NULL && _tcschr(pszClientAddress, _T(':')) != NULL;
+	if (!bIpv6Peer && !RemoteClientIsLoopback(clientIP, pszClientAddress))
 	{
 		const RemoteBindKind bindKind =
 		    ClassifyRemoteBindAddress(Settings.Remote.BindAddress);
