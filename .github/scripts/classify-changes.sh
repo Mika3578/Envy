@@ -251,9 +251,13 @@ while IFS= read -r f; do
 		classified=true
 		;;
 	.github/workflows/classify-changes.yml | \
+	.github/workflows/pr-phase.yml | \
 	.github/scripts/classify-changes.sh | \
 	.github/scripts/audit-ruleset.py | \
+	.github/scripts/pr-phase.py | \
 	.github/rulesets/*)
+		# Phase/classifier/ruleset changes can suppress Remote JS or dep-review
+		# lanes unless force_all_pr turns those checks back on.
 		workflow=true
 		force_all_pr=true
 		csharp=true
