@@ -1,7 +1,7 @@
 //
 // CtrlBrowseTree.h
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -24,6 +24,7 @@ class CBrowseTreeItem;
 class CG2Packet;
 class CXMLElement;
 class CQueryHit;
+struct XmlParseBudget;
 
 
 class CBrowseTreeCtrl : public CWnd
@@ -71,9 +72,9 @@ protected:
 	BOOL				CleanItems(CBrowseTreeItem* pItem, DWORD nCookie, BOOL bVisible);
 	BOOL				CollapseRecursive(CBrowseTreeItem* pItem);
 	void				NotifySelection();
-	void				OnTreePacket(CG2Packet* pPacket, DWORD nFinish, CBrowseTreeItem* pItem);
+	void OnTreePacket(CG2Packet* pPacket, DWORD nFinish, CBrowseTreeItem* pItem, XmlParseBudget* pBudget);
 
-// Inlines
+	// Inlines
 public:
 	inline CSyncObject* SyncRoot()
 	{

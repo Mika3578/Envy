@@ -1004,9 +1004,13 @@ BOOL CBuffer::ReadDIME(
 	*pnBody 	= ( pIn[0] << 24 ) + ( pIn[1] << 16 ) + ( pIn[2] << 8 ) + pIn[3];	// Write the body length in the DWORD from the caller
 	pIn += 4;	// Move forward another 4 bytes to total 8 bytes for this section
 
-	// Skip forward a distance determined by the lengths we just read
+	// Skip forward a distance determined by the lengths we just read.
+	// Reject body lengths that would wrap (nBody + 3) before padding.
+	if (*pnBody > MAXDWORD - 3u)
+		return FALSE;
 	DWORD nSkip = 12 + ( ( nID + 3 ) & ~3 ) + ( ( nType + 3 ) & ~3 );
-	if ( m_nLength < nSkip + ( ( *pnBody + 3 ) & ~3 ) )
+	const DWORD nPaddedBody = (*pnBody + 3) & ~3;
+	if (nPaddedBody > MAXDWORD - nSkip || m_nLength < nSkip + nPaddedBody)
 		return FALSE;					// Make sure the buffer is big enough to skip this far forward
 
 	// Read psID, a GUID in hexadecimal encoding
@@ -1019,5 +1023,59 @@ BOOL CBuffer::ReadDIME(
 
 	// Remove the first part of the DIME message from the buffer, and report success
 	Remove( nSkip );
+	return TRUE;
+}
+
+// Peek a DIME record header (flags/id/type/body length) without requiring the
+// body bytes and without removing anything. Used to reject oversized peer XML
+// before ReadDIME would wait for the full declared body in m_pInput.
+BOOL CBuffer::PeekDIME(
+    DWORD* pnFlags,
+    CString* psID,
+    CString* psType,
+    DWORD* pnBody,
+    DWORD* pnHeaderBytes)
+{
+	if (m_nLength < 12) return FALSE;
+
+	BYTE* pIn = m_pBuffer;
+
+	if ((*pIn & 0xF8) != 0x08) return FALSE;
+
+	if (pnFlags != NULL)
+	{
+		*pnFlags = 0;
+		if (*pIn & 4) *pnFlags |= 1;
+		if (*pIn & 2) *pnFlags |= 2;
+	}
+
+	pIn++;
+	if (*pIn != 0x10 && *pIn != 0x20) return FALSE;
+
+	pIn++;
+	if (*pIn++ != 0x00) return FALSE;
+	if (*pIn++ != 0x00) return FALSE;
+
+	WORD nID = (pIn[0] << 8) + pIn[1];
+	pIn += 2;
+	WORD nType = (pIn[0] << 8) + pIn[1];
+	pIn += 2;
+	DWORD nBody = (pIn[0] << 24) + (pIn[1] << 16) + (pIn[2] << 8) + pIn[3];
+	pIn += 4;
+
+	const DWORD nSkip = 12 + ((nID + 3) & ~3) + ((nType + 3) & ~3);
+	if (m_nLength < nSkip)
+		return FALSE;
+
+	if (pnBody != NULL)
+		*pnBody = nBody;
+	if (pnHeaderBytes != NULL)
+		*pnHeaderBytes = nSkip;
+	if (psID != NULL)
+		*psID = CString(reinterpret_cast<char*>(pIn), nID);
+	pIn += (nID + 3) & ~3;
+	if (psType != NULL)
+		*psType = CString(reinterpret_cast<char*>(pIn), nType);
+
 	return TRUE;
 }
