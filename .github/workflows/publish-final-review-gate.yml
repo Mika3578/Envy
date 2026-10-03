@@ -116,13 +116,28 @@ jobs:
                   pulls = [item for page in pages for item in page]
               else:
                   pulls = pages
-              numbers = [
-                  item.get("number")
-                  for item in pulls
-                  if isinstance(item, dict)
-                  and (item.get("base") or {}).get("repo", {}).get("full_name") == repository
-              ]
-              pr = numbers[0] if numbers else None
+              repo_obj = json.loads(subprocess.check_output(
+                  ["gh", "api", f"repos/{repository}"], text=True))
+              default = repo_obj.get("default_branch") or ""
+              eligible = []
+              for item in pulls:
+                  if not isinstance(item, dict):
+                      continue
+                  if str(item.get("state") or "").lower() != "open":
+                      continue
+                  if str((item.get("base") or {}).get("ref") or "") != default:
+                      continue
+                  head_full = ((item.get("head") or {}).get("repo") or {}).get("full_name")
+                  base_full = ((item.get("base") or {}).get("repo") or {}).get("full_name")
+                  if head_full != repository or base_full != repository:
+                      continue
+                  number = item.get("number")
+                  if number is None or str(number) in {"", "null"}:
+                      sys.exit(1)
+                  eligible.append(int(number))
+              if len(set(eligible)) != 1:
+                  sys.exit(2 if not eligible else 1)
+              pr = eligible[0]
           if pr is None or str(pr) in {"", "null"}:
               sys.exit(2)
           if not re.fullmatch(r"[0-9]+", str(pr)):

@@ -570,6 +570,49 @@ class ServiceTests(unittest.TestCase):
         with patch.object(mod, "publication_git", side_effect=["", "https://github.com/Mika3578/Envy.git"]):
             mod.assert_trusted_publication_remote(identity, hooks)
 
+    def test_graphql_review_decision_is_required(self):
+        with self.assertRaises(ValueError):
+            mod.graphql_review_decision({"headRefOid": "a" * 40})
+        self.assertEqual(
+            mod.graphql_review_decision(
+                {"reviewDecision": "CHANGES_REQUESTED", "headRefOid": "a" * 40}, "a" * 40
+            ),
+            "CHANGES_REQUESTED",
+        )
+        with self.assertRaises(ValueError):
+            mod.graphql_review_decision(
+                {"reviewDecision": "APPROVED", "headRefOid": "b" * 40}, "a" * 40
+            )
+
+    def test_failed_copilot_request_keeps_unknown_marker(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        snap["reviews"] = []
+        head, base = "a" * 40, "b" * 40
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {}}
+
+        class Store:
+            def save(self, *_args):
+                pass
+
+        pull = {"head": {"sha": head}, "base": {"sha": base}, "draft": False, "node_id": "PR"}
+        with patch.object(mod, "gh_json", side_effect=[pull, {"users": []}, {"node_id": "BOT"}]), patch.object(
+            mod, "graphql_mutation", side_effect=ValueError("network")
+        ):
+            with self.assertRaises(ValueError):
+                mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, Store())
+        self.assertEqual(state["requests"][f"copilot:{head}:{base}"]["status"], "unknown")
+
 
 if __name__ == "__main__":
     unittest.main()

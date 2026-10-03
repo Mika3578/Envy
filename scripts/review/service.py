@@ -172,11 +172,13 @@ def collect(number):
                 "files": pages(f"{prefix}/pulls/{number}/files")}
     owner, repo = REPOSITORY.split("/")
     query = '''query($o:String!,$r:String!,$n:Int!,$c:String){repository(owner:$o,name:$r){
-      pullRequest(number:$n){reviewThreads(first:100,after:$c){
+      pullRequest(number:$n){reviewDecision headRefOid reviewThreads(first:100,after:$c){
         pageInfo{hasNextPage endCursor} nodes{id isResolved isOutdated comments(first:100){
           pageInfo{hasNextPage} nodes{databaseId author{login __typename} commit{oid}}}}
       }}}}'''
     threads, cursor, seen = [], None, set()
+    graphql_decision = None
+    graphql_head = None
     while True:
         args = ["api", "graphql", "-f", f"query={query}", "-f", f"o={owner}",
                 "-f", f"r={repo}", "-F", f"n={number}"]
@@ -185,7 +187,19 @@ def collect(number):
         page = gh_json(args)
         if page.get("errors"):
             raise ValueError("GraphQL thread collection failed")
-        conn = page["data"]["repository"]["pullRequest"]["reviewThreads"]
+        pr_node = ((page.get("data") or {}).get("repository") or {}).get("pullRequest")
+        if not isinstance(pr_node, dict) or "reviewDecision" not in pr_node:
+            raise ValueError("GraphQL reviewDecision is missing")
+        decision = graphql_review_decision(pr_node, pr["head"]["sha"])
+        oid = str(pr_node.get("headRefOid") or "")
+        if graphql_decision is None:
+            graphql_decision = decision
+            graphql_head = oid
+        elif decision != graphql_decision or oid != graphql_head:
+            raise ValueError("GraphQL reviewDecision or HEAD changed during collection")
+        conn = pr_node.get("reviewThreads")
+        if not isinstance(conn, dict) or not isinstance(conn.get("nodes"), list):
+            raise ValueError("GraphQL thread collection failed")
         threads.extend(conn["nodes"])
         info = conn["pageInfo"]
         if not isinstance(info["hasNextPage"], bool):
@@ -199,6 +213,9 @@ def collect(number):
     if any((thread.get("comments") or {}).get("pageInfo", {}).get("hasNextPage") for thread in threads):
         raise ValueError("Incomplete review thread comments")
     snapshot["threads"] = threads
+    snapshot["pr"]["review_decision"] = graphql_decision
+    if graphql_head and graphql_head != pr["head"]["sha"]:
+        raise ValueError("HEAD changed during GraphQL collection")
     snapshot.update(collect_checks(REPOSITORY, pr["head"]["sha"]))
     snapshot["publisher_login"] = gh_json(["api", "user"])["login"]
     current = gh_json(["api", f"{prefix}/pulls/{number}"])
@@ -238,6 +255,15 @@ def _resolved_thread_is_untreated(nodes, head, *, outdated=False):
 
 def identity(pr):
     return pr["head"]["sha"], pr["base"]["sha"]
+
+
+def graphql_review_decision(pr_node, expected_head=""):
+    if not isinstance(pr_node, dict) or "reviewDecision" not in pr_node:
+        raise ValueError("GraphQL reviewDecision is missing")
+    oid = str(pr_node.get("headRefOid") or "")
+    if expected_head and oid and oid != expected_head:
+        raise ValueError("HEAD changed during GraphQL collection")
+    return str(pr_node.get("reviewDecision") or "")
 
 
 def minimal_environment():
@@ -789,7 +815,8 @@ def final_review(config, entry, snapshot, state, store):
         ):
             raise ValueError("Copilot review request was not created")
     except Exception:
-        state["requests"].pop(key, None)
+        # GitHub may already have accepted requestReviews; do not retry this SHA.
+        state["requests"][key] = {"status": "unknown"}
         store.save(number, state)
         raise
     state["requests"][key] = {"status": "requested"}

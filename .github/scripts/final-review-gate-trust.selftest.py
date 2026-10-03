@@ -134,6 +134,8 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn("--paginate", text)
         self.assertIn("--slurp", text)
         self.assertIn("commits/{sha}/pulls", text)
+        self.assertIn("len(set(eligible)) != 1", text)
+        self.assertNotIn("pr = numbers[0]", text)
 
     def test_review_history_file_survives_until_check_history(self):
         text = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")
