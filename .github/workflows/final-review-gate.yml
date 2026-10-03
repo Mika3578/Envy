@@ -12,8 +12,6 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   pull_request_review:
     types: [submitted, dismissed]
-  pull_request_review_thread:
-    types: [resolved, unresolved]
   workflow_dispatch:
     inputs:
       pr_number:
