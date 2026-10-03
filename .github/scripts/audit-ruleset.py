@@ -59,8 +59,16 @@ def fetch_live_ruleset(repo: str, ruleset_id: int) -> dict[str, Any]:
     safe_repo = validate_repo(repo)
     if ruleset_id <= 0:
         raise ValueError("--ruleset-id must be a positive integer")
-    cmd = ["gh", "api", f"repos/{safe_repo}/rulesets/{ruleset_id}"]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    # argv list only (shell=False). safe_repo is OWNER/REPO charset-validated;
+    # ruleset_id is a positive int. No untrusted shell metacharacters reach gh.
+    api_path = "repos/{}/rulesets/{}".format(safe_repo, ruleset_id)
+    result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
+        ["gh", "api", api_path],
+        capture_output=True,
+        text=True,
+        check=False,
+        shell=False,
+    )
     if result.returncode != 0:
         detail = result.stderr.strip() or result.stdout.strip() or "gh returned no diagnostic"
         raise RuntimeError(f"GitHub CLI request failed: {detail}")
