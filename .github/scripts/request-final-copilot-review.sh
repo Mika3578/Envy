@@ -289,7 +289,7 @@ request_copilot_refresh() {
 	local pr_node_id="$1"
 	local head_oid_before="$2"
 	local pr_json head_oid_after
-	local max_reviews_per_head=3
+	local max_reviews_per_head=2
 
 	if ! pr_json="$(fetch_pr_json)"; then
 		exit 0

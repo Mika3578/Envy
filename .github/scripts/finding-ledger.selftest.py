@@ -156,6 +156,13 @@ class FindingLedgerTests(unittest.TestCase):
         result = subprocess.run(command, input="[]", text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_policy_status_aliases(self):
+        self.assertEqual(MOD.canonical_status("NEW"), MOD.STATUS_OPEN)
+        self.assertEqual(MOD.canonical_status("FIXED"), MOD.STATUS_FIXED_PENDING)
+        self.assertEqual(MOD.canonical_status("JUSTIFIED"), MOD.STATUS_RESOLVED)
+        self.assertEqual(MOD.canonical_status("RECURRED"), MOD.STATUS_OPEN)
+        self.assertEqual(MOD.canonical_status("NEEDS_HUMAN"), MOD.STATUS_NEEDS_HUMAN)
+
 
 if __name__ == "__main__":
     unittest.main()

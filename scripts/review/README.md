@@ -7,6 +7,14 @@ and individual dispositions. The host validates, commits with the configured
 human noreply identity, pushes normally, watches required CI and publishes
 evidence. It never approves or merges.
 
+Routine GitHub mutations use GitHub MCP when practical. If MCP needs an
+interactive Cursor confirmation that is unavailable, authenticated `gh` OAuth
+is the supported fallback (`gh pr edit`, `gh api`, `gh api graphql`,
+`gh pr checks`). Do not use `gh` to bypass rulesets, required reviews, or
+maintainer-only Ready/merge transitions. Copilot is requested at most once per
+stable HEAD (`union=true`). The Actions commit status `Final review gate` is
+advisory until a maintainer adds it to Protect develop; auto-merge stays off.
+
 ## Installation and activation
 
 1. Review the worker, configuration and validation commands. Copy this directory

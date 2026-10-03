@@ -13,7 +13,9 @@
     "Preserve one non-author approval and every existing CI/security/quality gate.",
     "CLEAN/FIX_AGAIN/NEEDS_HUMAN is classification, never a GitHub approval.",
     "The exceptional requester remains disabled until its trusted environment is verified.",
-    "PR #395 owns common policy; this PR owns the review classifier and finding ledger."
+    "Do not set review_on_push or review_draft_pull_requests to true.",
+    "PR #395 owns shared governance wording; this PR owns the classifier, ledger, and advisory Final review gate.",
+    "Do not add Final review gate to live required checks until the workflow exists on develop."
   ],
   "live_observed_2026-10-01": {
     "review_on_push": false,

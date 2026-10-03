@@ -19,11 +19,19 @@ subscription configuration below is a rollout specification, not evidence that
 Cursor has been configured or that runtime validation has occurred.
 
 ```
-Draft -> cheap CI + optional reviews -> one subscribed fixer
+Draft -> cheap CI + optional reviews -> stabilizer (batch fix, gh fallback)
   -> maintainer: stage:live-test -> Windows + EnvyTests + artifacts
   -> maintainer: runtime test -> maintainer: Ready
-  -> full CI + Copilot -> same fixer -> native mergeability -> manual squash
+  -> full CI + treat all findings/threads
+  -> exactly one Copilot request on stable Ready HEAD
+  -> exact-SHA Final review gate (advisory until ruleset rollout)
+  -> outcome classifier -> same fixer if needed -> native mergeability
+  -> maintainer notify -> manual squash
 ```
+
+Do not enable GitHub auto-merge in this phase. After the gate is observed on
+real PRs, a maintainer may add `Final review gate` to Protect develop required
+checks. Auto-merge remains a later opt-in.
 
 After merge to `develop` (and weekly/nightly schedules):
 

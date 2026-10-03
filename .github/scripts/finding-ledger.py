@@ -18,6 +18,31 @@ STATUS_FIXED_PENDING = "fixed_pending_rereview"
 STATUS_RESOLVED = "resolved"
 STATUS_NEEDS_HUMAN = "needs_human"
 
+# Policy aliases used by the stabilizer ledger (stored as canonical statuses).
+POLICY_STATUS = {
+    "NEW": STATUS_OPEN,
+    "VALID": STATUS_OPEN,
+    "FIXED": STATUS_FIXED_PENDING,
+    "JUSTIFIED": STATUS_RESOLVED,
+    "RESOLVED": STATUS_RESOLVED,
+    "RECURRED": STATUS_OPEN,
+    "NEEDS_HUMAN": STATUS_NEEDS_HUMAN,
+    STATUS_OPEN: STATUS_OPEN,
+    STATUS_FIXED_PENDING: STATUS_FIXED_PENDING,
+    STATUS_RESOLVED: STATUS_RESOLVED,
+    STATUS_NEEDS_HUMAN: STATUS_NEEDS_HUMAN,
+}
+
+
+def canonical_status(status: str) -> str:
+    key = str(status or "").strip()
+    if key in POLICY_STATUS:
+        return POLICY_STATUS[key]
+    raised = key.upper()
+    if raised in POLICY_STATUS:
+        return POLICY_STATUS[raised]
+    raise ValueError(f"unknown finding status: {status}")
+
 MAX_AUTOFIX_ATTEMPTS = None
 
 

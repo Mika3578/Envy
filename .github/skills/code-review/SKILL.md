@@ -14,18 +14,18 @@ gates below hold and repository Copilot approval settings allow it.
 
 ## When to run (request timing)
 
-Maintainers and agents request Copilot Code Review only when the pull
-request is **mergeable** toward `develop` (**not a draft** — no agent or
-maintainer review request in Draft; cheap CI and thread treatment only,
-required Protect
-develop checks green, branch up to date with `develop`, no outstanding
-`CHANGES_REQUESTED` that still applies) **and every review comment thread
-on the current head is treated** (`AGENTS.md` §5 *Review comment
-handling*: fix or justified reply, then resolve on GitHub). Request **one**
-Copilot review on that stable head — not while untreated threads remain and
-not after every partial fix batch (Copilot review-on-push stays off in
-Protect develop by design). Re-request only when a **new head** requires it
-and treatment is complete again.
+Maintainers and agents request Copilot Code Review **once** when HEAD is
+stable: not a draft, no planned push, required Protect develop checks
+green, every current finding treated (inline, overview, Previously missed,
+Suppressed, PR-level bodies), review threads resolved, and no outstanding
+`CHANGES_REQUESTED`. Do not request Copilot during Draft, while CI is red or
+running, or while a correction batch is in progress. Re-request on a **new**
+HEAD only after that HEAD is stable again. Copilot review-on-push stays
+**off**. Draft Copilot review stays **off**.
+
+The check named `copilot-pull-request-reviewer` is not an approval. Read the
+GitHub review: login must be the Copilot reviewer bot, `commit_id` must equal
+the current PR HEAD, and `state` must be `APPROVED`.
 
 ## Correction agents (must not request reviews in Draft)
 
@@ -33,8 +33,7 @@ Repository correction/stabilizer agents treat review threads and push fix
 batches; they **do not** request Copilot Code Review, other review products,
 or human reviewers while the pull request is a **draft**, and they do not
 approve or merge. Request Copilot only from a maintainer (or one explicit
-final step after **Ready**) when `AGENTS.md` §5 *Review and Copilot economy*
-pre-request checklist is satisfied.
+final step after **Ready**) when `AGENTS.md` §5 is satisfied.
 
 ## Review outcome (must use GitHub review state)
 
@@ -99,7 +98,8 @@ and request a human; do not `APPROVED`.
   `CHANGES_REQUESTED`. Copilot must **not** submit `APPROVED` when any
   privileged governance path changes — even if the UI allowlist would
   allow counting — because the skill and instructions are PR-controlled.
-  Manual squash merge stays required (`AGENTS.md` rule 16).
+  Those PRs need an independent human `APPROVED`. Manual squash merge stays
+  required (`AGENTS.md` rule 16).
 
 ## Submit `APPROVED` when all of the following hold
 
@@ -118,6 +118,9 @@ and request a human; do not `APPROVED`.
 - Do not treat CodeRabbit, Amazon Q, Sourcery, or an approval *assessment*
   as an approval. A Copilot `APPROVED` review is not proof of correctness;
   required CI and security checks stay independent.
+- Privileged governance paths additionally require an independent human
+  `APPROVED` on the current HEAD. Copilot must not be the sole counted
+  approval on those changes.
 
 ## Submit `CHANGES_REQUESTED` when
 
