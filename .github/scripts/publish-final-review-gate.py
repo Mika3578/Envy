@@ -38,23 +38,37 @@ def live_head(repository: str, pr: int) -> str:
     return (proc.stdout or "").strip()
 
 
-def post_status(repository: str, sha: str, state: str, description: str, target_url: str) -> None:
+def post_check_run(repository: str, sha: str, state: str, description: str, target_url: str) -> None:
+    if state == "pending":
+        payload = {
+            "name": GATE.GATE_CONTEXT,
+            "head_sha": sha,
+            "status": "in_progress",
+            "details_url": target_url,
+            "output": {"title": GATE.GATE_CONTEXT, "summary": description[:1024]},
+        }
+    else:
+        conclusion = "success" if state == "success" else "failure"
+        payload = {
+            "name": GATE.GATE_CONTEXT,
+            "head_sha": sha,
+            "status": "completed",
+            "conclusion": conclusion,
+            "details_url": target_url,
+            "output": {"title": GATE.GATE_CONTEXT, "summary": description[:1024]},
+        }
     subprocess.run(
         [
             "gh",
             "api",
             "-X",
             "POST",
-            f"repos/{repository}/statuses/{sha}",
-            "-f",
-            f"state={state}",
-            "-f",
-            f"context={GATE.GATE_CONTEXT}",
-            "-f",
-            f"description={description[:120]}",
-            "-f",
-            f"target_url={target_url}",
+            f"repos/{repository}/check-runs",
+            "--input",
+            "-",
         ],
+        input=json.dumps(payload),
+        text=True,
         check=True,
     )
 
@@ -75,7 +89,7 @@ def main() -> int:
         if not sha:
             print(desc, file=sys.stderr)
             return 1
-        post_status(repository, sha, state, desc, run_url)
+        post_check_run(repository, sha, state, desc, run_url)
         print(json.dumps({"state": state, "reason": desc, "publish_sha": sha}, indent=2))
         return 0
     try:
@@ -86,7 +100,7 @@ def main() -> int:
         if not sha:
             print(f"collection/eval failed and HEAD unread: {exc}", file=sys.stderr)
             return 1
-        post_status(repository, sha, "error", "GitHub API error", run_url)
+        post_check_run(repository, sha, "error", "GitHub API error", run_url)
         print(json.dumps({"state": "error", "reason": str(exc)}, indent=2))
         return 0
     live = live_head(repository, pr)
@@ -111,7 +125,7 @@ def main() -> int:
     if state == "success" and live != snapshot.get("current_head_sha"):
         state = "pending"
         desc = "HEAD changed before status publish; refusing stale success"
-    post_status(repository, live, state, desc, run_url)
+    post_check_run(repository, live, state, desc, run_url)
     print(json.dumps({"state": state, "reason": desc, "publish_sha": live}, indent=2))
     return 0
 

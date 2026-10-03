@@ -85,13 +85,45 @@ def paginate_files(repository: str, pr: int) -> list[str]:
     return [line.strip() for line in proc.stdout.splitlines() if line.strip()]
 
 
-def unresolved_threads(owner: str, repo: str, pr: int) -> int:
+def count_thread_dispositions(nodes: list) -> tuple[int, int]:
+    """Return (unresolved, resolved-without-non-Copilot-reply). Fail closed."""
+    copilot = GATE.COPILOT_LOGINS
+    unresolved = 0
+    untreated = 0
+    for node in nodes:
+        if not isinstance(node, dict):
+            raise RuntimeError("review thread node is malformed")
+        comments = node.get("comments") or {}
+        if comments.get("pageInfo", {}).get("hasNextPage"):
+            raise RuntimeError("incomplete review thread comments")
+        authors = [
+            str((item.get("author") or {}).get("login") or "")
+            for item in (comments.get("nodes") or [])
+            if isinstance(item, dict)
+        ]
+        if not authors:
+            raise RuntimeError("review thread has no comments")
+        if not node.get("isResolved"):
+            unresolved += 1
+            continue
+        if authors[0] in copilot and not any(login and login not in copilot for login in authors[1:]):
+            untreated += 1
+    return unresolved, untreated
+
+
+def thread_disposition(owner: str, repo: str, pr: int) -> tuple[int, int]:
     query = """
     query($o:String!,$n:String!,$p:Int!,$after:String){
       repository(owner:$o,name:$n){
         pullRequest(number:$p){
           reviewThreads(first:100, after:$after){
-            nodes { isResolved }
+            nodes {
+              isResolved
+              comments(first:100){
+                pageInfo { hasNextPage }
+                nodes { author { login } }
+              }
+            }
             pageInfo { hasNextPage endCursor }
           }
         }
@@ -100,6 +132,7 @@ def unresolved_threads(owner: str, repo: str, pr: int) -> int:
     """
     after = None
     unresolved = 0
+    untreated = 0
     while True:
         args = [
             "api",
@@ -122,12 +155,12 @@ def unresolved_threads(owner: str, repo: str, pr: int) -> int:
         if not pr_data:
             raise RuntimeError("pull request missing from GraphQL")
         threads = pr_data.get("reviewThreads") or {}
-        for node in threads.get("nodes") or []:
-            if not node.get("isResolved"):
-                unresolved += 1
+        more_unresolved, more_untreated = count_thread_dispositions(list(threads.get("nodes") or []))
+        unresolved += more_unresolved
+        untreated += more_untreated
         page = threads.get("pageInfo") or {}
         if not page.get("hasNextPage"):
-            return unresolved
+            return unresolved, untreated
         after = page.get("endCursor")
         if not after:
             raise RuntimeError("reviewThreads hasNextPage without endCursor")
@@ -207,6 +240,18 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
     if head_repo != repository:
         raise RuntimeError("pull request head is not this repository")
     head = str(pr_json.get("head", {}).get("sha") or "")
+    if not head:
+        raise RuntimeError("PR HEAD SHA is missing")
+    related = gh_json(["api", f"repos/{repository}/commits/{head}/pulls"])
+    if not isinstance(related, list):
+        raise RuntimeError("HEAD pull membership is malformed")
+    open_heads = {
+        int(item.get("number") or 0)
+        for item in related
+        if isinstance(item, dict) and str(item.get("state") or "").lower() == "open"
+    }
+    if pr not in open_heads or len(open_heads) != 1:
+        raise RuntimeError("HEAD is shared by another open pull request")
     gate_fields = fetch_graphql_pr_gate_fields(owner, repo, pr, head)
     checks_proc = subprocess.run(
         [
@@ -234,6 +279,7 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         if isinstance(user, dict)
     )
     reviews = paginate_reviews(repository, pr)
+    unresolved, untreated_threads = thread_disposition(owner, repo, pr)
     snapshot = {
         "pr_number": pr,
         "head_sha": head,
@@ -243,7 +289,8 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         "review_decision_source": "graphql",
         "review_decision_unavailable": False,
         "pr_author_login": gate_fields["pr_author_login"],
-        "unresolved_threads": unresolved_threads(owner, repo, pr),
+        "unresolved_threads": unresolved,
+        "untreated_threads": untreated_threads,
         "untreated_pr_level_findings": [],
         "previously_missed_titles": [],
         "suppressed_comment_titles": [],
@@ -258,9 +305,9 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
     }
     latest = GATE.latest_copilot_review(reviews, head)
     if latest:
-        snapshot["unresolved_threads"] = max(
-            int(snapshot["unresolved_threads"]), unresolved_threads(owner, repo, pr)
-        )
+        unresolved, untreated_threads = thread_disposition(owner, repo, pr)
+        snapshot["unresolved_threads"] = max(int(snapshot["unresolved_threads"]), unresolved)
+        snapshot["untreated_threads"] = max(int(snapshot["untreated_threads"]), untreated_threads)
         snapshot["snapshot_phase"] = "post_copilot_review"
         snapshot["post_review_reread"] = True
     classify_path = SCRIPTS / "classify-copilot-review.py"

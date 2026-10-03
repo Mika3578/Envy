@@ -87,8 +87,24 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     requires_fixer = bool(snapshot.get("requires_fixer"))
     requires_human = bool(snapshot.get("requires_human"))
     github_decision = str(snapshot.get("review_decision") or "").upper()
-    unresolved_threads = int(snapshot.get("unresolved_threads") or 0)
-    human_unresolved = int(snapshot.get("human_unresolved_threads") or 0)
+    if not isinstance(snapshot.get("unresolved_threads"), int) or snapshot["unresolved_threads"] < 0:
+        return _result(
+            DECISION_NEEDS_HUMAN,
+            ["unresolved thread count is missing"],
+            head_sha=str(snapshot.get("head_sha") or ""),
+            review_sha=str((snapshot.get("review") or {}).get("commit_id") or ""),
+            note="Refuse CLEAN without a complete thread snapshot.",
+        )
+    if not isinstance(snapshot.get("human_unresolved_threads"), int) or snapshot["human_unresolved_threads"] < 0:
+        return _result(
+            DECISION_NEEDS_HUMAN,
+            ["human unresolved thread count is missing"],
+            head_sha=str(snapshot.get("head_sha") or ""),
+            review_sha=str((snapshot.get("review") or {}).get("commit_id") or ""),
+            note="Refuse CLEAN without a complete thread snapshot.",
+        )
+    unresolved_threads = snapshot["unresolved_threads"]
+    human_unresolved = snapshot["human_unresolved_threads"]
     open_titles = [str(x) for x in (snapshot.get("open_finding_titles") or [])]
     previously_missed = [
         str(x) for x in (snapshot.get("previously_missed_titles") or [])

@@ -57,7 +57,8 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn("name: Publish final review gate", pub)
         self.assertIn("pull_request_target:", pub)
         self.assertIn("workflow_run:", pub)
-        self.assertIn("statuses: write", pub)
+        self.assertIn("checks: write", pub)
+        self.assertNotIn("statuses: write", pub)
         self.assertNotIn("\n  pull_request:\n", pub.replace("\r\n", "\n"))
         self.assertNotIn("pull_request_review:", pub)
         self.assertIn("github.event.repository.default_branch", pub)
@@ -68,12 +69,12 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertNotIn("allow-unsafe-pr-checkout", pub)
         self.assertIn(".github/scripts/classify-copilot-review.py", pub)
         self.assertIn("pull_request_review_comment:", PROBE.read_text(encoding="utf-8"))
-        self.assertIn("pull_request_review_thread:", PROBE.read_text(encoding="utf-8"))
+        self.assertIn("edited", PROBE.read_text(encoding="utf-8"))
         self.assertIn("Final review gate probe", pub)
         self.assertIn("contents: read", pub)
         self.assertNotIn("contents: write", pub)
         self.assertNotIn("pull-requests: write", pub)
-        self.assertNotIn("checks: write", pub)
+        self.assertNotIn("statuses: write", pub)
 
     def test_pr_modifying_evaluator_does_not_change_publisher_checkout(self):
         pub = PUBLISHER.read_text(encoding="utf-8")
@@ -107,7 +108,7 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn("statuses: write", mutated)
         self.assertNotIn("publish-final-review-gate.py", mutated)
         self.assertIn("pull_request_target:", pub)
-        self.assertIn("statuses: write", pub)
+        self.assertIn("checks: write", pub)
         self.assertNotEqual(PROBE.name, PUBLISHER.name)
 
     def test_no_other_pr_merge_commit_workflow_publishes_the_gate_context(self):
@@ -145,6 +146,7 @@ class FinalReviewGateTrustTests(unittest.TestCase):
             "is_draft": False,
             "review_decision": "APPROVED",
             "unresolved_threads": 0,
+            "untreated_threads": 0,
             "untreated_pr_level_findings": [],
             "previously_missed_titles": [],
             "suppressed_comment_titles": [],
@@ -152,7 +154,7 @@ class FinalReviewGateTrustTests(unittest.TestCase):
             "changed_files": ["Envy/Buffer.cpp"],
             "required_checks": [{"name": "Format Check", "state": "SUCCESS"}],
             "reviews": [
-                {"id": 1, "user": {"login": copilot}, "commit_id": head, "state": "APPROVED"}
+                {"id": 1, "user": {"login": copilot, "type": "Bot"}, "commit_id": head, "state": "APPROVED"}
             ],
             "finding_ledger": [],
             "copilot_request_pending": False,

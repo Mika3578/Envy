@@ -30,6 +30,7 @@ def snap(**kwargs):
         "requires_human": False,
         "review_decision": "",
         "unresolved_threads": 0,
+        "human_unresolved_threads": 0,
         "open_finding_titles": [],
         "previously_missed_titles": [],
         "suppressed_comment_titles": [],
@@ -258,6 +259,12 @@ class EvaluateReviewLoopTests(unittest.TestCase):
 
     def test_missing_required_check_still_fail_closed(self):
         out = MOD.evaluate_review_loop(snap(required_checks=[]))
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+
+    def test_missing_unresolved_count_not_clean(self):
+        payload = snap()
+        del payload["unresolved_threads"]
+        out = MOD.evaluate_review_loop(payload)
         self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
 
 

@@ -137,6 +137,9 @@ def human_approved_on_head(
     author = str(author_login or "").casefold()
     for review in reviews_for_head(reviews, head_sha):
         login = _login(review)
+        user = review.get("user") if isinstance(review.get("user"), Mapping) else {}
+        if str(user.get("type") or "") != "User":
+            continue
         if not login or _is_copilot(login) or _looks_like_copilot(login) or login.endswith("[bot]"):
             continue
         if author and login.casefold() == author:
@@ -166,11 +169,19 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         )
 
     head = str(snapshot.get("head_sha") or "")
-    current = str(snapshot.get("current_head_sha") or head)
+    current = str(snapshot.get("current_head_sha") or "")
     if not head:
         return _result(
             STATE_ERROR,
             ["missing PR HEAD SHA"],
+            snapshot,
+            metrics,
+            allow_publish=False,
+        )
+    if not current:
+        return _result(
+            STATE_ERROR,
+            ["current HEAD SHA is missing"],
             snapshot,
             metrics,
             allow_publish=False,
@@ -271,6 +282,19 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         )
     if unresolved > 0:
         reasons.append(f"unresolved review threads: {unresolved}")
+        return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
+    untreated_threads = snapshot.get("untreated_threads")
+    if not isinstance(untreated_threads, int) or untreated_threads < 0:
+        return _result(
+            STATE_ERROR,
+            ["untreated thread count is missing"],
+            snapshot,
+            metrics,
+            allow_publish=False,
+            privileged=privileged,
+        )
+    if untreated_threads > 0:
+        reasons.append(f"resolved threads without a current-HEAD disposition reply: {untreated_threads}")
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
 
     untreated = []
@@ -469,8 +493,11 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     """At most one accepted Copilot review request per SHA. Transport failures
     before a submitted review may retry because no review exists yet.
     """
-    gate = evaluate_final_review_gate(snapshot)
     head = str(snapshot.get("head_sha") or "")
+    current = str(snapshot.get("current_head_sha") or "")
+    if not head or not current or current != head:
+        return {"request": False, "reason": "HEAD snapshot is stale or incomplete"}
+    gate = evaluate_final_review_gate(snapshot)
     reasons: list[str] = []
     if snapshot.get("is_draft"):
         return {"request": False, "reason": "Draft"}

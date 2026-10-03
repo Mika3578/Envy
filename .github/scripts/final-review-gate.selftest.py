@@ -34,6 +34,7 @@ def snap(**kwargs):
         "pr_author_login": "alice",
         "copilot_classification": "APPROVED",
         "unresolved_threads": 0,
+        "untreated_threads": 0,
         "untreated_pr_level_findings": [],
         "previously_missed_titles": [],
         "suppressed_comment_titles": [],
@@ -54,6 +55,17 @@ def snap(**kwargs):
         "copilot_findings_after_stabilization": 0,
     }
     base.update(kwargs)
+    for review in base.get("reviews") or []:
+        if not isinstance(review, dict):
+            continue
+        user = review.setdefault("user", {})
+        if "type" not in user:
+            login = str(user.get("login") or "")
+            user["type"] = (
+                "Bot"
+                if login.endswith("[bot]") or "copilot" in login.casefold()
+                else "User"
+            )
     return base
 
 
@@ -372,6 +384,30 @@ class FinalReviewGateTests(unittest.TestCase):
         )
         self.assertFalse(out["request"])
         self.assertIn("already reviewed", out["reason"])
+
+    def test_unsuffixed_bot_cannot_satisfy_human_approval(self):
+        out = MOD.evaluate_final_review_gate(
+            snap(
+                changed_files=["AGENTS.md"],
+                reviews=[
+                    {"user": {"login": COPILOT, "type": "Bot"}, "commit_id": HEAD, "state": "APPROVED"},
+                    {"user": {"login": "review-app", "type": "Bot"}, "commit_id": HEAD, "state": "APPROVED"},
+                ],
+            )
+        )
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+
+    def test_missing_current_head_sha_fail_closed(self):
+        out = MOD.evaluate_final_review_gate(snap(current_head_sha=""))
+        self.assertEqual(out["state"], MOD.STATE_ERROR)
+
+    def test_should_request_rejects_mismatched_head(self):
+        out = MOD.should_request_copilot(snap(reviews=[], current_head_sha=OLD))
+        self.assertFalse(out["request"])
+
+    def test_resolved_without_reply_blocks_success(self):
+        out = MOD.evaluate_final_review_gate(snap(untreated_threads=1))
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
 
 
 if __name__ == "__main__":

@@ -31,8 +31,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
-  checks: read
-  statuses: write
+  checks: write
 
 concurrency:
   group: publish-final-review-gate-${{ github.event.pull_request.number || github.event.workflow_run.head_sha || github.event.check_run.head_sha || github.event.inputs.pr_number || github.run_id }}
@@ -184,13 +183,4 @@ jobs:
           SCRIPTS_MISSING: ${{ steps.scripts.outputs.missing }}
         run: |
           set -euo pipefail
-          if [[ "${SCRIPTS_MISSING}" == "1" ]]; then
-            sha="$(gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}" --jq .head.sha)"
-            gh api -X POST "repos/${REPOSITORY}/statuses/${sha}" \
-              -f state=pending \
-              -f context="Final review gate" \
-              -f description="gate scripts not on default branch yet" \
-              -f "target_url=${RUN_URL}"
-            exit 0
-          fi
           python3 .github/scripts/publish-final-review-gate.py

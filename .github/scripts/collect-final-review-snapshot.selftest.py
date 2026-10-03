@@ -55,6 +55,38 @@ class CollectSnapshotTests(unittest.TestCase):
         self.assertEqual(fields["review_decision"], "APPROVED")
         self.assertEqual(fields["pr_author_login"], "alice")
 
+    def test_resolved_copilot_thread_without_reply_is_untreated(self):
+        unresolved, untreated = MOD.count_thread_dispositions(
+            [
+                {
+                    "isResolved": True,
+                    "comments": {
+                        "pageInfo": {"hasNextPage": False},
+                        "nodes": [{"author": {"login": "copilot-pull-request-reviewer[bot]"}}],
+                    },
+                }
+            ]
+        )
+        self.assertEqual(unresolved, 0)
+        self.assertEqual(untreated, 1)
+
+    def test_resolved_thread_with_reply_is_treated(self):
+        unresolved, untreated = MOD.count_thread_dispositions(
+            [
+                {
+                    "isResolved": True,
+                    "comments": {
+                        "pageInfo": {"hasNextPage": False},
+                        "nodes": [
+                            {"author": {"login": "copilot-pull-request-reviewer[bot]"}},
+                            {"author": {"login": "alice"}},
+                        ],
+                    },
+                }
+            ]
+        )
+        self.assertEqual((unresolved, untreated), (0, 0))
+
 
 if __name__ == "__main__":
     unittest.main()
