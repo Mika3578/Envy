@@ -87,6 +87,26 @@ class CollectSnapshotTests(unittest.TestCase):
         )
         self.assertEqual((unresolved, untreated), (0, 0))
 
+    def test_file_inventory_includes_rename_source(self):
+        paths = MOD.file_inventory_paths(
+            1,
+            [
+                {
+                    "filename": "Envy/Buffer.cpp",
+                    "previous_filename": "AGENTS.md",
+                }
+            ],
+        )
+        self.assertEqual(paths, ["Envy/Buffer.cpp", "AGENTS.md"])
+
+    def test_file_inventory_fails_closed_when_truncated(self):
+        with self.assertRaises(RuntimeError):
+            MOD.file_inventory_paths(2, [{"filename": "Envy/Buffer.cpp"}])
+
+    def test_file_inventory_fails_closed_past_github_cap(self):
+        with self.assertRaises(RuntimeError):
+            MOD.file_inventory_paths(MOD.GITHUB_PR_FILES_CAP + 1, [])
+
 
 if __name__ == "__main__":
     unittest.main()

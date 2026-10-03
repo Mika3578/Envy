@@ -188,6 +188,20 @@ class FinalReviewGateTests(unittest.TestCase):
         self.assertNotEqual(out["state"], MOD.STATE_SUCCESS)
         self.assertFalse(out["allow_publish"])
 
+    def test_privileged_rename_source_requires_human(self):
+        out = MOD.evaluate_final_review_gate(
+            snap(
+                changed_files=[
+                    {
+                        "filename": "docs/README.md",
+                        "previous_filename": "AGENTS.md",
+                    }
+                ]
+            )
+        )
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+        self.assertTrue(out["privileged_paths"])
+
     def test_privileged_governance_requires_human(self):
         out = MOD.evaluate_final_review_gate(
             snap(changed_files=["AGENTS.md", ".github/workflows/build.yml"])

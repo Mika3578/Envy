@@ -49,7 +49,8 @@ jobs:
        (github.event.workflow_run.name == 'Final review gate probe' ||
         github.event.workflow_run.name == 'Copilot review outcome' ||
         github.event.workflow_run.name == 'Build')) ||
-      (github.event_name == 'check_run') ||
+      (github.event_name == 'check_run' &&
+       github.event.check_run.name != 'Final review gate') ||
       (github.event_name == 'workflow_dispatch' &&
        github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
     runs-on: ubuntu-latest
@@ -88,7 +89,10 @@ jobs:
                   pr = prs[0].get("number")
               sha = run.get("head_sha")
           elif name == "check_run":
-              sha = (event.get("check_run") or {}).get("head_sha")
+              check = event.get("check_run") or {}
+              if str(check.get("name") or "") == "Final review gate":
+                  sys.exit(2)
+              sha = check.get("head_sha")
           if pr is None and sha:
               if not re.fullmatch(r"[0-9a-fA-F]{40}", str(sha)):
                   print("invalid sha", file=sys.stderr)

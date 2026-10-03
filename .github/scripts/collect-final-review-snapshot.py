@@ -73,16 +73,56 @@ def paginate_reviews(repository: str, pr: int) -> list[dict[str, Any]]:
     return reviews
 
 
+GITHUB_PR_FILES_CAP = 3000
+
+
+def file_inventory_paths(changed_files_count: Any, entries: list[Any]) -> list[str]:
+    """Fail closed when GitHub's file list is truncated; include rename sources."""
+    if not isinstance(changed_files_count, int) or changed_files_count < 0:
+        raise RuntimeError("pull changed_files is missing")
+    if changed_files_count > GITHUB_PR_FILES_CAP:
+        raise RuntimeError("pull file inventory exceeds GitHub 3000-file cap")
+    if not isinstance(entries, list) or len(entries) != changed_files_count:
+        raise RuntimeError("incomplete pull file inventory")
+    paths: list[str] = []
+    for obj in entries:
+        if not isinstance(obj, dict):
+            raise RuntimeError("file page item is not an object")
+        filename = str(obj.get("filename") or "").strip()
+        if not filename:
+            raise RuntimeError("file entry missing filename")
+        paths.append(filename)
+        previous = str(obj.get("previous_filename") or "").strip()
+        if previous:
+            paths.append(previous)
+    return paths
+
+
 def paginate_files(repository: str, pr: int) -> list[str]:
+    expected = gh_json(["api", f"repos/{repository}/pulls/{pr}"]).get("changed_files")
     proc = subprocess.run(
-        ["gh", "api", f"repos/{repository}/pulls/{pr}/files", "--paginate", "--jq", ".[].filename"],
+        ["gh", "api", f"repos/{repository}/pulls/{pr}/files", "--paginate", "--jq", ".[]"],
         check=False,
         capture_output=True,
         text=True,
     )
     if proc.returncode != 0:
         raise RuntimeError(proc.stderr.strip() or "files paginate failed")
-    return [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+    entries: list[dict[str, Any]] = []
+    decoder = json.JSONDecoder()
+    text = proc.stdout.lstrip()
+    idx = 0
+    while idx < len(text):
+        while idx < len(text) and text[idx].isspace():
+            idx += 1
+        if idx >= len(text):
+            break
+        obj, end = decoder.raw_decode(text, idx)
+        if not isinstance(obj, dict):
+            raise RuntimeError("file page item is not an object")
+        entries.append(obj)
+        idx = end
+    return file_inventory_paths(expected, entries)
 
 
 def count_thread_dispositions(nodes: list) -> tuple[int, int]:

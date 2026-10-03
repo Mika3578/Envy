@@ -76,12 +76,17 @@ def is_privileged_path(path: str) -> bool:
 
 def privileged_paths_changed(files: Sequence[Any]) -> bool:
     for item in files or []:
+        candidates: list[str] = []
         if isinstance(item, str):
-            if is_privileged_path(item):
+            candidates.append(item)
+        elif isinstance(item, Mapping):
+            for key in ("path", "filename", "previous_filename"):
+                value = item.get(key)
+                if value:
+                    candidates.append(str(value))
+        for path in candidates:
+            if is_privileged_path(path):
                 return True
-            continue
-        if isinstance(item, Mapping) and is_privileged_path(str(item.get("path") or "")):
-            return True
     return False
 
 

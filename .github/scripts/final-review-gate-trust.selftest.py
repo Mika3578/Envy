@@ -75,6 +75,7 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertNotIn("contents: write", pub)
         self.assertNotIn("pull-requests: write", pub)
         self.assertNotIn("statuses: write", pub)
+        self.assertIn("github.event.check_run.name != 'Final review gate'", pub)
 
     def test_pr_modifying_evaluator_does_not_change_publisher_checkout(self):
         pub = PUBLISHER.read_text(encoding="utf-8")
