@@ -179,6 +179,8 @@ class FindingLedgerTests(unittest.TestCase):
         self.assertEqual(len(outcomes), 1)
         self.assertEqual(outcomes[0]["review_id"], 1)
         self.assertTrue(outcomes[0]["finding_ledger"])
+        self.assertIn("rationale_fingerprint", outcomes[0])
+        self.assertIn("finding_count", outcomes[0])
         MOD.check_review_history(reviews, 2, outcomes)
 
     def test_second_copilot_review_reconstructs_first_without_ledger_file(self):

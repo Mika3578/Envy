@@ -90,6 +90,8 @@ fetch_pr_json() {
 		and (.data.repository.pullRequest | has("reviewDecision"))
 		and (.data.repository.pullRequest | has("mergeStateStatus"))
 		and (.data.repository.pullRequest | has("headRefOid"))
+		and (.data.repository.pullRequest.labels | type=="object")
+		and (.data.repository.pullRequest.labels.nodes | type=="array")
 		and (.data.repository.pullRequest.reviewThreads | type=="object")
 		and (.data.repository.pullRequest.reviewThreads.nodes | type=="array")
 		and (.data.repository.pullRequest.reviewThreads.pageInfo | type=="object")
@@ -236,6 +238,11 @@ evaluate_eligibility() {
 	fi
 	if [[ "$is_draft" == "true" ]]; then
 		note_ineligible "Pull request #${PR_NUMBER} is still a **Draft**; mark it Ready for Review first."
+	fi
+	# Host runtime_evidence is not available in Actions; stage:live-test is the
+	# maintainer attestation that the Ready live-runtime checkpoint was recorded.
+	if [[ "$(echo "$pr" | jq '[.labels.nodes[]?.name] | index("stage:live-test")')" == "null" ]]; then
+		note_ineligible "Pull request #${PR_NUMBER} lacks \`stage:live-test\`; maintainer live-runtime evidence is required before the final Copilot request."
 	fi
 	if [[ "$base" != "develop" ]]; then
 		note_ineligible "Pull request #${PR_NUMBER} targets \`${base}\`; only \`develop\` is eligible."
