@@ -83,6 +83,12 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn('status:-0}" -eq 2', pub)
         self.assertNotIn('status:-0}" -eq 2 || -z "${pr:-}"', pub)
 
+    def test_publisher_token_can_read_commit_statuses(self):
+        pub = PUBLISHER.read_text(encoding="utf-8")
+        perms = pub.split("permissions:", 1)[1].split("concurrency:", 1)[0]
+        self.assertIn("statuses: read", perms)
+        self.assertIn("checks: write", perms)
+
     def test_pr_modifying_evaluator_does_not_change_publisher_checkout(self):
         pub = PUBLISHER.read_text(encoding="utf-8")
         self.assertIn("ref: ${{ github.event.repository.default_branch }}", pub)

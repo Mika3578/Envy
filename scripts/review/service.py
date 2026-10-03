@@ -237,8 +237,15 @@ def collect(number):
         if not cursor or cursor in seen:
             raise ValueError("Incomplete or repeated thread cursor")
         seen.add(cursor)
-    if any((thread.get("comments") or {}).get("pageInfo", {}).get("hasNextPage") for thread in threads):
-        raise ValueError("Incomplete review thread comments")
+    for thread in threads:
+        comments = thread.get("comments")
+        if not isinstance(comments, dict):
+            raise ValueError("Incomplete review thread comments")
+        info = comments.get("pageInfo")
+        if not isinstance(info, dict) or not isinstance(info.get("hasNextPage"), bool):
+            raise ValueError("Incomplete review thread comments")
+        if info["hasNextPage"]:
+            raise ValueError("Incomplete review thread comments")
     snapshot["threads"] = threads
     snapshot["pr"]["review_decision"] = graphql_decision
     if not graphql_head or graphql_head != pr["head"]["sha"]:

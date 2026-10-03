@@ -67,6 +67,28 @@ class CollectSnapshotTests(unittest.TestCase):
                 gql_payload("APPROVED", include_merge_state=False), HEAD
             )
 
+    def test_missing_comments_pageinfo_fail_closed(self):
+        with self.assertRaises(RuntimeError):
+            MOD.count_thread_dispositions(
+                [
+                    {
+                        "isResolved": True,
+                        "comments": {
+                            "nodes": [
+                                {
+                                    "author": {
+                                        "login": "alice",
+                                        "__typename": "User",
+                                    },
+                                    "commit": {"oid": HEAD},
+                                }
+                            ]
+                        },
+                    }
+                ],
+                HEAD,
+            )
+
     def test_resolved_copilot_thread_without_reply_is_untreated(self):
         unresolved, untreated = MOD.count_thread_dispositions(
             [

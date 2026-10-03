@@ -173,8 +173,13 @@ def count_thread_dispositions(nodes: list, head_sha: str = "") -> tuple[int, int
     for node in nodes:
         if not isinstance(node, dict):
             raise RuntimeError("review thread node is malformed")
-        comments = node.get("comments") or {}
-        if comments.get("pageInfo", {}).get("hasNextPage"):
+        comments = node.get("comments")
+        if not isinstance(comments, dict):
+            raise RuntimeError("review thread comments payload is malformed")
+        info = comments.get("pageInfo")
+        if not isinstance(info, dict) or not isinstance(info.get("hasNextPage"), bool):
+            raise RuntimeError("incomplete review thread comments pagination")
+        if info["hasNextPage"]:
             raise RuntimeError("incomplete review thread comments")
         items = [item for item in (comments.get("nodes") or []) if isinstance(item, dict)]
         if not items:

@@ -44,38 +44,57 @@ def _matches_integration(app, integration_id):
 
 
 def commit_checks(head, required, runs, statuses):
+    """Preserve one receipt per required (context, integration_id) pair."""
     specs = required_specs(required)
-    names = {spec["context"] for spec in specs}
     latest = {}
     for item in runs:
-        if item.get("head_sha") != head or item["name"] not in names:
+        if item.get("head_sha") != head:
             continue
-        spec = next((row for row in specs if row["context"] == item["name"]), None)
-        if spec is None or not _matches_integration(item.get("app"), spec["integration_id"]):
-            continue
-        # REST exposes creation IDs, not created_at. Never sort by started_at:
-        # an older generation can start after its replacement.
-        key, name = item["id"], (item["name"], "check")
-        state = item["conclusion"] if item["status"] == "completed" else item["status"]
-        if name not in latest or key > latest[name][0]:
-            latest[name] = (key, {"name": item["name"],
-                "state": str(state or "PENDING").upper(), "link": item.get("html_url", "")})
+        for index, spec in enumerate(specs):
+            if item["name"] != spec["context"]:
+                continue
+            if not _matches_integration(item.get("app"), spec["integration_id"]):
+                continue
+            # REST exposes creation IDs, not created_at. Never sort by started_at:
+            # an older generation can start after its replacement.
+            key = item["id"]
+            slot = (index, "check")
+            state = item["conclusion"] if item["status"] == "completed" else item["status"]
+            if slot not in latest or key > latest[slot][0]:
+                latest[slot] = (key, {
+                    "name": spec["context"],
+                    "integration_id": spec["integration_id"],
+                    "state": str(state or "PENDING").upper(),
+                    "link": item.get("html_url", ""),
+                })
     for item in statuses:
         # Commit statuses have no GitHub App id. They cannot satisfy a ruleset
         # receipt that names an integration.
-        if item["context"] not in names:
-            continue
-        spec = next((row for row in specs if row["context"] == item["context"]), None)
-        if spec is None or spec["integration_id"] is not None:
-            continue
-        key, name = item["id"], (item["context"], "status")
-        if name not in latest or key > latest[name][0]:
-            latest[name] = (key, {"name": item["context"],
-                "state": item["state"].upper(), "link": item.get("target_url", "")})
-    checks = [latest[name][1] for name in sorted(latest)]
-    observed = {item["name"] for item in checks}
-    checks.extend({"name": name, "state": "PENDING", "link": ""}
-                  for name in sorted(names - observed))
+        for index, spec in enumerate(specs):
+            if item["context"] != spec["context"] or spec["integration_id"] is not None:
+                continue
+            key = item["id"]
+            slot = (index, "status")
+            if slot not in latest or key > latest[slot][0]:
+                latest[slot] = (key, {
+                    "name": spec["context"],
+                    "integration_id": None,
+                    "state": item["state"].upper(),
+                    "link": item.get("target_url", ""),
+                })
+    checks = []
+    for index, spec in enumerate(specs):
+        for kind in ("check", "status"):
+            slot = (index, kind)
+            if slot in latest:
+                checks.append(latest[slot][1])
+        if (index, "check") not in latest and (index, "status") not in latest:
+            checks.append({
+                "name": spec["context"],
+                "integration_id": spec["integration_id"],
+                "state": "PENDING",
+                "link": "",
+            })
     return checks
 
 

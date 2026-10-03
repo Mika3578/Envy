@@ -56,10 +56,11 @@ foreach ($taskPath in @($taskService, $taskConfig, $taskPython)) {
 $taskArguments = '"' + $taskService + '" --config "' + $taskConfig + '"'
 if (-not $EnableCorrections) { $taskArguments += ' --observe' }
 $taskAction = New-ScheduledTaskAction -Execute $taskPython -Argument $taskArguments
-# -RepetitionInterval requires -RepetitionDuration; MaxValue keeps the 5-minute cadence indefinitely.
+# -RepetitionInterval requires -RepetitionDuration. MaxValue is rejected on Windows
+# 10/11 hosts; a long finite duration keeps the five-minute cadence effectively indefinite.
 $taskTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) `
 	-RepetitionInterval (New-TimeSpan -Minutes 5) `
-	-RepetitionDuration ([TimeSpan]::MaxValue)
+	-RepetitionDuration (New-TimeSpan -Days 3650)
 $taskSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Days 7)
 $taskPrincipal = New-ScheduledTaskPrincipal -UserId ([System.Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
 $taskDefinition = New-ScheduledTask -Action $taskAction -Trigger $taskTrigger -Settings $taskSettings -Principal $taskPrincipal -Description 'Reconcile Envy review feedback; no approval or merge.'

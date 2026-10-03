@@ -43,6 +43,21 @@ class CheckTests(unittest.TestCase):
         run = dict(name="Build", head_sha="new", id=3, status="completed", conclusion="skipped")
         self.assertEqual(checks.commit_checks("new", ["Build"], [run], [])[0]["state"], "SKIPPED")
 
+    def test_same_context_keeps_separate_integration_receipts(self):
+        required = [
+            {"context": "Build", "integration_id": 1},
+            {"context": "Build", "integration_id": 2},
+        ]
+        first = dict(name="Build", head_sha="new", id=3, status="completed",
+                     conclusion="success", app={"id": 1})
+        second = dict(name="Build", head_sha="new", id=4, status="completed",
+                      conclusion="failure", app={"id": 2})
+        receipts = checks.commit_checks("new", required, [first, second], [])
+        self.assertEqual(len(receipts), 2)
+        by_app = {item["integration_id"]: item["state"] for item in receipts}
+        self.assertEqual(by_app[1], "SUCCESS")
+        self.assertEqual(by_app[2], "FAILURE")
+
     def test_empty_policy_and_wrong_repository_fail_closed(self):
         with patch.object(checks, "gh", return_value=[]):
             with self.assertRaises(ValueError):
