@@ -468,7 +468,7 @@ def git_identity(worktree):
     return {"worktree": worktree, "git_dir": git_dir}
 
 
-def publication_git(identity, hooks_path, *args):
+def publication_git(identity, hooks_path, *args, allowed=(0,)):
     env = minimal_environment()
     return run(
         [
@@ -483,7 +483,28 @@ def publication_git(identity, hooks_path, *args):
         ],
         cwd=identity["worktree"],
         env=env,
+        allowed=allowed,
     ).strip()
+
+
+ALLOWED_PUSH_URLS = frozenset({
+    "https://github.com/Mika3578/Envy.git",
+    "https://github.com/Mika3578/Envy",
+    "git@github.com:Mika3578/Envy.git",
+    "ssh://git@github.com/Mika3578/Envy.git",
+})
+
+
+def assert_trusted_publication_remote(identity, hooks_path):
+    rewrites = publication_git(
+        identity, hooks_path, "config", "--get-regexp", r"^url\.", allowed=(0, 1)
+    )
+    for line in rewrites.splitlines():
+        if "insteadof" in line.lower():
+            raise ValueError("Git URL rewrite config redirects publication")
+    push_url = publication_git(identity, hooks_path, "remote", "get-url", "--push", "origin")
+    if push_url.rstrip("/") not in ALLOWED_PUSH_URLS:
+        raise ValueError("origin push URL is not the trusted GitHub remote")
 
 
 def executor_argv(executable, state):
@@ -807,6 +828,7 @@ def process(config, entry, store, *, observe):
     locked = git_identity(worktree)
     def git(*args):
         return publication_git(locked, hooks_path, *args)
+    assert_trusted_publication_remote(locked, hooks_path)
     hooks = run(["git", "config", "--path", "core.hooksPath"], cwd=worktree).strip()
     if not Path(hooks).is_absolute() or Path(hooks).resolve() != Path(config["trusted_hooks_path"]).resolve():
         raise ValueError("Publication hooks do not match the frozen reviewed installation")
@@ -837,6 +859,7 @@ def process(config, entry, store, *, observe):
         store.save(number, state)
         if git_identity(worktree) != locked:
             raise ValueError("Git worktree or git-dir changed during correction; preserve local patch")
+        assert_trusted_publication_remote(locked, hooks_path)
         if identity(collect(number)["pr"]) != (head, base) or git("rev-parse", "HEAD") != head:
             raise ValueError("Competing writer or base update during correction; preserve local patch")
         if not entry["validation_commands"]:
@@ -851,6 +874,7 @@ def process(config, entry, store, *, observe):
         if git("status", "--porcelain"):
             if git_identity(worktree) != locked:
                 raise ValueError("Git worktree or git-dir changed before publication")
+            assert_trusted_publication_remote(locked, hooks_path)
             title = public_text(result["commit_title"])
             if not technical_title(title):
                 raise ValueError("Commit title does not follow technical conventions")

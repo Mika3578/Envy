@@ -558,6 +558,18 @@ class ServiceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 mod.git_identity(worktree)
 
+    def test_publication_rejects_url_rewrites_and_untrusted_origin(self):
+        identity = {"worktree": Path("D:/wt"), "git_dir": Path("D:/wt/.git")}
+        hooks = Path("D:/hooks")
+        with patch.object(mod, "publication_git", return_value="url.ssh://evil.insteadOf git@github.com:"):
+            with self.assertRaises(ValueError):
+                mod.assert_trusted_publication_remote(identity, hooks)
+        with patch.object(mod, "publication_git", side_effect=["", "https://evil.example/Envy.git"]):
+            with self.assertRaises(ValueError):
+                mod.assert_trusted_publication_remote(identity, hooks)
+        with patch.object(mod, "publication_git", side_effect=["", "https://github.com/Mika3578/Envy.git"]):
+            mod.assert_trusted_publication_remote(identity, hooks)
+
 
 if __name__ == "__main__":
     unittest.main()
