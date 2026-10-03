@@ -1,6 +1,6 @@
 # Envy Development Agents & Automation
 
-**Last Updated:** 2026-09-28
+**Last Updated:** 2026-09-30
 
 ## What exists today
 
@@ -29,7 +29,7 @@ After merge to `develop` (and weekly/nightly schedules):
 
 - x64 + Win32 Release **and** Debug full solution
 - CodeQL C++ **manual** traced MSBuild (more precise than PR `none`)
-- CodeQL JavaScript and C#
+- CodeQL JavaScript/TypeScript, Python, Actions, and C#
 - MSVC Static Analysis
 - advisory clang-tidy
 
@@ -41,11 +41,11 @@ After merge to `develop` (and weekly/nightly schedules):
 so required workflows always **start**. A skipped job is a successful required
 check; a workflow skipped with `paths-ignore` can stay **Pending**.
 
-| PR phase | Windows runners | CodeQL C++/JS/C# | Remote JS | Format Check |
+| PR phase | Windows runners | CodeQL C++/JS/Python/Actions/C# | Remote JS | Format Check |
 | --- | --- | --- | --- | --- |
-| Draft without label | none for product or C# | C++/JS run; C# deferred | when classified | always (hunk diff) |
-| Draft + `stage:live-test` | x64 + Win32 Release and C# | all three | when classified | always |
-| Ready, any labels | x64 + Win32 Release and C# | all three | when classified | always |
+| Draft without label | none for product or C# | C++/JS/Python/Actions run; C# deferred | when classified | always (hunk diff) |
+| Draft + `stage:live-test` | x64 + Win32 Release and C# | all five | when classified | always |
+| Ready, any labels | x64 + Win32 Release and C# | all five | when classified | always |
 
 Full phases build even docs-only PRs. `ready_for_review` and later `synchronize`
 events always run full validation. `labeled`/`unlabeled` recompute the phase from
@@ -111,10 +111,15 @@ Measured timings, critical path, and CI cost notes live in
   a follow-up if that cache starts evicting again.
 - PR CodeQL C/C++ uses `build-mode: none` (no second MSBuild). `develop` /
   weekly / manual keep `build-mode: manual` after vcpkg restore.
-- PR CodeQL JavaScript/TypeScript runs on every phase without a path-classifier
-  dependency. C# runs manual SkinUpdater with `queries: security-and-quality`
-  in full phases and emits an explicit deferral in cheap Draft. The code-scanning
-  rule can remain unsatisfied in Draft until real C# SARIF is uploaded.
+- PR CodeQL JavaScript/TypeScript, Python, and GitHub Actions (`actions`)
+  run on every phase without a path-classifier dependency (categories
+  `/language:javascript-typescript`, `/language:python`, `/language:actions`).
+  C# runs manual SkinUpdater with `queries: security-and-quality` in full
+  phases and emits an explicit deferral in cheap Draft. The code-scanning rule
+  can remain unsatisfied in Draft until real C# SARIF is uploaded.
+- After migrating Python/Actions off Code Scanning **Default setup**, disable
+  those languages in **Settings → Code security → Code scanning** so only the
+  advanced `codeql.yml` jobs publish SARIF (stale default-setup warnings).
 - Format Check is required and **blocking** via `clang-format-diff-18` on
   changed hunks only (legacy off-diff lines do not fail). Major version pinned
   to 18 in CI.
