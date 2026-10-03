@@ -245,7 +245,7 @@ def migration_command(
         "bypass_actors": desired.get("bypass_actors", []),
     }
     if live is not None:
-        for key in ("conditions", "bypass_actors", "target", "enforcement"):
+        for key in ("name", "conditions", "bypass_actors", "target", "enforcement"):
             default = [] if key == "bypass_actors" else None
             if live.get(key, default) != payload[key]:
                 return f"# Migration refused: reconcile differing live {key} before generating a PUT."

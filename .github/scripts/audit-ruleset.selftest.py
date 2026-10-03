@@ -50,6 +50,14 @@ class AuditRulesetTests(unittest.TestCase):
                 self.assertIn("Migration refused", command)
                 self.assertNotIn("--method PUT", command)
 
+    def test_migration_refuses_mismatched_ruleset_name(self):
+        live = copy.deepcopy(desired_ruleset())
+        live["name"] = "Protect main"
+        command = AUDIT.migration_command("Mika3578/Envy", 1, desired_ruleset(), live)
+        self.assertIn("Migration refused", command)
+        self.assertIn("name", command)
+        self.assertNotIn("--method PUT", command)
+
     def test_migration_refuses_extra_live_protection(self):
         live = desired_ruleset()
         live["rules"].append({"type": "future_protection", "parameters": {}})
