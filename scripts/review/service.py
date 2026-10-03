@@ -380,6 +380,9 @@ def check_host_paths(config, config_path, state_dir):
         if not policy.is_absolute():
             raise ValueError("Trusted policy file must use an absolute host path")
         additional.append(policy.resolve())
+    worktrees = [Path(entry["worktree"]).resolve() for entry in config["prs"]]
+    if config.get("executor"):
+        additional.append(Path(host_owned_executable(config["executor"], worktrees)))
     for entry in config["prs"]:
         worktree = Path(entry["worktree"]).resolve()
         for host_path in (config_path.resolve().parent, state_dir.resolve(), Path(__file__).resolve().parent, *additional):
@@ -403,6 +406,70 @@ def load_trusted_policy(config, worktree):
     if len(text.encode("utf-8")) > 200000:
         raise ValueError("Trusted policy exceeds supported size")
     return text
+
+
+def host_owned_executable(raw, worktrees):
+    path = Path(raw)
+    if not path.is_absolute():
+        raise ValueError("Executor must be an absolute host path")
+    resolved = path.resolve()
+    if not resolved.is_file():
+        raise ValueError("Executor executable is missing")
+    for tree in worktrees:
+        root = Path(tree).resolve()
+        if resolved.is_relative_to(root):
+            raise ValueError("Executor must not live in a managed worktree")
+    return str(resolved)
+
+
+def gitdir_pointer_target(worktree):
+    marker = Path(worktree) / ".git"
+    if not marker.is_file():
+        return None
+    text = marker.read_text(encoding="utf-8", errors="replace").strip()
+    if not text.lower().startswith("gitdir:"):
+        raise ValueError("Git gitdir pointer is malformed")
+    raw = text.split(":", 1)[1].strip()
+    if not raw:
+        raise ValueError("Git gitdir pointer is malformed")
+    target = Path(raw)
+    return target.resolve() if target.is_absolute() else (marker.parent / target).resolve()
+
+
+def git_identity(worktree):
+    worktree = Path(worktree).resolve()
+    env = minimal_environment()
+    toplevel = Path(run(["git", "rev-parse", "--show-toplevel"], cwd=worktree, env=env).strip()).resolve()
+    git_dir = Path(run(["git", "rev-parse", "--absolute-git-dir"], cwd=worktree, env=env).strip()).resolve()
+    if toplevel != worktree:
+        raise ValueError("Git toplevel does not match the configured worktree")
+    pointer = gitdir_pointer_target(worktree)
+    if pointer is not None and pointer != git_dir:
+        raise ValueError("Git gitdir pointer redirects away from the resolved git-dir")
+    worktree_cfg = run(["git", "config", "--get", "core.worktree"], cwd=worktree, env=env, allowed=(0, 1)).strip()
+    if worktree_cfg:
+        configured = Path(worktree_cfg).resolve()
+        if configured != worktree:
+            raise ValueError("core.worktree redirects Git away from the configured worktree")
+    return {"worktree": worktree, "git_dir": git_dir}
+
+
+def publication_git(identity, hooks_path, *args):
+    env = minimal_environment()
+    return run(
+        [
+            "git",
+            "--git-dir",
+            str(identity["git_dir"]),
+            "--work-tree",
+            str(identity["worktree"]),
+            "-c",
+            f"core.hooksPath={hooks_path}",
+            *args,
+        ],
+        cwd=identity["worktree"],
+        env=env,
+    ).strip()
 
 
 def executor_argv(executable, state):
@@ -455,9 +522,10 @@ HOST_POLICY:
                     "instruction": "Read the linked provider's actual diagnostics before fixing."})
     env = minimal_environment()
     # Do not expose the host's gh config to the sandbox executor or local tests.
+    executor = host_owned_executable(config["executor"], [worktree])
     with tempfile.TemporaryDirectory() as empty:
         env["GH_CONFIG_DIR"] = empty
-        raw = run(config.get("executor_launcher", []) + executor_argv(config["executor"], state), cwd=worktree, env=env,
+        raw = run(config.get("executor_launcher", []) + executor_argv(executor, state), cwd=worktree, env=env,
                   data=bounded_input(prompt, payload, config.get("max_executor_input_bytes", 1048576)), timeout=config["executor_timeout_seconds"],
                   allowed=(0, 1),
                   max_output_bytes=config.get("max_executor_output_bytes", 1048576))
@@ -636,11 +704,6 @@ def final_review(config, entry, snapshot, state, store):
         and r.get("commit_id") == head
         and str(r.get("state") or "").upper() in {"COMMENTED", "APPROVED", "CHANGES_REQUESTED", "DISMISSED"}
         for r in snapshot["reviews"])
-    copilot_approved = any(
-        r["user"]["login"] in COPILOT
-        and r.get("commit_id") == head
-        and str(r.get("state") or "").upper() == "APPROVED"
-        for r in snapshot["reviews"])
     if state.get("requests", {}).get(key) and not copilot_on_head:
         state["phase"] = "WAITING_COPILOT_REVIEW"
         return
@@ -655,6 +718,11 @@ def final_review(config, entry, snapshot, state, store):
         if str(fresh["pr"].get("review_decision") or "").upper() == "CHANGES_REQUESTED":
             state["phase"] = "CHANGES_REQUESTED"
             return
+        copilot_approved = any(
+            r["user"]["login"] in COPILOT
+            and r.get("commit_id") == head
+            and str(r.get("state") or "").upper() == "APPROVED"
+            for r in fresh["reviews"])
         if not copilot_approved:
             state["phase"] = "FIX_AGAIN"
             return
@@ -726,15 +794,11 @@ def process(config, entry, store, *, observe):
         raise ValueError("Reviewed isolated launchers, frozen publication hooks and host policy are required")
     state.pop("patch_owner_head", None)
     store.save(number, state)
-    worktree = Path(entry["worktree"])
+    worktree = Path(entry["worktree"]).resolve()
     hooks_path = Path(config["trusted_hooks_path"]).resolve()
+    locked = git_identity(worktree)
     def git(*args):
-        env = minimal_environment()
-        return run(
-            ["git", "-c", f"core.hooksPath={hooks_path}", *args],
-            cwd=worktree,
-            env=env,
-        ).strip()
+        return publication_git(locked, hooks_path, *args)
     hooks = run(["git", "config", "--path", "core.hooksPath"], cwd=worktree).strip()
     if not Path(hooks).is_absolute() or Path(hooks).resolve() != Path(config["trusted_hooks_path"]).resolve():
         raise ValueError("Publication hooks do not match the frozen reviewed installation")
@@ -763,6 +827,8 @@ def process(config, entry, store, *, observe):
         state["executor_owner_uncertain"] = False
         # Persist conversation immediately, even if validation/publication fails.
         store.save(number, state)
+        if git_identity(worktree) != locked:
+            raise ValueError("Git worktree or git-dir changed during correction; preserve local patch")
         if identity(collect(number)["pr"]) != (head, base) or git("rev-parse", "HEAD") != head:
             raise ValueError("Competing writer or base update during correction; preserve local patch")
         if not entry["validation_commands"]:
@@ -775,6 +841,8 @@ def process(config, entry, store, *, observe):
                     cwd=worktree, env=env, timeout=config["validation_timeout_seconds"])
         git("diff", "--check")
         if git("status", "--porcelain"):
+            if git_identity(worktree) != locked:
+                raise ValueError("Git worktree or git-dir changed before publication")
             title = public_text(result["commit_title"])
             if not technical_title(title):
                 raise ValueError("Commit title does not follow technical conventions")

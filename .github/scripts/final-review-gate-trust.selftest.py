@@ -116,7 +116,7 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertNotEqual(PROBE.name, PUBLISHER.name)
 
     def test_no_other_pr_merge_commit_workflow_publishes_the_gate_context(self):
-        for path in WORKFLOWS.glob("*.yml"):
+        for path in list(WORKFLOWS.glob("*.yml")) + list(WORKFLOWS.glob("*.yaml")):
             text = path.read_text(encoding="utf-8")
             if path.name == PUBLISHER.name:
                 continue
@@ -128,6 +128,12 @@ class FinalReviewGateTrustTests(unittest.TestCase):
                 msg=f"{path.name} must not post Final review gate from a PR-controlled workflow",
             )
             self.assertNotIn("context: Final review gate", text)
+
+    def test_publisher_paginates_commit_pulls(self):
+        text = PUBLISHER.read_text(encoding="utf-8")
+        self.assertIn("--paginate", text)
+        self.assertIn("--slurp", text)
+        self.assertIn("commits/{sha}/pulls", text)
 
     def test_trusted_success_still_requires_exact_current_sha(self):
         import importlib.util

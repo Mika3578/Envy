@@ -7,18 +7,21 @@
   (`stdcpp20` then trailing `stdcpp17`). Canonical wording:
   `docs/10_dev/standards.md`. Do not remove those overrides in a docs PR.
 
-- **Protect develop ruleset (re-verified 2026-09-20):** Live API now matches
-  the maintainer target for **1 required approval**, Code Quality severity
-  **All**, Copilot `review_on_push` **off**, and draft review **off**. Coverage
-  restriction remains **off** (no `Restrict code coverage` rule). Historical
-  2026-09-19 audit snapshots that recorded `required_approving_review_count: 0`
-  / Code Quality `notes` / `review_on_push: false` are retained as history —
-  do not treat them as current. Repository Copilot UI toggles that still
-  need manual verification are **Allow Copilot to approve pull requests**,
-  **Allow Copilot approvals to count toward merge requirements**, review
-  effort **Balanced**, and a **non-blank** path allowlist that excludes
-  privileged governance paths (`AGENTS.md`, `.github/**` policy/workflow/
-  skill/ruleset/settings paths — see `docs/10_dev/devsecops-envy.md`).
+- **Protect develop ruleset (re-verified 2026-10-03):** Live API on branch
+  `develop` (ruleset 16457466) currently has
+  `required_approving_review_count: 0`. Documented policy (`AGENTS.md`,
+  `docs/10_dev/devsecops-envy.md`) still requires at least one non-author
+  `APPROVED` review. Treat the live ruleset as the enforceable GitHub state;
+  do not change repository protections from a PR correction session. Coverage
+  restriction remains **off**. Copilot `review_on_push` is **off** and draft
+  review is **off**. Historical 2026-09-20 notes that claimed live alignment
+  with 1 required approval are retained as history — they are not current.
+  Repository Copilot UI toggles that still need manual verification are
+  **Allow Copilot to approve pull requests**, **Allow Copilot approvals to
+  count toward merge requirements**, review effort **Balanced**, and a
+  **non-blank** path allowlist that excludes privileged governance paths
+  (`AGENTS.md`, `.github/**` policy/workflow/skill/ruleset/settings paths,
+  `.github/scripts/`, `scripts/review/` — see `docs/10_dev/devsecops-envy.md`).
   Do not leave the allowlist blank: that would let Copilot count on
   self-modifying governance PRs.
   Automatic Copilot review on each push is deliberately off in Protect

@@ -2,7 +2,7 @@
   "repository": "Mika3578/Envy",
   "maintainer_login": "Mika3578",
   "state_dir": "C:/Users/Mika/dev/Envy/.local/review-service/state",
-  "executor": "codex",
+  "executor": "C:/trusted-review/bin/codex.exe",
   "executor_timeout_seconds": 1800,
   "validation_timeout_seconds": 1800,
   "activation_reviewed": false,

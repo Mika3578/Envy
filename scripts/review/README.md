@@ -129,12 +129,27 @@ python scripts/review/required_checks.selftest.py
 python .github/scripts/classify-copilot-review.selftest.py
 python .github/scripts/finding-ledger.selftest.py
 python .github/scripts/evaluate-review-loop.selftest.py
+python .github/scripts/collect-final-review-snapshot.selftest.py
+python .github/scripts/final-review-gate.selftest.py
+python .github/scripts/final-review-gate-trust.selftest.py
 ```
 
 Offline tests cover exclusive ownership, persistent sessions/decisions, missing
 required checks, overview edits, privacy, malformed API results and quota/stale
 receipts. They do not establish that external apps reviewed a live Draft or that
 a Windows runtime test passed. Record live pilot results separately.
+
+`Classify Copilot review` checkouts `.github/scripts/` from the default branch
+(`develop`) and fails closed when those files are absent. Local self-tests of
+the PR copy are not a substitute for that default-branch trust boundary. Do
+not point the workflow at PR-controlled scripts to make the check green.
+
+The executor must be an absolute host executable outside every managed
+worktree. Publication pins `--git-dir` and `--work-tree` to the identity
+resolved before isolated execution and refuses `core.worktree` or gitdir
+redirection before add/commit/push. Copilot `APPROVED` is recomputed from the
+fresh HEAD snapshot after collection. Unique-HEAD membership fully paginates
+`GET /commits/{sha}/pulls`. Trust scans include `.yml` and `.yaml` workflows.
 
 ## Observed pilot constraints (2026-10-01)
 

@@ -285,6 +285,40 @@ def require_open_default_same_repo(
         raise RuntimeError("pull request head is not this repository")
 
 
+def unique_open_pr_numbers(entries: Any, pr: int) -> set[int]:
+    if not isinstance(entries, list):
+        raise RuntimeError("HEAD pull membership is malformed")
+    open_heads = {
+        int(item.get("number") or 0)
+        for item in entries
+        if isinstance(item, dict) and str(item.get("state") or "").lower() == "open"
+    }
+    if pr not in open_heads or len(open_heads) != 1:
+        raise RuntimeError("HEAD is shared by another open pull request")
+    return open_heads
+
+
+def paginate_commit_pulls(repository: str, head: str) -> list[Any]:
+    proc = subprocess.run(
+        ["gh", "api", f"repos/{repository}/commits/{head}/pulls", "--paginate", "--slurp"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(proc.stderr.strip() or "HEAD pull membership paginate failed")
+    pages = json.loads(proc.stdout or "[]")
+    if not isinstance(pages, list):
+        raise RuntimeError("HEAD pull membership is malformed")
+    if not pages:
+        return []
+    if all(isinstance(page, list) for page in pages):
+        return [item for page in pages for item in page]
+    if all(isinstance(item, dict) for item in pages):
+        return pages
+    raise RuntimeError("HEAD pull membership is malformed")
+
+
 def collect(repository: str, pr: int) -> dict[str, Any]:
     owner, _, repo = repository.partition("/")
     pr_json = gh_json(["api", f"repos/{repository}/pulls/{pr}"])
@@ -293,16 +327,8 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
     head = str(pr_json.get("head", {}).get("sha") or "")
     if not head:
         raise RuntimeError("PR HEAD SHA is missing")
-    related = gh_json(["api", f"repos/{repository}/commits/{head}/pulls"])
-    if not isinstance(related, list):
-        raise RuntimeError("HEAD pull membership is malformed")
-    open_heads = {
-        int(item.get("number") or 0)
-        for item in related
-        if isinstance(item, dict) and str(item.get("state") or "").lower() == "open"
-    }
-    if pr not in open_heads or len(open_heads) != 1:
-        raise RuntimeError("HEAD is shared by another open pull request")
+    related = paginate_commit_pulls(repository, head)
+    unique_open_pr_numbers(related, pr)
     gate_fields = fetch_graphql_pr_gate_fields(owner, repo, pr, head)
     checks_proc = subprocess.run(
         [

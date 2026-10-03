@@ -98,7 +98,7 @@ jobs:
                   print("invalid sha", file=sys.stderr)
                   sys.exit(1)
               proc = subprocess.run(
-                  ["gh", "api", f"repos/{repository}/commits/{sha}/pulls"],
+                  ["gh", "api", f"repos/{repository}/commits/{sha}/pulls", "--paginate", "--slurp"],
                   check=False,
                   capture_output=True,
                   text=True,
@@ -107,9 +107,15 @@ jobs:
                   print("commit pulls lookup failed", file=sys.stderr)
                   sys.exit(1)
               try:
-                  pulls = json.loads(proc.stdout or "[]")
+                  pages = json.loads(proc.stdout or "[]")
               except json.JSONDecodeError:
                   sys.exit(1)
+              if not isinstance(pages, list):
+                  sys.exit(1)
+              if pages and all(isinstance(page, list) for page in pages):
+                  pulls = [item for page in pages for item in page]
+              else:
+                  pulls = pages
               numbers = [
                   item.get("number")
                   for item in pulls

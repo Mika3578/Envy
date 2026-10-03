@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parent
 _SPEC = importlib.util.spec_from_file_location(
@@ -245,6 +247,40 @@ class CollectSnapshotTests(unittest.TestCase):
     def test_file_inventory_fails_closed_past_github_cap(self):
         with self.assertRaises(RuntimeError):
             MOD.file_inventory_paths(MOD.GITHUB_PR_FILES_CAP + 1, [])
+
+    def test_unique_open_pr_refuses_shared_head(self):
+        shared = [
+            {"number": 397, "state": "open"},
+            {"number": 398, "state": "open"},
+        ]
+        with self.assertRaises(RuntimeError):
+            MOD.unique_open_pr_numbers(shared, 397)
+
+    def test_unique_open_pr_accepts_single_open_head(self):
+        entries = [
+            {"number": 397, "state": "open"},
+            {"number": 200, "state": "closed"},
+        ]
+        self.assertEqual(MOD.unique_open_pr_numbers(entries, 397), {397})
+
+    def test_paginate_commit_pulls_flattens_slurp_pages(self):
+        class Result:
+            returncode = 0
+            stderr = ""
+            stdout = json.dumps(
+                [
+                    [{"number": 397, "state": "open"}],
+                    [{"number": 398, "state": "open"}],
+                ]
+            )
+
+        with patch.object(MOD.subprocess, "run", return_value=Result()) as call:
+            related = MOD.paginate_commit_pulls("Mika3578/Envy", HEAD)
+        argv = call.call_args.args[0]
+        self.assertIn("--paginate", argv)
+        self.assertIn("--slurp", argv)
+        with self.assertRaises(RuntimeError):
+            MOD.unique_open_pr_numbers(related, 397)
 
 
 if __name__ == "__main__":

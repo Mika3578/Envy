@@ -192,6 +192,14 @@ class ServiceTests(unittest.TestCase):
                 mod.check_host_paths(config, host / "config.json", host / "state")
             nested = host / "pr"
             nested.mkdir()
+            config = {"prs": [{"worktree": str(nested)}], "executor": "codex"}
+            with self.assertRaises(ValueError):
+                mod.check_host_paths(config, host / "config.json", host / "state")
+            inside = nested / "codex.exe"
+            inside.write_bytes(b"")
+            config["executor"] = str(inside)
+            with self.assertRaises(ValueError):
+                mod.check_host_paths(config, host / "config.json", host / "state")
             untrusted = nested / "AGENTS.md"
             untrusted.write_text("untrusted", encoding="utf-8")
             with self.assertRaises(ValueError):
@@ -388,6 +396,34 @@ class ServiceTests(unittest.TestCase):
             mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
         self.assertEqual(state["phase"], "FIX_AGAIN")
 
+    def test_copilot_approved_is_recomputed_from_fresh_reviews(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        snap["reviews"] = [{"id": 2, "user": {"login": "copilot-pull-request-reviewer"},
+                            "body": "Approved", "commit_id": "a" * 40, "state": "APPROVED"}]
+        snap["threads"] = []
+        head, base = "a" * 40, "b" * 40
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {f"copilot:{head}:{base}": {"status": "requested"}}}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": head, "base": base}
+        fresh = dict(snap)
+        fresh["reviews"] = [{"id": 3, "user": {"login": "copilot-pull-request-reviewer"},
+                             "body": "Changes recommended", "commit_id": "a" * 40, "state": "COMMENTED"}]
+        pull = {"head": {"sha": head}, "base": {"sha": base}, "draft": False, "node_id": "PR"}
+        with patch.object(mod, "gh_json", return_value=pull), patch.object(mod, "collect", return_value=fresh):
+            mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
+        self.assertEqual(state["phase"], "FIX_AGAIN")
+
     def test_checks_pass_ignores_final_review_gate(self):
         snap = snapshot()
         snap["required_names"] = ["Build", "Final review gate"]
@@ -441,8 +477,10 @@ class ServiceTests(unittest.TestCase):
             policy = Path(directory) / "AGENTS.md"
             policy.write_text("HOST RULES\n", encoding="utf-8")
             with patch.object(mod, "run", return_value=output) as call:
+                exe = Path(directory) / "codex.exe"
+                exe.write_bytes(b"")
                 out = mod.execute(
-                    {"executor": "codex", "executor_timeout_seconds": 2,
+                    {"executor": str(exe), "executor_timeout_seconds": 2,
                      "trusted_policy_path": str(policy)},
                     {"worktree": str(Path.cwd())}, state, snap, pending)
                 self.assertEqual(out, result)
@@ -460,6 +498,34 @@ class ServiceTests(unittest.TestCase):
         text = Path(__file__).with_name("service.py").read_text(encoding="utf-8")
         self.assertIn("requestReviews", text)
         self.assertNotIn("requestReviewsByLogin", text)
+
+    def test_publication_git_pins_git_dir_and_work_tree(self):
+        identity = {"worktree": Path("D:/wt"), "git_dir": Path("D:/wt/.git")}
+        with patch.object(mod, "run", return_value="") as call:
+            mod.publication_git(identity, Path("D:/hooks"), "status", "--porcelain")
+        argv = call.call_args.args[0]
+        self.assertEqual(argv[1], "--git-dir")
+        self.assertEqual(argv[2], str(identity["git_dir"]))
+        self.assertEqual(argv[3], "--work-tree")
+        self.assertEqual(argv[4], str(identity["worktree"]))
+        self.assertIn("core.hooksPath=" + str(Path("D:/hooks")), argv[6])
+
+    def test_git_identity_rejects_core_worktree_redirect(self):
+        worktree = Path.cwd().resolve()
+
+        def fake_run(argv, **kwargs):
+            joined = " ".join(argv)
+            if "--show-toplevel" in joined:
+                return str(worktree) + "\n"
+            if "--absolute-git-dir" in joined:
+                return str(worktree / ".git") + "\n"
+            if "core.worktree" in joined:
+                return "D:/evil-worktree\n"
+            return "\n"
+
+        with patch.object(mod, "run", side_effect=fake_run), patch.object(mod, "gitdir_pointer_target", return_value=None):
+            with self.assertRaises(ValueError):
+                mod.git_identity(worktree)
 
 
 if __name__ == "__main__":
