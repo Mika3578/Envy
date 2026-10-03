@@ -1,7 +1,7 @@
 //
 // DownloadTransferHTTP.cpp
 //
-// This file is part of Envy (getenvy.com) � 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -1892,6 +1892,9 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 		if (!m_bTigerAbandon && m_nLength != SIZE_UNKNOWN && m_nLength > 0)
 		{
 			theApp.Message(MSG_DEBUG, L"THEX DIME: malformed header on complete buffered response");
+			// OnDropped already owns Close/delete; do not Close here on the
+			// dropped path or the second Close uses a freed transfer.
+			if (bDropped) return FALSE;
 			Close(TRI_FALSE);
 			return FALSE;
 		}
@@ -1989,7 +1992,7 @@ void CDownloadTransferHTTP::OnDropped()
 		if (m_nContentLength != SIZE_UNKNOWN)
 		{
 			// Known Content-Length: m_nLength is the unconsumed remainder. Do
-			// not overwrite it with GetInputLength() — a keep-alive drop with
+			// not overwrite it with GetInputLength() â a keep-alive drop with
 			// an empty/short body would look complete and resume the source.
 			if (m_nLength != SIZE_UNKNOWN && GetInputLength() < m_nLength)
 			{
