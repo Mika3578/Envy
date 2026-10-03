@@ -258,7 +258,7 @@ Branch model:
     - **`develop` squash merges (title, body, references).** Merges onto
       `develop` are squash-only. Use the **PR title** as the base squash
       commit title (`type(scope): short description` in English; no tool/agent
-      names). With desired GitHub `squash_merge_commit_title: PR_TITLE` (verify
+      names). With live GitHub `squash_merge_commit_title: PR_TITLE` (verify
       under Settings → General → Pull Requests), start from the PR title; do
       **not** normally insert `(#n)` into contributor-authored PR titles
       merely to influence `develop` history. At manual squash merge, inspect
@@ -268,7 +268,7 @@ Branch model:
       `(... (#356) (#356))`. Issue references belong primarily in the curated
       squash body (`Fixes #123` / `Closes #123` / `Related to #123`). The
       repository default keeps GitHub from auto-filling a noisy body: live
-      desired GitHub policy uses `squash_merge_commit_message: BLANK` (Probot
+      GitHub currently uses `squash_merge_commit_message: BLANK` (Probot
       Settings keys `squash_merge_commit_title` /
       `squash_merge_commit_message` when adopted). **`BLANK` means do not
       auto-populate** from the full PR description or intermediate commit
@@ -380,9 +380,8 @@ patterns you will see and should preserve:
 ### Staged PR validation and correction
 
 New work starts as Draft. Cheap deterministic CI runs during stabilization.
-The reviewed coordinator may apply `stage:live-test` and mark the PR Ready
-when exact-HEAD validation evidence is complete. Live runtime tests require
-a qualified tester or an established runtime harness. Live-test and Ready run x64 and Win32 Release with
+Only the maintainer applies `stage:live-test`, performs the live runtime test,
+and marks the PR Ready. Live-test and Ready run x64 and Win32 Release with
 EnvyTests. A Draft deferral result is not evidence of a Windows build. Record
 the tested HEAD, base/built commit and artifact; subsequent changes invalidate
 that runtime evidence and require maintainer reassessment before merging.
@@ -590,7 +589,7 @@ When you take on a task you are expected to:
    reference semantics (`Fixes` / `Closes` / `Related to`) are correct; and the
    summary bullets exclude process-only text forbidden in squash bodies. Do not
    enable squash auto-merge when a curated squash body is required (rule 16;
-   desired `BLANK` policy; live defaults must be checked). If a PR predates the template, add or update an
+   live `BLANK` default). If a PR predates the template, add or update an
    equivalent summary block instead of rewriting unrelated sections. Do not treat
    the PR as merge-ready until those items hold alongside required CI and review
    gates.
