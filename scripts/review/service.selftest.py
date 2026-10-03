@@ -598,12 +598,12 @@ class ServiceTests(unittest.TestCase):
 
     def test_publication_git_uses_absolute_host_git(self):
         identity = {"worktree": Path("D:/wt"), "git_dir": Path("D:/wt/.git")}
-        with patch.object(mod, "trusted_git_executable", return_value="C:/Program Files/Git/cmd/git.exe"):
+        with patch.object(mod, "trusted_git_executable", return_value="/usr/bin/git"):
             with patch.object(mod, "run", return_value="ok\n") as run:
                 out = mod.publication_git(identity, Path("D:/hooks"), "status")
         self.assertEqual(out, "ok")
-        argv = run.call_args[0][0]
-        self.assertTrue(os.path.isabs(argv[0]))
+        argv = run.call_args.args[0]
+        self.assertEqual(argv[0], "/usr/bin/git")
         self.assertNotEqual(argv[0], "git")
 
     def test_trusted_git_skips_cwd(self):
