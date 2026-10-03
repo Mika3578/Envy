@@ -22,7 +22,15 @@ _SPEC = importlib.util.spec_from_file_location(
     "final_review_gate_mod", SCRIPTS / "final-review-gate.py"
 )
 GATE = importlib.util.module_from_spec(_SPEC)
+sys.modules[_SPEC.name] = GATE
 _SPEC.loader.exec_module(GATE)
+
+_LEDGER_SPEC = importlib.util.spec_from_file_location(
+    "finding_ledger_mod", SCRIPTS / "finding-ledger.py"
+)
+LEDGER = importlib.util.module_from_spec(_LEDGER_SPEC)
+sys.modules[_LEDGER_SPEC.name] = LEDGER
+_LEDGER_SPEC.loader.exec_module(LEDGER)
 
 
 def gh_json(args: list[str]) -> Any:
@@ -399,11 +407,23 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         )
         classify = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(classify)
+        latest_id = latest.get("id")
+        if isinstance(latest_id, bool) or not isinstance(latest_id, int) or latest_id <= 0:
+            snapshot["api_error"] = True
+            snapshot["api_error_message"] = "Copilot review id is missing"
+            return snapshot
+        prior = LEDGER.reconstruct_prior_outcomes_from_reviews(reviews, latest_id)
+        snapshot["finding_ledger"] = list((prior[-1].get("finding_ledger") or [])) if prior else []
         outcome = classify.classify_review(classify.review_input_from_github(latest))
+        outcome = classify.apply_loop_guards(outcome, prior)
         snapshot["previously_missed_titles"] = list(outcome.get("previously_missed_titles") or [])
         snapshot["suppressed_comment_titles"] = list(outcome.get("suppressed_comment_titles") or [])
         snapshot["open_finding_titles"] = list(outcome.get("open_finding_titles") or [])
         snapshot["copilot_classification"] = str(outcome.get("classification") or "")
+        snapshot["requires_human"] = bool(outcome.get("requires_human"))
+        snapshot["requires_fixer"] = bool(outcome.get("requires_fixer"))
+        if outcome.get("loop_guard"):
+            snapshot["loop_guard"] = str(outcome.get("loop_guard"))
         if not snapshot["copilot_classification"]:
             snapshot["api_error"] = True
             snapshot["api_error_message"] = "Copilot classification is empty"

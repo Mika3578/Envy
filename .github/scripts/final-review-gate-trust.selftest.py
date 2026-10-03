@@ -135,6 +135,12 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn("--slurp", text)
         self.assertIn("commits/{sha}/pulls", text)
 
+    def test_review_history_file_survives_until_check_history(self):
+        text = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")
+        before, after = text.split("finding-ledger.py check-history", 1)
+        self.assertNotIn('rm -f "$REVIEWS_FILE"', before)
+        self.assertIn('rm -f "$REVIEWS_FILE"', after)
+
     def test_trusted_success_still_requires_exact_current_sha(self):
         import importlib.util
         import sys

@@ -262,9 +262,11 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     # Fail closed: inconsistent snapshots that say APPROVED while also
     # requiring fixer/human work must never report CLEAN.
     review_state = str(review.get("state") or "").upper()
+    graphql_approved = github_decision == "APPROVED"
     if (
         classification == "APPROVED"
         and review_state == "APPROVED"
+        and graphql_approved
         and not reasons
         and not requires_fixer
         and not requires_human
@@ -348,7 +350,7 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         )
 
     if classification == "APPROVED":
-        if review_state != "APPROVED":
+        if review_state != "APPROVED" or github_decision != "APPROVED":
             # Classification and GitHub review state disagree: fail closed.
             reasons.append(REASON_HUMAN_ONLY)
             return _result(
@@ -356,7 +358,7 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
                 reasons,
                 head_sha=head_sha,
                 review_sha=review_sha,
-                note="classification APPROVED but GitHub review state is not APPROVED.",
+                note="classification APPROVED but GraphQL reviewDecision or GitHub review state is not APPROVED.",
             )
         return _result(
             DECISION_CLEAN,

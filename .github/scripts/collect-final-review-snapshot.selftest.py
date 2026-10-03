@@ -282,6 +282,11 @@ class CollectSnapshotTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             MOD.unique_open_pr_numbers(related, 397)
 
+    def test_collector_reconstructs_prior_outcomes(self):
+        text = (SCRIPTS / "collect-final-review-snapshot.py").read_text(encoding="utf-8")
+        self.assertIn("reconstruct_prior_outcomes_from_reviews", text)
+        self.assertIn("apply_loop_guards", text)
+
 
 if __name__ == "__main__":
     unittest.main()

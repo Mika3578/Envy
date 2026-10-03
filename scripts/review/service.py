@@ -37,6 +37,20 @@ WAIT = PENDING_CHECK_STATES
 COPILOT = {"Copilot", "copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}
 
 
+def latest_copilot_review(reviews, head):
+    matched = []
+    for review in reviews or []:
+        user = review.get("user") if isinstance(review.get("user"), dict) else {}
+        if user.get("login") not in COPILOT:
+            continue
+        if review.get("commit_id") != head:
+            continue
+        matched.append(review)
+    if not matched:
+        return None
+    return max(matched, key=lambda review: (int(review.get("id") or 0), str(review.get("submitted_at") or "")))
+
+
 class CommandFailure(RuntimeError):
     def __init__(self, argv, result):
         super().__init__(f"{argv[0]} {argv[1]} failed (exit {result.returncode})")
@@ -699,11 +713,9 @@ def final_review(config, entry, snapshot, state, store):
         state["phase"] = "DRAFT_STABLE"
         return
     key = f"copilot:{head}:{base}"
-    copilot_on_head = any(
-        r["user"]["login"] in COPILOT
-        and r.get("commit_id") == head
-        and str(r.get("state") or "").upper() in {"COMMENTED", "APPROVED", "CHANGES_REQUESTED", "DISMISSED"}
-        for r in snapshot["reviews"])
+    latest = latest_copilot_review(snapshot["reviews"], head)
+    copilot_on_head = latest is not None and str(latest.get("state") or "").upper() in {
+        "COMMENTED", "APPROVED", "CHANGES_REQUESTED", "DISMISSED"}
     if state.get("requests", {}).get(key) and not copilot_on_head:
         state["phase"] = "WAITING_COPILOT_REVIEW"
         return
@@ -718,12 +730,8 @@ def final_review(config, entry, snapshot, state, store):
         if str(fresh["pr"].get("review_decision") or "").upper() == "CHANGES_REQUESTED":
             state["phase"] = "CHANGES_REQUESTED"
             return
-        copilot_approved = any(
-            r["user"]["login"] in COPILOT
-            and r.get("commit_id") == head
-            and str(r.get("state") or "").upper() == "APPROVED"
-            for r in fresh["reviews"])
-        if not copilot_approved:
+        latest_fresh = latest_copilot_review(fresh["reviews"], head)
+        if latest_fresh is None or str(latest_fresh.get("state") or "").upper() != "APPROVED":
             state["phase"] = "FIX_AGAIN"
             return
         state["phase"] = "FINAL_REVIEW_RECEIVED"

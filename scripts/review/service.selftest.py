@@ -424,6 +424,37 @@ class ServiceTests(unittest.TestCase):
             mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
         self.assertEqual(state["phase"], "FIX_AGAIN")
 
+    def test_later_commented_copilot_overrides_earlier_approval(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        head, base = "a" * 40, "b" * 40
+        snap["reviews"] = [
+            {"id": 2, "user": {"login": "copilot-pull-request-reviewer"},
+             "body": "Approved", "commit_id": head, "state": "APPROVED",
+             "submitted_at": "2026-10-03T18:00:00Z"},
+            {"id": 9, "user": {"login": "copilot-pull-request-reviewer"},
+             "body": "Changes recommended", "commit_id": head, "state": "COMMENTED",
+             "submitted_at": "2026-10-03T19:00:00Z"},
+        ]
+        snap["threads"] = []
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {f"copilot:{head}:{base}": {"status": "requested"}}}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": head, "base": base}
+        pull = {"head": {"sha": head}, "base": {"sha": base}, "draft": False, "node_id": "PR"}
+        with patch.object(mod, "gh_json", return_value=pull), patch.object(mod, "collect", return_value=snap):
+            mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
+        self.assertEqual(state["phase"], "FIX_AGAIN")
+
     def test_checks_pass_ignores_final_review_gate(self):
         snap = snapshot()
         snap["required_names"] = ["Build", "Final review gate"]

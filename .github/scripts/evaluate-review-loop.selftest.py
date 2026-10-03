@@ -28,7 +28,7 @@ def snap(**kwargs):
         "classification": "APPROVED",
         "requires_fixer": False,
         "requires_human": False,
-        "review_decision": "",
+        "review_decision": "APPROVED",
         "unresolved_threads": 0,
         "human_unresolved_threads": 0,
         "untreated_threads": 0,
@@ -61,6 +61,11 @@ class EvaluateReviewLoopTests(unittest.TestCase):
         out = MOD.evaluate_review_loop(snap())
         self.assertEqual(out["decision"], MOD.DECISION_CLEAN)
         self.assertIn("no active technical findings", out["reason"])
+
+    def test_empty_graphql_decision_is_not_clean(self):
+        out = MOD.evaluate_review_loop(snap(review_decision=""))
+        self.assertNotEqual(out["decision"], MOD.DECISION_CLEAN)
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
 
     def test_approved_classification_with_commented_state_not_clean(self):
         out = MOD.evaluate_review_loop(

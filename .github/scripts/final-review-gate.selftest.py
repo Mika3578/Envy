@@ -473,6 +473,17 @@ class FinalReviewGateTests(unittest.TestCase):
         out = MOD.evaluate_final_review_gate(snap(untreated_threads=1))
         self.assertEqual(out["state"], MOD.STATE_FAILURE)
 
+    def test_latest_copilot_review_uses_highest_id(self):
+        reviews = [
+            {"id": 9, "user": {"login": COPILOT}, "commit_id": HEAD, "state": "COMMENTED",
+             "submitted_at": "2026-10-03T19:00:00Z"},
+            {"id": 2, "user": {"login": COPILOT}, "commit_id": HEAD, "state": "APPROVED",
+             "submitted_at": "2026-10-03T18:00:00Z"},
+        ]
+        latest = MOD.latest_copilot_review(reviews, HEAD)
+        self.assertEqual(latest["id"], 9)
+        self.assertEqual(latest["state"], "COMMENTED")
+
 
 if __name__ == "__main__":
     unittest.main()

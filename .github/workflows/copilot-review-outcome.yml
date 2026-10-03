@@ -214,6 +214,7 @@ jobs:
           LEDGER_PATH=".github/review-ledgers/pr-${PR_NUMBER}.json"
           PRIOR_OUTCOMES_FILE="$(mktemp)"
           REVIEWS_FILE="$(mktemp)"
+          trap 'rm -f "$PRIOR_OUTCOMES_FILE"' EXIT
           gh api "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/reviews" --paginate \
             | jq -s 'add // []' >"$REVIEWS_FILE"
           if git cat-file -e "${POLICY_SHA}:${LEDGER_PATH}" 2>/dev/null; then
@@ -224,11 +225,9 @@ jobs:
           fi
           if ! jq -e 'type=="array"' "$PRIOR_OUTCOMES_FILE" >/dev/null; then
             echo "::error::Invalid default-branch ledger; maintainer migration required."
-            rm -f "$REVIEWS_FILE"
             exit 1
           fi
           PRIOR_OUTCOMES="$(cat "$PRIOR_OUTCOMES_FILE")"
-          rm -f "$PRIOR_OUTCOMES_FILE"
           PRIOR_COUNT="$(jq 'length' <<<"$PRIOR_OUTCOMES")"
           # Historical reviews still own correction attempts after a HEAD change.
           # A current-HEAD-only filter would silently bootstrap an empty ledger.

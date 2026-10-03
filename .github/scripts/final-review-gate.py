@@ -178,6 +178,7 @@ def latest_copilot_review(
             matched.append(review)
     if not matched:
         return None
+    matched.sort(key=lambda review: (int(review.get("id") or 0), str(review.get("submitted_at") or "")))
     return matched[-1]
 
 
