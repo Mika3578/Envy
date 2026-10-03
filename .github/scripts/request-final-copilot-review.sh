@@ -128,7 +128,7 @@ required_checks_ok() {
 		name="${name//$'\r'/}"
 		state="${state//$'\r'/}"
 		case "$state" in
-		SUCCESS | NEUTRAL) ;;
+		SUCCESS | NEUTRAL | SKIPPED) ;;
 		PENDING | QUEUED | IN_PROGRESS)
 			note_ineligible "Required check \`${name}\` is still \`${state}\` for the current HEAD."
 			;;

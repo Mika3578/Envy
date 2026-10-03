@@ -22,7 +22,7 @@ import tempfile
 import time
 import unicodedata
 
-from required_checks import collect_checks, commit_checks
+from required_checks import collect_checks, commit_checks, PASSING_CHECK_STATES, PENDING_CHECK_STATES
 
 REPOSITORY = "Mika3578/Envy"
 BRANCH = re.compile(r"^(feat|fix|docs|refactor|perf|test|build|ci|chore|hotfix|security)/[a-z0-9][a-z0-9-]*$")
@@ -30,8 +30,8 @@ TITLE_TYPES = {"feat", "fix", "docs", "refactor", "perf", "test", "build", "ci",
 MAIL_LOCAL = frozenset(string.ascii_letters + string.digits + ".!#$%&'*+/=?^_`{|}~-")
 MAIL_DOMAIN = frozenset(string.ascii_letters + string.digits + ".-")
 PROVENANCE = re.compile(r"(?i)co-authored-by:|generated[- ]by|generated\s+with|created\s+with|ai[- ]generated")
-PASS = {"SUCCESS", "NEUTRAL"}
-WAIT = {"PENDING", "QUEUED", "IN_PROGRESS", "WAITING", "REQUESTED"}
+PASS = PASSING_CHECK_STATES
+WAIT = PENDING_CHECK_STATES
 COPILOT = {"Copilot", "copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}
 
 
@@ -559,9 +559,29 @@ def final_review(config, entry, snapshot, state, store):
         return
     state.setdefault("requests", {})[key] = {"status": "requesting"}
     store.save(number, state)
-    # union=true adds only Copilot; never clear existing human/team requests.
-    graphql_mutation('''mutation($id:ID!){requestReviewsByLogin(input:{pullRequestId:$id,
-      botLogins:["copilot-pull-request-reviewer"],union:true}){pullRequest{id}}}''', {"id": current["node_id"]})
+    try:
+        bot = gh_json(["api", "/users/copilot-pull-request-reviewer%5Bbot%5D"])
+        bot_id = str(bot.get("node_id") or "")
+        if not bot_id:
+            raise ValueError("Copilot reviewer bot node ID is unavailable")
+        graphql_mutation(
+            """mutation($pr:ID!,$bots:[ID!]!){
+              requestReviews(input:{pullRequestId:$pr,botIds:$bots,union:true}){
+                pullRequest{id}
+              }
+            }""",
+            {"pr": current["node_id"], "bots": [bot_id]},
+        )
+        requested = gh_json(["api", f"repos/{REPOSITORY}/pulls/{number}/requested_reviewers"])
+        if not any(
+            isinstance(user, dict) and user.get("login") in COPILOT
+            for user in (requested.get("users") or [])
+        ):
+            raise ValueError("Copilot review request was not created")
+    except Exception:
+        state["requests"].pop(key, None)
+        store.save(number, state)
+        raise
     state["requests"][key] = {"status": "requested"}
     state["phase"] = "WAITING_COPILOT_REVIEW"
 

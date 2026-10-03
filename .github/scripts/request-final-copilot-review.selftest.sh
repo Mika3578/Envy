@@ -40,4 +40,5 @@ if payload=$(fetch_pr_json); then
 fi
 [[ -z "$payload" ]]
 grep -q 'Final Copilot review not requested' "$GITHUB_STEP_SUMMARY"
+grep -q 'SUCCESS | NEUTRAL | SKIPPED' .github/scripts/request-final-copilot-review.sh
 echo 'Requester mutation and lookup regression tests passed'

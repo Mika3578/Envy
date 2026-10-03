@@ -34,7 +34,10 @@ def gh_json(args: list[str]) -> Any:
     )
     if proc.returncode != 0:
         raise RuntimeError(proc.stderr.strip() or "gh failed")
-    return json.loads(proc.stdout)
+    payload = json.loads(proc.stdout)
+    if isinstance(payload, dict) and payload.get("errors") and "graphql" in args:
+        raise RuntimeError("GraphQL query returned errors")
+    return payload
 
 
 def paginate_reviews(repository: str, pr: int) -> list[dict[str, Any]]:
@@ -113,6 +116,8 @@ def unresolved_threads(owner: str, repo: str, pr: int) -> int:
         if after:
             args.extend(["-f", f"after={after}"])
         data = gh_json(args)
+        if data.get("errors"):
+            raise RuntimeError("GraphQL reviewThreads query returned errors")
         pr_data = (((data.get("data") or {}).get("repository") or {}).get("pullRequest"))
         if not pr_data:
             raise RuntimeError("pull request missing from GraphQL")
@@ -191,6 +196,16 @@ def fetch_graphql_pr_gate_fields(owner: str, repo: str, pr: int, expected_head: 
 def collect(repository: str, pr: int) -> dict[str, Any]:
     owner, _, repo = repository.partition("/")
     pr_json = gh_json(["api", f"repos/{repository}/pulls/{pr}"])
+    if str(pr_json.get("state") or "").lower() != "open":
+        raise RuntimeError("pull request is not open")
+    repo_json = gh_json(["api", f"repos/{repository}"])
+    default_branch = str(repo_json.get("default_branch") or "")
+    base_ref = str((pr_json.get("base") or {}).get("ref") or "")
+    if not default_branch or base_ref != default_branch:
+        raise RuntimeError("pull request does not target the repository default branch")
+    head_repo = str(((pr_json.get("head") or {}).get("repo") or {}).get("full_name") or "")
+    if head_repo != repository:
+        raise RuntimeError("pull request head is not this repository")
     head = str(pr_json.get("head", {}).get("sha") or "")
     gate_fields = fetch_graphql_pr_gate_fields(owner, repo, pr, head)
     checks_proc = subprocess.run(

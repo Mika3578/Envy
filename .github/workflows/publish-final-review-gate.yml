@@ -114,6 +114,16 @@ jobs:
               sys.exit(2)
           if not re.fullmatch(r"[0-9]+", str(pr)):
               sys.exit(1)
+          pr_obj = json.loads(subprocess.check_output(
+              ["gh", "api", f"repos/{repository}/pulls/{pr}"], text=True))
+          repo_obj = json.loads(subprocess.check_output(
+              ["gh", "api", f"repos/{repository}"], text=True))
+          default = repo_obj.get("default_branch") or ""
+          head_full = ((pr_obj.get("head") or {}).get("repo") or {}).get("full_name")
+          if (str(pr_obj.get("state") or "").lower() != "open"
+                  or str((pr_obj.get("base") or {}).get("ref") or "") != default
+                  or head_full != repository):
+              sys.exit(2)
           print(pr)
           PY
           )" || status=$?

@@ -86,6 +86,19 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         text = (ROOT / ".coderabbit.yaml").read_text(encoding="utf-8")
         self.assertIn("drafts: false", text)
         self.assertNotIn("drafts: true", text)
+        self.assertRegex(text, r"(?m)^finishing_touches:")
+
+    def test_final_review_gate_fragment_binds_actions_integration(self):
+        text = (
+            ROOT / ".github" / "rulesets" / "protect-develop.final-review-gate.desired.json"
+        ).read_text(encoding="utf-8")
+        self.assertIn('"integration_id": 15368', text)
+        self.assertNotIn('"integration_id": 0', text)
+
+    def test_outcome_collector_fails_closed_on_graphql_errors(self):
+        text = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")
+        self.assertIn('data.get("errors")', text)
+        self.assertIn("GraphQL reviewThreads returned errors", text)
 
     def test_changing_probe_and_scripts_cannot_self_green(self):
         probe = PROBE.read_text(encoding="utf-8")

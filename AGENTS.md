@@ -462,10 +462,37 @@ requesting GitHub Copilot Code Review or expecting merge:
    the head being reviewed, or justification posted). Do not resolve
    without a reply; do not request Copilot while untreated threads remain.
 
-Advisory bot comments (CodeRabbit, Sourcery, etc.) follow the same treatment
-rule when they left an unresolved thread. Do not spend Copilot review rounds
-to discover outstanding human or bot threads — clear them first, then request
-**one** Copilot review on the stable head.
+Advisory bot comments (CodeRabbit, Llama, Sourcery, Amazon Q, Cubic, etc.)
+follow the same treatment rule when they left an unresolved thread. Do not
+spend Copilot review rounds to discover outstanding human or bot threads —
+clear them first, then request **one** Copilot review on the stable head.
+
+### Mandatory live re-verification (never skip)
+
+Listing a thread ID in a chat report is **not** treatment. A cached ID list
+from an earlier snapshot is **not** evidence that comments are treated.
+
+After every push, reply, resolve, Copilot request, or Copilot submission on a
+PR this session owns, re-fetch live GitHub state with **complete pagination**:
+
+1. Every `reviewThreads` page until `hasNextPage` is false (include resolved,
+   outdated, and out-of-diff threads).
+2. Copilot overview **Open**, **Previously missed**, **Suppressed**, and
+   general review bodies on the **current HEAD**.
+3. `reviewDecision`, `CHANGES_REQUESTED`, and required checks.
+
+A thread is untreated if it is unresolved **or** it has no current-HEAD
+disposition reply (code fix with evidence, or a technical justification).
+Advisory-bot threads count. `unresolved_threads = 0` and untreated
+overview findings = 0 on the current HEAD are required before reporting that
+comments are treated, before requesting Copilot, and before claiming CLEAN.
+
+`FIX_AGAIN` is a loop decision, not a session stop. While this session is
+the exclusive writer and the findings are in-scope technical defects, collect
+the new live set and continue correction in the same conversation. Stop only
+for `NEEDS_HUMAN`, unavailable credentials, or an explicit maintainer stop.
+A Copilot review that lands during CI wait is a late finding: do **not**
+request a second review on that SHA; treat those new threads first.
 
 ### Review and Copilot economy (quality over volume)
 

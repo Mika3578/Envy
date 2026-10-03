@@ -145,6 +145,9 @@ jobs:
                   args.extend(["-f", f"c={cursor}"])
               raw = subprocess.check_output(args, text=True)
               data = json.loads(raw)
+              if data.get("errors"):
+                  print("::error::GraphQL reviewThreads returned errors", file=sys.stderr)
+                  sys.exit(1)
               conn = data["data"]["repository"]["pullRequest"]["reviewThreads"]
               for node in conn["nodes"]:
                   if node.get("isResolved"):
@@ -277,6 +280,9 @@ jobs:
                   args.extend(["-f", f"c={cursor}"])
               raw = subprocess.check_output(args, text=True)
               data = json.loads(raw)
+              if data.get("errors"):
+                  print("::error::GraphQL reviewThreads returned errors", file=sys.stderr)
+                  sys.exit(1)
               conn = data["data"]["repository"]["pullRequest"]["reviewThreads"]
               for node in conn["nodes"]:
                   if not node.get("isResolved"):

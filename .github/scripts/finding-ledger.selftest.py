@@ -163,23 +163,36 @@ class FindingLedgerTests(unittest.TestCase):
         self.assertEqual(MOD.canonical_status("RECURRED"), MOD.STATUS_OPEN)
         self.assertEqual(MOD.canonical_status("NEEDS_HUMAN"), MOD.STATUS_NEEDS_HUMAN)
 
+    def _prior_review(self, review_id, sha, fixture="closer-look-with-finding.json"):
+        payload = json.loads((SCRIPTS / "fixtures" / "copilot-reviews" / fixture).read_text(encoding="utf-8"))
+        payload["id"] = review_id
+        payload["commit_id"] = sha
+        return payload
+
     def test_reconstruct_covers_prior_copilot_reviews(self):
         reviews = [
-            {"id": 1, "user": {"login": "Copilot"}, "commit_id": "a" * 40, "state": "COMMENTED"},
-            {"id": 2, "user": {"login": "Copilot"}, "commit_id": "b" * 40, "state": "COMMENTED"},
-            {"id": 3, "user": {"login": "alice"}, "commit_id": "b" * 40, "state": "COMMENTED"},
+            self._prior_review(1, "a" * 40),
+            self._prior_review(2, "b" * 40),
+            {"id": 3, "user": {"login": "alice"}, "commit_id": "b" * 40, "state": "COMMENTED", "body": "n"},
         ]
         outcomes = MOD.reconstruct_prior_outcomes_from_reviews(reviews, 2)
         self.assertEqual(len(outcomes), 1)
         self.assertEqual(outcomes[0]["review_id"], 1)
+        self.assertTrue(outcomes[0]["finding_ledger"])
         MOD.check_review_history(reviews, 2, outcomes)
 
     def test_second_copilot_review_reconstructs_first_without_ledger_file(self):
-        review_a = {"id": 10, "user": {"login": "copilot-pull-request-reviewer[bot]"}, "commit_id": "a" * 40}
-        review_b = {"id": 20, "user": {"login": "copilot-pull-request-reviewer[bot]"}, "commit_id": "b" * 40}
+        review_a = self._prior_review(10, "a" * 40)
+        review_b = self._prior_review(20, "b" * 40)
         reconstructed = MOD.reconstruct_prior_outcomes_from_reviews([review_a, review_b], 20)
         self.assertEqual([item["review_id"] for item in reconstructed], [10])
+        self.assertTrue(reconstructed[0]["finding_ledger"])
         self.assertEqual(MOD.check_review_history([review_a, review_b], 20, reconstructed), 1)
+
+    def test_reconstruct_missing_body_fail_closed(self):
+        reviews = [{"id": 10, "user": {"login": "Copilot"}, "commit_id": "a" * 40, "body": ""}]
+        with self.assertRaises(ValueError):
+            MOD.reconstruct_prior_outcomes_from_reviews(reviews, 20)
 
     def test_reconstruct_cli_covers_missing_default_branch_ledger(self):
         command = [
@@ -189,16 +202,14 @@ class FindingLedgerTests(unittest.TestCase):
             "--review-id",
             "20",
         ]
-        reviews = [
-            {"id": 10, "user": {"login": "Copilot"}, "commit_id": "a" * 40},
-            {"id": 20, "user": {"login": "Copilot"}, "commit_id": "b" * 40},
-        ]
+        reviews = [self._prior_review(10, "a" * 40), self._prior_review(20, "b" * 40)]
         result = subprocess.run(
             command, input=json.dumps(reviews), text=True, capture_output=True
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         outcomes = json.loads(result.stdout)
         self.assertEqual(outcomes[0]["review_id"], 10)
+        self.assertTrue(outcomes[0]["finding_ledger"])
 
 
 if __name__ == "__main__":

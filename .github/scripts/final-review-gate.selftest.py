@@ -289,6 +289,15 @@ class FinalReviewGateTests(unittest.TestCase):
         out = MOD.evaluate_final_review_gate(snap(review_decision_source="rest"))
         self.assertEqual(out["state"], MOD.STATE_ERROR)
 
+    def test_empty_review_decision_blocks_success(self):
+        out = MOD.evaluate_final_review_gate(snap(review_decision=""))
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+        self.assertIn("not APPROVED", out["reason"])
+
+    def test_review_required_decision_blocks_success(self):
+        out = MOD.evaluate_final_review_gate(snap(review_decision="REVIEW_REQUIRED"))
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+
     def test_author_cannot_satisfy_privileged_human_approval(self):
         out = MOD.evaluate_final_review_gate(
             snap(

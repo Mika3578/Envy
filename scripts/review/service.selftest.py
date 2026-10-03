@@ -324,6 +324,14 @@ class ServiceTests(unittest.TestCase):
                 self.assertIn("worktree AGENTS.md", call.call_args.kwargs["data"])
                 self.assertNotIn("GH_TOKEN", call.call_args.kwargs["env"])
 
+    def test_skipped_is_shared_passing_state(self):
+        self.assertIn("SKIPPED", mod.PASS)
+
+    def test_copilot_request_uses_requestReviews(self):
+        text = Path(__file__).with_name("service.py").read_text(encoding="utf-8")
+        self.assertIn("requestReviews", text)
+        self.assertNotIn("requestReviewsByLogin", text)
+
 
 if __name__ == "__main__":
     unittest.main()

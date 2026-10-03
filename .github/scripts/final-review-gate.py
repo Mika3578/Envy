@@ -255,6 +255,9 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     if review_decision == "CHANGES_REQUESTED":
         reasons.append("active CHANGES_REQUESTED")
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
+    if review_decision != "APPROVED":
+        reasons.append(f"reviewDecision is {review_decision or 'empty'}, not APPROVED")
+        return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
 
     unresolved = snapshot.get("unresolved_threads")
     if not isinstance(unresolved, int) or unresolved < 0:

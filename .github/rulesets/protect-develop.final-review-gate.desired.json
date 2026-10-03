@@ -7,7 +7,7 @@
     "required_status_checks": [
       {
         "context": "Final review gate",
-        "integration_id": 0
+        "integration_id": 15368
       }
     ]
   },

@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import sys
+from pathlib import Path
 from typing import Any, Mapping, MutableMapping, Sequence
 
 STATUS_OPEN = "open"
@@ -94,16 +96,29 @@ def check_review_history(
     return len(prior_ids)
 
 
+def _classify_module():
+    path = Path(__file__).with_name("classify-copilot-review.py")
+    if not path.is_file():
+        raise ValueError("classify-copilot-review.py is required to reconstruct finding history")
+    spec = importlib.util.spec_from_file_location("classify_copilot_review_mod", path)
+    classify = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = classify
+    spec.loader.exec_module(classify)
+    return classify
+
+
 def reconstruct_prior_outcomes_from_reviews(
     reviews: Any, current_review_id: int
 ) -> list[dict[str, Any]]:
-    """Cover prior Copilot review IDs from GitHub review objects (no PR-writable ledger)."""
+    """Cover prior Copilot reviews from GitHub and rebuild finding history."""
     if not isinstance(reviews, list):
         raise ValueError("review history JSON must be an array")
     if isinstance(current_review_id, bool) or current_review_id <= 0:
         raise ValueError("review ID must be positive")
+    classify = _classify_module()
     outcomes: list[dict[str, Any]] = []
     seen: set[int] = set()
+    ledger: list[dict[str, Any]] = []
     for review in reviews:
         if not isinstance(review, Mapping) or not isinstance(review.get("user"), Mapping):
             raise ValueError("review history contains an invalid review")
@@ -121,13 +136,40 @@ def reconstruct_prior_outcomes_from_reviews(
         head_sha = str(review.get("commit_id") or "")
         if not head_sha:
             raise ValueError("Copilot review history is missing commit_id")
+        if not str(review.get("body") or "").strip():
+            raise ValueError("prior Copilot review is missing body; refusing empty finding history")
         seen.add(review_id)
+        outcome = classify.classify_review(classify.review_input_from_github(review))
+        classification = str(outcome.get("classification") or "")
+        if not classification:
+            raise ValueError("prior Copilot review could not be classified")
+        titles = [
+            str(title)
+            for title in (
+                list(outcome.get("open_finding_titles") or [])
+                + list(outcome.get("previously_missed_titles") or [])
+                + list(outcome.get("suppressed_comment_titles") or [])
+            )
+            if title
+        ]
+        if not titles and (outcome.get("requires_fixer") or outcome.get("requires_human")):
+            titles = [classification]
+        for title in titles:
+            item = upsert_finding(
+                ledger,
+                source="copilot",
+                path="",
+                title=title,
+                head_sha=head_sha,
+            )
+            if outcome.get("requires_human"):
+                item["status"] = STATUS_NEEDS_HUMAN
         outcomes.append(
             {
                 "review_id": review_id,
                 "head_sha": head_sha,
-                "classification": "RECONSTRUCTED_FROM_GITHUB_REVIEW",
-                "finding_ledger": [],
+                "classification": classification,
+                "finding_ledger": json.loads(json.dumps(ledger)),
             }
         )
     return outcomes
