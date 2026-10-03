@@ -11,24 +11,35 @@ $ErrorActionPreference = 'Stop'
 function Convert-HostOwnedPath {
 	param([Parameter(Mandatory)][string]$Raw, [Parameter(Mandatory)][string[]]$ForbiddenRoots)
 	$full = (Resolve-Path -LiteralPath $Raw).Path
+	$fullNorm = $full.TrimEnd('\', '/')
+	# For files, also compare the parent directory so a worktree under that
+	# parent (e.g. C:\host\pr vs C:\host\service.py) is rejected.
+	$candidates = New-Object System.Collections.Generic.List[string]
+	[void]$candidates.Add($fullNorm)
+	if (Test-Path -LiteralPath $full -PathType Leaf) {
+		$parent = Split-Path -LiteralPath $fullNorm -Parent
+		if ($parent) { [void]$candidates.Add($parent.TrimEnd('\', '/')) }
+	}
 	foreach ($root in $ForbiddenRoots) {
 		if (-not $root) { continue }
 		if (-not (Test-Path -LiteralPath $root)) {
 			throw "Managed worktree '$root' does not exist."
 		}
 		$resolvedRoot = (Resolve-Path -LiteralPath $root).Path
-		$fullNorm = $full.TrimEnd('\', '/')
 		$rootNorm = $resolvedRoot.TrimEnd('\', '/')
-		if ($fullNorm.Equals($rootNorm, [System.StringComparison]::OrdinalIgnoreCase)) {
-			throw "Scheduled-task path '$full' is inside managed worktree '$resolvedRoot'."
-		}
 		$sep = [System.IO.Path]::DirectorySeparatorChar
 		$alt = [System.IO.Path]::AltDirectorySeparatorChar
-		if ($fullNorm.StartsWith($rootNorm + $sep, [System.StringComparison]::OrdinalIgnoreCase)) {
-			throw "Scheduled-task path '$full' is inside managed worktree '$resolvedRoot'."
-		}
-		if ($alt -ne $sep -and $fullNorm.StartsWith($rootNorm + $alt, [System.StringComparison]::OrdinalIgnoreCase)) {
-			throw "Scheduled-task path '$full' is inside managed worktree '$resolvedRoot'."
+		foreach ($candidate in $candidates) {
+			if ($candidate.Equals($rootNorm, [System.StringComparison]::OrdinalIgnoreCase)) {
+				throw "Scheduled-task path '$full' overlaps managed worktree '$resolvedRoot'."
+			}
+			# Bidirectional isolation: reject either containment direction.
+			if ($candidate.StartsWith($rootNorm + $sep, [System.StringComparison]::OrdinalIgnoreCase) -or
+				($alt -ne $sep -and $candidate.StartsWith($rootNorm + $alt, [System.StringComparison]::OrdinalIgnoreCase)) -or
+				$rootNorm.StartsWith($candidate + $sep, [System.StringComparison]::OrdinalIgnoreCase) -or
+				($alt -ne $sep -and $rootNorm.StartsWith($candidate + $alt, [System.StringComparison]::OrdinalIgnoreCase))) {
+				throw "Scheduled-task path '$full' overlaps managed worktree '$resolvedRoot'."
+			}
 		}
 	}
 	return $full

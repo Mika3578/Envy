@@ -295,6 +295,87 @@ class CollectSnapshotTests(unittest.TestCase):
         ]
         self.assertEqual(MOD.unique_open_pr_numbers(entries, 397), {397})
 
+    def test_unique_open_pr_rejects_malformed_membership_entry(self):
+        with self.assertRaises(RuntimeError):
+            MOD.unique_open_pr_numbers([{"number": 397, "state": "open"}, "bad"], 397)
+        with self.assertRaises(RuntimeError):
+            MOD.unique_open_pr_numbers([{"number": 397}], 397)
+
+    def test_malformed_comment_node_fail_closed(self):
+        with self.assertRaises(RuntimeError):
+            MOD.count_thread_dispositions(
+                [
+                    {
+                        "isResolved": True,
+                        "comments": {
+                            "pageInfo": {"hasNextPage": False},
+                            "nodes": [
+                                {
+                                    "author": {
+                                        "login": "alice",
+                                        "__typename": "User",
+                                    },
+                                    "commit": {"oid": HEAD},
+                                },
+                                "not-an-object",
+                            ],
+                        },
+                    }
+                ],
+                HEAD,
+            )
+
+    def test_non_boolean_is_resolved_fail_closed(self):
+        with self.assertRaises(RuntimeError):
+            MOD.count_thread_dispositions(
+                [
+                    {
+                        "isResolved": "yes",
+                        "comments": {
+                            "pageInfo": {"hasNextPage": False},
+                            "nodes": [
+                                {
+                                    "author": {
+                                        "login": "alice",
+                                        "__typename": "User",
+                                    },
+                                    "commit": {"oid": HEAD},
+                                }
+                            ],
+                        },
+                    }
+                ],
+                HEAD,
+            )
+
+    def test_unique_open_pr_rejects_malformed_membership_entry(self):
+        with self.assertRaises(RuntimeError):
+            MOD.unique_open_pr_numbers([{"number": 397, "state": "open"}, "bad"], 397)
+
+    def test_malformed_comment_node_fail_closed(self):
+        with self.assertRaises(RuntimeError):
+            MOD.count_thread_dispositions(
+                [
+                    {
+                        "isResolved": True,
+                        "comments": {
+                            "pageInfo": {"hasNextPage": False},
+                            "nodes": [
+                                {
+                                    "author": {
+                                        "login": "alice",
+                                        "__typename": "User",
+                                    },
+                                    "commit": {"oid": HEAD},
+                                },
+                                "bad",
+                            ],
+                        },
+                    }
+                ],
+                HEAD,
+            )
+
     def test_paginate_commit_pulls_flattens_slurp_pages(self):
         class Result:
             returncode = 0

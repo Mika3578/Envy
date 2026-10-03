@@ -181,10 +181,19 @@ def count_thread_dispositions(nodes: list, head_sha: str = "") -> tuple[int, int
             raise RuntimeError("incomplete review thread comments pagination")
         if info["hasNextPage"]:
             raise RuntimeError("incomplete review thread comments")
-        items = [item for item in (comments.get("nodes") or []) if isinstance(item, dict)]
+        nodes_list = comments.get("nodes")
+        if not isinstance(nodes_list, list):
+            raise RuntimeError("review thread comments nodes are malformed")
+        items = []
+        for item in nodes_list:
+            if not isinstance(item, dict):
+                raise RuntimeError("review thread comment node is malformed")
+            items.append(item)
         if not items:
             raise RuntimeError("review thread has no comments")
-        if not node.get("isResolved"):
+        if not isinstance(node.get("isResolved"), bool):
+            raise RuntimeError("review thread isResolved is malformed")
+        if not node["isResolved"]:
             unresolved += 1
             continue
         if GATE.resolved_thread_is_untreated(
@@ -341,11 +350,17 @@ def require_open_default_same_repo(
 def unique_open_pr_numbers(entries: Any, pr: int) -> set[int]:
     if not isinstance(entries, list):
         raise RuntimeError("HEAD pull membership is malformed")
-    open_heads = {
-        int(item.get("number") or 0)
-        for item in entries
-        if isinstance(item, dict) and str(item.get("state") or "").lower() == "open"
-    }
+    open_heads: set[int] = set()
+    for item in entries:
+        if not isinstance(item, dict):
+            raise RuntimeError("HEAD pull membership entry is malformed")
+        if "number" not in item or "state" not in item:
+            raise RuntimeError("HEAD pull membership entry is incomplete")
+        number = item.get("number")
+        if isinstance(number, bool) or not isinstance(number, int) or number <= 0:
+            raise RuntimeError("HEAD pull membership number is malformed")
+        if str(item.get("state") or "").lower() == "open":
+            open_heads.add(number)
     if pr not in open_heads or len(open_heads) != 1:
         raise RuntimeError("HEAD is shared by another open pull request")
     return open_heads

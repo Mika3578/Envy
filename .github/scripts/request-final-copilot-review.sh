@@ -95,7 +95,9 @@ fetch_pr_json() {
 		and (.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage | type=="boolean")
 		and all(
 			.data.repository.pullRequest.reviewThreads.nodes[];
-			(.comments | type=="object")
+			(.isResolved | type=="boolean")
+			and (.isOutdated | type=="boolean")
+			and (.comments | type=="object")
 			and (.comments.pageInfo | type=="object")
 			and (.comments.pageInfo.hasNextPage | type=="boolean")
 			and (.comments.nodes | type=="array")
