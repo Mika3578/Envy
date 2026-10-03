@@ -30,6 +30,7 @@ def eligible_pull(head, base, **extra):
         "state": "open",
         "draft": False,
         "node_id": "PR",
+        "mergeable_state": "clean",
         "head": {"sha": head, "ref": "ci/trusted-copilot-review-loop",
                  "repo": {"full_name": "Mika3578/Envy"}},
         "base": {"sha": base, "ref": "develop"},
@@ -709,6 +710,29 @@ class ServiceTests(unittest.TestCase):
         with patch.object(mod, "gh_json", return_value=closed):
             with self.assertRaises(ValueError):
                 mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
+
+    def test_final_review_waits_when_merge_state_not_ready(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        head, base = "a" * 40, "b" * 40
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {}}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": head, "base": base}
+        behind = eligible_pull(head, base, mergeable_state="behind")
+        with patch.object(mod, "gh_json", return_value=behind):
+            mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
+        self.assertEqual(state["phase"], "AWAITING_MERGEABLE")
+        self.assertNotIn(f"copilot:{head}:{base}", state.get("requests", {}))
 
 
 if __name__ == "__main__":

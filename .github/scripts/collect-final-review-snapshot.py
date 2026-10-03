@@ -275,11 +275,17 @@ def graphql_pr_gate_fields(payload: Any, expected_head: str) -> dict[str, Any]:
     decision = pr_data.get("reviewDecision")
     if decision is not None and not isinstance(decision, str):
         raise RuntimeError("GraphQL reviewDecision is malformed")
+    if "mergeStateStatus" not in pr_data:
+        raise RuntimeError("GraphQL mergeStateStatus field is unavailable")
+    merge_state = pr_data.get("mergeStateStatus")
+    if merge_state is not None and not isinstance(merge_state, str):
+        raise RuntimeError("GraphQL mergeStateStatus is malformed")
     return {
         "review_decision": str(decision or ""),
         "review_decision_source": "graphql",
         "pr_author_login": login,
         "review_decision_unavailable": False,
+        "merge_state_status": str(merge_state or ""),
     }
 
 
@@ -289,6 +295,7 @@ def fetch_graphql_pr_gate_fields(owner: str, repo: str, pr: int, expected_head: 
       repository(owner:$o,name:$n){
         pullRequest(number:$p){
           reviewDecision
+          mergeStateStatus
           headRefOid
           author { login }
         }
@@ -407,6 +414,7 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         "review_decision_source": "graphql",
         "review_decision_unavailable": False,
         "pr_author_login": gate_fields["pr_author_login"],
+        "merge_state_status": gate_fields["merge_state_status"],
         "unresolved_threads": unresolved,
         "untreated_threads": untreated_threads,
         "untreated_pr_level_findings": [],

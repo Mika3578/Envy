@@ -176,6 +176,12 @@ def require_eligible_pr(pr):
         raise ValueError("Only open same-fork functional branches targeting develop are eligible")
 
 
+def merge_state_ready_for_copilot(pr):
+    """REST mergeable_state must be known and not behind/dirty/unstable."""
+    state = str((pr or {}).get("mergeable_state") or "").lower()
+    return state not in {"", "unknown", "behind", "dirty", "unstable"}
+
+
 def collect(number):
     prefix = f"repos/{REPOSITORY}"
     pr = gh_json(["api", f"{prefix}/pulls/{number}"])
@@ -831,6 +837,9 @@ def final_review(config, entry, snapshot, state, store):
         raise ValueError("HEAD/base changed before final review")
     if current["draft"]:
         state["phase"] = "DRAFT_STABLE"
+        return
+    if not merge_state_ready_for_copilot(current):
+        state["phase"] = "AWAITING_MERGEABLE"
         return
     key = f"copilot:{head}:{base}"
     latest = latest_copilot_review(snapshot["reviews"], head)

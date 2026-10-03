@@ -21,10 +21,13 @@ _SPEC.loader.exec_module(MOD)
 HEAD = "a" * 40
 
 
-def gql_payload(decision, head=HEAD, author="alice", include_decision=True):
+def gql_payload(decision, head=HEAD, author="alice", include_decision=True,
+                merge_state="CLEAN", include_merge_state=True):
     pr = {"headRefOid": head, "author": {"login": author}}
     if include_decision:
         pr["reviewDecision"] = decision
+    if include_merge_state:
+        pr["mergeStateStatus"] = merge_state
     return {"data": {"repository": {"pullRequest": pr}}}
 
 
@@ -56,6 +59,13 @@ class CollectSnapshotTests(unittest.TestCase):
         fields = MOD.graphql_pr_gate_fields(gql_payload("APPROVED"), HEAD)
         self.assertEqual(fields["review_decision"], "APPROVED")
         self.assertEqual(fields["pr_author_login"], "alice")
+        self.assertEqual(fields["merge_state_status"], "CLEAN")
+
+    def test_missing_merge_state_fail_closed(self):
+        with self.assertRaises(RuntimeError):
+            MOD.graphql_pr_gate_fields(
+                gql_payload("APPROVED", include_merge_state=False), HEAD
+            )
 
     def test_resolved_copilot_thread_without_reply_is_untreated(self):
         unresolved, untreated = MOD.count_thread_dispositions(

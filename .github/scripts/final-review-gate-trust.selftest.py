@@ -89,7 +89,11 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn(".github/scripts/final-review-gate.py", pub)
         self.assertIn(".github/scripts/publish-final-review-gate.py", pub)
         self.assertIn(".github/scripts/classify-copilot-review.py", pub)
-        self.assertIn(".github/scripts/finding-ledger.py", PUBLISHER.read_text(encoding="utf-8"))
+        self.assertIn(".github/scripts/finding-ledger.py", pub)
+        sparse = pub.split("sparse-checkout:", 1)[1].split("sparse-checkout-cone-mode", 1)[0]
+        self.assertIn(".github/scripts/finding-ledger.py", sparse)
+        require = pub.split("Require trusted scripts on the default branch", 1)[1]
+        self.assertIn(".github/scripts/finding-ledger.py", require)
         outcome = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")
         self.assertIn("GraphQL reviewDecision query returned errors", outcome)
 

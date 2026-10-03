@@ -31,6 +31,7 @@ def snap(**kwargs):
         "review_decision": "APPROVED",
         "review_decision_source": "graphql",
         "review_decision_unavailable": False,
+        "merge_state_status": "CLEAN",
         "pr_author_login": "alice",
         "copilot_classification": "APPROVED",
         "unresolved_threads": 0,
@@ -475,6 +476,13 @@ class FinalReviewGateTests(unittest.TestCase):
         )
         self.assertFalse(out["request"])
         self.assertEqual(out["reason"], "untreated findings remain")
+
+    def test_should_request_blocks_behind_or_unknown_merge_state(self):
+        for state in ("BEHIND", "DIRTY", "UNSTABLE", "UNKNOWN", ""):
+            with self.subTest(state=state):
+                out = MOD.should_request_copilot(snap(reviews=[], merge_state_status=state))
+                self.assertFalse(out["request"])
+                self.assertIn("merge state not ready", out["reason"])
 
     def test_should_request_blocks_self_only_required_check(self):
         out = MOD.should_request_copilot(

@@ -179,6 +179,7 @@ jobs:
             .github/scripts/collect-final-review-snapshot.py
             .github/scripts/publish-final-review-gate.py
             .github/scripts/classify-copilot-review.py
+            .github/scripts/finding-ledger.py
             scripts/review/required_checks.py
           sparse-checkout-cone-mode: false
 

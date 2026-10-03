@@ -612,6 +612,12 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     )
     if any(snapshot.get(key) for key in untreated_keys):
         return {"request": False, "reason": "untreated findings remain"}
+    merge_state = str(snapshot.get("merge_state_status") or "").upper()
+    if merge_state in {"", "UNKNOWN", "BEHIND", "DIRTY", "UNSTABLE"}:
+        return {
+            "request": False,
+            "reason": f"merge state not ready for Copilot: {merge_state or '<missing>'}",
+        }
     raw_checks = snapshot.get("required_checks")
     if not isinstance(raw_checks, list) or not raw_checks:
         return {"request": False, "reason": "required CI unknown"}
