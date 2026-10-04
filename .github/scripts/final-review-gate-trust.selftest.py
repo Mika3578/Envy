@@ -104,6 +104,7 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn("scripts/review/disposition.py", require)
         outcome = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")
         self.assertIn("GraphQL reviewDecision query returned errors", outcome)
+        self.assertIn("scripts/review/disposition.py", outcome)
 
     def test_coderabbit_does_not_review_drafts(self):
         text = (ROOT / ".coderabbit.yaml").read_text(encoding="utf-8")

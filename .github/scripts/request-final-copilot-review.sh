@@ -71,7 +71,7 @@ fetch_pr_json() {
 						isOutdated
 						comments(first:100){
 							pageInfo{hasNextPage}
-							nodes{author{login __typename} commit{oid}}
+							nodes{author{login __typename} commit{oid} body}
 						}
 					}
 					pageInfo{hasNextPage endCursor}
@@ -130,24 +130,40 @@ has_unresolved_threads() {
 		return 0
 	fi
 	local untreated
-	untreated="$(echo "$pr_json" | jq --arg head "$head_oid" --argjson copilot '["Copilot","copilot-pull-request-reviewer","copilot-pull-request-reviewer[bot]"]' '
-		[.data.repository.pullRequest.reviewThreads.nodes[]?
-			| select(.isResolved == true)
-			| . as $thread
-			| select(
-				([($thread.comments.nodes[1:] // [])[]
-					| select(
-						(.author.__typename == "User")
-						and ((.author.login // "") | endswith("[bot]") | not)
-						and (.author.login as $login | ($copilot | index($login) | not))
-						and (
-							((.commit.oid // "") == $head)
-							or ($thread.isOutdated == true)
-						)
-					)
-				] | length) == 0
-			)
-		] | length')"
+	# Shared Python predicate: body must cite HEAD + technical evidence; outdated
+	# threads cannot bypass with an old reply alone.
+	untreated="$(
+		PR_JSON="$pr_json" HEAD_OID="$head_oid" python3 - <<'PY'
+import json, os, sys
+from pathlib import Path
+sys.path.insert(0, str(Path("scripts/review").resolve()))
+from disposition import body_cites_sha, is_valid_disposition_body
+COPILOT = {"Copilot", "copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}
+head = os.environ["HEAD_OID"]
+pr = json.loads(os.environ["PR_JSON"])["data"]["repository"]["pullRequest"]
+untreated = 0
+for thread in pr.get("reviewThreads", {}).get("nodes") or []:
+    if not thread.get("isResolved"):
+        continue
+    nodes = (thread.get("comments") or {}).get("nodes") or []
+    treated = False
+    for item in nodes[1:]:
+        author = item.get("author") or {}
+        login = str(author.get("login") or "")
+        if author.get("__typename") != "User" or not login or login.endswith("[bot]") or login in COPILOT:
+            continue
+        body = str(item.get("body") or "")
+        if not is_valid_disposition_body(body, head_sha=head):
+            continue
+        oid = str(((item.get("commit") or {}).get("oid") or ""))
+        if oid == head or (thread.get("isOutdated") and body_cites_sha(body, head)):
+            treated = True
+            break
+    if not treated:
+        untreated += 1
+print(untreated)
+PY
+	)"
 	if [[ "$untreated" != "0" ]]; then
 		note_ineligible "Pull request #${PR_NUMBER} has resolved review threads without a current-HEAD disposition reply."
 		return 0

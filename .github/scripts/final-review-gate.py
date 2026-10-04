@@ -166,12 +166,15 @@ def resolved_thread_is_untreated(comments: Sequence[Any], head_sha: str, *, outd
         user_type = str(author.get("type") or "")
         if not is_authorized_disposition_author(login, typename=typename, user_type=user_type):
             continue
-        if not disposition_policy.is_valid_disposition_body(str(item.get("body") or "")):
+        body = str(item.get("body") or "")
+        if not disposition_policy.is_valid_disposition_body(body, head_sha=head):
             continue
         reply_commit = comment_commit_oid(item)
         if head and reply_commit == head:
             return False
-        if outdated:
+        # Outdated threads keep the original review OID on replies. Accept only
+        # when the body cites the current HEAD (already required above).
+        if outdated and head and disposition_policy.body_cites_sha(body, head):
             return False
     return True
 

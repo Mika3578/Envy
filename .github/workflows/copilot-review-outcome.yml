@@ -42,6 +42,7 @@ jobs:
             .github/scripts/collect-final-review-snapshot.py
             .github/scripts/final-review-gate.py
             scripts/review/required_checks.py
+            scripts/review/disposition.py
           sparse-checkout-cone-mode: false
 
       - name: Require review-loop scripts on the default branch
@@ -53,7 +54,8 @@ jobs:
             .github/scripts/finding-ledger.py \
             .github/scripts/collect-final-review-snapshot.py \
             .github/scripts/final-review-gate.py \
-            scripts/review/required_checks.py
+            scripts/review/required_checks.py \
+            scripts/review/disposition.py
           do
             if [[ ! -f "$f" ]]; then
               echo "::error::$f is missing on the default branch; refusing to bootstrap from PR head."

@@ -18,13 +18,29 @@ _TECHNICAL_SIGNAL = re.compile(
 _SHA_CITE = re.compile(r"`?[0-9a-f]{7,40}`?", re.I)
 
 
-def is_valid_disposition_body(body: str) -> bool:
-    """True when a reply is a technical disposition, not a bare acknowledgement."""
+def body_cites_sha(body: str, head_sha: str) -> bool:
+    """True when body cites the full HEAD or its unambiguous 7-char prefix."""
+    head = str(head_sha or "").strip().lower()
+    if len(head) < 7:
+        return False
+    text = (body or "").lower()
+    return head in text or head[:7] in text
+
+
+def is_valid_disposition_body(body: str, *, head_sha: str = "") -> bool:
+    """True when a reply is a technical disposition, not a bare acknowledgement.
+
+    An envy-disposition HTML marker alone is never sufficient: the body must
+    still carry Evidence and/or a SHA cite plus a technical signal. When
+    ``head_sha`` is supplied, the body must cite that HEAD.
+    """
     text = (body or "").strip()
     if not text or _ACK_ONLY.match(text):
         return False
-    if DISPOSITION_MARKER.search(text):
-        return True
-    if "Evidence:" in text and len(text) >= 24:
-        return True
-    return bool(_SHA_CITE.search(text) and _TECHNICAL_SIGNAL.search(text) and len(text) >= 40)
+    has_evidence = "Evidence:" in text and len(text) >= 24
+    has_technical = bool(_TECHNICAL_SIGNAL.search(text))
+    if not has_evidence and not has_technical:
+        return False
+    if head_sha:
+        return body_cites_sha(text, head_sha) and len(text) >= 40
+    return bool(_SHA_CITE.search(text)) and len(text) >= 40

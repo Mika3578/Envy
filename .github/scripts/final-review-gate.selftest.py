@@ -557,6 +557,24 @@ class FinalReviewGateTests(unittest.TestCase):
         comments[1]["body"] = f"Fixed on `{HEAD[:7]}`. Regression selftest covers the bound."
         self.assertFalse(MOD.resolved_thread_is_untreated(comments, HEAD))
 
+    def test_marker_only_disposition_is_untreated(self):
+        comments = [
+            {"author": {"login": COPILOT, "__typename": "Bot"}, "commit": {"oid": HEAD}},
+            {"author": {"login": "alice", "__typename": "User"}, "commit": {"oid": HEAD},
+             "body": "<!-- envy-disposition -->"},
+        ]
+        self.assertTrue(MOD.resolved_thread_is_untreated(comments, HEAD))
+
+    def test_outdated_thread_requires_current_head_cite(self):
+        comments = [
+            {"author": {"login": COPILOT, "__typename": "Bot"}, "commit": {"oid": "b" * 40}},
+            {"author": {"login": "alice", "__typename": "User"}, "commit": {"oid": "b" * 40},
+             "body": f"Fixed on `{'b' * 7}`. Old justification without current HEAD."},
+        ]
+        self.assertTrue(MOD.resolved_thread_is_untreated(comments, HEAD, outdated=True))
+        comments[1]["body"] = f"Fixed on `{HEAD[:7]}`. Revalidated on current HEAD after later push."
+        self.assertFalse(MOD.resolved_thread_is_untreated(comments, HEAD, outdated=True))
+
     def test_copilot_logins_exclude_swe_coding_agent(self):
         self.assertNotIn("copilot-swe-agent", MOD.COPILOT_LOGINS)
         self.assertNotIn("copilot-swe-agent[bot]", MOD.COPILOT_LOGINS)

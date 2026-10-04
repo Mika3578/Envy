@@ -131,6 +131,31 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001 — fail closed
             state = "error"
             desc = f"post-success revalidation failed: {exc}"
+    # Immediate pre-publish barrier: CHANGES_REQUESTED / new threads can arrive
+    # after the revalidation collect without moving HEAD.
+    if state == "success":
+        try:
+            barrier = collect_mod.collect(repository, pr)
+            barrier_head = str(barrier.get("current_head_sha") or "")
+            if not barrier_head or barrier_head != collected_head:
+                state = "pending"
+                desc = "HEAD changed immediately before publish; refusing stale success"
+                live = barrier_head or live
+            else:
+                barrier_result = gate_mod.revalidate_gate_before_success(
+                    {
+                        "state": "success",
+                        "head_sha": collected_head,
+                        "publish_sha": collected_head,
+                    },
+                    barrier,
+                )
+                state = str(barrier_result.get("state") or "error")
+                desc = str(barrier_result.get("reason") or state)
+                live = barrier_head
+        except Exception as exc:  # noqa: BLE001 — fail closed
+            state = "error"
+            desc = f"pre-publish barrier failed: {exc}"
     post_check_run(repository, live, state, desc, run_url)
     print(json.dumps({"state": state, "reason": desc, "publish_sha": live}, indent=2))
     return 0

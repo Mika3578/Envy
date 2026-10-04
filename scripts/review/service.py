@@ -25,7 +25,7 @@ import time
 from types import SimpleNamespace
 import unicodedata
 
-from disposition import is_valid_disposition_body
+from disposition import body_cites_sha, is_valid_disposition_body
 from required_checks import (
     collect_checks,
     commit_checks,
@@ -364,12 +364,13 @@ def _resolved_thread_is_untreated(nodes, head, *, outdated=False):
         typename = str(author.get("__typename") or author.get("type") or "")
         if typename != "User" or not login or login in COPILOT or login.endswith("[bot]") or "copilot" in login.lower():
             continue
-        if not is_valid_disposition_body(str(item.get("body") or "")):
+        body = str(item.get("body") or "")
+        if not is_valid_disposition_body(body, head_sha=head):
             continue
         reply_commit = str(((item.get("commit") or {}).get("oid") or item.get("commit_id") or ""))
         if head and reply_commit == head:
             return False
-        if outdated:
+        if outdated and head and body_cites_sha(body, head):
             return False
     return True
 
