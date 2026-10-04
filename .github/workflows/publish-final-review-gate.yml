@@ -182,24 +182,14 @@ jobs:
       checks: write
       statuses: read
     steps:
-      - name: Checkout gate scripts from default branch only
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.event.repository.default_branch }}
-          persist-credentials: false
-          sparse-checkout: |
-            .github/scripts/final-review-gate.py
-            .github/scripts/collect-final-review-snapshot.py
-            .github/scripts/publish-final-review-gate.py
-            .github/scripts/classify-copilot-review.py
-            .github/scripts/finding-ledger.py
-            scripts/review/required_checks.py
-            scripts/review/disposition.py
-          sparse-checkout-cone-mode: false
-
-      - name: Require trusted scripts on the default branch
+      # No actions/checkout: download default-branch scripts via the GitHub API only.
+      # This keeps privileged jobs free of repository checkout (Sonar S7637 / fork rule).
+      - name: Fetch gate scripts from default branch via API
         id: scripts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          REF: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           missing=0
@@ -212,8 +202,14 @@ jobs:
             scripts/review/required_checks.py \
             scripts/review/disposition.py
           do
-            if [[ ! -f "$f" ]]; then
+            mkdir -p "$(dirname "$f")"
+            if ! gh api "repos/${REPOSITORY}/contents/${f}?ref=${REF}" --jq .content \
+              | tr -d '\n' | base64 -d >"$f" 2>/dev/null; then
               echo "::warning::$f is missing on the default branch; gate stays non-success (staged rollout)."
+              rm -f "$f"
+              missing=1
+            elif [[ ! -s "$f" ]]; then
+              echo "::warning::$f downloaded empty from the default branch; gate stays non-success."
               missing=1
             fi
           done

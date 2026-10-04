@@ -76,9 +76,11 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertNotIn("\n  pull_request:\n", pub.replace("\r\n", "\n"))
         self.assertNotIn("pull_request_review:", pub)
         self.assertIn("github.event.repository.default_branch", pub)
-        self.assertIn(CHECKOUT_PIN, pub)
-        self.assertIn("persist-credentials: false", pub)
-        self.assertIn("repository: ${{ github.repository }}", pub)
+        # No repository checkout in the privileged publisher (API fetch only).
+        self.assertNotIn(CHECKOUT_PIN, pub)
+        self.assertNotIn("actions/checkout@", pub)
+        self.assertIn("Fetch gate scripts from default branch via API", pub)
+        self.assertIn("repos/${REPOSITORY}/contents/", pub)
         self.assertNotIn("pull_request.head.sha", pub)
         self.assertNotIn("github.head_ref", pub)
         self.assertNotIn("allow-unsafe-pr-checkout", pub)
@@ -116,19 +118,15 @@ class FinalReviewGateTrustTests(unittest.TestCase):
             pub,
         )
 
-    def test_pr_modifying_evaluator_does_not_change_publisher_checkout(self):
+    def test_pr_modifying_evaluator_does_not_change_publisher_script_fetch(self):
         pub = PUBLISHER.read_text(encoding="utf-8")
-        self.assertIn("ref: ${{ github.event.repository.default_branch }}", pub)
+        self.assertIn("REF: ${{ github.event.repository.default_branch }}", pub)
         self.assertIn(".github/scripts/final-review-gate.py", pub)
         self.assertIn(".github/scripts/publish-final-review-gate.py", pub)
         self.assertIn(".github/scripts/classify-copilot-review.py", pub)
         self.assertIn(".github/scripts/finding-ledger.py", pub)
-        sparse = pub.split("sparse-checkout:", 1)[1].split("sparse-checkout-cone-mode", 1)[0]
-        self.assertIn(".github/scripts/finding-ledger.py", sparse)
-        self.assertIn("scripts/review/disposition.py", sparse)
-        require = pub.split("Require trusted scripts on the default branch", 1)[1]
-        self.assertIn(".github/scripts/finding-ledger.py", require)
-        self.assertIn("scripts/review/disposition.py", require)
+        self.assertIn("scripts/review/disposition.py", pub)
+        self.assertIn("repos/${REPOSITORY}/contents/", pub)
         outcome = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")
         self.assertIn("GraphQL reviewDecision query returned errors", outcome)
         self.assertIn("scripts/review/disposition.py", outcome)

@@ -156,14 +156,16 @@ and before the platform deadline.
 
 Maintainer checklist:
 
-1. **Inventory** workflows on `pull_request_target`. After governance
-   simplification: `.github/workflows/labeler.yml`,
-   `.github/workflows/authorship-hygiene.yml`, and
-   `.github/workflows/publish-final-review-gate.yml`. Confirm each uses
-   read-only or minimal scopes, does not `checkout` untrusted PR head code
-   for execution, and does not treat review comments as commands. The gate
-   publisher may use `statuses:write` while evaluating only GitHub API
-   metadata and default-branch scripts.
+1. **Inventory** privileged workflows. After governance simplification:
+   `.github/workflows/labeler.yml` and `.github/workflows/authorship-hygiene.yml`
+   remain on `pull_request_target`. The gate publisher
+   (`.github/workflows/publish-final-review-gate.yml`) triggers via
+   `workflow_run` / `check_run` / `workflow_dispatch` only (no
+   `pull_request_target`), downloads default-branch scripts through the GitHub
+   API (no `actions/checkout`), and grants job-scoped `checks:write` (not
+   `statuses:write`) while evaluating only GitHub API metadata. Confirm each
+   privileged workflow uses minimal scopes, does not execute untrusted PR head
+   code, and does not treat review comments as commands.
 2. **Removed auto-merge:** `.github/workflows/dependabot-auto-merge.yml` is
    deleted in this PR. Do not restore bot approval/auto-merge without a
    separately reviewed design. Merge Dependabot PRs manually or via native

@@ -23,8 +23,9 @@ import disposition as disposition_policy  # noqa: E402
 import required_checks as required_check_policy  # noqa: E402
 
 GATE_CONTEXT = "Final review gate"
-# GitHub Actions app id pinned by protect-develop.final-review-gate.desired.json.
-GATE_PUBLISHER_INTEGRATION_ID = 15368
+# Trusted publisher app IDs (shared with scripts/review/required_checks.py).
+GATE_PUBLISHER_INTEGRATION_ID = required_check_policy.GATE_PUBLISHER_INTEGRATION_ID
+GATE_PUBLISHER_INTEGRATION_IDS = required_check_policy.GATE_PUBLISHER_INTEGRATION_IDS
 
 STATE_SUCCESS = "success"
 STATE_FAILURE = "failure"
@@ -130,15 +131,12 @@ def _looks_like_copilot(login: str) -> bool:
 
 
 def is_advisory_self_gate_check(check: Mapping[str, Any]) -> bool:
-    """True only for this publisher's Final review gate receipt (integration 15368).
+    """True for trusted publisher Final review gate receipts (self-noise).
 
     Another required integration that reuses the same context name must still be
     evaluated; name-only filtering would hide its missing/failing receipt.
     """
-    name = str(check.get("name") or check.get("context") or "")
-    if name != GATE_CONTEXT:
-        return False
-    return check.get("integration_id") == GATE_PUBLISHER_INTEGRATION_ID
+    return required_check_policy.is_advisory_self_gate_check(check)
 
 
 def is_authorized_disposition_author(login: str, *, typename: str = "", user_type: str = "") -> bool:

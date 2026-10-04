@@ -304,6 +304,19 @@ class FinalReviewGateTests(unittest.TestCase):
         self.assertTrue(out["privileged_paths"])
 
     def test_self_only_gate_check_cannot_succeed(self):
+        # Self-gate receipt is ignored; include an independent passing context so
+        # the snapshot is otherwise valid and the ignore path is what is tested.
+        out = MOD.evaluate_final_review_gate(
+            snap(required_checks=[
+                {
+                    "name": "Final review gate",
+                    "integration_id": MOD.GATE_PUBLISHER_INTEGRATION_ID,
+                    "state": "SUCCESS",
+                },
+                {"name": "Format Check", "state": "SUCCESS"},
+            ])
+        )
+        self.assertEqual(out["state"], MOD.STATE_SUCCESS)
         out = MOD.evaluate_final_review_gate(
             snap(required_checks=[{
                 "name": "Final review gate",

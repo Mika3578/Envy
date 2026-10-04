@@ -146,8 +146,8 @@ for thread in pr.get("reviewThreads", {}).get("nodes") or []:
     if not thread.get("isResolved"):
         continue
     nodes = (thread.get("comments") or {}).get("nodes") or []
-    treated = False
-    for item in nodes[1:]:
+    last_disposition_idx = None
+    for idx, item in enumerate(nodes[1:], start=1):
         author = item.get("author") or {}
         login = str(author.get("login") or "")
         if author.get("__typename") != "User" or not login or login.endswith("[bot]") or login in COPILOT:
@@ -157,9 +157,8 @@ for thread in pr.get("reviewThreads", {}).get("nodes") or []:
             continue
         oid = str(((item.get("commit") or {}).get("oid") or ""))
         if oid == head or (thread.get("isOutdated") and body_cites_sha(body, head)):
-            treated = True
-            break
-    if not treated:
+            last_disposition_idx = idx
+    if last_disposition_idx is None or last_disposition_idx < len(nodes) - 1:
         untreated += 1
 print(untreated)
 PY

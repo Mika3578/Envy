@@ -26,6 +26,7 @@ from types import SimpleNamespace
 import unicodedata
 
 from disposition import body_cites_sha, is_valid_disposition_body
+import required_checks as required_check_policy
 from required_checks import (
     collect_checks,
     commit_checks,
@@ -47,12 +48,12 @@ GATE_PASS = GATE_PASSING_CHECK_STATES
 WAIT = PENDING_CHECK_STATES
 COPILOT = {"Copilot", "copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}
 GATE_CONTEXT = "Final review gate"
-GATE_PUBLISHER_INTEGRATION_ID = 15368
+GATE_PUBLISHER_INTEGRATION_ID = required_check_policy.GATE_PUBLISHER_INTEGRATION_ID
+GATE_PUBLISHER_INTEGRATION_IDS = required_check_policy.GATE_PUBLISHER_INTEGRATION_IDS
 
 
 def is_advisory_self_gate_check(item):
-    name = str(item.get("name") or item.get("context") or "")
-    return name == GATE_CONTEXT and item.get("integration_id") == GATE_PUBLISHER_INTEGRATION_ID
+    return required_check_policy.is_advisory_self_gate_check(item)
 
 
 def latest_copilot_review(reviews, head):
@@ -421,7 +422,8 @@ def threads_blocking_final_review(snapshot):
 def _resolved_thread_is_untreated(nodes, head, *, outdated=False):
     if not nodes:
         return True
-    for item in nodes[1:]:
+    last_disposition_idx = None
+    for idx, item in enumerate(nodes[1:], start=1):
         author = item.get("author") or {}
         login = str(author.get("login") or "")
         typename = str(author.get("__typename") or author.get("type") or "")
@@ -431,11 +433,13 @@ def _resolved_thread_is_untreated(nodes, head, *, outdated=False):
         if not is_valid_disposition_body(body, head_sha=head):
             continue
         reply_commit = str(((item.get("commit") or {}).get("oid") or item.get("commit_id") or ""))
-        if head and reply_commit == head:
-            return False
-        if outdated and head and body_cites_sha(body, head):
-            return False
-    return True
+        matches_head = bool(head and reply_commit == head)
+        outdated_ok = bool(outdated and head and body_cites_sha(body, head))
+        if matches_head or outdated_ok:
+            last_disposition_idx = idx
+    if last_disposition_idx is None:
+        return True
+    return last_disposition_idx < len(nodes) - 1
 
 
 def identity(pr):

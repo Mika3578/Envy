@@ -1,5 +1,5 @@
 {
-  "_comment": "Read-only future Protect develop fragment. Do not apply in this PR. Auto-merge stays off. Do not enroll against the shared GitHub Actions app (integration_id 15368): any PR-controlled workflow can mint a same-named Actions check run. Replace publisher_integration_id with a dedicated publisher GitHub App id before making Final review gate required.",
+  "_comment": "Read-only future Protect develop fragment. Do not apply in this PR. Auto-merge stays off. Do not enroll against the shared GitHub Actions app (integration_id 15368): any PR-controlled workflow can mint a same-named Actions check run. Before enrollment, set integration_id to a dedicated publisher GitHub App id and add that same id to GATE_PUBLISHER_INTEGRATION_IDS in scripts/review/required_checks.py (imported by the evaluator/host) in the same change.",
   "type": "required_status_checks",
   "parameters": {
     "strict_required_status_checks_policy": true,

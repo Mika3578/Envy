@@ -17,11 +17,28 @@ class CheckTests(unittest.TestCase):
         for runs in ([old, new], [new, old]):
             self.assertEqual(checks.commit_checks("new", ["Build"], runs, [])[0]["state"], "QUEUED")
 
-    def test_same_name_check_and_status_both_must_pass(self):
-        run = dict(name="Build", head_sha="new", id=3, status="completed", conclusion="success")
-        status = dict(context="Build", id=4, state="failure")
+    def test_unbound_check_and_status_merge_to_latest(self):
+        run = dict(
+            name="Build",
+            head_sha="new",
+            id=3,
+            status="completed",
+            conclusion="success",
+            completed_at="2026-01-02T00:00:00Z",
+        )
+        status = dict(
+            context="Build",
+            id=4,
+            state="failure",
+            created_at="2026-01-01T00:00:00Z",
+        )
         receipts = checks.commit_checks("new", ["Build"], [run], [status])
-        self.assertEqual({item["state"] for item in receipts}, {"SUCCESS", "FAILURE"})
+        self.assertEqual(len(receipts), 1)
+        self.assertEqual(receipts[0]["state"], "SUCCESS")
+        # Newer failing status must win over an older successful check run.
+        status["created_at"] = "2026-01-03T00:00:00Z"
+        receipts = checks.commit_checks("new", ["Build"], [run], [status])
+        self.assertEqual(receipts[0]["state"], "FAILURE")
 
     def test_unrelated_app_cannot_satisfy_required_receipt(self):
         required = [{"context": "Build", "integration_id": 15368}]
