@@ -192,6 +192,13 @@ jobs:
           REF: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
+          # Pin one commit SHA for the whole fetch so develop cannot advance mid-loop.
+          ref_sha="$(gh api "repos/${REPOSITORY}/git/ref/heads/${REF}" --jq .object.sha)"
+          if [[ ! "$ref_sha" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::Could not resolve a 40-char SHA for default branch ${REF}."
+            exit 1
+          fi
+          echo "Pinned default-branch scripts at ${ref_sha}"
           missing=0
           for f in \
             .github/scripts/final-review-gate.py \
@@ -203,7 +210,7 @@ jobs:
             scripts/review/disposition.py
           do
             mkdir -p "$(dirname "$f")"
-            if ! gh api "repos/${REPOSITORY}/contents/${f}?ref=${REF}" --jq .content \
+            if ! gh api "repos/${REPOSITORY}/contents/${f}?ref=${ref_sha}" --jq .content \
               | tr -d '\n' | base64 -d >"$f" 2>/dev/null; then
               echo "::warning::$f is missing on the default branch; gate stays non-success (staged rollout)."
               rm -f "$f"

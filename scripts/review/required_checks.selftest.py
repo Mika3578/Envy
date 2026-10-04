@@ -40,6 +40,12 @@ class CheckTests(unittest.TestCase):
         receipts = checks.commit_checks("new", ["Build"], [run], [status])
         self.assertEqual(receipts[0]["state"], "FAILURE")
 
+    def test_incomplete_check_outranks_status_without_timestamps(self):
+        run = dict(name="Build", head_sha="new", id=3, status="queued", conclusion=None)
+        status = dict(context="Build", id=4, state="success", created_at="2026-01-03T00:00:00Z")
+        receipts = checks.commit_checks("new", ["Build"], [run], [status])
+        self.assertEqual(receipts[0]["state"], "QUEUED")
+
     def test_unrelated_app_cannot_satisfy_required_receipt(self):
         required = [{"context": "Build", "integration_id": 15368}]
         foreign = dict(name="Build", head_sha="new", id=9, status="completed",

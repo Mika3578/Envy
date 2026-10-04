@@ -55,6 +55,7 @@ fetch_pr_json() {
 				state
 				isDraft
 				baseRefName
+				headRefName
 				headRefOid
 				reviewDecision
 				mergeStateStatus
@@ -264,6 +265,10 @@ evaluate_eligibility() {
 	fi
 	if [[ "$head_repo" != "$REPOSITORY" ]]; then
 		note_ineligible "Pull request #${PR_NUMBER} head \`${head_repo:-<missing>}\` is not this repository (\`${REPOSITORY}\`); only same-repo heads are eligible."
+	fi
+	head_ref="$(echo "$pr" | jq -r '.headRefName // empty')"
+	if [[ ! "$head_ref" =~ ^(feat|fix|docs|refactor|perf|test|build|ci|chore|hotfix|security)/[a-z0-9][a-z0-9-]*$ ]]; then
+		note_ineligible "Pull request #${PR_NUMBER} head branch \`${head_ref:-<missing>}\` is not a functional type/short-kebab-summary name."
 	fi
 	if forbidden_author "$author_login"; then
 		note_ineligible "Pull request #${PR_NUMBER} is authored by \`${author_login}\`; repository policy forbids Copilot self-approval on agent-authored PRs."

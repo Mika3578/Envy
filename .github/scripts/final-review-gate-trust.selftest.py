@@ -81,6 +81,8 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertNotIn("actions/checkout@", pub)
         self.assertIn("Fetch gate scripts from default branch via API", pub)
         self.assertIn("repos/${REPOSITORY}/contents/", pub)
+        self.assertIn("git/ref/heads/", pub)
+        self.assertIn("Pinned default-branch scripts at", pub)
         self.assertNotIn("pull_request.head.sha", pub)
         self.assertNotIn("github.head_ref", pub)
         self.assertNotIn("allow-unsafe-pr-checkout", pub)

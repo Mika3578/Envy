@@ -122,9 +122,16 @@ def commit_checks(head, required, runs, statuses):
         # Unbound context: one receipt. Prefer the newer API source by timestamp;
         # when timestamps are absent/equal, prefer the check-run receipt.
         if check_entry and status_entry:
+            check_item = check_entry[2]
+            check_status = str(check_item.get("status") or "").lower()
+            # Queued/in-progress check runs often omit timestamps; never let a
+            # status with created_at outrank an incomplete current-SHA check run.
+            if check_status and check_status != "completed":
+                checks.append(check_entry[1])
+                continue
             check_time = str(
-                check_entry[2].get("completed_at")
-                or check_entry[2].get("started_at")
+                check_item.get("completed_at")
+                or check_item.get("started_at")
                 or ""
             )
             status_time = str(

@@ -98,6 +98,19 @@ class CollectSnapshotTests(unittest.TestCase):
                 gql_payload("APPROVED", include_draft=False), HEAD
             )
 
+    def test_require_open_rejects_non_functional_head_branch(self):
+        with self.assertRaises(RuntimeError):
+            MOD.require_open_default_same_repo(
+                {
+                    "state": "open",
+                    "draft": False,
+                    "base": {"ref": "develop"},
+                    "head": {"ref": "cursor/bad-name", "repo": {"full_name": "Mika3578/Envy"}},
+                },
+                "Mika3578/Envy",
+                {"default_branch": "develop"},
+            )
+
     def test_missing_comments_pageinfo_fail_closed(self):
         with self.assertRaises(RuntimeError):
             MOD.count_thread_dispositions(

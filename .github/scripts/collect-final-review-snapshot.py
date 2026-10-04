@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 from typing import Any
@@ -347,6 +348,11 @@ def fetch_graphql_pr_gate_fields(owner: str, repo: str, pr: int, expected_head: 
     return graphql_pr_gate_fields(payload, expected_head)
 
 
+FUNCTIONAL_HEAD_BRANCH = re.compile(
+    r"^(feat|fix|docs|refactor|perf|test|build|ci|chore|hotfix|security)/[a-z0-9][a-z0-9-]*$"
+)
+
+
 def require_open_default_same_repo(
     pr_json: dict[str, Any], repository: str, repo_json: dict[str, Any]
 ) -> None:
@@ -359,6 +365,9 @@ def require_open_default_same_repo(
     head_repo = str(((pr_json.get("head") or {}).get("repo") or {}).get("full_name") or "")
     if head_repo != repository:
         raise RuntimeError("pull request head is not this repository")
+    head_ref = str((pr_json.get("head") or {}).get("ref") or "")
+    if not FUNCTIONAL_HEAD_BRANCH.fullmatch(head_ref):
+        raise RuntimeError("pull request head branch is not a functional type/short-kebab-summary name")
 
 
 def unique_open_pr_numbers(entries: Any, pr: int) -> set[int]:
@@ -524,6 +533,8 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
     fresh_head = str(fresh.get("head", {}).get("sha") or "")
     if not fresh_head:
         raise RuntimeError("PR HEAD SHA is missing")
+    # Re-assert unique open-PR membership on the live HEAD (may have moved).
+    unique_open_pr_numbers(paginate_commit_pulls(repository, fresh_head), pr)
     fresh_draft = bool(fresh.get("draft"))
     if fresh_draft != bool(snapshot.get("is_draft")):
         raise RuntimeError("pull request draft state changed during collection")
