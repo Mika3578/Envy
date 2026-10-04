@@ -149,6 +149,16 @@ class FinalReviewGateTests(unittest.TestCase):
         )
         self.assertEqual(out["state"], MOD.STATE_FAILURE)
 
+    def test_missing_finding_list_field_fail_closed(self):
+        base = snap()
+        del base["open_finding_titles"]
+        out = MOD.evaluate_final_review_gate(base)
+        self.assertEqual(out["state"], MOD.STATE_ERROR)
+        self.assertFalse(out["allow_publish"])
+        self.assertTrue(
+            any("open_finding_titles" in r for r in out.get("reasons") or [])
+        )
+
     def test_api_error_fail_closed(self):
         out = MOD.evaluate_final_review_gate(snap(api_error=True))
         self.assertEqual(out["state"], MOD.STATE_ERROR)

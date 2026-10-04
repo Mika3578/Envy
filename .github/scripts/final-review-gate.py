@@ -424,12 +424,11 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         ("open_finding_titles", "open finding"),
     ):
         values = snapshot.get(key)
-        if values is None:
-            continue
+        # Missing finding-list fields are required evidence; never treat omit as [].
         if not isinstance(values, list):
             return _result(
                 STATE_ERROR,
-                [f"{key} snapshot is malformed"],
+                [f"{key} snapshot is missing or malformed"],
                 snapshot,
                 metrics,
                 allow_publish=False,
