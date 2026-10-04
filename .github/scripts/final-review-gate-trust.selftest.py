@@ -148,6 +148,25 @@ class FinalReviewGateTrustTests(unittest.TestCase):
                 msg=f"{path.name} must not post Final review gate from a PR-controlled workflow",
             )
             self.assertNotIn("context: Final review gate", text)
+            # Also reject Check Run creation spellings that would satisfy a
+            # required-status ruleset entry by name without the commit-status API.
+            creates_check = (
+                "check-runs" in text
+                or "checks.create" in text
+                or "create_check_run" in text
+                or "actions/github-script" in text
+            )
+            if creates_check:
+                self.assertNotIn(
+                    "Final review gate",
+                    text,
+                    msg=f"{path.name} must not create a Final review gate check run",
+                )
+
+    def test_publisher_check_run_trigger_excludes_own_job(self):
+        text = PUBLISHER.read_text(encoding="utf-8")
+        self.assertIn("github.event.check_run.name != 'Final review gate'", text)
+        self.assertIn("github.event.check_run.name != 'Evaluate final review gate'", text)
 
     def test_publisher_paginates_commit_pulls(self):
         text = PUBLISHER.read_text(encoding="utf-8")

@@ -682,6 +682,45 @@ class ServiceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 mod.git_identity(worktree)
 
+    def test_human_disposition_comment_unblocks_loop_guard(self):
+        classify = mod.load_copilot_classifier()
+        fixture = Path(__file__).resolve().parents[2] / ".github" / "scripts" / "fixtures" / "copilot-reviews" / "approved-none.json"
+        body = json.loads(fixture.read_text(encoding="utf-8"))["body"]
+        prior = {
+            "id": 1,
+            "user": {"login": "copilot-pull-request-reviewer"},
+            "body": (
+                "<!-- ccr-overview-v2 -->\n## Copilot review overview\n\n"
+                "### Needs a closer look\n\nRequires human validation.\n\n"
+                "**Review effort:** Lite\n\n**Findings:** None\n"
+            ),
+            "commit_id": "a" * 40,
+            "state": "COMMENTED",
+        }
+        current = {
+            "id": 2,
+            "user": {"login": "copilot-pull-request-reviewer"},
+            "body": body,
+            "commit_id": "a" * 40,
+            "state": "APPROVED",
+        }
+        comments = [{
+            "user": {"login": "Mika3578"},
+            "body": (
+                '<!-- envy-human-disposition: {"review_id": "1", "actor": "Mika3578", '
+                '"status": "resolved", "evidence": "Maintainer accepted the prior stop."} -->\n'
+                "Maintainer disposition recorded."
+            ),
+        }]
+        blocked = mod.copilot_overview_is_clean(
+            classify, current, prior_reviews=[prior], comments=[]
+        )
+        self.assertFalse(blocked)
+        cleared = mod.copilot_overview_is_clean(
+            classify, current, prior_reviews=[prior], comments=comments
+        )
+        self.assertTrue(cleared)
+
     def test_git_identity_pins_common_dir(self):
         worktree = Path.cwd().resolve()
         git_dir = worktree / ".git"

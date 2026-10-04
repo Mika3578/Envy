@@ -141,7 +141,47 @@ def open_finding_titles_from_threads(threads):
     return titles
 
 
-def copilot_overview_is_clean(classify, review, *, threads=None, prior_reviews=None):
+def attach_human_dispositions_from_comments(outcomes, comments):
+    """Overlay authenticated maintainer stop dispositions from PR issue comments."""
+    marker = "<!-- envy-human-disposition:"
+    found = {}
+    for comment in comments or []:
+        user = comment.get("user") if isinstance(comment.get("user"), dict) else {}
+        if user.get("login") != "Mika3578":
+            continue
+        body = str(comment.get("body") or "")
+        start = body.find(marker)
+        if start < 0:
+            continue
+        rest = body[start + len(marker) :]
+        end = rest.find("-->")
+        if end < 0:
+            continue
+        try:
+            payload = json.loads(rest[:end].strip())
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        review_id = str(payload.get("review_id") or "")
+        evidence = str(payload.get("evidence") or "").strip()
+        if review_id and payload.get("status") == "resolved" and evidence:
+            found[review_id] = {
+                "actor": "Mika3578",
+                "status": "resolved",
+                "evidence": evidence,
+            }
+    attached = []
+    for outcome in outcomes:
+        item = dict(outcome)
+        disposition = found.get(str(item.get("review_id") or ""))
+        if disposition:
+            item["human_disposition"] = disposition
+        attached.append(item)
+    return attached
+
+
+def copilot_overview_is_clean(classify, review, *, threads=None, prior_reviews=None, comments=None):
     """True only when the trusted classifier reports clean APPROVED."""
     titles = open_finding_titles_from_threads(threads)
     outcome = classify.classify_review(
@@ -156,6 +196,7 @@ def copilot_overview_is_clean(classify, review, *, threads=None, prior_reviews=N
         if user.get("login") not in COPILOT:
             continue
         prior.append(classify.classify_review(classify.review_input_from_github(item)))
+    prior = attach_human_dispositions_from_comments(prior, comments)
     if hasattr(classify, "apply_loop_guards"):
         outcome = classify.apply_loop_guards(outcome, prior)
     return (
@@ -1076,6 +1117,7 @@ def final_review(config, entry, snapshot, state, store):
             latest_fresh,
             threads=fresh.get("threads"),
             prior_reviews=fresh.get("reviews"),
+            comments=fresh.get("comments"),
         ):
             state["phase"] = "FIX_AGAIN"
             return

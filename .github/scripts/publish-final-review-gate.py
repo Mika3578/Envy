@@ -104,13 +104,24 @@ def main() -> int:
         post_check_run(repository, sha, "error", "GitHub API error", run_url)
         print(json.dumps({"state": "error", "reason": str(exc)}, indent=2))
         return 0
+    collected_head = str(snapshot.get("current_head_sha") or "")
     live = live_head(repository, pr)
     state = str(result.get("state") or "error")
     desc = str(result.get("reason") or state)
     if not live:
+        # Invalidate any prior success on the last known SHA instead of exiting
+        # silently and leaving a stale required green check.
+        fallback = collected_head or str(result.get("publish_sha") or "")
+        if fallback:
+            post_check_run(
+                repository,
+                fallback,
+                "error",
+                "could not re-read current HEAD before publish",
+                run_url,
+            )
         print("could not re-read current HEAD before publish", file=sys.stderr)
         return 1
-    collected_head = str(snapshot.get("current_head_sha") or "")
     if live != collected_head or live != str(result.get("publish_sha") or live):
         # Any HEAD race invalidates the collected result, not only SUCCESS.
         state = "pending"
