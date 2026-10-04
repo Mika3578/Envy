@@ -1035,10 +1035,10 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize, XmlParseBudget* p
 					break;
 				}
 				pRoot = new CXMLElement( NULL, L"Metadata" );
-				if ( ! pRoot )
+				if (!pRoot)
 				{
 					delete pXML;
-					break;	// Out of memory
+					break; // Out of memory
 				}
 			}
 
