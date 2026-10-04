@@ -70,10 +70,37 @@ def latest_copilot_review(reviews, head):
     return max(matched, key=lambda review: (int(review.get("id") or 0), str(review.get("submitted_at") or "")))
 
 
+def _reject_reparse_points(path: Path, *, label: str) -> None:
+    """Fail closed when any path component is a symlink/junction before resolve."""
+    current = Path(path)
+    while True:
+        try:
+            if current.is_symlink():
+                raise ValueError(f"{label} must not traverse reparse points")
+        except OSError as exc:
+            raise ValueError(f"{label} is not a usable host path") from exc
+        parent = current.parent
+        if parent == current:
+            break
+        current = parent
+
+
 def assert_host_owned_file(path, worktrees, *, label):
-    resolved = Path(path).resolve()
-    if not Path(path).is_absolute():
+    raw = Path(path)
+    if not raw.is_absolute():
         raise ValueError(f"{label} must be an absolute host path")
+    _reject_reparse_points(raw, label=label)
+    for tree in worktrees:
+        _reject_reparse_points(Path(tree), label="managed worktree")
+        # Lexical containment before resolve so a worktree symlink cannot hide
+        # a host path that still sits under the managed tree prefix.
+        try:
+            raw.relative_to(Path(tree))
+        except ValueError:
+            pass
+        else:
+            raise ValueError(f"{label} must be outside managed PR worktrees")
+    resolved = raw.resolve()
     if not resolved.is_file():
         raise ValueError(f"{label} is missing")
     for tree in worktrees:

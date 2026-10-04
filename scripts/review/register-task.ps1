@@ -8,14 +8,38 @@ param(
 	[switch]$EnableCorrections
 )
 $ErrorActionPreference = 'Stop'
+function Test-HostReparsePoint {
+	param([Parameter(Mandatory)][string]$Path)
+	if (-not (Test-Path -LiteralPath $Path)) { return $false }
+	$item = Get-Item -LiteralPath $Path -Force
+	return [bool]($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)
+}
+
+function Assert-NoReparseAncestors {
+	param([Parameter(Mandatory)][string]$Path)
+	$cursor = $Path
+	while ($cursor) {
+		if (Test-HostReparsePoint -Path $cursor) {
+			throw "Scheduled-task path '$Path' traverses reparse point '$cursor'."
+		}
+		$parent = Split-Path -LiteralPath $cursor -Parent
+		if (-not $parent -or $parent -eq $cursor) { break }
+		$cursor = $parent
+	}
+}
+
 function Convert-HostOwnedPath {
 	param([Parameter(Mandatory)][string]$Raw, [Parameter(Mandatory)][string[]]$ForbiddenRoots)
+	# Reject reparse points on the raw absolute path before Resolve-Path follows them.
+	$rawFull = [System.IO.Path]::GetFullPath($Raw)
+	Assert-NoReparseAncestors -Path $rawFull
 	$full = (Resolve-Path -LiteralPath $Raw).Path
 	$fullNorm = $full.TrimEnd('\', '/')
 	# For files, also compare the parent directory so a worktree under that
 	# parent (e.g. C:\host\pr vs C:\host\service.py) is rejected.
 	$candidates = New-Object System.Collections.Generic.List[string]
 	[void]$candidates.Add($fullNorm)
+	[void]$candidates.Add($rawFull.TrimEnd('\', '/'))
 	if (Test-Path -LiteralPath $full -PathType Leaf) {
 		$parent = Split-Path -LiteralPath $fullNorm -Parent
 		if ($parent) { [void]$candidates.Add($parent.TrimEnd('\', '/')) }
@@ -25,6 +49,7 @@ function Convert-HostOwnedPath {
 		if (-not (Test-Path -LiteralPath $root)) {
 			throw "Managed worktree '$root' does not exist."
 		}
+		Assert-NoReparseAncestors -Path ([System.IO.Path]::GetFullPath($root))
 		$resolvedRoot = (Resolve-Path -LiteralPath $root).Path
 		$rootNorm = $resolvedRoot.TrimEnd('\', '/')
 		$sep = [System.IO.Path]::DirectorySeparatorChar

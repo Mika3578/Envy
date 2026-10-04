@@ -418,7 +418,7 @@ class ServiceTests(unittest.TestCase):
              "commit": {"oid": "a" * 40}},
             {"databaseId": 2, "author": {"login": "alice", "__typename": "User"},
              "commit": {"oid": "a" * 40},
-             "body": "Fixed on `" + ("a" * 7) + "`. Regression evidence recorded."},
+             "body": "Fixed on `" + ("a" * 7) + "`. Evidence: Regression selftest recorded."},
         ]}}]
         head, base = "a" * 40, "b" * 40
         entry = {

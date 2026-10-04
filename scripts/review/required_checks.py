@@ -42,6 +42,10 @@ def required_specs(required):
     specs = []
     for item in required:
         if isinstance(item, str):
+            if item == GATE_CONTEXT:
+                raise ValueError(
+                    "Final review gate must not enroll as an unbound required check"
+                )
             specs.append({"context": item, "integration_id": None})
             continue
         context = str(item.get("context") or item.get("name") or "")
@@ -50,6 +54,10 @@ def required_specs(required):
         # Rulesets may pin an integration or leave the context unbound (null).
         integration = item.get("integration_id")
         if integration is None:
+            if context == GATE_CONTEXT:
+                raise ValueError(
+                    "Final review gate must not enroll as an unbound required check"
+                )
             specs.append({"context": context, "integration_id": None})
         else:
             integration_id = int(integration)

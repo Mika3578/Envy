@@ -35,19 +35,22 @@ def body_cites_sha(body: str, head_sha: str) -> bool:
     return False
 
 
+_EVIDENCE_PAYLOAD = re.compile(r"(?i)\bEvidence:\s+\S+")
+
+
 def is_valid_disposition_body(body: str, *, head_sha: str = "") -> bool:
     """True when a reply is a technical disposition, not a bare acknowledgement.
 
     An envy-disposition HTML marker alone is never sufficient: the body must
-    still carry Evidence and/or a SHA cite plus a technical signal. When
-    ``head_sha`` is supplied, the body must cite that HEAD.
+    still carry a non-empty ``Evidence:`` payload and a technical signal, plus a
+    SHA cite. When ``head_sha`` is supplied, the body must cite that HEAD.
     """
     text = (body or "").strip()
     if not text or _ACK_ONLY.match(text):
         return False
-    has_evidence = "Evidence:" in text and len(text) >= 24
+    has_evidence = bool(_EVIDENCE_PAYLOAD.search(text))
     has_technical = bool(_TECHNICAL_SIGNAL.search(text))
-    if not has_evidence and not has_technical:
+    if not has_evidence or not has_technical:
         return False
     if head_sha:
         return body_cites_sha(text, head_sha) and len(text) >= 40

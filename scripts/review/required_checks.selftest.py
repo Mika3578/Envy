@@ -98,14 +98,13 @@ class CheckTests(unittest.TestCase):
                 }
             ])
 
-    def test_required_specs_reject_shared_actions_gate_enrollment(self):
+    def test_required_specs_reject_unbound_final_review_gate(self):
         with self.assertRaises(ValueError):
             checks.required_specs([
-                {
-                    "context": "Final review gate",
-                    "integration_id": checks.GATE_PUBLISHER_INTEGRATION_ID,
-                }
+                {"context": "Final review gate", "integration_id": None}
             ])
+        with self.assertRaises(ValueError):
+            checks.required_specs(["Final review gate"])
 
     def test_collect_exports_required_specs(self):
         rules = [{

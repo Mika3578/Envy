@@ -244,7 +244,7 @@ class CollectSnapshotTests(unittest.TestCase):
                             {
                                 "author": {"login": "alice", "__typename": "User"},
                                 "commit": {"oid": HEAD},
-                                "body": f"Fixed on `{HEAD[:7]}`. Regression selftest covers the bound.",
+                                "body": f"Fixed on `{HEAD[:7]}`. Evidence: Regression selftest covers the bound.",
                             },
                         ],
                     },
@@ -374,7 +374,7 @@ class CollectSnapshotTests(unittest.TestCase):
                                 "author": {"login": "alice", "__typename": "User"},
                                 "commit": {"oid": "b" * 40},
                                 "body": (
-                                    f"Fixed on `{HEAD[:7]}`. Outdated thread disposition "
+                                    f"Fixed on `{HEAD[:7]}`. Evidence: Outdated thread disposition "
                                     "with regression evidence."
                                 ),
                             },
