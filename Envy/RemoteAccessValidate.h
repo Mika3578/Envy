@@ -245,6 +245,19 @@ inline bool RemoteClientIsLoopback(const IN_ADDR& clientIP, LPCTSTR pszClientAdd
 	return RemoteIpv4IsLoopback(clientIP);
 }
 
+// The Remote login security model (login throttle, sessions, failed-login
+// tracking) keys on IN_ADDR. When AcceptFrom stored an IPv6 peer string in
+// m_sAddress, the m_pHost SOCKADDR_IN bytes are not the peer (D-017); using
+// them would silently substitute unrelated IPv4 bytes and can make unrelated
+// IPv6 clients share one placeholder security identity. Callers must fail
+// closed until D-017 makes the identity model IPv6-aware. IPv4-mapped forms
+// (::ffff:x.x.x.x) contain ':' and are refused too: proving a safe mapping
+// back to IPv4 is D-017 work.
+inline bool RemoteSecurityIdentityIsReliable(LPCTSTR pszClientAddress)
+{
+	return pszClientAddress == NULL || _tcschr(pszClientAddress, _T(':')) == NULL;
+}
+
 // BindAddress classification for fail-closed authorization.
 // Invalid/oversized values must not fall through as "non-localhost" and
 // reopen AllowLAN/WAN/CIDR for non-loopback clients.

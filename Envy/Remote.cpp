@@ -21,6 +21,7 @@
 #include "Envy.h"
 #include "Remote.h"
 #include "RemoteSecurity.h"
+#include "RemoteAccessValidate.h"
 
 #include "Network.h"
 #include "MatchObjects.h"
@@ -776,8 +777,17 @@ void CRemote::PageSwitch(const CString& strPath)
 
 void CRemote::PageLogin()
 {
-	if ( ! Settings.Remote.Username.IsEmpty() &&
-		 ! Settings.Remote.Password.IsEmpty() )
+	// The login security model keys on IN_ADDR. When AcceptFrom stored an IPv6
+	// peer string, m_pHost holds placeholder bytes rather than the peer; fail
+	// closed instead of sharing one fake IPv4 identity across unrelated IPv6
+	// clients (IPv6-aware identities are deferred to D-017).
+	if (!RemoteSecurityIdentityIsReliable(m_sAddress))
+	{
+		theApp.Message(MSG_ERROR, L"Remote login refused from %s: peer security identity unavailable",
+		               (LPCTSTR)m_sAddress);
+	}
+	else if (!Settings.Remote.Username.IsEmpty() &&
+	         !Settings.Remote.Password.IsEmpty())
 	{
 		CString strUsername = GetKey( L"username" );
 		CString strPassword = GetKey( L"password" );

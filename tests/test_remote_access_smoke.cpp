@@ -348,6 +348,44 @@ static bool test_invalid_bind_allow_external_override_applies()
 	           false);
 }
 
+static bool test_security_identity_fail_closed_for_ipv6_peers()
+{
+	// The IN_ADDR-keyed login identity (login throttle, sessions, failed-login
+	// tracking) is reliable only when the peer text is not IPv6-shaped; a
+	// dual-stack AcceptFrom would otherwise let unrelated IPv6 clients share a
+	// placeholder IPv4 identity (D-017 defers IPv6-aware identities).
+	const IN_ADDR oLan = make_ipv4_octets(203, 0, 113, 7);
+	wchar_t szV4[16];
+	wchar_t szV4Loop[16];
+	wchar_t szDocA[24];
+	wchar_t szDocB[24];
+	wchar_t szMappedLoop[40];
+	format_ipv4_bind(szV4, 16, 203, 0, 113, 7);
+	format_ipv4_bind(szV4Loop, 16, 127, 0, 0, 1);
+	swprintf_s(szDocA, 24, L"2001:db8::%u", 1u);
+	swprintf_s(szDocB, 24, L"2001:db8::%u", 2u);
+	swprintf_s(szMappedLoop, 40, L"::ffff:%u.%u.%u.%u", 127u, 0u, 0u, 1u);
+	// (1) Normal IPv4 peer and (2) IPv4 loopback keep a reliable identity; a
+	// missing peer text (legacy IN_ADDR-only callers) stays reliable too.
+	const bool bIpv4Reliable =
+	    RemoteSecurityIdentityIsReliable(szV4) &&
+	    RemoteSecurityIdentityIsReliable(szV4Loop) &&
+	    RemoteSecurityIdentityIsReliable(NULL);
+	// (3) IPv6 loopback and (4) IPv6 non-loopback have no representable
+	// identity; (5) two distinct IPv6 peers are each refused, so neither
+	// borrows a placeholder IPv4 identity; (6) IPv4-mapped IPv6 is refused as
+	// well because the model cannot prove the mapping.
+	const bool bIpv6Refused =
+	    !RemoteSecurityIdentityIsReliable(L"::1") &&
+	    !RemoteSecurityIdentityIsReliable(szDocA) &&
+	    !RemoteSecurityIdentityIsReliable(szDocB) &&
+	    !RemoteSecurityIdentityIsReliable(szMappedLoop);
+	// The access gate still classifies IPv6 loopback peers as loopback; the
+	// refusal happens only at the login-identity layer.
+	const bool bGateUnchanged = RemoteClientIsLoopback(oLan, L"::1");
+	return bIpv4Reliable && bIpv6Refused && bGateUnchanged;
+}
+
 void register_remote_access_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("remote_ipv4_loopback", test_ipv4_loopback);
@@ -370,4 +408,6 @@ void register_remote_access_smoke_tests(TestSuite& suite)
 	               test_invalid_bind_allow_external_override_applies);
 	suite.add_test("remote_bind_rejects_oversized_ipv4_octets",
 	               test_bind_rejects_oversized_ipv4_octets);
+	suite.add_test("remote_security_identity_fail_closed_for_ipv6_peers",
+	               test_security_identity_fail_closed_for_ipv6_peers);
 }
