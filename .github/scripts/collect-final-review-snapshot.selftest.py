@@ -111,6 +111,34 @@ class CollectSnapshotTests(unittest.TestCase):
                 {"default_branch": "develop"},
             )
 
+    def test_mutable_gate_fingerprint_detects_new_review(self):
+        base = MOD.mutable_gate_fingerprint(
+            reviews=[{"id": 1, "state": "COMMENTED", "commit_id": HEAD}],
+            unresolved=0,
+            untreated=0,
+            checks=[{"name": "Build", "state": "SUCCESS"}],
+            files=["a.py"],
+            pending_copilot=False,
+        )
+        changed = MOD.mutable_gate_fingerprint(
+            reviews=[
+                {"id": 1, "state": "COMMENTED", "commit_id": HEAD},
+                {"id": 2, "state": "COMMENTED", "commit_id": HEAD},
+            ],
+            unresolved=0,
+            untreated=0,
+            checks=[{"name": "Build", "state": "SUCCESS"}],
+            files=["a.py"],
+            pending_copilot=False,
+        )
+        self.assertNotEqual(base, changed)
+
+    def test_collector_compares_mutable_inputs_after_final_reread(self):
+        text = (SCRIPTS / "collect-final-review-snapshot.py").read_text(encoding="utf-8")
+        self.assertIn("mutable gate inputs changed during collection", text)
+        self.assertIn("PR HEAD changed during collection", text)
+        self.assertIn("mutable_gate_fingerprint(", text)
+
     def test_missing_comments_pageinfo_fail_closed(self):
         with self.assertRaises(RuntimeError):
             MOD.count_thread_dispositions(

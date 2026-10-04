@@ -410,17 +410,7 @@ def paginate_commit_pulls(repository: str, head: str) -> list[Any]:
     raise RuntimeError("HEAD pull membership is malformed")
 
 
-def collect(repository: str, pr: int) -> dict[str, Any]:
-    owner, _, repo = repository.partition("/")
-    pr_json = gh_json(["api", f"repos/{repository}/pulls/{pr}"])
-    repo_json = gh_json(["api", f"repos/{repository}"])
-    require_open_default_same_repo(pr_json, repository, repo_json)
-    head = str(pr_json.get("head", {}).get("sha") or "")
-    if not head:
-        raise RuntimeError("PR HEAD SHA is missing")
-    related = paginate_commit_pulls(repository, head)
-    unique_open_pr_numbers(related, pr)
-    gate_fields = fetch_graphql_pr_gate_fields(owner, repo, pr, head)
+def collect_required_checks(repository: str, head: str) -> list[Any]:
     checks_proc = subprocess.run(
         [
             sys.executable,
@@ -440,12 +430,67 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
     checks = payload.get("checks") if isinstance(payload, dict) else []
     if not isinstance(checks, list) or not checks:
         raise RuntimeError("required checks snapshot is empty")
+    return checks
+
+
+def pending_copilot_request(repository: str, pr: int) -> bool:
     requested = gh_json(["api", f"repos/{repository}/pulls/{pr}/requested_reviewers"])
-    pending_copilot = any(
+    return any(
         (user.get("login") in GATE.COPILOT_LOGINS)
         for user in (requested.get("users") or [])
         if isinstance(user, dict)
     )
+
+
+def mutable_gate_fingerprint(
+    *,
+    reviews: list[Any],
+    unresolved: int,
+    untreated: int,
+    checks: list[Any],
+    files: list[Any],
+    pending_copilot: bool,
+) -> tuple[Any, ...]:
+    """Stable fingerprint of gate inputs that can change without a HEAD move."""
+    review_rows = tuple(
+        (
+            item.get("id"),
+            str(item.get("state") or "").upper(),
+            str(item.get("commit_id") or ""),
+            str(item.get("submitted_at") or item.get("submittedAt") or ""),
+        )
+        for item in reviews
+        if isinstance(item, dict)
+    )
+    check_rows = tuple(
+        (str(item.get("name") or ""), str(item.get("state") or "").upper())
+        for item in checks
+        if isinstance(item, dict)
+    )
+    file_rows = tuple(sorted(str(path) for path in files))
+    return (
+        review_rows,
+        int(unresolved),
+        int(untreated),
+        check_rows,
+        file_rows,
+        bool(pending_copilot),
+    )
+
+
+def collect(repository: str, pr: int) -> dict[str, Any]:
+    owner, _, repo = repository.partition("/")
+    pr_json = gh_json(["api", f"repos/{repository}/pulls/{pr}"])
+    repo_json = gh_json(["api", f"repos/{repository}"])
+    require_open_default_same_repo(pr_json, repository, repo_json)
+    head = str(pr_json.get("head", {}).get("sha") or "")
+    if not head:
+        raise RuntimeError("PR HEAD SHA is missing")
+    related = paginate_commit_pulls(repository, head)
+    unique_open_pr_numbers(related, pr)
+    gate_fields = fetch_graphql_pr_gate_fields(owner, repo, pr, head)
+    checks = collect_required_checks(repository, head)
+    pending_copilot = pending_copilot_request(repository, pr)
     reviews = paginate_reviews(repository, pr)
     unresolved, untreated_threads = thread_disposition(owner, repo, pr, head)
     snapshot = {
@@ -546,6 +591,9 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         raise RuntimeError("GraphQL isDraft does not match the REST draft state")
     if live_fields["base_sha"] != fresh_base:
         raise RuntimeError("GraphQL baseRefOid does not match the REST base SHA")
+    if fresh_head != head:
+        # Do not certify a mixed snapshot when HEAD moved mid-collection.
+        raise RuntimeError("PR HEAD changed during collection")
     snapshot["current_head_sha"] = fresh_head
     snapshot["base_sha"] = live_fields["base_sha"]
     snapshot["is_draft"] = bool(live_fields["is_draft"])
@@ -553,6 +601,27 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
     snapshot["review_decision"] = live_fields["review_decision"]
     snapshot["review_decision_source"] = "graphql"
     snapshot["pr_author_login"] = live_fields["pr_author_login"]
+    # Reviews, threads, checks, and files can change without a HEAD move.
+    # Compare a fresh fingerprint before allowing a successful publish.
+    prior_fp = mutable_gate_fingerprint(
+        reviews=list(snapshot.get("reviews") or []),
+        unresolved=int(snapshot["unresolved_threads"]),
+        untreated=int(snapshot["untreated_threads"]),
+        checks=list(snapshot.get("required_checks") or []),
+        files=list(snapshot.get("changed_files") or []),
+        pending_copilot=bool(snapshot.get("copilot_request_pending")),
+    )
+    live_unresolved, live_untreated = thread_disposition(owner, repo, pr, fresh_head)
+    live_fp = mutable_gate_fingerprint(
+        reviews=paginate_reviews(repository, pr),
+        unresolved=live_unresolved,
+        untreated=live_untreated,
+        checks=collect_required_checks(repository, fresh_head),
+        files=paginate_files(repository, pr),
+        pending_copilot=pending_copilot_request(repository, pr),
+    )
+    if prior_fp != live_fp:
+        raise RuntimeError("mutable gate inputs changed during collection")
     return snapshot
 
 
