@@ -196,17 +196,19 @@ required_checks_ok() {
 		rm -f "$checks_json"
 		return 1
 	fi
-	count="$(jq '[.checks[] | select(.name != "Final review gate")] | length' "$checks_json")"
+	# Ignore only the publisher's Final review gate receipt (Actions app 15368).
+	count="$(jq '[.checks[] | select((.name != "Final review gate") or (.integration_id != 15368))] | length' "$checks_json")"
 	if [[ "$count" == "0" ]]; then
 		note_ineligible "Required checks snapshot has no external contexts for PR #${PR_NUMBER}."
 		rm -f "$checks_json"
 		return 1
 	fi
 
-	while IFS=$'\t' read -r name state; do
+	while IFS=$'\t' read -r name state integration; do
 		name="${name//$'\r'/}"
 		state="${state//$'\r'/}"
-		if [[ "$name" == "Final review gate" ]]; then
+		integration="${integration//$'\r'/}"
+		if [[ "$name" == "Final review gate" && "$integration" == "15368" ]]; then
 			continue
 		fi
 		case "$state" in
@@ -221,7 +223,7 @@ required_checks_ok() {
 			note_ineligible "Required check \`${name}\` is \`${state}\` (not passing)."
 			;;
 		esac
-	done < <(jq -r '.checks[] | "\(.name)\t\(.state)"' "$checks_json")
+	done < <(jq -r '.checks[] | "\(.name)\t\(.state)\t\(.integration_id // "")"' "$checks_json")
 	rm -f "$checks_json"
 
 	if ((${#INELIGIBLE_REASONS[@]} > 0)); then
@@ -505,6 +507,45 @@ request_copilot_refresh() {
 	fi
 	user_ids="$user_ids_again"
 	team_ids="$team_ids_again"
+
+	# Final one-request barrier immediately before mutation: a concurrent Copilot
+	# request/review can land after the earlier checks without moving HEAD.
+	if ! pr_json="$(fetch_pr_json)"; then
+		exit 0
+	fi
+	head_oid_after="$(echo "$pr_json" | jq -r '.data.repository.pullRequest.headRefOid')"
+	if [[ "$head_oid_after" != "$head_oid_before" ]]; then
+		note_ineligible "HEAD changed immediately before Copilot request (\`${head_oid_before:0:7}\` -> \`${head_oid_after:0:7}\`); re-run after the branch is stable."
+		write_summary "Final Copilot review not requested"
+		exit 0
+	fi
+	pending_copilot="$(echo "$pr_json" | jq -r --arg bot "$COPILOT_REVIEWER_BOT" '
+		[.data.repository.pullRequest.reviewRequests.nodes[]?
+		 | .requestedReviewer
+		 | select((.login // "") == $bot or (.login // "") == "copilot-pull-request-reviewer" or (.login // "") == "Copilot")
+		] | length')"
+	if [[ "${pending_copilot:-0}" -gt 0 ]]; then
+		note_ineligible "Copilot review already requested for PR #${PR_NUMBER}; skipping duplicate request."
+		write_summary "Final Copilot review not requested"
+		exit 0
+	fi
+	head_review_count="$(
+		gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}/reviews" --paginate \
+			| jq -s --arg head "$head_oid_before" --arg bot "$COPILOT_REVIEWER_BOT" \
+				'add // [] | [.[] | select((.user.login == $bot or .user.login == "Copilot" or .user.login == "copilot-pull-request-reviewer") and .commit_id == $head)] | length'
+	)" || {
+		echo "::error::Could not re-list Copilot reviews immediately before request." >&2
+		exit 1
+	}
+	if [[ -z "$head_review_count" || ! "$head_review_count" =~ ^[0-9]+$ ]]; then
+		echo "::error::Could not recount Copilot reviews for HEAD ${head_oid_before:0:7}." >&2
+		exit 1
+	fi
+	if [[ "$head_review_count" -ge "$max_reviews_per_head" ]]; then
+		note_ineligible "Copilot already reviewed HEAD \`${head_oid_before:0:7}\`; one accepted request per SHA."
+		write_summary "Final Copilot review not requested"
+		exit 0
+	fi
 
 	if ! add_resp="$(gh api graphql --input - <<EOF
 {"query":"mutation(\$pr:ID!,\$bots:[ID!]!,\$users:[ID!]!,\$teams:[ID!]!){requestReviews(input:{pullRequestId:\$pr,botIds:\$bots,userIds:\$users,teamIds:\$teams,union:true}){clientMutationId}}","variables":{"pr":"$pr_node_id","bots":["$bot_node"],"users":$user_ids,"teams":$team_ids}}

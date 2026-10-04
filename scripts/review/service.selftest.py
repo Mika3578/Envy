@@ -199,7 +199,12 @@ class ServiceTests(unittest.TestCase):
     def test_ancestor_host_directory_and_relative_launcher_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             host = Path(directory)
-            config = {"prs": [{"worktree": str(host / "pr")}]}
+            classifier = host / "classify-copilot-review.py"
+            classifier.write_text("# host classifier\n", encoding="utf-8")
+            config = {
+                "prs": [{"worktree": str(host / "pr")}],
+                "trusted_classifier_path": str(classifier),
+            }
             with self.assertRaises(ValueError):
                 mod.check_host_paths(config, host / "config.json", host / "state")
             config["executor_launcher"] = ["relative-launcher"]
@@ -207,7 +212,11 @@ class ServiceTests(unittest.TestCase):
                 mod.check_host_paths(config, host / "config.json", host / "state")
             nested = host / "pr"
             nested.mkdir()
-            config = {"prs": [{"worktree": str(nested)}], "executor": "codex"}
+            config = {
+                "prs": [{"worktree": str(nested)}],
+                "executor": "codex",
+                "trusted_classifier_path": str(classifier),
+            }
             with self.assertRaises(ValueError):
                 mod.check_host_paths(config, host / "config.json", host / "state")
             inside = nested / "codex.exe"
@@ -220,9 +229,24 @@ class ServiceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 mod.load_trusted_policy({"trusted_policy_path": str(untrusted)}, nested)
             missing_hooks = host / "missing-hooks"
-            config = {"prs": [{"worktree": str(nested)}], "trusted_hooks_path": str(missing_hooks)}
+            config = {
+                "prs": [{"worktree": str(nested)}],
+                "trusted_hooks_path": str(missing_hooks),
+                "trusted_classifier_path": str(classifier),
+            }
             with self.assertRaises(ValueError):
                 mod.check_host_paths(config, host / "config.json", host / "state")
+            poisoned = nested / "classify-copilot-review.py"
+            poisoned.write_text("# pr controlled\n", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                mod.check_host_paths(
+                    {
+                        "prs": [{"worktree": str(nested)}],
+                        "trusted_classifier_path": str(poisoned),
+                    },
+                    host / "config.json",
+                    host / "state",
+                )
 
     def test_untrusted_publication_has_bounded_parsing(self):
         self.assertFalse(mod.technical_title("ci(" + "x:" * 30000))
@@ -478,12 +502,26 @@ class ServiceTests(unittest.TestCase):
 
     def test_checks_pass_ignores_final_review_gate(self):
         snap = snapshot()
-        snap["required_names"] = ["Build", "Final review gate"]
+        snap["required_specs"] = [
+            {"context": "Build", "integration_id": 1},
+            {"context": "Final review gate", "integration_id": mod.GATE_PUBLISHER_INTEGRATION_ID},
+        ]
         snap["checks"] = [
-            {"name": "Build", "state": "SUCCESS"},
-            {"name": "Final review gate", "state": "PENDING"},
+            {"name": "Build", "integration_id": 1, "state": "SUCCESS"},
+            {
+                "name": "Final review gate",
+                "integration_id": mod.GATE_PUBLISHER_INTEGRATION_ID,
+                "state": "PENDING",
+            },
         ]
         self.assertTrue(mod.checks_pass(snap))
+        snap["checks"].append({
+            "name": "Final review gate",
+            "integration_id": 99999,
+            "state": "FAILURE",
+        })
+        snap["required_specs"].append({"context": "Final review gate", "integration_id": 99999})
+        self.assertFalse(mod.checks_pass(snap))
 
     def test_checks_pass_requires_every_integration_slot(self):
         snap = snapshot()
@@ -521,12 +559,28 @@ class ServiceTests(unittest.TestCase):
             sidecar.write_text("# stub\n", encoding="utf-8")
             configured = root / "configured.py"
             configured.write_text("# configured\n", encoding="utf-8")
+            worktree = root / "pr"
+            worktree.mkdir()
             with patch.object(mod, "__file__", str(root / "service.py")):
                 self.assertEqual(mod.resolve_classifier_path(), sidecar.resolve())
                 self.assertEqual(
-                    mod.resolve_classifier_path({"trusted_classifier_path": str(configured)}),
+                    mod.resolve_classifier_path({
+                        "trusted_classifier_path": str(configured),
+                        "prs": [{"worktree": str(worktree)}],
+                    }),
                     configured.resolve(),
                 )
+                with self.assertRaises(ValueError):
+                    mod.resolve_classifier_path({
+                        "prs": [{"worktree": str(worktree)}],
+                    })
+                poisoned = worktree / "classify-copilot-review.py"
+                poisoned.write_text("# pr\n", encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    mod.resolve_classifier_path({
+                        "trusted_classifier_path": str(poisoned),
+                        "prs": [{"worktree": str(worktree)}],
+                    })
 
     def test_run_accepts_unbounded_timeout(self):
         class Stream:

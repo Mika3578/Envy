@@ -267,7 +267,11 @@ class FinalReviewGateTests(unittest.TestCase):
 
     def test_self_only_gate_check_cannot_succeed(self):
         out = MOD.evaluate_final_review_gate(
-            snap(required_checks=[{"name": "Final review gate", "state": "SUCCESS"}])
+            snap(required_checks=[{
+                "name": "Final review gate",
+                "integration_id": MOD.GATE_PUBLISHER_INTEGRATION_ID,
+                "state": "SUCCESS",
+            }])
         )
         self.assertNotEqual(out["state"], MOD.STATE_SUCCESS)
 
@@ -283,11 +287,30 @@ class FinalReviewGateTests(unittest.TestCase):
             snap(
                 required_checks=[
                     {"name": "Format Check", "state": "SUCCESS"},
-                    {"name": "Final review gate", "state": "PENDING"},
+                    {
+                        "name": "Final review gate",
+                        "integration_id": MOD.GATE_PUBLISHER_INTEGRATION_ID,
+                        "state": "PENDING",
+                    },
                 ]
             )
         )
         self.assertEqual(out["state"], MOD.STATE_SUCCESS)
+
+    def test_foreign_final_review_gate_receipt_is_required(self):
+        out = MOD.evaluate_final_review_gate(
+            snap(
+                required_checks=[
+                    {"name": "Format Check", "state": "SUCCESS"},
+                    {
+                        "name": "Final review gate",
+                        "integration_id": 99999,
+                        "state": "FAILURE",
+                    },
+                ]
+            )
+        )
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
 
     def test_draft_not_success(self):
         out = MOD.evaluate_final_review_gate(snap(is_draft=True))
@@ -518,7 +541,11 @@ class FinalReviewGateTests(unittest.TestCase):
 
     def test_should_request_blocks_self_only_required_check(self):
         out = MOD.should_request_copilot(
-            snap(reviews=[], required_checks=[{"name": "Final review gate", "state": "SUCCESS"}])
+            snap(reviews=[], required_checks=[{
+                "name": "Final review gate",
+                "integration_id": MOD.GATE_PUBLISHER_INTEGRATION_ID,
+                "state": "SUCCESS",
+            }])
         )
         self.assertFalse(out["request"])
 

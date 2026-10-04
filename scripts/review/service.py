@@ -46,6 +46,13 @@ PASS = PASSING_CHECK_STATES
 GATE_PASS = GATE_PASSING_CHECK_STATES
 WAIT = PENDING_CHECK_STATES
 COPILOT = {"Copilot", "copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}
+GATE_CONTEXT = "Final review gate"
+GATE_PUBLISHER_INTEGRATION_ID = 15368
+
+
+def is_advisory_self_gate_check(item):
+    name = str(item.get("name") or item.get("context") or "")
+    return name == GATE_CONTEXT and item.get("integration_id") == GATE_PUBLISHER_INTEGRATION_ID
 
 
 def latest_copilot_review(reviews, head):
@@ -62,17 +69,33 @@ def latest_copilot_review(reviews, head):
     return max(matched, key=lambda review: (int(review.get("id") or 0), str(review.get("submitted_at") or "")))
 
 
+def assert_host_owned_file(path, worktrees, *, label):
+    resolved = Path(path).resolve()
+    if not Path(path).is_absolute():
+        raise ValueError(f"{label} must be an absolute host path")
+    if not resolved.is_file():
+        raise ValueError(f"{label} is missing")
+    for tree in worktrees:
+        root = Path(tree).resolve()
+        if resolved.is_relative_to(root):
+            raise ValueError(f"{label} must be outside managed PR worktrees")
+    return resolved
+
+
 def resolve_classifier_path(config=None):
-    """Resolve classify-copilot-review.py for host installs and in-tree runs."""
-    candidates = []
-    if isinstance(config, dict) and config.get("trusted_classifier_path"):
-        candidates.append(Path(config["trusted_classifier_path"]))
-    # Documented C:/trusted-review layout: classifier copied beside service.py.
-    candidates.append(Path(__file__).resolve().with_name("classify-copilot-review.py"))
-    # In-tree development checkout.
-    candidates.append(
-        Path(__file__).resolve().parents[2] / ".github" / "scripts" / "classify-copilot-review.py"
-    )
+    """Resolve classify-copilot-review.py for host installs and in-tree tests."""
+    # Host activation configs include prs[] and must pin an absolute classifier.
+    if isinstance(config, dict) and ("prs" in config or "trusted_classifier_path" in config):
+        worktrees = [Path(entry["worktree"]).resolve() for entry in config.get("prs", [])]
+        raw = config.get("trusted_classifier_path") or ""
+        if not raw:
+            raise ValueError("trusted_classifier_path is required for the host service")
+        return assert_host_owned_file(raw, worktrees, label="trusted_classifier_path")
+    # Offline/in-tree selftests only: no host config means development fallbacks.
+    candidates = [
+        Path(__file__).resolve().with_name("classify-copilot-review.py"),
+        Path(__file__).resolve().parents[2] / ".github" / "scripts" / "classify-copilot-review.py",
+    ]
     for path in candidates:
         try:
             resolved = path.resolve()
@@ -81,8 +104,7 @@ def resolve_classifier_path(config=None):
         if resolved.is_file():
             return resolved
     raise ValueError(
-        "classify-copilot-review.py is missing; set trusted_classifier_path or copy it "
-        "beside service.py in the host installation"
+        "classify-copilot-review.py is missing; set trusted_classifier_path for host installs"
     )
 
 
@@ -573,6 +595,12 @@ def check_host_paths(config, config_path, state_dir):
             raise ValueError("Trusted policy file must use an absolute host path")
         additional.append(policy.resolve())
     worktrees = [Path(entry["worktree"]).resolve() for entry in config["prs"]]
+    classifier = assert_host_owned_file(
+        config.get("trusted_classifier_path") or "",
+        worktrees,
+        label="trusted_classifier_path",
+    )
+    additional.append(classifier.parent)
     if config.get("executor"):
         additional.append(Path(host_owned_executable(config["executor"], worktrees)))
     for entry in config["prs"]:
@@ -830,13 +858,13 @@ HOST_POLICY:
 
 def checks_pass(snapshot):
     # Ready/final-review advancement matches GATE_PASSING (no Draft SKIPPED).
-    checks = [c for c in snapshot["checks"] if c.get("name") != "Final review gate"]
+    # Ignore only this publisher's Final review gate receipt (integration 15368).
+    checks = [c for c in snapshot["checks"] if not is_advisory_self_gate_check(c)]
     specs = snapshot.get("required_specs")
     if isinstance(specs, list) and specs:
         required = [
             spec for spec in specs
-            if isinstance(spec, dict)
-            and str(spec.get("context") or "") != "Final review gate"
+            if isinstance(spec, dict) and not is_advisory_self_gate_check(spec)
         ]
         if not required:
             return False
@@ -850,7 +878,12 @@ def checks_pass(snapshot):
             if not matched or any(item.get("state") not in GATE_PASS for item in matched):
                 return False
         return True
-    required = {name for name in snapshot.get("required_names", []) if name != "Final review gate"}
+    required = {
+        name for name in snapshot.get("required_names", [])
+        if not (name == GATE_CONTEXT)  # legacy name-only list has no integration id
+    }
+    # Legacy path: keep ignoring bare Final review gate names for old snapshots.
+    checks = [c for c in snapshot["checks"] if c.get("name") != GATE_CONTEXT]
     observed = {c["name"] for c in checks}
     return bool(required) and required.issubset(observed) and all(
         c["state"] in GATE_PASS for c in checks)

@@ -23,6 +23,8 @@ import disposition as disposition_policy  # noqa: E402
 import required_checks as required_check_policy  # noqa: E402
 
 GATE_CONTEXT = "Final review gate"
+# GitHub Actions app id pinned by protect-develop.final-review-gate.desired.json.
+GATE_PUBLISHER_INTEGRATION_ID = 15368
 
 STATE_SUCCESS = "success"
 STATE_FAILURE = "failure"
@@ -124,6 +126,18 @@ def _is_copilot(login: str) -> bool:
 
 def _looks_like_copilot(login: str) -> bool:
     return "copilot" in login.lower()
+
+
+def is_advisory_self_gate_check(check: Mapping[str, Any]) -> bool:
+    """True only for this publisher's Final review gate receipt (integration 15368).
+
+    Another required integration that reuses the same context name must still be
+    evaluated; name-only filtering would hide its missing/failing receipt.
+    """
+    name = str(check.get("name") or check.get("context") or "")
+    if name != GATE_CONTEXT:
+        return False
+    return check.get("integration_id") == GATE_PUBLISHER_INTEGRATION_ID
 
 
 def is_authorized_disposition_author(login: str, *, typename: str = "", user_type: str = "") -> bool:
@@ -436,7 +450,7 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
                 privileged=privileged,
             )
         name = str(check.get("name") or "")
-        if name == GATE_CONTEXT:
+        if is_advisory_self_gate_check(check):
             continue
         external_required += 1
         state = str(check.get("state") or "").upper()
@@ -585,7 +599,7 @@ def revalidate_gate_before_success(
     for check in raw_checks:
         if not isinstance(check, Mapping):
             continue
-        if str(check.get("name") or "") == GATE_CONTEXT:
+        if is_advisory_self_gate_check(check):
             continue
         external_required += 1
         state = str(check.get("state") or "").upper()
@@ -660,7 +674,7 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     for check in raw_checks:
         if not isinstance(check, Mapping):
             return {"request": False, "reason": "required CI unknown"}
-        if str(check.get("name") or "") == GATE_CONTEXT:
+        if is_advisory_self_gate_check(check):
             continue
         external_required += 1
         state = str(check.get("state") or "").upper()
