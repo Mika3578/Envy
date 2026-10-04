@@ -1171,6 +1171,25 @@ def final_review(config, entry, snapshot, state, store):
     if not config.get("allow_final_copilot_request"):
         state["phase"] = "FINAL_REVIEW_ELIGIBLE"
         return
+    # Recollect GraphQL reviewDecision + all threads immediately before the
+    # request mutation. The REST reread above only covers draft/merge/HEAD.
+    fresh = collect(number)
+    if identity(fresh["pr"]) != (head, base):
+        raise ValueError("HEAD/base changed before final review")
+    current = fresh["pr"]
+    if current["draft"]:
+        state["phase"] = "DRAFT_STABLE"
+        return
+    if not merge_state_ready_for_copilot(current):
+        state["phase"] = "AWAITING_MERGEABLE"
+        return
+    if not checks_pass(fresh):
+        return
+    if threads_blocking_final_review(fresh):
+        return
+    if str(current.get("review_decision") or "").upper() == "CHANGES_REQUESTED":
+        state["phase"] = "CHANGES_REQUESTED"
+        return
     state.setdefault("requests", {})[key] = {"status": "requesting"}
     store.save(number, state)
     mutation_attempted = False

@@ -931,7 +931,11 @@ class ServiceTests(unittest.TestCase):
                 pass
 
         pull = eligible_pull(head, base)
+        fresh = dict(snap)
+        fresh["pr"] = eligible_pull(head, base)
         with patch.object(mod, "gh_json", side_effect=[pull, {"users": []}, {"node_id": "BOT"}]), patch.object(
+            mod, "collect", return_value=fresh
+        ), patch.object(
             mod, "graphql_mutation", side_effect=ValueError("network")
         ):
             with self.assertRaises(ValueError):
@@ -960,10 +964,73 @@ class ServiceTests(unittest.TestCase):
                 pass
 
         pull = eligible_pull(head, base)
-        with patch.object(mod, "gh_json", side_effect=[pull, {"users": []}, {"node_id": ""}]):
+        fresh = dict(snap)
+        fresh["pr"] = eligible_pull(head, base)
+        with patch.object(mod, "gh_json", side_effect=[pull, {"users": []}, {"node_id": ""}]), patch.object(
+            mod, "collect", return_value=fresh
+        ):
             with self.assertRaises(ValueError):
                 mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, Store())
         self.assertNotIn(f"copilot:{head}:{base}", state["requests"])
+
+    def test_pre_request_recollect_blocks_new_changes_requested(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        snap["reviews"] = []
+        head, base = "a" * 40, "b" * 40
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {}}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": head, "base": base}
+        pull = eligible_pull(head, base)
+        fresh = dict(snap)
+        fresh["pr"] = eligible_pull(head, base)
+        fresh["pr"]["review_decision"] = "CHANGES_REQUESTED"
+        with patch.object(mod, "gh_json", side_effect=[pull, {"users": []}]), patch.object(
+            mod, "collect", return_value=fresh
+        ), patch.object(mod, "graphql_mutation") as mutate:
+            mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
+        self.assertEqual(state["phase"], "CHANGES_REQUESTED")
+        self.assertNotIn(f"copilot:{head}:{base}", state.get("requests", {}))
+        mutate.assert_not_called()
+
+    def test_pre_request_recollect_blocks_new_unresolved_thread(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        snap["reviews"] = []
+        head, base = "a" * 40, "b" * 40
+        entry = {
+            "number": 1,
+            "reviewers": [{"login": "bot"}],
+            "runtime_evidence": {
+                "head": head, "base": base, "artifact_sha256": "c" * 64,
+                "tested_by": "maintainer", "release_x64": "passed",
+                "release_win32": "passed", "envy_tests": "passed",
+                "live_runtime": "passed",
+            },
+        }
+        state = {"handled": {}, "stops": {}, "requests": {}}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": head, "base": base}
+        pull = eligible_pull(head, base)
+        fresh = dict(snap)
+        fresh["pr"] = eligible_pull(head, base)
+        fresh["threads"] = [{"isResolved": False, "comments": {"nodes": []}}]
+        with patch.object(mod, "gh_json", side_effect=[pull, {"users": []}]), patch.object(
+            mod, "collect", return_value=fresh
+        ), patch.object(mod, "graphql_mutation") as mutate:
+            mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
+        self.assertNotIn(f"copilot:{head}:{base}", state.get("requests", {}))
+        mutate.assert_not_called()
 
     def test_github_approved_with_overview_findings_is_fix_again(self):
         body = (
