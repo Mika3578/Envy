@@ -174,7 +174,8 @@ def resolved_thread_is_untreated(comments: Sequence[Any], head_sha: str, *, outd
     if not nodes:
         return True
     head = str(head_sha or "")
-    for item in nodes[1:]:
+    last_disposition_idx = None
+    for idx, item in enumerate(nodes[1:], start=1):
         author = item.get("author") if isinstance(item.get("author"), Mapping) else {}
         login = str(author.get("login") or "")
         typename = str(author.get("__typename") or "")
@@ -185,13 +186,18 @@ def resolved_thread_is_untreated(comments: Sequence[Any], head_sha: str, *, outd
         if not disposition_policy.is_valid_disposition_body(body, head_sha=head):
             continue
         reply_commit = comment_commit_oid(item)
-        if head and reply_commit == head:
-            return False
+        matches_head = bool(head and reply_commit == head)
         # Outdated threads keep the original review OID on replies. Accept only
         # when the body cites the current HEAD (already required above).
-        if outdated and head and disposition_policy.body_cites_sha(body, head):
-            return False
-    return True
+        outdated_ok = bool(
+            outdated and head and disposition_policy.body_cites_sha(body, head)
+        )
+        if matches_head or outdated_ok:
+            last_disposition_idx = idx
+    if last_disposition_idx is None:
+        return True
+    # A later comment after the disposition reopens the thread for treatment.
+    return last_disposition_idx < len(nodes) - 1
 
 
 def reviews_for_head(reviews: Sequence[Mapping[str, Any]], head_sha: str) -> list[dict[str, Any]]:

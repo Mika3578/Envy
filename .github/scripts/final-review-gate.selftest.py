@@ -612,6 +612,18 @@ class FinalReviewGateTests(unittest.TestCase):
         out = MOD.evaluate_final_review_gate(snap(pr_author_login="copilot-swe-agent[bot]"))
         self.assertEqual(out["state"], MOD.STATE_FAILURE)
 
+    def test_later_comment_after_disposition_is_untreated(self):
+        comments = [
+            {"author": {"login": COPILOT, "__typename": "Bot"}, "commit": {"oid": HEAD},
+             "body": "finding"},
+            {"author": {"login": "alice", "__typename": "User", "type": "User"},
+             "commit": {"oid": HEAD},
+             "body": f"Fixed on `{HEAD[:7]}`. Evidence: regression passed."},
+            {"author": {"login": COPILOT, "__typename": "Bot"}, "commit": {"oid": HEAD},
+             "body": "New follow-up finding on the same thread."},
+        ]
+        self.assertTrue(MOD.resolved_thread_is_untreated(comments, HEAD))
+
     def test_thanks_reply_is_not_a_disposition(self):
         comments = [
             {"author": {"login": COPILOT, "__typename": "Bot"}, "commit": {"oid": HEAD}},

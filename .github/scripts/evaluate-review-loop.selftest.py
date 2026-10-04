@@ -58,6 +58,16 @@ class EvaluateReviewLoopTests(unittest.TestCase):
         ))
         self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
 
+    def test_changes_requested_with_human_blocker_is_needs_human(self):
+        out = MOD.evaluate_review_loop(snap(
+            review_decision="CHANGES_REQUESTED",
+            classification="ACTIONABLE_FINDINGS",
+            requires_fixer=True,
+            requires_human=True,
+            open_finding_titles=["Parsing bug"],
+        ))
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+
     def test_clean_approved_current_head(self):
         out = MOD.evaluate_review_loop(snap())
         self.assertEqual(out["decision"], MOD.DECISION_CLEAN)

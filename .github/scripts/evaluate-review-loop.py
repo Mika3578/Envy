@@ -249,12 +249,22 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
 
     if github_decision == "CHANGES_REQUESTED":
         reasons.append(REASON_CHANGES_REQUESTED)
+        # Human-only blockers outrank fixer work even under CHANGES_REQUESTED.
+        decision = (
+            DECISION_NEEDS_HUMAN
+            if requires_human
+            else (DECISION_FIX_AGAIN if requires_fixer else DECISION_NEEDS_HUMAN)
+        )
         return _result(
-            DECISION_FIX_AGAIN if requires_fixer else DECISION_NEEDS_HUMAN,
+            decision,
             reasons,
             head_sha=head_sha,
             review_sha=review_sha,
-            note="Correct technical findings; the reviewer must independently clear CHANGES_REQUESTED.",
+            note=(
+                "Preserve the human stop; do not continue FIX_AGAIN while requires_human is set."
+                if requires_human
+                else "Correct technical findings; the reviewer must independently clear CHANGES_REQUESTED."
+            ),
         )
 
     if unresolved_threads > 0:

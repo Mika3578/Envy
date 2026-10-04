@@ -134,12 +134,15 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertNotIn("drafts: true", text)
         self.assertRegex(text, r"(?m)^finishing_touches:")
 
-    def test_final_review_gate_fragment_binds_actions_integration(self):
+    def test_final_review_gate_fragment_rejects_shared_actions_enrollment(self):
         text = (
             ROOT / ".github" / "rulesets" / "protect-develop.final-review-gate.desired.json"
         ).read_text(encoding="utf-8")
-        self.assertIn('"integration_id": 15368', text)
-        self.assertNotIn('"integration_id": 0', text)
+        # Shared Actions app 15368 is not an authenticity bound for enrollment.
+        self.assertNotIn('"integration_id": 15368', text)
+        self.assertIn('"integration_id": null', text)
+        self.assertIn("DEDICATED_PUBLISHER_GITHUB_APP_ID", text)
+        self.assertIn("Never enroll shared Actions app 15368", text)
 
     def test_outcome_collector_fails_closed_on_graphql_errors(self):
         text = (WORKFLOWS / "copilot-review-outcome.yml").read_text(encoding="utf-8")
