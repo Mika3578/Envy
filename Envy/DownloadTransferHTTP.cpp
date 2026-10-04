@@ -1,7 +1,7 @@
 //
 // DownloadTransferHTTP.cpp
 //
-// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -869,11 +869,20 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 	case 'l': // "Content-Length"
 	{
 		QWORD nTotal;
-		// Accept 0 (empty body) for metadata/THEX fetches only; file downloads
-		// keep SIZE_UNKNOWN so a zero length cannot complete them with no data.
-		if (_stscanf(strValue, L"%I64u", &nTotal) == 1 && nTotal < SIZE_UNKNOWN &&
-		    (nTotal > 0 || m_bMetaFetch || m_bTigerFetch))
-			m_nContentLength = nTotal;
+		// Accept Content-Length: 0 for metadata/THEX (empty body). For normal
+		// file downloads, reject an explicit zero length: leaving SIZE_UNKNOWN
+		// would still hit the close-delimited completion path when the peer
+		// disconnects with zero bytes received and an unknown file size.
+		if (_stscanf(strValue, L"%I64u", &nTotal) != 1 || nTotal >= SIZE_UNKNOWN)
+			break;
+		if (nTotal == 0 && !m_bMetaFetch && !m_bTigerFetch)
+		{
+			theApp.Message(MSG_ERROR, L"Rejected zero Content-Length file download from %s",
+			               (LPCTSTR)m_sAddress);
+			Close(TRI_FALSE);
+			return FALSE;
+		}
+		m_nContentLength = nTotal;
 	}
 	break;
 
@@ -2000,7 +2009,7 @@ void CDownloadTransferHTTP::OnDropped()
 		if (m_nContentLength != SIZE_UNKNOWN)
 		{
 			// Known Content-Length: m_nLength is the unconsumed remainder. Do
-			// not overwrite it with GetInputLength() — a keep-alive drop with
+			// not overwrite it with GetInputLength() â a keep-alive drop with
 			// an empty/short body would look complete and resume the source.
 			// Missing remainder tracking also fail-closes: without m_nLength we
 			// cannot prove the declared body arrived intact.
