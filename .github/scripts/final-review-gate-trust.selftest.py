@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -31,11 +32,14 @@ def _on_block(text: str) -> str:
 
 
 def _on_pull_request_merge_commit(text: str) -> bool:
-    """True when GitHub will load this workflow from the PR merge commit."""
+    """True when GitHub will load this workflow from the PR merge commit.
+
+    Detect ``pull_request`` / ``pull_request_review`` independently of whether
+    ``pull_request_target`` is also present. Hybrid files must still be
+    inspected; only the publisher path is exempted by the caller.
+    """
     on_block = _on_block(text)
-    if "pull_request_target:" in on_block:
-        return False
-    return "pull_request:" in on_block or "pull_request_review:" in on_block
+    return bool(re.search(r"(?m)^[ \t]*pull_request(_review)?:", on_block))
 
 
 class FinalReviewGateTrustTests(unittest.TestCase):
@@ -185,6 +189,19 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         text = PUBLISHER.read_text(encoding="utf-8")
         self.assertIn("github.event.check_run.name != 'Final review gate'", text)
         self.assertIn("github.event.check_run.name != 'Evaluate final review gate'", text)
+        self.assertIn("github.event.check_run.name != 'Resolve publisher PR number'", text)
+
+    def test_hybrid_pull_request_trigger_is_still_inspected(self):
+        hybrid = (
+            "name: Hybrid\n"
+            "on:\n"
+            "  pull_request_target:\n"
+            "  pull_request:\n"
+            "jobs: {}\n"
+        )
+        self.assertTrue(_on_pull_request_merge_commit(hybrid))
+        gate = (ROOT / ".github" / "scripts" / "final-review-gate.py").read_text(encoding="utf-8")
+        self.assertIn('.github/review-ledgers/', gate)
 
     def test_publisher_paginates_commit_pulls(self):
         text = PUBLISHER.read_text(encoding="utf-8")

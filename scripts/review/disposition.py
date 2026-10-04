@@ -19,12 +19,19 @@ _SHA_CITE = re.compile(r"`?[0-9a-f]{7,40}`?", re.I)
 
 
 def body_cites_sha(body: str, head_sha: str) -> bool:
-    """True when body cites the full HEAD or its unambiguous 7-char prefix."""
+    """True when body cites the full HEAD or its unambiguous 7-char prefix.
+
+    Require non-hex/non-letter boundaries so an embedded substring such as
+    ``notabcdef0`` cannot satisfy a cite of ``abcdef0…``.
+    """
     head = str(head_sha or "").strip().lower()
-    if len(head) < 7:
+    if len(head) < 7 or not re.fullmatch(r"[0-9a-f]+", head):
         return False
     text = (body or "").lower()
-    return head in text or head[:7] in text
+    for token in (head, head[:7]):
+        if re.search(rf"(?<![0-9a-z]){re.escape(token)}(?![0-9a-f])", text):
+            return True
+    return False
 
 
 def is_valid_disposition_body(body: str, *, head_sha: str = "") -> bool:

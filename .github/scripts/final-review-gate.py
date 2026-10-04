@@ -63,6 +63,7 @@ PRIVILEGED_PREFIXES = (
     ".github/workflows/",
     ".github/rulesets/",
     ".github/scripts/",
+    ".github/review-ledgers/",
     "scripts/review/",
 )
 
@@ -224,6 +225,10 @@ def latest_copilot_review(
     return matched[-1]
 
 
+def _review_recency_key(review: Mapping[str, Any]) -> tuple[int, str]:
+    return (int(review.get("id") or 0), str(review.get("submitted_at") or ""))
+
+
 def human_approved_on_head(
     reviews: Sequence[Mapping[str, Any]],
     head_sha: str,
@@ -240,7 +245,10 @@ def human_approved_on_head(
             continue
         if author and login.casefold() == author:
             continue
-        latest[login.casefold()] = review
+        key = login.casefold()
+        prev = latest.get(key)
+        if prev is None or _review_recency_key(review) >= _review_recency_key(prev):
+            latest[key] = review
     return any(
         str(review.get("state") or "").upper() == "APPROVED" for review in latest.values()
     )

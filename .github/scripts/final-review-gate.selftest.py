@@ -223,17 +223,20 @@ class FinalReviewGateTests(unittest.TestCase):
                 changed_files=["AGENTS.md"],
                 reviews=[
                     {
-                        "user": {"login": COPILOT},
+                        "id": 1,
+                        "user": {"login": COPILOT, "type": "Bot"},
                         "commit_id": HEAD,
                         "state": "APPROVED",
                     },
                     {
-                        "user": {"login": "bob"},
+                        "id": 2,
+                        "user": {"login": "bob", "type": "User"},
                         "commit_id": HEAD,
                         "state": "APPROVED",
                     },
                     {
-                        "user": {"login": "bob"},
+                        "id": 3,
+                        "user": {"login": "bob", "type": "User"},
                         "commit_id": HEAD,
                         "state": "DISMISSED",
                     },
@@ -242,6 +245,41 @@ class FinalReviewGateTests(unittest.TestCase):
         )
         self.assertEqual(out["state"], MOD.STATE_FAILURE)
         self.assertTrue(out["privileged_paths"])
+        self.assertIn("independent human APPROVED", out["reason"])
+
+    def test_dismissed_human_approval_newest_first_api_order(self):
+        # GitHub may return newest-first; an older APPROVED must not overwrite
+        # a later DISMISSED just because it appears later in the list.
+        out = MOD.evaluate_final_review_gate(
+            snap(
+                changed_files=[".github/review-ledgers/pr-1.json"],
+                reviews=[
+                    {
+                        "id": 30,
+                        "user": {"login": COPILOT, "type": "Bot"},
+                        "commit_id": HEAD,
+                        "state": "APPROVED",
+                    },
+                    {
+                        "id": 20,
+                        "user": {"login": "bob", "type": "User"},
+                        "commit_id": HEAD,
+                        "state": "DISMISSED",
+                        "submitted_at": "2026-10-04T02:00:00Z",
+                    },
+                    {
+                        "id": 10,
+                        "user": {"login": "bob", "type": "User"},
+                        "commit_id": HEAD,
+                        "state": "APPROVED",
+                        "submitted_at": "2026-10-04T01:00:00Z",
+                    },
+                ],
+            )
+        )
+        self.assertEqual(out["state"], MOD.STATE_FAILURE)
+        self.assertTrue(out["privileged_paths"])
+        self.assertTrue(MOD.is_privileged_path(".github/review-ledgers/pr-1.json"))
         self.assertIn("independent human APPROVED", out["reason"])
 
     def test_privileged_with_human_and_copilot_success(self):

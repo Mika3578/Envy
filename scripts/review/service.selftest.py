@@ -697,6 +697,19 @@ class ServiceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 mod.git_identity(worktree)
 
+    def test_body_cites_sha_requires_token_boundaries(self):
+        from disposition import body_cites_sha
+
+        head = "abcdef0123456789abcdef0123456789abcdef01"
+        self.assertTrue(body_cites_sha(f"Fixed on `{head[:7]}`. Evidence recorded.", head))
+        self.assertTrue(body_cites_sha(f"Fixed on `{head}`. Evidence recorded.", head))
+        self.assertFalse(
+            body_cites_sha(
+                "Fixed in notabcdef0; regression evidence is recorded.",
+                head,
+            )
+        )
+
     def test_human_disposition_comment_unblocks_loop_guard(self):
         classify = mod.load_copilot_classifier()
         fixture = Path(__file__).resolve().parents[2] / ".github" / "scripts" / "fixtures" / "copilot-reviews" / "approved-none.json"
