@@ -39,7 +39,12 @@ def _on_pull_request_merge_commit(text: str) -> bool:
     inspected; only the publisher path is exempted by the caller.
     """
     on_block = _on_block(text)
-    return bool(re.search(r"(?m)^[ \t]*pull_request(_review)?:", on_block))
+    return bool(
+        re.search(
+            r"(?m)^[ \t]*pull_request(_review(_comment|_thread)?)?:",
+            on_block,
+        )
+    )
 
 
 class FinalReviewGateTrustTests(unittest.TestCase):
@@ -203,6 +208,13 @@ class FinalReviewGateTrustTests(unittest.TestCase):
             "jobs: {}\n"
         )
         self.assertTrue(_on_pull_request_merge_commit(hybrid))
+        comment_only = (
+            "name: CommentOnly\n"
+            "on:\n"
+            "  pull_request_review_comment:\n"
+            "jobs: {}\n"
+        )
+        self.assertTrue(_on_pull_request_merge_commit(comment_only))
         gate = (ROOT / ".github" / "scripts" / "final-review-gate.py").read_text(encoding="utf-8")
         self.assertIn('.github/review-ledgers/', gate)
 

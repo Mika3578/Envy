@@ -423,6 +423,17 @@ class FinalReviewGateTests(unittest.TestCase):
         out = MOD.evaluate_final_review_gate(snap(review_decision_source="rest"))
         self.assertEqual(out["state"], MOD.STATE_ERROR)
 
+    def test_pre_copilot_rest_source_cannot_authorize_request(self):
+        out = MOD.should_request_copilot(
+            snap(
+                reviews=[],
+                snapshot_phase="pre_copilot_request",
+                review_decision_source="rest",
+            )
+        )
+        self.assertFalse(out["request"])
+        self.assertIn("GraphQL", out["reason"])
+
     def test_empty_review_decision_blocks_success(self):
         out = MOD.evaluate_final_review_gate(snap(review_decision=""))
         self.assertEqual(out["state"], MOD.STATE_FAILURE)

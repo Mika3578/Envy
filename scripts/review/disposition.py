@@ -29,7 +29,8 @@ def body_cites_sha(body: str, head_sha: str) -> bool:
         return False
     text = (body or "").lower()
     for token in (head, head[:7]):
-        if re.search(rf"(?<![0-9a-z]){re.escape(token)}(?![0-9a-f])", text):
+        # Both sides reject alphanumerics so ``abcdef0g`` cannot cite ``abcdef0``.
+        if re.search(rf"(?<![0-9a-z]){re.escape(token)}(?![0-9a-z])", text):
             return True
     return False
 

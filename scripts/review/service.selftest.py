@@ -709,6 +709,12 @@ class ServiceTests(unittest.TestCase):
                 head,
             )
         )
+        self.assertFalse(
+            body_cites_sha(
+                "Fixed in abcdef0g; regression evidence is recorded.",
+                head,
+            )
+        )
 
     def test_human_disposition_comment_unblocks_loop_guard(self):
         classify = mod.load_copilot_classifier()

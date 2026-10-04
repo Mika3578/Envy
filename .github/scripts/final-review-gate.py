@@ -356,10 +356,8 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         reasons.append("Copilot-authored pull requests cannot self-approve")
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
 
-    if snapshot.get("snapshot_phase") == "pre_copilot_request":
-        reasons.append("pre-Copilot snapshot cannot publish success")
-        return _result(STATE_PENDING, reasons, snapshot, metrics, privileged=privileged, allow_publish=False)
-
+    # Validate GraphQL provenance before the pre-Copilot short-circuit so
+    # should_request_copilot cannot authorize from a REST-derived decision.
     if snapshot.get("review_decision_source") != "graphql":
         return _result(
             STATE_ERROR,
@@ -378,6 +376,10 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
             allow_publish=False,
             privileged=privileged,
         )
+
+    if snapshot.get("snapshot_phase") == "pre_copilot_request":
+        reasons.append("pre-Copilot snapshot cannot publish success")
+        return _result(STATE_PENDING, reasons, snapshot, metrics, privileged=privileged, allow_publish=False)
     review_decision = str(snapshot.get("review_decision") or "").upper()
     if review_decision == "CHANGES_REQUESTED":
         reasons.append("active CHANGES_REQUESTED")
@@ -640,6 +642,10 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     current = str(snapshot.get("current_head_sha") or "")
     if not head or not current or current != head:
         return {"request": False, "reason": "HEAD snapshot is stale or incomplete"}
+    if snapshot.get("review_decision_source") != "graphql":
+        return {"request": False, "reason": "reviewDecision must be fetched through GraphQL"}
+    if snapshot.get("review_decision_unavailable"):
+        return {"request": False, "reason": "reviewDecision is unavailable"}
     gate = evaluate_final_review_gate(snapshot)
     reasons: list[str] = []
     if snapshot.get("is_draft"):
