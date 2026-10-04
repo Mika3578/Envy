@@ -294,12 +294,24 @@ def graphql_pr_gate_fields(payload: Any, expected_head: str) -> dict[str, Any]:
     merge_state = pr_data.get("mergeStateStatus")
     if merge_state is not None and not isinstance(merge_state, str):
         raise RuntimeError("GraphQL mergeStateStatus is malformed")
+    if "baseRefOid" not in pr_data:
+        raise RuntimeError("GraphQL baseRefOid field is unavailable")
+    base_sha = str(pr_data.get("baseRefOid") or "")
+    if not base_sha:
+        raise RuntimeError("GraphQL baseRefOid is missing")
+    if "isDraft" not in pr_data:
+        raise RuntimeError("GraphQL isDraft field is unavailable")
+    is_draft = pr_data.get("isDraft")
+    if not isinstance(is_draft, bool):
+        raise RuntimeError("GraphQL isDraft is malformed")
     return {
         "review_decision": str(decision or ""),
         "review_decision_source": "graphql",
         "pr_author_login": login,
         "review_decision_unavailable": False,
         "merge_state_status": str(merge_state or ""),
+        "base_sha": base_sha,
+        "is_draft": is_draft,
     }
 
 
@@ -311,6 +323,8 @@ def fetch_graphql_pr_gate_fields(owner: str, repo: str, pr: int, expected_head: 
           reviewDecision
           mergeStateStatus
           headRefOid
+          baseRefOid
+          isDraft
           author { login }
         }
       }
@@ -429,7 +443,8 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
         "pr_number": pr,
         "head_sha": head,
         "current_head_sha": head,
-        "is_draft": bool(pr_json.get("draft")),
+        "base_sha": gate_fields["base_sha"],
+        "is_draft": bool(gate_fields["is_draft"]),
         "review_decision": gate_fields["review_decision"],
         "review_decision_source": "graphql",
         "review_decision_unavailable": False,
@@ -500,13 +515,33 @@ def collect(repository: str, pr: int) -> dict[str, Any]:
             for title in snapshot["open_finding_titles"]
             if title and title not in snapshot["previously_missed_titles"]
         ]
-    # Re-read eligibility and HEAD after collection (race 1).
+    # Re-read eligibility, draft/base/merge state, and HEAD after collection (race 1).
+    # A develop push or Draft conversion can leave HEAD unchanged while invalidating
+    # a previously CLEAN merge-state / Ready snapshot.
     fresh = gh_json(["api", f"repos/{repository}/pulls/{pr}"])
     repo_json = gh_json(["api", f"repos/{repository}"])
     require_open_default_same_repo(fresh, repository, repo_json)
-    snapshot["current_head_sha"] = str(fresh.get("head", {}).get("sha") or "")
-    if not snapshot["current_head_sha"]:
+    fresh_head = str(fresh.get("head", {}).get("sha") or "")
+    if not fresh_head:
         raise RuntimeError("PR HEAD SHA is missing")
+    fresh_draft = bool(fresh.get("draft"))
+    if fresh_draft != bool(snapshot.get("is_draft")):
+        raise RuntimeError("pull request draft state changed during collection")
+    fresh_base = str((fresh.get("base") or {}).get("sha") or "")
+    if not fresh_base:
+        raise RuntimeError("PR base SHA is missing")
+    live_fields = fetch_graphql_pr_gate_fields(owner, repo, pr, fresh_head)
+    if bool(live_fields["is_draft"]) != fresh_draft:
+        raise RuntimeError("GraphQL isDraft does not match the REST draft state")
+    if live_fields["base_sha"] != fresh_base:
+        raise RuntimeError("GraphQL baseRefOid does not match the REST base SHA")
+    snapshot["current_head_sha"] = fresh_head
+    snapshot["base_sha"] = live_fields["base_sha"]
+    snapshot["is_draft"] = bool(live_fields["is_draft"])
+    snapshot["merge_state_status"] = live_fields["merge_state_status"]
+    snapshot["review_decision"] = live_fields["review_decision"]
+    snapshot["review_decision_source"] = "graphql"
+    snapshot["pr_author_login"] = live_fields["pr_author_login"]
     return snapshot
 
 

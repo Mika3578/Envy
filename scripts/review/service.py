@@ -737,6 +737,32 @@ def gitdir_pointer_target(worktree):
     return target.resolve() if target.is_absolute() else (marker.parent / target).resolve()
 
 
+def assert_trusted_common_dir(git_dir, common_dir):
+    """Reject $GIT_DIR/commondir redirects to an unrelated repository."""
+    git_dir = Path(git_dir).resolve()
+    common_dir = Path(common_dir).resolve()
+    if common_dir == git_dir:
+        return
+    # Linked worktree layout only: <common_dir>/worktrees/<name> == git_dir.
+    if git_dir.parent.name != "worktrees" or git_dir.parent.parent != common_dir:
+        raise ValueError("Git common-dir redirects away from the resolved git-dir")
+
+
+def resolve_common_dir(worktree, git, git_dir, env, *, git_dir_args=()):
+    common_raw = run(
+        [git, *git_dir_args, "rev-parse", "--git-common-dir"],
+        cwd=worktree,
+        env=env,
+    ).strip()
+    common_dir = Path(common_raw)
+    if not common_dir.is_absolute():
+        common_dir = (Path(worktree) / common_dir).resolve()
+    else:
+        common_dir = common_dir.resolve()
+    assert_trusted_common_dir(git_dir, common_dir)
+    return common_dir
+
+
 def git_identity(worktree):
     worktree = Path(worktree).resolve()
     env = minimal_environment()
@@ -745,12 +771,7 @@ def git_identity(worktree):
     git_dir = Path(run([git, "rev-parse", "--absolute-git-dir"], cwd=worktree, env=env).strip()).resolve()
     # Pin common-dir too: $GIT_DIR/commondir can redirect object/ref writes without
     # changing --absolute-git-dir. Linked worktrees keep a stable common-dir.
-    common_raw = run([git, "rev-parse", "--git-common-dir"], cwd=worktree, env=env).strip()
-    common_dir = Path(common_raw)
-    if not common_dir.is_absolute():
-        common_dir = (worktree / common_dir).resolve()
-    else:
-        common_dir = common_dir.resolve()
+    common_dir = resolve_common_dir(worktree, git, git_dir, env)
     if toplevel != worktree:
         raise ValueError("Git toplevel does not match the configured worktree")
     pointer = gitdir_pointer_target(worktree)
@@ -766,18 +787,31 @@ def git_identity(worktree):
 
 def publication_git(identity, hooks_path, *args, allowed=(0,)):
     env = minimal_environment()
+    worktree = Path(identity["worktree"]).resolve()
+    git_dir = Path(identity["git_dir"]).resolve()
+    git = trusted_git_executable(worktree)
+    # Revalidate common-dir under the pinned --git-dir before every publication command.
+    common_dir = resolve_common_dir(
+        worktree,
+        git,
+        git_dir,
+        env,
+        git_dir_args=("--git-dir", str(git_dir)),
+    )
+    if common_dir != Path(identity["common_dir"]).resolve():
+        raise ValueError("Git common-dir changed before publication command")
     return run(
         [
-            trusted_git_executable(identity["worktree"]),
+            git,
             "--git-dir",
-            str(identity["git_dir"]),
+            str(git_dir),
             "--work-tree",
-            str(identity["worktree"]),
+            str(worktree),
             "-c",
             f"core.hooksPath={hooks_path}",
             *args,
         ],
-        cwd=identity["worktree"],
+        cwd=worktree,
         env=env,
         allowed=allowed,
     ).strip()

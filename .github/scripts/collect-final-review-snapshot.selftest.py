@@ -21,13 +21,30 @@ _SPEC.loader.exec_module(MOD)
 HEAD = "a" * 40
 
 
-def gql_payload(decision, head=HEAD, author="alice", include_decision=True,
-                merge_state="CLEAN", include_merge_state=True):
+BASE = "c" * 40
+
+
+def gql_payload(
+    decision,
+    head=HEAD,
+    author="alice",
+    include_decision=True,
+    merge_state="CLEAN",
+    include_merge_state=True,
+    base=BASE,
+    include_base=True,
+    is_draft=False,
+    include_draft=True,
+):
     pr = {"headRefOid": head, "author": {"login": author}}
     if include_decision:
         pr["reviewDecision"] = decision
     if include_merge_state:
         pr["mergeStateStatus"] = merge_state
+    if include_base:
+        pr["baseRefOid"] = base
+    if include_draft:
+        pr["isDraft"] = is_draft
     return {"data": {"repository": {"pullRequest": pr}}}
 
 
@@ -60,11 +77,25 @@ class CollectSnapshotTests(unittest.TestCase):
         self.assertEqual(fields["review_decision"], "APPROVED")
         self.assertEqual(fields["pr_author_login"], "alice")
         self.assertEqual(fields["merge_state_status"], "CLEAN")
+        self.assertEqual(fields["base_sha"], BASE)
+        self.assertFalse(fields["is_draft"])
 
     def test_missing_merge_state_fail_closed(self):
         with self.assertRaises(RuntimeError):
             MOD.graphql_pr_gate_fields(
                 gql_payload("APPROVED", include_merge_state=False), HEAD
+            )
+
+    def test_missing_base_sha_fail_closed(self):
+        with self.assertRaises(RuntimeError):
+            MOD.graphql_pr_gate_fields(
+                gql_payload("APPROVED", include_base=False), HEAD
+            )
+
+    def test_missing_is_draft_fail_closed(self):
+        with self.assertRaises(RuntimeError):
+            MOD.graphql_pr_gate_fields(
+                gql_payload("APPROVED", include_draft=False), HEAD
             )
 
     def test_missing_comments_pageinfo_fail_closed(self):

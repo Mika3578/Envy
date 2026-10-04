@@ -653,10 +653,22 @@ class ServiceTests(unittest.TestCase):
         self.assertNotIn("requestReviewsByLogin", text)
 
     def test_publication_git_pins_git_dir_and_work_tree(self):
-        identity = {"worktree": Path("D:/wt"), "git_dir": Path("D:/wt/.git")}
-        with patch.object(mod, "run", return_value="") as call:
+        git_dir = Path("D:/wt/.git")
+        identity = {
+            "worktree": Path("D:/wt"),
+            "git_dir": git_dir,
+            "common_dir": git_dir,
+        }
+
+        def fake_run(argv, **kwargs):
+            joined = " ".join(str(part) for part in argv)
+            if "--git-common-dir" in joined:
+                return str(git_dir) + "\n"
+            return "\n"
+
+        with patch.object(mod, "run", side_effect=fake_run) as call:
             mod.publication_git(identity, Path("D:/hooks"), "status", "--porcelain")
-        argv = call.call_args.args[0]
+        argv = call.call_args_list[-1].args[0]
         self.assertEqual(argv[1], "--git-dir")
         self.assertEqual(argv[2], str(identity["git_dir"]))
         self.assertEqual(argv[3], "--work-tree")
@@ -754,7 +766,23 @@ class ServiceTests(unittest.TestCase):
             return "\n"
 
         with patch.object(mod, "run", side_effect=redirected), patch.object(mod, "gitdir_pointer_target", return_value=None):
-            self.assertNotEqual(mod.git_identity(worktree), locked)
+            with self.assertRaises(ValueError):
+                mod.git_identity(worktree)
+
+    def test_publication_git_rejects_common_dir_redirect(self):
+        git_dir = Path("D:/wt/.git")
+        identity = {
+            "worktree": Path("D:/wt"),
+            "git_dir": git_dir,
+            "common_dir": git_dir,
+        }
+
+        def redirected(argv, **kwargs):
+            return "D:/evil-common/.git\n"
+
+        with patch.object(mod, "run", side_effect=redirected):
+            with self.assertRaises(ValueError):
+                mod.publication_git(identity, Path("D:/hooks"), "status")
 
     def test_publication_rejects_url_rewrites_and_untrusted_origin(self):
         identity = {"worktree": Path("D:/wt"), "git_dir": Path("D:/wt/.git")}
@@ -814,12 +842,24 @@ class ServiceTests(unittest.TestCase):
             mod.graphql_review_decision({"reviewDecision": "APPROVED", "headRefOid": ""}, "a" * 40)
 
     def test_publication_git_uses_absolute_host_git(self):
-        identity = {"worktree": Path("D:/wt"), "git_dir": Path("D:/wt/.git")}
+        git_dir = Path("D:/wt/.git")
+        identity = {
+            "worktree": Path("D:/wt"),
+            "git_dir": git_dir,
+            "common_dir": git_dir,
+        }
+
+        def fake_run(argv, **kwargs):
+            joined = " ".join(str(part) for part in argv)
+            if "--git-common-dir" in joined:
+                return str(git_dir) + "\n"
+            return "ok\n"
+
         with patch.object(mod, "trusted_git_executable", return_value="/usr/bin/git"):
-            with patch.object(mod, "run", return_value="ok\n") as run:
+            with patch.object(mod, "run", side_effect=fake_run) as run:
                 out = mod.publication_git(identity, Path("D:/hooks"), "status")
         self.assertEqual(out, "ok")
-        argv = run.call_args.args[0]
+        argv = run.call_args_list[-1].args[0]
         self.assertEqual(argv[0], "/usr/bin/git")
         self.assertNotEqual(argv[0], "git")
 

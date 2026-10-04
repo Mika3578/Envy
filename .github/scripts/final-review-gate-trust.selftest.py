@@ -85,9 +85,22 @@ class FinalReviewGateTrustTests(unittest.TestCase):
 
     def test_publisher_token_can_read_commit_statuses(self):
         pub = PUBLISHER.read_text(encoding="utf-8")
-        perms = pub.split("permissions:", 1)[1].split("concurrency:", 1)[0]
+        perms = pub.split("permissions:", 1)[1].split("jobs:", 1)[0]
         self.assertIn("statuses: read", perms)
         self.assertIn("checks: write", perms)
+
+    def test_publisher_concurrency_serializes_by_resolved_pr(self):
+        pub = PUBLISHER.read_text(encoding="utf-8")
+        self.assertIn("name: Resolve publisher PR number", pub)
+        self.assertIn(
+            "group: publish-final-review-gate-${{ needs.resolve-pr.outputs.number }}",
+            pub,
+        )
+        # Must not mix PR-number and head-SHA concurrency keys across events.
+        self.assertNotIn(
+            "github.event.workflow_run.head_sha || github.event.check_run.head_sha",
+            pub,
+        )
 
     def test_pr_modifying_evaluator_does_not_change_publisher_checkout(self):
         pub = PUBLISHER.read_text(encoding="utf-8")
