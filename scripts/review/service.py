@@ -656,11 +656,13 @@ def check_host_paths(config, config_path, state_dir):
             executable = Path(command[0])
             if not executable.is_absolute():
                 raise ValueError("Reviewed launcher executable must use an absolute host path")
+            _reject_reparse_points(executable, label=key)
             additional.append(executable.resolve().parent)
     if config.get("trusted_hooks_path"):
         hooks = Path(config["trusted_hooks_path"])
         if not hooks.is_absolute():
             raise ValueError("Frozen publication hooks must use an absolute host path")
+        _reject_reparse_points(hooks, label="trusted_hooks_path")
         resolved = hooks.resolve()
         if not resolved.is_dir():
             raise ValueError("Frozen publication hooks must be an existing host directory")
@@ -669,22 +671,30 @@ def check_host_paths(config, config_path, state_dir):
         policy = Path(config["trusted_policy_path"])
         if not policy.is_absolute():
             raise ValueError("Trusted policy file must use an absolute host path")
+        _reject_reparse_points(policy, label="trusted_policy_path")
         additional.append(policy.resolve())
-    worktrees = [Path(entry["worktree"]).resolve() for entry in config["prs"]]
+    raw_worktrees = []
+    for entry in config["prs"]:
+        tree = Path(entry["worktree"])
+        if not tree.is_absolute():
+            raise ValueError("Managed worktree roots must be absolute paths")
+        _reject_reparse_points(tree, label="managed worktree")
+        raw_worktrees.append(tree)
+    worktrees = [tree.resolve() for tree in raw_worktrees]
     for index, left in enumerate(worktrees):
         for right in worktrees[index + 1 :]:
             if left == right or left.is_relative_to(right) or right.is_relative_to(left):
                 raise ValueError("Managed worktree roots must not nest or overlap")
+    # Pass raw worktrees into host-file validation so reparse checks see junctions.
     classifier = assert_host_owned_file(
         config.get("trusted_classifier_path") or "",
-        worktrees,
+        raw_worktrees,
         label="trusted_classifier_path",
     )
     additional.append(classifier.parent)
     if config.get("executor"):
-        additional.append(Path(host_owned_executable(config["executor"], worktrees)))
-    for entry in config["prs"]:
-        worktree = Path(entry["worktree"]).resolve()
+        additional.append(Path(host_owned_executable(config["executor"], raw_worktrees)))
+    for worktree in worktrees:
         for host_path in (config_path.resolve().parent, state_dir.resolve(), Path(__file__).resolve().parent, *additional):
             if host_path.is_relative_to(worktree) or worktree.is_relative_to(host_path):
                 raise ValueError("Service code/config/state must be outside managed PR worktrees")
@@ -752,6 +762,15 @@ def host_owned_executable(raw, worktrees):
     path = Path(raw)
     if not path.is_absolute():
         raise ValueError("Executor must be an absolute host path")
+    _reject_reparse_points(path, label="executor")
+    for tree in worktrees:
+        _reject_reparse_points(Path(tree), label="managed worktree")
+        try:
+            path.relative_to(Path(tree))
+        except ValueError:
+            pass
+        else:
+            raise ValueError("Executor must not live in a managed worktree")
     resolved = path.resolve()
     if not resolved.is_file():
         raise ValueError("Executor executable is missing")

@@ -158,7 +158,10 @@ jobs:
                   sys.exit(1)
               conn = data["data"]["repository"]["pullRequest"]["reviewThreads"]
               for node in conn["nodes"]:
-                  if node.get("isResolved"):
+                  resolved = node.get("isResolved")
+                  if not isinstance(resolved, bool):
+                      raise ValueError("Review thread isResolved is malformed")
+                  if resolved:
                       continue
                   comments_conn = node.get("comments")
                   if not isinstance(comments_conn, dict):
