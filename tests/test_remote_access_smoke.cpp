@@ -13,6 +13,8 @@
 #include <ws2tcpip.h>
 
 #include <cstdio>
+#include <cstring>
+#include <vector>
 
 static IN_ADDR make_ipv4_octets(unsigned a, unsigned b, unsigned c, unsigned d)
 {
@@ -386,6 +388,76 @@ static bool test_security_identity_fail_closed_for_ipv6_peers()
 	return bIpv4Reliable && bIpv6Refused && bGateUnchanged;
 }
 
+// EnvyTests cannot run CRemote::PageLogin end to end: the login path needs the
+// MFC app (CConnection, theApp, Settings, an accepted socket). This wiring test
+// pins the production branch instead: inside PageLogin(), the IPv6 identity
+// gate must precede every CRemoteSecurity call that keys on IN_ADDR, so an
+// IPv6-shaped peer (including ::1 and IPv4-mapped forms) can never reach the
+// login throttle, session creation, or failed-login tracking with placeholder
+// IPv4 bytes. Helper behaviour itself is covered by
+// remote_security_identity_fail_closed_for_ipv6_peers above.
+static bool test_page_login_gates_security_identity_before_use()
+{
+	// EnvyTests runs from the repository root in CI and locally; try output
+	// directory layouts too. A missing source file must fail the test rather
+	// than silently pass.
+	const char* szCandidates[] = {
+	    "Envy/Remote.cpp",
+	    "../Envy/Remote.cpp",
+	    "../../Envy/Remote.cpp",
+	};
+	FILE* pFile = NULL;
+	for (size_t i = 0; i < sizeof(szCandidates) / sizeof(szCandidates[0]); ++i)
+	{
+		if (fopen_s(&pFile, szCandidates[i], "rb") == 0 && pFile != NULL)
+			break;
+	}
+	if (pFile == NULL)
+		return false;
+
+	if (fseek(pFile, 0, SEEK_END) != 0)
+	{
+		fclose(pFile);
+		return false;
+	}
+	const long nSize = ftell(pFile);
+	if (nSize <= 0)
+	{
+		fclose(pFile);
+		return false;
+	}
+	if (fseek(pFile, 0, SEEK_SET) != 0)
+	{
+		fclose(pFile);
+		return false;
+	}
+	std::vector<char> oBuf(static_cast<size_t>(nSize) + 1);
+	const size_t nRead = fread(oBuf.data(), 1, static_cast<size_t>(nSize), pFile);
+	fclose(pFile);
+	oBuf[nRead] = '\0';
+
+	const char* pLogin = strstr(oBuf.data(), "void CRemote::PageLogin()");
+	if (pLogin == NULL)
+		return false;
+	// Bound the scan to the PageLogin function body (next page function).
+	const char* pNextFn = strstr(pLogin + 1, "\nvoid CRemote::Page");
+	if (pNextFn == NULL)
+		pNextFn = oBuf.data() + nRead;
+
+	const char* pGate = strstr(pLogin, "RemoteSecurityIdentityIsReliable");
+	const char* pThrottle = strstr(pLogin, "CheckLoginThrottle");
+	const char* pCreate = strstr(pLogin, "CreateSession");
+	const char* pRecord = strstr(pLogin, "RecordFailedLogin");
+	if (pGate == NULL || pThrottle == NULL || pCreate == NULL || pRecord == NULL)
+		return false;
+	if (pGate >= pNextFn || pThrottle >= pNextFn ||
+	    pCreate >= pNextFn || pRecord >= pNextFn)
+		return false;
+	// The identity gate must come first: no IN_ADDR-keyed security call runs
+	// before it, so an IPv6-shaped peer is refused before any of them.
+	return pGate < pThrottle && pGate < pCreate && pGate < pRecord;
+}
+
 void register_remote_access_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("remote_ipv4_loopback", test_ipv4_loopback);
@@ -410,4 +482,6 @@ void register_remote_access_smoke_tests(TestSuite& suite)
 	               test_bind_rejects_oversized_ipv4_octets);
 	suite.add_test("remote_security_identity_fail_closed_for_ipv6_peers",
 	               test_security_identity_fail_closed_for_ipv6_peers);
+	suite.add_test("remote_page_login_gates_security_identity_before_use",
+	               test_page_login_gates_security_identity_before_use);
 }
