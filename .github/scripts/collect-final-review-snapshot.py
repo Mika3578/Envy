@@ -194,11 +194,13 @@ def count_thread_dispositions(nodes: list, head_sha: str = "") -> tuple[int, int
             raise RuntimeError("review thread has no comments")
         if not isinstance(node.get("isResolved"), bool):
             raise RuntimeError("review thread isResolved is malformed")
+        if not isinstance(node.get("isOutdated"), bool):
+            raise RuntimeError("review thread isOutdated is malformed")
         if not node["isResolved"]:
             unresolved += 1
             continue
         if GATE.resolved_thread_is_untreated(
-            items, head_sha, outdated=bool(node.get("isOutdated"))
+            items, head_sha, outdated=node["isOutdated"]
         ):
             untreated += 1
     return unresolved, untreated
@@ -463,7 +465,11 @@ def mutable_gate_fingerprint(
         if isinstance(item, dict)
     )
     check_rows = tuple(
-        (str(item.get("name") or ""), str(item.get("state") or "").upper())
+        (
+            str(item.get("name") or ""),
+            item.get("integration_id"),
+            str(item.get("state") or "").upper(),
+        )
         for item in checks
         if isinstance(item, dict)
     )

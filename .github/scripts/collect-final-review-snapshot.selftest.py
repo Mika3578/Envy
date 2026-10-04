@@ -116,7 +116,7 @@ class CollectSnapshotTests(unittest.TestCase):
             reviews=[{"id": 1, "state": "COMMENTED", "commit_id": HEAD}],
             unresolved=0,
             untreated=0,
-            checks=[{"name": "Build", "state": "SUCCESS"}],
+            checks=[{"name": "Build", "integration_id": 1, "state": "SUCCESS"}],
             files=["a.py"],
             pending_copilot=False,
         )
@@ -127,11 +127,30 @@ class CollectSnapshotTests(unittest.TestCase):
             ],
             unresolved=0,
             untreated=0,
-            checks=[{"name": "Build", "state": "SUCCESS"}],
+            checks=[{"name": "Build", "integration_id": 1, "state": "SUCCESS"}],
             files=["a.py"],
             pending_copilot=False,
         )
         self.assertNotEqual(base, changed)
+
+    def test_mutable_gate_fingerprint_includes_integration_id(self):
+        a = MOD.mutable_gate_fingerprint(
+            reviews=[],
+            unresolved=0,
+            untreated=0,
+            checks=[{"name": "Build", "integration_id": 1, "state": "SUCCESS"}],
+            files=[],
+            pending_copilot=False,
+        )
+        b = MOD.mutable_gate_fingerprint(
+            reviews=[],
+            unresolved=0,
+            untreated=0,
+            checks=[{"name": "Build", "integration_id": 2, "state": "SUCCESS"}],
+            files=[],
+            pending_copilot=False,
+        )
+        self.assertNotEqual(a, b)
 
     def test_collector_compares_mutable_inputs_after_final_reread(self):
         text = (SCRIPTS / "collect-final-review-snapshot.py").read_text(encoding="utf-8")
@@ -145,6 +164,7 @@ class CollectSnapshotTests(unittest.TestCase):
                 [
                     {
                         "isResolved": True,
+                    "isOutdated": False,
                         "comments": {
                             "nodes": [
                                 {
@@ -166,6 +186,7 @@ class CollectSnapshotTests(unittest.TestCase):
             [
                 {
                     "isResolved": True,
+                    "isOutdated": False,
                     "comments": {
                         "pageInfo": {"hasNextPage": False},
                         "nodes": [
@@ -190,6 +211,7 @@ class CollectSnapshotTests(unittest.TestCase):
             [
                 {
                     "isResolved": True,
+                    "isOutdated": False,
                     "comments": {
                         "pageInfo": {"hasNextPage": False},
                         "nodes": [
@@ -218,6 +240,7 @@ class CollectSnapshotTests(unittest.TestCase):
             [
                 {
                     "isResolved": True,
+                    "isOutdated": False,
                     "comments": {
                         "pageInfo": {"hasNextPage": False},
                         "nodes": [
@@ -246,6 +269,7 @@ class CollectSnapshotTests(unittest.TestCase):
             [
                 {
                     "isResolved": True,
+                    "isOutdated": False,
                     "comments": {
                         "pageInfo": {"hasNextPage": False},
                         "nodes": [
@@ -273,6 +297,7 @@ class CollectSnapshotTests(unittest.TestCase):
             [
                 {
                     "isResolved": True,
+                    "isOutdated": False,
                     "comments": {
                         "pageInfo": {"hasNextPage": False},
                         "nodes": [
@@ -300,6 +325,7 @@ class CollectSnapshotTests(unittest.TestCase):
             [
                 {
                     "isResolved": True,
+                    "isOutdated": False,
                     "comments": {
                         "pageInfo": {"hasNextPage": False},
                         "nodes": [{"author": {"login": "alice"}}],
@@ -412,6 +438,7 @@ class CollectSnapshotTests(unittest.TestCase):
                 [
                     {
                         "isResolved": True,
+                    "isOutdated": False,
                         "comments": {
                             "pageInfo": {"hasNextPage": False},
                             "nodes": [
@@ -463,6 +490,7 @@ class CollectSnapshotTests(unittest.TestCase):
                 [
                     {
                         "isResolved": True,
+                    "isOutdated": False,
                         "comments": {
                             "pageInfo": {"hasNextPage": False},
                             "nodes": [

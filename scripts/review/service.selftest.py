@@ -61,10 +61,19 @@ class ServiceTests(unittest.TestCase):
             mod.publish_disposition(1, source, disposition, head, base, snap)
             publish.assert_called_once()
 
+    def test_malformed_thread_flags_fail_closed(self):
+        snap = snapshot()
+        snap["threads"] = [{"isResolved": "yes", "isOutdated": False, "comments": {"nodes": []}}]
+        with self.assertRaises(ValueError):
+            mod.threads_blocking_final_review(snap)
+        snap["threads"] = [{"isResolved": True, "isOutdated": None, "comments": {"nodes": []}}]
+        with self.assertRaises(ValueError):
+            mod.threads_blocking_final_review(snap)
+
     def test_bot_reply_does_not_clear_final_review_blocker(self):
         snap = snapshot()
         snap["pr"]["draft"] = False
-        snap["threads"] = [{"isResolved": True, "comments": {"nodes": [
+        snap["threads"] = [{"isResolved": True, "isOutdated": False, "comments": {"nodes": [
             {"author": {"login": "copilot-pull-request-reviewer", "__typename": "Bot"},
              "commit": {"oid": "a" * 40}},
             {"author": {"login": "cursor[bot]", "__typename": "Bot"},
@@ -388,7 +397,7 @@ class ServiceTests(unittest.TestCase):
         snap["pr"]["draft"] = False
         snap["reviews"] = [{"id": 2, "user": {"login": "copilot-pull-request-reviewer"},
                             "body": "Finding", "commit_id": "a" * 40, "state": "COMMENTED"}]
-        snap["threads"] = [{"isResolved": True, "comments": {"nodes": [
+        snap["threads"] = [{"isResolved": True, "isOutdated": False, "comments": {"nodes": [
             {"databaseId": 1, "author": {"login": "copilot-pull-request-reviewer", "__typename": "Bot"},
              "commit": {"oid": "a" * 40}},
             {"databaseId": 2, "author": {"login": "alice", "__typename": "User"},
@@ -410,7 +419,7 @@ class ServiceTests(unittest.TestCase):
         for source in mod.trusted_sources(entry, snap):
             state["handled"][source["key"]] = {"head": head, "base": base}
         fresh = dict(snap)
-        fresh["threads"] = [{"isResolved": False}]
+        fresh["threads"] = [{"isResolved": False, "isOutdated": False}]
         pull = eligible_pull(head, base)
         with patch.object(mod, "gh_json", return_value=pull), patch.object(mod, "collect", return_value=fresh):
             mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
@@ -539,7 +548,7 @@ class ServiceTests(unittest.TestCase):
     def test_thanks_reply_does_not_clear_final_review_blocker(self):
         snap = snapshot()
         snap["pr"]["draft"] = False
-        snap["threads"] = [{"isResolved": True, "comments": {"nodes": [
+        snap["threads"] = [{"isResolved": True, "isOutdated": False, "comments": {"nodes": [
             {"author": {"login": "copilot-pull-request-reviewer", "__typename": "Bot"},
              "commit": {"oid": "a" * 40}},
             {"author": {"login": "alice", "__typename": "User"},
@@ -1024,7 +1033,7 @@ class ServiceTests(unittest.TestCase):
         pull = eligible_pull(head, base)
         fresh = dict(snap)
         fresh["pr"] = eligible_pull(head, base)
-        fresh["threads"] = [{"isResolved": False, "comments": {"nodes": []}}]
+        fresh["threads"] = [{"isResolved": False, "isOutdated": False, "comments": {"nodes": []}}]
         with patch.object(mod, "gh_json", side_effect=[pull, {"users": []}]), patch.object(
             mod, "collect", return_value=fresh
         ), patch.object(mod, "graphql_mutation") as mutate:

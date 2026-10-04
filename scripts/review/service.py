@@ -410,11 +410,15 @@ def collect(number):
 def threads_blocking_final_review(snapshot):
     head = str(snapshot["pr"]["head"]["sha"])
     for thread in snapshot["threads"]:
+        resolved = thread.get("isResolved")
+        outdated = thread.get("isOutdated")
+        if not isinstance(resolved, bool) or not isinstance(outdated, bool):
+            raise ValueError("Review thread flags are malformed")
         comments = thread.get("comments") or {}
         nodes = comments.get("nodes") or []
-        if not thread.get("isResolved"):
+        if not resolved:
             return True
-        if _resolved_thread_is_untreated(nodes, head, outdated=bool(thread.get("isOutdated"))):
+        if _resolved_thread_is_untreated(nodes, head, outdated=outdated):
             return True
     return False
 
