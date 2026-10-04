@@ -1,18 +1,19 @@
 # Authoritative Final review gate publisher.
 #
 # Workflow definition source (GitHub docs):
-# - pull_request_target: default branch of the base repository, not the PR merge commit
 # - workflow_run: always the default branch
 # - workflow_dispatch: only the selected ref; job requires default branch
 # - check_run: workflow file must exist on the default branch
+#
+# Intentionally no privileged pull-request-target trigger: the unprivileged
+# probe / Build / Copilot-outcome workflows already emit workflow_run /
+# check_run events, keeping checkout out of privileged PR contexts.
 #
 # Never checkout or execute PR HEAD. Inspect PRs only via GitHub API metadata.
 # Not a Protect develop required check in this PR. Auto-merge stays off.
 name: Publish final review gate
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_run:
     workflows:
       - Final review gate probe
@@ -28,19 +29,13 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: read
-  pull-requests: read
-  checks: write
-  statuses: read
+# Deny all by default; each job opts into the least privilege it needs.
+permissions: {}
 
 jobs:
   resolve-pr:
     name: Resolve publisher PR number
     if: >
-      (github.event_name == 'pull_request_target' &&
-       github.event.pull_request.head.repo.full_name == github.repository &&
-       github.event.pull_request.base.ref == github.event.repository.default_branch) ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.head_repository.full_name == github.repository &&
        (github.event.workflow_run.name == 'Final review gate probe' ||
@@ -53,6 +48,9 @@ jobs:
        github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       skip: ${{ steps.pr.outputs.skip }}
       number: ${{ steps.pr.outputs.number }}
@@ -79,9 +77,7 @@ jobs:
           repository = os.environ["REPOSITORY"]
           pr = None
           sha = None
-          if name == "pull_request_target":
-              pr = (event.get("pull_request") or {}).get("number")
-          elif name == "workflow_dispatch":
+          if name == "workflow_dispatch":
               pr = (event.get("inputs") or {}).get("pr_number")
           elif name == "workflow_run":
               run = event.get("workflow_run") or {}
@@ -174,16 +170,21 @@ jobs:
     needs: resolve-pr
     if: needs.resolve-pr.outputs.skip == '0' && needs.resolve-pr.outputs.number != '0'
     # Serialize every publisher path for the same PR after the number is resolved.
-    # Workflow-level keys that mixed PR number with head SHA did not cancel across events.
     concurrency:
       group: publish-final-review-gate-${{ needs.resolve-pr.outputs.number }}
       cancel-in-progress: true
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: write
+      statuses: read
     steps:
       - name: Checkout gate scripts from default branch only
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
+          repository: ${{ github.repository }}
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
           sparse-checkout: |

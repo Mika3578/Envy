@@ -59,7 +59,8 @@ class FinalReviewGateTrustTests(unittest.TestCase):
     def test_trusted_publisher_definition_is_default_branch_owned(self):
         pub = PUBLISHER.read_text(encoding="utf-8")
         self.assertIn("name: Publish final review gate", pub)
-        self.assertIn("pull_request_target:", pub)
+        # No privileged PR context: probe/Build/outcome drive workflow_run instead.
+        self.assertNotRegex(pub, r"(?m)^[ \t]*pull_request_target:")
         self.assertIn("workflow_run:", pub)
         self.assertIn("checks: write", pub)
         self.assertNotIn("statuses: write", pub)
@@ -68,6 +69,7 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertIn("github.event.repository.default_branch", pub)
         self.assertIn(CHECKOUT_PIN, pub)
         self.assertIn("persist-credentials: false", pub)
+        self.assertIn("repository: ${{ github.repository }}", pub)
         self.assertNotIn("pull_request.head.sha", pub)
         self.assertNotIn("github.head_ref", pub)
         self.assertNotIn("allow-unsafe-pr-checkout", pub)
@@ -85,9 +87,12 @@ class FinalReviewGateTrustTests(unittest.TestCase):
 
     def test_publisher_token_can_read_commit_statuses(self):
         pub = PUBLISHER.read_text(encoding="utf-8")
-        perms = pub.split("permissions:", 1)[1].split("jobs:", 1)[0]
-        self.assertIn("statuses: read", perms)
-        self.assertIn("checks: write", perms)
+        # Write scopes live on the evaluate job, not the workflow default.
+        evaluate = pub.split("name: Evaluate final review gate", 1)[1]
+        job_perms = evaluate.split("permissions:", 1)[1].split("steps:", 1)[0]
+        self.assertIn("statuses: read", job_perms)
+        self.assertIn("checks: write", job_perms)
+        self.assertRegex(pub, r"(?m)^permissions:\s*\{\}\s*$")
 
     def test_publisher_concurrency_serializes_by_resolved_pr(self):
         pub = PUBLISHER.read_text(encoding="utf-8")
@@ -144,7 +149,7 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         mutated = probe.replace("permissions: {}", "permissions:\n  statuses: write")
         self.assertIn("statuses: write", mutated)
         self.assertNotIn("publish-final-review-gate.py", mutated)
-        self.assertIn("pull_request_target:", pub)
+        self.assertIn("workflow_run:", pub)
         self.assertIn("checks: write", pub)
         self.assertNotEqual(PROBE.name, PUBLISHER.name)
 
