@@ -6,6 +6,7 @@ Never executes PR code. Requires gh + GH_TOKEN. Fail closed on API errors.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -460,6 +461,8 @@ def mutable_gate_fingerprint(
             str(item.get("state") or "").upper(),
             str(item.get("commit_id") or ""),
             str(item.get("submitted_at") or item.get("submittedAt") or ""),
+            # Body is a classifier input; GitHub can edit it without changing id/state.
+            hashlib.sha256(str(item.get("body") or "").encode("utf-8")).hexdigest(),
         )
         for item in reviews
         if isinstance(item, dict)

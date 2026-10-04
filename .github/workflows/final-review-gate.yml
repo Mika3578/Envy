@@ -14,8 +14,9 @@ on:
     types: [submitted, edited, dismissed]
   pull_request_review_comment:
     types: [created, edited, deleted]
-  pull_request_review_thread:
-    types: [resolved, unresolved]
+  # pull_request_review_thread is not a supported Actions `on:` trigger.
+  # Thread resolve/unresolve is covered by the default-branch publisher
+  # (workflow_run / check_run) rather than this PR-controlled probe.
 
 permissions: {}
 

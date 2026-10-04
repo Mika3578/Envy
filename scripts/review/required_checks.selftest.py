@@ -89,6 +89,24 @@ class CheckTests(unittest.TestCase):
         self.assertEqual(specs[0]["integration_id"], None)
         self.assertEqual(specs[1]["integration_id"], 1)
 
+    def test_required_specs_reject_shared_actions_gate_enrollment(self):
+        with self.assertRaises(ValueError):
+            checks.required_specs([
+                {
+                    "context": "Final review gate",
+                    "integration_id": checks.GATE_PUBLISHER_INTEGRATION_ID,
+                }
+            ])
+
+    def test_required_specs_reject_shared_actions_gate_enrollment(self):
+        with self.assertRaises(ValueError):
+            checks.required_specs([
+                {
+                    "context": "Final review gate",
+                    "integration_id": checks.GATE_PUBLISHER_INTEGRATION_ID,
+                }
+            ])
+
     def test_collect_exports_required_specs(self):
         rules = [{
             "type": "required_status_checks",

@@ -644,6 +644,10 @@ def check_host_paths(config, config_path, state_dir):
             raise ValueError("Trusted policy file must use an absolute host path")
         additional.append(policy.resolve())
     worktrees = [Path(entry["worktree"]).resolve() for entry in config["prs"]]
+    for index, left in enumerate(worktrees):
+        for right in worktrees[index + 1 :]:
+            if left == right or left.is_relative_to(right) or right.is_relative_to(left):
+                raise ValueError("Managed worktree roots must not nest or overlap")
     classifier = assert_host_owned_file(
         config.get("trusted_classifier_path") or "",
         worktrees,
@@ -949,14 +953,18 @@ HOST_POLICY:
 
 def checks_pass(snapshot):
     # Ready/final-review advancement matches GATE_PASSING (no Draft SKIPPED).
-    # Ignore only this publisher's Final review gate receipt (integration 15368).
+    # Ignore only this publisher's Final review gate receipt (integration 15368)
+    # when it is advisory noise — never when it is listed as a required slot.
     checks = [c for c in snapshot["checks"] if not is_advisory_self_gate_check(c)]
     specs = snapshot.get("required_specs")
     if isinstance(specs, list) and specs:
-        required = [
-            spec for spec in specs
-            if isinstance(spec, dict) and not is_advisory_self_gate_check(spec)
-        ]
+        if any(
+            isinstance(spec, dict) and is_advisory_self_gate_check(spec)
+            for spec in specs
+        ):
+            # Required enrollment of shared Actions 15368 is a policy error.
+            return False
+        required = [spec for spec in specs if isinstance(spec, dict)]
         if not required:
             return False
         for spec in required:

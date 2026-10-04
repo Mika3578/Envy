@@ -64,6 +64,8 @@ class FinalReviewGateTrustTests(unittest.TestCase):
         self.assertGreaterEqual(probe.count("permissions: {}"), 2)
         self.assertNotIn("repos/${REPOSITORY}/statuses/", probe)
         self.assertTrue(_on_pull_request_merge_commit(probe))
+        self.assertNotIn("pull_request_review_thread:", probe)
+        self.assertNotIn("pull_request_review_thread:", probe)
 
     def test_trusted_publisher_definition_is_default_branch_owned(self):
         pub = PUBLISHER.read_text(encoding="utf-8")

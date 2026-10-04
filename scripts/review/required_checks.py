@@ -52,7 +52,18 @@ def required_specs(required):
         if integration is None:
             specs.append({"context": context, "integration_id": None})
         else:
-            specs.append({"context": context, "integration_id": int(integration)})
+            integration_id = int(integration)
+            if (
+                context == GATE_CONTEXT
+                and integration_id in GATE_PUBLISHER_INTEGRATION_IDS
+            ):
+                # Shared Actions 15368 publishes advisory self-noise; enrolling it
+                # as a required Protect develop slot would be silently ignored.
+                raise ValueError(
+                    "Final review gate must not enroll shared Actions integration "
+                    f"{integration_id} as a required check"
+                )
+            specs.append({"context": context, "integration_id": integration_id})
     return specs
 
 

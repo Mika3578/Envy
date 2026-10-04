@@ -52,11 +52,14 @@ flags never skip those Ready/live-test jobs.
 
 BLOCK (native GitHub review rules on Protect develop):
 
-- **Live Protect develop (re-verified 2026-09-20):** ≥ **1** approving GitHub
-  review from a reviewer other than the PR author. GitHub Copilot Code Review
-  may satisfy the approval only when repository Copilot settings allow Copilot
-  approvals to count and GitHub records an actual `APPROVED` review. Never
-  manufacture approval with Actions/self-approval.
+- **Live Protect develop (re-verified 2026-10-03, ruleset 16457466):**
+  `required_approving_review_count` is **0**. Documented merge policy still
+  requires ≥ **1** independent non-author `APPROVED` (and an independent human
+  `APPROVED` for privileged governance). GitHub Copilot Code Review may
+  satisfy a counted approval only when repository Copilot settings allow
+  Copilot approvals to count and GitHub records an actual `APPROVED` review.
+  Never manufacture approval with Actions/self-approval. Do not treat live 0
+  as policy.
 - Dismiss stale reviews on new commits (**on**)
 - Require approval of the most recent reviewable push (**off** — intentional)
 - Resolve all review conversations / threads
@@ -209,10 +212,10 @@ comparison notes.
    (“Count Copilot approvals toward merge requirements”) is not **Disabled
    everywhere** for this repository.
 4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Use **manual squash merge** (curated squash body; live `squash_merge_commit_message: BLANK`), update-branch, strict required checks, and **≥1 GitHub `APPROVED` review** on `Protect develop`. Do **not** enable squash auto-merge when a curated squash body is required (`AGENTS.md` rule 16).
-5. **Protect develop (live, re-verified 2026-09-20)** — Source of truth is
+5. **Protect develop (live, re-verified 2026-10-03)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing
    docs):
-   - Required approvals: **1** (live)
+   - Required approvals: **0** (live ruleset 16457466); documented policy remains **1**
    - Dismiss stale pull request approvals when new commits are pushed: **on**
    - Require approval of the most recent reviewable push: **off**
    - Require conversation resolution before merging: **on**

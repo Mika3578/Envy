@@ -152,6 +152,25 @@ class CollectSnapshotTests(unittest.TestCase):
         )
         self.assertNotEqual(a, b)
 
+    def test_mutable_gate_fingerprint_includes_review_body(self):
+        a = MOD.mutable_gate_fingerprint(
+            reviews=[{"id": 1, "state": "APPROVED", "commit_id": HEAD, "body": "clean"}],
+            unresolved=0,
+            untreated=0,
+            checks=[],
+            files=[],
+            pending_copilot=False,
+        )
+        b = MOD.mutable_gate_fingerprint(
+            reviews=[{"id": 1, "state": "APPROVED", "commit_id": HEAD, "body": "finding"}],
+            unresolved=0,
+            untreated=0,
+            checks=[],
+            files=[],
+            pending_copilot=False,
+        )
+        self.assertNotEqual(a, b)
+
     def test_collector_compares_mutable_inputs_after_final_reread(self):
         text = (SCRIPTS / "collect-final-review-snapshot.py").read_text(encoding="utf-8")
         self.assertIn("mutable gate inputs changed during collection", text)

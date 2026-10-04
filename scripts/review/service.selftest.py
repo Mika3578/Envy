@@ -256,6 +256,22 @@ class ServiceTests(unittest.TestCase):
                     host / "config.json",
                     host / "state",
                 )
+            outer = host / "wt-outer"
+            inner = outer / "wt-inner"
+            outer.mkdir()
+            inner.mkdir()
+            with self.assertRaises(ValueError):
+                mod.check_host_paths(
+                    {
+                        "prs": [
+                            {"worktree": str(outer)},
+                            {"worktree": str(inner)},
+                        ],
+                        "trusted_classifier_path": str(classifier),
+                    },
+                    host / "config.json",
+                    host / "state",
+                )
 
     def test_untrusted_publication_has_bounded_parsing(self):
         self.assertFalse(mod.technical_title("ci(" + "x:" * 30000))
@@ -509,11 +525,10 @@ class ServiceTests(unittest.TestCase):
             mod.final_review({"allow_final_copilot_request": True}, entry, snap, state, None)
         self.assertEqual(state["phase"], "FIX_AGAIN")
 
-    def test_checks_pass_ignores_final_review_gate(self):
+    def test_checks_pass_ignores_advisory_gate_receipt_not_required_slot(self):
         snap = snapshot()
         snap["required_specs"] = [
             {"context": "Build", "integration_id": 1},
-            {"context": "Final review gate", "integration_id": mod.GATE_PUBLISHER_INTEGRATION_ID},
         ]
         snap["checks"] = [
             {"name": "Build", "integration_id": 1, "state": "SUCCESS"},
@@ -524,12 +539,23 @@ class ServiceTests(unittest.TestCase):
             },
         ]
         self.assertTrue(mod.checks_pass(snap))
+        # Enrolling shared Actions 15368 as a required slot must fail closed.
+        snap["required_specs"].append(
+            {
+                "context": "Final review gate",
+                "integration_id": mod.GATE_PUBLISHER_INTEGRATION_ID,
+            }
+        )
+        self.assertFalse(mod.checks_pass(snap))
         snap["checks"].append({
             "name": "Final review gate",
             "integration_id": 99999,
             "state": "FAILURE",
         })
-        snap["required_specs"].append({"context": "Final review gate", "integration_id": 99999})
+        snap["required_specs"] = [
+            {"context": "Build", "integration_id": 1},
+            {"context": "Final review gate", "integration_id": 99999},
+        ]
         self.assertFalse(mod.checks_pass(snap))
 
     def test_checks_pass_requires_every_integration_slot(self):
