@@ -1,0 +1,24 @@
+{
+  "_comment": "Read-only future Protect develop fragment. Do not apply in this PR. Auto-merge stays off.",
+  "type": "required_status_checks",
+  "parameters": {
+    "strict_required_status_checks_policy": true,
+    "do_not_enforce_on_create": false,
+    "required_status_checks": [
+      {
+        "context": "Final review gate",
+        "integration_id": 15368
+      }
+    ]
+  },
+  "rollout": [
+    "A. Implement evaluator on #397; publish only from default-branch pull_request_target/workflow_run.",
+    "B. Keep the status advisory (not required).",
+    "C. Merge #397 after independent human APPROVED (privileged governance).",
+    "D. Observe real PRs posting the status on current HEAD.",
+    "E. Maintainer adds required check Final review gate to Protect develop.",
+    "F. Pilot 2-3 real PRs with manual squash.",
+    "G. Only later consider repository auto-merge."
+  ],
+  "depends_on": ["#395"]
+}

@@ -1,0 +1,255 @@
+# Authoritative Final review gate publisher.
+#
+# Workflow definition source (GitHub docs):
+# - pull_request_target: default branch of the base repository, not the PR merge commit
+# - workflow_run: always the default branch
+# - workflow_dispatch: only the selected ref; job requires default branch
+# - check_run: workflow file must exist on the default branch
+#
+# Never checkout or execute PR HEAD. Inspect PRs only via GitHub API metadata.
+# Not a Protect develop required check in this PR. Auto-merge stays off.
+name: Publish final review gate
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+  workflow_run:
+    workflows:
+      - Final review gate probe
+      - Copilot review outcome
+      - Build
+    types: [completed]
+  check_run:
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: write
+  statuses: read
+
+concurrency:
+  group: publish-final-review-gate-${{ github.event.pull_request.number || github.event.workflow_run.head_sha || github.event.check_run.head_sha || github.event.inputs.pr_number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  evaluate:
+    name: Evaluate final review gate
+    if: >
+      (github.event_name == 'pull_request_target' &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.base.ref == github.event.repository.default_branch) ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       (github.event.workflow_run.name == 'Final review gate probe' ||
+        github.event.workflow_run.name == 'Copilot review outcome' ||
+        github.event.workflow_run.name == 'Build')) ||
+      (github.event_name == 'check_run' &&
+       github.event.check_run.name != 'Final review gate') ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Resolve PR number from untrusted event metadata
+        id: pr
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_PATH: ${{ github.event_path }}
+          REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          pr="$(
+            python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+
+          event = json.load(open(os.environ["EVENT_PATH"], encoding="utf-8"))
+          name = os.environ["EVENT_NAME"]
+          repository = os.environ["REPOSITORY"]
+          pr = None
+          sha = None
+          if name == "pull_request_target":
+              pr = (event.get("pull_request") or {}).get("number")
+          elif name == "workflow_dispatch":
+              pr = (event.get("inputs") or {}).get("pr_number")
+          elif name == "workflow_run":
+              run = event.get("workflow_run") or {}
+              prs = run.get("pull_requests") or []
+              if prs and isinstance(prs[0], dict):
+                  pr = prs[0].get("number")
+              sha = run.get("head_sha")
+          elif name == "check_run":
+              check = event.get("check_run") or {}
+              if str(check.get("name") or "") == "Final review gate":
+                  sys.exit(2)
+              sha = check.get("head_sha")
+          if pr is None and sha:
+              if not re.fullmatch(r"[0-9a-fA-F]{40}", str(sha)):
+                  print("invalid sha", file=sys.stderr)
+                  sys.exit(1)
+              proc = subprocess.run(
+                  ["gh", "api", f"repos/{repository}/commits/{sha}/pulls", "--paginate", "--slurp"],
+                  check=False,
+                  capture_output=True,
+                  text=True,
+              )
+              if proc.returncode != 0:
+                  print("commit pulls lookup failed", file=sys.stderr)
+                  sys.exit(1)
+              try:
+                  pages = json.loads(proc.stdout or "[]")
+              except json.JSONDecodeError:
+                  sys.exit(1)
+              if not isinstance(pages, list):
+                  sys.exit(1)
+              if pages and all(isinstance(page, list) for page in pages):
+                  pulls = [item for page in pages for item in page]
+              else:
+                  pulls = pages
+              repo_obj = json.loads(subprocess.check_output(
+                  ["gh", "api", f"repos/{repository}"], text=True))
+              default = repo_obj.get("default_branch") or ""
+              eligible = []
+              for item in pulls:
+                  if not isinstance(item, dict):
+                      continue
+                  if str(item.get("state") or "").lower() != "open":
+                      continue
+                  if str((item.get("base") or {}).get("ref") or "") != default:
+                      continue
+                  head_full = ((item.get("head") or {}).get("repo") or {}).get("full_name")
+                  base_full = ((item.get("base") or {}).get("repo") or {}).get("full_name")
+                  if head_full != repository or base_full != repository:
+                      continue
+                  number = item.get("number")
+                  if number is None or str(number) in {"", "null"}:
+                      sys.exit(1)
+                  eligible.append(int(number))
+              if len(set(eligible)) != 1:
+                  sys.exit(2 if not eligible else 1)
+              pr = eligible[0]
+          if pr is None or str(pr) in {"", "null"}:
+              sys.exit(2)
+          if not re.fullmatch(r"[0-9]+", str(pr)):
+              sys.exit(1)
+          pr_obj = json.loads(subprocess.check_output(
+              ["gh", "api", f"repos/{repository}/pulls/{pr}"], text=True))
+          repo_obj = json.loads(subprocess.check_output(
+              ["gh", "api", f"repos/{repository}"], text=True))
+          default = repo_obj.get("default_branch") or ""
+          head_full = ((pr_obj.get("head") or {}).get("repo") or {}).get("full_name")
+          if (str(pr_obj.get("state") or "").lower() != "open"
+                  or str((pr_obj.get("base") or {}).get("ref") or "") != default
+                  or head_full != repository):
+              sys.exit(2)
+          print(pr)
+          PY
+          )" || status=$?
+          if [[ "${status:-0}" -eq 2 ]]; then
+            echo "::notice::No pull request associated with this event; skipping gate publish."
+            echo "skip=1" >>"$GITHUB_OUTPUT"
+            echo "number=0" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "${status:-0}" -ne 0 || -z "${pr:-}" ]]; then
+            echo "::error::Could not resolve a numeric pull request id."
+            exit 1
+          fi
+          echo "skip=0" >>"$GITHUB_OUTPUT"
+          echo "number=$pr" >>"$GITHUB_OUTPUT"
+
+      - name: Checkout gate scripts from default branch only
+        if: steps.pr.outputs.skip != '1'
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts/final-review-gate.py
+            .github/scripts/collect-final-review-snapshot.py
+            .github/scripts/publish-final-review-gate.py
+            .github/scripts/classify-copilot-review.py
+            .github/scripts/finding-ledger.py
+            scripts/review/required_checks.py
+            scripts/review/disposition.py
+          sparse-checkout-cone-mode: false
+
+      - name: Require trusted scripts on the default branch
+        if: steps.pr.outputs.skip != '1'
+        id: scripts
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            .github/scripts/final-review-gate.py \
+            .github/scripts/collect-final-review-snapshot.py \
+            .github/scripts/publish-final-review-gate.py \
+            .github/scripts/classify-copilot-review.py \
+            .github/scripts/finding-ledger.py \
+            scripts/review/required_checks.py \
+            scripts/review/disposition.py
+          do
+            if [[ ! -f "$f" ]]; then
+              echo "::warning::$f is missing on the default branch; gate stays non-success (staged rollout)."
+              missing=1
+            fi
+          done
+          echo "missing=$missing" >>"$GITHUB_OUTPUT"
+
+      - name: Publish pending gate when default-branch scripts are missing
+        if: steps.pr.outputs.skip != '1' && steps.scripts.outputs.missing == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          sha="$(gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}" --jq .head.sha)"
+          if [[ ! "$sha" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::Could not read current HEAD to publish a pending gate."
+            exit 1
+          fi
+          export SHA="$sha"
+          python3 - <<'PY'
+          import json, os, subprocess
+          payload = {
+            "name": "Final review gate",
+            "head_sha": os.environ["SHA"],
+            "status": "in_progress",
+            "details_url": os.environ.get("RUN_URL") or "",
+            "output": {
+              "title": "Final review gate",
+              "summary": "gate scripts not on default branch yet",
+            },
+          }
+          subprocess.run(
+            ["gh", "api", "-X", "POST", f"repos/{os.environ['REPOSITORY']}/check-runs", "--input", "-"],
+            input=json.dumps(payload),
+            text=True,
+            check=True,
+          )
+          PY
+
+      - name: Evaluate live GitHub state and publish SHA-bound status
+        if: steps.pr.outputs.skip != '1' && steps.scripts.outputs.missing != '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SCRIPTS_MISSING: ${{ steps.scripts.outputs.missing }}
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/publish-final-review-gate.py

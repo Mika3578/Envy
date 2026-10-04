@@ -1,0 +1,36 @@
+# Unprivileged PR-controlled probe. No statuses/checks/contents write.
+#
+# GitHub runs pull_request / pull_request_review workflows from the PR merge
+# commit (https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target).
+# This file must never publish commit status "Final review gate".
+# The authoritative publisher is publish-final-review-gate.yml on the default
+# branch (base-branch + workflow_run triggers).
+name: Final review gate probe
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  pull_request_review_comment:
+    types: [created, edited, deleted]
+  pull_request_review_thread:
+    types: [resolved, unresolved]
+
+permissions: {}
+
+concurrency:
+  group: final-review-gate-probe-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: Probe final review gate
+    permissions: {}
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Do not publish the gate from PR-controlled YAML
+        run: |
+          echo "Authoritative Final review gate status is published only by the default-branch workflow."

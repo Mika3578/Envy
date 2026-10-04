@@ -19,11 +19,20 @@ subscription configuration below is a rollout specification, not evidence that
 Cursor has been configured or that runtime validation has occurred.
 
 ```
-Draft -> cheap CI + optional reviews -> one subscribed fixer
+Draft -> cheap CI + optional reviews -> stabilizer (batch fix, gh fallback)
   -> maintainer: stage:live-test -> Windows + EnvyTests + artifacts
   -> maintainer: runtime test -> maintainer: Ready
-  -> full CI + Copilot -> same fixer -> native mergeability -> manual squash
+  -> full CI + treat all findings/threads
+  -> exactly one Copilot request on stable Ready HEAD
+  -> exact-SHA Final review gate (advisory until ruleset rollout)
+  -> outcome classifier -> same fixer if needed -> native mergeability
+  -> maintainer notify -> manual squash
 ```
+
+Do not enable GitHub auto-merge in this phase. After the gate is observed on
+real PRs, a maintainer may add `Final review gate` to Protect develop required
+checks. Auto-merge remains a later opt-in. The status is published only by
+`.github/workflows/publish-final-review-gate.yml` on the default branch.
 
 After merge to `develop` (and weekly/nightly schedules):
 
@@ -148,10 +157,13 @@ and before the platform deadline.
 Maintainer checklist:
 
 1. **Inventory** workflows on `pull_request_target`. After governance
-   simplification the only ones are `.github/workflows/labeler.yml` and
-   `.github/workflows/authorship-hygiene.yml`. Confirm each uses read-only or
-   minimal scopes, does not `checkout` untrusted PR head code for execution,
-   and does not treat review comments as commands.
+   simplification: `.github/workflows/labeler.yml`,
+   `.github/workflows/authorship-hygiene.yml`, and
+   `.github/workflows/publish-final-review-gate.yml`. Confirm each uses
+   read-only or minimal scopes, does not `checkout` untrusted PR head code
+   for execution, and does not treat review comments as commands. The gate
+   publisher may use `statuses:write` while evaluating only GitHub API
+   metadata and default-branch scripts.
 2. **Removed auto-merge:** `.github/workflows/dependabot-auto-merge.yml` is
    deleted in this PR. Do not restore bot approval/auto-merge without a
    separately reviewed design. Merge Dependabot PRs manually or via native
