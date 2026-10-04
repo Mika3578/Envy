@@ -455,7 +455,7 @@ CXMLElement* CXMLElement::FromPeerString(LPCTSTR pszXML, BOOL bHeader, CString* 
 	if (!pBudget)
 	{
 		const DWORD nLen = static_cast<DWORD>(_tcslen(pszXML));
-		if (!pActive->ConsumeChars(nLen))
+		if (!AdmitPeerXmlChars(*pActive, nLen))
 			return NULL;
 	}
 
@@ -726,7 +726,7 @@ CXMLElement* CXMLElement::FromPeerBytes(BYTE* pByte, DWORD nByte, BOOL bHeader, 
 {
 	// Bound decode/allocation before FromPeerString can apply ConsumeChars.
 	// For UTF-8 peer XML, byte length cannot exceed the character budget.
-	if (pByte == NULL || nByte == 0 || nByte > XML_PEER_PARSE_CHARS_MAX)
+	if (pByte == NULL || !AdmitPeerXmlBytes(nByte))
 		return NULL;
 	return FromPeerString(DecodeXmlBytesToString(pByte, nByte), bHeader, NULL, pBudget);
 }

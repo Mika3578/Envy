@@ -13,6 +13,16 @@
 constexpr DWORD XML_PEER_PARSE_CHARS_MAX = 256u * 1024u;
 constexpr DWORD XML_PEER_PARSE_DEPTH_MAX = 32u;
 constexpr DWORD XML_PEER_PARSE_NODES_MAX = 4096u;
+// THEX/DIME may carry a tiger tree after the XML descriptor; bound the full
+// receive buffer (XML budget + tree slack) before allocation/buffering.
+constexpr DWORD XML_PEER_THEX_TREE_SLACK = 16u * 1024u * 1024u;
+constexpr DWORD XML_PEER_THEX_BODY_CAP = XML_PEER_PARSE_CHARS_MAX + XML_PEER_THEX_TREE_SLACK;
+
+// Production admission gate for CXMLElement::FromPeerBytes (and EnvyTests).
+inline bool AdmitPeerXmlBytes(DWORD nByte) noexcept
+{
+	return nByte > 0 && nByte <= XML_PEER_PARSE_CHARS_MAX;
+}
 
 struct XmlParseBudget
 {
@@ -89,3 +99,22 @@ struct XmlParseBudget
 		return nElementCount > 0 && nElementCount <= m_nMaxDepth;
 	}
 };
+
+// Character gate used by FromPeerString when no shared budget is supplied.
+inline bool AdmitPeerXmlChars(XmlParseBudget& budget, DWORD nChars) noexcept
+{
+	return budget.ConsumeChars(nChars);
+}
+
+// Shared-budget callers charge before ReadString / FromPeer* so sibling
+// METADATA/COMMENT/fragments cannot materialize past the aggregate cap.
+inline bool ChargeSharedPeerXmlChars(XmlParseBudget& budget, DWORD nChars) noexcept
+{
+	if (nChars == 0)
+		return false;
+	if (budget.m_nChars >= budget.m_nMaxChars)
+		return false;
+	if (nChars > budget.m_nMaxChars - budget.m_nChars)
+		return false;
+	return budget.ConsumeChars(nChars);
+}

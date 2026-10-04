@@ -1291,6 +1291,15 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			Close(TRI_FALSE);
 			return FALSE;
 		}
+		// Reject oversized known lengths before buffering toward the receive cap.
+		if (m_nContentLength != SIZE_UNKNOWN &&
+		    m_nContentLength > XML_PEER_THEX_BODY_CAP)
+		{
+			theApp.Message(MSG_ERROR, L"Rejected oversized THEX Content-Length from %s",
+			               (LPCTSTR)m_sAddress);
+			Close(TRI_FALSE);
+			return FALSE;
+		}
 		if ( m_nContentLength == SIZE_UNKNOWN && ! m_bKeepAlive )
 		{
 			// This should fix the PHEX TTH problem with closed connection.
@@ -1628,11 +1637,10 @@ BOOL CDownloadTransferHTTP::ReceiveTigerInput()
 	// Header phase: bound receive at 16 KiB (no tree slack). Do not fail closed
 	// here - OnRead parses headers first; a single read may include a valid
 	// body prefix after short headers. Body phase: XML + tree slack, fail closed.
-	const DWORD nTreeSlack = 16u * 1024u * 1024u;
 	const DWORD nHeaderCap = 16u * 1024u;
 	if (m_nState == dtsTiger)
 	{
-		const DWORD nBodyCap = XML_PEER_PARSE_CHARS_MAX + nTreeSlack;
+		const DWORD nBodyCap = XML_PEER_THEX_BODY_CAP;
 		if (!OnReadBounded(nBodyCap))
 			return FALSE;
 		if (GetInputLength() >= nBodyCap)
@@ -1992,9 +2000,11 @@ void CDownloadTransferHTTP::OnDropped()
 		if (m_nContentLength != SIZE_UNKNOWN)
 		{
 			// Known Content-Length: m_nLength is the unconsumed remainder. Do
-			// not overwrite it with GetInputLength() â a keep-alive drop with
+			// not overwrite it with GetInputLength() — a keep-alive drop with
 			// an empty/short body would look complete and resume the source.
-			if (m_nLength != SIZE_UNKNOWN && GetInputLength() < m_nLength)
+			// Missing remainder tracking also fail-closes: without m_nLength we
+			// cannot prove the declared body arrived intact.
+			if (m_nLength == SIZE_UNKNOWN || GetInputLength() < m_nLength)
 			{
 				theApp.Message(MSG_ERROR, L"Incomplete THEX from %s",
 				               (LPCTSTR)m_sAddress);

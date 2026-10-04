@@ -1450,8 +1450,8 @@ BOOL CG2Neighbour::OnProfileDelivery(CG2Packet* pPacket)
 		if (nType == G2_PACKET_XML)
 		{
 			// Bound before ReadString; oversized XML still advances via nOffset.
-			if (nLength > 0 && nLength <= XML_PEER_PARSE_CHARS_MAX &&
-			    oBudget.ConsumeChars(nLength))
+			if (nLength <= XML_PEER_PARSE_CHARS_MAX &&
+			    ChargeSharedPeerXmlChars(oBudget, nLength))
 			{
 				if (CXMLElement* pXML = CXMLElement::FromPeerString(
 				        pPacket->ReadString(nLength), TRUE, NULL, &oBudget))

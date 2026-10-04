@@ -1,7 +1,10 @@
 //
 // test_xml_peer_parse_smoke.cpp
 //
-// Smoke tests for XmlParseValidate.h (ENVY-SEC-003).
+// Smoke tests for XmlParseValidate.h peer entry-point contracts (ENVY-SEC-003).
+// EnvyTests does not link MFC CXMLElement; these cases exercise the same
+// AdmitPeerXmlBytes / AdmitPeerXmlChars / ChargeSharedPeerXmlChars helpers
+// used by CXMLElement::FromPeerBytes / FromPeerString and G1/G2 callers.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
@@ -14,7 +17,8 @@ static bool test_xml_peer_defaults()
 	const XmlParseBudget oBudget = XmlParseBudget::PeerDefaults();
 	return oBudget.m_nMaxDepth == XML_PEER_PARSE_DEPTH_MAX &&
 	       oBudget.m_nMaxNodes == XML_PEER_PARSE_NODES_MAX &&
-	       oBudget.m_nMaxChars == XML_PEER_PARSE_CHARS_MAX;
+	       oBudget.m_nMaxChars == XML_PEER_PARSE_CHARS_MAX &&
+	       XML_PEER_THEX_BODY_CAP == XML_PEER_PARSE_CHARS_MAX + XML_PEER_THEX_TREE_SLACK;
 }
 
 static bool test_xml_budget_chars_cap()
@@ -42,7 +46,7 @@ static bool test_xml_budget_nodes_cap()
 	return bFirst && bSecond && !bThird;
 }
 
-// Mirrors FromPeerString: root EnterElement, then child EnterElement calls.
+// Models FromPeerString: root EnterElement, then child EnterElement calls.
 static bool test_xml_budget_depth_includes_root()
 {
 	XmlParseBudget oBudget(2, 100, 10000);
@@ -55,44 +59,65 @@ static bool test_xml_budget_depth_includes_root()
 	return bRoot && bChild && !bTooDeep;
 }
 
-
-static bool test_xml_peer_bytes_predecode_gate()
+// Direct FromPeerBytes admission contract (production AdmitPeerXmlBytes).
+static bool test_from_peer_bytes_entry_gate()
 {
-	// Contract for FromPeerBytes: admit only 1..XML_PEER_PARSE_CHARS_MAX bytes.
-	const auto admits = [](DWORD nByte)
-	{
-		return nByte > 0 && nByte <= XML_PEER_PARSE_CHARS_MAX;
-	};
-	return !admits(0) &&
-	       admits(1) &&
-	       admits(XML_PEER_PARSE_CHARS_MAX) &&
-	       !admits(XML_PEER_PARSE_CHARS_MAX + 1);
+	return !AdmitPeerXmlBytes(0) &&
+	       AdmitPeerXmlBytes(1) &&
+	       AdmitPeerXmlBytes(XML_PEER_PARSE_CHARS_MAX) &&
+	       !AdmitPeerXmlBytes(XML_PEER_PARSE_CHARS_MAX + 1) &&
+	       !AdmitPeerXmlBytes(MAXDWORD);
 }
 
+// Direct FromPeerString character gate when no shared budget is passed.
+static bool test_from_peer_string_entry_gate()
+{
+	XmlParseBudget oExact = XmlParseBudget::PeerDefaults();
+	if (!AdmitPeerXmlChars(oExact, XML_PEER_PARSE_CHARS_MAX) ||
+	    AdmitPeerXmlChars(oExact, 1))
+		return false;
+
+	XmlParseBudget oEmpty = XmlParseBudget::PeerDefaults();
+	if (!AdmitPeerXmlChars(oEmpty, 0)) // empty length is a no-op charge
+		return false;
+
+	XmlParseBudget oOver = XmlParseBudget::PeerDefaults();
+	return !AdmitPeerXmlChars(oOver, XML_PEER_PARSE_CHARS_MAX + 1);
+}
+
+// Contract for HostBrowser profile XML / hit COMMENT: reject before ReadString.
 static bool test_xml_peer_readstring_prematerialize_gate()
 {
-	// Contract for HostBrowser profile XML / hit COMMENT: reject before ReadString.
-	const auto admits = [](DWORD nPacket)
-	{
-		return nPacket > 0 && nPacket <= XML_PEER_PARSE_CHARS_MAX;
-	};
-	const auto rejects_oversized = [](DWORD nPacket)
-	{
-		return nPacket > XML_PEER_PARSE_CHARS_MAX;
-	};
-	return !admits(0) &&
-	       admits(1) &&
-	       admits(XML_PEER_PARSE_CHARS_MAX) &&
-	       !admits(XML_PEER_PARSE_CHARS_MAX + 1) &&
-	       rejects_oversized(XML_PEER_PARSE_CHARS_MAX + 1) &&
-	       !rejects_oversized(XML_PEER_PARSE_CHARS_MAX);
+	return !AdmitPeerXmlBytes(0) &&
+	       AdmitPeerXmlBytes(1) &&
+	       AdmitPeerXmlBytes(XML_PEER_PARSE_CHARS_MAX) &&
+	       !AdmitPeerXmlBytes(XML_PEER_PARSE_CHARS_MAX + 1);
+}
+
+// Shared-budget charge used by G2 METADATA/COMMENT and G1 ReadXML before FromPeer*.
+static bool test_charge_shared_peer_xml_chars()
+{
+	XmlParseBudget oBudget(32, 100, 100);
+	if (ChargeSharedPeerXmlChars(oBudget, 0))
+		return false;
+	if (!ChargeSharedPeerXmlChars(oBudget, 60) || oBudget.m_nChars != 60)
+		return false;
+	if (!ChargeSharedPeerXmlChars(oBudget, 40) || oBudget.m_nChars != 100)
+		return false;
+	// Already at cap / overflow / MAXDWORD-near must fail closed before materialize.
+	if (ChargeSharedPeerXmlChars(oBudget, 1))
+		return false;
+	XmlParseBudget oNear = XmlParseBudget(32, 100, 10);
+	if (!ChargeSharedPeerXmlChars(oNear, 9))
+		return false;
+	return !ChargeSharedPeerXmlChars(oNear, 2);
 }
 
 // Models multi-fragment G2/G1 metadata: one shared budget across sequential roots.
 static bool test_xml_budget_shared_nodes_across_fragments()
 {
 	XmlParseBudget oBudget(32, 3, 10000);
-	if (!oBudget.ConsumeChars(100))
+	if (!ChargeSharedPeerXmlChars(oBudget, 100))
 		return false;
 
 	// Fragment A: root + one child = 2 nodes
@@ -114,10 +139,12 @@ static bool test_xml_budget_shared_nodes_across_fragments()
 // Models FromG2Packet sibling METADATA children sharing one budget.
 static bool test_xml_budget_shared_across_sibling_metadata()
 {
-	XmlParseBudget oBudget(32, 4, 1000);
+	XmlParseBudget oBudget(32, 5, 1000);
 
-	// Sibling METADATA A
-	if (!oBudget.ConsumeChars(50))
+	// Sibling METADATA A (wrapper node + root + child)
+	if (!ChargeSharedPeerXmlChars(oBudget, 50))
+		return false;
+	if (!oBudget.AddNode()) // Metadata wrapper
 		return false;
 	if (!oBudget.EnterElement() || !oBudget.AddNode())
 		return false; // root
@@ -127,20 +154,20 @@ static bool test_xml_budget_shared_across_sibling_metadata()
 	oBudget.LeaveElement();
 
 	// Sibling METADATA B — must not reset the node counter
-	if (!oBudget.ConsumeChars(50))
+	if (!ChargeSharedPeerXmlChars(oBudget, 50))
 		return false;
 	if (!oBudget.EnterElement() || !oBudget.AddNode())
-		return false; // root = node 3
+		return false; // root = node 4
 	if (!oBudget.EnterElement() || !oBudget.AddNode())
-		return false; // child = node 4
+		return false; // child = node 5
 	oBudget.LeaveElement();
 	oBudget.LeaveElement();
 
 	// Sibling METADATA C — further nodes must fail under the shared cap
-	if (!oBudget.ConsumeChars(50))
+	if (!ChargeSharedPeerXmlChars(oBudget, 50))
 		return false;
 	const bool bBlocked = !oBudget.AddNode();
-	return bBlocked && oBudget.m_nNodes == 4 && oBudget.m_nChars == 150;
+	return bBlocked && oBudget.m_nNodes == 5 && oBudget.m_nChars == 150;
 }
 
 // Models FromG1Packet: per-hit ReadXML extensions + trailer ReadXML share one budget.
@@ -149,7 +176,7 @@ static bool test_xml_budget_shared_across_g1_hits_and_trailer()
 	XmlParseBudget oBudget(32, 5, 500);
 
 	// Hit 1 extension
-	if (!oBudget.ConsumeChars(40))
+	if (!ChargeSharedPeerXmlChars(oBudget, 40))
 		return false;
 	if (!oBudget.EnterElement() || !oBudget.AddNode())
 		return false;
@@ -159,7 +186,7 @@ static bool test_xml_budget_shared_across_g1_hits_and_trailer()
 	oBudget.LeaveElement();
 
 	// Hit 2 extension — must not reset counters
-	if (!oBudget.ConsumeChars(40))
+	if (!ChargeSharedPeerXmlChars(oBudget, 40))
 		return false;
 	if (!oBudget.EnterElement() || !oBudget.AddNode())
 		return false;
@@ -169,7 +196,7 @@ static bool test_xml_budget_shared_across_g1_hits_and_trailer()
 	oBudget.LeaveElement();
 
 	// Trailer metadata — one more root ok (node 5), further nodes blocked
-	if (!oBudget.ConsumeChars(40))
+	if (!ChargeSharedPeerXmlChars(oBudget, 40))
 		return false;
 	if (!oBudget.EnterElement() || !oBudget.AddNode())
 		return false;
@@ -177,9 +204,29 @@ static bool test_xml_budget_shared_across_g1_hits_and_trailer()
 	oBudget.LeaveElement();
 
 	// Additional trailer chars beyond the shared 500 must also fail closed
-	const bool bCharsBlocked = !oBudget.ConsumeChars(381); // 120 used + 381 > 500
+	const bool bCharsBlocked = !ChargeSharedPeerXmlChars(oBudget, 381); // 120 used + 381 > 500
 	return bChildBlocked && bCharsBlocked &&
 	       oBudget.m_nNodes == 5 && oBudget.m_nChars == 120;
+}
+
+// Partially consumed shared budget + new fragment (HIT_DESCRIPTOR after METADATA).
+static bool test_shared_budget_partially_consumed_blocks_next_fragment()
+{
+	XmlParseBudget oBudget(32, 10, 100);
+	if (!ChargeSharedPeerXmlChars(oBudget, 90))
+		return false;
+	if (!oBudget.EnterElement() || !oBudget.AddNode())
+		return false;
+	oBudget.LeaveElement();
+
+	// Next fragment of 20 chars must fail before materialization.
+	if (ChargeSharedPeerXmlChars(oBudget, 20))
+		return false;
+	// Exact remaining 10 still admitted.
+	return ChargeSharedPeerXmlChars(oBudget, 10) &&
+	       !ChargeSharedPeerXmlChars(oBudget, 1) &&
+	       oBudget.m_nChars == 100 &&
+	       oBudget.m_nNodes == 1;
 }
 
 static bool test_xml_budget_default_depth_chain()
@@ -188,6 +235,48 @@ static bool test_xml_budget_default_depth_chain()
 	return oBudget.AcceptsElementChain(XML_PEER_PARSE_DEPTH_MAX) &&
 	       !oBudget.AcceptsElementChain(XML_PEER_PARSE_DEPTH_MAX + 1) &&
 	       !oBudget.AcceptsElementChain(0);
+}
+
+// Depth limit and limit+1 via EnterElement (FromPeerString root accounting).
+static bool test_from_peer_depth_limit_and_overflow()
+{
+	XmlParseBudget oOk = XmlParseBudget(XML_PEER_PARSE_DEPTH_MAX, 10000, 10000);
+	for (DWORD i = 0; i < XML_PEER_PARSE_DEPTH_MAX; ++i)
+	{
+		if (!oOk.EnterElement() || !oOk.AddNode())
+			return false;
+	}
+	if (oOk.EnterElement() || !oOk.m_bDepthCapped)
+		return false;
+
+	XmlParseBudget oTiny(1, 100, 10000);
+	return oTiny.EnterElement() && !oTiny.EnterElement() && oTiny.m_bDepthCapped;
+}
+
+// Node limit and limit+1.
+static bool test_from_peer_nodes_limit_and_overflow()
+{
+	XmlParseBudget oBudget(32, XML_PEER_PARSE_NODES_MAX, XML_PEER_PARSE_CHARS_MAX);
+	for (DWORD i = 0; i < XML_PEER_PARSE_NODES_MAX; ++i)
+	{
+		if (!oBudget.AddNode())
+			return false;
+	}
+	return !oBudget.AddNode() && oBudget.m_nNodes == XML_PEER_PARSE_NODES_MAX;
+}
+
+// THEX receive-size constant: body cap rejects past XML+tree slack.
+static bool test_thex_body_cap_gate()
+{
+	const auto admits = [](ULONGLONG nLength)
+	{
+		return nLength > 0 && nLength <= XML_PEER_THEX_BODY_CAP;
+	};
+	return !admits(0) &&
+	       admits(1) &&
+	       admits(XML_PEER_THEX_BODY_CAP) &&
+	       !admits((ULONGLONG)XML_PEER_THEX_BODY_CAP + 1) &&
+	       !admits(~(ULONGLONG)0);
 }
 
 // The G1 AutodetectAudio fallback funds three objects (root + two retained
@@ -210,10 +299,16 @@ void register_xml_peer_parse_smoke_tests(TestSuite& suite)
 	suite.add_test("xml_budget_nodes_cap", test_xml_budget_nodes_cap);
 	suite.add_test("xml_budget_depth_includes_root", test_xml_budget_depth_includes_root);
 	suite.add_test("xml_budget_default_depth_chain", test_xml_budget_default_depth_chain);
-	suite.add_test("xml_peer_bytes_predecode_gate", test_xml_peer_bytes_predecode_gate);
+	suite.add_test("from_peer_bytes_entry_gate", test_from_peer_bytes_entry_gate);
+	suite.add_test("from_peer_string_entry_gate", test_from_peer_string_entry_gate);
 	suite.add_test("xml_peer_readstring_prematerialize_gate", test_xml_peer_readstring_prematerialize_gate);
+	suite.add_test("charge_shared_peer_xml_chars", test_charge_shared_peer_xml_chars);
 	suite.add_test("xml_budget_shared_nodes_across_fragments", test_xml_budget_shared_nodes_across_fragments);
 	suite.add_test("xml_budget_shared_across_sibling_metadata", test_xml_budget_shared_across_sibling_metadata);
 	suite.add_test("xml_budget_shared_across_g1_hits_and_trailer", test_xml_budget_shared_across_g1_hits_and_trailer);
+	suite.add_test("shared_budget_partially_consumed_blocks_next_fragment", test_shared_budget_partially_consumed_blocks_next_fragment);
+	suite.add_test("from_peer_depth_limit_and_overflow", test_from_peer_depth_limit_and_overflow);
+	suite.add_test("from_peer_nodes_limit_and_overflow", test_from_peer_nodes_limit_and_overflow);
+	suite.add_test("thex_body_cap_gate", test_thex_body_cap_gate);
 	suite.add_test("xml_budget_autodetect_fallback_funds_objects", test_xml_budget_autodetect_fallback_funds_objects);
 }

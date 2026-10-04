@@ -474,9 +474,7 @@ bool CG1Packet::ReadXML(CSchemaPtr& pSchema, CXMLElement*& pXML, XmlParseBudget*
 
 	XmlParseBudget oLocal = XmlParseBudget::PeerDefaults();
 	XmlParseBudget* pActive = pBudget ? pBudget : &oLocal;
-	if (pActive->m_nChars >= pActive->m_nMaxChars ||
-	    len > pActive->m_nMaxChars - pActive->m_nChars ||
-	    !pActive->ConsumeChars(len))
+	if (!ChargeSharedPeerXmlChars(*pActive, len))
 		return false;
 
 	CString strXML(UTF8Decode((LPCSTR)p, len));

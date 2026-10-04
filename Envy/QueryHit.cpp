@@ -519,21 +519,30 @@ CQueryHit* CQueryHit::FromG2Packet(CG2Packet* pPacket, int* pnHops)
 					    break;
 				    // Charge the shared hit-level budget before ReadString so later
 				    // sibling METADATA children cannot materialize past the aggregate cap.
-				    if (oMetaBudget.m_nChars >= oMetaBudget.m_nMaxChars ||
-				        nLength > oMetaBudget.m_nMaxChars - oMetaBudget.m_nChars ||
-				        !oMetaBudget.ConsumeChars(nLength))
+				    if (!ChargeSharedPeerXmlChars(oMetaBudget, nLength))
 					    break;
 				    CString strXML = pPacket->ReadString(nLength);
 				    LPCTSTR pszXML = strXML;
 				    while (pszXML && *pszXML)
 				    {
-					    // Shared oMetaBudget across sibling METADATA children and
-					    // concatenated <?xml fragments inside each child.
+					    // Shared oMetaBudget across sibling METADATA children,
+					    // HIT_DESCRIPTOR file metadata/comments, and concatenated
+					    // <?xml fragments inside each child.
 					    CXMLElement* pPart = CXMLElement::FromPeerString(pszXML, TRUE, NULL, &oMetaBudget);
 					    if (!pPart)
 						    break;
 
-					    if (!pXML) pXML = new CXMLElement(NULL, L"Metadata");
+					    if (!pXML)
+					    {
+						    // Wrapper is retained on the hit; fund it from the
+						    // shared node budget so fragments cannot hide cost.
+						    if (!oMetaBudget.AddNode())
+						    {
+							    delete pPart;
+							    break;
+						    }
+						    pXML = new CXMLElement(NULL, L"Metadata");
+					    }
 					    pXML->AddElement(pPart);
 
 					    pszXML = _tcsstr(pszXML + 1, L"<?xml");
@@ -990,9 +999,7 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize, XmlParseBudget* p
 	if (!pszXML || nSize <= 0 || nSize > (int)XML_PEER_PARSE_CHARS_MAX)
 		return NULL;
 
-	if (pActive->m_nChars >= pActive->m_nMaxChars ||
-	    (DWORD)nSize > pActive->m_nMaxChars - pActive->m_nChars ||
-	    !pActive->ConsumeChars((DWORD)nSize))
+	if (!ChargeSharedPeerXmlChars(*pActive, (DWORD)nSize))
 		return NULL;
 
 	CXMLElement* pRoot = NULL;
@@ -1022,8 +1029,17 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize, XmlParseBudget* p
 
 			if ( ! pRoot )
 			{
+				if (!pActive->AddNode())
+				{
+					delete pXML;
+					break;
+				}
 				pRoot = new CXMLElement( NULL, L"Metadata" );
-				if ( ! pRoot ) break;	// Out of memory
+				if ( ! pRoot )
+				{
+					delete pXML;
+					break;	// Out of memory
+				}
 			}
 
 			pRoot->AddElement( pXML );
@@ -1412,7 +1428,7 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength, XmlParseBudget* 
 
 		case G2_PACKET_METADATA:
 			if (nPacket > 0 && nPacket <= XML_PEER_PARSE_CHARS_MAX &&
-			    pActiveBudget->ConsumeChars(nPacket))
+			    ChargeSharedPeerXmlChars(*pActiveBudget, nPacket))
 			{
 				CString strXML = pPacket->ReadString( nPacket );	// Not null terminated
 				if (strXML.GetLength() != (int)nPacket)
@@ -1517,7 +1533,7 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength, XmlParseBudget* 
 			// Bound before ReadString; charge the shared HIT budget so comments
 			// cannot bypass ConsumeChars after earlier METADATA fragments.
 			if (nPacket > XML_PEER_PARSE_CHARS_MAX ||
-			    !pActiveBudget->ConsumeChars(nPacket))
+			    !ChargeSharedPeerXmlChars(*pActiveBudget, nPacket))
 			{
 				theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Got oversized comment (%u)", nPacket);
 				break;

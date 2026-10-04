@@ -966,8 +966,8 @@ void CBrowseTreeCtrl::OnTreePacket(CG2Packet* pPacket, DWORD nFinish, CBrowseTre
 			// Bound before ReadString; oversized packets still advance via nNext below.
 			// Shared pBudget across the whole browse tree so sibling METADATA
 			// children cannot reset peer node/char caps independently.
-			if (nLength > 0 && nLength <= XML_PEER_PARSE_CHARS_MAX &&
-			    pBudget && pBudget->ConsumeChars(nLength))
+			if (nLength <= XML_PEER_PARSE_CHARS_MAX &&
+			    pBudget && ChargeSharedPeerXmlChars(*pBudget, nLength))
 			{
 				CAutoPtr<CXMLElement> pXML(CXMLElement::FromPeerString(
 				    pPacket->ReadString(nLength), FALSE, NULL, pBudget));
