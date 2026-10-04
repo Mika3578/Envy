@@ -97,5 +97,6 @@
   "validation_launcher": [],
   "trusted_hooks_path": "",
   "trusted_policy_path": "",
+  "trusted_classifier_path": "C:/trusted-review/classify-copilot-review.py",
   "max_executor_input_bytes": 1048576
 }

@@ -58,6 +58,27 @@ class CheckTests(unittest.TestCase):
         self.assertEqual(by_app[1], "SUCCESS")
         self.assertEqual(by_app[2], "FAILURE")
 
+    def test_collect_exports_required_specs(self):
+        rules = [{
+            "type": "required_status_checks",
+            "parameters": {
+                "required_status_checks": [
+                    {"context": "Build", "integration_id": 1},
+                    {"context": "Build", "integration_id": 2},
+                ]
+            },
+        }]
+        with patch.object(checks, "gh", side_effect=[rules, [{"check_runs": []}], [[]]]):
+            out = checks.collect_checks("Mika3578/Envy", "a" * 40)
+        self.assertEqual(out["required_names"], ["Build", "Build"])
+        self.assertEqual(
+            out["required_specs"],
+            [
+                {"context": "Build", "integration_id": 1},
+                {"context": "Build", "integration_id": 2},
+            ],
+        )
+
     def test_empty_policy_and_wrong_repository_fail_closed(self):
         with patch.object(checks, "gh", return_value=[]):
             with self.assertRaises(ValueError):

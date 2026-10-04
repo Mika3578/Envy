@@ -25,6 +25,7 @@ import time
 from types import SimpleNamespace
 import unicodedata
 
+from disposition import is_valid_disposition_body
 from required_checks import (
     collect_checks,
     commit_checks,
@@ -61,14 +62,40 @@ def latest_copilot_review(reviews, head):
     return max(matched, key=lambda review: (int(review.get("id") or 0), str(review.get("submitted_at") or "")))
 
 
-def load_copilot_classifier():
+def resolve_classifier_path(config=None):
+    """Resolve classify-copilot-review.py for host installs and in-tree runs."""
+    candidates = []
+    if isinstance(config, dict) and config.get("trusted_classifier_path"):
+        candidates.append(Path(config["trusted_classifier_path"]))
+    # Documented C:/trusted-review layout: classifier copied beside service.py.
+    candidates.append(Path(__file__).resolve().with_name("classify-copilot-review.py"))
+    # In-tree development checkout.
+    candidates.append(
+        Path(__file__).resolve().parents[2] / ".github" / "scripts" / "classify-copilot-review.py"
+    )
+    for path in candidates:
+        try:
+            resolved = path.resolve()
+        except OSError:
+            continue
+        if resolved.is_file():
+            return resolved
+    raise ValueError(
+        "classify-copilot-review.py is missing; set trusted_classifier_path or copy it "
+        "beside service.py in the host installation"
+    )
+
+
+def load_copilot_classifier(config=None):
     """Load the host-installed trusted Copilot overview classifier."""
-    path = Path(__file__).resolve().parents[2] / ".github" / "scripts" / "classify-copilot-review.py"
-    if not path.is_file():
-        raise ValueError("classify-copilot-review.py is missing from the host installation")
+    path = resolve_classifier_path(config)
     name = "classify_copilot_review_mod"
     existing = sys.modules.get(name)
-    if existing is not None and getattr(existing, "classify_review", None):
+    if (
+        existing is not None
+        and getattr(existing, "classify_review", None)
+        and getattr(existing, "__file__", None) == str(path)
+    ):
         return existing
     spec = importlib.util.spec_from_file_location(name, path)
     classify = importlib.util.module_from_spec(spec)
@@ -258,7 +285,7 @@ def collect(number):
     query = '''query($o:String!,$r:String!,$n:Int!,$c:String){repository(owner:$o,name:$r){
       pullRequest(number:$n){reviewDecision headRefOid reviewThreads(first:100,after:$c){
         pageInfo{hasNextPage endCursor} nodes{id isResolved isOutdated comments(first:100){
-          pageInfo{hasNextPage} nodes{databaseId author{login __typename} commit{oid}}}}
+          pageInfo{hasNextPage} nodes{databaseId author{login __typename} commit{oid} body}}}
       }}}}'''
     threads, cursor, seen = [], None, set()
     graphql_decision = None
@@ -336,6 +363,8 @@ def _resolved_thread_is_untreated(nodes, head, *, outdated=False):
         login = str(author.get("login") or "")
         typename = str(author.get("__typename") or author.get("type") or "")
         if typename != "User" or not login or login in COPILOT or login.endswith("[bot]") or "copilot" in login.lower():
+            continue
+        if not is_valid_disposition_body(str(item.get("body") or "")):
             continue
         reply_commit = str(((item.get("commit") or {}).get("oid") or item.get("commit_id") or ""))
         if head and reply_commit == head:
@@ -800,8 +829,27 @@ HOST_POLICY:
 
 def checks_pass(snapshot):
     # Ready/final-review advancement matches GATE_PASSING (no Draft SKIPPED).
+    checks = [c for c in snapshot["checks"] if c.get("name") != "Final review gate"]
+    specs = snapshot.get("required_specs")
+    if isinstance(specs, list) and specs:
+        required = [
+            spec for spec in specs
+            if isinstance(spec, dict)
+            and str(spec.get("context") or "") != "Final review gate"
+        ]
+        if not required:
+            return False
+        for spec in required:
+            context = str(spec.get("context") or "")
+            integration = spec.get("integration_id")
+            matched = [
+                item for item in checks
+                if item.get("name") == context and item.get("integration_id") == integration
+            ]
+            if not matched or any(item.get("state") not in GATE_PASS for item in matched):
+                return False
+        return True
     required = {name for name in snapshot.get("required_names", []) if name != "Final review gate"}
-    checks = [c for c in snapshot["checks"] if c["name"] != "Final review gate"]
     observed = {c["name"] for c in checks}
     return bool(required) and required.issubset(observed) and all(
         c["state"] in GATE_PASS for c in checks)
@@ -980,7 +1028,7 @@ def final_review(config, entry, snapshot, state, store):
         # GitHub APPROVED alone is insufficient: overview Previously missed /
         # Suppressed / closer-look findings must still go through the trusted
         # classifier before FINAL_REVIEW_RECEIVED.
-        classify = load_copilot_classifier()
+        classify = load_copilot_classifier(config)
         if not copilot_overview_is_clean(
             classify,
             latest_fresh,

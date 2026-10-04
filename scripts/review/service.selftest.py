@@ -368,7 +368,8 @@ class ServiceTests(unittest.TestCase):
             {"databaseId": 1, "author": {"login": "copilot-pull-request-reviewer", "__typename": "Bot"},
              "commit": {"oid": "a" * 40}},
             {"databaseId": 2, "author": {"login": "alice", "__typename": "User"},
-             "commit": {"oid": "a" * 40}},
+             "commit": {"oid": "a" * 40},
+             "body": "Fixed on `" + ("a" * 7) + "`. Regression evidence recorded."},
         ]}}]
         head, base = "a" * 40, "b" * 40
         entry = {
@@ -483,6 +484,49 @@ class ServiceTests(unittest.TestCase):
             {"name": "Final review gate", "state": "PENDING"},
         ]
         self.assertTrue(mod.checks_pass(snap))
+
+    def test_checks_pass_requires_every_integration_slot(self):
+        snap = snapshot()
+        snap["required_specs"] = [
+            {"context": "Build", "integration_id": 1},
+            {"context": "Build", "integration_id": 2},
+        ]
+        snap["checks"] = [
+            {"name": "Build", "integration_id": 1, "state": "SUCCESS"},
+        ]
+        self.assertFalse(mod.checks_pass(snap))
+        snap["checks"].append({"name": "Build", "integration_id": 2, "state": "SUCCESS"})
+        self.assertTrue(mod.checks_pass(snap))
+
+    def test_thanks_reply_does_not_clear_final_review_blocker(self):
+        snap = snapshot()
+        snap["pr"]["draft"] = False
+        snap["threads"] = [{"isResolved": True, "comments": {"nodes": [
+            {"author": {"login": "copilot-pull-request-reviewer", "__typename": "Bot"},
+             "commit": {"oid": "a" * 40}},
+            {"author": {"login": "alice", "__typename": "User"},
+             "commit": {"oid": "a" * 40}, "body": "thanks"},
+        ]}}]
+        state = {"handled": {}, "stops": {}, "requests": {}}
+        entry = {"number": 1, "reviewers": [{"login": "bot"}]}
+        for source in mod.trusted_sources(entry, snap):
+            state["handled"][source["key"]] = {"head": "a" * 40, "base": "b" * 40}
+        mod.final_review({}, entry, snap, state, None)
+        self.assertNotIn("phase", state)
+
+    def test_resolve_classifier_path_prefers_config_and_sidecar(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            sidecar = root / "classify-copilot-review.py"
+            sidecar.write_text("# stub\n", encoding="utf-8")
+            configured = root / "configured.py"
+            configured.write_text("# configured\n", encoding="utf-8")
+            with patch.object(mod, "__file__", str(root / "service.py")):
+                self.assertEqual(mod.resolve_classifier_path(), sidecar.resolve())
+                self.assertEqual(
+                    mod.resolve_classifier_path({"trusted_classifier_path": str(configured)}),
+                    configured.resolve(),
+                )
 
     def test_run_accepts_unbounded_timeout(self):
         class Stream:

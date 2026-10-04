@@ -18,8 +18,10 @@ advisory until a maintainer adds it to Protect develop; auto-merge stays off.
 ## Installation and activation
 
 1. Review the worker, configuration and validation commands. Copy this directory
-   to an operator-owned location outside every managed PR worktree. Do not run
-   privileged publication from a PR-controlled checkout or GitHub workflow.
+   to an operator-owned location outside every managed PR worktree. Also copy
+   `.github/scripts/classify-copilot-review.py` into that same host directory
+   (or set absolute `trusted_classifier_path` in config). Do not run privileged
+   publication from a PR-controlled checkout or GitHub workflow.
 2. Copy `config.example.json` into that host installation. Configure actual
    existing worktrees, meaningful checks and proven reviewer identities. Keep
    configuration, SQLite state, logs and GitHub credentials inaccessible to the

@@ -214,7 +214,7 @@ def thread_disposition(owner: str, repo: str, pr: int, head_sha: str = "") -> tu
               isOutdated
               comments(first:100){
                 pageInfo { hasNextPage }
-                nodes { author { login __typename } commit { oid } }
+                nodes { author { login __typename } commit { oid } body }
               }
             }
             pageInfo { hasNextPage endCursor }

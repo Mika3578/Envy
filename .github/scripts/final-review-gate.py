@@ -19,6 +19,7 @@ from typing import Any, Mapping, Sequence
 _REVIEW = Path(__file__).resolve().parents[2] / "scripts" / "review"
 if str(_REVIEW) not in sys.path:
     sys.path.insert(0, str(_REVIEW))
+import disposition as disposition_policy  # noqa: E402
 import required_checks as required_check_policy  # noqa: E402
 
 GATE_CONTEXT = "Final review gate"
@@ -150,7 +151,9 @@ def resolved_thread_is_untreated(comments: Sequence[Any], head_sha: str, *, outd
 
     GitHub review replies keep the original review-commit OID, so an outdated
     thread cannot carry a live-HEAD commit on the reply. Live (non-outdated)
-    threads still require the reply commit to equal the current HEAD.
+    threads still require the reply commit to equal the current HEAD. A bare
+    acknowledgement is never a disposition; the reply body must carry a
+    technical justification or evidence marker.
     """
     nodes = [item for item in comments if isinstance(item, Mapping)]
     if not nodes:
@@ -162,6 +165,8 @@ def resolved_thread_is_untreated(comments: Sequence[Any], head_sha: str, *, outd
         typename = str(author.get("__typename") or "")
         user_type = str(author.get("type") or "")
         if not is_authorized_disposition_author(login, typename=typename, user_type=user_type):
+            continue
+        if not disposition_policy.is_valid_disposition_body(str(item.get("body") or "")):
             continue
         reply_commit = comment_commit_oid(item)
         if head and reply_commit == head:

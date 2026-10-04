@@ -115,8 +115,14 @@ def collect_checks(repository, head):
     runs = [item for page in run_pages for item in page["check_runs"]]
     status_pages = gh([f"{prefix}/commits/{head}/statuses?per_page=100", "--paginate", "--slurp"])
     statuses = [item for page in status_pages for item in page]
-    return {"head": head, "required_names": [spec["context"] for spec in required],
-            "checks": commit_checks(head, required, runs, statuses)}
+    return {
+        "head": head,
+        # Keep required_names for older consumers; required_specs preserves
+        # per-integration slots so duplicate context names cannot collapse.
+        "required_names": [spec["context"] for spec in required],
+        "required_specs": required,
+        "checks": commit_checks(head, required, runs, statuses),
+    }
 
 
 def main():

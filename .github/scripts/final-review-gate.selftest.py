@@ -547,6 +547,16 @@ class FinalReviewGateTests(unittest.TestCase):
         out = MOD.evaluate_final_review_gate(snap(pr_author_login="copilot-swe-agent[bot]"))
         self.assertEqual(out["state"], MOD.STATE_FAILURE)
 
+    def test_thanks_reply_is_not_a_disposition(self):
+        comments = [
+            {"author": {"login": COPILOT, "__typename": "Bot"}, "commit": {"oid": HEAD}},
+            {"author": {"login": "alice", "__typename": "User"}, "commit": {"oid": HEAD},
+             "body": "thanks"},
+        ]
+        self.assertTrue(MOD.resolved_thread_is_untreated(comments, HEAD))
+        comments[1]["body"] = f"Fixed on `{HEAD[:7]}`. Regression selftest covers the bound."
+        self.assertFalse(MOD.resolved_thread_is_untreated(comments, HEAD))
+
     def test_copilot_logins_exclude_swe_coding_agent(self):
         self.assertNotIn("copilot-swe-agent", MOD.COPILOT_LOGINS)
         self.assertNotIn("copilot-swe-agent[bot]", MOD.COPILOT_LOGINS)

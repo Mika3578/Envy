@@ -131,6 +131,7 @@ class CollectSnapshotTests(unittest.TestCase):
                             {
                                 "author": {"login": "alice", "__typename": "User"},
                                 "commit": {"oid": HEAD},
+                                "body": f"Fixed on `{HEAD[:7]}`. Regression selftest covers the bound.",
                             },
                         ],
                     },
@@ -139,6 +140,34 @@ class CollectSnapshotTests(unittest.TestCase):
             HEAD,
         )
         self.assertEqual((unresolved, untreated), (0, 0))
+
+    def test_thanks_only_reply_is_untreated(self):
+        unresolved, untreated = MOD.count_thread_dispositions(
+            [
+                {
+                    "isResolved": True,
+                    "comments": {
+                        "pageInfo": {"hasNextPage": False},
+                        "nodes": [
+                            {
+                                "author": {
+                                    "login": "copilot-pull-request-reviewer[bot]",
+                                    "__typename": "Bot",
+                                },
+                                "commit": {"oid": HEAD},
+                            },
+                            {
+                                "author": {"login": "alice", "__typename": "User"},
+                                "commit": {"oid": HEAD},
+                                "body": "thanks",
+                            },
+                        ],
+                    },
+                }
+            ],
+            HEAD,
+        )
+        self.assertEqual((unresolved, untreated), (0, 1))
 
     def test_bot_reply_does_not_treat_current_head_thread(self):
         unresolved, untreated = MOD.count_thread_dispositions(
@@ -227,6 +256,10 @@ class CollectSnapshotTests(unittest.TestCase):
                             {
                                 "author": {"login": "alice", "__typename": "User"},
                                 "commit": {"oid": "b" * 40},
+                                "body": (
+                                    f"Fixed on `{HEAD[:7]}`. Outdated thread disposition "
+                                    "with regression evidence."
+                                ),
                             },
                         ],
                     },

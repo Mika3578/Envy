@@ -239,11 +239,9 @@ evaluate_eligibility() {
 	if [[ "$is_draft" == "true" ]]; then
 		note_ineligible "Pull request #${PR_NUMBER} is still a **Draft**; mark it Ready for Review first."
 	fi
-	# Host runtime_evidence is not available in Actions; stage:live-test is the
-	# maintainer attestation that the Ready live-runtime checkpoint was recorded.
-	if [[ "$(echo "$pr" | jq '[.labels.nodes[]?.name] | index("stage:live-test")')" == "null" ]]; then
-		note_ineligible "Pull request #${PR_NUMBER} lacks \`stage:live-test\`; maintainer live-runtime evidence is required before the final Copilot request."
-	fi
+	# Ready itself is the maintainer-controlled full-validation lane. Host
+	# runtime_evidence remains required by the trusted worker; Actions relies on
+	# non-draft + green required checks (build.yml Release/EnvyTests for Ready).
 	if [[ "$base" != "develop" ]]; then
 		note_ineligible "Pull request #${PR_NUMBER} targets \`${base}\`; only \`develop\` is eligible."
 	fi
