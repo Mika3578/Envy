@@ -58,6 +58,14 @@ class CheckTests(unittest.TestCase):
         self.assertEqual(by_app[1], "SUCCESS")
         self.assertEqual(by_app[2], "FAILURE")
 
+    def test_unbound_integration_id_is_allowed(self):
+        specs = checks.required_specs([
+            {"context": "Build", "integration_id": None},
+            {"context": "Security", "integration_id": 1},
+        ])
+        self.assertEqual(specs[0]["integration_id"], None)
+        self.assertEqual(specs[1]["integration_id"], 1)
+
     def test_collect_exports_required_specs(self):
         rules = [{
             "type": "required_status_checks",

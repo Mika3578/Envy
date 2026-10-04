@@ -702,6 +702,14 @@ def git_identity(worktree):
     git = trusted_git_executable(worktree)
     toplevel = Path(run([git, "rev-parse", "--show-toplevel"], cwd=worktree, env=env).strip()).resolve()
     git_dir = Path(run([git, "rev-parse", "--absolute-git-dir"], cwd=worktree, env=env).strip()).resolve()
+    # Pin common-dir too: $GIT_DIR/commondir can redirect object/ref writes without
+    # changing --absolute-git-dir. Linked worktrees keep a stable common-dir.
+    common_raw = run([git, "rev-parse", "--git-common-dir"], cwd=worktree, env=env).strip()
+    common_dir = Path(common_raw)
+    if not common_dir.is_absolute():
+        common_dir = (worktree / common_dir).resolve()
+    else:
+        common_dir = common_dir.resolve()
     if toplevel != worktree:
         raise ValueError("Git toplevel does not match the configured worktree")
     pointer = gitdir_pointer_target(worktree)
@@ -712,7 +720,7 @@ def git_identity(worktree):
         configured = Path(worktree_cfg).resolve()
         if configured != worktree:
             raise ValueError("core.worktree redirects Git away from the configured worktree")
-    return {"worktree": worktree, "git_dir": git_dir}
+    return {"worktree": worktree, "git_dir": git_dir, "common_dir": common_dir}
 
 
 def publication_git(identity, hooks_path, *args, allowed=(0,)):

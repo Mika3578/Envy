@@ -672,6 +672,8 @@ class ServiceTests(unittest.TestCase):
                 return str(worktree) + "\n"
             if "--absolute-git-dir" in joined:
                 return str(worktree / ".git") + "\n"
+            if "--git-common-dir" in joined:
+                return str(worktree / ".git") + "\n"
             if "core.worktree" in joined:
                 return "D:/evil-worktree\n"
             return "\n"
@@ -679,6 +681,41 @@ class ServiceTests(unittest.TestCase):
         with patch.object(mod, "run", side_effect=fake_run), patch.object(mod, "gitdir_pointer_target", return_value=None):
             with self.assertRaises(ValueError):
                 mod.git_identity(worktree)
+
+    def test_git_identity_pins_common_dir(self):
+        worktree = Path.cwd().resolve()
+        git_dir = worktree / ".git"
+
+        def fake_run(argv, **kwargs):
+            joined = " ".join(argv)
+            if "--show-toplevel" in joined:
+                return str(worktree) + "\n"
+            if "--absolute-git-dir" in joined:
+                return str(git_dir) + "\n"
+            if "--git-common-dir" in joined:
+                return str(git_dir) + "\n"
+            if "core.worktree" in joined:
+                return "\n"
+            return "\n"
+
+        with patch.object(mod, "run", side_effect=fake_run), patch.object(mod, "gitdir_pointer_target", return_value=None):
+            locked = mod.git_identity(worktree)
+        self.assertEqual(locked["common_dir"], git_dir.resolve())
+
+        def redirected(argv, **kwargs):
+            joined = " ".join(argv)
+            if "--show-toplevel" in joined:
+                return str(worktree) + "\n"
+            if "--absolute-git-dir" in joined:
+                return str(git_dir) + "\n"
+            if "--git-common-dir" in joined:
+                return "D:/evil-common/.git\n"
+            if "core.worktree" in joined:
+                return "\n"
+            return "\n"
+
+        with patch.object(mod, "run", side_effect=redirected), patch.object(mod, "gitdir_pointer_target", return_value=None):
+            self.assertNotEqual(mod.git_identity(worktree), locked)
 
     def test_publication_rejects_url_rewrites_and_untrusted_origin(self):
         identity = {"worktree": Path("D:/wt"), "git_dir": Path("D:/wt/.git")}

@@ -127,6 +127,7 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         str(x) for x in (snapshot.get("previously_missed_titles") or [])
     ]
     suppressed = [str(x) for x in (snapshot.get("suppressed_comment_titles") or [])]
+    pr_level = [str(x) for x in (snapshot.get("untreated_pr_level_findings") or [])]
     ledger = snapshot.get("finding_ledger") or []
     raw_checks = snapshot.get("required_checks", None)
     # Fail closed before any CLEAN path: missing/non-list/empty is not CI evidence.
@@ -193,11 +194,18 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
             review_sha=review_sha,
         )
 
-    # Required CI
+    # Required CI — ignore only the publisher's Final review gate (15368).
     external_required = 0
     for check in checks:
+        if not isinstance(check, dict):
+            return _result(
+                DECISION_NEEDS_HUMAN,
+                ["required check entry is malformed"],
+                head_sha=head_sha,
+                review_sha=review_sha,
+            )
         name = str(check.get("name") or "unknown")
-        if name == "Final review gate":
+        if required_check_policy.is_advisory_self_gate_check(check):
             continue
         external_required += 1
         state = str(check.get("state") or "").upper()
@@ -260,6 +268,8 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         reasons.append(f"{REASON_PREVIOUSLY_MISSED}: {len(previously_missed)}")
     if suppressed:
         reasons.append(f"{REASON_SUPPRESSED}: {len(suppressed)}")
+    if pr_level:
+        reasons.append(f"{REASON_BODY_FINDINGS}: {len(pr_level)}")
 
     repeated = _repeated_findings(ledger)
     if repeated:
@@ -366,6 +376,14 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
                 head_sha=head_sha,
                 review_sha=review_sha,
                 note="classification APPROVED but GraphQL reviewDecision or GitHub review state is not APPROVED.",
+            )
+        if reasons:
+            return _result(
+                DECISION_FIX_AGAIN if requires_fixer else DECISION_NEEDS_HUMAN,
+                reasons,
+                head_sha=head_sha,
+                review_sha=review_sha,
+                note="APPROVED classification cannot ignore remaining findings or untreated PR-level items.",
             )
         return _result(
             DECISION_CLEAN,

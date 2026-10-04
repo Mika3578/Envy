@@ -281,9 +281,29 @@ class EvaluateReviewLoopTests(unittest.TestCase):
 
     def test_self_only_final_review_gate_is_not_clean(self):
         out = MOD.evaluate_review_loop(
-            snap(required_checks=[{"name": "Final review gate", "state": "SUCCESS"}])
+            snap(required_checks=[{
+                "name": "Final review gate",
+                "integration_id": 15368,
+                "state": "SUCCESS",
+            }])
         )
         self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+
+    def test_foreign_final_review_gate_receipt_blocks_clean(self):
+        out = MOD.evaluate_review_loop(
+            snap(required_checks=[
+                {"name": "Build", "state": "SUCCESS"},
+                {"name": "Final review gate", "integration_id": 99999, "state": "FAILURE"},
+            ])
+        )
+        self.assertEqual(out["decision"], MOD.DECISION_NEEDS_HUMAN)
+
+    def test_untreated_pr_level_findings_block_clean(self):
+        out = MOD.evaluate_review_loop(
+            snap(untreated_pr_level_findings=["Overview: bounds defect"])
+        )
+        self.assertNotEqual(out["decision"], MOD.DECISION_CLEAN)
+        self.assertTrue(any("findings" in reason.lower() for reason in out["reasons"]))
 
     def test_missing_unresolved_count_not_clean(self):
         payload = snap()

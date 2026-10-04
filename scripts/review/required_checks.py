@@ -13,6 +13,15 @@ GATE_PASSING_CHECK_STATES = frozenset({"SUCCESS", "NEUTRAL"})
 PENDING_CHECK_STATES = frozenset(
     {"PENDING", "QUEUED", "IN_PROGRESS", "WAITING", "REQUESTED", "EXPECTED"}
 )
+GATE_CONTEXT = "Final review gate"
+# GitHub Actions app id pinned by protect-develop.final-review-gate.desired.json.
+GATE_PUBLISHER_INTEGRATION_ID = 15368
+
+
+def is_advisory_self_gate_check(check):
+    """Ignore only this publisher's Final review gate receipt (integration 15368)."""
+    name = str(check.get("name") or check.get("context") or "")
+    return name == GATE_CONTEXT and check.get("integration_id") == GATE_PUBLISHER_INTEGRATION_ID
 
 
 def gh(args):
@@ -28,10 +37,12 @@ def required_specs(required):
         context = str(item.get("context") or item.get("name") or "")
         if not context:
             raise ValueError("Required check context is missing")
+        # Rulesets may pin an integration or leave the context unbound (null).
         integration = item.get("integration_id")
         if integration is None:
-            raise ValueError("Required check integration_id is missing")
-        specs.append({"context": context, "integration_id": int(integration)})
+            specs.append({"context": context, "integration_id": None})
+        else:
+            specs.append({"context": context, "integration_id": int(integration)})
     return specs
 
 
