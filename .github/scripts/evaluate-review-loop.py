@@ -95,7 +95,12 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     requires_human = bool(snapshot.get("requires_human"))
     github_decision = str(snapshot.get("review_decision") or "").upper()
     review_decision_source = str(snapshot.get("review_decision_source") or "").lower()
-    if not isinstance(snapshot.get("unresolved_threads"), int) or snapshot["unresolved_threads"] < 0:
+    unresolved_raw = snapshot.get("unresolved_threads")
+    if (
+        isinstance(unresolved_raw, bool)
+        or not isinstance(unresolved_raw, int)
+        or unresolved_raw < 0
+    ):
         return _result(
             DECISION_NEEDS_HUMAN,
             ["unresolved thread count is missing"],
@@ -103,7 +108,8 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
             review_sha=str((snapshot.get("review") or {}).get("commit_id") or ""),
             note="Refuse CLEAN without a complete thread snapshot.",
         )
-    if not isinstance(snapshot.get("human_unresolved_threads"), int) or snapshot["human_unresolved_threads"] < 0:
+    human_raw = snapshot.get("human_unresolved_threads")
+    if isinstance(human_raw, bool) or not isinstance(human_raw, int) or human_raw < 0:
         return _result(
             DECISION_NEEDS_HUMAN,
             ["human unresolved thread count is missing"],
@@ -111,9 +117,14 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
             review_sha=str((snapshot.get("review") or {}).get("commit_id") or ""),
             note="Refuse CLEAN without a complete thread snapshot.",
         )
-    unresolved_threads = snapshot["unresolved_threads"]
-    human_unresolved = snapshot["human_unresolved_threads"]
-    if not isinstance(snapshot.get("untreated_threads"), int) or snapshot["untreated_threads"] < 0:
+    unresolved_threads = unresolved_raw
+    human_unresolved = human_raw
+    untreated_raw = snapshot.get("untreated_threads")
+    if (
+        isinstance(untreated_raw, bool)
+        or not isinstance(untreated_raw, int)
+        or untreated_raw < 0
+    ):
         return _result(
             DECISION_NEEDS_HUMAN,
             ["untreated thread count is missing"],
@@ -121,7 +132,7 @@ def evaluate_review_loop(snapshot: Mapping[str, Any]) -> dict[str, Any]:
             review_sha=str((snapshot.get("review") or {}).get("commit_id") or ""),
             note="Refuse CLEAN without a complete thread snapshot.",
         )
-    untreated_threads = snapshot["untreated_threads"]
+    untreated_threads = untreated_raw
     open_titles = [str(x) for x in (snapshot.get("open_finding_titles") or [])]
     previously_missed = [
         str(x) for x in (snapshot.get("previously_missed_titles") or [])

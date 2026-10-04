@@ -390,7 +390,7 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
 
     unresolved = snapshot.get("unresolved_threads")
-    if not isinstance(unresolved, int) or unresolved < 0:
+    if isinstance(unresolved, bool) or not isinstance(unresolved, int) or unresolved < 0:
         return _result(
             STATE_ERROR,
             ["unresolved thread count is missing"],
@@ -403,7 +403,11 @@ def evaluate_final_review_gate(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         reasons.append(f"unresolved review threads: {unresolved}")
         return _result(STATE_FAILURE, reasons, snapshot, metrics, privileged=privileged)
     untreated_threads = snapshot.get("untreated_threads")
-    if not isinstance(untreated_threads, int) or untreated_threads < 0:
+    if (
+        isinstance(untreated_threads, bool)
+        or not isinstance(untreated_threads, int)
+        or untreated_threads < 0
+    ):
         return _result(
             STATE_ERROR,
             ["untreated thread count is missing"],
@@ -594,11 +598,14 @@ def revalidate_gate_before_success(
     if (
         not copilot
         or str(copilot.get("commit_id") or "") != live_head
+        or isinstance(unresolved, bool)
         or not isinstance(unresolved, int)
         or unresolved > 0
         or decision == "CHANGES_REQUESTED"
     ):
-        live["state"] = STATE_FAILURE if decision == "CHANGES_REQUESTED" or (isinstance(unresolved, int) and unresolved > 0) else STATE_PENDING
+        live["state"] = STATE_FAILURE if decision == "CHANGES_REQUESTED" or (
+            isinstance(unresolved, int) and not isinstance(unresolved, bool) and unresolved > 0
+        ) else STATE_PENDING
         live["allow_publish"] = False
         live["reasons"] = ["post-success revalidation failed; refuse stale success"]
         live["reason"] = live["reasons"][0]
@@ -662,13 +669,18 @@ def should_request_copilot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     if str(snapshot.get("review_decision") or "").upper() == "CHANGES_REQUESTED":
         return {"request": False, "reason": "CHANGES_REQUESTED"}
     unresolved = snapshot.get("unresolved_threads")
-    if not isinstance(unresolved, int) or unresolved < 0:
+    if isinstance(unresolved, bool) or not isinstance(unresolved, int) or unresolved < 0:
         return {"request": False, "reason": "unresolved threads unknown"}
     if unresolved > 0:
         return {"request": False, "reason": "unresolved threads"}
-    if not isinstance(snapshot.get("untreated_threads"), int) or snapshot["untreated_threads"] < 0:
+    untreated_gate = snapshot.get("untreated_threads")
+    if (
+        isinstance(untreated_gate, bool)
+        or not isinstance(untreated_gate, int)
+        or untreated_gate < 0
+    ):
         return {"request": False, "reason": "untreated threads unknown"}
-    if snapshot["untreated_threads"] > 0:
+    if untreated_gate > 0:
         return {"request": False, "reason": "untreated threads"}
     untreated_keys = (
         "untreated_pr_level_findings",

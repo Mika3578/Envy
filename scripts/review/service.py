@@ -694,8 +694,15 @@ def check_host_paths(config, config_path, state_dir):
     additional.append(classifier.parent)
     if config.get("executor"):
         additional.append(Path(host_owned_executable(config["executor"], raw_worktrees)))
+    _reject_reparse_points(Path(config_path), label="config_path")
+    _reject_reparse_points(Path(state_dir), label="state_dir")
     for worktree in worktrees:
-        for host_path in (config_path.resolve().parent, state_dir.resolve(), Path(__file__).resolve().parent, *additional):
+        for host_path in (
+            Path(config_path).resolve().parent,
+            Path(state_dir).resolve(),
+            Path(__file__).resolve().parent,
+            *additional,
+        ):
             if host_path.is_relative_to(worktree) or worktree.is_relative_to(host_path):
                 raise ValueError("Service code/config/state must be outside managed PR worktrees")
 
