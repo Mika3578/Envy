@@ -33,6 +33,7 @@ void register_ed2k_lock_order_smoke_tests(TestSuite& suite);
 void register_envy_thread_policy_smoke_tests(TestSuite& suite);
 void register_remote_password_policy_smoke_tests(TestSuite& suite);
 void register_remote_html_escape_smoke_tests(TestSuite& suite);
+void register_remote_access_smoke_tests(TestSuite& suite);
 void register_xml_peer_parse_smoke_tests(TestSuite& suite);
 void register_firewall_wfas_policy_smoke_tests(TestSuite& suite);
 void register_network_job_queue_smoke_tests(TestSuite& suite);
@@ -81,6 +82,7 @@ int main(int argc, char** argv)
 	register_envy_thread_policy_smoke_tests(suite);
 	register_remote_password_policy_smoke_tests(suite);
 	register_remote_html_escape_smoke_tests(suite);
+	register_remote_access_smoke_tests(suite);
 	register_xml_peer_parse_smoke_tests(suite);
 	register_firewall_wfas_policy_smoke_tests(suite);
 	register_network_job_queue_smoke_tests(suite);

@@ -107,8 +107,11 @@ sleep/poll loops.
 The target merge policy is at least one GitHub `APPROVED` review. In this
 solo-maintainer repository, GitHub Copilot Code Review may satisfy the review
 gate only when repository settings explicitly allow its approvals to count and
-GitHub records an actual `APPROVED` review. All required checks and review
-threads must still be satisfied.
+GitHub records an actual `APPROVED` review (not a Comment review or approval
+assessment alone). Request Copilot when the PR is mergeable; see
+`docs/10_dev/devsecops-envy.md` § manual setup item 3 for toggles, request, and
+verification commands. All required checks and review threads must still be
+satisfied.
 
 ## Build
 

@@ -1452,6 +1452,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="RelatedSearch.h" />
     <ClInclude Include="Remote.h" />
     <ClInclude Include="RemoteSecurity.h" />
+    <ClInclude Include="RemoteAccessValidate.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ResultFilters.h" />
     <ClInclude Include="Revision.h" />

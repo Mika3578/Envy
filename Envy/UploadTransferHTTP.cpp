@@ -458,15 +458,15 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 	{
 		// A web client can start requesting remote pages on the same keep-alive connection after previously requesting other system objects
 
-		if ( Settings.Remote.Enable )
+		if (Settings.Remote.Enable)
 		{
 			// Security: Check IP access policy using new RemoteSecurity class
-			if ( ! CRemoteSecurity::IsRemoteAccessAllowed( m_pHost.sin_addr ) )
+			if (!CRemoteSecurity::IsRemoteAccessAllowed(m_pHost.sin_addr, m_sAddress))
 			{
 				// Reject connection based on IP access policy
-				theApp.Message( MSG_ERROR, L"Remote interface access denied from %s (IP access policy violation)", (LPCTSTR)m_sAddress );
-				SendResponse( IDR_HTML_FILENOTFOUND );
-				DelayClose( IDS_CONNECTION_CLOSED );
+				theApp.Message(MSG_ERROR, L"Remote interface access denied from %s (IP access policy violation)", (LPCTSTR)m_sAddress);
+				SendResponse(IDR_HTML_FILENOTFOUND);
+				DelayClose(IDS_CONNECTION_CLOSED);
 				return TRUE;
 			}
 

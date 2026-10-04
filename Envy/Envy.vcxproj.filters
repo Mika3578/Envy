@@ -2147,6 +2147,9 @@
     <ClInclude Include="Remote.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RemoteAccessValidate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
