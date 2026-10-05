@@ -1532,10 +1532,14 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength, XmlParseBudget* 
 		case G2_PACKET_COMMENT:
 			// Bound before ReadString; charge the shared HIT budget so comments
 			// cannot bypass ConsumeChars after earlier METADATA fragments.
-			if (nPacket > XML_PEER_PARSE_CHARS_MAX ||
-			    !ChargeSharedPeerXmlChars(*pActiveBudget, nPacket))
+			if (nPacket > XML_PEER_PARSE_CHARS_MAX)
 			{
 				theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Got oversized comment (%u)", nPacket);
+				break;
+			}
+			if (!ChargeSharedPeerXmlChars(*pActiveBudget, nPacket))
+			{
+				theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Comment exceeds shared parse budget (%u)", nPacket);
 				break;
 			}
 			{

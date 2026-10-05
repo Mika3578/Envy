@@ -1,7 +1,7 @@
 //
 // DownloadTransferHTTP.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) Â© 2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -1669,9 +1669,11 @@ BOOL CDownloadTransferHTTP::ReceiveTigerInput()
 	if (m_nState == dtsTiger)
 	{
 		const DWORD nBodyCap = XML_PEER_THEX_BODY_CAP;
-		if (!OnReadBounded(nBodyCap))
+		// Admit exactly nBodyCap; read one extra byte so overflow is detectable.
+		const DWORD nOverflowCap = nBodyCap + 1u;
+		if (!OnReadBounded(nOverflowCap))
 			return FALSE;
-		if (GetInputLength() >= nBodyCap)
+		if (GetInputLength() > nBodyCap)
 		{
 			theApp.Message(MSG_ERROR, L"Rejected oversized THEX/DIME payload from %s",
 			               (LPCTSTR)m_sAddress);
@@ -2028,7 +2030,7 @@ void CDownloadTransferHTTP::OnDropped()
 		if (m_nContentLength != SIZE_UNKNOWN)
 		{
 			// Known Content-Length: m_nLength is the unconsumed remainder. Do
-			// not overwrite it with GetInputLength() â a keep-alive drop with
+			// not overwrite it with GetInputLength() Ã¢ÂÂ a keep-alive drop with
 			// an empty/short body would look complete and resume the source.
 			// Missing remainder tracking also fail-closes: without m_nLength we
 			// cannot prove the declared body arrived intact.
