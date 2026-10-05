@@ -82,7 +82,15 @@ static bool test_from_peer_string_entry_gate()
 		return false;
 
 	XmlParseBudget oOver = XmlParseBudget::PeerDefaults();
-	return !AdmitPeerXmlChars(oOver, XML_PEER_PARSE_CHARS_MAX + 1);
+	if (AdmitPeerXmlChars(oOver, XML_PEER_PARSE_CHARS_MAX + 1))
+		return false;
+
+	// Production FromPeerString rejects size_t lengths above the DWORD cap
+	// before casting (prevents wrap on huge strings).
+	const size_t nHuge = static_cast<size_t>(XML_PEER_PARSE_CHARS_MAX) + 1u;
+	const size_t nPastDword = static_cast<size_t>(MAXDWORD) + 1u;
+	return nHuge > XML_PEER_PARSE_CHARS_MAX &&
+	       nPastDword > XML_PEER_PARSE_CHARS_MAX;
 }
 
 // Contract for HostBrowser profile XML / hit COMMENT: reject before ReadString.

@@ -454,8 +454,12 @@ CXMLElement* CXMLElement::FromPeerString(LPCTSTR pszXML, BOOL bHeader, CString* 
 	// Shared budgets already charged characters for the whole peer payload.
 	if (!pBudget)
 	{
-		const DWORD nLen = static_cast<DWORD>(_tcslen(pszXML));
-		if (!AdmitPeerXmlChars(*pActive, nLen))
+		// Compare size_t before DWORD cast so lengths > MAXDWORD cannot wrap
+		// to a small value and bypass the peer character cap.
+		const size_t nLen = _tcslen(pszXML);
+		if (nLen > XML_PEER_PARSE_CHARS_MAX)
+			return NULL;
+		if (!AdmitPeerXmlChars(*pActive, static_cast<DWORD>(nLen)))
 			return NULL;
 	}
 

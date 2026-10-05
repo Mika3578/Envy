@@ -658,7 +658,19 @@ BOOL CDownloadTransferHTTP::OnRead()
 		return TRUE;
 	}
 
-	CDownloadTransfer::OnRead();
+	// Bound header-phase receive for ordinary file downloads too: the post-read
+	// 16 KiB check alone cannot prevent an unbounded OnRead from growing
+	// m_pInput when status/headers arrive in one large incomplete block.
+	if (m_nState == dtsRequesting || m_nState == dtsHeaders)
+	{
+		const DWORD nHeaderCap = 16u * 1024u;
+		if (!OnReadBounded(nHeaderCap))
+			return FALSE;
+	}
+	else
+	{
+		CDownloadTransfer::OnRead();
+	}
 
 	switch ( m_nState )
 	{
@@ -679,6 +691,13 @@ BOOL CDownloadTransferHTTP::OnRead()
 
 	case dtsHeaders:
 		if ( ! ReadHeaders() ) return FALSE;
+		if (m_nState == dtsHeaders && GetInputLength() >= 16u * 1024u)
+		{
+			theApp.Message(MSG_ERROR, L"Rejected oversized HTTP headers from %s",
+			               (LPCTSTR)m_sAddress);
+			Close(TRI_FALSE);
+			return FALSE;
+		}
 		if ( m_nState != dtsDownloading ) break;
 
 	case dtsDownloading:
