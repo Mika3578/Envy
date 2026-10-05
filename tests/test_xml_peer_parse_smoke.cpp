@@ -86,11 +86,18 @@ static bool test_from_peer_string_entry_gate()
 		return false;
 
 	// Production FromPeerString rejects size_t lengths above the DWORD cap
-	// before casting (prevents wrap on huge strings).
+	// before casting. On Win32, size_t is 32-bit so MAXDWORD+1 wraps; only
+	// assert the above-DWORD case where size_t can represent it.
 	const size_t nHuge = static_cast<size_t>(XML_PEER_PARSE_CHARS_MAX) + 1u;
-	const size_t nPastDword = static_cast<size_t>(MAXDWORD) + 1u;
-	return nHuge > XML_PEER_PARSE_CHARS_MAX &&
-	       nPastDword > XML_PEER_PARSE_CHARS_MAX;
+	if (nHuge <= XML_PEER_PARSE_CHARS_MAX)
+		return false;
+	if (sizeof(size_t) > sizeof(DWORD))
+	{
+		const size_t nPastDword = static_cast<size_t>(MAXDWORD) + 1u;
+		if (nPastDword <= XML_PEER_PARSE_CHARS_MAX)
+			return false;
+	}
+	return true;
 }
 
 // Contract for HostBrowser profile XML / hit COMMENT: reject before ReadString.
