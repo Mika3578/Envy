@@ -19,17 +19,6 @@ PENDING_THRESHOLD = 10
 MERGED_PR_THRESHOLD = 10
 DAYS_THRESHOLD = 30
 
-STATUS_PENDING_RE = re.compile(
-    r"(?im)^[ \t]*###[ \t]*Status[ \t]*\r?\n[ \t]*Pending review[ \t]*$"
-)
-# Fallback: compact "Status: Pending review" lines.
-STATUS_PENDING_LINE_RE = re.compile(r"(?im)^[ \t]*Status:[ \t]*Pending review[ \t]*$")
-DATE_RE = re.compile(r"(?im)^\|\s*Date\s*\|\s*([0-9]{4}-[0-9]{2}-[0-9]{2})")
-REVISION_RE = re.compile(
-    r"(?im)^\|\s*Development revision\s*\|\s*`?([0-9a-fA-F]{7,40})"
-)
-PR_BASELINE_RE = re.compile(r"(?im)^\|\s*Merged PR baseline\s*\|\s*[^#\n]*#(\d+)")
-
 DEFAULT_IDEAS = Path("docs") / "10_dev" / "ideas.md"
 DEFAULT_INBOX = Path(".local") / "inbox"
 
@@ -42,21 +31,59 @@ def repo_root_from(start: Path | None = None) -> Path:
     return here
 
 
+def _markdown_table_value(line: str) -> str | None:
+    cells = [part.strip() for part in line.strip().strip("|").split("|")]
+    if len(cells) < 2:
+        return None
+    return cells[1]
+
+
 def parse_last_review(ideas_text: str) -> dict[str, str | None]:
-    date_m = DATE_RE.search(ideas_text)
-    rev_m = REVISION_RE.search(ideas_text)
-    pr_m = PR_BASELINE_RE.search(ideas_text)
-    return {
-        "date": date_m.group(1) if date_m else None,
-        "revision": rev_m.group(1) if rev_m else None,
-        "merged_pr_baseline": pr_m.group(1) if pr_m else None,
+    parsed: dict[str, str | None] = {
+        "date": None,
+        "revision": None,
+        "merged_pr_baseline": None,
     }
+    for raw in ideas_text.splitlines():
+        stripped = raw.strip()
+        if not stripped.startswith("|"):
+            continue
+        label = stripped.lower()
+        value = _markdown_table_value(stripped)
+        if not value or value.lower() == "value":
+            continue
+        if label.startswith("| date |"):
+            parsed["date"] = value[:10]
+        elif "development revision" in label:
+            token = value.strip("`").split()[0]
+            parsed["revision"] = token.strip("`")
+        elif "merged pr baseline" in label:
+            hash_at = value.find("#")
+            if hash_at < 0:
+                continue
+            digits: list[str] = []
+            for ch in value[hash_at + 1 :]:
+                if ch.isdigit():
+                    digits.append(ch)
+                else:
+                    break
+            if digits:
+                parsed["merged_pr_baseline"] = "".join(digits)
+    return parsed
 
 
 def count_pending_in_text(text: str) -> int:
-    block = len(STATUS_PENDING_RE.findall(text))
-    line = len(STATUS_PENDING_LINE_RE.findall(text))
-    return block + line
+    count = 0
+    lines = text.splitlines()
+    for index, raw in enumerate(lines):
+        line = raw.strip().lower()
+        if line == "status: pending review":
+            count += 1
+        elif line == "### status":
+            nxt = lines[index + 1].strip().lower() if index + 1 < len(lines) else ""
+            if nxt == "pending review":
+                count += 1
+    return count
 
 
 def count_inbox_pending(inbox_dir: Path) -> dict[str, int]:
