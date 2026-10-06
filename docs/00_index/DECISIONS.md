@@ -40,6 +40,15 @@ Use this file to record decisions that affect architecture, protocol compatibili
 - **Consequences:** Ship `crashpad_handler.exe` next to `Envy.exe`. Keep next-launch GitHub UX. No silent telemetry.
 - **References:** `docs/10_dev/crashpad-vs-sentry-native.md`, `docs/10_dev/crash-reporting.md`.
 
+### Decision: Idea capture and pre-issue register
+- **Date:** 2026-10-06
+- **Status:** accepted
+- **ID:** D-023 in `docs/DECISIONS.md`
+- **Context:** Useful observations were lost in chats, while filing an Issue per note would flood GitHub.
+- **Decision:** Optional gitignored `.local/inbox/`; periodic review into `docs/10_dev/ideas.md`; Issues remain the durable actionable unit. No `docs/proposals/` tree. P0/P1 skip the batch.
+- **Consequences:** Agents search `ideas.md` and Issues before proposing work. Inbox is never a specification.
+- **References:** `docs/10_dev/idea-capture.md`, `docs/10_dev/ideas.md`, #424.
+
 ## Template
 
 ### Decision: <short title>

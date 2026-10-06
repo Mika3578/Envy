@@ -22,6 +22,7 @@ Thank you for your interest in contributing to Envy! This guide explains how to 
 - Check [GitHub Issues](../../issues) for open tasks
 - Look for issues labeled `good first issue` or `help wanted`
 - Comment on the issue to indicate you're working on it
+- Small observations do **not** need an Issue yet — see [idea capture](idea-capture.md) and the [pre-issue register](ideas.md)
 
 ### 2. Fork and Clone
 ```bash

@@ -8,7 +8,7 @@ Portability foundations: `docs/20_arch/PORTABILITY_PLAN.md` (Linux/macOS = **pla
 
 **Based on:** Envy code plus reference clients (eMule Community, aMule, and others listed below). Older Examples/ notes for libtorrent, qBittorrent, and Transmission remain valid for BitTorrent.
 
-Canonical context: strategic plan in `docs/DEVELOPMENT_PLAN.md`; status matrix in `docs/10_dev/status.md`. Session notes: `.local/DEV_TRACKER.md` (gitignored).
+Canonical context: strategic plan in `docs/DEVELOPMENT_PLAN.md`; status matrix in `docs/10_dev/status.md`; pre-issue ideas in `docs/10_dev/ideas.md`. Session notes: `.local/DEV_TRACKER.md` (gitignored).
 
 Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA SecureIdent → P1 IPv6 and core/UI/headless → P1/P2 BitTorrent → P2 DHT research → P3 Kad6**. Envy stays multi-network. Cross-OS work rides on the core/headless track and must not claim support early.
 

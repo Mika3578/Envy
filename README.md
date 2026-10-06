@@ -60,6 +60,7 @@ ctest --test-dir build
 - **Technical modernization roadmap:** `docs/10_dev/roadmap.md`
 - **External P2P references (spec first):** `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`
 - **Session notes (gitignored):** `.local/DEV_TRACKER.md` (`docs/DEV_TRACKER.md` is gitignored and not committed)
+- **Pre-issue idea register:** `docs/10_dev/ideas.md` (process: `docs/10_dev/idea-capture.md`; optional gitignored inbox: `.local/inbox/`)
 
 ### Contributor and governance docs
 - Contribution guide: `.github/CONTRIBUTING.md` (compat pointer: `docs/CONTRIBUTING.md`)
