@@ -26,6 +26,7 @@
 #include "Transfers.h"
 #include "Hashes.hpp"
 #include "KadFirewallCheck.h"
+#include "KadSearchSourceRequest.h"
 #include "Security.h"
 #include <array>
 #include <algorithm>
@@ -1227,9 +1228,13 @@ void CKademlia::OnSearchKeyRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 
 void CKademlia::OnSearchSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
-	// KADEMLIA2_SEARCH_SOURCE_REQ: <FileHash 16><FileSize 8>
-	// FileSize may be omitted by legacy peers; accept hash-only.
-	if (pPacket->GetRemaining() < KAD_ID_SIZE)
+	// Kad2: <FileHash 16><StartPosition uint16 LE><FileSize uint64 LE>.
+	// Keep the historical Envy size-only body and hash-only form readable, but
+	// reject ambiguous/truncated lengths instead of interpreting partial fields.
+	const DWORD nBodyLength = pPacket->GetRemaining();
+	if (nBodyLength != KAD_ID_SIZE &&
+		nBodyLength != KAD_SEARCH_SOURCE_REQ_LEGACY_BODY_SIZE &&
+		nBodyLength != KAD_SEARCH_SOURCE_REQ_BODY_SIZE)
 		return;
 
 	if (!CheckRateLimit(pHost, KAD_REQUEST_SEARCH_SOURCE))
@@ -1238,10 +1243,17 @@ void CKademlia::OnSearchSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPack
 	KadId fileHash;
 	pPacket->Read(fileHash, KAD_ID_SIZE);
 
-	QWORD nFileSize = 0;
-	if (pPacket->GetRemaining() >= 8)
-		nFileSize = pPacket->ReadInt64();
-	(void)nFileSize; // Store answers are not filtered by size in this slice.
+	const size_t nTailLength = pPacket->GetRemaining();
+	std::array<uint8_t, KAD_SEARCH_SOURCE_REQ_TAIL_SIZE> tail{};
+	if (nTailLength != 0)
+		pPacket->Read(tail.data(), static_cast<DWORD>(nTailLength));
+
+	uint16_t nStartPosition = 0;
+	uint64_t nFileSize = 0;
+	if (!KadDecodeSearchSourceRequestTail(
+			tail.data(), nTailLength, nStartPosition, nFileSize))
+		return;
+	(void)nFileSize; // Stored answers are not filtered by size in this slice.
 
 	theApp.Message(MSG_DEBUG, L"Kad2: Search source request from %s",
 	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
@@ -1254,17 +1266,19 @@ void CKademlia::OnSearchSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPack
 
 	pResponse->Write(fileHash, KAD_ID_SIZE);
 
+	size_t nFirst = 0;
 	BYTE count = 0;
 	if (it != m_sourceStore.end())
 	{
-		count = (BYTE)min(it->second.size(), (size_t)255);
+		nFirst = min(static_cast<size_t>(nStartPosition), it->second.size());
+		count = (BYTE)min(it->second.size() - nFirst, (size_t)255);
 	}
 	pResponse->WriteByte(count);
 
 	if (it != m_sourceStore.end())
 	{
 		for (size_t i = 0; i < count; i++)
-			WriteEntryTags(pResponse, it->second[i]);
+			WriteEntryTags(pResponse, it->second[nFirst + i]);
 	}
 
 	SendPacket(pHost, pResponse);
@@ -1513,9 +1527,17 @@ void CKademlia::SendSearchSourceRequest(const KadContact& contact, const KadId& 
 	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_SEARCH_SOURCE_REQ, ED2K_PROTOCOL_KAD);
 	if (!pPacket) return;
 
-	// <FileHash 16><FileSize 8> — see KadSearchSourceRequest.h / aMule framing.
-	pPacket->Write(targetId, KAD_ID_SIZE);
-	pPacket->WriteInt64(nFileSize);
+	// Use the tested wire encoder instead of CPacket::WriteInt64, whose endian
+	// behavior follows m_bBigEndian and does not match Kad2's little-endian fields.
+	std::array<uint8_t, KAD_SEARCH_SOURCE_REQ_BODY_SIZE> body{};
+	const size_t nBodyLength = KadEncodeSearchSourceRequest(
+		body.data(), body.size(), targetId, 0, static_cast<uint64_t>(nFileSize));
+	if (nBodyLength != body.size() ||
+		!pPacket->Write(body.data(), static_cast<DWORD>(nBodyLength)))
+	{
+		pPacket->Release();
+		return;
+	}
 
 	sockaddr_in addr;
 	KadContactGetSockAddr(contact, addr);
