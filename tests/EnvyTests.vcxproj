@@ -181,6 +181,7 @@
     <ClCompile Include="test_secureident_policy_smoke.cpp" />
     <ClCompile Include="test_ed2k_hello_capabilities_smoke.cpp" />
     <ClCompile Include="test_ed2k_hello_golden.cpp" />
+    <ClCompile Include="test_ed2k_muleinfo_wire.cpp" />
     <ClCompile Include="test_ed2k_sourceex2_golden.cpp" />
     <ClCompile Include="test_ed2k_kad_settings_smoke.cpp" />
     <ClCompile Include="test_ed2k_compressed_upload_smoke.cpp" />

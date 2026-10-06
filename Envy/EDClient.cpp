@@ -27,6 +27,7 @@
 #include "PacketLengthValidate.h"
 #include "SecureIdentPolicy.h"
 #include "Ed2kHelloCapabilities.h"
+#include "Ed2kMuleInfoWire.h"
 #include "Ed2kLowIdCallback.h"
 #include "EDNeighbour.h"
 #include "FileIdentifier.h"
@@ -1626,14 +1627,17 @@ void CEDClient::SendEmuleInfo(BYTE nType)
 {
 	CEDPacket* pPacket = CEDPacket::New( nType, ED2K_PROTOCOL_EMULE );
 
-	pPacket->WriteByte( ED2K_CLIENT_ID );	// eMule version (80 = 0x50?) 0x40?
-	pPacket->WriteByte( 0x01 );				// eMule protocol
+	const Ed2kMuleInfoIdentity oIdentity =
+		Ed2kMakeMuleInfoIdentity( static_cast<uint8_t>( ED2K_CLIENT_ID ) );
+
+	pPacket->WriteByte( oIdentity.legacyVersion );	// Legacy version field, independent of client identity.
+	pPacket->WriteByte( oIdentity.protocol );		// eMule protocol
 
 	// Write number of tags
 	pPacket->WriteLongLE( Settings.eDonkey.ExtendedRequest ? 7 : 6 );
 
 	// Write tags
-	CEDTag( ED2K_ET_COMPATIBLECLIENT, ED2K_CLIENT_ID ).Write( pPacket );
+	CEDTag( ED2K_ET_COMPATIBLECLIENT, oIdentity.compatibleClient ).Write( pPacket );
 	CEDTag( ED2K_ET_COMPRESSION, ED2K_VERSION_COMPRESSION ).Write( pPacket );
 	CEDTag( ED2K_ET_SOURCEEXCHANGE, ED2K_VERSION_SOURCEEXCHANGE ).Write( pPacket );
 	CEDTag( ED2K_ET_UDPVER, ED2K_VERSION_UDP ).Write( pPacket );

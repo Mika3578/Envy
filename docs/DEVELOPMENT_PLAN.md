@@ -1,6 +1,8 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-01
+- **Last Updated:** 2026-10-06
+
+- **Changelog Entry:** 2026-10-06 — #378: decouple the legacy MuleInfo version field from Envy's compatible-client ID without a speculative wire change. The legacy version remains 0x50, protocol remains 0x01, and ET_COMPATIBLECLIENT independently remains Envy 0x50; pure regression tests prove the fields do not share one source of truth.
 
 - **Changelog Entry:** 2026-10-01 — Finalization of #395 preserves one non-author approval, all eight live required contexts, CodeQL/Gitleaks and GitHub Code Quality (severity All). Retain the staged Draft/live-test/Ready workflow and manual maintainer transitions; squash summaries remain curated. #397 owns review outcome tracking, not merge authority.
 
