@@ -2,14 +2,12 @@
 """Self-test for scripts/check-maintenance-review.py (no GitHub token)."""
 from __future__ import annotations
 
-import sys
+import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-
-import importlib.util
 
 _spec = importlib.util.spec_from_file_location(
     "check_maintenance_review",
