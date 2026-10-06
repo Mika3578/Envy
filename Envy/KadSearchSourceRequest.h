@@ -9,8 +9,12 @@
 // Wire reference (aMule KademliaUDPListener.cpp / Search.cpp):
 //   KADEMLIA2_SEARCH_SOURCE_REQ:
 //     <FileHash 16><StartPosition uint16 LE><FileSize uint64 LE>
-// StartPosition uses the low 15 bits (0..0x7FFF). Legacy Envy peers sent
-// <FileHash 16><FileSize 8>; hash-only bodies are also tolerated inbound.
+// StartPosition uses the low 15 bits (0..0x7FFF). Inbound also accepts
+// exact 16-byte hash-only and 24-byte <FileHash 16><FileSize 8 LE> tails.
+// The 8-byte size tail is decoded little-endian to match this helper's
+// historical contract. Older CEDPacket WriteInt64 emission followed
+// m_bBigEndian (TRUE by default); inbound FileSize is unused for store
+// selection in this slice.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
