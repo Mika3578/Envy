@@ -39,8 +39,8 @@ inline void KadWriteUInt16LE(uint8_t* out, uint16_t value)
 inline uint16_t KadReadUInt16LE(const uint8_t* in)
 {
 	return static_cast<uint16_t>(
-		static_cast<uint16_t>(in[0]) |
-		(static_cast<uint16_t>(in[1]) << 8));
+	    static_cast<uint16_t>(in[0]) |
+	    (static_cast<uint16_t>(in[1]) << 8));
 }
 
 inline void KadWriteUInt64LE(uint8_t* out, uint64_t value)
@@ -74,8 +74,8 @@ inline size_t KadEncodeSearchSourceRequest(
 
 	std::memcpy(out, fileHash, KAD_ID_SIZE);
 	KadWriteUInt16LE(
-		out + KAD_ID_SIZE,
-		static_cast<uint16_t>(startPosition & KAD_SEARCH_SOURCE_START_POSITION_MASK));
+	    out + KAD_ID_SIZE,
+	    static_cast<uint16_t>(startPosition & KAD_SEARCH_SOURCE_START_POSITION_MASK));
 	KadWriteUInt64LE(out + KAD_ID_SIZE + sizeof(uint16_t), fileSize);
 	return KAD_SEARCH_SOURCE_REQ_BODY_SIZE;
 }
@@ -107,7 +107,7 @@ inline bool KadDecodeSearchSourceRequestTail(
 	if (remaining == KAD_SEARCH_SOURCE_REQ_TAIL_SIZE)
 	{
 		outStartPosition = static_cast<uint16_t>(
-			KadReadUInt16LE(tail) & KAD_SEARCH_SOURCE_START_POSITION_MASK);
+		    KadReadUInt16LE(tail) & KAD_SEARCH_SOURCE_START_POSITION_MASK);
 		outFileSize = KadReadUInt64LE(tail + sizeof(uint16_t));
 		return true;
 	}
