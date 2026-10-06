@@ -28,7 +28,7 @@ DATE_RE = re.compile(r"(?im)^\|\s*Date\s*\|\s*([0-9]{4}-[0-9]{2}-[0-9]{2})")
 REVISION_RE = re.compile(
     r"(?im)^\|\s*Development revision\s*\|\s*`?([0-9a-fA-F]{7,40})"
 )
-PR_BASELINE_RE = re.compile(r"(?im)^\|\s*Merged PR baseline\s*\|\s*.*?#(\d+)")
+PR_BASELINE_RE = re.compile(r"(?im)^\|\s*Merged PR baseline\s*\|\s*[^#\n]*#(\d+)")
 
 DEFAULT_IDEAS = Path("docs") / "10_dev" / "ideas.md"
 DEFAULT_INBOX = Path(".local") / "inbox"
