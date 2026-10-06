@@ -100,6 +100,63 @@ struct XmlParseBudget
 	}
 };
 
+// Restore m_nDepth to the value captured at construction. FromPeerString uses
+// this so a throw from ParseString cannot leave a shared budget deeper than
+// it was before the fragment, even when nested LeaveElement calls are skipped.
+struct XmlParseDepthRestore
+{
+	XmlParseBudget& m_oBudget;
+	const DWORD m_nSavedDepth;
+
+	explicit XmlParseDepthRestore(XmlParseBudget& oBudget) noexcept
+	    : m_oBudget(oBudget)
+	    , m_nSavedDepth(oBudget.m_nDepth)
+	{
+	}
+
+	XmlParseDepthRestore(const XmlParseDepthRestore&) = delete;
+	XmlParseDepthRestore& operator=(const XmlParseDepthRestore&) = delete;
+
+	~XmlParseDepthRestore() noexcept
+	{
+		m_oBudget.m_nDepth = m_nSavedDepth;
+	}
+};
+
+// One EnterElement with matching LeaveElement on all exit paths, including
+// CException unwind between EnterElement and the corresponding LeaveElement.
+struct XmlEnterElement
+{
+	XmlParseBudget* m_pBudget;
+	bool m_bEntered;
+
+	XmlEnterElement() noexcept
+	    : m_pBudget(NULL)
+	    , m_bEntered(false)
+	{
+	}
+
+	XmlEnterElement(const XmlEnterElement&) = delete;
+	XmlEnterElement& operator=(const XmlEnterElement&) = delete;
+
+	bool Enter(XmlParseBudget* pBudget)
+	{
+		m_pBudget = pBudget;
+		if (!pBudget)
+			return true;
+		if (!pBudget->EnterElement())
+			return false;
+		m_bEntered = true;
+		return true;
+	}
+
+	~XmlEnterElement() noexcept
+	{
+		if (m_bEntered && m_pBudget)
+			m_pBudget->LeaveElement();
+	}
+};
+
 // Character gate used by FromPeerString when no shared budget is supplied.
 inline bool AdmitPeerXmlChars(XmlParseBudget& budget, DWORD nChars) noexcept
 {

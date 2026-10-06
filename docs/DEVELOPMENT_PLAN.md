@@ -1,6 +1,8 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-05
+- **Last Updated:** 2026-10-06
+
+- **Changelog Entry:** 2026-10-06 — #393: restore historical copyright bytes on edited ISO-8859 sources; RAII restore of shared XML parse depth after failure; share G2 query METADATA budget; EnvyTests depth-restore and DWORD ConsumeChars overflow cases.
 
 - **Changelog Entry:** 2026-10-05 — #393: sync onto `develop` after #392; `ChargeSharedPeerXmlChars`/`AdmitPeerXml*` entry helpers; THEX `XML_PEER_THEX_BODY_CAP` pre-accept reject; Metadata wrapper node funding; expanded EnvyTests peer-entry smoke (helpers only — no MFC `CXMLElement` link).
 

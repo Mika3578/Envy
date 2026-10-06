@@ -305,6 +305,45 @@ static bool test_xml_budget_autodetect_fallback_funds_objects()
 	return !oBudget.AddNode() && oBudget.m_nNodes == 3;
 }
 
+// XmlParseDepthRestore must reset nested EnterElement after a simulated
+// parse failure so a shared packet budget is not left deeper than before.
+static bool test_xml_depth_restore_after_nested_enter()
+{
+	XmlParseBudget oBudget(8, 100, 10000);
+	if (!oBudget.EnterElement())
+		return false;
+	const DWORD nOuter = oBudget.m_nDepth;
+	{
+		XmlParseDepthRestore oRestore(oBudget);
+		if (!oBudget.EnterElement() || !oBudget.EnterElement())
+			return false;
+		if (oBudget.m_nDepth != nOuter + 2)
+			return false;
+	}
+	if (oBudget.m_nDepth != nOuter)
+		return false;
+
+	{
+		XmlEnterElement oChild;
+		if (!oChild.Enter(&oBudget) || oBudget.m_nDepth != nOuter + 1)
+			return false;
+	}
+	return oBudget.m_nDepth == nOuter;
+}
+
+// ConsumeChars must fail closed on DWORD wrap rather than admit a huge add.
+static bool test_xml_consume_chars_dword_overflow()
+{
+	XmlParseBudget oBudget(32, 100, MAXDWORD);
+	if (!oBudget.ConsumeChars(MAXDWORD - 1u))
+		return false;
+	if (oBudget.ConsumeChars(2))
+		return false;
+	XmlParseBudget oZeroAdd = XmlParseBudget::PeerDefaults();
+	return oZeroAdd.ConsumeChars(0) && oZeroAdd.m_nChars == 0 &&
+	       !oBudget.ConsumeChars(MAXDWORD);
+}
+
 
 void register_xml_peer_parse_smoke_tests(TestSuite& suite)
 {
@@ -326,4 +365,6 @@ void register_xml_peer_parse_smoke_tests(TestSuite& suite)
 	suite.add_test("from_peer_nodes_limit_and_overflow", test_from_peer_nodes_limit_and_overflow);
 	suite.add_test("thex_body_cap_gate", test_thex_body_cap_gate);
 	suite.add_test("xml_budget_autodetect_fallback_funds_objects", test_xml_budget_autodetect_fallback_funds_objects);
+	suite.add_test("xml_depth_restore_after_nested_enter", test_xml_depth_restore_after_nested_enter);
+	suite.add_test("xml_consume_chars_dword_overflow", test_xml_consume_chars_dword_overflow);
 }

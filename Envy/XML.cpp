@@ -465,7 +465,7 @@ CXMLElement* CXMLElement::FromPeerString(LPCTSTR pszXML, BOOL bHeader, CString* 
 
 	CXMLElement* pElement = NULL;
 	LPCTSTR pszElement = NULL;
-	const DWORD nDepth = pActive->m_nDepth;
+	XmlParseDepthRestore oDepth(*pActive);
 
 	try
 	{
@@ -538,18 +538,14 @@ CXMLElement* CXMLElement::FromPeerString(LPCTSTR pszXML, BOOL bHeader, CString* 
 			delete pElement;
 			pElement = NULL;
 		}
-
-		pActive->LeaveElement();
+		// Root LeaveElement is XmlParseDepthRestore: success, FALSE, early
+		// return, and CException all restore the pre-fragment depth.
 	}
 	catch (CException* pException)
 	{
 		pException->Delete();
 		delete pElement;
 		pElement = NULL;
-		// A throw from ParseString skips every LeaveElement (root and children),
-		// so unwind the depth this parse charged to a shared budget; otherwise
-		// later fragments on the same packet can hit the depth cap prematurely.
-		pActive->m_nDepth = nDepth;
 	}
 
 	return pElement;
@@ -649,15 +645,14 @@ BOOL CXMLElement::ParseString(LPCTSTR& strXML, XmlParseBudget* pBudget)
 		{
 			CXMLElement* pElement = new CXMLElement( this );
 
-			if (pBudget && !pBudget->EnterElement())
+			XmlEnterElement oChildDepth;
+			if (!oChildDepth.Enter(pBudget))
 			{
 				delete pElement;
 				return FALSE;
 			}
 
 			const BOOL bParsed = pElement->ParseString(strXML, pBudget);
-			if (pBudget)
-				pBudget->LeaveElement();
 
 			if (bParsed)
 			{

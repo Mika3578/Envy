@@ -1,7 +1,7 @@
 //
 // G1Packet.cpp
 //
-// This file is part of Envy (getenvy.com) ÔøΩ 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -443,7 +443,7 @@ bool CG1Packet::ReadXML(CSchemaPtr& pSchema, CXMLElement*& pXML, XmlParseBudget*
 		p += 9;
 		len -= 9;
 
-		// Deflate data ÔøΩ cap inflate to block zip-bomb DoS (#81).
+		// Deflate data ó cap inflate to block zip-bomb DoS (#81).
 		DWORD nRealSize;
 		pTmp = CZLib::Decompress(p, len, &nRealSize, G1_DEFLATE_XML_INFLATE_MAX);
 		if (!pTmp.get() || !G1DeflateXmlInflateOk(nRealSize))
@@ -479,7 +479,7 @@ bool CG1Packet::ReadXML(CSchemaPtr& pSchema, CXMLElement*& pXML, XmlParseBudget*
 
 	CString strXML(UTF8Decode((LPCSTR)p, len));
 
-	// Decode XML ÔøΩ reuse packet-lifetime budget when provided.
+	// Decode XML - reuse packet-lifetime budget when provided.
 	pXML = CXMLElement::FromPeerString(strXML, FALSE, NULL, pActive);
 	if (!pXML)
 	{

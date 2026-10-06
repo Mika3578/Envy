@@ -865,7 +865,7 @@ BOOL CQuerySearch::ReadG1Packet(CG1Packet* pPacket, const SOCKADDR_IN* pEndpoint
 		}
 		else if ( nPeek == '<' || nPeek == '{' )
 		{
-			// XML extensions — peer-sourced; share oQueryXmlBudget.
+			// XML extensions - peer-sourced; share oQueryXmlBudget.
 			pPacket->ReadXML(m_pSchema, m_pXML, &oQueryXmlBudget);
 		}
 		else	// if ( nPeek == 0 || nPeek == G1_PACKET_HIT_SEP )
@@ -1042,6 +1042,7 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, const SOCKADDR_IN* pEndpoint
 
 	G2_PACKET nType;
 	DWORD nLength;
+	XmlParseBudget oQueryXmlBudget = XmlParseBudget::PeerDefaults();
 
 	m_bAndG1 = FALSE;
 
@@ -1144,7 +1145,9 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, const SOCKADDR_IN* pEndpoint
 			break;
 		case G2_PACKET_METADATA:
 		{
-			// Bound before ReadString; oversized metadata leaves prior XML cleared.
+			// Bound before ReadString; share one packet budget across sibling
+			// METADATA children. Oversized fragments clear prior XML; shared-
+			// budget misses omit the extra fragment and keep earlier metadata.
 			if (nLength == 0 || nLength > XML_PEER_PARSE_CHARS_MAX)
 			{
 				if (m_pXML != NULL)
@@ -1155,12 +1158,17 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, const SOCKADDR_IN* pEndpoint
 				m_pSchema = NULL;
 				break;
 			}
+			if (!ChargeSharedPeerXmlChars(oQueryXmlBudget, nLength))
+			{
+				theApp.Message(MSG_DEBUG, L"[G2] Query metadata exceeds shared parse budget (%u)", nLength);
+				break;
+			}
 
 			CString strXML = pPacket->ReadString(nLength);
 
 			if (m_pXML != NULL)
 				m_pXML->Delete();
-			m_pXML = CXMLElement::FromPeerString(strXML);
+			m_pXML = CXMLElement::FromPeerString(strXML, FALSE, NULL, &oQueryXmlBudget);
 			m_pSchema = NULL;
 
 			if (m_pXML != NULL)
