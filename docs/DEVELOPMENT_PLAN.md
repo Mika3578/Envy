@@ -1,6 +1,8 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-01
+- **Last Updated:** 2026-10-06
+
+- **Changelog Entry:** 2026-10-06 — #372: align Kad2 SEARCH_SOURCE_REQ with maintained aMule framing (<FileHash 16><StartPosition uint16 LE><FileSize uint64 LE>), keep bounded legacy hash-only/size-only input compatibility, and use one tested encoder for the production send path so CPacket big-endian state cannot corrupt FileSize.
 
 - **Changelog Entry:** 2026-10-01 — Finalization of #395 preserves one non-author approval, all eight live required contexts, CodeQL/Gitleaks and GitHub Code Quality (severity All). Retain the staged Draft/live-test/Ready workflow and manual maintainer transitions; squash summaries remain curated. #397 owns review outcome tracking, not merge authority.
 
