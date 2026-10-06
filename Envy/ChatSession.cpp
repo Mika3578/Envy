@@ -1108,16 +1108,21 @@ BOOL CChatSession::OnProfileDelivery(CG2Packet* pPacket)
 
 				if (pXML != NULL)
 				{
-					m_pProfile = new CGProfile();
-
+					// FromXML adopts pXML on success; only delete pXML when
+					// FromXML rejects it. IsValid failure must delete the
+					// profile (and the adopted XML) without touching pXML again.
+					if (m_pProfile == NULL)
+						m_pProfile = new CGProfile();
 					if (m_pProfile == NULL)
 					{
-						//theApp.Message( MSG_ERROR, L"Error in CChatSession::OnProfileDelivery()" );
 						delete pXML;
 					}
-					else if (!m_pProfile->FromXML(pXML) || !m_pProfile->IsValid())
+					else if (!m_pProfile->FromXML(pXML))
 					{
 						delete pXML;
+					}
+					else if (!m_pProfile->IsValid())
+					{
 						delete m_pProfile;
 						m_pProfile = NULL;
 					}

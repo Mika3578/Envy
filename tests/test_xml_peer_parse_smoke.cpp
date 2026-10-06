@@ -11,6 +11,7 @@
 
 #include "test_framework.h"
 #include "../Envy/XmlParseValidate.h"
+#include "../Envy/DownloadTransferHttpValidate.h"
 
 static bool test_xml_peer_defaults()
 {
@@ -100,13 +101,11 @@ static bool test_from_peer_string_entry_gate()
 	return true;
 }
 
-// Contract for HostBrowser profile XML / hit COMMENT: reject before ReadString.
+// Same production AdmitPeerXmlBytes gate used before ReadString on
+// HostBrowser / COMMENT paths (alias coverage of the shared helper).
 static bool test_xml_peer_readstring_prematerialize_gate()
 {
-	return !AdmitPeerXmlBytes(0) &&
-	       AdmitPeerXmlBytes(1) &&
-	       AdmitPeerXmlBytes(XML_PEER_PARSE_CHARS_MAX) &&
-	       !AdmitPeerXmlBytes(XML_PEER_PARSE_CHARS_MAX + 1);
+	return test_from_peer_bytes_entry_gate();
 }
 
 // Shared-budget charge used by G2 METADATA/COMMENT and G1 ReadXML before FromPeer*.
@@ -280,22 +279,39 @@ static bool test_from_peer_nodes_limit_and_overflow()
 	return !oBudget.AddNode() && oBudget.m_nNodes == XML_PEER_PARSE_NODES_MAX;
 }
 
-// THEX receive-size constant: body cap rejects past XML+tree slack.
+// Production AdmitThexBodyLength (OnHeadersComplete THEX known-length gate).
 static bool test_thex_body_cap_gate()
 {
-	const auto admits = [](ULONGLONG nLength)
-	{
-		return nLength > 0 && nLength <= XML_PEER_THEX_BODY_CAP;
-	};
-	return !admits(0) &&
-	       admits(1) &&
-	       admits(XML_PEER_THEX_BODY_CAP) &&
-	       !admits((ULONGLONG)XML_PEER_THEX_BODY_CAP + 1) &&
-	       !admits(~(ULONGLONG)0);
+	return !AdmitThexBodyLength(0) &&
+	       AdmitThexBodyLength(1) &&
+	       AdmitThexBodyLength(XML_PEER_THEX_BODY_CAP) &&
+	       !AdmitThexBodyLength((ULONGLONG)XML_PEER_THEX_BODY_CAP + 1) &&
+	       !AdmitThexBodyLength(~(ULONGLONG)0);
 }
 
-// The G1 AutodetectAudio fallback funds three objects (root + two retained
-// attributes) from the shared budget before constructing the tree.
+// Ordinary file content rejects CL=0; control / MetaFetch / THEX must not.
+static bool test_http_zero_content_length_policy()
+{
+	if (!RejectExplicitZeroContentLength(false, false, false, false, false))
+		return false;
+	if (RejectExplicitZeroContentLength(true, false, false, false, false))
+		return false; // MetaFetch
+	if (RejectExplicitZeroContentLength(false, true, false, false, false))
+		return false; // THEX
+	if (RejectExplicitZeroContentLength(false, false, true, false, false))
+		return false; // 503 / busy
+	if (RejectExplicitZeroContentLength(false, false, false, true, false))
+		return false; // 416
+	if (RejectExplicitZeroContentLength(false, false, false, false, true))
+		return false; // redirect
+	return TigerKnownLengthBodyFullyConsumed(0) &&
+	       !TigerKnownLengthBodyFullyConsumed(1);
+}
+
+// Models the G1 AutodetectAudio funding contract (root + two attributes) on
+// the shared XmlParseBudget helpers. EnvyTests do not link CG1Packet / MFC,
+// so this asserts the budget arithmetic the production loop charges, not a
+// call into AutoDetectAudio itself.
 static bool test_xml_budget_autodetect_fallback_funds_objects()
 {
 	XmlParseBudget oBudget(32, 3, 10000);
@@ -364,6 +380,7 @@ void register_xml_peer_parse_smoke_tests(TestSuite& suite)
 	suite.add_test("from_peer_depth_limit_and_overflow", test_from_peer_depth_limit_and_overflow);
 	suite.add_test("from_peer_nodes_limit_and_overflow", test_from_peer_nodes_limit_and_overflow);
 	suite.add_test("thex_body_cap_gate", test_thex_body_cap_gate);
+	suite.add_test("http_zero_content_length_policy", test_http_zero_content_length_policy);
 	suite.add_test("xml_budget_autodetect_fallback_funds_objects", test_xml_budget_autodetect_fallback_funds_objects);
 	suite.add_test("xml_depth_restore_after_nested_enter", test_xml_depth_restore_after_nested_enter);
 	suite.add_test("xml_consume_chars_dword_overflow", test_xml_consume_chars_dword_overflow);

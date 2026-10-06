@@ -32,6 +32,7 @@
 #include "GProfile.h"
 #include "XML.h"
 #include "XmlParseValidate.h"
+#include "DownloadTransferHttpValidate.h"
 #include "VendorCache.h"
 #include "Transfers.h"
 #include "Security.h" // Vendors
@@ -618,7 +619,7 @@ BOOL CDownloadTransferHTTP::OnRead()
 			{
 				if (GetInputLength() >= 16u * 1024u)
 				{
-					theApp.Message(MSG_ERROR, L"Rejected oversized metadata headers from %s",
+					theApp.Message(MSG_ERROR, L"Rejected oversized THEX headers from %s",
 					               (LPCTSTR)m_sAddress);
 					Close(TRI_FALSE);
 					return FALSE;
@@ -888,19 +889,11 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 	case 'l': // "Content-Length"
 	{
 		QWORD nTotal;
-		// Accept Content-Length: 0 for metadata/THEX (empty body). For normal
-		// file downloads, reject an explicit zero length: leaving SIZE_UNKNOWN
-		// would still hit the close-delimited completion path when the peer
-		// disconnects with zero bytes received and an unknown file size.
+		// Store Content-Length including 0. Control responses (503/416/redirect)
+		// may advertise an empty body; reject zero only for ordinary file
+		// content in OnHeadersComplete after those paths are classified.
 		if (_stscanf(strValue, L"%I64u", &nTotal) != 1 || nTotal >= SIZE_UNKNOWN)
 			break;
-		if (nTotal == 0 && !m_bMetaFetch && !m_bTigerFetch)
-		{
-			theApp.Message(MSG_ERROR, L"Rejected zero Content-Length file download from %s",
-			               (LPCTSTR)m_sAddress);
-			Close(TRI_FALSE);
-			return FALSE;
-		}
 		m_nContentLength = nTotal;
 	}
 	break;
@@ -1312,18 +1305,14 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			Close(TRI_FALSE);
 			return FALSE;
 		}
-		if (m_nContentLength == 0)
-		{
-			theApp.Message(MSG_ERROR, L"Rejected empty THEX response from %s",
-			               (LPCTSTR)m_sAddress);
-			Close(TRI_FALSE);
-			return FALSE;
-		}
-		// Reject oversized known lengths before buffering toward the receive cap.
+		// Reject empty or oversized known lengths before buffering.
 		if (m_nContentLength != SIZE_UNKNOWN &&
-		    m_nContentLength > XML_PEER_THEX_BODY_CAP)
+		    !AdmitThexBodyLength(m_nContentLength))
 		{
-			theApp.Message(MSG_ERROR, L"Rejected oversized THEX Content-Length from %s",
+			theApp.Message(MSG_ERROR,
+			               m_nContentLength == 0
+			                   ? L"Rejected empty THEX response from %s"
+			                   : L"Rejected oversized THEX Content-Length from %s",
 			               (LPCTSTR)m_sAddress);
 			Close(TRI_FALSE);
 			return FALSE;
@@ -1467,6 +1456,20 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 	}
 
 	if ( ! m_bKeepAlive ) m_pSource->m_bCloseConn = TRUE;
+
+	// Ordinary file content only: an explicit Content-Length: 0 would otherwise
+	// look complete on a close-delimited unknown-size path. Busy/queue, 416,
+	// redirect, MetaFetch and THEX already returned above and may use CL=0.
+	if (m_nContentLength == 0 &&
+	    RejectExplicitZeroContentLength(m_bMetaFetch != FALSE, m_bTigerFetch != FALSE,
+	                                    m_bBusyFault != FALSE, m_bRangeFault != FALSE,
+	                                    m_bRedirect != FALSE))
+	{
+		theApp.Message(MSG_ERROR, L"Rejected zero Content-Length file download from %s",
+		               (LPCTSTR)m_sAddress);
+		Close(TRI_FALSE);
+		return FALSE;
+	}
 
 	theApp.Message( MSG_INFO, IDS_DOWNLOAD_CONTENT, (LPCTSTR)m_sAddress, (LPCTSTR)m_pSource->m_sServer );
 
@@ -1786,10 +1789,18 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 
 	if ( m_sContentType.CompareNoCase( L"application/tigertree-breadthfirst" ) == 0 )
 	{
-		if (pInput->m_nLength < m_nLength) return TRUE;
+		// m_nLength is the unconsumed remainder. Zero means a prior ReadTiger
+		// already consumed the body; OnDropped may re-enter without re-applying
+		// SetTigerTree. A positive remainder still outstanding must not be
+		// overwritten with GetInputLength() on drop.
+		if (m_nLength != 0)
+		{
+			if (pInput->m_nLength < m_nLength) return TRUE;
 
-		m_pDownload->SetTigerTree( pInput->m_pBuffer, (DWORD)m_nLength );
-		pInput->Remove( (DWORD)m_nLength );
+			m_pDownload->SetTigerTree( pInput->m_pBuffer, (DWORD)m_nLength );
+			pInput->Remove( (DWORD)m_nLength );
+			m_nLength = 0;
+		}
 	}
 	else if ( m_sContentType.CompareNoCase( L"application/dime" ) == 0 ||
 			  m_sContentType.CompareNoCase( L"application/binary" ) == 0 )

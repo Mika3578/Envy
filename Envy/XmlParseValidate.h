@@ -24,6 +24,12 @@ inline bool AdmitPeerXmlBytes(DWORD nByte) noexcept
 	return nByte > 0 && nByte <= XML_PEER_PARSE_CHARS_MAX;
 }
 
+// Known-length THEX Content-Length gate used by OnHeadersComplete / EnvyTests.
+inline bool AdmitThexBodyLength(ULONGLONG nLength) noexcept
+{
+	return nLength > 0 && nLength <= XML_PEER_THEX_BODY_CAP;
+}
+
 struct XmlParseBudget
 {
 	DWORD m_nMaxDepth;
