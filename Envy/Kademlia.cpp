@@ -1233,8 +1233,8 @@ void CKademlia::OnSearchSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPack
 	// reject ambiguous/truncated lengths instead of interpreting partial fields.
 	const DWORD nBodyLength = pPacket->GetRemaining();
 	if (nBodyLength != KAD_ID_SIZE &&
-		nBodyLength != KAD_SEARCH_SOURCE_REQ_LEGACY_BODY_SIZE &&
-		nBodyLength != KAD_SEARCH_SOURCE_REQ_BODY_SIZE)
+	    nBodyLength != KAD_SEARCH_SOURCE_REQ_LEGACY_BODY_SIZE &&
+	    nBodyLength != KAD_SEARCH_SOURCE_REQ_BODY_SIZE)
 		return;
 
 	if (!CheckRateLimit(pHost, KAD_REQUEST_SEARCH_SOURCE))
@@ -1251,7 +1251,7 @@ void CKademlia::OnSearchSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPack
 	uint16_t nStartPosition = 0;
 	uint64_t nFileSize = 0;
 	if (!KadDecodeSearchSourceRequestTail(
-			tail.data(), nTailLength, nStartPosition, nFileSize))
+	        tail.data(), nTailLength, nStartPosition, nFileSize))
 		return;
 	(void)nFileSize; // Stored answers are not filtered by size in this slice.
 
@@ -1531,9 +1531,9 @@ void CKademlia::SendSearchSourceRequest(const KadContact& contact, const KadId& 
 	// behavior follows m_bBigEndian and does not match Kad2's little-endian fields.
 	std::array<uint8_t, KAD_SEARCH_SOURCE_REQ_BODY_SIZE> body{};
 	const size_t nBodyLength = KadEncodeSearchSourceRequest(
-		body.data(), body.size(), targetId, 0, static_cast<uint64_t>(nFileSize));
+	    body.data(), body.size(), targetId, 0, static_cast<uint64_t>(nFileSize));
 	if (nBodyLength != body.size() ||
-		!pPacket->Write(body.data(), static_cast<DWORD>(nBodyLength)))
+	    !pPacket->Write(body.data(), static_cast<DWORD>(nBodyLength)))
 	{
 		pPacket->Release();
 		return;
