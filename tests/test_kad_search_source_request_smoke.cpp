@@ -11,6 +11,7 @@
 #include "../Envy/KadSearchSourceRequest.h"
 
 #include <array>
+#include <cstdint>
 #include <cstring>
 
 static bool test_encode_kad2_golden_vector()
@@ -92,8 +93,7 @@ static bool test_decode_rejects_malformed_tail_lengths()
 	uint16_t startPosition = 0;
 	uint64_t fileSize = 0;
 
-	const size_t invalidLengths[] = { 1, sizeof(uint64_t) - 1,
-		sizeof(uint64_t) + 1, KAD_SEARCH_SOURCE_REQ_TAIL_SIZE + 1 };
+	const size_t invalidLengths[] = { 1, 7, 9, 11 };
 	for (const size_t length : invalidLengths)
 	{
 		if (KadDecodeSearchSourceRequestTail(
@@ -101,6 +101,54 @@ static bool test_decode_rejects_malformed_tail_lengths()
 			return false;
 	}
 	return true;
+}
+
+static bool test_decode_boundary_start_and_size()
+{
+	std::array<uint8_t, KAD_SEARCH_SOURCE_REQ_BODY_SIZE> buf{};
+	std::array<uint8_t, KAD_ID_SIZE> hash{};
+
+	if (KadEncodeSearchSourceRequest(
+			buf.data(), buf.size(), hash.data(), 0, 0) != buf.size())
+		return false;
+
+	uint16_t startPosition = 99;
+	uint64_t fileSize = 99;
+	if (!KadDecodeSearchSourceRequestTail(
+			buf.data() + KAD_ID_SIZE,
+			KAD_SEARCH_SOURCE_REQ_TAIL_SIZE,
+			startPosition,
+			fileSize) ||
+		startPosition != 0 || fileSize != 0)
+		return false;
+
+	if (KadEncodeSearchSourceRequest(
+			buf.data(),
+			buf.size(),
+			hash.data(),
+			KAD_SEARCH_SOURCE_START_POSITION_MASK,
+			UINT64_MAX) != buf.size())
+		return false;
+	if (!KadDecodeSearchSourceRequestTail(
+			buf.data() + KAD_ID_SIZE,
+			KAD_SEARCH_SOURCE_REQ_TAIL_SIZE,
+			startPosition,
+			fileSize) ||
+		startPosition != KAD_SEARCH_SOURCE_START_POSITION_MASK ||
+		fileSize != UINT64_MAX)
+		return false;
+
+	const std::array<uint8_t, KAD_SEARCH_SOURCE_REQ_TAIL_SIZE> highBitTail = {
+		0xff, 0xff,
+		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+	return KadDecodeSearchSourceRequestTail(
+			highBitTail.data(),
+			highBitTail.size(),
+			startPosition,
+			fileSize) &&
+		startPosition == KAD_SEARCH_SOURCE_START_POSITION_MASK &&
+		fileSize == 1;
 }
 
 static bool test_policy_requires_kad_and_hash_and_size()
@@ -133,6 +181,7 @@ void register_kad_search_source_request_smoke_tests(TestSuite& suite)
 	suite.add_test("Kad SEARCH_SOURCE_REQ legacy hash-only decode", test_decode_legacy_hash_only);
 	suite.add_test("Kad SEARCH_SOURCE_REQ legacy size-only decode", test_decode_legacy_size_only);
 	suite.add_test("Kad SEARCH_SOURCE_REQ malformed tail lengths", test_decode_rejects_malformed_tail_lengths);
+	suite.add_test("Kad SEARCH_SOURCE_REQ start/size boundaries", test_decode_boundary_start_and_size);
 	suite.add_test("Kad SearchSource app-trigger policy gates", test_policy_requires_kad_and_hash_and_size);
 	suite.add_test("Kad SearchSource app-trigger period throttle", test_policy_period_throttle);
 }
