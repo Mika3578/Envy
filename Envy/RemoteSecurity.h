@@ -24,6 +24,7 @@ class CRemoteSecurity
 public:
 	// IP Access Control
 	static bool IsRemoteAccessAllowed(const IN_ADDR& clientIP);
+	static bool IsRemoteAccessAllowed(const IN_ADDR& clientIP, LPCTSTR pszClientAddress);
 
 	// Session Management
 	static bool CreateSession(const IN_ADDR& clientIP, RemoteSession& session);
