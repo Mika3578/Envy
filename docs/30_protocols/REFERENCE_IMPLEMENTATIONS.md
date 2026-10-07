@@ -1,170 +1,295 @@
 # Reference implementations
 
 Status: active
-Last updated: 2026-09-11
+Last updated: 2026-10-07
 Scope: External P2P projects used as interoperability, architecture, and research references for Envy.
-Source of truth: protocol specifications first; this document lists complementary implementations. Canonical Envy status is `docs/10_dev/status.md`.
+Source of truth: protocol specifications first; this document is the complementary **registry**. Canonical Envy status is `docs/10_dev/status.md`.
 
-Active reference projects as of 2026. Do not pin Envy documentation to a specific upstream release unless a wire incompatibility requires it.
+**Local clones (optional, gitignored):** `Examples/References/<id>/` via
+[`tools/references/`](../../tools/references/README.md). Do not vendor sources,
+add submodules, or couple the Envy build to these trees. Decision: D-023.
+
+Verification snapshot below reflects GitHub/SourceForge checks on **2026-10-07**.
+Do not treat GitHub page `updated_at` alone as "maintained"; prefer commits and releases.
+Detailed evidence tables: [`P2P_ECOSYSTEM_AUDIT_2026-10.md`](P2P_ECOSYSTEM_AUDIT_2026-10.md).
+
+---
 
 ## Policy
 
 **Specification first, interoperability implementation second.**
 
-Envy remains a **Windows-native multi-network** client. No external project listed here is a replacement for Envy. The goal is to take well-understood behaviour and architecture ideas from each project and adapt them to Envy’s licence, MFC codebase, and existing networks.
+Envy remains a **Windows-native multi-network** client. No project listed here
+replaces Envy. Compare behaviour and architecture; adapt to Envy's licence
+(AGPL-3.0-or-later), MFC codebase, and existing networks.
 
-Target coverage (descriptive, not a claim of current parity):
+Presence of a feature in a reference project does **not** mean Envy implements
+it or should add that protocol. Envy claims need Envy code, tests, or an
+explicit roadmap item.
 
-- ED2K/Kad behaviour aligned with eMule Community and aMule
-- incremental core/UI separation inspired by eMule Qt
-- modern reachability ideas from eMule AI
-- transfer-engine / API / headless patterns from aria2-next
-- DHT/security research ideas from Ember (Envy-specific, never presented as Kad2)
-- IPv6/Kad6 experiments from eMule eSE (research only)
+### Authority hierarchy (mandatory)
 
-Order of trust when sources disagree:
+When sources disagree, prefer in this order:
 
-1. Protocol specification / BEP / RFC / ADC
-2. Live interoperability evidence (Envy ↔ reference client)
+1. Protocol specification / RFC / BEP / ADC / primary protocol documentation
+2. Live interoperability evidence (Envy <-> reference client)
 3. Established reference implementation (eMule Community, aMule)
-4. Newer maintained implementations (eMule Qt, eMule AI, aria2-next)
-5. Experimental extensions (Ember, eMule eSE, proprietary overlays)
+4. Other maintained implementations (eMuleBB, eMule Qt, padMule, libtorrent, ...)
+5. Historical mods (MorphXT, Xtreme, StulleMule, ...)
+6. Experimental / R&D (Ember, eMule eSE, NeoKad-style overlays, Rucio)
 
-Never copy code blindly. Compare behaviour and adapt it to Envy’s architecture and AGPL-3.0-or-later licence. Never treat experimental extensions as part of the eMule/Kad2 standard.
+#### ED2K / Kad ladder
 
-Presence of a feature in a reference project does **not** mean Envy implements it. Envy claims must be backed by Envy code, tests, or an explicitly planned roadmap item.
+```text
+Specification / protocol docs
+    ↓
+eMule Community          (normative wire reference)
+    ↓
+aMule                    (interop oracle + daemon architecture)
+    ↓
+eMuleBB / emulebb-rust / eMule Qt / padMule / eMule AI / aria2-next
+    ↓
+MorphXT / Xtreme / StulleMule / other historical mods
+    ↓
+Ember / eMule eSE / NeoKad-style experiments
+```
 
-## Summary
+Never document Ember, eSE, or NeoLoader overlays as Kad2 or eMule standard.
 
-| Project | Role for Envy | Priority | Domains | Status class |
-| --- | --- | ---: | --- | --- |
-| [eMule Community](https://github.com/irwir/eMule) | De-facto ED2K/Kad wire reference | P0 | ED2K, Kad2, SecureIdent, AICH, credits | normative/reference |
-| [aMule](https://github.com/amule-project/amule) | Interop + daemon architecture | P0 | ED2K, Kad, headless, multi-OS | interoperability |
-| [eMule Qt](https://github.com/ModderMule/emule-qt) | Modern core/UI split | P1 | daemon, IPC, REST, Web UI | architecture |
-| [eMule AI](https://github.com/eMuleAI/eMuleAI) | Modern connectivity | P1 | IPv6, NAT, firewalled peers | architecture |
-| [aria2-next](https://github.com/AnInsomniacy/aria2-next) | Multi-protocol engine/API | P1 | ED2K, BitTorrent, RPC, headless | architecture |
-| [Ember](https://github.com/untaimed18/Ember-P2P) | Modern DHT/security research | P2 | Noise, Ed25519, BLAKE3, DHT hardening | experimental/R&D |
-| [Rucio](https://github.com/ogarcia/rucio) | Modern P2P client architecture | P2 | libp2p, Kademlia, daemon/Web | architecture |
-| [eMule eSE](https://github.com/diad87/eMule-eSE-LiveTV) | IPv6/Kad6 research | P3 | IPv6, Kad6, modern NAT | experimental/R&D |
+### Field legend
 
-**Rucio** here is [ogarcia/rucio](https://github.com/ogarcia/rucio) (P2P client), not the CERN scientific-data project of the same name.
+| Field | Meaning |
+| --- | --- |
+| Project | Display name |
+| Official repository | Canonical upstream (prefer official org over random forks) |
+| Domain | ED2K, Kad, BitTorrent, G1/G2, DC, architecture, UI, API, ... |
+| Role | wire reference, interoperability, architecture, historical mod, experimental |
+| Priority | P0 / P1 / P2 / P3 for Envy attention |
+| Authority | `normative` · `interoperability` · `implementation` · `architecture` · `historical` · `experimental` |
+| Active status | `active` · `maintenance` · `historical` |
+| Last verified | Date this registry row was checked |
+| Verified revision | Tag or commit consulted when useful (evidence, not `pushed_at`) |
+| Local directory | Recommended clone path under `Examples/References/` |
+| Notes | Limits and usage restrictions |
 
 ---
 
 ## Official specifications (always preferred)
 
-Code references complement these documents; they do not replace them.
-
 ### ED2K
 
-- eDonkey / eMule protocol description: Kulbak & Bickson, *The eMule Protocol Specification* (commonly cited from the aMule protocol wiki)
+- Kulbak & Bickson, *The eMule Protocol Specification* (via aMule wiki)
 - aMule ED2K protocol wiki: <https://wiki.amule.org/wiki/Ed2k_protocol>
 - aMule ED2K overview: <https://amule-org.github.io/docs/p2p-networks/ed2k>
 - ED2K URI / link specification: <https://wiki.amule.org/wiki/Ed2k_link>
-- Historical behaviours not fully specified (credits, SecureIdent RSA, Source Exchange edge cases, HighID/LowID) may require eMule Community / aMule source as de-facto clarification
+- Gaps (credits, SecureIdent RSA, Source Exchange edge cases, HighID/LowID): clarify from eMule Community / aMule sources
 
 ### Kad
 
-- Maymounkov & Mazières, *Kademlia: A Peer-to-peer Information System Based on the XOR Metric*: <https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf>
-- Kad2 opcodes, contacts, publish/search, firewall check, and Buddy behaviour: eMule Community / aMule Kad sources, used only to fill gaps in written Kad documentation
-- NAT traversal: document and compare historically; do not assume later experimental NAT schemes are Kad2
+- Maymounkov & Mazieres Kademlia paper: <https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf>
+- Kad2 opcodes / contacts / publish / search / firewall / Buddy: eMule Community and aMule Kad sources only to fill documentation gaps
+- Experimental NAT / overlay schemes are **not** Kad2
 
 ### BitTorrent
 
 - BEP index: <https://www.bittorrent.org/beps/bep_0000.html>
-- Especially: BEP 3 (v1), BEP 5 (DHT), BEP 6 (Fast Extension), BEP 9 (magnet), BEP 10 (LTEP), BEP 11 (PEX), BEP 15 (UDP tracker), BEP 29 (uTP), BEP 32 (IPv6 DHT), BEP 52 (v2)
+- Especially BEP 3, 5, 6, 9, 10, 11, 15, 29, 32, 52, 55 - **BEP before any client**
 
 ### Gnutella / Gnutella2
 
-- Historical Gnutella 0.6 draft: <http://rfc-gnutella.sourceforge.net/src/rfc-0_6-draft.html>
-- Gnutella2 / Shareaza protocol notes and Shareaza-lineage code (Envy’s G1/G2 stack is Shareaza-derived)
-- Preserve G1 and G2; they are not deprecated by ED2K work
+- Gnutella 0.6 draft: <http://rfc-gnutella.sourceforge.net/src/rfc-0_6-draft.html>
+- G2 / Shareaza notes; Envy's G1/G2 stack is Shareaza-derived (preserve; not deprecated by ED2K work)
 
 ### Direct Connect
 
 - NMDC: <https://nmdc.sourceforge.net/NMDC.html>
 - ADC: <https://adc.sourceforge.io/ADC.html>
 - ADC-EXT: <https://adc.sourceforge.io/ADC-EXT.html>
+- Registry presence does **not** mean Envy must expand NMDC/ADC support
 
 ---
 
-## Project notes
+## Registry summary
 
-### eMule Community — P0, normative/reference
+### P0 - ED2K / Kad authority
 
-- **URL:** <https://github.com/irwir/eMule>
-- **Role:** Primary wire-compatibility reference for ED2K and Kad2.
-- **Reuse as ideas:** Hello/MuleInfo, userhash, ClientID, HighID/LowID, callbacks, capability bits, compression, multipacket, search, Source Exchange, AICH, credits, Kad2 bootstrap/routing/search/publish, firewall check, Buddy, historical NAT traversal, and the real RSA SecureIdent protocol.
-- **Do not copy blindly:** Windows/MFC structure, credit-system policy, UI, and any local mods. Adapt packet semantics to Envy’s existing engines.
-- **Status class:** normative/reference for ED2K/Kad2 behaviour. Still second to written specs where those exist.
+| Project | Official repository | Domain | Role | Priority | Authority | Active status | Last verified | Verified revision | Local directory | Notes / restrictions |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- |
+| eMule Community | <https://github.com/irwir/eMule> | ED2K, Kad2 | wire reference | P0 | normative | active | 2026-10-07 | tag `eMule_v0.72a-community` (2026-08-20) | `Examples/References/emule-community/` | Primary wire oracle. Community release is qualifying activity (not `pushed_at`). |
+| aMule | <https://github.com/amule-org/amule> | ED2K, Kad | interoperability | P0 | interoperability | active | 2026-10-07 | release `3.1.0` (2026-09-21); tip ~`46f0b12b` | `Examples/References/amule/` | **Canonical active org.** `amule-project/amule` is legacy/frozen. |
 
-### aMule — P0, interoperability
+### P1 - Modern ED2K / Kad implementations and architecture
 
-- **URL:** <https://github.com/amule-project/amule>
-- **Role:** Second live interop target and a daemon/GUI/Web/CLI architecture reference.
-- **Reuse as ideas:** ED2K/Kad interop tests (Envy ↔ aMule), HighID/LowID, callbacks, source exchange, headless `amuled` + remote GUI/Web/CLI split, cross-platform behaviour notes.
-- **Do not copy blindly:** wxWidgets/GTK specifics, aMule External Connections protocol as a drop-in Envy API, or Linux-only assumptions.
-- **Status class:** interoperability (and architecture for headless).
+| Project | Official repository | Domain | Role | Priority | Authority | Active status | Last verified | Verified revision | Local directory | Notes / restrictions |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- |
+| eMuleBB | <https://github.com/emulebb/emulebb> | ED2K, Kad, API | implementation / architecture | P1 | implementation | maintenance | 2026-10-07 | tag `emulebb-v0.7.3`; BUG-117 / ed2k_tcp commits 2026-07 | `Examples/References/emulebb/` | Stable MFC 0.7.x line. Not Kad2-normative. |
+| emulebb-rust | <https://github.com/emulebb/emulebb-rust> | ED2K, Kad | implementation | P1 | implementation | active | 2026-10-07 | tip ~`e6f20a59` (2026-10-06); beta nightlies | `Examples/References/emulebb-rust/` | Experimental Rust client; parsers/tests. |
+| eMule Qt | <https://github.com/ModderMule/emule-qt> | architecture, API | architecture | P1 | architecture | active | 2026-10-07 | release `v0.5.6`; tip 2026-10-07 | `Examples/References/emule-qt/` | Daemon / IPC / REST / Web UI ideas for incremental `EnvyCore` split. |
+| eMule AI | <https://github.com/eMuleAI/eMuleAI> | IPv6, NAT | architecture | P1 | architecture | active | 2026-10-07 | release `eMuleAI_v1.6` (2026-07-25) | `Examples/References/emule-ai/` | Reachability ideas only; not ED2K-normative. |
+| padMule | <https://github.com/ajbufort/padMule> | ED2K, Kad | implementation | P1 | implementation | active | 2026-10-07 | tip ~`ce2d91b9` (2026-08-14) | `Examples/References/padmule/` | Rust engine; documents eMule 0.50a wire authority and aMule differential oracle. |
 
-Expected live interop (planned, not currently claimed): Envy ↔ eMule Community, Envy ↔ aMule, and ideally eMule ↔ Envy ↔ aMule.
+### P2 - Historical ED2K mods (never wire authority)
 
-### eMule Qt — P1, architecture
+Clone individually only when an audit needs them. Prefer the bulk archive for browsing.
 
-- **URL:** <https://github.com/ModderMule/emule-qt>
-- **Role:** Incremental engine/GUI decoupling: daemon, IPC, Web UI, REST.
-- **Reuse as ideas:** `EnvyCore` → protocol engines → transfer engine → library/search → stable internal API/IPC → MFC frontend, with later Web/CLI frontends. Incremental migration only; no rewrite.
-- **Do not copy blindly:** Qt, a new IPC schema, or a big-bang extraction of Envy into a separate process.
-- **Status class:** architecture.
+| Project | Official / practical source | Domain | Role | Priority | Authority | Active status | Last verified | Verified revision | Local directory | Notes / restrictions |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- |
+| MorphXT | SF [emulemorph](https://sourceforge.net/projects/emulemorph/); GitHub mirror [Stullemon/emulemorph](https://github.com/Stullemon/emulemorph) | ED2K | historical mod / **interop test target** | P2 | historical | historical | 2026-10-07 | MorphXT 12.7 src (2012); mirror tip 2020-11-18 | `Examples/References/morphxt/` | Special Envy <-> MorphXT interop interest. Not modern wire authority. |
+| Xtreme | Via [emulebb-mods-archive](https://github.com/emulebb/emulebb-mods-archive) | ED2K | historical mod | P2 | historical | historical | 2026-10-07 | archive tree `eMule-0.50a-Xtreme-8.1-src` | (archive) | Feature research only. |
+| StulleMule | Via mods archive | ED2K | historical mod | P2 | historical | historical | 2026-10-07 | archive tree present | (archive) | Feature research only. |
+| ScarAngel | Via mods archive | ED2K | historical mod | P2 | historical | historical | 2026-10-07 | archive tree present | (archive) | Feature research only. |
+| NeoMule | Via mods archive | ED2K | historical mod | P2 | historical | historical | 2026-10-07 | archive tree present | (archive) | Feature research only. |
+| MagicAngel | Via mods archive | ED2K | historical mod | P2 | historical | historical | 2026-10-07 | archive tree present | (archive) | Feature research only. |
+| Mephisto | Via mods archive | ED2K | historical mod | P2 | historical | historical | 2026-10-07 | archive tree present | (archive) | Feature research only. |
+| eMule Beba | Via mods archive | ED2K | historical mod | P2 | historical | historical | 2026-10-07 | `eMule-0.50a-beba_2.72_src` | (archive) | Distinct from current eMuleBB org. |
+| AdunanzA | Via mods archive | ED2K | historical mod | P2 | historical | historical | 2026-10-07 | archive tree present | (archive) | Regional/historical; not normative. |
+| AcKroNiC | Via mods archive | ED2K | historical mod | P2 | historical | historical | 2026-10-07 | archive tree present | (archive) | Feature research only. |
+| ZZUL | Via mods archive | ED2K | historical mod | P2 | historical | historical | 2026-10-07 | archive tree present | (archive) | Feature research only. |
+| eMule Plus | Via mods archive | ED2K | historical mod | P2 | historical | historical | 2026-10-07 | `eMulePlus-1.2e.Source` | (archive) | Historical. |
+| DreaMule | Via mods archive | ED2K | historical mod | P2 | historical | historical | 2026-10-07 | archive tree present | (archive) | Historical. |
+| Mods archive | <https://github.com/emulebb/emulebb-mods-archive> | ED2K mods | historical research | P2 | historical | historical | 2026-10-07 | tree listing 2026-10-07 | `Examples/References/emulebb-mods-archive/` | Bulk source snapshots; clone on demand only. |
 
-### eMule AI — P1, architecture (prospective connectivity)
+kMule, VeryCD/easyMule, EastShare, and similar: add a registry row only when a
+concrete exploitable source and Envy interest are identified.
 
-- **URL:** <https://github.com/eMuleAI/eMuleAI>
-- **Role:** Secondary/prospective technical reference for modern reachability on an eMule-derived base.
-- **Reuse as ideas:** IPv6, dual-stack, NAT traversal, firewalled/LowID behaviour. Evaluate any mature modern transports only if they are actually present and proven; do not assume QUIC or uTP.
-- **Do not copy blindly:** Experimental transports, AI-related branding, or protocol changes that would break eMule Community/aMule interop. This is not a normative ED2K source.
-- **Status class:** architecture / prospective.
+### Multi-network heritage
 
-### aria2-next — P1, architecture
+| Project | Official repository | Domain | Role | Priority | Authority | Active status | Last verified | Verified revision | Local directory | Notes / restrictions |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- |
+| Shareaza | SF [shareaza](https://sourceforge.net/projects/shareaza/); practical GH [ivan386/Shareaza](https://github.com/ivan386/Shareaza) | G1/G2, multi-net, library | heritage / architecture | P1 | historical | historical | 2026-10-07 | GH tip largely 2019-era; SF project page | `Examples/References/shareaza/` | Direct Envy ancestor for G1/G2, unified search, metadata. Envy tree is the live lineage. |
+| PeerProject | <https://github.com/peerproject/peerproject> | multi-net | heritage | P2 | historical | historical | 2026-10-07 | last push ~2016-04-26 | `Examples/References/peerproject/` | Immediate Envy predecessor. |
+| NeoLoader | <https://github.com/NeoLoader/NeoLoader> | ED2K, Kad, BT, architecture | architecture (historical) | P2 | historical | historical | 2026-10-07 | release `0.53a` (2018); tip sparse | `Examples/References/neoloader/` | Multi-protocol / core-GUI ideas. **Not** protocol authority. NeoKad/NeoShare overlays stay experimental. |
+| MLDonkey | <https://github.com/ygrek/mldonkey> | ED2K, Kad, multi-net | interoperability / architecture | P2 | interoperability | maintenance | 2026-10-07 | release `release-3-2-1`; tip 2025-01-28 | `Examples/References/mldonkey/` | Independent multi-protocol daemon; useful ED2K/Kad interop + headless patterns. |
 
-- **URL:** <https://github.com/AnInsomniacy/aria2-next>
-- **Role:** Modern download engine with BitTorrent, ED2K, session persistence, CLI, and JSON-RPC.
-- **Reuse as ideas:** transfer-engine modernization, RPC/headless API, automated transfer tests, Kad bootstrap notes, session persistence.
-- **Do not copy blindly:** aria2 option names, JSON-RPC as a mandatory Envy surface, or dropping Envy’s multi-network UI/library.
-- **Status class:** architecture (useful for ED2K *and* BitTorrent validation).
+### BitTorrent (BEP first)
 
-### Ember — P2, experimental/R&D
+| Project | Official repository | Domain | Role | Priority | Authority | Active status | Last verified | Verified revision | Local directory | Notes / restrictions |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- |
+| libtorrent | <https://github.com/arvidn/libtorrent> | BT parsing, DHT, PEX, LSD, uTP, v1/v2 | implementation | P1 | implementation | active | 2026-10-07 | release `v2.1.2` (2026-09-25); branch `RC_2_1` | `Examples/References/libtorrent/` | Engine reference after BEPs. |
+| qBittorrent | <https://github.com/qbittorrent/qBittorrent> | BT UX, tags, ATM, RSS, WebUI | architecture | P1 | architecture | active | 2026-10-07 | releases 5.2.4 / 5.3.0rc1 (2026-09-28) | `Examples/References/qbittorrent/` | Product/UX/API patterns; not a BEP substitute. |
+| Transmission | <https://github.com/transmission/transmission> | core/daemon/RPC | architecture | P1 | architecture | active | 2026-10-07 | release 4.1.3 (2026-06-30) | `Examples/References/transmission/` | Headless / RPC simplicity. |
+| BiglyBT | <https://github.com/BiglySoftware/BiglyBT> | swarm merge, tags, subs | architecture | P2 | architecture | active | 2026-10-07 | release v4.1.0.0 (2026-05); tip 2026-10-06 | `Examples/References/biglybt/` | Advanced BT product behaviours. |
+| aria2-next | <https://github.com/AnInsomniacy/aria2-next> | engine, RPC, ED2K+BT | architecture | P1 | architecture | active | 2026-10-07 | release `v2.8.6` (2026-10-04) | `Examples/References/aria2-next/` | Multi-protocol engine/API reference. |
 
-- **URL:** <https://github.com/untaimed18/Ember-P2P>
-- **Role:** Modern Rust ED2K/Kad *experiment*: Noise, Ed25519, BLAKE3, anti-amplification, DHT hardening, firewalled-node handling.
-- **Reuse as ideas:** routing-table diversity, subnet limits, anti-amplification, stronger node verification — only as Envy-specific optional research, versioned and backward compatible.
-- **Do not copy blindly:** Proprietary overlay crypto or record formats. **Ember extensions are not part of the eMule/Kad2 standard** and must never be documented as such.
-- **Status class:** experimental/R&D.
+### Direct Connect
 
-### Rucio (ogarcia/rucio) — P2, architecture
+| Project | Official repository | Domain | Role | Priority | Authority | Active status | Last verified | Verified revision | Local directory | Notes / restrictions |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- |
+| DC++ | SF Mercurial <https://sourceforge.net/p/dcplusplus/code/>; site <https://dcplusplus.sourceforge.net/> | NMDC, ADC | implementation | P1 | implementation | active | 2026-10-07 | stable **0.883** (2025-09-12); Hg on SF | *(manual Hg / release src)* | No first-class GitHub canonical. Script does not auto-clone Hg. |
+| AirDC++ Core | <https://github.com/airdcpp/airdcpp-core> | NMDC, ADC, TLS, queue | implementation | P1 | implementation | active | 2026-10-07 | PRs #551/#541/#537 (2026-10-04) | `Examples/References/airdcpp-core/` | Modern DC engine (functional PR evidence). |
+| AirDC++ Windows | <https://github.com/airdcpp/airdcpp-windows> | DC UI / transfers | architecture | P1 | architecture | active | 2026-10-07 | release `4.30`; tip 2026-10-04 | `Examples/References/airdcpp-windows/` | Product client; Web/API sibling under `airdcpp-web/*`. |
+| EiskaltDC++ | <https://github.com/eiskaltdcpp/eiskaltdcpp> | NMDC, ADC | implementation | P2 | implementation | maintenance | 2026-10-07 | commits through 2026-09; older tags | `Examples/References/eiskaltdcpp/` | Cross-platform secondary reference. |
 
-- **URL:** <https://github.com/ogarcia/rucio>
-- **Role:** Modern Rust P2P client: daemon + CLI + Web panel, libp2p Kademlia, distributed search, optional eMule/Kad2 bridge.
-- **Reuse as ideas:** daemon/CLI/Web layout, search UX over a protocol engine, how a Kad2 bridge can sit beside a modern overlay.
-- **Do not copy blindly:** libp2p as a replacement for Kad2, or treating the Kad2 bridge as the ED2K spec.
-- **Status class:** architecture. Not an ED2K normative source.
+### Experimental / R&D (isolated)
 
-### eMule eSE — P3, experimental/R&D
+| Project | Official repository | Domain | Role | Priority | Authority | Active status | Last verified | Verified revision | Local directory | Notes / restrictions |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- |
+| Ember | <https://github.com/untaimed18/Ember-P2P> | DHT/security research | experimental | P2 | experimental | active | 2026-10-07 | release v1.7.1 (2026-10-04) | `Examples/References/ember/` | **Not Kad2.** Optional Envy-specific research only. |
+| Rucio | <https://github.com/ogarcia/rucio> | daemon/Web/libp2p | experimental / architecture | P2 | experimental | active | 2026-10-07 | tip 2026-10-04 | `Examples/References/rucio/` | Not CERN Rucio. Not ED2K-normative. |
+| eMule eSE | <https://github.com/diad87/eMule-eSE-LiveTV> | IPv6, Kad6 | experimental | P3 | experimental | active | 2026-10-07 | eSE 9.1.0 / 9.2.0-rc (2026) | `Examples/References/emule-ese/` | Kad6 must stay distinct from Kad2. |
+| NeoKad / NeoShare | NeoLoader-related historical overlays | overlay | experimental | P3 | experimental | historical | 2026-10-07 | see NeoLoader notes | - | Never treat as Kad2. |
 
-- **URL:** <https://github.com/diad87/eMule-eSE-LiveTV>
-- **Role:** R&D on IPv6, experimental Kad6, modern NAT (PCP / NAT-PMP if present). Not a P0 target.
-- **Reuse as ideas:** strict separation of Kad2 from IPv6 extensions; dual-stack lessons after Envy IPv6 is stable.
-- **Do not copy blindly:** Kad6, LiveTV, or any overlay that would mix with Kad2 contacts. Kad6 must stay distinct from Kad2.
-- **Status class:** experimental/R&D.
+---
+
+## Immediate local clones (ED2K / Kad workstream)
+
+Prepare these under `Examples/References/` first:
+
+```text
+emule-community
+amule
+emulebb
+emulebb-rust
+emule-qt
+padmule
+morphxt
+neoloader
+mldonkey
+shareaza
+```
+
+```powershell
+./tools/references/sync-references.ps1 -Group ed2k-immediate
+```
+
+Clone BitTorrent, DC, experimental, and the mods archive only when a specific
+audit needs them.
+
+---
+
+## Project notes (roles and reuse)
+
+### eMule Community - P0, normative
+
+Primary wire-compatibility reference for ED2K and Kad2: Hello/MuleInfo,
+userhash, ClientID, HighID/LowID, callbacks, capability bits, compression,
+multipacket, search, Source Exchange, AICH, credits, Kad2
+bootstrap/routing/search/publish, firewall check, Buddy, historical NAT,
+SecureIdent RSA. Do not copy MFC structure, credit policy, or UI.
+
+### aMule - P0, interoperability
+
+Second live interop target and daemon/GUI/Web/CLI architecture reference
+(`amuled`, remote GUI, Web, CLI, REST). Prefer **amule-org/amule** over
+**amule-project/amule** (legacy). Do not adopt wx/GTK or EC protocol as a
+drop-in Envy API.
+
+### eMuleBB / emulebb-rust / padMule - P1, implementation
+
+Performance, parsers, differential tests, queues/upload, large-library, and
+headless/API ideas. Still below eMule Community / aMule for wire disputes.
+
+### eMule Qt / eMule AI - P1, architecture
+
+Incremental core/UI separation (Qt) and modern reachability (AI). Never break
+Community/aMule interop for experimental transports.
+
+### MorphXT - P2, historical interop target
+
+Historical mod with concrete Envy <-> MorphXT interop interest. Use SF / mirror /
+mods archive; never as modern Kad2 authority.
+
+### NeoLoader / MLDonkey / Shareaza / PeerProject
+
+Multi-protocol and heritage architecture. NeoLoader is **not** protocol
+authority. Shareaza/PeerProject inform G1/G2 and Envy lineage; live G1/G2
+behaviour is Envy's own tree.
+
+### BitTorrent family
+
+BEP -> libtorrent -> product clients (qBittorrent, Transmission, BiglyBT) ->
+aria2-next for engine/API patterns.
+
+### Direct Connect family
+
+NMDC/ADC specs first; DC++ (SF Hg) and AirDC++ / EiskaltDC++ as implementation
+references. Listing them does not schedule new Envy protocols.
+
+### Ember / Rucio / eMule eSE
+
+Experimental or architecture R&D only. Never label as Kad2 / eMule standard.
+
+---
+
+## Local checkout workflow
+
+1. Read this registry for authority and restrictions.
+2. Sync clones with [`tools/references/sync-references.ps1`](../../tools/references/sync-references.ps1).
+3. Record the printed SHA/tag in notes or PR evidence when conclusions depend on it.
+4. Keep `Examples/` out of commits (`.gitignore`).
+
+Obsolete URL correction (2026-10-07): documentation that still points at
+`amule-project/amule` as the active source should use `amule-org/amule`.
 
 ---
 
 ## Related Envy documents
 
+- Ecosystem audit (October 2026): [`P2P_ECOSYSTEM_AUDIT_2026-10.md`](P2P_ECOSYSTEM_AUDIT_2026-10.md)
+- Decision D-008 (trust order), D-023 (local clone model): `docs/DECISIONS.md`
+- Sync helper: `tools/references/README.md`
 - Strategic sequence: `docs/DEVELOPMENT_PLAN.md`
 - Feature status matrix: `docs/10_dev/status.md`
 - Technical roadmap: `docs/10_dev/roadmap.md`
-- Decision: `docs/DECISIONS.md` (D-008)
-- ED2K: `docs/30_protocols/ed2k/`
-- Kad: `docs/30_protocols/kad/`
-- BitTorrent: `docs/30_protocols/bittorrent/`
+- ED2K / Kad / BitTorrent folders under `docs/30_protocols/`
 - IPv6 plan: `docs/ipv6/PLAN.md`
