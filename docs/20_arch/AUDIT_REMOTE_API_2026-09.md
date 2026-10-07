@@ -74,7 +74,7 @@ No existing issue named Radarr, Prowlarr, Jackett, Torznab, qBittorrent Web API,
 | Tags | **absent** | `#232` |
 | Transfer state enum | **partial (this PR)** | `Envy/TransferState.h` — mapping only, not wired to `CDownload` yet |
 | Auth (Remote HTML) | **partial** | PBKDF2 (#79), CSRF (#77), rate limit, IP policy |
-| `Settings.Remote.BindAddress` | **dead setting** | Default `127.0.0.1` is stored, never applied to a socket (**code**) |
+| `Settings.Remote.BindAddress` | **access-policy gate (not socket bind)** | Still not applied to a listen socket (D-017 follow-up). Localhost-only values (`127.0.0.0/8`, `::1`, `localhost`) deny non-loopback HTML Remote clients unless `AllowExternal` is set (**code**, ENVY-SEC-001/002) |
 
 ### Where things live today (**code**)
 
@@ -293,8 +293,8 @@ P0 before any non-localhost bind.
 | Topic | Current Remote (**code**) | Native API (**recommendation**) |
 | --- | --- | --- |
 | Enable default | `Remote.Enable` false | API disabled or localhost-only |
-| Bind | **Not applied** (`BindAddress` unused). Remote rides P2P HTTP accept | Dedicated port; default `127.0.0.1` and `[::1]`; never silent `0.0.0.0` |
-| IPv6 | `IN_ADDR` only; `::1` not in allowlist | Dual-stack loopback first |
+| Bind | Not socket-bound (rides P2P HTTP accept). `BindAddress` is a localhost-only **access-policy gate**; non-loopback needs `AllowExternal` | Dedicated port; default `127.0.0.1` and `[::1]`; never silent `0.0.0.0` |
+| IPv6 | Client `::1` / `[::1]` recognized from logged address string; accept path still stores IPv4 `SOCKADDR_IN` | Dual-stack loopback first |
 | Auth | Cookie session + PBKDF2 password | API token (high entropy) mandatory off-localhost; optional user/pass **only** for qBit adapter |
 | CSRF | Required for mutating GET keys | Token/Bearer APIs: CSRF N/A; cookie browser UI: keep CSRF |
 | CORS | N/A (HTML) | Disabled by default |

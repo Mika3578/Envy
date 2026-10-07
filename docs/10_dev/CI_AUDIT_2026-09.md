@@ -44,15 +44,17 @@ SonarCloud required, PR Gate stricter than GitHub skip semantics.
 - MSBuild `/m:1` is intentional (PCH C1083) and must not be “optimized”
   without a re-benchmark.
 - Four identical classify jobs per PR (~8–10 s each) — centralizing is P3.
-- Repository Copilot UI approve/count toggles, Balanced effort, and the
-  optional Stage-3 path allowlist still need manual UI verification (not
-  on the ruleset API). Automatic review is already live via Protect develop.
+- Repository Copilot UI approve/count toggles, Balanced effort, and a
+  **non-blank** Stage-3 path allowlist that **excludes** privileged
+  governance paths still need manual UI verification (not on the ruleset
+  API). Copilot code review is enabled with **review-on-push off**
+  (mergeable-head requests only; see `docs/10_dev/devsecops-envy.md`).
 
 **Live Protect develop re-verification (2026-09-20):** required approvals **1**,
-Code Quality severity **All**, Copilot `review_on_push` **on**, draft review
+Code Quality severity **All**, Copilot `review_on_push` **off**, draft review
 **off**, coverage restriction **off**. Older rows below that show approvals
-**0** / Code Quality `notes` / `review_on_push: false` are the **2026-09-19
-historical snapshot**, not current live state.
+**0** / Code Quality `notes` / `review_on_push: true` are **stale historical
+snapshots**, not current live state.
 
 **Pre-change findings resolved in this PR:** empty NuGet restore (~22 s/job
 no-op) skipped; Documentation Check always emits a terminal conclusion;
@@ -211,7 +213,7 @@ Build matrix (~8m) and Static Analysis (~9m) finish earlier
 | --- | --- |
 | Default `permissions` least-privilege | Mostly yes; Build/Dep-review need `pull-requests: write` for comments |
 | Action SHA pins | Yes (full commit SHA pins with version comments; Dependabot owns updates) |
-| `pull_request_target` | `labeler.yml` only |
+| `pull_request_target` | `labeler.yml` + `authorship-hygiene.yml` only (no untrusted checkout of PR HEAD for execution; see `docs/10_dev/agents-and-automation.md` 2026-11-02 checklist) |
 | Cache poisoning | vcpkg binary cache writable from PR jobs — GitHub restricts cache writes from forks; same-repo PRs share cache (accepted risk) |
 | gitleaks binary | Version + SHA256 pinned in `security.yml` |
 | Secrets in PR workflows | Uses `GITHUB_TOKEN` only for listed scopes |
@@ -334,17 +336,19 @@ Sources (primary first):
 
 1. **Reconcile Protect develop ruleset:** **Done for ruleset knobs
    2026-09-20** — live now has 1 approval, Code Quality = All,
-   review-on-push on, draft review off. Remaining: verify repository Copilot
-   UI approve/count toggles, Balanced effort, and optional Stage-3 path
-   allowlist (`docs/10_dev/devsecops-envy.md`).
+   review-on-push **off**, draft review off. Remaining: verify repository Copilot
+   UI approve/count toggles, Balanced effort, and a **non-blank** path
+   allowlist that excludes privileged governance paths
+   (`docs/10_dev/devsecops-envy.md` item 3 — verification commands).
 2. **Documentation Check always reports** a terminal conclusion — **Done**
    (`if: always()` no-op path when classify says docs out of scope; cancelled
    classify from concurrency supersede also emits success no-op so a superseded
    run does not fail the required context).
-2b. **Build x64/Win32 Release always report** on PRs — **Done** (same pattern:
-   `if: always()`; ubuntu no-op when `run_windows_build=false`; real MSBuild on
-   `windows-2025-vs2026` when true). Strict Protect develop treats SKIPPED
-   required contexts as unsatisfied.
+2b. **Build x64/Win32 Release always report** on PRs — **Updated**:
+   `if: always()` so Protect develop never sees SKIPPED. Draft without
+   `stage:live-test` may emit an ubuntu deferral notice (not a Windows
+   build). Ready and `stage:live-test` always run real MSBuild + EnvyTests,
+   including docs-only PRs. Path classify does **not** skip those jobs.
 
 ### P1 — Reliability / notable time
 
@@ -419,9 +423,10 @@ Documented; not unified in this PR (would either slow local or risk CI flakes).
 ## 14. Follow-ups (out of this PR)
 
 - Manual GitHub Settings → Copilot → Code review only: confirm approve/count
-  ON, effort **Balanced**, and optional Stage-3 path allowlist. Protect
-  develop ruleset knobs (1 approval, Code Quality All, automatic Copilot
-  review + review-on-push, draft review off) are already applied.
+  ON, effort **Balanced**, and a **non-blank** path allowlist excluding
+  privileged governance paths (`docs/10_dev/devsecops-envy.md`). Protect
+  develop ruleset knobs (1 approval, Code Quality All, review-on-push off,
+  draft review off) are already applied.
 - P2: vcpkg registry fetch / downloads cache experiment.
 - P3: single classify fan-out.
 - P4: controlled `/m` + MTT A/B on a throwaway branch.

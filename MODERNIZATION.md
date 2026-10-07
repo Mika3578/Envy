@@ -165,6 +165,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 - **Dependency auto-merge**: intentionally inactive. Dependency PRs are
   created automatically, but merge still requires the live `develop` ruleset,
   required checks, resolved threads, and a GitHub approval.
+- **vcpkg baseline bumps:** human review remains required because native library ABI can change.
 - **Stale bot**: auto-close after inactivity (issues 90+14d, PRs 45+21d).
 - **Labeler**: auto-tag PRs based on touched paths.
 - **CodeQL**: weekly analysis + per-PR.
