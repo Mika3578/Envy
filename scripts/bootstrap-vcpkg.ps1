@@ -159,7 +159,7 @@ function Resolve-VcpkgExe {
 	# Only the repo-local checkout may be realigned to vcpkg.json's
 	# builtin-baseline, so with -CloneVcpkg it must be resolved before any
 	# VCPKG_ROOT/PATH hit; otherwise an existing clone keeps a stale revision.
-	if ($AllowClone -and (Test-Path -LiteralPath (Join-Path $Root 'vcpkg'))) {
+	if ($AllowClone) {
 		return (Install-LocalVcpkg -Root $Root)
 	}
 

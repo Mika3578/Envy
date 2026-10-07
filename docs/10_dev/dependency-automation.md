@@ -32,6 +32,10 @@ unless a dedicated PR documents the missing capability and proves non-overlappin
 
 Dependabot runs weekly on Monday morning in the `Europe/Paris` timezone.
 
+The GitHub Actions entry explicitly scans both `/` (workflows) and
+`/.github/actions/windows-msbuild` (the composite action). Root workflow
+discovery alone does not include nested composite-action manifests.
+
 Non-major updates are grouped per ecosystem to reduce CI noise:
 
 - `vcpkg-baseline` for vcpkg baseline updates.

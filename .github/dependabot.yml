@@ -45,7 +45,9 @@ updates:
           - "*"
 
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/"
+      - "/.github/actions/windows-msbuild"
     schedule:
       interval: "weekly"
       day: "monday"
