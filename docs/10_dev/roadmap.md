@@ -1,12 +1,12 @@
 # Envy Development Roadmap
 
 Status: active
-Last updated: 2026-09-20
+Last updated: 2026-10-07
 Scope: Technical itemization of Envy modernization. Strategic sequence is `docs/DEVELOPMENT_PLAN.md`.
 Source of truth: `docs/10_dev/status.md` for current vs planned; `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` for external projects.
 Portability foundations: `docs/20_arch/PORTABILITY_PLAN.md` (Linux/macOS = **planned**, not supported).
 
-**Based on:** Envy code plus reference clients (eMule Community, aMule, and others listed below). Older Examples/ notes for libtorrent, qBittorrent, and Transmission remain valid for BitTorrent.
+**Based on:** Envy code plus reference clients (eMule Community, aMule, and others listed below). Optional ignored checkouts: `Examples/References/` (`tools/references/`).
 
 Canonical context: strategic plan in `docs/DEVELOPMENT_PLAN.md`; status matrix in `docs/10_dev/status.md`. Session notes: `.local/DEV_TRACKER.md` (gitignored).
 
@@ -289,17 +289,22 @@ See `docs/50_user/transfer-settings.md`.
 
 ## Reference implementations
 
-Canonical list, trust order, and “do not copy” notes: `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`.
+Canonical registry, authority hierarchy, and “do not copy” notes:
+`docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` (D-008, D-023).
 
 | Priority | Project | Role |
 | ---: | --- | --- |
 | P0 | [eMule Community](https://github.com/irwir/eMule) | ED2K/Kad2 wire reference |
-| P0 | [aMule](https://github.com/amule-project/amule) | Interop + daemon architecture |
+| P0 | [aMule](https://github.com/amule-org/amule) | Interop + daemon architecture (`amule-project` legacy) |
+| P1 | [eMuleBB](https://github.com/emulebb/emulebb) / [emulebb-rust](https://github.com/emulebb/emulebb-rust) / [padMule](https://github.com/ajbufort/padMule) | modern ED2K implementations / tests |
 | P1 | [eMule Qt](https://github.com/ModderMule/emule-qt) | core/UI, IPC, REST |
 | P1 | [eMule AI](https://github.com/eMuleAI/eMuleAI) | IPv6 / reachability (not ED2K-normative) |
-| P1 | [aria2-next](https://github.com/AnInsomniacy/aria2-next) | engine, RPC, BT + ED2K tests |
-| P2 | [Ember](https://github.com/untaimed18/Ember-P2P) | DHT/security research; **not Kad2** |
-| P2 | [Rucio](https://github.com/ogarcia/rucio) | daemon/Web/libp2p architecture (not CERN Rucio) |
+| P1 | [aria2-next](https://github.com/AnInsomniacy/aria2-next), libtorrent, qBittorrent, Transmission | engine / BT (BEP first) |
+| P2 | MorphXT (+ other historical mods via archive) | historical interop / feature research only |
+| P2 | Shareaza / PeerProject / NeoLoader / MLDonkey | multi-network heritage |
+| P2 | [Ember](https://github.com/untaimed18/Ember-P2P), [Rucio](https://github.com/ogarcia/rucio) | experimental / architecture; **not Kad2** |
 | P3 | [eMule eSE](https://github.com/diad87/eMule-eSE-LiveTV) | IPv6/Kad6 R&D |
 
-Local `Examples/` trees (if present, often gitignored) remain useful for libtorrent / qBittorrent / Transmission / historical eMule/aMule checkouts. Prefer the GitHub roots above over a pinned tag.
+Optional local clones (gitignored): `Examples/References/<id>/` via
+`tools/references/sync-references.ps1` (`-Group ed2k-immediate` for the next
+ED2K/Kad workstream). Do not vendor or submodule these trees.

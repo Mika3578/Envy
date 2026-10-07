@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "localRoot": "Examples/References",
+  "notes": "Cloneable subset for tools/references/sync-references.ps1. Full registry and authority policy: docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md. Do not vendor these trees into Envy git.",
+  "groups": {
+    "ed2k": "ED2K/Kad authority, modern clients, and immediate interop targets",
+    "ed2k-immediate": "Recommended clones for the next ED2K/Kad workstream",
+    "bittorrent": "BitTorrent engine and client references (BEP first)",
+    "dc": "Direct Connect implementation references (presence ≠ Envy protocol expansion)",
+    "heritage": "Shareaza / PeerProject / NeoLoader / MLDonkey multi-network heritage",
+    "experimental": "Experimental / R&D only — never Kad2 or eMule wire authority",
+    "historical": "Historical eMule mods and archives — feature research only"
+  },
+  "projects": [
+    {
+      "id": "emule-community",
+      "name": "eMule Community",
+      "url": "https://github.com/irwir/eMule.git",
+      "defaultRef": "master",
+      "groups": ["ed2k", "ed2k-immediate"],
+      "priority": "P0",
+      "authority": "normative",
+      "syncDefault": true
+    },
+    {
+      "id": "amule",
+      "name": "aMule",
+      "url": "https://github.com/amule-org/amule.git",
+      "defaultRef": "master",
+      "groups": ["ed2k", "ed2k-immediate"],
+      "priority": "P0",
+      "authority": "interoperability",
+      "syncDefault": true,
+      "notes": "Active canonical org since 2026; amule-project/amule is legacy/frozen."
+    },
+    {
+      "id": "emulebb",
+      "name": "eMuleBB",
+      "url": "https://github.com/emulebb/emulebb.git",
+      "defaultRef": "main",
+      "groups": ["ed2k", "ed2k-immediate"],
+      "priority": "P1",
+      "authority": "implementation",
+      "syncDefault": true
+    },
+    {
+      "id": "emulebb-rust",
+      "name": "emulebb-rust",
+      "url": "https://github.com/emulebb/emulebb-rust.git",
+      "defaultRef": "main",
+      "groups": ["ed2k", "ed2k-immediate"],
+      "priority": "P1",
+      "authority": "implementation",
+      "syncDefault": true
+    },
+    {
+      "id": "emule-qt",
+      "name": "eMule Qt",
+      "url": "https://github.com/ModderMule/emule-qt.git",
+      "defaultRef": "main",
+      "groups": ["ed2k", "ed2k-immediate"],
+      "priority": "P1",
+      "authority": "architecture",
+      "syncDefault": true
+    },
+    {
+      "id": "emule-ai",
+      "name": "eMule AI",
+      "url": "https://github.com/eMuleAI/eMuleAI.git",
+      "defaultRef": "master",
+      "groups": ["ed2k"],
+      "priority": "P1",
+      "authority": "architecture",
+      "syncDefault": false
+    },
+    {
+      "id": "padmule",
+      "name": "padMule",
+      "url": "https://github.com/ajbufort/padMule.git",
+      "defaultRef": "main",
+      "groups": ["ed2k", "ed2k-immediate"],
+      "priority": "P1",
+      "authority": "implementation",
+      "syncDefault": true
+    },
+    {
+      "id": "morphxt",
+      "name": "MorphXT",
+      "url": "https://github.com/Stullemon/emulemorph.git",
+      "defaultRef": "VS2019",
+      "groups": ["ed2k", "ed2k-immediate", "historical"],
+      "priority": "P2",
+      "authority": "historical",
+      "syncDefault": true,
+      "notes": "GitHub mirror of SourceForge eMule Morph / MorphXT. Prefer for local comparison; official project page is SourceForge emulemorph."
+    },
+    {
+      "id": "neoloader",
+      "name": "NeoLoader",
+      "url": "https://github.com/NeoLoader/NeoLoader.git",
+      "defaultRef": "master",
+      "groups": ["ed2k", "ed2k-immediate", "heritage"],
+      "priority": "P2",
+      "authority": "historical",
+      "syncDefault": true
+    },
+    {
+      "id": "mldonkey",
+      "name": "MLDonkey",
+      "url": "https://github.com/ygrek/mldonkey.git",
+      "defaultRef": "master",
+      "groups": ["ed2k", "ed2k-immediate", "heritage"],
+      "priority": "P2",
+      "authority": "interoperability",
+      "syncDefault": true
+    },
+    {
+      "id": "shareaza",
+      "name": "Shareaza",
+      "url": "https://github.com/ivan386/Shareaza.git",
+      "defaultRef": "ipv6",
+      "groups": ["heritage", "ed2k-immediate"],
+      "priority": "P1",
+      "authority": "historical",
+      "syncDefault": true,
+      "notes": "Practical GitHub checkout. Official project historically at SourceForge shareaza; Envy itself is the live G1/G2 lineage reference."
+    },
+    {
+      "id": "peerproject",
+      "name": "PeerProject",
+      "url": "https://github.com/peerproject/peerproject.git",
+      "defaultRef": "master",
+      "groups": ["heritage"],
+      "priority": "P2",
+      "authority": "historical",
+      "syncDefault": false
+    },
+    {
+      "id": "libtorrent",
+      "name": "libtorrent",
+      "url": "https://github.com/arvidn/libtorrent.git",
+      "defaultRef": "RC_2_1",
+      "groups": ["bittorrent"],
+      "priority": "P1",
+      "authority": "implementation",
+      "syncDefault": false
+    },
+    {
+      "id": "qbittorrent",
+      "name": "qBittorrent",
+      "url": "https://github.com/qbittorrent/qBittorrent.git",
+      "defaultRef": "master",
+      "groups": ["bittorrent"],
+      "priority": "P1",
+      "authority": "architecture",
+      "syncDefault": false
+    },
+    {
+      "id": "transmission",
+      "name": "Transmission",
+      "url": "https://github.com/transmission/transmission.git",
+      "defaultRef": "main",
+      "groups": ["bittorrent"],
+      "priority": "P1",
+      "authority": "architecture",
+      "syncDefault": false
+    },
+    {
+      "id": "biglybt",
+      "name": "BiglyBT",
+      "url": "https://github.com/BiglySoftware/BiglyBT.git",
+      "defaultRef": "master",
+      "groups": ["bittorrent"],
+      "priority": "P2",
+      "authority": "architecture",
+      "syncDefault": false
+    },
+    {
+      "id": "aria2-next",
+      "name": "aria2-next",
+      "url": "https://github.com/AnInsomniacy/aria2-next.git",
+      "defaultRef": "main",
+      "groups": ["bittorrent", "ed2k"],
+      "priority": "P1",
+      "authority": "architecture",
+      "syncDefault": false
+    },
+    {
+      "id": "airdcpp-core",
+      "name": "AirDC++ Core",
+      "url": "https://github.com/airdcpp/airdcpp-core.git",
+      "defaultRef": "master",
+      "groups": ["dc"],
+      "priority": "P1",
+      "authority": "implementation",
+      "syncDefault": false
+    },
+    {
+      "id": "airdcpp-windows",
+      "name": "AirDC++ Windows",
+      "url": "https://github.com/airdcpp/airdcpp-windows.git",
+      "defaultRef": "master",
+      "groups": ["dc"],
+      "priority": "P1",
+      "authority": "architecture",
+      "syncDefault": false
+    },
+    {
+      "id": "eiskaltdcpp",
+      "name": "EiskaltDC++",
+      "url": "https://github.com/eiskaltdcpp/eiskaltdcpp.git",
+      "defaultRef": "master",
+      "groups": ["dc"],
+      "priority": "P2",
+      "authority": "implementation",
+      "syncDefault": false
+    },
+    {
+      "id": "ember",
+      "name": "Ember",
+      "url": "https://github.com/untaimed18/Ember-P2P.git",
+      "defaultRef": "main",
+      "groups": ["experimental"],
+      "priority": "P2",
+      "authority": "experimental",
+      "syncDefault": false
+    },
+    {
+      "id": "rucio",
+      "name": "Rucio (ogarcia)",
+      "url": "https://github.com/ogarcia/rucio.git",
+      "defaultRef": "master",
+      "groups": ["experimental"],
+      "priority": "P2",
+      "authority": "experimental",
+      "syncDefault": false
+    },
+    {
+      "id": "emule-ese",
+      "name": "eMule eSE",
+      "url": "https://github.com/diad87/eMule-eSE-LiveTV.git",
+      "defaultRef": "main",
+      "groups": ["experimental"],
+      "priority": "P3",
+      "authority": "experimental",
+      "syncDefault": false
+    },
+    {
+      "id": "emulebb-mods-archive",
+      "name": "eMuleBB mods archive",
+      "url": "https://github.com/emulebb/emulebb-mods-archive.git",
+      "defaultRef": "main",
+      "groups": ["historical"],
+      "priority": "P2",
+      "authority": "historical",
+      "syncDefault": false,
+      "notes": "Bulk historical mod sources (MorphXT, Xtreme, StulleMule, …). Clone only for targeted mod research."
+    }
+  ]
+}
