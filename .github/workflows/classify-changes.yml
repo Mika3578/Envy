@@ -19,8 +19,6 @@ on:
         value: ${{ jobs.classify.outputs.workflow }}
       docs_only:
         value: ${{ jobs.classify.outputs.docs_only }}
-      run_windows_build:
-        value: ${{ jobs.classify.outputs.run_windows_build }}
       run_remote_js:
         value: ${{ jobs.classify.outputs.run_remote_js }}
       run_dep_review:
@@ -46,7 +44,6 @@ jobs:
       docs: ${{ steps.run.outputs.docs }}
       workflow: ${{ steps.run.outputs.workflow }}
       docs_only: ${{ steps.run.outputs.docs_only }}
-      run_windows_build: ${{ steps.run.outputs.run_windows_build }}
       run_remote_js: ${{ steps.run.outputs.run_remote_js }}
       run_dep_review: ${{ steps.run.outputs.run_dep_review }}
       run_docs_check: ${{ steps.run.outputs.run_docs_check }}

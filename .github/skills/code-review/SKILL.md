@@ -20,8 +20,8 @@ maintainer review request in Draft; cheap CI and thread treatment only,
 required Protect
 develop checks green, branch up to date with `develop`, no outstanding
 `CHANGES_REQUESTED` that still applies) **and every review comment thread
-on the current head is treated** (`AGENTS.md` §5: fix or justified reply,
-then resolve on GitHub). Request **one**
+on the current head is treated** (`AGENTS.md` §5 *Review comment
+handling*: fix or justified reply, then resolve on GitHub). Request **one**
 Copilot review on that stable head — not while untreated threads remain and
 not after every partial fix batch (Copilot review-on-push stays off in
 Protect develop by design). Re-request only when a **new head** requires it
@@ -31,16 +31,17 @@ and treatment is complete again.
 
 Repository correction/stabilizer agents treat review threads and push fix
 batches; they **do not** request Copilot Code Review, other review products,
-or human reviewers, and they do not approve or merge (`AGENTS.md` §5).
-Request Copilot only from a maintainer when `AGENTS.md` §5 workflow
-expectations for thread treatment and review timing are satisfied.
+or human reviewers while the pull request is a **draft**, and they do not
+approve or merge. Request Copilot only from a maintainer (or one explicit
+final step after **Ready**) when `AGENTS.md` §5 *Review and Copilot economy*
+pre-request checklist is satisfied.
 
 ## Review outcome (must use GitHub review state)
 
-- **No blocking findings** on the current head and the gates in
-  **Submit `APPROVED` when** below all hold: submit **`APPROVED`**. Do not
-  stop at overview comments, nit-only threads, or a verbal "looks good" when
-  nothing blocking remains. GitHub’s default review type is **Comment**; with
+- **No blocking findings** on the current head **and** every condition in
+  **Submit `APPROVED` when** below is satisfied: submit a real GitHub
+  **`APPROVED`** review. Do not stop at overview comments, nit-only threads,
+  or a verbal "looks good". GitHub’s default review type is **Comment**; with
   repository **Auto-approval** enabled, Copilot must leave an **`Approve`**
   review event on GitHub, not only the overview **approval assessment** (see
   [GitHub Docs — Pull request approvals from Copilot](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/using-copilot-code-review#pull-request-approvals-from-copilot)).
@@ -56,21 +57,30 @@ expectations for thread treatment and review timing are satisfied.
 `.cursor/**`, `.continue/**`, `.clinerules`, `.windsurfrules`,
 `.cursorrules`, `Languages/**`, `CHANGELOG.md`, `MODERNIZATION.md`.
 
-**High-risk review-governance:** `AGENTS.md`,
-`.github/copilot-instructions.md`, `.github/skills/**`.
+**Privileged governance (never Copilot-only approval):** `AGENTS.md`,
+`.github/copilot-instructions.md`, `.github/skills/**`,
+`.github/settings.yml`, `.github/workflows/**`, `.github/rulesets/**`,
+and `.github/scripts/` files that classify changes, audit rulesets, or
+otherwise define merge/review/CI gate policy. Copilot loads instructions
+and this skill from the **PR head**; an `APPROVED` from Copilot on a PR
+that edits those files is a self-authorization loop. When **any** such
+path changes: do **not** submit `APPROVED` — use `COMMENTED` or
+`CHANGES_REQUESTED` and require an independent human (non-Copilot)
+approval. Repository Copilot path allowlists must exclude these paths
+(`docs/10_dev/devsecops-envy.md`).
 
 **Default — high-risk code/infra:** every other path, including
 `Envy/**`, `HashLib/**`, `Plugins/**`, `Services/**`, `TorrentEnvy/**`,
 `Visual Studio/**`, `scripts/**`, `Remote/**`, `Unpacker/**`,
-`SkinBuilder/**`, `Repository/**`, `.github/workflows/**`,
-`.github/settings.yml`, installer, protocol, crypto, auth, networking,
-packet parse, threading, locking, memory, and root build/version files.
-Unclassified paths use this class; do not treat them as low-risk.
+`SkinBuilder/**`, `Repository/**`, installer, protocol, crypto, auth,
+networking, packet parse, threading, locking, memory, and root
+build/version files. Unclassified paths use this class; do not treat
+them as low-risk.
 
 If **any** changed file is high-risk, treat the whole pull request as
 high-risk, **except** comment-only diffs on code/infra paths (not on
-review-governance files). Copilot cloud-agent authored PRs: comment and
-request a human; do not `APPROVED`.
+privileged governance files). Copilot cloud-agent authored PRs: comment
+and request a human; do not `APPROVED`.
 
 ## Evidence by risk
 
@@ -83,22 +93,19 @@ request a human; do not `APPROVED`.
 - **Workflows / `.github/settings.yml` / installer / other code/infra:**
   targeted CI or security validation (required checks green; no secrets,
   permissions, or protection weakening). Wire-format text is not enough.
-- **Review-governance:** required CI green, and the diff must not reduce
-  required approvals, required checks, Copilot self-approval bans, or
-  quality gates. Tightening/clarifying is OK. Weakening is
-  `CHANGES_REQUESTED`. Do **not** submit `APPROVED` when any changed path is
-  review-governance (`AGENTS.md`, `.github/copilot-instructions.md`,
-  `.github/skills/**`); require an independent human reviewer
-  (`AGENTS.md` hard rule 12). Copilot may submit `APPROVED` for other risk
-  classes only when the matching gates hold and repository Copilot settings
-  allow counting on the changed paths. Manual squash merge stays required
-  (`AGENTS.md` rule 16).
+- **Privileged governance:** required CI green, and the diff must not
+  reduce required approvals, required checks, Copilot self-approval bans,
+  or quality gates. Tightening/clarifying is OK. Weakening is
+  `CHANGES_REQUESTED`. Copilot must **not** submit `APPROVED` when any
+  privileged governance path changes — even if the UI allowlist would
+  allow counting — because the skill and instructions are PR-controlled.
+  Manual squash merge stays required (`AGENTS.md` rule 16).
 
 ## Submit `APPROVED` when all of the following hold
 
 - The pull request is not a draft and is not Copilot-authored.
-- No changed path is review-governance (`AGENTS.md`,
-  `.github/copilot-instructions.md`, `.github/skills/**`).
+- **No privileged governance path** is in the diff (see Risk class). If any
+  is present, stop at `COMMENTED` / `CHANGES_REQUESTED` and require a human.
 - Required Protect develop checks are green. If CI is still running, wait.
 - No unresolved review threads and no outstanding `CHANGES_REQUESTED`.
 - Squash Commit Summary in the PR body matches the final head and satisfies
@@ -121,5 +128,7 @@ request a human; do not `APPROVED`.
 - Crypto/auth/threading/locking/memory change lacks targeted validation.
 - Workflow/infra/settings.yml or other unclassified code/infra change
   lacks targeted CI/security validation.
-- Review-governance change weakens merge gates or self-approval bans.
+- Privileged governance change weakens merge gates or self-approval bans.
+- Any privileged governance path is in the diff and the only proposed
+  counted approval would be Copilot (leave `COMMENTED`; human required).
 - Branch naming uses a tool/agent prefix (`cursor/`, `claude/`, …).

@@ -1,6 +1,6 @@
 # Envy DevSecOps map (cost-minimal, Windows-first)
 
-**Last Updated:** 2026-09-19
+**Last Updated:** 2026-10-03
 **Repo:** [Mika3578/Envy](https://github.com/Mika3578/Envy) (not upstream GetEnvy/Envy)
 **Full measured CI audit:** [CI_AUDIT_2026-09.md](CI_AUDIT_2026-09.md)
 
@@ -14,12 +14,14 @@ Cursor Agent → PR → CodeRabbit (advisory)
                   → reviewdog/clang-tidy (advisory)
                   → MSVC + EnvyTests + Format
                   → CodeQL + Sonar + gitleaks
-                  → squash auto-merge (update branch + required checks)
+                  → independent APPROVED review + resolved threads
+                  → maintainer manual squash (curated body; auto-merge off)
                   → develop
 ```
 
 Personal repositories may not support Merge Queue; **do not block** on enabling
-it. Prefer strict required checks + update-branch + squash auto-merge.
+it. Prefer strict required checks, update-branch, and **manual squash merge**
+with a curated squash body (`AGENTS.md` rule 16). Keep GitHub auto-merge **off**.
 
 ## Local commands
 
@@ -43,8 +45,10 @@ does not require them as status contexts.
 SonarCloud Automatic Analysis exclusions for vendored trees:
 `docs/10_dev/sonarcloud-exclusions.md` / `.sonarcloud.properties`. Do not
 relax Quality Gate thresholds to pass.
-(Docs-only PRs: Build x64/Win32 emit ubuntu success no-ops when classify
-`run_windows_build=false` — never leave those required contexts SKIPPED.)
+Windows Builds: Draft without `stage:live-test` may emit an ubuntu deferral
+notice (not a Windows build). Ready and `stage:live-test` always run real
+x64 + Win32 Release + EnvyTests, including docs-only PRs. Classifier path
+flags never skip those Ready/live-test jobs.
 
 BLOCK (native GitHub review rules on Protect develop):
 
@@ -101,6 +105,19 @@ Do not add `regex` to `enabledManagers` unless a real `customManagers` regex ent
 | Qodo / PR-Agent | Manual on high-risk PRs only | Optional |
 | Cursor Bugbot | Exceptional / paid | Not primary |
 
+**Copilot request discipline** (see `AGENTS.md` §5 *Review and Copilot economy*):
+
+- GitHub default: one review per PR unless ruleset **Review new pushes** is on
+  ([Configure code review](https://docs.github.com/en/copilot/how-tos/copilot-on-github/set-up-copilot/configure-code-review)).
+  Envy keeps review-on-push **off** on Protect develop.
+- Auto-approval and **count toward merge requirements** must be enabled for a
+  real `APPROVED` state; assessment-only output does not satisfy Protect develop
+  ([Using Copilot code review](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/using-copilot-code-review)).
+- Agents: treat and **resolve** all threads, batch fixes, then **one** Copilot
+  request per stable head — not per thread, not during Draft correction batches.
+- OSS pattern: PR readiness checklist before any sponsored review (CI green,
+  mergeable, test plan) — e.g. community `copilot-instructions.md` checklists.
+
 High-risk paths (extra bar before auto-merge): G1/G2, ED2K/Kad, BitTorrent, NMDC/ADC,
 Network/NAT, packet parsing, crypto, threading/locking, serialization, Remote.
 Require a regression/protocol test, explicit “no wire-format change”, or reference
@@ -125,26 +142,73 @@ comparison notes.
    - **Allow Copilot to approve pull requests:** ON
    - **Allow Copilot approvals to count toward merge requirements:** ON
    - Path allowlist (≤15 globs; every changed file must match, or the
-     approval does not count). Recommended Stage-3 list:
-     `docs/**`, `**/*.mdc`, `.github/ISSUE_TEMPLATE/**`,
-     `.github/CONTRIBUTING.md`, `.cursor/**`, `.continue/**`,
-     `.clinerules`, `.windsurfrules`, `.cursorrules`, `Languages/**`,
-     `CHANGELOG.md`, `MODERNIZATION.md`.
-     Exclude review-governance (`AGENTS.md`, `.github/copilot-instructions.md`,
-     `.github/skills/**`) and infra (`.github/settings.yml`,
-     `.github/workflows/**`). Do not use `**/*.md` (it would include
-     `AGENTS.md`). Leave the list **blank** only for a one-shot merge
-     where Copilot must count on a governance PR (then apply the globs
-     immediately after).
-   - Protect develop should request Copilot only for the final stable review;
-     keep review-on-push and draft review **off**.
+     approval does **not** count). Do **not** leave the allowlist blank:
+     a blank list matches every path and would let Copilot’s `APPROVED`
+     count on privileged governance changes (`AGENTS.md`,
+     `.github/copilot-instructions.md`, `.github/skills/**`,
+     `.github/settings.yml`, `.github/workflows/**`, `.github/rulesets/**`,
+     and gate scripts under `.github/scripts/`). Those files are loaded
+     from the PR head, so counted Copilot approval on them is a
+     self-authorization loop. Prefer an ordinary-code allowlist such as:
+     `Envy/**`, `HashLib/**`, `Plugins/**`, `TorrentEnvy/**`,
+     `Unpacker/**`, `SkinBuilder/**`, `Remote/**`, `Services/**`,
+     `tests/**`, `docs/**`, `Languages/**`, `Skins/**`, `Data/**`,
+     `Installer/**`, `Visual Studio/**` (adjust within the 15-glob cap).
+     Omit `AGENTS.md` and `.github/**` from the allowlist. PRs that touch
+     privileged paths then need an independent human `APPROVED` even if
+     Copilot comments. Skill
+     `.github/skills/code-review/SKILL.md` also forbids Copilot
+     `APPROVED` on those paths (defense in depth; UI allowlist is the
+     independent control). Manual squash merge stays required.
+   - Protect develop should request Copilot when the pull request is
+     **mergeable** (required checks green, up to date, not draft); keep
+     review-on-push and draft review **off**.
    Assessment ≠ approval. Copilot-authored PRs still need a human.
    A Copilot `APPROVED` review is not proof of correctness (business
    logic, production behavior, missed security, performance, or
    architecture). Independent checks (builds, EnvyTests when C++
    changes, CodeQL, SonarCloud, gitleaks, and secret-scan) stay
    required.
-4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Continue with **squash auto-merge** + update-branch + strict required checks + **≥1 GitHub APPROVED review** on `Protect develop`.
+
+   **How merge proof works (GitHub, public preview since 2026-09-01):** By
+   default Copilot leaves a **Comment** review, which does **not** satisfy
+   Protect develop. With **both** Auto-approval toggles on (see above), Copilot
+   can submit a real **`APPROVED`** review on the current head when it considers
+   the pull request ready. The **approval assessment** in the overview comment
+   is informational only and never counts. New commits dismiss Copilot’s
+   approval like a human’s; re-request after mergeability returns. Official
+   references:
+   [Using Copilot code review](https://docs.github.com/en/copilot/how-tos/agents/copilot-code-review/using-copilot-code-review),
+   [Configure code review](https://docs.github.com/en/copilot/how-tos/copilot-on-github/set-up-copilot/configure-code-review),
+   [Changelog: Copilot can approve PRs](https://github.blog/changelog/2026-09-01-copilot-code-review-can-now-approve-pull-requests/).
+
+   **Request review when mergeable** (review-on-push stays off):
+
+   ```powershell
+   gh pr edit <N> --repo Mika3578/Envy --add-reviewer copilot-pull-request-reviewer
+   ```
+
+   Copilot reads `.github/copilot-instructions.md` and
+   `.github/skills/code-review/SKILL.md` from the **PR head** branch; those
+   files require **`APPROVED`** when there are no blocking findings.
+
+   **Verify approval counts before merge:**
+
+   ```powershell
+   gh pr view <N> --repo Mika3578/Envy --json mergeable,mergeStateStatus,reviewDecision
+   gh api repos/Mika3578/Envy/pulls/<N>/reviews --jq "[.[] | select(.user.login==\"copilot-pull-request-reviewer\") | {state, commit_id, submitted_at}] | last"
+   ```
+
+   Expect `state: APPROVED` on the PR head commit, `reviewDecision: APPROVED`
+   (or mergeable with approval satisfied), and merge blocked only by
+   non-review gates if any remain. If you only see `COMMENTED` or an overview
+   assessment, the UI toggles, org policy, or path allowlist still block
+   counting — or auto-approval did not run; re-request on a mergeable head.
+
+   **Org/enterprise:** If counting stays off, check organization Copilot policy
+   (“Count Copilot approvals toward merge requirements”) is not **Disabled
+   everywhere** for this repository.
+4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Use **manual squash merge** (curated squash body; live `squash_merge_commit_message: BLANK`), update-branch, strict required checks, and **≥1 GitHub `APPROVED` review** on `Protect develop`. Do **not** enable squash auto-merge when a curated squash body is required (`AGENTS.md` rule 16).
 5. **Protect develop (live, re-verified 2026-09-20)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing
    docs):
@@ -164,15 +228,7 @@ comparison notes.
    - Restrict code coverage: **off for now** — do not enable until PR coverage
      data is uploaded reliably and a baseline has been measured
    - Copilot ruleset: review new pushes **off**; review drafts **off**
-6. **GitHub Copilot Code Review (repository UI — manual verify):** Settings →
-   Copilot → Code review: effort **Balanced**; **Allow Copilot to approve pull
-   requests** ON; **Allow Copilot approvals to count toward merge
-   requirements** ON; path allowlist as in item 3 (exclude
-   review-governance and infra). Automatic review on each push is deliberately
-   off in Protect develop; request the final Copilot review after native
-   checks are green. These toggles and globs are not on the ruleset API. See
-   [Using AI-Approved Pull Requests Safely with GitHub Copilot](https://www.c-sharpcorner.com/article/using-ai-approved-pull-requests-safely-with-github-copilot/).
-7. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
+6. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
 
 ## Agent PR back-pressure
 

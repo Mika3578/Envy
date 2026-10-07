@@ -31,6 +31,8 @@
 #include "Statistics.h"
 #include "VendorCache.h"
 
+#include <ws2tcpip.h> // InetNtopW for AcceptFrom peer formatting
+
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
@@ -286,7 +288,28 @@ void CConnection::AcceptFrom(SOCKET hSocket, SOCKADDR_IN* pHost)
 	// Record the connection information here
 	m_hSocket		= hSocket;							// Keep the socket here
 	m_pHost			= *pHost;							// Copy the remote IP address into this object
-	m_sAddress		= inet_ntoa( m_pHost.sin_addr );	// Store it as a string also
+	// Prefer getpeername + InetNtop so m_sAddress can carry IPv6 text when the
+	// accepted socket is dual-stack (D-017). Listeners are still IPv4 today, so
+	// this usually formats the same IPv4 peer; keep inet_ntoa as the fallback.
+	m_sAddress = inet_ntoa(m_pHost.sin_addr);
+	{
+		SOCKADDR_STORAGE oPeer = {};
+		int nPeerLen = sizeof(oPeer);
+		if (getpeername(hSocket, reinterpret_cast<SOCKADDR*>(&oPeer), &nPeerLen) == 0)
+		{
+			wchar_t szPeer[INET6_ADDRSTRLEN] = {};
+			const void* pAddr = NULL;
+			if (oPeer.ss_family == AF_INET6)
+				pAddr = &reinterpret_cast<SOCKADDR_IN6*>(&oPeer)->sin6_addr;
+			else if (oPeer.ss_family == AF_INET)
+				pAddr = &reinterpret_cast<SOCKADDR_IN*>(&oPeer)->sin_addr;
+			if (pAddr != NULL &&
+			    InetNtopW(oPeer.ss_family, pAddr, szPeer, _countof(szPeer)) != NULL)
+			{
+				m_sAddress = szPeer;
+			}
+		}
+	}
 	UpdateCountry();
 
 	// Make new input and output buffer objects

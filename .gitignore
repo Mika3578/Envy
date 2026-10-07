@@ -354,7 +354,9 @@ conan.lock
 # Root-level duplicate web template (source is under Envy/Res/)
 /About.htm
 
-# Reference code examples from other P2P programs
+# Reference code examples from other P2P programs (entire tree local-only).
+# Prefer Examples/References/<id>/ via tools/references/sync-references.ps1
+# (see tools/references/README.md and docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md).
 Examples/
 
 # Build output file (packaging dir at repo root / cwd). Keep scripts/release/ tracked.
