@@ -1,6 +1,9 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-06
+- **Last Updated:** 2026-10-07
+
+- **Changelog Entry:** 2026-10-07 - P2P reference registry refresh (#387 resumed): `REFERENCE_IMPLEMENTATIONS.md` expanded (amule-org, eMuleBB/padMule/MorphXT/heritage/BT/DC); October ecosystem audit; optional ignored clones via `tools/references/` -> `Examples/References/` (D-023). No AGENTS/governance change; no protocol code.
+- **Changelog Entry:** 2026-10-01 — Finalization of #395 preserves one non-author approval, all eight live required contexts, CodeQL/Gitleaks and GitHub Code Quality (severity All). Retain the staged Draft/live-test/Ready workflow and manual maintainer transitions; squash summaries remain curated. #397 owns review outcome tracking, not merge authority.
 
 - **Changelog Entry:** 2026-10-06 — #393: ChatSession profile ownership matches HostBrowser; move ordinary CL=0 reject after HTTP control classification; clear breadth-first THEX remainder; `ReadDIME` reuses `PeekDIME`; shared HTTP/THEX admission helpers + EnvyTests.
 
@@ -8,7 +11,6 @@
 
 - **Changelog Entry:** 2026-10-05 — #393: sync onto `develop` after #392; `ChargeSharedPeerXmlChars`/`AdmitPeerXml*` entry helpers; THEX `XML_PEER_THEX_BODY_CAP` pre-accept reject; Metadata wrapper node funding; expanded EnvyTests peer-entry smoke (helpers only — no MFC `CXMLElement` link).
 
-- **Changelog Entry:** 2026-10-01 — Finalization of #395 preserves one non-author approving review, all eight live required contexts, CodeQL/Gitleaks and GitHub Code Quality (severity All). Retain the staged Draft/live-test/Ready workflow and manual maintainer transitions; squash summaries remain curated. #397 owns review outcome tracking, not merge authority.
 
 - **Changelog Entry:** 2026-10-01 — Proactive Draft stabilization: remove fixed correction-attempt stops, retain complete history and human decisions, automate supported reviewer requests and validated lifecycle transitions, and preserve privacy/naming and native review/security gates. #397 supplies the host coordinator; external app entitlement and live pilot remain explicit rollout evidence.
 
