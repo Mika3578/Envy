@@ -1,8 +1,16 @@
 # DEVELOPMENT PLAN (LIVING)
 
+- **Last Updated:** 2026-10-07
+
+- **Changelog Entry:** 2026-10-07 - P2P reference registry refresh (#387 resumed): `REFERENCE_IMPLEMENTATIONS.md` expanded (amule-org, eMuleBB/padMule/MorphXT/heritage/BT/DC); October ecosystem audit; optional ignored clones via `tools/references/` -> `Examples/References/` (D-023). No AGENTS/governance change; no protocol code.
+- **Changelog Entry:** 2026-10-01 — Finalization of #395 preserves one non-author approval, all eight live required contexts, CodeQL/Gitleaks and GitHub Code Quality (severity All). Retain the staged Draft/live-test/Ready workflow and manual maintainer transitions; squash summaries remain curated. #397 owns review outcome tracking, not merge authority.
+
+- **Changelog Entry:** 2026-10-01 — Proactive Draft stabilization: remove fixed correction-attempt stops, retain complete history and human decisions, automate supported reviewer requests and validated lifecycle transitions, and preserve privacy/naming and native review/security gates. #397 supplies the host coordinator; external app entitlement and live pilot remain explicit rollout evidence.
+
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Last Updated:** 2026-09-28
+- **Changelog Entry:** 2026-09-30 — PR governance simplification (D-022): keep one non-author approving review as the trust boundary against PR-controlled CI self-bypass; path-based conditional Windows builds; Sonar/advisory bots; ruleset-as-code audit; `docs/10_dev/pr-workflow.md`.
+- **Changelog Entry:** 2026-09-29 — (superseded wording) earlier D-022 draft considered zero mandatory approvals; rejected after review of PR-controlled classify/build bypass risk.
 - **Changelog Entry:** 2026-09-28 — #367: separate declared connection capacity from explicit transfer limits, preserve user caps, share capacity presets, and add transfer-limit regression coverage.
 - **Changelog Entry:** 2026-09-28 — #363: correct ED2K SourceEx2 request/answer framing, add versioned record validation and golden vectors, and document the live interop gap.
 - **Changelog Entry:** 2026-09-28 — #381 simplification: remove the duplicate PR Gate poller and conclusion helpers; keep Draft → `stage:live-test` → Ready phase selection and native workflow checks. Protect develop now removes PR Gate, required signatures, duplicate gitleaks status, and required Documentation Check, with Copilot review-on-push disabled. Cursor automations remain external manual operations.
@@ -104,7 +112,7 @@
 - **Changelog Entry:** 2026-09-19 — Transfer settings foundation: Uploads page labels match the core (`Unlimited`, throttle Average/Maximum, max uploads per host); `TransferSettingsLimits.h` + EnvyTests; mapping in `docs/50_user/transfer-settings.md`.
 - **Changelog Entry:** 2026-09-19 — Cloud Agent Linux env: add `.cursor/environment.json` installing clang-format-18/clang-tidy (CI-aligned) + cppcheck (local extra) + `Remote/tests` npm deps (MFC/HashLib remain Windows-only).
 - **Changelog Entry:** 2026-09-19 — `CTextCtrl` System/Network log: top-aligned short journals, conventional scroll + follow-bottom only when already at end (`TextCtrlViewport.h` + EnvyTests); see `docs/10_dev/textctrl-log-ui-checklist.md`.
-- **Changelog Entry:** 2026-09-19 — CI: always-emit required `Build x64 Release` / `Build Win32 Release` on PRs (ubuntu no-op when `run_windows_build=false`; same pattern as Documentation Check) so Protect develop does not block on SKIPPED Builds.
+- **Changelog Entry:** 2026-09-19 — CI: always emit required `Build x64 Release` / `Build Win32 Release` on PRs so Protect develop does not block on SKIPPED Builds. Superseded gating: Draft may defer; Ready/`stage:live-test` always run real Windows builds (classify does not skip them).
 - **Changelog Entry:** 2026-09-19 — Cross-platform foundations: document EnvyCore / platform / UI target, D-012…D-015, Win32 legacy policy (no removal), CMake portable-slice priority; Linux/macOS remain `planned` not `supported` (`docs/20_arch/PORTABILITY_PLAN.md`); trackers #177–#180 (do not duplicate #91/#161/#89).
 - **Changelog Entry:** 2026-09-19 — DC hublist bootstrap: default URL `https://dchublist.org/hublist.xml.bz2`; `DefaultServices.dat` H rows refreshed (org/pwiam/ru HTTPS); `CUpdateServersDlg` DC mode (skin `CUpdateHubListDlg`) so Settings > DC++ > Download is not the eDonkey server.met dialog. Parser unchanged (`dchub://` kept, `adc://`/`adcs://` skipped). Not ADC/hublist-complete.
 - **Changelog Entry:** 2026-09-19 — CI: required PR workflows also listen for `ready_for_review`; Format Check can run on `workflow_dispatch` against `origin/develop`.
@@ -228,19 +236,21 @@
   enabled globally. Protect develop forces **squash-only** onto `develop`.
 - **History:** `develop` was rewritten to a linear history with no merge commits; the pre-rewrite snapshot is preserved as the immutable tag `backup/develop-before-linear-rewrite` (local mutable backup/rollback branches were removed after the rewrite stabilized).
 - **Local hygiene:** use `git pull --ff-only` on `develop`; rebase feature branches with `git rebase origin/develop` and `git push --force-with-lease`.
-- **Branch protection:** the active `Protect develop` ruleset requires pull
-  requests, linear history, signed commits, ≥1 APPROVED review, dismiss-stale
-  approvals, conversation resolution, code scanning (CodeQL+Gitleaks), passing
-  required checks, and blocks force-pushes/deletions. `.github/settings.yml`
-  mirrors the Probot-capable subset; the ruleset is the source of truth.
+- **Branch protection:** `Protect develop` requires pull requests, **one**
+  non-author approving review, linear history, conversation resolution, code
+  scanning (CodeQL+Gitleaks), passing required checks, squash-only, and blocks
+  force-pushes/deletions. Desired status contexts are listed in
+  `.github/rulesets/protect-develop.desired.json` (live may still list Sonar
+  until post-merge migration). There is **no** PR Gate poller — native workflow
+  conclusions are the merge gate. See `docs/10_dev/pr-workflow.md`.
 - CI uses a two-speed model: change-aware PR jobs for Windows/Remote/deps plus
   full integration on `develop` / scheduled analysis. Every PR always runs
-  CodeQL Analyze (c-cpp), (javascript-typescript), and (csharp), plus blocking
-  Format Check. Those `pull_request` workflows also run on `ready_for_review`.
-  The live `Protect develop` ruleset requires the eleven named
-  contexts listed in `.github/settings.yml`. `PR Gate` waits for classified CI
-  (and always for the three CodeQL jobs + Format Check) — it is not a review
-  substitute. See `docs/10_dev/agents-and-automation.md`.
+  CodeQL Analyze (c-cpp) and (javascript-typescript), plus blocking Format
+  Check. C# analysis and Windows Release eligibility follow staged pr-phase
+  policy; Ready/live-test runs actual analysis and both Windows builds.
+  Classification outputs are advisory and never replace these required jobs
+  with successful not-applicable results. Those workflows also run on
+  `ready_for_review`; see `docs/10_dev/pr-workflow.md`.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
 ## Canonical Documentation Split
@@ -521,3 +531,10 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 4. ~~Should remote API documentation be strict contract-first or implementation-first?~~ **Resolved 2026-09-19:** OpenAPI describes **implemented** routes plus explicitly `planned` ones (`x-envy-status`). No fictional served surface. See `docs/api/openapi.yaml`.
 5. ~~REST versus JSON-RPC for a future Envy daemon API?~~ **Resolved 2026-09-19 (D-017/D-018):** native **REST** `/api/v1` (OpenAPI). qBittorrent-shaped REST subset for *arr. Transmission JSON-RPC is not the first adapter. aria2 JSON-RPC is a reference only.
 6. When is Win32 Stage B (drop from user releases) justified relative to Preview/stable channels?
+
+- **2026-10-01 review finalization:** Explicit disposition of complete Copilot
+  overviews is mandatory, including Previously missed and Suppressed findings.
+  Governance remains subject to maintainer review and manual squash; PR history
+  cleanup preserves trees and budgets with scoped authorization. Review-loop
+  assessments use read-only permissions and cannot publish authoritative state.
+  Runtime validation and a valid non-author approval remain external checkpoints.
