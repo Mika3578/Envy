@@ -77,6 +77,34 @@ function Select-Projects {
 	return @($all | Where-Object { $_.syncDefault -eq $true })
 }
 
+function Assert-SafeProjectId {
+	param([string]$Id)
+	if ($Id -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
+		throw "Invalid project id '$Id' (allowed: letters, digits, '.', '_', '-')."
+	}
+}
+
+function Resolve-ProjectDir {
+	param(
+		[string]$LocalRoot,
+		[string]$ProjectId
+	)
+	Assert-SafeProjectId -Id $ProjectId
+	$rootFull = [System.IO.Path]::GetFullPath($LocalRoot)
+	$dirFull = [System.IO.Path]::GetFullPath((Join-Path $rootFull $ProjectId))
+	$prefix = if ($rootFull.EndsWith([System.IO.Path]::DirectorySeparatorChar)) {
+		$rootFull
+	}
+	else {
+		$rootFull + [System.IO.Path]::DirectorySeparatorChar
+	}
+	if (-not ($dirFull.Equals($rootFull, [System.StringComparison]::OrdinalIgnoreCase) -or
+			$dirFull.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase))) {
+		throw "Project path escapes local root: $ProjectId"
+	}
+	return $dirFull
+}
+
 function Invoke-Git {
 	param(
 		[Parameter(Mandatory = $true)]
@@ -93,13 +121,17 @@ function Invoke-Git {
 	try {
 		$out = & git @GitArgs 2>&1
 		$code = $LASTEXITCODE
+		$lines = @($out | ForEach-Object { "$_" })
 		if ($PassThru) {
 			return [pscustomobject]@{
 				ExitCode = $code
-				Output   = @($out | ForEach-Object { "$_" })
+				Output   = $lines
 			}
 		}
-		return $code
+		return [pscustomobject]@{
+			ExitCode = $code
+			Output   = $lines
+		}
 	}
 	finally {
 		if ($null -ne $prevNative) {
@@ -108,17 +140,32 @@ function Invoke-Git {
 	}
 }
 
+function Assert-GitOk {
+	param(
+		$GitResult,
+		[string]$Context
+	)
+	if ($GitResult.ExitCode -ne 0) {
+		$detail = ($GitResult.Output | Where-Object { $_ -and $_.Trim() }) -join ' | '
+		if (-not $detail) { $detail = "exit $($GitResult.ExitCode)" }
+		throw "$Context : $detail"
+	}
+}
+
 function Get-GitHeadInfo {
 	param([string]$Path)
-	$branch = (Invoke-Git -GitArgs @('-C', $Path, 'rev-parse', '--abbrev-ref', 'HEAD') -PassThru).Output | Select-Object -First 1
-	$sha = (Invoke-Git -GitArgs @('-C', $Path, 'rev-parse', '--short', 'HEAD') -PassThru).Output | Select-Object -First 1
-	$date = (Invoke-Git -GitArgs @('-C', $Path, 'show', '-s', '--format=%ci', 'HEAD') -PassThru).Output | Select-Object -First 1
+	$branchInfo = Invoke-Git -GitArgs @('-C', $Path, 'rev-parse', '--abbrev-ref', 'HEAD') -PassThru
+	Assert-GitOk -GitResult $branchInfo -Context "git rev-parse --abbrev-ref in $Path"
+	$shaInfo = Invoke-Git -GitArgs @('-C', $Path, 'rev-parse', '--short', 'HEAD') -PassThru
+	Assert-GitOk -GitResult $shaInfo -Context "git rev-parse --short in $Path"
+	$dateInfo = Invoke-Git -GitArgs @('-C', $Path, 'show', '-s', '--format=%ci', 'HEAD') -PassThru
+	Assert-GitOk -GitResult $dateInfo -Context "git show HEAD date in $Path"
 	$tagInfo = Invoke-Git -GitArgs @('-C', $Path, 'describe', '--tags', '--exact-match', 'HEAD') -PassThru
 	$tag = if ($tagInfo.ExitCode -eq 0) { $tagInfo.Output | Select-Object -First 1 } else { '' }
 	[pscustomobject]@{
-		Branch = if ($branch) { "$branch".Trim() } else { '?' }
-		Sha    = if ($sha) { "$sha".Trim() } else { '?' }
-		Date   = if ($date) { "$date".Trim() } else { '?' }
+		Branch = ("$($branchInfo.Output | Select-Object -First 1)").Trim()
+		Sha    = ("$($shaInfo.Output | Select-Object -First 1)").Trim()
+		Date   = ("$($dateInfo.Output | Select-Object -First 1)").Trim()
 		Tag    = if ($tag) { "$tag".Trim() } else { '' }
 	}
 }
@@ -130,57 +177,68 @@ function Sync-OneProject {
 		[switch]$StatusOnly
 	)
 
-	$dir = Join-Path $LocalRoot $Item.id
 	$result = [pscustomobject]@{
 		Id      = $Item.id
 		Ok      = $false
 		Action  = ''
-		Path    = $dir
+		Path    = ''
 		Message = ''
 		Head    = $null
 	}
 
-	if ($StatusOnly) {
-		if (-not (Test-Path -LiteralPath (Join-Path $dir '.git'))) {
-			# Status mode reports absence without treating it as a hard failure.
-			$result.Ok = $true
-			$result.Action = 'missing'
-			$result.Message = 'not cloned'
-			return $result
-		}
-		$result.Ok = $true
-		$result.Action = 'present'
-		$result.Head = Get-GitHeadInfo -Path $dir
-		$tagPart = if ($result.Head.Tag) { " tag=$($result.Head.Tag)" } else { '' }
-		$result.Message = "branch=$($result.Head.Branch) sha=$($result.Head.Sha)$tagPart date=$($result.Head.Date)"
-		return $result
+	try {
+		$dir = Resolve-ProjectDir -LocalRoot $LocalRoot -ProjectId $Item.id
+		$result.Path = $dir
+	}
+	catch {
+		$result.Message = $_.Exception.Message
+		Write-Output -NoEnumerate $result
+		return
 	}
 
 	if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 		$result.Message = 'git is not available on PATH'
-		return $result
+		Write-Output -NoEnumerate $result
+		return
+	}
+
+	if ($StatusOnly) {
+		try {
+			if (-not (Test-Path -LiteralPath (Join-Path $dir '.git'))) {
+				$result.Ok = $true
+				$result.Action = 'missing'
+				$result.Message = 'not cloned'
+				Write-Output -NoEnumerate $result
+				return
+			}
+			$result.Action = 'present'
+			$result.Head = Get-GitHeadInfo -Path $dir
+			$tagPart = if ($result.Head.Tag) { " tag=$($result.Head.Tag)" } else { '' }
+			$result.Message = "branch=$($result.Head.Branch) sha=$($result.Head.Sha)$tagPart date=$($result.Head.Date)"
+			$result.Ok = $true
+		}
+		catch {
+			$result.Ok = $false
+			$result.Action = 'broken'
+			$result.Message = $_.Exception.Message
+		}
+		Write-Output -NoEnumerate $result
+		return
 	}
 
 	try {
 		if (Test-Path -LiteralPath (Join-Path $dir '.git')) {
 			$result.Action = 'update'
 			if ($PSCmdlet.ShouldProcess($dir, "git fetch/pull $($Item.id)")) {
-				if ((Invoke-Git -GitArgs @('-C', $dir, 'remote', 'set-url', 'origin', $Item.url)) -ne 0) {
-					throw "git remote set-url failed for $($Item.id)"
-				}
-				if ((Invoke-Git -GitArgs @('-C', $dir, 'fetch', '--tags', '--prune', 'origin')) -ne 0) {
-					throw "git fetch failed for $($Item.id) ($($Item.url))"
-				}
+				Assert-GitOk -GitResult (Invoke-Git -GitArgs @('-C', $dir, 'remote', 'set-url', 'origin', $Item.url)) -Context "git remote set-url $($Item.id)"
+				Assert-GitOk -GitResult (Invoke-Git -GitArgs @('-C', $dir, 'fetch', '--tags', '--prune', 'origin')) -Context "git fetch $($Item.id) ($($Item.url))"
 				$ref = $Item.defaultRef
-				if ((Invoke-Git -GitArgs @('-C', $dir, 'checkout', $ref, '--')) -ne 0) {
-					throw "git checkout '$ref' failed for $($Item.id)"
-				}
-				$branch = ((Invoke-Git -GitArgs @('-C', $dir, 'rev-parse', '--abbrev-ref', 'HEAD') -PassThru).Output | Select-Object -First 1)
-				$branch = if ($branch) { "$branch".Trim() } else { 'HEAD' }
+				Assert-GitOk -GitResult (Invoke-Git -GitArgs @('-C', $dir, 'checkout', $ref)) -Context "git checkout '$ref' $($Item.id)"
+				$branchInfo = Invoke-Git -GitArgs @('-C', $dir, 'rev-parse', '--abbrev-ref', 'HEAD') -PassThru
+				Assert-GitOk -GitResult $branchInfo -Context "git rev-parse after checkout $($Item.id)"
+				$branch = ("$($branchInfo.Output | Select-Object -First 1)").Trim()
 				if ($branch -ne 'HEAD') {
-					if ((Invoke-Git -GitArgs @('-C', $dir, 'pull', '--ff-only', 'origin', $branch)) -ne 0) {
-						throw "git pull --ff-only failed for $($Item.id) (local dirty or diverged?)"
-					}
+					Assert-GitOk -GitResult (Invoke-Git -GitArgs @('-C', $dir, 'pull', '--ff-only', 'origin', $branch)) -Context "git pull --ff-only $($Item.id)"
 				}
 			}
 		}
@@ -196,15 +254,11 @@ function Sync-OneProject {
 				throw "Path exists but is not a git clone: $dir"
 			}
 			if ($PSCmdlet.ShouldProcess($dir, "git clone $($Item.url)")) {
-				$code = Invoke-Git -GitArgs @('clone', '--branch', $Item.defaultRef, '--single-branch', $Item.url, $dir)
-				if ($code -ne 0) {
-					$code = Invoke-Git -GitArgs @('clone', $Item.url, $dir)
-					if ($code -ne 0) {
-						throw "git clone failed for $($Item.id) ($($Item.url))"
-					}
-					if ((Invoke-Git -GitArgs @('-C', $dir, 'checkout', $Item.defaultRef, '--')) -ne 0) {
-						throw "clone succeeded but checkout '$($Item.defaultRef)' failed for $($Item.id)"
-					}
+				$clone = Invoke-Git -GitArgs @('clone', '--branch', $Item.defaultRef, '--single-branch', $Item.url, $dir)
+				if ($clone.ExitCode -ne 0) {
+					$clone = Invoke-Git -GitArgs @('clone', $Item.url, $dir)
+					Assert-GitOk -GitResult $clone -Context "git clone $($Item.id) ($($Item.url))"
+					Assert-GitOk -GitResult (Invoke-Git -GitArgs @('-C', $dir, 'checkout', $Item.defaultRef)) -Context "checkout '$($Item.defaultRef)' after clone $($Item.id)"
 				}
 			}
 		}
@@ -224,7 +278,6 @@ function Sync-OneProject {
 		$result.Message = $_.Exception.Message
 	}
 
-	# Ensure a single object is returned (no accidental pipeline concatenation).
 	Write-Output -NoEnumerate $result
 }
 

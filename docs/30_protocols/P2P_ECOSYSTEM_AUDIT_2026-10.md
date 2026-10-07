@@ -6,9 +6,12 @@ Base commit: `develop` @ `c8cc5c3`
 Scope: Open-source P2P clients and engines compared against Envy docs and tracker for **reference selection**, not feature claims.
 Authority: specifications and BEPs first; `docs/10_dev/status.md` for Envy claims; `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` for the canonical registry; local clones via `tools/references/` (D-023).
 
-This supersedes the unpublished September 2026 draft that lived only on PR #387
-(`docs/p2p-ecosystem-audit` @ `6bbb7d3`). That draft incorrectly classified
-`irwir/eMule` as historical and used `pushed_at`-only rows for some clients.
+This supersedes the unpublished September 2026 draft that lived only on the
+historical tip of PR #387 (`docs/p2p-ecosystem-audit` @ `6bbb7d3`). That draft
+is **not** shipped in this tree: there is no
+`P2P_ECOSYSTEM_AUDIT_2026-09.md` on the current branch. It incorrectly
+classified `irwir/eMule` as historical and used `pushed_at`-only rows for some
+clients.
 
 ---
 
