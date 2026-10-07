@@ -716,7 +716,7 @@ public:
 		bool		Enable;
 		CString		Username;
 		CString		Password;
-		CString		BindAddress;			// IP address to bind Remote interface (default: "127.0.0.1" for localhost only)
+		CString BindAddress;                // Remote access-policy gate (D-017), not a socket bind (default: "127.0.0.1" = localhost-only clients)
 		bool		AllowExternal;			// Allow external access (requires explicit user configuration) - DEPRECATED, use AllowLAN/AllowWAN
 		bool		AllowLAN;				// Allow access from RFC1918 private networks + local subnet (default: false)
 		bool		AllowWAN;				// Allow access from WAN/Internet (default: false, shows warning)

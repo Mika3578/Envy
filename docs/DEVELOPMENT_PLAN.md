@@ -1,8 +1,9 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-03
+- **Last Updated:** 2026-10-07
 - **Changelog Entry:** 2026-10-03 — #397 adds stable-HEAD Copilot (one accepted request per SHA; no quota retry of an already submitted review) plus advisory SHA-bound `Final review gate` published only from a default-branch workflow. GraphQL `reviewDecision`, independent non-author human approval on privileged paths, mandatory classifier, CodeRabbit Drafts off, reconstruct prior Copilot outcomes from GitHub reviews, and probe events for review comments/threads. `review_on_push` stays false; auto-merge stays off; required-check rollout waits until the workflow exists on `develop`. D-022.
 
+- **Changelog Entry:** 2026-10-07 - P2P reference registry refresh (#387 resumed): `REFERENCE_IMPLEMENTATIONS.md` expanded (amule-org, eMuleBB/padMule/MorphXT/heritage/BT/DC); October ecosystem audit; optional ignored clones via `tools/references/` -> `Examples/References/` (D-023). No AGENTS/governance change; no protocol code.
 - **Changelog Entry:** 2026-10-01 — Finalization of #395 preserves one non-author approval, all eight live required contexts, CodeQL/Gitleaks and GitHub Code Quality (severity All). Retain the staged Draft/live-test/Ready workflow and manual maintainer transitions; squash summaries remain curated. #397 owns review outcome tracking, not merge authority.
 
 - **Changelog Entry:** 2026-10-01 — Proactive Draft stabilization: remove fixed correction-attempt stops, retain complete history and human decisions, automate supported reviewer requests and validated lifecycle transitions, and preserve privacy/naming and native review/security gates. #397 supplies the host coordinator; external app entitlement and live pilot remain explicit rollout evidence.
