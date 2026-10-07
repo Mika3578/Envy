@@ -5,7 +5,7 @@
 **Date:** 2026-09-19 (routing-table maintenance slice; original opcode survey January 16, 2026; banner 2026-09-11)
 **Reference Implementations:**
 - eMule (Examples/eMule/srchybrid; prefer https://github.com/irwir/eMule)
-- aMule (Examples/aMule; prefer https://github.com/amule-project/amule)
+- aMule (Examples/aMule; prefer https://github.com/amule-org/amule; `amule-project/amule` is legacy)
 - Shareaza (Examples/shareaza) - No Kad2 implementation found
 - MLDonkey (Examples/mldonkey) - No Kad2 implementation found
 
