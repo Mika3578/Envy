@@ -73,8 +73,14 @@ function Select-Projects {
 		}
 		return $match
 	}
-	# Default: syncDefault projects only
-	return @($all | Where-Object { $_.syncDefault -eq $true })
+	# Default: syncDefault projects only.
+	# StrictMode-safe: omit/null syncDefault must not terminate selection.
+	return @(
+		$all | Where-Object {
+			$prop = $_.PSObject.Properties['syncDefault']
+			($null -ne $prop) -and ($prop.Value -eq $true)
+		}
+	)
 }
 
 function Assert-SafeProjectId {
@@ -113,27 +119,27 @@ function Invoke-Git {
 	)
 	# Keep native git stdout/stderr out of the PowerShell success stream so
 	# functions do not accidentally return String[] + object mixtures.
+	# Under $ErrorActionPreference=Stop, stderr-as-ErrorRecord from `2>&1`
+	# must not terminate (e.g. git describe with no exact tag).
 	$prevNative = $null
 	if (Test-Path variable:PSNativeCommandUseErrorActionPreference) {
 		$prevNative = $PSNativeCommandUseErrorActionPreference
 		$PSNativeCommandUseErrorActionPreference = $false
 	}
+	$prevEap = $ErrorActionPreference
+	$ErrorActionPreference = 'Continue'
 	try {
 		$out = & git @GitArgs 2>&1
 		$code = $LASTEXITCODE
 		$lines = @($out | ForEach-Object { "$_" })
-		if ($PassThru) {
-			return [pscustomobject]@{
-				ExitCode = $code
-				Output   = $lines
-			}
-		}
+		# -PassThru kept for call-site clarity; both paths return the same shape.
 		return [pscustomobject]@{
 			ExitCode = $code
 			Output   = $lines
 		}
 	}
 	finally {
+		$ErrorActionPreference = $prevEap
 		if ($null -ne $prevNative) {
 			$PSNativeCommandUseErrorActionPreference = $prevNative
 		}
@@ -320,7 +326,8 @@ if ($Group -and $Project) {
 	throw 'Specify either -Group or -Project, not both.'
 }
 
-$selected = Select-Projects -Catalog $catalog -GroupName $Group -ProjectId $Project
+# @() re-wraps PowerShell's single-element / empty return unwrap so .Count is safe under StrictMode.
+$selected = @(Select-Projects -Catalog $catalog -GroupName $Group -ProjectId $Project)
 Write-Host ("Selected {0} project(s)." -f $selected.Count)
 Write-Host ''
 
