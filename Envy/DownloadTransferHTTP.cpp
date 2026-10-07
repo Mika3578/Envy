@@ -1797,8 +1797,8 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 		{
 			if (pInput->m_nLength < m_nLength) return TRUE;
 
-			m_pDownload->SetTigerTree( pInput->m_pBuffer, (DWORD)m_nLength );
-			pInput->Remove( (DWORD)m_nLength );
+			m_pDownload->SetTigerTree(pInput->m_pBuffer, (DWORD)m_nLength);
+			pInput->Remove((DWORD)m_nLength);
 			m_nLength = 0;
 		}
 	}

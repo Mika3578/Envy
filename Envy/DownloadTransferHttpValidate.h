@@ -16,11 +16,11 @@
 // which may legitimately advertise an empty body. Ordinary file content
 // rejection is applied only after those paths have been classified.
 inline bool RejectExplicitZeroContentLength(
-	bool bMetaFetch,
-	bool bTigerFetch,
-	bool bBusyFault,
-	bool bRangeFault,
-	bool bRedirect) noexcept
+    bool bMetaFetch,
+    bool bTigerFetch,
+    bool bBusyFault,
+    bool bRangeFault,
+    bool bRedirect) noexcept
 {
 	return !bMetaFetch && !bTigerFetch && !bBusyFault && !bRangeFault && !bRedirect;
 }
