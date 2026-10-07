@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# Classify pull-request paths into CI buckets.
+# Classify pull-request paths into CI buckets and change risk.
 #
-# Outputs GitHub Actions flags (true/false) to $GITHUB_OUTPUT when set,
-# otherwise prints them to stdout. Non-PR events force a full run.
+# Exposes consumed GitHub Actions flags through $GITHUB_OUTPUT. Risk-level
+# stays stdout-only. Windows Release jobs are NOT gated by this script:
+# Draft without stage:live-test may defer; Ready and stage:live-test always
+# run real x64 + Win32 Release + EnvyTests (including docs-only).
 #
 # Always-on on every PR (not gated here): CodeQL c-cpp / javascript-typescript /
 # python / actions, plus Format Check. C# CodeQL is deferred in cheap Draft and
 # runs in live-test/Ready (see codeql-csharp.yml) — do not list it as always-on.
 # Keeping these outside classify-changes avoids Code Scanning "configuration not
 # found" and false-green format when the classifier fails.
+# Required merge contexts must always be emitted by workflows. Do not skip
+# entire workflows with path filters when a context is required.
 #
 # Optional:
 #   CLASSIFY_FILES   newline-separated path list (skips GitHub API)
@@ -26,6 +30,10 @@ write_out() {
 	fi
 }
 
+write_diagnostic() {
+	printf '%s=%s\n' "$1" "$2"
+}
+
 emit_all() {
 	local value="$1"
 	write_out cpp "$value"
@@ -36,10 +44,10 @@ emit_all() {
 	write_out docs "$value"
 	write_out workflow "$value"
 	write_out docs_only "false"
-	write_out run_windows_build "$value"
 	write_out run_remote_js "$value"
 	write_out run_dep_review "$value"
 	write_out run_docs_check "$value"
+	write_diagnostic risk_level "high"
 }
 
 if [[ "$EVENT_NAME" != "pull_request" ]]; then
@@ -62,7 +70,6 @@ else
 		echo "::error::PR number is missing."
 		exit 1
 	fi
-	# Fail closed: do not use process-substitution mapfile (masks gh api failure).
 	files="$(gh api --paginate "repos/${repo}/pulls/${pr}/files" --jq '.[].filename')"
 fi
 
@@ -76,10 +83,10 @@ if [[ -z "${files//[$'\t\r\n ']/}" ]]; then
 	write_out docs true
 	write_out workflow false
 	write_out docs_only true
-	write_out run_windows_build false
 	write_out run_remote_js false
 	write_out run_dep_review false
 	write_out run_docs_check true
+	write_diagnostic risk_level low
 	exit 0
 fi
 
@@ -91,8 +98,9 @@ dependencies=false
 docs=false
 workflow=false
 other=false
+risk_high=false
+risk_low_only=true
 
-force_windows=false
 force_remote=false
 force_dep_review=false
 force_all_pr=false
@@ -103,13 +111,89 @@ match_prefix() {
 	[[ "$path" == "$prefix"* ]]
 }
 
+is_high_risk_path() {
+	local f="$1"
+	case "$f" in
+	AGENTS.md | MODERNIZATION.md)
+		return 0
+		;;
+	.github/settings.yml | .github/CODEOWNERS | .github/dependabot.yml)
+		return 0
+		;;
+	.github/copilot-instructions.md | .github/pull_request_template.md)
+		return 0
+		;;
+	esac
+	# Gate scripts and their self-tests define merge/CI policy; treat the
+	# whole tree as privileged (independent human approval required).
+	if match_prefix "$f" ".github/scripts/"; then
+		return 0
+	fi
+	if match_prefix "$f" ".github/rulesets/" || \
+	   match_prefix "$f" ".github/skills/" || \
+	   match_prefix "$f" ".github/workflows/" || \
+	   match_prefix "$f" "Installer/"; then
+		return 0
+	fi
+	case "$f" in
+	*Packet*.cpp | *Packet*.h | *PacketLength*.h | \
+	*SecureRandom* | *RemotePassword* | *CryptLayer* | *Crypt*.cpp | *Crypt*.h)
+		return 0
+		;;
+	esac
+	if match_prefix "$f" "Remote/"; then
+		return 0
+	fi
+	if match_prefix "$f" "Envy/ED" || \
+	   match_prefix "$f" "Envy/Kad" || \
+	   match_prefix "$f" "Envy/Kademlia" || \
+	   match_prefix "$f" "Envy/BT" || \
+	   match_prefix "$f" "Envy/DC" || \
+	   match_prefix "$f" "Envy/G1" || \
+	   match_prefix "$f" "Envy/G2" || \
+	   match_prefix "$f" "Envy/Datagram"; then
+		return 0
+	fi
+	return 1
+}
+
+is_low_risk_path() {
+	local f="$1"
+	case "$f" in
+	*.md | *.markdown | *.rst | LICENSE | COPYING | ReadMe.txt | README* | \
+	.gitignore | .gitattributes | .editorconfig | CHANGELOG.md)
+		return 0
+		;;
+	esac
+	if match_prefix "$f" "docs/" || \
+	   match_prefix "$f" "Templates/" || \
+	   match_prefix "$f" ".github/ISSUE_TEMPLATE/" || \
+	   match_prefix "$f" "tools/interop/" || \
+	   match_prefix "$f" ".cursor/" || \
+	   match_prefix "$f" ".continue/" || \
+	   [[ "$f" == .github/*.md ]]; then
+		return 0
+	fi
+	if match_prefix "$f" "Languages/" && ! match_prefix "$f" "Languages/Tools/SkinUpdater/"; then
+		return 0
+	fi
+	return 1
+}
+
 while IFS= read -r f; do
 	[[ -z "$f" ]] && continue
 	f="${f//\\//}"
 
+	if is_high_risk_path "$f"; then
+		risk_high=true
+		risk_low_only=false
+	fi
+	if ! is_low_risk_path "$f"; then
+		risk_low_only=false
+	fi
+
 	classified=false
 
-	# Isolated crash-engine probe: not Envy.sln / not root vcpkg.json.
 	if match_prefix "$f" "tools/crash-probe/"; then
 		classified=true
 		continue
@@ -122,12 +206,15 @@ while IFS= read -r f; do
 	.github/actions/windows-msbuild/*)
 		workflow=true
 		build=true
-		force_windows=true
 		classified=true
 		;;
-	.github/workflows/codeql.yml | .github/codeql/* | \
+	.github/workflows/codeql.yml | .github/codeql/*)
+		workflow=true
+		classified=true
+		;;
 	.github/workflows/codeql-csharp.yml)
 		workflow=true
+		csharp=true
 		classified=true
 		;;
 	.github/workflows/code-quality.yml)
@@ -155,16 +242,20 @@ while IFS= read -r f; do
 		classified=true
 		;;
 	.github/workflows/classify-changes.yml | \
-	.github/scripts/classify-changes.sh | \
 	.github/workflows/pr-phase.yml | \
-	.github/scripts/pr-phase.py)
+	.github/scripts/classify-changes.sh | \
+	.github/scripts/audit-ruleset.py | \
+	.github/scripts/pr-phase.py | \
+	.github/rulesets/*)
+		# Phase/classifier/ruleset changes can suppress Remote JS or dep-review
+		# lanes unless force_all_pr turns those checks back on.
 		workflow=true
 		force_all_pr=true
+		csharp=true
 		classified=true
 		;;
 	.github/workflows/* | .github/actions/* | .github/scripts/* | \
-	.github/settings.yml | .github/labeler.yml | .github/CODEOWNERS | \
-	.github/dependabot.yml)
+	.github/settings.yml | .github/labeler.yml | .github/CODEOWNERS)
 		workflow=true
 		classified=true
 		;;
@@ -174,7 +265,6 @@ while IFS= read -r f; do
 	vcpkg.json | vcpkg-configuration.json)
 		dependencies=true
 		build=true
-		force_windows=true
 		force_dep_review=true
 		classified=true
 		;;
@@ -260,18 +350,16 @@ while IFS= read -r f; do
 done <<<"$files"
 
 if [[ "$force_all_pr" == true ]]; then
-	force_windows=true
 	force_dep_review=true
 	force_remote=true
 fi
 
-run_windows_build=false
 run_remote_js=false
 run_dep_review=false
 run_docs_check=false
 
-if [[ "$cpp" == true || "$build" == true || "$force_windows" == true || "$other" == true ]]; then
-	run_windows_build=true
+if [[ "$force_remote" == true ]]; then
+	run_remote_js=true
 fi
 if [[ "$remote" == true || "$force_remote" == true ]]; then
 	run_remote_js=true
@@ -286,16 +374,25 @@ fi
 docs_only=false
 if [[ "$cpp" == false && "$build" == false && "$remote" == false && \
       "$csharp" == false && "$dependencies" == false && "$workflow" == false && \
-      "$other" == false && "$docs" == true ]]; then
+      "$other" == false && "$docs" == true && "$risk_high" == false ]]; then
 	docs_only=true
-	run_windows_build=false
 	run_remote_js=false
 	run_dep_review=false
 fi
 
+risk_level=normal
+if [[ "$risk_high" == true ]]; then
+	risk_level=high
+elif [[ "$risk_low_only" == true ]]; then
+	risk_level=low
+fi
+
+# High-risk governance still requires maintainer review. Ready/live-test
+# Windows builds are gated by PR draft/label in build.yml, not here.
+
 echo "Changed files:"
 echo "$files"
-echo "cpp=$cpp build=$build remote=$remote csharp=$csharp dependencies=$dependencies docs=$docs workflow=$workflow other=$other docs_only=$docs_only"
+echo "cpp=$cpp build=$build remote=$remote csharp=$csharp dependencies=$dependencies docs=$docs workflow=$workflow other=$other docs_only=$docs_only risk_level=$risk_level"
 
 write_out cpp "$cpp"
 write_out build "$build"
@@ -305,7 +402,7 @@ write_out dependencies "$dependencies"
 write_out docs "$docs"
 write_out workflow "$workflow"
 write_out docs_only "$docs_only"
-write_out run_windows_build "$run_windows_build"
 write_out run_remote_js "$run_remote_js"
 write_out run_dep_review "$run_dep_review"
 write_out run_docs_check "$run_docs_check"
+write_diagnostic risk_level "$risk_level"

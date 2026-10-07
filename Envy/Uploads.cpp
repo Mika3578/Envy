@@ -491,15 +491,15 @@ BOOL CUploads::OnAccept(CConnection* pConnection)
 	CSingleLock oTransfersLock( &Transfers.m_pSection );
 	if ( oTransfersLock.Lock( 250 ) )
 	{
-		if ( pConnection->StartsWith( _P("GET /remote/") ) ||
-			 pConnection->StartsWith( _P("GET /remote HTTP") ) )		// User entered remote page into browser, but forgot trailing '/'
+		if (pConnection->StartsWith(_P("GET /remote/")) ||
+		    pConnection->StartsWith(_P("GET /remote HTTP"))) // User entered remote page into browser, but forgot trailing '/'
 		{
-			if ( Settings.Remote.Enable )
+			if (Settings.Remote.Enable)
 			{
 				// Check IP access policy BEFORE instantiating CRemote
-				if ( CRemoteSecurity::IsRemoteAccessAllowed( pConnection->m_pHost.sin_addr ) )
+				if (CRemoteSecurity::IsRemoteAccessAllowed(pConnection->m_pHost.sin_addr, pConnection->m_sAddress))
 				{
-					if ( new CRemote( pConnection ) )
+					if (new CRemote(pConnection))
 						return FALSE;
 				}
 				else
