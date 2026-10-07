@@ -14,8 +14,8 @@ never added as git submodules by default, and never wired into the Envy build.
 | Layer | Location | Tracked? |
 | --- | --- | --- |
 | Policy + full registry | docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md | Yes |
-| Clone catalog | 	ools/references/catalog.json | Yes |
-| Sync helper | 	ools/references/sync-references.ps1 | Yes |
+| Clone catalog | tools/references/catalog.json | Yes |
+| Sync helper | tools/references/sync-references.ps1 | Yes |
 | Local trees | Examples/References/<id>/ | **No** (entire Examples/ is gitignored) |
 
 Presence of a project in the registry does **not** mean Envy supports that
@@ -25,13 +25,13 @@ protocol or feature. Inspiration is not protocol support.
 
 Recommended root (relative to the Envy repo):
 
-`	ext
+```text
 Examples/References/
     emule-community/
     amule/
     emulebb/
     ...
-`
+```
 
 Override with -Root if needed (paths with spaces are supported).
 
@@ -43,7 +43,7 @@ new checkouts.
 
 From the repository root (Windows PowerShell):
 
-`powershell
+```powershell
 # List groups and project ids
 ./tools/references/sync-references.ps1 -List
 
@@ -61,7 +61,7 @@ From the repository root (Windows PowerShell):
 
 # Preview actions
 ./tools/references/sync-references.ps1 -Project amule -WhatIf
-`
+```
 
 With no -Group / -Project, the script syncs catalog entries marked
 syncDefault: true (the immediate ED2K/Kad set).
@@ -72,7 +72,7 @@ syncDefault: true (the immediate ED2K/Kad set).
 | --- | --- |
 | ed2k-immediate | Clones for the current ED2K/Kad workstream |
 | ed2k | Broader ED2K/Kad set (includes eMule AI, aria2-next, ...) |
-| ittorrent | libtorrent, qBittorrent, Transmission, BiglyBT, aria2-next |
+| bittorrent | libtorrent, qBittorrent, Transmission, BiglyBT, aria2-next |
 | dc | AirDC++ / EiskaltDC++ (does not imply adding ADC/NMDC features) |
 | heritage | Shareaza, PeerProject, NeoLoader, MLDonkey |
 | experimental | Ember, Rucio, eMule eSE - never Kad2 authority |
