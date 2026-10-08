@@ -12,6 +12,9 @@
 
 - **Changelog Entry:** 2026-09-30 — PR governance simplification (D-022): keep one non-author approving review as the trust boundary against PR-controlled CI self-bypass; path-based conditional Windows builds; Sonar/advisory bots; ruleset-as-code audit; `docs/10_dev/pr-workflow.md`. Review loop (classifier + `evaluate-review-loop` + finding ledger) remains; native `review_on_push` is **not** the target.
 - **Changelog Entry:** 2026-09-29 — (superseded wording) earlier D-022 draft considered zero mandatory approvals; rejected after review of PR-controlled classify/build bypass risk.
+- **Changelog Entry:** 2026-09-30 — #394: expand always-on PR CodeQL to python and GitHub Actions (`actions`); keep C# deferred in cheap Draft (live-test/Ready); document Default-setup migration and classifier comments.
+- **Changelog Entry:** 2026-09-30 — #351: rename-aware encoding diffs, valid-to-invalid UTF-8 and invalid-byte mutation guards, BOM/header-safe Languages UTF-8, encoding-migration label path, and Windows/vcpkg setup docs aligned with the active x64/Win32 policy.
+- **Changelog Entry:** 2026-09-28 — #351: make encoding selftests exercise mojibake/C1 detectors on non-header lines, align vcpkg build guidance with the active x64/Win32 policy, and parse changed-line metadata without dropping `++`/`--` source lines.
 - **Changelog Entry:** 2026-09-28 — #367: separate declared connection capacity from explicit transfer limits, preserve user caps, share capacity presets, and add transfer-limit regression coverage.
 - **Changelog Entry:** 2026-09-28 — #363: correct ED2K SourceEx2 request/answer framing, add versioned record validation and golden vectors, and document the live interop gap.
 - **Changelog Entry:** 2026-09-28 — #381 simplification: remove the duplicate PR Gate poller and conclusion helpers; keep Draft → `stage:live-test` → Ready phase selection and native workflow checks. Protect develop now removes PR Gate, required signatures, duplicate gitleaks status, and required Documentation Check, with Copilot review-on-push disabled. Cursor automations remain external manual operations.
@@ -246,7 +249,7 @@
   conclusions are the merge gate. See `docs/10_dev/pr-workflow.md`.
 - CI uses a two-speed model: change-aware PR jobs for Windows/Remote/deps plus
   full integration on `develop` / scheduled analysis. Every PR always runs
-  CodeQL Analyze (c-cpp) and (javascript-typescript), plus blocking Format
+  CodeQL Analyze (c-cpp), (javascript-typescript), (python), and (actions), plus blocking Format
   Check. C# analysis and Windows Release eligibility follow staged pr-phase
   policy; Ready/live-test runs actual analysis and both Windows builds.
   Classification outputs are advisory and never replace these required jobs

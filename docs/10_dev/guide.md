@@ -119,9 +119,10 @@ Authoritative full-app Release x64 example:
 
 ```cmd
 msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
-  /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 ^
-  /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
+  /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0
 ```
+
+Do **not** pass `/p:VcpkgEnableManifest` or `/p:VcpkgTriplet` for **x64** builds (see [build.md](build.md) and [development-environment.md](development-environment.md)).
 
 CI also verifies Win32 where required. See [build.md](build.md) for bootstrap,
 runner, and troubleshooting details.
