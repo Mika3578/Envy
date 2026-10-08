@@ -108,7 +108,7 @@ if (Test-Path -LiteralPath $vswhere)
             if (-not $hasAtl) { $missing += 'ATL' }
             if (-not $hasMfc) { $missing += 'MFC' }
             Write-Host ("  MISS Visual Studio C++ {0} for v145 (vswhere)" -f ($missing -join '/'))
-            $issues += ('Install C++ {0} for the latest MSVC/v145 toolset via Visual Studio Installer (Desktop development with C++ → ATL/MFC).' -f ($missing -join ' and '))
+            $issues += ('Install C++ {0} for the latest MSVC/v145 toolset via Visual Studio Installer (Desktop development with C++ -> ATL/MFC).' -f ($missing -join ' and '))
         }
         else
         {
@@ -173,10 +173,6 @@ if (Test-Path -LiteralPath $bootstrap)
     Write-Host '  x64 manifest (optional): scripts\bootstrap-vcpkg.cmd'
     Write-Host '  Both: scripts\bootstrap-vcpkg.cmd -All'
     Write-Host '  See docs\10_dev\build.md (x64 BugSplat does not require vcpkg_installed\x64-windows-static).'
-    if (-not $Check)
-    {
-        Write-Host '  (Use -Check to skip automatic guidance only.)'
-    }
 }
 else
 {

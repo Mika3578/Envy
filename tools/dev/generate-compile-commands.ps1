@@ -39,6 +39,40 @@ function Get-RepoRoot
     throw 'Could not locate repository root (Visual Studio\Envy.sln).'
 }
 
+function Select-Msvc145ToolsetDir
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [object[]]$VersionDirs
+    )
+
+    # Envy.sln PlatformToolset v145 -> MSVC 14.5x only. Accept only dotted numeric
+    # folder names (e.g. 14.50.35710). Never cast non-numeric names to [version].
+    $candidates = @(
+        foreach ($dir in @($VersionDirs))
+        {
+            if ($null -eq $dir) { continue }
+            $name = [string]$dir.Name
+            if ($name -notmatch '^14\.5\d+(\.\d+)*$') { continue }
+            [pscustomobject]@{
+                Dir     = $dir
+                Version = [version]$name
+            }
+        }
+    )
+    if ($candidates.Count -eq 0)
+    {
+        return $null
+    }
+
+    return (
+        $candidates |
+            Sort-Object -Property Version -Descending |
+            Select-Object -First 1 |
+            ForEach-Object { $_.Dir }
+    )
+}
+
 function Find-MsvcClExe
 {
     param(
@@ -72,10 +106,8 @@ function Find-MsvcClExe
         throw "MSVC toolset directory missing under: $msvcRoot"
     }
 
-    # Match Envy.sln PlatformToolset v145 (MSVC 14.5x only — not a newer side-by-side toolset).
-    $versionDirs = @(Get-ChildItem -LiteralPath $msvcRoot -Directory |
-        Sort-Object { [version]($_.Name -replace '[^\d.]', '') } -Descending)
-    $versionDir = $versionDirs | Where-Object { $_.Name -match '^14\.5\d' } | Select-Object -First 1
+    $versionDirs = @(Get-ChildItem -LiteralPath $msvcRoot -Directory)
+    $versionDir = Select-Msvc145ToolsetDir -VersionDirs $versionDirs
     if (-not $versionDir)
     {
         throw "No MSVC 14.5x (v145) toolset folder under: $msvcRoot (found: $($versionDirs.Name -join ', ')). Install Visual Studio 2026 with toolset v145."
@@ -250,6 +282,44 @@ function Write-CompileCommandsJson
 
 function Invoke-GenerateCompileCommandsSelfTest
 {
+    # Mixed valid 14.5x folders, older toolsets, and non-numeric junk must not throw;
+    # selection is numeric (not lexicographic) and picks the newest 14.5x only.
+    $mixedNames = @(
+        [pscustomobject]@{ Name = 'latest' }
+        [pscustomobject]@{ Name = '14.44.35207' }
+        [pscustomobject]@{ Name = '14.50.9' }
+        [pscustomobject]@{ Name = 'not-a-version' }
+        [pscustomobject]@{ Name = '14.50.10' }
+        [pscustomobject]@{ Name = '14.5x-preview' }
+        [pscustomobject]@{ Name = '14.51.0' }
+        [pscustomobject]@{ Name = '' }
+        [pscustomobject]@{ Name = 'MSVC' }
+    )
+    $picked = Select-Msvc145ToolsetDir -VersionDirs $mixedNames
+    if ($null -eq $picked -or $picked.Name -ne '14.51.0')
+    {
+        throw "SelfTest: expected newest 14.5x '14.51.0', got '$($picked.Name)'"
+    }
+    # Lexicographic trap: '14.50.9' > '14.50.10' as strings; numeric sort must keep 14.50.10.
+    $lexTrap = @(
+        [pscustomobject]@{ Name = '14.50.9' }
+        [pscustomobject]@{ Name = '14.50.10' }
+        [pscustomobject]@{ Name = 'bogus' }
+    )
+    $lexPicked = Select-Msvc145ToolsetDir -VersionDirs $lexTrap
+    if ($null -eq $lexPicked -or $lexPicked.Name -ne '14.50.10')
+    {
+        throw "SelfTest: numeric sort failed; expected '14.50.10', got '$($lexPicked.Name)'"
+    }
+    $none = Select-Msvc145ToolsetDir -VersionDirs @(
+        [pscustomobject]@{ Name = '14.44.1' }
+        [pscustomobject]@{ Name = 'tools' }
+    )
+    if ($null -ne $none)
+    {
+        throw "SelfTest: expected no 14.5x candidate, got '$($none.Name)'"
+    }
+
     $single = @(Split-TlogSourceMarker -Marker 'C:\src\a.cpp')
     if ($single.Count -ne 1 -or $single[0] -ne 'C:\src\a.cpp')
     {
