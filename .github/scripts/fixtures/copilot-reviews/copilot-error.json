@@ -1,0 +1,8 @@
+{
+  "id": 9000000008,
+  "user": { "login": "copilot-pull-request-reviewer[bot]" },
+  "state": "COMMENTED",
+  "submitted_at": "2026-09-29T12:07:00Z",
+  "commit_id": "2222222222222222222222222222222222222222",
+  "body": "Copilot encountered an error and was unable to review this pull request. You can try again by re-requesting a review."
+}

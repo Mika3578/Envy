@@ -1,3 +1,5 @@
+> Current verification (2026-10-03) supersedes historical settings below: live Protect develop `required_approving_review_count` is **0** (ruleset 16457466). Documented merge policy remains one independent non-author `APPROVED` (and independent human `APPROVED` for privileged governance). Review-on-push is off, eight required checks, and Code Quality severity all. Older one-approval or review-on-push-on rows are historical or target policy, not the live 2026-10-03 observation.
+
 # CI/CD audit — Envy (Mika3578/Envy) — 2026-09-19
 
 **Scope:** GitHub Actions, required checks, Protect develop / Protect main
@@ -43,11 +45,18 @@ SonarCloud required, PR Gate stricter than GitHub skip semantics.
   API). Copilot code review is enabled with **review-on-push off**
   (mergeable-head requests only; see `docs/10_dev/devsecops-envy.md`).
 
-**Live Protect develop re-verification (2026-09-20):** required approvals **1**,
-Code Quality severity **All**, Copilot `review_on_push` **off**, draft review
-**off**, coverage restriction **off**. Older rows below that show approvals
-**0** / Code Quality `notes` / `review_on_push: true` are **stale historical
-snapshots**, not current live state.
+**Live Protect develop re-verification (2026-10-03, ruleset 16457466):**
+required approvals **0**, Code Quality severity **All**, Copilot
+`review_on_push` **off**, draft review **off**, coverage restriction **off**.
+Documented merge policy remains one independent non-author `APPROVED` (and
+independent human `APPROVED` for privileged governance). Older rows below that
+show approvals **1** or `review_on_push: true` are **historical or target
+policy**, not the live 2026-10-03 observation.
+
+**Historical observation (2026-09-20 / 2026-10-01):** earlier audits recorded a
+live one-approval requirement. That is superseded by the 2026-10-03 live count
+of **0**. Copilot `review_on_push` and draft review remain off. No change
+enabling review-on-push is proposed in this PR.
 
 **Pre-change findings resolved in this PR:** empty NuGet restore (~22 s/job
 no-op) skipped; Documentation Check always emits a terminal conclusion;

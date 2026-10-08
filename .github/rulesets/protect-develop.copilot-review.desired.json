@@ -1,0 +1,33 @@
+{
+  "_comment": "Read-only policy snapshot. Preserve review_on_push=false until a separate human-reviewed activation; this PR does not apply live settings.",
+  "type": "copilot_code_review",
+  "parameters": {
+    "review_on_push": false,
+    "review_draft_pull_requests": false
+  },
+  "live_observed_2026-09-30": {
+    "superseded": true,
+    "note": "Historical observation; current enforceable state is recorded below."
+  },
+  "notes": [
+    "Preserve one non-author approval and every existing CI/security/quality gate.",
+    "CLEAN/FIX_AGAIN/NEEDS_HUMAN is classification, never a GitHub approval.",
+    "The exceptional requester remains disabled until its trusted environment is verified.",
+    "Do not set review_on_push or review_draft_pull_requests to true.",
+    "PR #395 owns shared governance wording; this PR owns the classifier, ledger, and advisory Final review gate.",
+    "Do not add Final review gate to live required checks until the workflow exists on develop."
+  ],
+  "live_observed_2026-10-01": {
+    "superseded": true,
+    "review_on_push": false,
+    "review_draft_pull_requests": false,
+    "required_approving_review_count": 1,
+    "note": "Historical observation; later live re-verification recorded 0."
+  },
+  "live_observed_2026-10-03": {
+    "review_on_push": false,
+    "review_draft_pull_requests": false,
+    "required_approving_review_count": 0,
+    "ruleset_id": 16457466
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "_comment": "Read-only future Protect develop fragment. Do not apply in this PR. Auto-merge stays off. Do not enroll against the shared GitHub Actions app (integration_id 15368): any PR-controlled workflow can mint a same-named Actions check run. Before enrollment, set integration_id to a dedicated publisher GitHub App id and add that same id to GATE_PUBLISHER_INTEGRATION_IDS in scripts/review/required_checks.py (imported by the evaluator/host) in the same change.",
+  "type": "required_status_checks",
+  "parameters": {
+    "strict_required_status_checks_policy": true,
+    "do_not_enforce_on_create": false,
+    "required_status_checks": [
+      {
+        "context": "Final review gate",
+        "integration_id": null,
+        "publisher_integration_id_placeholder": "DEDICATED_PUBLISHER_GITHUB_APP_ID"
+      }
+    ]
+  },
+  "rollout": [
+    "A. Implement evaluator on #397; publish only from default-branch workflow_run/check_run/workflow_dispatch.",
+    "B. Keep the status advisory (not required). Never enroll shared Actions app 15368 as the authenticity bound.",
+    "C. Merge #397 after independent human APPROVED (privileged governance).",
+    "D. Observe real PRs posting the status on current HEAD from the default-branch publisher only.",
+    "E. Create/configure a dedicated publisher GitHub App that only the default-branch publisher can use.",
+    "F. Maintainer sets integration_id to that dedicated app and only then adds required check Final review gate to Protect develop.",
+    "G. Pilot 2-3 real PRs with manual squash.",
+    "H. Only later consider repository auto-merge."
+  ],
+  "depends_on": ["#395"]
+}

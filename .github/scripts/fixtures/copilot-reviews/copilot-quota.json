@@ -1,0 +1,8 @@
+{
+  "id": 9000000010,
+  "user": { "login": "copilot-pull-request-reviewer[bot]" },
+  "state": "COMMENTED",
+  "commit_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "submitted_at": "2026-09-29T12:00:00Z",
+  "body": "Copilot encountered an error and was unable to review this pull request because the quota was exceeded. You can try again later."
+}

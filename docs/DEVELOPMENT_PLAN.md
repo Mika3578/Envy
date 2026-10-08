@@ -1,6 +1,7 @@
 # DEVELOPMENT PLAN (LIVING)
 
 - **Last Updated:** 2026-10-07
+- **Changelog Entry:** 2026-10-03 — #397 adds stable-HEAD Copilot (one accepted request per SHA; no quota retry of an already submitted review) plus advisory SHA-bound `Final review gate` published only from a default-branch workflow. GraphQL `reviewDecision`, independent non-author human approval on privileged paths, mandatory classifier, CodeRabbit Drafts off, reconstruct prior Copilot outcomes from GitHub reviews, and probe events for review comments/threads. `review_on_push` stays false; auto-merge stays off; required-check rollout waits until the workflow exists on `develop`. D-022.
 
 - **Changelog Entry:** 2026-10-07 - P2P reference registry refresh (#387 resumed): `REFERENCE_IMPLEMENTATIONS.md` expanded (amule-org, eMuleBB/padMule/MorphXT/heritage/BT/DC); October ecosystem audit; optional ignored clones via `tools/references/` -> `Examples/References/` (D-023). No AGENTS/governance change; no protocol code.
 - **Changelog Entry:** 2026-10-01 — Finalization of #395 preserves one non-author approval, all eight live required contexts, CodeQL/Gitleaks and GitHub Code Quality (severity All). Retain the staged Draft/live-test/Ready workflow and manual maintainer transitions; squash summaries remain curated. #397 owns review outcome tracking, not merge authority.
@@ -9,7 +10,7 @@
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
-- **Changelog Entry:** 2026-09-30 — PR governance simplification (D-022): keep one non-author approving review as the trust boundary against PR-controlled CI self-bypass; path-based conditional Windows builds; Sonar/advisory bots; ruleset-as-code audit; `docs/10_dev/pr-workflow.md`.
+- **Changelog Entry:** 2026-09-30 — PR governance simplification (D-022): keep one non-author approving review as the trust boundary against PR-controlled CI self-bypass; path-based conditional Windows builds; Sonar/advisory bots; ruleset-as-code audit; `docs/10_dev/pr-workflow.md`. Review loop (classifier + `evaluate-review-loop` + finding ledger) remains; native `review_on_push` is **not** the target.
 - **Changelog Entry:** 2026-09-29 — (superseded wording) earlier D-022 draft considered zero mandatory approvals; rejected after review of PR-controlled classify/build bypass risk.
 - **Changelog Entry:** 2026-09-30 — #394: expand always-on PR CodeQL to python and GitHub Actions (`actions`); keep C# deferred in cheap Draft (live-test/Ready); document Default-setup migration and classifier comments.
 - **Changelog Entry:** 2026-09-30 — #351: rename-aware encoding diffs, valid-to-invalid UTF-8 and invalid-byte mutation guards, BOM/header-safe Languages UTF-8, encoding-migration label path, and Windows/vcpkg setup docs aligned with the active x64/Win32 policy.
