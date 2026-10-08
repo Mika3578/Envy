@@ -34,8 +34,11 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
-          # Trusted base only. Do not check out PR head for execution.
-          ref: ${{ github.event.pull_request.base.sha }}
+          # pull_request_target defaults to a trusted ref; pin repository and
+          # disable credentials. PR head is fetched later as data only; the
+          # scanner binary is always taken from BASE_SHA via git show.
+          repository: ${{ github.repository }}
+          persist-credentials: false
           fetch-depth: 0
       - name: Authorship hygiene (commits, PR text, added lines)
         env:
