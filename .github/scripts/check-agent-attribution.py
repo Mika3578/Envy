@@ -868,14 +868,15 @@ def main() -> int:
                 review_text = collect_human_review_text(
                     github_repo, args.github_pr.strip()
                 )
-            except ValueError as exc:
-                report(findings, SEVERITY_FAIL, str(exc))
             except (RuntimeError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
+                # JSONDecodeError is a ValueError subclass; keep it with transport errors.
                 report(
                     findings,
                     SEVERITY_WARN,
                     f"could not load pull request comments for scan ({exc}).",
                 )
+            except ValueError as exc:
+                report(findings, SEVERITY_FAIL, str(exc))
         if review_text:
             scan_pr_text(findings, "pull request comments", review_text)
 
