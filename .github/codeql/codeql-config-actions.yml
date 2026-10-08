@@ -1,0 +1,15 @@
+name: "CodeQL Config for Envy (Actions)"
+
+# Workflow YAML and composite actions live under .github/; the shared C++
+# config excludes that tree, so Actions analysis needs its own path scope.
+paths:
+  - .github
+
+paths-ignore:
+  - ".github/**/test/**"
+  - ".github/**/tests/**"
+
+disable-default-queries: false
+
+queries:
+  - uses: security-and-quality
