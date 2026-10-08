@@ -173,10 +173,6 @@ if (Test-Path -LiteralPath $bootstrap)
     Write-Host '  x64 manifest (optional): scripts\bootstrap-vcpkg.cmd'
     Write-Host '  Both: scripts\bootstrap-vcpkg.cmd -All'
     Write-Host '  See docs\10_dev\build.md (x64 BugSplat does not require vcpkg_installed\x64-windows-static).'
-    if (-not $Check)
-    {
-        Write-Host '  (Use -Check to skip automatic guidance only.)'
-    }
 }
 else
 {

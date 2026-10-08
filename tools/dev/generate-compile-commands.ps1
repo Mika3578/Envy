@@ -73,9 +73,9 @@ function Find-MsvcClExe
     }
 
     # Match Envy.sln PlatformToolset v145 (MSVC 14.5x only — not a newer side-by-side toolset).
-    $versionDirs = @(Get-ChildItem -LiteralPath $msvcRoot -Directory |
-        Sort-Object { [version]($_.Name -replace '[^\d.]', '') } -Descending)
-    $versionDir = $versionDirs | Where-Object { $_.Name -match '^14\.5\d' } | Select-Object -First 1
+    $versionDirs = @(Get-ChildItem -LiteralPath $msvcRoot -Directory)
+    $versionDir = $versionDirs | Where-Object { $_.Name -match '^14\.5\d' } |
+        Sort-Object { [version]($_.Name -replace '[^\d.]', '') } -Descending | Select-Object -First 1
     if (-not $versionDir)
     {
         throw "No MSVC 14.5x (v145) toolset folder under: $msvcRoot (found: $($versionDirs.Name -join ', ')). Install Visual Studio 2026 with toolset v145."
