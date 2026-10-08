@@ -1,6 +1,16 @@
 name: Authorship hygiene
 
 # Isolated from security.yml so secret scanning remains independently visible.
+#
+# Security model (keep in sync with docs/10_dev/agents-and-automation.md):
+# - Trigger is pull_request_target so the workflow YAML and GITHUB_TOKEN come
+#   from the base repository, not from fork PR heads.
+# - actions/checkout uses the PR base SHA (trusted), never the PR head for
+#   execution. PR commits are fetched only as data for the scanner.
+# - The scanner script is always loaded from the base SHA so a PR cannot
+#   replace its own authorship policy before merge.
+# - Permissions stay read-only. No secrets beyond GITHUB_TOKEN are used.
+# See: https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target
 
 on:
   pull_request_target:
@@ -24,6 +34,8 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
+          # Trusted base only. Do not check out PR head for execution.
+          ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 0
       - name: Authorship hygiene (commits, PR text, added lines)
         env:
@@ -79,5 +91,6 @@ jobs:
           if [[ -n "${BASE_SHA:-}" && -n "${HEAD_SHA:-}" ]]; then
             cmd+=(--from "$BASE_SHA" --to "$HEAD_SHA" --diff)
           fi
+          # FAIL findings fail the job; WARN findings annotate and still pass.
           ATTRIBUTION_CI_ANNOTATE=1 "${cmd[@]}"
           rm -rf "$work"
