@@ -1,0 +1,21 @@
+name: "CodeQL Config for Envy (Python)"
+
+# Python sources live mainly under tools/ and .github/scripts/, outside the
+# C++ path allowlist in codeql-config.yml. Keep this config language-specific.
+paths:
+  - tools
+  - .github/scripts
+  - scripts
+  - Repository
+
+paths-ignore:
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/__pycache__/**"
+  - "**/.venv/**"
+  - "**/venv/**"
+
+disable-default-queries: false
+
+queries:
+  - uses: security-and-quality
