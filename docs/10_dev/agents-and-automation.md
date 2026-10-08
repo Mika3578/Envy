@@ -310,9 +310,10 @@ settings and security/authorship rules require explicit maintainer review of
 the final diff. This PR is itself in that category.
 
 The existing authorship workflow is retained: read-only permissions, scanner
-extracted from base, PR commits/text inspected as data. Its `pull_request_target`
-path does not run PR code and it runs only on PR lifecycle/content changes;
-review/comment events do not retrigger it. This is not a universal
+loaded from the base SHA via the Contents API (no `actions/checkout` of the PR
+workspace), PR commits/text inspected as data in a throwaway git mirror. Its
+`pull_request_target` path does not run PR code and it runs only on PR
+lifecycle/content changes; review/comment events do not retrigger it. This is not a universal
 trusted-policy guarantee. No new privileged trigger is introduced. Build errors use summaries/artifacts rather
 than PR comments, removing the build token's PR write permission and extra
 subscription events. Approval tools disabled in Cursor are a product control;

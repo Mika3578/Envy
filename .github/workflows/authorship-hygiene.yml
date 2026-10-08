@@ -5,10 +5,10 @@ name: Authorship hygiene
 # Security model (keep in sync with docs/10_dev/agents-and-automation.md):
 # - Trigger is pull_request_target so the workflow YAML and GITHUB_TOKEN come
 #   from the base repository, not from fork PR heads.
-# - actions/checkout uses the PR base SHA (trusted), never the PR head for
-#   execution. PR commits are fetched only as data for the scanner.
-# - The scanner script is always loaded from the base SHA so a PR cannot
-#   replace its own authorship policy before merge.
+# - No actions/checkout of the PR workspace. A throwaway git repo fetches the
+#   base SHA and PR head refs as data only; nothing from the PR is executed.
+# - The scanner script is always loaded from the base SHA (GitHub Contents API)
+#   so a PR cannot replace its own authorship policy before merge.
 # - Permissions stay read-only. No secrets beyond GITHUB_TOKEN are used.
 # See: https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target
 
@@ -32,14 +32,6 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
-        with:
-          # pull_request_target defaults to a trusted ref; pin repository and
-          # disable credentials. PR head is fetched later as data only; the
-          # scanner binary is always taken from BASE_SHA via git show.
-          repository: ${{ github.repository }}
-          persist-credentials: false
-          fetch-depth: 0
       - name: Authorship hygiene (commits, PR text, added lines)
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -53,20 +45,26 @@ jobs:
             BASE_SHA="$(gh api "repos/${REPO}/pulls/${PR_NUMBER}" --jq .base.sha)"
             HEAD_SHA="$(gh api "repos/${REPO}/pulls/${PR_NUMBER}" --jq .head.sha)"
           fi
-          if [[ -n "${PR_NUMBER:-}" ]]; then
-            git fetch --no-tags origin \
-              "${BASE_SHA}" \
-              "+refs/pull/${PR_NUMBER}/head:refs/remotes/origin/pr/${PR_NUMBER}"
-          fi
+
           trusted="${RUNNER_TEMP}/authorship-checker"
           mkdir -p "$trusted"
-          if [[ -n "${BASE_SHA:-}" ]] && git cat-file -e "${BASE_SHA}:.github/scripts/check-agent-attribution.py" 2>/dev/null; then
-            git show "${BASE_SHA}:.github/scripts/check-agent-attribution.py" >"${trusted}/check-agent-attribution.py"
+          # Load scanner from trusted base only (Contents API, not PR tree).
+          if content="$(gh api "repos/${REPO}/contents/.github/scripts/check-agent-attribution.py?ref=${BASE_SHA}" --jq .content 2>/dev/null)"; then
+            printf '%s' "$content" | tr -d '\n' | base64 --decode >"${trusted}/check-agent-attribution.py"
             echo "Using authorship checker from base ${BASE_SHA}"
           else
             echo "::warning::Authorship checker not on base ref yet; bootstrap pass (no fail) until merge."
             exit 0
           fi
+
+          # Throwaway repo: inspect PR commits as data; never execute them.
+          mirror="$(mktemp -d)"
+          git init -q "$mirror"
+          git -C "$mirror" remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          git -C "$mirror" fetch --no-tags origin \
+            "${BASE_SHA}" \
+            "+refs/pull/${PR_NUMBER}/head:refs/remotes/origin/pr/${PR_NUMBER}"
+
           work="$(mktemp -d)"
           python3 - "$work" <<'PY'
           import json, os, sys
@@ -95,5 +93,8 @@ jobs:
             cmd+=(--from "$BASE_SHA" --to "$HEAD_SHA" --diff)
           fi
           # FAIL findings fail the job; WARN findings annotate and still pass.
-          ATTRIBUTION_CI_ANNOTATE=1 "${cmd[@]}"
-          rm -rf "$work"
+          (
+            cd "$mirror"
+            ATTRIBUTION_CI_ANNOTATE=1 "${cmd[@]}"
+          )
+          rm -rf "$work" "$mirror"
