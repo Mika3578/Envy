@@ -6,6 +6,11 @@
 # Draft without stage:live-test may defer; Ready and stage:live-test always
 # run real x64 + Win32 Release + EnvyTests (including docs-only).
 #
+# Always-on on every PR (not gated here): CodeQL c-cpp / javascript-typescript /
+# python / actions, plus Format Check. C# CodeQL is deferred in cheap Draft and
+# runs in live-test/Ready (see codeql-csharp.yml) — do not list it as always-on.
+# Keeping these outside classify-changes avoids Code Scanning "configuration not
+# found" and false-green format when the classifier fails.
 # Required merge contexts must always be emitted by workflows. Do not skip
 # entire workflows with path filters when a context is required.
 #

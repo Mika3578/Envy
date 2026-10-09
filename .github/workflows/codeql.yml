@@ -2,7 +2,8 @@ name: CodeQL Advanced
 
 # CodeQL jobs intentionally do NOT depend on classify-changes. A classifier
 # failure must never suppress language configurations that Protect develop
-# Code Scanning expects on every PR (c-cpp + javascript-typescript).
+# Code Scanning expects on every PR (c-cpp, javascript-typescript, python,
+# and actions).
 
 on:
   push:
@@ -156,8 +157,67 @@ jobs:
         with:
           languages: javascript-typescript
           build-mode: none
+          # Shared codeql-config.yml only allows C++ trees; Remote JS lives under Remote/.
+          config-file: .github/codeql/codeql-config-javascript.yml
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
         with:
           category: /language:javascript-typescript
+
+  analyze-python:
+    name: Analyze (python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          fetch-depth: 1
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        with:
+          languages: python
+          build-mode: none
+          # Shared codeql-config.yml only allows C++ trees; Python lives under
+          # tools/ and .github/scripts/.
+          config-file: .github/codeql/codeql-config-python.yml
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        with:
+          category: /language:python
+
+  analyze-actions:
+    name: Analyze (actions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          fetch-depth: 1
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        with:
+          languages: actions
+          build-mode: none
+          # Shared codeql-config.yml excludes .github/; Actions YAML lives there.
+          config-file: .github/codeql/codeql-config-actions.yml
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        with:
+          category: /language:actions
