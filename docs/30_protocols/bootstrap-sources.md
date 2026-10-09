@@ -73,6 +73,29 @@ The first three returned HTTP 200 with `H|address:port|age` records on 2026-10-0
 
 Removed as dead or parked: `cache.getenvy.com/*` (lander), `gwctest.zapto.org`, `disobscure.velum-ultra.com`, `tenafly5k.com`, `gwc.centrump2p.com`, `cache.ce3c.be`, `cache.ibel.de`, `k33bz.com` (HTTP 500). `skulls.gwc.dyslexicfish.net` is an HTML directory, not a queryable GWC.
 
+### Cross-project candidate sweep
+
+The current gtk-gnutella source remains the maintained reference for UHC
+bootstrap names. Its `boot_hosts` list matches the six UHC rows above; the
+other ports in that source are peer endpoints, not additional host-cache
+bootstrap services, so they were not promoted into `DefaultServices.dat`.
+
+Historical PeerProject defaults were also used as a candidate source. The
+following candidates were checked with Envy's GWC2 request shape on
+2026-10-09: `webcache.peerproject.org`, `cache.w3-hidden.cc`,
+`gwebcache.ns1.net`, `gweb.dwbo.nl`, `cache.trillinux.org/g2/bazooka.php`,
+`silvers.zyns.com/gwc/dkac.php`, `brov.mine.nu/Beacon/gwc.php`,
+`gwc2.wodi.org/skulls.php`, `gwc.dyndns.info:28960/gwc.php`,
+`cache2.bazookanetworks.com/g2/bazooka.php`, `cache3.leite.us`,
+`cache5.leite.us`, and `gwc.iblinx.com:2108/gwc/cgi-bin/fc`.
+None returned both a usable HTTP response and a GWebCache host record;
+`gwebcache.ns1.net` returned a Cloudflare 403 page. They remain excluded.
+
+This negative result is intentional: the GWebCache specification requires
+clients to remove caches that do not respond correctly and warns against
+repeated requests to unavailable volunteer services. A new shipped URL is
+added only after a bounded request returns the expected `I|`/`H|` response.
+
 ### Direct Connect hublists (NMDC)
 
 | URL | Operator | Mix |
