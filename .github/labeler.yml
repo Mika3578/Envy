@@ -17,7 +17,8 @@ dependencies:
   - changed-files:
       - any-glob-to-any-file:
           - "vcpkg.json"
-          - "vcpkg-configuration.json"
+          - "Remote/tests/package.json"
+          - "Remote/tests/package-lock.json"
 
 core:
   - changed-files:

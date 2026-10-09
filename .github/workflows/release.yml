@@ -119,20 +119,34 @@ jobs:
             git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
           }
 
-          $baseline = $null
-          $vcpkgConfig = Join-Path $env:GITHUB_WORKSPACE "vcpkg-configuration.json"
-          if (Test-Path $vcpkgConfig) {
-            $baseline = (Get-Content $vcpkgConfig -Raw | ConvertFrom-Json)."builtin-baseline"
-          }
+          $vcpkgManifest = Join-Path $env:GITHUB_WORKSPACE "vcpkg.json"
+          $baseline = (Get-Content $vcpkgManifest -Raw | ConvertFrom-Json)."builtin-baseline"
+          # Fail closed like the PR gate in dependency-review.yml: only a
+          # pinned 40-hex commit may reach fetch/checkout, so a branch or
+          # tag ref can never bootstrap an unpinned vcpkg tip.
           if (-not $baseline) {
-            $vcpkgManifest = Join-Path $env:GITHUB_WORKSPACE "vcpkg.json"
-            $baseline = (Get-Content $vcpkgManifest -Raw | ConvertFrom-Json)."builtin-baseline"
+            throw "vcpkg.json is missing builtin-baseline; refusing to bootstrap an unpinned vcpkg tip."
           }
-          if ($baseline) {
-            git -C $vcpkgRoot checkout $baseline
+          if ($baseline -notmatch '^[0-9a-fA-F]{40}$') {
+            throw "vcpkg.json builtin-baseline must be a 40-hex git commit (got '$baseline')."
+          }
+          git -C $vcpkgRoot fetch --depth 1 origin $baseline
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to fetch vcpkg baseline $baseline (exit $LASTEXITCODE)."
+          }
+          git -C $vcpkgRoot checkout --detach $baseline
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to checkout vcpkg baseline $baseline (exit $LASTEXITCODE)."
+          }
+          $detached = (git -C $vcpkgRoot rev-parse HEAD).Trim()
+          if ($detached -ne $baseline) {
+            throw "vcpkg HEAD $detached does not match required baseline $baseline."
           }
 
           & "$vcpkgRoot/bootstrap-vcpkg.bat" -disableMetrics
+          if ($LASTEXITCODE -ne 0) {
+            throw "vcpkg bootstrap failed with exit code $LASTEXITCODE"
+          }
           $resolvedCommit = (git -C $vcpkgRoot rev-parse HEAD).Trim()
           echo "VCPKG_INSTALLATION_ROOT=$vcpkgRoot" >> $env:GITHUB_ENV
           echo "VCPKG_COMMIT=$resolvedCommit" >> $env:GITHUB_ENV
@@ -143,7 +157,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/vcpkg_cache
-          key: vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          key: vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
             vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-${{ env.VCPKG_COMMIT }}-
             vcpkg-release-${{ runner.os }}-${{ matrix.platform }}-${{ env.PLATFORM_TOOLSET }}-
