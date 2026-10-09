@@ -2,6 +2,7 @@
 
 - **Last Updated:** 2026-10-07
 
+- **Changelog Entry:** 2026-10-06 — #372: align Kad2 SEARCH_SOURCE_REQ with maintained aMule framing (<FileHash 16><StartPosition uint16 LE><FileSize uint64 LE>), keep bounded legacy hash-only/size-only input compatibility, and use one tested encoder for the production send path so CPacket big-endian state cannot corrupt FileSize.
 - **Changelog Entry:** 2026-10-07 — #327: cover the Windows MSBuild composite action in Dependabot; make `-CloneVcpkg` select the pinned local checkout even when absent; four offline selection cases pass. Reconcile with current `develop` without restoring retired classification outputs or changing live protections.
 
 - **Changelog Entry:** 2026-10-07 - P2P reference registry refresh (#387 resumed): `REFERENCE_IMPLEMENTATIONS.md` expanded (amule-org, eMuleBB/padMule/MorphXT/heritage/BT/DC); October ecosystem audit; optional ignored clones via `tools/references/` -> `Examples/References/` (D-023). No AGENTS/governance change; no protocol code.
