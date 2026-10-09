@@ -120,6 +120,14 @@ jobs:
           sudo apt-get install -y clang-format-18
           bash .github/scripts/format-check.selftest.sh
 
+      - name: Source-encoding guard self-test
+        shell: bash
+        run: bash .github/scripts/check-source-encoding.selftest.sh
+
+      - name: Self-test compile_commands generator
+        shell: pwsh
+        run: pwsh ./tools/dev/generate-compile-commands.ps1 -SelfTest
+
   build-x64-release:
     name: Build x64 Release
     permissions:
