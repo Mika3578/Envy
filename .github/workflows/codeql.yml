@@ -49,7 +49,7 @@ jobs:
       # schedule, and manual runs keep a full traced MSBuild for precision.
       - name: Initialize CodeQL (PR, no build)
         if: github.event_name == 'pull_request'
-        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4
         with:
           languages: c-cpp
           build-mode: none
@@ -62,11 +62,11 @@ jobs:
 
       - name: Cache vcpkg binary cache
         if: github.event_name != 'pull_request'
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25  # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: |
             ${{ github.workspace }}/vcpkg_cache
-          key: vcpkg-v3-${{ runner.os }}-x64-${{ env.PLATFORM_TOOLSET }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          key: vcpkg-v3-${{ runner.os }}-x64-${{ env.PLATFORM_TOOLSET }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
             vcpkg-v3-${{ runner.os }}-x64-${{ env.PLATFORM_TOOLSET }}-
             vcpkg-v3-${{ runner.os }}-x64-
@@ -75,11 +75,31 @@ jobs:
         if: github.event_name != 'pull_request'
         shell: pwsh
         run: |
-          if (-not (Test-Path "$env:VCPKG_INSTALLATION_ROOT")) {
-            git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
-            & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat" -disableMetrics
-            echo "VCPKG_INSTALLATION_ROOT=$env:GITHUB_WORKSPACE/vcpkg" >> $env:GITHUB_ENV
+          $vcpkgRoot = Join-Path $env:GITHUB_WORKSPACE "vcpkg"
+          if (-not (Test-Path (Join-Path $vcpkgRoot ".git"))) {
+            git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
           }
+          $vcpkgManifest = Join-Path $env:GITHUB_WORKSPACE "vcpkg.json"
+          $baseline = (Get-Content $vcpkgManifest -Raw | ConvertFrom-Json)."builtin-baseline"
+          if (-not $baseline) {
+            throw "vcpkg.json is missing builtin-baseline; refusing to bootstrap an unpinned vcpkg tip."
+          }
+          if ($baseline -notmatch '^[0-9a-fA-F]{40}$') {
+            throw "vcpkg.json builtin-baseline must be a 40-hex git commit (got '$baseline')."
+          }
+          git -C $vcpkgRoot fetch --depth 1 origin $baseline
+          if ($LASTEXITCODE -ne 0) { throw "Failed to fetch vcpkg baseline $baseline (exit $LASTEXITCODE)." }
+          git -C $vcpkgRoot checkout --detach $baseline
+          if ($LASTEXITCODE -ne 0) { throw "Failed to checkout vcpkg baseline $baseline (exit $LASTEXITCODE)." }
+          $detached = (git -C $vcpkgRoot rev-parse HEAD).Trim()
+          if ($detached -ne $baseline) {
+            throw "vcpkg HEAD $detached does not match required baseline $baseline."
+          }
+          & "$vcpkgRoot/bootstrap-vcpkg.bat" -disableMetrics
+          if ($LASTEXITCODE -ne 0) {
+            throw "vcpkg bootstrap failed with exit code $LASTEXITCODE"
+          }
+          echo "VCPKG_INSTALLATION_ROOT=$vcpkgRoot" >> $env:GITHUB_ENV
           echo "VCPKG_BINARY_SOURCES=clear;files,$($env:GITHUB_WORKSPACE)/vcpkg_cache,readwrite" >> $env:GITHUB_ENV
 
       - name: Install vcpkg dependencies (manifest mode)
@@ -91,7 +111,7 @@ jobs:
 
       - name: Initialize CodeQL (manual build)
         if: github.event_name != 'pull_request'
-        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4
         with:
           languages: c-cpp
           build-mode: manual
@@ -113,7 +133,7 @@ jobs:
             /p:TreatWarningsAsErrors=false
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4
         with:
           category: /language:c-cpp
 
@@ -133,7 +153,7 @@ jobs:
           fetch-depth: 1
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4
         with:
           languages: javascript-typescript
           build-mode: none
@@ -141,7 +161,7 @@ jobs:
           config-file: .github/codeql/codeql-config-javascript.yml
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4
         with:
           category: /language:javascript-typescript
 
@@ -161,7 +181,7 @@ jobs:
           fetch-depth: 1
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4
         with:
           languages: python
           build-mode: none
@@ -170,7 +190,7 @@ jobs:
           config-file: .github/codeql/codeql-config-python.yml
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4
         with:
           category: /language:python
 
@@ -190,7 +210,7 @@ jobs:
           fetch-depth: 1
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4
         with:
           languages: actions
           build-mode: none
@@ -198,6 +218,6 @@ jobs:
           config-file: .github/codeql/codeql-config-actions.yml
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v4
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4
         with:
           category: /language:actions

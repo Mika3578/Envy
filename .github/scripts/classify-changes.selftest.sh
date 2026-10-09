@@ -22,6 +22,7 @@ readonly F_DOCS=$'docs/foo.md\nREADME.md'
 readonly F_CPP='Envy/EDClient.cpp'
 readonly F_CPP_NORMAL='Envy/Strings.cpp'
 readonly F_REMOTE='Remote/script.js'
+readonly F_REMOTE_NPM='Remote/tests/package-lock.json'
 readonly F_CSHARP='Languages/Tools/SkinUpdater/Program.cs'
 readonly F_WORKFLOW='.github/workflows/build.yml'
 readonly F_CI_ONLY='.github/workflows/authorship-hygiene.yml'
@@ -54,6 +55,9 @@ check cpp "$F_CPP" cpp true
 check cpp-risk-high "$F_CPP" risk_level high
 check normal-cpp "$F_CPP_NORMAL" risk_level normal
 check remote "$F_REMOTE" run_remote_js true
+check remote-npm-js "$F_REMOTE_NPM" run_remote_js true
+check remote-npm-deps "$F_REMOTE_NPM" run_dep_review true
+check remote-npm-build "$F_REMOTE_NPM" build false
 check csharp-flag "$F_CSHARP" csharp true
 check workflow-flag "$F_WORKFLOW" workflow true
 check workflow-not-docs-only "$F_WORKFLOW" docs_only false
