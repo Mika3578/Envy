@@ -35,7 +35,7 @@ Status vocabulary: catalogue refresh is **implemented** for the shipped files; r
 | URL | Operator | HTTPS | Notes |
 | --- | --- | --- | --- |
 | `https://upd.emule-security.org/server.met` | eMule-Security | yes | Current bounded check: HTTP 200, binary `server.met` response; maintained default documented by aMule |
-| `https://shortypower.org/server.met` | shortypower | yes | Independent mirror documented by aMule; availability must remain subject to bounded runtime checks |
+| `https://shortypower.org/server.met` | shortypower | yes | Independent mirror documented by aMule; timed out in the 2026-10-09 bounded check and must not be treated as the sole source |
 
 Removed: static IPs in `DefaultServers.dat` (TV Underground / eDonkey Server No1–3 / 2019 Peerates IP); `peerates.net` (last-modified 2021); `gruk.org` (cleartext alternative; 2026-10-04 returned binary `.met`, correcting the earlier HTML observation); `emule-server.de` (last-modified 2009); `www.emule-security.org/server.met` (404). Setting `eDonkey.ServerListURL` default is the eMule-Security HTTPS URL.
 
@@ -43,7 +43,7 @@ Removed: static IPs in `DefaultServers.dat` (TV Underground / eDonkey Server No1
 
 | URL | Operator | HTTPS | Notes |
 | --- | --- | --- | --- |
-| `https://upd.emule-security.org/nodes.dat` | eMule-Security | yes | Current bounded check: HTTP 200, binary response; maintained default documented by aMule; import only when local Kad sources leave no usable contacts |
+| `https://upd.emule-security.org/nodes.dat` | eMule-Security | yes | Current bounded check: HTTP 200, binary v2 response with 189 contacts; maintained default documented by aMule; import only when local Kad sources leave no usable contacts |
 
 Removed: `https://shortypower.org/nodes.dat` returned HTTP 404 on 2026-10-04. The remaining source returned 5112 bytes, v2, 150 records. One HTTPS source satisfies `BootstrapMinKadNodesDat`; independent fallback remains desirable but must be validated before inclusion.
 
@@ -77,9 +77,9 @@ Removed as dead or parked: `cache.getenvy.com/*` (lander), `gwctest.zapto.org`, 
 
 | URL | Operator | Mix |
 | --- | --- | --- |
-| `https://dchublist.org/hublist.xml.bz2` | dchublist.org | Public DC++ source; standard BZip2/XML endpoint; mixed contents require NMDC filtering |
-| `https://dchublist.ru/hublist.xml.bz2` | dchublist.ru | Public DC++ source; standard BZip2/XML endpoint; NMDC rows are the supported subset |
-| `https://hublist.pwiam.com/hublist.xml.bz2` | PWiAM | Public global hublist; standard BZip2/XML endpoint; mixed contents require NMDC filtering |
+| `https://dchublist.org/hublist.xml.bz2` | dchublist.org | HTTP 200, valid BZip2/XML, 273 hub entries; mixed contents require NMDC filtering |
+| `https://dchublist.ru/hublist.xml.bz2` | dchublist.ru | HTTP 200, valid BZip2/XML, 91 hub entries; NMDC rows are the supported subset |
+| `https://hublist.pwiam.com/hublist.xml.bz2` | PWiAM | HTTP 200, valid BZip2/XML, 267 hub entries; mixed contents require NMDC filtering |
 
 `DC.HubListURL` default is the dchublist.org HTTPS URL. `dchublist.com` 301s to Team Elite; `tankafett.biz` 301s to an HTML page, not `hublist.xml.bz2`.
 
@@ -116,7 +116,7 @@ Audited `develop` at `59695b173bac6510388aa90f29cd88d60db35b74`. Existing work: 
 
 [OpenTrackr](https://opentrackr.org/) publishes `udp://tracker.opentrackr.org:1337/announce`; a BEP 15 connect probe returned a matching transaction and connection ID. This probe announces **no** infohash and is not proof of announce/scrape interoperability. The default is deliberately not changed in this PR: `CBTInfo::LoadTorrentTree` can replace an unsupported tracker (including HTTPS) before it reads `private=1`. Making the fallback reachable could expose private-torrent announces. Track the required guard under #317, HTTPS support under #88, and default migration/custom-value preservation under #418.
 
-Validation used bounded HTTP GETs (12 s, 1 MiB read cap), normal TLS certificate verification, binary headers/counts, BZip2/XML decoding, DNS and one bounded BEP 5 `find_node` probe per router. On the 2026-10-09 recheck, eMule-Security `server.met` and `nodes.dat` both returned HTTP 200 binary responses. The maintained aMule documentation still identifies eMule-Security and shortypower as compatible `server.met` sources and eMule-Security as the maintained `nodes.dat` default. PWiAM and dchublist.org continue to publish standard `hublist.xml.bz2` endpoints. Transmission and libtorrent replied with matching transactions; BitTorrent timed out. These are point-in-time observations, not guarantees of uptime or full Envy runtime interoperability. No peer IPs from responses are added to shipped data. No live UHC UDP interoperability is claimed; the six retained endpoints are present in maintained gtk-gnutella `boot_hosts` (three additional peer ports there are not needed for the minimum catalogue). Candidate alternatives such as `router.bt.ouinet.work:6881` were documented by libtorrent but not added because they were not independently validated in this audit.
+Validation used bounded HTTP GETs (20 s, 1 MiB read cap), normal TLS certificate verification, binary headers/counts, BZip2/XML decoding, DNS and one bounded BEP 5 `find_node` probe per router. On the 2026-10-09 recheck, eMule-Security `server.met` returned HTTP 200 with 12 records and `nodes.dat` returned HTTP 200 with version 2 and 189 contacts. The direct shortypower `server.met` and `nodes.dat` URLs timed out in this check. The maintained aMule documentation still identifies eMule-Security and shortypower as compatible `server.met` sources and eMule-Security as the maintained `nodes.dat` default. The three retained hublists returned HTTP 200, valid BZip2/XML, and 273, 267, and 91 hub entries respectively. Transmission and libtorrent replied with matching transactions; BitTorrent timed out. These are point-in-time observations, not guarantees of uptime or full Envy runtime interoperability. No peer IPs from responses are added to shipped data. No live UHC UDP interoperability is claimed; the six retained endpoints are present in maintained gtk-gnutella `boot_hosts` (three additional peer ports there are not needed for the minimum catalogue). Candidate alternatives such as `router.bt.ouinet.work:6881` were documented by libtorrent but not added because they were not independently validated in this audit.
 
 The offline catalogue test compares parsed active source identities with the vetted set, rejecting invalid or unexpected extra rows rather than merely checking minima. Blocked `X` rows remain security entries and are not bootstrap providers. Existing `Discovery.dat` is not migrated by this PR; #419 remains open.
 
