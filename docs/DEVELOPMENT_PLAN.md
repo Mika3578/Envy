@@ -2,6 +2,8 @@
 
 - **Last Updated:** 2026-10-07
 
+- **Changelog Entry:** 2026-10-07 — #327: cover the Windows MSBuild composite action in Dependabot; make `-CloneVcpkg` select the pinned local checkout even when absent; four offline selection cases pass. Reconcile with current `develop` without restoring retired classification outputs or changing live protections.
+
 - **Changelog Entry:** 2026-10-07 - P2P reference registry refresh (#387 resumed): `REFERENCE_IMPLEMENTATIONS.md` expanded (amule-org, eMuleBB/padMule/MorphXT/heritage/BT/DC); October ecosystem audit; optional ignored clones via `tools/references/` -> `Examples/References/` (D-023). No AGENTS/governance change; no protocol code.
 - **Changelog Entry:** 2026-10-01 — Finalization of #395 preserves one non-author approval, all eight live required contexts, CodeQL/Gitleaks and GitHub Code Quality (severity All). Retain the staged Draft/live-test/Ready workflow and manual maintainer transitions; squash summaries remain curated. #397 owns review outcome tracking, not merge authority.
 
@@ -21,6 +23,7 @@
 - **Changelog Entry:** 2026-09-30 — #393: share peer XML parse budgets across multi-fragment G1/G2 metadata and gate profile/query `ReadString` behind the 256 KiB pre-materialization cap.
 - **Changelog Entry:** 2026-09-30 — PR governance simplification (D-022): keep one non-author approving review as the trust boundary against PR-controlled CI self-bypass; path-based conditional Windows builds; Sonar/advisory bots; ruleset-as-code audit; `docs/10_dev/pr-workflow.md`.
 - **Changelog Entry:** 2026-09-29 — (superseded wording) earlier D-022 draft considered zero mandatory approvals; rejected after review of PR-controlled classify/build bypass risk.
+- **Changelog Entry:** 2026-09-29 — #327: retire Renovate; Dependabot owns vcpkg, `Remote/tests` npm, and GitHub Actions; docs/ownership inventory aligned; Dependency Review on PRs targeting `main`/`master`/`develop`; **Repository Status** CI/merge text aligned with post-#381 (no PR Gate poller; optional branch-commit signatures).
 - **Changelog Entry:** 2026-09-30 — #394: expand always-on PR CodeQL to python and GitHub Actions (`actions`); keep C# deferred in cheap Draft (live-test/Ready); document Default-setup migration and classifier comments.
 - **Changelog Entry:** 2026-09-30 — #351: rename-aware encoding diffs, valid-to-invalid UTF-8 and invalid-byte mutation guards, BOM/header-safe Languages UTF-8, encoding-migration label path, and Windows/vcpkg setup docs aligned with the active x64/Win32 policy.
 - **Changelog Entry:** 2026-09-28 — #351: make encoding selftests exercise mojibake/C1 detectors on non-header lines, align vcpkg build guidance with the active x64/Win32 policy, and parse changed-line metadata without dropping `++`/`--` source lines.
@@ -249,13 +252,17 @@
   enabled globally. Protect develop forces **squash-only** onto `develop`.
 - **History:** `develop` was rewritten to a linear history with no merge commits; the pre-rewrite snapshot is preserved as the immutable tag `backup/develop-before-linear-rewrite` (local mutable backup/rollback branches were removed after the rewrite stabilized).
 - **Local hygiene:** use `git pull --ff-only` on `develop`; rebase feature branches with `git rebase origin/develop` and `git push --force-with-lease`.
-- **Branch protection:** `Protect develop` requires pull requests, **one**
-  non-author approving review, linear history, conversation resolution, code
+- **Branch protection:** `Protect develop` requires pull requests, linear
+  history, conversation resolution, code
   scanning (CodeQL+Gitleaks), passing required checks, squash-only, and blocks
   force-pushes/deletions. Desired status contexts are listed in
   `.github/rulesets/protect-develop.desired.json` (live may still list Sonar
   until post-merge migration). There is **no** PR Gate poller — native workflow
   conclusions are the merge gate. See `docs/10_dev/pr-workflow.md`.
+- **Approval mismatch (verified 2026-10-07):** live `Protect develop` requires
+  zero approving reviews; repository policy still requires one independent
+  approval and a human approval for privileged governance paths. This PR
+  records the discrepancy without changing the live ruleset.
 - CI uses a two-speed model: change-aware PR jobs for Windows/Remote/deps plus
   full integration on `develop` / scheduled analysis. Every PR always runs
   CodeQL Analyze (c-cpp), (javascript-typescript), (python), and (actions), plus blocking Format
@@ -264,6 +271,7 @@
   Classification outputs are advisory and never replace these required jobs
   with successful not-applicable results. Those workflows also run on
   `ready_for_review`; see `docs/10_dev/pr-workflow.md`.
+- Dependency Review runs on every pull request targeting `main`, `master`, or `develop`; see `docs/10_dev/dependency-automation.md`.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
 ## Canonical Documentation Split
@@ -295,8 +303,9 @@ Policy: specification first, interoperability implementation second. See D-008 i
 
 ## Current Status
 ### Done
-- CI workflows for build/quality/security exist, with a change-aware PR gate
-  and full validation after merge to `develop`.
+- CI workflows for build/quality/security exist with staged validation:
+  Draft runs the cheap lane, `stage:live-test` and Ready run full Windows/C#
+  validation, and native workflow conclusions provide the merge checks.
 - Hash-focused unit tests integrated in repo and workflows.
 - Audit and core documentation baseline established.
 - Remote CRITICAL/HIGH security items: CSRF (#77), PBKDF2 passwords (#79), CSPRNG (#78), CSP/redirects/rate limit, and Remote XSS HTML escape on `Add()` (#76). Remaining Remote security follow-ups tracked separately if found.
