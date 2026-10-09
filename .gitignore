@@ -248,8 +248,10 @@ $RECYCLE.BIN/
 # IDE Specific Files
 ###############################################################################
 
-# Visual Studio Code
-.vscode/
+# Visual Studio Code / Cursor — only portable workspace policy is versioned
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 *.code-workspace
 
 # Visual Studio for Mac
