@@ -19,7 +19,7 @@
 # (CDiscoveryServices::EnoughServices). The C++ AddDefaults() fallback is
 # commented out; this file is the only cold-start catalogue.
 #
-# Reconciled 2026-10-04. HTTP/format observations and limitations are in
+# Rechecked 2026-10-09. HTTP/format observations and limitations are in
 # docs/30_protocols/bootstrap-sources.md. UHC list from gtk-gnutella
 # devel src/core/uhc.c. HTTPS used only when the service and Envy's HTTP
 # client both support it. See docs/30_protocols/bootstrap-sources.md.

@@ -21,7 +21,7 @@
 # HostCache. CDHT::Connect sends BEP 5 find_node to HostCache BT hosts when
 # no node IDs are cached (no extra C++ DNS list).
 #
-# Reviewed 2026-10-04. See docs/30_protocols/bootstrap-sources.md.
+# Rechecked 2026-10-09. See docs/30_protocols/bootstrap-sources.md.
 
 B dht.transmissionbt.com:6881
 B router.bittorrent.com:6881
