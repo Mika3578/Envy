@@ -155,8 +155,12 @@ if ($Platform -eq 'x64')
 else
 {
 	Copy-FileRequired (Join-Path $repo "Envy/$platformDir/crashpad_handler.exe") $dest
-	$wer = Join-Path $repo "Envy/$platformDir/crashpad_wer.dll"
-	if (Test-Path -LiteralPath $wer) { Copy-FileRequired $wer $dest }
+	# Preserve optional companions already supported by Win32 portable staging.
+	foreach ($name in @('crashpad_wer.dll', 'vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'msvcp140_2.dll', 'concrt140.dll', 'ucrtbase.dll', 'vcomp140.dll'))
+	{
+		$src = Join-Path $repo "Envy/$platformDir/$name"
+		if (Test-Path -LiteralPath $src) { Copy-FileRequired $src $dest }
+	}
 }
 
 # --- Service / shared DLLs at app root (and selected copies under Plugins) ---

@@ -435,9 +435,9 @@ Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140_1d.dll"; DestDir: "{
 Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140_2d.dll"; DestDir: "{app}"; Flags: replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
 Source: "Envy\{#ConfigurationName} {#PlatformName}\ucrtbased.dll"; DestDir: "{app}"; Flags: replacesameversion overwritereadonly uninsrestartdelete uninsremovereadonly sortfilesbyextension
 #else
-; Win32 Debug uses Crashpad (not BugSplat /MD). Keep only the historical
-; optional UCRT debug companion; do not invent VS14 DebugCRT companions that
-; the active v145 toolchain will not provide at the hard-coded path.
+; Win32 Debug uses Crashpad (not BugSplat /MD). Preserve the historical
+; optional CRT entries here; additional Win32 runtime changes require
+; separate validation of the active v145 toolchain.
 Source: "{#VisualStudioPath}\VC\redist\debug_nonredist\x86\Microsoft.VC{#VisualCVersion}0.DebugCRT\vcruntime{#VisualCVersion}0d.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
 Source: "c:\Program Files (x86)\Windows Kits\10\bin\x86\ucrt\ucrtbased.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist replacesameversion overwritereadonly uninsrestartdelete uninsremovereadonly sortfilesbyextension
 #endif

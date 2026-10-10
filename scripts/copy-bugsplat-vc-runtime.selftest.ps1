@@ -201,6 +201,10 @@ echo     ucrtbased.dll
 	if ((Get-EnvyVcRedistDllDir -VcToolsInstallDir $toolsVer) -ne $redistRel) {
 		throw 'Redist discovery must prefer the desktop x64 CRT'
 	}
+	Remove-Item -LiteralPath (Join-Path $redistRel 'vcruntime140.dll')
+	if ($null -ne (Get-EnvyVcRedistDllDir -VcToolsInstallDir $toolsVer)) {
+		throw 'An installation with only OneCore/x86 CRTs must fail desktop x64 discovery'
+	}
 	$fallbackTools = Join-MultiPath $tmp.FullName 'fallback' 'VC' 'Tools' 'MSVC' '14.50.00000'
 	$fallbackCrt = Join-MultiPath $fallbackTools 'bin' 'Hostx64' 'x64'
 	New-Item -ItemType Directory -Path $fallbackCrt -Force | Out-Null

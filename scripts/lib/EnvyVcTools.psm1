@@ -114,7 +114,7 @@ function Find-VcRedistDllDirUnderMsvcRoot {
 	return $null
 }
 
-function Find-VcRedistDllDirUnderToolsRoot {
+function Find-VcRedistDllDirUnderToolsDir {
 	param([string]$ToolsRoot)
 	$hostBin = Join-MultiPath $ToolsRoot 'bin' 'Hostx64' 'x64'
 	if (Test-Path -LiteralPath (Join-Path $hostBin 'vcruntime140.dll')) {
@@ -141,7 +141,7 @@ function Get-EnvyVcRedistDllDir {
 	}
 
 	if ($toolsDir) {
-		return Find-VcRedistDllDirUnderToolsRoot -ToolsRoot $toolsDir
+		return Find-VcRedistDllDirUnderToolsDir -ToolsRoot $toolsDir
 	}
 
 	return $null
