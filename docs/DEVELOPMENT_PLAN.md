@@ -12,10 +12,20 @@
 - **Changelog Entry:** 2026-10-07 - P2P reference registry refresh (#387 resumed): `REFERENCE_IMPLEMENTATIONS.md` expanded (amule-org, eMuleBB/padMule/MorphXT/heritage/BT/DC); October ecosystem audit; optional ignored clones via `tools/references/` -> `Examples/References/` (D-023). No AGENTS/governance change; no protocol code.
 - **Changelog Entry:** 2026-10-01 — Finalization of #395 preserves one non-author approval, all eight live required contexts, CodeQL/Gitleaks and GitHub Code Quality (severity All). Retain the staged Draft/live-test/Ready workflow and manual maintainer transitions; squash summaries remain curated. #397 owns review outcome tracking, not merge authority.
 
+- **Changelog Entry:** 2026-10-06 — #393: ChatSession profile ownership matches HostBrowser; move ordinary CL=0 reject after HTTP control classification; clear breadth-first THEX remainder; `ReadDIME` reuses `PeekDIME`; shared HTTP/THEX admission helpers + EnvyTests.
+
+- **Changelog Entry:** 2026-10-06 — #393: restore historical copyright bytes on edited ISO-8859 sources; RAII restore of shared XML parse depth after failure; share G2 query METADATA budget; EnvyTests depth-restore and DWORD ConsumeChars overflow cases.
+
+- **Changelog Entry:** 2026-10-05 — #393: sync onto `develop` after #392; `ChargeSharedPeerXmlChars`/`AdmitPeerXml*` entry helpers; THEX `XML_PEER_THEX_BODY_CAP` pre-accept reject; Metadata wrapper node funding; expanded EnvyTests peer-entry smoke (helpers only — no MFC `CXMLElement` link).
+
+
 - **Changelog Entry:** 2026-10-01 — Proactive Draft stabilization: remove fixed correction-attempt stops, retain complete history and human decisions, automate supported reviewer requests and validated lifecycle transitions, and preserve privacy/naming and native review/security gates. #397 supplies the host coordinator; external app entitlement and live pilot remain explicit rollout evidence.
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
+- **Changelog Entry:** 2026-09-30 — #393: share one `XmlParseBudget` across G1 per-hit `ReadXML` extensions and the trailer; THEX/MetaFetch receive caps; reject keep-alive unknown THEX length; finish buffered known-length MetaFetch on drop; parse THEX headers before the 16 KiB header-phase fail-closed; `PeekDIME` rejects oversized DIME `text/xml` before buffering the body.
+- **Changelog Entry:** 2026-09-30 — #393: gate G1 hit XML raw allocation and charge shared G2 METADATA character budget before `ReadString`; add EnvyTests filter entry for the peer-XML smoke test.
+- **Changelog Entry:** 2026-09-30 — #393: share peer XML parse budgets across multi-fragment G1/G2 metadata and gate profile/query `ReadString` behind the 256 KiB pre-materialization cap.
 - **Changelog Entry:** 2026-09-30 — PR governance simplification (D-022): keep one non-author approving review as the trust boundary against PR-controlled CI self-bypass; path-based conditional Windows builds; Sonar/advisory bots; ruleset-as-code audit; `docs/10_dev/pr-workflow.md`.
 - **Changelog Entry:** 2026-09-29 — (superseded wording) earlier D-022 draft considered zero mandatory approvals; rejected after review of PR-controlled classify/build bypass risk.
 - **Changelog Entry:** 2026-09-29 — #327: retire Renovate; Dependabot owns vcpkg, `Remote/tests` npm, and GitHub Actions; docs/ownership inventory aligned; Dependency Review on PRs targeting `main`/`master`/`develop`; **Repository Status** CI/merge text aligned with post-#381 (no PR Gate poller; optional branch-commit signatures).
