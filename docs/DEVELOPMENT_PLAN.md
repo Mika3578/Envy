@@ -311,6 +311,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - **#90 / #354 crash reporting** — BugTrap removed. **x64:** BugSplat SDK v8.0.0 (`ThirdParty/BugSplat`, optional upload when `EnvyBugSplatDatabase` is set). **Win32:** Crashpad local database + next-launch opt-in GitHub issue workflow (upload off). See `docs/10_dev/crash-reporting.md` (D-019, D-020).
 
 ### In Progress
+- **BugSplat runtime reliability (#359 / PR #362)** — synchronize deterministic x64 dependency discovery with installer and portable packaging; require staged CRT files and preserve Win32 Crashpad. Current-head CI and maintainer runtime validation remain required. Live Protect develop currently records zero required approvals, contrary to the documented one-approval policy; independent human approval remains required for workflow changes.
 - **Envy 4.2.0 Preview 1 release readiness** — version/packaging PR; install/uninstall + network smoke tests still required before tagging `v4.2.0-preview.1` and publishing the draft GitHub prerelease.
 - C++ modernization across legacy modules.
 - Incremental protocol compatibility and robustness improvements.

@@ -24,7 +24,10 @@ param(
 	[string]$Destination = '',
 
 	[Parameter(Mandatory = $false)]
-	[string]$Configuration = 'Release'
+	[ValidateSet('Release')]
+	[string]$Configuration = 'Release',
+
+	[string]$VcToolsInstallDir
 )
 
 Set-StrictMode -Version Latest
@@ -134,6 +137,31 @@ Write-Host "Staging portable layout for $platformDir -> $dest"
 Copy-FileRequired (Join-Path $repo "Envy\$platformDir\Envy.exe") $dest
 Copy-FileRequired (Join-Path $repo "TorrentEnvy\$platformDir\TorrentEnvy.exe") $dest
 Copy-FileRequired (Join-Path $repo "Unpacker\$platformDir\Unpacker.exe") $dest
+
+# --- Crash-reporting runtime (mirrors Installer/Scripts/Main.iss) ---
+if ($Platform -eq 'x64')
+{
+	Import-Module (Join-Path $PSScriptRoot '../lib/EnvyVcTools.psm1') -Force
+	$outputDir = Join-Path $repo "Envy/$platformDir"
+	& (Join-Path $PSScriptRoot '../verify-bugsplat-output-layout.ps1') -OutputDir $outputDir -VcToolsInstallDir $VcToolsInstallDir -DisableToolchainFallback
+	$dumpbin = Get-EnvyDumpBinPath -VcToolsInstallDir $VcToolsInstallDir -DisableFallback
+	$monitor = Join-Path $outputDir 'BugSplatMonitor.exe'
+	foreach ($name in @('BugSplatMonitor.exe', 'BugSplatWer.dll', 'BugSplatRc.dll') + @(Get-BugSplatOutputRequiredDlls -MonitorPath $monitor -DumpBinPath $dumpbin -Configuration $Configuration -Platform $Platform))
+	{
+		Copy-FileRequired (Join-Path $outputDir $name) $dest
+	}
+	& (Join-Path $PSScriptRoot '../verify-bugsplat-output-layout.ps1') -OutputDir $dest -Configuration Release -Platform x64 -VcToolsInstallDir $VcToolsInstallDir -DisableToolchainFallback
+}
+else
+{
+	Copy-FileRequired (Join-Path $repo "Envy/$platformDir/crashpad_handler.exe") $dest
+	# Preserve optional companions already supported by Win32 portable staging.
+	foreach ($name in @('crashpad_wer.dll', 'vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'msvcp140_2.dll', 'concrt140.dll', 'ucrtbase.dll', 'vcomp140.dll'))
+	{
+		$src = Join-Path $repo "Envy/$platformDir/$name"
+		if (Test-Path -LiteralPath $src) { Copy-FileRequired $src $dest }
+	}
+}
 
 # --- Service / shared DLLs at app root (and selected copies under Plugins) ---
 $serviceDlls = @(
@@ -292,6 +320,7 @@ $required = @(
 	'Envy.exe',
 	'TorrentEnvy.exe',
 	'Unpacker.exe',
+	$(if ($Platform -eq 'x64') { 'BugSplatMonitor.exe' } else { 'crashpad_handler.exe' }),
 	'Data',
 	'Schemas',
 	'Skins',
