@@ -69,7 +69,7 @@ runs:
         }
 
     - name: Cache vcpkg binary cache
-      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25  # v5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
       with:
         path: |
           ${{ github.workspace }}/vcpkg_cache
@@ -201,6 +201,12 @@ runs:
         if (-not $tools) { throw "Active MSVC tools directory was not found under $toolsRoot" }
         pwsh scripts/verify-bugsplat-output-layout.ps1 -OutputDir "Envy/${{ inputs.configuration }} x64" -VcToolsInstallDir $tools.FullName -DisableToolchainFallback
 
+    - name: Verify portable runtime staging (Release)
+      if: ${{ inputs.configuration == 'Release' }}
+      shell: pwsh
+      run: |
+        ./scripts/release/stage-portable.ps1 -Platform ${{ inputs.platform }} -RepoRoot $env:GITHUB_WORKSPACE
+
     - name: Verify installer AppCopyright on setup executable (Release)
       if: ${{ inputs.configuration == 'Release' }}
       shell: pwsh
@@ -227,7 +233,7 @@ runs:
     # retention for post-merge triage.
     - name: Upload build logs
       if: ${{ always() && inputs.upload-logs == 'true' && (github.event_name != 'pull_request' || failure()) }}
-      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
       with:
         name: build-logs-${{ inputs.platform }}-${{ inputs.configuration }}
         path: |
@@ -325,11 +331,12 @@ runs:
 
     - name: Upload binaries
       if: ${{ success() && inputs.upload-binaries == 'true' && inputs.configuration == 'Release' }}
-      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
       with:
         name: envy-${{ inputs.platform }}-${{ inputs.configuration }}
         path: |
           artifact-provenance.json
+          artifacts/portable/**
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.exe
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.pdb
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatMonitor.exe
@@ -337,11 +344,7 @@ runs:
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatRc.dll
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_handler.exe
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_wer.dll
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/vcruntime140.dll
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/vcruntime140_1.dll
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/msvcp140.dll
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/msvcp140_1.dll
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/msvcp140_2.dll
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/*.dll
           Envy/**/Release/*.exe
           Envy/**/Release/*.dll
           Plugins/**/Release/*.dll
@@ -351,7 +354,7 @@ runs:
 
     - name: Upload Release PDBs
       if: ${{ success() && inputs.upload-binaries == 'true' && inputs.configuration == 'Release' }}
-      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
       with:
         name: envy-pdb-${{ inputs.platform }}-${{ inputs.configuration }}
         path: Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.pdb

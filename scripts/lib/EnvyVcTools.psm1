@@ -99,7 +99,7 @@ function Find-VcRedistDllDirUnderMsvcRoot {
 			(Join-MultiPath $ver.FullName 'Microsoft.VC143.CRT')
 		)
 		$candidates += @(Get-ChildItem -LiteralPath $ver.FullName -Directory -Recurse -ErrorAction SilentlyContinue |
-			Where-Object { $_.Name -match '^Microsoft\.VC\d+\.CRT$' -and $_.FullName -match '[/\\]x64[/\\]' } |
+			Where-Object { $_.Name -match '^Microsoft\.VC\d+\.CRT$' -and $_.FullName -match '[/\\]x64[/\\]' -and $_.FullName -notmatch '[/\\]onecore[/\\]' } |
 			Sort-Object FullName -Descending |
 			Select-Object -ExpandProperty FullName)
 		foreach ($c in $candidates) {
@@ -107,7 +107,7 @@ function Find-VcRedistDllDirUnderMsvcRoot {
 		}
 	}
 	$hit = Get-ChildItem -LiteralPath $MsvcRoot -Recurse -Filter 'vcruntime140.dll' -File -ErrorAction SilentlyContinue |
-		Where-Object { $_.FullName -match '[/\\]x64[/\\]' -or $_.FullName -match 'vc_redist\.x64' } |
+		Where-Object { ($_.FullName -match '[/\\]x64[/\\]' -or $_.FullName -match 'vc_redist\.x64') -and $_.FullName -notmatch '[/\\]onecore[/\\]' } |
 		Sort-Object FullName -Descending |
 		Select-Object -First 1
 	if ($hit) { return $hit.DirectoryName }
@@ -116,11 +116,9 @@ function Find-VcRedistDllDirUnderMsvcRoot {
 
 function Find-VcRedistDllDirUnderToolsRoot {
 	param([string]$ToolsRoot)
-	foreach ($ver in Get-ChildItem -LiteralPath $ToolsRoot -Directory | Sort-Object Name -Descending) {
-		$hostBin = Join-MultiPath $ver.FullName 'bin' 'Hostx64' 'x64'
-		if (Test-Path -LiteralPath (Join-Path $hostBin 'vcruntime140.dll')) {
-			return $hostBin
-		}
+	$hostBin = Join-MultiPath $ToolsRoot 'bin' 'Hostx64' 'x64'
+	if (Test-Path -LiteralPath (Join-Path $hostBin 'vcruntime140.dll')) {
+		return $hostBin
 	}
 	return $null
 }
@@ -143,13 +141,9 @@ function Get-EnvyVcRedistDllDir {
 	}
 
 	if ($toolsDir) {
-		return Find-VcRedistDllDirUnderToolsRoot -ToolsRoot (Split-Path $toolsDir -Parent)
+		return Find-VcRedistDllDirUnderToolsRoot -ToolsRoot $toolsDir
 	}
 
-	$toolsRoot = Join-MultiPath $install 'VC' 'Tools' 'MSVC'
-	if (Test-Path -LiteralPath $toolsRoot) {
-		return Find-VcRedistDllDirUnderToolsRoot -ToolsRoot $toolsRoot
-	}
 	return $null
 }
 
@@ -256,6 +250,12 @@ function Get-BugSplatOutputRequiredDlls {
 	)
 
 	$needed = @(Get-BugSplatMonitorMsvcDependents -MonitorPath $MonitorPath -DumpBinPath $DumpBinPath)
+	foreach ($name in @('BugSplatWer.dll', 'BugSplatRc.dll')) {
+		$companion = Join-Path (Split-Path $MonitorPath -Parent) $name
+		if (Test-Path -LiteralPath $companion -PathType Leaf) {
+			$needed += @(Get-BugSplatMonitorMsvcDependents -MonitorPath $companion -DumpBinPath $DumpBinPath)
+		}
+	}
 	if ($Platform -ieq 'x64') {
 		$installerCrt = if ($Configuration -ieq 'Debug') {
 			Get-BugSplatDebugX64InstallerCrtDllNames
@@ -294,8 +294,8 @@ function Get-BugSplatMonitorMsvcDependents {
 	$needed = @()
 	foreach ($line in ($depOut -split '\r?\n')) {
 		$name = $line.Trim()
-		if ($name -imatch '^(?:api-ms-win-|concrt|msvcp|ucrtbase|vcruntime|vcomp).*\.dll$' -and
-			$name -inotmatch '^api-ms-win-') {
+		# API-set imports are provided by Windows 10; only app-local CRT files are staged.
+		if ($name -imatch '^(?:concrt|msvcp|ucrtbase|vcruntime|vcomp).*\.dll$') {
 			# Preserve dumpbin casing for filesystem lookups; classify case-insensitively.
 			$needed += $name
 		}

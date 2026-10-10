@@ -24,7 +24,10 @@ param(
 	[string]$Destination = '',
 
 	[Parameter(Mandatory = $false)]
-	[string]$Configuration = 'Release'
+	[ValidateSet('Release')]
+	[string]$Configuration = 'Release',
+
+	[string]$VcToolsInstallDir
 )
 
 Set-StrictMode -Version Latest
@@ -136,39 +139,24 @@ Copy-FileRequired (Join-Path $repo "TorrentEnvy\$platformDir\TorrentEnvy.exe") $
 Copy-FileRequired (Join-Path $repo "Unpacker\$platformDir\Unpacker.exe") $dest
 
 # --- Crash-reporting runtime (mirrors Installer/Scripts/Main.iss) ---
-# x64 ships BugSplat; Win32 ships Crashpad. CRT companions are copied when the
-# build tree provides them, matching Inno's skipifsourcedoesntexist semantics.
 if ($Platform -eq 'x64')
 {
-	Copy-FileRequired (Join-Path $repo "Envy\$platformDir\BugSplatMonitor.exe") $dest
-	Copy-FileRequired (Join-Path $repo "Envy\$platformDir\BugSplatWer.dll") $dest
-	Copy-FileRequired (Join-Path $repo "Envy\$platformDir\BugSplatRc.dll") $dest
+	Import-Module (Join-Path $PSScriptRoot '../lib/EnvyVcTools.psm1') -Force
+	$outputDir = Join-Path $repo "Envy/$platformDir"
+	& (Join-Path $PSScriptRoot '../verify-bugsplat-output-layout.ps1') -OutputDir $outputDir -VcToolsInstallDir $VcToolsInstallDir -DisableToolchainFallback
+	$dumpbin = Get-EnvyDumpBinPath -VcToolsInstallDir $VcToolsInstallDir -DisableFallback
+	$monitor = Join-Path $outputDir 'BugSplatMonitor.exe'
+	foreach ($name in @('BugSplatMonitor.exe', 'BugSplatWer.dll', 'BugSplatRc.dll') + @(Get-BugSplatOutputRequiredDlls -MonitorPath $monitor -DumpBinPath $dumpbin -Configuration $Configuration -Platform $Platform))
+	{
+		Copy-FileRequired (Join-Path $outputDir $name) $dest
+	}
+	& (Join-Path $PSScriptRoot '../verify-bugsplat-output-layout.ps1') -OutputDir $dest -Configuration Release -Platform x64 -VcToolsInstallDir $VcToolsInstallDir -DisableToolchainFallback
 }
 else
 {
-	Copy-FileRequired (Join-Path $repo "Envy\$platformDir\crashpad_handler.exe") $dest
-}
-foreach ($crt in @(
-	'vcruntime140.dll',
-	'vcruntime140_1.dll',
-	'msvcp140.dll',
-	'msvcp140_1.dll',
-	'msvcp140_2.dll',
-	'concrt140.dll',
-	'ucrtbase.dll',
-	'vcomp140.dll',
-	'crashpad_wer.dll'
-))
-{
-	$src = Join-Path $repo "Envy\$platformDir\$crt"
-	if (Test-Path -LiteralPath $src)
-	{
-		Copy-FileRequired $src $dest
-	}
-	else
-	{
-		Write-Host "  ! optional missing: $src"
-	}
+	Copy-FileRequired (Join-Path $repo "Envy/$platformDir/crashpad_handler.exe") $dest
+	$wer = Join-Path $repo "Envy/$platformDir/crashpad_wer.dll"
+	if (Test-Path -LiteralPath $wer) { Copy-FileRequired $wer $dest }
 }
 
 # --- Service / shared DLLs at app root (and selected copies under Plugins) ---

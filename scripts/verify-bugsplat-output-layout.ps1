@@ -3,6 +3,8 @@
 param(
 	[string]$OutputDir,
 	[string]$VcToolsInstallDir,
+	[ValidateSet("Debug", "Release")][string]$Configuration,
+	[ValidateSet("x64")][string]$Platform,
 	[switch]$DisableToolchainFallback
 )
 
@@ -17,8 +19,7 @@ if (-not (Test-Path -LiteralPath $OutputDir)) { throw "Output directory not foun
 
 $monitor = Join-Path $OutputDir 'BugSplatMonitor.exe'
 if (-not (Test-Path -LiteralPath $monitor)) {
-	Write-Host "verify-bugsplat-output-layout: no BugSplatMonitor.exe under $OutputDir; skip."
-	exit 0
+	throw "Missing required BugSplat runtime: BugSplatMonitor.exe under $OutputDir"
 }
 
 $dumpbin = Get-EnvyDumpBinPath -VcToolsInstallDir $VcToolsInstallDir -DisableFallback:$DisableToolchainFallback
@@ -29,9 +30,17 @@ Ensure the Windows CI runner or local build uses Visual Studio C++ tools (VCTool
 "@
 }
 
-$leaf = Split-Path -Leaf $OutputDir
-$configuration = ($leaf -split '\s+', 2)[0]
-$platform = ($leaf -split '\s+', 2)[1]
+foreach ($name in @('BugSplatWer.dll', 'BugSplatRc.dll')) {
+	if (-not (Test-Path -LiteralPath (Join-Path $OutputDir $name) -PathType Leaf)) {
+		throw "Missing required BugSplat runtime: $name under $OutputDir"
+	}
+}
+$layout = @((Split-Path -Leaf $OutputDir) -split '\s+', 2)
+if (-not $Configuration -and $layout.Count -eq 2) { $Configuration = $layout[0] }
+if (-not $Platform -and $layout.Count -eq 2) { $Platform = $layout[1] }
+if ($Configuration -notin @('Debug', 'Release') -or $Platform -ne 'x64') {
+	throw 'Specify Configuration and Platform for an output directory not named Debug x64 or Release x64'
+}
 $needed = Get-BugSplatOutputRequiredDlls -MonitorPath $monitor -DumpBinPath $dumpbin -Configuration $configuration -Platform $platform
 $missing = @()
 foreach ($name in $needed) {

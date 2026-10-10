@@ -74,8 +74,8 @@ try {
 	$toolsVer = Join-MultiPath $vsRoot 'VC' 'Tools' 'MSVC' '14.50.35710'
 	New-Item -ItemType Directory -Path (Join-MultiPath $toolsVer 'bin' 'Hostx64' 'x64') -Force | Out-Null
 	$redistVer = Join-MultiPath $vsRoot 'VC' 'Redist' 'MSVC' '14.50.35710'
-	$redistRel = Join-MultiPath $redistVer 'x64' 'Microsoft.VC143.CRT'
-	$redistDbg = Join-MultiPath $redistVer 'debug_nonredist' 'x64' 'Microsoft.VC143.DebugCRT'
+	$redistRel = Join-MultiPath $redistVer 'x64' 'Microsoft.VC145.CRT'
+	$redistDbg = Join-MultiPath $redistVer 'debug_nonredist' 'x64' 'Microsoft.VC145.DebugCRT'
 	New-Item -ItemType Directory -Path $redistRel -Force | Out-Null
 	New-Item -ItemType Directory -Path $redistDbg -Force | Out-Null
 	'x' | Set-Content -LiteralPath (Join-Path $redistRel 'vcruntime140.dll') -NoNewline
@@ -152,6 +152,64 @@ echo     ucrtbased.dll
 		if ($requiredRelease -notcontains $dll) {
 			throw "Release x64 output must include retail CRT satellite names not reported by dumpbin; got: $($requiredRelease -join ',')"
 		}
+	}
+
+	# Windows API-set imports are system contracts, not redistributable DLL files.
+	$stubText = Get-Content -LiteralPath $fakeDump -Raw
+	$stubText += "`necho     API-MS-WIN-CRT-RUNTIME-L1-1-0.dll`necho     KERNEL32.dll`n"
+	$stubText | Set-Content -LiteralPath $fakeDump -Encoding ascii
+	$deps = @(Get-BugSplatMonitorMsvcDependents -MonitorPath (Join-Path $dest 'BugSplatMonitor.exe') -DumpBinPath $fakeDump)
+	if ($deps.Count -ne 3) { throw "Unexpected dependent filtering: $($deps -join ',')" }
+
+	# Empty and single-import output keep the fixed packaging contract intact.
+	foreach ($imports in @('', 'echo     VCRUNTIME140.dll')) {
+		$prefix = if ($IsWindows) { "@echo off`n" } else { "#!/bin/sh`n" }
+		($prefix + $imports + "`nexit 0`n") | Set-Content -LiteralPath $fakeDump -Encoding ascii
+		$minimal = @(Get-BugSplatOutputRequiredDlls -MonitorPath (Join-Path $dest 'BugSplatMonitor.exe') -DumpBinPath $fakeDump -Configuration Release -Platform x64)
+		if ($minimal.Count -ne 5 -or $minimal -notcontains 'vcruntime140.dll') {
+			throw "Empty/single-import output broke the Release packaging contract: $($minimal -join ',')"
+		}
+	}
+
+	# A failed inspection must never be interpreted as an empty dependency list.
+	$stubText += "`nexit 7`n"
+	$stubText | Set-Content -LiteralPath $fakeDump -Encoding ascii
+	Assert-Throws {
+		Get-BugSplatMonitorMsvcDependents -MonitorPath (Join-Path $dest 'BugSplatMonitor.exe') -DumpBinPath $fakeDump
+	} -Pattern 'dumpbin /dependents failed.*exit 7'
+
+	# Reject incomplete SDK staging before inspecting CRT dependencies.
+	Assert-Throws {
+		& $verifyScript -OutputDir $dest -VcToolsInstallDir $fakeTools -DisableToolchainFallback
+	} -Pattern 'Missing required BugSplat runtime: BugSplatWer.dll'
+	'pe' | Set-Content -LiteralPath (Join-Path $dest 'BugSplatWer.dll') -NoNewline
+	Assert-Throws {
+		& $verifyScript -OutputDir $dest -VcToolsInstallDir $fakeTools -DisableToolchainFallback
+	} -Pattern 'Missing required BugSplat runtime: BugSplatRc.dll'
+	$emptyOutput = Join-Path $tmp.FullName 'Release x64'
+	New-Item -ItemType Directory -Path $emptyOutput -Force | Out-Null
+	Assert-Throws {
+		& $verifyScript -OutputDir $emptyOutput -VcToolsInstallDir $fakeTools -DisableToolchainFallback
+	} -Pattern 'Missing required BugSplat runtime: BugSplatMonitor.exe'
+
+	# Do not select x86 or OneCore CRTs when the desktop v145 tree exists.
+	foreach ($subdir in @('x86', 'onecore/x64')) {
+		$wrong = Join-MultiPath $redistVer $subdir 'Microsoft.VC145.CRT'
+		New-Item -ItemType Directory -Path $wrong -Force | Out-Null
+		'wrong' | Set-Content -LiteralPath (Join-Path $wrong 'vcruntime140.dll') -NoNewline
+	}
+	if ((Get-EnvyVcRedistDllDir -VcToolsInstallDir $toolsVer) -ne $redistRel) {
+		throw 'Redist discovery must prefer the desktop x64 CRT'
+	}
+	$fallbackTools = Join-MultiPath $tmp.FullName 'fallback' 'VC' 'Tools' 'MSVC' '14.50.00000'
+	$fallbackCrt = Join-MultiPath $fallbackTools 'bin' 'Hostx64' 'x64'
+	New-Item -ItemType Directory -Path $fallbackCrt -Force | Out-Null
+	'x' | Set-Content -LiteralPath (Join-Path $fallbackCrt 'vcruntime140.dll') -NoNewline
+	$newerCrt = Join-MultiPath (Split-Path $fallbackTools -Parent) '14.59.99999' 'bin' 'Hostx64' 'x64'
+	New-Item -ItemType Directory -Path $newerCrt -Force | Out-Null
+	'wrong' | Set-Content -LiteralPath (Join-Path $newerCrt 'vcruntime140.dll') -NoNewline
+	if ((Get-EnvyVcRedistDllDir -VcToolsInstallDir $fallbackTools) -ne $fallbackCrt) {
+		throw 'Redist discovery must support the active tool-local CRT fallback'
 	}
 
 	Write-Host 'copy-bugsplat-vc-runtime.selftest.ps1: OK'
