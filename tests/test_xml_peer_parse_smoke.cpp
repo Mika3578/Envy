@@ -1,7 +1,7 @@
 //
 // test_xml_peer_parse_smoke.cpp
 //
-// Smoke tests for XmlParseValidate.h peer entry-point contracts (ENVY-SEC-003).
+// Smoke tests for XmlParseValidate.h peer entry-point contracts.
 // EnvyTests does not link MFC CXMLElement; these cases exercise the same
 // AdmitPeerXmlBytes / AdmitPeerXmlChars / ChargeSharedPeerXmlChars helpers
 // used by CXMLElement::FromPeerBytes / FromPeerString and G1/G2 callers.
@@ -361,8 +361,63 @@ static bool test_xml_consume_chars_dword_overflow()
 }
 
 
+static bool test_http_capped_header_then_body_drain()
+{
+	DWORD nPending = 65536;
+	unsigned nReads = 0;
+	const bool bResult = ReadHttpInputUntilBlocked(
+	    [&]()
+	    {
+		    ++nReads;
+		    nPending -= nReads == 1 ? 16384 : nPending;
+		    return true;
+	    },
+	    [&]()
+	    { return nPending; });
+	return bResult && nPending == 0 && nReads == 2;
+}
+
+static bool test_http_drain_stops_without_progress()
+{
+	unsigned nReads = 0;
+	return ReadHttpInputUntilBlocked(
+	           [&]()
+	           { ++nReads; return true; },
+	           []()
+	           { return 42ul; }) &&
+	       nReads == 1;
+}
+
+static bool test_http_drain_stops_after_close()
+{
+	unsigned nReads = 0;
+	unsigned nProbes = 0;
+	return !ReadHttpInputUntilBlocked(
+	           [&]()
+	           { ++nReads; return false; },
+	           [&]()
+	           { ++nProbes; return 42ul; }) &&
+	       nReads == 1 && nProbes == 1;
+}
+
+static bool test_http_drain_stops_on_growing_queue()
+{
+	unsigned nReads = 0;
+	DWORD nPending = 42;
+	return ReadHttpInputUntilBlocked(
+	           [&]()
+	           { ++nReads; ++nPending; return true; },
+	           [&]()
+	           { return nPending; }) &&
+	       nReads == 1;
+}
+
 void register_xml_peer_parse_smoke_tests(TestSuite& suite)
 {
+	suite.add_test("http_capped_header_then_body_drain", test_http_capped_header_then_body_drain);
+	suite.add_test("http_drain_stops_without_progress", test_http_drain_stops_without_progress);
+	suite.add_test("http_drain_stops_after_close", test_http_drain_stops_after_close);
+	suite.add_test("http_drain_stops_on_growing_queue", test_http_drain_stops_on_growing_queue);
 	suite.add_test("xml_peer_defaults", test_xml_peer_defaults);
 	suite.add_test("xml_budget_chars_cap", test_xml_budget_chars_cap);
 	suite.add_test("xml_budget_depth_cap", test_xml_budget_depth_cap);

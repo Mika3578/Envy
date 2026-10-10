@@ -1,6 +1,8 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-10
+- **Last Updated:** 2026-10-11
+
+- **Changelog Entry:** 2026-10-11 — #393/#391: synchronize with current develop, drain HTTP socket data across capped header/body phases before close handling, and add native MFC XML plus loopback receive regressions. Preserve THEX type identifiers; document the Sonar HTTP warning as a protocol-identifier false positive. Explicit native-suite commands and controlled HTTP/THEX/manual peer checks are in `docs/10_dev/peer-xml-validation.md`; live interoperability remains pending.
 
 - **Changelog Entry:** 2026-10-10 — #422/#419: independently recheck every shipped bootstrap endpoint and ED2K/Kad/DC/DHT alternatives; add the AirDC++-documented Team Elite HTTPS hublist after bounded BZip2/XML and NMDC compatibility validation. Preserve three DHT routers within the existing DNS budget, reject stale/unverified Kad alternatives, and enforce blocked identities and truncated-row rejection offline. Persisted-service migration (#419), private-torrent isolation (#317), defaults (#418), Kad runtime/retry (#86/#430), UDP obfuscation (#431) and live interoperability (#160) remain separate open work.
 
@@ -321,6 +323,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - **#90 / #354 crash reporting** — BugTrap removed. **x64:** BugSplat SDK v8.0.0 (`ThirdParty/BugSplat`, optional upload when `EnvyBugSplatDatabase` is set). **Win32:** Crashpad local database + next-launch opt-in GitHub issue workflow (upload off). See `docs/10_dev/crash-reporting.md` (D-019, D-020).
 
 ### In Progress
+- **BugSplat runtime reliability (#359 / PR #362)** — synchronize deterministic x64 dependency discovery with installer and portable packaging; require staged CRT files and preserve Win32 Crashpad. Current-head CI and maintainer runtime validation remain required. Live Protect develop currently records zero required approvals, contrary to the documented one-approval policy; independent human approval remains required for workflow changes.
 - **Envy 4.2.0 Preview 1 release readiness** — version/packaging PR; install/uninstall + network smoke tests still required before tagging `v4.2.0-preview.1` and publishing the draft GitHub prerelease.
 - C++ modernization across legacy modules.
 - Incremental protocol compatibility and robustness improvements.

@@ -793,7 +793,7 @@ CQuerySearchPtr CQuerySearch::FromPacket(CPacket* pPacket, const SOCKADDR_IN* pE
 BOOL CQuerySearch::ReadG1Packet(CG1Packet* pPacket, const SOCKADDR_IN* pEndpoint)
 {
 	m_nHops = pPacket->m_nHops;
-	// One peer XML budget for G1 query extensions (ENVY-SEC-003), matching G2.
+	// One peer XML budget for G1 query extensions, matching G2.
 	XmlParseBudget oQueryXmlBudget = XmlParseBudget::PeerDefaults();
 
 	if ( pEndpoint )

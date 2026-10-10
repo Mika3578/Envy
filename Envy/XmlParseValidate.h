@@ -1,7 +1,7 @@
 //
 // XmlParseValidate.h
 //
-// Depth / size budgets for untrusted peer-sourced XML (ENVY-SEC-003).
+// Depth / size budgets for untrusted peer-sourced XML.
 // Part of Envy (getenvy.com) © 2016-2026
 //
 

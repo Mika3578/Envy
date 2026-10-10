@@ -1,7 +1,7 @@
 //
 // DownloadTransferHttpValidate.h
 //
-// Shared policy helpers for HTTP download framing (PR #393 / #391).
+// Shared policy helpers for bounded HTTP download framing.
 // Suitable for EnvyTests without linking the full MFC transfer stack.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
@@ -31,4 +31,22 @@ inline bool RejectExplicitZeroContentLength(
 inline bool TigerKnownLengthBodyFullyConsumed(ULONGLONG nRemainingLength) noexcept
 {
 	return nRemainingLength == 0;
+}
+
+// One socket event can span headers and body. Each read applies the current
+// phase's cap; repeat only while the socket queue shrinks, so bandwidth limits
+// or a full partial-frame buffer cannot create a busy loop.
+template<typename ReadInput, typename PendingInput>
+inline bool ReadHttpInputUntilBlocked(ReadInput readInput, PendingInput pendingInput)
+{
+	DWORD nPending = pendingInput();
+	for (;;)
+	{
+		if (!readInput())
+			return false;
+		const DWORD nRemaining = pendingInput();
+		if (nRemaining == 0 || nRemaining >= nPending)
+			return true;
+		nPending = nRemaining;
+	}
 }

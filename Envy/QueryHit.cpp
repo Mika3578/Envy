@@ -1453,9 +1453,8 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength, XmlParseBudget* 
 				         pActiveBudget->m_bDepthCapped)
 				{
 					// AddNode fails only at the shared node cap and EnterElement
-					// only at the shared depth cap, so this XML is well-formed but
-					// unfunded: omit it and keep the hits already parsed from this
-					// packet instead of discarding them all.
+					// only at the shared depth cap. Omit the unfunded XML and keep
+					// the hits already parsed instead of discarding the whole packet.
 					theApp.Message(MSG_DEBUG, L"[G2] Hit Error: Metadata exceeds shared parse budget (%s)", (LPCTSTR)strXML);
 				}
 				else

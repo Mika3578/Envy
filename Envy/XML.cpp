@@ -723,8 +723,8 @@ CXMLElement* CXMLElement::FromBytes(BYTE* pByte, DWORD nByte, BOOL bHeader)
 
 CXMLElement* CXMLElement::FromPeerBytes(BYTE* pByte, DWORD nByte, BOOL bHeader, XmlParseBudget* pBudget)
 {
-	// Bound decode/allocation before FromPeerString can apply ConsumeChars.
-	// For UTF-8 peer XML, byte length cannot exceed the character budget.
+	// Bound the wire representation before decoding allocates a CString.
+	// FromPeerString applies character accounting unless the caller owns it.
 	if (pByte == NULL || !AdmitPeerXmlBytes(nByte))
 		return NULL;
 	return FromPeerString(DecodeXmlBytesToString(pByte, nByte), bHeader, NULL, pBudget);

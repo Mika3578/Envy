@@ -191,7 +191,21 @@ runs:
       if: ${{ inputs.platform == 'x64' }}
       shell: pwsh
       run: |
-        pwsh scripts/verify-bugsplat-output-layout.ps1 -OutputDir "Envy/${{ inputs.configuration }} x64"
+        $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+        $install = (& $vswhere -latest -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath).Trim()
+        $toolsRoot = Join-Path $install 'VC\Tools\MSVC'
+        $tools = Get-ChildItem -LiteralPath $toolsRoot -Directory |
+          Where-Object { $_.Name -match '^14\.5' } |
+          Sort-Object Name -Descending |
+          Select-Object -First 1
+        if (-not $tools) { throw "Active MSVC tools directory was not found under $toolsRoot" }
+        pwsh scripts/verify-bugsplat-output-layout.ps1 -OutputDir "Envy/${{ inputs.configuration }} x64" -VcToolsInstallDir $tools.FullName -DisableToolchainFallback
+
+    - name: Verify portable runtime staging (Release)
+      if: ${{ inputs.configuration == 'Release' }}
+      shell: pwsh
+      run: |
+        ./scripts/release/stage-portable.ps1 -Platform ${{ inputs.platform }} -RepoRoot $env:GITHUB_WORKSPACE
 
     - name: Verify installer AppCopyright on setup executable (Release)
       if: ${{ inputs.configuration == 'Release' }}
@@ -322,6 +336,7 @@ runs:
         name: envy-${{ inputs.platform }}-${{ inputs.configuration }}
         path: |
           artifact-provenance.json
+          artifacts/portable/**
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.exe
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.pdb
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatMonitor.exe
@@ -329,6 +344,7 @@ runs:
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatRc.dll
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_handler.exe
           Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_wer.dll
+          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/*.dll
           Envy/**/Release/*.exe
           Envy/**/Release/*.dll
           Plugins/**/Release/*.dll

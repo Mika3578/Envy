@@ -561,6 +561,21 @@ BOOL CDownloadTransferHTTP::OnRun()
 
 BOOL CDownloadTransferHTTP::OnRead()
 {
+	// A header cap can leave body bytes in the socket when FD_CLOSE is already
+	// pending. Drain each newly available phase before DoRun calls OnDropped;
+	// stop when throttling or an incomplete frame prevents further progress.
+	return ReadHttpInputUntilBlocked(
+	    [this]()
+	    { return ReadInput() != FALSE; },
+	    [this]()
+	    {
+		    u_long nPending = 0;
+		    return ioctlsocket(m_hSocket, FIONREAD, &nPending) == 0 ? nPending : 0ul;
+	    });
+}
+
+BOOL CDownloadTransferHTTP::ReadInput()
+{
 	// Metadata fetches use a capped receive path for the whole response so a
 	// close-delimited peer cannot grow m_pInput past XML_PEER_PARSE_CHARS_MAX
 	// while headers are still being parsed (before dtsMetadata).
@@ -1886,7 +1901,7 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 						if ( CXMLElement* pxTree = pXML->GetElementByName( L"serializedtree" ) )
 						{
 							bEncoding = ( pxTree->GetAttributeValue( L"type" ).CompareNoCase( L"http://open-content.net/spec/thex/breadthfirst" ) == 0 );
-							m_sTigerUUID = pxTree->GetAttributeValue( L"uri" );
+							m_sTigerUUID = pxTree->GetAttributeValue(L"uri");
 						}
 					}
 					delete pXML;
@@ -1911,7 +1926,7 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 					break;
 				}
 			}
-			else if ( ( strID == m_sTigerUUID || strID.IsEmpty() || m_sTigerUUID.IsEmpty() ) && strType.CompareNoCase( L"http://open-content.net/spec/thex/breadthfirst" ) == 0 )
+			else if ((strID == m_sTigerUUID || strID.IsEmpty() || m_sTigerUUID.IsEmpty()) && strType.CompareNoCase(L"http://open-content.net/spec/thex/breadthfirst") == 0)
 			{
 				m_pDownload->SetTigerTree( pInput->m_pBuffer, nBody );
 			}
