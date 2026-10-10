@@ -38,6 +38,7 @@ protected:
 	BOOL			m_bTigerIgnore;
 	BOOL m_bTigerAbandon;               // Abandoning the rest of a THEX response
 	CString			m_sTigerTree;		// X-TigerTree-Path
+	CString			m_sTigerUUID;		// THEX descriptor URI for the current response
 	CString			m_sMetadata;		// X-Metadata-Path
 	BOOL			m_bMetaFetch;
 	BOOL			m_bGotRange;

@@ -192,6 +192,7 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 	m_bWantBackwards	= FALSE;
 	m_bRecvBackwards	= FALSE;
 	m_bTigerFetch		= FALSE;
+	m_sTigerUUID.Empty();
 	m_bMetaFetch		= FALSE;
 
 	if ( ! IsInputExist() || ! IsOutputExist() )	// || m_pDownload->GetTransferCount( dtsDownloading ) >= Settings.Downloads.MaxFileTransfers )
@@ -1805,7 +1806,7 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 	else if ( m_sContentType.CompareNoCase( L"application/dime" ) == 0 ||
 			  m_sContentType.CompareNoCase( L"application/binary" ) == 0 )
 	{
-		CString strID, strType, strUUID = L"x";
+		CString strID, strType;
 		DWORD nFlags, nBody, nHeader;
 
 		// Process DIME records as their headers become visible so oversized
@@ -1885,7 +1886,7 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 						if ( CXMLElement* pxTree = pXML->GetElementByName( L"serializedtree" ) )
 						{
 							bEncoding = ( pxTree->GetAttributeValue( L"type" ).CompareNoCase( L"http://open-content.net/spec/thex/breadthfirst" ) == 0 );
-							strUUID = pxTree->GetAttributeValue( L"uri" );
+							m_sTigerUUID = pxTree->GetAttributeValue( L"uri" );
 						}
 					}
 					delete pXML;
@@ -1910,7 +1911,7 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 					break;
 				}
 			}
-			else if ( ( strID == strUUID || strID.IsEmpty() ) && strType.CompareNoCase( L"http://open-content.net/spec/thex/breadthfirst" ) == 0 )
+			else if ( ( strID == m_sTigerUUID || strID.IsEmpty() || m_sTigerUUID.IsEmpty() ) && strType.CompareNoCase( L"http://open-content.net/spec/thex/breadthfirst" ) == 0 )
 			{
 				m_pDownload->SetTigerTree( pInput->m_pBuffer, nBody );
 			}
