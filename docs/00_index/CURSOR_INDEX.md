@@ -14,8 +14,8 @@
 | [remote-api](../20_arch/remote-api.md) | Native API / *arr subset / Torznab client (planned); audit 2026-09 |
 
 ## Planning
-- [roadmap](../10_dev/roadmap.md) · [DEVELOPMENT_PLAN](../DEVELOPMENT_PLAN.md) · [modernization-summary](../10_dev/modernization-summary.md) (historical snapshot)
-- [REFERENCE_IMPLEMENTATIONS](../30_protocols/REFERENCE_IMPLEMENTATIONS.md) · [DECISIONS](../DECISIONS.md) (D-008, D-012…D-015) · [PORTABILITY_PLAN](../20_arch/PORTABILITY_PLAN.md)
+- [roadmap](../10_dev/roadmap.md) · [DEVELOPMENT_PLAN](../DEVELOPMENT_PLAN.md) · [ideas](../10_dev/ideas.md) (pre-issue register) · [idea-capture](../10_dev/idea-capture.md) · [modernization-summary](../10_dev/modernization-summary.md) (historical snapshot)
+- [REFERENCE_IMPLEMENTATIONS](../30_protocols/REFERENCE_IMPLEMENTATIONS.md) · [DECISIONS](../DECISIONS.md) (D-008, D-012…D-015, D-023, D-024) · [PORTABILITY_PLAN](../20_arch/PORTABILITY_PLAN.md)
 
 ## Protocols
 - **ED2K:** [README](../30_protocols/ed2k/README.md) · [gap analysis](../30_protocols/ed2k/ED2K_KAD_GAP_ANALYSIS.md) · [search fixes](../30_protocols/ed2k/ED2K_SEARCH_FIXES.md) · [LowID callback baseline](../30_protocols/ed2k/ED2K_LOWID_CALLBACK_BASELINE.md) · [live interop harness](../../tools/interop/README.md) (#160, opt-in)

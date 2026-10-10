@@ -217,6 +217,14 @@ sanitized `.txt` from `%LOCALAPPDATA%\Envy\CrashReports\`. Attach the `.dmp`
 only if you choose to share it (minidumps can contain private memory).
 See `docs/50_user/crash-reports.md`.
 
+## Ideas and small observations
+
+Do not open a GitHub Issue for every note from development or an assistant
+chat. Capture unapproved observations locally (optional `.local/inbox/`,
+gitignored) and review them periodically into `docs/10_dev/ideas.md`.
+Process: `docs/10_dev/idea-capture.md`. Confirmed security issues still go
+through `.github/SECURITY.md` immediately.
+
 ## Security
 
 See `.github/SECURITY.md`. Never open public issues for security bugs.

@@ -273,8 +273,9 @@
 - `docs/DEVELOPMENT_PLAN.md`: strategic roadmap, major decisions, and sequencing (this file).
 - `docs/10_dev/status.md`: protocol/architecture status matrix (evidence-based; no “complete” without proof).
 - `docs/10_dev/roadmap.md`: technical modernization itemization aligned with the P0–P3 sequence below.
+- `docs/10_dev/ideas.md`: pre-issue candidate register and rejected/deferred memory (not a second roadmap). Process: `docs/10_dev/idea-capture.md`.
 - `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`: external P2P reference projects and spec-first policy.
-- `.local/DEV_TRACKER.md`: session notes (gitignored). `docs/DEV_TRACKER.md` is also gitignored and is not a committed source of truth.
+- `.local/DEV_TRACKER.md`: session notes (gitignored). Optional `.local/inbox/` is unapproved observation scratch (gitignored). `docs/DEV_TRACKER.md` is also gitignored and is not a committed source of truth.
 
 ## Vision & Goals
 - Keep Envy a stable **Windows-native multi-network** client today: BitTorrent, Gnutella, Gnutella2, ED2K, Kad, Direct Connect, Remote/Web, plus library and multi-network search.

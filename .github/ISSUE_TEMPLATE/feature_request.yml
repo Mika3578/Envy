@@ -3,6 +3,11 @@ description: Suggest an enhancement or new feature for Envy.
 title: "[Feature]: "
 labels: ["enhancement", "triage"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing Issues (open and closed) and `docs/10_dev/ideas.md` before filing.
+        Unapproved local notes in `.local/inbox/` are not a specification.
   - type: textarea
     id: problem
     attributes:

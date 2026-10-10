@@ -444,7 +444,9 @@ Plugins/ZIPBuilder/ZIPBuilder.h
 # Local development workspace (history rewrite protection)
 ###############################################################################
 
-# Local development workspace
+# Local development workspace (session notes, idea inbox, scratch).
+# Idea inbox: .local/inbox/*.md — gitignored here; never force-add.
+# Process: docs/10_dev/idea-capture.md. Inbox is optional and is not a spec.
 /.local/
 /references/
 /.envy.local.*
