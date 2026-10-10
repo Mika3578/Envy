@@ -1,6 +1,10 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-07
+- **Last Updated:** 2026-10-10
+
+- **Changelog Entry:** 2026-10-10 — #422/#419: independently recheck every shipped bootstrap endpoint and ED2K/Kad/DC/DHT alternatives; add the AirDC++-documented Team Elite HTTPS hublist after bounded BZip2/XML and NMDC compatibility validation. Preserve three DHT routers within the existing DNS budget, reject stale/unverified Kad alternatives, and enforce blocked identities and truncated-row rejection offline. Persisted-service migration (#419), private-torrent isolation (#317), defaults (#418), Kad runtime/retry (#86/#430), UDP obfuscation (#431) and live interoperability (#160) remain separate open work.
+
+- **Validation blocker:** 2026-10-10 — #422: Release x64 solution build succeeds; the Release Win32 solution build stops in `Envy/PreBuild.cmd` because the required vcpkg `crashpad_handler.exe` is missing. The independently generated EnvyTests executables pass 708/708 on both platforms; this does not establish a successful Win32 application build. Resolve the existing Crashpad environment/dependency prerequisite separately (#83/#353/#355); no dependency or gate changes are included here.
 
 - **Changelog Entry:** 2026-10-06 — #372: align Kad2 SEARCH_SOURCE_REQ with maintained aMule framing (<FileHash 16><StartPosition uint16 LE><FileSize uint64 LE>), keep bounded legacy hash-only/size-only input compatibility, and use one tested encoder for the production send path so CPacket big-endian state cannot corrupt FileSize.
 - **Changelog Entry:** 2026-10-07 — #327: cover the Windows MSBuild composite action in Dependabot; make `-CloneVcpkg` select the pinned local checkout even when absent; four offline selection cases pass. Reconcile with current `develop` without restoring retired classification outputs or changing live protections.

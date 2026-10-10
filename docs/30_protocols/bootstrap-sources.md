@@ -1,7 +1,7 @@
 # Bootstrap sources versus discovered hosts
 
 Status: active
-Last updated: 2026-10-09
+Last updated: 2026-10-10
 Scope: Cold-start catalogues shipped with Envy. Not a claim that every protocol is complete.
 
 **Bootstrap sources ≠ discovered peers/servers.** Envy already keeps those layers apart:
@@ -24,11 +24,15 @@ Status vocabulary: catalogue refresh is **implemented** for the shipped files; r
 | Kad2 | partial | Empty `HostCache.Kademlia` → import local `DataPath\nodes.dat` (and optional eMule/aMule `nodes.dat`); if no usable contacts remain, try HTTPS `K` rows in `DefaultServices.dat` (`nodes.dat`, size-capped, validated, atomic replace with `.lkg`). Parser accepts legacy v0 + new-format v1/v2/v3 (`Envy/KadNodesDat.h`). v3 edition 1 contributes at most 50 XOR-closest contacts. `CKademlia::Bootstrap()` still needs live routing; Kad2 remains partial / unverified (#86 / #160). |
 | Gnutella 1 | implemented (bootstrap) | gtk-gnutella UHCs (`U uhc:…`) plus multi-network GWCs. |
 | Gnutella2 | implemented (bootstrap) | Independent GWCs (jayl.de, bj.ddns.net, 4octets, trillinux). |
-| DC NMDC | implemented (hublist) | Three HTTPS hublists. `adc://` / `adcs://` skipped until #163. |
+| DC NMDC | implemented (hublist) | Four HTTPS hublists. `adc://` / `adcs://` skipped until #163. |
 | ADC/ADCS | not implemented | `adc://` / `adcs://` rows are ignored; NMDC rows in the same hublists are still imported. Do not treat import as ADC support. |
 | BitTorrent DHT | implemented (bootstrap) | `DefaultServers.dat` `B` DNS routers loaded into HostCache. `CDHT::Connect` inserts cached node IDs; if none exist it sends BEP 5 `find_node` to up to 8 HostCache BitTorrent hosts (blocking DNS capped at 3 names; empty cache reloads `DefaultServers.dat`). No extra C++ DNS list. If the catalogue file is missing or every name fails DNS, DHT still marks connected and waits for later PEX/tracker nodes — D-012 forbids compiling `router.bittorrent.com` (or any replacement) into `.cpp`. Successful nodes persist in `HostCache.dat`. |
 
-## Shipped sources (rechecked 2026-10-09)
+## Shipped sources (latest inventory: 2026-10-10)
+
+The dated observations below are historical snapshots. The independent
+2026-10-10 inventory later in this document supersedes endpoint health and
+counts; it does not establish end-to-end Envy connectivity.
 
 ### ED2K `server.met`
 
@@ -103,6 +107,7 @@ added only after a bounded request returns the expected `I|`/`H|` response.
 | `https://dchublist.org/hublist.xml.bz2` | dchublist.org | HTTP 200, valid BZip2/XML, 273 hub entries; mixed contents require NMDC filtering |
 | `https://dchublist.ru/hublist.xml.bz2` | dchublist.ru | HTTP 200, valid BZip2/XML, 91 hub entries; NMDC rows are the supported subset |
 | `https://hublist.pwiam.com/hublist.xml.bz2` | PWiAM | HTTP 200, valid BZip2/XML, 267 hub entries; mixed contents require NMDC filtering |
+| `https://www.te-home.net/?do=hublist&get=hublist.xml.bz2` | Team Elite | Added 2026-10-10: verified HTTPS, BZip2/XML, 258 hubs including 244 bare NMDC addresses; 14 ADC/ADCS rows are skipped |
 
 `DC.HubListURL` default is the dchublist.org HTTPS URL. `dchublist.com` 301s to Team Elite; `tankafett.biz` 301s to an HTML page, not `hublist.xml.bz2`.
 
@@ -141,7 +146,7 @@ Audited `develop` at `59695b173bac6510388aa90f29cd88d60db35b74`. Existing work: 
 
 Validation used bounded HTTP GETs (20 s, 1 MiB read cap), normal TLS certificate verification, binary headers/counts, BZip2/XML decoding, DNS and one bounded BEP 5 `find_node` probe per router. On the 2026-10-09 recheck, eMule-Security `server.met` returned HTTP 200 with 12 records and `nodes.dat` returned HTTP 200 with version 2 and 189 contacts. The direct shortypower `server.met` and `nodes.dat` URLs timed out in this check. The maintained aMule documentation still identifies eMule-Security and shortypower as compatible `server.met` sources and eMule-Security as the maintained `nodes.dat` default. The three retained hublists returned HTTP 200, valid BZip2/XML, and 273, 267, and 91 hub entries respectively. Transmission and libtorrent replied with matching transactions; BitTorrent timed out. These are point-in-time observations, not guarantees of uptime or full Envy runtime interoperability. No peer IPs from responses are added to shipped data. No live UHC UDP interoperability is claimed; the six retained endpoints are present in maintained gtk-gnutella `boot_hosts` (three additional peer ports there are not needed for the minimum catalogue). Candidate alternatives such as `router.bt.ouinet.work:6881` were documented by libtorrent but not added because they were not independently validated in this audit.
 
-The offline catalogue test compares parsed active source identities with the vetted set, rejecting invalid or unexpected extra rows rather than merely checking minima. Blocked `X` rows remain security entries and are not bootstrap providers. Existing `Discovery.dat` is not migrated by this PR; #419 remains open.
+The offline catalogue test compares all parsed source identities with the vetted set, rejecting invalid, truncated, duplicate or unexpected extra rows rather than merely checking minima. The three blocked `X` identities must also remain present; they are security entries, not bootstrap providers. Existing `Discovery.dat` is not migrated by this PR; #419 remains open.
 
 Primary references consulted:
 
@@ -151,6 +156,105 @@ Primary references consulted:
 - [gtk-gnutella UHC implementation](https://github.com/gtk-gnutella/gtk-gnutella/blob/devel/src/core/uhc.c), [Shareaza discovery lineage](https://github.com/ivan386/Shareaza/blob/master/shareaza/DiscoveryServices.cpp): references for G1/UHC and GWC roles; not a requirement to import their entire catalogue.
 - [dchublist.org operator instructions](https://dchublist.org/), [PWiAM operator](https://hublist.pwiam.com/), [AirDC++ maintained defaults](https://github.com/airdcpp/airdcpp-windows/blob/master/airdcpp/airdcpp/settings/SettingsManager.cpp): its `HUBLIST_SERVERS` includes all three retained operators; hublist/client references; mixed hublist contents do not grant ENVY ADC/ADCS support.
 - [libtorrent bootstrap settings](https://libtorrent.org/reference-Settings.html#dht_bootstrap_nodes), [qBittorrent session implementation](https://github.com/qbittorrent/qBittorrent/blob/master/src/base/bittorrent/sessionimpl.cpp), [Transmission DHT implementation](https://github.com/transmission/transmission/blob/main/libtransmission/tr-dht.cc). The current libtorrent documentation, rather than older qBittorrent/Transmission attribution, directly supports all three retained names.
+
+## Independent endpoint inventory — 2026-10-10 UTC
+
+This run started at PR head `3719b635086278026e9122b7128db5430d51ca61`.
+HTTP observations were made at 06:55–07:06 UTC. DNS resolved for every
+endpoint below. HTTPS used normal certificate/hostname verification; no
+certificate bypass or silent downgrade was used. Downloads used a 12-second
+socket timeout, at most three redirects and a 1 MiB read cap; hublist expansion
+was capped at 4 MiB. DNS uses the operating system resolver's timeout, not a
+separate application deadline. UDP used one request per endpoint and a
+four-second receive timeout. No user infohash, tracker announce, peer crawl,
+user setting or persistent cache was involved.
+
+Evidence levels are distinct: **mentioned** by an operator/client;
+**reachable** over the transport; **conformant** payload; **compatible** with
+Envy's existing importer; and **effective discovery**, which additionally
+requires live Envy import and peer connections. None of these probes reaches
+the final level. `Validated` below means the observed payload/transport,
+not complete protocol interoperability. `Uncertain` sources already shipped
+are retained when a timeout cannot establish retirement. New candidates need
+positive compatibility and freshness evidence before inclusion.
+
+Origin keys (also identify the source of each exact endpoint):
+
+- **A**: [aMule server sources](https://amule-org.github.io/docs/p2p-networks/ed2k), [nodes.dat format/default](https://amule-org.github.io/lv/docs/developer/file-formats/nodes-dat), [eMule-Security operator](https://www.emule-security.org/), [shortypower operator](https://shortypower.org/).
+- **G**: [gtk-gnutella maintained UHC implementation](https://github.com/gtk-gnutella/gtk-gnutella/blob/devel/src/core/uhc.c). Its `boot_hosts` includes all six retained identities; alternate peer ports are not substituted for cache ports.
+- **W**: [Shareaza discovery lineage](https://github.com/ivan386/Shareaza/blob/master/shareaza/DiscoveryServices.cpp) and the exact retained cache URL itself. Envy request construction: `Envy/DiscoveryServices.cpp:1456`; case-insensitive `h`/`i` parsing: `:1524` / `:1672`.
+- **H**: [AirDC++ maintained hublist defaults](https://github.com/airdcpp/airdcpp-windows/blob/master/airdcpp/airdcpp/settings/SettingsManager.cpp). The defaults explicitly list all four shipped URLs and the DCNF candidate.
+- **B**: [libtorrent bootstrap setting](https://www.libtorrent.org/reference-Settings.html#dht_bootstrap_nodes), [BEP 5](https://www.bittorrent.org/beps/bep_0005.html). Libtorrent explicitly documents all four tested router names.
+
+| Protocol | Exact endpoint | Operator / origin | Verified UTC | DNS/TLS/HTTP/UDP | Format | Status | Envy compatibility | Decision | Evidence / limitation |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ED2K | `https://upd.emule-security.org/server.met` | eMule-Security / A | 2026-10-10 | DNS, TLS, 200 | All 12 records and tags consumed; 12 public addresses/nonzero ports; no duplicates or trailing bytes | Validated | Existing MET importer | Keep | Last-Modified 2026-10-09; endpoint reachability is not server connectivity |
+| ED2K | `https://shortypower.org/server.met` | shortypower / A | 2026-10-10 | DNS; HTTPS connection timeout | No fresh payload | Uncertain | Previously verified MET | Keep under reservation | No retirement conclusion from bounded timeout; not the sole provider |
+| Kad | `https://upd.emule-security.org/nodes.dat` | eMule-Security / A | 2026-10-10 | DNS, TLS, 200 | v2, 6438 bytes, 189 exact 34-byte records; no duplicate records; 175 public/nonzero-port Kad2 candidates before Envy filtering | Validated | Production `KadNodesDatParse`: status Ok, 167 accepted with synthetic zero own-ID; 256 KiB / 5000-contact caps, normal import cap 200, /24 cap 2 | Keep | Last-Modified 2026-10-09; routing remains partial; no contacts were inserted into runtime caches |
+| G1 | `uhc:useast.gnutella.dyslexicfish.net:3558` | dyslexicfish / G | 2026-10-10 | DNS; UDP timeout | No reply | Uncertain | Maintained UHC identity | Keep under reservation | Single TTL-1 SCP leaf ping; no permanent failure claim |
+| G1 | `uhc:uswest.gnutella.dyslexicfish.net:3558` | dyslexicfish / G | 2026-10-10 | DNS; UDP timeout | No reply | Uncertain | Maintained UHC identity | Keep under reservation | Same bounded probe |
+| G1 | `uhc:uk.gnutella.dyslexicfish.net:3558` | dyslexicfish / G | 2026-10-10 | DNS; UDP timeout | No reply | Uncertain | Maintained UHC identity | Keep under reservation | Same bounded probe |
+| G1 | `uhc:au.gnutella.dyslexicfish.net:3558` | dyslexicfish / G | 2026-10-10 | DNS; UDP timeout | No reply | Uncertain | Maintained UHC identity | Keep under reservation | Same bounded probe |
+| G1 | `uhc:1.uhc.gtk-gnutella.nl:19104` | gtk-gnutella / G | 2026-10-10 | DNS; UDP timeout | No reply | Uncertain | Maintained UHC identity | Keep under reservation | Not an HTTP cache |
+| G1 | `uhc:2.uhc.gtk-gnutella.nl:4876` | gtk-gnutella / G | 2026-10-10 | DNS; UDP response | 273-byte pong, matching GUID and payload length; IPP extension present | Validated envelope | G1 UDP pong path; contact import untested | Keep | Not a peer handshake or a full GGEP/contact-validation test |
+| G1/G2 | `http://midian.jayl.de/g2/bazooka.php` | jayl.de / W | 2026-10-10 | DNS; HTTP 200 for both networks | G2: 17 public host rows; G1: 8; info rows present | Validated | Existing GWC request/parser | Keep | Cleartext discovery can be modified in transit |
+| G1/G2 | `http://bj.ddns.net/beacon/gwc.php` | bj.ddns.net / W | 2026-10-10 | DNS; HTTP 200 for both networks | G2: 20 public host rows; G1: 12; info rows present | Validated | Existing GWC request/parser | Keep | Cleartext risk; returned peers not contacted |
+| G1/G2 | `http://gweb3.4octets.co.uk/gwc.php` | 4octets / W | 2026-10-10 | DNS; HTTP 200 for both networks | G2: 12 public host rows; G1: 6; info rows present | Validated | Existing GWC request/parser | Keep | Cleartext risk; no HTTPS URL inferred |
+| G2 | `http://dkac.trillinux.org/dkac/dkac.php` | trillinux / W | 2026-10-10 | DNS; HTTP 200 | `i` pong and 12 lowercase `h` rows in follow-up | Validated | Envy compares record prefixes without case | Keep | Earlier timeout superseded; initial uppercase-only probe undercounted these rows |
+| NMDC | `https://dchublist.org/hublist.xml.bz2` | dchublist.org / H | 2026-10-10 | DNS, TLS, 200 | BZip2/XML, 273 hubs, 244 `dchub://`; no repeated Address values | Validated | Supported NMDC subset | Keep | Last-Modified 2026-10-10; skip ADC/ADCS |
+| NMDC | `https://hublist.pwiam.com/hublist.xml.bz2` | PWiAM / H | 2026-10-10 | DNS, TLS, 200 | BZip2/XML, 267 hubs, 252 `dchub://`; 4 repeated Address values | Validated | Supported NMDC subset; normal host-cache deduplication | Keep | No Last-Modified supplied; duplicate list rows are not catalogue duplicates |
+| NMDC | `https://dchublist.ru/hublist.xml.bz2` | dchublist.ru / H | 2026-10-10 | DNS, TLS, 200 | BZip2/XML, 91 hubs, all `dchub://`; no repeated Address values | Validated | Supported NMDC subset | Keep | Last-Modified 2026-10-03 |
+| NMDC | `https://www.te-home.net/?do=hublist&get=hublist.xml.bz2` | Team Elite / H | 2026-10-10 | DNS, TLS, 200; no redirect | BZip2/XML `Hublist/Hubs`, 258 unique addresses: 244 bare NMDC, 3 ADC, 11 ADCS | Validated | `ImportHubList` accepts bare NMDC addresses and skips ADC/ADCS | Add | Last-Modified 2026-10-10; exact URL published by AirDC++; no importer/default-setting change |
+| BT DHT | `dht.transmissionbt.com:6881` | Transmission / B | 2026-10-10 | DNS; BEP 5 UDP response | Matching transaction, response type and 20-byte ID; 8 compact nodes, all public/nonzero-port | Validated | Existing router path | Keep | No node crawl or torrent announcement |
+| BT DHT | `router.bittorrent.com:6881` | BitTorrent / B | 2026-10-10 | DNS; UDP timeout | No reply | Uncertain | Documented router | Keep under reservation | A single timeout is not retirement evidence |
+| BT DHT | `dht.libtorrent.org:25401` | libtorrent / B | 2026-10-10 | DNS; BEP 5 UDP response | Matching transaction/type/ID; 3 compact nodes, all public/nonzero-port | Validated | Existing router path | Keep | No user infohash transmitted |
+
+### Candidates examined but not shipped
+
+| Protocol | Exact endpoint | Operator / origin | Verified UTC | Transport | Format | Status | Envy compatibility | Decision | Reason |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ED2K | `http://www.synology.com/server.met` | [Synology documentation](https://kb.synology.com/fr-fr/DSM/help/DownloadStation/emule_server?version=7) | 2026-10-10 | Redirects to `https://www.synology.com/en-global`, 200 | HTML, not MET | Obsolete as download | Not importable | Exclude | Documentation gives an example, not evidence of a currently usable download |
+| ED2K | `https://www.gruk.org/server.met` | [gruk operator](https://www.gruk.org/) / historical aMule example | 2026-10-10 | TLS, 200 | 11 fully consumed MET records, public/nonzero ports, no duplicates | Valid format; freshness uncertain | MET compatible | Document only | HTTPS works; exclusion must no longer be justified by HTML or cleartext alone. No Last-Modified or independent recent list-maintenance evidence obtained |
+| ED2K | `https://server-met.emulefuture.de/` | eMuleFuture operator | 2026-10-10 | DNS; HTTPS timeout | No payload | Uncertain | Not verified | Exclude | The candidate page and tentative `download.php?file=server.met` path both timed out; no exact maintained binary URL established |
+| Kad | `https://shortypower.org/nodes.dat` | shortypower | 2026-10-10 | DNS; HTTPS timeout | No fresh payload | Uncertain now; previously 404 | Not revalidated | Keep excluded | Timeout does not reverse the recorded 404 retirement evidence |
+| Kad | `https://www.nodes-dat.com/dl.php?load=nodes` and `https://nodes-dat.com/dl.php?load=nodes` | [nodes-dat operator page](https://www.nodes-dat.com/) | 2026-10-10 | TLS, redirect to HTML homepage | Not nodes.dat | Inactive for tested HTTPS URLs | Not importable | Exclude | Page advertises HTTP download with a changing trace parameter; no validated HTTPS binary equivalent found; `/nodes.dat` returns 404 |
+| Kad | `https://kademlia.ru/download/nodes.dat` | Operator linked by nodes-dat.com (HTTP link) | 2026-10-10 | TLS, 404 | No binary | Inactive at HTTPS path | Not importable | Exclude | Do not silently downgrade the HTTPS-only K catalogue to HTTP |
+| Kad | `https://emulemods.altervista.org/download/nodes.dat` | [Emule-Mods operator announcement](https://www.emulemods.altervista.org/index.php?topic=2757.0) | 2026-10-10 | TLS, 200 | v2, 6744 bytes, 198 exact records; 187 public/nonzero-port Kad2 candidates; no duplicate records | Structurally valid; old | v2 compatible; live contacts unverified | Exclude | Last-Modified 2025-11-02 agrees with dated announcement; insufficient freshness for a new reliable fallback |
+| NMDC | `https://dcnf.github.io/Hublist/hublist.xml.bz2` | DCNF / H | 2026-10-10 | TLS, 200 | BZip2/XML, 732 hubs, 663 `dchub://`; 9 repeated Address values | Valid format; freshness uncertain | Supported NMDC subset | Document only | Last-Modified 2026-06-08; four fresher shipped providers suffice; no additional host reachability evidence |
+| NMDC | `https://hublist.te-home.net/hublist.xml.bz2` | Guessed Team Elite subdomain, not the AirDC++ URL | 2026-10-10 | TLS hostname mismatch | Not downloaded | Invalid candidate | Not verified | Exclude | Use the exact validated `www.te-home.net` query URL above; never bypass certificate verification |
+| BT DHT | `router.bt.ouinet.work:6881` | Ouinet / B | 2026-10-10 | DNS; BEP 5 UDP response | Matching transaction/type/ID; 16 public/nonzero-port compact nodes | Validated | Protocol compatible; fourth unresolved name exceeds current cold-start DNS budget | Document only | Keep three shipped names and existing caps; do not retire BitTorrent on one timeout or alter engine limits to admit a fourth |
+
+The three `X` rows were preserved without probing blocked services. Historical
+retired GWC/ED2K identities remain excluded as recorded above. No static peer
+addresses from any response enter the catalogues. No new Kad source passed
+the combined HTTPS, format and freshness criteria. HTTP GWCs remain an
+explicit integrity risk, independent of whether their payloads parse.
+
+### Offline/build validation of the final catalogue
+
+- Initial-head standalone MSVC C++17 catalogue module: 28/28 passed x64.
+  Updated module: 30/30 passed x64 and Win32, using the actual shipped files.
+- Seven mutations fail as intended: remove an `X` block, duplicate a service,
+  restore retired Peerates, append a truncated row, append an unknown type,
+  duplicate a DHT router, and append a synthetic static ED2K seed. Original
+  bytes were restored after each mutation; the final 30/30 run passes.
+- VS 2026 Insiders MSBuild, solution Release x64, v145, Windows SDK 10.0:
+  exit 0 (incremental build). Fresh EnvyTests: 708/708 passed, exit 0.
+- Solution Release Win32 with manifest enabled and `x86-windows-static`:
+  exit 1 because required `crashpad_handler.exe` is absent. The independently
+  generated Win32 EnvyTests still pass 708/708; this is **not** a successful
+  Win32 application build. Existing dependency/environment work remains
+  separate; no third-party source or gate was altered.
+- Explicit x64 installer-project rebuild: exit 0, generated
+  `Envy.4.2.0.1.64.exe`. `Installer/Scripts/Main.iss` selects repository
+  `Data/*`; its compile log includes both tested catalogue files. No installer
+  execution or application runtime test was performed. Existing BugSplat
+  missing-`dumpbin` copy and installer language/privilege warnings remain;
+  installer compilation alone does not establish complete runtime packaging.
+- `Settings.cpp`, `BTInfo.cpp`, `BootstrapCatalog.h`, packet constants and
+  protocol/importer engines are unchanged by this PR. Private-torrent safety
+  remains #317; runtime source migration remains #419. Maintainer live-test,
+  Ready transition and manual merge remain pending.
 
 ## Remaining C++ network addresses (not this catalogue)
 

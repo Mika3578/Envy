@@ -19,7 +19,7 @@
 # (CDiscoveryServices::EnoughServices). The C++ AddDefaults() fallback is
 # commented out; this file is the only cold-start catalogue.
 #
-# Rechecked 2026-10-09. HTTP/format observations and limitations are in
+# Rechecked 2026-10-10. HTTP/format observations and limitations are in
 # docs/30_protocols/bootstrap-sources.md. UHC list from gtk-gnutella
 # devel src/core/uhc.c. HTTPS used only when the service and Envy's HTTP
 # client both support it. See docs/30_protocols/bootstrap-sources.md.
@@ -42,6 +42,7 @@ D https://shortypower.org/server.met
 H https://dchublist.org/hublist.xml.bz2
 H https://hublist.pwiam.com/hublist.xml.bz2
 H https://dchublist.ru/hublist.xml.bz2
+H https://www.te-home.net/?do=hublist&get=hublist.xml.bz2
 X http://gwebcache.spearforensics.com/
 X http://www.myfoxy.net/gwc/cgi-bin/fc
 X http://gwc.gofoxy.net:2108/gwc/cgi-bin/fc
