@@ -13,6 +13,8 @@
 #include <cstdio>
 #include <string>
 #include <cwchar>
+#include <algorithm>
+#include <vector>
 
 namespace {
 
@@ -76,9 +78,12 @@ const wchar_t* kShippedServices =
 	L"D https://shortypower.org/server.met\n"
 	L"H https://dchublist.org/hublist.xml.bz2\n"
 	L"H https://dchublist.ru/hublist.xml.bz2\n"
-	L"H https://te-home.net/?do=hublist&get=hublist.xml.bz2\n"
+	L"H https://hublist.pwiam.com/hublist.xml.bz2\n"
+	L"H https://www.te-home.net/?do=hublist&get=hublist.xml.bz2\n"
 	L"K https://upd.emule-security.org/nodes.dat\n"
-	L"K https://shortypower.org/nodes.dat\n";
+	L"X http://gwebcache.spearforensics.com/\n"
+	L"X http://www.myfoxy.net/gwc/cgi-bin/fc\n"
+	L"X http://gwc.gofoxy.net:2108/gwc/cgi-bin/fc\n";
 
 void CountServices(const wchar_t* blob, int* nWeb, int* nG2, int* nG1, int* nMet, int* nHub, int* nNodesDat)
 {
@@ -319,6 +324,40 @@ static bool test_shipped_default_services_dat()
 		return false;
 	int nWeb = 0, nG2 = 0, nG1 = 0, nMet = 0, nHub = 0, nNodesDat = 0;
 	CountServices( wide.c_str(), &nWeb, &nG2, &nG1, &nMet, &nHub, &nNodesDat );
+	// Compare parsed identities, so comments cannot satisfy the check
+	// and an accidental extra retired source cannot hide behind minimum counts.
+	// Blocked identities must also survive catalogue maintenance.
+	std::vector< std::wstring > actual, expected;
+	const std::wstring blobs[] = { wide, std::wstring( kShippedServices ) };
+	for ( size_t i = 0; i < 2; ++i )
+	{
+		const std::wstring& blob = blobs[ i ];
+		std::vector< std::wstring >& rows = i == 0 ? actual : expected;
+		size_t start = 0;
+		while ( start < blob.size() )
+		{
+			const size_t end = blob.find( L'\n', start );
+			const std::wstring line = blob.substr( start, end - start );
+			ServiceRow row{};
+			const BootstrapParseStatus status = ParseService( line.c_str(), &row );
+			if ( status == BootstrapParseStatus::Invalid )
+				return false;
+			const size_t first = line.find_first_not_of( L" \t\r" );
+			if ( status == BootstrapParseStatus::Skip && first != std::wstring::npos
+				&& line[ first ] != L'#' )
+				return false;
+			if ( status == BootstrapParseStatus::Ok )
+				rows.push_back( std::wstring( 1, row.type ) + L" " + row.endpoint );
+			if ( end == std::wstring::npos )
+				break;
+			start = end + 1;
+		}
+	}
+	std::sort( actual.begin(), actual.end() );
+	std::sort( expected.begin(), expected.end() );
+	if ( actual != expected )
+		return false;
+
 	return nWeb >= BootstrapMinWebCaches
 		&& nG2 >= BootstrapMinG2Services
 		&& nG1 >= BootstrapMinG1Services
@@ -336,6 +375,7 @@ static bool test_shipped_default_servers_dat()
 	if ( ! LoadRepoDataFile( "DefaultServers.dat", &wide ) )
 		return false;
 	int nBt = 0;
+	std::vector< std::wstring > hosts;
 	const wchar_t* p = wide.c_str();
 	while ( p && *p )
 	{
@@ -348,17 +388,32 @@ static bool test_shipped_default_servers_dat()
 		bool bPri = false;
 		const wchar_t* psz = nullptr;
 		size_t n = 0;
-		if ( BootstrapParseServerLine( line.c_str(), line.size(), &cType, &bPri, &psz, &n )
-			== BootstrapParseStatus::Ok
-			&& BootstrapClassifyServerType( cType ) == BootstrapServerClass::BitTorrent )
+		const BootstrapParseStatus status = BootstrapParseServerLine(
+			line.c_str(), line.size(), &cType, &bPri, &psz, &n );
+		if ( status == BootstrapParseStatus::Invalid )
+			return false;
+		if ( status == BootstrapParseStatus::Ok )
+		{
+			if ( cType != L'B' || bPri )
+				return false;
+			const std::wstring host( psz, n );
+			if ( host != L"dht.transmissionbt.com:6881" &&
+				 host != L"router.bittorrent.com:6881" &&
+				 host != L"dht.libtorrent.org:25401" )
+				return false;
+			if ( std::find( hosts.begin(), hosts.end(), host ) != hosts.end() )
+				return false;
+			hosts.push_back( host );
 			++nBt;
+		}
 		p = eol ? eol + 1 : p + nLine;
 		if ( ! eol )
 			break;
 	}
-	return nBt >= 3
+	return nBt == 3
 		&& wide.find( L"dht.transmissionbt.com:6881" ) != std::wstring::npos
-		&& wide.find( L"dht.libtorrent.org:25401" ) != std::wstring::npos;
+		&& wide.find( L"dht.libtorrent.org:25401" ) != std::wstring::npos
+		&& wide.find( L"router.bittorrent.com:6881" ) != std::wstring::npos;
 }
 
 static bool test_service_https_scheme_case()
@@ -436,6 +491,25 @@ static bool test_dht_boot_slot_cap_and_dns_budget()
 	return true;
 }
 
+static bool test_catalogue_truncated_rows()
+{
+	// The legacy loader skips short service rows; none may become an endpoint.
+	return ParseService( L"D", nullptr ) != BootstrapParseStatus::Ok
+		&& ParseService( L"K ", nullptr ) != BootstrapParseStatus::Ok
+		&& ParseService( L"U uhc:", nullptr ) != BootstrapParseStatus::Ok
+		&& ParseService( L"D https:/", nullptr ) == BootstrapParseStatus::Invalid
+		&& ParseServer( L"B ", nullptr ) == BootstrapParseStatus::Invalid
+		&& ParseServer( L"B router.bittorrent.com:", nullptr ) == BootstrapParseStatus::Invalid;
+}
+
+static bool test_catalogue_network_limits()
+{
+	return BootstrapMinWebCaches == 1 && BootstrapMinG2Services == 3
+		&& BootstrapMinG1Services == 2 && BootstrapMinEd2kMet == 2
+		&& BootstrapMinDcHublists == 2 && BootstrapMinKadNodesDat == 1
+		&& BootstrapDhtRouterPingCap == 8 && BootstrapDhtBlockingResolveCap == 3;
+}
+
 void register_bootstrap_catalog_smoke_tests( TestSuite& suite )
 {
 	suite.add_test( "bootstrap_service_valid_https", test_service_valid_https );
@@ -466,4 +540,6 @@ void register_bootstrap_catalog_smoke_tests( TestSuite& suite )
 	suite.add_test( "bootstrap_server_extra_colon_rejected", test_server_extra_colon_rejected );
 	suite.add_test( "bootstrap_service_uhc_port_range", test_service_uhc_port_range );
 	suite.add_test( "bootstrap_dht_boot_slot_cap_and_dns_budget", test_dht_boot_slot_cap_and_dns_budget );
+	suite.add_test( "bootstrap_catalogue_truncated_rows", test_catalogue_truncated_rows );
+	suite.add_test( "bootstrap_catalogue_network_limits", test_catalogue_network_limits );
 }
