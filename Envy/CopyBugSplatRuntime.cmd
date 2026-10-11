@@ -1,13 +1,15 @@
 @echo off
-rem Copy BugSplat x64 runtime files next to Envy.exe.
+rem Copy BugSplat Native runtime files next to Envy.exe.
 rem %1 - ConfigurationName (Debug|Release)
-rem %2 - PlatformName (must be x64)
+rem %2 - PlatformName (Win32 or x64)
 rem %3 - Active VCToolsInstallDir (from MSBuild)
 setlocal EnableExtensions
-if /I not "%~2"=="x64" exit /b 0
 if "%~1"=="" exit /b 1
 
-set "ROOT=%~dp0..\ThirdParty\BugSplat\x64\%~1\bin"
+set "ARCH=x86"
+if /I "%~2"=="x64" set "ARCH=x64"
+if /I not "%~2"=="Win32" if /I not "%~2"=="x64" exit /b 1
+set "ROOT=%~dp0..\ThirdParty\BugSplat\%ARCH%\%~1\bin"
 set "DEST=%~dp0%~1 %~2"
 if not exist "%DEST%" mkdir "%DEST%"
 

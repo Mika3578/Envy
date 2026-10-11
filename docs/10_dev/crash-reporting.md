@@ -3,12 +3,12 @@
 Status: #353 / D-020 (hybrid migration)
 Last updated: 2026-09-25
 
-ENVY uses **two crash backends** during the BugSplat migration:
+ENVY uses the **BugSplat Native backend** on Win32 and x64.
 
 | Platform | Backend | User workflow |
 | --- | --- | --- |
 | **x64** (primary) | **BugSplat** (v8.0.0 `/MT` static lib, out-of-process `BugSplatMonitor.exe`) | Native BugSplat crash dialog (Don't Send / Send Error Report); optional server symbolication when enabled |
-| **Win32** (legacy Stage A) | **Crashpad** (vcpkg, local DB, upload off) | Unchanged next-launch TaskDialog from #90 |
+| **Win32/x86** | **BugSplat Native** (official SDK, out-of-process monitor) | Same consent and WER model as x64 |
 
 Win32 lifecycle and D-014 are **out of scope** for the BugSplat PR; Win32 keeps Crashpad until separately decided.
 
@@ -44,20 +44,7 @@ Some crash classes (fast-fail, stack overrun, etc.) require BugSplat WER registr
 
 Trusted `develop` / `main` pushes may upload symbols via `.github/workflows/bugsplat-symbols.yml` when repository secrets `BUGSPLAT_CLIENT_ID` / `BUGSPLAT_CLIENT_SECRET` and variable `ENVY_BUGSPLAT_DATABASE` are set. The workflow maps those secrets to `SYMBOL_UPLOAD_CLIENT_ID` / `SYMBOL_UPLOAD_CLIENT_SECRET` for [symbol-upload v11](https://github.com/BugSplat-Git/symbol-upload/tree/v11.0.0) (OAuth via environment variables, not `-i`/`-s` argv). PRs and forks skip upload when secrets are absent.
 
-## Win32 — Crashpad (unchanged)
-
-Local-database behavior matches D-019 / #90 (Crashpad host, next-launch dialog, retention helpers in `CrashReportPolicy.h`).
-
-- `CrashPadHost` + `crashpad_handler.exe` from vcpkg (`x86-windows-static`).
-- `CopyCrashpadHandler.cmd` runs from `PreBuild.cmd` / post-build on Win32 only.
-- Next-launch dialog and privacy helpers in `CrashReportPolicy.h` remain in use.
-
-## Build
-
-- x64: `scripts/bootstrap-vcpkg.cmd` restores manifest deps **without** Crashpad. Import BugSplat SDK into `ThirdParty/BugSplat` before building `Envy.vcxproj`.
-- Win32: bootstrap `x86-windows-static` still requires `crashpad_handler.exe` in `vcpkg_installed`.
-
-### Reproducible dependency probe (bugsplat-crashpad)
+## Win32 and x64 — unified BugSplat Native\n\nBoth architectures use `BugSplatHost`, the official Native SDK, and the same offline-safe empty-database behavior. The committed SDK tree must contain matching `x86` and `x64` Debug/Release `/MT` libraries and runtime binaries. The current branch intentionally fails closed until the official Win32 package is imported and reviewed (see #466).\n\n### Reproducible dependency probe (bugsplat-crashpad)
 
 Official [BugSplat-Git/bugsplat-crashpad](https://github.com/BugSplat-Git/bugsplat-crashpad)
 releases are public and pin-friendly, but they distribute **Crashpad** (`/MD`), not

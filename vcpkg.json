@@ -12,11 +12,7 @@
     "bzip2",
     "sqlite3",
     "miniupnpc",
-    "openssl",
-    {
-      "name": "crashpad",
-      "platform": "windows & x86"
-    }
+    "openssl"
   ],
   "features": {
     "tests": {

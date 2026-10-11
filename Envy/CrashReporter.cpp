@@ -1,18 +1,14 @@
 //
 // CrashReporter.cpp
 //
-// Next-launch crash recovery UI (#90). Capture is Crashpad out-of-process.
+// Next-launch crash recovery UI (#90). Capture is handled by BugSplat Native.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
 #include "StdAfx.h"
 #include "CrashReporter.h"
 #include "CrashReportPolicy.h"
-#ifdef _WIN64
 #include "BugSplatHost.h"
-#else
-#include "CrashPadHost.h"
-#endif
 
 #include <commctrl.h>
 #include <shellapi.h>
@@ -69,9 +65,7 @@ wchar_t s_directory[MAX_PATH];
 
 void __cdecl OnTerminate()
 {
-#ifndef _WIN64
-	CrashPadHost::DumpNow();
-#endif
+
 	abort();
 }
 
@@ -83,17 +77,13 @@ void __cdecl OnInvalidParameter(
     uintptr_t /*pReserved*/)
 {
 	// Do not copy CRT strings; they may contain user paths.
-#ifndef _WIN64
-	CrashPadHost::DumpNow();
-#endif
+
 	abort();
 }
 
 void __cdecl OnPureCall()
 {
-#ifndef _WIN64
-	CrashPadHost::DumpNow();
-#endif
+
 	abort();
 }
 
@@ -586,7 +576,7 @@ void ShowPendingDialog(PendingReport* pItem)
 	swprintf_s(szInstruction, _countof(szInstruction),
 	           L"ENVY found a crash report from a previous run.\n\n"
 	           L"Reports are stored locally in:\n%s\n\n"
-	           L"Crashpad minidumps can contain fragments of process memory and are not anonymous. "
+	           L"Legacy local crash dumps can contain fragments of process memory and are not anonymous. "
 	           L"Nothing is uploaded. Attach the minidump only if you choose to share it.",
 	           s_directory);
 
@@ -607,7 +597,7 @@ void ShowPendingDialog(PendingReport* pItem)
 	buttons[0].nButtonID = CRASH_BTN_COPY;
 	buttons[0].pszButtonText = L"Copy sanitized report\nCopies text you can paste into a GitHub issue. The dump is not copied.";
 	buttons[1].nButtonID = CRASH_BTN_FOLDER;
-	buttons[1].pszButtonText = L"Open crash-report folder\nInspect or attach the Crashpad minidump yourself.";
+	buttons[1].pszButtonText = L"Open crash-report folder\nInspect or attach the legacy crash dump yourself.";
 	buttons[2].nButtonID = CRASH_BTN_GITHUB;
 	buttons[2].pszButtonText = L"Open GitHub issue page\nOpens a blank issue with a short crash title. Paste the copied text. Do not put dumps in the URL.";
 	tdc.cButtons = 3;
@@ -650,14 +640,12 @@ void CrashReporter::Initialize()
 {
 	s_directory[0] = 0;
 	ResolveCrashDirectory(s_directory, _countof(s_directory));
-#ifndef _WIN64
-	CrashPadHost::Start(s_directory);
-#endif
+
 
 	if (s_bInstalled)
 		return;
 
-	// Win32: capture via Crashpad before abort. x64: same CRT hooks when BugSplat is
+	// BugSplat owns capture on both architectures; CRT hooks still fail fast when it is
 	// misconfigured so terminate/invalid-parameter/purecall still fail fast.
 	s_pPreviousTerminate = set_terminate(&OnTerminate);
 	s_pPreviousInvalid = _set_invalid_parameter_handler(&OnInvalidParameter);
@@ -667,11 +655,7 @@ void CrashReporter::Initialize()
 
 void CrashReporter::SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevision, const wchar_t* pszBuildType)
 {
-#ifdef _WIN64
-	BugSplatHost::SetIdentity(pszVersion, pszRevision, pszBuildType);
-#else
-	CrashPadHost::SetIdentity(pszVersion, pszRevision, pszBuildType);
-#endif
+\tBugSplatHost::SetIdentity(pszVersion, pszRevision, pszBuildType);
 }
 
 void CrashReporter::ShowStartupPromptIfNeeded()
@@ -681,39 +665,16 @@ void CrashReporter::ShowStartupPromptIfNeeded()
 	if (!FindPendingReports(reports, 32, &nCount) || nCount == 0)
 		return;
 
-#ifdef _WIN64
-	// Legacy Crashpad dumps from pre-BugSplat x64 builds: prune only, no startup UI.
-	FindPendingReports(reports, 32, &nCount);
+	// Retain and prune reports left by older Crashpad builds without presenting
+	// a second consent flow now that BugSplat owns capture on both architectures.
 	PruneOldReports(reports, nCount);
-	return;
-#else
-	PendingReport* pNewestUnseen = nullptr;
-	for (size_t i = 0; i < nCount; ++i)
-	{
-		if (!reports[i].hasSeen && (reports[i].hasDump || reports[i].hasTxt))
-		{
-			pNewestUnseen = &reports[i];
-			break;
-		}
-	}
-	if (pNewestUnseen != nullptr)
-	{
-		ShowPendingDialog(pNewestUnseen);
-		MarkSeen(pNewestUnseen);
-	}
-
-	FindPendingReports(reports, 32, &nCount);
-	PruneOldReports(reports, nCount);
-#endif
 }
 
 void CrashReporter::Shutdown()
 {
 	if (!s_bInstalled)
 		return;
-#ifdef _WIN64
 	BugSplatHost::Shutdown();
-#endif
 	if (s_pPreviousTerminate != nullptr)
 		set_terminate(s_pPreviousTerminate);
 	if (s_pPreviousInvalid != nullptr)

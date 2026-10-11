@@ -84,7 +84,7 @@
     <VcpkgEnableManifest>false</VcpkgEnableManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='Win32'">
-    <!-- Win32 Crashpad: vcpkg manifest + crashpad_handler (see Envy.CrashReporting.props). -->
+    <!-- BugSplat Native is used on both architectures; see Envy.CrashReporting.props. -->
     <VcpkgEnabled>true</VcpkgEnabled>
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
     <VcpkgManifestRoot>$(EnvyRepoRoot)</VcpkgManifestRoot>
@@ -414,8 +414,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClCompile Include="Connection.cpp" />
     <ClCompile Include="CoolInterface.cpp" />
     <ClCompile Include="CoolMenu.cpp" />
-    <ClCompile Include="BugSplatHost.cpp" Condition="'$(Platform)'=='x64'" />
-    <ClCompile Include="CrashPadHost.cpp" Condition="'$(Platform)'=='Win32'" />
+    <ClCompile Include="BugSplatHost.cpp" />
     <ClCompile Include="CrashReporter.cpp" />
     <ClCompile Include="CrawlSession.cpp" />
     <ClCompile Include="CryptoProvider.cpp" />
@@ -1294,8 +1293,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="Connection.h" />
     <ClInclude Include="CoolInterface.h" />
     <ClInclude Include="CoolMenu.h" />
-    <ClInclude Include="BugSplatHost.h" Condition="'$(Platform)'=='x64'" />
-    <ClInclude Include="CrashPadHost.h" Condition="'$(Platform)'=='Win32'" />
+    <ClInclude Include="BugSplatHost.h" />
     <ClInclude Include="CrashReporter.h" />
     <ClInclude Include="CrashReportPolicy.h" />
     <ClInclude Include="CrawlSession.h" />
@@ -1755,13 +1753,6 @@ $(EnvyCrashPostBuildCmd)</Command>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-  <!-- vcpkg.targets is not imported here. VcpkgEnabled/VcpkgEnableManifest only
-       restore packages if the machine has vcpkg MSBuild integration, and even
-       then restore is BeforeTargets=ClCompile/Midl — after PreBuildEvent.
-       CI runs `vcpkg install` first. Fail closed with the same bootstrap hint. -->
-  <Target Name="CheckVcpkgInstalled" BeforeTargets="PreBuildEvent" Condition="'$(EnvyCrashRequiresVcpkg)'=='true'">
-    <Error Condition="!Exists('$(EnvyVcpkgInstalled)\.')" Text="Missing $(EnvyVcpkgInstalled). Win32 Crashpad requires vcpkg: run scripts\bootstrap-vcpkg.cmd -Triplet x86-windows-static from the repository root (use a Visual Studio Developer shell if Crashpad GN build fails). x64 uses vendored BugSplat in ThirdParty\BugSplat and does not need vcpkg_installed\x64-windows-static. See docs/10_dev/build.md." />
-  </Target>
   <ProjectExtensions>
     <VisualStudio>
       <UserProperties RESOURCE_FILE="Envy.rc" />

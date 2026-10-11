@@ -574,3 +574,5 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
   cleanup preserves trees and budgets with scoped authorization. Review-loop
   assessments use read-only permissions and cannot publish authoritative state.
   Runtime validation and a valid non-author approval remain external checkpoints.
+
+- **2026-10-12 / #466:** Started unified BugSplat Native migration for Win32 and x64. Code and build inputs are consolidated; the official authenticated Win32 SDK package and maintainer runtime validation remain required before merge.
