@@ -8,7 +8,9 @@ int PackageRelativePath(LPCTSTR path, int directoryEntry)
 	const WCHAR* start = path;
 	const WCHAR* p;
 	size_t length;
-	if (!path || !(length = wcslen(path)) || length >= MAX_PATH) return 0;
+	if (!path) return 0;
+	length = wcslen(path);
+	if (!length || length >= MAX_PATH) return 0;
 	for (p = path;; ++p)
 	{
 		WCHAR c = *p;
