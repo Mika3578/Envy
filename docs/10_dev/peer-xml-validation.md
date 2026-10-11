@@ -29,8 +29,9 @@ shared-budget/depth restoration, malformed input, UTF-8/UTF-16 BOM handling,
 and the production HTTP receive-loop helper on a real loopback socket after
 remote shutdown.
 
-The THEX cases compile unchanged `ReadTiger`, `StartNextFragment` and `SetTigerTree` method
+The THEX cases compile unchanged `ReadTiger` and `StartNextFragment` method
 bodies extracted at build time from the current `DownloadTransferHTTP.cpp`,
+and `SetTigerTree` from `DownloadWithTiger.cpp`,
 plus the production `CBuffer` DIME/buffer methods. The XML implementation is
 linked normally. Missing method boundaries fail the test build; no maintained
 copy of the parser is used. The real HashLib DLL and hash string conversion
@@ -55,20 +56,33 @@ execute the complete G1/G2 dispatchers or HTTP header parser.
 The ten THEX cases bring this native suite to 18 tests. Python 3 must be on
 PATH for the source-extraction build step.
 
-## Controlled application checks
+## Loopback fixture checks (not application tests)
 
-Record the PR HEAD, base, built commit, artifact/run, platform and results.
-Use a disposable download directory. Start the loopback-only fixture:
+The fixture listens only on `127.0.0.1`. Envy rejects loopback download sources:
+`CDownloadWithSources::AddSourceURL` checks `Network.IsReserved`, which always
+classifies IPv4 `127/8` as reserved. Adding these URLs in Envy does not exercise
+the HTTP transfer parser. Changing `Connection.IgnoreOwnIP` or private-address
+filtering does not remove this reserved-address check. Do not disable or bypass
+network protections to make the fixture work in the application.
+
+Run the fixture's independent HTTP-client self-test:
+
+```powershell
+python tests/peer_http_fixture.py --self-test
+```
+
+Its 21 response checks validate the fixture, not Envy. To inspect the responses
+with a separate HTTP client, start the loopback-only server:
 
 ```powershell
 python tests/peer_http_fixture.py
 ```
 
-Enable download metadata and Tiger verification in Envy for their respective
-cases. Add each URL as a new HTTP download in Envy. Remove the previous test download
-before repeating a case, so existing ranges or cached hash trees do not mask
-the request being tested. The fixture prints expected SHA256 hashes; verify
-completed downloads with `Get-FileHash -Algorithm SHA256 <file>`.
+The fixture prints expected SHA256 hashes; an independent client can verify
+downloaded bodies with `Get-FileHash -Algorithm SHA256 <file>`.
+The tables below describe intended Envy behavior if equivalent responses reach
+an admitted source. They are test vectors, not executable loopback application
+instructions or evidence that application header handling has passed.
 
 | URL suffix under `http://127.0.0.1:18793` | Expected observation |
 | --- | --- |
@@ -86,7 +100,7 @@ completed downloads with `Get-FileHash -Algorithm SHA256 <file>`.
 THEX fixtures use the specification's 1024-byte `A` test vector and a padded
 XML descriptor larger than the header receive cap. Confirm the THEX request
 in the server log: a file download alone does not demonstrate tree handling.
-The fixture is an HTTP test source and does not emulate a Gnutella client.
+The fixture emits HTTP responses and does not emulate a Gnutella client.
 Stop it with Ctrl+C. No Internet-facing listener is created.
 
 Additional `/file-thex-<case>.bin` cases:
@@ -100,10 +114,28 @@ Additional `/file-thex-<case>.bin` cases:
 | `close`, `bare` | Close-delimited DIME / bare breadth-first tree installs the expected root. |
 | `chunked`, `gzip`, `bad-length` | HTTP transfer rejected; header paths require application testing. |
 
-Run `python tests/peer_http_fixture.py --self-test` to check the fixture's own
-21 HTTP response bodies on loopback. This does not run Envy or prove its
-header handling. `short` sends one byte less than Content-Length; `split`
-forces a descriptor/tree receive boundary. Malformed inputs stay local.
+`short` sends one byte less than Content-Length; `split` schedules separate
+writes around the descriptor/tree boundary. TCP does not guarantee matching
+receive boundaries. The native suite explicitly tests every two-read split
+and bytewise reads of the production parser. Malformed fixture inputs stay local.
+
+## Actual application checks
+
+Record the PR HEAD, base, built commit, artifact/run, platform and results.
+Use an independent reference client on another controlled machine, with an
+address admitted by Envy's existing network policy, as described below.
+Keep the normal network protections enabled. Enable download metadata and
+Tiger verification for their respective cases. Remove the previous test
+download before repeating a case, so cached ranges or hash trees cannot mask
+the request. Check the completed file's SHA256 and actual THEX exchange/logs.
+
+Distinguish the evidence: fixture self-tests check generated HTTP responses;
+native tests execute production parser methods with service doubles; only an
+Envy transfer from an admitted peer tests application integration. Native tests
+do not cover the complete HTTP header/socket lifecycle or G1/G2 dispatch.
+Malformed application cases require a separately controlled, admitted source;
+the supplied loopback-only server cannot provide that application coverage.
+Mark those cases not exercised unless such evidence is recorded.
 
 ## Association policy and reference comparison
 
@@ -233,19 +265,19 @@ is a comparison, not a recommendation to install an abandoned binary.
 
 Use two disposable machines/VMs on a controlled network. Share **only** the
 synthetic directory. Give each a fixed, distinct listening port (example:
-Envy 18791, reference 18792). For same-machine tests both ports must differ;
-allow the test in Advanced `Connection.IgnoreOwnIP` as well as local-address
-filtering, then restore it afterward. Two machines are preferable.
+Envy 18791, reference 18792). Use an endpoint admitted by the existing network
+policy; loopback and self-address rejection are not parser failures. If the
+chosen topology is filtered, record the case as not exercised and use a
+permitted topology without weakening network protections.
 
 1. In Envy choose **View > Windowed Mode** if needed to expose the full menus
    (skin names can vary; the default XML defines the commands below).
 2. **Tools > Envy Settings... > Connection**: clear **Random**, set **Port**,
-   allow incoming connections, and temporarily clear **Ignore private/local
-   IP addresses** for the isolated test. Use the test interface; keep other
-   interfaces and personal shares out of the test. Allow that program/port
-   through Windows Defender Firewall on the test profile. Verify TCP listening
+   and use the permitted test interface. Keep **Ignore private/local IP
+   addresses**, self-address filtering and firewall protections at their normal
+   settings; keep personal shares out of the test. Verify TCP listening
    with `Get-NetTCPConnection -State Listen -LocalPort 18791`. UDP is used by
-   Gnutella queries; allow the same test port for UDP. No public router mapping
+   Gnutella queries; verify the existing permitted UDP path too. No public router mapping
    is needed on one LAN. Router/NAT behavior is a separate test.
 3. **G2/Gnutella** settings: choose **Connect to Gnutella now** or **Connect
    to G2 now**, one network at a time. G1 modes are **Optimal**, **Leaf**,
@@ -335,21 +367,23 @@ capabilities **N/A** rather than claiming protocol support.
 | S4 interrupted source | During a throttled transfer, stop the reference process; resume it later | UI remains responsive, retries/preserves ranges; repeatable crash or poisoned metadata is failure |
 | S5 segmentation / source switch | Put identical 64-MiB sample on two controlled sources; **Advanced > Add Source...** or **Find More Sources**; set **Downloads > Transfers per File** above 1; observe two source entries and distinct HTTP ranges. Stop one source, finish with the other | Verify actual simultaneous ranges; two entries alone do not prove segmentation. Hash mismatch, stalled surviving source, or all ranges lost needs diagnosis |
 | S6 browse/profile/chat | Result **Browse User**, **Chat with User**; bounded profile/metadata survives repeated search/browse/chat | G2/profile ownership is separate from HTTP tests; report unsupported client features distinctly. Do not inject hostile profiles into public peers |
-| L1 valid/malformed XML | Run local `file-metadata-valid/deep/large/close` fixtures; valid bounded XML accepted, depth/size limits discarded safely, further requests usable | Crash, unbounded memory or request deadlock; compare fixture GET log and System log |
-| L2 THEX identifiers | Local `empty-id`, `wrong-id`, `uri-empty`, `uri-missing`, `unknown-uri-empty`, `no-descriptor` | Compare against association table; require tree-ready log only for accepted cases |
-| L3 THEX framing/hash | `split`, `short`, `bad-segment`, `bad-depth`, `partial-hash`, `wrong-root`, `multiple`, `close`, `bare` | Correct root installs once; invalid tree does not install. Truncated fetch fails closed; later requests must not parse leftover bytes as HTTP headers |
-| L4 unsupported HTTP | `chunked`, `gzip`, `bad-length`, plus `file-empty.bin` | Rejected without empty-file success, hang, or oversized allocation; these full header/socket paths remain manual |
+| L1 valid/malformed XML | Native XML limit tests; fixture `file-metadata-valid/deep/large/close` checks generated responses only | Application metadata handling remains untested without equivalent responses from an admitted controlled source |
+| L2 THEX identifiers | Native production-parser identity matrix: empty/mismatched IDs, URI absent/empty, missing descriptor | Compare against association table; full application installation needs separate admitted-peer evidence |
+| L3 THEX framing/hash | Native production-parser split/truncation, descriptor, hash integrity, duplicate, close and bare-tree cases | Parser evidence only; full socket close/retry behavior needs application testing |
+| L4 unsupported HTTP | Fixture `chunked`, `gzip`, `bad-length`, plus `file-empty.bin` generates header cases | Fixture success does not prove application rejection; full header/socket paths require an admitted controlled source |
 
 A semantic THEX rejection can permit ordinary file download afterward. Evaluate
 tree installation and final file integrity separately. An unavailable peer is
 not a compatibility failure until the same endpoint/roles work on a baseline.
-Local fixture cases cover malicious metadata; ordinary reference-client traffic
-does not prove that malformed G1/G2 profile dispatch was exercised.
+Native tests cover malformed XML/parser inputs. Loopback fixture checks prove
+response construction only; ordinary reference-client traffic does not prove
+that malformed G1/G2 profile dispatch or hostile HTTP headers were exercised.
 
 ### Observe the actual protocol
 
-Capture only the controlled interface/endpoints with Wireshark; loopback tests
-on Windows require its loopback capture adapter. Start before connecting.
+Capture only the controlled interface/endpoints with Wireshark. The loopback
+capture adapter observes fixture-client traffic, not an Envy download. Start
+before connecting to an admitted reference peer.
 Replace example ports with the local test values without publishing addresses.
 
 ```text
@@ -405,6 +439,19 @@ guide and passing isolated tests do not establish merge readiness.
   HTTPS changes the identifier and breaks existing peers. The same applies to
   the Tiger digest identifier. Qualify cpp:S5332 on that comparison as a false
   positive with this evidence; do not suppress the rule or rewrite the value.
+- The XML `serializedtree type` comparison and the DIME binary record type
+  comparison both consume this breadth-first identifier as data. The Tiger
+  `digest algorithm` comparison uses the identifier explicitly defined in
+  THEX §3.2.3: `http://open-content.net/spec/digest/tiger`. None is dereferenced.
+- The native trailing-record test uses
+  `http://edonkey2000.com/spec/md4-hashset` as a legacy DIME record type passed
+  to `CBuffer::WriteDIME`. This is the MD4 hashset extension, not the Tiger
+  algorithm identifier. Both Envy and the inspected
+  [Shareaza uploader](https://github.com/ansani/Shareaza/blob/f24b0ce3753067e02fb6ee7dbf82d8c214c291d2/shareaza/UploadTransferHTTP.cpp)
+  emit that exact value; their readers compare it as a type. The test performs
+  no HTTP fetch and must retain the historical spelling to exercise the
+  production trailing-hashset branch. Changing HTTP to HTTPS in any of these
+  identifiers would select a different, unsupported type, not secure transport.
 - [XML 1.0](https://www.w3.org/TR/REC-xml/): limits are Envy resource policy,
   not new XML syntax. Local `FromString`/`FromFile` behavior stays separate.
 - [HTTP/1.1 framing, RFC 9112 §6.3](https://www.rfc-editor.org/rfc/rfc9112.html#section-6.3):
