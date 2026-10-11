@@ -95,3 +95,6 @@ in [aMule's Kademlia implementation](https://github.com/amule-project/amule/blob
 and the reply shape in
 [aMule's UDP listener](https://github.com/amule-project/amule/blob/master/src/kademlia/net/KademliaUDPListener.cpp);
 the timeouts are local policy rather than claimed Kad2 protocol constants.
+
+## Related
+- [Status](../../10_dev/status.md) · [Dev docs](../../10_dev/) · [Protocol index](../README.md)
