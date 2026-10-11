@@ -102,6 +102,22 @@ bool test_exponential_bounded_backoff()
 	       KadBootstrapRotation::Delay(2) == 120000;
 }
 
+bool test_pending_cannot_reenter_without_timeout()
+{
+	KadBootstrapRotation policy;
+	const KadContact candidate = MakeBootstrapContact(0);
+	const std::vector<KadContact> all = {candidate};
+	policy.Sent(candidate.ip, candidate.udpPort, 0);
+	// Elapsed time does not implicitly complete or cancel the request.
+	if (!policy.Select(all, 600000).contacts.empty())
+		return false;
+	if (!policy.TimedOut(candidate.ip, candidate.udpPort, 600000))
+		return false;
+	if (!policy.Select(all, 659999).contacts.empty())
+		return false;
+	return policy.Select(all, 660000).contacts.size() == 1;
+}
+
 bool test_success_clears_penalty()
 {
 	KadBootstrapRotation policy;
@@ -204,6 +220,7 @@ void register_kad_bootstrap_rotation_tests(TestSuite& suite)
 	suite.add_test("kad_bootstrap_exhaustion_recovery", test_exhaustion_and_recovery);
 	suite.add_test("kad_bootstrap_exponential_backoff", test_exponential_bounded_backoff);
 	suite.add_test("kad_bootstrap_success_resets_penalty", test_success_clears_penalty);
+	suite.add_test("kad_bootstrap_pending_never_reselected", test_pending_cannot_reenter_without_timeout);
 	suite.add_test("kad_bootstrap_wraparound", test_wraparound_timing);
 	suite.add_test("kad_bootstrap_invalid_candidates", test_invalid_and_empty_candidates);
 	suite.add_test("kad_bootstrap_bounded_tracking", test_bounded_state);
