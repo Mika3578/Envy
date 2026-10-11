@@ -23,6 +23,31 @@ describe('security-utils', () => {
     expect(utils.validateRedirectTarget('https://evil.com', ['/remote'])).toBeNull();
   });
 
+  test('validateRedirectTarget rejects traversal and encoded separator variants', () => {
+    const invalidTargets = [
+      '/remote/../outside',
+      '/remote/./home',
+      '/remote/%2e%2e/outside',
+      '/remote/%2E%2E/outside',
+      '/remote/%252e%252e/outside',
+      '/remote/%2f%2e%2e%2foutside',
+      '/remote\\..\\outside',
+      '/remote/%5c..%5coutside',
+      '/remote/%252f%252e%252e%252foutside'
+    ];
+
+    for (const target of invalidTargets) {
+      expect(utils.validateRedirectTarget(target, ['/remote'])).toBeNull();
+    }
+  });
+
+  test('validateRedirectTarget preserves valid allowlisted path boundaries', () => {
+    expect(utils.validateRedirectTarget('/remote', ['/remote'])).toBe('/remote');
+    expect(utils.validateRedirectTarget('/remote/home', ['/remote'])).toBe('/remote/home');
+    expect(utils.validateRedirectTarget('/remoteish/home', ['/remote'])).toBeNull();
+    expect(utils.validateRedirectTarget('/api/v1/items', ['/remote', '/api'])).toBe('/api/v1/items');
+  });
+
   test('validateApiSegment rejects invalid boundary values', () => {
     expect(() => utils.validateApiSegment('', 'stat')).toThrow('length is out of bounds');
     expect(() => utils.validateApiSegment('../etc/passwd', 'stat')).toThrow('invalid characters');
@@ -45,3 +70,4 @@ describe('security-utils', () => {
     delete global.DOMPurify;
   });
 });
+
