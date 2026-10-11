@@ -9,29 +9,6 @@ Scope: Envy Kad2 notes. Opcode matching is not live interop. Kad6/Ember overlays
 ## Start here
 - [Kad2 compatibility report](kad2-compatibility-report.md) (wire/opcode match only)
 
-## Bootstrap retry policy (issue #430)
-
-The Kad2 UDP bootstrap path now rotates through cached candidates instead of
-revisiting the same leading entries on each retry. The scheduler takes at most
-three candidates per cycle, retains bounded per-endpoint in-flight state,
-and applies a bounded 60-second to 10-minute backoff after an unanswered
-request times out. Valid correlated bootstrap responses clear the retry
-penalty; truncated responses do not consume the tracked request.
-
-The once-per-minute Kad2 status summary aggregates cache, deferred/invalid
-candidates, outbound bootstrap attempts, expired requests, valid and malformed
-responses, rejected contacts, and searches with no routing contacts. These
-counts distinguish scheduler exhaustion from lack of validated responses but
-**cannot** alone prove remote UDP reachability or explain encrypted packets.
-
-This is a retry/reliability improvement, **not** a claim that Kad2 bootstrap
-or search fully interoperates with eMule/aMule. Live peer interoperability,
-routing/contact admission, and UDP obfuscation are tracked separately
-(#160, #86, #431).
-
-## Related
-- [Status](../../10_dev/status.md) · [Dev docs](../../10_dev/) · [Protocol index](../README.md)
-
 ## Bootstrap candidate retry scheduling (issue #430)
 
 `CKademlia::Bootstrap()` now snapshots the Kad host cache and uses
@@ -61,3 +38,6 @@ in [aMule's Kademlia implementation](https://github.com/amule-project/amule/blob
 and the reply shape in
 [aMule's UDP listener](https://github.com/amule-project/amule/blob/master/src/kademlia/net/KademliaUDPListener.cpp);
 the timeouts are local policy rather than claimed Kad2 protocol constants.
+
+## Related
+- [Status](../../10_dev/status.md) · [Dev docs](../../10_dev/) · [Protocol index](../README.md)
