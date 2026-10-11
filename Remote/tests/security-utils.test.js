@@ -48,7 +48,7 @@ describe('security-utils', () => {
     expect(utils.validateRedirectTarget('/api/v1/items', ['/remote', '/api'])).toBe('/api/v1/items');
   });
 
-  test('validateApiSegment rejects invalid boundary values', () => {
+  test('validateApiSegment rejects invalid boundary values',
     expect(() => utils.validateApiSegment('', 'stat')).toThrow('length is out of bounds');
     expect(() => utils.validateApiSegment('../etc/passwd', 'stat')).toThrow('invalid characters');
     expect(() => utils.validateApiSegment('valid_stat-1', 'stat')).not.toThrow();
@@ -70,4 +70,3 @@ describe('security-utils', () => {
     delete global.DOMPurify;
   });
 });
-
