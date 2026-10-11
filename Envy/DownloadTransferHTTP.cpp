@@ -58,6 +58,11 @@ CDownloadTransferHTTP::CDownloadTransferHTTP(CDownloadSource* pSource)
     , m_bTigerFetch(FALSE)
     , m_bTigerIgnore(FALSE)
     , m_bTigerAbandon(FALSE)
+    , m_bTigerDescriptor(FALSE)
+    , m_bTigerTreeSeen(FALSE)
+    , m_bTigerDimeStarted(FALSE)
+    , m_bTigerDimeEnded(FALSE)
+    , m_nTigerDepth(0)
     , m_bMetaFetch(FALSE)
     , m_bGotRange(FALSE)
     , m_bGotRanges(FALSE)
@@ -193,6 +198,12 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 	m_bRecvBackwards	= FALSE;
 	m_bTigerFetch		= FALSE;
 	m_sTigerUUID.Empty();
+	m_bTigerAbandon = FALSE;
+	m_bTigerDescriptor = FALSE;
+	m_bTigerTreeSeen = FALSE;
+	m_bTigerDimeStarted = FALSE;
+	m_bTigerDimeEnded = FALSE;
+	m_nTigerDepth = 0;
 	m_bMetaFetch		= FALSE;
 
 	if ( ! IsInputExist() || ! IsOutputExist() )	// || m_pDownload->GetTransferCount( dtsDownloading ) >= Settings.Downloads.MaxFileTransfers )
@@ -908,8 +919,13 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		// Store Content-Length including 0. Control responses (503/416/redirect)
 		// may advertise an empty body; reject zero only for ordinary file
 		// content in OnHeadersComplete after those paths are classified.
-		if (_stscanf(strValue, L"%I64u", &nTotal) != 1 || nTotal >= SIZE_UNKNOWN)
-			break;
+		if (!ParsePeerUnsignedDecimal(strValue, nTotal) || nTotal >= SIZE_UNKNOWN ||
+		    (m_nContentLength != SIZE_UNKNOWN && m_nContentLength != nTotal))
+		{
+			theApp.Message(MSG_DEBUG, L"Rejected invalid or conflicting Content-Length");
+			Close(TRI_FALSE);
+			return FALSE;
+		}
 		m_nContentLength = nTotal;
 	}
 	break;
@@ -1311,6 +1327,12 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 	}
 	else if ( m_bTigerFetch )
 	{
+		if (m_bChunked)
+		{
+			theApp.Message(MSG_DEBUG, L"Rejected chunked THEX response");
+			Close(TRI_FALSE);
+			return FALSE;
+		}
 		// Keep-alive unknown Content-Length has no completion signal for DIME;
 		// reject it like MetaFetch. Close-delimited unknown length is finalized
 		// in OnDropped.
@@ -1811,7 +1833,14 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 		{
 			if (pInput->m_nLength < m_nLength) return TRUE;
 
-			m_pDownload->SetTigerTree(pInput->m_pBuffer, (DWORD)m_nLength);
+			if (m_nLength > MAXDWORD ||
+			    !ThexTreeMatchesDepth(m_pDownload->m_nSize, (DWORD)m_nLength) ||
+			    !m_pDownload->SetTigerTree(pInput->m_pBuffer, (DWORD)m_nLength))
+			{
+				if (bDropped) return FALSE;
+				Close(TRI_FALSE);
+				return FALSE;
+			}
 			pInput->Remove((DWORD)m_nLength);
 			m_nLength = 0;
 		}
@@ -1857,27 +1886,31 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 			}
 
 			const DWORD nPaddedBody = (nBody + 3) & ~3;
-			if (nPaddedBody > MAXDWORD - nHeader ||
-			    pInput->m_nLength < nHeader + nPaddedBody)
+			const QWORD nRecordBytes = (QWORD)nHeader + nPaddedBody;
+			// Check framing from the header, before waiting for an impossible body.
+			// Chunked DIME records are unsupported; MB/ME delimit one HTTP response.
+			if (nRecordBytes > MAXDWORD ||
+			    (m_nLength != SIZE_UNKNOWN && nRecordBytes > m_nLength) ||
+			    (pInput->m_pBuffer[0] & 1) || m_bTigerDimeEnded ||
+			    (((nFlags & 1) != 0) == (m_bTigerDimeStarted != FALSE)) ||
+			    (m_nLength != SIZE_UNKNOWN && ((nFlags & 2) != 0) != (nRecordBytes == m_nLength)))
 			{
-				break; // wait for the remainder of this record's body
-			}
-
-			const DWORD nRecordBytes = nHeader + nPaddedBody;
-			if (m_nLength != SIZE_UNKNOWN && nRecordBytes > m_nLength)
-			{
-				theApp.Message(MSG_DEBUG, L"THEX DIME: record exceeds remaining Content-Length");
+				theApp.Message(MSG_DEBUG, L"THEX DIME: invalid message framing");
 				if (bDropped) return FALSE;
 				Close(TRI_FALSE);
 				return FALSE;
 			}
+			if (pInput->m_nLength < nRecordBytes) break;
+			m_bTigerDimeStarted = TRUE;
+			m_bTigerDimeEnded = (nFlags & 2) != 0;
 
 			if (!pInput->ReadDIME(&nFlags, &strID, &strType, &nBody))
 				break;
 
-			if ((nFlags & 1) && strType.CompareNoCase(L"text/xml") == 0)
+			if (strType.CompareNoCase(L"text/xml") == 0)
 			{
 				BOOL bSize = FALSE, bDigest = FALSE, bEncoding = FALSE;
+				QWORD nDepth = 0;
 
 				CString strXML = pInput->ReadString( nBody, CP_UTF8 );
 
@@ -1888,8 +1921,11 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 						if ( CXMLElement* pxFile = pXML->GetElementByName( L"file" ) )
 						{
 							QWORD nSize = 0;
-							_stscanf( pxFile->GetAttributeValue( L"size" ), L"%I64u", &nSize );
-							bSize = ( nSize == m_pDownload->m_nSize );
+							QWORD nSegment = 0;
+							bSize = ParsePeerUnsignedDecimal(pxFile->GetAttributeValue(L"size"), nSize) &&
+							        nSize != 0 && nSize == m_pDownload->m_nSize &&
+							        ParsePeerUnsignedDecimal(pxFile->GetAttributeValue(L"segmentsize"), nSegment) &&
+							        nSegment == 1024;
 						}
 						if ( CXMLElement* pxDigest = pXML->GetElementByName( L"digest" ) )
 						{
@@ -1898,7 +1934,8 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 						}
 						if ( CXMLElement* pxTree = pXML->GetElementByName( L"serializedtree" ) )
 						{
-							bEncoding = ( pxTree->GetAttributeValue( L"type" ).CompareNoCase( L"http://open-content.net/spec/thex/breadthfirst" ) == 0 );
+							bEncoding = pxTree->GetAttributeValue(L"type").CompareNoCase(L"http://open-content.net/spec/thex/breadthfirst") == 0 &&
+							            ParsePeerUnsignedDecimal(pxTree->GetAttributeValue(L"depth"), nDepth) && nDepth < 64;
 							m_sTigerUUID = pxTree->GetAttributeValue(L"uri");
 						}
 					}
@@ -1907,7 +1944,7 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 
 				theApp.Message( MSG_DEBUG, L"THEX XML: size=%i, digest=%i, encoding=%i", bSize, bDigest, bEncoding );
 
-				if (!bSize || !bDigest || !bEncoding)
+				if (!(nFlags & 1) || m_bTigerDescriptor || !bSize || !bDigest || !bEncoding)
 				{
 					// ReadDIME consumed only this record's header, so the
 					// abandoned record must be accounted here (drop its body
@@ -1923,10 +1960,24 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 					m_bTigerAbandon = TRUE;
 					break;
 				}
+				m_bTigerDescriptor = TRUE;
+				m_nTigerDepth = (DWORD)nDepth;
 			}
-			else if ((strID == m_sTigerUUID || strID.IsEmpty() || m_sTigerUUID.IsEmpty()) && strType.CompareNoCase(L"http://open-content.net/spec/thex/breadthfirst") == 0)
+			else if (strType.CompareNoCase(L"http://open-content.net/spec/thex/breadthfirst") == 0)
 			{
-				m_pDownload->SetTigerTree( pInput->m_pBuffer, nBody );
+				// An empty DIME ID is a Shareaza tolerance after valid XML. A missing
+				// descriptor URI is tolerable only with a pre-existing root to compare;
+				// an empty UUID alone must never authorize adoption of a peer's tree.
+				const bool bIdentity = m_bTigerDescriptor &&
+				                       (m_sTigerUUID.IsEmpty() ? !!m_pDownload->m_oTiger : (strID == m_sTigerUUID || strID.IsEmpty()));
+				if (bIdentity)
+				{
+					if (m_bTigerTreeSeen ||
+					    !ThexTreeMatchesDepth(m_pDownload->m_nSize, nBody, m_nTigerDepth) ||
+					    !m_pDownload->SetTigerTree(pInput->m_pBuffer, nBody))
+						m_bTigerAbandon = TRUE;
+					m_bTigerTreeSeen = TRUE;
+				}
 			}
 			else if ( strType.CompareNoCase( L"http://edonkey2000.com/spec/md4-hashset" ) == 0 )
 			{
@@ -1936,7 +1987,7 @@ BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)
 			pInput->Remove(nPaddedBody);
 			if (m_nLength != SIZE_UNKNOWN)
 				m_nLength -= nRecordBytes;
-			//if ( nFlags & 2 ) break;	// No break here to consider multiple networks.
+			// A trailing MD4 hashset is allowed inside the same DIME message.
 		}
 
 		// Wait when Content-Length bytes remain (or close-delimited unknown

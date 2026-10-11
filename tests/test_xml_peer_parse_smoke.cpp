@@ -412,8 +412,29 @@ static bool test_http_drain_stops_on_growing_queue()
 	       nReads == 1;
 }
 
+static bool test_peer_unsigned_decimal_boundaries()
+{
+	ULONGLONG value = 0;
+	if (!ParsePeerUnsignedDecimal(L"0", value) || value != 0 ||
+	    !ParsePeerUnsignedDecimal(L"18446744073709551615", value) || value != ~0ull) return false;
+	for (const wchar_t* input : { L"", L"-1", L"+1", L"1x", L" 1", L"1 ", L"18446744073709551616" })
+		if (ParsePeerUnsignedDecimal(input, value)) return false;
+	return true;
+}
+
+static bool test_thex_non_power_of_two_rows_and_large_file()
+{
+	// Three leaves serialize as 1+2+3 nodes, never a padded fourth leaf.
+	return ThexTreeMatchesDepth(2050, 144, 3) && ThexTreeMatchesDepth(2050, 144, 2) &&
+	       !ThexTreeMatchesDepth(2050, 168, 3) && !ThexTreeMatchesDepth(2050, 120, 3) &&
+	       !ThexTreeMatchesDepth(2050, 145, 3) && !ThexTreeMatchesDepth(2050, 144, 1) &&
+	       ThexTreeMatchesDepth(~0ull - 1, 24, 0) && !ThexTreeMatchesDepth(~0ull, 24, 0);
+}
+
 void register_xml_peer_parse_smoke_tests(TestSuite& suite)
 {
+	suite.add_test("peer_unsigned_decimal_boundaries", test_peer_unsigned_decimal_boundaries);
+	suite.add_test("thex_non_power_of_two_rows_and_large_file", test_thex_non_power_of_two_rows_and_large_file);
 	suite.add_test("http_capped_header_then_body_drain", test_http_capped_header_then_body_drain);
 	suite.add_test("http_drain_stops_without_progress", test_http_drain_stops_without_progress);
 	suite.add_test("http_drain_stops_after_close", test_http_drain_stops_after_close);

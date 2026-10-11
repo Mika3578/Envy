@@ -40,6 +40,7 @@ def main():
             "BOOL CDownloadTransferHTTP::StartNextFragment()",
             "BOOL CDownloadTransferHTTP::ReadTiger(bool bDropped)",
         ],
+        "Envy/DownloadWithTiger.cpp": ["BOOL CDownloadWithTiger::SetTigerTree("],
     }
     output = ["// Extracted unchanged from the current checkout; do not edit.\n"]
     for path, signatures in methods.items():

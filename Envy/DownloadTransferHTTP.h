@@ -36,7 +36,12 @@ protected:
 	BOOL			m_bKeepAlive;
 	BOOL			m_bTigerFetch;
 	BOOL			m_bTigerIgnore;
-	BOOL m_bTigerAbandon;               // Abandoning the rest of a THEX response
+	BOOL m_bTigerAbandon; // Abandoning the rest of a THEX response
+	BOOL m_bTigerDescriptor;
+	BOOL m_bTigerTreeSeen;
+	BOOL m_bTigerDimeStarted;
+	BOOL m_bTigerDimeEnded;
+	DWORD m_nTigerDepth;
 	CString			m_sTigerTree;		// X-TigerTree-Path
 	CString m_sTigerUUID;               // THEX descriptor URI for the current response
 	CString			m_sMetadata;		// X-Metadata-Path

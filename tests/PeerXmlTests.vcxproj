@@ -41,14 +41,18 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\HashLib\$(Configuration) $(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>HashLib.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent><Command>copy /b /y "$(ProjectDir)..\HashLib\$(Configuration) $(Platform)\HashLib.dll" "$(OutDir)"</Command></PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="test_peer_xml_native.cpp" />
     <ClCompile Include="test_thex_production.cpp" />
     <ClCompile Include="..\Envy\XML.cpp" />
     <ClCompile Include="..\Envy\Strings.cpp" />
+    <ClCompile Include="..\Envy\Hashes\HashDescriptors.cpp" />
+    <ClCompile Include="..\Envy\Hashes\HashStringConversion.cpp" />
   </ItemGroup>
   <Target Name="RequireGeneratedInterfaces" BeforeTargets="ClCompile">
     <Error Condition="!Exists('$(ProjectDir)..\Envy\EnvyOM.h')" Text="Build Visual Studio/Envy.sln first to generate Envy/EnvyOM.h, then run PeerXmlTests." />
@@ -56,5 +60,11 @@
   <Target Name="ExtractThexTestMethods" BeforeTargets="ClCompile">
     <Exec Command="python &quot;$(ProjectDir)extract_thex_test_methods.py&quot; --output &quot;$(IntDir)thex_test_methods.inc&quot;" />
   </Target>
+  <ItemGroup>
+    <ProjectReference Include="..\HashLib\HashLib.vcxproj">
+      <Project>{196C99FC-9A4E-421F-B44C-8E3FD177122F}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
