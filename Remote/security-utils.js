@@ -68,7 +68,8 @@
         // Reject encoded separators and dot segments before the allowlist check so
         // downstream URL normalization cannot escape an allowed path prefix.
         let normalized = value;
-        for (let i = 0; i < 3; i += 1) {
+        let fullyDecoded = false;
+        for (let i = 0; i < 10; i += 1) {
             let decoded;
             try {
                 decoded = decodeURIComponent(normalized);
@@ -77,12 +78,13 @@
             }
 
             if (decoded === normalized) {
+                fullyDecoded = true;
                 break;
             }
             normalized = decoded;
         }
 
-        if (normalized.includes('\\') || normalized.split('/').some(segment => segment === '.' || segment === '..')) {
+        if (!fullyDecoded || normalized.includes('\\') || normalized.split('/').some(segment => segment === '.' || segment === '..')) {
             return null;
         }
 
