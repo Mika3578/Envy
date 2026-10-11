@@ -2,6 +2,8 @@
 
 - **Last Updated:** 2026-10-11
 
+- **Changelog Entry:** 2026-10-11 - #393/#391: distinguish valid THEX descriptor state from an empty identity; retain empty DIME ID compatibility and guard missing/empty URI fallback by an existing TTH. Validate complete binary rows and both historic depth conventions, strict numeric metadata/Content-Length and DIME message framing. Native tests now execute production SetTigerTree with HashLib. Reference source comparisons, client-specific G1/G2 steps, synthetic fixtures and manual Visual Studio instructions are in `docs/10_dev/peer-xml-validation.md`. Full application builds/live interoperability remain maintainer work; local corrections must not be pushed before those results.
+
 - **Changelog Entry:** 2026-10-11 - #393: add isolated native tests compiling the unchanged production THEX/DIME methods; cover every two-read boundary, descriptor identity/reset, truncation, malformed framing, early size rejection and invalid-descriptor draining. Full transfer/profile/live interoperability remains pending.
 
 - **Changelog Entry:** 2026-10-11 — #393/#391: synchronize with current develop, drain HTTP socket data across capped header/body phases before close handling, reject zero-length file responses before mutating download size, and add native MFC XML plus loopback receive regressions. Preserve THEX type identifiers; document the Sonar HTTP warning as a protocol-identifier false positive. Explicit native-suite commands and controlled HTTP/THEX/manual peer checks are in `docs/10_dev/peer-xml-validation.md`; live interoperability remains pending.
