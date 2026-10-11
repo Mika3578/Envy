@@ -190,13 +190,11 @@ bool test_response_framing_and_correlation_policy()
 	const std::vector<KadContact> all = {c};
 	policy.Sent(c.ip, c.udpPort, 0);
 	// A truncated response does not clear pending state.
-	if (!KadBootstrapResponseLengthValid(45, 1) &&
+	if (KadBootstrapResponseLengthValid(45, 1) ||
 	    !policy.Select(all, 1000).contacts.empty())
-	{
-		policy.Accepted(c.ip, c.udpPort);
-		return policy.Select(all, 1000).contacts.size() == 1;
-	}
-	return false;
+		return false;
+	policy.Accepted(c.ip, c.udpPort);
+	return policy.Select(all, 1000).contacts.size() == 1;
 }
 } // namespace
 
