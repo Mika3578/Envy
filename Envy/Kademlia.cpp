@@ -463,73 +463,58 @@ void CKademlia::OnBootstrapRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 
 void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
-	// Check if this response matches an outstanding request
-	if (!IsRequestOutstanding(0, KAD_REQUEST_BOOTSTRAP, *pHost))
+	// Check framing before consuming the matching outstanding request.
+	// A truncated reply must not be counted as a successful bootstrap.
+	constexpr size_t headerSize = KAD_ID_SIZE + 2 + 1 + 2;
+	constexpr size_t recordSize = KAD_ID_SIZE + 4 + 2 + 2 + 1;
+	if (pPacket->GetRemaining() < headerSize)
 	{
-		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring unsolicited bootstrap response from %s",
-		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		++m_bootstrapMalformed;
 		return;
 	}
 
-	theApp.Message(MSG_DEBUG, L"Kad2: Bootstrap response from %s (accepted)",
-	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
-
-	// Minimum size check: MyKadID(16) + TCPPort(2) + KadVersion(1) + Count(2)
-	if (pPacket->GetRemaining() < (KAD_ID_SIZE + 2 + 1 + 2))
-	{
-		theApp.Message(MSG_DEBUG, L"Kad2: Bootstrap response too small");
-		return;
-	}
-
-	// Read responder's node ID (16 bytes)
-	if (pPacket->GetRemaining() < KAD_ID_SIZE) return;
 	KadId responderId;
 	pPacket->Read(responderId, KAD_ID_SIZE);
-
-	// Read responder's TCP port (2 bytes)
-	WORD responderTcpPort = pPacket->ReadShortLE();
-
-	// Read Kad version (1 byte)
-	BYTE responderKadVersion = pPacket->ReadByte();
-
-	// Read contact count (2 bytes)
-	WORD contactCount = pPacket->ReadShortLE();
-
-	// Sanity check on contact count
-	if (contactCount > 100)
+	const WORD responderTcpPort = pPacket->ReadShortLE();
+	const BYTE responderKadVersion = pPacket->ReadByte();
+	const WORD contactCount = pPacket->ReadShortLE();
+	if (contactCount > 100 || pPacket->GetRemaining() < contactCount * recordSize)
 	{
-		theApp.Message(MSG_DEBUG, L"Kad2: Bootstrap response has too many contacts (%d)", contactCount);
+		++m_bootstrapMalformed;
 		return;
 	}
 
-	// Read contacts: each <ID(16)><IP(4)><UDP(2)><TCP(2)><Ver(1)>
-	int contactsAdded = 0;
-	for (WORD i = 0; i < contactCount; i++)
+	if (!IsRequestOutstanding(0, KAD_REQUEST_BOOTSTRAP, *pHost))
 	{
-		if (pPacket->GetRemaining() < (KAD_ID_SIZE + 4 + 2 + 2 + 1)) break;
+		++m_bootstrapRejected;
+		return;
+	}
 
+	m_bootstrapRotation.Accepted(ntohl(pHost->sin_addr.s_addr), ntohs(pHost->sin_port));
+	++m_bootstrapResponses;
+
+	unsigned contactsAdded = 0;
+	for (WORD i = 0; i < contactCount; ++i)
+	{
 		KadContact contact;
-		if (pPacket->GetRemaining() < KAD_ID_SIZE) break;
 		pPacket->Read(contact.id, KAD_ID_SIZE);
-		contact.ip = pPacket->ReadLongLE(); // eMule stores IP in host order LE in payload
+		contact.ip = pPacket->ReadLongLE();
 		contact.udpPort = pPacket->ReadShortLE();
 		contact.tcpPort = pPacket->ReadShortLE();
 		contact.version = pPacket->ReadByte();
 		contact.verified = false;
 
 		if (UpdateContact(contact, KadContactSource::Candidate, false))
-		{
-			contactsAdded++;
-		}
+			++contactsAdded;
+		else
+			++m_bootstrapRejected;
 	}
 
-	theApp.Message(MSG_DEBUG, L"Kad2: Bootstrap response added %d contacts", contactsAdded);
-
-	// Add responder to routing table
-	KadContact responderContact(responderId, ntohl(pHost->sin_addr.s_addr), // Convert to host order
+	KadContact responderContact(responderId, ntohl(pHost->sin_addr.s_addr),
 	                            ntohs(pHost->sin_port), responderTcpPort);
 	responderContact.version = responderKadVersion;
-	UpdateContact(responderContact, KadContactSource::Observed, false);
+	if (!UpdateContact(responderContact, KadContactSource::Observed, false))
+		++m_bootstrapRejected;
 }
 
 void CKademlia::OnPing(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
