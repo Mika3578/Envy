@@ -9,6 +9,7 @@
 
 #include "test_framework.h"
 #include "../Envy/KadBootstrapRotation.h"
+#include <cstring>
 #include <vector>
 
 namespace
