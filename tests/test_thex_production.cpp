@@ -6,8 +6,9 @@
 #include "../Envy/XML.h"
 #include "../Envy/XmlParseValidate.h"
 #include "test_framework.h"
+#include <string_view>
 
-const char* const TREE_TYPE = "http://open-content.net/spec/thex/breadthfirst";
+constexpr char TREE_TYPE[] = "http://open-content.net/spec/thex/breadthfirst";
 struct TestDownload
 {
 	QWORD m_nSize = SIZE_UNKNOWN;
@@ -111,10 +112,10 @@ static void AddDescriptor(CBuffer& o, const char* id = "uuid:first", bool valid 
 	o.WriteDIME(1, "", 0, "text/xml", 8, xml.data(), xml.size());
 }
 
-static void AddTree(CBuffer& o, const char* id = "uuid:first")
+static void AddTree(CBuffer& o, std::string_view id = "uuid:first")
 {
 	const BYTE tree[] = { 1, 2, 3, 4, 5 }; // Odd length exercises record padding.
-	o.WriteDIME(2, id, strlen(id), TREE_TYPE, strlen(TREE_TYPE), tree, sizeof(tree));
+	o.WriteDIME(2, id.data(), id.size(), TREE_TYPE, sizeof(TREE_TYPE) - 1, tree, sizeof(tree));
 }
 
 static bool test_thex_production_all_two_read_splits()
@@ -205,7 +206,7 @@ static bool test_thex_production_rejects_oversize_header_before_body()
 	}
 	// Binary record padding overflow must also fail before waiting for body.
 	CBuffer wire;
-	wire.WriteDIME(2, "", 0, TREE_TYPE, strlen(TREE_TYPE), NULL, MAXDWORD - 1u);
+	wire.WriteDIME(2, "", 0, TREE_TYPE, sizeof(TREE_TYPE) - 1, NULL, MAXDWORD - 1u);
 	CDownloadTransferHTTP transfer;
 	transfer.Begin(SIZE_UNKNOWN);
 	transfer.input.Add(wire.m_pBuffer, wire.m_nLength);
