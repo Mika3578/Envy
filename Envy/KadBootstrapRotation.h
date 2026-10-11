@@ -17,6 +17,15 @@
 #include <utility>
 #include <vector>
 
+// A Kad2 bootstrap response begins with NodeID[16], TCP port[2], version[1],
+// count[2], followed by count 25-byte contacts (eMule/aMule Kad2).
+// Accept trailing bytes as before, but never accept a truncated contact list.
+inline bool KadBootstrapResponseLengthValid(size_t bodyBytes, uint16_t count)
+{
+	return count <= 100u &&
+	       bodyBytes >= 21u + static_cast<size_t>(count) * 25u;
+}
+
 class KadBootstrapRotation
 {
 public:
