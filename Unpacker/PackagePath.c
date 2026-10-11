@@ -99,6 +99,11 @@ int PackageLockDirectory(LPCTSTR path, PACKAGE_DIRECTORY* directory, int create)
 			CloseHandle(handle);
 			goto fail;
 		}
+		if (directory->count >= _countof(directory->handles))
+		{
+			CloseHandle(handle);
+			goto fail;
+		}
 		directory->handles[directory->count++] = handle;
 	}
 	return 1;
@@ -118,4 +123,20 @@ int PackageCanReplace(LPCTSTR path)
 	       !(info.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_READONLY));
 	CloseHandle(handle);
 	return safe;
+}
+
+HANDLE PackageOpenReplacement(LPCTSTR path)
+{
+	BY_HANDLE_FILE_INFORMATION info;
+	HANDLE handle = CreateFileW(path, DELETE | FILE_READ_ATTRIBUTES, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+	                            FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, NULL);
+	if (handle == INVALID_HANDLE_VALUE)
+		return GetLastError() == ERROR_FILE_NOT_FOUND ? INVALID_HANDLE_VALUE : NULL;
+	if (!GetFileInformationByHandle(handle, &info) || info.nNumberOfLinks != 1 ||
+	    (info.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_READONLY)))
+	{
+		CloseHandle(handle);
+		return NULL;
+	}
+	return handle;
 }

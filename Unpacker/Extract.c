@@ -11,6 +11,8 @@
 // The Unzip library is Copyright (C) 1998-2003 Gilles Vollant.
 
 #include "Unpacker.h"
+
+HANDLE PackageOpenReplacement(LPCTSTR path);
 #include <share.h>
 #include <winternl.h>
 
