@@ -65,6 +65,27 @@
             return null;
         }
 
+        // Reject encoded separators and dot segments before the allowlist check so
+        // downstream URL normalization cannot escape an allowed path prefix.
+        let normalized = value;
+        for (let i = 0; i < 3; i += 1) {
+            let decoded;
+            try {
+                decoded = decodeURIComponent(normalized);
+            } catch (error) {
+                return null;
+            }
+
+            if (decoded === normalized) {
+                break;
+            }
+            normalized = decoded;
+        }
+
+        if (normalized.includes('\\') || normalized.split('/').some(segment => segment === '.' || segment === '..')) {
+            return null;
+        }
+
         const validPrefixes = allowlist || ['/remote', '/api'];
         const isAllowed = validPrefixes.some(prefix => value === prefix || value.startsWith(prefix + '/') || (prefix === '/' && value.startsWith('/')));
 
@@ -141,3 +162,4 @@
         module.exports = api;
     }
 })(typeof window !== 'undefined' ? window : globalThis);
+
