@@ -1,7 +1,7 @@
 //
 // Extract.c
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
 //
 // Portions of this page have been previously released into the public domain.
 // You are free to redistribute and modify it without any restrictions
@@ -96,7 +96,9 @@ int GetInstallDirectory()
 	{
 		WCHAR* end;
 		length = GetModuleFileNameW(NULL, base, MAX_PATH);
-		if (!length || length >= MAX_PATH || !(end = wcsrchr(base, L'\\'))) return 0;
+		if (!length || length >= MAX_PATH) return 0;
+		end = wcsrchr(base, L'\\');
+		if (!end) return 0;
 		*end = 0;
 	}
 	length = GetFullPathNameW(base, MAX_PATH, full, NULL);
@@ -223,7 +225,8 @@ static int ValidatePackage(unzFile archive)
 			WCHAR* decoded;
 			data[info.uncompressed_size] = 0;
 			decoded = (WCHAR*)GetUnicodeString(data);
-			valid = decoded != NULL && !memchr(data, 0, info.uncompressed_size) && (manifest = strstr(data, "<manifest")) != NULL;
+			if (decoded && !memchr(data, 0, info.uncompressed_size)) manifest = strstr(data, "<manifest");
+			valid = manifest != NULL;
 			free(decoded);
 			if (valid) valid = LoadManifestInfo(manifest);
 			if (valid)
@@ -267,14 +270,14 @@ static int InstallEntry(unzFile archive, const unz_file_info* info, LPCTSTR dire
 	{
 		WCHAR leaf[64];
 		StringCchPrintfW(leaf, 64, L".envy-%lu-%u.tmp", GetCurrentProcessId(), attempt);
-		if (!PackageJoin(temporary, directory, leaf)) return 0;
+		if (!PackageJoin(temporary, directory, leaf)) { if (target != INVALID_HANDLE_VALUE) CloseHandle(target); return 0; }
 		if (!_wcsicmp(temporary, destination)) continue;
 		file = CreateFileW(temporary, GENERIC_WRITE | DELETE, 0, NULL, CREATE_NEW,
 			FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
 		if (file != INVALID_HANDLE_VALUE) break;
 		if (GetLastError() != ERROR_FILE_EXISTS && GetLastError() != ERROR_ALREADY_EXISTS) return 0;
 	}
-	if (file == INVALID_HANDLE_VALUE) return 0;
+	if (file == INVALID_HANDLE_VALUE) { if (target != INVALID_HANDLE_VALUE) CloseHandle(target); return 0; }
 	if (ReadEntry(archive, info, file, NULL) && FlushFileBuffers(file) && PackageCanReplace(destination))
 	{
 		memset(&renameInfo, 0, sizeof(renameInfo));
