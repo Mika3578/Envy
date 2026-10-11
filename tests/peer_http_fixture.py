@@ -82,6 +82,8 @@ class Handler(BaseHTTPRequestHandler):
         elif path.startswith("/file-"):
             tiger = path.startswith("/file-thex-")
             body = TIGER_FILE if tiger else FILE
+            if path == "/file-empty.bin":
+                body = b""
             self.send_response(200)
             self.send_header("Content-Type", "application/octet-stream")
             if path != "/file-close.bin":

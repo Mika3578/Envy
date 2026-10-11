@@ -2,7 +2,7 @@
 
 - **Last Updated:** 2026-10-11
 
-- **Changelog Entry:** 2026-10-11 — #393/#391: synchronize with current develop, drain HTTP socket data across capped header/body phases before close handling, and add native MFC XML plus loopback receive regressions. Preserve THEX type identifiers; document the Sonar HTTP warning as a protocol-identifier false positive. Explicit native-suite commands and controlled HTTP/THEX/manual peer checks are in `docs/10_dev/peer-xml-validation.md`; live interoperability remains pending.
+- **Changelog Entry:** 2026-10-11 — #393/#391: synchronize with current develop, drain HTTP socket data across capped header/body phases before close handling, reject zero-length file responses before mutating download size, and add native MFC XML plus loopback receive regressions. Preserve THEX type identifiers; document the Sonar HTTP warning as a protocol-identifier false positive. Explicit native-suite commands and controlled HTTP/THEX/manual peer checks are in `docs/10_dev/peer-xml-validation.md`; live interoperability remains pending.
 
 - **Changelog Entry:** 2026-10-10 — #422/#419: independently recheck every shipped bootstrap endpoint and ED2K/Kad/DC/DHT alternatives; add the AirDC++-documented Team Elite HTTPS hublist after bounded BZip2/XML and NMDC compatibility validation. Preserve three DHT routers within the existing DNS budget, reject stale/unverified Kad alternatives, and enforce blocked identities and truncated-row rejection offline. Persisted-service migration (#419), private-torrent isolation (#317), defaults (#418), Kad runtime/retry (#86/#430), UDP obfuscation (#431) and live interoperability (#160) remain separate open work.
 

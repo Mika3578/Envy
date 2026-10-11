@@ -1417,6 +1417,18 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 
 		return ReadMetadata();
 	}
+	else if (m_nContentLength == 0 &&
+	         RejectExplicitZeroContentLength(m_bMetaFetch != FALSE, m_bTigerFetch != FALSE,
+	                                         m_bBusyFault != FALSE, m_bRangeFault != FALSE,
+	                                         m_bRedirect != FALSE))
+	{
+		// Reject before SetSize or GetFragment can mutate an unknown download.
+		// Control, metadata and THEX responses were classified above.
+		theApp.Message(MSG_ERROR, L"Rejected zero Content-Length file download from %s",
+		               (LPCTSTR)m_sAddress);
+		Close(TRI_FALSE);
+		return FALSE;
+	}
 	else if ( ! m_bGotRange )
 	{
 		if ( m_nContentLength != SIZE_UNKNOWN )
@@ -1472,20 +1484,6 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 	}
 
 	if ( ! m_bKeepAlive ) m_pSource->m_bCloseConn = TRUE;
-
-	// Ordinary file content only: an explicit Content-Length: 0 would otherwise
-	// look complete on a close-delimited unknown-size path. Busy/queue, 416,
-	// redirect, MetaFetch and THEX already returned above and may use CL=0.
-	if (m_nContentLength == 0 &&
-	    RejectExplicitZeroContentLength(m_bMetaFetch != FALSE, m_bTigerFetch != FALSE,
-	                                    m_bBusyFault != FALSE, m_bRangeFault != FALSE,
-	                                    m_bRedirect != FALSE))
-	{
-		theApp.Message(MSG_ERROR, L"Rejected zero Content-Length file download from %s",
-		               (LPCTSTR)m_sAddress);
-		Close(TRI_FALSE);
-		return FALSE;
-	}
 
 	theApp.Message( MSG_INFO, IDS_DOWNLOAD_CONTENT, (LPCTSTR)m_sAddress, (LPCTSTR)m_pSource->m_sServer );
 

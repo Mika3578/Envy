@@ -49,6 +49,7 @@ completed downloads with `Get-FileHash -Algorithm SHA256 <file>`.
 | --- | --- |
 | `/file-known.bin` | 65,536-byte download completes with the printed normal-file SHA256. |
 | `/file-close.bin` | Same bytes/hash without Content-Length; no completion at a 16 KiB prefix. |
+| `/file-empty.bin` | Explicit zero Content-Length is rejected before changing an unknown download size; no empty file is reported complete. |
 | `/file-metadata-valid.bin` | Log shows `/metadata-valid` requested; valid bounded XML does not crash or stall the transfer. |
 | `/file-metadata-close.bin` | Close-delimited metadata completes after shutdown. |
 | `/file-metadata-deep.bin` | Depth-33 metadata is discarded; the application remains responsive. |
