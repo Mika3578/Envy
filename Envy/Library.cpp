@@ -580,7 +580,8 @@ BOOL CLibrary::ThreadScan()
 			Update();	// Mark library as changed
 	}
 
-	m_nScanCount++;
+	if ( bPeriodicScan || bForcedScan || bChanged )
+		m_nScanCount++;
 
 	// Save library changes but not frequently (30 seconds)
 	if ( m_nUpdateCookie != m_nSaveCookie && GetTickCount() - m_nSaveTime > 30000 )

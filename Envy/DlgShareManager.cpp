@@ -141,6 +141,7 @@ void CShareManagerDlg::OnDoubleClick(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 
 void CShareManagerDlg::OnOK()
 {
+	CFolderScanDlg dlgScan;
 	{
 		CQuickLock oLock( Library.m_pSection );
 
@@ -172,7 +173,7 @@ void CShareManagerDlg::OnOK()
 		}
 	}
 
-	CFolderScanDlg dlgScan;
+	Library.Update( true );
 	dlgScan.DoModal();
 
 	CDialog::OnOK();

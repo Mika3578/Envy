@@ -245,6 +245,7 @@ LRESULT CWizardSharePage::OnWizardNext()
 	}
 
 	CWaitCursor pCursor;
+	CFolderScanDlg dlgScan;
 
 	{
 		CQuickLock oLock( Library.m_pSection );
@@ -277,7 +278,7 @@ LRESULT CWizardSharePage::OnWizardNext()
 		}
 	}
 
-	CFolderScanDlg dlgScan;
+	Library.Update( true );
 	dlgScan.DoModal();
 
 	return 0;

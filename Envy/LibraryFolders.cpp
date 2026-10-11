@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "LibraryFolders.h"
+#include "DlgFolderScan.h"
 
 #include "AlbumFolder.h"
 #include "Application.h"
@@ -737,6 +738,7 @@ BOOL CLibraryFolders::ThreadScan(const BOOL bForce)
 		}
 		else
 		{
+			CFolderScanDlg::ReportError( GetLastError() );
 			if ( pFolder->SetOffline() ) bChanged = TRUE;
 		}
 	}

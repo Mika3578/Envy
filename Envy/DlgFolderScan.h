@@ -35,14 +35,18 @@ public:
 	CStatic	m_wndFile;
 
 public:
-	static void Update(LPCTSTR pszName, DWORD nVolume);	//, BOOL bLock);
+	static void Update(LPCTSTR pszName, DWORD nVolume);
+	static void ReportError(DWORD nError);
 	void	InstanceUpdate(LPCTSTR pszName, DWORD nVolume);
 
 protected:
 	static	CFolderScanDlg*	m_pDialog;
+	static	CCriticalSection m_pProgressSection;
 	DWORD	m_nCookie;
 	DWORD	m_nFiles;
-	DWORD	m_nVolume;
+	QWORD	m_nVolume;
+	DWORD	m_nError;
+	CString	m_sCurrentFile;
 	DWORD	m_tLastUpdate;
 	BOOL	m_bActive;
 

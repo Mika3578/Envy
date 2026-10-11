@@ -20,6 +20,8 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "SharedFolder.h"
+#include "LibraryFileSystem.h"
+#include "DlgFolderScan.h"
 #include "SharedFile.h"
 #include "Library.h"
 #include "LibraryDictionary.h"
@@ -424,6 +426,8 @@ BOOL CLibraryFolder::ThreadScan(DWORD nScanCookie)
 	WIN32_FIND_DATA pFind;
 	HANDLE hSearch = FindFirstFile( SafePath( m_sPath + L"\\*.*" ), &pFind );
 
+	DWORD nFindError = hSearch == INVALID_HANDLE_VALUE ? GetLastError() : ERROR_SUCCESS;
+
 	m_nScanCookie	= nScanCookie;
 	nScanCookie		= Library.GetScanCookie();
 
@@ -433,7 +437,10 @@ BOOL CLibraryFolder::ThreadScan(DWORD nScanCookie)
 	{
 		do
 		{
-			if ( CLibrary::IsBadFile( pFind.cFileName, m_sPath, pFind.dwFileAttributes ) )
+			// Directory reparse points can escape a share root or form traversal loops.
+			if ( ( pFind.dwFileAttributes & ( FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT ) ) ==
+				( FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT ) ||
+				CLibrary::IsBadFile( pFind.cFileName, m_sPath, pFind.dwFileAttributes ) )
 				continue;
 
 			if ( pFind.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
@@ -497,10 +504,18 @@ BOOL CLibraryFolder::ThreadScan(DWORD nScanCookie)
 		}
 		while ( Library.IsThreadEnabled() && FindNextFile( hSearch, &pFind ) );
 
+		if ( Library.IsThreadEnabled() )
+			nFindError = GetLastError();
 		FindClose( hSearch );
 	}
 
 	if ( ! Library.IsThreadEnabled() ) return FALSE;
+	if ( ! EnvyFileSystem::EnumerationComplete( nFindError ) )
+	{
+		// An incomplete listing cannot justify removing entries absent from it.
+		CFolderScanDlg::ReportError( nFindError );
+		return bChanged;
+	}
 
 	CList< CLibraryFolder* > pExtraFolders;
 	for ( POSITION pos = GetFolderIterator(); pos; )
