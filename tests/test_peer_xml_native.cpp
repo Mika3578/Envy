@@ -158,12 +158,15 @@ static bool test_native_http_close_drains_past_header_cap()
 	return bResult;
 }
 
+void RegisterThexProductionTests(TestSuite& suite);
+
 int main()
 {
 	if (!AfxWinInit(GetModuleHandle(NULL), NULL, GetCommandLine(), 0)) return 1;
 	WSADATA oData = {};
 	if (WSAStartup(MAKEWORD(2, 2), &oData)) return 1;
 	TestSuite suite;
+	RegisterThexProductionTests(suite);
 	suite.add_test("native_xml_valid_matches_local_parser", test_native_xml_valid_matches_local_parser);
 	suite.add_test("native_xml_depth_boundary", test_native_xml_depth_boundary);
 	suite.add_test("native_xml_nodes_and_attributes", test_native_xml_nodes_and_attributes);

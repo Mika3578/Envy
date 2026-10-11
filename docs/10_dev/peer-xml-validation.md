@@ -27,8 +27,25 @@ It tests valid XML against the local parser, depth 32/33 and a 4096-level
 attack, 4096-node admission, attribute accounting, exact character limits,
 shared-budget/depth restoration, malformed input, UTF-8/UTF-16 BOM handling,
 and the production HTTP receive-loop helper on a real loopback socket after
-remote shutdown. It does not instantiate the complete download transfer or
-exercise the session/profile ownership path.
+remote shutdown.
+
+The THEX cases compile unchanged `ReadTiger` and `StartNextFragment` method
+bodies extracted at build time from the current `DownloadTransferHTTP.cpp`,
+plus the production `CBuffer` DIME/buffer methods. The XML implementation is
+linked normally. Missing method boundaries fail the test build; no maintained
+copy of the parser is used. Download storage/hash verification, logging,
+locking, socket scheduling and other connection services are test doubles.
+
+These cases compare a complete response with every possible two-read split
+(including descriptor/tree boundary, partial record header, ID/type, binary
+body and padding), check mismatched identity and reset before a second
+response, fail closed on truncated/malformed records, reject oversized XML
+and padding overflow from headers alone, and drain an invalid descriptor's
+remaining response. They exercise the production parser, not just policy
+helpers. They do not instantiate the complete application transfer, execute
+`OnDropped`, verify a cryptographic tree, or exercise session/profile ownership.
+The five THEX cases bring this native suite to 13 tests. Python 3 must be on
+PATH for the source-extraction build step.
 
 ## Controlled application checks
 
