@@ -57,6 +57,16 @@ CKademlia::CKademlia()
     : m_bInitialized(false)
     , m_lastBootstrapTime(0)
     , m_lastTimerCall(0)
+    , m_lastStatusLog(0)
+    , m_bootstrapCached(0)
+    , m_bootstrapDeferred(0)
+    , m_bootstrapInvalid(0)
+    , m_bootstrapSent(0)
+    , m_bootstrapTimeouts(0)
+    , m_bootstrapResponses(0)
+    , m_bootstrapMalformed(0)
+    , m_bootstrapRejected(0)
+    , m_sourceNoContacts(0)
     , m_lastRateLimitCleanup(0)
     , m_lastStoreCleanup(0)
     , m_lastFirewallTcpPort(0)
@@ -84,8 +94,13 @@ bool CKademlia::Init()
 	}
 
 	m_bInitialized = true;
-	m_lastBootstrapTime = 0;
 	m_lastTimerCall = GetTickCount();
+	m_lastBootstrapTime = m_lastTimerCall - 30000u;
+	m_lastStatusLog = m_lastTimerCall - 60000u;
+	m_bootstrapRotation.Reset();
+	m_bootstrapCached = m_bootstrapDeferred = m_bootstrapInvalid = 0;
+	m_bootstrapSent = m_bootstrapTimeouts = m_bootstrapResponses = 0;
+	m_bootstrapMalformed = m_bootstrapRejected = m_sourceNoContacts = 0;
 	m_lastFirewallTcpPort = (WORD)Settings.Connection.InPort;
 	m_firewall.OnKadStart(m_lastTimerCall, m_lastFirewallTcpPort);
 
@@ -105,6 +120,8 @@ void CKademlia::Stop()
 	if (!m_bInitialized) return;
 
 	m_bInitialized = false;
+	m_outstandingRequests.clear();
+	m_bootstrapRotation.Reset();
 	memset(m_ownId, 0, KAD_ID_SIZE);
 	m_firewall.OnKadStop();
 	m_lastFirewallTcpPort = 0;
@@ -135,66 +152,53 @@ void CKademlia::GenerateOwnKadId()
 
 void CKademlia::Bootstrap()
 {
-	if (!m_bInitialized) return;
-
-	DWORD now = GetTickCount();
-	if (now - m_lastBootstrapTime < 30000)
-	{ // Don't bootstrap more than once every 30 seconds
+	if (!m_bInitialized)
 		return;
-	}
+
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	const DWORD now = GetTickCount();
+	if (now - m_lastBootstrapTime < 30000u)
+		return;
 
 	m_lastBootstrapTime = now;
+	CleanupExpiredRequests();
 
-	// Get bootstrap contacts from host cache
-	std::vector<KadContact> bootstrapContacts;
-	int contactsFound = 0;
-
-	// Import from host cache
-	for (CHostCacheIterator it = HostCache.Kademlia.Begin(); it != HostCache.Kademlia.End() && contactsFound < 20; ++it)
+	// Snapshot under the host-cache lock: callers must never retain cache
+	// pointers after releasing it, since import/pruning can remove entries.
+	std::vector<KadContact> candidates;
 	{
-		CHostCacheHostPtr pHost = *it;
-		if (pHost && pHost->m_pAddress.s_addr != INADDR_ANY)
+		CQuickLock cacheLock(HostCache.Kademlia.m_pSection);
+		for (CHostCacheIterator it = HostCache.Kademlia.Begin(); it != HostCache.Kademlia.End(); ++it)
 		{
+			CHostCacheHostPtr pHost = *it;
+			if (!pHost || pHost->m_pAddress.s_addr == INADDR_ANY)
+				continue;
+
 			KadContact contact;
 			memcpy(contact.id, &pHost->m_oGUID, KAD_ID_SIZE);
-			contact.ip = ntohl(pHost->m_pAddress.s_addr); // Convert network order to host order
+			contact.ip = ntohl(pHost->m_pAddress.s_addr);
 			contact.udpPort = pHost->m_nUDPPort ? pHost->m_nUDPPort : pHost->m_nPort;
 			contact.tcpPort = pHost->m_nPort;
-			contact.verified = FALSE;
 			contact.version = pHost->m_nKADVersion;
-
-			bootstrapContacts.push_back(contact);
-			contactsFound++;
+			candidates.push_back(contact);
 		}
 	}
 
-	if (bootstrapContacts.empty())
+	const KadBootstrapRotation::Batch batch = m_bootstrapRotation.Select(candidates, now);
+	m_bootstrapCached = static_cast<uint32_t>(candidates.size());
+	m_bootstrapDeferred = static_cast<uint32_t>(batch.deferred);
+	m_bootstrapInvalid = static_cast<uint32_t>(batch.invalid);
+
+	// Keep at least one outstanding slot for non-bootstrap Kad traffic. A
+	// candidate is marked in-flight only after a request is actually queued.
+	for (const KadContact& contact : batch.contacts)
 	{
-		theApp.Message(MSG_DEBUG, L"Kad2: No bootstrap contacts found in host cache");
-		return;
+		if (m_outstandingRequests.size() >= KAD2_MAX_OUTSTANDING_REQUESTS - 1)
+			break;
+		SendBootstrapRequest(contact);
 	}
-
-	theApp.Message(MSG_DEBUG, L"Kad2: Bootstrapping with %d contacts", bootstrapContacts.size());
-
-	// Send bootstrap requests to first few contacts
-	int bootstrapRequestsSent = 0;
-	int findNodeRequestsSent = 0;
-
-	for (const auto& contact : bootstrapContacts)
-	{
-		if (bootstrapRequestsSent < 5)
-		{ // Bootstrap with up to 5 nodes initially
-			SendBootstrapRequest(contact);
-			bootstrapRequestsSent++;
-		}
-
-		// Also send some find node requests to build routing table
-		if (findNodeRequestsSent < 3)
-		{
-			SendFindNodeRequest(contact);
-			findNodeRequestsSent++;
-		}
-	}
+	// Initial FIND_NODE is deferred until usable contacts are learned.
+	// This avoids simultaneous bootstrap/FIND_NODE bursts to unknown peers.
 }
 
 void CKademlia::SendBootstrapRequest(const KadContact& contact)
@@ -210,11 +214,9 @@ void CKademlia::SendBootstrapRequest(const KadContact& contact)
 	// Send packet and track the request
 	sockaddr_in addr;
 	KadContactGetSockAddr(contact, addr);
-	DWORD requestId = AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, addr);
-
-	theApp.Message(MSG_DEBUG, L"Kad2: Sent bootstrap request to %s (ID: %u)",
-	               (LPCTSTR)CString(inet_ntoa(addr.sin_addr)), requestId);
-
+	AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, addr);
+	m_bootstrapRotation.Sent(contact.ip, contact.udpPort, GetTickCount());
+	++m_bootstrapSent;
 	SendPacket(&addr, pPacket);
 	pPacket->Release();
 }
@@ -796,8 +798,18 @@ void CKademlia::MarkContactVerified(const KadId& id)
 
 void CKademlia::LogKadStatus()
 {
-	size_t contactCount = m_routingTable.GetTotalContacts();
-	theApp.Message(MSG_DEBUG, L"Kad2: Routing table has %d contacts", contactCount);
+	const DWORD now = GetTickCount();
+	if (now - m_lastStatusLog < 60000u)
+		return;
+	m_lastStatusLog = now;
+	theApp.Message(MSG_DEBUG,
+	               L"Kad2 status: routing=%u cached=%u deferred=%u invalid=%u sent=%u timed_out=%u valid_responses=%u malformed=%u rejected=%u source_no_contacts=%u",
+	               (unsigned)m_routingTable.GetTotalContacts(), m_bootstrapCached,
+	               m_bootstrapDeferred, m_bootstrapInvalid, m_bootstrapSent,
+	               m_bootstrapTimeouts, m_bootstrapResponses, m_bootstrapMalformed,
+	               m_bootstrapRejected, m_sourceNoContacts);
+	if (m_bootstrapSent > 0 && m_bootstrapResponses == 0)
+		theApp.Message(MSG_DEBUG, L"Kad2: UDP bootstrap response not yet validated; reachability/obfuscation undetermined");
 }
 
 void CKademlia::OnHelloRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
@@ -999,6 +1011,10 @@ DWORD CKademlia::AddOutstandingRequest(KadRequestType type, const SOCKADDR_IN& t
 				oldest = it;
 			}
 		}
+		if (oldest->second.type == KAD_REQUEST_BOOTSTRAP &&
+		    m_bootstrapRotation.TimedOut(ntohl(oldest->second.targetAddr.sin_addr.s_addr),
+		                                 ntohs(oldest->second.targetAddr.sin_port), GetTickCount()))
+			++m_bootstrapTimeouts;
 		m_outstandingRequests.erase(oldest);
 	}
 
@@ -1069,6 +1085,10 @@ void CKademlia::CleanupExpiredRequests()
 	{
 		if (now - it->second.sentTime > KAD2_REQUEST_TIMEOUT)
 		{
+			if (it->second.type == KAD_REQUEST_BOOTSTRAP &&
+			    m_bootstrapRotation.TimedOut(ntohl(it->second.targetAddr.sin_addr.s_addr),
+			                                 ntohs(it->second.targetAddr.sin_port), now))
+				++m_bootstrapTimeouts;
 			it = m_outstandingRequests.erase(it);
 		}
 		else
@@ -1459,7 +1479,7 @@ void CKademlia::SearchSource(const KadId& fileHash, QWORD nFileSize)
 
 	if (closest.empty())
 	{
-		theApp.Message(MSG_DEBUG, L"Kad2: No contacts for source search");
+		++m_sourceNoContacts;
 		return;
 	}
 
