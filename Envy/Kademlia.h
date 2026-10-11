@@ -23,6 +23,7 @@
 #include <map>
 #include <unordered_map>
 #include "KadRoutingTable.h"
+#include "KadBootstrapRotation.h"
 #include "KadSearchResDelivery.h"
 #include "KadFirewallCheck.h"
 
@@ -243,6 +244,19 @@ private:
 	CCriticalSection m_pKadSection;
 	DWORD m_lastBootstrapTime;
 	DWORD m_lastTimerCall;
+	DWORD m_lastStatusLog;
+	KadBootstrapRotation m_bootstrapRotation;
+
+	// Aggregate diagnostics: no endpoints, IDs or payloads are logged.
+	uint32_t m_bootstrapCached;
+	uint32_t m_bootstrapDeferred;
+	uint32_t m_bootstrapInvalid;
+	uint32_t m_bootstrapSent;
+	uint32_t m_bootstrapTimeouts;
+	uint32_t m_bootstrapResponses;
+	uint32_t m_bootstrapMalformed;
+	uint32_t m_bootstrapRejected;
+	uint32_t m_sourceNoContacts;
 
 	// Request tracking
 	std::map<DWORD, KadOutstandingRequest> m_outstandingRequests; // Key is request ID
