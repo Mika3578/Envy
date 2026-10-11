@@ -1505,14 +1505,14 @@ CString HostToString(const SOCKADDR_IN* pHost)
 
 CString SafePath(const CString& sPath)
 {
-	return CString( EnvyFileSystem::ApiPath( (LPCTSTR)sPath ).c_str() );
+	return CString(EnvyFileSystem::ApiPath((LPCTSTR)sPath).c_str());
 }
 
 BOOL MakeSafePath(CString& sPath)
 {
-	if ( sPath.GetLength() < MAX_PATH - 4 )
+	if (sPath.GetLength() < MAX_PATH - 4)
 		return FALSE;
 
-	sPath = SafePath( sPath );
+	sPath = SafePath(sPath);
 	return TRUE;
 }

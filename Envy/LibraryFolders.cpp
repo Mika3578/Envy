@@ -738,7 +738,7 @@ BOOL CLibraryFolders::ThreadScan(const BOOL bForce)
 		}
 		else
 		{
-			CFolderScanDlg::ReportError( GetLastError() );
+			CFolderScanDlg::ReportError(GetLastError());
 			if ( pFolder->SetOffline() ) bChanged = TRUE;
 		}
 	}

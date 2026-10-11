@@ -580,7 +580,7 @@ BOOL CLibrary::ThreadScan()
 			Update();	// Mark library as changed
 	}
 
-	if ( bPeriodicScan || bForcedScan || bChanged )
+	if (bPeriodicScan || bForcedScan || bChanged)
 		m_nScanCount++;
 
 	// Save library changes but not frequently (30 seconds)

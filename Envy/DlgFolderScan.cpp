@@ -40,24 +40,24 @@ CCriticalSection CFolderScanDlg::m_pProgressSection;
 // CFolderScanDlg dialog
 
 CFolderScanDlg::CFolderScanDlg(CWnd* pParent)
-	: CSkinDialog(CFolderScanDlg::IDD, pParent)
-	, m_nCookie		( 0 )
-	, m_nFiles		( 0 )
-	, m_nVolume		( 0 )
-	, m_nError		( ERROR_SUCCESS )
+    : CSkinDialog(CFolderScanDlg::IDD, pParent)
+    , m_nCookie(0)
+    , m_nFiles(0)
+    , m_nVolume(0)
+    , m_nError(ERROR_SUCCESS)
 {
-	m_tLastUpdate	= 0;
-	m_bActive		= FALSE;
+	m_tLastUpdate = 0;
+	m_bActive = FALSE;
 
 	m_nCookie = Library.GetScanCount();
-	CSingleLock oLock( &m_pProgressSection, TRUE );
+	CSingleLock oLock(&m_pProgressSection, TRUE);
 	m_pDialog = this;
 }
 
 CFolderScanDlg::~CFolderScanDlg()
 {
-	CSingleLock pLock( &m_pProgressSection, TRUE );
-	if ( m_pDialog == this )
+	CSingleLock pLock(&m_pProgressSection, TRUE);
+	if (m_pDialog == this)
 		m_pDialog = NULL;
 }
 
@@ -76,11 +76,11 @@ BOOL CFolderScanDlg::OnInitDialog()
 {
 	CSkinDialog::OnInitDialog();
 
-	SkinMe( L"CFolderScanDlg", IDR_LIBRARYFRAME );
+	SkinMe(L"CFolderScanDlg", IDR_LIBRARYFRAME);
 
-	SetTimer( 1, 500, NULL );
-	m_tLastUpdate	= 0;
-	m_bActive		= TRUE;
+	SetTimer(1, 500, NULL);
+	m_tLastUpdate = 0;
+	m_bActive = TRUE;
 
 	return TRUE;
 }
@@ -91,7 +91,7 @@ void CFolderScanDlg::OnTimer(UINT_PTR /*nIDEvent*/)
 	QWORD nVolume;
 	CString strFile;
 	{
-		CSingleLock pLock( &m_pProgressSection, TRUE );
+		CSingleLock pLock(&m_pProgressSection, TRUE);
 		nFiles = m_nFiles;
 		nVolume = m_nVolume;
 		nError = m_nError;
@@ -99,20 +99,20 @@ void CFolderScanDlg::OnTimer(UINT_PTR /*nIDEvent*/)
 	}
 
 	CString strItem;
-	strItem.Format( L"%lu", nFiles );
-	m_wndFiles.SetWindowText( strItem );
-	m_wndVolume.SetWindowText( Settings.SmartVolume( nVolume, KiloBytes ) );
-	m_wndFile.SetWindowText( strFile );
+	strItem.Format(L"%lu", nFiles);
+	m_wndFiles.SetWindowText(strItem);
+	m_wndVolume.SetWindowText(Settings.SmartVolume(nVolume, KiloBytes));
+	m_wndFile.SetWindowText(strFile);
 
-	CSingleLock pLock( &Library.m_pSection );
-	if ( pLock.Lock( 50 ) && m_nCookie != Library.GetScanCount() )
+	CSingleLock pLock(&Library.m_pSection);
+	if (pLock.Lock(50) && m_nCookie != Library.GetScanCount())
 	{
 		pLock.Unlock();
-		KillTimer( 1 );
-		if ( nError != ERROR_SUCCESS )
+		KillTimer(1);
+		if (nError != ERROR_SUCCESS)
 		{
-			strItem.Format( L"Shared-folder scan failed (Windows error %lu). Existing entries were kept.", nError );
-			MsgBox( strItem, MB_OK | MB_ICONWARNING );
+			strItem.Format(L"Shared-folder scan failed (Windows error %lu). Existing entries were kept.", nError);
+			MsgBox(strItem, MB_OK | MB_ICONWARNING);
 		}
 		OnCancel();
 	}
@@ -121,8 +121,8 @@ void CFolderScanDlg::OnTimer(UINT_PTR /*nIDEvent*/)
 void CFolderScanDlg::OnCancel()
 {
 	m_bActive = FALSE;
-	CSingleLock pLock( &m_pProgressSection, TRUE );
-	if ( m_pDialog == this )
+	CSingleLock pLock(&m_pProgressSection, TRUE);
+	if (m_pDialog == this)
 		m_pDialog = NULL;
 	pLock.Unlock();
 
@@ -131,15 +131,15 @@ void CFolderScanDlg::OnCancel()
 
 void CFolderScanDlg::Update(LPCTSTR pszName, DWORD nVolume)
 {
-	CSingleLock oLock( &m_pProgressSection, TRUE );
-	if ( m_pDialog != NULL )
-		m_pDialog->InstanceUpdate( pszName, nVolume );
+	CSingleLock oLock(&m_pProgressSection, TRUE);
+	if (m_pDialog != NULL)
+		m_pDialog->InstanceUpdate(pszName, nVolume);
 }
 
 void CFolderScanDlg::ReportError(DWORD nError)
 {
-	CSingleLock oLock( &m_pProgressSection, TRUE );
-	if ( m_pDialog != NULL && m_pDialog->m_nError == ERROR_SUCCESS )
+	CSingleLock oLock(&m_pProgressSection, TRUE);
+	if (m_pDialog != NULL && m_pDialog->m_nError == ERROR_SUCCESS)
 		m_pDialog->m_nError = nError;
 }
 
