@@ -69,7 +69,7 @@ public:
 			}
 
 			const auto it = m_retry.find(Key(c.ip, c.udpPort));
-			if (it != m_retry.end() && !Elapsed(now, it->second.retryAt))
+			if (it != m_retry.end() && (it->second.pending || !Elapsed(now, it->second.retryAt)))
 			{
 				++batch.deferred;
 				continue;
