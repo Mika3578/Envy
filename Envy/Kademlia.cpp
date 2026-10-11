@@ -465,9 +465,8 @@ void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket
 {
 	// Check framing before consuming the matching outstanding request.
 	// A truncated reply must not be counted as a successful bootstrap.
-	constexpr size_t headerSize = KAD_ID_SIZE + 2 + 1 + 2;
-	constexpr size_t recordSize = KAD_ID_SIZE + 4 + 2 + 2 + 1;
-	if (pPacket->GetRemaining() < headerSize)
+	const size_t bodyBytes = pPacket->GetRemaining();
+	if (bodyBytes < 21u)
 	{
 		++m_bootstrapMalformed;
 		return;
@@ -478,7 +477,7 @@ void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket
 	const WORD responderTcpPort = pPacket->ReadShortLE();
 	const BYTE responderKadVersion = pPacket->ReadByte();
 	const WORD contactCount = pPacket->ReadShortLE();
-	if (contactCount > 100 || pPacket->GetRemaining() < contactCount * recordSize)
+	if (!KadBootstrapResponseLengthValid(bodyBytes, contactCount))
 	{
 		++m_bootstrapMalformed;
 		return;
