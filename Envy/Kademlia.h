@@ -254,6 +254,7 @@ private:
 	uint32_t m_bootstrapSent;
 	uint32_t m_bootstrapTimeouts;
 	uint32_t m_bootstrapResponses;
+	uint32_t m_bootstrapAccepted;
 	uint32_t m_bootstrapMalformed;
 	uint32_t m_bootstrapRejected;
 	uint32_t m_sourceNoContacts;
