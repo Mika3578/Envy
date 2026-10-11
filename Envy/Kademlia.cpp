@@ -64,6 +64,7 @@ CKademlia::CKademlia()
     , m_bootstrapSent(0)
     , m_bootstrapTimeouts(0)
     , m_bootstrapResponses(0)
+    , m_bootstrapAccepted(0)
     , m_bootstrapMalformed(0)
     , m_bootstrapRejected(0)
     , m_sourceNoContacts(0)
@@ -100,7 +101,7 @@ bool CKademlia::Init()
 	m_bootstrapRotation.Reset();
 	m_bootstrapCached = m_bootstrapDeferred = m_bootstrapInvalid = 0;
 	m_bootstrapSent = m_bootstrapTimeouts = m_bootstrapResponses = 0;
-	m_bootstrapMalformed = m_bootstrapRejected = m_sourceNoContacts = 0;
+	m_bootstrapAccepted = m_bootstrapMalformed = m_bootstrapRejected = m_sourceNoContacts = 0;
 	m_lastFirewallTcpPort = (WORD)Settings.Connection.InPort;
 	m_firewall.OnKadStart(m_lastTimerCall, m_lastFirewallTcpPort);
 
@@ -512,8 +513,11 @@ void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket
 	KadContact responderContact(responderId, ntohl(pHost->sin_addr.s_addr),
 	                            ntohs(pHost->sin_port), responderTcpPort);
 	responderContact.version = responderKadVersion;
-	if (!UpdateContact(responderContact, KadContactSource::Observed, false))
+	if (UpdateContact(responderContact, KadContactSource::Observed, false))
+		++contactsAdded;
+	else
 		++m_bootstrapRejected;
+	m_bootstrapAccepted += contactsAdded;
 }
 
 void CKademlia::OnPing(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
@@ -787,11 +791,11 @@ void CKademlia::LogKadStatus()
 		return;
 	m_lastStatusLog = now;
 	theApp.Message(MSG_DEBUG,
-	               L"Kad2 status: routing=%u cached=%u deferred=%u invalid=%u sent=%u timed_out=%u valid_responses=%u malformed=%u rejected=%u source_no_contacts=%u",
+	               L"Kad2 status: routing=%u cached=%u deferred=%u invalid=%u sent=%u timed_out=%u valid_responses=%u accepted_contacts=%u malformed=%u rejected=%u source_no_contacts=%u",
 	               (unsigned)m_routingTable.GetTotalContacts(), m_bootstrapCached,
 	               m_bootstrapDeferred, m_bootstrapInvalid, m_bootstrapSent,
-	               m_bootstrapTimeouts, m_bootstrapResponses, m_bootstrapMalformed,
-	               m_bootstrapRejected, m_sourceNoContacts);
+	               m_bootstrapTimeouts, m_bootstrapResponses, m_bootstrapAccepted,
+	               m_bootstrapMalformed, m_bootstrapRejected, m_sourceNoContacts);
 	if (m_bootstrapSent > 0 && m_bootstrapResponses == 0)
 		theApp.Message(MSG_DEBUG, L"Kad2: UDP bootstrap response not yet validated; reachability/obfuscation undetermined");
 }
