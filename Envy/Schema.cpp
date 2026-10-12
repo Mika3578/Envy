@@ -40,9 +40,9 @@ CSchema::CSchema()
 	: m_nType		( typeFile )
 	, m_nAvailability ( saDefault )
 	, m_bPrivate	( FALSE )
-	, m_nIcon16 	( SHI_FILE )
-	, m_nIcon32 	( SHI_FILE )
-	, m_nIcon48 	( SHI_FILE )
+	, m_nIcon16(SHI_FILE)
+	, m_nIcon32(SHI_FILE)
+	, m_nIcon48(SHI_FILE)
 {
 	m_pTypeFilters.InitHashTable( 127 );
 }
@@ -659,9 +659,9 @@ BOOL CSchema::LoadIcon(CString sPath /*Empty*/)
 
 	// A malformed or partial icon must not leave an invalid image-list index
 	// behind. The generic file icon is always present in ShellIcons.
-	if ( m_nIcon16 < 0 ) m_nIcon16 = SHI_FILE;
-	if ( m_nIcon32 < 0 ) m_nIcon32 = SHI_FILE;
-	if ( m_nIcon48 < 0 ) m_nIcon48 = SHI_FILE;
+	if (m_nIcon16 < 0) m_nIcon16 = SHI_FILE;
+	if (m_nIcon32 < 0) m_nIcon32 = SHI_FILE;
+	if (m_nIcon48 < 0) m_nIcon48 = SHI_FILE;
 
 	return hIcon16 || hIcon32 || hIcon48;
 }
