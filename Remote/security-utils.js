@@ -1,4 +1,3 @@
-Attempting to perform the InitializeDefaultDrives operation on the 'FileSystem' provider failed.
 (function(global) {
     'use strict';
 
@@ -191,4 +190,3 @@ Attempting to perform the InitializeDefaultDrives operation on the 'FileSystem' 
         module.exports = api;
     }
 })(typeof window !== 'undefined' ? window : globalThis);
-

@@ -1,4 +1,3 @@
-Attempting to perform the InitializeDefaultDrives operation on the 'FileSystem' provider failed.
 const { JSDOM } = require('jsdom');
 const createDOMPurify = require('dompurify');
 const utils = require('../security-utils.js');
@@ -118,4 +117,3 @@ describe('security-utils', () => {
     delete global.DOMPurify;
   });
 });
-
