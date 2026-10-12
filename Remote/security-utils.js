@@ -69,8 +69,31 @@
             return null;
         }
 
-        // Reject encoded separators and dot segments before the allowlist check so
-        // downstream URL normalization cannot escape an allowed path prefix.
+        const rawPathname = value.split(/[?#]/, 1)[0];
+        const rawPathnames = [rawPathname];
+        let pathForDecoding = rawPathname;
+        for (let i = 0; i < 10; i += 1) {
+            let decodedPath;
+            try {
+                decodedPath = decodeURIComponent(pathForDecoding);
+            } catch (error) {
+                if (i === 0) {
+                    return null;
+                }
+                break;
+            }
+
+            if (decodedPath === pathForDecoding) {
+                break;
+            }
+            rawPathnames.push(decodedPath);
+            pathForDecoding = decodedPath;
+        }
+
+        if (rawPathnames.some(pathname => /[\u0000-\u001F\u007F]/.test(pathname) || pathname.includes('\\') || pathname.split('/').some(segment => segment === '.' || segment === '..'))) {
+            return null;
+        }
+
         let normalized = value;
         let fullyDecoded = false;
         for (let i = 0; i < 10; i += 1) {
