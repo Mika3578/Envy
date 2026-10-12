@@ -19,10 +19,12 @@
 
 // A Kad2 bootstrap response begins with NodeID[16], TCP port[2], version[1],
 // count[2], followed by count 25-byte contacts (eMule/aMule Kad2).
-// Accept trailing bytes as before, but never accept a truncated contact list.
+// aMule emits at most 20 contacts in this response. Accept trailing bytes as
+// before, but never accept a truncated contact list or an unbounded count.
+static constexpr uint16_t KadBootstrapMaxResponseContacts = 20;
 inline bool KadBootstrapResponseLengthValid(size_t bodyBytes, uint16_t count)
 {
-	return count <= 100u &&
+	return count <= KadBootstrapMaxResponseContacts &&
 	       bodyBytes >= 21u + static_cast<size_t>(count) * 25u;
 }
 

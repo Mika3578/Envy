@@ -74,7 +74,10 @@ The timer permits at most three bootstrap requests per 30-second cycle,
 using the existing maximum-outstanding-request budget. Unanswered
 requests enter per-UDP-endpoint backoff starting at 60 seconds, doubling
 up to a 10-minute cap. A complete, correlated `BOOTSTRAP_RES` clears
-the endpoint penalty; truncated responses cannot consume a pending request.
+the endpoint penalty; truncated or over-counted responses cannot consume a
+pending request. The response contact count is capped at 20, matching the
+eMule/aMule Kad2 bootstrap response bound; trailing bytes remain ignored for
+compatibility with the existing parser.
 The initial simultaneous FIND_NODE burst to unconfirmed bootstrap
 contacts is deferred until normal routing-table maintenance.
 

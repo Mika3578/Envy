@@ -193,12 +193,12 @@ bool test_response_framing_and_correlation_policy()
 {
 	if (!KadBootstrapResponseLengthValid(21, 0) ||
 	    !KadBootstrapResponseLengthValid(46, 1) ||
-	    !KadBootstrapResponseLengthValid(2521, 100))
+	    !KadBootstrapResponseLengthValid(521, KadBootstrapMaxResponseContacts))
 		return false;
 	if (KadBootstrapResponseLengthValid(20, 0) ||
 	    KadBootstrapResponseLengthValid(45, 1) ||
-	    KadBootstrapResponseLengthValid(2520, 100) ||
-	    KadBootstrapResponseLengthValid(100000u, 101))
+	    KadBootstrapResponseLengthValid(520, KadBootstrapMaxResponseContacts) ||
+	    KadBootstrapResponseLengthValid(546, KadBootstrapMaxResponseContacts + 1u))
 		return false;
 
 	KadBootstrapRotation policy;
