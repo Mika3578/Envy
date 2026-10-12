@@ -65,14 +65,14 @@ inline std::wstring DownloadGroupHistoricalSchemaFile(std::wstring_view strURI)
 	const std::wstring strLower = DownloadGroupLowerAscii(strURI);
 	const size_t nSchemeEnd = strLower.find(L"://");
 	if (nSchemeEnd == std::wstring::npos ||
-		strLower.compare(0, nSchemeEnd, L"http") != 0)
+	    strLower.compare(0, nSchemeEnd, L"http") != 0)
 		return std::wstring();
 
 	const size_t nHostEnd = strLower.find(L'/', nSchemeEnd + 3);
 	if (nHostEnd == std::wstring::npos ||
-		strLower.compare(nSchemeEnd + 3, nHostEnd - nSchemeEnd - 3, L"schemas.getenvy.com") != 0 ||
-		nHostEnd + 1 >= strLower.length() ||
-		strLower.find(L'/', nHostEnd + 1) != std::wstring::npos)
+	    strLower.compare(nSchemeEnd + 3, nHostEnd - nSchemeEnd - 3, L"schemas.getenvy.com") != 0 ||
+	    nHostEnd + 1 >= strLower.length() ||
+	    strLower.find(L'/', nHostEnd + 1) != std::wstring::npos)
 		return std::wstring();
 
 	return strLower.substr(nHostEnd + 1);
