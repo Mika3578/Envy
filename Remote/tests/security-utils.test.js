@@ -96,6 +96,21 @@ describe('security-utils', () => {
     }
   });
 
+  test('validateRedirectTarget fails closed at recursive decoding depth limits', () => {
+    const encodedTraversal = depth => {
+      let value = '%2e%2e';
+      for (let i = 1; i < depth; i += 1) {
+        value = encodeURIComponent(value);
+      }
+      return `/remote/${value}/outside`;
+    };
+
+    expect(utils.validateRedirectTarget(encodedTraversal(11), ['/remote'])).toBeNull();
+    expect(utils.validateRedirectTarget(encodedTraversal(12), ['/remote'])).toBeNull();
+    expect(utils.validateRedirectTarget('/remote/%25complete', ['/remote'])).toBe('/remote/%25complete');
+    expect(utils.validateRedirectTarget('/remote/search?q=../outside#fragment/..', ['/remote'])).toBe('/remote/search?q=../outside#fragment/..');
+  });
+
   test('validateApiSegment rejects invalid boundary values', () => {
     expect(() => utils.validateApiSegment('', 'stat')).toThrow('length is out of bounds');
     expect(() => utils.validateApiSegment('../etc/passwd', 'stat')).toThrow('invalid characters');
@@ -118,3 +133,4 @@ describe('security-utils', () => {
     delete global.DOMPurify;
   });
 });
+

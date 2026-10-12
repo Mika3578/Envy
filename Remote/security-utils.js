@@ -79,6 +79,7 @@
         }
         rawPathnames.push(decodedPath);
 
+        let decodingComplete = false;
         for (let i = 1; i < 10; i += 1) {
             let nextPath = '';
             let changed = false;
@@ -105,10 +106,15 @@
             }
 
             if (!changed || nextPath === decodedPath) {
+                decodingComplete = true;
                 break;
             }
             decodedPath = nextPath;
             rawPathnames.push(decodedPath);
+        }
+
+        if (!decodingComplete) {
+            return null;
         }
 
         if (rawPathnames.some(pathname => /[\u0000-\u001F\u007F]/.test(pathname) || pathname.includes('\\') || pathname.split('/').some(segment => segment === '.' || segment === '..'))) {
