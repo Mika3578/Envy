@@ -119,8 +119,8 @@ static int CheckManifestForSkin(LPCTSTR relative)
 	if (!stream) return 0;
 	if (fseek(stream, 0, SEEK_END)) goto done;
 	size = ftell(stream);
-	if (size <= 0 || size > 4 * 1024 * 1024 ||
-		fseek(stream, 0, SEEK_SET)) goto done;
+	if (size <= 0 || size > 4 * 1024 * 1024) goto done;
+	if (fseek(stream, 0, SEEK_SET)) goto done;
 	bytes = (char*)malloc((size_t)size + 1);
 	if (!bytes || fread(bytes, 1, size, stream) != (size_t)size || memchr(bytes, 0, size)) goto done;
 	bytes[size] = 0;
