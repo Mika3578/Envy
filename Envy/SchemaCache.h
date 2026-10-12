@@ -58,8 +58,9 @@ public:
 		if ( ! pszFile || ! *pszFile )
 			return NULL;
 
-		LPCTSTR pszExt = PathFindExtension( pszFile );
-		if ( ! *pszExt )
+		LPCTSTR pszName = PathFindFileName( pszFile );
+		LPCTSTR pszExt = PathFindExtension( pszName );
+		if ( ! *pszExt || pszExt[ 1 ] == L'\0' || pszExt == pszName )
 			return NULL;
 
 		CSchemaPtr pSchema;
