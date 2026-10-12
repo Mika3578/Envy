@@ -1,7 +1,7 @@
 //
 // Extract.c
 //
-// This file is part of Envy (getenvy.com) ï¿½ 2016-2018
+// This file is part of Envy (getenvy.com) © 2016-2018
 //
 // Portions of this page have been previously released into the public domain.
 // You are free to redistribute and modify it without any restrictions
@@ -11,8 +11,6 @@
 // The Unzip library is Copyright (C) 1998-2003 Gilles Vollant.
 
 #include "Unpacker.h"
-
-HANDLE PackageOpenReplacement(LPCTSTR path);
 #include <share.h>
 #include <winternl.h>
 
@@ -189,7 +187,8 @@ static int ReadEntry(unzFile archive, const unz_file_info* info, HANDLE output, 
 	while ((count = unzReadCurrentFile(archive, buffer, sizeof(buffer))) > 0)
 	{
 		DWORD written;
-		if ((uLong)count > info->uncompressed_size - total) { valid = 0; break; }
+		if (total > info->uncompressed_size ||
+			(uLong)count > info->uncompressed_size - total) { valid = 0; break; }
 		if (manifest) memcpy(manifest + total, buffer, count);
 		if (output != INVALID_HANDLE_VALUE &&
 			(!WriteFile(output, buffer, count, &written, NULL) || written != (DWORD)count)) { valid = 0; break; }
@@ -272,14 +271,14 @@ static int InstallEntry(unzFile archive, const unz_file_info* info, LPCTSTR dire
 	{
 		WCHAR leaf[64];
 		StringCchPrintfW(leaf, 64, L".envy-%lu-%u.tmp", GetCurrentProcessId(), attempt);
-		if (!PackageJoin(temporary, directory, leaf)) { if (target != INVALID_HANDLE_VALUE) CloseHandle(target); return 0; }
+		if (!PackageJoin(temporary, directory, leaf)) return 0;
 		if (!_wcsicmp(temporary, destination)) continue;
 		file = CreateFileW(temporary, GENERIC_WRITE | DELETE, 0, NULL, CREATE_NEW,
 			FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
 		if (file != INVALID_HANDLE_VALUE) break;
 		if (GetLastError() != ERROR_FILE_EXISTS && GetLastError() != ERROR_ALREADY_EXISTS) return 0;
 	}
-	if (file == INVALID_HANDLE_VALUE) { if (target != INVALID_HANDLE_VALUE) CloseHandle(target); return 0; }
+	if (file == INVALID_HANDLE_VALUE) return 0;
 	if (ReadEntry(archive, info, file, NULL) && FlushFileBuffers(file) && PackageCanReplace(destination))
 	{
 		memset(&renameInfo, 0, sizeof(renameInfo));
