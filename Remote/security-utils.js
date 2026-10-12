@@ -71,30 +71,55 @@
 
         const rawPathname = value.split(/[?#]/, 1)[0];
         const rawPathnames = [rawPathname];
-        let pathForDecoding = rawPathname;
-        for (let i = 0; i < 10; i += 1) {
-            let decodedPath;
-            try {
-                decodedPath = decodeURIComponent(pathForDecoding);
-            } catch (error) {
-                if (i === 0) {
-                    return null;
+        let decodedPath;
+        try {
+            decodedPath = decodeURIComponent(rawPathname);
+        } catch (error) {
+            return null;
+        }
+        rawPathnames.push(decodedPath);
+
+        for (let i = 1; i < 10; i += 1) {
+            let nextPath = '';
+            let changed = false;
+            for (let offset = 0; offset < decodedPath.length;) {
+                if (decodedPath[offset] !== '%' || !/^[0-9A-Fa-f]{2}$/.test(decodedPath.slice(offset + 1, offset + 3))) {
+                    nextPath += decodedPath[offset];
+                    offset += 1;
+                    continue;
                 }
-                break;
+
+                let end = offset;
+                while (decodedPath[end] === '%' && /^[0-9A-Fa-f]{2}$/.test(decodedPath.slice(end + 1, end + 3))) {
+                    end += 3;
+                }
+
+                const encodedRun = decodedPath.slice(offset, end);
+                try {
+                    nextPath += decodeURIComponent(encodedRun);
+                } catch (error) {
+                    nextPath += encodedRun;
+                }
+                changed = true;
+                offset = end;
             }
 
-            if (decodedPath === pathForDecoding) {
+            if (!changed || nextPath === decodedPath) {
                 break;
             }
+            decodedPath = nextPath;
             rawPathnames.push(decodedPath);
-            pathForDecoding = decodedPath;
         }
 
         if (rawPathnames.some(pathname => /[\u0000-\u001F\u007F]/.test(pathname) || pathname.includes('\\') || pathname.split('/').some(segment => segment === '.' || segment === '..'))) {
             return null;
         }
 
-        let normalized = value;
+        if (/[\u0000-\u001F\u007F]/.test(decodedPath) || decodedPath.includes('\\')) {
+            return null;
+        }
+
+        let parsed;
         let fullyDecoded = false;
         for (let i = 0; i < 10; i += 1) {
             let decoded;

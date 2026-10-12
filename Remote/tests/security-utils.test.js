@@ -46,6 +46,7 @@ describe('security-utils', () => {
     expect(utils.validateRedirectTarget('/remote/home', ['/remote'])).toBe('/remote/home');
     expect(utils.validateRedirectTarget('/remote/%25complete', ['/remote'])).toBe('/remote/%25complete');
     expect(utils.validateRedirectTarget('/remote/search?q=../outside#fragment/..', ['/remote'])).toBe('/remote/search?q=../outside#fragment/..');
+    expect(utils.validateRedirectTarget('/remote/search?q=%FF&literal=%#fragment', ['/remote'])).toBe('/remote/search?q=%FF&literal=%#fragment');
     expect(utils.validateRedirectTarget('/remoteish/home', ['/remote'])).toBeNull();
     expect(utils.validateRedirectTarget('/api/v1/items', ['/remote', '/api'])).toBe('/api/v1/items');
   });
