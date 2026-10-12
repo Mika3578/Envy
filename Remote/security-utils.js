@@ -120,35 +120,10 @@
         }
 
         let parsed;
-        let fullyDecoded = false;
-        for (let i = 0; i < 10; i += 1) {
-            let decoded;
-            try {
-                decoded = decodeURIComponent(normalized);
-            } catch (error) {
-                if (i === 0) {
-                    return null;
-                }
-                fullyDecoded = true;
-                break;
-            }
-
-            if (decoded === normalized) {
-                fullyDecoded = true;
-                break;
-            }
-            normalized = decoded;
-        }
-
-        if (!fullyDecoded || /[\u0000-\u001F\u007F]/.test(normalized) || normalized.includes('\\')) {
-            return null;
-        }
-
-        let parsed;
         let normalizedParsed;
         try {
             parsed = new URL(value, 'http://localhost/');
-            normalizedParsed = new URL(normalized, 'http://localhost/');
+            normalizedParsed = new URL(decodedPath, 'http://localhost/');
         } catch (error) {
             return null;
         }
@@ -238,3 +213,4 @@
         module.exports = api;
     }
 })(typeof window !== 'undefined' ? window : globalThis);
+
