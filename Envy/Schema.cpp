@@ -193,12 +193,12 @@ BOOL CSchema::Load(LPCTSTR pszFile)
 
 	CString strRoot = m_sIcon.Left( m_sIcon.GetLength() - 4 );
 
-	BOOL bIconLoaded = LoadIcon( strRoot + L".Skin.ico" );	// Allow Custom
-	if ( ! bIconLoaded && Settings.Skin.AltIcons )
-		bIconLoaded = LoadIcon( strRoot + L".Alt.ico" );	// Prior Style
-	if ( ! bIconLoaded )
-		bIconLoaded = LoadIcon();							// As Defined (m_sIcon)
-	if ( ! bIconLoaded )
+	BOOL bIconLoaded = LoadIcon(strRoot + L".Skin.ico"); // Allow Custom
+	if (!bIconLoaded && Settings.Skin.AltIcons)
+		bIconLoaded = LoadIcon(strRoot + L".Alt.ico"); // Prior Style
+	if (!bIconLoaded)
+		bIconLoaded = LoadIcon(); // As Defined (m_sIcon)
+	if (!bIconLoaded)
 		LoadIcon( strRoot + L".Safe.ico" );		// Fallback
 
 	// LoadIcon() causes bad registry reads (?)
