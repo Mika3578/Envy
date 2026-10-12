@@ -53,6 +53,7 @@ void register_crash_report_policy_smoke_tests(TestSuite& suite);
 void register_ed2k_lowid_callback_smoke_tests(TestSuite& suite);
 void register_albumfolder_mountcollection_smoke_tests(TestSuite& suite);
 void register_btinfo_piece_hash_smoke_tests(TestSuite& suite);
+void register_download_group_classification_smoke_tests(TestSuite& suite);
 
 int main(int argc, char** argv)
 {
@@ -102,6 +103,7 @@ int main(int argc, char** argv)
 	register_ed2k_lowid_callback_smoke_tests(suite);
 	register_albumfolder_mountcollection_smoke_tests(suite);
 	register_btinfo_piece_hash_smoke_tests(suite);
+	register_download_group_classification_smoke_tests(suite);
 
 	int failures = suite.run_all_tests();
 

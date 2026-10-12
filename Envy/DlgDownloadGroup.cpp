@@ -143,7 +143,12 @@ void CDownloadGroupDlg::OnFilterAdd()
 	strType.Trim();
 	if ( strType.IsEmpty() ) return;
 
-	if ( m_wndFilterList.FindString( -1, strType ) >= 0 ) return;
+	for ( int nItem = 0; nItem < m_wndFilterList.GetCount(); nItem++ )
+	{
+		CString strExisting;
+		m_wndFilterList.GetLBText( nItem, strExisting );
+		if ( strExisting.CompareNoCase( strType ) == 0 ) return;
+	}
 
 	m_wndFilterList.AddString( strType );
 	m_wndFilterList.SetWindowText( L"" );
@@ -181,7 +186,16 @@ void CDownloadGroupDlg::OnCbnCloseupSchemas()
 	for ( int nItem = 0; nItem < m_wndFilterList.GetCount(); nItem++ )
 	{
 		m_wndFilterList.GetLBText( nItem, strFilter );
-		if ( oList.Find( strFilter ) == NULL )
+		BOOL bDuplicate = FALSE;
+		for ( POSITION pos = oList.GetHeadPosition(); pos; )
+		{
+			if ( oList.GetNext( pos ).CompareNoCase( strFilter ) == 0 )
+			{
+				bDuplicate = TRUE;
+				break;
+			}
+		}
+		if ( ! bDuplicate )
 			oList.AddTail( strFilter );
 	}
 
@@ -195,9 +209,23 @@ void CDownloadGroupDlg::OnCbnCloseupSchemas()
 			pOldSchema->GetNextFilter( pos, strFilter, bResult );
 			if ( bResult )
 			{
-				strFilter.Insert( 0, L'.' );
-				while ( POSITION pos = oList.Find( strFilter ) )
-					oList.RemoveAt( pos );
+				for ( POSITION pos = oList.GetHeadPosition(); pos; )
+				{
+					POSITION posCurrent = pos;
+					if ( oList.GetNext( pos ).CompareNoCase( strFilter ) == 0 )
+						oList.RemoveAt( posCurrent );
+				}
+				if ( strFilter.GetLength() && strFilter.GetAt( 0 ) != L'.' )
+				{
+					CString strLegacyFilter = L"." + strFilter;
+					for ( POSITION posLegacy = oList.GetHeadPosition(); posLegacy; )
+					{
+						POSITION posLegacyCurrent = posLegacy;
+						if ( oList.GetNext( posLegacy ).CompareNoCase( strLegacyFilter ) == 0 )
+							oList.RemoveAt( posLegacyCurrent );
+					}
+				}
+
 			}
 		}
 
@@ -215,8 +243,17 @@ void CDownloadGroupDlg::OnCbnCloseupSchemas()
 			pNewSchema->GetNextFilter( pos, strFilter, bResult );
 			if ( bResult )
 			{
-				strFilter.Insert( 0, L'.' );
-				oList.AddTail( strFilter );
+				BOOL bDuplicate = FALSE;
+				for ( POSITION posExisting = oList.GetHeadPosition(); posExisting; )
+				{
+					if ( oList.GetNext( posExisting ).CompareNoCase( strFilter ) == 0 )
+					{
+						bDuplicate = TRUE;
+						break;
+					}
+				}
+				if ( ! bDuplicate )
+					oList.AddTail( strFilter );
 			}
 		}
 

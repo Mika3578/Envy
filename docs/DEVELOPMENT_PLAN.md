@@ -1,6 +1,8 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-11
+- **Last Updated:** 2026-10-12
+
+- **Changelog Entry:** 2026-10-12 — #471: make schema extension filters typed and case-insensitive, ignore malformed empty/trailing-dot inputs, select one deterministic automatic group, and keep protocol classification separate from file-type and user-defined groups. Existing group memberships and `DownloadGroups.dat` version 1 remain authoritative; focused native smoke coverage added. Deferred group icons/colors/tags/rules/previews/reset UX is recorded in the local idea inbox.
 
 - **Changelog Entry:** 2026-10-11 - #393: maintainer reports successful validation of ac29717 (EnvyTests 735/735, PeerXmlTests 18/18 and fixture HTTP 21/21); Release x64/Win32 CI builds passed. Correct the validation guide: loopback sources are rejected by the application's reserved-address policy, so fixture self-tests are not application integration evidence. Separate native parser coverage from admitted-peer application tests and document THEX/Tiger/legacy MD4 DIME type identifiers without changing protocol bytes or network protections. Historical Gnutella issues #453/#319 remain outside this PR.
 
