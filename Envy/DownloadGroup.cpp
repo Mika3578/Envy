@@ -119,22 +119,22 @@ BOOL CDownloadGroup::Link(CDownload* pDownload)
 		}
 	}
 
-	if ( ! Matches( pDownload ) )
+	if (!Matches(pDownload))
 		return FALSE;
 
-	Add( pDownload );
+	Add(pDownload);
 	return TRUE;
 }
 
 BOOL CDownloadGroup::Matches(CDownload* pDownload) const
 {
-	ASSUME_LOCK( Transfers.m_pSection );
-	if ( ! pDownload )
+	ASSUME_LOCK(Transfers.m_pSection);
+	if (!pDownload)
 		return FALSE;
 
 	// The built-in BitTorrent group represents a transfer protocol.  A .torrent
 	// file downloaded as metadata remains a normal file-type match instead.
-	if ( IsAutomatic() && CheckURI( m_sSchemaURI, CSchema::uriBitTorrent ) )
+	if (IsAutomatic() && CheckURI(m_sSchemaURI, CSchema::uriBitTorrent))
 		return pDownload->IsTorrent() ? TRUE : FALSE;
 
 	CString strTrackers;
@@ -149,20 +149,20 @@ BOOL CDownloadGroup::Matches(CDownload* pDownload) const
 	for ( POSITION pos = m_pFilters.GetHeadPosition(); pos; )
 	{
 		CString strFilter = m_pFilters.GetNext( pos );
-		if ( strFilter.IsEmpty() )
+		if (strFilter.IsEmpty())
 			continue;
 
 		if ( strFilter.GetAt( 0 ) == L'.' )
 		{
-			if ( DownloadGroupExtensionMatches( std::wstring_view( pDownload->m_sName.GetString() ),
-				std::wstring_view( strFilter.GetString() ) ) )
+			if (DownloadGroupExtensionMatches(std::wstring_view(pDownload->m_sName.GetString()),
+			                                  std::wstring_view(strFilter.GetString())))
 				return TRUE;
 			continue;
 		}
-		if ( CQuerySearch::WordMatch( pDownload->m_sName, strFilter ) )
+		if (CQuerySearch::WordMatch(pDownload->m_sName, strFilter))
 			return TRUE;
-		if ( ! strTrackers.IsEmpty() && strFilter.Find( L'.' ) > 2 &&
-			strTrackers.Find( strFilter.MakeLower() ) >= 0 )
+		if (!strTrackers.IsEmpty() && strFilter.Find(L'.') > 2 &&
+		    strTrackers.Find(strFilter.MakeLower()) >= 0)
 			return TRUE;
 	}
 
@@ -178,25 +178,25 @@ int CDownloadGroup::LinkAll()
 
 	ASSUME_LOCK( Transfers.m_pSection );
 
-	if ( IsAutomatic() )
+	if (IsAutomatic())
 	{
-		for ( POSITION pos = Downloads.GetIterator(); pos; )
+		for (POSITION pos = Downloads.GetIterator(); pos;)
 		{
-			CDownload* pDownload = Downloads.GetNext( pos );
-			for ( POSITION posGroup = DownloadGroups.GetIterator(); posGroup; )
+			CDownload* pDownload = Downloads.GetNext(pos);
+			for (POSITION posGroup = DownloadGroups.GetIterator(); posGroup;)
 			{
-				CDownloadGroup* pGroup = DownloadGroups.GetNext( posGroup );
-				if ( pGroup != DownloadGroups.GetSuperGroup() && pGroup->IsAutomatic() )
-					pGroup->Remove( pDownload );
+				CDownloadGroup* pGroup = DownloadGroups.GetNext(posGroup);
+				if (pGroup != DownloadGroups.GetSuperGroup() && pGroup->IsAutomatic())
+					pGroup->Remove(pDownload);
 			}
-			DownloadGroups.Link( pDownload );
-			nCount += Contains( pDownload );
+			DownloadGroups.Link(pDownload);
+			nCount += Contains(pDownload);
 		}
 	}
 	else
 	{
-		for ( POSITION pos = Downloads.GetIterator(); pos; )
-			nCount += Link( Downloads.GetNext( pos ) );
+		for (POSITION pos = Downloads.GetIterator(); pos;)
+			nCount += Link(Downloads.GetNext(pos));
 	}
 
 	return nCount;
@@ -207,30 +207,30 @@ int CDownloadGroup::LinkAll()
 
 void CDownloadGroup::AddFilter(const CString& strFilter)
 {
-	CString strNormalized( strFilter );
+	CString strNormalized(strFilter);
 	strNormalized.Trim();
-	if ( strNormalized.IsEmpty() ||
-		( strNormalized.GetAt( 0 ) == L'.' && strNormalized.GetLength() == 1 ) )
+	if (strNormalized.IsEmpty() ||
+	    (strNormalized.GetAt(0) == L'.' && strNormalized.GetLength() == 1))
 		return;
 
-	for ( POSITION pos = m_pFilters.GetHeadPosition(); pos; )
+	for (POSITION pos = m_pFilters.GetHeadPosition(); pos;)
 	{
-		if ( m_pFilters.GetNext( pos ).CompareNoCase( strNormalized ) == 0 )
+		if (m_pFilters.GetNext(pos).CompareNoCase(strNormalized) == 0)
 			return;
 	}
-	m_pFilters.AddTail( strNormalized );
+	m_pFilters.AddTail(strNormalized);
 }
 
 void CDownloadGroup::RemoveFilter(const CString& strFilter)
 {
-	if ( strFilter.IsEmpty() )
+	if (strFilter.IsEmpty())
 		return;
 
-	for ( POSITION pos = m_pFilters.GetHeadPosition(); pos; )
+	for (POSITION pos = m_pFilters.GetHeadPosition(); pos;)
 	{
 		POSITION posCurrent = pos;
-		if ( m_pFilters.GetNext( pos ).CompareNoCase( strFilter ) == 0 )
-			m_pFilters.RemoveAt( posCurrent );
+		if (m_pFilters.GetNext(pos).CompareNoCase(strFilter) == 0)
+			m_pFilters.RemoveAt(posCurrent);
 	}
 }
 
@@ -254,10 +254,10 @@ void CDownloadGroup::SetSchema(LPCTSTR pszURI, BOOL bRemoveOldFilters)
 					if ( bResult )
 					{
 						RemoveFilter( strFilter );
-						if ( strFilter.GetLength() && strFilter.GetAt( 0 ) != L'.' )
+						if (strFilter.GetLength() && strFilter.GetAt(0) != L'.')
 						{
 							CString strLegacyFilter = L"." + strFilter;
-							RemoveFilter( strLegacyFilter );
+							RemoveFilter(strLegacyFilter);
 						}
 					}
 				}
@@ -292,34 +292,34 @@ void CDownloadGroup::SetFolder(LPCTSTR pszFolder)
 
 BOOL CDownloadGroup::IsAutomatic() const
 {
-	CSchemaPtr pSchema = SchemaCache.Get( m_sSchemaURI );
-	if ( ! pSchema || DownloadGroupAutomaticPriority( std::wstring_view( pSchema->GetURI().GetString() ) ) >= 1000 )
+	CSchemaPtr pSchema = SchemaCache.Get(m_sSchemaURI);
+	if (!pSchema || DownloadGroupAutomaticPriority(std::wstring_view(pSchema->GetURI().GetString())) >= 1000)
 		return FALSE;
 
-	CList< CString > oDefaults;
-	for ( POSITION pos = pSchema->GetFilterIterator(); pos; )
+	CList<CString> oDefaults;
+	for (POSITION pos = pSchema->GetFilterIterator(); pos;)
 	{
 		CString strFilter;
 		BOOL bResult;
-		pSchema->GetNextFilter( pos, strFilter, bResult );
-		if ( bResult )
-			oDefaults.AddTail( strFilter );
+		pSchema->GetNextFilter(pos, strFilter, bResult);
+		if (bResult)
+			oDefaults.AddTail(strFilter);
 	}
-	if ( oDefaults.GetCount() != m_pFilters.GetCount() )
+	if (oDefaults.GetCount() != m_pFilters.GetCount())
 		return FALSE;
-	for ( POSITION pos = m_pFilters.GetHeadPosition(); pos; )
+	for (POSITION pos = m_pFilters.GetHeadPosition(); pos;)
 	{
-		CString strFilter = m_pFilters.GetNext( pos );
+		CString strFilter = m_pFilters.GetNext(pos);
 		BOOL bFound = FALSE;
-		for ( POSITION posDefault = oDefaults.GetHeadPosition(); posDefault; )
+		for (POSITION posDefault = oDefaults.GetHeadPosition(); posDefault;)
 		{
-			if ( strFilter.CompareNoCase( oDefaults.GetNext( posDefault ) ) == 0 )
+			if (strFilter.CompareNoCase(oDefaults.GetNext(posDefault)) == 0)
 			{
 				bFound = TRUE;
 				break;
 			}
 		}
-		if ( ! bFound )
+		if (!bFound)
 			return FALSE;
 	}
 	return TRUE;

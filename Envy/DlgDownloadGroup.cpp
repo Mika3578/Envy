@@ -143,11 +143,11 @@ void CDownloadGroupDlg::OnFilterAdd()
 	strType.Trim();
 	if ( strType.IsEmpty() ) return;
 
-	for ( int nItem = 0; nItem < m_wndFilterList.GetCount(); nItem++ )
+	for (int nItem = 0; nItem < m_wndFilterList.GetCount(); nItem++)
 	{
 		CString strExisting;
-		m_wndFilterList.GetLBText( nItem, strExisting );
-		if ( strExisting.CompareNoCase( strType ) == 0 ) return;
+		m_wndFilterList.GetLBText(nItem, strExisting);
+		if (strExisting.CompareNoCase(strType) == 0) return;
 	}
 
 	m_wndFilterList.AddString( strType );
@@ -187,15 +187,15 @@ void CDownloadGroupDlg::OnCbnCloseupSchemas()
 	{
 		m_wndFilterList.GetLBText( nItem, strFilter );
 		BOOL bDuplicate = FALSE;
-		for ( POSITION pos = oList.GetHeadPosition(); pos; )
+		for (POSITION pos = oList.GetHeadPosition(); pos;)
 		{
-			if ( oList.GetNext( pos ).CompareNoCase( strFilter ) == 0 )
+			if (oList.GetNext(pos).CompareNoCase(strFilter) == 0)
 			{
 				bDuplicate = TRUE;
 				break;
 			}
 		}
-		if ( ! bDuplicate )
+		if (!bDuplicate)
 			oList.AddTail( strFilter );
 	}
 
@@ -209,23 +209,22 @@ void CDownloadGroupDlg::OnCbnCloseupSchemas()
 			pOldSchema->GetNextFilter( pos, strFilter, bResult );
 			if ( bResult )
 			{
-				for ( POSITION pos = oList.GetHeadPosition(); pos; )
+				for (POSITION pos = oList.GetHeadPosition(); pos;)
 				{
 					POSITION posCurrent = pos;
-					if ( oList.GetNext( pos ).CompareNoCase( strFilter ) == 0 )
-						oList.RemoveAt( posCurrent );
+					if (oList.GetNext(pos).CompareNoCase(strFilter) == 0)
+						oList.RemoveAt(posCurrent);
 				}
-				if ( strFilter.GetLength() && strFilter.GetAt( 0 ) != L'.' )
+				if (strFilter.GetLength() && strFilter.GetAt(0) != L'.')
 				{
 					CString strLegacyFilter = L"." + strFilter;
-					for ( POSITION posLegacy = oList.GetHeadPosition(); posLegacy; )
+					for (POSITION posLegacy = oList.GetHeadPosition(); posLegacy;)
 					{
 						POSITION posLegacyCurrent = posLegacy;
-						if ( oList.GetNext( posLegacy ).CompareNoCase( strLegacyFilter ) == 0 )
-							oList.RemoveAt( posLegacyCurrent );
+						if (oList.GetNext(posLegacy).CompareNoCase(strLegacyFilter) == 0)
+							oList.RemoveAt(posLegacyCurrent);
 					}
 				}
-
 			}
 		}
 
@@ -244,16 +243,16 @@ void CDownloadGroupDlg::OnCbnCloseupSchemas()
 			if ( bResult )
 			{
 				BOOL bDuplicate = FALSE;
-				for ( POSITION posExisting = oList.GetHeadPosition(); posExisting; )
+				for (POSITION posExisting = oList.GetHeadPosition(); posExisting;)
 				{
-					if ( oList.GetNext( posExisting ).CompareNoCase( strFilter ) == 0 )
+					if (oList.GetNext(posExisting).CompareNoCase(strFilter) == 0)
 					{
 						bDuplicate = TRUE;
 						break;
 					}
 				}
-				if ( ! bDuplicate )
-					oList.AddTail( strFilter );
+				if (!bDuplicate)
+					oList.AddTail(strFilter);
 			}
 		}
 
