@@ -1,3 +1,4 @@
+Attempting to perform the InitializeDefaultDrives operation on the 'FileSystem' provider failed.
 const { JSDOM } = require('jsdom');
 const createDOMPurify = require('dompurify');
 const utils = require('../security-utils.js');
@@ -44,8 +45,24 @@ describe('security-utils', () => {
   test('validateRedirectTarget preserves valid allowlisted path boundaries', () => {
     expect(utils.validateRedirectTarget('/remote', ['/remote'])).toBe('/remote');
     expect(utils.validateRedirectTarget('/remote/home', ['/remote'])).toBe('/remote/home');
+    expect(utils.validateRedirectTarget('/remote/%25complete', ['/remote'])).toBe('/remote/%25complete');
+    expect(utils.validateRedirectTarget('/remote/search?q=../outside#fragment/..', ['/remote'])).toBe('/remote/search?q=../outside#fragment/..');
     expect(utils.validateRedirectTarget('/remoteish/home', ['/remote'])).toBeNull();
     expect(utils.validateRedirectTarget('/api/v1/items', ['/remote', '/api'])).toBe('/api/v1/items');
+  });
+
+  test('validateRedirectTarget rejects traversal normalized across query and fragment boundaries', () => {
+    const invalidTargets = [
+      '/remote/..?/outside',
+      '/remote/..#/outside',
+      '/remote/%2e%2e?/outside',
+      '/remote/%2e%2e#/outside'
+    ];
+
+    for (const target of invalidTargets) {
+      expect(new URL(target, 'http://localhost/').pathname).toBe('/');
+      expect(utils.validateRedirectTarget(target, ['/remote'])).toBeNull();
+    }
   });
 
   test('validateRedirectTarget rejects URL parser control-character differentials', () => {
@@ -101,3 +118,4 @@ describe('security-utils', () => {
     delete global.DOMPurify;
   });
 });
+

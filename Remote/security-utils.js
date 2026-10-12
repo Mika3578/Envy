@@ -1,3 +1,4 @@
+Attempting to perform the InitializeDefaultDrives operation on the 'FileSystem' provider failed.
 (function(global) {
     'use strict';
 
@@ -78,7 +79,11 @@
             try {
                 decoded = decodeURIComponent(normalized);
             } catch (error) {
-                return null;
+                if (i === 0) {
+                    return null;
+                }
+                fullyDecoded = true;
+                break;
             }
 
             if (decoded === normalized) {
@@ -88,12 +93,30 @@
             normalized = decoded;
         }
 
-        if (!fullyDecoded || /[\u0000-\u001F\u007F]/.test(normalized) || normalized.includes('\\') || normalized.split('/').some(segment => segment === '.' || segment === '..')) {
+        if (!fullyDecoded || /[\u0000-\u001F\u007F]/.test(normalized) || normalized.includes('\\')) {
+            return null;
+        }
+
+        let parsed;
+        let normalizedParsed;
+        try {
+            parsed = new URL(value, 'http://localhost/');
+            normalizedParsed = new URL(normalized, 'http://localhost/');
+        } catch (error) {
+            return null;
+        }
+
+        const pathname = parsed.pathname;
+        const normalizedPathname = normalizedParsed.pathname;
+        if (pathname.includes('\\') || normalizedPathname.includes('\\') || normalizedPathname.split('/').some(segment => segment === '.' || segment === '..')) {
             return null;
         }
 
         const validPrefixes = allowlist || ['/remote', '/api'];
-        const isAllowed = validPrefixes.some(prefix => value === prefix || value.startsWith(prefix + '/') || (prefix === '/' && value.startsWith('/')));
+        const isAllowed = validPrefixes.some(prefix => {
+            const matchesPrefix = candidate => candidate === prefix || candidate.startsWith(prefix + '/') || (prefix === '/' && candidate.startsWith('/'));
+            return matchesPrefix(pathname) && matchesPrefix(normalizedPathname);
+        });
 
         return isAllowed ? value : null;
     }
@@ -168,3 +191,4 @@
         module.exports = api;
     }
 })(typeof window !== 'undefined' ? window : globalThis);
+
