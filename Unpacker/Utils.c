@@ -43,7 +43,8 @@ static int ParseManifest(const WCHAR* text, WCHAR** values)
 		while (*p && !ManifestSpace(*p) && *p != L'=' && *p != L'>' && *p != L'/') ++p;
 		keyLength = p - key;
 		while (ManifestSpace(*p)) ++p;
-		if (!keyLength || *p++ != L'=') return 0;
+		if (!keyLength || *p != L'=') return 0;
+		++p;
 		while (ManifestSpace(*p)) ++p;
 		quote = *p++;
 		if (quote != L'\'' && quote != L'"') return 0;
@@ -116,7 +117,9 @@ static int CheckManifestForSkin(LPCTSTR relative)
 	if (!PackageJoin(file, skins_dir, relative)) return 0;
 	stream = _wfopen(file, L"rb");
 	if (!stream) return 0;
-	if (fseek(stream, 0, SEEK_END) || (size = ftell(stream)) <= 0 || size > 4 * 1024 * 1024 ||
+	if (fseek(stream, 0, SEEK_END)) goto done;
+	size = ftell(stream);
+	if (size <= 0 || size > 4 * 1024 * 1024 ||
 		fseek(stream, 0, SEEK_SET)) goto done;
 	bytes = (char*)malloc((size_t)size + 1);
 	if (!bytes || fread(bytes, 1, size, stream) != (size_t)size || memchr(bytes, 0, size)) goto done;

@@ -15,6 +15,7 @@ extern "C"
 }
 
 #include <winioctl.h>
+#include <winternl.h>
 
 namespace
 {
@@ -393,6 +394,38 @@ bool StagingNameCollision()
 	return f.validate() && f.install() && Contents(f.destination / L"Example" / name) == "valid";
 }
 
+
+// Force a late alias after both path checks, exercising the exact native rename
+// primitive used by InstallEntry rather than relying on a scheduler race.
+bool LateHardLinkReplacement()
+{
+	Fixture f;
+	auto target = f.destination / L"payload.txt", staging = f.destination / L"staging.tmp";
+	auto outside = f.root / L"sentinel.txt";
+	{ std::ofstream file(target); file << "old"; }
+	{ std::ofstream file(outside); file << "sentinel"; }
+	HANDLE file = CreateFileW(staging.c_str(), GENERIC_WRITE | DELETE, 0, nullptr, CREATE_NEW,
+		FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+	bool valid = file != INVALID_HANDLE_VALUE;
+	DWORD written = 0;
+	valid = valid && WriteFile(file, "new", 3, &written, nullptr) && written == 3 &&
+		FlushFileBuffers(file) && PackageCanReplace(target.c_str());
+	valid = valid && DeleteFileW(target.c_str()) && CreateHardLinkW(target.c_str(), outside.c_str(), nullptr);
+	typedef NTSTATUS (NTAPI *RenameFile)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, FILE_INFORMATION_CLASS);
+	auto renameFile = reinterpret_cast<RenameFile>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtSetInformationFile"));
+	struct { FILE_RENAME_INFO info; WCHAR room[MAX_PATH]; } renameInfo = {};
+	IO_STATUS_BLOCK status = {};
+	const WCHAR* leaf = L"payload.txt";
+	renameInfo.info.ReplaceIfExists = TRUE;
+	renameInfo.info.FileNameLength = static_cast<DWORD>(wcslen(leaf) * sizeof(WCHAR));
+	memcpy(renameInfo.info.FileName, leaf, renameInfo.info.FileNameLength);
+	valid = valid && renameFile && renameFile(file, &status, &renameInfo,
+		static_cast<ULONG>(offsetof(FILE_RENAME_INFO, FileName) + renameInfo.info.FileNameLength),
+		static_cast<FILE_INFORMATION_CLASS>(10)) >= 0;
+	if (file != INVALID_HANDLE_VALUE) CloseHandle(file);
+	return valid && Contents(target) == "new" && Contents(outside) == "sentinel";
+}
+
 bool ExistingManifestBuffers()
 {
 	Fixture f;
@@ -437,6 +470,7 @@ void register_unpacker_tests(TestSuite& suite)
 	suite.add_test("Unpacker.PreviewTypeChangeRejected", PreviewCannotAuthorizeDifferentType);
 	suite.add_test("Unpacker.StagingNameCollision", StagingNameCollision);
 	suite.add_test("Unpacker.ExistingManifestBufferSafety", ExistingManifestBuffers);
+	suite.add_test("Unpacker.LateHardLinkReplacement", LateHardLinkReplacement);
 }
 
 #ifdef UNPACKER_TEST_MAIN
