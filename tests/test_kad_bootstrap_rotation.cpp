@@ -189,6 +189,29 @@ bool test_bounded_state()
 	return visited == candidates.size();
 }
 
+bool test_bounded_state_preserves_pending_request()
+{
+	KadBootstrapRotation policy;
+	const auto candidates = Candidates(KadBootstrapRotation::MaxTrackedEndpoints + 1);
+	policy.Sent(candidates[0].ip, candidates[0].udpPort, 0);
+	for (size_t i = 1; i < KadBootstrapRotation::MaxTrackedEndpoints; ++i)
+	{
+		const uint32_t now = static_cast<uint32_t>(i);
+		policy.Sent(candidates[i].ip, candidates[i].udpPort, now);
+		if (!policy.TimedOut(candidates[i].ip, candidates[i].udpPort,
+		                     now + KadBootstrapRotation::RequestTimeoutMs + 1u))
+			return false;
+	}
+	policy.Sent(candidates.back().ip, candidates.back().udpPort,
+	            static_cast<uint32_t>(KadBootstrapRotation::MaxTrackedEndpoints));
+	if (policy.Tracked() != KadBootstrapRotation::MaxTrackedEndpoints)
+		return false;
+
+	const std::vector<KadContact> pending = {candidates[0]};
+	return policy.Select(pending, 600000u).contacts.empty() &&
+	       policy.TimedOut(candidates[0].ip, candidates[0].udpPort, 600000u);
+}
+
 bool test_response_framing_and_correlation_policy()
 {
 	if (!KadBootstrapResponseLengthValid(21, 0) ||
@@ -224,5 +247,6 @@ void register_kad_bootstrap_rotation_tests(TestSuite& suite)
 	suite.add_test("kad_bootstrap_wraparound", test_wraparound_timing);
 	suite.add_test("kad_bootstrap_invalid_candidates", test_invalid_and_empty_candidates);
 	suite.add_test("kad_bootstrap_bounded_tracking", test_bounded_state);
+	suite.add_test("kad_bootstrap_bounded_tracking_keeps_pending", test_bounded_state_preserves_pending_request);
 	suite.add_test("kad_bootstrap_response_bounds", test_response_framing_and_correlation_policy);
 }

@@ -104,14 +104,20 @@ public:
 			if (m_retry.size() >= MaxTrackedEndpoints)
 			{
 				// Evict the least recently touched retry state, never grow
-				// without bound when imported host caches change.
-				auto oldest = m_retry.begin();
+				// without bound when imported host caches change. Pending
+				// requests must remain tracked until completion or timeout.
+				auto oldest = m_retry.end();
 				for (auto cur = m_retry.begin(); cur != m_retry.end(); ++cur)
 				{
-					if (static_cast<uint32_t>(now - cur->second.lastTouched) >
+					if (cur->second.pending)
+						continue;
+					if (oldest == m_retry.end() ||
+					    static_cast<uint32_t>(now - cur->second.lastTouched) >
 					    static_cast<uint32_t>(now - oldest->second.lastTouched))
 						oldest = cur;
 				}
+				if (oldest == m_retry.end())
+					return;
 				m_retry.erase(oldest);
 			}
 			it = m_retry.emplace(key, State{}).first;
