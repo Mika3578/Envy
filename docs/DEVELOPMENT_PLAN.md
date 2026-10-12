@@ -1,6 +1,8 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-11
+- **Last Updated:** 2026-10-12
+
+- **Changelog Entry:** 2026-10-12 — #430: stabilize the existing Draft Kad bootstrap rotation by bounding Kad2 bootstrap responses to the eMule/aMule 20-contact count, preserving correlated-response admission and tick-wrap-safe bounded retries, and make the cold-start persistence smoke fixture independent of `GetTempFileNameW` replacement behavior. Native x64 verification passes the focused Kad rotation/cold-start coverage; the formal MSBuild test link remains blocked by the local VS 2026 `MSPDB140.DLL`/`LNK1101` toolchain failure, while full Win32 app validation remains blocked by the existing Crashpad prerequisite documented below. Live eMule/aMule interoperability remains a maintainer-run #160 requirement.
 
 - **Changelog Entry:** 2026-10-11 - #393: maintainer reports successful validation of ac29717 (EnvyTests 735/735, PeerXmlTests 18/18 and fixture HTTP 21/21); Release x64/Win32 CI builds passed. Correct the validation guide: loopback sources are rejected by the application's reserved-address policy, so fixture self-tests are not application integration evidence. Separate native parser coverage from admitted-peer application tests and document THEX/Tiger/legacy MD4 DIME type identifiers without changing protocol bytes or network protections. Historical Gnutella issues #453/#319 remain outside this PR.
 

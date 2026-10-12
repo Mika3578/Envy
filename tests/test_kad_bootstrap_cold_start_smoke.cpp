@@ -15,6 +15,7 @@
 #include "../Envy/KadNodesDat.h"
 
 #include <array>
+#include <cwchar>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -98,15 +99,24 @@ bool ReadBinaryFile(const std::wstring& path, std::vector<uint8_t>& out)
 std::wstring MakeTempBootstrapDir()
 {
 	wchar_t tempPath[MAX_PATH] = {};
-	if (GetTempPathW(MAX_PATH, tempPath) == 0)
+	if (GetCurrentDirectoryW(MAX_PATH, tempPath) == 0)
 		return L"";
+	const size_t nBaseLength = wcslen(tempPath);
+	if (nBaseLength + 1 >= _countof(tempPath))
+		return L"";
+	tempPath[nBaseLength] = L'\\';
+	tempPath[nBaseLength + 1] = L'\0';
 	wchar_t dir[MAX_PATH] = {};
-	if (GetTempFileNameW(tempPath, L"ekb", 0, dir) == 0)
-		return L"";
-	DeleteFileW(dir);
-	if (!CreateDirectoryW(dir, NULL))
-		return L"";
-	return dir;
+	for (unsigned int nAttempt = 0; nAttempt != 16; ++nAttempt)
+	{
+		_snwprintf_s(dir, _countof(dir), _TRUNCATE, L"%sekb-%lu-%u", tempPath,
+		             static_cast<unsigned long>(GetCurrentProcessId()), nAttempt);
+		if (CreateDirectoryW(dir, NULL))
+			return dir;
+		if (GetLastError() != ERROR_ALREADY_EXISTS)
+			return L"";
+	}
+	return L"";
 }
 
 bool CommitCandidateLikeProduction(

@@ -1,7 +1,7 @@
 # Kad Documentation
 
 Status: active
-Last updated: 2026-10-11
+Last updated: 2026-10-12
 Scope: Envy Kad2 notes. Opcode matching is not live interop. Kad6/Ember overlays are not Kad2.
 
 **Specification first:** [Kademlia paper](https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf). **Interop second:** eMule Community and aMule Kad2 sources. Ember and eMule eSE extensions are experimental and must stay distinct from Kad2. See [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md).
@@ -17,7 +17,10 @@ The timer permits at most three bootstrap requests per 30-second cycle,
 using the existing maximum-outstanding-request budget. Unanswered
 requests enter per-UDP-endpoint backoff starting at 60 seconds, doubling
 up to a 10-minute cap. A complete, correlated `BOOTSTRAP_RES` clears
-the endpoint penalty; truncated responses cannot consume a pending request.
+the endpoint penalty; truncated or over-counted responses cannot consume a
+pending request. The response contact count is capped at 20, matching the
+eMule/aMule Kad2 bootstrap response bound; trailing bytes remain ignored for
+compatibility with the existing parser.
 The initial simultaneous FIND_NODE burst to unconfirmed bootstrap
 contacts is deferred until normal routing-table maintenance.
 
