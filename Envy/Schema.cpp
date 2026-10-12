@@ -40,9 +40,9 @@ CSchema::CSchema()
 	: m_nType		( typeFile )
 	, m_nAvailability ( saDefault )
 	, m_bPrivate	( FALSE )
-	, m_nIcon16 	( -1 )
-	, m_nIcon32 	( -1 )
-	, m_nIcon48 	( -1 )
+	, m_nIcon16 	( SHI_FILE )
+	, m_nIcon32 	( SHI_FILE )
+	, m_nIcon48 	( SHI_FILE )
 {
 	m_pTypeFilters.InitHashTable( 127 );
 }
@@ -193,12 +193,12 @@ BOOL CSchema::Load(LPCTSTR pszFile)
 
 	CString strRoot = m_sIcon.Left( m_sIcon.GetLength() - 4 );
 
-	LoadIcon( strRoot + L".Skin.ico" ) ||		// Allow Custom
-#ifdef XPSUPPORT
-		theApp.m_nWinVer < WIN_VISTA ? LoadIcon( strRoot + L".Safe.ico" ) : FALSE ||	// Legacy XP
-#endif
-		Settings.Skin.AltIcons ? LoadIcon( strRoot + L".Alt.ico" ) : FALSE ||	// Prior Style (theApp.m_nWinVer < WIN_10)
-		LoadIcon() ||							// As Defined (m_sIcon)
+	BOOL bIconLoaded = LoadIcon( strRoot + L".Skin.ico" );	// Allow Custom
+	if ( ! bIconLoaded && Settings.Skin.AltIcons )
+		bIconLoaded = LoadIcon( strRoot + L".Alt.ico" );	// Prior Style
+	if ( ! bIconLoaded )
+		bIconLoaded = LoadIcon();							// As Defined (m_sIcon)
+	if ( ! bIconLoaded )
 		LoadIcon( strRoot + L".Safe.ico" );		// Fallback
 
 	// LoadIcon() causes bad registry reads (?)
@@ -656,6 +656,12 @@ BOOL CSchema::LoadIcon(CString sPath /*Empty*/)
 		m_nIcon48 = ShellIcons.Add( hIcon48, 48 );
 		DestroyIcon( hIcon48 );
 	}
+
+	// A malformed or partial icon must not leave an invalid image-list index
+	// behind. The generic file icon is always present in ShellIcons.
+	if ( m_nIcon16 < 0 ) m_nIcon16 = SHI_FILE;
+	if ( m_nIcon32 < 0 ) m_nIcon32 = SHI_FILE;
+	if ( m_nIcon48 < 0 ) m_nIcon48 = SHI_FILE;
 
 	return hIcon16 || hIcon32 || hIcon48;
 }

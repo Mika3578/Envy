@@ -3,7 +3,7 @@
 
 	<object type="file" availability="default"/>
 	<images>
-		<icon path="CollectionsFolder.ico"/>
+		<icon path="Collections.ico"/>
 	</images>
 	<titles>
 		<title language="en">Collection</title>

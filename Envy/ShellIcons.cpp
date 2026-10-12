@@ -546,6 +546,9 @@ BOOL CShellIcons::Draw(CDC* pDC, int nIcon, int nSize, int nX, int nY, COLORREF 
 		return FALSE;
 	}
 
+	if ( ! hImages || nIcon < 0 || nIcon >= ImageList_GetImageCount( hImages ) )
+		nIcon = SHI_FILE;
+
 	return ImageList_DrawEx( hImages, nIcon, pDC->GetSafeHdc(),
 		nX, nY, nSize, nSize, crBack,
 		CLR_DEFAULT,	// bSelected ? Colors.m_crHighlight : CLR_NONE,
@@ -573,6 +576,9 @@ BOOL CShellIcons::Draw(CDC* pDC, int nIcon, int nSize, int nX, int nY, COLORREF 
 		ASSERT( FALSE );
 		return FALSE;
 	}
+
+	if ( ! hImages || nIcon < 0 || nIcon >= ImageList_GetImageCount( hImages ) )
+		nIcon = SHI_FILE;
 
 	return ImageList_DrawEx( hImages, nIcon, pDC->GetSafeHdc(),
 		nX, nY, nSize, nSize, crBack, crBlend, nStyle );
