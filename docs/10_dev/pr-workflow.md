@@ -45,11 +45,12 @@ Read every finding, including resolved threads and overview text, at current HEA
 The correction service owns one persistent conversation and one exclusive writer
 per PR. It is authorized to proactively inspect all review surfaces, correct
 demonstrated defects and PR-caused CI failures, run tests, and commit/push the
-existing feature branch. It must **not** request Copilot, other automated
-review products, or human reviewers while the pull request is a **draft**;
-review requests belong only after the maintainer marks **Ready** and the
-`AGENTS.md` §5 checklist is satisfied (typically one Copilot pass on a stable
-treated head). It does
+existing feature branch. It must not request Copilot or human reviewers while
+the pull request is a **draft**. After the controlled policy in
+`ai-review-policy.md` is effective, an explicitly authorized agent may request
+one allowlisted intermediate provider on a stable eligible Draft HEAD; this is
+not a correction-service trigger, a second writer, or a replacement for the
+Ready Copilot pass. It does
 not need a new user request for each correction batch. Batch limits match
 `AGENTS.md` §5 and the Stabilizer starter text in
 `docs/10_dev/agents-and-automation.md`: at most **three** automatic correction
@@ -71,11 +72,12 @@ maintainer disposition; do not erase them on a push, phase change or clean revie
 
 Automate Draft stabilization, targeted checks and CI recovery. A Draft
 deferral, silence, quota/error response or missing reviewer is not
-validation. **No review spam in Draft:** agents must not request Copilot,
-Bugbot, CodeRabbit, or human reviewers while `isDraft` is true — same
-posture as `review_on_push=false`. After the maintainer marks Ready and
-threads are treated, request Copilot **once** on a mergeable head. Keep
-review_on_push=false. The correction agent must never approve, dismiss
+validation. **No automatic review spam in Draft:** no provider may be
+requested on every push, and only the allowlisted, budgeted, serial process in
+`ai-review-policy.md` may request an intermediate review after a coherent batch.
+After the maintainer marks Ready and threads are treated, request Copilot
+**once** on a mergeable head. Keep review_on_push=false and draft review=false.
+The correction agent must never approve, dismiss
 reviews, merge, enable auto-merge, change repository settings/rulesets,
 force-push, or push protected branches. Squash merge stays manual.
 

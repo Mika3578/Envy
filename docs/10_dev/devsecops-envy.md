@@ -71,8 +71,11 @@ BLOCK (native GitHub review rules on Protect develop):
 ADVISORY: CodeRabbit, clang-tidy + reviewdog, Snyk (when present), Cursor Bugbot
 (optional / paid — not primary).
 
-Never require CodeRabbit or Bugbot as the sole merge gate. Native checks and
-GitHub review rules are the merge authority.
+Never require CodeRabbit, Amazon Q, Sourcery, or Bugbot as the sole merge gate.
+Native checks and GitHub review rules are the merge authority. Draft
+intermediate requests follow the serial budgets, current-HEAD ledger, and
+provider-availability rules in [`ai-review-policy.md`](ai-review-policy.md);
+no provider is triggered on every push.
 
 ## Dependency automation
 
@@ -90,10 +93,12 @@ exact non-overlap boundary.
 | Tool | Role | Cost posture |
 | --- | --- | --- |
 | GitHub Copilot Code Review | Required approval reviewer when auto-approval/counting are enabled | Balanced review effort recommended |
-| CodeRabbit | Advisory automatic/manual review | Free for public OSS — install GitHub App |
+| CodeRabbit | Advisory manual, opt-in review | Repository auto-review is off; provider quota and App entitlement are external |
+| Amazon Q Developer | Manual fallback or distinct high-risk check | Console-controlled monthly line budget; automatic new/reopened-PR review must be off |
+| Sourcery | Not enabled for routine ENVY reviews | Automatic open/commit re-reviews and plan-dependent diff-character budgets require external verification |
 | reviewdog + clang-tidy | Advisory line annotations on PR diffs | Free Actions minutes |
 | Qodo / PR-Agent | Manual on high-risk PRs only | Optional |
-| Cursor Bugbot | Exceptional / paid | Not primary |
+| Cursor Bugbot | Disabled for routine ENVY reviews | Manual-only, once-per-PR, autofix-off settings and quota require external verification |
 
 **Copilot request discipline** (see `AGENTS.md` §5 *Review and Copilot economy*):
 
@@ -117,7 +122,10 @@ comparison notes.
 
 1. **CodeRabbit GitHub App** — If reviews do not appear on ready (non-draft) PRs, open
    GitHub → Settings → Applications → Installed GitHub Apps → **CodeRabbit** → Configure → **Mika3578/Envy**.
-   Config: `.coderabbit.yaml` (`drafts: false`, advisory only). Repos with fewer than 10 stars may require a manual `@coderabbitai review` / checkbox trigger.
+   Config: `.coderabbit.yaml` (`auto_review.enabled: false`, advisory only).
+   Use the manual `@coderabbitai review` trigger only under
+   [`ai-review-policy.md`](ai-review-policy.md), after the maintainer confirms
+   the requester and provider budget.
 2. **GitHub Copilot Code Review (safe AI approval)** — Repository
    Settings → Copilot → Code review (UI-only; not in the ruleset API):
    - Review effort: **Balanced**

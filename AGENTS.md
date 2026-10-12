@@ -126,9 +126,9 @@ Branch model:
       approval with GitHub Actions or a self-approval workflow. Copilot
       cloud-agent PRs still need a non-Copilot reviewer;
     - Request **GitHub Copilot Code Review** only when the pull request is
-      **mergeable** toward `develop` (not a draft — assistants and correction
-      agents must not request Copilot or any other review product in Draft;
-      required status checks green, branch up to date with `develop`, no outstanding
+      **mergeable** toward `develop` (not a draft — Copilot is the final
+      reviewer, not an intermediate Draft reviewer; required status checks
+      green, branch up to date with `develop`, no outstanding
       `CHANGES_REQUESTED` that still applies) **and every review comment
       thread on the current head is treated** (see §5 *Review comment
       handling*). Re-request **once** after a new head only when treatment
@@ -393,9 +393,14 @@ automatic correction batches during Draft and two during Ready. It must stop
 with `needs-human` when a finding recurs twice, correctness is uncertain,
 signing/permissions fail, equivalent CI failures persist after two attempts,
 or subjective governance changes are needed. Phase toggles never reset budgets.
-It must never approve, request reviewers, **request any automated or manual
-code review** (Copilot, Bugbot, `@coderabbitai review`, `request_copilot_review`,
-or similar), merge, enable auto-merge, change
+It must never approve, request human reviewers, or request Copilot as an
+intermediate review. After the controlled policy in
+`docs/10_dev/ai-review-policy.md` is effective, an authorized agent may request
+one allowlisted advisory provider during Draft only after that policy's stable
+HEAD, deterministic-check, quota, concurrency, and identity checks pass. This
+is a bounded manual action, not a push/review event trigger, and it does not
+activate PR #397 or grant any correction service a second writer. The agent
+must never request a duplicate provider/HEAD review, merge, enable auto-merge, change
 settings/rulesets, force-push, or push to protected branches. Disable the
 existing approval automation before testing the correction agent. The phase
 transitions and merge stay manual even where rule 12 otherwise permits more.
@@ -434,8 +439,10 @@ off**. Request Copilot only once on a stable **Ready** head when the
 pre-request checklist in `.github/skills/code-review/SKILL.md` (*When to
 run*) and §5 *Review comment handling* above are satisfied: not Draft,
 required checks green, mergeable toward `develop`, every thread treated and
-resolved, no mid-batch re-request. Correction agents must not request any
-review product while the PR is Draft and must not approve or merge.
+resolved, no mid-batch re-request. A bounded Draft intermediate review is
+permitted only under `docs/10_dev/ai-review-policy.md`; there is no automatic
+review on every push, no concurrent provider request, and no approval authority
+for an intermediate bot. Agents must not approve or merge.
 Privileged governance paths need an independent human `APPROVED` (`AGENTS.md`
 rule 12; skill Risk class).
 
@@ -618,8 +625,9 @@ acceptable engineering quality:
   push) over full-repo sweeps and repeated identical analysis.
 - **GitHub Copilot Code Review** model choice is controlled by GitHub; still
   follow mergeable-request and **`APPROVED`-when-clean** policy to avoid extra
-  review rounds. **Do not request any review product while the PR is Draft.**
-  Do not treat advisory bots (CodeRabbit, Sourcery, etc.) as
+  review rounds. Do not request Copilot while the PR is Draft. An authorized
+  agent may request an allowlisted intermediate provider only under
+  `docs/10_dev/ai-review-policy.md`. Do not treat advisory bots (CodeRabbit, Sourcery, etc.) as
   substitutes for required gates.
 - Escalate to a more capable model only when a cheaper approach has failed with
   new information, or when the maintainer explicitly approves the upgrade.
