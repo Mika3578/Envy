@@ -37,12 +37,12 @@ static char THIS_FILE[] = __FILE__;
 // CSchema construction
 
 CSchema::CSchema()
-	: m_nType		( typeFile )
-	, m_nAvailability ( saDefault )
-	, m_bPrivate	( FALSE )
-	, m_nIcon16(SHI_FILE)
-	, m_nIcon32(SHI_FILE)
-	, m_nIcon48(SHI_FILE)
+    : m_nType(typeFile)
+    , m_nAvailability(saDefault)
+    , m_bPrivate(FALSE)
+    , m_nIcon16(SHI_FILE)
+    , m_nIcon32(SHI_FILE)
+    , m_nIcon48(SHI_FILE)
 {
 	m_pTypeFilters.InitHashTable( 127 );
 }
