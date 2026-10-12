@@ -417,7 +417,7 @@ bool LateHardLinkReplacement()
 	IO_STATUS_BLOCK status = {};
 	const WCHAR* leaf = L"payload.txt";
 	renameInfo.info.ReplaceIfExists = TRUE;
-	renameInfo.info.FileNameLength = static_cast<DWORD>(wcslen(leaf) * sizeof(WCHAR));
+	renameInfo.info.FileNameLength = static_cast<DWORD>((_countof(leaf) - 1) * sizeof(WCHAR));
 	memcpy(renameInfo.info.FileName, leaf, renameInfo.info.FileNameLength);
 	valid = valid && renameFile && renameFile(file, &status, &renameInfo,
 		static_cast<ULONG>(offsetof(FILE_RENAME_INFO, FileName) + renameInfo.info.FileNameLength),
