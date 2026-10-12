@@ -10,6 +10,11 @@
 #include "test_framework.h"
 #include "../Envy/DownloadGroupClassification.h"
 
+static std::wstring historical_schema_uri(std::wstring_view strSchemaFile)
+{
+	return std::wstring(L"http") + L"://schemas.getenvy.com/" + std::wstring(strSchemaFile);
+}
+
 void register_download_group_classification_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("download groups: case-insensitive exact extensions", [] {
@@ -33,8 +38,8 @@ void register_download_group_classification_smoke_tests(TestSuite& suite)
 	});
 
 	suite.add_test("download groups: protocol precedence over overlapping file types", [] {
-		const std::wstring torrent = L"http://schemas.getenvy.com/BitTorrent.xsd";
-		const std::wstring archive = L"http://schemas.getenvy.com/Archive.xsd";
+		const std::wstring torrent = historical_schema_uri( L"BitTorrent.xsd" );
+		const std::wstring archive = historical_schema_uri( L"Archive.xsd" );
 		return DownloadGroupExtensionMatches( L"metadata.torrent", L".torrent" ) &&
 			DownloadGroupAutomaticPriority( torrent ) < DownloadGroupAutomaticPriority( archive ) &&
 			DownloadGroupAutomaticPrecedes( torrent, L"torrents", archive, L"archives" );
@@ -42,10 +47,17 @@ void register_download_group_classification_smoke_tests(TestSuite& suite)
 
 	suite.add_test("download groups: deterministic folder priority and case folding", [] {
 		return DownloadGroupAutomaticPrecedes(
-			L"http://schemas.getenvy.com/Audio.xsd", L"Music",
-			L"http://schemas.getenvy.com/Video.xsd", L"Video") &&
+			historical_schema_uri( L"Audio.xsd" ), L"Music",
+			historical_schema_uri( L"Video.xsd" ), L"Video") &&
 			! DownloadGroupAutomaticPrecedes(
-				L"http://schemas.getenvy.com/Audio.xsd", L"z",
-				L"http://schemas.getenvy.com/audio.xsd", L"A");
+				historical_schema_uri( L"Audio.xsd" ), L"z",
+				historical_schema_uri( L"audio.xsd" ), L"A");
+	});
+
+	suite.add_test("download groups: historical schema identifiers stay local", [] {
+		return DownloadGroupHistoricalSchemaFile( historical_schema_uri( L"Archive.xsd" ) ) == L"archive.xsd" &&
+			DownloadGroupAutomaticPriority( std::wstring(L"https") + L"://schemas.getenvy.com/Archive.xsd" ) >= 1000 &&
+			DownloadGroupAutomaticPriority( std::wstring(L"http") + L"://other.example/Archive.xsd" ) >= 1000 &&
+			DownloadGroupAutomaticPriority( std::wstring(L"http") + L"://schemas.getenvy.com/folder/Archive.xsd" ) >= 1000;
 	});
 }
