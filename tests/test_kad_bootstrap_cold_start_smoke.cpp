@@ -15,7 +15,6 @@
 #include "../Envy/KadNodesDat.h"
 
 #include <array>
-#include <cwchar>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -96,16 +95,29 @@ bool ReadBinaryFile(const std::wstring& path, std::vector<uint8_t>& out)
 	return ok && read == nSize;
 }
 
+bool PrepareDirectoryPrefix(wchar_t* path, size_t capacity, DWORD length)
+{
+	const size_t nLength = static_cast<size_t>(length);
+	if (path == nullptr || nLength == 0 || nLength >= capacity)
+		return false;
+	if (path[nLength - 1] == L'\\')
+	{
+		path[nLength] = L'\0';
+		return true;
+	}
+	if (nLength + 1 >= capacity)
+		return false;
+	path[nLength] = L'\\';
+	path[nLength + 1] = L'\0';
+	return true;
+}
+
 std::wstring MakeTempBootstrapDir()
 {
 	wchar_t tempPath[MAX_PATH] = {};
-	if (GetCurrentDirectoryW(MAX_PATH, tempPath) == 0)
+	const DWORD nBaseLength = GetCurrentDirectoryW(_countof(tempPath), tempPath);
+	if (!PrepareDirectoryPrefix(tempPath, _countof(tempPath), nBaseLength))
 		return L"";
-	const size_t nBaseLength = wcslen(tempPath);
-	if (nBaseLength + 1 >= _countof(tempPath))
-		return L"";
-	tempPath[nBaseLength] = L'\\';
-	tempPath[nBaseLength + 1] = L'\0';
 	wchar_t dir[MAX_PATH] = {};
 	for (unsigned int nAttempt = 0; nAttempt != 16; ++nAttempt)
 	{
@@ -158,6 +170,28 @@ static bool test_backoff_monotonic()
 	const uint32_t a2 = KadBootstrapBackoffMs(2, 1000, 60000);
 	const uint32_t a3 = KadBootstrapBackoffMs(3, 1000, 60000);
 	return a0 == 0 && a1 == 1000 && a2 == 2000 && a3 == 4000;
+}
+
+static bool test_directory_prefix_uses_bounded_length()
+{
+	wchar_t path[8] = { L'C', L':', L'\\', L't', L'm', L'p', L'\0', L'x' };
+	if (!PrepareDirectoryPrefix(path, _countof(path), 6))
+		return false;
+	if (path[6] != L'\\' || path[7] != L'\0')
+		return false;
+
+	wchar_t root[4] = { L'C', L':', L'\\', L'x' };
+	return PrepareDirectoryPrefix(root, _countof(root), 3) && root[3] == L'\0';
+}
+
+static bool test_directory_prefix_rejects_invalid_lengths()
+{
+	wchar_t full[4] = { L'a', L'b', L'c', L'\0' };
+	return !PrepareDirectoryPrefix(nullptr, _countof(full), 3) &&
+	       !PrepareDirectoryPrefix(full, 0, 3) &&
+	       !PrepareDirectoryPrefix(full, _countof(full), 0) &&
+	       !PrepareDirectoryPrefix(full, _countof(full), _countof(full)) &&
+	       !PrepareDirectoryPrefix(full, _countof(full), 3);
 }
 
 static bool test_backoff_cap()
@@ -305,6 +339,8 @@ static bool test_successful_commit_keeps_candidate_without_restore()
 
 void register_kad_bootstrap_cold_start_smoke_tests(TestSuite& suite)
 {
+	suite.add_test("kad_bootstrap_directory_prefix_bounded", test_directory_prefix_uses_bounded_length);
+	suite.add_test("kad_bootstrap_directory_prefix_invalid", test_directory_prefix_rejects_invalid_lengths);
 	suite.add_test("kad_bootstrap_backoff_monotonic", test_backoff_monotonic);
 	suite.add_test("kad_bootstrap_backoff_cap", test_backoff_cap);
 	suite.add_test("kad_bootstrap_tick_wrap", test_tick_wrap_elapsed);
