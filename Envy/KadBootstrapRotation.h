@@ -113,7 +113,7 @@ public:
 						continue;
 					if (oldest == m_retry.end() ||
 					    static_cast<uint32_t>(now - cur->second.lastTouched) >
-					    static_cast<uint32_t>(now - oldest->second.lastTouched))
+					        static_cast<uint32_t>(now - oldest->second.lastTouched))
 						oldest = cur;
 				}
 				if (oldest == m_retry.end())

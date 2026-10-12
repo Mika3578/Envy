@@ -207,7 +207,7 @@ bool test_bounded_state_preserves_pending_request()
 	if (policy.Tracked() != KadBootstrapRotation::MaxTrackedEndpoints)
 		return false;
 
-	const std::vector<KadContact> pending = {candidates[0]};
+	const std::vector<KadContact> pending = { candidates[0] };
 	return policy.Select(pending, 600000u).contacts.empty() &&
 	       policy.TimedOut(candidates[0].ip, candidates[0].udpPort, 600000u);
 }
