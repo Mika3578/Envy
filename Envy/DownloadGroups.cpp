@@ -176,14 +176,16 @@ void CDownloadGroups::MoveRight(CDownloadGroup* pGroup)
 
 static BOOL IsPreferredAutomaticGroup(const CDownloadGroup* pCandidate, const CDownloadGroup* pCurrent)
 {
-	if ( ! pCurrent )
+	if (!pCurrent)
 		return TRUE;
 
 	return DownloadGroupAutomaticPrecedes(
-		std::wstring_view( pCandidate->m_sSchemaURI.GetString() ),
-		std::wstring_view( pCandidate->m_sFolder.GetString() ),
-		std::wstring_view( pCurrent->m_sSchemaURI.GetString() ),
-		std::wstring_view( pCurrent->m_sFolder.GetString() ) ) ? TRUE : FALSE;
+	           std::wstring_view(pCandidate->m_sSchemaURI.GetString()),
+	           std::wstring_view(pCandidate->m_sFolder.GetString()),
+	           std::wstring_view(pCurrent->m_sSchemaURI.GetString()),
+	           std::wstring_view(pCurrent->m_sFolder.GetString()))
+	           ? TRUE
+	           : FALSE;
 }
 
 void CDownloadGroups::Link(CDownload* pDownload)
@@ -195,10 +197,10 @@ void CDownloadGroups::Link(CDownload* pDownload)
 
 	// Existing membership is authoritative.  This protects manual assignments
 	// and prevents a metadata/name refresh from moving an active download.
-	for ( POSITION pos = GetIterator(); pos; )
+	for (POSITION pos = GetIterator(); pos;)
 	{
-		CDownloadGroup* pGroup = GetNext( pos );
-		if ( pGroup != m_pSuper && pGroup->Contains( pDownload ) )
+		CDownloadGroup* pGroup = GetNext(pos);
+		if (pGroup != m_pSuper && pGroup->Contains(pDownload))
 			return;
 	}
 
@@ -206,21 +208,21 @@ void CDownloadGroups::Link(CDownload* pDownload)
 	for ( POSITION pos = GetIterator(); pos; )
 	{
 		CDownloadGroup* pGroup = GetNext( pos );
-		if ( pGroup == m_pSuper )
+		if (pGroup == m_pSuper)
 			continue;
 
-		if ( ! pGroup->IsAutomatic() )
+		if (!pGroup->IsAutomatic())
 		{
 			// User-defined filter groups remain independently selectable.
-			if ( pGroup->Matches( pDownload ) )
-				pGroup->Add( pDownload );
+			if (pGroup->Matches(pDownload))
+				pGroup->Add(pDownload);
 		}
-		else if ( pGroup->Matches( pDownload ) && IsPreferredAutomaticGroup( pGroup, pAutomatic ) )
+		else if (pGroup->Matches(pDownload) && IsPreferredAutomaticGroup(pGroup, pAutomatic))
 			pAutomatic = pGroup;
 	}
 
-	if ( pAutomatic )
-		pAutomatic->Add( pDownload );
+	if (pAutomatic)
+		pAutomatic->Add(pDownload);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -308,37 +310,37 @@ CString CDownloadGroups::GetCompletedPath(CDownload* pDownload) const
 	for ( POSITION pos = GetIterator(); pos; )
 	{
 		const CDownloadGroup* pGroup = GetNext( pos );
-		if ( pGroup == m_pSuper || pGroup->m_sFolder.IsEmpty() || ! pGroup->Contains( pDownload ) )
+		if (pGroup == m_pSuper || pGroup->m_sFolder.IsEmpty() || !pGroup->Contains(pDownload))
 			continue;
 
-		if ( ! pBest )
+		if (!pBest)
 		{
 			pBest = pGroup;
 			continue;
 		}
 
-		const BOOL bGroupManual = ! pGroup->IsAutomatic();
-		const BOOL bBestManual = ! pBest->IsAutomatic();
-		if ( bGroupManual != bBestManual )
+		const BOOL bGroupManual = !pGroup->IsAutomatic();
+		const BOOL bBestManual = !pBest->IsAutomatic();
+		if (bGroupManual != bBestManual)
 		{
-			if ( bGroupManual )
+			if (bGroupManual)
 				pBest = pGroup;
 			continue;
 		}
 
-		if ( bGroupManual )
+		if (bGroupManual)
 		{
-			const int nName = pGroup->m_sName.CompareNoCase( pBest->m_sName );
-			if ( nName < 0 || ( nName == 0 && pGroup->m_sFolder.CompareNoCase( pBest->m_sFolder ) < 0 ) )
+			const int nName = pGroup->m_sName.CompareNoCase(pBest->m_sName);
+			if (nName < 0 || (nName == 0 && pGroup->m_sFolder.CompareNoCase(pBest->m_sFolder) < 0))
 				pBest = pGroup;
 		}
-		else if ( IsPreferredAutomaticGroup( pGroup, pBest ) )
+		else if (IsPreferredAutomaticGroup(pGroup, pBest))
 			pBest = pGroup;
 	}
 
-	if ( pBest )
+	if (pBest)
 	{
-		if ( pBest->m_sFolder.Find( L":\\" ) == 1 )
+		if (pBest->m_sFolder.Find(L":\\") == 1)
 			return pBest->m_sFolder;
 
 		return Settings.Downloads.CompletePath + L"\\" + pBest->m_sFolder;

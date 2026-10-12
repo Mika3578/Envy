@@ -50,7 +50,7 @@ public:
 	void		SetCookie(int nCookie);
 	void		CopyList(CList< CDownload* >& pList);
 	BOOL		Link(CDownload* pDownload);
-	BOOL		Matches(CDownload* pDownload) const;
+	BOOL Matches(CDownload* pDownload) const;
 	int			LinkAll();
 	void		AddFilter(const CString& strFilter);
 	void		RemoveFilter(const CString& strFilter);
@@ -59,9 +59,9 @@ public:
 	void		Serialize(CArchive& ar, const int nVersion);
 	BOOL		IsTemporary();
 	void		SetDefaultFilters();		// Load file extensions from schema
-	BOOL		IsAutomatic() const;
+	BOOL IsAutomatic() const;
 
-// Inlines
+	// Inlines
 public:
 	inline POSITION GetIterator() const
 	{
