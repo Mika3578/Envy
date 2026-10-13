@@ -87,7 +87,7 @@ def _read_regular_file_bytes(file_path: Path, max_bytes: int) -> bytes:
 
 def _read_regular_file_bytes_windows(file_path: Path, max_bytes: int) -> bytes:
     import ctypes
-    from ctypes import wintypes
+    import ctypes.wintypes
 
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     GENERIC_READ = 0x80000000
@@ -100,46 +100,46 @@ def _read_regular_file_bytes_windows(file_path: Path, max_bytes: int) -> bytes:
 
     CreateFileW = kernel32.CreateFileW
     CreateFileW.argtypes = [
-        wintypes.LPCWSTR,
-        wintypes.DWORD,
-        wintypes.DWORD,
-        wintypes.LPVOID,
-        wintypes.DWORD,
-        wintypes.DWORD,
-        wintypes.HANDLE,
+        ctypes.wintypes.LPCWSTR,
+        ctypes.wintypes.DWORD,
+        ctypes.wintypes.DWORD,
+        ctypes.wintypes.LPVOID,
+        ctypes.wintypes.DWORD,
+        ctypes.wintypes.DWORD,
+        ctypes.wintypes.HANDLE,
     ]
-    CreateFileW.restype = wintypes.HANDLE
+    CreateFileW.restype = ctypes.wintypes.HANDLE
 
     GetFileInformationByHandle = kernel32.GetFileInformationByHandle
-    GetFileInformationByHandle.argtypes = [wintypes.HANDLE, wintypes.LPVOID]
-    GetFileInformationByHandle.restype = wintypes.BOOL
+    GetFileInformationByHandle.argtypes = [ctypes.wintypes.HANDLE, ctypes.wintypes.LPVOID]
+    GetFileInformationByHandle.restype = ctypes.wintypes.BOOL
 
     ReadFile = kernel32.ReadFile
     ReadFile.argtypes = [
-        wintypes.HANDLE,
-        wintypes.LPVOID,
-        wintypes.DWORD,
-        ctypes.POINTER(wintypes.DWORD),
-        wintypes.LPVOID,
+        ctypes.wintypes.HANDLE,
+        ctypes.wintypes.LPVOID,
+        ctypes.wintypes.DWORD,
+        ctypes.POINTER(ctypes.wintypes.DWORD),
+        ctypes.wintypes.LPVOID,
     ]
-    ReadFile.restype = wintypes.BOOL
+    ReadFile.restype = ctypes.wintypes.BOOL
 
     CloseHandle = kernel32.CloseHandle
-    CloseHandle.argtypes = [wintypes.HANDLE]
-    CloseHandle.restype = wintypes.BOOL
+    CloseHandle.argtypes = [ctypes.wintypes.HANDLE]
+    CloseHandle.restype = ctypes.wintypes.BOOL
 
     class BY_HANDLE_FILE_INFORMATION(ctypes.Structure):
         _fields_ = [
-            ("dwFileAttributes", wintypes.DWORD),
-            ("ftCreationTime", wintypes.FILETIME),
-            ("ftLastAccessTime", wintypes.FILETIME),
-            ("ftLastWriteTime", wintypes.FILETIME),
-            ("dwVolumeSerialNumber", wintypes.DWORD),
-            ("nFileSizeHigh", wintypes.DWORD),
-            ("nFileSizeLow", wintypes.DWORD),
-            ("nNumberOfLinks", wintypes.DWORD),
-            ("nFileIndexHigh", wintypes.DWORD),
-            ("nFileIndexLow", wintypes.DWORD),
+            ("dwFileAttributes", ctypes.wintypes.DWORD),
+            ("ftCreationTime", ctypes.wintypes.FILETIME),
+            ("ftLastAccessTime", ctypes.wintypes.FILETIME),
+            ("ftLastWriteTime", ctypes.wintypes.FILETIME),
+            ("dwVolumeSerialNumber", ctypes.wintypes.DWORD),
+            ("nFileSizeHigh", ctypes.wintypes.DWORD),
+            ("nFileSizeLow", ctypes.wintypes.DWORD),
+            ("nNumberOfLinks", ctypes.wintypes.DWORD),
+            ("nFileIndexHigh", ctypes.wintypes.DWORD),
+            ("nFileIndexLow", ctypes.wintypes.DWORD),
         ]
 
     path_w = str(file_path)
@@ -172,7 +172,7 @@ def _read_regular_file_bytes_windows(file_path: Path, max_bytes: int) -> bytes:
         while remaining > 0:
             chunk_cap = min(remaining, 1 << 20)
             buf = (ctypes.c_ubyte * chunk_cap)()
-            read = wintypes.DWORD(0)
+            read = ctypes.wintypes.DWORD(0)
             if not ReadFile(handle, buf, chunk_cap, ctypes.byref(read), None):
                 raise OSError(ctypes.get_last_error(), "unable to read results file")
             if read.value == 0:
