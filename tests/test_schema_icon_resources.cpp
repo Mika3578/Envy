@@ -14,15 +14,28 @@
 #include <regex>
 #include <string>
 
+#include <windows.h>
+
 static std::filesystem::path find_schema_directory()
 {
-	std::filesystem::path path = std::filesystem::current_path();
-	for ( int nLevel = 0; nLevel < 5; ++nLevel )
+	std::filesystem::path executable;
+	wchar_t buffer[ MAX_PATH ] = {};
+	const DWORD length = GetModuleFileNameW( nullptr, buffer, _countof( buffer ) );
+	if ( length != 0 && length < _countof( buffer ) )
+		executable = std::filesystem::path( buffer ).parent_path();
+
+	// Tests may change the working directory; anchor the repository lookup to this executable first.
+	const std::filesystem::path roots[] = { executable, std::filesystem::current_path() };
+	for ( const std::filesystem::path& root : roots )
 	{
-		const std::filesystem::path schemas = path / L"Schemas";
-		if ( std::filesystem::is_directory( schemas ) )
-			return schemas;
-		path = path.parent_path();
+		std::filesystem::path path = root;
+		for ( int nLevel = 0; nLevel < 8 && ! path.empty(); ++nLevel )
+		{
+			const std::filesystem::path schemas = path / L"Schemas";
+			if ( std::filesystem::is_directory( schemas ) )
+				return schemas;
+			path = path.parent_path();
+		}
 	}
 
 	return std::filesystem::path();
