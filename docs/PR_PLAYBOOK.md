@@ -22,12 +22,12 @@ Use `.github/CONTRIBUTING.md` as the canonical source for the linear-history wor
 
 ## PR finalization (before squash merge to `develop`)
 
-Canonical policy lives in `AGENTS.md` (hard rule 16 and workflow item 12). Before
-manual merge: align PR title with the intended squash title; keep the PR
-description current; fill or refresh **Squash Commit Summary** in the PR body
-(`.github/pull_request_template.md`); verify `Fixes` / `Closes` / `Related to`
-wording; ensure summary bullets describe the final head and exclude process-only
-text (no AI attribution, bot summaries, or "fix CI" noise).
+Canonical policy: [`docs/10_dev/pr-workflow.md`](10_dev/pr-workflow.md) and
+[`AGENTS.md`](../AGENTS.md). Use the PR title as the squash title; keep the PR
+description current (audit record). Required CI green, threads resolved, no
+active changes requested. A real non-author approval remains mandatory.
+The maintainer performs a manual squash merge with the curated Squash Commit
+Summary; do not enable auto-merge while that body must be supplied manually.
 
 ## Documentation PR Checklist
 
@@ -47,10 +47,11 @@ text (no AI attribution, bot summaries, or "fix CI" noise).
 ### Testing expectations
 - Validate changed workflows/jobs with at least one representative run.
 - Capture required vs advisory check impact.
-- Docs-only PRs must not reserve Windows runners, but must still **emit**
-  success no-op `Build x64 Release` / `Build Win32 Release` contexts (never
-  SKIPPED under Protect develop). C++ PRs run real MSBuild. See
-  `docs/10_dev/agents-and-automation.md` and `docs/10_dev/CI_AUDIT_2026-09.md`.
+- Draft PRs without `stage:live-test` stay on the cheap lane (Windows product
+  builds deferred by `pr-phase` / classify — intentional, not missing CI).
+  That deferral is not build evidence. Every live-test or Ready PR runs actual
+  x64 and Win32 Release builds and EnvyTests, including docs-only PRs.
+  See `docs/10_dev/pr-workflow.md`.
 
 ### Documentation expectations
 - Update build/CI sections in relevant docs (`README.md`, `docs/DEVELOPMENT_PLAN.md`).

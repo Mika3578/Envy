@@ -1,7 +1,7 @@
 //
 // UploadTransfer.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com) ù 2016-2018
 // Portions copyright Shareaza 2002-2007 and PeerProject 2008-2014
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -204,10 +204,12 @@ DWORD CUploadTransfer::GetMeasuredSpeed()
 
 void CUploadTransfer::SetSpeedLimit(DWORD nLimit)
 {
-	ZeroMemory( m_nAverageRate, sizeof m_nAverageRate );
-	m_nBandwidth	= m_bPriority ? Settings.Bandwidth.Uploads : nLimit;
-	m_tAverageTime	= 0;
-	m_nAveragePos	= 0;
+	ZeroMemory(m_nAverageRate, sizeof m_nAverageRate);
+	m_nBandwidth = m_bPriority
+	                   ? TransferBandwidthBytesToMeterLimit(Settings.Bandwidth.Uploads)
+	                   : nLimit;
+	m_tAverageTime = 0;
+	m_nAveragePos = 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -275,41 +277,45 @@ void CUploadTransfer::LongTermAverage(DWORD tNow)
 	if ( tNow < m_tAverageTime + 2000 || m_nAverageRate[ m_nAveragePos ] == 0 ) return;
 
 	m_tAverageTime = tNow;
-	m_nAveragePos = ( m_nAveragePos + 1 ) % ULA_SLOTS;
+	m_nAveragePos = (m_nAveragePos + 1) % ULA_SLOTS;
 
-	DWORD nAverage = 0;
+	// 64-bit sum: at multi-Gb/s rates, 16 DWORD samples can exceed 2^32.
+	unsigned long long nAverageSum = 0;
 
-	for ( int nPos = 0; nPos < ULA_SLOTS; nPos++ )
+	for (int nPos = 0; nPos < ULA_SLOTS; nPos++)
 	{
-		if ( m_nAverageRate[ nPos ] == 0 ) return;
-		nAverage += m_nAverageRate[ nPos ];
+		if (m_nAverageRate[nPos] == 0) return;
+		nAverageSum += m_nAverageRate[nPos];
 	}
 
-	m_nAverageRate[ m_nAveragePos ] = 0;
-	nAverage = nAverage / ULA_SLOTS * 9 / 8;
-	nAverage = max( nAverage, Settings.Uploads.ClampdownFloor );
+	m_nAverageRate[m_nAveragePos] = 0;
+	nAverageSum = nAverageSum / ULA_SLOTS * 9 / 8;
+	DWORD nAverage = TransferBandwidthBytesToSetting(nAverageSum);
+	nAverage = max(nAverage, Settings.Uploads.ClampdownFloor);
 
-	if ( m_bPriority )
+	if (m_bPriority)
 	{
-		m_nBandwidth = NULL; 	// User-unlimited
+		m_nBandwidth = TransferBandwidthBytesToMeterLimit(Settings.Bandwidth.Uploads);
 	}
-	else if ( nAverage < m_nBandwidth * ( 100 - Settings.Uploads.ClampdownFactor ) / 100 )
+	else if (!TransferBandwidthMeterLimitIsUnlimited(m_nBandwidth) &&
+	         nAverage < m_nBandwidth * (100 - Settings.Uploads.ClampdownFactor) / 100)
 	{
 		DWORD nOld = m_nBandwidth;
 
-		m_nBandwidth = min( nAverage, m_nBandwidth );
+		m_nBandwidth = min(nAverage, m_nBandwidth);
 
-		theApp.Message( MSG_DEBUG, L"Changing upload throttle on %s from %s to %s",
-			m_sAddress, Settings.SmartSpeed( nOld ), Settings.SmartSpeed( m_nBandwidth ) );
+		theApp.Message(MSG_DEBUG, L"Changing upload throttle on %s from %s to %s",
+		               m_sAddress, Settings.SmartSpeed(nOld), Settings.SmartSpeed(m_nBandwidth));
 	}
-	else if ( m_pQueue && m_pQueue->GetAvailableBandwidth() )
+	else if (!TransferBandwidthMeterLimitIsUnlimited(m_nBandwidth) &&
+	         m_pQueue && m_pQueue->GetAvailableBandwidth())
 	{
-		ZeroMemory( m_nAverageRate, sizeof( m_nAverageRate ) );
+		ZeroMemory(m_nAverageRate, sizeof(m_nAverageRate));
 
 		DWORD nOld = m_nBandwidth;
-		DWORD nIncrease = m_pQueue->GetAvailableBandwidth() / ( m_pQueue->GetTransferCount() + 1 );
+		DWORD nIncrease = m_pQueue->GetAvailableBandwidth() / (m_pQueue->GetTransferCount() + 1);
 
-		if ( nIncrease + m_nBandwidth < m_nMaxRate )
+		if (nIncrease + m_nBandwidth < m_nMaxRate)
 			m_nBandwidth += nIncrease;
 		else
 			m_nBandwidth = m_nMaxRate;

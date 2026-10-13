@@ -442,7 +442,7 @@ Live Uploads/Downloads limit mapping: [transfer-settings.md](../transfer-setting
 | **Remote** | Enable | Remote Enabled | Enable remote web interface |
 | | Username | Remote Username | Username for remote access |
 | | Password | Remote Password | Password for remote access |
-| | BindAddress | Bind Address | IP to bind remote interface to |
+| | BindAddress | Bind Address | Localhost-only access policy for Remote HTML (not a socket bind; D-017). Values in `127.0.0.0/8`, `::1`, or `localhost` deny non-loopback clients unless Allow External is enabled |
 | | AllowExternal | Allow External | Allow external access (deprecated) |
 | | AllowLAN | Allow LAN | Allow LAN/private network access |
 | | AllowWAN | Allow WAN | Allow internet/WAN access |

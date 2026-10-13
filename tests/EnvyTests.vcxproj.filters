@@ -56,6 +56,9 @@
     <ClCompile Include="test_dc_user_file_browse_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_dc_maxedout_queue_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_ed2k_lock_order_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -122,9 +125,18 @@
     <ClCompile Include="test_albumfolder_mountcollection_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_remote_access_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test_xml_peer_parse_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test_envy_rc_fixture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

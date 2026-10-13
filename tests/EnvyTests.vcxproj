@@ -193,10 +193,13 @@
     <ClCompile Include="test_dc_hublist_sources_smoke.cpp" />
     <ClCompile Include="test_dc_user_file_browse_smoke.cpp" />
     <ClCompile Include="test_dc_nmdc_text_smoke.cpp" />
+    <ClCompile Include="test_dc_maxedout_queue_smoke.cpp" />
     <ClCompile Include="test_ed2k_lock_order_smoke.cpp" />
     <ClCompile Include="test_envy_thread_policy_smoke.cpp" />
     <ClCompile Include="test_remote_password_policy_smoke.cpp" />
     <ClCompile Include="test_remote_html_escape_smoke.cpp" />
+    <ClCompile Include="test_remote_access_smoke.cpp" />
+    <ClCompile Include="test_xml_peer_parse_smoke.cpp" />
     <ClCompile Include="test_firewall_wfas_policy_smoke.cpp" />
     <ClCompile Include="test_network_job_queue_smoke.cpp" />
     <ClCompile Include="test_chat_session_queue_smoke.cpp" />
@@ -218,6 +221,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />
+    <ClInclude Include="test_envy_rc_fixture.h" />
   </ItemGroup>
   <!-- HashLib dependency -->
   <ItemGroup>

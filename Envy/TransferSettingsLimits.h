@@ -155,16 +155,58 @@ inline bool TransferBandwidthSettingIsUnlimited(DWORD nBytesPerSecond)
 	return nBytesPerSecond == TransferBandwidthUnlimitedValue();
 }
 
+// Meter-only unlimited sentinel. Must never be emitted for a finite persisted
+// Bandwidth.* setting: DWORD can store 0xFFFFFFFF as an explicit cap.
+inline DWORD TransferBandwidthMeterUnlimitedValue()
+{
+	return 0xFFFFFFFFu;
+}
+
+// Largest finite bytes/s that may be stored or returned as a user/setting cap.
+inline DWORD TransferBandwidthMaxFiniteBytesPerSecond()
+{
+	return 0xFFFFFFFEu;
+}
+
 inline DWORD TransferBandwidthBytesToSetting(unsigned long long nBytes)
 {
-	if (nBytes == 0)
-		return TransferBandwidthUnlimitedValue();
-	if (nBytes > 0xFFFFFFFFull)
-		return 0xFFFFFFFFul;
+	if (nBytes > TransferBandwidthMaxFiniteBytesPerSecond())
+		return TransferBandwidthMaxFiniteBytesPerSecond();
 	return static_cast<DWORD>(nBytes);
 }
 
+// CTransfer::m_nBandwidth is the TCP meter limit (bytes/s). Registry unlimited (0)
+// must not reach the meter as zero or uploads stall in CalculateLimit.
+inline DWORD TransferBandwidthBytesToMeterLimit(DWORD nBytesPerSecond)
+{
+	if (TransferBandwidthSettingIsUnlimited(nBytesPerSecond))
+		return TransferBandwidthMeterUnlimitedValue();
+	// A persisted/saturated 0xFFFFFFFF is a finite DWORD max, not unlimited.
+	if (nBytesPerSecond == TransferBandwidthMeterUnlimitedValue())
+		return TransferBandwidthMaxFiniteBytesPerSecond();
+	return nBytesPerSecond;
+}
+
+inline bool TransferBandwidthMeterLimitIsUnlimited(DWORD nBytesPerSecond)
+{
+	return nBytesPerSecond == TransferBandwidthMeterUnlimitedValue();
+}
+
+// Split a queue budget across nCount transfers without turning the unlimited
+// meter sentinel into a finite per-transfer cap. Dividing that sentinel would
+// make LongTermAverage clampdown treat the share as limited.
+inline DWORD TransferBandwidthDivideShare(DWORD nTotalBytesPerSecond, DWORD nCount)
+{
+	if (nCount == 0)
+		return 0;
+	if (TransferBandwidthMeterLimitIsUnlimited(nTotalBytesPerSecond))
+		return TransferBandwidthMeterUnlimitedValue();
+	return nTotalBytesPerSecond / nCount;
+}
+
 // Connection.InSpeed / OutSpeed are stored in kilobits per second (Kb/s).
+// They describe declared link capacity for tuning/UI — not an implicit user
+// transfer cap when Bandwidth.* is unlimited (see #342).
 // Effective bytes/s = Kb/s * 1024 / 8 (multiply before divide; 64-bit intermediate).
 inline unsigned long long TransferConnectionKilobitsToBytesPerSecond(unsigned long long nKilobitsPerSecond)
 {
@@ -198,6 +240,46 @@ inline DWORD TransferBandwidthUploadLimitFromOutboundKilobits(DWORD nOutSpeedKil
 	const unsigned long long nLimited =
 	    TransferBandwidthApplyUsablePercent(nCapacity, nFreeBandwidthFactor);
 	return TransferBandwidthBytesToSetting(nLimited);
+}
+
+// User transfer cap in bytes/s for download/upload limiters. Unlimited -> no cap.
+inline DWORD TransferEffectiveDownloadLimitBytes(DWORD nUserDownloadsBytesPerSecond)
+{
+	return TransferBandwidthBytesToMeterLimit(nUserDownloadsBytesPerSecond);
+}
+
+// Reference bytes/s for queue sliders / ED2K point split when the user cap is unlimited.
+inline DWORD TransferBandwidthReferenceUploadBytes(DWORD nUserUploadsBytesPerSecond,
+                                                   DWORD nOutSpeedKilobitsPerSecond)
+{
+	if (!TransferBandwidthSettingIsUnlimited(nUserUploadsBytesPerSecond))
+		return nUserUploadsBytesPerSecond;
+	return TransferConnectionKilobitsToBytesPerSecondDword(nOutSpeedKilobitsPerSecond);
+}
+
+// Queue / ED2K point share: 64-bit product before DWORD saturation.
+inline DWORD TransferBandwidthShareBytes(DWORD nReferenceBytesPerSecond,
+                                         unsigned int nPoints,
+                                         unsigned int nTotalPoints)
+{
+	if (nTotalPoints < 1)
+		nTotalPoints = 1;
+	const unsigned long long nShare =
+	    static_cast<unsigned long long>(nReferenceBytesPerSecond) *
+	    static_cast<unsigned long long>(nPoints) /
+	    static_cast<unsigned long long>(nTotalPoints);
+	return TransferBandwidthBytesToSetting(nShare);
+}
+
+// Heuristic outbound KB/s for UI gates (enable networks, torrent caps). Not a wire limiter.
+inline DWORD TransferOutgoingBandwidthHeuristicKBps(DWORD nUserUploadsBytesPerSecond,
+                                                    DWORD nOutSpeedKilobitsPerSecond)
+{
+	static const DWORD nKiloByte = 1024u;
+	if (TransferBandwidthSettingIsUnlimited(nUserUploadsBytesPerSecond))
+		return nOutSpeedKilobitsPerSecond / 8u;
+	const DWORD nUserKB = nUserUploadsBytesPerSecond / nKiloByte;
+	return nUserKB;
 }
 
 inline DWORD TransferBandwidthApplyPercentToBytes(DWORD nBytesPerSecond, unsigned int nPercent)

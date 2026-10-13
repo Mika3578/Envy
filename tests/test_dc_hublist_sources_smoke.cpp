@@ -8,42 +8,13 @@
 //
 
 #include "test_framework.h"
+#include "test_envy_rc_fixture.h"
 #include "../Envy/DcHublistSources.h"
 
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include <vector>
-
-static bool ReadTextFile( const char* path, std::string& out )
-{
-	FILE* fp = nullptr;
-	if ( fopen_s( &fp, path, "rb" ) != 0 || ! fp )
-		return false;
-	if ( fseek( fp, 0, SEEK_END ) != 0 )
-	{
-		fclose( fp );
-		return false;
-	}
-	const long nSize = ftell( fp );
-	if ( nSize < 0 || nSize > 1024 * 1024 )
-	{
-		fclose( fp );
-		return false;
-	}
-	if ( fseek( fp, 0, SEEK_SET ) != 0 )
-	{
-		fclose( fp );
-		return false;
-	}
-	std::vector<char> buf( static_cast<size_t>( nSize ) + 1u, '\0' );
-	const size_t nRead = fread( buf.data(), 1, static_cast<size_t>( nSize ), fp );
-	fclose( fp );
-	if ( nRead != static_cast<size_t>( nSize ) )
-		return false;
-	out.assign( buf.data(), nRead );
-	return true;
-}
 
 static bool ReadDefaultServices( std::string& out )
 {
@@ -56,82 +27,10 @@ static bool ReadDefaultServices( std::string& out )
 	};
 	for ( const char* path : paths )
 	{
-		if ( ReadTextFile( path, out ) )
+		if ( TestReadTextFile( path, out ) )
 			return true;
 	}
 	std::fputs( "default_services_dc_hublists: Data/DefaultServices.dat not found from cwd\n", stderr );
-	return false;
-}
-
-static bool ReadEnvyRc( std::string& out )
-{
-	const char* paths[] = {
-		"Envy/Envy.rc",
-		"../Envy/Envy.rc",
-		"../../Envy/Envy.rc",
-		"../../../Envy/Envy.rc",
-		"../../../../Envy/Envy.rc"
-	};
-	for ( const char* path : paths )
-	{
-		if ( ReadTextFile( path, out ) )
-			return true;
-	}
-	std::fputs( "dc_dialog_title_is_not_server_met: Envy/Envy.rc not found from cwd\n", stderr );
-	return false;
-}
-
-static bool ExtractRcQuotedString( const std::string& text, const char* id, std::string& value )
-{
-	const std::string key = std::string( id );
-	size_t pos = 0;
-	while ( ( pos = text.find( key, pos ) ) != std::string::npos )
-	{
-		if ( pos > 0 )
-		{
-			const char prev = text[pos - 1];
-			if ( ( prev >= 'A' && prev <= 'Z' ) || ( prev >= 'a' && prev <= 'z' ) ||
-				 ( prev >= '0' && prev <= '9' ) || prev == '_' )
-			{
-				pos += key.size();
-				continue;
-			}
-		}
-		size_t i = pos + key.size();
-		while ( i < text.size() && ( text[i] == ' ' || text[i] == '\t' ) )
-			++i;
-		if ( i >= text.size() || text[i] != '"' )
-		{
-			pos += key.size();
-			continue;
-		}
-		++i;
-		std::string out;
-		while ( i < text.size() )
-		{
-			const char c = text[i++];
-			if ( c == '"' )
-			{
-				value.swap( out );
-				return true;
-			}
-			if ( c == '\\' && i < text.size() )
-			{
-				const char esc = text[i++];
-				if ( esc == 'n' )
-					out.push_back( '\n' );
-				else if ( esc == 't' )
-					out.push_back( '\t' );
-				else if ( esc == 'r' )
-					out.push_back( '\r' );
-				else
-					out.push_back( esc );
-				continue;
-			}
-			out.push_back( c );
-		}
-		return false;
-	}
 	return false;
 }
 
@@ -239,13 +138,13 @@ static bool test_update_servers_skin_names_by_mode()
 static bool test_dc_dialog_title_is_not_server_met()
 {
 	std::string rc;
-	if ( ! ReadEnvyRc( rc ) )
+	if ( ! TestReadEnvyRc( rc, "dc_dialog_title_is_not_server_met: Envy/Envy.rc not found from cwd\n" ) )
 		return false;
 
 	std::string titleUtf8;
 	std::string textUtf8;
-	if ( ! ExtractRcQuotedString( rc, "IDS_UPDATE_DC_HUBLIST_TITLE", titleUtf8 )
-		|| ! ExtractRcQuotedString( rc, "IDS_UPDATE_DC_HUBLIST_TEXT", textUtf8 ) )
+	if ( ! TestExtractRcQuotedString( rc, "IDS_UPDATE_DC_HUBLIST_TITLE", titleUtf8 )
+		|| ! TestExtractRcQuotedString( rc, "IDS_UPDATE_DC_HUBLIST_TEXT", textUtf8 ) )
 		return false;
 
 	std::wstring title;

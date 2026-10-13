@@ -1,7 +1,7 @@
 //
 // CtrlUploadTip.cpp
 //
-// This file is part of Envy (getenvy.com) © 2016-2018
+// This file is part of Envy (getenvy.com)  2016-2018
 // Portions copyright Shareaza 2002-2008 and PeerProject 2008-2015
 //
 // Envy is free software. You may redistribute and/or modify it
@@ -29,6 +29,7 @@
 #include "UploadQueue.h"
 #include "UploadQueues.h"
 #include "UploadTransfer.h"
+#include "TransferSettingsLimits.h"
 #include "GraphLine.h"
 #include "GraphItem.h"
 #include "FragmentedFile.h"
@@ -204,34 +205,41 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 	pt.x -= Flags.Width + 9;
 	pt.y += TIP_TEXTHEIGHT + 2;
 
-	DrawRule( pDC, &pt );
+	DrawRule(pDC, &pt);
 
 	CString strStatus, strSpeed, strTransfer, strText, strOf;
-	LoadString( strOf, IDS_GENERAL_OF );
+	CString strUnlimited;
+	LoadString(strUnlimited, IDS_SETTINGS_BANDWIDTH_UNLIMITED);
+	if (strUnlimited.IsEmpty())
+		strUnlimited = TransferBandwidthUnlimitedDisplayToken();
+	CString strLimit = TransferBandwidthMeterLimitIsUnlimited(pUpload->m_nBandwidth)
+	                       ? strUnlimited
+	                       : Settings.SmartSpeed(pUpload->m_nBandwidth);
+	LoadString(strOf, IDS_GENERAL_OF);
 
-	if ( pUpload->GetMaxSpeed() > 10 )
+	if (pUpload->GetMaxSpeed() > 10)
 	{
-		strSpeed.Format( L"%s %s %s  (%s)",
-			(LPCTSTR)Settings.SmartSpeed( pUpload->GetMeasuredSpeed() ),
-			(LPCTSTR)strOf,
-			(LPCTSTR)Settings.SmartSpeed( pUpload->m_nBandwidth ),
-			(LPCTSTR)Settings.SmartSpeed( pUpload->GetMaxSpeed() ) );
+		strSpeed.Format(L"%s %s %s  (%s)",
+		                (LPCTSTR)Settings.SmartSpeed(pUpload->GetMeasuredSpeed()),
+		                (LPCTSTR)strOf,
+		                (LPCTSTR)strLimit,
+		                (LPCTSTR)Settings.SmartSpeed(pUpload->GetMaxSpeed()));
 	}
 	else
 	{
-		strSpeed.Format( L"%s %s %s",
-			(LPCTSTR)Settings.SmartSpeed( pUpload->GetMeasuredSpeed() ),
-			(LPCTSTR)strOf,
-			(LPCTSTR)Settings.SmartSpeed( pUpload->m_nBandwidth ) );
+		strSpeed.Format(L"%s %s %s",
+		                (LPCTSTR)Settings.SmartSpeed(pUpload->GetMeasuredSpeed()),
+		                (LPCTSTR)strOf,
+		                (LPCTSTR)strLimit);
 	}
 
-	if ( pUpload->m_nSize > 1 )
+	if (pUpload->m_nSize > 1)
 	{
-		strTransfer.Format( L"%s %s %s  (%.2f%%)",
-			(LPCTSTR)Settings.SmartVolume( pUpload->m_nUploaded ),
-			(LPCTSTR)strOf,
-			(LPCTSTR)Settings.SmartVolume( pUpload->m_nSize ),
-			float( pUpload->m_nUploaded * 10240 / pUpload->m_nSize ) / 100.00f );
+		strTransfer.Format(L"%s %s %s  (%.2f%%)",
+		                   (LPCTSTR)Settings.SmartVolume(pUpload->m_nUploaded),
+		                   (LPCTSTR)strOf,
+		                   (LPCTSTR)Settings.SmartVolume(pUpload->m_nSize),
+		                   float(pUpload->m_nUploaded * 10240 / pUpload->m_nSize) / 100.00f);
 	}
 	else
 	{

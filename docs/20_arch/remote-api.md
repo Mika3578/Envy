@@ -56,8 +56,9 @@ Gaps / risks:
 
 - GET only; no `.torrent` POST.
 - Multiplexed on the P2P upload listener (`CUploads::OnAccept`).
-- `Settings.Remote.BindAddress` default `127.0.0.1` is **not bound** (dead setting).
-- IPv6 loopback not in the allowlist (`IN_ADDR` only).
+- `Settings.Remote.BindAddress` default `127.0.0.1` is **not socket-bound** (D-017). It is an access-policy gate: localhost-only values deny non-loopback clients unless `AllowExternal` is set.
+- IPv6 loopback (`::1` / `[::1]`) is recognized from the logged client address string when present; core accept still stores peers as IPv4 `SOCKADDR_IN`.
+- The login security model (login throttle, sessions, failed-login tracking) keys on `IN_ADDR`; when the peer address text is IPv6-shaped, login fails closed instead of deriving an identity from placeholder IPv4 bytes (IPv6-aware identities are deferred to D-017).
 - Download ids are pointers.
 
 Keep hardening that UI, but do not advertise it as the automation API.

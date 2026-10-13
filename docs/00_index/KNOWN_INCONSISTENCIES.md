@@ -16,8 +16,11 @@
   do not treat them as current. Repository Copilot UI toggles that still
   need manual verification are **Allow Copilot to approve pull requests**,
   **Allow Copilot approvals to count toward merge requirements**, review
-  effort **Balanced**, and the optional path allowlist (Stage-3 docs/i18n
-  globs in `docs/10_dev/devsecops-envy.md`; excludes review-governance).
+  effort **Balanced**, and a **non-blank** path allowlist that excludes
+  privileged governance paths (`AGENTS.md`, `.github/**` policy/workflow/
+  skill/ruleset/settings paths — see `docs/10_dev/devsecops-envy.md`).
+  Do not leave the allowlist blank: that would let Copilot count on
+  self-modifying governance PRs.
   Automatic Copilot review on each push is deliberately off in Protect
   develop (`copilot_code_review` enabled, `review_on_push: false`);
   it is not a remaining UI gap. An AI comment/assessment alone is not an
@@ -43,7 +46,7 @@
 - **HostCache DNS-only BT routers:** shipped `DefaultServers.dat` `B` rows are hostnames. `CHostCacheList::Add` keeps `m_pAddress = INADDR_ANY` until a later resolve. The map is a `std::multimap`, so multiple `0.0.0.0` keys coexist; DHT bootstrap walks `m_HostsTime`. Canonical note: `docs/30_protocols/bootstrap-sources.md`. Do not treat this as a reason to hard-code DHT DNS in C++ (D-012).
 - **Uploads `MaxPerHost` accept vs enforce counts:** `CUploads::AllowMoreTo` treats `nCount <= MaxPerHost` as OK (so `MaxPerHost+1` uploading+queued can be allowed). `CanUploadFileTo` uses `nCount < MaxPerHost`. `EnforcePerHostLimit` also counts `upsPreQueue`. Documented in `docs/50_user/transfer-settings.md`; engine not changed in the transfer-settings foundation PR.
 
-- **Remote `BindAddress` unused:** `Settings.Remote.BindAddress` defaults to `127.0.0.1` (`Settings.cpp`) but no listener binds it. HTML Remote is multiplexed on the P2P HTTP accept path (`CUploads::OnAccept` → `CRemote`). Access control is `CRemoteSecurity::IsRemoteAccessAllowed` (IPv4 only; `::1` is not loopback). Canonical: `docs/20_arch/AUDIT_REMOTE_API_2026-09.md`. Follow-up is a dedicated API port (D-017), not silently trusting this setting.
+- **Remote `BindAddress` not socket-bound:** `Settings.Remote.BindAddress` defaults to `127.0.0.1` (`Settings.cpp`) but no listener binds it. HTML Remote is multiplexed on the P2P HTTP accept path (`CUploads::OnAccept` → `CRemote`). When `BindAddress` names localhost only, `AllowLAN` / `AllowWAN` / CIDR rules do not admit non-loopback clients unless `AllowExternal` is set; IPv6 loopback (`::1`) is recognized via the logged client address. Canonical: `docs/20_arch/AUDIT_REMOTE_API_2026-09.md`. Follow-up is a dedicated API port (D-017).
 
 - **`Remote/api-specification.md` vs C++:** The JSON `/api/downloads` family is design-only. `CRemote::PageSwitch` serves `/remote/*` HTML. Do not treat the spec or `envy-modern.js` as a live contract.
 

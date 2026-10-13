@@ -192,6 +192,10 @@ Use the [bug report template](../../issues/new?template=bug_report.yml) and incl
 - Use appropriate terminology
 - Consider cultural context
 - Test for text length (UI may need adjustment)
+- New user-visible strings must first be added to the English catalog. Until a
+  qualified translator supplies and reviews a localized entry, the application
+  intentionally uses the English catalog as its fallback; do not add guessed
+  translations to another language catalog.
 
 ## 🤝 Community Guidelines
 

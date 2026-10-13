@@ -31,6 +31,8 @@
 #include "Statistics.h"
 #include "VendorCache.h"
 
+#include <ws2tcpip.h> // InetNtopW for AcceptFrom peer formatting
+
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
@@ -286,7 +288,28 @@ void CConnection::AcceptFrom(SOCKET hSocket, SOCKADDR_IN* pHost)
 	// Record the connection information here
 	m_hSocket		= hSocket;							// Keep the socket here
 	m_pHost			= *pHost;							// Copy the remote IP address into this object
-	m_sAddress		= inet_ntoa( m_pHost.sin_addr );	// Store it as a string also
+	// Prefer getpeername + InetNtop so m_sAddress can carry IPv6 text when the
+	// accepted socket is dual-stack (D-017). Listeners are still IPv4 today, so
+	// this usually formats the same IPv4 peer; keep inet_ntoa as the fallback.
+	m_sAddress = inet_ntoa(m_pHost.sin_addr);
+	{
+		SOCKADDR_STORAGE oPeer = {};
+		int nPeerLen = sizeof(oPeer);
+		if (getpeername(hSocket, reinterpret_cast<SOCKADDR*>(&oPeer), &nPeerLen) == 0)
+		{
+			wchar_t szPeer[INET6_ADDRSTRLEN] = {};
+			const void* pAddr = NULL;
+			if (oPeer.ss_family == AF_INET6)
+				pAddr = &reinterpret_cast<SOCKADDR_IN6*>(&oPeer)->sin6_addr;
+			else if (oPeer.ss_family == AF_INET)
+				pAddr = &reinterpret_cast<SOCKADDR_IN*>(&oPeer)->sin_addr;
+			if (pAddr != NULL &&
+			    InetNtopW(oPeer.ss_family, pAddr, szPeer, _countof(szPeer)) != NULL)
+			{
+				m_sAddress = szPeer;
+			}
+		}
+	}
 	UpdateCountry();
 
 	// Make new input and output buffer objects
@@ -506,6 +529,12 @@ BOOL CConnection::OnRun()
 // Read data waiting in the socket into the input buffer
 BOOL CConnection::OnRead()
 {
+	return OnReadBounded(~0ul);
+}
+
+// Read into the input buffer without growing it past nMaxLength.
+BOOL CConnection::OnReadBounded(DWORD nMaxLength)
+{
 	CQuickLock oInputLock( *m_pInputSection );
 
 	// Make sure the socket is valid
@@ -513,6 +542,9 @@ BOOL CConnection::OnRead()
 		return FALSE;
 
 	if ( m_nDelayCloseReason )
+		return TRUE;
+
+	if (m_pInput->m_nLength >= nMaxLength)
 		return TRUE;
 
 	const DWORD tNow = GetTickCount();	// The time right now
@@ -530,6 +562,8 @@ BOOL CConnection::OnRead()
 	if ( nLimit > (DWORD)INT_MAX )
 		nLimit = (DWORD)INT_MAX;
 
+	nLimit = min(nLimit, nMaxLength - m_pInput->m_nLength);
+
 	// Start the total at 0
 	DWORD nTotal = 0ul;
 
@@ -543,6 +577,10 @@ BOOL CConnection::OnRead()
 			nLength = min( nLimit, nLength );
 		else			// Limit nLength to the maximum receive size
 			nLength = min( nLimit, 16384ul );	// Receive up to 16KB blocks from the socket
+
+		nLength = min(nLength, nMaxLength - m_pInput->m_nLength);
+		if (nLength == 0)
+			break;
 
 		// Exit loop if the buffer isn't big enough to hold the data
 		if ( ! m_pInput->EnsureBuffer( nLength ) )
@@ -865,30 +903,37 @@ void CConnection::SendHTML(UINT nResourceID)
 // TCPBandwidthMeter Utility routines
 
 // Calculate the number of bytes available for use
-DWORD CConnection::TCPBandwidthMeter::CalculateLimit(DWORD tNow, DWORD nBandwidthScale, bool bMaxMode /*false*/ ) const
+DWORD CConnection::TCPBandwidthMeter::CalculateLimit(DWORD tNow, DWORD nBandwidthScale, bool bMaxMode /*false*/) const
 {
-	DWORD tCutoff = tNow - METER_SECOND;			// Time period for bytes
-	if ( bMaxMode )
-		tCutoff += METER_MINIMUM;					// Adjust time period for Maximum mode limit (Default is Average)
-	DWORD nData = CalculateUsage( tCutoff, true );	// #bytes in the time period
+	DWORD tCutoff = tNow - METER_SECOND; // Time period for bytes
+	if (bMaxMode)
+		tCutoff += METER_MINIMUM;                // Adjust time period for Maximum mode limit (Default is Average)
+	DWORD nData = CalculateUsage(tCutoff, true); // #bytes in the time period
 
 	// nLimit is the speed limit (bytes/second)
-	DWORD nLimit = *pLimit;							// Get the speed limit
+	DWORD nLimit = *pLimit; // Get the speed limit
 
-	if ( nBandwidthScale < 100 )					// The scale is turned down and we should use it
-		nLimit = nLimit * nBandwidthScale / 100;	// Adjust limit based on the scale percentage
-	else if ( nBandwidthScale > 100 )
-		nLimit = 0xFFFFFFFF;						// Remove limit based on MAX scale
+	if (nBandwidthScale < 100) // The scale is turned down and we should use it
+	{
+		const unsigned long long nScaled =
+		    static_cast<unsigned long long>(nLimit) * static_cast<unsigned long long>(nBandwidthScale) / 100ull;
+		nLimit = nScaled > 0xFFFFFFFFull ? 0xFFFFFFFFu : static_cast<DWORD>(nScaled);
+	}
+	else if (nBandwidthScale > 100)
+		nLimit = 0xFFFFFFFF; // Remove limit based on MAX scale
 
 	// nLimit - nData is the number of bytes still available for this time period
 	// Set nData to this, or 0 if we're over the limit
 	nData >= nLimit ? nData = 0 : nData = nLimit - nData;
 
 	// Is this running in Maximum mode (strict limit)
-	if ( bMaxMode )
+	if (bMaxMode)
 	{
-		// Adjust limit for the time elapsed since last time
-		nLimit = nLimit * ( tNow - tLastLimit ) / 1000;
+		// Adjust limit for the time elapsed since last time (64-bit: multigigabit * ms).
+		const unsigned long long nElapsedLimit =
+		    static_cast<unsigned long long>(nLimit) *
+		    static_cast<unsigned long long>(tNow - tLastLimit) / 1000ull;
+		nLimit = nElapsedLimit > 0xFFFFFFFFull ? 0xFFFFFFFFu : static_cast<DWORD>(nElapsedLimit);
 
 		// nData = speed limit in bytes per second - bytes we read in the last second
 		// nLimit = speed limit in bytes per second * elapsed time

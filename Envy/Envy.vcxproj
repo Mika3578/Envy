@@ -1344,7 +1344,10 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="DcBrowse.h" />
     <ClInclude Include="DcFileListValidate.h" />
     <ClInclude Include="DcAdcGetValidate.h" />
+    <ClInclude Include="DcMaxedOutValidate.h" />
     <ClInclude Include="NetworkJobValidate.h" />
+    <ClInclude Include="XmlParseValidate.h" />
+    <ClInclude Include="DownloadTransferHttpValidate.h" />
     <ClInclude Include="SecureIdentPolicy.h" />
     <ClInclude Include="RemoteBase64.h" />
     <ClInclude Include="SecureRandom.h" />
@@ -1364,6 +1367,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="Ed2kLowIdCallback.h" />
     <ClInclude Include="Ed2kKadSettingsPolicy.h" />
     <ClInclude Include="DcHublistSources.h" />
+    <ClInclude Include="TransferConnectionCapacity.h" />
     <ClInclude Include="TransferSettingsLimits.h" />
     <ClInclude Include="TransferState.h" />
     <ClInclude Include="SkinEngineP0.h" />
@@ -1450,6 +1454,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="RelatedSearch.h" />
     <ClInclude Include="Remote.h" />
     <ClInclude Include="RemoteSecurity.h" />
+    <ClInclude Include="RemoteAccessValidate.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ResultFilters.h" />
     <ClInclude Include="Revision.h" />

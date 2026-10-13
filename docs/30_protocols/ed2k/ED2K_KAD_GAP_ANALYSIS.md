@@ -1,6 +1,6 @@
 # ED2K/Kademlia gap analysis (historical)
 
-> **Historical (January 2026).** Mixed French/English snapshot. Opcode lists may be useful; conclusions are not live status. Canonical status: [`docs/10_dev/status.md`](../../10_dev/status.md). **SecureIdent RSA is not implemented** (#75); the SecureID section below describing an incomplete MD5/`rand()` path is obsolete (safe-disable, no advertisement). Prefer [eMule Community](https://github.com/irwir/eMule) and [aMule](https://github.com/amule-project/amule) over a pinned “eMule 0.60+” string. See [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md).
+> **Historical (January 2026).** Mixed French/English snapshot. Opcode lists may be useful; conclusions are not live status. Canonical status: [`docs/10_dev/status.md`](../../10_dev/status.md). **SecureIdent RSA is not implemented** (#75); the SecureID section below describing an incomplete MD5/`rand()` path is obsolete (safe-disable, no advertisement). Prefer [eMule Community](https://github.com/irwir/eMule) and [aMule](https://github.com/amule-org/amule) over a pinned “eMule 0.60+” string. See [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md).
 
 **Date:** 16 January 2026 (banner 2026-09-11)
 **Version:** 1.0

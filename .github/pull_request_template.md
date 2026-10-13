@@ -9,37 +9,41 @@
 - [ ] Security
 - [ ] Dependencies
 
+## Risk (classifier: low / normal / high)
+- Wire-format impact: none / see validation
+- Breaking changes:
+- Security impact:
+
 ## Validation
 List exact commands/checks run and outcomes.
 
-### Maintainer runtime checkpoint
-<!-- Keep Draft until the maintainer applies stage:live-test, obtains artifacts,
-     tests the application, and manually clicks Ready for review. CI is not a
-     runtime attestation. New commits require reassessment of this evidence. -->
-- Tested HEAD / base / built commit (maintainer only):
-- Artifact/run and runtime result (maintainer only):
-- [ ] Maintainer performed the live test before marking Ready
+### Runtime / interoperability (when needed)
+Use `stage:live-test` only when manual Envy runtime, installer, UI, or interop
+validation is required. Docs-only, workflow-only, test-only, and safe mechanical
+PRs do not need a live ENVY run.
 
-## Risk Assessment
-- Breaking changes:
-- Security impact:
-- Performance impact:
-- Rollback plan:
+- Tested HEAD / artifact (if applicable):
+- [ ] Manual runtime validation performed (only when this PR needs it)
+
+## Merge notes
+- [ ] Required deterministic CI green for applicable paths
+- [ ] Review threads resolved
+- [ ] Governance/ruleset PRs: maintainer will apply ruleset patch after merge (no auto-merge on this PR)
 
 ## Squash Commit Summary
-<!-- Curated text for GitHub's squash "Extended description" at merge time.
-     Describe the final merged change only—not review/CI/process history. -->
+Paste this into the GitHub squash **Extended description** at merge
+(`AGENTS.md` rule 16). Keep it short; do not copy the full PR body.
 
-Issue reference:
-`Fixes #...` / `Closes #...` / `Related to #...` / `None`
+Issue reference: `Fixes #...` / `Closes #...` / `Related to #...` / `None`
 
-Final technical summary:
-- ...
-- ...
+- Root problem:
+- Resulting behavior:
+- Compatibility / security / reliability (if any):
+- Regression coverage (if any):
 
 ## Checklist
 - [ ] Changes are scoped and reviewable
-- [ ] No AI-tool attribution, assistant `Co-authored-by`, or personal emails in contributor text (`AGENTS.md` rule 16)
+- [ ] No AI-tool attribution or personal emails in contributor text (`AGENTS.md`)
 - [ ] Tests added/updated where practical
-- [ ] Documentation updated
-- [ ] Changelog updated
+- [ ] Documentation updated when behavior or policy changed
+- [ ] Changelog updated for user-visible changes

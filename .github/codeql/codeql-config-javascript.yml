@@ -1,0 +1,24 @@
+name: "CodeQL Config for Envy (JavaScript)"
+
+# Restore the previous shared-config JavaScript scope (first-party Envy,
+# Services, and Plugins trees — Plugins/WebHook/3000.html carries first-party
+# script the whole-tree JS analysis previously covered) and keep Remote/,
+# which sits outside the C++ path allowlist in codeql-config.yml. This
+# config stays language-specific.
+paths:
+  - Envy
+  - Services
+  - Plugins
+  - Remote
+
+paths-ignore:
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/node_modules/**"
+
+disable-default-queries: false
+
+# security-and-quality is a strict superset of security-extended, so the
+# JavaScript job keeps at least the coverage of the previous shared config.
+queries:
+  - uses: security-and-quality

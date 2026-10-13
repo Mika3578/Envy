@@ -14,7 +14,7 @@
     <EnvyCrashLibDir Condition="'$(Configuration)'=='Debug'">$(EnvyBugSplatLibMtDebug)</EnvyCrashLibDir>
     <EnvyCrashLibDir Condition="'$(Configuration)'!='Debug'">$(EnvyBugSplatLibMtRelease)</EnvyCrashLibDir>
     <EnvyCrashLinkLibs>BugSplat.lib;wer.lib</EnvyCrashLinkLibs>
-    <EnvyCrashPostBuildCmd>call "$(ProjectDir)CopyBugSplatRuntime.cmd" $(Configuration) $(Platform)</EnvyCrashPostBuildCmd>
+    <EnvyCrashPostBuildCmd>set "VCToolsInstallDir=$(VCToolsInstallDir)" &amp;&amp; call "$(ProjectDir)CopyBugSplatRuntime.cmd" $(Configuration) $(Platform) "$(VCToolsInstallDir)"</EnvyCrashPostBuildCmd>
     <EnvyCrashVcpkgIncludeCrashpad>false</EnvyCrashVcpkgIncludeCrashpad>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='Win32'">
@@ -29,6 +29,10 @@
     <ClCompile>
       <PreprocessorDefinitions Condition="'$(EnvyBugSplatDatabase)'!=''">ENVY_BUGSPLAT_DATABASE=L&quot;$(EnvyBugSplatDatabase)&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <Link>
+      <!-- Vendor BugSplat static libs embed TeamCity PDB paths; SDK slice ships without those PDBs (LNK4099). -->
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
   </ItemDefinitionGroup>
   <Target Name="ValidateEnvyBugSplatSdk" BeforeTargets="ClCompile" Condition="'$(Platform)'=='x64'">
     <Error Condition="!Exists('$(EnvyBugSplatRoot)\inc\BugSplat.h')" Text="Missing BugSplat SDK headers at $(EnvyBugSplatRoot)\inc. Run scripts\import-bugsplat-sdk.ps1 from the official native SDK (see ThirdParty\BugSplat\README.md)." />

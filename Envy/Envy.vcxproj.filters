@@ -2009,7 +2009,16 @@
     <ClInclude Include="DcAdcGetValidate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DcMaxedOutValidate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="NetworkJobValidate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XmlParseValidate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DownloadTransferHttpValidate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Ed2kHelloCapabilities.h">
@@ -2031,6 +2040,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="KadNodesDat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TransferConnectionCapacity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TransferSettingsLimits.h">
@@ -2136,6 +2148,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Remote.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RemoteAccessValidate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Resource.h">

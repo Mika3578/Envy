@@ -1,11 +1,11 @@
 # Kad2 eMule/aMule Compatibility Report
 
-> **Opcode/format match only (January 2026).** This is not live DHT interoperability. Canonical status: [`docs/10_dev/status.md`](../../10_dev/status.md) (`partial / unverified`). Ember/eSE overlays are **not** Kad2. Preferred live references: [eMule Community](https://github.com/irwir/eMule), [aMule](https://github.com/amule-project/amule) — see [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md).
+> **Opcode/format match only (January 2026).** This is not live DHT interoperability. Canonical status: [`docs/10_dev/status.md`](../../10_dev/status.md) (`partial / unverified`). Ember/eSE overlays are **not** Kad2. Preferred live references: [eMule Community](https://github.com/irwir/eMule), [aMule](https://github.com/amule-org/amule) — see [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md). Historical paths below may still say `Examples/eMule` / `Examples/aMule`; prefer `Examples/References/emule-community/` and `Examples/References/amule/` for new checkouts.
 
 **Date:** 2026-09-19 (routing-table maintenance slice; original opcode survey January 16, 2026; banner 2026-09-11)
 **Reference Implementations:**
 - eMule (Examples/eMule/srchybrid; prefer https://github.com/irwir/eMule)
-- aMule (Examples/aMule; prefer https://github.com/amule-project/amule)
+- aMule (Examples/aMule; prefer https://github.com/amule-org/amule; `amule-project/amule` is legacy)
 - Shareaza (Examples/shareaza) - No Kad2 implementation found
 - MLDonkey (Examples/mldonkey) - No Kad2 implementation found
 

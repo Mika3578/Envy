@@ -53,22 +53,23 @@ CSettings Settings;
 CSettings::CSettings()
 {
 	// Reset 'live' values.
-	Live.FirstRun					= false;
-	Live.AutoClose					= false;
-	Live.AdultWarning				= false;
-	Live.MaliciousWarning			= false;
-	Live.DiskSpaceStop				= false;
-	Live.DiskSpaceWarning			= false;
-	Live.DiskWriteWarning			= false;
-	Live.UploadLimitWarning			= false;
-	Live.QueueLimitWarning			= false;
-	Live.DonkeyServerWarning		= false;
-	Live.DefaultED2KServersLoaded	= false;
-	Live.DefaultDCServersLoaded		= false;
-	Live.LoadWindowState			= false;
-	Live.BandwidthScaleIn			= 101;
-	Live.BandwidthScaleOut			= 101;
-	Live.LastDuplicateHash			= L"";
+	Live.FirstRun = false;
+	Live.WizardUploadLimitSeeded = false;
+	Live.AutoClose = false;
+	Live.AdultWarning = false;
+	Live.MaliciousWarning = false;
+	Live.DiskSpaceStop = false;
+	Live.DiskSpaceWarning = false;
+	Live.DiskWriteWarning = false;
+	Live.UploadLimitWarning = false;
+	Live.QueueLimitWarning = false;
+	Live.DonkeyServerWarning = false;
+	Live.DefaultED2KServersLoaded = false;
+	Live.DefaultDCServersLoaded = false;
+	Live.LoadWindowState = false;
+	Live.BandwidthScaleIn = 101;
+	Live.BandwidthScaleOut = 101;
+	Live.LastDuplicateHash = L"";
 }
 
 CSettings::~CSettings()
@@ -1414,11 +1415,9 @@ QWORD CSettings::ParseVolume(const CString& strVolume, int nReturnUnits) const
 // CSettings::CheckBandwidth
 
 DWORD CSettings::GetOutgoingBandwidth() const
-{	// This returns the available (Affected by limit) outgoing bandwidth in KB/s
-	if ( Settings.Bandwidth.Uploads == 0 )
-		return ( Settings.Connection.OutSpeed / 8 );
-
-	return ( min( ( Settings.Connection.OutSpeed / 8 ), ( Settings.Bandwidth.Uploads / KiloByte ) ) );
+{ // Heuristic outbound KB/s for UI gates — not the socket transfer cap.
+	return TransferOutgoingBandwidthHeuristicKBps(Settings.Bandwidth.Uploads,
+	                                              Settings.Connection.OutSpeed);
 }
 
 bool CSettings::GetValue(LPCTSTR pszPath, VARIANT* value)

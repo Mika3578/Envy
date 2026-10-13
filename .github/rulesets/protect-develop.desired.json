@@ -1,0 +1,82 @@
+{
+  "name": "Protect develop",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/heads/develop"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    { "type": "required_linear_history" },
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews_on_push": true,
+        "required_reviewers": [],
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": true,
+        "require_extra_approval_for_unattributed_changes": false,
+        "allowed_merge_methods": ["squash"]
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": true,
+        "required_status_checks": [
+          { "context": "Build x64 Release", "integration_id": 15368 },
+          { "context": "Build Win32 Release", "integration_id": 15368 },
+          { "context": "Lint build files", "integration_id": 15368 },
+          { "context": "Vcpkg manifest sanity", "integration_id": 15368 },
+          { "context": "Format Check", "integration_id": 15368 },
+          { "context": "secret-scan", "integration_id": 15368 },
+          { "context": "Analyze (c-cpp)", "integration_id": 15368 },
+          { "context": "SonarCloud Code Analysis", "integration_id": 12526 }
+        ]
+      }
+    },
+    {
+      "type": "code_scanning",
+      "parameters": {
+        "code_scanning_tools": [
+          {
+            "tool": "CodeQL",
+            "security_alerts_threshold": "medium_or_higher",
+            "alerts_threshold": "errors_and_warnings"
+          },
+          {
+            "tool": "Gitleaks",
+            "security_alerts_threshold": "medium_or_higher",
+            "alerts_threshold": "errors_and_warnings"
+          }
+        ]
+      }
+    },
+    { "type": "code_quality", "parameters": { "severity": "all" } },
+    {
+      "type": "copilot_code_review",
+      "parameters": {
+        "review_on_push": false,
+        "review_draft_pull_requests": false
+      }
+    }
+  ],
+  "bypass_actors": [],
+  "_envy_notes": {
+    "ruleset_id": 16457466,
+    "sonarcloud": "Keep SonarCloud Code Analysis in required_status_checks until a separately reviewed governance PR retires it. Live ruleset already requires it (integration_id 12526).",
+    "code_quality_rule": "Keep the active GitHub Code Quality severity=all gate. This PR does not retire or weaken it.",
+    "repository_settings": {
+      "allow_auto_merge": false,
+      "squash_merge_commit_title": "PR_TITLE",
+      "squash_merge_commit_message": "BLANK"
+    }
+  }
+}

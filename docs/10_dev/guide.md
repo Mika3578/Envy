@@ -107,8 +107,11 @@ sleep/poll loops.
 The target merge policy is at least one GitHub `APPROVED` review. In this
 solo-maintainer repository, GitHub Copilot Code Review may satisfy the review
 gate only when repository settings explicitly allow its approvals to count and
-GitHub records an actual `APPROVED` review. All required checks and review
-threads must still be satisfied.
+GitHub records an actual `APPROVED` review (not a Comment review or approval
+assessment alone). Request Copilot when the PR is mergeable; see
+`docs/10_dev/devsecops-envy.md` § manual setup item 3 for toggles, request, and
+verification commands. All required checks and review threads must still be
+satisfied.
 
 ## Build
 
@@ -116,9 +119,10 @@ Authoritative full-app Release x64 example:
 
 ```cmd
 msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
-  /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 ^
-  /p:VcpkgEnableManifest=true /p:VcpkgTriplet=x64-windows-static
+  /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0
 ```
+
+Do **not** pass `/p:VcpkgEnableManifest` or `/p:VcpkgTriplet` for **x64** builds (see [build.md](build.md) and [development-environment.md](development-environment.md)).
 
 CI also verifies Win32 where required. See [build.md](build.md) for bootstrap,
 runner, and troubleshooting details.
