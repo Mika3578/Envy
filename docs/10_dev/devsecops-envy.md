@@ -38,7 +38,7 @@ secret scanning.
 
 Target required status checks: Build x64 Release, Build Win32 Release,
 Lint build files, Vcpkg manifest sanity, Format Check, secret-scan,
-Analyze (c-cpp), and SonarCloud Code Analysis. Documentation Check and the
+Analyze (c-cpp), Dependency review, and SonarCloud Code Analysis. Documentation Check and the
 duplicate gitleaks status remain visible as advisory checks; Protect develop
 does not require them as status contexts.
 
@@ -78,22 +78,12 @@ GitHub review rules are the merge authority.
 
 | Tool | Owns | Notes |
 | --- | --- | --- |
-| Dependabot | `vcpkg` baseline only | `.github/dependabot.yml` |
-| Renovate | GitHub Actions only | Root `renovate.json` (`enabledManagers: ["github-actions"]`), group non-major, pin digests, Dependency Dashboard; majors need dashboard approval; no blind automerge |
+| Dependabot | vcpkg, `Remote/tests` npm, GitHub Actions | `.github/dependabot.yml`; grouped non-major updates; no blind automerge |
+| Renovate | — (retired) | Removed; do not reintroduce alongside Dependabot for the same ecosystems |
 
-`Mika3578/Envy` is a **fork** of `GetEnvy/Envy`. Mend Renovate Community Cloud
-skips forks by default when the GitHub App is installed on **All repositories**.
-Official docs require a root file named exactly `renovate.json` (not
-`renovate.json5` / `.github/renovate.json`) with `"forkProcessing": "enabled"`
-for that pre-check — Renovate only probes the default onboarding filename via
-the GitHub API before cloning. Prefer installing the app on **Selected
-repositories** including this repo (that path enables fork processing without
-relying on the pre-check alone). If the app is on **All repositories**, also
-confirm the repo is not stuck in Mend **Silent** mode (`dryRun=lookup`) via the
-[Mend Developer Portal](https://developer.mend.io/) job logs.
-
-Do not re-enable `github-actions` under Dependabot (duplicate PRs).
-Do not add `regex` to `enabledManagers` unless a real `customManagers` regex entry exists.
+Do not reintroduce Renovate or another bot for an ecosystem already listed in
+`.github/dependabot.yml` unless a dedicated PR documents the missing feature and
+exact non-overlap boundary.
 
 ## AI review
 
@@ -118,7 +108,7 @@ Do not add `regex` to `enabledManagers` unless a real `customManagers` regex ent
 - OSS pattern: PR readiness checklist before any sponsored review (CI green,
   mergeable, test plan) — e.g. community `copilot-instructions.md` checklists.
 
-High-risk paths (extra bar before auto-merge): G1/G2, ED2K/Kad, BitTorrent, NMDC/ADC,
+High-risk paths (extra bar before merge): G1/G2, ED2K/Kad, BitTorrent, NMDC/ADC,
 Network/NAT, packet parsing, crypto, threading/locking, serialization, Remote.
 Require a regression/protocol test, explicit “no wire-format change”, or reference
 comparison notes.
@@ -128,15 +118,7 @@ comparison notes.
 1. **CodeRabbit GitHub App** — If reviews do not appear on ready (non-draft) PRs, open
    GitHub → Settings → Applications → Installed GitHub Apps → **CodeRabbit** → Configure → **Mika3578/Envy**.
    Config: `.coderabbit.yaml` (`drafts: false`, advisory only). Repos with fewer than 10 stars may require a manual `@coderabbitai review` / checkbox trigger.
-2. **Renovate GitHub App** — Verify installation mode:
-   GitHub → Settings → Applications → Installed GitHub Apps → **Renovate** → Configure.
-   Expected: **Selected repositories** with `Mika3578/Envy` checked (best practice for a
-   fork). If the app is on **All repositories**, root `renovate.json` must keep
-   `"forkProcessing": "enabled"` and Silent mode must be disabled for this repo in the
-   Mend portal. Success signal: Renovate check suites leave `queued`, a **Dependency
-   Dashboard** issue appears, and (for non-major / approved majors) `renovate/*` branches
-   or PRs. Config file: root `renovate.json` only — do not reintroduce `renovate.json5`.
-3. **GitHub Copilot Code Review (safe AI approval)** — Repository
+2. **GitHub Copilot Code Review (safe AI approval)** — Repository
    Settings → Copilot → Code review (UI-only; not in the ruleset API):
    - Review effort: **Balanced**
    - **Allow Copilot to approve pull requests:** ON
@@ -212,7 +194,10 @@ comparison notes.
 5. **Protect develop (live, re-verified 2026-09-20)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing
    docs):
-   - Required approvals: **1** (live)
+   - Required approvals: **0** live (verified 2026-10-07); repository policy
+     still requires **1** independent approval, with human approval for
+     privileged governance paths. This mismatch needs maintainer review;
+     no ruleset is changed by this PR.
    - Dismiss stale pull request approvals when new commits are pushed: **on**
    - Require approval of the most recent reviewable push: **off**
    - Require conversation resolution before merging: **on**
@@ -228,7 +213,7 @@ comparison notes.
    - Restrict code coverage: **off for now** — do not enable until PR coverage
      data is uploaded reliably and a baseline has been measured
    - Copilot ruleset: review new pushes **off**; review drafts **off**
-6. Labels: keep `renovate`, `vcpkg`, `major`, `dependencies`, `ci`.
+6. Labels: keep `vcpkg`, `npm`, `github-actions`, `major`, `dependencies`, `ci`.
 
 ## Agent PR back-pressure
 
@@ -238,8 +223,8 @@ Prefer finishing or merging existing PRs first. Opening a sixth (or more)
 needs a concrete documented reason in the PR body (blocking reliability or
 security fix, required CI hotfix, or a dependency that cannot wait). Overflow
 is not a loophole for unbounded parallel work, and “small/quick/tooling” is
-not by itself a reason. Dependabot/Renovate PRs are outside the agent target
-but should stay grouped.
+not by itself a reason. Dependabot PRs are outside the agent target but should
+stay grouped.
 
 ## Related
 

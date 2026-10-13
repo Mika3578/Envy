@@ -7,7 +7,7 @@ introduction of a complete GitHub Actions CI/CD pipeline, and the
 automation of dependency updates.
 
 > **Audit date** : 2026-05-15
-> **Target branch** : `claude/code-audit-modernization-nJcTT`
+> **Target branch** : `develop`
 
 For the day-by-day execution log, see `.local/DEV_TRACKER.md` (gitignored). Strategic plan: [`docs/DEVELOPMENT_PLAN.md`](./docs/DEVELOPMENT_PLAN.md). Protocol status: [`docs/10_dev/status.md`](./docs/10_dev/status.md). External P2P references: [`docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`](./docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md).
 For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
@@ -59,7 +59,7 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 | Architectures | x64 (primary), Win32 (legacy Stage A), **ARM64 (planned / unsupported)** |
 | Mitigations | `/GS`, `/guard:cf`, `/sdl`, Spectre runtime libs |
 | Deps management | **vcpkg manifest** (`vcpkg.json`) |
-| Auto-update | **Dependabot** (vcpkg + GitHub Actions) |
+| Auto-update | **Dependabot** (vcpkg, `Remote/tests` npm, GitHub Actions) |
 | CI | GitHub Actions on `windows-2025` runners |
 | Code analysis | CodeQL (cpp), MSVC `/analyze`, clang-tidy (advisory) |
 
@@ -72,8 +72,8 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 - [x] Full codebase audit
 - [x] Architectural decisions (drop XP, vcpkg manifest)
 - [x] `.gitignore`, `.editorconfig`, `.clang-format`, `.clang-format-ignore`
-- [x] `vcpkg.json` + `vcpkg-configuration.json` seeded
-- [x] `.github/dependabot.yml` (vcpkg + actions, weekly)
+- [x] `vcpkg.json` seeded as the single vcpkg baseline source
+- [x] `.github/dependabot.yml` (vcpkg + npm `/Remote/tests` + github-actions, weekly)
 - [x] `.github/CODEOWNERS`, `SECURITY.md`, PR template, 3 issue templates
 - [x] Workflows: `build.yml`, `codeql.yml`, `dependency-review.yml`,
       `clang-tidy.yml`, `format-check.yml`, `release.yml`, `stale.yml`,
@@ -155,16 +155,17 @@ For AI assistant rules and conventions, see [`AGENTS.md`](./AGENTS.md).
 | `.github/workflows/labeler.yml` | PR | Auto-label by paths (build, ci, core, plugins, ...) |
 | `.github/workflows/copilot-setup-steps.yml` | manual | Pre-warm Copilot environment |
 
-Removed in governance PR #395: `dependabot-auto-merge.yml` (Dependabot merges stay manual).
-
 ### Bots and automation
 
-- **Dependabot**:
-  - vcpkg, weekly (Monday 07:00 Europe/Paris), single "vcpkg-baseline"
-    group that advances the `builtin-baseline` commit hash.
-  - GitHub Actions, weekly, `actions-minor-patch` group.
-- **Dependabot merges:** manual review (no auto-merge bot); human review
-  required for vcpkg baseline bumps (can change native lib ABI).
+- **Dependabot**: vcpkg, `Remote/tests` npm, and GitHub Actions, weekly
+  (Monday Europe/Paris), with grouped non-major updates. Full commit SHA pins
+  for Actions are preserved.
+- **Renovate**: retired; do not reintroduce alongside Dependabot for the same
+  ecosystems.
+- **Dependency auto-merge**: intentionally inactive. Dependency PRs are
+  created automatically, but merge still requires the live `develop` ruleset,
+  required checks, resolved threads, and a GitHub approval.
+- **vcpkg baseline bumps:** human review remains required because native library ABI can change.
 - **Stale bot**: auto-close after inactivity (issues 90+14d, PRs 45+21d).
 - **Labeler**: auto-tag PRs based on touched paths.
 - **CodeQL**: weekly analysis + per-PR.
@@ -193,14 +194,14 @@ Removed in governance PR #395: `dependabot-auto-merge.yml` (Dependabot merges st
 ::   - C++ CMake tools for Windows
 ::   - vcpkg (bundled with VS 2026)
 
-:: 1. Clone and switch to the branch
+:: 1. Clone and switch to the integration branch
 git clone https://github.com/mika3578/envy.git
 cd envy
-git checkout claude/code-audit-modernization-nJcTT
+git checkout develop
 
-:: 2. Bootstrap vcpkg (manifest mode auto-enabled by VS 2026)
-git clone https://github.com/microsoft/vcpkg.git
-.\vcpkg\bootstrap-vcpkg.bat
+:: 2. Bootstrap vcpkg (clones if needed and detaches to vcpkg.json
+::    builtin-baseline; same pin as CI/release)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-vcpkg.ps1 -CloneVcpkg
 
 :: 3. (Optional) Force re-target of every vcxproj
 cd "Visual Studio"
@@ -225,26 +226,27 @@ msbuild "Visual Studio\Envy.sln" /m /p:Configuration=Release /p:Platform=x64 ^
 
 ## 6. How to enable Dependabot and the workflows
 
-1. **Push the branch** to GitHub:
-   ```
-   git push -u origin claude/code-audit-modernization-nJcTT
-   ```
-2. **Create the draft PR** against `main`.
-3. In the repo **Settings -> Security and analysis**:
+1. **Create a functional work branch** from `develop`, then open a PR back to
+   `develop`.
+2. In the repo **Settings -> Security and analysis**:
    - Enable "Dependency graph"
    - Enable "Dependabot alerts"
    - Enable "Dependabot security updates"
    - Enable "Dependabot version updates" (uses `.github/dependabot.yml`)
    - Enable "Code scanning" (CodeQL through the workflow)
    - Enable "Secret scanning" and "Push protection"
-4. **Branch protection** on `main`:
+3. **Branch protection** on `develop` (live **Protect develop** ruleset):
    - Require pull request reviews (1+)
-   - Require status checks: `Build x64 Release`, `Analyze C/C++`,
-     `Dependency review`
+   - Require status checks: `Build x64 Release`, `Build Win32 Release`,
+     `Lint build files`, `Vcpkg manifest sanity`, `Dependency review` (verify live after merge),
+     `Format Check`, `secret-scan`, `Analyze (c-cpp)`, and `SonarCloud Code Analysis`
+   - `Dependency review` runs as its own workflow on PRs targeting `main`,
+     `master`, or `develop` (not via a separate `PR Gate` poller — removed
+     in #381)
    - Require CODEOWNERS review for `.github/` and `Visual Studio/`
-5. First Dependabot run: the placeholder `0000...` `builtin-baseline`
-   value in `vcpkg.json` will be replaced with a recent commit from the
-   vcpkg registry automatically.
+4. Dependabot updates the existing `builtin-baseline` in `vcpkg.json` and the
+   relevant npm / GitHub Actions manifests. Do not add a second bot for an
+   ecosystem already owned by Dependabot.
 
 ---
 
@@ -282,6 +284,6 @@ The `legacy` branch keeps the pre-modernization snapshot.
 
 - [ ] Green CI on `windows-2025` for `Release|x64` and `Release|Win32`
 - [ ] First CodeQL scan completes with no CRITICAL findings
-- [ ] Dependabot opens its first vcpkg PR within 7 days
+- [ ] Dependabot opens dependency PRs for vcpkg, `Remote/tests` npm, and GitHub Actions when updates are available
 - [ ] No `_ATL_XP_TARGETING` or `v141_xp` remains in `git grep`
 - [ ] Local VS 2026 build green with no manual intervention

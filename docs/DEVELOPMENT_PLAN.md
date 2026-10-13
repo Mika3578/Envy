@@ -1,16 +1,42 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-07
+- **Last Updated:** 2026-10-11
+
+- **Changelog Entry:** 2026-10-11 - #393: maintainer reports successful validation of ac29717 (EnvyTests 735/735, PeerXmlTests 18/18 and fixture HTTP 21/21); Release x64/Win32 CI builds passed. Correct the validation guide: loopback sources are rejected by the application's reserved-address policy, so fixture self-tests are not application integration evidence. Separate native parser coverage from admitted-peer application tests and document THEX/Tiger/legacy MD4 DIME type identifiers without changing protocol bytes or network protections. Historical Gnutella issues #453/#319 remain outside this PR.
+
+- **Changelog Entry:** 2026-10-11 - #393/#391: distinguish valid THEX descriptor state from an empty identity; retain empty DIME ID compatibility and guard missing/empty URI fallback by an existing TTH. Validate complete binary rows and both historic depth conventions, strict numeric metadata/Content-Length and DIME message framing. Native tests now execute production SetTigerTree with HashLib. Reference source comparisons, client-specific G1/G2 steps, synthetic fixtures and manual Visual Studio instructions are in `docs/10_dev/peer-xml-validation.md`. Full application builds/live interoperability remain maintainer work; local corrections must not be pushed before those results.
+
+- **Changelog Entry:** 2026-10-11 - #393: add isolated native tests compiling the unchanged production THEX/DIME methods; cover every two-read boundary, descriptor identity/reset, truncation, malformed framing, early size rejection and invalid-descriptor draining. Full transfer/profile/live interoperability remains pending.
+
+- **Changelog Entry:** 2026-10-11 — #393/#391: synchronize with current develop, drain HTTP socket data across capped header/body phases before close handling, reject zero-length file responses before mutating download size, and add native MFC XML plus loopback receive regressions. Preserve THEX type identifiers; document the Sonar HTTP warning as a protocol-identifier false positive. Explicit native-suite commands and controlled HTTP/THEX/manual peer checks are in `docs/10_dev/peer-xml-validation.md`; live interoperability remains pending.
+
+- **Changelog Entry:** 2026-10-10 — #422/#419: independently recheck every shipped bootstrap endpoint and ED2K/Kad/DC/DHT alternatives; add the AirDC++-documented Team Elite HTTPS hublist after bounded BZip2/XML and NMDC compatibility validation. Preserve three DHT routers within the existing DNS budget, reject stale/unverified Kad alternatives, and enforce blocked identities and truncated-row rejection offline. Persisted-service migration (#419), private-torrent isolation (#317), defaults (#418), Kad runtime/retry (#86/#430), UDP obfuscation (#431) and live interoperability (#160) remain separate open work.
+
+- **Validation blocker:** 2026-10-10 — #422: Release x64 solution build succeeds; the Release Win32 solution build stops in `Envy/PreBuild.cmd` because the required vcpkg `crashpad_handler.exe` is missing. The independently generated EnvyTests executables pass 708/708 on both platforms; this does not establish a successful Win32 application build. Resolve the existing Crashpad environment/dependency prerequisite separately (#83/#353/#355); no dependency or gate changes are included here.
+
+- **Changelog Entry:** 2026-10-06 — #372: align Kad2 SEARCH_SOURCE_REQ with maintained aMule framing (<FileHash 16><StartPosition uint16 LE><FileSize uint64 LE>), keep bounded legacy hash-only/size-only input compatibility, and use one tested encoder for the production send path so CPacket big-endian state cannot corrupt FileSize.
+- **Changelog Entry:** 2026-10-07 — #327: cover the Windows MSBuild composite action in Dependabot; make `-CloneVcpkg` select the pinned local checkout even when absent; four offline selection cases pass. Reconcile with current `develop` without restoring retired classification outputs or changing live protections.
 
 - **Changelog Entry:** 2026-10-07 - P2P reference registry refresh (#387 resumed): `REFERENCE_IMPLEMENTATIONS.md` expanded (amule-org, eMuleBB/padMule/MorphXT/heritage/BT/DC); October ecosystem audit; optional ignored clones via `tools/references/` -> `Examples/References/` (D-023). No AGENTS/governance change; no protocol code.
 - **Changelog Entry:** 2026-10-01 — Finalization of #395 preserves one non-author approval, all eight live required contexts, CodeQL/Gitleaks and GitHub Code Quality (severity All). Retain the staged Draft/live-test/Ready workflow and manual maintainer transitions; squash summaries remain curated. #397 owns review outcome tracking, not merge authority.
+
+- **Changelog Entry:** 2026-10-06 — #393: ChatSession profile ownership matches HostBrowser; move ordinary CL=0 reject after HTTP control classification; clear breadth-first THEX remainder; `ReadDIME` reuses `PeekDIME`; shared HTTP/THEX admission helpers + EnvyTests.
+
+- **Changelog Entry:** 2026-10-06 — #393: restore historical copyright bytes on edited ISO-8859 sources; RAII restore of shared XML parse depth after failure; share G2 query METADATA budget; EnvyTests depth-restore and DWORD ConsumeChars overflow cases.
+
+- **Changelog Entry:** 2026-10-05 — #393: sync onto `develop` after #392; `ChargeSharedPeerXmlChars`/`AdmitPeerXml*` entry helpers; THEX `XML_PEER_THEX_BODY_CAP` pre-accept reject; Metadata wrapper node funding; expanded EnvyTests peer-entry smoke (helpers only — no MFC `CXMLElement` link).
+
 
 - **Changelog Entry:** 2026-10-01 — Proactive Draft stabilization: remove fixed correction-attempt stops, retain complete history and human decisions, automate supported reviewer requests and validated lifecycle transitions, and preserve privacy/naming and native review/security gates. #397 supplies the host coordinator; external app entitlement and live pilot remain explicit rollout evidence.
 
 > **LIVING DOCUMENT** — Must be updated after every meaningful change (feature, architectural decision, scope change, blocker resolution).
 
+- **Changelog Entry:** 2026-09-30 — #393: share one `XmlParseBudget` across G1 per-hit `ReadXML` extensions and the trailer; THEX/MetaFetch receive caps; reject keep-alive unknown THEX length; finish buffered known-length MetaFetch on drop; parse THEX headers before the 16 KiB header-phase fail-closed; `PeekDIME` rejects oversized DIME `text/xml` before buffering the body.
+- **Changelog Entry:** 2026-09-30 — #393: gate G1 hit XML raw allocation and charge shared G2 METADATA character budget before `ReadString`; add EnvyTests filter entry for the peer-XML smoke test.
+- **Changelog Entry:** 2026-09-30 — #393: share peer XML parse budgets across multi-fragment G1/G2 metadata and gate profile/query `ReadString` behind the 256 KiB pre-materialization cap.
 - **Changelog Entry:** 2026-09-30 — PR governance simplification (D-022): keep one non-author approving review as the trust boundary against PR-controlled CI self-bypass; path-based conditional Windows builds; Sonar/advisory bots; ruleset-as-code audit; `docs/10_dev/pr-workflow.md`.
 - **Changelog Entry:** 2026-09-29 — (superseded wording) earlier D-022 draft considered zero mandatory approvals; rejected after review of PR-controlled classify/build bypass risk.
+- **Changelog Entry:** 2026-09-29 — #327: retire Renovate; Dependabot owns vcpkg, `Remote/tests` npm, and GitHub Actions; docs/ownership inventory aligned; Dependency Review on PRs targeting `main`/`master`/`develop`; **Repository Status** CI/merge text aligned with post-#381 (no PR Gate poller; optional branch-commit signatures).
 - **Changelog Entry:** 2026-09-30 — #394: expand always-on PR CodeQL to python and GitHub Actions (`actions`); keep C# deferred in cheap Draft (live-test/Ready); document Default-setup migration and classifier comments.
 - **Changelog Entry:** 2026-09-30 — #351: rename-aware encoding diffs, valid-to-invalid UTF-8 and invalid-byte mutation guards, BOM/header-safe Languages UTF-8, encoding-migration label path, and Windows/vcpkg setup docs aligned with the active x64/Win32 policy.
 - **Changelog Entry:** 2026-09-28 — #351: make encoding selftests exercise mojibake/C1 detectors on non-header lines, align vcpkg build guidance with the active x64/Win32 policy, and parse changed-line metadata without dropping `++`/`--` source lines.
@@ -239,13 +265,17 @@
   enabled globally. Protect develop forces **squash-only** onto `develop`.
 - **History:** `develop` was rewritten to a linear history with no merge commits; the pre-rewrite snapshot is preserved as the immutable tag `backup/develop-before-linear-rewrite` (local mutable backup/rollback branches were removed after the rewrite stabilized).
 - **Local hygiene:** use `git pull --ff-only` on `develop`; rebase feature branches with `git rebase origin/develop` and `git push --force-with-lease`.
-- **Branch protection:** `Protect develop` requires pull requests, **one**
-  non-author approving review, linear history, conversation resolution, code
+- **Branch protection:** `Protect develop` requires pull requests, linear
+  history, conversation resolution, code
   scanning (CodeQL+Gitleaks), passing required checks, squash-only, and blocks
   force-pushes/deletions. Desired status contexts are listed in
   `.github/rulesets/protect-develop.desired.json` (live may still list Sonar
   until post-merge migration). There is **no** PR Gate poller — native workflow
   conclusions are the merge gate. See `docs/10_dev/pr-workflow.md`.
+- **Approval mismatch (verified 2026-10-07):** live `Protect develop` requires
+  zero approving reviews; repository policy still requires one independent
+  approval and a human approval for privileged governance paths. This PR
+  records the discrepancy without changing the live ruleset.
 - CI uses a two-speed model: change-aware PR jobs for Windows/Remote/deps plus
   full integration on `develop` / scheduled analysis. Every PR always runs
   CodeQL Analyze (c-cpp), (javascript-typescript), (python), and (actions), plus blocking Format
@@ -254,6 +284,7 @@
   Classification outputs are advisory and never replace these required jobs
   with successful not-applicable results. Those workflows also run on
   `ready_for_review`; see `docs/10_dev/pr-workflow.md`.
+- Dependency Review runs on every pull request targeting `main`, `master`, or `develop`; see `docs/10_dev/dependency-automation.md`.
 - Dependabot expects GitHub labels `ci` and `dependencies` to exist for automated PR labeling.
 
 ## Canonical Documentation Split
@@ -285,8 +316,9 @@ Policy: specification first, interoperability implementation second. See D-008 i
 
 ## Current Status
 ### Done
-- CI workflows for build/quality/security exist, with a change-aware PR gate
-  and full validation after merge to `develop`.
+- CI workflows for build/quality/security exist with staged validation:
+  Draft runs the cheap lane, `stage:live-test` and Ready run full Windows/C#
+  validation, and native workflow conclusions provide the merge checks.
 - Hash-focused unit tests integrated in repo and workflows.
 - Audit and core documentation baseline established.
 - Remote CRITICAL/HIGH security items: CSRF (#77), PBKDF2 passwords (#79), CSPRNG (#78), CSP/redirects/rate limit, and Remote XSS HTML escape on `Add()` (#76). Remaining Remote security follow-ups tracked separately if found.
@@ -297,6 +329,7 @@ Policy: specification first, interoperability implementation second. See D-008 i
 - **#90 / #354 crash reporting** — BugTrap removed. **x64:** BugSplat SDK v8.0.0 (`ThirdParty/BugSplat`, optional upload when `EnvyBugSplatDatabase` is set). **Win32:** Crashpad local database + next-launch opt-in GitHub issue workflow (upload off). See `docs/10_dev/crash-reporting.md` (D-019, D-020).
 
 ### In Progress
+- **BugSplat runtime reliability (#359 / PR #362)** — synchronize deterministic x64 dependency discovery with installer and portable packaging; require staged CRT files and preserve Win32 Crashpad. Current-head CI and maintainer runtime validation remain required. Live Protect develop currently records zero required approvals, contrary to the documented one-approval policy; independent human approval remains required for workflow changes.
 - **Envy 4.2.0 Preview 1 release readiness** — version/packaging PR; install/uninstall + network smoke tests still required before tagging `v4.2.0-preview.1` and publishing the draft GitHub prerelease.
 - C++ modernization across legacy modules.
 - Incremental protocol compatibility and robustness improvements.

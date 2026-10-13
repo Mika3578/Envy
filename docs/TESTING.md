@@ -71,9 +71,13 @@ ctest --test-dir build
 
 ## Kad SEARCH_SOURCE_REQ app-trigger smoke tests
 - `tests/test_kad_search_source_request_smoke.cpp` exercises
-  `Envy/KadSearchSourceRequest.h`: `<FileHash 16><FileSize 8>` encode/decode,
-  legacy hash-only decode failure, and the EnableKad / initialized / ED2K /
-  size-known / period policy for calling `SearchSource` from downloads.
+  `Envy/KadSearchSourceRequest.h`: Kad2
+  `<FileHash 16><StartPosition uint16 LE><FileSize uint64 LE>` encode/decode,
+  15-bit StartPosition masking, exact legacy hash-only (16-byte) and
+  size-only (24-byte) tails, fail-closed malformed lengths, and the
+  EnableKad / initialized / ED2K / size-known / period policy for calling
+  `SearchSource` from downloads. These tests cover the helper used by the
+  production sender, not a `CEDPacket` / `CKademlia` fixture.
 
 ## Skin engine P0 smoke tests
 - `tests/test_skin_engine_p0_smoke.cpp` exercises `Envy/SkinEngineP0.h`:
