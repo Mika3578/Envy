@@ -655,7 +655,7 @@ void CrashReporter::Initialize()
 
 void CrashReporter::SetIdentity(const wchar_t* pszVersion, const wchar_t* pszRevision, const wchar_t* pszBuildType)
 {
-\tBugSplatHost::SetIdentity(pszVersion, pszRevision, pszBuildType);
+	BugSplatHost::SetIdentity(pszVersion, pszRevision, pszBuildType);
 }
 
 void CrashReporter::ShowStartupPromptIfNeeded()
