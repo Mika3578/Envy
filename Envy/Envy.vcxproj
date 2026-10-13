@@ -1067,19 +1067,9 @@ $(EnvyCrashPostBuildCmd)</Command>
     <None Include="Revision.js" />
     <None Include="XML.inl" />
     <CustomBuild Include="Res\About.htm">
-      <!-- -n: omit original name/mtime so repeated builds produce identical .gz bytes -->
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
-	  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
-	  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
-	  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
-	  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
+      <Command>powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$(ProjectDir)Res\CompressResource.ps1" -InputFile "%(FullPath)" -OutputFile "%(FullPath).gz"</Command>
+      <AdditionalInputs>$(ProjectDir)Res\CompressResource.ps1;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs>%(FullPath).gz;%(Outputs)</Outputs>
     </CustomBuild>
     <None Include="Res\About.htm.gz" />
     <None Include="Res\BadRange.htm" />
@@ -1089,19 +1079,9 @@ $(EnvyCrashPostBuildCmd)</Command>
     <None Include="Res\BoxMark.bmp" />
     <None Include="Res\Browse.ico" />
     <CustomBuild Include="Res\Browser.htm">
-      <!-- -n: omit original name/mtime so repeated builds produce identical .gz bytes -->
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
-	  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
-	  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
-	  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
-	  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
+      <Command>powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$(ProjectDir)Res\CompressResource.ps1" -InputFile "%(FullPath)" -OutputFile "%(FullPath).gz"</Command>
+      <AdditionalInputs>$(ProjectDir)Res\CompressResource.ps1;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs>%(FullPath).gz;%(Outputs)</Outputs>
     </CustomBuild>
     <None Include="Res\Browser.htm.gz" />
     <None Include="Res\Busy.htm" />
