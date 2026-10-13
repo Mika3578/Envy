@@ -10,7 +10,7 @@
 - **Build:** `build_all.ps1` (local full-matrix build via MSBuild)
 - **AI / review:** CodeRabbit (advisory, `.coderabbit.yaml`), clang-tidy→reviewdog on PRs, `.github/copilot-instructions.md`, `.cursor/rules/`
 - **Cloud Agent Linux env:** `.cursor/environment.json` provisions clang-format-18/clang-tidy (CI-aligned) plus cppcheck as an extra local tool, and `Remote/tests` npm deps (not a Windows MSVC substitute)
-- **Dependencies:** Dependabot **vcpkg only**; Renovate for GitHub Actions (root `renovate.json`, including `forkProcessing: "enabled"` because this repo is a fork)
+- **Dependencies:** Dependabot owns vcpkg, `Remote/tests` npm, and GitHub Actions updates via `.github/dependabot.yml`. Renovate is retired for this repository.
 
 ## CI architecture (staged pull requests)
 
@@ -76,7 +76,7 @@ SonarCloud `12526`, GHAS/gitleaks `57789`).
 
 The target native contexts are `Build x64 Release`, `Build Win32 Release`,
 `Lint build files`, `Vcpkg manifest sanity`, `Format Check`, `secret-scan`,
-`Analyze (c-cpp)`, and `SonarCloud Code Analysis`. Documentation Check and
+`Analyze (c-cpp)`, `Dependency review`, and `SonarCloud Code Analysis`. Documentation Check and
 the GHAS gitleaks status remain visible but are advisory duplicates; the live
 Protect develop ruleset no longer requires them as status contexts.
 
@@ -123,8 +123,9 @@ Measured timings, critical path, and CI cost notes live in
 - Format Check is required and **blocking** via `clang-format-diff-18` on
   changed hunks only (legacy off-diff lines do not fail). Major version pinned
   to 18 in CI.
-- Gitleaks and Dependency Review stay. Dependency Review runs when manifests
-  change; vcpkg sanity always runs (required name).
+- Gitleaks and Dependency Review stay. Dependency Review runs on every pull
+  request targeting `main`, `master`, or `develop` so classifier failures cannot suppress the check; vcpkg sanity always
+  runs (required name).
 
 ### GitHub Actions SHA pinning (#96)
 
@@ -180,6 +181,9 @@ Maintainer checklist:
   supported values (do not change thresholds before that evidence).
 - Evaluate `security-extended` / `security-and-quality` for C++/JS in a
   measured advisory window before expanding blocking query suites.
+- Evaluate dependency auto-merge separately only after review/ruleset behavior
+  is stable. The repository currently creates dependency PRs automatically but
+  does not auto-approve or auto-merge them.
 - Before 2026-11-02: complete the
   [`pull_request_target` maintainer checklist](#github-pull_request_target-execution-policy-deadline-2026-11-02)
   and record any org/repo execution-policy choice.
@@ -360,7 +364,7 @@ the PR and ignored `.local/DEV_TRACKER.md`; summarize strategic blockers in
 |------|----------------|
 | **Code analysis** | MSVC Code Analysis on `develop`/nightly; CodeQL (`none` on PR C++, manual on `develop`); `.clang-tidy` + reviewdog on PRs (advisory) |
 | **Format / docs** | `clang-format-diff-18` on changed hunks under `Envy/`, `TorrentEnvy/`, `HashLib/` (blocking); markdown link check when docs change |
-| **Dependencies** | Dependabot (vcpkg), Renovate (GitHub Actions), dependency review, vcpkg manifest sanity |
+| **Dependencies** | Dependabot (vcpkg, `Remote/tests` npm, GitHub Actions), dependency review, vcpkg manifest sanity |
 | **AI review** | Copilot Code Review = target approval reviewer (skill `.github/skills/code-review/SKILL.md`); CodeRabbit/reviewdog/Qodo/Bugbot remain advisory |
 | **Testing** | `EnvyTests.exe` after PR and `develop` MSBuild; Remote JS tests when `Remote/` changes; local `.\scripts\ci-verify.ps1` |
 | **Security** | Gitleaks on every PR, CodeQL, dependency review |

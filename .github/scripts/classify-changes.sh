@@ -262,9 +262,14 @@ while IFS= read -r f; do
 	esac
 
 	case "$f" in
-	vcpkg.json | vcpkg-configuration.json)
+	vcpkg.json)
 		dependencies=true
 		build=true
+		force_dep_review=true
+		classified=true
+		;;
+	Remote/tests/package.json | Remote/tests/package-lock.json)
+		dependencies=true
 		force_dep_review=true
 		classified=true
 		;;

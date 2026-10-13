@@ -15,13 +15,13 @@
 #   P/* priority flag
 #   X  bad IP
 #
-# DHT routers: Transmission (dht.transmissionbt.com:6881), libtorrent
-# (dht.libtorrent.org:25401), plus router.bittorrent.com:6881 still used by
-# current qBittorrent defaults. LoadDefaultServers injects these into
+# DHT routers: libtorrent documents dht.libtorrent.org:25401 and the
+# alternatives dht.transmissionbt.com:6881 / router.bittorrent.com:6881.
+# LoadDefaultServers injects these into
 # HostCache. CDHT::Connect sends BEP 5 find_node to HostCache BT hosts when
 # no node IDs are cached (no extra C++ DNS list).
 #
-# Audited 2026-09-18. See docs/30_protocols/bootstrap-sources.md.
+# Rechecked 2026-10-09. See docs/30_protocols/bootstrap-sources.md.
 
 B dht.transmissionbt.com:6881
 B router.bittorrent.com:6881
@@ -31,8 +31,8 @@ B dht.libtorrent.org:25401
 # DefaultServices.dat server.met URLs (eMule-Security, shortypower).
 #
 # No K lines: Kad contacts belong in HostCache after a validated nodes.dat
-# import. Remote nodes.dat bootstrap is a follow-up (#86), not a claim of
-# complete Kad support.
+# import. HTTPS K rows in DefaultServices.dat provide validated remote
+# cold-start nodes.dat; Kad2 interoperability remains partial.
 #
 # Dropped 2019 routers: router.utorrent.com, router.bitcomet.com (NXDOMAIN
 # at audit), dht.aelitis.com (Vuze).
