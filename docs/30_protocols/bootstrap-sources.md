@@ -12,7 +12,15 @@ Scope: Cold-start catalogues shipped with Envy. Not a claim that every protocol 
 | B. Learned runtime data | `Discovery.dat`, `HostCache.dat` | GWC URLs, ED2K servers, G1/G2 hosts, BT DHT nodes, Kad contacts learned while running |
 | C. Last-known-good remote catalogue | *planned* | Refresh A independently of the binary, never blocking startup |
 
-Do not copy B back into A. Do not compile bootstrap IPs into `.cpp` / `.h`. The old `CDiscoveryServices::AddDefaults()` built-in string list is **commented out**; if the data files are missing, Envy does not invent a second C++ list.
+The Visual Studio application build stages only `DefaultServices.dat` and
+`DefaultServers.dat` into `$(TargetDir)Data` for Debug/Release and x64/Win32.
+It does not copy runtime caches or user state. At startup, loaders prefer a
+catalogue under `Settings.General.DataPath` and fall back to the packaged
+`<executable directory>\Data` copy when the writable copy is absent. Existing
+`Discovery.dat`, `HostCache.dat`, and manually added services remain separate
+and are not reset to make defaults load.
+
+Do not copy B back into A. Do not compile bootstrap IPs into `.cpp` / `.h`. The old `CDiscoveryServices::AddDefaults()` built-in string list is **commented out**; if both the writable and packaged data files are missing, Envy reports the missing catalogue instead of inventing a second C++ list.
 
 Status vocabulary: catalogue refresh is **implemented** for the shipped files; remote last-known-good is **planned**; local Kad `nodes.dat` v1/v2/v3 parsing is **implemented**; remote validated Kad `nodes.dat` cold-start download is **implemented** (HTTPS `K` rows, size-capped validation, same-directory replace with `.lkg` backup) and does **not** make Kad2 routing/search interop complete.
 

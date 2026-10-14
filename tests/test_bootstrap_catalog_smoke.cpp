@@ -505,9 +505,40 @@ static bool test_catalogue_truncated_rows()
 static bool test_catalogue_network_limits()
 {
 	return BootstrapMinWebCaches == 1 && BootstrapMinG2Services == 3
-		&& BootstrapMinG1Services == 2 && BootstrapMinEd2kMet == 2
+		&& BootstrapMinG1Services == 2 && BootstrapMinG1UdpServices == 1
+		&& BootstrapMinEd2kMet == 2
 		&& BootstrapMinDcHublists == 2 && BootstrapMinKadNodesDat == 1
 		&& BootstrapDhtRouterPingCap == 8 && BootstrapDhtBlockingResolveCap == 3;
+}
+
+static bool test_catalogue_path_falls_back_to_packaged_defaults()
+{
+	const wchar_t* const writablePath = L"C:\\UserData\\Data\\DefaultServices.dat";
+	const wchar_t* const packagedPath = L"C:\\Program Files\\Envy\\Data\\DefaultServices.dat";
+
+	// Fresh output and existing Discovery.dat / HostCache.dat caches both leave
+	// the writable catalogue absent, so packaged defaults must still be selected.
+	return BootstrapSelectCataloguePath( writablePath, false, packagedPath, true ) == packagedPath
+		&& BootstrapSelectCataloguePath( writablePath, true, packagedPath, true ) == writablePath
+		&& BootstrapSelectCataloguePath( writablePath, false, packagedPath, false ) == nullptr;
+}
+
+static bool test_unrelated_gwcs_do_not_replace_g1_udp_bootstrap()
+{
+	const int nWebCaches = BootstrapMinWebCaches;
+	const int nG2 = BootstrapMinG2Services;
+	const int nG1 = BootstrapMinG1Services;
+	const int nEd2k = BootstrapMinEd2kMet;
+	const int nDc = BootstrapMinDcHublists;
+	const int nKad = BootstrapMinKadNodesDat;
+
+	return ! BootstrapDiscoveryMinimumsSatisfied(
+		nWebCaches, nG2, nG1, 0, nEd2k, nDc, nKad, true, true, true, true )
+		&& BootstrapDiscoveryMinimumsSatisfied(
+			nWebCaches, nG2, nG1, BootstrapMinG1UdpServices,
+			nEd2k, nDc, nKad, true, true, true, true )
+		&& BootstrapDiscoveryMinimumsSatisfied(
+			nWebCaches, nG2, 0, 0, nEd2k, nDc, nKad, false, true, true, true );
 }
 
 void register_bootstrap_catalog_smoke_tests( TestSuite& suite )
@@ -542,4 +573,6 @@ void register_bootstrap_catalog_smoke_tests( TestSuite& suite )
 	suite.add_test( "bootstrap_dht_boot_slot_cap_and_dns_budget", test_dht_boot_slot_cap_and_dns_budget );
 	suite.add_test( "bootstrap_catalogue_truncated_rows", test_catalogue_truncated_rows );
 	suite.add_test( "bootstrap_catalogue_network_limits", test_catalogue_network_limits );
+	suite.add_test( "bootstrap_catalogue_path_fallback", test_catalogue_path_falls_back_to_packaged_defaults );
+	suite.add_test( "bootstrap_required_g1_udp_category", test_unrelated_gwcs_do_not_replace_g1_udp_bootstrap );
 }
