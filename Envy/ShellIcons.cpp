@@ -546,8 +546,17 @@ BOOL CShellIcons::Draw(CDC* pDC, int nIcon, int nSize, int nX, int nY, COLORREF 
 		return FALSE;
 	}
 
-	if (!hImages || nIcon < 0 || nIcon >= ImageList_GetImageCount(hImages))
+	if (!hImages)
+		return FALSE;
+
+	const int nImageCount = ImageList_GetImageCount(hImages);
+	if (nImageCount <= 0)
+		return FALSE;
+
+	if (nIcon < 0 || nIcon >= nImageCount)
 		nIcon = SHI_FILE;
+	if (nIcon < 0 || nIcon >= nImageCount)
+		return FALSE;
 
 	return ImageList_DrawEx( hImages, nIcon, pDC->GetSafeHdc(),
 		nX, nY, nSize, nSize, crBack,
@@ -577,8 +586,17 @@ BOOL CShellIcons::Draw(CDC* pDC, int nIcon, int nSize, int nX, int nY, COLORREF 
 		return FALSE;
 	}
 
-	if (!hImages || nIcon < 0 || nIcon >= ImageList_GetImageCount(hImages))
+	if (!hImages)
+		return FALSE;
+
+	const int nImageCount = ImageList_GetImageCount(hImages);
+	if (nImageCount <= 0)
+		return FALSE;
+
+	if (nIcon < 0 || nIcon >= nImageCount)
 		nIcon = SHI_FILE;
+	if (nIcon < 0 || nIcon >= nImageCount)
+		return FALSE;
 
 	return ImageList_DrawEx( hImages, nIcon, pDC->GetSafeHdc(),
 		nX, nY, nSize, nSize, crBack, crBlend, nStyle );
