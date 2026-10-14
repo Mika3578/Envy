@@ -626,7 +626,7 @@ BOOL CDiscoveryServices::EnoughServices() const
 		}
 		else if ( pService->m_nType == CDiscoveryService::dsGnutella )
 		{
-			if ( pService->m_nSubType == CDiscoveryService::dsGnutellaUDPHC )
+			if (pService->m_nSubType == CDiscoveryService::dsGnutellaUDPHC)
 			{
 				nG1Count++;
 				nG1UdpCount++;
@@ -645,12 +645,12 @@ BOOL CDiscoveryServices::EnoughServices() const
 	}
 
 	return BootstrapDiscoveryMinimumsSatisfied(
-		nWebCacheCount, nG2Count, nG1Count, nG1UdpCount,
-		nServerMetCount, nHubListCount, nKadNodesCount,
-		Settings.Gnutella1.ShowInterface != FALSE,
-		Settings.eDonkey.ShowInterface != FALSE,
-		Settings.DC.ShowInterface != FALSE,
-		Settings.eDonkey.EnableKad != FALSE);
+	    nWebCacheCount, nG2Count, nG1Count, nG1UdpCount,
+	    nServerMetCount, nHubListCount, nKadNodesCount,
+	    Settings.Gnutella1.ShowInterface != FALSE,
+	    Settings.eDonkey.ShowInterface != FALSE,
+	    Settings.DC.ShowInterface != FALSE,
+	    Settings.eDonkey.EnableKad != FALSE);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -661,22 +661,22 @@ void CDiscoveryServices::AddDefaults()
 	const CString strWritablePath = Settings.General.DataPath + L"DefaultServices.dat";
 	const CString strPackagedPath = theApp.m_strBinaryPath + L"\\Data\\DefaultServices.dat";
 	const wchar_t* pszCataloguePath = BootstrapSelectCataloguePath(
-		strWritablePath, ::PathFileExists(strWritablePath),
-		strPackagedPath, ::PathFileExists(strPackagedPath));
+	    strWritablePath, ::PathFileExists(strWritablePath),
+	    strPackagedPath, ::PathFileExists(strPackagedPath));
 	const CString strFile = pszCataloguePath ? pszCataloguePath : L"";
 
 	CFile pFile;
-	if ( ! strFile.IsEmpty() && pFile.Open( strFile, CFile::modeRead | CFile::shareDenyWrite ) )	// Load default list from writable or packaged data
+	if (!strFile.IsEmpty() && pFile.Open(strFile, CFile::modeRead | CFile::shareDenyWrite)) // Load default list from writable or packaged data
 	{
-		theApp.Message( MSG_NOTICE, L"Loading default discovery service catalogue from %s data", strFile == strWritablePath ? L"writable" : L"packaged" );
+		theApp.Message(MSG_NOTICE, L"Loading default discovery service catalogue from %s data", strFile == strWritablePath ? L"writable" : L"packaged");
 
 		try
 		{
 			int nCount = 0;
 			int nInvalidRows = 0;
-			if ( pFile.GetLength() > 1024 * 1024 )
+			if (pFile.GetLength() > 1024 * 1024)
 			{
-				theApp.Message( MSG_ERROR, L"Default discovery service catalogue exceeds the 1 MiB limit" );
+				theApp.Message(MSG_ERROR, L"Default discovery service catalogue exceeds the 1 MiB limit");
 				return;
 			}
 
@@ -748,26 +748,26 @@ void CDiscoveryServices::AddDefaults()
 				}
 			}
 
-			if ( nInvalidRows )
-				theApp.Message( MSG_ERROR, L"Skipped %d invalid row(s) in the default discovery service catalogue", nInvalidRows );
-			if ( nCount == 0 )
-				theApp.Message( MSG_ERROR, L"Default discovery service catalogue contains no usable entries" );
-			if ( ! EnoughServices() )
-				theApp.Message( MSG_ERROR, L"One or more required discovery bootstrap categories remain unavailable after loading defaults" );
-			theApp.Message( MSG_DEBUG, L"[DiscoveryServices] Loaded %d default services.", nCount );
+			if (nInvalidRows)
+				theApp.Message(MSG_ERROR, L"Skipped %d invalid row(s) in the default discovery service catalogue", nInvalidRows);
+			if (nCount == 0)
+				theApp.Message(MSG_ERROR, L"Default discovery service catalogue contains no usable entries");
+			if (!EnoughServices())
+				theApp.Message(MSG_ERROR, L"One or more required discovery bootstrap categories remain unavailable after loading defaults");
+			theApp.Message(MSG_DEBUG, L"[DiscoveryServices] Loaded %d default services.", nCount);
 		}
 		catch ( CException* pException )
 		{
 			pFile.Abort();
 			pException->Delete();
-			theApp.Message( MSG_ERROR, L"Failed to read the default discovery service catalogue" );
+			theApp.Message(MSG_ERROR, L"Failed to read the default discovery service catalogue");
 		}
 	}
 	else
 	{
 		static LONG s_nMissingCatalogueLogged = 0;
-		if ( InterlockedCompareExchange( &s_nMissingCatalogueLogged, 1, 0 ) == 0 )
-			theApp.Message( MSG_ERROR, L"No readable default discovery service catalogue was found in writable or packaged data" );
+		if (InterlockedCompareExchange(&s_nMissingCatalogueLogged, 1, 0) == 0)
+			theApp.Message(MSG_ERROR, L"No readable default discovery service catalogue was found in writable or packaged data");
 	}
 
 	// Obsolete: If file can't be used or didn't have enough services, drop back to the built-in list

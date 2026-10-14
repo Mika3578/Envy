@@ -40,10 +40,10 @@ constexpr int BootstrapDhtBlockingResolveCap = 3;
 // Prefer mutable per-user catalogues when present, but never make them the
 // only copy of immutable bootstrap defaults.
 inline const wchar_t* BootstrapSelectCataloguePath(
-	const wchar_t* pszWritablePath,
-	bool bWritableExists,
-	const wchar_t* pszPackagedPath,
-	bool bPackagedExists)
+    const wchar_t* pszWritablePath,
+    bool bWritableExists,
+    const wchar_t* pszPackagedPath,
+    bool bPackagedExists)
 {
 	if (bWritableExists)
 		return pszWritablePath;
@@ -53,17 +53,17 @@ inline const wchar_t* BootstrapSelectCataloguePath(
 }
 
 inline bool BootstrapDiscoveryMinimumsSatisfied(
-	int nWebCaches,
-	int nG2Services,
-	int nG1Services,
-	int nG1UdpServices,
-	int nEd2kMet,
-	int nDcHublists,
-	int nKadNodesDat,
-	bool bG1Enabled,
-	bool bEd2kEnabled,
-	bool bDcEnabled,
-	bool bKadEnabled)
+    int nWebCaches,
+    int nG2Services,
+    int nG1Services,
+    int nG1UdpServices,
+    int nEd2kMet,
+    int nDcHublists,
+    int nKadNodesDat,
+    bool bG1Enabled,
+    bool bEd2kEnabled,
+    bool bDcEnabled,
+    bool bKadEnabled)
 {
 	return nWebCaches >= BootstrapMinWebCaches &&
 	       nG2Services >= BootstrapMinG2Services &&

@@ -1306,8 +1306,8 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 	const CString strWritablePath = Settings.General.DataPath + L"DefaultServers.dat";
 	const CString strPackagedPath = theApp.m_strBinaryPath + L"\\Data\\DefaultServers.dat";
 	const wchar_t* pszCataloguePath = BootstrapSelectCataloguePath(
-		strWritablePath, ::PathFileExists(strWritablePath),
-		strPackagedPath, ::PathFileExists(strPackagedPath));
+	    strWritablePath, ::PathFileExists(strWritablePath),
+	    strPackagedPath, ::PathFileExists(strPackagedPath));
 	const CString strFile = pszCataloguePath ? pszCataloguePath : L"";
 	int nServers = 0;
 
@@ -1315,12 +1315,12 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 	//if ( ! IsFileNewerThan( strFile, 300ull * 24 * 60 * 60 * 1000 ) )
 	//	return 0;
 
-	CStdioFile pFile;	// Load default list from writable or packaged data
-	if ( strFile.IsEmpty() || ! pFile.Open( strFile, CFile::modeRead | CFile::shareDenyWrite | CFile::osSequentialScan ) )
+	CStdioFile pFile; // Load default list from writable or packaged data
+	if (strFile.IsEmpty() || !pFile.Open(strFile, CFile::modeRead | CFile::shareDenyWrite | CFile::osSequentialScan))
 	{
 		static LONG s_nMissingCatalogueLogged = 0;
-		if ( InterlockedCompareExchange( &s_nMissingCatalogueLogged, 1, 0 ) == 0 )
-			theApp.Message( MSG_ERROR, L"No readable default server catalogue was found in writable or packaged data" );
+		if (InterlockedCompareExchange(&s_nMissingCatalogueLogged, 1, 0) == 0)
+			theApp.Message(MSG_ERROR, L"No readable default server catalogue was found in writable or packaged data");
 		return 0;
 	}
 	ULONGLONG nCatalogueLength = 0;
@@ -1328,19 +1328,19 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 	{
 		nCatalogueLength = pFile.GetLength();
 	}
-	catch ( CException* pException )
+	catch (CException* pException)
 	{
 		pException->Delete();
-		theApp.Message( MSG_ERROR, L"Failed to inspect the default server catalogue" );
+		theApp.Message(MSG_ERROR, L"Failed to inspect the default server catalogue");
 		return 0;
 	}
-	if ( nCatalogueLength > 1024 * 1024 )
+	if (nCatalogueLength > 1024 * 1024)
 	{
-		theApp.Message( MSG_ERROR, L"Default server catalogue exceeds the 1 MiB limit" );
+		theApp.Message(MSG_ERROR, L"Default server catalogue exceeds the 1 MiB limit");
 		return 0;
 	}
 
-	theApp.Message( MSG_NOTICE, L"Loading default server catalogue from %s data", strFile == strWritablePath ? L"writable" : L"packaged" );
+	theApp.Message(MSG_NOTICE, L"Loading default server catalogue from %s data", strFile == strWritablePath ? L"writable" : L"packaged");
 	int nInvalidRows = 0;
 
 	// Format: PE 255.255.255.255:1024	# NameForConvenience
@@ -1358,11 +1358,11 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 		const wchar_t* pszHost = nullptr;
 		size_t nHost = 0;
 		const BootstrapParseStatus nParse = BootstrapParseServerLine(
-		        strLine, static_cast<size_t>(strLine.GetLength()),
-		        &cType, &bParsedPriority, &pszHost, &nHost);
-		if ( nParse != BootstrapParseStatus::Ok )
+		    strLine, static_cast<size_t>(strLine.GetLength()),
+		    &cType, &bParsedPriority, &pszHost, &nHost);
+		if (nParse != BootstrapParseStatus::Ok)
 		{
-			if ( nParse == BootstrapParseStatus::Invalid )
+			if (nParse == BootstrapParseStatus::Invalid)
 				++nInvalidRows;
 			continue;
 		}
@@ -1425,8 +1425,8 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 	//		nServers++;
 	//	}
 	}
-	if ( nInvalidRows )
-		theApp.Message( MSG_ERROR, L"Skipped %d invalid row(s) in the default server catalogue", nInvalidRows );
+	if (nInvalidRows)
+		theApp.Message(MSG_ERROR, L"Skipped %d invalid row(s) in the default server catalogue", nInvalidRows);
 
 	return nServers;
 }
