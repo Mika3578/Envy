@@ -76,7 +76,7 @@ static bool EnsureStorageDirectory(const CString& strPath, bool* pbReparsePoint)
 static bool HasStorageEntriesOrUnverifiable(const CString& strPath)
 {
 	if (strPath.IsEmpty())
-		return true;
+		return false;
 
 	const DWORD nAttributes = GetFileAttributes(strPath);
 	if (nAttributes == INVALID_FILE_ATTRIBUTES)
@@ -816,12 +816,16 @@ void CSettings::Load()
 			FreeLibrary( hMSI );
 	}
 
-	// An installed build has a registry installation identity; portable packages do not.
-	const bool bPortableMode = General.Path.IsEmpty();
+	// A machine-wide install can be launched by a user who has no per-user Path value yet.
+	const CString strBinaryDirectory = theApp.m_strBinaryPath.Left(theApp.m_strBinaryPath.ReverseFind(L'\\'));
+	const CString strMachineInstallPath = CRegistry::GetString(NULL, NULL, NULL, L"Software\\Envy", TRUE);
+	const bool bUserInstallMatches = !General.Path.IsEmpty() && _tcsicmp(General.Path, strBinaryDirectory) == 0;
+	const bool bMachineInstallMatches = !strMachineInstallPath.IsEmpty() && _tcsicmp(strMachineInstallPath, strBinaryDirectory) == 0;
+	const bool bPortableMode = IsPortableStorageMode(bUserInstallMatches, bMachineInstallMatches);
 
 	// Set default program and user paths
 	if ( General.Path.IsEmpty() || ! PathFileExists( General.Path ) )
-		General.Path = theApp.m_strBinaryPath.Left( theApp.m_strBinaryPath.ReverseFind( L'\\' ) );
+		General.Path = strBinaryDirectory;
 
 	const CString strCompleteDownloadRoot = Downloads.CompletePath.IsEmpty() ? theApp.GetDownloadsFolder() : Downloads.CompletePath;
 	const CString strLegacyIncompletePath = General.Path + L"\\Incomplete";

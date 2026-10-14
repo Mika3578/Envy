@@ -56,6 +56,11 @@ inline StoragePathDefaults BuildPortableStoragePathDefaults(
 	return paths;
 }
 
+inline bool IsPortableStorageMode(bool bUserInstallMatches, bool bMachineInstallMatches)
+{
+	return !bUserInstallMatches && !bMachineInstallMatches;
+}
+
 inline std::wstring ResolveStoragePath(
     const std::wstring& strConfigured,
     const std::wstring& strDefault,

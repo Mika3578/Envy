@@ -44,6 +44,12 @@ bool test_portable_storage_defaults_stay_with_package()
 	       paths.torrents == L"D:\\Users\\User\\Downloads\\Envy\\Torrents";
 }
 
+bool test_storage_mode_uses_installer_registration()
+{
+	return !IsPortableStorageMode(true, false) && !IsPortableStorageMode(false, true) &&
+	       IsPortableStorageMode(false, false);
+}
+
 bool test_storage_path_join_preserves_drive_root()
 {
 	return JoinStoragePath(L"C:\\", L"Envy") == L"C:\\Envy" &&
@@ -74,6 +80,7 @@ void register_storage_paths_smoke_tests(TestSuite& suite)
 	suite.add_test("storage_paths_user_defaults", test_storage_defaults_use_per_user_locations);
 	suite.add_test("storage_paths_custom_complete_root", test_storage_defaults_follow_custom_complete_root);
 	suite.add_test("storage_paths_portable_defaults", test_portable_storage_defaults_stay_with_package);
+	suite.add_test("storage_paths_installer_registration", test_storage_mode_uses_installer_registration);
 	suite.add_test("storage_paths_join_roots", test_storage_path_join_preserves_drive_root);
 	suite.add_test("storage_paths_preserve_configuration", test_storage_paths_preserve_nonempty_configuration);
 	suite.add_test("storage_paths_reparse_detection", test_storage_path_reparse_point_detection);
