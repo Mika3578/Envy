@@ -32,42 +32,42 @@
 static bool EnsureStorageDirectory(const CString& strPath, bool* pbReparsePoint)
 {
 	CString strDirectory = strPath;
-	if ( strDirectory.GetLength() > 3 )
-		strDirectory.TrimRight( L"\\/" );
-	if ( strDirectory.IsEmpty() )
+	if (strDirectory.GetLength() > 3)
+		strDirectory.TrimRight(L"\\/");
+	if (strDirectory.IsEmpty())
 		return false;
 
-	DWORD nAttributes = GetFileAttributes( strDirectory );
-	if ( nAttributes == INVALID_FILE_ATTRIBUTES )
+	DWORD nAttributes = GetFileAttributes(strDirectory);
+	if (nAttributes == INVALID_FILE_ATTRIBUTES)
 	{
-		const int nCreateResult = SHCreateDirectoryEx( NULL, strDirectory, NULL );
-		if ( nCreateResult != ERROR_SUCCESS && nCreateResult != ERROR_ALREADY_EXISTS )
+		const int nCreateResult = SHCreateDirectoryEx(NULL, strDirectory, NULL);
+		if (nCreateResult != ERROR_SUCCESS && nCreateResult != ERROR_ALREADY_EXISTS)
 		{
-			theApp.Message( MSG_ERROR, L"Failed to prepare a writable Envy storage directory (Windows error %u)", nCreateResult );
+			theApp.Message(MSG_ERROR, L"Failed to prepare a writable Envy storage directory (Windows error %u)", nCreateResult);
 			return false;
 		}
-		nAttributes = GetFileAttributes( strDirectory );
+		nAttributes = GetFileAttributes(strDirectory);
 	}
 
-	if ( nAttributes == INVALID_FILE_ATTRIBUTES || !( nAttributes & FILE_ATTRIBUTE_DIRECTORY ) )
+	if (nAttributes == INVALID_FILE_ATTRIBUTES || !(nAttributes & FILE_ATTRIBUTE_DIRECTORY))
 	{
-		theApp.Message( MSG_ERROR, L"An Envy storage path is unavailable or is not a directory" );
+		theApp.Message(MSG_ERROR, L"An Envy storage path is unavailable or is not a directory");
 		return false;
 	}
 
 	CString strProbePath;
-	strProbePath.Format( L"%s\\.envy-write-test-%lu-%lu.tmp", (LPCTSTR)strDirectory,
-		GetCurrentProcessId(), GetTickCount() );
-	HANDLE hProbe = CreateFile( strProbePath, GENERIC_WRITE, 0, NULL, CREATE_NEW,
-		FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, NULL );
-	if ( hProbe == INVALID_HANDLE_VALUE )
+	strProbePath.Format(L"%s\\.envy-write-test-%lu-%lu.tmp", (LPCTSTR)strDirectory,
+	                    GetCurrentProcessId(), GetTickCount());
+	HANDLE hProbe = CreateFile(strProbePath, GENERIC_WRITE, 0, NULL, CREATE_NEW,
+	                           FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, NULL);
+	if (hProbe == INVALID_HANDLE_VALUE)
 	{
-		theApp.Message( MSG_ERROR, L"An Envy storage directory is not writable (Windows error %u)", GetLastError() );
+		theApp.Message(MSG_ERROR, L"An Envy storage directory is not writable (Windows error %u)", GetLastError());
 		return false;
 	}
-	CloseHandle( hProbe );
+	CloseHandle(hProbe);
 
-	if ( pbReparsePoint && StoragePathIsReparsePoint( nAttributes ) )
+	if (pbReparsePoint && StoragePathIsReparsePoint(nAttributes))
 		*pbReparsePoint = true;
 
 	return true;
@@ -75,41 +75,40 @@ static bool EnsureStorageDirectory(const CString& strPath, bool* pbReparsePoint)
 
 static bool HasStorageEntriesOrUnverifiable(const CString& strPath)
 {
-	if ( strPath.IsEmpty() )
+	if (strPath.IsEmpty())
 		return true;
 
-	const DWORD nAttributes = GetFileAttributes( strPath );
-	if ( nAttributes == INVALID_FILE_ATTRIBUTES )
+	const DWORD nAttributes = GetFileAttributes(strPath);
+	if (nAttributes == INVALID_FILE_ATTRIBUTES)
 	{
 		const DWORD nError = GetLastError();
 		return nError != ERROR_FILE_NOT_FOUND && nError != ERROR_PATH_NOT_FOUND;
 	}
-	if ( !( nAttributes & FILE_ATTRIBUTE_DIRECTORY ) )
+	if (!(nAttributes & FILE_ATTRIBUTE_DIRECTORY))
 		return true;
 
 	CString strSearchPath = strPath;
-	if ( strSearchPath.Right( 1 ) != L"\\" && strSearchPath.Right( 1 ) != L"/" )
+	if (strSearchPath.Right(1) != L"\\" && strSearchPath.Right(1) != L"/")
 		strSearchPath += L'\\';
 	strSearchPath += L"*";
 
 	WIN32_FIND_DATA findData = {};
-	HANDLE hFind = FindFirstFile( strSearchPath, &findData );
-	if ( hFind == INVALID_HANDLE_VALUE )
+	HANDLE hFind = FindFirstFile(strSearchPath, &findData);
+	if (hFind == INVALID_HANDLE_VALUE)
 		return true;
 
 	bool bHasEntries = false;
 	do
 	{
-		if ( _tcscmp( findData.cFileName, L"." ) && _tcscmp( findData.cFileName, L".." ) )
+		if (_tcscmp(findData.cFileName, L".") && _tcscmp(findData.cFileName, L".."))
 		{
 			bHasEntries = true;
 			break;
 		}
-	}
-	while ( FindNextFile( hFind, &findData ) );
+	} while (FindNextFile(hFind, &findData));
 	const DWORD nError = GetLastError();
 
-	FindClose( hFind );
+	FindClose(hFind);
 	return bHasEntries || nError != ERROR_NO_MORE_FILES;
 }
 
@@ -824,36 +823,35 @@ void CSettings::Load()
 	if ( General.Path.IsEmpty() || ! PathFileExists( General.Path ) )
 		General.Path = theApp.m_strBinaryPath.Left( theApp.m_strBinaryPath.ReverseFind( L'\\' ) );
 
-	const CString strCompleteDownloadRoot = Downloads.CompletePath.IsEmpty() ?
-		theApp.GetDownloadsFolder() : Downloads.CompletePath;
+	const CString strCompleteDownloadRoot = Downloads.CompletePath.IsEmpty() ? theApp.GetDownloadsFolder() : Downloads.CompletePath;
 	const CString strLegacyIncompletePath = General.Path + L"\\Incomplete";
-	const CString strLegacyCollectionPath = ( General.UserPath.IsEmpty() ? General.Path : General.UserPath ) + L"\\Collections";
-	const StoragePathDefaults pathDefaults = bPortableMode ?
-		BuildPortableStoragePathDefaults( std::wstring( (LPCTSTR)General.Path ), std::wstring( (LPCTSTR)strCompleteDownloadRoot ) ) :
-		BuildStoragePathDefaults(
-			std::wstring( (LPCTSTR)theApp.GetAppDataFolder() ),
-			std::wstring( (LPCTSTR)theApp.GetLocalAppDataFolder() ),
-			std::wstring( (LPCTSTR)strCompleteDownloadRoot ) );
+	const CString strLegacyCollectionPath = (General.UserPath.IsEmpty() ? General.Path : General.UserPath) + L"\\Collections";
+	const StoragePathDefaults pathDefaults = bPortableMode ? BuildPortableStoragePathDefaults(std::wstring((LPCTSTR)General.Path), std::wstring((LPCTSTR)strCompleteDownloadRoot)) : BuildStoragePathDefaults(std::wstring((LPCTSTR)theApp.GetAppDataFolder()), std::wstring((LPCTSTR)theApp.GetLocalAppDataFolder()), std::wstring((LPCTSTR)strCompleteDownloadRoot));
 
 	General.UserPath = ResolveStoragePath(
-		std::wstring( (LPCTSTR)General.UserPath ), pathDefaults.userData ).c_str();
+	                       std::wstring((LPCTSTR)General.UserPath), pathDefaults.userData)
+	                       .c_str();
 	Downloads.IncompletePath = ResolveStoragePath(
-		std::wstring( (LPCTSTR)Downloads.IncompletePath ), pathDefaults.incomplete,
-		HasStorageEntriesOrUnverifiable( strLegacyIncompletePath ) ? std::wstring( (LPCTSTR)strLegacyIncompletePath ) : std::wstring() ).c_str();
+	                               std::wstring((LPCTSTR)Downloads.IncompletePath), pathDefaults.incomplete,
+	                               HasStorageEntriesOrUnverifiable(strLegacyIncompletePath) ? std::wstring((LPCTSTR)strLegacyIncompletePath) : std::wstring())
+	                               .c_str();
 	Downloads.CompletePath = ResolveStoragePath(
-		std::wstring( (LPCTSTR)Downloads.CompletePath ), pathDefaults.complete ).c_str();
+	                             std::wstring((LPCTSTR)Downloads.CompletePath), pathDefaults.complete)
+	                             .c_str();
 
-	if ( General.DataPath.IsEmpty() )
+	if (General.DataPath.IsEmpty())
 		General.DataPath = General.UserPath + L"\\Data\\";
 
 	Downloads.CollectionPath = ResolveStoragePath(
-		std::wstring( (LPCTSTR)Downloads.CollectionPath ), pathDefaults.collections,
-		HasStorageEntriesOrUnverifiable( strLegacyCollectionPath ) ? std::wstring( (LPCTSTR)strLegacyCollectionPath ) : std::wstring() ).c_str();
+	                               std::wstring((LPCTSTR)Downloads.CollectionPath), pathDefaults.collections,
+	                               HasStorageEntriesOrUnverifiable(strLegacyCollectionPath) ? std::wstring((LPCTSTR)strLegacyCollectionPath) : std::wstring())
+	                               .c_str();
 	Downloads.TorrentPath = ResolveStoragePath(
-		std::wstring( (LPCTSTR)Downloads.TorrentPath ), pathDefaults.torrents ).c_str();
+	                            std::wstring((LPCTSTR)Downloads.TorrentPath), pathDefaults.torrents)
+	                            .c_str();
 
-	if ( ! StartsWith( BitTorrent.DefaultTracker, _P( L"http://" ) ) &&
-		 ! StartsWith( BitTorrent.DefaultTracker, _P( L"udp://" ) ) )
+	if (!StartsWith(BitTorrent.DefaultTracker, _P(L"http://")) &&
+	    !StartsWith(BitTorrent.DefaultTracker, _P(L"udp://")))
 		SetDefault( &BitTorrent.DefaultTracker );
 
 	Live.FirstRun = General.FirstRun;
@@ -874,18 +872,18 @@ void CSettings::Load()
 	};
 	int nStorageFailures = 0;
 	int nStorageReparsePoints = 0;
-	for ( int i = 0; i < _countof( strStoragePaths ); ++i )
+	for (int i = 0; i < _countof(strStoragePaths); ++i)
 	{
 		bool bReparsePoint = false;
-		if ( ! EnsureStorageDirectory( strStoragePaths[i], &bReparsePoint ) )
+		if (!EnsureStorageDirectory(strStoragePaths[i], &bReparsePoint))
 			++nStorageFailures;
-		if ( bReparsePoint )
+		if (bReparsePoint)
 			++nStorageReparsePoints;
 	}
-	if ( nStorageFailures )
-		theApp.Message( MSG_ERROR, L"%d Envy storage directory/directories could not be prepared; check permissions and configured locations", nStorageFailures );
-	if ( nStorageReparsePoints )
-		theApp.Message( MSG_WARNING, L"An Envy storage directory uses a symbolic link, junction, or other reparse point; verify its target is intentional" );
+	if (nStorageFailures)
+		theApp.Message(MSG_ERROR, L"%d Envy storage directory/directories could not be prepared; check permissions and configured locations", nStorageFailures);
+	if (nStorageReparsePoints)
+		theApp.Message(MSG_WARNING, L"An Envy storage directory uses a symbolic link, junction, or other reparse point; verify its target is intentional");
 
 	// Set interface
 	Interface.LowResMode = GetSystemMetrics( SM_CYSCREEN ) < 640;
