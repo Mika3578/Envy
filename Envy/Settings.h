@@ -40,7 +40,7 @@ public:
 	struct sGeneral
 	{
 		CString		Path;					// Installation path for Envy
-		CString		UserPath;				// Path for user data (defaults to the per-user roaming profile)
+		CString UserPath;                   // Path for user data (defaults to the per-user roaming profile)
 		CString		DataPath;				// Full path for user data. (Same as above plus \Data\)
 		CString		AntiVirus;				// Anti-virus path or CLSID
 		bool		MultiUser;				// Multiuser installation
