@@ -25,6 +25,93 @@
 #include "Ed2kKadSettingsPolicy.h"
 #include "DcHublistSources.h"
 #include "TransferSettingsLimits.h"
+#include "StoragePaths.h"
+
+#include <ShlObj.h>
+
+static bool EnsureStorageDirectory(const CString& strPath, bool* pbReparsePoint)
+{
+	CString strDirectory = strPath;
+	if ( strDirectory.GetLength() > 3 )
+		strDirectory.TrimRight( L"\\/" );
+	if ( strDirectory.IsEmpty() )
+		return false;
+
+	DWORD nAttributes = GetFileAttributes( strDirectory );
+	if ( nAttributes == INVALID_FILE_ATTRIBUTES )
+	{
+		const int nCreateResult = SHCreateDirectoryEx( NULL, strDirectory, NULL );
+		if ( nCreateResult != ERROR_SUCCESS && nCreateResult != ERROR_ALREADY_EXISTS )
+		{
+			theApp.Message( MSG_ERROR, L"Failed to prepare a writable Envy storage directory (Windows error %u)", nCreateResult );
+			return false;
+		}
+		nAttributes = GetFileAttributes( strDirectory );
+	}
+
+	if ( nAttributes == INVALID_FILE_ATTRIBUTES || !( nAttributes & FILE_ATTRIBUTE_DIRECTORY ) )
+	{
+		theApp.Message( MSG_ERROR, L"An Envy storage path is unavailable or is not a directory" );
+		return false;
+	}
+
+	CString strProbePath;
+	strProbePath.Format( L"%s\\.envy-write-test-%lu-%lu.tmp", (LPCTSTR)strDirectory,
+		GetCurrentProcessId(), GetTickCount() );
+	HANDLE hProbe = CreateFile( strProbePath, GENERIC_WRITE, 0, NULL, CREATE_NEW,
+		FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, NULL );
+	if ( hProbe == INVALID_HANDLE_VALUE )
+	{
+		theApp.Message( MSG_ERROR, L"An Envy storage directory is not writable (Windows error %u)", GetLastError() );
+		return false;
+	}
+	CloseHandle( hProbe );
+
+	if ( pbReparsePoint && StoragePathIsReparsePoint( nAttributes ) )
+		*pbReparsePoint = true;
+
+	return true;
+}
+
+static bool HasStorageEntriesOrUnverifiable(const CString& strPath)
+{
+	if ( strPath.IsEmpty() )
+		return true;
+
+	const DWORD nAttributes = GetFileAttributes( strPath );
+	if ( nAttributes == INVALID_FILE_ATTRIBUTES )
+	{
+		const DWORD nError = GetLastError();
+		return nError != ERROR_FILE_NOT_FOUND && nError != ERROR_PATH_NOT_FOUND;
+	}
+	if ( !( nAttributes & FILE_ATTRIBUTE_DIRECTORY ) )
+		return true;
+
+	CString strSearchPath = strPath;
+	if ( strSearchPath.Right( 1 ) != L"\\" && strSearchPath.Right( 1 ) != L"/" )
+		strSearchPath += L'\\';
+	strSearchPath += L"*";
+
+	WIN32_FIND_DATA findData = {};
+	HANDLE hFind = FindFirstFile( strSearchPath, &findData );
+	if ( hFind == INVALID_HANDLE_VALUE )
+		return true;
+
+	bool bHasEntries = false;
+	do
+	{
+		if ( _tcscmp( findData.cFileName, L"." ) && _tcscmp( findData.cFileName, L".." ) )
+		{
+			bHasEntries = true;
+			break;
+		}
+	}
+	while ( FindNextFile( hFind, &findData ) );
+	const DWORD nError = GetLastError();
+
+	FindClose( hFind );
+	return bHasEntries || nError != ERROR_NO_MORE_FILES;
+}
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -730,36 +817,40 @@ void CSettings::Load()
 			FreeLibrary( hMSI );
 	}
 
+	// An installed build has a registry installation identity; portable packages do not.
+	const bool bPortableMode = General.Path.IsEmpty();
+
 	// Set default program and user paths
 	if ( General.Path.IsEmpty() || ! PathFileExists( General.Path ) )
 		General.Path = theApp.m_strBinaryPath.Left( theApp.m_strBinaryPath.ReverseFind( L'\\' ) );
 
-	if ( General.MultiUser )
-	{
-		if ( General.UserPath.IsEmpty() )
-			General.UserPath = theApp.GetAppDataFolder() + L"\\Envy";
-		if ( Downloads.IncompletePath.IsEmpty() )
-			Downloads.IncompletePath = theApp.GetLocalAppDataFolder() + L"\\Envy\\Incomplete";
-		if ( Downloads.CompletePath.IsEmpty() )
-			Downloads.CompletePath = theApp.GetDownloadsFolder();
-	}
-	else
-	{
-		if ( General.UserPath.IsEmpty() )
-			General.UserPath = General.Path;
-		if ( Downloads.IncompletePath.IsEmpty() )
-			Downloads.IncompletePath = General.Path + L"\\Incomplete";
-		if ( Downloads.CompletePath.IsEmpty() )
-			Downloads.CompletePath = theApp.GetDownloadsFolder();	//General.Path + L"\\Downloads";
-	}
+	const CString strCompleteDownloadRoot = Downloads.CompletePath.IsEmpty() ?
+		theApp.GetDownloadsFolder() : Downloads.CompletePath;
+	const CString strLegacyIncompletePath = General.Path + L"\\Incomplete";
+	const CString strLegacyCollectionPath = ( General.UserPath.IsEmpty() ? General.Path : General.UserPath ) + L"\\Collections";
+	const StoragePathDefaults pathDefaults = bPortableMode ?
+		BuildPortableStoragePathDefaults( std::wstring( (LPCTSTR)General.Path ), std::wstring( (LPCTSTR)strCompleteDownloadRoot ) ) :
+		BuildStoragePathDefaults(
+			std::wstring( (LPCTSTR)theApp.GetAppDataFolder() ),
+			std::wstring( (LPCTSTR)theApp.GetLocalAppDataFolder() ),
+			std::wstring( (LPCTSTR)strCompleteDownloadRoot ) );
+
+	General.UserPath = ResolveStoragePath(
+		std::wstring( (LPCTSTR)General.UserPath ), pathDefaults.userData ).c_str();
+	Downloads.IncompletePath = ResolveStoragePath(
+		std::wstring( (LPCTSTR)Downloads.IncompletePath ), pathDefaults.incomplete,
+		HasStorageEntriesOrUnverifiable( strLegacyIncompletePath ) ? std::wstring( (LPCTSTR)strLegacyIncompletePath ) : std::wstring() ).c_str();
+	Downloads.CompletePath = ResolveStoragePath(
+		std::wstring( (LPCTSTR)Downloads.CompletePath ), pathDefaults.complete ).c_str();
 
 	if ( General.DataPath.IsEmpty() )
 		General.DataPath = General.UserPath + L"\\Data\\";
 
-	if ( Downloads.CollectionPath.IsEmpty() )
-		Downloads.CollectionPath = General.UserPath + L"\\Collections";
-	if ( Downloads.TorrentPath.IsEmpty() )
-		Downloads.TorrentPath = Downloads.CompletePath + L"\\Torrents";
+	Downloads.CollectionPath = ResolveStoragePath(
+		std::wstring( (LPCTSTR)Downloads.CollectionPath ), pathDefaults.collections,
+		HasStorageEntriesOrUnverifiable( strLegacyCollectionPath ) ? std::wstring( (LPCTSTR)strLegacyCollectionPath ) : std::wstring() ).c_str();
+	Downloads.TorrentPath = ResolveStoragePath(
+		std::wstring( (LPCTSTR)Downloads.TorrentPath ), pathDefaults.torrents ).c_str();
 
 	if ( ! StartsWith( BitTorrent.DefaultTracker, _P( L"http://" ) ) &&
 		 ! StartsWith( BitTorrent.DefaultTracker, _P( L"udp://" ) ) )
@@ -773,13 +864,28 @@ void CSettings::Load()
 	//if ( General.Running )
 	// ToDo: Detect Envy restarted after a crash ?
 
-	// Make sure some needed paths exist
-	CreateDirectory( General.Path + L"\\Data" );
-	CreateDirectory( General.DataPath.Left( General.DataPath.GetLength() - 1 ) );		// General.UserPath + L"\\Data"
-	CreateDirectory( Downloads.IncompletePath );
-	CreateDirectory( Downloads.CompletePath );
-	CreateDirectory( Downloads.TorrentPath );
-	CreateDirectory( Downloads.CollectionPath );
+	// Create mutable directories recursively; the packaged install Data folder is read-only.
+	const CString strStoragePaths[] = {
+		General.DataPath,
+		Downloads.IncompletePath,
+		Downloads.CompletePath,
+		Downloads.TorrentPath,
+		Downloads.CollectionPath
+	};
+	int nStorageFailures = 0;
+	int nStorageReparsePoints = 0;
+	for ( int i = 0; i < _countof( strStoragePaths ); ++i )
+	{
+		bool bReparsePoint = false;
+		if ( ! EnsureStorageDirectory( strStoragePaths[i], &bReparsePoint ) )
+			++nStorageFailures;
+		if ( bReparsePoint )
+			++nStorageReparsePoints;
+	}
+	if ( nStorageFailures )
+		theApp.Message( MSG_ERROR, L"%d Envy storage directory/directories could not be prepared; check permissions and configured locations", nStorageFailures );
+	if ( nStorageReparsePoints )
+		theApp.Message( MSG_WARNING, L"An Envy storage directory uses a symbolic link, junction, or other reparse point; verify its target is intentional" );
 
 	// Set interface
 	Interface.LowResMode = GetSystemMetrics( SM_CYSCREEN ) < 640;
