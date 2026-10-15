@@ -1352,8 +1352,8 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 		CString strLine;
 		try
 		{
-			if ( ! pFile.ReadString( strLine ) )
-				break;	// End of file
+			if (!pFile.ReadString(strLine))
+				break; // End of file
 		}
 		catch (CException* pException)
 		{
