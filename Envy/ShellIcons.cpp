@@ -521,6 +521,21 @@ void CShellIcons::AttachTo(CTreeCtrl* const pTree) const
 	pTree->SetImageList( const_cast< CImageList* >( &m_i16 ), LVSIL_NORMAL );
 }
 
+static int GetDrawIconIndex(HIMAGELIST hImages, int nIcon)
+{
+	if (!hImages)
+		return -1;
+
+	const int nImageCount = ImageList_GetImageCount(hImages);
+	if (nImageCount <= 0)
+		return -1;
+
+	if (nIcon < 0 || nIcon >= nImageCount)
+		nIcon = SHI_FILE;
+
+	return nIcon >= 0 && nIcon < nImageCount ? nIcon : -1;
+}
+
 //////////////////////////////////////////////////////////////////////
 // CShellIcons draw icon
 
@@ -546,16 +561,8 @@ BOOL CShellIcons::Draw(CDC* pDC, int nIcon, int nSize, int nX, int nY, COLORREF 
 		return FALSE;
 	}
 
-	if (!hImages)
-		return FALSE;
-
-	const int nImageCount = ImageList_GetImageCount(hImages);
-	if (nImageCount <= 0)
-		return FALSE;
-
-	if (nIcon < 0 || nIcon >= nImageCount)
-		nIcon = SHI_FILE;
-	if (nIcon < 0 || nIcon >= nImageCount)
+	nIcon = GetDrawIconIndex(hImages, nIcon);
+	if (nIcon < 0)
 		return FALSE;
 
 	return ImageList_DrawEx( hImages, nIcon, pDC->GetSafeHdc(),
@@ -586,16 +593,8 @@ BOOL CShellIcons::Draw(CDC* pDC, int nIcon, int nSize, int nX, int nY, COLORREF 
 		return FALSE;
 	}
 
-	if (!hImages)
-		return FALSE;
-
-	const int nImageCount = ImageList_GetImageCount(hImages);
-	if (nImageCount <= 0)
-		return FALSE;
-
-	if (nIcon < 0 || nIcon >= nImageCount)
-		nIcon = SHI_FILE;
-	if (nIcon < 0 || nIcon >= nImageCount)
+	nIcon = GetDrawIconIndex(hImages, nIcon);
+	if (nIcon < 0)
 		return FALSE;
 
 	return ImageList_DrawEx( hImages, nIcon, pDC->GetSafeHdc(),
