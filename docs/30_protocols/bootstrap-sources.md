@@ -1,7 +1,7 @@
 # Bootstrap sources versus discovered hosts
 
 Status: active
-Last updated: 2026-10-10
+Last updated: 2026-10-15
 Scope: Cold-start catalogues shipped with Envy. Not a claim that every protocol is complete.
 
 **Bootstrap sources ≠ discovered peers/servers.** Envy already keeps those layers apart:
@@ -35,6 +35,27 @@ Status vocabulary: catalogue refresh is **implemented** for the shipped files; r
 | DC NMDC | implemented (hublist) | Four HTTPS hublists. `adc://` / `adcs://` skipped until #163. |
 | ADC/ADCS | not implemented | `adc://` / `adcs://` rows are ignored; NMDC rows in the same hublists are still imported. Do not treat import as ADC support. |
 | BitTorrent DHT | implemented (bootstrap) | `DefaultServers.dat` `B` DNS routers loaded into HostCache. `CDHT::Connect` inserts cached node IDs; if none exist it sends BEP 5 `find_node` to up to 8 HostCache BitTorrent hosts (blocking DNS capped at 3 names; empty cache reloads `DefaultServers.dat`). No extra C++ DNS list. If the catalogue file is missing or every name fails DNS, DHT still marks connected and waits for later PEX/tracker nodes — D-012 forbids compiling `router.bittorrent.com` (or any replacement) into `.cpp`. Successful nodes persist in `HostCache.dat`. |
+
+### Gnutella 1 cache compatibility
+
+G1 GWebCaches and UDP Host Caches (UHCs) are separate discovery mechanisms.
+GWebCache uses HTTP requests to exchange peer addresses and cache URLs; a UHC
+answers Gnutella UDP ping/pong traffic and is identified through the UDPHC GGEP
+extension. A historical `Discovery.dat` with enough G1 GWebCaches but no UHC
+therefore still needs repair. `EnoughServices()` checks the UHC minimum
+independently, `Load()` adds the shipped UHC rows and saves the augmented
+cache, and the following startup sees that persisted UHC and does not inject
+the defaults again. `AddDefaults()` adds missing identities; it does not clear
+learned or manually added services.
+
+This distinction matches the [GWebCache HTTP specification](https://www.gnucleus.org/gwebcache/specs.html)
+and the [Gnutella UDP Host Cache description](https://www.gnutellaforums.com/attachments/general-gnutella-development-discussion/7007d1589595075-resources-gnutella-developers-udp-host-cache-gnutella-developers.pdf).
+The maintained gtk-gnutella source keeps these paths in separate [GWebCache](https://gtk-gnutella.sourceforge.io/doxygen/gwcache_8c.html)
+and [UHC](https://gtk-gnutella.sourceforge.io/doxygen/uhc_8c.html) modules,
+and its changelog records UHC-list/port maintenance
+([source project](https://github.com/gtk-gnutella/gtk-gnutella)).
+This catalogue distinction does not claim complete Gnutella 1 or Gnutella2
+network support or end-to-end interoperability.
 
 ## Shipped sources (latest inventory: 2026-10-10)
 

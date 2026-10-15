@@ -1330,12 +1330,14 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 	}
 	catch (CException* pException)
 	{
+		pFile.Abort();
 		pException->Delete();
 		theApp.Message(MSG_ERROR, L"Failed to inspect the default server catalogue");
 		return 0;
 	}
 	if (nCatalogueLength > 1024 * 1024)
 	{
+		pFile.Close();
 		theApp.Message(MSG_ERROR, L"Default server catalogue exceeds the 1 MiB limit");
 		return 0;
 	}
@@ -1348,8 +1350,18 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 	for ( ;; )
 	{
 		CString strLine;
-		if ( ! pFile.ReadString( strLine ) )
-			break;	// End of file
+		try
+		{
+			if ( ! pFile.ReadString( strLine ) )
+				break;	// End of file
+		}
+		catch (CException* pException)
+		{
+			pFile.Abort();
+			pException->Delete();
+			theApp.Message(MSG_ERROR, L"Failed while reading the default server catalogue");
+			return nServers;
+		}
 
 		strLine.Trim( L" \t\r\n" );
 
@@ -1425,6 +1437,7 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 	//		nServers++;
 	//	}
 	}
+	pFile.Close();
 	if (nInvalidRows)
 		theApp.Message(MSG_ERROR, L"Skipped %d invalid row(s) in the default server catalogue", nInvalidRows);
 
