@@ -315,7 +315,10 @@ the final diff. This PR is itself in that category.
 
 The existing authorship workflow is retained: read-only permissions, scanner
 loaded from the base SHA via the Contents API (no `actions/checkout` of the PR
-workspace), PR commits/text inspected as data in a throwaway git mirror. Its
+workspace), PR commits/text inspected as data in a throwaway git mirror. Loading
+the scanner fails closed on API, permission, or transient errors; the only soft
+pass is a genuine HTTP 404 when the checker is absent from the base (first-merge
+bootstrap). Its
 `pull_request_target` path does not run PR code and it runs only on PR
 lifecycle/content changes; review/comment events do not retrigger it. This is not a universal
 trusted-policy guarantee. No new privileged trigger is introduced. Build errors use summaries/artifacts rather

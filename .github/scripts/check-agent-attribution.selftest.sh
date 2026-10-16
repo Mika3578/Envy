@@ -313,6 +313,13 @@ expect_pass "technical Copilot mention in PR title" --pr-title "$TMP/pr-title-co
 printf 'feat: Cursor Agent update\n' >"$TMP/pr-title-tool.md"
 expect_pass "tool name alone in PR title" --pr-title "$TMP/pr-title-tool.md"
 
+# Regression for PR #481: technical editor/tooling titles must not FAIL.
+printf 'build(editor): add portable MSBuild tasks and refresh Cursor tooling\n' >"$TMP/pr-title-cursor-tooling.md"
+expect_pass "technical Cursor mention in editor tooling PR title" --pr-title "$TMP/pr-title-cursor-tooling.md"
+
+printf 'ci(authorship): classify FAIL/WARN/PASS for Codex runners\n' >"$TMP/pr-title-codex.md"
+expect_pass "technical Codex mention in PR title" --pr-title "$TMP/pr-title-codex.md"
+
 printf 'Generated with Cursor\n' >"$TMP/pr-title-promo.md"
 expect_warn "promotional signature in PR title" --pr-title "$TMP/pr-title-promo.md"
 
