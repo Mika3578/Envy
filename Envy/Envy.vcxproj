@@ -1760,10 +1760,10 @@ $(EnvyCrashPostBuildCmd)</Command>
     <Error Condition="!Exists('$(MSBuildProjectDirectory)\..\Data\DefaultServices.dat')" Text="Missing Data\DefaultServices.dat required for Envy bootstrap." />
     <Error Condition="!Exists('$(MSBuildProjectDirectory)\..\Data\DefaultServers.dat')" Text="Missing Data\DefaultServers.dat required for Envy bootstrap." />
   </Target>
+  <!-- No Inputs/Outputs: dependency analysis would skip Copy when a staged catalogue was altered
+       but is newer than its source; SkipUnchangedFiles already avoids needless copies. -->
   <Target Name="StageBootstrapCatalogues" AfterTargets="Build"
-          Condition="'$(DesignTimeBuild)' != 'true'"
-          Inputs="$(MSBuildProjectDirectory)\..\Data\DefaultServices.dat;$(MSBuildProjectDirectory)\..\Data\DefaultServers.dat"
-          Outputs="$(TargetDir)Data\DefaultServices.dat;$(TargetDir)Data\DefaultServers.dat">
+          Condition="'$(DesignTimeBuild)' != 'true'">
     <MakeDir Directories="$(TargetDir)Data" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\Data\DefaultServices.dat;$(MSBuildProjectDirectory)\..\Data\DefaultServers.dat"
           DestinationFiles="$(TargetDir)Data\DefaultServices.dat;$(TargetDir)Data\DefaultServers.dat"
