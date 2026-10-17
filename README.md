@@ -10,13 +10,13 @@ Envy is not an eMule replacement and is not replaced by aMule, eMule Qt, aria2-n
 
 The modernized version of Envy is currently under active development.
 
-**Latest test release target:** Envy 4.2.0 Preview 1 (`v4.2.0-preview.1`)
+**Latest test release target:** Envy 4.2.0 Preview 2 (`v4.2.0-preview.2`)
 
 - **Windows x64:** recommended download
 - **Windows x86 (Win32):** legacy compatibility
 - **Portable ZIP:** diagnostic / no-installer runs
 
-Download builds from the GitHub [Releases](https://github.com/Mika3578/Envy/releases) page once Preview 1 is published.
+Download builds from the GitHub [Releases](https://github.com/Mika3578/Envy/releases) page once Preview 2 is published.
 
 This is **preview** software. Some P2P protocol functionality is still under development. Preview installers are **not Authenticode-signed**; Windows SmartScreen may warn on first run. See `docs/KNOWN_LIMITATIONS.md`.
 
