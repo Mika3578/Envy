@@ -349,10 +349,14 @@ Git author/committer strings are forgeable. The scanner therefore:
    (`{id}+{login}[bot]@users.noreply.github.com`) when the display name matches
    the login.
 2. Accepts allowlisted runners (see `TRUSTED_RUNNER_EMAILS` in the scanner)
-   when GitHub commit verification reports `verified: true`; otherwise warns.
+   only when GitHub links the commit author to the expected runner login **and**
+   commit verification reports `verified: true`. A verified signature on a
+   different GitHub account is **FAIL**; missing linkage is **FAIL** when
+   provenance was loaded.
 3. When `--github-repo` is set, loads GitHub commit provenance (linked author
-   login/type and verification). A login mismatch against a claimed trusted bot
-   is **FAIL**.
+   login/type and verification) for commits that claim trusted automation.
+   Lookup volume is capped (`MAX_PROVENANCE_API_CALLS` in the scanner). A login
+   mismatch against a claimed trusted bot or runner is **FAIL**.
 4. Never rewrites or reassigns commit authorship.
 
 This repository does **not** require DCO. Optional commit signatures remain

@@ -233,8 +233,8 @@ Branch model:
       rewrite history solely to clear an advisory warning.
     - **PASS:** human GitHub noreply authors; trusted automation with
       established provenance (allowlisted GitHub App `{id}+{login}[bot]@users.noreply.github.com`,
-      or allowlisted runners listed in the scanner when GitHub reports a
-      verified signature); technical mentions of Cursor, Copilot,
+      or allowlisted runners when GitHub links the commit author to the
+      expected runner login and reports a verified signature); technical mentions of Cursor, Copilot,
       CodeRabbit, Codex, and similar tools in titles/docs; recognized bot
       review/summary blocks on the PR conversation.
     - **Do not** add `Co-authored-by` trailers for AI assistants, agents,
@@ -245,9 +245,10 @@ Branch model:
       (CI warns; privacy/forgery remains FAIL).
     - GitHub bot comments, reviews, and auto-generated summary blocks
       (CodeRabbit, Cubic, Amazon Q, Sonar, Copilot summaries, and similar)
-      are allowed on the PR conversation. The authorship scanner ignores
-      recognized bot output; it enforces policy on commits, added source
-      lines, and contributor-authored PR title/body text.
+      are allowed on the PR conversation. The authorship scanner may ignore
+      recognized bot summary delimiters for editorial checks only; privacy
+      scans still use the full contributor PR body. It enforces policy on
+      commits, added source lines, and contributor-authored PR title/body text.
     - Prefer a human GitHub noreply identity for agent-assisted work
       (`scripts/configure-git-noreply.sh`, `user.useConfigOnly=true`):
       `<id>+<login>@users.noreply.github.com`. Do not invent a fake tool

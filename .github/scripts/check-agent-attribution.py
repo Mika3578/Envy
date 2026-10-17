@@ -169,6 +169,16 @@ def is_trusted_runner_email(email: str) -> bool:
     return email.strip().lower() in TRUSTED_RUNNER_EMAILS
 
 
+# Cap per-job GitHub commit lookups when --github-repo is set (rate limits / time).
+MAX_PROVENANCE_API_CALLS = 64
+
+
+def trusted_runner_github_logins(email: str) -> set[str]:
+    """GitHub logins that may corroborate an allowlisted runner mailbox."""
+    local = email.strip().lower().split("@", 1)[0]
+    return {local}
+
+
 DOC_OR_REMOTE_DOMAINS = {
     "example.com",
     "example.org",
@@ -332,15 +342,17 @@ def scan_text(
     text: str,
     *,
     allow_ai_author_email: bool = False,
+    privacy_text: str | None = None,
 ) -> None:
+    privacy_source = privacy_text if privacy_text is not None else text
     if GENERATED_LINE_RE.search(text):
         report(
             findings,
             SEVERITY_WARN,
             f"{label}: AI-tool generation signature is discouraged.",
         )
-    _scan_trailers(findings, label, text)
-    for email in emails_in_text(text):
+    _scan_trailers(findings, label, privacy_source)
+    for email in emails_in_text(privacy_source):
         _reject_email(
             findings,
             f"{label}: non-allowlisted email address in generated git/GitHub text.",
@@ -352,13 +364,21 @@ def scan_text(
 def scan_pr_text(findings: list[Finding], label: str, text: str) -> None:
     """Scan contributor-authored PR text; ignore recognized bot summary blocks."""
     contributor = strip_automated_pr_sections(text)
+    if contributor != text:
+        report(
+            findings,
+            SEVERITY_WARN,
+            f"{label}: bot auto-summary delimiters in contributor text are not "
+            "trusted; privacy checks still apply to the full body.",
+        )
     if CONTRIBUTOR_AGENT_MARKER_RE.search(contributor):
         report(
             findings,
             SEVERITY_WARN,
             f"{label}: agent automation marker in contributor text is discouraged.",
         )
-    scan_text(findings, label, contributor)
+    # Editorial signatures may ignore stripped bot blocks; privacy must not.
+    scan_text(findings, label, contributor, privacy_text=text)
 
 
 def scan_pr_title(findings: list[Finding], label: str, text: str) -> None:
@@ -392,11 +412,17 @@ class CommitGithubMeta:
     committer_login: str = ""
     committer_type: str = ""
 
-    def for_committer(self) -> "CommitGithubMeta":
+    def for_committer(self, author_email: str = "", committer_email: str = "") -> "CommitGithubMeta":
         """Provenance as seen by the committer identity check."""
+        login = self.committer_login
+        utype = self.committer_type
+        if not login and author_email and committer_email:
+            if author_email.strip().lower() == committer_email.strip().lower():
+                login = self.author_login
+                utype = self.author_type
         return CommitGithubMeta(
-            author_login=self.committer_login,
-            author_type=self.committer_type,
+            author_login=login,
+            author_type=utype,
             verified=self.verified,
             reason=self.reason,
         )
@@ -407,6 +433,7 @@ def classify_identity(
     email: str,
     *,
     meta: CommitGithubMeta | None = None,
+    require_provenance_link: bool = False,
 ) -> list[tuple[str, str]]:
     """Return (severity, message) pairs for a git author/committer identity."""
     out: list[tuple[str, str]] = []
@@ -424,7 +451,15 @@ def classify_identity(
     trusted_logins = {item.lower() for item in TRUSTED_BOT_LOGINS}
 
     if trusted_bot:
-        if meta.author_login:
+        if require_provenance_link or meta.author_login:
+            if not meta.author_login:
+                out.append(
+                    (
+                        SEVERITY_FAIL,
+                        "trusted automation identity without linked GitHub author login.",
+                    )
+                )
+                return out
             if meta.author_login.lower() != bot_login:
                 out.append(
                     (
@@ -460,7 +495,37 @@ def classify_identity(
 
     if trusted_runner:
         if looks_like_ai_tool_name(name) or name_l in {"cursor agent", "cursoragent"}:
-            if meta.verified is True:
+            expected = trusted_runner_github_logins(email)
+            login = meta.author_login.lower() if meta.author_login else ""
+            if require_provenance_link or meta.author_login or meta.verified is not None:
+                if not login:
+                    out.append(
+                        (
+                            SEVERITY_FAIL,
+                            "trusted automation runner identity without linked GitHub "
+                            "author login.",
+                        )
+                    )
+                    return out
+                if login not in expected:
+                    out.append(
+                        (
+                            SEVERITY_FAIL,
+                            "trusted automation runner identity does not match GitHub "
+                            f"author login (expected one of {sorted(expected)}, "
+                            f"github={meta.author_login}).",
+                        )
+                    )
+                    return out
+                if meta.verified is not True:
+                    out.append(
+                        (
+                            SEVERITY_WARN,
+                            "trusted automation runner identity without verified GitHub "
+                            "commit signature; prefer a human GitHub noreply identity.",
+                        )
+                    )
+                    return out
                 return out
             out.append(
                 (
@@ -538,8 +603,14 @@ def scan_identity(
     email: str,
     *,
     meta: CommitGithubMeta | None = None,
+    require_provenance_link: bool = False,
 ) -> None:
-    for severity, msg in classify_identity(name, email, meta=meta):
+    for severity, msg in classify_identity(
+        name,
+        email,
+        meta=meta,
+        require_provenance_link=require_provenance_link,
+    ):
         report(findings, severity, f"{label}: {msg}")
 
 
@@ -626,6 +697,7 @@ def scan_commits(
         report(findings, SEVERITY_FAIL, str(exc))
         return
     meta_by_sha = dict(meta_by_sha or {})
+    provenance_api_calls = 0
     for commit in commits:
         email = git_log_field(commit, "%ae")
         name = git_log_field(commit, "%an")
@@ -634,28 +706,49 @@ def scan_commits(
         body = git_log_field(commit, "%B")
         short = commit[:12]
         meta = meta_by_sha.get(commit)
-        if meta is None and github_repo:
-            try:
-                meta = fetch_commit_github_meta(github_repo, commit)
-                meta_by_sha[commit] = meta
-            except (ValueError, RuntimeError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
-                # Trusted automation is only accepted with provenance; without it
-                # a forged bot or runner identity would pass unchecked.
-                severity = (
-                    SEVERITY_FAIL
-                    if needs_provenance(name, email) or needs_provenance(cname, cemail)
-                    else SEVERITY_WARN
-                )
+        needs_link = needs_provenance(name, email) or needs_provenance(cname, cemail)
+        provenance_loaded = meta is not None
+        if meta is None and github_repo and needs_link:
+            if provenance_api_calls >= MAX_PROVENANCE_API_CALLS:
                 report(
                     findings,
-                    severity,
-                    f"commit {short}: could not load GitHub provenance ({exc}).",
+                    SEVERITY_FAIL,
+                    f"commit {short}: exceeded GitHub provenance lookup budget "
+                    f"({MAX_PROVENANCE_API_CALLS} commits).",
                 )
                 meta = CommitGithubMeta()
+            else:
+                provenance_api_calls += 1
+                try:
+                    meta = fetch_commit_github_meta(github_repo, commit)
+                    meta_by_sha[commit] = meta
+                    provenance_loaded = True
+                except (ValueError, RuntimeError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
+                    # Trusted automation is only accepted with provenance; without it
+                    # a forged bot or runner identity would pass unchecked.
+                    report(
+                        findings,
+                        SEVERITY_FAIL,
+                        f"commit {short}: could not load GitHub provenance ({exc}).",
+                    )
+                    meta = CommitGithubMeta()
         meta = meta or CommitGithubMeta()
-        scan_identity(findings, f"commit {short} author", name, email, meta=meta)
+        require_link = provenance_loaded and needs_link
         scan_identity(
-            findings, f"commit {short} committer", cname, cemail, meta=meta.for_committer()
+            findings,
+            f"commit {short} author",
+            name,
+            email,
+            meta=meta,
+            require_provenance_link=require_link,
+        )
+        scan_identity(
+            findings,
+            f"commit {short} committer",
+            cname,
+            cemail,
+            meta=meta.for_committer(email, cemail),
+            require_provenance_link=require_link and needs_provenance(cname, cemail),
         )
         # Signature warnings require explicit provenance meta (file or GitHub API).
         if meta.verified is not None:

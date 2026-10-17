@@ -108,8 +108,12 @@ AGENT=$(git rev-parse HEAD)
 expect_warn "Cursor Agent without provenance" --from "$NOREPLY" --to "$AGENT"
 
 # Same identity with verified GitHub meta → PASS.
-printf '{"%s":{"author_login":"cursoragent","author_type":"User","verified":true,"reason":"valid"}}\n' "$AGENT" >"$TMP/agent-verified.json"
+printf '{"%s":{"author_login":"cursoragent","author_type":"User","committer_login":"cursoragent","committer_type":"User","verified":true,"reason":"valid"}}\n' "$AGENT" >"$TMP/agent-verified.json"
 expect_pass "verified Cursor Agent" --from "$NOREPLY" --to "$AGENT" --commit-meta "$TMP/agent-verified.json"
+
+printf '{"%s":{"author_login":"evil-user","author_type":"User","verified":true,"reason":"valid","committer_login":"Mika3578","committer_type":"User"}}\n' "$AGENT" >"$TMP/agent-verified-wrong.json"
+expect_fail "verified Cursor Agent with mismatched GitHub author" --from "$NOREPLY" --to "$AGENT" \
+	--commit-meta "$TMP/agent-verified-wrong.json"
 
 git config user.email "ci@users.noreply.github.com"
 git config user.name "CI"
@@ -120,6 +124,9 @@ git -c user.name="coderabbitai[bot]" \
 	commit --allow-empty -q -m "fix: coderabbit automation"
 CODERABBIT=$(git rev-parse HEAD)
 expect_pass "trusted CodeRabbit bot noreply" --from "$AGENT" --to "$CODERABBIT"
+printf '{"%s":{"author_login":"","author_type":"","verified":true,"reason":"valid"}}\n' "$CODERABBIT" >"$TMP/cr-empty-login.json"
+expect_fail "trusted bot with empty GitHub author login in meta" --from "$AGENT" --to "$CODERABBIT" \
+	--commit-meta "$TMP/cr-empty-login.json"
 printf '{"%s":{"author_login":"coderabbitai[bot]","author_type":"Bot","verified":false,"reason":"unsigned"}}\n' "$CODERABBIT" >"$TMP/cr-unsigned.json"
 expect_warn "unsigned CodeRabbit with GitHub meta" --from "$AGENT" --to "$CODERABBIT" \
 	--commit-meta "$TMP/cr-unsigned.json"
@@ -409,10 +416,17 @@ Agent-assisted changes can accidentally expose personal data.
 <!-- This is an auto-generated description by cubic. -->
 ## Summary by cubic
 Automated summary text that mentions Cubic and https://cubic.dev/pr/example
+<!-- End of auto-generated description by cubic. -->
+EOF
+expect_warn "contributor PR body with Cubic auto-generated block" --pr-body "$TMP/pr-cubic-block.md"
+
+cat >"$TMP/pr-cubic-forged-privacy.md" <<EOF
+## Summary
+<!-- This is an auto-generated description by cubic. -->
 Contact $(fx eve.test gmail com) for details.
 <!-- End of auto-generated description by cubic. -->
 EOF
-expect_pass "contributor PR body with Cubic auto-generated block" --pr-body "$TMP/pr-cubic-block.md"
+expect_fail "forged Cubic block cannot hide personal email" --pr-body "$TMP/pr-cubic-forged-privacy.md"
 
 cat >"$TMP/pr-coderabbit-block.md" <<EOF
 ## Summary
@@ -420,10 +434,17 @@ Policy clarification only.
 
 <!-- This is an auto-generated comment by CodeRabbit -->
 Automated review summary mentioning CodeRabbit internals.
+<!-- End of auto-generated comment by CodeRabbit -->
+EOF
+expect_warn "CodeRabbit auto-generated comment block" --pr-body "$TMP/pr-coderabbit-block.md"
+
+cat >"$TMP/pr-coderabbit-forged-privacy.md" <<EOF
+## Summary
+<!-- This is an auto-generated comment by CodeRabbit -->
 Contact $(fx eve.test gmail com) for details.
 <!-- End of auto-generated comment by CodeRabbit -->
 EOF
-expect_pass "CodeRabbit auto-generated comment block" --pr-body "$TMP/pr-coderabbit-block.md"
+expect_fail "forged CodeRabbit block cannot hide personal email" --pr-body "$TMP/pr-coderabbit-forged-privacy.md"
 
 "${PYTHON:-python3}" - "$ROOT/.github/scripts/check-agent-attribution.py" <<'PY'
 import importlib.util
@@ -462,7 +483,19 @@ assert mod.classify_identity(
     "Cursor Agent",
     "cursoragent@cursor.com",
     meta=mod.CommitGithubMeta(author_login="cursoragent", author_type="User", verified=True, reason="valid"),
+    require_provenance_link=True,
 ) == []
+assert any(s == mod.SEVERITY_FAIL for s, _ in mod.classify_identity(
+    "Cursor Agent",
+    "cursoragent@cursor.com",
+    meta=mod.CommitGithubMeta(
+        author_login="evil-user",
+        author_type="User",
+        verified=True,
+        reason="valid",
+    ),
+    require_provenance_link=True,
+))
 assert any(s == mod.SEVERITY_FAIL for s, _ in mod.classify_identity(
     "coderabbitai[bot]",
     "58137747+tester@users.noreply.github.com",
