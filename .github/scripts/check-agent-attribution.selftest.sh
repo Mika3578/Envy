@@ -162,6 +162,11 @@ expect_fail "bot committer linked to another account" --from "$SPOOF_HUMAN" --to
 git commit --allow-empty -q -m "fix: trailer privacy" -m "Co-authored-by: Claude <$(fx eve.test gmail com)>"
 AI_TRAILER_MAIL=$(git rev-parse HEAD)
 expect_fail "personal email in AI-named trailer" --from "$BOT_COMMITTER" --to "$AI_TRAILER_MAIL"
+if ! printf '%s\n' "$SCAN_OUT" | grep -q "attribution trailer Co-authored-by uses a non-allowlisted email"; then
+	echo "FAIL: AI-named trailer email was not checked"
+	echo "$SCAN_OUT"
+	exit 1
+fi
 
 echo three >file.txt
 git add file.txt

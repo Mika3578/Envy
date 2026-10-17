@@ -73,8 +73,11 @@ jobs:
           mirror="$(mktemp -d)"
           git init -q "$mirror"
           git -C "$mirror" remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          # Fetch the event's pinned head too: a force-push between the event and
+          # this fetch moves the PR ref, and the scan must cover HEAD_SHA itself.
           git -C "$mirror" fetch --no-tags origin \
             "${BASE_SHA}" \
+            "${HEAD_SHA}" \
             "+refs/pull/${PR_NUMBER}/head:refs/remotes/origin/pr/${PR_NUMBER}"
 
           work="$(mktemp -d)"
