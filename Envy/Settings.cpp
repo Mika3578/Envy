@@ -27,45 +27,26 @@
 #include "TransferSettingsLimits.h"
 #include "StoragePaths.h"
 
-#include <ShlObj.h>
+#include "StorageProbe.h"
 
 static bool EnsureStorageDirectory(const CString& strPath, bool* pbReparsePoint)
 {
-	CString strDirectory = strPath;
-	if (strDirectory.GetLength() > 3)
-		strDirectory.TrimRight(L"\\/");
-	if (strDirectory.IsEmpty())
+	DWORD nError = ERROR_SUCCESS;
+	DWORD nAttributes = INVALID_FILE_ATTRIBUTES;
+	switch (ProbeStorageDirectory(std::wstring((LPCTSTR)strPath), &nError, &nAttributes))
+	{
+	case StorageProbeResult::Ready:
+		break;
+	case StorageProbeResult::CreateFailed:
+		theApp.Message(MSG_ERROR, L"Failed to prepare a writable Envy storage directory (Windows error %u)", nError);
 		return false;
-
-	DWORD nAttributes = GetFileAttributes(strDirectory);
-	if (nAttributes == INVALID_FILE_ATTRIBUTES)
-	{
-		const int nCreateResult = SHCreateDirectoryEx(NULL, strDirectory, NULL);
-		if (nCreateResult != ERROR_SUCCESS && nCreateResult != ERROR_ALREADY_EXISTS)
-		{
-			theApp.Message(MSG_ERROR, L"Failed to prepare a writable Envy storage directory (Windows error %u)", nCreateResult);
-			return false;
-		}
-		nAttributes = GetFileAttributes(strDirectory);
-	}
-
-	if (nAttributes == INVALID_FILE_ATTRIBUTES || !(nAttributes & FILE_ATTRIBUTE_DIRECTORY))
-	{
+	case StorageProbeResult::NotDirectory:
 		theApp.Message(MSG_ERROR, L"An Envy storage path is unavailable or is not a directory");
 		return false;
-	}
-
-	CString strProbePath;
-	strProbePath.Format(L"%s\\.envy-write-test-%lu-%lu.tmp", (LPCTSTR)strDirectory,
-	                    GetCurrentProcessId(), GetTickCount());
-	HANDLE hProbe = CreateFile(strProbePath, GENERIC_WRITE, 0, NULL, CREATE_NEW,
-	                           FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, NULL);
-	if (hProbe == INVALID_HANDLE_VALUE)
-	{
-		theApp.Message(MSG_ERROR, L"An Envy storage directory is not writable (Windows error %u)", GetLastError());
+	case StorageProbeResult::NotWritable:
+		theApp.Message(MSG_ERROR, L"An Envy storage directory is not writable (Windows error %u)", nError);
 		return false;
 	}
-	CloseHandle(hProbe);
 
 	if (pbReparsePoint && StoragePathIsReparsePoint(nAttributes))
 		*pbReparsePoint = true;
@@ -846,6 +827,9 @@ void CSettings::Load()
 	if (General.DataPath.IsEmpty())
 		General.DataPath = General.UserPath + L"\\Data\\";
 
+	m_sDefaultDataPath = (JoinStoragePath(pathDefaults.userData, L"Data") + L"\\").c_str();
+	m_sDefaultIncompletePath = pathDefaults.incomplete.c_str();
+
 	Downloads.CollectionPath = ResolveStoragePath(
 	                               std::wstring((LPCTSTR)Downloads.CollectionPath), pathDefaults.collections,
 	                               HasStorageEntriesOrUnverifiable(strLegacyCollectionPath) ? std::wstring((LPCTSTR)strLegacyCollectionPath) : std::wstring())
@@ -1354,6 +1338,34 @@ void CSettings::SetStartup(BOOL bStartup)
 	}
 
 	RegCloseKey( hKey );
+}
+
+// Resume state, the download list and partial files live here; starting without
+// them would look healthy while silently losing state on the next save.
+bool CSettings::GetUnavailableEssentialStorage(CString& strPath, CString& strDefault) const
+{
+	const CString* pPaths[][2] = {
+		{ &General.DataPath, &m_sDefaultDataPath },
+		{ &Downloads.IncompletePath, &m_sDefaultIncompletePath }
+	};
+	for (int i = 0; i < _countof(pPaths); ++i)
+	{
+		if (ProbeStorageDirectory(std::wstring((LPCTSTR)*pPaths[i][0])) != StorageProbeResult::Ready)
+		{
+			strPath = *pPaths[i][0];
+			strDefault = *pPaths[i][1];
+			return true;
+		}
+	}
+	return false;
+}
+
+void CSettings::ResetEssentialStoragePath(const CString& strPath)
+{
+	if (StoragePathsEqual(std::wstring((LPCTSTR)strPath), std::wstring((LPCTSTR)General.DataPath)))
+		General.DataPath = m_sDefaultDataPath;
+	else if (StoragePathsEqual(std::wstring((LPCTSTR)strPath), std::wstring((LPCTSTR)Downloads.IncompletePath)))
+		Downloads.IncompletePath = m_sDefaultIncompletePath;
 }
 
 void CSettings::ClearSearches()

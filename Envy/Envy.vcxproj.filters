@@ -2207,6 +2207,9 @@
     <ClInclude Include="StoragePaths.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="StorageProbe.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="ShakeNeighbour.h">
       <Filter>Header Files</Filter>
     </ClInclude>

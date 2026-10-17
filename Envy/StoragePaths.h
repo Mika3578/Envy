@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #pragma once
 
+#include <cwctype>
 #include <string>
 
 struct StoragePathDefaults
@@ -69,6 +70,40 @@ inline std::wstring ResolveStoragePath(
 	if (!strConfigured.empty())
 		return strConfigured;
 	return strNonemptyLegacy.empty() ? strDefault : strNonemptyLegacy;
+}
+
+inline bool StoragePathsEqual(const std::wstring& strLeft, const std::wstring& strRight)
+{
+	auto trimmedLength = [](const std::wstring& strPath)
+	{
+		size_t nLength = strPath.length();
+		while (nLength > 3 && (strPath[nLength - 1] == L'\\' || strPath[nLength - 1] == L'/'))
+			--nLength;
+		return nLength;
+	};
+
+	const size_t nLength = trimmedLength(strLeft);
+	if (nLength != trimmedLength(strRight))
+		return false;
+	for (size_t i = 0; i < nLength; ++i)
+	{
+		if (std::towlower(strLeft[i]) != std::towlower(strRight[i]))
+			return false;
+	}
+	return true;
+}
+
+// Recovery offered when an essential mutable path is unusable at startup.
+// Resetting to the default is only meaningful for a customised location.
+enum class StorageRecovery
+{
+	RetryOrExit,
+	RetryUseDefaultOrExit
+};
+
+inline StorageRecovery ChooseStorageRecovery(const std::wstring& strConfigured, const std::wstring& strDefault)
+{
+	return strDefault.empty() || StoragePathsEqual(strConfigured, strDefault) ? StorageRecovery::RetryOrExit : StorageRecovery::RetryUseDefaultOrExit;
 }
 
 inline bool StoragePathIsReparsePoint(unsigned long nAttributes)

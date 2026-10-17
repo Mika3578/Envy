@@ -950,8 +950,15 @@ public:
 
 	void	ClearSearches();	// Delete search history
 
+	// Essential mutable paths (data, incomplete) must be writable before startup continues.
+	bool GetUnavailableEssentialStorage(CString& strPath, CString& strDefault) const;
+	void ResetEssentialStoragePath(const CString& strPath);
+
 protected:
 	void	SmartUpgrade();
+
+	CString m_sDefaultDataPath;
+	CString m_sDefaultIncompletePath;
 
 	inline void Add(const LPCTSTR szSection, const LPCTSTR szName, bool* const pBool, const bool bDefault, const bool bHidden = false) noexcept
 	{
