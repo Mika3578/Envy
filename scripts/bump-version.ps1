@@ -3,11 +3,11 @@
 
 param(
     [Parameter(Mandatory=$false)]
-    [ValidateSet("patch", "minor", "major", "prerelease")]
+    [ValidateSet("patch", "minor", "major", "prerelease", "final")]
     [string]$Type = "patch",
 
     [Parameter(Mandatory=$false)]
-    [string]$PreReleaseLabel = "dev",
+    [string]$PreReleaseLabel = "preview",
 
     [Parameter(Mandatory=$false)]
     [switch]$UpdateFiles,
@@ -41,19 +41,21 @@ try {
         Write-Host "1. Patch (bug fixes) - 1.2.3 → 1.2.4"
         Write-Host "2. Minor (new features) - 1.2.3 → 1.3.0"
         Write-Host "3. Major (breaking changes) - 1.2.3 → 2.0.0"
-        Write-Host "4. Pre-release - 1.2.3 → 1.2.3-dev"
+        Write-Host "4. Next pre-release - 1.2.3-preview.2 → 1.2.3-preview.3"
+        Write-Host "5. Final - 1.2.3-preview.3 → 1.2.3"
         Write-Host ""
 
-        $choice = Read-Host "Enter your choice (1-4)"
+        $choice = Read-Host "Enter your choice (1-5)"
         switch ($choice) {
             "1" { $Type = "patch" }
             "2" { $Type = "minor" }
             "3" { $Type = "major" }
             "4" {
                 $Type = "prerelease"
-                $PreReleaseLabel = Read-Host "Enter pre-release label (default: dev)"
-                if (-not $PreReleaseLabel) { $PreReleaseLabel = "dev" }
+                $PreReleaseLabel = Read-Host "Enter pre-release label (default: preview)"
+                if (-not $PreReleaseLabel) { $PreReleaseLabel = "preview" }
             }
+            "5" { $Type = "final" }
             default {
                 Write-Host "Invalid choice. Exiting." -ForegroundColor Red
                 exit 1
@@ -78,6 +80,7 @@ try {
         "prerelease" {
             $command += " -PreRelease -PreReleaseLabel '$PreReleaseLabel'"
         }
+        "final" { $command += " -Final" }
     }
 
     if ($UpdateFiles) {
@@ -108,7 +111,7 @@ try {
                 if ($gitStatus) {
                     Write-Host "Committing version changes..." -ForegroundColor Yellow
                     git add .
-                    $commitMessage = "chore: bump version to $($finalVersion.displayVersion)"
+                    $commitMessage = "release: bump version to $($finalVersion.displayVersion)"
                     git commit -m $commitMessage
                     Write-Host "✓ Changes committed!" -ForegroundColor Green
 
@@ -137,5 +140,5 @@ if ($Interactive -and $MyInvocation.ScriptName -eq $MyInvocation.MyCommand.Path)
     Write-Host "Usage Examples:" -ForegroundColor Gray
     Write-Host "  .\bump-version.ps1 -Type patch -UpdateFiles" -ForegroundColor Gray
     Write-Host "  .\bump-version.ps1 -Interactive" -ForegroundColor Gray
-    Write-Host "  .\bump-version.ps1 -Type prerelease -PreReleaseLabel beta" -ForegroundColor Gray
+    Write-Host "  .\bump-version.ps1 -Type prerelease -PreReleaseLabel rc" -ForegroundColor Gray
 }
