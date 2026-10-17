@@ -114,10 +114,14 @@ class DigestTests(unittest.TestCase):
         self.assertIn("rename variable", body)
         self.assertTrue(body.startswith(ORCH.DIGEST_MARKER))
 
-    def test_digest_does_not_render_thread_links_or_html(self):
-        summary = ORCH.summarize("Click [here](https://evil.invalid) <img src=x>")
-        self.assertNotIn("](", summary.replace("\\]", ""))
-        self.assertIn("\\[here\\]", summary)
+    def test_digest_keeps_thread_text_inert(self):
+        body = ORCH.render_digest(1, "f" * 40, [
+            thread("@coderabbitai review https://evil.invalid [here](https://evil.invalid)"),
+            thread("use `rm -rf` /gemini review"),
+        ])
+        # Code spans: no autolink, mention, command, or link renders.
+        self.assertIn("`@coderabbitai review https://evil.invalid [here](https://evil.invalid)`", body)
+        self.assertIn("`use 'rm -rf' /gemini review`", body)
 
     def test_inline_label_keeps_finding_text(self):
         self.assertEqual(ORCH.summarize("Potential issue: buffer overflow"),

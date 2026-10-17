@@ -46,8 +46,7 @@ NIT_PATTERN = re.compile(
 )
 # "this is not a nit" must stay a finding.
 NOT_NIT_PATTERN = re.compile(r"\bnot\s+(?:a\s+|just\s+a\s+)?nit(?:pick)?\b", re.IGNORECASE)
-# Untrusted thread text must not render links, images, or HTML in a bot comment.
-MARKDOWN_ACTIVE = re.compile(r"([\\\[\]<>])")
+
 # Severity badges that bots put on their first line; the finding follows.
 LABEL_LINE = re.compile(
     r"^\W*(?:(?:potential issue|nitpick|refactor suggestion|agentic security review|"
@@ -128,9 +127,18 @@ def summarize(body):
     for line in text.splitlines():
         line = line.strip(" #*_>`-")
         if line and not LABEL_LINE.match(line):
-            line = line if len(line) <= 140 else line[:137] + "..."
-            return MARKDOWN_ACTIVE.sub(r"\\\1", line)
+            return line if len(line) <= 140 else line[:137] + "..."
     return "(no text)"
+
+
+def inert(text):
+    """Render untrusted text as a code span in a bot comment.
+
+    Inside a code span GitHub renders no links, autolinked URLs, images, HTML,
+    @mentions, or reviewer commands, so thread text cannot act under the
+    orchestrator identity.
+    """
+    return "`" + (text or "").replace("`", "'").replace("\n", " ") + "`"
 
 
 def is_nit(body):
@@ -148,8 +156,8 @@ def render_digest(pr_number, head_sha, threads, limit=MAX_LISTED_THREADS):
     nits = [t for t in current if is_nit(t["body"])]
 
     def item(t):
-        where = f"`{t['path']}:{t['line']}`" if t["line"] else f"`{t['path']}`"
-        return f"- **{t['author']}** {where} {summarize(t['body'])} ([thread]({t['url']}))"
+        where = inert(f"{t['path']}:{t['line']}" if t["line"] else t["path"])
+        return f"- **{t['author']}** {where} {inert(summarize(t['body']))} ([thread]({t['url']}))"
 
     lines = [
         DIGEST_MARKER,
