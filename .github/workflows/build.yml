@@ -92,6 +92,10 @@ jobs:
         shell: bash
         run: bash .github/scripts/classify-changes.selftest.sh
 
+      - name: Authorship hygiene self-test
+        shell: bash
+        run: bash .github/scripts/check-agent-attribution.selftest.sh
+
       - name: PR lifecycle regression tests
         run: python3 .github/scripts/pr-phase.selftest.py
 
@@ -127,6 +131,10 @@ jobs:
       - name: Self-test compile_commands generator
         shell: pwsh
         run: pwsh ./tools/dev/generate-compile-commands.ps1 -SelfTest
+
+      - name: Self-test portable MSBuild runner
+        shell: pwsh
+        run: pwsh ./tools/dev/run-msbuild.ps1 -SelfTest
 
   build-x64-release:
     name: Build x64 Release
