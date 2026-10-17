@@ -79,6 +79,11 @@ class StateTests(unittest.TestCase):
     def test_missing_state_starts_empty(self):
         self.assertEqual(ORCH.parse_state("hello"), {"rounds": []})
 
+    def test_oversized_state_is_rejected(self):
+        blob = '{"rounds":[],"pad":"' + "x" * ORCH.MAX_STATE_CHARS + '"}'
+        with self.assertRaises(ValueError):
+            ORCH.parse_state(f"{ORCH.STATE_MARKER} {blob} -->")
+
 
 class DigestTests(unittest.TestCase):
     def test_digest_separates_blocking_nits_outdated_and_resolved(self):

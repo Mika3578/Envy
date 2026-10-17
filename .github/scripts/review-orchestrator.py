@@ -38,6 +38,7 @@ DEFAULT_MAX_ROUNDS = 2
 # small pull requests keep getting reviews.
 SOURCERY_MAX_CHANGED_LINES = 1500
 MAX_LISTED_THREADS = 50
+MAX_STATE_CHARS = 20000
 
 NIT_PATTERN = re.compile(
     r"nitpick|\bnit\b|\(style\)|!\[low\]|low[- ]priority|refactor suggestion",
@@ -63,6 +64,8 @@ def parse_state(body):
     match = re.search(re.escape(STATE_MARKER) + r" (\{.*?\}) -->", body or "")
     if not match:
         return {"rounds": []}
+    if len(match.group(1)) > MAX_STATE_CHARS:
+        raise ValueError("orchestrator state comment is too large")
     state = json.loads(match.group(1))
     if not isinstance(state.get("rounds"), list):
         raise ValueError("orchestrator state must contain a rounds list")
@@ -111,6 +114,7 @@ def plan_request(pr, state, reviewers, max_rounds):
 def summarize(body):
     text = re.sub(r"<!--.*?-->", "", body or "", flags=re.DOTALL)
     text = re.sub(r"<[^>]+>|!\[[^\]]*\]\([^)]*\)", "", text)
+    text = re.sub(r":[a-z_]+:", "", text)  # emoji shortcodes such as :stop_sign:
     for line in text.splitlines():
         line = line.strip(" #*_>`-")
         if line and not LABEL_LINE.match(line):
@@ -186,21 +190,28 @@ class GitHub:
                 "GET",
                 f"/repos/{self.repo}/issues/{number}/comments?per_page=100&page={page}",
             )
-            result += batch
-            if len(batch) < 100:
+            result += batch or []
+            if not batch or len(batch) < 100:
                 return result
             page += 1
 
     def comment(self, number, body):
         self.call("POST", f"/repos/{self.repo}/issues/{number}/comments", {"body": body})
 
-    def upsert(self, number, marker, body, trusted):
-        for existing in self.comments(number):
-            if marker in existing["body"] and existing["user"]["login"] in trusted:
-                if existing["body"] != body:
-                    self.call("PATCH", existing["url"], {"body": body})
-                return
-        self.comment(number, body)
+    def find(self, number, marker):
+        # Only the workflow identities may own state; a pasted marker is ignored.
+        trusted = {"github-actions[bot]", self.repo.split("/")[0]}
+        return next(
+            (c for c in self.comments(number)
+             if marker in c["body"] and c["user"]["login"] in trusted),
+            None,
+        )
+
+    def upsert(self, number, existing, body):
+        if existing is None:
+            self.comment(number, body)
+        elif existing["body"] != body:
+            self.call("PATCH", existing["url"], {"body": body})
 
     def remove_label(self, number, label):
         try:
@@ -259,39 +270,44 @@ def token_from_env():
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     if token:
         return token
-    return subprocess.run(
-        ["gh", "auth", "token"], check=True, capture_output=True, text=True
-    ).stdout.strip()
+    try:
+        token = subprocess.run(
+            ["gh", "auth", "token"], check=True, capture_output=True, text=True
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        token = ""
+    if not token:
+        sys.exit("No GitHub token: set GITHUB_TOKEN or GH_TOKEN, or run `gh auth login`.")
+    return token
 
 
-def trusted_authors(github):
-    # Only the workflow identities may own state; a pasted marker is ignored.
-    owner = github.repo.split("/")[0]
-    return {"github-actions[bot]", owner}
+def report(message):
+    print(message)
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        with open(summary, "a", encoding="utf-8") as stream:
+            stream.write(message + "\n")
 
 
 def run_request(github, number, dry_run):
     pr = github.pull(number)
     max_rounds = int(os.environ.get("ENVY_REVIEW_MAX_ROUNDS") or DEFAULT_MAX_ROUNDS)
     reviewers = enabled_reviewers(os.environ.get("ENVY_REVIEWERS"))
-    trusted = trusted_authors(github)
-    state_body = next(
-        (c["body"] for c in github.comments(number)
-         if STATE_MARKER in c["body"] and c["user"]["login"] in trusted),
-        "",
-    )
-    state = parse_state(state_body)
+    existing = github.find(number, STATE_MARKER)
+    state = parse_state(existing["body"] if existing else "")
     chosen, reason = plan_request(pr, state, reviewers, max_rounds)
-    print(f"PR #{number}: {reason}; reviewers: {', '.join(chosen) or 'none'}")
+    report(f"PR #{number}: {reason}; reviewers: {', '.join(chosen) or 'none'}")
     if dry_run:
         return
+    # The label is a one-shot trigger: a skipped request must not leave it
+    # set, or re-adding it later would not fire a new labeled event.
     github.remove_label(number, REQUEST_LABEL)
     if not chosen:
         return
     for name in chosen:
         github.comment(number, REVIEWERS[name])
     state["rounds"].append({"sha": pr["head"]["sha"], "reviewers": chosen})
-    github.upsert(number, STATE_MARKER, render_state(state, max_rounds), trusted)
+    github.upsert(number, existing, render_state(state, max_rounds))
 
 
 def run_digest(github, number, print_only):
@@ -300,7 +316,7 @@ def run_digest(github, number, print_only):
     if print_only:
         sys.stdout.buffer.write(body.encode("utf-8"))
         return
-    github.upsert(number, DIGEST_MARKER, body, trusted_authors(github))
+    github.upsert(number, github.find(number, DIGEST_MARKER), body)
 
 
 def main(argv=None):
