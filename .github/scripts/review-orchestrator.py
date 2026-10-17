@@ -5,12 +5,16 @@ Usage:
   review-orchestrator.py request --pr N [--dry-run]
   review-orchestrator.py digest --pr N [--print]
   review-orchestrator.py quorum --pr N [--print]
+  review-orchestrator.py scoreboard [--print]
 
 The orchestrator never approves, merges, or judges findings. It only posts the
 reviewer trigger commands and summarizes unresolved review threads so agents
 read one compact comment instead of the whole pull request conversation.
 The quorum mode counts approvals that independent review apps already gave on
 the current head and reports them as an advisory commit status.
+Reviewers are not all triggered at once: request picks the best available app
+from the scoreboard (review_scoreboard.py), and scoreboard mode recomputes the
+ranking and escalates to the next app when the chosen one is limited or silent.
 """
 
 import argparse
@@ -22,6 +26,9 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import review_scoreboard as scoreboard  # noqa: E402
 
 API = "https://api.github.com"
 STATE_MARKER = "<!-- envy-review-orchestrator"
@@ -36,8 +43,15 @@ REVIEWERS = {
     "amazonq": "/q review",
     "qodo": "/review",
 }
+# Enabled reviewers; the order is the cold-start ranking before any statistics.
 DEFAULT_REVIEWERS = "coderabbit,gemini,sourcery,amazonq"
 DEFAULT_MAX_ROUNDS = 2
+# One reviewer per head by default; high-risk pull requests get a second,
+# distinct one. Never more than two in flight on one head.
+DEFAULT_REVIEWERS_PER_HEAD = 1
+MAX_REVIEWERS_PER_HEAD = 2
+HIGH_RISK_LABELS = {"security", "protocol", "network", "crypto"}
+SCOREBOARD_MAX_PRS = 40
 # Sourcery spends a rolling diff-character budget; skip it on large diffs so
 # small pull requests keep getting reviews.
 SOURCERY_MAX_CHANGED_LINES = 1500
@@ -106,7 +120,8 @@ def render_state(state, max_rounds):
         f"### Review rounds ({len(state['rounds'])}/{max_rounds})",
     ]
     for entry in state["rounds"]:
-        lines.append(f"- `{entry['sha'][:8]}`: {', '.join(entry['reviewers'])}")
+        note = f" (escalated to {entry['escalated']})" if entry.get("escalated") else ""
+        lines.append(f"- `{entry['sha'][:8]}`: {', '.join(entry['reviewers'])}{note}")
     if len(state["rounds"]) < max_rounds:
         lines.append(
             "\nNext round: treat every thread (fix or justified reply, then "
@@ -117,8 +132,18 @@ def render_state(state, max_rounds):
     return "\n".join(lines) + "\n"
 
 
-def plan_request(pr, state, reviewers, max_rounds, repo=None, open_threads=0):
-    """Return (reviewers to trigger, reason). Pure for regression tests."""
+def is_high_risk(pr, files):
+    labels = {(label.get("name") or "").lower() for label in pr.get("labels") or []}
+    governance = any(fnmatch.fnmatchcase(f, pat) for f in files for pat in GOVERNANCE_PATHS)
+    return governance or bool(labels & HIGH_RISK_LABELS)
+
+
+def plan_request(pr, state, ranking, max_rounds, repo=None, open_threads=0,
+                 per_head=DEFAULT_REVIEWERS_PER_HEAD, high_risk=False):
+    """Return (reviewers to trigger, reason). Pure for regression tests.
+
+    `ranking` is review_scoreboard.rank() output, best first.
+    """
     if pr["state"] != "open":
         return [], "pull request is not open"
     if pr["draft"]:
@@ -134,14 +159,31 @@ def plan_request(pr, state, reviewers, max_rounds, repo=None, open_threads=0):
     if state["rounds"] and open_threads:
         return [], f"{open_threads} current review thread(s) still open; treat them first"
     changed = pr["additions"] + pr["deletions"]
-    chosen = [
-        name
-        for name in reviewers
-        if not (name == "sourcery" and changed > SOURCERY_MAX_CHANGED_LINES)
-    ]
+    skip = {"sourcery"} if changed > SOURCERY_MAX_CHANGED_LINES else set()
+    count = min(MAX_REVIEWERS_PER_HEAD, max(per_head, 2 if high_risk else 1))
+    chosen = scoreboard.choose(ranking, count, skip=skip)
     if not chosen:
-        return [], "no reviewer enabled for this diff size"
-    return chosen, "requested"
+        return [], "no reviewer available (all limited, silent, or capped)"
+    return chosen, "requested (high risk)" if high_risk and len(chosen) > 1 else "requested"
+
+
+def plan_escalation(entry, ranking, answered, logins, now, timeout_hours):
+    """Return the next reviewer for a round whose reviewers stayed silent, or None.
+
+    A round escalates once, only when none of its reviewers answered and each
+    is now held (limited, capped, silent) or the round outlived the timeout.
+    """
+    if entry.get("escalated") or not entry.get("at"):
+        return None
+    if any(logins.get(key) in answered for key in entry["reviewers"]):
+        return None
+    held = {row["key"] for row in ranking if not row["available"]}
+    started = scoreboard.parse_time(entry["at"])
+    expired = now - started > scoreboard.timedelta(hours=timeout_hours)
+    if not expired and not all(key in held for key in entry["reviewers"]):
+        return None
+    chosen = scoreboard.choose(ranking, 1, exclude=entry["reviewers"])
+    return chosen[0] if chosen else None
 
 
 def summarize(body):
@@ -321,6 +363,38 @@ class GitHub:
             body["target_url"] = target_url
         self.call("POST", f"/repos/{self.repo}/statuses/{sha}", body)
 
+    def recent_pulls(self, since, limit):
+        result, page = [], 1
+        while len(result) < limit:
+            batch = self.call(
+                "GET",
+                f"/repos/{self.repo}/pulls?state=all&sort=updated&direction=desc"
+                f"&per_page=50&page={page}",
+            ) or []
+            for item in batch:
+                if scoreboard.parse_time(item["updated_at"]) < since:
+                    return result
+                result.append(item)
+            if len(batch) < 50:
+                return result
+            page += 1
+        return result[:limit]
+
+    def trusted_logins(self):
+        trusted = {"github-actions[bot]", self.repo.split("/")[0]}
+        if self.token_login():
+            trusted.add(self.token_login())
+        return trusted
+
+    def find_scoreboard(self):
+        # Pull requests are issues too; the marker and author filter pick the board.
+        for issue in self.paged(f"/repos/{self.repo}/issues"):
+            if (issue.get("pull_request") is None
+                    and scoreboard.SCOREBOARD_MARKER in (issue.get("body") or "")
+                    and issue["user"]["login"] in self.trusted_logins()):
+                return issue
+        return None
+
     def comment(self, number, body):
         self.call("POST", f"/repos/{self.repo}/issues/{number}/comments", {"body": body})
 
@@ -336,9 +410,7 @@ class GitHub:
     def find(self, number, marker):
         # Only the workflow identities may own state; a pasted marker is ignored.
         # The trigger token's owner writes the state when that secret is set.
-        trusted = {"github-actions[bot]", self.repo.split("/")[0]}
-        if self.token_login():
-            trusted.add(self.token_login())
+        trusted = self.trusted_logins()
         return next(
             (c for c in self.comments(number)
              if marker in c["body"] and c["user"]["login"] in trusted),
@@ -371,7 +443,7 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
         pageInfo { hasNextPage endCursor }
         nodes {
           isResolved isOutdated path line
-          comments(first: 1) { nodes { author { login } body url } }
+          comments(first: 20) { nodes { author { login __typename } body url } }
         }
       }
     }
@@ -389,19 +461,33 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                 raise RuntimeError(f"GraphQL error: {data['errors']}")
             page = data["data"]["repository"]["pullRequest"]["reviewThreads"]
             for node in page["nodes"]:
-                first = (node["comments"]["nodes"] or [{}])[0]
+                nodes = node["comments"]["nodes"] or [{}]
+                first = nodes[0]
                 result.append({
                     "isResolved": node["isResolved"],
                     "isOutdated": node["isOutdated"],
                     "path": node["path"],
                     "line": node["line"],
-                    "author": ((first.get("author") or {}).get("login")) or "unknown",
+                    "author": rest_login(first.get("author")),
                     "body": first.get("body", ""),
                     "url": first.get("url", ""),
+                    "replies": [
+                        {"author": rest_login(c.get("author")),
+                         "body": c.get("body", "")}
+                        for c in nodes[1:]
+                    ],
                 })
             if not page["pageInfo"]["hasNextPage"]:
                 return result
             after = page["pageInfo"]["endCursor"]
+
+
+def rest_login(author):
+    """GraphQL omits the "[bot]" suffix that REST logins carry; add it back."""
+    login = (author or {}).get("login") or "unknown"
+    if (author or {}).get("__typename") == "Bot" and not login.endswith("[bot]"):
+        login += "[bot]"
+    return login
 
 
 def token_from_env():
@@ -427,10 +513,37 @@ def report(message):
             stream.write(message + "\n")
 
 
+class Config:
+    """Repository variables that steer selection, with safe defaults."""
+
+    def __init__(self, env=None):
+        env = os.environ if env is None else env
+        self.reviewers = enabled_reviewers(env.get("ENVY_REVIEWERS"))
+        self.logins = scoreboard.reviewer_logins(env.get("ENVY_REVIEWER_LOGINS"))
+        self.reset_days = scoreboard.parse_mapping(env.get("ENVY_REVIEWER_RESET_DAYS"), int)
+        self.caps = scoreboard.parse_mapping(env.get("ENVY_REVIEWER_MONTHLY_CAPS"), int)
+        self.timeout = float(env.get("ENVY_REVIEW_TIMEOUT_HOURS") or scoreboard.DEFAULT_TIMEOUT_HOURS)
+        self.per_head = int(env.get("ENVY_REVIEWERS_PER_HEAD") or DEFAULT_REVIEWERS_PER_HEAD)
+        self.window = int(env.get("ENVY_SCOREBOARD_WINDOW_DAYS") or scoreboard.DEFAULT_WINDOW_DAYS)
+
+    def rank(self, stats, now):
+        return scoreboard.rank(stats, self.reviewers, self.logins, now,
+                               self.reset_days, self.caps, self.timeout)
+
+
+def stored_stats(github):
+    """Statistics from the scoreboard issue; empty (cold start) when absent."""
+    issue = github.find_scoreboard()
+    data = scoreboard.parse_scoreboard(issue["body"]) if issue else None
+    return (data or {}).get("stats", {})
+
+
 def run_request(github, number, dry_run):
     pr = github.pull(number)
     max_rounds = int(os.environ.get("ENVY_REVIEW_MAX_ROUNDS") or DEFAULT_MAX_ROUNDS)
-    reviewers = enabled_reviewers(os.environ.get("ENVY_REVIEWERS"))
+    config = Config()
+    now = scoreboard.now_utc()
+    ranking = config.rank(stored_stats(github), now)
     existing = github.find(number, STATE_MARKER)
     state = parse_state(existing["body"] if existing else "")
     open_threads = 0
@@ -439,7 +552,8 @@ def run_request(github, number, dry_run):
             1 for t in github.threads(number) if not t["isResolved"] and not t["isOutdated"]
         )
     chosen, reason = plan_request(
-        pr, state, reviewers, max_rounds, repo=github.repo, open_threads=open_threads
+        pr, state, ranking, max_rounds, repo=github.repo, open_threads=open_threads,
+        per_head=config.per_head, high_risk=is_high_risk(pr, github.files(number)),
     )
     report(f"PR #{number}: {reason}; reviewers: {', '.join(chosen) or 'none'}")
     if dry_run:
@@ -451,10 +565,72 @@ def run_request(github, number, dry_run):
         return
     # Record the round before posting: a retry after a partial failure then
     # skips this head instead of sending duplicate reviewer commands.
-    state["rounds"].append({"sha": pr["head"]["sha"], "reviewers": chosen})
+    state["rounds"].append({"sha": pr["head"]["sha"], "reviewers": chosen,
+                            "at": scoreboard.iso(now)})
     github.upsert(number, existing, render_state(state, max_rounds))
     for name in chosen:
         github.comment(number, REVIEWERS[name])
+
+
+def collect_record(github, number):
+    return {
+        "threads": github.threads(number),
+        "reviews": [{"login": ((r.get("user") or {}).get("login") or ""),
+                     "submitted_at": r.get("submitted_at")} for r in github.reviews(number)],
+        "comments": [{"login": ((c.get("user") or {}).get("login") or ""),
+                      "body": c.get("body") or "", "created_at": c.get("created_at")}
+                     for c in github.comments(number)],
+    }
+
+
+def escalate(github, pr, record, ranking, config, now, dry_run):
+    """Trigger the next reviewer when the current head's reviewers stayed silent."""
+    number = pr["number"]
+    existing = github.find(number, STATE_MARKER)
+    state = parse_state(existing["body"] if existing else "")
+    entry = next((e for e in state["rounds"] if e["sha"] == pr["head"]["sha"]), None)
+    if entry is None or pr["draft"] or pr["state"] != "open":
+        return
+    answered = {r["login"] for r in record["reviews"]}
+    answered |= {c["login"] for c in record["comments"]
+                 if scoreboard.is_review_app(c["login"])
+                 and not scoreboard.LIMIT_MESSAGE.search(c["body"])}
+    key = plan_escalation(entry, ranking, answered, config.logins, now, config.timeout)
+    if key is None:
+        return
+    report(f"PR #{number}: escalating from {', '.join(entry['reviewers'])} to {key}")
+    if dry_run:
+        return
+    entry["reviewers"].append(key)
+    entry["escalated"] = key
+    max_rounds = int(os.environ.get("ENVY_REVIEW_MAX_ROUNDS") or DEFAULT_MAX_ROUNDS)
+    github.upsert(number, existing, render_state(state, max_rounds))
+    github.comment(number, REVIEWERS[key])
+
+
+def run_scoreboard(github, print_only):
+    config = Config()
+    now = scoreboard.now_utc()
+    since = now - scoreboard.timedelta(days=config.window)
+    pulls = github.recent_pulls(since, SCOREBOARD_MAX_PRS)
+    records = {pr["number"]: collect_record(github, pr["number"]) for pr in pulls}
+    stats = scoreboard.analyze(list(records.values()), REVIEWERS, config.logins, now,
+                               config.timeout)
+    ranking = config.rank(stats, now)
+    body = scoreboard.render_scoreboard(stats, ranking, now, config.window, len(pulls))
+    if print_only:
+        sys.stdout.buffer.write(body.encode("utf-8"))
+        return
+    issue = github.find_scoreboard()
+    if issue is None:
+        github.call("POST", f"/repos/{github.repo}/issues",
+                    {"title": scoreboard.SCOREBOARD_TITLE, "body": body})
+    elif issue["body"] != body:
+        github.call("PATCH", issue["url"], {"body": body})
+    for pr in pulls:
+        same_repo = ((pr["head"].get("repo") or {}).get("full_name")) == github.repo
+        if pr["state"] == "open" and not pr["draft"] and same_repo:
+            escalate(github, pr, records[pr["number"]], ranking, config, now, False)
 
 
 def run_digest(github, number, print_only):
@@ -498,15 +674,19 @@ def run_quorum(github, number, print_only):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("mode", choices=("request", "digest", "quorum"))
-    parser.add_argument("--pr", type=int, required=True)
+    parser.add_argument("mode", choices=("request", "digest", "quorum", "scoreboard"))
+    parser.add_argument("--pr", type=int, help="pull request number (not for scoreboard)")
     parser.add_argument("--repo", default=os.environ.get("GITHUB_REPOSITORY", "Mika3578/Envy"))
     parser.add_argument("--dry-run", action="store_true", help="request: plan only")
     parser.add_argument("--print", dest="print_only", action="store_true",
-                        help="digest/quorum: print instead of writing to the PR")
+                        help="digest/quorum/scoreboard: print instead of writing")
     args = parser.parse_args(argv)
+    if args.mode != "scoreboard" and args.pr is None:
+        parser.error("--pr is required for this mode")
     github = GitHub(args.repo, token_from_env())
-    if args.mode == "request":
+    if args.mode == "scoreboard":
+        run_scoreboard(github, args.print_only)
+    elif args.mode == "request":
         run_request(github, args.pr, args.dry_run)
     elif args.mode == "quorum":
         run_quorum(github, args.pr, args.print_only)

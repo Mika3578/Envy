@@ -14,6 +14,10 @@ ORCH = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ORCH)
 
 ALL = ORCH.enabled_reviewers(None)
+SB = ORCH.scoreboard
+NOW = SB.parse_time("2026-10-20T12:00:00Z")
+COLD = ORCH.Config({}).rank({}, NOW)
+LOGINS = SB.reviewer_logins()
 
 
 def pr(draft=False, sha="a" * 40, changed=100, state="open", repo="o/r"):
@@ -39,43 +43,63 @@ def thread(body, resolved=False, outdated=False, line=7):
 
 
 class PlanTests(unittest.TestCase):
-    def test_ready_head_requests_every_enabled_reviewer(self):
-        chosen, reason = ORCH.plan_request(pr(), {"rounds": []}, ALL, 2)
-        self.assertEqual(chosen, ALL)
+    def test_ready_head_requests_only_the_best_reviewer(self):
+        chosen, reason = ORCH.plan_request(pr(), {"rounds": []}, COLD, 2)
+        self.assertEqual(chosen, ["coderabbit"])
         self.assertEqual(reason, "requested")
 
+    def test_high_risk_gets_a_second_distinct_reviewer(self):
+        chosen, reason = ORCH.plan_request(pr(), {"rounds": []}, COLD, 2, high_risk=True)
+        self.assertEqual(chosen, ["coderabbit", "gemini"])
+        self.assertIn("high risk", reason)
+        capped = ORCH.plan_request(pr(), {"rounds": []}, COLD, 2, per_head=5)[0]
+        self.assertEqual(len(capped), ORCH.MAX_REVIEWERS_PER_HEAD)
+
+    def test_high_risk_detection_uses_governance_paths_and_labels(self):
+        self.assertTrue(ORCH.is_high_risk(pr(), ["AGENTS.md"]))
+        self.assertTrue(ORCH.is_high_risk(dict(pr(), labels=[{"name": "security"}]), ["Envy/A.cpp"]))
+        self.assertFalse(ORCH.is_high_risk(pr(), ["Envy/A.cpp"]))
+
     def test_draft_and_closed_are_never_reviewed(self):
-        self.assertEqual(ORCH.plan_request(pr(draft=True), {"rounds": []}, ALL, 2)[0], [])
-        self.assertEqual(ORCH.plan_request(pr(state="closed"), {"rounds": []}, ALL, 2)[0], [])
+        self.assertEqual(ORCH.plan_request(pr(draft=True), {"rounds": []}, COLD, 2)[0], [])
+        self.assertEqual(ORCH.plan_request(pr(state="closed"), {"rounds": []}, COLD, 2)[0], [])
 
     def test_same_head_is_not_requested_twice(self):
-        state = {"rounds": [{"sha": "a" * 40, "reviewers": ALL}]}
-        self.assertEqual(ORCH.plan_request(pr(), state, ALL, 2)[0], [])
+        state = {"rounds": [{"sha": "a" * 40, "reviewers": ["coderabbit"]}]}
+        self.assertEqual(ORCH.plan_request(pr(), state, COLD, 2)[0], [])
 
     def test_round_budget_stops_requests(self):
         state = {"rounds": [{"sha": "b" * 40, "reviewers": ALL},
                             {"sha": "c" * 40, "reviewers": ALL}]}
-        chosen, reason = ORCH.plan_request(pr(), state, ALL, 2)
+        chosen, reason = ORCH.plan_request(pr(), state, COLD, 2)
         self.assertEqual(chosen, [])
         self.assertIn("budget", reason)
 
     def test_large_diff_skips_sourcery_budget(self):
+        stats = {"sourcery-ai[bot]": dict(SB._blank(), useful=20)}
+        ranking = ORCH.Config({}).rank(stats, NOW)
+        self.assertEqual(ranking[0]["key"], "sourcery")
         big = ORCH.SOURCERY_MAX_CHANGED_LINES + 1
-        chosen, _ = ORCH.plan_request(pr(changed=big), {"rounds": []}, ALL, 2)
-        self.assertNotIn("sourcery", chosen)
-        self.assertIn("coderabbit", chosen)
+        chosen, _ = ORCH.plan_request(pr(changed=big), {"rounds": []}, ranking, 2)
+        self.assertEqual(chosen, ["coderabbit"])
+
+    def test_no_available_reviewer_requests_nothing(self):
+        held = [dict(row, available=False) for row in COLD]
+        chosen, reason = ORCH.plan_request(pr(), {"rounds": []}, held, 2)
+        self.assertEqual(chosen, [])
+        self.assertIn("no reviewer available", reason)
 
     def test_fork_pull_request_is_not_sent(self):
-        chosen, reason = ORCH.plan_request(pr(repo="fork/r"), {"rounds": []}, ALL, 2, repo="o/r")
+        chosen, reason = ORCH.plan_request(pr(repo="fork/r"), {"rounds": []}, COLD, 2, repo="o/r")
         self.assertEqual(chosen, [])
         self.assertIn("fork", reason)
 
     def test_follow_up_round_waits_for_treated_threads(self):
-        state = {"rounds": [{"sha": "b" * 40, "reviewers": ALL}]}
-        chosen, reason = ORCH.plan_request(pr(), state, ALL, 2, repo="o/r", open_threads=3)
+        state = {"rounds": [{"sha": "b" * 40, "reviewers": ["coderabbit"]}]}
+        chosen, reason = ORCH.plan_request(pr(), state, COLD, 2, repo="o/r", open_threads=3)
         self.assertEqual(chosen, [])
         self.assertIn("3 current review thread", reason)
-        self.assertEqual(ORCH.plan_request(pr(), state, ALL, 2, repo="o/r")[0], ALL)
+        self.assertEqual(ORCH.plan_request(pr(), state, COLD, 2, repo="o/r")[0], ["coderabbit"])
 
     def test_repeated_reviewers_are_deduplicated(self):
         self.assertEqual(ORCH.enabled_reviewers("gemini,coderabbit,gemini"), ["gemini", "coderabbit"])
@@ -214,6 +238,131 @@ class QuorumTests(unittest.TestCase):
     def test_author_never_votes_on_its_own_pull_request(self):
         self.assertNotIn("coderabbitai[bot]", ORCH.quorum_voters(None, "CodeRabbitAI[bot]"))
         self.assertEqual(ORCH.quorum_voters("a[bot], b[bot],a[bot]"), ["a[bot]", "b[bot]"])
+
+
+class ScoreboardTests(unittest.TestCase):
+    def record(self, threads=(), reviews=(), comments=()):
+        return {"threads": list(threads), "reviews": list(reviews), "comments": list(comments)}
+
+    def finding(self, author, *replies):
+        return {"author": author, "replies": [{"author": "maintainer", "body": r} for r in replies]}
+
+    def test_outcomes_follow_the_treating_reply(self):
+        bot = "coderabbitai[bot]"
+        self.assertEqual(SB.classify_thread(self.finding(bot, "Fixed in 4b8ac88b: done.")), "useful")
+        self.assertEqual(SB.classify_thread(self.finding(bot, "Partly fixed in a66d0844: x")), "useful")
+        self.assertEqual(SB.classify_thread(self.finding(bot, "No change: intended.")), "rejected")
+        self.assertEqual(SB.classify_thread(self.finding(bot, "Not reproduced: see test.")), "rejected")
+        self.assertEqual(SB.classify_thread(self.finding(bot, "Thanks, will look.")), "unclassified")
+        # The bot's own follow-up never classifies its finding.
+        own = {"author": bot, "replies": [{"author": bot, "body": "Fixed in abcdef1"}]}
+        self.assertEqual(SB.classify_thread(own), "unclassified")
+
+    def test_analyze_counts_requests_answers_latency_and_limits(self):
+        records = [
+            self.record(
+                threads=[self.finding("coderabbitai[bot]", "Fixed in 1234567"),
+                         self.finding("coderabbitai[bot]", "No change: by design."),
+                         self.finding("github-actions[bot]", "Fixed in 1234567")],
+                reviews=[{"login": "coderabbitai[bot]", "submitted_at": "2026-10-20T03:00:00Z"}],
+                comments=[
+                    {"login": "github-actions[bot]", "body": "@coderabbitai review",
+                     "created_at": "2026-10-20T01:00:00Z"},
+                    {"login": "github-actions[bot]", "body": "/gemini review",
+                     "created_at": "2026-10-20T01:00:00Z"},
+                    {"login": "maintainer", "body": "@sourcery-ai review",
+                     "created_at": "2026-10-19T01:00:00Z"},
+                    {"login": "sourcery-ai[bot]", "body": "Sorry, you have hit the review limit.",
+                     "created_at": "2026-10-19T01:05:00Z"},
+                ],
+            )
+        ]
+        stats = SB.analyze(records, ORCH.REVIEWERS, LOGINS, NOW, timeout_hours=6)
+        rabbit = stats["coderabbitai[bot]"]
+        self.assertEqual((rabbit["findings"], rabbit["useful"], rabbit["rejected"]), (2, 1, 1))
+        self.assertEqual((rabbit["requests"], rabbit["answered"], rabbit["latencies"]), (1, 1, [2.0]))
+        self.assertNotIn("github-actions[bot]", stats)
+        gemini = stats["gemini-code-assist[bot]"]
+        self.assertEqual((gemini["requests"], gemini["timeouts"]), (1, 1))
+        self.assertEqual(gemini["pending_since"], "2026-10-20T01:00:00Z")
+        sourcery = stats["sourcery-ai[bot]"]
+        self.assertEqual(sourcery["limited_at"], "2026-10-19T01:05:00Z")
+        self.assertEqual(sourcery["answered"], 0)
+        # Recomputing from the same records gives the same numbers: no double count.
+        self.assertEqual(SB.analyze(records, ORCH.REVIEWERS, LOGINS, NOW, 6), stats)
+
+    def test_availability_from_limits_caps_and_silence(self):
+        item = dict(SB._blank(), limited_at="2026-10-20T01:00:00Z")
+        self.assertFalse(SB.availability(item, "sourcery", NOW, {}, {})[0])
+        later = SB.parse_time("2026-10-21T02:00:00Z")
+        self.assertTrue(SB.availability(item, "sourcery", later, {}, {})[0])
+        # With a reset day the app stays held until the next window.
+        self.assertFalse(SB.availability(item, "sourcery", later, {"sourcery": 1}, {})[0])
+        self.assertTrue(SB.availability(item, "sourcery", SB.parse_time("2026-11-01T00:00:00Z"),
+                                        {"sourcery": 1}, {})[0])
+        capped = dict(SB._blank(), requests_month=5)
+        self.assertFalse(SB.availability(capped, "gemini", NOW, {}, {"gemini": 5})[0])
+        silent = dict(SB._blank(), pending_since="2026-10-20T04:00:00Z")
+        self.assertFalse(SB.availability(silent, "gemini", NOW, {}, {}, timeout_hours=6)[0])
+        self.assertTrue(SB.availability(silent, "gemini", SB.parse_time("2026-10-21T05:00:00Z"),
+                                        {}, {}, timeout_hours=6)[0])
+
+    def test_window_start_handles_short_months_and_january(self):
+        self.assertEqual(SB.window_start(SB.parse_time("2026-02-15T00:00:00Z"), 31),
+                         SB.parse_time("2026-01-31T00:00:00Z"))
+        self.assertEqual(SB.window_start(SB.parse_time("2026-01-05T00:00:00Z"), 18),
+                         SB.parse_time("2025-12-18T00:00:00Z"))
+
+    def test_cold_start_keeps_order_and_precision_reorders(self):
+        self.assertEqual([row["key"] for row in COLD], ALL)
+        stats = {"gemini-code-assist[bot]": dict(SB._blank(), useful=9, rejected=1),
+                 "coderabbitai[bot]": dict(SB._blank(), useful=2, rejected=8)}
+        ranking = ORCH.Config({}).rank(stats, NOW)
+        self.assertEqual(ranking[0]["key"], "gemini")
+        self.assertEqual(ranking[-1]["key"], "coderabbit")
+        # Two lucky outcomes do not beat the prior by much.
+        self.assertLess(SB.score(dict(SB._blank(), useful=2)), SB.score(dict(SB._blank(), useful=10)))
+
+    def test_held_best_reviewer_falls_through_to_the_next(self):
+        stats = {"coderabbitai[bot]": dict(SB._blank(), useful=10,
+                                           limited_at="2026-10-20T11:00:00Z")}
+        ranking = ORCH.Config({}).rank(stats, NOW)
+        self.assertEqual(ranking[0]["key"], "coderabbit")
+        self.assertFalse(ranking[0]["available"])
+        self.assertEqual(ORCH.plan_request(pr(), {"rounds": []}, ranking, 2)[0], ["gemini"])
+
+    def test_escalation_only_after_silence_or_hold(self):
+        entry = {"sha": "a" * 40, "reviewers": ["coderabbit"], "at": "2026-10-20T10:00:00Z"}
+        self.assertIsNone(ORCH.plan_escalation(entry, COLD, set(), LOGINS, NOW, 6))
+        late = SB.parse_time("2026-10-20T17:00:00Z")
+        self.assertEqual(ORCH.plan_escalation(entry, COLD, set(), LOGINS, late, 6), "gemini")
+        self.assertIsNone(ORCH.plan_escalation(entry, COLD, {"coderabbitai[bot]"}, LOGINS, late, 6))
+        held = [dict(row, available=row["key"] != "coderabbit") for row in COLD]
+        self.assertEqual(ORCH.plan_escalation(entry, held, set(), LOGINS, NOW, 6), "gemini")
+        self.assertIsNone(ORCH.plan_escalation(dict(entry, escalated="gemini"), COLD, set(),
+                                               LOGINS, late, 6))
+
+    def test_scoreboard_round_trips_and_rejects_bad_state(self):
+        stats = SB.analyze([], ORCH.REVIEWERS, LOGINS, NOW)
+        body = SB.render_scoreboard(stats, COLD, NOW, 90, 0)
+        data = SB.parse_scoreboard(body)
+        self.assertEqual(data["ranking"], COLD)
+        self.assertIn("| 1 | `coderabbit` |", body)
+        self.assertIsNone(SB.parse_scoreboard("no marker"))
+        with self.assertRaises(ValueError):
+            SB.parse_scoreboard(f"{SB.SCOREBOARD_MARKER} {{\"x\":1}} -->")
+
+    def test_config_parses_repository_variables(self):
+        config = ORCH.Config({"ENVY_REVIEWERS": "gemini,coderabbit",
+                              "ENVY_REVIEWER_RESET_DAYS": "gemini=18, coderabbit=1",
+                              "ENVY_REVIEWER_MONTHLY_CAPS": "gemini=40",
+                              "ENVY_REVIEWER_LOGINS": "gemini=gemini-x[bot]",
+                              "ENVY_REVIEW_TIMEOUT_HOURS": "3"})
+        self.assertEqual(config.reviewers, ["gemini", "coderabbit"])
+        self.assertEqual(config.reset_days, {"gemini": 18, "coderabbit": 1})
+        self.assertEqual(config.caps, {"gemini": 40})
+        self.assertEqual(config.logins["gemini"], "gemini-x[bot]")
+        self.assertEqual(config.timeout, 3.0)
 
 
 if __name__ == "__main__":

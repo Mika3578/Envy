@@ -12,9 +12,10 @@ maintainer squash merge (`AGENTS.md` rule 12).
 
 ```
 Draft        -> cheap CI only, no AI review requests
-Ready        -> orchestrator posts one trigger per enabled reviewer (round 1)
+Ready        -> orchestrator triggers the best available reviewer (round 1)
 review lands -> orchestrator refreshes one "Review digest" comment
 agent        -> treats every thread in one batch, pushes once, CI green
+silence      -> scoreboard job escalates once to the next-best reviewer
 agent        -> adds label review:request              (round 2, last one)
 maintainer   -> live test, squash merge, or asks for more review
 ```
@@ -25,14 +26,61 @@ maintainer   -> live test, squash merge, or asks for more review
 - **request** (when a PR is opened as Ready, on `ready_for_review`, or on the
   `review:request` label): skips drafts, closed PRs, fork PRs, a head already
   sent for review, PRs that used their round budget, and follow-up rounds while
-  current threads are still open. It records the round in a state comment
-  first, then posts one trigger comment per reviewer, and removes the label.
+  current threads are still open. It picks reviewers from the scoreboard (see
+  below), records the round in a state comment first, then posts one trigger
+  comment per chosen reviewer, and removes the label.
 - **digest** (on each submitted review, new review comment, head update, or
   manual dispatch): writes
   one comment listing unresolved threads as *to treat*, *nits*, and
   *outdated*, with links.
 - **quorum** (on each submitted or dismissed review, PR update, or manual
   dispatch): sets the advisory commit status **Review quorum**. See below.
+- **scoreboard** (every three hours, when a PR closes, or manual dispatch):
+  recomputes the reviewer ranking, rewrites the **Review bot scoreboard**
+  issue, and escalates a head whose reviewer is limited or silent.
+
+## Reviewer selection and scoreboard
+
+Reviewers are not all triggered at once. Each Ready head gets **one** reviewer:
+the best-ranked one that is available. A high-risk PR (a privileged governance
+path from `AGENTS.md` rule 12, or a `security`, `protocol`, `network`, or
+`crypto` label) gets a second, distinct reviewer. A head never has more than
+two reviewers. The others stay in reserve.
+
+The ranking is recomputed from scratch over the last
+`ENVY_SCOREBOARD_WINDOW_DAYS` days (up to 40 pull requests), so a rerun never
+counts anything twice and the order follows each app's recent behaviour:
+
+- **Outcome of each finding.** A thread is *useful* when its treating reply
+  starts with `Fixed in <sha>` or `Addressed in <sha>` (also `Partly fixed`),
+  and *rejected* when it starts with `No change` or `Not reproduced`. Any other
+  reply is *unclassified*. Agents must therefore keep these reply forms
+  (`AGENTS.md` §5).
+- **Score.** Smoothed precision `(useful + 1) / (useful + rejected + 2)`,
+  weighted by volume: an app needs about ten decided findings before its
+  measured precision fully replaces the neutral 0.5 prior. The score drops in
+  proportion to unanswered requests, and by 10 % when the median answer takes
+  more than 12 hours. Ties keep the `ENVY_REVIEWERS` order, which is also the
+  cold-start order.
+- **Availability.** No app exposes its quota by API, so it is inferred:
+  - a limit or rate-limit message from the app holds it until its next monthly
+    reset (`ENVY_REVIEWER_RESET_DAYS`), or for 24 hours when no reset day is
+    known;
+  - `ENVY_REVIEWER_MONTHLY_CAPS` holds an app once our own requests this
+    calendar month reach the cap;
+  - a request left unanswered for `ENVY_REVIEW_TIMEOUT_HOURS` holds the app
+    until it answers anywhere, or for 24 hours after that request.
+- **Escalation.** When none of a head's reviewers answered and each is held,
+  or the round outlived the timeout, the scoreboard job triggers the next-best
+  available reviewer once for that head.
+
+The issue shows the selection order (score and held reason) and a table for
+every review app seen on recent PRs, including apps the orchestrator does not
+trigger (for example Copilot or cubic), for comparison. Preview it locally:
+
+```bash
+python3 .github/scripts/review-orchestrator.py scoreboard --print
+```
 
 ## Review quorum (observation mode)
 
@@ -109,8 +157,14 @@ Format Check) run in CI and are not orchestrated here.
 
 | Setting | Where | Default |
 | --- | --- | --- |
-| `ENVY_REVIEWERS` | repository variable | `coderabbit,gemini,sourcery,amazonq` |
+| `ENVY_REVIEWERS` | repository variable | `coderabbit,gemini,sourcery,amazonq` (enabled reviewers, cold-start order) |
 | `ENVY_REVIEW_MAX_ROUNDS` | repository variable | `2` |
+| `ENVY_REVIEWERS_PER_HEAD` | repository variable | `1` (high-risk PRs get 2; never more than 2) |
+| `ENVY_REVIEWER_RESET_DAYS` | repository variable | none, e.g. `cubic=18,sourcery=1` (day of month the free quota resets) |
+| `ENVY_REVIEWER_MONTHLY_CAPS` | repository variable | none, e.g. `gemini=900` (requests per calendar month) |
+| `ENVY_REVIEW_TIMEOUT_HOURS` | repository variable | `6` |
+| `ENVY_SCOREBOARD_WINDOW_DAYS` | repository variable | `90` |
+| `ENVY_REVIEWER_LOGINS` | repository variable | built-in map, e.g. `qodo=qodo-merge-pro[bot]` to correct an app login |
 | `REVIEW_TRIGGER_TOKEN` | repository secret, optional | falls back to `GITHUB_TOKEN` |
 | `ENVY_QUORUM_VOTERS` | repository variable | `coderabbitai[bot],cubic-dev-ai[bot],greptile-apps[bot]` |
 | `ENVY_QUORUM_REQUIRED` | repository variable | `3` |
@@ -127,9 +181,12 @@ checks out PR code.
 1. Install the free apps on the repository: CodeRabbit, Gemini Code Assist,
    Sourcery, Amazon Q Developer (optional: Qodo Merge, then add `qodo`).
 2. Create the label `review:request`.
-3. Disable automatic reviews in each app dashboard where the app ignores the
+3. Run the workflow once with mode `scoreboard`, then pin the
+   **Review bot scoreboard** issue it creates (pinning needs a maintainer).
+4. Set `ENVY_REVIEWER_RESET_DAYS` for apps with a known monthly reset.
+5. Disable automatic reviews in each app dashboard where the app ignores the
    repository config, so reviews only happen on orchestrated rounds.
-4. Uninstall paid or exhausted reviewers you do not want commenting.
+6. Uninstall paid or exhausted reviewers you do not want commenting.
 
 ## Thread treatment
 
