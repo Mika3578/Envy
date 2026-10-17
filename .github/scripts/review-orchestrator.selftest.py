@@ -208,6 +208,17 @@ class QuorumTests(unittest.TestCase):
             self.assertEqual(state, "pending", path)
             self.assertIn("maintainer", description)
 
+    def test_bypass_in_pr_description_or_thread_reply_fails(self):
+        author = {"login": "Mika3578"}
+        description = dict(pr(sha=HEAD), user=author, body="Context.\n\n@coderabbitai ignore")
+        thread_reply = {"user": author, "body": "@coderabbitai resolve"}
+        sources = ORCH.bypass_sources(description, [], [], [])
+        self.assertEqual(quorum(approvals(*VOTERS), sources)[0], "failure")
+        sources = ORCH.bypass_sources(dict(description, body="Context."), [], [], [thread_reply])
+        self.assertEqual(quorum(approvals(*VOTERS), sources)[0], "failure")
+        clean = ORCH.bypass_sources(dict(description, body="Context."), [], [], [])
+        self.assertEqual(quorum(approvals(*VOTERS), clean)[0], "success")
+
     def test_draft_has_no_quorum(self):
         self.assertEqual(quorum(approvals(*VOTERS), draft=True)[0], "pending")
 

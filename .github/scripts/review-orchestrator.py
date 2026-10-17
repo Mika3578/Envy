@@ -227,6 +227,19 @@ def is_bypass_command(comment):
     return bool(BYPASS_COMMAND.search(body))
 
 
+def bypass_sources(pr, issue_comments, reviews, review_comments):
+    """Every place a person can write a reviewer command on a pull request.
+
+    CodeRabbit reads `ignore` from the PR description, and people answer review
+    threads with `resolve`, so both count with PR comments and review bodies.
+    """
+    def entry(item):
+        return {"user": item.get("user"), "body": item.get("body")}
+
+    return ([entry(pr)] + [entry(c) for c in issue_comments]
+            + [entry(r) for r in reviews] + [entry(c) for c in review_comments])
+
+
 def evaluate_quorum(pr, reviews, comments, files, voters, required):
     """Return (state, description, details) for the advisory quorum status.
 
@@ -311,6 +324,9 @@ class GitHub:
 
     def reviews(self, number):
         return self.paged(f"/repos/{self.repo}/pulls/{number}/reviews")
+
+    def review_comments(self, number):
+        return self.paged(f"/repos/{self.repo}/pulls/{number}/comments")
 
     def files(self, number):
         return [f["filename"] for f in self.paged(f"/repos/{self.repo}/pulls/{number}/files")]
@@ -477,10 +493,8 @@ def run_quorum(github, number, print_only):
     voters = quorum_voters(os.environ.get("ENVY_QUORUM_VOTERS"), pr["user"]["login"])
     required = int(os.environ.get("ENVY_QUORUM_REQUIRED") or DEFAULT_QUORUM_REQUIRED)
     reviews = github.reviews(number)
-    # Review bodies can carry commands too; check them with the PR comments.
-    comments = github.comments(number) + [
-        {"user": r.get("user"), "body": r.get("body")} for r in reviews
-    ]
+    comments = bypass_sources(pr, github.comments(number), reviews,
+                              github.review_comments(number))
     state, description, details = evaluate_quorum(
         pr, reviews, comments, github.files(number), voters, required
     )
