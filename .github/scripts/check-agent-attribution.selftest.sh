@@ -301,6 +301,9 @@ expect_fail "personal email in PR body" --pr-body "$TMP/pr-mail.md"
 printf 'clone from https://%s/path.git\n' "$(fx alice.test gmail com)" >"$TMP/pr-url.md"
 expect_pass "URL userinfo must not be treated as email" --pr-body "$TMP/pr-url.md"
 
+printf "external 'SHGetKnownFolderPath@%s.%s stdcall setuponly';\n" shell32 dll >"$TMP/pr-dll.md"
+expect_pass "native DLL import spec is not an email" --pr-body "$TMP/pr-dll.md"
+
 printf 'just an @ symbol in a log line\n' >"$TMP/pr-at.md"
 expect_pass "lone @" --pr-body "$TMP/pr-at.md"
 

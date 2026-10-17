@@ -180,6 +180,9 @@ DOC_OR_REMOTE_DOMAINS = {
 }
 
 
+NATIVE_MODULE_SUFFIXES = (".dll", ".exe", ".sys", ".ocx", ".drv", ".cpl")
+
+
 def emails_in_text(text: str) -> list[str]:
     # Drop URL userinfo matches so https://user@host/path is not treated as mail.
     masked = URL_USERINFO_RE.sub(" ", text)
@@ -189,6 +192,10 @@ def emails_in_text(text: str) -> list[str]:
         domain = match.group(2).lower()
         # git@github.com:org/repo.git is an SCP-style remote, not a mailbox.
         if email.lower() == "git@github.com":
+            continue
+        # Func@<module>.dll is a native import spec (Inno Setup `external`,
+        # linker .def files), not a mailbox; no such TLDs exist.
+        if domain.endswith(NATIVE_MODULE_SUFFIXES):
             continue
         if domain in DOC_OR_REMOTE_DOMAINS or domain.endswith(".example.com"):
             continue
