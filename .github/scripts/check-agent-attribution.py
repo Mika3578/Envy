@@ -511,9 +511,9 @@ def classify_identity(
                     out.append(
                         (
                             SEVERITY_FAIL,
-                            "trusted automation runner identity does not match GitHub "
-                            f"author login (expected one of {sorted(expected)}, "
-                            f"github={meta.author_login}).",
+                            "trusted automation runner identity does not match the "
+                            "GitHub account linked to its mailbox "
+                            f"(github={meta.author_login}).",
                         )
                     )
                     return out
