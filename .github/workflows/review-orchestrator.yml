@@ -1,6 +1,7 @@
 name: Review orchestrator
 
-# Free AI reviewers, triggered once per stable Ready head, plus one digest
+# Free AI reviewers, one selected per stable Ready head (best available on the
+# scoreboard, a second one for high-risk changes), plus one digest
 # comment of unresolved threads and an advisory "Review quorum" commit status
 # that counts approvals review apps already gave. Never a required check, never
 # approves or merges. See docs/10_dev/review-orchestration.md.
@@ -9,23 +10,26 @@ name: Review orchestrator
 # never checks out PR code; the digest job also runs the base-branch script.
 on:
   pull_request_target:
-    types: [opened, ready_for_review, labeled, synchronize]
+    types: [opened, ready_for_review, labeled, synchronize, closed]
   pull_request_review:
     types: [submitted, dismissed]
   pull_request_review_comment:
     types: [created]
+  schedule:
+    # Scoreboard refresh and escalation of silent reviewers.
+    - cron: "17 */3 * * *"
   workflow_dispatch:
     inputs:
       pr:
-        description: Pull request number
-        required: true
+        description: Pull request number (not used by scoreboard)
+        required: false
         type: number
       mode:
         description: Action
         required: true
         default: digest
         type: choice
-        options: [digest, request, quorum]
+        options: [digest, request, quorum, scoreboard]
 
 permissions:
   contents: read
@@ -64,6 +68,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.REVIEW_TRIGGER_TOKEN || github.token }}
           ENVY_REVIEWERS: ${{ vars.ENVY_REVIEWERS }}
           ENVY_REVIEW_MAX_ROUNDS: ${{ vars.ENVY_REVIEW_MAX_ROUNDS }}
+          ENVY_REVIEWERS_PER_HEAD: ${{ vars.ENVY_REVIEWERS_PER_HEAD }}
+          ENVY_REVIEWER_LOGINS: ${{ vars.ENVY_REVIEWER_LOGINS }}
+          ENVY_REVIEWER_RESET_DAYS: ${{ vars.ENVY_REVIEWER_RESET_DAYS }}
+          ENVY_REVIEWER_MONTHLY_CAPS: ${{ vars.ENVY_REVIEWER_MONTHLY_CAPS }}
+          ENVY_REVIEW_TIMEOUT_HOURS: ${{ vars.ENVY_REVIEW_TIMEOUT_HOURS }}
         run: python3 .github/scripts/review-orchestrator.py request --pr "$PR"
 
   digest:
@@ -136,3 +145,43 @@ jobs:
             exit 0
           fi
           python3 .github/scripts/review-orchestrator.py quorum --pr "$PR"
+
+  scoreboard:
+    name: Refresh review scoreboard
+    # Recomputes the ranking from recent pull requests, rewrites the scoreboard
+    # issue, and escalates a head whose reviewer is limited or silent.
+    if: >-
+      github.event_name == 'schedule'
+      || (github.event_name == 'pull_request_target' && github.event.action == 'closed')
+      || (github.event_name == 'workflow_dispatch' && inputs.mode == 'scoreboard')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: review-scoreboard
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Recompute scores and escalate silent reviewers
+        env:
+          # Escalation posts reviewer commands; the same token keeps them counted.
+          GITHUB_TOKEN: ${{ secrets.REVIEW_TRIGGER_TOKEN || github.token }}
+          ENVY_REVIEWERS: ${{ vars.ENVY_REVIEWERS }}
+          ENVY_REVIEW_MAX_ROUNDS: ${{ vars.ENVY_REVIEW_MAX_ROUNDS }}
+          ENVY_REVIEWER_LOGINS: ${{ vars.ENVY_REVIEWER_LOGINS }}
+          ENVY_REVIEWER_RESET_DAYS: ${{ vars.ENVY_REVIEWER_RESET_DAYS }}
+          ENVY_REVIEWER_MONTHLY_CAPS: ${{ vars.ENVY_REVIEWER_MONTHLY_CAPS }}
+          ENVY_REVIEW_TIMEOUT_HOURS: ${{ vars.ENVY_REVIEW_TIMEOUT_HOURS }}
+          ENVY_SCOREBOARD_WINDOW_DAYS: ${{ vars.ENVY_SCOREBOARD_WINDOW_DAYS }}
+        run: |
+          if [ ! -f .github/scripts/review_scoreboard.py ]; then
+            echo "Scoreboard not on the default branch yet; nothing to do."
+            exit 0
+          fi
+          python3 .github/scripts/review-orchestrator.py scoreboard

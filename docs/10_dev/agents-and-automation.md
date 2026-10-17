@@ -93,7 +93,8 @@ develop ruleset (verified 2026-10-17) requires **zero** approving reviews,
 resolved conversations, green required checks, an up-to-date branch, and
 squash merge; force pushes are blocked and branch commits need not be signed.
 Free reviewers (CodeRabbit, Gemini Code Assist, Sourcery, Amazon Q) are
-triggered by the review orchestrator; GitHub Copilot Code Review is optional
+selected one at a time from a performance and quota scoreboard and triggered
+by the review orchestrator; GitHub Copilot Code Review is optional
 while its quota lasts. See [review-orchestration.md](review-orchestration.md)
 and [KNOWN_INCONSISTENCIES](../00_index/KNOWN_INCONSISTENCIES.md).
 
