@@ -475,6 +475,15 @@ assert mod.needs_provenance("coderabbitai[bot]", "136622811+coderabbitai[bot]@us
 assert mod.needs_provenance("Cursor Agent", "cursoragent@cursor.com")
 assert not mod.needs_provenance("tester", "58137747+tester@users.noreply.github.com")
 
+# A human whose display name matches a tool word is flagged, not blocked;
+# a [bot] name on a human noreply is still impersonation.
+human_tool_name = mod.classify_identity("Claude Martin", "58137747+tester@users.noreply.github.com")
+assert human_tool_name and all(s == mod.SEVERITY_WARN for s, _ in human_tool_name), human_tool_name
+assert any(s == mod.SEVERITY_FAIL for s, _ in mod.classify_identity(
+    "deploy[bot]",
+    "58137747+tester@users.noreply.github.com",
+))
+
 # Unit classification regressions from historical PR failures.
 assert mod.classify_identity(
     "coderabbitai[bot]",

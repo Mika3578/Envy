@@ -557,12 +557,24 @@ def classify_identity(
     if name_l.endswith("[bot]") or looks_like_ai_tool_name(name):
         # Claimed automation/AI identity without trusted noreply/runner email.
         if is_allowed_email(email) and email.lower().endswith("@users.noreply.github.com"):
+            if not name_l.endswith("[bot]"):
+                # A tool word alone is not proof of automation: human display
+                # names such as "Claude Martin" match it. The noreply mailbox
+                # still belongs to a human account, so flag it for review only.
+                out.append(
+                    (
+                        SEVERITY_WARN,
+                        "display name matches an AI tool on a human GitHub noreply "
+                        "identity; confirm it is a person, not an agent.",
+                    )
+                )
+                return out
             out.append(
                 (
                     SEVERITY_FAIL,
-                    "AI-tool or [bot] git identity must use a trusted automation "
-                    "mailbox (GitHub App noreply or allowlisted runner), not a "
-                    "generic human noreply spoof.",
+                    "[bot] git identity must use a trusted automation mailbox "
+                    "(GitHub App noreply or allowlisted runner), not a generic "
+                    "human noreply spoof.",
                 )
             )
             return out

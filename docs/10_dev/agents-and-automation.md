@@ -339,8 +339,8 @@ Canonical CI entry points:
 
 | Level | CI effect | Typical causes |
 | --- | --- | --- |
-| **FAIL** | Job fails | Personal/non-allowlisted email; bot display name that does not match its noreply login; claimed AI/`[bot]` identity outside the trusted allowlist; unreadable critical inputs / path traversal |
-| **WARN** | Job succeeds with `::warning::` annotations | Unsigned or unverifiable commit when signatures are optional; trusted runner without verified signature; unknown automation noreply; AI promotional signatures; AI `Co-authored-by`; process-only comments |
+| **FAIL** | Job fails | Personal/non-allowlisted email; bot display name that does not match its noreply login; `[bot]` identity outside the trusted allowlist, or an AI-tool name on a non-noreply mailbox; unreadable critical inputs / path traversal |
+| **WARN** | Job succeeds with `::warning::` annotations | Unsigned or unverifiable commit when signatures are optional; trusted runner without verified signature; unknown automation noreply; AI-tool display name on a human GitHub noreply (for example a person named Claude); AI promotional signatures; AI `Co-authored-by`; process-only comments |
 | **PASS** | Clean success | Human GitHub noreply; allowlisted GitHub App bot noreply; verified allowlisted runner; technical tool names in titles/docs; recognized bot summary blocks |
 
 Git author/committer strings are forgeable. The scanner therefore:
