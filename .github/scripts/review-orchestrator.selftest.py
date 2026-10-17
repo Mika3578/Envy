@@ -16,11 +16,11 @@ SPEC.loader.exec_module(ORCH)
 ALL = ORCH.enabled_reviewers(None)
 
 
-def pr(draft=False, sha="a" * 40, changed=100, state="open"):
+def pr(draft=False, sha="a" * 40, changed=100, state="open", repo="o/r"):
     return {
         "state": state,
         "draft": draft,
-        "head": {"sha": sha},
+        "head": {"sha": sha, "repo": {"full_name": repo}},
         "additions": changed,
         "deletions": 0,
     }
@@ -65,6 +65,21 @@ class PlanTests(unittest.TestCase):
         self.assertNotIn("sourcery", chosen)
         self.assertIn("coderabbit", chosen)
 
+    def test_fork_pull_request_is_not_sent(self):
+        chosen, reason = ORCH.plan_request(pr(repo="fork/r"), {"rounds": []}, ALL, 2, repo="o/r")
+        self.assertEqual(chosen, [])
+        self.assertIn("fork", reason)
+
+    def test_follow_up_round_waits_for_treated_threads(self):
+        state = {"rounds": [{"sha": "b" * 40, "reviewers": ALL}]}
+        chosen, reason = ORCH.plan_request(pr(), state, ALL, 2, repo="o/r", open_threads=3)
+        self.assertEqual(chosen, [])
+        self.assertIn("3 current review thread", reason)
+        self.assertEqual(ORCH.plan_request(pr(), state, ALL, 2, repo="o/r")[0], ALL)
+
+    def test_repeated_reviewers_are_deduplicated(self):
+        self.assertEqual(ORCH.enabled_reviewers("gemini,coderabbit,gemini"), ["gemini", "coderabbit"])
+
     def test_unknown_reviewer_is_rejected(self):
         with self.assertRaises(ValueError):
             ORCH.enabled_reviewers("coderabbit,copilot")
@@ -98,6 +113,28 @@ class DigestTests(unittest.TestCase):
         self.assertIn("Buffer overflow when nLength is 0", body.split("<details>")[0])
         self.assertIn("rename variable", body)
         self.assertTrue(body.startswith(ORCH.DIGEST_MARKER))
+
+    def test_digest_does_not_render_thread_links_or_html(self):
+        summary = ORCH.summarize("Click [here](https://evil.invalid) <img src=x>")
+        self.assertNotIn("](", summary.replace("\\]", ""))
+        self.assertIn("\\[here\\]", summary)
+
+    def test_inline_label_keeps_finding_text(self):
+        self.assertEqual(ORCH.summarize("Potential issue: buffer overflow"),
+                         "Potential issue: buffer overflow")
+
+    def test_not_a_nit_stays_a_finding(self):
+        self.assertFalse(ORCH.is_nit("This is not a nit: the loop overflows."))
+        self.assertTrue(ORCH.is_nit("_🧹 Nitpick_\n\nRename the variable."))
+        self.assertFalse(ORCH.is_nit("Overflow.\n\nDetails.\n\nUnrelated nit at the end."))
+
+    def test_digest_lists_overflow_note_and_print_lists_all(self):
+        threads = [thread(f"finding {i}") for i in range(ORCH.MAX_LISTED_THREADS + 3)]
+        capped = ORCH.render_digest(1, "f" * 40, threads)
+        self.assertIn("3 more not listed", capped)
+        full = ORCH.render_digest(1, "f" * 40, threads, limit=None)
+        self.assertNotIn("more not listed", full)
+        self.assertIn(f"finding {ORCH.MAX_LISTED_THREADS + 2}", full)
 
     def test_summary_strips_markup_and_truncates(self):
         text = "<!-- meta -->\n![high](x.png)\n**issue (bug_risk):** " + "x" * 200

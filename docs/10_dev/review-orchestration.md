@@ -22,11 +22,13 @@ maintainer   -> live test, squash merge, or asks for more review
 `.github/workflows/review-orchestrator.yml` runs
 `.github/scripts/review-orchestrator.py` from the base branch:
 
-- **request** (on `ready_for_review` or the `review:request` label): skips
-  drafts, closed PRs, a head already sent for review, and PRs that used their
-  round budget; then posts one trigger comment per reviewer and records the
-  round in a state comment. It removes the label afterwards.
-- **digest** (on each submitted review, or manual dispatch): writes
+- **request** (when a PR is opened as Ready, on `ready_for_review`, or on the
+  `review:request` label): skips drafts, closed PRs, fork PRs, a head already
+  sent for review, PRs that used their round budget, and follow-up rounds while
+  current threads are still open. It records the round in a state comment
+  first, then posts one trigger comment per reviewer, and removes the label.
+- **digest** (on each submitted review, new review comment, head update, or
+  manual dispatch): writes
   one comment listing unresolved threads as *to treat*, *nits*, and
   *outdated*, with links.
 

@@ -8,9 +8,11 @@ name: Review orchestrator
 # never checks out PR code; the digest job also runs the base-branch script.
 on:
   pull_request_target:
-    types: [ready_for_review, labeled]
+    types: [opened, ready_for_review, labeled, synchronize]
   pull_request_review:
     types: [submitted]
+  pull_request_review_comment:
+    types: [created]
   workflow_dispatch:
     inputs:
       pr:
@@ -35,7 +37,9 @@ jobs:
         && github.event.pull_request.head.repo.full_name == github.repository
         && !github.event.pull_request.draft
         && (github.event.action == 'ready_for_review'
-            || github.event.label.name == 'review:request'))
+            || github.event.action == 'opened'
+            || (github.event.action == 'labeled'
+                && github.event.label.name == 'review:request')))
       || (github.event_name == 'workflow_dispatch' && inputs.mode == 'request')
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -64,7 +68,10 @@ jobs:
   digest:
     name: Update review digest
     if: >-
-      (github.event_name == 'pull_request_review'
+      ((github.event_name == 'pull_request_review'
+          || github.event_name == 'pull_request_review_comment'
+          || (github.event_name == 'pull_request_target'
+              && github.event.action == 'synchronize'))
         && github.event.pull_request.head.repo.full_name == github.repository)
       || (github.event_name == 'workflow_dispatch' && inputs.mode == 'digest')
     runs-on: ubuntu-latest

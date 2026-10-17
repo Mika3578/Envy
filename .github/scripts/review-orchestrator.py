@@ -44,6 +44,10 @@ NIT_PATTERN = re.compile(
     r"nitpick|\bnit\b|\(style\)|!\[low\]|low[- ]priority|refactor suggestion",
     re.IGNORECASE,
 )
+# "this is not a nit" must stay a finding.
+NOT_NIT_PATTERN = re.compile(r"\bnot\s+(?:a\s+|just\s+a\s+)?nit(?:pick)?\b", re.IGNORECASE)
+# Untrusted thread text must not render links, images, or HTML in a bot comment.
+MARKDOWN_ACTIVE = re.compile(r"([\\\[\]<>])")
 # Severity badges that bots put on their first line; the finding follows.
 LABEL_LINE = re.compile(
     r"^\W*(?:(?:potential issue|nitpick|refactor suggestion|agentic security review|"
@@ -57,7 +61,8 @@ def enabled_reviewers(raw):
     unknown = [n for n in names if n and n not in REVIEWERS]
     if unknown:
         raise ValueError(f"unknown reviewers: {', '.join(unknown)}")
-    return [n for n in names if n]
+    # dict.fromkeys keeps the configured order and drops repeats.
+    return list(dict.fromkeys(n for n in names if n))
 
 
 def parse_state(body):
@@ -89,17 +94,22 @@ def render_state(state, max_rounds):
     return "\n".join(lines) + "\n"
 
 
-def plan_request(pr, state, reviewers, max_rounds):
+def plan_request(pr, state, reviewers, max_rounds, repo=None, open_threads=0):
     """Return (reviewers to trigger, reason). Pure for regression tests."""
     if pr["state"] != "open":
         return [], "pull request is not open"
     if pr["draft"]:
         return [], "pull request is a draft"
+    head_repo = ((pr["head"].get("repo") or {}).get("full_name"))
+    if repo and head_repo != repo:
+        return [], "fork pull requests are not sent to reviewers"
     head = pr["head"]["sha"]
     if any(entry["sha"] == head for entry in state["rounds"]):
         return [], f"head {head[:8]} was already sent for review"
     if len(state["rounds"]) >= max_rounds:
         return [], f"round budget ({max_rounds}) is used"
+    if state["rounds"] and open_threads:
+        return [], f"{open_threads} current review thread(s) still open; treat them first"
     changed = pr["additions"] + pr["deletions"]
     chosen = [
         name
@@ -118,15 +128,19 @@ def summarize(body):
     for line in text.splitlines():
         line = line.strip(" #*_>`-")
         if line and not LABEL_LINE.match(line):
-            return line if len(line) <= 140 else line[:137] + "..."
+            line = line if len(line) <= 140 else line[:137] + "..."
+            return MARKDOWN_ACTIVE.sub(r"\\\1", line)
     return "(no text)"
 
 
 def is_nit(body):
-    return bool(NIT_PATTERN.search((body or "")[:400]))
+    # Bots put the severity badge in the opening lines; later prose that merely
+    # mentions "nit" must not hide a finding.
+    head = "\n".join((body or "").strip().splitlines()[:2])[:200]
+    return bool(NIT_PATTERN.search(head)) and not NOT_NIT_PATTERN.search(head)
 
 
-def render_digest(pr_number, head_sha, threads):
+def render_digest(pr_number, head_sha, threads, limit=MAX_LISTED_THREADS):
     open_threads = [t for t in threads if not t["isResolved"]]
     current = [t for t in open_threads if not t["isOutdated"]]
     outdated = [t for t in open_threads if t["isOutdated"]]
@@ -143,12 +157,18 @@ def render_digest(pr_number, head_sha, threads):
         f"**{len(blocking)} to treat** | {len(nits)} nits | "
         f"{len(outdated)} outdated | {len(threads) - len(open_threads)} resolved",
     ]
+    def listed(group):
+        shown = group if limit is None else group[:limit]
+        rest = len(group) - len(shown)
+        more = [f"- _{rest} more not listed; run the `--print` command below._"] if rest else []
+        return [item(t) for t in shown] + more
+
     if blocking:
-        lines += ["", "#### To treat"] + [item(t) for t in blocking[:MAX_LISTED_THREADS]]
+        lines += ["", "#### To treat"] + listed(blocking)
     for title, group in (("Nits", nits), ("Outdated, verify then resolve", outdated)):
         if group:
             lines += ["", f"<details><summary>{title} ({len(group)})</summary>", ""]
-            lines += [item(t) for t in group[:MAX_LISTED_THREADS]]
+            lines += listed(group)
             lines += ["", "</details>"]
     lines += [
         "",
@@ -162,6 +182,7 @@ class GitHub:
     def __init__(self, repo, token):
         self.repo = repo
         self.token = token
+        self._login = None
 
     def call(self, method, path, body=None):
         url = path if path.startswith("https://") else API + path
@@ -174,6 +195,7 @@ class GitHub:
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2022-11-28",
                 "User-Agent": "envy-review-orchestrator",
+                "Content-Type": "application/json",
             },
         )
         with urllib.request.urlopen(request, timeout=30) as response:
@@ -198,9 +220,21 @@ class GitHub:
     def comment(self, number, body):
         self.call("POST", f"/repos/{self.repo}/issues/{number}/comments", {"body": body})
 
+    def token_login(self):
+        """Login behind a user token (REVIEW_TRIGGER_TOKEN); empty for GITHUB_TOKEN."""
+        if self._login is None:
+            try:
+                self._login = (self.call("GET", "/user") or {}).get("login") or ""
+            except urllib.error.HTTPError:
+                self._login = ""
+        return self._login
+
     def find(self, number, marker):
         # Only the workflow identities may own state; a pasted marker is ignored.
+        # The trigger token's owner writes the state when that secret is set.
         trusted = {"github-actions[bot]", self.repo.split("/")[0]}
+        if self.token_login():
+            trusted.add(self.token_login())
         return next(
             (c for c in self.comments(number)
              if marker in c["body"] and c["user"]["login"] in trusted),
@@ -295,7 +329,14 @@ def run_request(github, number, dry_run):
     reviewers = enabled_reviewers(os.environ.get("ENVY_REVIEWERS"))
     existing = github.find(number, STATE_MARKER)
     state = parse_state(existing["body"] if existing else "")
-    chosen, reason = plan_request(pr, state, reviewers, max_rounds)
+    open_threads = 0
+    if state["rounds"]:
+        open_threads = sum(
+            1 for t in github.threads(number) if not t["isResolved"] and not t["isOutdated"]
+        )
+    chosen, reason = plan_request(
+        pr, state, reviewers, max_rounds, repo=github.repo, open_threads=open_threads
+    )
     report(f"PR #{number}: {reason}; reviewers: {', '.join(chosen) or 'none'}")
     if dry_run:
         return
@@ -304,15 +345,20 @@ def run_request(github, number, dry_run):
     github.remove_label(number, REQUEST_LABEL)
     if not chosen:
         return
-    for name in chosen:
-        github.comment(number, REVIEWERS[name])
+    # Record the round before posting: a retry after a partial failure then
+    # skips this head instead of sending duplicate reviewer commands.
     state["rounds"].append({"sha": pr["head"]["sha"], "reviewers": chosen})
     github.upsert(number, existing, render_state(state, max_rounds))
+    for name in chosen:
+        github.comment(number, REVIEWERS[name])
 
 
 def run_digest(github, number, print_only):
     pr = github.pull(number)
-    body = render_digest(number, pr["head"]["sha"], github.threads(number))
+    body = render_digest(
+        number, pr["head"]["sha"], github.threads(number),
+        limit=None if print_only else MAX_LISTED_THREADS,
+    )
     if print_only:
         sys.stdout.buffer.write(body.encode("utf-8"))
         return
