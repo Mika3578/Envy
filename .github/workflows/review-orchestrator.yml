@@ -9,7 +9,8 @@ name: Review orchestrator
 # never checks out PR code; the digest job also runs the base-branch script.
 on:
   pull_request_target:
-    types: [opened, ready_for_review, labeled, synchronize]
+    # edited: CodeRabbit reads bypass commands from the PR description.
+    types: [opened, ready_for_review, labeled, synchronize, edited]
   pull_request_review:
     types: [submitted, dismissed]
   pull_request_review_comment:
@@ -106,6 +107,7 @@ jobs:
     # writes one commit status; it never approves, dismisses, or merges.
     if: >-
       ((github.event_name == 'pull_request_review'
+          || github.event_name == 'pull_request_review_comment'
           || (github.event_name == 'pull_request_target'
               && github.event.action != 'labeled'))
         && github.event.pull_request.head.repo.full_name == github.repository)

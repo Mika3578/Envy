@@ -31,8 +31,9 @@ maintainer   -> live test, squash merge, or asks for more review
   manual dispatch): writes
   one comment listing unresolved threads as *to treat*, *nits*, and
   *outdated*, with links.
-- **quorum** (on each submitted or dismissed review, PR update, or manual
-  dispatch): sets the advisory commit status **Review quorum**. See below.
+- **quorum** (on each submitted or dismissed review, inline review comment,
+  PR update or description edit, or manual dispatch): sets the advisory commit
+  status **Review quorum**. See below.
 
 ## Review quorum (observation mode)
 
