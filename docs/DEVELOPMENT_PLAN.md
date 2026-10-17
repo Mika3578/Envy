@@ -2,6 +2,15 @@
 
 - **Last Updated:** 2026-10-11
 
+- **Changelog Entry:** 2026-10-12 — #463: define a bounded, serial AI-review
+  policy for authorized Draft requests after coherent correction batches;
+  CodeRabbit is manual opt-in, Amazon Q is a confirmed-unavailable fallback,
+  Sourcery/Bugbot stay out of routine ENVY reviews until their external
+  controls are verified, and Copilot remains a single Ready review. Disable
+  CodeRabbit auto-review in the versioned config; do not activate #397, add a
+  dispatcher, request paid reviews during implementation, or change merge
+  protections. See `docs/10_dev/ai-review-policy.md`.
+
 - **Changelog Entry:** 2026-10-11 - #393: maintainer reports successful validation of ac29717 (EnvyTests 735/735, PeerXmlTests 18/18 and fixture HTTP 21/21); Release x64/Win32 CI builds passed. Correct the validation guide: loopback sources are rejected by the application's reserved-address policy, so fixture self-tests are not application integration evidence. Separate native parser coverage from admitted-peer application tests and document THEX/Tiger/legacy MD4 DIME type identifiers without changing protocol bytes or network protections. Historical Gnutella issues #453/#319 remain outside this PR.
 
 - **Changelog Entry:** 2026-10-11 - #393/#391: distinguish valid THEX descriptor state from an empty identity; retain empty DIME ID compatibility and guard missing/empty URI fallback by an existing TTH. Validate complete binary rows and both historic depth conventions, strict numeric metadata/Content-Length and DIME message framing. Native tests now execute production SetTigerTree with HashLib. Reference source comparisons, client-specific G1/G2 steps, synthetic fixtures and manual Visual Studio instructions are in `docs/10_dev/peer-xml-validation.md`. Full application builds/live interoperability remain maintainer work; local corrections must not be pushed before those results.

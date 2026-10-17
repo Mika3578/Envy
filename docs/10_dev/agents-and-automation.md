@@ -8,7 +8,9 @@
 - **Local verify:** `scripts/ci-fast.ps1`, `scripts/ci-verify.ps1` (see [devsecops-envy.md](devsecops-envy.md)).
 - **Versioning:** `scripts/auto-version.ps1`, `scripts/bump-version.ps1`, `version.json`
 - **Build:** `build_all.ps1` (local full-matrix build via MSBuild)
-- **AI / review:** CodeRabbit (advisory, `.coderabbit.yaml`), clang-tidy→reviewdog on PRs, `.github/copilot-instructions.md`, `.cursor/rules/`
+- **AI / review:** controlled advisory review policy in
+  [`ai-review-policy.md`](ai-review-policy.md), CodeRabbit (advisory,
+  `.coderabbit.yaml`), clang-tidy→reviewdog on PRs, `.github/copilot-instructions.md`, `.cursor/rules/`
 - **Cloud Agent Linux env:** `.cursor/environment.json` provisions clang-format-18/clang-tidy (CI-aligned) plus cppcheck as an extra local tool, and `Remote/tests` npm deps (not a Windows MSVC substitute)
 - **Dependencies:** Dependabot owns vcpkg, `Remote/tests` npm, and GitHub Actions updates via `.github/dependabot.yml`. Renovate is retired for this repository.
 
@@ -233,13 +235,16 @@ Copy this instruction into the starter, substituting the PR URL:
 Follow AGENTS.md from the trusted base and the approved PR scope. Own this
 existing PR branch as its sole automatic fixer. Subscribe to its PR activity
 and branch CI; reuse this conversation. No polling and no new agent per event.
-Never approve, request reviewers, dismiss reviews, merge, enable auto-merge,
+Never approve, request human reviewers, dismiss reviews, merge, enable auto-merge,
 change repository settings/rulesets, weaken checks, force-push, or push to
 develop/main/legacy. Never set stage:live-test or mark the PR Ready.
-**Never request any code review** (Copilot, Bugbot, CodeRabbit, or human
-reviewers) while the pull request is a **draft** — Draft is cheap CI and thread
-fixes only. **Never request GitHub Copilot Code Review** during correction loops
-after Ready either until the checklist in `AGENTS.md` §5 is satisfied; treat
+Do not request Copilot or human reviewers while the pull request is a
+**draft** — Copilot is the final Ready reviewer. Once the controlled policy in
+[`ai-review-policy.md`](ai-review-policy.md) is effective, an authorized agent
+may request one allowlisted advisory provider after the stable-HEAD, checks,
+quota, identity, concurrency, and deduplication conditions pass. **Never
+request GitHub Copilot Code Review** during correction loops after Ready either
+until the checklist in `AGENTS.md` §5 is satisfied; treat
 threads, push fix batches, resolve when justified; the maintainer (or one
 explicit final automation step after that checklist) requests **one** Copilot
 review per stable treated head.
@@ -270,8 +275,9 @@ current head or justified reply). Do not resolve without a reply; do not
 request Copilot Code Review while untreated threads remain. Let CI run;
 when every thread on the head is treated and the PR is mergeable toward
 `develop`, request **one** Copilot Code Review per stable head per
-`AGENTS.md` rule 12 (Copilot review-on-push stays off). Do not request other
-reviewers automatically unless the maintainer asks.
+`AGENTS.md` rule 12 (Copilot review-on-push stays off). Do not request another
+provider automatically or concurrently; use the documented fallback only when
+the first provider is confirmed unavailable.
 
 Draft budget: three pushed batches total. Ready budget: two total. Phase toggles,
 replays, successful tests or resumed conversations do not reset these counters.
