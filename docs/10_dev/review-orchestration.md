@@ -31,6 +31,54 @@ maintainer   -> live test, squash merge, or asks for more review
   manual dispatch): writes
   one comment listing unresolved threads as *to treat*, *nits*, and
   *outdated*, with links.
+- **quorum** (on each submitted or dismissed review, PR update, or manual
+  dispatch): sets the advisory commit status **Review quorum**. See below.
+
+## Review quorum (observation mode)
+
+The quorum counts approvals that review apps gave on their own. It never
+approves, dismisses, or merges, and it is **not** in the ruleset yet.
+
+| Status | When |
+| --- | --- |
+| `success` | at least `ENVY_QUORUM_REQUIRED` voters have APPROVED **the current head SHA**, no voter has changes requested, no bypass command, no governance path changed |
+| `pending` | draft, not enough approvals on this head, or governance paths changed (the maintainer reviews those) |
+| `failure` | a voter's latest decision is CHANGES_REQUESTED, or a person posted a reviewer bypass command |
+
+Rules:
+
+- A voter's decision is its latest APPROVED, CHANGES_REQUESTED, or DISMISSED
+  review, as GitHub counts it; a later COMMENTED review does not replace it.
+  An approval of an older commit, or a dismissed one, does not count.
+- Only `ENVY_QUORUM_VOTERS` vote; the PR author never votes. The correction
+  agent's identity must never be a voter.
+- Bypass commands (`@coderabbitai approve|resolve|ignore|pause`,
+  `@cubic-dev-ai approve`) fail the status when a person posts them live. Bot
+  help text, quoted lines, and code-formatted text are ignored.
+- Governance paths (`AGENTS.md`, `CLAUDE.md`, `.coderabbit.yaml`,
+  `.greptile`, `.gemini/**`, `.github/workflows/**`, `.github/scripts/**`,
+  `.github/rulesets/**`, `.github/skills/**`, `.github/actions/**`, and the
+  other files of `AGENTS.md` rule 12) keep the status `pending`.
+
+Check a PR locally without writing a status:
+
+```bash
+python3 .github/scripts/review-orchestrator.py quorum --pr <N> --print
+```
+
+Default voters are CodeRabbit (`coderabbitai[bot]`), cubic
+(`cubic-dev-ai[bot]`), and Greptile (`greptile-apps[bot]`). Each must be set
+up to approve on its own before it can vote: CodeRabbit
+`reviews.request_changes_workflow`, cubic auto-approval in **Live** mode,
+Greptile auto-approve. Until then the status stays `pending`, which is the
+point of observation mode. Confirm each app's bot login on the first review
+and adjust `ENVY_QUORUM_VOTERS` if it differs.
+
+Known limit: on `pull_request_review` events GitHub runs the workflow file
+from the PR, and any repository writer can post commit statuses. Before the
+status becomes a required check, a separate governance PR must address that,
+for example with an `integration_id`-pinned check run from a base-branch
+trigger.
 
 Agents read the digest instead of the PR conversation:
 
@@ -64,6 +112,8 @@ Format Check) run in CI and are not orchestrated here.
 | `ENVY_REVIEWERS` | repository variable | `coderabbit,gemini,sourcery,amazonq` |
 | `ENVY_REVIEW_MAX_ROUNDS` | repository variable | `2` |
 | `REVIEW_TRIGGER_TOKEN` | repository secret, optional | falls back to `GITHUB_TOKEN` |
+| `ENVY_QUORUM_VOTERS` | repository variable | `coderabbitai[bot],cubic-dev-ai[bot],greptile-apps[bot]` |
+| `ENVY_QUORUM_REQUIRED` | repository variable | `3` |
 
 Some review apps ignore commands written by `github-actions[bot]`. If a
 reviewer does not answer the first orchestrated round, add

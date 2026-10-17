@@ -118,6 +118,16 @@ Branch model:
     - AI reviews (CodeRabbit, Gemini Code Assist, Sourcery, Amazon Q, Qodo,
       Copilot) are **advisory findings, never approvals**. Never manufacture
       approval with GitHub Actions or a self-approval workflow.
+    - The advisory **Review quorum** status counts APPROVED reviews that
+      independent review apps gave on the current head
+      (`docs/10_dev/review-orchestration.md`). It is in observation mode and
+      not a required check. An agent must never post reviewer bypass commands
+      (`@coderabbitai approve`, `@coderabbitai resolve`, `@coderabbitai
+      ignore`, `@coderabbitai pause`, or similar), dismiss a bot review,
+      disable a voting reviewer, or add its own identity to
+      `ENVY_QUORUM_VOTERS`: the agent that fixes a PR never votes on it. A
+      green quorum never replaces the maintainer's review of privileged
+      governance paths.
     - Request AI reviews only through the free review orchestrator
       (`docs/10_dev/review-orchestration.md`): one round when the PR becomes
       Ready, then at most one more by adding the `review:request` label after

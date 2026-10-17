@@ -147,5 +147,74 @@ class DigestTests(unittest.TestCase):
         self.assertLessEqual(len(summary), 140)
 
 
+HEAD = "a" * 40
+VOTERS = ORCH.quorum_voters(None)
+
+
+def review(login, state, sha=HEAD, body=""):
+    return {"user": {"login": login}, "state": state, "commit_id": sha, "body": body}
+
+
+def approvals(*logins, sha=HEAD):
+    return [review(login, "APPROVED", sha) for login in logins]
+
+
+def quorum(reviews, comments=(), files=("Envy/Foo.cpp",), draft=False, required=3):
+    return ORCH.evaluate_quorum(pr(draft=draft, sha=HEAD), reviews, list(comments),
+                                list(files), VOTERS, required)
+
+
+class QuorumTests(unittest.TestCase):
+    def test_three_voters_on_head_pass(self):
+        state, description, _ = quorum(approvals(*VOTERS))
+        self.assertEqual(state, "success")
+        self.assertIn("3/3", description)
+
+    def test_approval_on_an_older_head_does_not_count(self):
+        reviews = approvals(*VOTERS[:2]) + approvals(VOTERS[2], sha="b" * 40)
+        self.assertEqual(quorum(reviews)[:2], ("pending", "2/3 bot approvals on this head"))
+
+    def test_unlisted_reviewers_and_repeats_do_not_count(self):
+        reviews = approvals(VOTERS[0], VOTERS[0], "github-actions[bot]", "someone")
+        self.assertIn("1/3", quorum(reviews)[1])
+
+    def test_later_comment_keeps_approval_but_dismissal_removes_it(self):
+        kept = approvals(*VOTERS) + [review(VOTERS[0], "COMMENTED")]
+        self.assertEqual(quorum(kept)[0], "success")
+        dismissed = approvals(*VOTERS) + [review(VOTERS[0], "DISMISSED")]
+        self.assertEqual(quorum(dismissed)[0], "pending")
+
+    def test_outstanding_change_request_fails(self):
+        reviews = approvals(*VOTERS[1:]) + [review(VOTERS[0], "CHANGES_REQUESTED")]
+        state, description, _ = quorum(reviews, required=2)
+        self.assertEqual(state, "failure")
+        self.assertIn(VOTERS[0], description)
+
+    def test_human_bypass_command_fails_but_quoted_or_bot_text_does_not(self):
+        live = {"user": {"login": "Mika3578"}, "body": "@coderabbitai approve"}
+        self.assertEqual(quorum(approvals(*VOTERS), [live])[0], "failure")
+        harmless = [
+            {"user": {"login": "coderabbitai[bot]"}, "body": "Tips: `@coderabbitai resolve`"},
+            {"user": {"login": "github-actions[bot]"}, "body": "@coderabbitai resolve"},
+            {"user": {"login": "Mika3578"}, "body": "Do not run `@coderabbitai approve`."},
+            {"user": {"login": "Mika3578"}, "body": "> @coderabbitai resolve\n\nNo."},
+        ]
+        self.assertEqual(quorum(approvals(*VOTERS), harmless)[0], "success")
+
+    def test_governance_paths_stay_with_the_maintainer(self):
+        for path in ("AGENTS.md", ".github/workflows/build.yml", ".github/scripts/x.py",
+                     ".coderabbit.yaml"):
+            state, description, _ = quorum(approvals(*VOTERS), files=[path])
+            self.assertEqual(state, "pending", path)
+            self.assertIn("maintainer", description)
+
+    def test_draft_has_no_quorum(self):
+        self.assertEqual(quorum(approvals(*VOTERS), draft=True)[0], "pending")
+
+    def test_author_never_votes_on_its_own_pull_request(self):
+        self.assertNotIn("coderabbitai[bot]", ORCH.quorum_voters(None, "CodeRabbitAI[bot]"))
+        self.assertEqual(ORCH.quorum_voters("a[bot], b[bot],a[bot]"), ["a[bot]", "b[bot]"])
+
+
 if __name__ == "__main__":
     unittest.main()

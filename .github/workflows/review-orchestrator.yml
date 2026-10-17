@@ -1,7 +1,8 @@
 name: Review orchestrator
 
 # Free AI reviewers, triggered once per stable Ready head, plus one digest
-# comment of unresolved threads. Advisory only: never a required check, never
+# comment of unresolved threads and an advisory "Review quorum" commit status
+# that counts approvals review apps already gave. Never a required check, never
 # approves or merges. See docs/10_dev/review-orchestration.md.
 #
 # pull_request_target runs this file and the script from the base branch and
@@ -10,7 +11,7 @@ on:
   pull_request_target:
     types: [opened, ready_for_review, labeled, synchronize]
   pull_request_review:
-    types: [submitted]
+    types: [submitted, dismissed]
   pull_request_review_comment:
     types: [created]
   workflow_dispatch:
@@ -24,7 +25,7 @@ on:
         required: true
         default: digest
         type: choice
-        options: [digest, request]
+        options: [digest, request, quorum]
 
 permissions:
   contents: read
@@ -98,3 +99,40 @@ jobs:
             exit 0
           fi
           python3 .github/scripts/review-orchestrator.py digest --pr "$PR"
+
+  quorum:
+    name: Review quorum
+    # Observation mode: the status is not in the ruleset. It reads reviews and
+    # writes one commit status; it never approves, dismisses, or merges.
+    if: >-
+      ((github.event_name == 'pull_request_review'
+          || (github.event_name == 'pull_request_target'
+              && github.event.action != 'labeled'))
+        && github.event.pull_request.head.repo.full_name == github.repository)
+      || (github.event_name == 'workflow_dispatch' && inputs.mode == 'quorum')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: review-quorum-${{ github.event.pull_request.number || inputs.pr }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Count review app approvals on this head
+        env:
+          PR: ${{ github.event.pull_request.number || inputs.pr }}
+          GITHUB_TOKEN: ${{ github.token }}
+          ENVY_QUORUM_VOTERS: ${{ vars.ENVY_QUORUM_VOTERS }}
+          ENVY_QUORUM_REQUIRED: ${{ vars.ENVY_QUORUM_REQUIRED }}
+        run: |
+          if ! grep -q '"quorum"' .github/scripts/review-orchestrator.py; then
+            echo "Quorum mode not on the default branch yet; nothing to do."
+            exit 0
+          fi
+          python3 .github/scripts/review-orchestrator.py quorum --pr "$PR"
