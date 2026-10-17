@@ -141,38 +141,39 @@ void CShareManagerDlg::OnDoubleClick(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 
 void CShareManagerDlg::OnOK()
 {
+	CFolderScanDlg dlgScan;
 	{
-		CQuickLock oLock( Library.m_pSection );
+		CQuickLock oLock(Library.m_pSection);
 
-		for ( POSITION pos = LibraryFolders.GetFolderIterator(); pos; )
+		for (POSITION pos = LibraryFolders.GetFolderIterator(); pos;)
 		{
-			CLibraryFolder* pFolder = LibraryFolders.GetNextFolder( pos );
+			CLibraryFolder* pFolder = LibraryFolders.GetNextFolder(pos);
 
 			int nItem = 0;
-			for ( ; nItem < m_wndList.GetItemCount(); nItem++ )
+			for (; nItem < m_wndList.GetItemCount(); nItem++)
 			{
-				CString strFolder = m_wndList.GetItemText( nItem, 0 );
-				if ( strFolder.CompareNoCase( pFolder->m_sPath ) == 0 )
+				CString strFolder = m_wndList.GetItemText(nItem, 0);
+				if (strFolder.CompareNoCase(pFolder->m_sPath) == 0)
 				{
-					if ( m_wndList.GetCheck(nItem) && ! pFolder->IsShared() )
-						pFolder->SetShared( TRI_TRUE );
-					else if ( ! m_wndList.GetCheck(nItem) && pFolder->IsShared() )
-						pFolder->SetShared( TRI_FALSE );
+					if (m_wndList.GetCheck(nItem) && !pFolder->IsShared())
+						pFolder->SetShared(TRI_TRUE);
+					else if (!m_wndList.GetCheck(nItem) && pFolder->IsShared())
+						pFolder->SetShared(TRI_FALSE);
 					break;
 				}
 			}
 
-			if ( nItem >= m_wndList.GetItemCount() )
-				LibraryFolders.RemoveFolder( pFolder );
+			if (nItem >= m_wndList.GetItemCount())
+				LibraryFolders.RemoveFolder(pFolder);
 		}
 
-		for ( int nItem = 0; nItem < m_wndList.GetItemCount(); nItem++ )
+		for (int nItem = 0; nItem < m_wndList.GetItemCount(); nItem++)
 		{
-			LibraryFolders.AddFolder( m_wndList.GetItemText( nItem, 0 ), m_wndList.GetCheck( nItem ) );
+			LibraryFolders.AddFolder(m_wndList.GetItemText(nItem, 0), m_wndList.GetCheck(nItem));
 		}
 	}
 
-	CFolderScanDlg dlgScan;
+	Library.Update(true);
 	dlgScan.DoModal();
 
 	CDialog::OnOK();

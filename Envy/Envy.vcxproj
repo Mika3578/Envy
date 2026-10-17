@@ -1402,6 +1402,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="Images.h" />
     <ClInclude Include="Kademlia.h" />
     <ClInclude Include="Library.h" />
+    <ClInclude Include="LibraryFileSystem.h" />
     <ClInclude Include="LibraryBuilder.h" />
     <ClInclude Include="LibraryBuilderInternals.h" />
     <ClInclude Include="LibraryBuilderPlugins.h" />

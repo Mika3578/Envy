@@ -20,6 +20,8 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "SharedFolder.h"
+#include "LibraryFileSystem.h"
+#include "DlgFolderScan.h"
 #include "SharedFile.h"
 #include "Library.h"
 #include "LibraryDictionary.h"
@@ -424,62 +426,67 @@ BOOL CLibraryFolder::ThreadScan(DWORD nScanCookie)
 	WIN32_FIND_DATA pFind;
 	HANDLE hSearch = FindFirstFile( SafePath( m_sPath + L"\\*.*" ), &pFind );
 
-	m_nScanCookie	= nScanCookie;
-	nScanCookie		= Library.GetScanCookie();
+	DWORD nFindError = hSearch == INVALID_HANDLE_VALUE ? GetLastError() : ERROR_SUCCESS;
+
+	m_nScanCookie = nScanCookie;
+	nScanCookie = Library.GetScanCookie();
 
 	BOOL bChanged = FALSE;
 
-	if ( hSearch != INVALID_HANDLE_VALUE )
+	if (hSearch != INVALID_HANDLE_VALUE)
 	{
 		do
 		{
-			if ( CLibrary::IsBadFile( pFind.cFileName, m_sPath, pFind.dwFileAttributes ) )
+			// Directory reparse points can escape a share root or form traversal loops.
+			if ((pFind.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) ==
+			        (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT) ||
+			    CLibrary::IsBadFile(pFind.cFileName, m_sPath, pFind.dwFileAttributes))
 				continue;
 
-			if ( pFind.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
+			if (pFind.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 			{
-				CLibraryFolder* pFolder = GetFolderByName( pFind.cFileName );
-				if ( pFolder != NULL )
+				CLibraryFolder* pFolder = GetFolderByName(pFind.cFileName);
+				if (pFolder != NULL)
 				{
-					m_nFiles  -= pFolder->m_nFiles;
+					m_nFiles -= pFolder->m_nFiles;
 					m_nVolume -= pFolder->m_nVolume;
 
-					if ( _tcsicmp( pFolder->m_sName, pFind.cFileName ) != 0 )
+					if (_tcsicmp(pFolder->m_sName, pFind.cFileName) != 0)
 					{
-						VERIFY( m_pFolders.RemoveKey( pFolder->m_sName ) );
+						VERIFY(m_pFolders.RemoveKey(pFolder->m_sName));
 						pFolder->OnDelete();
-						pFolder = new CLibraryFolder( this, m_sPath + L"\\" + pFind.cFileName );
-						m_pFolders.SetAt( pFolder->m_sName, pFolder );
+						pFolder = new CLibraryFolder(this, m_sPath + L"\\" + pFind.cFileName);
+						m_pFolders.SetAt(pFolder->m_sName, pFolder);
 						m_nUpdateCookie++;
 						bChanged = TRUE;
 					}
 				}
 				else
 				{
-					pFolder = new CLibraryFolder( this, m_sPath + L"\\" + pFind.cFileName );
-					m_pFolders.SetAt( pFolder->m_sName, pFolder );
+					pFolder = new CLibraryFolder(this, m_sPath + L"\\" + pFind.cFileName);
+					m_pFolders.SetAt(pFolder->m_sName, pFolder);
 					m_nUpdateCookie++;
 					bChanged = TRUE;
 				}
 
-				if ( pFolder->ThreadScan( nScanCookie ) )
+				if (pFolder->ThreadScan(nScanCookie))
 					bChanged = TRUE;
 
-				m_nFiles	+= pFolder->m_nFiles;
-				m_nVolume	+= pFolder->m_nVolume;
+				m_nFiles += pFolder->m_nFiles;
+				m_nVolume += pFolder->m_nVolume;
 			}
 			else
 			{
 				BOOL bNew;
-				CLibraryFile* pFile = AddFile( pFind.cFileName, bNew );
-				if ( ! bNew )
+				CLibraryFile* pFile = AddFile(pFind.cFileName, bNew);
+				if (!bNew)
 				{
 					m_nVolume -= pFile->m_nSize;
-					if ( pFile->m_sName.CompareNoCase( pFind.cFileName ) )
+					if (pFile->m_sName.CompareNoCase(pFind.cFileName))
 					{
-						Library.RemoveFile( pFile );
+						Library.RemoveFile(pFile);
 						pFile->m_sName = pFind.cFileName;
-						Library.AddFile( pFile );
+						Library.AddFile(pFile);
 						bChanged = TRUE;
 					}
 				}
@@ -487,20 +494,27 @@ BOOL CLibraryFolder::ThreadScan(DWORD nScanCookie)
 					bChanged = TRUE;
 
 				QWORD nLongSize = (QWORD)pFind.nFileSizeLow |
-					( (QWORD)pFind.nFileSizeHigh << 32 );
+				                  ((QWORD)pFind.nFileSizeHigh << 32);
 
-				if ( pFile->ThreadScan( nScanCookie, nLongSize, &pFind.ftLastWriteTime ) )
+				if (pFile->ThreadScan(nScanCookie, nLongSize, &pFind.ftLastWriteTime))
 					bChanged = TRUE;
 
 				m_nVolume += pFile->m_nSize;
 			}
-		}
-		while ( Library.IsThreadEnabled() && FindNextFile( hSearch, &pFind ) );
+		} while (Library.IsThreadEnabled() && FindNextFile(hSearch, &pFind));
 
-		FindClose( hSearch );
+		if (Library.IsThreadEnabled())
+			nFindError = GetLastError();
+		FindClose(hSearch);
 	}
 
-	if ( ! Library.IsThreadEnabled() ) return FALSE;
+	if (!Library.IsThreadEnabled()) return FALSE;
+	if (!EnvyFileSystem::EnumerationComplete(nFindError))
+	{
+		// An incomplete listing cannot justify removing entries absent from it.
+		CFolderScanDlg::ReportError(nFindError);
+		return bChanged;
+	}
 
 	CList< CLibraryFolder* > pExtraFolders;
 	for ( POSITION pos = GetFolderIterator(); pos; )

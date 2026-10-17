@@ -1,5 +1,7 @@
 # Changelog
 
+- Fix shared-folder indexing for long local, mapped and UNC paths. Failed network enumeration now preserves existing library entries and reports the Windows error instead of treating the share as empty.
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

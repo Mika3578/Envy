@@ -32,19 +32,23 @@ public:
 public:
 	CStatic	m_wndVolume;
 	CStatic	m_wndFiles;
-	CStatic	m_wndFile;
+	CStatic m_wndFile;
 
 public:
-	static void Update(LPCTSTR pszName, DWORD nVolume);	//, BOOL bLock);
-	void	InstanceUpdate(LPCTSTR pszName, DWORD nVolume);
+	static void Update(LPCTSTR pszName, DWORD nVolume);
+	static void ReportError(DWORD nError);
+	void InstanceUpdate(LPCTSTR pszName, DWORD nVolume);
 
 protected:
-	static	CFolderScanDlg*	m_pDialog;
-	DWORD	m_nCookie;
-	DWORD	m_nFiles;
-	DWORD	m_nVolume;
-	DWORD	m_tLastUpdate;
-	BOOL	m_bActive;
+	static CFolderScanDlg* m_pDialog;
+	static CCriticalSection m_pProgressSection;
+	DWORD m_nCookie;
+	DWORD m_nFiles;
+	QWORD m_nVolume;
+	DWORD m_nError;
+	CString m_sCurrentFile;
+	DWORD m_tLastUpdate;
+	BOOL m_bActive;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);
