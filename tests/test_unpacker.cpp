@@ -415,7 +415,7 @@ bool LateHardLinkReplacement()
 	auto renameFile = reinterpret_cast<RenameFile>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtSetInformationFile"));
 	struct { FILE_RENAME_INFO info; WCHAR room[MAX_PATH]; } renameInfo = {};
 	IO_STATUS_BLOCK status = {};
-	const WCHAR* leaf = L"payload.txt";
+	const WCHAR leaf[] = L"payload.txt";
 	renameInfo.info.ReplaceIfExists = TRUE;
 	renameInfo.info.FileNameLength = static_cast<DWORD>((_countof(leaf) - 1) * sizeof(WCHAR));
 	memcpy(renameInfo.info.FileName, leaf, renameInfo.info.FileNameLength);
