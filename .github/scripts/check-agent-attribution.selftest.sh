@@ -138,6 +138,24 @@ git -c user.name="coderabbitai[bot]" \
 SPOOF_HUMAN=$(git rev-parse HEAD)
 expect_fail "bot name on human noreply" --from "$SPOOF_BOT" --to "$SPOOF_HUMAN"
 
+# Human author, trusted bot committer: each identity uses its own GitHub login.
+GIT_COMMITTER_NAME="coderabbitai[bot]" \
+	GIT_COMMITTER_EMAIL="136622811+coderabbitai[bot]@users.noreply.github.com" \
+	git -c user.name="tester" -c user.email="58137747+tester@users.noreply.github.com" \
+	commit --allow-empty -q -m "fix: human change committed by bot"
+BOT_COMMITTER=$(git rev-parse HEAD)
+printf '{"%s":{"author_login":"tester","author_type":"User","committer_login":"coderabbitai[bot]","committer_type":"Bot"}}\n' "$BOT_COMMITTER" >"$TMP/bot-committer.json"
+expect_pass "bot committer checked against committer login" --from "$SPOOF_HUMAN" --to "$BOT_COMMITTER" \
+	--commit-meta "$TMP/bot-committer.json"
+printf '{"%s":{"author_login":"tester","author_type":"User","committer_login":"evil-user","committer_type":"User"}}\n' "$BOT_COMMITTER" >"$TMP/bot-committer-spoof.json"
+expect_fail "bot committer linked to another account" --from "$SPOOF_HUMAN" --to "$BOT_COMMITTER" \
+	--commit-meta "$TMP/bot-committer-spoof.json"
+
+# An AI-named co-author trailer must not hide a personal mailbox.
+git commit --allow-empty -q -m "fix: trailer privacy" -m "Co-authored-by: Claude <$(fx eve.test gmail com)>"
+AI_TRAILER_MAIL=$(git rev-parse HEAD)
+expect_fail "personal email in AI-named trailer" --from "$BOT_COMMITTER" --to "$AI_TRAILER_MAIL"
+
 echo three >file.txt
 git add file.txt
 git commit -q -m "$(cat <<'EOF'
@@ -147,7 +165,7 @@ Co-authored-by: Cursor Agent <cursoragent@cursor.com>
 EOF
 )"
 BAD=$(git rev-parse HEAD)
-expect_warn "Cursor Co-authored-by trailer" --from "$SPOOF_HUMAN" --to "$BAD"
+expect_warn "Cursor Co-authored-by trailer" --from "$AI_TRAILER_MAIL" --to "$BAD"
 
 # Other AI-tool Co-authored-by trailers are editorial WARN.
 echo ai-names >file.txt
@@ -310,6 +328,9 @@ expect_pass "lone @" --pr-body "$TMP/pr-at.md"
 printf 'ci(authorship): enforce repository privacy hygiene\n' >"$TMP/pr-title-good.md"
 expect_pass "technical PR title" --pr-title "$TMP/pr-title-good.md"
 
+printf 'fix(ci): Generated with Claude\n' >"$TMP/pr-title-prefixed-signature.md"
+expect_warn "generation signature after title prefix" --pr-title "$TMP/pr-title-prefixed-signature.md"
+
 printf 'fix(ci): correct Copilot review classification\n' >"$TMP/pr-title-copilot.md"
 expect_pass "technical Copilot mention in PR title" --pr-title "$TMP/pr-title-copilot.md"
 
@@ -378,7 +399,7 @@ expect_fail "personal email after fake selftest header line" --from "$CLEAN2" --
 printf 'Contact alice@example.com for the upstream notice.\n' >"$TMP/pr-example.md"
 expect_pass "example.com address in PR body" --pr-body "$TMP/pr-example.md"
 
-cat >"$TMP/pr-cubic-block.md" <<'EOF'
+cat >"$TMP/pr-cubic-block.md" <<EOF
 ## Problem
 Agent-assisted changes can accidentally expose personal data.
 
@@ -388,16 +409,18 @@ Agent-assisted changes can accidentally expose personal data.
 <!-- This is an auto-generated description by cubic. -->
 ## Summary by cubic
 Automated summary text that mentions Cubic and https://cubic.dev/pr/example
+Contact $(fx eve.test gmail com) for details.
 <!-- End of auto-generated description by cubic. -->
 EOF
 expect_pass "contributor PR body with Cubic auto-generated block" --pr-body "$TMP/pr-cubic-block.md"
 
-cat >"$TMP/pr-coderabbit-block.md" <<'EOF'
+cat >"$TMP/pr-coderabbit-block.md" <<EOF
 ## Summary
 Policy clarification only.
 
 <!-- This is an auto-generated comment by CodeRabbit -->
 Automated review summary mentioning CodeRabbit internals.
+Contact $(fx eve.test gmail com) for details.
 <!-- End of auto-generated comment by CodeRabbit -->
 EOF
 expect_pass "CodeRabbit auto-generated comment block" --pr-body "$TMP/pr-coderabbit-block.md"
@@ -420,6 +443,11 @@ except RuntimeError:
     pass
 else:
     raise AssertionError("object page must fail closed")
+
+# Provenance-dependent identities fail closed when GitHub data is missing.
+assert mod.needs_provenance("coderabbitai[bot]", "136622811+coderabbitai[bot]@users.noreply.github.com")
+assert mod.needs_provenance("Cursor Agent", "cursoragent@cursor.com")
+assert not mod.needs_provenance("tester", "58137747+tester@users.noreply.github.com")
 
 # Unit classification regressions from historical PR failures.
 assert mod.classify_identity(

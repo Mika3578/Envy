@@ -316,7 +316,7 @@ def _scan_trailers(findings: list[Finding], label: str, text: str) -> None:
                 f"{label}: AI-tool Co-authored-by trailer is discouraged "
                 "(tools are not Git co-authors).",
             )
-            continue
+        # Privacy applies to every trailer, including AI-named ones.
         for email in emails:
             _reject_email(
                 findings,
@@ -372,7 +372,14 @@ def scan_pr_title(findings: list[Finding], label: str, text: str) -> None:
             SEVERITY_WARN,
             f"{label}: agent automation marker in contributor text is discouraged.",
         )
-    # Tool names in titles (e.g. "fix Copilot review classification") are OK.
+    # Tool names in titles (e.g. "fix Copilot review classification") are OK,
+    # but a signature after a "type(scope):" prefix is still promotional.
+    if GENERATED_DIFF_TEXT_RE.search(title) and not GENERATED_LINE_RE.search(title):
+        report(
+            findings,
+            SEVERITY_WARN,
+            f"{label}: AI tool generation signature in contributor text is discouraged.",
+        )
     scan_text(findings, label, title)
 
 
@@ -382,6 +389,17 @@ class CommitGithubMeta:
     author_type: str = ""
     verified: bool | None = None
     reason: str = ""
+    committer_login: str = ""
+    committer_type: str = ""
+
+    def for_committer(self) -> "CommitGithubMeta":
+        """Provenance as seen by the committer identity check."""
+        return CommitGithubMeta(
+            author_login=self.committer_login,
+            author_type=self.committer_type,
+            verified=self.verified,
+            reason=self.reason,
+        )
 
 
 def classify_identity(
@@ -556,6 +574,8 @@ def load_commit_meta_file(path_str: str, findings: list[Finding]) -> dict[str, C
             author_type=str(value.get("author_type") or ""),
             verified=verified,
             reason=str(value.get("reason") or ""),
+            committer_login=str(value.get("committer_login") or ""),
+            committer_type=str(value.get("committer_type") or ""),
         )
     return out
 
@@ -574,6 +594,7 @@ def gh_api_json(url: str) -> dict:
 def fetch_commit_github_meta(repo: str, sha: str) -> CommitGithubMeta:
     data = gh_api_json(f"repos/{repo}/commits/{sha}")
     author = data.get("author") or {}
+    committer = data.get("committer") or {}
     verification = (data.get("commit") or {}).get("verification") or {}
     verified = verification.get("verified")
     return CommitGithubMeta(
@@ -581,7 +602,14 @@ def fetch_commit_github_meta(repo: str, sha: str) -> CommitGithubMeta:
         author_type=str(author.get("type") or ""),
         verified=verified if isinstance(verified, bool) else None,
         reason=str(verification.get("reason") or ""),
+        committer_login=str(committer.get("login") or ""),
+        committer_type=str(committer.get("type") or ""),
     )
+
+
+def needs_provenance(name: str, email: str) -> bool:
+    """Identities accepted only after GitHub links them to the claimed account."""
+    return is_trusted_bot_identity(name, email) or is_trusted_runner_email(email)
 
 
 def scan_commits(
@@ -611,15 +639,24 @@ def scan_commits(
                 meta = fetch_commit_github_meta(github_repo, commit)
                 meta_by_sha[commit] = meta
             except (ValueError, RuntimeError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
+                # Trusted automation is only accepted with provenance; without it
+                # a forged bot or runner identity would pass unchecked.
+                severity = (
+                    SEVERITY_FAIL
+                    if needs_provenance(name, email) or needs_provenance(cname, cemail)
+                    else SEVERITY_WARN
+                )
                 report(
                     findings,
-                    SEVERITY_WARN,
+                    severity,
                     f"commit {short}: could not load GitHub provenance ({exc}).",
                 )
                 meta = CommitGithubMeta()
         meta = meta or CommitGithubMeta()
         scan_identity(findings, f"commit {short} author", name, email, meta=meta)
-        scan_identity(findings, f"commit {short} committer", cname, cemail, meta=meta)
+        scan_identity(
+            findings, f"commit {short} committer", cname, cemail, meta=meta.for_committer()
+        )
         # Signature warnings require explicit provenance meta (file or GitHub API).
         if meta.verified is not None:
             sig = classify_signature(meta)
@@ -877,9 +914,10 @@ def main() -> int:
                 )
             except (RuntimeError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
                 # JSONDecodeError is a ValueError subclass; keep it with transport errors.
+                # Fail closed: an unscanned conversation could hide a personal email.
                 report(
                     findings,
-                    SEVERITY_WARN,
+                    SEVERITY_FAIL,
                     f"could not load pull request comments for scan ({exc}).",
                 )
             except ValueError as exc:

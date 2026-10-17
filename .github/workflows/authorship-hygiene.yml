@@ -49,8 +49,8 @@ jobs:
           trusted="${RUNNER_TEMP}/authorship-checker"
           mkdir -p "$trusted"
           # Load scanner from trusted base only (Contents API, not PR tree).
-          # Fail closed on API/permission/transient errors. A genuine first-merge
-          # bootstrap (HTTP 404: file absent from base) is the only soft pass.
+          # Fail closed on every load error, including 404: the scanner is on
+          # develop, so a missing file means a bad ref or permission, not bootstrap.
           api_err="${trusted}/contents.api.err"
           set +e
           content="$(gh api "repos/${REPO}/contents/.github/scripts/check-agent-attribution.py?ref=${BASE_SHA}" --jq .content 2>"$api_err")"
@@ -59,9 +59,6 @@ jobs:
           if [[ $api_status -eq 0 && -n "${content}" ]]; then
             printf '%s' "$content" | tr -d '\n' | base64 --decode >"${trusted}/check-agent-attribution.py"
             echo "Using authorship checker from base ${BASE_SHA}"
-          elif [[ $api_status -ne 0 ]] && grep -qiE '404|Not Found|NotFound' "$api_err"; then
-            echo "::warning::Authorship checker not on base ref yet (HTTP 404); bootstrap pass until the scanner merges."
-            exit 0
           else
             echo "::error::Failed to load authorship checker from trusted base ${BASE_SHA} (exit ${api_status}). Failing closed."
             if [[ -s "$api_err" ]]; then
