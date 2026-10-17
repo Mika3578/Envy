@@ -263,8 +263,11 @@ void CDownloadGroups::CreateDefault()
 
 CString CDownloadGroups::GetCompletedPath(CDownload* pDownload) const
 {
-	if ( Settings.Downloads.CompletePath.GetLength() < 3 )
-		Settings.Downloads.CompletePath = Settings.General.Path + L"\\Downloads";
+	if (Settings.Downloads.CompletePath.GetLength() < 3)
+	{
+		theApp.Message(MSG_ERROR, L"The completed download folder is unavailable; choose a writable location in settings");
+		return CString();
+	}
 
 	CQuickLock pLock( m_pSection );
 

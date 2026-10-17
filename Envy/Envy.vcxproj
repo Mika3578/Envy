@@ -1471,6 +1471,8 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="SecureRule.h" />
     <ClInclude Include="Security.h" />
     <ClInclude Include="Settings.h" />
+    <ClInclude Include="StoragePaths.h" />
+    <ClInclude Include="StorageProbe.h" />
     <ClInclude Include="ShakeNeighbour.h" />
     <ClInclude Include="SharedFile.h" />
     <ClInclude Include="SharedFolder.h" />
