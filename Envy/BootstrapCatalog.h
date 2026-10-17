@@ -37,6 +37,15 @@ constexpr int BootstrapDhtRouterPingCap = 8;
 // Cap blocking gethostbyname calls on the network thread during Connect.
 constexpr int BootstrapDhtBlockingResolveCap = 3;
 
+// Directory part of a module path, without the trailing separator.
+// theApp.m_strBinaryPath names Envy.exe itself, so packaged Data lives
+// beside it, not under it. Returns 0 when no directory part exists.
+inline size_t BootstrapModuleDirectoryLength(const wchar_t* pszModulePath)
+{
+	const wchar_t* pszSlash = pszModulePath ? std::wcsrchr(pszModulePath, L'\\') : nullptr;
+	return pszSlash ? static_cast<size_t>(pszSlash - pszModulePath) : 0;
+}
+
 // Prefer mutable per-user catalogues when present, but never make them the
 // only copy of immutable bootstrap defaults.
 inline const wchar_t* BootstrapSelectCataloguePath(

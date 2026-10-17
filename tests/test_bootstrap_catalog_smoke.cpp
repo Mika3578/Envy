@@ -528,6 +528,18 @@ static bool test_catalogue_path_falls_back_to_packaged_defaults()
 		&& BootstrapSelectCataloguePath( writablePath, false, packagedPath, false ) == nullptr;
 }
 
+static bool test_packaged_catalogue_directory_is_beside_executable()
+{
+	// The module path names the executable, so packaged Data is a sibling
+	// of Envy.exe rather than a child of it.
+	const wchar_t* const modulePath = L"C:\\Program Files\\Envy\\Envy.exe";
+	const std::wstring directory( modulePath, BootstrapModuleDirectoryLength( modulePath ) );
+	return directory == L"C:\\Program Files\\Envy"
+		&& directory + L"\\Data\\DefaultServices.dat" == L"C:\\Program Files\\Envy\\Data\\DefaultServices.dat"
+		&& BootstrapModuleDirectoryLength( L"Envy.exe" ) == 0
+		&& BootstrapModuleDirectoryLength( nullptr ) == 0;
+}
+
 static bool test_unrelated_gwcs_do_not_replace_g1_udp_bootstrap()
 {
 	const int nWebCaches = BootstrapMinWebCaches;
@@ -607,6 +619,7 @@ void register_bootstrap_catalog_smoke_tests( TestSuite& suite )
 	suite.add_test( "bootstrap_catalogue_truncated_rows", test_catalogue_truncated_rows );
 	suite.add_test( "bootstrap_catalogue_network_limits", test_catalogue_network_limits );
 	suite.add_test( "bootstrap_catalogue_path_fallback", test_catalogue_path_falls_back_to_packaged_defaults );
+	suite.add_test( "bootstrap_packaged_catalogue_beside_executable", test_packaged_catalogue_directory_is_beside_executable );
 	suite.add_test( "bootstrap_required_g1_udp_category", test_unrelated_gwcs_do_not_replace_g1_udp_bootstrap );
 	suite.add_test( "bootstrap_legacy_g1_cache_repaired_once", test_legacy_g1_cache_is_repaired_once );
 }

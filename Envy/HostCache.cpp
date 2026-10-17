@@ -1304,7 +1304,8 @@ bool CHostCache::CheckMinimumServers(PROTOCOLID nProtocol)
 int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 {
 	const CString strWritablePath = Settings.General.DataPath + L"DefaultServers.dat";
-	const CString strPackagedPath = theApp.m_strBinaryPath + L"\\Data\\DefaultServers.dat";
+	const int nBinaryDirectory = static_cast<int>(BootstrapModuleDirectoryLength(theApp.m_strBinaryPath));
+	const CString strPackagedPath = nBinaryDirectory ? theApp.m_strBinaryPath.Left(nBinaryDirectory) + L"\\Data\\DefaultServers.dat" : CString();
 	const wchar_t* pszCataloguePath = BootstrapSelectCataloguePath(
 	    strWritablePath, ::PathFileExists(strWritablePath),
 	    strPackagedPath, ::PathFileExists(strPackagedPath));

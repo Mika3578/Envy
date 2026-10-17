@@ -659,7 +659,8 @@ BOOL CDiscoveryServices::EnoughServices() const
 void CDiscoveryServices::AddDefaults()
 {
 	const CString strWritablePath = Settings.General.DataPath + L"DefaultServices.dat";
-	const CString strPackagedPath = theApp.m_strBinaryPath + L"\\Data\\DefaultServices.dat";
+	const int nBinaryDirectory = static_cast<int>(BootstrapModuleDirectoryLength(theApp.m_strBinaryPath));
+	const CString strPackagedPath = nBinaryDirectory ? theApp.m_strBinaryPath.Left(nBinaryDirectory) + L"\\Data\\DefaultServices.dat" : CString();
 	const wchar_t* pszCataloguePath = BootstrapSelectCataloguePath(
 	    strWritablePath, ::PathFileExists(strWritablePath),
 	    strPackagedPath, ::PathFileExists(strPackagedPath));
