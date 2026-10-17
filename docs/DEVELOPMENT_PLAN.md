@@ -1,5 +1,12 @@
 # DEVELOPMENT PLAN (LIVING)
 
+- **Changelog Entry:** 2026-10-12 — #470: make schema icon fallback order
+  explicit (`.Skin`, optional `.Alt`, descriptor default, `.Safe`), repair the
+  missing Collection icon reference, and force generic file-icon indices for
+  malformed or partial resources. Added descriptor-resource regression coverage
+  and maintainer UI validation steps; no schema URI or download-group behavior
+  changes.
+
 - **Last Updated:** 2026-10-11
 
 - **Changelog Entry:** 2026-10-11 - #393: maintainer reports successful validation of ac29717 (EnvyTests 735/735, PeerXmlTests 18/18 and fixture HTTP 21/21); Release x64/Win32 CI builds passed. Correct the validation guide: loopback sources are rejected by the application's reserved-address policy, so fixture self-tests are not application integration evidence. Separate native parser coverage from admitted-peer application tests and document THEX/Tiger/legacy MD4 DIME type identifiers without changing protocol bytes or network protections. Historical Gnutella issues #453/#319 remain outside this PR.
