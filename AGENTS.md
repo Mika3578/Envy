@@ -467,10 +467,34 @@ Before modifying code, build files, CI, or committed project policy:
    verification plan before editing. If live state cannot be checked because a
    required tool is unavailable, say so; do not invent repository state.
 
+### Idea capture (before proposing a feature or optimization)
+
+Do not open an Issue or PR for every observation. Do not treat chat notes as
+a specification. Process: `docs/10_dev/idea-capture.md`. Durable pre-issue
+register: `docs/10_dev/ideas.md` (not a second roadmap).
+
+Before proposing new work:
+
+1. Read `docs/10_dev/ideas.md` (Candidate / Needs research / Deferred / Rejected).
+2. Search open **and** closed Issues; cite `#123 — descriptive title`.
+3. Search open and recent merged PRs.
+4. Check GitHub Discussions and existing plan docs when the change is architectural.
+5. If `.local/inbox/` exists, read it. Those entries are **unapproved**.
+6. Skip duplicates. A local inbox is never authorization to implement.
+
+Promote only after review: Candidate in `ideas.md` → Discussion or existing
+plan doc when architecture is open → GitHub Issue when scoped → focused PR.
+
+Urgent items skip the batch: confirmed vulnerability, data loss/corruption,
+critical crash, confidentiality leak, serious protocol break, important
+regression, broken `develop` or required CI, other P0/P1. Follow bug/security
+process immediately. Advisory signal only: `python scripts/check-maintenance-review.py`.
+
 When you take on a task you are expected to:
 
 1. **Record progress** in `docs/DEVELOPMENT_PLAN.md` for strategic scope.
    Session-level notes belong in `.local/DEV_TRACKER.md` (gitignored).
+   Unapproved observations may go in `.local/inbox/` (also gitignored).
 2. **Push only to your feature branch** (never `develop`, `main`, or
    `legacy`) with `git push -u origin <branch>`.
 3. **Open a draft PR** if one does not exist. Match the PR template at

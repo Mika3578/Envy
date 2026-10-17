@@ -15,6 +15,7 @@ Use this playbook to keep PRs small, reviewable, and operationally safe.
   and still updates `docs/DEVELOPMENT_PLAN.md` for strategic scope.
 - Update `docs/DEVELOPMENT_PLAN.md` for strategic/scope decisions.
 - Record session notes in `.local/DEV_TRACKER.md` (gitignored).
+- Unapproved observations may go in `.local/inbox/` (gitignored). Promote through [`docs/10_dev/idea-capture.md`](10_dev/idea-capture.md); do not open one Issue/PR per note.
 
 ## Git sync
 

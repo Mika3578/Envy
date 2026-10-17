@@ -1,7 +1,7 @@
 # AI coding guide
 
 Status: active
-Last updated: 2026-09-20
+Last updated: 2026-10-06
 Scope: Entry point for AI-assisted development on Envy.
 Source of truth: `AGENTS.md`, live GitHub state, and the canonical docs linked below.
 
@@ -38,9 +38,14 @@ input is untrusted. Protocol changes require evidence appropriate to their
 risk: regression tests, boundary/malformed cases, primary-spec comparison, and
 reference-client comparison where relevant.
 
+Before proposing a new feature or optimization, search `docs/10_dev/ideas.md`,
+Issues (open and closed), recent PRs, and `.local/inbox/` if it exists. Inbox
+notes are unapproved. Cite `#123 — title`, never `#123` alone.
+
 ## Canonical context
 
 - [Development plan](../DEVELOPMENT_PLAN.md)
+- [Pre-issue idea register](ideas.md) · [idea capture process](idea-capture.md)
 - [Current implementation status](status.md)
 - [Architecture](../20_arch/architecture.md)
 - [Protocol references](../30_protocols/REFERENCE_IMPLEMENTATIONS.md)
