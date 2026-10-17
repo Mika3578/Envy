@@ -3,6 +3,10 @@
 This module has no GitHub, provider, network, credential, or dispatch code. It
 only models the budget, concurrency, and current-HEAD invariants so they can be
 tested offline before any provider is contacted.
+
+``ReviewLedger`` is process-local. A real dispatcher must hold a shared atomic
+lease (for example a single queue owner) so independent agents cannot each see
+a free slot; this model only defines what that lease has to enforce.
 """
 
 from dataclasses import dataclass, field
@@ -11,7 +15,8 @@ from typing import Dict, FrozenSet, Optional, Tuple
 
 INTERMEDIATE_PROVIDERS = frozenset(("coderabbit", "amazon-q"))
 FINAL_PROVIDER = "copilot"
-GLOBAL_ACTIVE_LIMIT = 1
+# Maintainer decision: at most two external reviews in flight, never two on one PR.
+GLOBAL_ACTIVE_LIMIT = 2
 
 
 @dataclass(frozen=True)
@@ -27,6 +32,24 @@ class ReviewRequest:
     stage: str
     risk: str
     purpose: str
+
+
+@dataclass(frozen=True)
+class EligibilitySnapshot:
+    """Authoritative state read for one PR HEAD just before dispatch.
+
+    Every field is required: callers must observe GitHub, CI, the correction
+    writer, and the provider quota instead of relying on permissive defaults.
+    """
+
+    pr: int
+    head_sha: str
+    quota_available: Optional[bool]
+    coherent_batch: bool
+    deterministic_checks_done: bool
+    blocking_comment_pending: bool
+    writer_active: bool
+    provider_active: bool
 
 
 @dataclass
@@ -79,20 +102,26 @@ class ReviewLedger:
                 return False, "ready-budget-exhausted"
         else:
             return False, "unknown-stage"
+        if any(item.pr == request.key.pr for item in self.active):
+            return False, "pr-review-already-active"
         if len(self.active) >= GLOBAL_ACTIVE_LIMIT:
             return False, "global-concurrency-limit"
         return True, "eligible"
 
-    def start(self, request: ReviewRequest) -> None:
+    def start(self, request: ReviewRequest, snapshot: EligibilitySnapshot) -> None:
+        if not isinstance(snapshot, EligibilitySnapshot):
+            raise TypeError("an EligibilitySnapshot is required")
+        if snapshot.pr != request.key.pr:
+            raise ValueError("snapshot-pr-mismatch")
         allowed, reason = self.eligibility(
             request,
-            current_head=request.key.head_sha,
-            quota_available=True,
-            coherent_batch=True,
-            deterministic_checks_done=True,
-            blocking_comment_pending=False,
-            writer_active=False,
-            provider_active=False,
+            current_head=snapshot.head_sha,
+            quota_available=snapshot.quota_available,
+            coherent_batch=snapshot.coherent_batch,
+            deterministic_checks_done=snapshot.deterministic_checks_done,
+            blocking_comment_pending=snapshot.blocking_comment_pending,
+            writer_active=snapshot.writer_active,
+            provider_active=snapshot.provider_active,
         )
         if not allowed:
             raise ValueError(reason)

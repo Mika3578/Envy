@@ -17,8 +17,13 @@ request review products while a pull request is Draft.
   completion of the relevant deterministic checks, and a stable HEAD read twice
   without a push or active correction writer between reads.
 - There must be no known blocking comment awaiting treatment, no review provider
-  already in progress for the pull request, and no other repository review in
-  progress. The initial repository-wide concurrency limit is **one**.
+  already in progress for the pull request. At most **two** external reviews may
+  be in flight repository-wide, and never two on the same pull request. A
+  dispatcher may enforce this only behind a shared atomic lease or single queue
+  owner; process-local counters do not coordinate independent agents.
+- Dispatch consumes an immutable eligibility snapshot (HEAD, quota, checks,
+  batch, writer, provider, untreated comments) read from authoritative state
+  just before the request; a stale or incomplete snapshot is a rejection.
 - The provider must be explicitly allowlisted for the stage and its configured
   quota must be confirmed available. Unknown, stale, or unqueryable quota is
   **unavailable**, never an implicit allowance.
@@ -44,7 +49,7 @@ request review products while a pull request is Draft.
 | Draft fallback | Amazon Q, only after CodeRabbit is confirmed unavailable | 0 | 1 when the second review has a documented distinct purpose | Never run concurrently with CodeRabbit |
 | Ready final | GitHub Copilot Code Review | 1 | 1 | One request on the stable Ready HEAD, subject to the existing approval policy |
 
-The Draft allowance is per PR. The repository-wide active-review limit is one;
+The Draft allowance is per PR. The repository-wide active-review limit is two;
 the per-PR allowance does not reserve or bypass that slot. A high-risk second
 review needs a recorded question that the first provider did not cover. It is
 not a retry for silence, a duplicate request, or a response to an unchanged
