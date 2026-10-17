@@ -1,123 +1,206 @@
 name: Version Management
 
+# Prepares a version bump as a Draft PR to develop. It never pushes to develop
+# and never tags: the maintainer reviews/curates the PR, squash-merges it, then
+# pushes a signed v* tag that triggers release.yml (see docs/DEPLOYMENT.md).
+#
+# Requires the repository setting "Allow GitHub Actions to create and approve
+# pull requests". PRs opened with GITHUB_TOKEN do not trigger pull_request
+# workflows; CI starts once the maintainer pushes the curated CHANGELOG commit.
+
 # checkov:skip=CKV_GHA_7:Version bump inputs are required for manual release prep.
 on:
   workflow_dispatch:
     inputs:
       version_action:
-        description: Version action to perform
+        description: "prerelease = next <label>.N of the current version; patch/minor/major = next M.m.p; final = promote the current prerelease"
         required: true
-        default: patch
+        default: prerelease
         type: choice
         options:
+          - prerelease
           - patch
           - minor
           - major
-          - prerelease
+          - final
       prerelease_label:
-        description: Pre-release label (only for prerelease action)
+        description: Prerelease label (lowercase letters; preview, beta, rc, ...)
         required: false
-        default: dev
+        default: preview
         type: string
-      update_files:
-        description: Update project files with new version
+      as_prerelease:
+        description: For patch/minor/major, start at <label>.1 instead of a final version
         required: false
         default: true
         type: boolean
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: version-management
+  cancel-in-progress: false
 
 jobs:
-  version-management:
-    name: Version Management
+  version-bump-pr:
+    name: Open version bump Draft PR
+    if: github.ref == 'refs/heads/develop'
     runs-on: windows-2025
     timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
-      - name: Checkout code
+      - name: Keep repository line endings
+        run: git config --global core.autocrlf false
+
+      - name: Checkout develop
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Run Version Management
+      - name: Bump version files
+        id: bump
         shell: pwsh
+        env:
+          VERSION_ACTION: ${{ inputs.version_action }}
+          PRERELEASE_LABEL: ${{ inputs.prerelease_label }}
+          AS_PRERELEASE: ${{ inputs.as_prerelease }}
         run: |
-          Write-Host "Running version management action: ${{ inputs.version_action }}" -ForegroundColor Green
-
-          # Build the command based on inputs
-          $command = ".\scripts\auto-version.ps1"
-
-          switch ("${{ inputs.version_action }}") {
-            "patch" {
-              $command += " -IncrementPatch"
-            }
-            "minor" {
-              $command += " -IncrementMinor"
-            }
-            "major" {
-              $command += " -IncrementMajor"
-            }
-            "prerelease" {
-              $command += " -PreRelease -PreReleaseLabel ${{ inputs.prerelease_label }}"
-            }
+          $current = Get-Content version.json -Raw | ConvertFrom-Json
+          $bumpArgs = @{ PreReleaseLabel = $env:PRERELEASE_LABEL }
+          switch ($env:VERSION_ACTION) {
+            'prerelease' { $bumpArgs.PreRelease = $true }
+            'patch' { $bumpArgs.IncrementPatch = $true }
+            'minor' { $bumpArgs.IncrementMinor = $true }
+            'major' { $bumpArgs.IncrementMajor = $true }
+            'final' { $bumpArgs.Final = $true }
+            default { throw "Unknown version_action '$env:VERSION_ACTION'." }
+          }
+          if ($env:VERSION_ACTION -in @('patch', 'minor', 'major') -and $env:AS_PRERELEASE -eq 'true') {
+            $bumpArgs.PreRelease = $true
           }
 
-          if ("${{ inputs.update_files }}" -eq "true") {
-            $command += " -UpdateFiles"
+          # Dry run on a scratch copy of version.json to learn the target version for the branch name.
+          $probe = Join-Path $env:RUNNER_TEMP 'version-probe.json'
+          Copy-Item version.json $probe
+          & ./scripts/auto-version.ps1 @bumpArgs -VersionFile $probe -Branch probe | Out-Null
+          $next = (Get-Content $probe -Raw | ConvertFrom-Json).fullVersion
+          $branch = "chore/bump-version-$($next -replace '[^0-9A-Za-z]+', '-')"
+
+          git ls-remote --exit-code --heads origin $branch | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            throw "Branch $branch already exists on origin; close or delete the previous bump PR first."
+          }
+          $global:LASTEXITCODE = 0
+
+          & ./scripts/auto-version.ps1 @bumpArgs -UpdateFiles -Branch $branch
+          $new = Get-Content version.json -Raw | ConvertFrom-Json
+          if ($new.fullVersion -ne $next) {
+            throw "Probe ($next) and bump ($($new.fullVersion)) disagree."
           }
 
-          Write-Host "Executing: $command" -ForegroundColor Yellow
-          Invoke-Expression $command
+          & ./scripts/release/verify-version.ps1 -Tag $new.git.intendedTag
 
-          # Display results
-          if (Test-Path version.json) {
-            $versionData = Get-Content version.json | ConvertFrom-Json
-            Write-Host "Updated Version: $($versionData.displayVersion)" -ForegroundColor Cyan
-            Write-Host "Full Version: $($versionData.fullVersion)" -ForegroundColor Cyan
-          }
+          git --no-pager diff --stat
+          "branch=$branch" >> $env:GITHUB_OUTPUT
+          "previous=$($current.displayVersion)" >> $env:GITHUB_OUTPUT
+          "display=$($new.displayVersion)" >> $env:GITHUB_OUTPUT
+          "full=$($new.fullVersion)" >> $env:GITHUB_OUTPUT
+          "tag=$($new.git.intendedTag)" >> $env:GITHUB_OUTPUT
+          "build=$($new.major).$($new.minor).$($new.patch).$($new.build)" >> $env:GITHUB_OUTPUT
 
-      - name: Commit Version Changes
+      - name: Create signed commit and Draft PR
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ steps.bump.outputs.branch }}
+          PREVIOUS: ${{ steps.bump.outputs.previous }}
+          DISPLAY: ${{ steps.bump.outputs.display }}
+          FULL: ${{ steps.bump.outputs.full }}
+          TAG: ${{ steps.bump.outputs.tag }}
+          BUILD: ${{ steps.bump.outputs.build }}
         run: |
-          # Check if there are changes to commit
-          $hasChanges = git status --porcelain
-          if ($hasChanges) {
-            Write-Host "Committing version changes..." -ForegroundColor Yellow
-
-            # Get version info for commit message
-            $versionData = Get-Content version.json | ConvertFrom-Json
-            $commitMessage = "chore: bump version to $($versionData.displayVersion)"
-
-            git add .
-            git commit -m $commitMessage
-            git push
-
-            Write-Host "Version changes committed and pushed!" -ForegroundColor Green
-          } else {
-            Write-Host "No changes to commit" -ForegroundColor Gray
+          $files = @(git diff --name-only)
+          if ($files.Count -eq 0) {
+            throw 'Version bump produced no changes.'
           }
 
-      - name: Create Version Tag (for releases)
-        if: inputs.version_action == 'patch' || inputs.version_action == 'minor' || inputs.version_action == 'major'
-        shell: pwsh
-        run: |
-          $versionData = Get-Content version.json | ConvertFrom-Json
-          $tagName = "v$($versionData.major).$($versionData.minor).$($versionData.patch)"
-
-          # Check if tag already exists
-          $tagExists = git tag -l | Select-String -Pattern "^$tagName$" -Quiet
-
-          if (-not $tagExists) {
-            Write-Host "Creating tag: $tagName" -ForegroundColor Yellow
-            git tag $tagName
-            git push origin $tagName
-            Write-Host "Tag created and pushed: $tagName" -ForegroundColor Green
-          } else {
-            Write-Host "Tag already exists: $tagName" -ForegroundColor Gray
+          # Commit through the Git Data API without author fields so GitHub signs it
+          # as github-actions[bot] (verified) instead of a locally forged identity.
+          $baseSha = git rev-parse HEAD
+          $tree = @{
+            base_tree = (git rev-parse 'HEAD^{tree}')
+            tree = @($files | ForEach-Object {
+              @{ path = $_; mode = '100644'; type = 'blob'; content = [System.IO.File]::ReadAllText((Join-Path $PWD $_)) }
+            })
           }
+          $treeSha = ($tree | ConvertTo-Json -Depth 5 | gh api "repos/$env:REPO/git/trees" --method POST --input - | ConvertFrom-Json).sha
+          if (-not $treeSha) { throw 'Tree creation failed.' }
+
+          $commit = @{ message = "release: bump version to $env:DISPLAY"; tree = $treeSha; parents = @($baseSha) }
+          $commitSha = ($commit | ConvertTo-Json -Depth 5 | gh api "repos/$env:REPO/git/commits" --method POST --input - | ConvertFrom-Json).sha
+          if (-not $commitSha) { throw 'Commit creation failed.' }
+
+          gh api "repos/$env:REPO/git/refs" --method POST -f "ref=refs/heads/$env:BRANCH" -f "sha=$commitSha" | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "Could not create branch $env:BRANCH." }
+
+          $body = @"
+          ## Summary
+          - What changed? Product version $env:PREVIOUS -> **$env:DISPLAY** (``$env:FULL``, tag ``$env:TAG``).
+          - Why now? Release preparation, opened by the Version Management workflow (run $env:GITHUB_RUN_ID).
+
+          Files: ``version.json`` (version, ``build``, ``git.intendedTag``), ``Envy/Envy.rc`` (``FILEVERSION``/``PRODUCTVERSION`` ``$env:BUILD``, ``ProductVersion`` string), ``CHANGELOG.md`` (``## [$env:FULL] - TBD`` heading above the former ``[Unreleased]`` entries).
+
+          Maintainer follow-up before Ready (this push also starts CI, which does not run on PRs opened with ``GITHUB_TOKEN``):
+          - [ ] Curate the ``CHANGELOG.md`` section (summary paragraph, release date) and any README release-target line.
+          - [ ] Run the ``release.yml`` dry run with ``version=$env:TAG`` and smoke-test the artifact.
+
+          ## Scope
+          - [ ] Code
+          - [ ] Docs
+          - [x] CI/Tooling
+          - [ ] Security
+          - [ ] Dependencies
+
+          ## Risk (classifier: low / normal / high)
+          - Wire-format impact: none
+          - Breaking changes: none
+          - Security impact: none
+
+          ## Validation
+          - ``scripts/release/verify-version.ps1 -Tag $env:TAG``: PASS in the workflow run.
+
+          ### Runtime / interoperability (when needed)
+          - Tested HEAD / artifact (if applicable):
+          - [ ] Manual runtime validation performed (only when this PR needs it)
+
+          ## Merge notes
+          - [ ] Required deterministic CI green for applicable paths
+          - [ ] Review threads resolved
+          - [ ] Governance/ruleset PRs: maintainer will apply ruleset patch after merge (no auto-merge on this PR)
+
+          After squash merge, tag the merge commit on ``develop`` with a signed ``$env:TAG`` tag (``docs/DEPLOYMENT.md``).
+
+          ## Squash Commit Summary
+          Issue reference: ``None``
+
+          - Root problem: next release needs consistent product version metadata.
+          - Resulting behavior: ``version.json``, ``Envy.rc`` and ``CHANGELOG.md`` describe $env:DISPLAY (``$env:BUILD``, tag ``$env:TAG``).
+
+          ## Checklist
+          - [x] Changes are scoped and reviewable
+          - [x] No personal emails; no forged bot identities; avoid AI promo signatures (``AGENTS.md`` rule 16)
+          - [ ] Tests added/updated where practical
+          - [ ] Documentation updated when behavior or policy changed
+          - [ ] Changelog updated for user-visible changes
+          "@
+          $bodyFile = Join-Path $env:RUNNER_TEMP 'pr-body.md'
+          Set-Content -Path $bodyFile -Value $body -Encoding utf8NoBOM
+
+          gh pr create --repo $env:REPO --draft --base develop --head $env:BRANCH `
+            --title "release: bump version to $env:DISPLAY" --body-file $bodyFile
+          if ($LASTEXITCODE -ne 0) { throw 'Draft PR creation failed.' }
