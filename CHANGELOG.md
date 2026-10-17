@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0-preview.2] - TBD
+
+First published preview of the 4.2.0 line. The `v4.2.0-preview.1` tag and its draft GitHub Release were never published; everything below (including the Preview 1 packaging work) ships in Preview 2. Product version metadata: `version.json` `4.2.0-preview.2`, Windows `FILEVERSION`/`PRODUCTVERSION` `4.2.0.2`, display `4.2.0 Preview 2`.
+
 ### Fixed
 - **Peer XML resource limits** — Bound peer XML to 256 KiB, 32 levels and 4,096 retained nodes/attributes, sharing budgets across G1/G2 metadata fragments. Reject oversized or incomplete HTTP metadata/THEX responses, preserve profile ownership and incremental THEX descriptor identity, reject empty file responses before changing download size, and drain body bytes beyond the header receive cap before connection-close completion. THEX validates descriptor association, segment size, both historical depth conventions and complete binary rows; missing URI fallback requires a known root. Reject malformed numeric lengths and DIME framing. Protocol identifiers and generated wire data are unchanged.
 - **BugSplat x64 runtime staging (#362)** — Post-build and release portable staging copy MSVC dependents reported by `dumpbin /dependents` on `BugSplatMonitor.exe` (via `Get-BugSplatOutputRequiredDlls`), with deterministic layout checks in CI; build fails closed when required CRT companions are missing from the output tree.
