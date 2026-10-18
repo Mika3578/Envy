@@ -2,6 +2,7 @@
 
 #include "Unpacker.h"
 #include <strsafe.h>
+#include <winternl.h>
 
 int PackageRelativePath(LPCTSTR path, int directoryEntry)
 {
@@ -123,4 +124,27 @@ int PackageCanReplace(LPCTSTR path)
 	       !(info.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_READONLY));
 	CloseHandle(handle);
 	return safe;
+}
+
+// Native FileRenameInformation (10) with a leaf and NULL root renames in the
+// source directory. The Win32 wrapper resolves relative names against the
+// process directory and reopens parents, conflicting with the write-denying
+// directory pins. The kernel requires at least sizeof(FILE_RENAME_INFO) even for
+// one-character names; FileNameLength still bounds the name that is read.
+int PackageRenameLeaf(HANDLE file, LPCTSTR leaf)
+{
+	typedef NTSTATUS (NTAPI *RENAME_FILE)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, FILE_INFORMATION_CLASS);
+	RENAME_FILE renameFile = (RENAME_FILE)GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtSetInformationFile");
+	struct { FILE_RENAME_INFO info; WCHAR room[MAX_PATH]; } renameInfo;
+	IO_STATUS_BLOCK status;
+	size_t bytes, length;
+	if (!renameFile || !PackageRelativePath(leaf, 0) || wcspbrk(leaf, L"/\\")) return 0;
+	length = wcslen(leaf) * sizeof(WCHAR);
+	memset(&renameInfo, 0, sizeof(renameInfo));
+	renameInfo.info.ReplaceIfExists = TRUE;
+	renameInfo.info.FileNameLength = (DWORD)length;
+	memcpy(renameInfo.info.FileName, leaf, length);
+	bytes = offsetof(FILE_RENAME_INFO, FileName) + length;
+	if (bytes < sizeof(FILE_RENAME_INFO)) bytes = sizeof(FILE_RENAME_INFO);
+	return renameFile(file, &status, &renameInfo, (ULONG)bytes, (FILE_INFORMATION_CLASS)10) >= 0;
 }

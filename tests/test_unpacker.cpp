@@ -143,12 +143,12 @@ bool ValidTypes()
 	for (const char* type : types)
 	{
 		Fixture f;
-		f.save({ Manifest(std::string("type=\"") + type + "\""), { "folder/", "", FILE_ATTRIBUTE_DIRECTORY }, { "folder\\payload.txt", "new" } });
+		f.save({ Manifest(std::string("type=\"") + type + "\""), { "folder/", "", FILE_ATTRIBUTE_DIRECTORY }, { "folder\\payload.txt", "new" }, { "a", "one" } });
 		if (!f.validate() || !f.install()) return false;
 		auto target = f.destination;
 		if (skinType == typeSkin) target /= L"Example";
 		if (skinType == typeLang) target /= L"Languages";
-		if (Contents(target / L"payload.txt") != "new" || !std::filesystem::exists(target / L"skin.xml")) return false;
+		if (Contents(target / L"a") != "one" || Contents(target / L"payload.txt") != "new" || !std::filesystem::exists(target / L"skin.xml")) return false;
 	}
 	return true;
 }
@@ -402,7 +402,7 @@ bool StagingNameCollision()
 
 
 // Force a late alias after both path checks, exercising the exact native rename
-// primitive used by InstallEntry rather than relying on a scheduler race.
+// helper used by InstallEntry rather than relying on a scheduler race.
 bool LateHardLinkReplacement()
 {
 	Fixture f;
@@ -417,17 +417,7 @@ bool LateHardLinkReplacement()
 	valid = valid && WriteFile(file, "new", 3, &written, nullptr) && written == 3 &&
 		FlushFileBuffers(file) && PackageCanReplace(target.c_str());
 	valid = valid && DeleteFileW(target.c_str()) && CreateHardLinkW(target.c_str(), outside.c_str(), nullptr);
-	typedef NTSTATUS (NTAPI *RenameFile)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, FILE_INFORMATION_CLASS);
-	auto renameFile = reinterpret_cast<RenameFile>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtSetInformationFile"));
-	struct { FILE_RENAME_INFO info; WCHAR room[MAX_PATH]; } renameInfo = {};
-	IO_STATUS_BLOCK status = {};
-	const WCHAR leaf[] = L"payload.txt";
-	renameInfo.info.ReplaceIfExists = TRUE;
-	renameInfo.info.FileNameLength = static_cast<DWORD>((_countof(leaf) - 1) * sizeof(WCHAR));
-	memcpy(renameInfo.info.FileName, leaf, renameInfo.info.FileNameLength);
-	valid = valid && renameFile && renameFile(file, &status, &renameInfo,
-		static_cast<ULONG>(offsetof(FILE_RENAME_INFO, FileName) + renameInfo.info.FileNameLength),
-		static_cast<FILE_INFORMATION_CLASS>(10)) >= 0;
+	valid = valid && PackageRenameLeaf(file, L"payload.txt");
 	if (file != INVALID_HANDLE_VALUE) CloseHandle(file);
 	return valid && Contents(target) == "new" && Contents(outside) == "sentinel";
 }

@@ -70,6 +70,7 @@ int PackageJoin(LPTSTR result, LPCTSTR root, LPCTSTR relative);
 int PackageLockDirectory(LPCTSTR path, PACKAGE_DIRECTORY* directory, int create);
 void PackageUnlock(PACKAGE_DIRECTORY* directory);
 int PackageCanReplace(LPCTSTR path);
+int PackageRenameLeaf(HANDLE file, LPCTSTR leaf);
 
 // Registry.c
 LSTATUS CreateSkinKeys();

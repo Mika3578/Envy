@@ -262,11 +262,7 @@ static int InstallEntry(unzFile archive, const unz_file_info* info, LPCTSTR dire
 	unsigned attempt;
 	int valid = 0;
 	FILE_DISPOSITION_INFO disposition = { TRUE };
-	IO_STATUS_BLOCK status;
-	typedef NTSTATUS (NTAPI *RENAME_FILE)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, FILE_INFORMATION_CLASS);
-	RENAME_FILE renameFile = (RENAME_FILE)GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtSetInformationFile");
-	struct { FILE_RENAME_INFO info; WCHAR room[MAX_PATH]; } renameInfo;
-	if (!renameFile || !PackageCanReplace(destination)) return 0;
+	if (!PackageCanReplace(destination)) return 0;
 	for (attempt = 0; attempt < 100; ++attempt)
 	{
 		WCHAR leaf[64];
@@ -281,17 +277,7 @@ static int InstallEntry(unzFile archive, const unz_file_info* info, LPCTSTR dire
 	if (file == INVALID_HANDLE_VALUE) return 0;
 	if (ReadEntry(archive, info, file, NULL) && FlushFileBuffers(file) && PackageCanReplace(destination))
 	{
-		memset(&renameInfo, 0, sizeof(renameInfo));
-		renameInfo.info.ReplaceIfExists = TRUE;
-		destination = PathFindFileNameW(destination);
-		renameInfo.info.FileNameLength = (DWORD)(wcslen(destination) * sizeof(WCHAR));
-		memcpy(renameInfo.info.FileName, destination, renameInfo.info.FileNameLength);
-		// Native FileRenameInformation (10), with a leaf and NULL root, renames
-		// in the source directory. The Win32 wrapper resolves relative names
-		// against the process directory and reopens parents, conflicting with
-		// our write-denying pins. Never truncate/follow an existing target.
-		valid = renameFile(file, &status, &renameInfo,
-			(ULONG)(offsetof(FILE_RENAME_INFO, FileName) + renameInfo.info.FileNameLength), (FILE_INFORMATION_CLASS)10) >= 0;
+		valid = PackageRenameLeaf(file, PathFindFileNameW(destination));
 	}
 	if (!valid) SetFileInformationByHandle(file, FileDispositionInfo, &disposition, sizeof(disposition));
 	CloseHandle(file);
