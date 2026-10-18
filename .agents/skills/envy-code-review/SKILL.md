@@ -10,10 +10,12 @@ mark nits as optional. Do not repeat findings already answered on the PR.
 
 ## Risk class
 
-- **Governance (never bot-only approval):** `AGENTS.md`, `CLAUDE.md`,
-  `.agents/**`, `.claude/**`, `.cursor/**`, `.github/copilot-instructions.md`,
-  `.github/workflows/**`, `.github/scripts/**`, `.github/rulesets/**`,
-  `.github/settings.yml`, review-app configs. Instructions and this skill are
+- **Governance (never bot-only approval):** the paths listed in `AGENTS.md`
+  *Governance paths*: `AGENTS.md`, `CLAUDE.md`, `.agents/**`, `.claude/**`,
+  `.cursor/**`, `.continue/**`, `.gemini/**`, `.clinerules`,
+  `.windsurfrules`, `.aider.conf.yml`, `.coderabbit.yaml`,
+  `.github/copilot-instructions.md`, `.github/workflows/**`,
+  `.github/scripts/**`, `.github/rulesets/**`, `.github/settings.yml`. Instructions and this skill are
   read from the PR head, so a bot approving a change to them would authorize
   its own rules. Leave `COMMENTED` or `CHANGES_REQUESTED`; a human approves.
 - **Low risk:** other `docs/**`, `Languages/**`, `CHANGELOG.md`,

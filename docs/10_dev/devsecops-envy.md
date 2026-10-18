@@ -186,7 +186,7 @@ comparison notes.
    **Org/enterprise:** If counting stays off, check organization Copilot policy
    (“Count Copilot approvals toward merge requirements”) is not **Disabled
    everywhere** for this repository.
-4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Use **manual squash merge** (curated squash body; live `squash_merge_commit_message: BLANK`), update-branch, strict required checks, and **≥1 GitHub `APPROVED` review** on `Protect develop`. Do **not** enable squash auto-merge when a curated squash body is required (`AGENTS.md` *Authorship, privacy and notices*).
+4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Use **manual squash merge** (curated squash body; live `squash_merge_commit_message: BLANK`), update-branch, strict required checks, and, once the pending desired state is live (#438/#93), **≥1 GitHub `APPROVED` review** on `Protect develop` (the live ruleset currently requires none). Do **not** enable squash auto-merge when a curated squash body is required (`AGENTS.md` *Authorship, privacy and notices*).
 5. **Protect develop (live, re-verified 2026-09-20)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing
    docs):

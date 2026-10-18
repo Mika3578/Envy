@@ -144,14 +144,15 @@ else's pushed work.
 ### Protected branch policy (`Protect develop`)
 
 Before a pull request can merge into `develop`, **all** of the following must
-hold (enforced by the live GitHub ruleset, not by CI alone):
+hold. They are enforced by the live GitHub ruleset unless marked as project
+policy:
 
 1. The PR is **not a draft**.
 2. **Approving reviews:** the live ruleset requires **zero** (verified
    2026-10-18); the committed desired state is one, pending the maintainer
    decision in #438/#93. The maintainer's manual squash merge is the human
-   gate, and privileged governance changes need the maintainer's explicit
-   review. AI reviews (CodeRabbit, Copilot, others) are advisory and requested
+   gate. *Project policy, not enforced by the ruleset:* privileged governance
+   changes need the maintainer's explicit review. AI reviews (CodeRabbit, Copilot, others) are advisory and requested
    on demand (`.agents/skills/envy-review-requests/SKILL.md`); an approval
    assessment or bot comment is never an approval.
 3. Stale approvals are **dismissed on new pushes**.

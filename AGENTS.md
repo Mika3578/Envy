@@ -143,10 +143,11 @@ resolve treated threads; request reviews per `envy-review-requests`.
 
 ## Governance paths [Security]
 
-`AGENTS.md`, `CLAUDE.md`, `.agents/**`, `.claude/**`, `.cursor/**`,
-`.github/copilot-instructions.md`, `.github/workflows/**`, `.github/scripts/**`,
-`.github/rulesets/**`, `.github/settings.yml` and review-app configs need
-maintainer review. Never weaken required checks, approvals or self-approval
+`AGENTS.md`, `CLAUDE.md`, agent adapters (`.agents/**`, `.claude/**`,
+`.cursor/**`, `.continue/**`, `.gemini/**`, `.clinerules`, `.windsurfrules`,
+`.aider.conf.yml`), `.github/copilot-instructions.md`, `.github/workflows/**`,
+`.github/scripts/**`, `.github/rulesets/**`, `.github/settings.yml` and
+review-app configs (`.coderabbit.yaml`) need maintainer review. Never weaken required checks, approvals or self-approval
 bans through them; never execute PR code with privileges
 (`pull_request_target`, `workflow_run`). `.github/scripts/check-agent-config.py`
 checks these files for consistency.

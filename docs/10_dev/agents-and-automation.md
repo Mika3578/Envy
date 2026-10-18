@@ -363,11 +363,12 @@ disable approval/competing writer automations; inspect GitHub Copilot approval
 and counting UI settings and path allowlists. Do not change Protect develop
 from repository YAML. Removing PR Gate, required signatures, duplicate status
 checks, or Copilot review-on-push requires a separately reviewed GitHub
-ruleset operation. Copilot may satisfy the required non-author approval only
-on PRs whose changed paths all match the repository Copilot path allowlist
-(ordinary application/docs trees — not privileged governance paths). Pull
-requests that edit `AGENTS.md`, `.agents/skills/**`, workflows, settings,
-rulesets, or gate scripts require an independent human `APPROVED`; see
+ruleset operation. The live ruleset requires no approval today; if the count
+returns to one, Copilot may satisfy it only on PRs whose changed paths all
+match the repository Copilot path allowlist (ordinary application/docs trees —
+not privileged governance paths). Independently of the count, pull requests
+that edit `AGENTS.md`, agent instruction files, workflows, settings, rulesets,
+or gate scripts require the maintainer's explicit human review; see
 `.agents/skills/envy-code-review/SKILL.md` and `docs/10_dev/devsecops-envy.md`.
 
 Dogfood on the Draft implementation PR:

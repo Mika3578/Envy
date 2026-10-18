@@ -152,6 +152,15 @@ class Mutations(unittest.TestCase):
                 rule["parameters"]["required_approving_review_count"] = 2
         self.assertIn("differs from the live ruleset (2)", self.errors(live))
 
+    def test_committed_approval_target_mismatch(self):
+        path = self.tmp / ".github/rulesets/protect-develop.desired.json"
+        desired = json.loads(path.read_text(encoding="utf-8"))
+        for rule in desired["rules"]:
+            if rule["type"] == "pull_request":
+                rule["parameters"]["required_approving_review_count"] = 2
+        path.write_text(json.dumps(desired), encoding="utf-8")
+        self.assertIn("committed approval target differs from protect-develop.desired.json (2)", self.errors())
+
     def test_live_ruleset_without_approval_count(self):
         live = {"rules": [{"type": "pull_request", "parameters": {}}]}
         self.assertIn("has no required_approving_review_count", self.errors(live))

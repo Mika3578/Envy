@@ -273,6 +273,11 @@ def check_ruleset(root: Path, live: dict | None) -> list[str]:
         review = rules.get("copilot_code_review", {})
         if review.get("review_on_push") or review.get("review_draft_pull_requests"):
             errors.append(f"{source} ruleset enables automatic Copilot review; AGENTS.md says reviews are on request")
+        if source == "committed":
+            target = rules.get("pull_request", {}).get("required_approving_review_count")
+            match = re.search(r"committed target \(`[^`]+`\) is (\d+)", agents)
+            if not match or int(match.group(1)) != target:
+                errors.append(f"AGENTS.md committed approval target differs from protect-develop.desired.json ({target})")
         if source == "live":
             count = rules.get("pull_request", {}).get("required_approving_review_count")
             match = re.search(r"Required approving reviews: \*\*(\d+)\*\*", agents)

@@ -27,8 +27,10 @@ essentials below are self-contained. Full reviewer procedure:
 ## Review state
 
 - Governance paths (`AGENTS.md`, `CLAUDE.md`, `.agents/**`, `.claude/**`,
-  `.cursor/**`, this file, `.github/workflows/**`, `.github/scripts/**`,
-  `.github/rulesets/**`, `.github/settings.yml`): never `APPROVED`. Leave
+  `.cursor/**`, `.continue/**`, `.gemini/**`, `.clinerules`, `.windsurfrules`,
+  `.aider.conf.yml`, `.coderabbit.yaml`, this file, `.github/workflows/**`,
+  `.github/scripts/**`, `.github/rulesets/**`, `.github/settings.yml`): never
+  `APPROVED`. Leave
   `COMMENTED` or `CHANGES_REQUESTED`; a human approves.
 - Never approve a Draft or a PR authored by Copilot cloud agent.
 - Blocking defect or missing evidence: `CHANGES_REQUESTED`. Otherwise
