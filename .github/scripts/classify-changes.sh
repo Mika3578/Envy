@@ -123,7 +123,20 @@ is_high_risk_path() {
 	.github/copilot-instructions.md | .github/pull_request_template.md)
 		return 0
 		;;
+	# Agent instruction and review-bot configuration files steer automated
+	# writers and reviewers, so they are governance paths too.
+	CLAUDE.md | .clinerules | .windsurfrules | .aider.conf.yml | \
+	.coderabbit.yaml | .cursorrules)
+		return 0
+		;;
 	esac
+	if match_prefix "$f" ".agents/" || \
+	   match_prefix "$f" ".claude/" || \
+	   match_prefix "$f" ".cursor/" || \
+	   match_prefix "$f" ".continue/" || \
+	   match_prefix "$f" ".gemini/"; then
+		return 0
+	fi
 	# Gate scripts and their self-tests define merge/CI policy; treat the
 	# whole tree as privileged (independent human approval required).
 	if match_prefix "$f" ".github/scripts/"; then
@@ -169,8 +182,6 @@ is_low_risk_path() {
 	   match_prefix "$f" "Templates/" || \
 	   match_prefix "$f" ".github/ISSUE_TEMPLATE/" || \
 	   match_prefix "$f" "tools/interop/" || \
-	   match_prefix "$f" ".cursor/" || \
-	   match_prefix "$f" ".continue/" || \
 	   [[ "$f" == .github/*.md ]]; then
 		return 0
 	fi

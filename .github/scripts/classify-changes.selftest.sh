@@ -83,6 +83,21 @@ check ruleset-risk-high "$F_RULESET" risk_level high
 readonly F_AGENTS='AGENTS.md'
 check agents-not-docs-only "$F_AGENTS" docs_only false
 check agents-risk-high "$F_AGENTS" risk_level high
+for agent_file in \
+	CLAUDE.md \
+	.agents/skills/envy-pr-workflow/SKILL.md \
+	.claude/settings.json \
+	.cursor/rules/01-cpp.mdc \
+	.continue/rules/envy.md \
+	.clinerules \
+	.windsurfrules \
+	.aider.conf.yml \
+	.coderabbit.yaml \
+	.gemini/config.yaml
+do
+	check "agent-config-risk-${agent_file//\//_}" "$agent_file" risk_level high
+	check "agent-config-not-docs-only-${agent_file//\//_}" "$agent_file" docs_only false
+done
 
 check force-remote "$F_QUALITY" run_remote_js true
 check codeql-config-remote "$F_CODEQL" run_remote_js false
