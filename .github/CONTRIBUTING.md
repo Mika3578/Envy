@@ -41,7 +41,7 @@ to retarget every project to v145.
 - `develop` - integration branch (default).
 - `legacy` - frozen pre-modernization snapshot for historical builds.
 - Feature branches: `type/short-kebab-summary` only (`feat/`, `fix/`,
-  `docs/`, `ci/`, …). See `AGENTS.md` hard rule 11. **Never** tool/agent
+  `docs/`, `ci/`, …). See `AGENTS.md` *Branches, commits and PRs*. **Never** tool/agent
   prefixes (`claude/`, `cursor/`, `copilot/`, …) — including AI/Cloud Agent
   runs.
 
@@ -61,7 +61,7 @@ fast-forward-only and rebase feature branches before opening or updating PRs.
   full PR body or all branch commits into `develop`. **Policy still requires**
   a concise technical squash body at merge time; copy it from the **Squash
   Commit Summary** section of your PR (see `.github/pull_request_template.md`).
-  Canonical rules: `AGENTS.md` hard rule 16.
+  Canonical rules: `AGENTS.md` *Authorship, privacy and notices*.
 - Rebase merge: **enabled globally**, but **prohibited** when merging into
   `develop` by the Protect develop ruleset (squash-only)
 - Require linear history on `develop`: **enabled** via the active `Protect develop` ruleset
@@ -115,7 +115,7 @@ Never commit directly on `develop`; always use a feature branch and PR.
 
 ## Authorship, privacy, and comments
 
-See `AGENTS.md` hard rule 16. In short: no assistant `Co-authored-by`, no
+See `AGENTS.md` *Authorship, privacy and notices*. In short: no assistant `Co-authored-by`, no
 `Generated with` signatures in commits or contributor PR text, no personal
 emails in repository content, technical PR titles (`type(scope): …`), and
 source comments that explain the software—not the review process. Bot
@@ -147,29 +147,20 @@ Before a pull request can merge into `develop`, **all** of the following must
 hold (enforced by the live GitHub ruleset, not by CI alone):
 
 1. The PR is **not a draft**.
-2. **At least one** GitHub review with state **APPROVED** from a reviewer other
-   than the PR author. In this solo-maintainer repository, GitHub Copilot Code
-   Review may satisfy this requirement only when repository settings allow
-   Copilot to approve **and** count toward merge requirements, the path
-   allowlist matches every changed file (privileged governance paths must
-   stay outside that allowlist), and GitHub records an actual `APPROVED`
-   review. Pull requests that change privileged governance paths require an
-   independent human approval — Copilot must not be the sole counted
-   reviewer (see `.github/skills/code-review/SKILL.md`). CodeRabbit/advisory
-   comments and Copilot's approval assessment alone do not satisfy the gate.
-   Request Copilot Code Review when the PR is **mergeable**; when Copilot
-   finds no blocking issues on that head **and** no privileged governance
-   path changed, it must submit **`APPROVED`**.
-3. That approval remains valid for the **current** head: stale approvals are
-   **dismissed on new pushes**. `Require approval of the most recent
-   reviewable push` is **off** (intentional for the solo-maintainer +
-   final-reviewer workflow).
+2. **Approving reviews:** the live ruleset requires **zero** (verified
+   2026-10-18); the committed desired state is one, pending the maintainer
+   decision in #438/#93. The maintainer's manual squash merge is the human
+   gate, and privileged governance changes need the maintainer's explicit
+   review. AI reviews (CodeRabbit, Copilot, others) are advisory and requested
+   on demand (`.agents/skills/envy-review-requests/SKILL.md`); an approval
+   assessment or bot comment is never an approval.
+3. Stale approvals are **dismissed on new pushes**.
 4. **All review conversations / threads are resolved**.
 5. There is no outstanding **CHANGES_REQUESTED** review.
 6. All **required status checks** are green and the branch is **up to date**
    with `develop` (strict checks).
 7. Merge method on `develop` is **squash** only; history stays **linear**;
-   commits must be **signed**; force pushes are blocked.
+   force pushes are blocked. Branch commits are not required to be signed.
 8. **No bypass actors** — do not use admin merge, `--admin`, or a PAT to
    override the ruleset.
 
