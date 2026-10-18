@@ -175,7 +175,7 @@ def check_skills(root: Path) -> list[str]:
         rel = skill.relative_to(root).as_posix()
         meta = frontmatter(skill.read_text(encoding="utf-8"))
         if meta is None:
-            errors.append(f"{rel}: missing YAML frontmatter")
+            errors.append(f"{rel}: missing or unterminated YAML frontmatter")
             continue
         name, description = meta.get("name", ""), meta.get("description", "")
         if name != skill.parent.name or not SKILL_NAME_RE.match(name):
@@ -197,7 +197,7 @@ def check_cursor_rules(root: Path, files: list[str]) -> list[str]:
         rel = rule.relative_to(root).as_posix()
         meta = frontmatter(rule.read_text(encoding="utf-8"))
         if meta is None:
-            errors.append(f"{rel}: missing frontmatter")
+            errors.append(f"{rel}: missing or unterminated frontmatter")
             continue
         if meta.get("alwaysApply", "").lower() != "false":
             errors.append(f"{rel}: alwaysApply must be false (global rules belong in AGENTS.md)")
@@ -276,7 +276,9 @@ def check_ruleset(root: Path, live: dict | None) -> list[str]:
         if source == "live":
             count = rules.get("pull_request", {}).get("required_approving_review_count")
             match = re.search(r"Required approving reviews: \*\*(\d+)\*\*", agents)
-            if not match or int(match.group(1)) != count:
+            if count is None:
+                errors.append("live ruleset has no required_approving_review_count; pass the full rulesets API response")
+            elif not match or int(match.group(1)) != count:
                 errors.append(f"AGENTS.md approval count differs from the live ruleset ({count})")
     return errors
 

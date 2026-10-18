@@ -146,6 +146,17 @@ class Mutations(unittest.TestCase):
                 rule["parameters"]["required_approving_review_count"] = 2
         self.assertIn("differs from the live ruleset (2)", self.errors(live))
 
+    def test_live_ruleset_without_approval_count(self):
+        live = {"rules": [{"type": "pull_request", "parameters": {}}]}
+        self.assertIn("has no required_approving_review_count", self.errors(live))
+
+    def test_unterminated_skill_frontmatter(self):
+        path = self.tmp / ".agents/skills/envy-code-review/SKILL.md"
+        text = path.read_text(encoding="utf-8").split("\n")
+        closing = text.index("---", 1)
+        path.write_text("\n".join(text[:closing] + text[closing + 1:]), encoding="utf-8")
+        self.assertIn("missing or unterminated YAML frontmatter", self.errors())
+
     def test_live_automatic_copilot_review(self):
         live = {"rules": [{"type": "copilot_code_review", "parameters": {"review_on_push": True}}]}
         self.assertIn("enables automatic Copilot review", self.errors(live))
