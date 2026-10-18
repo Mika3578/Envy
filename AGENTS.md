@@ -430,7 +430,7 @@ PR becomes Ready, and at most one more when an agent adds the
 CI is green. That label is the only review request an agent may make. When the
 round budget is used, stop and leave the decision to the maintainer.
 
-ight before editing
+### Mandatory preflight before editing
 
 Before modifying code, build files, CI, or committed project policy:
 

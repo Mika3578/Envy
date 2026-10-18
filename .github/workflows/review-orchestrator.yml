@@ -10,7 +10,8 @@ name: Review orchestrator
 # never checks out PR code; the digest job also runs the base-branch script.
 on:
   pull_request_target:
-    types: [opened, ready_for_review, labeled, synchronize, closed]
+    # edited: CodeRabbit reads bypass commands from the PR description.
+    types: [opened, ready_for_review, labeled, synchronize, edited, closed]
   pull_request_review:
     types: [submitted, dismissed]
   pull_request_review_comment:
@@ -115,6 +116,7 @@ jobs:
     # writes one commit status; it never approves, dismisses, or merges.
     if: >-
       ((github.event_name == 'pull_request_review'
+          || github.event_name == 'pull_request_review_comment'
           || (github.event_name == 'pull_request_target'
               && github.event.action != 'labeled'))
         && github.event.pull_request.head.repo.full_name == github.repository)
@@ -180,7 +182,7 @@ jobs:
           ENVY_REVIEW_TIMEOUT_HOURS: ${{ vars.ENVY_REVIEW_TIMEOUT_HOURS }}
           ENVY_SCOREBOARD_WINDOW_DAYS: ${{ vars.ENVY_SCOREBOARD_WINDOW_DAYS }}
         run: |
-          if [ ! -f .github/scripts/review_scoreboard.py ]; then
+          if [ ! -f .github/scripts/review_scoreboard.py ] || [ ! -f .github/scripts/review-orchestrator.py ]; then
             echo "Scoreboard not on the default branch yet; nothing to do."
             exit 0
           fi

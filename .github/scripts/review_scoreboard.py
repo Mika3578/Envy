@@ -277,7 +277,8 @@ def render_scoreboard(stats, ranking, now, window_days, prs_scanned):
     data = {"updated_at": iso(now), "window_days": window_days, "prs": prs_scanned,
             "ranking": ranking, "stats": stats}
     lines = [
-        f"{SCOREBOARD_MARKER} {json.dumps(data, separators=(',', ':'))} -->",
+        # Escape angle brackets so no stored string can close the HTML comment early.
+        f"{SCOREBOARD_MARKER} {json.dumps(data, separators=(',', ':')).replace('<', chr(92) + 'u003c').replace('>', chr(92) + 'u003e')} -->",
         f"### {SCOREBOARD_TITLE}",
         f"Last {window_days} days, {prs_scanned} pull requests, updated {iso(now)}. "
         "Recomputed from scratch on every run; do not edit.",

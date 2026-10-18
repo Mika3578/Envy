@@ -214,6 +214,13 @@ def is_nit(body):
     return bool(NIT_PATTERN.search(head)) and not NOT_NIT_PATTERN.search(head)
 
 
+def link(url):
+    """Render a thread link only for a GitHub https URL; anything else is plain inert text."""
+    if (url or "").startswith("https://github.com/") and ")" not in url and " " not in url:
+        return f"[thread]({url})"
+    return "thread link unavailable"
+
+
 def render_digest(pr_number, head_sha, threads, limit=MAX_LISTED_THREADS):
     open_threads = [t for t in threads if not t["isResolved"]]
     current = [t for t in open_threads if not t["isOutdated"]]
@@ -223,7 +230,7 @@ def render_digest(pr_number, head_sha, threads, limit=MAX_LISTED_THREADS):
 
     def item(t):
         where = inert(f"{t['path']}:{t['line']}" if t["line"] else t["path"])
-        return f"- **{t['author']}** {where} {inert(summarize(t['body']))} ([thread]({t['url']}))"
+        return f"- **{t['author']}** {where} {inert(summarize(t['body']))} ({link(t['url'])})"
 
     lines = [
         DIGEST_MARKER,
@@ -267,6 +274,19 @@ def is_bypass_command(comment):
     body = re.sub(r"```.*?```|`[^`\n]*`", "", comment.get("body") or "", flags=re.DOTALL)
     body = "\n".join(line for line in body.splitlines() if not line.lstrip().startswith(">"))
     return bool(BYPASS_COMMAND.search(body))
+
+
+def bypass_sources(pr, issue_comments, reviews, review_comments):
+    """Every place a person can write a reviewer command on a pull request.
+
+    CodeRabbit reads `ignore` from the PR description, and people answer review
+    threads with `resolve`, so both count with PR comments and review bodies.
+    """
+    def entry(item):
+        return {"user": item.get("user"), "body": item.get("body")}
+
+    return ([entry(pr)] + [entry(c) for c in issue_comments]
+            + [entry(r) for r in reviews] + [entry(c) for c in review_comments])
 
 
 def evaluate_quorum(pr, reviews, comments, files, voters, required):
@@ -353,6 +373,9 @@ class GitHub:
 
     def reviews(self, number):
         return self.paged(f"/repos/{self.repo}/pulls/{number}/reviews")
+
+    def review_comments(self, number):
+        return self.paged(f"/repos/{self.repo}/pulls/{number}/comments")
 
     def files(self, number):
         return [f["filename"] for f in self.paged(f"/repos/{self.repo}/pulls/{number}/files")]
@@ -653,10 +676,8 @@ def run_quorum(github, number, print_only):
     voters = quorum_voters(os.environ.get("ENVY_QUORUM_VOTERS"), pr["user"]["login"])
     required = int(os.environ.get("ENVY_QUORUM_REQUIRED") or DEFAULT_QUORUM_REQUIRED)
     reviews = github.reviews(number)
-    # Review bodies can carry commands too; check them with the PR comments.
-    comments = github.comments(number) + [
-        {"user": r.get("user"), "body": r.get("body")} for r in reviews
-    ]
+    comments = bypass_sources(pr, github.comments(number), reviews,
+                              github.review_comments(number))
     state, description, details = evaluate_quorum(
         pr, reviews, comments, github.files(number), voters, required
     )

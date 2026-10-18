@@ -235,11 +235,10 @@ change repository settings/rulesets, weaken checks, force-push, or push to
 develop/main/legacy. Never set stage:live-test or mark the PR Ready.
 **Never request any code review** (Copilot, Bugbot, CodeRabbit, or human
 reviewers) while the pull request is a **draft** — Draft is cheap CI and thread
-fixes only. **Never request GitHub Copilot Code Review** during correction loops
-after Ready either until the checklist in `AGENTS.md` §5 is satisfied; treat
-threads, push fix batches, resolve when justified; the maintainer (or one
-explicit final automation step after that checklist) requests **one** Copilot
-review per stable treated head.
+fixes only. After Ready, the only review request you may make is adding the
+`review:request` label once every thread on the head is treated and required CI
+is green, within the orchestrator's round budget (`AGENTS.md` §5 *Review
+economy*); never request Copilot or post reviewer commands yourself.
 
 At each wake, read current HEAD/phase and current findings/check results.
 Reconcile stale events with current code. Track HEAD plus review/comment IDs
