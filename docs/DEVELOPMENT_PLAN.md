@@ -1,6 +1,8 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-11
+- **Last Updated:** 2026-10-12
+
+- **Changelog Entry:** 2026-10-12 — #471: make schema extension filters typed and case-insensitive, ignore malformed empty/trailing-dot inputs, select one deterministic automatic group, and keep protocol classification separate from file-type and user-defined groups. Existing group memberships and `DownloadGroups.dat` version 1 remain authoritative; focused native smoke coverage added. Deferred group icons/colors/tags/rules/previews/reset UX is recorded in the local idea inbox.
 
 - **Changelog Entry:** 2026-10-11 - #405: constrain package destinations with strict manifest/ZIP path checks, bounded construction, pinned non-reparse ancestors and complete-file staged replacement. Production-backed EnvyTests cover package types, malformed input, overwrite policy and alias escapes; the focused project supports AddressSanitizer. Essential #406 ownership and manifest-buffer fixes are included; package-wide expansion/time budgets remain open. Validation commands and limitations: `10_dev/unpacker-validation.md`.
 
