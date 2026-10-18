@@ -388,3 +388,5 @@ The project has undergone significant evolution based on git commit history:
 - `091f444` (2016-04-02) - Initial commit establishing project foundation
 
 For the complete git history with file changes and full commit details, please refer to the git repository.
+
+- **Unified BugSplat Native migration (#466)** — Win32 and x64 now share the BugSplat host and Crashpad product dependency is removed. The official Win32 Native SDK import remains a prerequisite before release builds.

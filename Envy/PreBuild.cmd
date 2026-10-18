@@ -20,5 +20,4 @@ copy /b /y "..\Services\SQLite\%1 %2\SQLite.dll" "%1 %2\"
 copy /b /y "..\Services\MiniUPnP\%1 %2\MiniUPnPc.dll" "%1 %2\"
 
 cscript.exe //E:jscript //nologo Revision.js
-if /I "%~2"=="Win32" call "%~dp0CopyCrashpadHandler.cmd" %1 %2
 exit /b %ERRORLEVEL%

@@ -1,41 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- x64: BugSplat 8 static /MT. Win32: vcpkg Crashpad (legacy Stage A). -->
+  <!-- BugSplat Native is the sole crash backend on Win32 and x64. -->
   <PropertyGroup>
     <EnvyBugSplatRoot Condition="'$(EnvyBugSplatRoot)'==''">$(EnvyRepoRoot)\ThirdParty\BugSplat</EnvyBugSplatRoot>
-    <EnvyBugSplatLibMtDebug>$(EnvyBugSplatRoot)\x64\Debug\lib\mt</EnvyBugSplatLibMtDebug>
-    <EnvyBugSplatLibMtRelease>$(EnvyBugSplatRoot)\x64\Release\lib\mt</EnvyBugSplatLibMtRelease>
-    <EnvyBugSplatBinDebug>$(EnvyBugSplatRoot)\x64\Debug\bin</EnvyBugSplatBinDebug>
-    <EnvyBugSplatBinRelease>$(EnvyBugSplatRoot)\x64\Release\bin</EnvyBugSplatBinRelease>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Platform)'=='x64'">
+    <EnvyBugSplatArch Condition="'$(Platform)'=='Win32'">x86</EnvyBugSplatArch>
+    <EnvyBugSplatArch Condition="'$(Platform)'=='x64'">x64</EnvyBugSplatArch>
+    <EnvyBugSplatLibMt>$(EnvyBugSplatRoot)\$(EnvyBugSplatArch)\$(Configuration)\lib\mt</EnvyBugSplatLibMt>
+    <EnvyBugSplatBin>$(EnvyBugSplatRoot)\$(EnvyBugSplatArch)\$(Configuration)\bin</EnvyBugSplatBin>
     <EnvyCrashRequiresVcpkg>false</EnvyCrashRequiresVcpkg>
     <EnvyCrashExtraIncludeDirs>$(EnvyBugSplatRoot)\inc</EnvyCrashExtraIncludeDirs>
-    <EnvyCrashLibDir Condition="'$(Configuration)'=='Debug'">$(EnvyBugSplatLibMtDebug)</EnvyCrashLibDir>
-    <EnvyCrashLibDir Condition="'$(Configuration)'!='Debug'">$(EnvyBugSplatLibMtRelease)</EnvyCrashLibDir>
+    <EnvyCrashLibDir>$(EnvyBugSplatLibMt)</EnvyCrashLibDir>
     <EnvyCrashLinkLibs>BugSplat.lib;wer.lib</EnvyCrashLinkLibs>
     <EnvyCrashPostBuildCmd>set "VCToolsInstallDir=$(VCToolsInstallDir)" &amp;&amp; call "$(ProjectDir)CopyBugSplatRuntime.cmd" $(Configuration) $(Platform) "$(VCToolsInstallDir)"</EnvyCrashPostBuildCmd>
     <EnvyCrashVcpkgIncludeCrashpad>false</EnvyCrashVcpkgIncludeCrashpad>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Platform)'=='Win32'">
-    <EnvyCrashRequiresVcpkg>true</EnvyCrashRequiresVcpkg>
-    <EnvyCrashExtraIncludeDirs>$(EnvyVcpkgInstalled)\include\crashpad</EnvyCrashExtraIncludeDirs>
-    <EnvyCrashLibDir>$(EnvyVcpkgLibDir)</EnvyCrashLibDir>
-    <EnvyCrashLinkLibs>vcpkg_crashpad_client.lib;vcpkg_crashpad_client_common.lib;vcpkg_crashpad_util.lib;vcpkg_crashpad_base.lib</EnvyCrashLinkLibs>
-    <EnvyCrashPostBuildCmd>call "$(ProjectDir)CopyCrashpadHandler.cmd" $(Configuration) $(Platform)</EnvyCrashPostBuildCmd>
-    <EnvyCrashVcpkgIncludeCrashpad>true</EnvyCrashVcpkgIncludeCrashpad>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
+  <ItemDefinitionGroup>
     <ClCompile>
       <PreprocessorDefinitions Condition="'$(EnvyBugSplatDatabase)'!=''">ENVY_BUGSPLAT_DATABASE=L&quot;$(EnvyBugSplatDatabase)&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <!-- Vendor BugSplat static libs embed TeamCity PDB paths; SDK slice ships without those PDBs (LNK4099). -->
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
-  <Target Name="ValidateEnvyBugSplatSdk" BeforeTargets="ClCompile" Condition="'$(Platform)'=='x64'">
-    <Error Condition="!Exists('$(EnvyBugSplatRoot)\inc\BugSplat.h')" Text="Missing BugSplat SDK headers at $(EnvyBugSplatRoot)\inc. Run scripts\import-bugsplat-sdk.ps1 from the official native SDK (see ThirdParty\BugSplat\README.md)." />
-    <Error Condition="!Exists('$(EnvyCrashLibDir)\BugSplat.lib')" Text="Missing $(EnvyCrashLibDir)\BugSplat.lib (official lib\mt). Run scripts\import-bugsplat-sdk.ps1 — public Samples binaries are /MD only." />
+  <Target Name="ValidateEnvyBugSplatSdk" BeforeTargets="ClCompile">
+    <Error Condition="!Exists('$(EnvyBugSplatRoot)\inc\BugSplat.h')" Text="Missing BugSplat Native headers for $(Platform). Import the official Native SDK into ThirdParty\BugSplat." />
+    <Error Condition="!Exists('$(EnvyCrashLibDir)\BugSplat.lib')" Text="Missing BugSplat Native $(Platform) $(Configuration) /MT library. Import the matching official SDK architecture." />
   </Target>
 </Project>

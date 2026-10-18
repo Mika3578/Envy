@@ -40,7 +40,7 @@
   #define unified_build "False"
 #endif
 
-#if PlatformName == "x64"
+
   #define bits "64"
 #else
   #define bits "32"
@@ -118,7 +118,7 @@ MinVersion=10.0.17763
 #else
   OutputManifestFile=Manifest {#ConfigurationName} {#PlatformName}.txt
 #endif
-#if PlatformName == "x64"
+
   ArchitecturesAllowed=x64
   ArchitecturesInstallIn64BitMode=x64
 #elif unified_build == "True"
@@ -200,7 +200,10 @@ Name: "{group}\{cm:icons_uninstall}"; Filename: "{uninstallexe}"; WorkingDir: "{
 
 #if unified_build == "True"
 Source: "Envy\Release x64\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
-Source: "Envy\Release Win32\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
+Source: "Envy\Release Win32\Envy.exe";
+Source: "Envy\Release Win32\BugSplatMonitor.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
+Source: "Envy\Release Win32\BugSplatWer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
+Source: "Envy\Release Win32\BugSplatRc.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
 Source: "Envy\Release x64\BugSplatMonitor.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "Envy\Release x64\BugSplatWer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "Envy\Release x64\BugSplatRc.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
@@ -209,8 +212,6 @@ Source: "Envy\Release x64\vcruntime140_1.dll"; DestDir: "{app}"; Flags: overwrit
 Source: "Envy\Release x64\msvcp140.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "Envy\Release x64\msvcp140_1.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "Envy\Release x64\msvcp140_2.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
-Source: "Envy\Release Win32\crashpad_handler.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
-Source: "Envy\Release Win32\crashpad_wer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist ; Check: not Install64Bit
 Source: "TorrentEnvy\Release x64\TorrentEnvy.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
 Source: "TorrentEnvy\Release Win32\TorrentEnvy.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
 Source: "Unpacker\Release x64\Unpacker.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: Install64Bit
@@ -219,7 +220,7 @@ Source: "Unpacker\Release Win32\Unpacker.exe";DestDir: "{app}"; Flags: overwrite
 ;Source: "SkinBuilder\Release Win32\SkinBuilder.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension ; Check: not Install64Bit
 #else
 Source: "Envy\{#ConfigurationName} {#PlatformName}\Envy.exe"; 	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
-#if PlatformName == "x64"
+
 Source: "Envy\{#ConfigurationName} {#PlatformName}\BugSplatMonitor.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 Source: "Envy\{#ConfigurationName} {#PlatformName}\BugSplatWer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 Source: "Envy\{#ConfigurationName} {#PlatformName}\BugSplatRc.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
@@ -230,10 +231,6 @@ Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140.dll"; DestDir: "{app
 Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140_1.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140_2.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 #endif
-#endif
-#if PlatformName == "Win32"
-Source: "Envy\{#ConfigurationName} {#PlatformName}\crashpad_handler.exe"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
-Source: "Envy\{#ConfigurationName} {#PlatformName}\crashpad_wer.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
 #endif
 Source: "TorrentEnvy\{#ConfigurationName} {#PlatformName}\TorrentEnvy.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 Source: "Unpacker\{#ConfigurationName} {#PlatformName}\Unpacker.exe";	DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
@@ -377,14 +374,14 @@ Source: "Plugins\MediaImageServices\{#ConfigurationName} {#PlatformName}\MediaIm
 Source: "Plugins\MediaLibraryBuilder\{#ConfigurationName} {#PlatformName}\MediaLibraryBuilder.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension regserver
 
 Source: "Plugins\RARBuilder\{#ConfigurationName} {#PlatformName}\RARBuilder.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension regserver
-#if PlatformName == "x64"
+
 Source: "Plugins\RARBuilder\Unrar64.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 #else
 Source: "Plugins\RARBuilder\Unrar.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 #endif
 
 Source: "Plugins\7ZipBuilder\{#ConfigurationName} {#PlatformName}\7ZipBuilder.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension regserver
-#if PlatformName == "x64"
+
 Source: "Plugins\7ZipBuilder\7zxa.64.dll"; DestDir: "{app}\Plugins"; DestName: "7zxa.dll"; Flags: overwritereadonly replacesameversion uninsremovereadonly sortfilesbyextension
 #else
 Source: "Plugins\7ZipBuilder\7zxa.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion uninsremovereadonly sortfilesbyextension
@@ -425,7 +422,7 @@ Source: "Envy\{#ConfigurationName} {#PlatformName}\Envy.pdb"; DestDir: "{app}"; 
 ;Source: "Plugins\*.pdb"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 ;Source: "Services\*.pdb"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 
-#if PlatformName == "x64"
+
 ; Prefer post-build BugSplat CRT copies from the output dir (active VS/v145 toolchain).
 ; Required with BugSplatMonitor.exe - do not skip; fail the installer if missing.
 Source: "Envy\{#ConfigurationName} {#PlatformName}\vcruntime140d.dll"; DestDir: "{app}"; Flags: replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
@@ -435,7 +432,7 @@ Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140_1d.dll"; DestDir: "{
 Source: "Envy\{#ConfigurationName} {#PlatformName}\msvcp140_2d.dll"; DestDir: "{app}"; Flags: replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
 Source: "Envy\{#ConfigurationName} {#PlatformName}\ucrtbased.dll"; DestDir: "{app}"; Flags: replacesameversion overwritereadonly uninsrestartdelete uninsremovereadonly sortfilesbyextension
 #else
-; Win32 Debug uses Crashpad (not BugSplat /MD). Preserve the historical
+; Both architectures use the BugSplat Native runtime. Preserve the historical
 ; optional CRT entries here; additional Win32 runtime changes require
 ; separate validation of the active v145 toolchain.
 Source: "{#VisualStudioPath}\VC\redist\debug_nonredist\x86\Microsoft.VC{#VisualCVersion}0.DebugCRT\vcruntime{#VisualCVersion}0d.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist replacesameversion overwritereadonly uninsremovereadonly sortfilesbyextension
