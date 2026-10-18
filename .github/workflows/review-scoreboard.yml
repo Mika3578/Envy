@@ -1,0 +1,44 @@
+name: Review scoreboard
+
+# Rewrites one "Review bot scoreboard" issue with each AI review app's recent
+# usefulness and inferred availability, and a recommended reviewer to ask by
+# hand. It never requests a review, posts on a pull request, approves, or sets
+# a status. The script always comes from the default branch.
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: review-scoreboard
+  cancel-in-progress: true
+
+jobs:
+  scoreboard:
+    name: Refresh review scoreboard
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Recompute and rewrite the scoreboard issue
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ENVY_REVIEWERS: ${{ vars.ENVY_REVIEWERS }}
+          ENVY_REVIEWER_LOGINS: ${{ vars.ENVY_REVIEWER_LOGINS }}
+          ENVY_REVIEWER_RESET_DAYS: ${{ vars.ENVY_REVIEWER_RESET_DAYS }}
+          ENVY_REVIEWER_COOLDOWN_HOURS: ${{ vars.ENVY_REVIEWER_COOLDOWN_HOURS }}
+          ENVY_REVIEWER_MONTHLY_CAPS: ${{ vars.ENVY_REVIEWER_MONTHLY_CAPS }}
+          ENVY_REVIEWER_HELD: ${{ vars.ENVY_REVIEWER_HELD }}
+          ENVY_REVIEW_TIMEOUT_HOURS: ${{ vars.ENVY_REVIEW_TIMEOUT_HOURS }}
+          ENVY_SCOREBOARD_WINDOW_DAYS: ${{ vars.ENVY_SCOREBOARD_WINDOW_DAYS }}
+        run: python3 .github/scripts/review-scoreboard.py --update-issue

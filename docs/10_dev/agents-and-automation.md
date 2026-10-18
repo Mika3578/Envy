@@ -88,15 +88,17 @@ Draft; Ready always runs the real jobs. GitHub accepts skipped/neutral checks,
 so neither a skipped job nor a Draft green context is build evidence. Path or
 phase classifier failure/cancellation cannot become successful build evidence.
 
-AI reviewers are **advisory** and never a merge blocker. The live Protect
-develop ruleset (verified 2026-10-17) requires **zero** approving reviews,
-resolved conversations, green required checks, an up-to-date branch, and
-squash merge; force pushes are blocked and branch commits need not be signed.
-Free reviewers (CodeRabbit, Gemini Code Assist, Sourcery, Amazon Q) are
-selected one at a time from a performance and quota scoreboard and triggered
-by the review orchestrator; GitHub Copilot Code Review is optional
-while its quota lasts. See [review-orchestration.md](review-orchestration.md)
-and [KNOWN_INCONSISTENCIES](../00_index/KNOWN_INCONSISTENCIES.md).
+CodeRabbit / reviewdog / Bugbot are **advisory** and must not be the sole
+merge blocker. Live native review policy on Protect develop (re-verified
+2026-09-20) is **≥1 APPROVED** review from a non-author reviewer. In this
+solo-maintainer repo, GitHub Copilot Code Review may satisfy it only when
+approval/counting are enabled in the Copilot repository UI, any path
+allowlist matches every changed file, and GitHub records an actual
+`APPROVED` review. An assessment is not an approval. See
+[KNOWN_INCONSISTENCIES](../00_index/KNOWN_INCONSISTENCIES.md) and
+[CI_AUDIT_2026-09](CI_AUDIT_2026-09.md). Dismiss stale on push remains on,
+`require_last_push_approval` off, conversations resolved, and force pushes
+blocked. Branch commits are not required to be signed by Protect develop.
 
 See [devsecops-envy.md](devsecops-envy.md) for the full stack map.
 Measured timings, critical path, and CI cost notes live in
@@ -200,9 +202,10 @@ PR #346's superseded-generation fix and PR #349's semantic gate are obsolete
 once the live ruleset no longer requires PR Gate. Their closure is a GitHub
 operation outside this repository change.
 The temporary `request-copilot-review.yml` helper for merged #294/#354 is
-deleted (PR #381). After Ready, the free review orchestrator requests
-reviews ([review-orchestration.md](review-orchestration.md)); request GitHub
-Copilot Code Review manually only while its quota lasts.
+**deleted in this PR**. After Ready, request GitHub Copilot Code Review
+manually (or via one explicit final automation step once threads are treated
+and the head is mergeable toward `develop`). Do not recreate an automatic
+Copilot requester without a separately reviewed design.
 
 ### One subscribed Envy PR Stabilizer (external setup)
 
@@ -235,10 +238,11 @@ change repository settings/rulesets, weaken checks, force-push, or push to
 develop/main/legacy. Never set stage:live-test or mark the PR Ready.
 **Never request any code review** (Copilot, Bugbot, CodeRabbit, or human
 reviewers) while the pull request is a **draft** — Draft is cheap CI and thread
-fixes only. After Ready, the only review request you may make is adding the
-`review:request` label once every thread on the head is treated and required CI
-is green, within the orchestrator's round budget (`AGENTS.md` §5 *Review
-economy*); never request Copilot or post reviewer commands yourself.
+fixes only. **Never request GitHub Copilot Code Review** during correction loops
+after Ready either until the checklist in `AGENTS.md` §5 is satisfied; treat
+threads, push fix batches, resolve when justified; the maintainer (or one
+explicit final automation step after that checklist) requests **one** Copilot
+review per stable treated head.
 
 At each wake, read current HEAD/phase and current findings/check results.
 Reconcile stale events with current code. Track HEAD plus review/comment IDs
@@ -265,10 +269,9 @@ thread. Resolve a thread on GitHub only after it is **treated** (fix on the
 current head or justified reply). Do not resolve without a reply; do not
 request Copilot Code Review while untreated threads remain. Let CI run;
 when every thread on the head is treated and the PR is mergeable toward
-`develop`, ask for the next orchestrated review round per
-`AGENTS.md` §5 *Review economy*: add the `review:request` label once per
-treated head, within the orchestrator round budget. Never post review
-commands or request reviewers yourself.
+`develop`, request **one** Copilot Code Review per stable head per
+`AGENTS.md` rule 12 (Copilot review-on-push stays off). Do not request other
+reviewers automatically unless the maintainer asks.
 
 Draft budget: three pushed batches total. Ready budget: two total. Phase toggles,
 replays, successful tests or resumed conversations do not reset these counters.
@@ -439,7 +442,7 @@ the PR and ignored `.local/DEV_TRACKER.md`; summarize strategic blockers in
 | **Code analysis** | MSVC Code Analysis on `develop`/nightly; CodeQL (`none` on PR C++, manual on `develop`); `.clang-tidy` + reviewdog on PRs (advisory) |
 | **Format / docs** | `clang-format-diff-18` on changed hunks under `Envy/`, `TorrentEnvy/`, `HashLib/` (blocking); markdown link check when docs change |
 | **Dependencies** | Dependabot (vcpkg, `Remote/tests` npm, GitHub Actions), dependency review, vcpkg manifest sanity |
-| **AI review** | Free reviewers via the review orchestrator ([review-orchestration.md](review-orchestration.md)); Copilot optional; all advisory |
+| **AI review** | Copilot Code Review = target approval reviewer (skill `.github/skills/code-review/SKILL.md`); CodeRabbit/reviewdog/Qodo/Bugbot remain advisory |
 | **Testing** | `EnvyTests.exe` after PR and `develop` MSBuild; Remote JS tests when `Remote/` changes; local `.\scripts\ci-verify.ps1` |
 | **Security** | Gitleaks on every PR, CodeQL, dependency review |
 
