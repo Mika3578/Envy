@@ -94,6 +94,10 @@ jobs:
           if ($LASTEXITCODE -eq 0) {
             throw "Branch $branch already exists on origin; close or delete the previous bump PR first."
           }
+          # --exit-code reports "no matching ref" as 2; anything else is a real failure.
+          if ($LASTEXITCODE -ne 2) {
+            throw "git ls-remote failed with exit code $LASTEXITCODE; cannot confirm that $branch is free."
+          }
           $global:LASTEXITCODE = 0
 
           & ./scripts/auto-version.ps1 @bumpArgs -UpdateFiles -Branch $branch

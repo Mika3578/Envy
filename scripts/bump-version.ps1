@@ -70,28 +70,29 @@ try {
         }
     }
 
-    # Build the command
-    $command = "& '$VersionScript'"
-
+    # Build the argument list; splatting keeps the label from being parsed as code.
+    $versionArguments = @{}
     switch ($Type) {
-        "patch" { $command += " -IncrementPatch" }
-        "minor" { $command += " -IncrementMinor" }
-        "major" { $command += " -IncrementMajor" }
+        "patch" { $versionArguments.IncrementPatch = $true }
+        "minor" { $versionArguments.IncrementMinor = $true }
+        "major" { $versionArguments.IncrementMajor = $true }
         "prerelease" {
-            $command += " -PreRelease -PreReleaseLabel '$PreReleaseLabel'"
+            $versionArguments.PreRelease = $true
+            $versionArguments.PreReleaseLabel = $PreReleaseLabel
         }
-        "final" { $command += " -Final" }
+        "final" { $versionArguments.Final = $true }
     }
 
     if ($UpdateFiles) {
-        $command += " -UpdateFiles"
+        $versionArguments.UpdateFiles = $true
     }
 
-    Write-Host "Executing: $command" -ForegroundColor Yellow
+    $argumentSummary = ($versionArguments.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ', '
+    Write-Host "Executing: $VersionScript ($argumentSummary)" -ForegroundColor Yellow
     Write-Host ""
 
     # Execute the command
-    Invoke-Expression $command
+    & $VersionScript @versionArguments
 
     # Show final version
     if (Test-Path "version.json") {
