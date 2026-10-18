@@ -76,24 +76,34 @@ Recommended extensions (see `.vscode/extensions.json`):
 
 ### Build tasks from Cursor
 
-`.vscode/tasks.json` is **versioned** and exposes two portable MSBuild tasks
+`.vscode/tasks.json` is **versioned** and exposes portable MSBuild tasks
 driven by [`tools/dev/run-msbuild.ps1`](../../tools/dev/run-msbuild.ps1):
 
-- **Envy: Fast Build** — `/t:Envy` (Envy + solution dependencies, no Installer)
-- **Envy: Full Build** — `/t:Build` (whole solution including Installer / ISCC)
+- **Envy: Build Solution** — `/t:Build` (whole solution including Installer /
+  ISCC), same as Visual Studio "Build Solution"
+- **Envy: Rebuild Solution** — `/t:Rebuild`, same as "Rebuild Solution"
+- **Envy: Clean Solution** — `/t:Clean`, same as "Clean Solution"; also deletes
+  the generated, untracked `Envy/Res/About.htm.gz` / `Browser.htm.gz`, which
+  the next build recreates
+- **Envy: Build Project** — picks one project (Envy, TorrentEnvy, Unpacker,
+  SkinBuilder, HashLib, EnvyTests, Installer) and builds it with its
+  dependencies (`/t:<project>`), like right-click > Build in Visual Studio
+- **Envy: Test** — builds `EnvyTests` and runs `EnvyTests.exe`; the task fails
+  when a test fails
+- **Envy: Run** — starts the already built `Envy\<Config> <Platform>\Envy.exe`
+  via `tools/dev/run-envy.ps1` (no build; `Builds\*.exe` are installers)
 
-Both prompt for Configuration (`Debug` / `Release`, default `Debug`) and
-Platform (`x64` / `Win32`, default `x64`). The runner locates MSBuild via
+The build tasks prompt for Configuration (`Debug` / `Release`, default `Debug`)
+and Platform (`x64` / `Win32`, default `x64`). The runner locates MSBuild via
 `vswhere.exe` (prerelease-aware, covers Build Tools) and never embeds
 machine-specific paths; an `msbuild.exe` found on `PATH` is used only when its
 Visual Studio install has a usable v145 toolset. Concurrent runs on the same
 checkout are serialized by a cross-process lock (builds started from Visual
-Studio do not take it). `Ctrl+Shift+B` runs Fast Build. Rebuild, Clean, and
-Installer-only remain available in Visual Studio / MSBuild; Full Build uses
-the same Installer CustomBuild path as Visual Studio "Build Solution"
-(bundled `Installer/InnoSetup/ISCC.exe`, live repo `SourceDir`). If that
-bundled `ISCC.exe` is missing, the Installer project now fails the build
-(any configuration) instead of skipping packaging; use Fast Build when no
+Studio do not take it). `Ctrl+Shift+B` runs Build Solution. Build Solution uses
+the same Installer CustomBuild path as Visual Studio (bundled
+`Installer/InnoSetup/ISCC.exe`, live repo `SourceDir`). If that bundled
+`ISCC.exe` is missing, the Installer project fails the build (any
+configuration) instead of skipping packaging; use Build Project > Envy when no
 package is needed.
 
 Use **one** C++ language service: prefer **clangd** for IntelliSense/navigation. Disable duplicate MSVC IntelliSense in personal settings if both are active. The repo lists `ms-vscode.cpptools` under `unwantedRecommendations` only to reduce accidental dual-IntelliSense installs; you may still install it for MSVC debugging if your workflow needs it.

@@ -1,11 +1,17 @@
-// Envy build tasks for Cursor. Both tasks go through tools/dev/run-msbuild.ps1,
-// which locates MSBuild via vswhere (prerelease-aware) and never modifies the
-// Visual Studio .sln/.vcxproj files.
+// Envy build tasks for Cursor, mirroring the Visual Studio Build menu. All
+// build tasks go through tools/dev/run-msbuild.ps1, which locates MSBuild via
+// vswhere (prerelease-aware) and never modifies the Visual Studio
+// .sln/.vcxproj files.
 //
-//   Fast  /t:Envy   - Envy + its solution dependencies, no Installer.
-//   Full  /t:Build  - whole solution incl. Installer (same as VS Build Solution).
+//   Build Solution    /t:Build   - whole solution incl. Installer.
+//   Rebuild Solution  /t:Rebuild - clean + build of the whole solution.
+//   Clean Solution    /t:Clean   - removes solution build outputs.
+//   Build Project     /t:<name>  - one project + its dependencies (right-click
+//                                  > Build in VS); defaults to Envy.
+//   Test              /t:EnvyTests - build and run EnvyTests.exe.
+//   Build Envy (Debug x64)  fixed, prompt-free; preLaunchTask of launch.json (F5).
+//   Run               start the built Envy.exe (tools/dev/run-envy.ps1; no build).
 //
-// Rebuild / Clean / Installer-only remain available in Visual Studio / MSBuild.
 // Win32 adds the vcpkg manifest properties documented in AGENTS.md; x64
 // intentionally does not consume the manifest. Do not harmonize these.
 // "type": "process" runs powershell.exe directly (no MSYS argument mangling).
@@ -25,18 +31,33 @@
 			"description": "Platform",
 			"options": ["x64", "Win32"],
 			"default": "x64"
+		},
+		{
+			"id": "buildProject",
+			"type": "pickString",
+			"description": "Project",
+			"options": [
+				"Envy",
+				"TorrentEnvy",
+				"Unpacker",
+				"SkinBuilder",
+				"HashLib",
+				"EnvyTests",
+				"Installer"
+			],
+			"default": "Envy"
 		}
 	],
 	"tasks": [
 		{
-			"label": "Envy: Fast Build",
-			"detail": "Envy + dependencies only, no Installer (/t:Envy)",
+			"label": "Envy: Build Solution",
+			"detail": "Whole solution incl. Installer (/t:Build) - same as VS Build Solution",
 			"type": "process",
 			"command": "powershell.exe",
 			"args": [
 				"-NoProfile", "-ExecutionPolicy", "Bypass",
 				"-File", "tools\\dev\\run-msbuild.ps1",
-				"-Mode", "Fast",
+				"-Mode", "Build",
 				"-Configuration", "${input:buildConfig}",
 				"-Platform", "${input:buildPlatform}"
 			],
@@ -55,18 +76,134 @@
 			}
 		},
 		{
-			"label": "Envy: Full Build",
-			"detail": "Whole solution incl. Installer (/t:Build) - same as VS Build Solution",
+			"label": "Envy: Rebuild Solution",
+			"detail": "Clean + build the whole solution (/t:Rebuild) - same as VS Rebuild Solution",
 			"type": "process",
 			"command": "powershell.exe",
 			"args": [
 				"-NoProfile", "-ExecutionPolicy", "Bypass",
 				"-File", "tools\\dev\\run-msbuild.ps1",
-				"-Mode", "Full",
+				"-Mode", "Rebuild",
 				"-Configuration", "${input:buildConfig}",
 				"-Platform", "${input:buildPlatform}"
 			],
 			"group": "build",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": "$msCompile",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared",
+				"echo": false
+			}
+		},
+		{
+			"label": "Envy: Clean Solution",
+			"detail": "Remove build outputs of the whole solution (/t:Clean) - same as VS Clean Solution",
+			"type": "process",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile", "-ExecutionPolicy", "Bypass",
+				"-File", "tools\\dev\\run-msbuild.ps1",
+				"-Mode", "Clean",
+				"-Configuration", "${input:buildConfig}",
+				"-Platform", "${input:buildPlatform}"
+			],
+			"group": "build",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": "$msCompile",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared",
+				"echo": false
+			}
+		},
+		{
+			"label": "Envy: Build Project",
+			"detail": "Build one project + its dependencies (/t:<project>) - like VS right-click > Build",
+			"type": "process",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile", "-ExecutionPolicy", "Bypass",
+				"-File", "tools\\dev\\run-msbuild.ps1",
+				"-Mode", "Project",
+				"-Project", "${input:buildProject}",
+				"-Configuration", "${input:buildConfig}",
+				"-Platform", "${input:buildPlatform}"
+			],
+			"group": "build",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": "$msCompile",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared",
+				"echo": false
+			}
+		},
+		{
+			"label": "Envy: Build Envy (Debug x64)",
+			"detail": "Fixed Envy | Debug | x64 build used as the debugger preLaunchTask (no prompts)",
+			"type": "process",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile", "-ExecutionPolicy", "Bypass",
+				"-File", "tools\\dev\\run-msbuild.ps1",
+				"-Mode", "Project",
+				"-Project", "Envy",
+				"-Configuration", "Debug",
+				"-Platform", "x64"
+			],
+			"group": "build",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": "$msCompile",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared",
+				"echo": false
+			}
+		},
+		{
+			"label": "Envy: Test",
+			"detail": "Build EnvyTests and run EnvyTests.exe",
+			"type": "process",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile", "-ExecutionPolicy", "Bypass",
+				"-File", "tools\\dev\\run-msbuild.ps1",
+				"-Mode", "Test",
+				"-Configuration", "${input:buildConfig}",
+				"-Platform", "${input:buildPlatform}"
+			],
+			"group": "test",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": "$msCompile",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared",
+				"echo": false
+			}
+		},
+		{
+			"label": "Envy: Run",
+			"detail": "Start the built Envy.exe (does not build; run Build Project > Envy first)",
+			"type": "process",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile", "-ExecutionPolicy", "Bypass",
+				"-File", "tools\\dev\\run-envy.ps1",
+				"-Configuration", "${input:buildConfig}",
+				"-Platform", "${input:buildPlatform}"
+			],
+			"group": "none",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},

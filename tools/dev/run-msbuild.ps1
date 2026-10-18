@@ -6,14 +6,21 @@
 .DESCRIPTION
     Modes (Visual Studio project/solution files are never modified by this script):
 
-    Fast  Build the Envy project and its solution dependencies only
-          (/t:Envy). The Installer project is not built.
-    Full  Build the whole solution including the Installer (/t:Build).
-          Same as Visual Studio "Build Solution"; Installer packaging uses
-          the project's CustomBuild (bundled ISCC.exe reading the live repo).
+    Build   Build the whole solution including the Installer (/t:Build).
+            Same as Visual Studio "Build Solution"; Installer packaging uses
+            the project's CustomBuild (bundled ISCC.exe reading the live repo).
+    Rebuild Same as Visual Studio "Rebuild Solution" (/t:Rebuild): clean + build
+            of every project including the Installer.
+    Project Build one project of the solution plus its dependencies
+            (/t:<Project>), like right-click > Build in Visual Studio. Pick it
+            with -Project (default Envy). Installer is not built unless chosen.
 
-    Rebuild / Clean / Installer-only targets remain available via Visual Studio
-    or a direct MSBuild invocation; they are intentionally not wrapped here.
+    Clean Remove build outputs of the whole solution (/t:Clean), same as
+          Visual Studio "Clean Solution". Deletes generated files such as
+          Envy\Res\About.htm.gz / Browser.htm.gz; the next build recreates them.
+
+    Test  Build the EnvyTests project (/t:EnvyTests) and run EnvyTests.exe for
+          the chosen Configuration|Platform; the exit code is the test result.
 
     Instance selection mirrors setup-windows.ps1 / generate-compile-commands.ps1:
     enumerate all VS/Build Tools instances (prerelease included), prefer the
@@ -22,9 +29,9 @@
     toolset+MSBuild. Never take MSBuild from -latest alone when that instance
     lacks the C++ toolset.
 
-    Parallelism: Fast defaults to /m (multi-project). Full defaults to /m:1
-    to avoid the documented Envy.pch C1083 races under parallel MSBuild
-    (see .github/workflows/build.yml). Override with -MaxCpuCount or
+    Parallelism: Project/Clean/Test default to /m (multi-project). Build and
+    Rebuild default to /m:1 to avoid the documented Envy.pch C1083 races under
+    parallel MSBuild (see .github/workflows/build.yml). Override with -MaxCpuCount or
     ENVY_MSBUILD_MAXCPUCOUNT.
 
 .PARAMETER SelfTest
@@ -32,8 +39,12 @@
 #>
 param(
     [Parameter(Mandatory = $true, ParameterSetName = 'Build')]
-    [ValidateSet('Fast', 'Full')]
+    [ValidateSet('Build', 'Rebuild', 'Clean', 'Project', 'Test')]
     [string]$Mode,
+
+    [Parameter(ParameterSetName = 'Build')]
+    [ValidatePattern('^[A-Za-z0-9_.]+$')]
+    [string]$Project = 'Envy',
 
     [Parameter(ParameterSetName = 'Build')]
     [ValidateSet('Debug', 'Release')]
@@ -278,11 +289,13 @@ function Get-MsBuildParallelSwitch
         return "/m:$MaxCpuCount"
     }
 
-    # Fast: project graph is small; keep multi-proc. Full solution rebuilds
-    # many PCH producers in parallel and hits C1083 on some hosts (CI).
+    # Project: graph is small; keep multi-proc. Whole-solution Build/Rebuild
+    # runs many PCH producers in parallel and hits C1083 on some hosts (CI).
     switch ($Mode)
     {
-        'Fast' { return '/m' }
+        'Project' { return '/m' }
+        'Clean' { return '/m' }
+        'Test' { return '/m' }
         default { return '/m:1' }
     }
 }
@@ -292,7 +305,7 @@ function Get-BuildLockName
     # One lock per checkout (not per Configuration|Platform): ISCC writes
     # Installer\Scripts\Preprocessed.iss and the Builds\ package for every
     # configuration (only the iscc.stamp marker is per $(IntDir)), and obj/PCH
-    # outputs are shared by Fast and Full.
+    # outputs are shared by every mode.
     param(
         [Parameter(Mandatory = $true)]
         [string]$RepoRoot
@@ -538,8 +551,9 @@ function Invoke-SelfTest
         }
 
         foreach ($pair in @(
-            @{ Mode = 'Fast'; Expected = '/m' },
-            @{ Mode = 'Full'; Expected = '/m:1' }
+            @{ Mode = 'Project'; Expected = '/m' },
+            @{ Mode = 'Build'; Expected = '/m:1' },
+            @{ Mode = 'Rebuild'; Expected = '/m:1' }
         ))
         {
             $got = Get-MsBuildParallelSwitch -Mode $pair.Mode -MaxCpuCount ''
@@ -548,7 +562,7 @@ function Invoke-SelfTest
                 throw "SelfTest: Mode $($pair.Mode) expected $($pair.Expected), got $got"
             }
         }
-        $override = Get-MsBuildParallelSwitch -Mode 'Full' -MaxCpuCount '4'
+        $override = Get-MsBuildParallelSwitch -Mode 'Build' -MaxCpuCount '4'
         if ($override -ne '/m:4')
         {
             throw "SelfTest: MaxCpuCount override failed, got $override"
@@ -556,7 +570,7 @@ function Invoke-SelfTest
         foreach ($bad in @('0', '-1', '2x'))
         {
             $rejected = $false
-            try { Get-MsBuildParallelSwitch -Mode 'Full' -MaxCpuCount $bad | Out-Null }
+            try { Get-MsBuildParallelSwitch -Mode 'Build' -MaxCpuCount $bad | Out-Null }
             catch { $rejected = $true }
             if (-not $rejected)
             {
@@ -585,8 +599,11 @@ $parallel   = Get-MsBuildParallelSwitch -Mode $Mode -MaxCpuCount $MaxCpuCount
 
 $solutionTarget = switch ($Mode)
 {
-    'Fast' { 'Envy' }
-    'Full' { 'Build' }
+    'Build' { 'Build' }
+    'Rebuild' { 'Rebuild' }
+    'Clean' { 'Clean' }
+    'Project' { $Project }
+    'Test' { 'EnvyTests' }
 }
 
 $msbArgs = [System.Collections.Generic.List[string]]::new()
@@ -604,8 +621,9 @@ if ($Platform -eq 'Win32')
 
 Write-Host "MSBuild : $msbuildExe"
 Write-Host "Mode    : $Mode ($Configuration|$Platform)"
+if ($Mode -eq 'Project') { Write-Host "Project : $Project" }
 Write-Host "Parallel: $parallel"
-if ($Mode -eq 'Full')
+if ($Mode -in 'Build', 'Rebuild')
 {
     Write-Host 'Output  : installer package is written to <repo>\Builds when ISCC succeeds.'
 }
@@ -644,6 +662,19 @@ try
     {
         & $msbuildExe $solution @($msbArgs.ToArray())
         $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
+
+        if ($Mode -eq 'Test' -and $exitCode -eq 0)
+        {
+            $testExe = Join-Path $repoRoot "tests\$Configuration $Platform\EnvyTests.exe"
+            if (-not (Test-Path -LiteralPath $testExe))
+            {
+                throw "EnvyTests.exe not found: $testExe"
+            }
+            Write-Host ''
+            Write-Host "Running : $testExe"
+            & $testExe
+            $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
+        }
     }
     finally
     {
