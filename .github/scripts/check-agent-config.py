@@ -3,7 +3,7 @@
 
 Keeps AGENTS.md the single, compact source of truth and every tool adapter
 thin, loadable and in sync with the committed ruleset. Offline by default;
-pass --live-ruleset with `gh api repos/<o>/<r>/rulesets/<id>` output to also
+pipe `gh api repos/<o>/<r>/rulesets/<id>` into `--live-ruleset -` to also
 check the documented approval count against the live ruleset.
 """
 
@@ -297,17 +297,27 @@ def run(root: Path, live: dict | None = None) -> list[str]:
     return errors
 
 
+def load_live_ruleset(source: str | None) -> dict | None:
+    """Read the live ruleset from stdin ('-') or a JSON file inside the repository."""
+    if source is None:
+        return None
+    if source == "-":
+        return json.load(sys.stdin)
+    path = (REPO_ROOT / source).resolve()
+    if not path.is_relative_to(REPO_ROOT):
+        raise SystemExit(f"--live-ruleset must be '-' or a path inside the repository: {source}")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--root", type=Path, default=REPO_ROOT)
-    parser.add_argument("--live-ruleset", type=Path, help="JSON from the GitHub rulesets API")
+    parser.add_argument("--live-ruleset", metavar="JSON", help="'-' for stdin, or a repo-relative file")
     args = parser.parse_args()
-    live = json.loads(args.live_ruleset.read_text(encoding="utf-8")) if args.live_ruleset else None
-    errors = run(args.root.resolve(), live)
+    errors = run(REPO_ROOT, load_live_ruleset(args.live_ruleset))
     for error in errors:
         print(f"::error::{error}")
     if not errors:
-        print(f"Agent configuration OK ({len(instruction_files(args.root.resolve()))} instruction files).")
+        print(f"Agent configuration OK ({len(instruction_files(REPO_ROOT))} instruction files).")
     return 1 if errors else 0
 
 

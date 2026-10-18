@@ -16,7 +16,8 @@
   describe the live state and never claim an approval is enforced. If the
   count returns to 1, Copilot may count only with a non-blank path allowlist
   that excludes governance paths (`docs/10_dev/devsecops-envy.md`).
-  `check-agent-config.py --live-ruleset <json>` detects drift between
+  `gh api repos/Mika3578/Envy/rulesets/16457466 | check-agent-config.py
+  --live-ruleset -` detects drift between
   `AGENTS.md` and the live count.
 
 - **ED2K/Kad scope:** `ED2K_KAD_GAP_ANALYSIS` is a historical snapshot (routing-table items annotated 2026-09-19 after `KadRoutingTable.h`). `kad2-compatibility-report` covers opcode/format matching plus local routing maintenance. Neither is live interop. Canonical high-level status is `docs/10_dev/status.md`. The gap-analysis `FIREWALLED_REQ`/`RES` TagList/TargetID framing is outdated; eMule/aMule use exact 2-byte port / 4-byte IPv4 (`docs/30_protocols/kad/kad2-compatibility-report.md`).

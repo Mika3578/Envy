@@ -34,6 +34,12 @@ class RepoState(unittest.TestCase):
         self.assertEqual(cac.run(cac.REPO_ROOT), [])
 
 
+    def test_live_ruleset_path_must_stay_in_repository(self):
+        for source in ("../outside.json", "/etc/passwd"):
+            with self.assertRaises(SystemExit):
+                cac.load_live_ruleset(source)
+
+
 class Mutations(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
