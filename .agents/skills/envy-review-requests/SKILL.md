@@ -57,7 +57,11 @@ estimates as hints, not facts.
 
 ## Treating threads
 
-For every unresolved thread on the current head:
+Start from the **Review digest** comment on the PR, or print it with
+`python3 .github/scripts/review-digest.py --pr <N> --print`, instead of
+reading the whole conversation (`docs/10_dev/review-digest.md`). Then read
+each listed thread before acting on it. For every unresolved thread on the
+current head:
 
 1. Valid: fix it in the next batch, then reply `Fixed in <sha>: <what>`.
 2. Not valid or out of scope: reply `No change: <technical reason>` (false
