@@ -17,6 +17,9 @@ basenames, as before. Repeated basenames are installed in archive order; the las
 valid entry replaces the earlier one. A missing manifest path uses a separately
 owned copy of its validated name. An invalid explicit path is rejected, never
 silently replaced with the name.
+The manifest name is a folder only in that fallback, so it must not contain a
+separator then; with an explicit path it is display text (shipped skins use names
+such as `Windows8/Alt` next to `path="Windows"`).
 
 ## Path and archive contract
 

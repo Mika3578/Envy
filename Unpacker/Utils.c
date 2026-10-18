@@ -83,7 +83,9 @@ int LoadManifestInfo(char* buffer)
 		else if (!_wcsicmp(values[0], L"data") || !_wcsicmp(values[0], L"security")) type = typeData;
 		else goto done;
 	}
-	if (!values[1] || !PackageRelativePath(values[1], 0) || wcspbrk(values[1], L"/\\")) goto done;
+	// A name is only a folder when no path is given; with a path it is display text,
+	// and shipped skins use names such as "Windows8/Alt" next to path="Windows".
+	if (!values[1] || !PackageRelativePath(values[1], 0) || (!values[2] && wcspbrk(values[1], L"/\\"))) goto done;
 	if (values[2] && !PackageRelativePath(values[2], 0)) goto done;
 	path = _wcsdup(values[2] ? values[2] : values[1]);
 	if (!path) goto done;

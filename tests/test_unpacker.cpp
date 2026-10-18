@@ -177,7 +177,13 @@ bool ManifestOwnership()
 		if (!LoadManifestInfo(text.data()) || szName == szPath || wcscmp(szName, szPath)) return false;
 		Reset();
 	}
-	for (const char* text : { "<manifest name=\"../bad\"/>", "<manifest name=\"ok\" path=\"../bad\"/>", "<manifest name=\"x\" path=\"\"/>", "<manifest name=\"x\" name=\"y\"/>", "<manifest name=\"x", "<manifest name=", "<manifest ", "<manifest name=\"x\" type=\"unknown\"/>" })
+	// Shipped skins pair a display name containing a separator with an explicit path.
+	{
+		std::string text = "<manifest name=\"Windows8/Alt\" path=\"Windows\"/>";
+		if (!LoadManifestInfo(text.data()) || wcscmp(szName, L"Windows8/Alt") || wcscmp(szPath, L"Windows")) return false;
+		Reset();
+	}
+	for (const char* text : { "<manifest name=\"a/b\"/>", "<manifest name=\"../bad\"/>", "<manifest name=\"ok\" path=\"../bad\"/>", "<manifest name=\"x\" path=\"\"/>", "<manifest name=\"x\" name=\"y\"/>", "<manifest name=\"x", "<manifest name=", "<manifest ", "<manifest name=\"x\" type=\"unknown\"/>" })
 	{
 		std::string copy(text);
 		if (LoadManifestInfo(copy.data())) return false;
