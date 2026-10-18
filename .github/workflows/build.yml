@@ -107,6 +107,9 @@ jobs:
           python3 .github/scripts/check-agent-config.selftest.py
           python3 .github/scripts/check-agent-config.py
 
+      - name: Review digest self-test
+        run: python3 .github/scripts/review-digest.selftest.py
+
       - name: BugSplat SDK import self-test
         shell: pwsh
         run: pwsh scripts/import-bugsplat-sdk.selftest.ps1
