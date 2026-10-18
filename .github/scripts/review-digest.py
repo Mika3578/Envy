@@ -25,7 +25,7 @@ MAX_LISTED_THREADS = 50
 # word appearing in prose ("The nit is that this buffer overflows").
 NIT_LABEL = re.compile(
     r"^\W*(?:nit(?:pick)?s?|nitpick comments?|suggestion \(style\)|\(style\)|"
-    r"low[- ]priority|refactor suggestion|trivial)\b(?!\s+is\b)",
+    r"low[- ]priority|refactor suggestion|trivial)(?![A-Za-z0-9])(?!\s+is\b)",
     re.IGNORECASE,
 )
 SEVERITY_WORDS = (r"potential issue|nitpick|refactor suggestion|agentic security review|"
@@ -34,7 +34,7 @@ SEVERITY_WORDS = (r"potential issue|nitpick|refactor suggestion|agentic security
 # a "Severity: X" line, or a CodeRabbit badge row with "|" separators.
 LABEL_LINE = re.compile(
     rf"^\W*(?:(?:{SEVERITY_WORDS})\W*|severity:\s*\w+\W*)$"
-    rf"|^(?=.*\|)(?=.*\b(?:{SEVERITY_WORDS})\b).*$",
+    rf"|^(?=.*\|)(?=.*(?<![A-Za-z0-9])(?:{SEVERITY_WORDS})(?![A-Za-z0-9])).*$",
     re.IGNORECASE,
 )
 # Emoji shortcodes such as :stop_sign:, but not C++ scopes like std::vector::push_back.

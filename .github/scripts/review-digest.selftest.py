@@ -84,6 +84,10 @@ class CubicFindingsTests(unittest.TestCase):
         self.assertFalse(DIGEST.is_nit("The nit is that this buffer overflows."))
         self.assertTrue(DIGEST.is_nit("**nitpick:** rename variable"))
         self.assertTrue(DIGEST.is_nit("Nitpick comments (2)\n\n- rename"))
+        # CodeRabbit badges glue an underscore to the label.
+        self.assertTrue(DIGEST.is_nit("_\U0001F9F9 Nitpick_ | _\U0001F535 Trivial_\n\nRename it."))
+        self.assertEqual(DIGEST.summarize("_Potential issue_ | _Major_\n\nFix the bound."),
+                         "Fix the bound.")
 
     def test_cpp_scopes_survive_shortcode_stripping(self):
         self.assertEqual(DIGEST.summarize(":warning: use std::vector::push_back here"),
