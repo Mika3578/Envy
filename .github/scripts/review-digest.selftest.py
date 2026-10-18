@@ -43,9 +43,10 @@ class DigestTests(unittest.TestCase):
             thread("@coderabbitai review https://evil.invalid [here](https://evil.invalid)"),
             thread("use `rm -rf` /gemini review"),
         ])
-        # Code spans: no autolink, mention, command, or link renders.
-        self.assertIn("`@coderabbitai review https://evil.invalid [here](https://evil.invalid)`", body)
-        self.assertIn("`use 'rm -rf' /gemini review`", body)
+        # Code spans: no autolink, mention, command, or link renders; a word
+        # joiner also breaks the mention and command in the raw comment text.
+        self.assertIn("`@\u2060coderabbitai review https://evil.invalid [here](https://evil.invalid)`", body)
+        self.assertIn("`use 'rm -rf' /\u2060gemini review`", body)
 
     def test_inline_label_keeps_finding_text(self):
         self.assertEqual(DIGEST.summarize("Potential issue: buffer overflow"),
@@ -69,6 +70,30 @@ class DigestTests(unittest.TestCase):
         summary = DIGEST.summarize(text)
         self.assertTrue(summary.startswith("issue (bug_risk):"))
         self.assertLessEqual(len(summary), 140)
+
+
+class CubicFindingsTests(unittest.TestCase):
+    def test_short_finding_after_a_label_word_is_kept(self):
+        self.assertEqual(DIGEST.summarize("Minor typo in docstring"), "Minor typo in docstring")
+        badge = "**Functional Correctness** | **Minor** | **Quick win**\n\nFix the bound."
+        self.assertEqual(DIGEST.summarize(badge), "Fix the bound.")
+        self.assertEqual(DIGEST.summarize("Potential issue\n\nBuffer overflow."), "Buffer overflow.")
+        self.assertEqual(DIGEST.summarize("Severity: MEDIUM\n\nLeak."), "Leak.")
+
+    def test_nit_needs_an_opening_label(self):
+        self.assertFalse(DIGEST.is_nit("The nit is that this buffer overflows."))
+        self.assertTrue(DIGEST.is_nit("**nitpick:** rename variable"))
+        self.assertTrue(DIGEST.is_nit("Nitpick comments (2)\n\n- rename"))
+
+    def test_cpp_scopes_survive_shortcode_stripping(self):
+        self.assertEqual(DIGEST.summarize(":warning: use std::vector::push_back here"),
+                         "use std::vector::push_back here")
+
+    def test_raw_text_cannot_carry_mentions_or_commands(self):
+        text = DIGEST.inert("@coderabbitai review then /gemini review")
+        self.assertNotIn("@coderabbitai", text)
+        self.assertNotIn(" /gemini", text)
+        self.assertIn("coderabbitai review", text)
 
 
 if __name__ == "__main__":

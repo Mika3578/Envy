@@ -18,7 +18,8 @@ review comments; `workflow_dispatch` refreshes one PR on demand.
 python3 .github/scripts/review-digest.py --pr <N> --print
 ```
 
-`--print` lists every thread and writes nothing; it needs a token from
+`--print` lists every unresolved thread (resolved ones are only counted) and
+writes nothing; it needs a token from
 `GITHUB_TOKEN`, `GH_TOKEN` or `gh auth token` with GraphQL access.
 
 ## Limits
@@ -26,9 +27,15 @@ python3 .github/scripts/review-digest.py --pr <N> --print
 - Advisory only: it never requests reviews, approves, resolves, merges or
   sets a status. Thread classification is a heuristic; agents still read each
   thread before treating it.
-- Thread text is rendered as inert code spans, so links, mentions and
-  reviewer commands in findings cannot act from the digest.
+- Thread text is rendered as inert code spans, and mentions and leading slash
+  commands get a word joiner, so links, mentions and reviewer commands in
+  findings act neither in the rendered digest nor in its raw text.
+- Resolving or unresolving a thread does not refresh the digest: GitHub Actions
+  has no trigger for thread state. The next push, review, review comment or
+  manual dispatch refreshes it, and `--print` always shows live state.
 - Only comments by `github-actions[bot]` or the repository owner are treated
   as the digest; a pasted marker is ignored.
-- The script runs from the default branch and never checks out PR code; fork
-  PRs are skipped because their token is read-only.
+- The workflow runs the default-branch script and never checks out PR code.
+  Automatic events skip fork PRs, whose token is read-only; a maintainer's
+  `workflow_dispatch` can still refresh one. A local `--print` runs the script
+  in your own checkout.

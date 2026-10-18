@@ -21,25 +21,33 @@ API = "https://api.github.com"
 DIGEST_MARKER = "<!-- envy-review-digest -->"
 MAX_LISTED_THREADS = 50
 
-NIT_PATTERN = re.compile(
-    r"nitpick|\bnit\b|\(style\)|!\[low\]|low[- ]priority|refactor suggestion",
+# A nit is recognized by the label a bot opens its finding with, never by the
+# word appearing in prose ("The nit is that this buffer overflows").
+NIT_LABEL = re.compile(
+    r"^\W*(?:nit(?:pick)?s?|nitpick comments?|suggestion \(style\)|\(style\)|"
+    r"low[- ]priority|refactor suggestion|trivial)\b(?!\s+is\b)",
     re.IGNORECASE,
 )
-# "this is not a nit" must stay a finding.
-NOT_NIT_PATTERN = re.compile(r"\bnot\s+(?:a\s+|just\s+a\s+)?nit(?:pick)?\b", re.IGNORECASE)
-
-# Severity badges that bots put on their first line; the finding follows.
+SEVERITY_WORDS = (r"potential issue|nitpick|refactor suggestion|agentic security review|"
+                  r"critical|major|minor|trivial|caution|warning")
+# Badge-only lines carry no finding text: a lone label ("Potential issue"),
+# a "Severity: X" line, or a CodeRabbit badge row with "|" separators.
 LABEL_LINE = re.compile(
-    r"^\W*(?:(?:potential issue|nitpick|refactor suggestion|agentic security review|"
-    r"critical|major|minor|trivial|caution|warning)\b[^:]{0,30}|severity:\s*\w+)$",
+    rf"^\W*(?:(?:{SEVERITY_WORDS})\W*|severity:\s*\w+\W*)$"
+    rf"|^(?=.*\|)(?=.*\b(?:{SEVERITY_WORDS})\b).*$",
     re.IGNORECASE,
 )
+# Emoji shortcodes such as :stop_sign:, but not C++ scopes like std::vector::push_back.
+SHORTCODE = re.compile(r"(?<![\w:]):[a-z_]+:(?![\w:])")
+# A word joiner after "@" and before a leading "/" keeps mentions and slash
+# commands from parsing in the raw comment body, not just in rendered Markdown.
+WORD_JOINER = "\u2060"
 
 
 def summarize(body):
     text = re.sub(r"<!--.*?-->", "", body or "", flags=re.DOTALL)
     text = re.sub(r"<[^>]+>|!\[[^\]]*\]\([^)]*\)", "", text)
-    text = re.sub(r":[a-z_]+:", "", text)  # emoji shortcodes such as :stop_sign:
+    text = SHORTCODE.sub("", text)
     for line in text.splitlines():
         line = line.strip(" #*_>`-")
         if line and not LABEL_LINE.match(line):
@@ -54,14 +62,19 @@ def inert(text):
     @mentions, or reviewer commands, so thread text cannot act under the
     workflow identity.
     """
-    return "`" + (text or "").replace("`", "'").replace("\n", " ") + "`"
+    text = (text or "").replace("`", "'").replace("\n", " ")
+    text = text.replace("@", "@" + WORD_JOINER)
+    text = re.sub(r"(?<!\S)/(?=[A-Za-z])", "/" + WORD_JOINER, text)
+    return "`" + text + "`"
 
 
 def is_nit(body):
-    # Bots put the severity badge in the opening lines; later prose that merely
-    # mentions "nit" must not hide a finding.
-    head = "\n".join((body or "").strip().splitlines()[:2])[:200]
-    return bool(NIT_PATTERN.search(head)) and not NOT_NIT_PATTERN.search(head)
+    # Only the opening label decides; prose that mentions "nit" stays a finding.
+    for line in (body or "").strip().splitlines():
+        line = line.strip(" #*_>`-")
+        if line:
+            return bool(NIT_LABEL.search(line)) or "![low]" in line.lower()
+    return False
 
 
 def render_digest(pr_number, head_sha, threads, limit=MAX_LISTED_THREADS):
