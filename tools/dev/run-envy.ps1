@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     Starts Envy\<Configuration> <Platform>\Envy.exe (the MSBuild output of the
-    Envy project). It does not build; run "Envy: Fast Build" first. Builds\*.exe
+    Envy project). It does not build; run "Envy: Build Project" (Envy) first. Builds\*.exe
     are Inno Setup installer packages, not the application, and are not started.
 #>
 param(
@@ -22,7 +22,7 @@ $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 $exe = Join-Path $repoRoot "Envy\$Configuration $Platform\Envy.exe"
 if (-not (Test-Path -LiteralPath $exe))
 {
-    throw "Envy.exe not found for $Configuration|$Platform. Run 'Envy: Fast Build' first: $exe"
+    throw "Envy.exe not found for $Configuration|$Platform. Run 'Envy: Build Project' (Envy) first: $exe"
 }
 
 Write-Host "Starting: $exe"

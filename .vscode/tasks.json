@@ -207,7 +207,7 @@
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
-			"problemMatcher": "$msCompile",
+			"problemMatcher": [],
 			"presentation": {
 				"reveal": "always",
 				"panel": "shared",

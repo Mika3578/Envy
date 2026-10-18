@@ -552,6 +552,8 @@ function Invoke-SelfTest
 
         foreach ($pair in @(
             @{ Mode = 'Project'; Expected = '/m' },
+            @{ Mode = 'Clean'; Expected = '/m' },
+            @{ Mode = 'Test'; Expected = '/m' },
             @{ Mode = 'Build'; Expected = '/m:1' },
             @{ Mode = 'Rebuild'; Expected = '/m:1' }
         ))
