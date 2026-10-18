@@ -167,6 +167,7 @@ def analyze(records, config, now):
     reviewer requests (Copilot) from the PR timeline.
     """
     stats = {}
+    unanswered = {}
     month = (now.year, now.month)
     timeout = timedelta(hours=config.timeout)
 
@@ -218,12 +219,13 @@ def analyze(records, config, now):
             else:
                 if now - when > timeout:
                     item["timeouts"] += 1
-                if not item["pending_since"] or iso(when) > item["pending_since"]:
-                    item["pending_since"] = iso(when)
-    for item in stats.values():
-        # A later answer anywhere clears an older unanswered request.
-        if item["pending_since"] and item["last_answer_at"] and item["last_answer_at"] > item["pending_since"]:
-            item["pending_since"] = None
+                unanswered.setdefault(login, []).append(iso(when))
+    for login, item in stats.items():
+        # Silence runs from the earliest request still unanswered after the
+        # app's last answer anywhere; newer requests must not restart it.
+        open_requests = [t for t in unanswered.get(login, [])
+                         if not item["last_answer_at"] or t > item["last_answer_at"]]
+        item["pending_since"] = min(open_requests) if open_requests else None
         item["latencies"] = sorted(item["latencies"])[-50:]
     return stats
 
@@ -319,7 +321,9 @@ def render_scoreboard(stats, ranking, now, window_days, prs_scanned):
             "ranking": ranking, "stats": stats}
     primary, second = recommend(ranking)
     lines = [
-        f"{SCOREBOARD_MARKER} {json.dumps(data, separators=(',', ':'))} -->",
+        # Escaping ">" keeps any "-->" inside a JSON string from closing the
+        # HTML comment early; the result is still valid JSON.
+        f"{SCOREBOARD_MARKER} {json.dumps(data, separators=(',', ':')).replace('>', chr(92) + 'u003e')} -->",
         f"### {SCOREBOARD_TITLE}",
         f"Last {window_days} days, {prs_scanned} pull requests, updated {iso(now)}. "
         "Recomputed from scratch; do not edit. Nothing here requests a review.",

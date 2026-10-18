@@ -144,7 +144,36 @@ class RankingTests(unittest.TestCase):
         self.assertEqual(SB.recommend([dict(r, available=False) for r in COLD]), (None, None))
 
 
+class SilenceTests(unittest.TestCase):
+    def ask(self, when):
+        return {"login": "maintainer", "body": "/gemini review", "created_at": when}
+
+    def test_silence_runs_from_the_earliest_open_request(self):
+        records = [record(comments=[self.ask("2026-10-19T01:00:00Z")]),
+                   record(comments=[self.ask("2026-10-20T11:00:00Z")])]
+        stats = SB.analyze(records, CONFIG, NOW)
+        self.assertEqual(stats["gemini-code-assist[bot]"]["pending_since"], "2026-10-19T01:00:00Z")
+
+    def test_an_answer_restarts_the_clock_at_the_next_open_request(self):
+        records = [
+            record(comments=[self.ask("2026-10-19T01:00:00Z")]),
+            record(comments=[self.ask("2026-10-20T02:00:00Z"),
+                             {"login": "gemini-code-assist[bot]", "body": "Review done",
+                              "created_at": "2026-10-20T02:10:00Z"}]),
+            record(comments=[self.ask("2026-10-20T11:00:00Z")]),
+        ]
+        stats = SB.analyze(records, CONFIG, NOW)
+        self.assertEqual(stats["gemini-code-assist[bot]"]["pending_since"], "2026-10-20T11:00:00Z")
+
+
 class RenderTests(unittest.TestCase):
+    def test_comment_terminator_in_state_cannot_break_parsing(self):
+        config = SB.Config({"ENVY_REVIEWER_LOGINS": "gemini=evil-->bot[bot]"})
+        stats = {"evil-->bot[bot]": SB.blank()}
+        body = SB.render_scoreboard(stats, SB.rank(stats, config, NOW), NOW, 90, 1)
+        self.assertEqual(body.splitlines()[0].count("-->"), 1)
+        self.assertIn("evil-->bot[bot]", SB.parse_scoreboard(body)["stats"])
+
     def test_scoreboard_round_trips_and_recommends_without_requesting(self):
         body = SB.render_scoreboard(SB.analyze([], CONFIG, NOW), COLD, NOW, 90, 0)
         self.assertEqual(SB.parse_scoreboard(body)["ranking"], COLD)
