@@ -1,0 +1,16 @@
+---
+description:
+globs: **/*.rc,**/*.rc2,**/Resource.h,**/resource.h
+alwaysApply: false
+---
+
+# MFC resources: de-duplication gate (Envy)
+
+Before adding a dialog, control, menu, toolbar, accelerator, icon or string:
+
+- Search existing resources by ID, symbolic name and caption text, and code
+  usage (`IDD_*`, `ID_*`, `GetDlgItem`, `DDX_*`, message-map IDs).
+- Prefer reusing or extending an existing resource.
+- If a new one is unavoidable, state in the PR: what was searched, the new
+  ID and why it cannot collide, and where it is used.
+- Preserve the `.rc` file encoding exactly.

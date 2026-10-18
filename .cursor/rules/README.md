@@ -1,21 +1,16 @@
-# Cursor Rules (Envy)
+# Cursor rules (Envy)
 
-Cursor reads the repository root `AGENTS.md` automatically. That file is the
-single source of truth for repository-wide workflow, branching, quality,
-documentation, toolchain, and safety rules.
+Cursor reads root `AGENTS.md` (global rules) and the skills in
+`.agents/skills/`. The files here are **file-scoped** rules attached by glob
+only (`alwaysApply: false`, empty `description`, comma-separated `globs`):
 
-The files in this folder are intentionally **conditional** project rules only.
-They add file-scoped guidance that would be noisy or irrelevant as global
-context:
+- `01-cpp.mdc` - C/C++ sources: language level, ownership, MFC, errors,
+  performance
+- `02-mfc-resources.mdc` - `.rc` / `Resource.h`: resource de-duplication
+- `06-p2p-protocols.mdc` - protocol and network sources: points to
+  `envy-protocol-change`
+- `07-documentation.mdc` - documentation paths
 
-- `01-cpp-standards.mdc` — C/C++ sources
-- `02-mfc-patterns.mdc` — MFC/UI/resources
-- `03-naming-conventions.mdc` — C++/resource naming
-- `04-error-handling.mdc` — C++/Win32/MFC error handling
-- `05-performance.mdc` — C++ performance-sensitive code
-- `06-p2p-protocols.mdc` — protocol/network code
-- `07-documentation.mdc` — documentation paths
-
-Do not add another always-on project-context, workflow, or documentation-sync
-rule here. Put global rules in `AGENTS.md`. The legacy root `.cursorrules`
-file is intentionally removed and must not be reintroduced.
+Other tools read the matching file before editing those paths (`AGENTS.md`,
+*Code invariants*). Do not add always-on rules or copies of `AGENTS.md`
+here; `.github/scripts/check-agent-config.py` enforces the format.
