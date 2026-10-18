@@ -350,8 +350,8 @@ def render_scoreboard(stats, ranking, now, window_days, prs_scanned):
     lines += [
         "",
         "#### All review apps",
-        "| App | Requests (month) | Answered | Timeouts | Findings | Useful | Rejected | "
-        "Unclassified | Precision | Median latency | Last limit |",
+        ("| App | Requests (month) | Answered | Timeouts | Findings | Useful | Rejected | "
+         "Unclassified | Precision | Median latency | Last limit |"),
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for login in sorted(stats, key=lambda name: (-stats[name]["findings"], name)):
@@ -367,9 +367,9 @@ def render_scoreboard(stats, ranking, now, window_days, prs_scanned):
         )
     lines += [
         "",
-        "_Useful = the treating reply starts with \"Fixed in <sha>\" or \"Addressed in <sha>\"; "
-        "rejected = it starts with \"No change\" or \"Not reproduced\". "
-        "See docs/10_dev/review-scoreboard.md._",
+        ("_Useful = the treating reply starts with \"Fixed in <sha>\" or \"Addressed in <sha>\"; "
+         "rejected = it starts with \"No change\" or \"Not reproduced\". "
+         "See docs/10_dev/review-scoreboard.md._"),
     ]
     return "\n".join(lines) + "\n"
 
