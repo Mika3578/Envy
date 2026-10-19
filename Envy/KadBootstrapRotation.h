@@ -2,7 +2,7 @@
 // KadBootstrapRotation.h
 //
 // Bounded Kad2 bootstrap candidate rotation and per-endpoint retry policy.
-// No networking or wall-clock dependencies; callers supply monotonic 32-bit ticks.
+// No networking or wall-clock dependencies; callers supply monotonic 64-bit milliseconds.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
@@ -69,8 +69,9 @@ public:
 		m_retry.clear();
 	}
 
-	Batch Select(const std::vector<KadContact>& cache, uint32_t now, size_t maxBatch = MaxBatch)
+	Batch Select(const std::vector<KadContact>& cache, uint64_t now, size_t maxBatch = MaxBatch)
 	{
+		Prune(now);
 		Batch batch;
 		if (cache.empty())
 			return batch;
@@ -114,8 +115,9 @@ public:
 		return batch;
 	}
 
-	void Sent(uint32_t ip, uint16_t udpPort, uint32_t now)
+	bool Sent(uint32_t ip, uint16_t udpPort, uint64_t now)
 	{
+		Prune(now);
 		const Key key(ip, udpPort);
 		auto it = m_retry.find(key);
 		if (it == m_retry.end())
@@ -128,24 +130,28 @@ public:
 				auto oldest = m_retry.end();
 				for (auto cur = m_retry.begin(); cur != m_retry.end(); ++cur)
 				{
-					if (cur->second.pending)
+					if (cur->second.pending || (cur->second.answered &&
+					                            now - cur->second.lastSent < AcceptWindowMs))
 						continue;
 					if (oldest == m_retry.end() ||
-					    static_cast<uint32_t>(now - cur->second.lastTouched) >
-					        static_cast<uint32_t>(now - oldest->second.lastTouched))
+					    cur->second.lastTouched < oldest->second.lastTouched)
 						oldest = cur;
 				}
 				if (oldest == m_retry.end())
-					return;
+					return false;
 				m_retry.erase(oldest);
 			}
 			it = m_retry.emplace(key, State{}).first;
 		}
+		if (it->second.pending || (it->second.answered && now - it->second.lastSent < AcceptWindowMs))
+			return false;
+		it->second.answered = false;
 		it->second.pending = true;
 		it->second.retryAt = now + RequestTimeoutMs + 1u;
 		it->second.lastTouched = now;
 		it->second.lastSent = now;
 		it->second.requested = true;
+		return true;
 	}
 
 	// True while a BOOTSTRAP_RES from this IP may still be correlated, whatever
@@ -153,22 +159,22 @@ public:
 	// other than the one the contact advertised (eMule logs exactly that case
 	// for NATed peers), and a UDP source port is trivially forged, so requiring
 	// it would reject honest answers without adding spoofing resistance.
-	bool WasRequested(uint32_t ip, uint32_t now) const
+	bool WasRequested(uint32_t ip, uint64_t now) const
 	{
 		for (auto it = m_retry.lower_bound(Key(ip, MinPort)); it != m_retry.end() && it->first.first == ip;
 		     ++it)
 		{
 			if (it->second.requested &&
-			    static_cast<uint32_t>(now - it->second.lastSent) < AcceptWindowMs)
+			    (now - it->second.lastSent) < AcceptWindowMs)
 				return true;
 		}
 		return false;
 	}
 
-	bool TimedOut(uint32_t ip, uint16_t udpPort, uint32_t now)
+	bool TimedOut(uint32_t ip, uint16_t udpPort, uint64_t now)
 	{
 		const auto it = m_retry.find(Key(ip, udpPort));
-		if (it == m_retry.end() || !it->second.pending)
+		if (it == m_retry.end() || !it->second.pending || now - it->second.lastSent < RequestTimeoutMs)
 			return false;
 		State& state = it->second;
 		state.pending = false;
@@ -179,11 +185,67 @@ public:
 		return true;
 	}
 
-	// Clears every endpoint of this IP, because the answer that cleared the
-	// penalty may have arrived on another UDP port than the one requested.
-	void Accepted(uint32_t ip)
+	// No transaction ID exists on the wire. Prefer the requested endpoint;
+	// an alternate source port is safe only if one unconsumed request fits.
+	// Keep a replay marker so a duplicate cannot consume a neighbouring port.
+	bool MatchResponse(uint32_t ip, uint16_t sourcePort, uint64_t now, uint16_t& requestedPort) const
 	{
-		m_retry.erase(m_retry.lower_bound(Key(ip, MinPort)), m_retry.upper_bound(Key(ip, MaxPort)));
+		const State* match = nullptr;
+		size_t candidates = 0;
+		for (auto it = m_retry.lower_bound(Key(ip, MinPort)); it != m_retry.end() && it->first.first == ip; ++it)
+		{
+			const State& state = it->second;
+			if (now - state.lastSent >= AcceptWindowMs)
+				continue;
+			if (state.answered && (state.replyPort == sourcePort || it->first.second == sourcePort))
+				return false;
+			if (!state.requested)
+				continue;
+			++candidates;
+			if (match == nullptr || it->first.second == sourcePort)
+			{
+				match = &state;
+				requestedPort = it->first.second;
+			}
+		}
+		return match != nullptr && (requestedPort == sourcePort || candidates == 1);
+	}
+
+	void Accepted(uint32_t ip, uint16_t requestedPort, uint16_t sourcePort, uint64_t now)
+	{
+		const auto it = m_retry.find(Key(ip, requestedPort));
+		if (it == m_retry.end())
+			return;
+		State& state = it->second;
+		state.pending = state.requested = false;
+		state.answered = true;
+		state.replyPort = sourcePort;
+		state.failures = 0;
+		// Do not overwrite replay protection by immediately retrying this endpoint.
+		state.retryAt = state.lastSent + AcceptWindowMs;
+		state.lastTouched = now;
+	}
+
+	void Cancelled(uint32_t ip, uint16_t udpPort)
+	{
+		const auto it = m_retry.find(Key(ip, udpPort));
+		if (it == m_retry.end())
+			return;
+		// Cancellation withdraws correlation without manufacturing a failure.
+		it->second.pending = it->second.requested = false;
+		it->second.retryAt = 0;
+	}
+
+	void Prune(uint64_t now)
+	{
+		for (auto it = m_retry.begin(); it != m_retry.end();)
+		{
+			if (!it->second.pending && now - it->second.lastTouched >= BackoffCapMs &&
+			    now - it->second.lastSent >= AcceptWindowMs && now >= it->second.retryAt)
+				it = m_retry.erase(it);
+			else
+				++it;
+		}
 	}
 
 	static uint32_t Delay(uint32_t failures)
@@ -196,10 +258,9 @@ public:
 		return delay;
 	}
 
-	static bool Elapsed(uint32_t now, uint32_t deadline)
+	static bool Elapsed(uint64_t now, uint64_t deadline)
 	{
-		// All deadlines are less than 2^31 ms into the future.
-		return static_cast<int32_t>(now - deadline) >= 0;
+		return now >= deadline;
 	}
 
 	size_t Tracked() const { return m_retry.size(); }
@@ -208,15 +269,16 @@ private:
 	using Key = std::pair<uint32_t, uint16_t>;
 	// Bounds of the per-IP key range; m_retry is ordered by (ip, port).
 	static constexpr uint16_t MinPort = 0;
-	static constexpr uint16_t MaxPort = 0xffffu;
 	struct State
 	{
-		uint32_t retryAt = 0;
-		uint32_t lastTouched = 0;
-		uint32_t lastSent = 0;
+		uint64_t retryAt = 0;
+		uint64_t lastTouched = 0;
+		uint64_t lastSent = 0;
 		uint32_t failures = 0;
 		bool pending = false;
 		bool requested = false;
+		bool answered = false;
+		uint16_t replyPort = 0;
 	};
 	size_t m_cursor = 0;
 	std::map<Key, State> m_retry;

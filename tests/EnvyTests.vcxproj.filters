@@ -110,6 +110,12 @@
     <ClCompile Include="test_kad_firewall_check_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_kad_bootstrap_rotation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test_kad_bootstrap_response.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_kad_routing_table.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
