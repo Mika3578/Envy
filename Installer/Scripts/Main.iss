@@ -165,7 +165,6 @@ Name: "webhook"; Description: "{cm:tasks_webhook}"; OnlyBelowVersion: 10.0,10.0;
 ;Name: "upnp"; Description: "{cm:tasks_upnp}"; MinVersion: 0,5.01; Check: CanUserModifyServices;
 Name: "resetdiscoveryhostcache"; Description: "{cm:tasks_resetdiscoveryhostcache}"; Check: WasInstalled; Flags: unchecked;
 ;#if alpha == "False"
-Name: "deleteoldsetup"; Description: "{cm:tasks_deleteoldsetup}"; Check: WasInstalled;
 ;#endif
 
 
@@ -484,61 +483,33 @@ Source: "Installer\License\License (AGPLv3).html"; DestDir: "{app}"; Flags: igno
 
 ; Copy Files:
 
-; Copy skins back from {userappdata}\Envy\Skins
-Source: "{userappdata}\Envy\Skins\*"; DestDir: "{app}\Skins"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist recursesubdirs; AfterInstall: DeleteFolder('{userappdata}\Envy\Skins')
+; Copy user skins without deleting the source files.
+Source: "{userappdata}\Envy\Skins\*"; DestDir: "{app}\Skins"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist recursesubdirs
 
-; Copy templates back from {userappdata}\Envy\Templates
-Source: "{userappdata}\Envy\Templates\*"; DestDir: "{app}\Templates"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist recursesubdirs; AfterInstall: DeleteFolder('{userappdata}\Envy\Templates')
+; Copy user templates without deleting the source files.
+Source: "{userappdata}\Envy\Templates\*"; DestDir: "{app}\Templates"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist recursesubdirs
 
-; Switch user data between locations
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\Library.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\Library.bak"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\DownloadGroups.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\TigerTree.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\Security.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\UploadQueues.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\Searches.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\Schedule.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\Profile.xml"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Library.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Library.bak"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\DownloadGroups.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\TigerTree.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Security.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\UploadQueues.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Searches.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Schedule.dat"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Profile.xml"; DestDir: "{userappdata}\Envy\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: multiuser
-
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Library.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Library.bak"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\DownloadGroups.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\TigerTree.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Security.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\UploadQueues.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Searches.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Schedule.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Profile.xml"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\Library.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\Library.bak"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\DownloadGroups.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\TigerTree.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\Security.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\UploadQueues.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\Searches.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\Schedule.dat"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
-Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data\Profile.xml"; DestDir: "{app}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist; Tasks: not multiuser
+; Preserve legacy user state when upgrading into a different configured user-data directory.
+Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Library.dat"; DestDir: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist uninsneveruninstall
+Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Library.bak"; DestDir: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist uninsneveruninstall
+Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\DownloadGroups.dat"; DestDir: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist uninsneveruninstall
+Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\TigerTree.dat"; DestDir: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist uninsneveruninstall
+Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Security.dat"; DestDir: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist uninsneveruninstall
+Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\UploadQueues.dat"; DestDir: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist uninsneveruninstall
+Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Searches.dat"; DestDir: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist uninsneveruninstall
+Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Schedule.dat"; DestDir: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist uninsneveruninstall
+Source: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data\Profile.xml"; DestDir: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; Flags: ignoreversion uninsremovereadonly sortfilesbyextension external onlyifdoesntexist skipifsourcedoesntexist uninsneveruninstall
 
 ; Copy installer into download and uninstall dir
 #if alpha == "False"
-Source: "{srcexe}"; DestDir: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{userdocs}\Envy Downloads}}"; DestName: "{#output_name}.exe"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension external onlyifdoesntexist; Tasks: multiuser
-Source: "{srcexe}"; DestDir: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{app}\Downloads}}"; DestName: "{#output_name}.exe"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension external onlyifdoesntexist; Tasks: not multiuser
+Source: "{srcexe}"; DestDir: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{code:GetEnvyDownloadsFolder}}}"; DestName: "{#output_name}.exe"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension external onlyifdoesntexist; Tasks: multiuser
+Source: "{srcexe}"; DestDir: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{code:GetEnvyDownloadsFolder}}}"; DestName: "{#output_name}.exe"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension external onlyifdoesntexist; Tasks: not multiuser
 #endif
 Source: "{srcexe}"; DestDir: "{app}\Uninstall"; DestName: "setup.exe"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension external
 
 ; Copy default security rules
-Source: "Data\DefaultSecurity.dat"; DestDir: "{userappdata}\Envy\Data"; DestName: "Security.dat"; Flags: onlyifdoesntexist uninsremovereadonly sortfilesbyextension; Tasks: multiuser
-Source: "Data\DefaultSecurity.dat"; DestDir: "{app}\Data"; DestName: "Security.dat"; Flags: onlyifdoesntexist uninsremovereadonly sortfilesbyextension; Tasks: not multiuser
+Source: "Data\DefaultSecurity.dat"; DestDir: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; DestName: "Security.dat"; Flags: onlyifdoesntexist uninsneveruninstall uninsremovereadonly sortfilesbyextension; Tasks: multiuser
+Source: "Data\DefaultSecurity.dat"; DestDir: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; DestName: "Security.dat"; Flags: onlyifdoesntexist uninsneveruninstall uninsremovereadonly sortfilesbyextension; Tasks: not multiuser
 
 
 [Run]
@@ -567,9 +538,9 @@ Root: HKLM; Subkey: "Software\Envy\Envy"; ValueType: dword; ValueName: "MultiUse
 
 ; Write installation path to registry
 Root: HKLM; Subkey: "Software\Envy"; ValueType: string; ValueName: ; ValueData: "{app}"; Flags: uninsdeletekey deletevalue
-Root: HKCU; Subkey: "Software\Envy\Envy"; ValueType: string; ValueName: "Path" ; ValueData: "{app}"; Flags: uninsdeletekey deletevalue
-Root: HKCU; Subkey: "Software\Envy\Envy"; ValueType: string; ValueName: "UserPath" ; ValueData: "{ini:{param:SETTINGS|},Locations,UserPath|{userappdata}\Envy}"; Flags: uninsdeletekey deletevalue ; Tasks: multiuser
-Root: HKCU; Subkey: "Software\Envy\Envy"; ValueType: string; ValueName: "UserPath" ; ValueData: "{ini:{param:SETTINGS|},Locations,UserPath|{app}}"; Flags: uninsdeletekey deletevalue; Tasks: not multiuser
+Root: HKCU; Subkey: "Software\Envy\Envy"; ValueType: string; ValueName: "Path" ; ValueData: "{app}"; Flags: deletevalue
+Root: HKCU; Subkey: "Software\Envy\Envy"; ValueType: string; ValueName: "UserPath" ; ValueData: "{ini:{param:SETTINGS|},Locations,UserPath|{userappdata}\Envy}"; Flags: createvalueifdoesntexist ; Tasks: multiuser
+Root: HKCU; Subkey: "Software\Envy\Envy"; ValueType: string; ValueName: "UserPath" ; ValueData: "{ini:{param:SETTINGS|},Locations,UserPath|{userappdata}\Envy}"; Flags: createvalueifdoesntexist; Tasks: not multiuser
 Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\Envy.exe"; ValueType: string; ValueName: ; ValueData: "{app}\Envy.exe"; Flags: uninsdeletekey deletevalue
 Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\Envy.exe"; ValueType: string; ValueName: "Path"; ValueData: "{app}"; Flags: uninsdeletekey deletevalue
 
@@ -581,15 +552,7 @@ Root: HKLM64; Subkey: "Software\Microsoft\Windows\Windows Error Reporting\Runtim
 #endif
 
 ; Set directory locations
-;Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: string; ValueName: "CompletePath"; ValueData: "{ini:{param:SETTINGS|},Locations,CompletePath|{userdocs}\Envy Downloads}"; Flags: uninsdeletekey createvalueifdoesntexist; Tasks: multiuser
-;Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: string; ValueName: "IncompletePath"; ValueData: "{ini:{param:SETTINGS|},Locations,IncompletePath|{localappdata}\Envy\Incomplete}"; Flags: uninsdeletekey createvalueifdoesntexist; Tasks: multiuser
-;Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: string; ValueName: "TorrentPath"; ValueData: "{ini:{param:SETTINGS|},Locations,TorrentPath|{userappdata}\Envy\Torrents}"; Flags: uninsdeletekey createvalueifdoesntexist; Tasks: multiuser
-;Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: string; ValueName: "CollectionPath"; ValueData: "{ini:{param:SETTINGS|},Locations,CollectionPath|{userappdata}\Envy\Collections}"; Flags: uninsdeletekey createvalueifdoesntexist; Tasks: multiuser
-
-;Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: string; ValueName: "CompletePath"; ValueData: "{ini:{param:SETTINGS|},Locations,CompletePath|{app}\Downloads}"; Flags: uninsdeletekey createvalueifdoesntexist; Tasks: not multiuser
-;Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: string; ValueName: "IncompletePath"; ValueData: "{ini:{param:SETTINGS|},Locations,IncompletePath|{app}\Incomplete}"; Flags: uninsdeletekey createvalueifdoesntexist; Tasks: not multiuser
-;Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: string; ValueName: "TorrentPath"; ValueData: "{ini:{param:SETTINGS|},Locations,TorrentPath|{app}\Torrents}"; Flags: uninsdeletekey createvalueifdoesntexist; Tasks: not multiuser
-;Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: string; ValueName: "CollectionPath"; ValueData: "{ini:{param:SETTINGS|},Locations,CollectionPath|{app}\Collections}"; Flags: uninsdeletekey createvalueifdoesntexist; Tasks: not multiuser
+; Download paths are initialized by Envy so the Downloads known folder API can honor Windows redirection.
 
 ; Install chat notify sound
 ;Root: HKCU; Subkey: "AppEvents\EventLabels\Sound_IncomingChat"; ValueType: string; ValueName: ; ValueData: "{cm:reg_incomingchat}"; Flags: uninsdeletekey
@@ -600,11 +563,11 @@ Root: HKLM64; Subkey: "Software\Microsoft\Windows\Windows Error Reporting\Runtim
 ; Set UPnP by default (disabled choice during setup)
 ;Root: HKCU; Subkey: "Software\Envy\Envy\Connection"; ValueType: dword; ValueName: "EnableUPnP"; ValueData: 0; Flags: deletevalue; Tasks: not upnp
 ;Root: HKCU; Subkey: "Software\Envy\Envy\Connection"; ValueType: dword; ValueName: "EnableUPnP"; ValueData: 1; Flags: deletevalue; Tasks: upnp
-Root: HKCU; Subkey: "Software\Envy\Envy\Connection"; ValueType: dword; ValueName: "EnableUPnP"; ValueData: 1; Flags: uninsdeletekey createvalueifdoesntexist
+Root: HKCU; Subkey: "Software\Envy\Envy\Connection"; ValueType: dword; ValueName: "EnableUPnP"; ValueData: 1; Flags: createvalueifdoesntexist
 
 ; Enable/Disable WebHook
-Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: dword; ValueName: "WebHookEnable"; ValueData: 1; Flags: uninsdeletekey deletevalue; Tasks: webhook
-Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: dword; ValueName: "WebHookEnable"; ValueData: 0; Flags: uninsdeletekey deletevalue; Tasks: not webhook
+Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: dword; ValueName: "WebHookEnable"; ValueData: 1; Flags: deletevalue; Tasks: webhook
+Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: dword; ValueName: "WebHookEnable"; ValueData: 0; Flags: deletevalue; Tasks: not webhook
 
 ; ShareMonkey CID
 ;Root: HKCU; Subkey: "Software\Envy\Envy\WebServices"; ValueType: string; ValueName: "ShareMonkeyCid"; ValueData: "197506"; Flags: deletevalue uninsdeletekey
@@ -612,7 +575,7 @@ Root: HKCU; Subkey: "Software\Envy\Envy\Downloads"; ValueType: dword; ValueName:
 ; Delete keys at uninstall
 Root: HKU; Subkey: ".DEFAULT\Software\Envy"; Flags: dontcreatekey uninsdeletekey
 Root: HKCU; Subkey: "Software\Envy\PeerProjce\Plugins"; Flags: dontcreatekey uninsdeletekey
-Root: HKCU; Subkey: "Software\Envy"; Flags: dontcreatekey uninsdeletekey
+Root: HKCU; Subkey: "Software\Envy"; Flags: dontcreatekey uninsdeletekeyifempty
 Root: HKLM; Subkey: "Software\Envy"; Flags: dontcreatekey uninsdeletekey
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "Envy"; Flags: dontcreatekey uninsdeletevalue
 
@@ -686,35 +649,27 @@ Root: HKCU; Subkey: "Software\Envy\Envy\VersionCheck"; Flags: dontcreatekey dele
 Root: HKLM; Subkey: "Software\Envy\Envy\VersionCheck"; Flags: dontcreatekey deletekey
 
 ; Create TorrentEnvy default dir locations
-Root: HKCU; Subkey: "Software\Envy\TorrentEnvy\Folders"; ValueType: string; ValueName: "001.Path"; ValueData: "{userappdata}\Envy\Torrents"; Flags: createvalueifdoesntexist; Tasks: multiuser
-Root: HKCU; Subkey: "Software\Envy\TorrentEnvy\Folders"; ValueType: string; ValueName: "Last"; ValueData: "{userappdata}\Envy\Torrents"; Flags: createvalueifdoesntexist; Tasks: multiuser
-Root: HKCU; Subkey: "Software\Envy\TorrentEnvy\Folders"; ValueType: string; ValueName: "001.Path"; ValueData: "{app}\Torrents"; Flags: createvalueifdoesntexist; Tasks: not multiuser
-Root: HKCU; Subkey: "Software\Envy\TorrentEnvy\Folders"; ValueType: string; ValueName: "Last"; ValueData: "{app}\Torrents"; Flags: createvalueifdoesntexist; Tasks: not multiuser
-Root: HKCU; Subkey: "Software\Envy\Envy\BitTorrent"; ValueType: string; ValueName: "TorrentCreatorPath"; ValueData: "TorrentEnvy.exe" ; Flags: createvalueifdoesntexist uninsdeletekey
+Root: HKCU; Subkey: "Software\Envy\TorrentEnvy\Folders"; ValueType: string; ValueName: "001.Path"; ValueData: "{code:GetEnvyDownloadsFolder}\Torrents"; Flags: createvalueifdoesntexist; Tasks: multiuser
+Root: HKCU; Subkey: "Software\Envy\TorrentEnvy\Folders"; ValueType: string; ValueName: "Last"; ValueData: "{code:GetEnvyDownloadsFolder}\Torrents"; Flags: createvalueifdoesntexist; Tasks: multiuser
+Root: HKCU; Subkey: "Software\Envy\TorrentEnvy\Folders"; ValueType: string; ValueName: "001.Path"; ValueData: "{code:GetEnvyDownloadsFolder}\Torrents"; Flags: createvalueifdoesntexist; Tasks: not multiuser
+Root: HKCU; Subkey: "Software\Envy\TorrentEnvy\Folders"; ValueType: string; ValueName: "Last"; ValueData: "{code:GetEnvyDownloadsFolder}\Torrents"; Flags: createvalueifdoesntexist; Tasks: not multiuser
+Root: HKCU; Subkey: "Software\Envy\Envy\BitTorrent"; ValueType: string; ValueName: "TorrentCreatorPath"; ValueData: "TorrentEnvy.exe" ; Flags: createvalueifdoesntexist
 
 ; Disable extensions for plugins which make trouble
 ; Since it is image services plugin we need to add extensions required for the first run
-Root: HKCU; Subkey: "Software\Envy\Envy\Plugins"; ValueType: string; ValueName: "{{C9314782-CB91-40B8-B375-F631FF30C1C8}"; ValueData: "|-.pdf||.bmp||.png||.jpg|"; Flags: createvalueifdoesntexist uninsdeletekey
-Root: HKCU; Subkey: "Software\Envy\Envy\Plugins"; Flags: dontcreatekey uninsdeletekey
+Root: HKCU; Subkey: "Software\Envy\Envy\Plugins"; ValueType: string; ValueName: "{{C9314782-CB91-40B8-B375-F631FF30C1C8}"; ValueData: "|-.pdf||.bmp||.png||.jpg|"; Flags: createvalueifdoesntexist
 
 
 [Dirs]
-; Make complete, incomplete, torrent and collection dir
-; Note: download dir will be created when installer is copied but we create also here to be sure
-Name: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; Flags: uninsalwaysuninstall; Tasks: multiuser
-Name: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data"; Flags: uninsalwaysuninstall; Tasks: multiuser
-Name: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{userdocs}\Envy Downloads}}"; Flags: uninsalwaysuninstall; Tasks: multiuser
-Name: "{ini:{param:SETTINGS|},Locations,IncompletePath|{reg:HKCU\Software\Envy\Envy\Downloads,IncompletePath|{localappdata}\Envy\Incomplete}}"; Flags: uninsalwaysuninstall; Tasks: multiuser
-Name: "{ini:{param:SETTINGS|},Locations,TorrentPath|{reg:HKCU\Software\Envy\Envy\Downloads,TorrentPath|{userappdata}\Envy\Torrents}}"; Flags: uninsalwaysuninstall; Tasks: multiuser
-Name: "{ini:{param:SETTINGS|},Locations,CollectionPath|{reg:HKCU\Software\Envy\Envy\Downloads,CollectionPath|{userappdata}\Envy\Collections}}"; Flags: uninsalwaysuninstall; Tasks: multiuser
-
-Name: "{ini:{param:SETTINGS|},Locations,Path|{reg:HKCU\Software\Envy\Envy,Path|{app}}}\Data"; Flags: uninsalwaysuninstall; Permissions: users-modify; Tasks: not multiuser
-Name: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{app}\Downloads}}"; Flags: uninsalwaysuninstall; Permissions: users-modify; Tasks: not multiuser
-Name: "{ini:{param:SETTINGS|},Locations,IncompletePath|{reg:HKCU\Software\Envy\Envy\Downloads,IncompletePath|{app}\Incomplete}}"; Flags: uninsalwaysuninstall; Permissions: users-modify; Tasks: not multiuser
-Name: "{ini:{param:SETTINGS|},Locations,TorrentPath|{reg:HKCU\Software\Envy\Envy\Downloads,TorrentPath|{app}\Torrents}}"; Flags: uninsalwaysuninstall; Permissions: users-modify; Tasks: not multiuser
-Name: "{ini:{param:SETTINGS|},Locations,CollectionPath|{reg:HKCU\Software\Envy\Envy\Downloads,CollectionPath|{app}\Collections}}"; Flags: uninsalwaysuninstall; Permissions: users-modify; Tasks: not multiuser
-
-Name: "{app}\Skins"; Flags: uninsalwaysuninstall; Permissions: users-modify
+; Keep per-user storage directories through uninstall, even when they contain user data.
+Name: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; Flags: uninsneveruninstall; Tasks: multiuser
+Name: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Envy\Envy,UserPath|{userappdata}\Envy}}\Data"; Flags: uninsneveruninstall; Tasks: not multiuser
+Name: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{code:GetEnvyDownloadsFolder}}}"; Flags: uninsneveruninstall
+Name: "{ini:{param:SETTINGS|},Locations,IncompletePath|{reg:HKCU\Software\Envy\Envy\Downloads,IncompletePath|{localappdata}\Envy\Incomplete}}"; Flags: uninsneveruninstall
+Name: "{ini:{param:SETTINGS|},Locations,TorrentPath|{reg:HKCU\Software\Envy\Envy\Downloads,TorrentPath|{code:GetEnvyDownloadsFolder}\Torrents}}"; Flags: uninsneveruninstall
+Name: "{ini:{param:SETTINGS|},Locations,CollectionPath|{reg:HKCU\Software\Envy\Envy\Downloads,CollectionPath|{code:GetEnvyDownloadsFolder}\Collections}}"; Flags: uninsneveruninstall
+; Keep the existing skin-management UI functional; this permission is limited to the skin asset folder.
+Name: "{app}\Skins"; Permissions: users-modify
 
 
 [InstallDelete]
@@ -736,12 +691,6 @@ Type: files; Name: "{app}\*.xml"
 Type: filesandordirs; Name: "{app}\Envy\Skins\Carbon"
 Type: filesandordirs; Name: "{app}\Envy\Skins\Windows"
 Type: filesandordirs; Name: "{app}\Envy\Skins\XP Icons"
-Type: filesandordirs; Name: "{userappdata}\Envy\Remote"
-Type: filesandordirs; Name: "{userappdata}\Envy\Schemas"
-Type: filesandordirs; Name: "{userappdata}\Envy\Skins"
-Type: files; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{userdocs}\Envy Downloads}\Thumbs.db"; Tasks: multiuser
-Type: files; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{app}\Downloads}\Thumbs.db"
-Type: files; Name: "{userappdata}\Envy\Data\DefaultAvatar.png"
 
 ; Clean up old/unwanted Envy Shortcuts
 Type: files; Name: "{userdesktop}\Envy.lnk"; Tasks: not desktopicon
@@ -762,8 +711,6 @@ Type: filesandordirs; Name: "{app}\Remote"
 
 ; Delete old Envy installers
 #if alpha == "False"
-Type: files; Name: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{userdocs}\Envy Downloads}}\Envy*.exe"; Tasks: deleteoldsetup and multiuser
-Type: files; Name: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{app}\Downloads}}\Envy*.exe"; Tasks: deleteoldsetup and not multiuser
 #endif
 
 ; Delete Discovery.dat and HostCache.dat
@@ -774,30 +721,7 @@ Type: files; Name: "{userappdata}\Envy\Data\HostCache.dat"; Tasks: resetdiscover
 
 
 [UninstallDelete]
-; Clean up files created after installation
-Type: filesandordirs; Name: "{userappdata}\Envy\Data"
-Type: filesandordirs; Name: "{app}\Data"
-Type: filesandordirs; Name: "{app}\Skins"
-Type: filesandordirs; Name: "{app}\Templates"
-Type: filesandordirs; Name: "{app}\Schemas"
-
-Type: filesandordirs; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{userdocs}\Envy Downloads}\Metadata"; Tasks: multiuser
-Type: files; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{userdocs}\Envy Downloads}\Thumbs.db"; Tasks: multiuser
-Type: files; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{userdocs}\Envy Downloads}\SThumbs.dat"; Tasks: multiuser
-Type: files; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{userdocs}\Envy Downloads}\desktop.ini"; Tasks: multiuser
-Type: filesandordirs; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,TorrentPath|{userappdata}\Envy\Torrents}\Metadata"; Tasks: multiuser
-Type: files; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,TorrentPath|{userappdata}\Envy\Torrents}\desktop.ini"; Tasks: multiuser
-Type: filesandordirs; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CollectionPath|{userappdata}\Envy\Collections}\Metadata"; Tasks: multiuser
-Type: files; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CollectionPath|{userappdata}\Envy\Collections}\desktop.ini"; Tasks: multiuser
-
-Type: filesandordirs; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{app}\Downloads}\Metadata"
-Type: files; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{app}\Downloads}\Thumbs.db"
-Type: files; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{app}\Downloads}\SThumbs.dat"
-Type: files; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CompletePath|{app}\Downloads}\desktop.ini"
-Type: filesandordirs; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,TorrentPath|{app}\Torrents}\Metadata"
-Type: files; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,TorrentPath|{app}\Torrents}\desktop.ini"
-Type: filesandordirs; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CollectionPath|{app}\Collections}\Metadata"
-Type: files; Name: "{reg:HKCU\Software\Envy\Envy\Downloads,CollectionPath|{app}\Collections}\desktop.ini"
+; User configuration, download data, and directory contents are retained on uninstall.
 
 ; Pull in more Envy settings to write to registry
 #include "Settings.iss"
@@ -820,6 +744,12 @@ type
     dwWaitHint: cardinal;
   end;
   HANDLE = cardinal;
+  TKnownFolderId = record
+    Data1: LongWord;
+    Data2: Word;
+    Data3: Word;
+    Data4: array[0..7] of Byte;
+  end;
 const
   WM_CLOSE = $0010;
   KeyLoc1 = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\EnvySetup';
@@ -850,6 +780,51 @@ var
   FirewallFailed: string;
   MalwareDetected: Boolean;
 //HasUserPrivileges: Boolean;
+
+function SHGetKnownFolderPath(const rfid: TKnownFolderId; dwFlags: LongWord; hToken: HANDLE; out ppszPath: LongWord): LongInt;
+external 'SHGetKnownFolderPath@shell32.dll stdcall setuponly';
+
+// Pascal Script has no PChar: read the CoTaskMem-allocated wide string by address.
+function lstrlenW(lpString: LongWord): LongInt;
+external 'lstrlenW@kernel32.dll stdcall setuponly';
+
+function lstrcpyW(lpString1: String; lpString2: LongWord): LongWord;
+external 'lstrcpyW@kernel32.dll stdcall setuponly';
+
+procedure CoTaskMemFree(pv: LongWord);
+external 'CoTaskMemFree@ole32.dll stdcall setuponly';
+
+function GetEnvyDownloadsFolder(Param: String): String;
+var
+  FolderId: TKnownFolderId;
+  FolderPath: LongWord;
+  Known: String;
+begin
+  Result := ExpandConstant('{%USERPROFILE|{userdocs}}\Downloads\Envy');
+  FolderPath := 0;
+  FolderId.Data1 := $374DE290;
+  FolderId.Data2 := $123F;
+  FolderId.Data3 := $4565;
+  FolderId.Data4[0] := $91;
+  FolderId.Data4[1] := $64;
+  FolderId.Data4[2] := $39;
+  FolderId.Data4[3] := $C4;
+  FolderId.Data4[4] := $92;
+  FolderId.Data4[5] := $5E;
+  FolderId.Data4[6] := $46;
+  FolderId.Data4[7] := $7B;
+
+  if SHGetKnownFolderPath(FolderId, 0, 0, FolderPath) = 0 then begin
+    if FolderPath <> 0 then begin
+      SetLength(Known, lstrlenW(FolderPath));
+      if Length(Known) > 0 then begin
+        lstrcpyW(Known, FolderPath);
+        Result := AddBackslash(Known) + 'Envy';
+      end;
+      CoTaskMemFree(FolderPath);
+    end;
+  end;
+end;
 
 // NT API functions for services (Unused UPnP)
 //Function OpenSCManager(lpMachineName, lpDatabaseName: string; dwDesiredAccess: cardinal): HANDLE;

@@ -19,6 +19,7 @@
 #include "Envy.h"
 #include "CrashReporter.h"
 #include "SecureRandom.h"
+#include "StoragePaths.h"
 #include "CoolInterface.h"
 #include <versionhelpers.h>
 #include "BTTrackerRequest.h"
@@ -282,6 +283,28 @@ CEnvyApp::~CEnvyApp()
 		CloseHandle( m_pMutex );
 }
 
+// Runs before skins and translations load, so the prompt is plain English.
+static bool CheckEssentialStorage()
+{
+	CString strPath, strDefault;
+	while (Settings.GetUnavailableEssentialStorage(strPath, strDefault))
+	{
+		const bool bCanReset = ChooseStorageRecovery(std::wstring((LPCTSTR)strPath), std::wstring((LPCTSTR)strDefault)) == StorageRecovery::RetryUseDefaultOrExit;
+		CString strMessage;
+		strMessage.Format(L"Envy cannot write to this storage folder:\n\n%s\n\n"
+		                  L"Reconnect the drive or fix its permissions, then choose Try Again.%s",
+		                  (LPCTSTR)strPath,
+		                  bCanReset ? L"\nChoose Continue to use the default location instead." : L"");
+		const int nChoice = ::MessageBox(NULL, strMessage, CLIENT_NAME,
+		                                 MB_ICONERROR | MB_SETFOREGROUND | (bCanReset ? MB_CANCELTRYCONTINUE : MB_RETRYCANCEL));
+		if (nChoice == IDCONTINUE && bCanReset)
+			Settings.ResetEssentialStoragePath(strPath);
+		else if (nChoice != IDTRYAGAIN && nChoice != IDRETRY)
+			return false;
+	}
+	return true;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CEnvyApp initialization
 
@@ -301,6 +324,8 @@ BOOL CEnvyApp::InitInstance()
 
 	GetVersionNumber();         // Calls CrashReporter::SetIdentity when version is known.
 	Settings.Load();			// Loads settings.			Depends on GetVersionNumber()
+	if (!CheckEssentialStorage()) // Fail closed: data and incomplete paths must be writable.
+		return FALSE;
 	InitResources();			// Loads theApp settings.	Depends on Settings::Load()
 	CoolInterface.Load();		// Loads colors and fonts.	Depends on InitResources()
 
