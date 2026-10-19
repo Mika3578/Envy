@@ -45,6 +45,10 @@ of one IP, an alternate-port reply is inherently ambiguous: Envy refuses to
 guess. Retain the completed endpoint and observed reply port as replay markers
 until the original 180-second window closes, and defer reusing that endpoint
 until then. A duplicate from either port cannot consume another request.
+A recent cancelled request has no observed reply port: it also prevents
+IP-only fallback to another endpoint until its window expires; exact matching
+of the independent requested endpoint remains available. Protect recent
+unconsumed and cancelled history from capacity eviction for the same reason.
 These ambiguity/replay guards deliberately tighten the references' IP-only
 rule. A changed source port remains accepted for a unique request. A later
 reply after a fresh request to the same endpoint is indistinguishable from an
@@ -54,7 +58,7 @@ security and subnet checks; no additional verification is inferred.
 All bootstrap retry/correlation and outstanding-request timestamps use
 `GetTickCount64()` milliseconds. Prune non-pending retry state older than the
 maximum backoff once its acceptance window and cooldown have elapsed. Each
-scan is bounded by the 2048-entry map; pending requests and live replay markers
+scan is bounded by the 2048-entry map; pending requests and all recent correlation/cancellation/replay history
 are protected under capacity pressure. A full protected map prevents sending
 another bootstrap instead of silently losing its correlation state. A cleanup
 triggered only on selection with modulo-32-bit ages would still mistake a
@@ -158,7 +162,8 @@ boundary are not exercised by that fixture. Routing admission is covered
 separately by `test_kad_routing_table.cpp`. EnvyTests includes these cases on
 x64 and Win32: exact/alternate ports, unsolicited/duplicate/late/expired
 responses, independent ports, ambiguous fallback, true timeout vs capacity
-or explicit cancellation, inactivity beyond both half and full 32-bit cycles,
+or explicit cancellation, late replies after eviction with another port pending,
+inactivity beyond both half and full 32-bit cycles,
 short headers, partial contact lists and the local contact cap. Fixtures use
 the Windows temp directory with scoped cleanup and bounded child paths.
 

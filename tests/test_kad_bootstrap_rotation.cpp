@@ -204,13 +204,32 @@ bool test_bounded_state_preserves_pending_request()
 			return false;
 	}
 	policy.Sent(candidates.back().ip, candidates.back().udpPort,
-	            KadBootstrapRotation::RequestTimeoutMs + KadBootstrapRotation::MaxTrackedEndpoints);
+	            KadBootstrapRotation::AcceptWindowMs + KadBootstrapRotation::MaxTrackedEndpoints);
 	if (policy.Tracked() != KadBootstrapRotation::MaxTrackedEndpoints)
 		return false;
 
 	const std::vector<KadContact> pending = { candidates[0] };
 	return policy.Select(pending, 600000u).contacts.empty() &&
 	       policy.TimedOut(candidates[0].ip, candidates[0].udpPort, 600000u);
+}
+
+bool test_capacity_preserves_recent_late_response_history()
+{
+	KadBootstrapRotation policy;
+	const auto candidates = Candidates(KadBootstrapRotation::MaxTrackedEndpoints + 1);
+	for (size_t i = 0; i < KadBootstrapRotation::MaxTrackedEndpoints; ++i)
+		if (!policy.Sent(candidates[i].ip, candidates[i].udpPort, 0))
+			return false;
+	for (size_t i = 0; i < KadBootstrapRotation::MaxTrackedEndpoints; ++i)
+		if (!policy.TimedOut(candidates[i].ip, candidates[i].udpPort, 30000))
+			return false;
+	// Losing recent unconsumed history could turn an ambiguous IP-only reply
+	// into an apparently unique match. Decline new sends until it expires.
+	if (policy.Sent(candidates.back().ip, candidates.back().udpPort, 30001))
+		return false;
+	return policy.Sent(candidates.back().ip, candidates.back().udpPort,
+	                   KadBootstrapRotation::AcceptWindowMs) &&
+	       policy.Tracked() == KadBootstrapRotation::MaxTrackedEndpoints;
 }
 
 bool test_response_framing_and_correlation_policy()
@@ -317,6 +336,7 @@ void register_kad_bootstrap_rotation_tests(TestSuite& suite)
 	suite.add_test("kad_bootstrap_invalid_candidates", test_invalid_and_empty_candidates);
 	suite.add_test("kad_bootstrap_bounded_tracking", test_bounded_state);
 	suite.add_test("kad_bootstrap_bounded_tracking_keeps_pending", test_bounded_state_preserves_pending_request);
+	suite.add_test("kad_bootstrap_capacity_keeps_recent_history", test_capacity_preserves_recent_late_response_history);
 	suite.add_test("kad_bootstrap_response_bounds", test_response_framing_and_correlation_policy);
 	suite.add_test("kad_bootstrap_cold_start_batch", test_cold_start_batch_is_smaller_and_still_rotates);
 	suite.add_test("kad_bootstrap_accept_window_any_port", test_accept_window_matches_sender_ip_on_any_port);
