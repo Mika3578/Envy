@@ -81,6 +81,33 @@ entries leaves Envy with no second path to a populated table. Kad2 remains
 sustained routing and searches. A full Kad completion claim remains blocked
 by #86.
 
+### Bootstrap behaviour compared
+
+Legend: **[code]** verified by reading the named source; **[test]** covered by a
+deterministic test in this repository; **[hyp]** hypothesis, not yet verified.
+`develop` is the state before this change.
+
+| Function | Envy `develop` | Envy (this change) | eMule Community 0.72a | aMule (current) | Assessment |
+| --- | --- | --- | --- | --- | --- |
+| Candidate source | First 20 entries of `HostCache.Kademlia` **[code]** | Whole cache, snapshotted under its lock **[code]** | Routing table for a normal `nodes.dat`; `s_liBootstrapList` (50 XOR-closest) only for a bootstrap-edition file **[code]** | Same, `s_bootstrapList` **[code]** | Envy's cache-wide snapshot is sound; the missing routing-table path is the real gap (#86) |
+| Rotation | None — leading prefix re-sampled **[code]** | Deterministic cursor across cycles **[code] [test]** | List consumed head-first, popped, never retried **[code]** | Same **[code]** | Equivalent coverage; neither reference randomises the order, so a deterministic cursor is faithful |
+| Cold-start cadence | 3 requests / 30 s **[code]** | 2 requests / 4 s while routing is empty, then 3 / 30 s **[code] [test]** | 1 request / 2 s while `GetNumContacts() == 0`, else 1 / 15 s **[code]** | Same **[code]** | Was the main divergence. Cold start is now 0.5 req/s, the reference rate; the 3-per-30 s cycle afterwards is 0.1 req/s, already above eMule/aMule's 0.067 req/s in that state, so it is left unchanged |
+| Concurrent requests | Bounded by the 10-slot outstanding map **[code]** | Same, one slot reserved **[code]** | One bootstrap in flight at a time **[code]** | Same **[code]** | Envy is more parallel but strictly bounded; acceptable |
+| Request timeout | 30 s (`KAD2_REQUEST_TIMEOUT`) **[code]** | Unchanged **[code] [test]** | No per-request timeout; candidate is discarded on send **[code]** | Same **[code]** | Envy-specific, needed because its cache persists |
+| Backoff | None **[code]** | 60 s doubling to 10 min, bounded map of 2048 endpoints **[code] [test]** | None **[code]** | None **[code]** | Envy addition, not a wire requirement; keeps a persistent cache from hammering dead peers |
+| Late response | Rejected after 30 s **[code]** | Accepted for 180 s after the request **[code] [test]** | 180 s track list **[code]** | Same **[code]** | Now matches both references |
+| Response correlation | IP + UDP port + type **[code]** | Exact endpoint, else sender IP within 180 s on any port **[code] [test]** | Sender IP + opcode, no port **[code]** | Same **[code]** | Port matching rejected honest NATed replies and added no spoofing resistance |
+| Contact-count bound | Reject if count > 100 **[code]** | Read at most 20 framed contacts, clamp and count the rest **[code] [test]** | No receive bound; keeps the framed prefix; sends at most 20 **[code]** | Same **[code]** | Envy stays bounded while no longer discarding a usable answer |
+| Truncated contact list | Partial contact ends the loop, earlier ones kept **[code]** | Framed prefix kept, anomaly counted **[code] [test]** | Read throws at EOF, contacts already added are kept **[code]** | Same **[code]** | Equivalent |
+| Routing insertion | `UpdateContact`, unverified candidate **[code]** | Unchanged **[code] [test]** | `Add(..., verified = GetNumContacts() == 0, ...)` — verified while the table is empty **[code]** | Same **[code]** | Deliberate divergence: Envy keeps `verified` meaning `HELLO_RES` evidence; `FindClosestContacts` does not require it |
+| Routing seeded from `nodes.dat` | No **[code]** | No (out of scope) **[code]** | Yes, for a normal `nodes.dat` **[code]** | Yes **[code]** | **Open gap, tracked under #86** — bootstrap responses are Envy's only path to a populated table |
+| UDP obfuscation | Not implemented (#431) **[code]** | Unchanged **[code]** | Obfuscates its request when the peer's Kad version ≥ 6; answers a plain request in clear **[code]** | Same **[code]** | A plain request still gets a clear reply, so obfuscation is not a cold-start blocker **[code]** |
+| Diagnostics | One unconditional line per cycle **[code]** | One aggregate line per minute, no endpoints or payloads **[code]** | Per-packet debug logging behind debug levels **[code]** | Same **[code]** | Envy's aggregate form is privacy-safe and sufficient |
+| Tests | None for bootstrap selection | 14 deterministic rotation tests; 52/52 with routing-table regressions **[test]** | No automated tests (`SelfTest.cpp` covers neither Kad nor bootstrap) **[code]** | Large Kad unit-test suite under `unittests/tests/`, but none covering bootstrap selection or retry **[code]** | Envy has the stronger coverage of this specific path; live interop still pending (#160) |
+
+Live interoperability remains unproven either way: every row above is a
+source-level or unit-test claim, never a live-traffic measurement.
+
 ### Reference sources compared
 
 - aMule, `amule-org/amule` (the active upstream since the project moved off
