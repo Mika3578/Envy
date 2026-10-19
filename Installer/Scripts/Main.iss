@@ -781,19 +781,27 @@ var
   MalwareDetected: Boolean;
 //HasUserPrivileges: Boolean;
 
-function SHGetKnownFolderPath(const rfid: TKnownFolderId; dwFlags: LongWord; hToken: HANDLE; out ppszPath: PChar): LongInt;
+function SHGetKnownFolderPath(const rfid: TKnownFolderId; dwFlags: LongWord; hToken: HANDLE; out ppszPath: LongWord): LongInt;
 external 'SHGetKnownFolderPath@shell32.dll stdcall setuponly';
 
-procedure CoTaskMemFree(pv: Pointer);
+// Pascal Script has no PChar: read the CoTaskMem-allocated wide string by address.
+function lstrlenW(lpString: LongWord): LongInt;
+external 'lstrlenW@kernel32.dll stdcall setuponly';
+
+function lstrcpyW(lpString1: String; lpString2: LongWord): LongWord;
+external 'lstrcpyW@kernel32.dll stdcall setuponly';
+
+procedure CoTaskMemFree(pv: LongWord);
 external 'CoTaskMemFree@ole32.dll stdcall setuponly';
 
 function GetEnvyDownloadsFolder(Param: String): String;
 var
   FolderId: TKnownFolderId;
-  FolderPath: PChar;
+  FolderPath: LongWord;
+  Known: String;
 begin
   Result := ExpandConstant('{%USERPROFILE|{userdocs}}\Downloads\Envy');
-  FolderPath := nil;
+  FolderPath := 0;
   FolderId.Data1 := $374DE290;
   FolderId.Data2 := $123F;
   FolderId.Data3 := $4565;
@@ -807,8 +815,14 @@ begin
   FolderId.Data4[7] := $7B;
 
   if SHGetKnownFolderPath(FolderId, 0, 0, FolderPath) = 0 then begin
-    Result := AddBackslash(FolderPath) + 'Envy';
-    CoTaskMemFree(FolderPath);
+    if FolderPath <> 0 then begin
+      SetLength(Known, lstrlenW(FolderPath));
+      if Length(Known) > 0 then begin
+        lstrcpyW(Known, FolderPath);
+        Result := AddBackslash(Known) + 'Envy';
+      end;
+      CoTaskMemFree(FolderPath);
+    end;
   end;
 end;
 
