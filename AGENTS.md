@@ -54,6 +54,13 @@ resolve treated threads; request reviews per `envy-review-requests`.
 - [Policy] Maintainer only: `stage:live-test`, marking Ready, approving
   governance changes, squash-merging into `develop`, enabling auto-merge,
   changing rulesets, repository or review-app settings.
+- [Policy] Delegation: the maintainer may delegate `stage:live-test`,
+  marking Ready and the squash merge in writing (chat or PR comment) for a
+  named PR or an ordered list of PRs. Act only within that scope, on the
+  head the maintainer reviewed plus your own fixes for review findings and
+  CI, and merge only with required checks green and every thread resolved.
+  New scope pushed by anyone else after the approval needs a fresh approval.
+  The live runtime test stays human.
 - Escalate (PR comment, `needs-human` label when available) instead of
   looping when: a fix would weaken a [GitHub]/[Security] rule; correctness of
   a security or protocol change is uncertain; permissions or signing fail; or
@@ -71,6 +78,10 @@ resolve treated threads; request reviews per `envy-review-requests`.
   when a runner suggests one.
 - [Policy] Never push to `develop`, `main` or `legacy`. Add commits instead of
   amending or force-pushing shared branches; never rewrite published history.
+- [Security] Sign commits whenever signing is configured; never pass
+  `--no-gpg-sign` or turn signing off to get past an error. Stop and report a
+  signing failure instead. Protect develop does not require signed branch
+  commits; the squash commit follows the repository's own signing policy.
 - [Policy] Repository artifacts (code, comments, commits, PR/issue text, docs)
   are in English. Chat follows the user's language.
 - PR title `type(scope): summary`; body from `.github/pull_request_template.md`
