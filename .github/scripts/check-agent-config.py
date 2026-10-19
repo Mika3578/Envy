@@ -259,6 +259,11 @@ def check_duplication(root: Path, docs: list[str]) -> list[str]:
     return errors
 
 
+def documented_checks(agents: str) -> set[str]:
+    match = re.search(r"Required checks, branch up to date: (.*?); plus", agents)
+    return {name.strip() for name in match.group(1).split(",")} if match else set()
+
+
 def check_ruleset(root: Path, live: dict | None) -> list[str]:
     errors = []
     agents = " ".join(read(root, "AGENTS.md").split())
@@ -267,9 +272,13 @@ def check_ruleset(root: Path, live: dict | None) -> list[str]:
         if ruleset is None:
             continue
         rules = {r["type"]: r.get("parameters", {}) for r in ruleset.get("rules", [])}
-        for check in rules.get("required_status_checks", {}).get("required_status_checks", []):
-            if check["context"] not in agents:
-                errors.append(f"AGENTS.md does not list {source} required check '{check['context']}'")
+        enforced = {c["context"] for c in
+                    rules.get("required_status_checks", {}).get("required_status_checks", [])}
+        listed = documented_checks(agents)
+        for name in sorted(enforced - listed):
+            errors.append(f"AGENTS.md does not list {source} required check '{name}'")
+        for name in sorted(listed - enforced):
+            errors.append(f"AGENTS.md lists '{name}' but the {source} ruleset does not require it")
         review = rules.get("copilot_code_review", {})
         if review.get("review_on_push") or review.get("review_draft_pull_requests"):
             errors.append(f"{source} ruleset enables automatic Copilot review; AGENTS.md says reviews are on request")

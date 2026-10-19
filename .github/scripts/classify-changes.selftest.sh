@@ -93,6 +93,7 @@ for agent_file in \
 	.windsurfrules \
 	.aider.conf.yml \
 	.coderabbit.yaml \
+	.cursorrules \
 	.gemini/config.yaml
 do
 	check "agent-config-risk-${agent_file//\//_}" "$agent_file" risk_level high

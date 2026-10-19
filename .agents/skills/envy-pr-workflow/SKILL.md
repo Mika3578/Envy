@@ -21,10 +21,11 @@ Rules come from root `AGENTS.md`; this skill is the procedure.
 5. Stabilize in Draft: deterministic CI runs on every push; batch related
    fixes into one push instead of pushing each one.
 6. When the head is clean (checks green, threads treated, summary current),
-   say so in one PR comment. The maintainer applies `stage:live-test`, runs
-   the runtime test, marks Ready and squash-merges. Ready and live-test run
-   x64 and Win32 Release with EnvyTests; any later push invalidates recorded
-   runtime evidence.
+   say so in one PR comment. The maintainer marks Ready and squash-merges,
+   applying `stage:live-test` first only when the PR needs a manual runtime
+   test (not for docs-only, workflow-only or test-only changes). Ready and
+   live-test run x64 and Win32 Release with EnvyTests; any later push
+   invalidates recorded runtime evidence.
 
 Prefer finishing open PRs to opening new ones. There is no hard PR count, but
 each new PR should be independent of the open ones.
@@ -39,6 +40,8 @@ Run only those matching the changed paths:
 - `python3 .github/scripts/check-agent-attribution.py --from <merge-base> --to HEAD`
 - `bash .github/scripts/format-check.sh` when clang-format 18 is available
 - `git diff --check`
+- Remote JS, dependency, parser and workflow regressions that cover the
+  change, even when they are not required contexts
 
 Windows builds and EnvyTests run in CI. Never claim a Windows build passed
 from a Draft deferral result.
@@ -55,10 +58,13 @@ from a Draft deferral result.
   attempts with no new information, or when it is unrelated to the PR (then
   say which check, why, and whether a fix exists elsewhere).
 
-## Merging develop into the branch
+## Bringing develop into the branch
 
-Merge (do not rebase) `origin/develop` when the branch is behind or
-conflicted. Regenerate generated files with their tools, never by hand.
+When the branch is behind or conflicted: on a branch only you push to,
+rebase onto `origin/develop` and push with `--force-with-lease`
+(`.github/CONTRIBUTING.md`); on a branch others push to, merge
+`origin/develop` instead. Regenerate generated files with their tools, never
+by hand.
 
 ## Squash Commit Summary (manual squash merge)
 

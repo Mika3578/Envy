@@ -12,8 +12,9 @@ Global rules (style, read-only trees, banned constructs) are in `AGENTS.md`.
 - C++20 policy, but live Release|x64 Envy, HashLib, TorrentEnvy and Unpacker
   end their `ClCompile` block with `stdcpp17`: keep that code C++17-clean
   until a dedicated vcxproj change removes the override.
-- Prefer small local modernization: `nullptr`, `override`, `constexpr` over
-  `#define`, `noexcept`, range-for, `std::optional` for missing values.
+- Prefer small local modernization: `nullptr`, `override`, `constexpr`
+  instead of `#define`, `noexcept` instead of `throw()`, range-for when it
+  reads better, `std::optional` for missing values.
 
 ## Ownership and lifetime
 - RAII for handles, sockets, locks and buffers; no new manual `new`/`delete`.
@@ -28,7 +29,9 @@ Global rules (style, read-only trees, banned constructs) are in `AGENTS.md`.
 - Shared state: existing `CCriticalSection` / `CSingleLock` / `CQuickLock`
   patterns. Never block the UI thread; never touch UI controls from worker
   threads (use `PostMessage`).
-- Includes: `StdAfx.h` first, then own header; do not reorder legacy includes.
+- Includes: in `.cpp` files of projects that use the `StdAfx.h` precompiled
+  header, include it first, then the file's own header; never add it where
+  the project has none, and do not reorder legacy includes.
 
 ## Errors
 - Check Win32/MFC/WSA results; keep the error code and the context (operation,

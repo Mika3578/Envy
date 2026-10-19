@@ -9,13 +9,15 @@ description: Change or review Envy network, protocol, packet parsing, crypto, au
 
 1. Find the owning code, its tests (`tests/`, EnvyTests) and `Envy/*Validate*`
    helpers, and open PRs or issues on the same area.
-2. Consult sources in this order: specification / RFC / BEP, official docs,
-   maintained implementation, reference clients. Envy priorities after the
-   specs: eMule Community / aMule (ED2K, Kad), Shareaza lineage (G1/G2),
+2. Consult sources in the order of
+   `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` (*Authority hierarchy*):
+   specification / RFC / BEP / primary docs, live interoperability evidence,
+   established reference implementations, then other maintained ones. Envy
+   priorities after the specs: eMule Community / aMule (ED2K, Kad), Shareaza lineage (G1/G2),
    BEPs then libtorrent / qBittorrent / Transmission (BitTorrent), DC++ for
-   NMDC/ADC only when Envy's DC path is in scope. List:
-   `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md`; per-protocol notes in
-   `docs/30_protocols/<protocol>/` (read the relevant section only).
+   NMDC/ADC only when Envy's DC path is in scope. Per-protocol notes, where
+   a directory exists, are in `docs/30_protocols/<protocol>/`; for Remote and
+   UPnP use the code and `docs/20_arch/` (read the relevant section only).
 3. Separate what a reference client does from what Envy supports; do not add
    a network or capability because a reference client has it.
 

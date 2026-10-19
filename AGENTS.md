@@ -104,7 +104,7 @@ resolve treated threads; request reviews per `envy-review-requests`.
   Shareaza-lineage (G1/G2), BEPs (BitTorrent) and NMDC/ADC. Wire-format,
   parser, crypto, auth, threading or lifetime changes need the evidence in
   `envy-protocol-change`.
-- [Policy] No XP support (`_ATL_XP_TARGETING`, `v141_xp`,
+- [Policy] No XP support (`_ATL_XP_TARGETING`, `v141_xp`, `XPSUPPORT`,
   `_WIN32_WINNT < 0x0A00`).
 - [Policy] Read-only third-party trees, upgraded via vcpkg only:
   `Services/{zlib,SQLite,Bzlib,UnRAR,MiniUPnP,GeoIP,LibUTP}`,

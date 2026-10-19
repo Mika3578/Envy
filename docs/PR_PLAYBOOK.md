@@ -25,7 +25,9 @@ Use `.github/CONTRIBUTING.md` as the canonical source for the linear-history wor
 Canonical policy: [`docs/10_dev/pr-workflow.md`](10_dev/pr-workflow.md) and
 [`AGENTS.md`](../AGENTS.md). Use the PR title as the squash title; keep the PR
 description current (audit record). Required CI green, threads resolved, no
-active changes requested. A real non-author approval remains mandatory.
+active changes requested. The live ruleset requires no approving review
+(desired state: one, pending #438/#93); the maintainer's manual merge is the
+human gate.
 The maintainer performs a manual squash merge with the curated Squash Commit
 Summary; do not enable auto-merge while that body must be supplied manually.
 

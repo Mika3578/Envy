@@ -27,8 +27,10 @@ mark nits as optional. Do not repeat findings already answered on the PR.
 
 ## Evidence required
 
-- Protocol / packet parsing / networking: regression test or protocol
-  comparison, or `Wire-format impact: none` when the wire cannot change.
+- Packet parsing and input validation: a regression test with boundary and
+  malformed cases, always.
+- Protocol / networking behaviour: regression test or protocol comparison,
+  or `Wire-format impact: none` with the reason when the wire cannot change.
 - Crypto, auth, threading, locking, memory lifetime: targeted tests or an
   explicit validation of that risk; `Wire-format impact: none` is not enough.
 - Workflows, settings, installer: targeted CI or security validation; no
@@ -43,9 +45,9 @@ mark nits as optional. Do not repeat findings already answered on the PR.
   required evidence above is missing; a governance change weakens gates; the
   branch uses a tool/agent prefix.
 - `APPROVED` only when all hold: not a draft; not authored by a Copilot cloud
-  agent; no governance path in the diff; required checks green; no
-  unresolved threads; evidence present; Squash Commit Summary matches the
-  final head. An approval is not proof of correctness; CI stays independent.
+  agent; no governance path in the diff; required checks green; branch up
+  to date with `develop`; no outstanding `CHANGES_REQUESTED`; no unresolved
+  threads; evidence present; Squash Commit Summary matches the final head. An approval is not proof of correctness; CI stays independent.
 - Otherwise `COMMENTED`.
 
 The live ruleset currently requires zero approvals, so an `APPROVED` from a

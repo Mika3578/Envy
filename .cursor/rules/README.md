@@ -1,7 +1,7 @@
 # Cursor rules (Envy)
 
-Cursor reads root `AGENTS.md` (global rules) and the skills in
-`.agents/skills/`. The files here are **file-scoped** rules attached by glob
+Cursor reads root `AGENTS.md` (global rules) and discovers the skills in
+`.agents/skills/`, loading a `SKILL.md` only when a task matches it. The files here are **file-scoped** rules attached by glob
 only (`alwaysApply: false`, empty `description`, comma-separated `globs`):
 
 - `01-cpp.mdc` - C/C++ sources: language level, ownership, MFC, errors,

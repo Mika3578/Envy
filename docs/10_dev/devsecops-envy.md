@@ -1,6 +1,6 @@
 # Envy DevSecOps map (cost-minimal, Windows-first)
 
-**Last Updated:** 2026-10-03
+**Last Updated:** 2026-10-18
 **Repo:** [Mika3578/Envy](https://github.com/Mika3578/Envy) (not upstream GetEnvy/Envy)
 **Full measured CI audit:** [CI_AUDIT_2026-09.md](CI_AUDIT_2026-09.md)
 
@@ -187,13 +187,12 @@ comparison notes.
    (“Count Copilot approvals toward merge requirements”) is not **Disabled
    everywhere** for this repository.
 4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Use **manual squash merge** (curated squash body; live `squash_merge_commit_message: BLANK`), update-branch, strict required checks, and, once the pending desired state is live (#438/#93), **≥1 GitHub `APPROVED` review** on `Protect develop` (the live ruleset currently requires none). Do **not** enable squash auto-merge when a curated squash body is required (`AGENTS.md` *Authorship, privacy and notices*).
-5. **Protect develop (live, re-verified 2026-09-20)** — Source of truth is
+5. **Protect develop (live, re-verified 2026-10-18)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing
    docs):
-   - Required approvals: **0** live (verified 2026-10-07); repository policy
-     still requires **1** independent approval, with human approval for
-     privileged governance paths. This mismatch needs maintainer review;
-     no ruleset is changed by this PR.
+   - Required approvals: **0** live (verified 2026-10-18); the committed
+     desired state is **1** (#438/#93). Governance changes still need the
+     maintainer's explicit review as project policy.
    - Dismiss stale pull request approvals when new commits are pushed: **on**
    - Require approval of the most recent reviewable push: **off**
    - Require conversation resolution before merging: **on**

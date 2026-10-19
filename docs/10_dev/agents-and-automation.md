@@ -1,6 +1,6 @@
 # Envy Development Agents & Automation
 
-**Last Updated:** 2026-10-03
+**Last Updated:** 2026-10-18
 
 ## What exists today
 
@@ -242,8 +242,8 @@ reply) before resolving it. Request reviews only as envy-review-requests
 allows. Escalate per AGENTS.md *Autonomy* when progress stops; do not write
 after escalating.
 
-When the head is clean, comment once: "Stabilization complete - candidate for
-live test." While stage:live-test is present, do not push. After a Ready fix,
+When the PR is Draft and the head is clean, comment once: "Draft
+stabilization complete - candidate for Ready." While stage:live-test is present, do not push. After a Ready fix,
 flag that runtime evidence must be reassessed. Unsubscribe when the PR is
 merged or closed, after escalation, or when asked to stop.
 ```

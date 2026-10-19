@@ -34,5 +34,7 @@ essentials below are self-contained. Full reviewer procedure:
   `COMMENTED` or `CHANGES_REQUESTED`; a human approves.
 - Never approve a Draft or a PR authored by Copilot cloud agent.
 - Blocking defect or missing evidence: `CHANGES_REQUESTED`. Otherwise
-  `COMMENTED`, or `APPROVED` only when checks are green and no thread is open.
+  `COMMENTED`, or `APPROVED` only when checks are green, the branch is up to
+  date, no thread or `CHANGES_REQUESTED` is open, the branch name has no
+  tool prefix and the Squash Commit Summary matches the final head.
 - A Copilot review is advisory. The maintainer merges; CI stays independent.

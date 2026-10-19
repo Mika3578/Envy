@@ -61,7 +61,8 @@ fast-forward-only and rebase feature branches before opening or updating PRs.
   full PR body or all branch commits into `develop`. **Policy still requires**
   a concise technical squash body at merge time; copy it from the **Squash
   Commit Summary** section of your PR (see `.github/pull_request_template.md`).
-  Canonical rules: `AGENTS.md` *Authorship, privacy and notices*.
+  Canonical procedure: `.agents/skills/envy-pr-workflow/SKILL.md`
+  (*Squash Commit Summary*).
 - Rebase merge: **enabled globally**, but **prohibited** when merging into
   `develop` by the Protect develop ruleset (squash-only)
 - Require linear history on `develop`: **enabled** via the active `Protect develop` ruleset

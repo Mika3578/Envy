@@ -1,6 +1,6 @@
 ---
 description:
-globs: Envy/BT*,Envy/DC*,Envy/ED*,Envy/G1*,Envy/G2*,Envy/Kad*,Envy/Kademlia*,Envy/Datagram*,Envy/*Packet*,Envy/Neighbour*,Envy/Handshake*,Envy/Network*,Envy/Connection*,Envy/Buffer*,Envy/Query*,Envy/HostCache*,Envy/DiscoveryServices*,Envy/CrawlSession*,Envy/HubHorizon*,Envy/*Transfer*,Envy/UPnP*,Envy/Firewall*,Envy/Remote*,Envy/Security*,Envy/XML*,Envy/*Validate*,Remote/**
+globs: Envy/BT*,Envy/DC*,Envy/ED*,Envy/G1*,Envy/G2*,Envy/Kad*,Envy/Kademlia*,Envy/Datagram*,Envy/*Packet*,Envy/Neighbour*,Envy/Handshake*,Envy/Network*,Envy/Connection*,Envy/Buffer*,Envy/Query*,Envy/HostCache*,Envy/DiscoveryServices*,Envy/CrawlSession*,Envy/HubHorizon*,Envy/*Transfer*,Envy/UPnP*,Envy/Firewall*,Envy/Remote*,Envy/Security*,Envy/XML*,Envy/*Validate*,Envy/BitTorrentDHT/**,Envy/Chat*,Envy/CtrlIRC*,Envy/Bitprints*,Remote/**
 alwaysApply: false
 ---
 
