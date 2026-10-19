@@ -147,7 +147,7 @@ jobs:
     # Keep the context visible; Draft success only certifies phase deferral.
     # Every Ready/live-test PR runs the actual build, including docs-only PRs.
     if: >
-      always() && (
+      !cancelled() && (
         github.event_name == 'pull_request' ||
         github.event_name == 'push' ||
         (github.event_name == 'workflow_dispatch' && inputs.configuration == 'Release')
@@ -200,7 +200,7 @@ jobs:
     needs: [changes, phase]
     # Always emit this required context on PRs (mirror Build x64 Release).
     if: >
-      always() && (
+      !cancelled() && (
         github.event_name == 'pull_request' ||
         github.event_name == 'push' ||
         (github.event_name == 'workflow_dispatch' && inputs.configuration == 'Release')

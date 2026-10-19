@@ -205,7 +205,7 @@ jobs:
     # docs are out of scope, report success via no-op so Protect develop never
     # waits on a skipped/missing check (see docs/10_dev/CI_AUDIT_2026-09.md).
     # A cancelled classifier must not certify documentation validation.
-    if: always() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
+    if: ${{ !cancelled() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') }}
 
     steps:
       - name: Fail if classification failed
