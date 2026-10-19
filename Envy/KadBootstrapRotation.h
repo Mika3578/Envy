@@ -155,7 +155,8 @@ public:
 	// it would reject honest answers without adding spoofing resistance.
 	bool WasRequested(uint32_t ip, uint32_t now) const
 	{
-		for (auto it = m_retry.lower_bound(Key(ip, 0)); it != m_retry.end() && it->first.first == ip; ++it)
+		for (auto it = m_retry.lower_bound(Key(ip, MinPort)); it != m_retry.end() && it->first.first == ip;
+		     ++it)
 		{
 			if (it->second.requested &&
 			    static_cast<uint32_t>(now - it->second.lastSent) < AcceptWindowMs)
@@ -182,7 +183,7 @@ public:
 	// penalty may have arrived on another UDP port than the one requested.
 	void Accepted(uint32_t ip)
 	{
-		m_retry.erase(m_retry.lower_bound(Key(ip, 0)), m_retry.upper_bound(Key(ip, 0xffffu)));
+		m_retry.erase(m_retry.lower_bound(Key(ip, MinPort)), m_retry.upper_bound(Key(ip, MaxPort)));
 	}
 
 	static uint32_t Delay(uint32_t failures)
@@ -205,6 +206,9 @@ public:
 
 private:
 	using Key = std::pair<uint32_t, uint16_t>;
+	// Bounds of the per-IP key range; m_retry is ordered by (ip, port).
+	static constexpr uint16_t MinPort = 0;
+	static constexpr uint16_t MaxPort = 0xffffu;
 	struct State
 	{
 		uint32_t retryAt = 0;

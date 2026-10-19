@@ -227,10 +227,10 @@ bool test_response_framing_and_correlation_policy()
 	// the whole response, so a partial contact is dropped but the rest stands.
 	if (KadBootstrapUsableContacts(45, 1) != 0 || KadBootstrapUsableContacts(70, 2) != 1 ||
 	    KadBootstrapUsableContacts(520, KadBootstrapMaxResponseContacts) !=
-	        KadBootstrapMaxResponseContacts - 1u)
+	        static_cast<size_t>(KadBootstrapMaxResponseContacts) - 1u)
 		return false;
 	// An over-counted list is clamped to the local bound, never trusted.
-	if (KadBootstrapUsableContacts(546, KadBootstrapMaxResponseContacts + 1u) !=
+	if (KadBootstrapUsableContacts(546, static_cast<uint16_t>(KadBootstrapMaxResponseContacts + 1u)) !=
 	        KadBootstrapMaxResponseContacts ||
 	    KadBootstrapUsableContacts(100000, 0xffffu) != KadBootstrapMaxResponseContacts)
 		return false;
