@@ -126,7 +126,7 @@ bool test_success_clears_penalty()
 	policy.Sent(c.ip, c.udpPort, 0);
 	if (!policy.TimedOut(c.ip, c.udpPort, 30001))
 		return false;
-	policy.Accepted(c.ip, c.udpPort);
+	policy.Accepted(c.ip);
 	return policy.Tracked() == 0 && policy.Select(all, 30002).contacts.size() == 1;
 }
 
@@ -214,26 +214,93 @@ bool test_bounded_state_preserves_pending_request()
 
 bool test_response_framing_and_correlation_policy()
 {
-	if (!KadBootstrapResponseLengthValid(21, 0) ||
-	    !KadBootstrapResponseLengthValid(46, 1) ||
-	    !KadBootstrapResponseLengthValid(521, KadBootstrapMaxResponseContacts))
+	// Exactly framed lists are fully usable.
+	if (KadBootstrapUsableContacts(21, 0) != 0 ||
+	    KadBootstrapUsableContacts(46, 1) != 1 ||
+	    KadBootstrapUsableContacts(521, KadBootstrapMaxResponseContacts) !=
+	        KadBootstrapMaxResponseContacts)
 		return false;
-	if (KadBootstrapResponseLengthValid(20, 0) ||
-	    KadBootstrapResponseLengthValid(45, 1) ||
-	    KadBootstrapResponseLengthValid(520, KadBootstrapMaxResponseContacts) ||
-	    KadBootstrapResponseLengthValid(546, KadBootstrapMaxResponseContacts + 1u))
+	// A body too short for the fixed header yields nothing.
+	if (KadBootstrapUsableContacts(20, 0) != 0 || KadBootstrapUsableContacts(20, 5) != 0)
 		return false;
+	// eMule/aMule keep the framed prefix of a short list instead of discarding
+	// the whole response, so a partial contact is dropped but the rest stands.
+	if (KadBootstrapUsableContacts(45, 1) != 0 || KadBootstrapUsableContacts(70, 2) != 1 ||
+	    KadBootstrapUsableContacts(520, KadBootstrapMaxResponseContacts) !=
+	        KadBootstrapMaxResponseContacts - 1u)
+		return false;
+	// An over-counted list is clamped to the local bound, never trusted.
+	if (KadBootstrapUsableContacts(546, KadBootstrapMaxResponseContacts + 1u) !=
+	        KadBootstrapMaxResponseContacts ||
+	    KadBootstrapUsableContacts(100000, 0xffffu) != KadBootstrapMaxResponseContacts)
+		return false;
+	// Trailing bytes beyond the announced list stay ignored.
+	return KadBootstrapUsableContacts(600, 1) == 1;
+}
 
+bool test_cold_start_batch_is_smaller_and_still_rotates()
+{
+	KadBootstrapRotation policy;
+	const auto candidates = Candidates(7);
+	const auto first = policy.Select(candidates, 0, KadBootstrapRotation::MaxColdStartBatch);
+	if (first.contacts.size() != KadBootstrapRotation::MaxColdStartBatch ||
+	    !SameEndpoint(first.contacts[0], candidates[0]))
+		return false;
+	// The cursor keeps advancing on the short cycle, so a cold start still walks
+	// past the leading cache entries instead of re-sampling them.
+	const auto second = policy.Select(candidates, 4000, KadBootstrapRotation::MaxColdStartBatch);
+	if (second.contacts.size() != 2 || !SameEndpoint(second.contacts[0], candidates[2]))
+		return false;
+	// A caller cannot exceed the hard batch bound or ask for an empty batch.
+	return policy.Select(candidates, 8000, 99).contacts.size() == KadBootstrapRotation::MaxBatch &&
+	       policy.Select(candidates, 12000, 0).contacts.size() == 1;
+}
+
+bool test_accept_window_matches_sender_ip_on_any_port()
+{
 	KadBootstrapRotation policy;
 	const auto c = MakeBootstrapContact(0);
-	const std::vector<KadContact> all = {c};
-	policy.Sent(c.ip, c.udpPort, 0);
-	// A truncated response does not clear pending state.
-	if (KadBootstrapResponseLengthValid(45, 1) ||
-	    !policy.Select(all, 1000).contacts.empty())
+	// Never correlate a response we did not ask for.
+	if (policy.WasRequested(c.ip, 0))
 		return false;
-	policy.Accepted(c.ip, c.udpPort);
-	return policy.Select(all, 1000).contacts.size() == 1;
+	policy.Sent(c.ip, c.udpPort, 1000);
+	// Correlated for 180 s on any UDP source port, as eMule/aMule do.
+	if (!policy.WasRequested(c.ip, 1000) || !policy.WasRequested(c.ip, 1000 + 179999u))
+		return false;
+	if (policy.WasRequested(c.ip, 1000 + KadBootstrapRotation::AcceptWindowMs))
+		return false;
+	// A different IP is never correlated by a neighbour's request.
+	if (policy.WasRequested(c.ip + 1u, 1000))
+		return false;
+	// A late answer still clears the penalty for every port of that IP.
+	policy.Accepted(c.ip);
+	return policy.Tracked() == 0 && !policy.WasRequested(c.ip, 1000);
+}
+
+bool test_accept_window_is_tick_wrap_safe()
+{
+	KadBootstrapRotation policy;
+	const auto c = MakeBootstrapContact(0);
+	const uint32_t start = 0xffff0000u;
+	policy.Sent(c.ip, c.udpPort, start);
+	return policy.WasRequested(c.ip, start + 179999u) &&
+	       !policy.WasRequested(c.ip, start + KadBootstrapRotation::AcceptWindowMs);
+}
+
+bool test_accepted_clears_only_the_answering_ip()
+{
+	KadBootstrapRotation policy;
+	const auto a = MakeBootstrapContact(0);
+	KadContact sameIpOtherPort = a;
+	sameIpOtherPort.udpPort = static_cast<uint16_t>(a.udpPort + 1u);
+	const auto b = MakeBootstrapContact(1);
+	policy.Sent(a.ip, a.udpPort, 0);
+	policy.Sent(sameIpOtherPort.ip, sameIpOtherPort.udpPort, 0);
+	policy.Sent(b.ip, b.udpPort, 0);
+	if (policy.Tracked() != 3)
+		return false;
+	policy.Accepted(a.ip);
+	return policy.Tracked() == 1 && !policy.WasRequested(a.ip, 0) && policy.WasRequested(b.ip, 0);
 }
 } // namespace
 
@@ -249,4 +316,8 @@ void register_kad_bootstrap_rotation_tests(TestSuite& suite)
 	suite.add_test("kad_bootstrap_bounded_tracking", test_bounded_state);
 	suite.add_test("kad_bootstrap_bounded_tracking_keeps_pending", test_bounded_state_preserves_pending_request);
 	suite.add_test("kad_bootstrap_response_bounds", test_response_framing_and_correlation_policy);
+	suite.add_test("kad_bootstrap_cold_start_batch", test_cold_start_batch_is_smaller_and_still_rotates);
+	suite.add_test("kad_bootstrap_accept_window_any_port", test_accept_window_matches_sender_ip_on_any_port);
+	suite.add_test("kad_bootstrap_accept_window_wraparound", test_accept_window_is_tick_wrap_safe);
+	suite.add_test("kad_bootstrap_accept_clears_one_ip", test_accepted_clears_only_the_answering_ip);
 }
