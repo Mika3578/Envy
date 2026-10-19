@@ -1320,6 +1320,7 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 	BOOL bOpened = !strFile.IsEmpty() && pFile.Open(strFile, CFile::modeRead | CFile::shareDenyWrite | CFile::osSequentialScan);
 	if (!bOpened && strFile == strWritablePath && !strPackagedPath.IsEmpty() && ::PathFileExists(strPackagedPath)) // Unreadable writable copy
 	{
+		theApp.Message(MSG_ERROR, L"Writable default server catalogue could not be opened; using packaged data");
 		strFile = strPackagedPath;
 		bOpened = pFile.Open(strFile, CFile::modeRead | CFile::shareDenyWrite | CFile::osSequentialScan);
 	}

@@ -670,6 +670,7 @@ void CDiscoveryServices::AddDefaults()
 	BOOL bOpened = !strFile.IsEmpty() && pFile.Open(strFile, CFile::modeRead | CFile::shareDenyWrite);
 	if (!bOpened && strFile == strWritablePath && !strPackagedPath.IsEmpty() && ::PathFileExists(strPackagedPath)) // Unreadable writable copy
 	{
+		theApp.Message(MSG_ERROR, L"Writable default discovery service catalogue could not be opened; using packaged data");
 		strFile = strPackagedPath;
 		bOpened = pFile.Open(strFile, CFile::modeRead | CFile::shareDenyWrite);
 	}
