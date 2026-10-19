@@ -23,7 +23,8 @@ Rules come from root `AGENTS.md`; this skill is the procedure.
 6. When the head is clean (checks green, threads treated, summary current),
    say so in one PR comment. The maintainer marks Ready and squash-merges
    (or delegates it in writing, see `AGENTS.md` *Autonomy*: then record the
-   reviewed head SHA and merge it with `--match-head-commit`),
+   final head SHA, after only the permitted review and CI fixes, and merge it
+   with `--match-head-commit`),
    applying `stage:live-test` first only when the PR needs a manual runtime
    test (not for docs-only, workflow-only or test-only changes). Ready and
    live-test run x64 and Win32 Release with EnvyTests; any later push
