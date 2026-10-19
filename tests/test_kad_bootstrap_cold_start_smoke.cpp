@@ -112,17 +112,25 @@ bool PrepareDirectoryPrefix(wchar_t* path, size_t capacity, DWORD length)
 	return true;
 }
 
+bool FormatBootstrapDir(wchar_t* dir, size_t capacity, const wchar_t* prefix, unsigned int attempt)
+{
+	const int length = _snwprintf_s(dir, capacity, _TRUNCATE, L"%sekb-%lu-%u", prefix,
+	                                static_cast<unsigned long>(GetCurrentProcessId()), attempt);
+	// Reserve room for the longest child path, including its terminating NUL.
+	return length >= 0 && static_cast<size_t>(length) + _countof(L"\\nodes.dat.tmp") <= MAX_PATH;
+}
+
 std::wstring MakeTempBootstrapDir()
 {
 	wchar_t tempPath[MAX_PATH] = {};
-	const DWORD nBaseLength = GetCurrentDirectoryW(_countof(tempPath), tempPath);
+	const DWORD nBaseLength = GetTempPathW(_countof(tempPath), tempPath);
 	if (!PrepareDirectoryPrefix(tempPath, _countof(tempPath), nBaseLength))
 		return L"";
 	wchar_t dir[MAX_PATH] = {};
 	for (unsigned int nAttempt = 0; nAttempt != 16; ++nAttempt)
 	{
-		_snwprintf_s(dir, _countof(dir), _TRUNCATE, L"%sekb-%lu-%u", tempPath,
-		             static_cast<unsigned long>(GetCurrentProcessId()), nAttempt);
+		if (!FormatBootstrapDir(dir, _countof(dir), tempPath, nAttempt))
+			return L"";
 		if (CreateDirectoryW(dir, NULL))
 			return dir;
 		if (GetLastError() != ERROR_ALREADY_EXISTS)
@@ -153,15 +161,56 @@ bool CommitCandidateLikeProduction(
 	return true;
 }
 
-void CleanupBootstrapDir(const std::wstring& dir)
+bool DeleteBootstrapFile(const std::wstring& file)
 {
-	DeleteFileW((dir + L"\\nodes.dat").c_str());
-	DeleteFileW((dir + L"\\nodes.dat.tmp").c_str());
-	DeleteFileW((dir + L"\\nodes.dat.lkg").c_str());
-	RemoveDirectoryW(dir.c_str());
+	return DeleteFileW(file.c_str()) || GetLastError() == ERROR_FILE_NOT_FOUND ||
+	       GetLastError() == ERROR_PATH_NOT_FOUND;
 }
 
+class ScopedBootstrapDir
+{
+public:
+	const std::wstring path = MakeTempBootstrapDir();
+	~ScopedBootstrapDir() { Cleanup(); }
+	bool Cleanup() const
+	{
+		if (path.empty())
+			return true;
+		const bool file = DeleteBootstrapFile(path + L"\\nodes.dat");
+		const bool temp = DeleteBootstrapFile(path + L"\\nodes.dat.tmp");
+		const bool lkg = DeleteBootstrapFile(path + L"\\nodes.dat.lkg");
+		const bool dir = RemoveDirectoryW(path.c_str()) || GetLastError() == ERROR_PATH_NOT_FOUND ||
+		                 GetLastError() == ERROR_FILE_NOT_FOUND;
+		return file && temp && lkg && dir;
+	}
+};
+
 } // namespace
+
+static bool test_temp_fixture_cleanup_on_early_return()
+{
+	std::wstring path;
+	const auto fail = [&path]()
+	{
+		const ScopedBootstrapDir fixture;
+		path = fixture.path;
+		if (path.empty())
+			return false;
+		WriteBinaryFile(path + L"\\nodes.dat", { 1 });
+		return false;
+	};
+	if (fail() || path.empty())
+		return false;
+	return GetFileAttributesW(path.c_str()) == INVALID_FILE_ATTRIBUTES;
+}
+
+static bool test_temp_fixture_rejects_long_path()
+{
+	wchar_t dir[MAX_PATH] = {};
+	const std::wstring prefix(MAX_PATH - 2, L'x');
+	return !FormatBootstrapDir(dir, _countof(dir), prefix.c_str(), 0) &&
+	       !FormatBootstrapDir(dir, 4, L"C:\\", 0);
+}
 
 static bool test_backoff_monotonic()
 {
@@ -255,7 +304,8 @@ static bool test_phase_no_contacts_maps_to_contacts_rejected()
 
 static bool test_restore_prior_nodes_dat_byte_for_byte()
 {
-	const std::wstring dir = MakeTempBootstrapDir();
+	const ScopedBootstrapDir fixture;
+	const std::wstring& dir = fixture.path;
 	if (dir.empty())
 		return false;
 	const std::wstring file = dir + L"\\nodes.dat";
@@ -272,13 +322,13 @@ static bool test_restore_prior_nodes_dat_byte_for_byte()
 	std::vector<uint8_t> restored;
 	if (!ReadBinaryFile(file, restored) || restored != prior)
 		return false;
-	CleanupBootstrapDir(dir);
-	return true;
+	return fixture.Cleanup();
 }
 
 static bool test_restore_without_prior_deletes_rejected_candidate()
 {
-	const std::wstring dir = MakeTempBootstrapDir();
+	const ScopedBootstrapDir fixture;
+	const std::wstring& dir = fixture.path;
 	if (dir.empty())
 		return false;
 	const std::wstring file = dir + L"\\nodes.dat";
@@ -291,13 +341,13 @@ static bool test_restore_without_prior_deletes_rejected_candidate()
 		return false;
 	if (GetFileAttributesW(file.c_str()) != INVALID_FILE_ATTRIBUTES)
 		return false;
-	CleanupBootstrapDir(dir);
-	return true;
+	return fixture.Cleanup();
 }
 
 static bool test_restore_failure_when_lkg_missing()
 {
-	const std::wstring dir = MakeTempBootstrapDir();
+	const ScopedBootstrapDir fixture;
+	const std::wstring& dir = fixture.path;
 	if (dir.empty())
 		return false;
 	const std::wstring file = dir + L"\\nodes.dat";
@@ -312,13 +362,13 @@ static bool test_restore_failure_when_lkg_missing()
 	DeleteFileW(lkg.c_str());
 	if (KadBootstrapRestoreNodesDatAfterRejectedImport(true, file.c_str(), lkg.c_str()))
 		return false;
-	CleanupBootstrapDir(dir);
-	return true;
+	return fixture.Cleanup();
 }
 
 static bool test_successful_commit_keeps_candidate_without_restore()
 {
-	const std::wstring dir = MakeTempBootstrapDir();
+	const ScopedBootstrapDir fixture;
+	const std::wstring& dir = fixture.path;
 	if (dir.empty())
 		return false;
 	const std::wstring file = dir + L"\\nodes.dat";
@@ -333,12 +383,13 @@ static bool test_successful_commit_keeps_candidate_without_restore()
 	std::vector<uint8_t> active;
 	if (!ReadBinaryFile(file, active) || active != candidate)
 		return false;
-	CleanupBootstrapDir(dir);
-	return true;
+	return fixture.Cleanup();
 }
 
 void register_kad_bootstrap_cold_start_smoke_tests(TestSuite& suite)
 {
+	suite.add_test("kad_bootstrap_temp_cleanup_failure_path", test_temp_fixture_cleanup_on_early_return);
+	suite.add_test("kad_bootstrap_temp_path_lengths", test_temp_fixture_rejects_long_path);
 	suite.add_test("kad_bootstrap_directory_prefix_bounded", test_directory_prefix_uses_bounded_length);
 	suite.add_test("kad_bootstrap_directory_prefix_invalid", test_directory_prefix_rejects_invalid_lengths);
 	suite.add_test("kad_bootstrap_backoff_monotonic", test_backoff_monotonic);

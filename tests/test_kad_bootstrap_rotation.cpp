@@ -126,8 +126,9 @@ bool test_success_clears_penalty()
 	policy.Sent(c.ip, c.udpPort, 0);
 	if (!policy.TimedOut(c.ip, c.udpPort, 30001))
 		return false;
-	policy.Accepted(c.ip);
-	return policy.Tracked() == 0 && policy.Select(all, 30002).contacts.size() == 1;
+	policy.Accepted(c.ip, c.udpPort, c.udpPort, 30002);
+	return policy.Tracked() == 1 && policy.Select(all, 30002).contacts.empty() &&
+	       policy.Select(all, KadBootstrapRotation::AcceptWindowMs).contacts.size() == 1;
 }
 
 bool test_wraparound_timing()
@@ -135,11 +136,11 @@ bool test_wraparound_timing()
 	KadBootstrapRotation policy;
 	const auto c = MakeBootstrapContact(0);
 	const std::vector<KadContact> all = {c};
-	const uint32_t start = 0xfffffff0u;
+	const uint64_t start = 0xfffffff0u;
 	policy.Sent(c.ip, c.udpPort, start);
 	if (!policy.Select(all, start + 2000u).contacts.empty())
 		return false;
-	const uint32_t timeout = start + 30001u;
+	const uint64_t timeout = start + 30001u;
 	if (!policy.TimedOut(c.ip, c.udpPort, timeout))
 		return false;
 	return policy.Select(all, timeout + 59999u).contacts.empty() &&
@@ -195,15 +196,15 @@ bool test_bounded_state_preserves_pending_request()
 	const auto candidates = Candidates(KadBootstrapRotation::MaxTrackedEndpoints + 1);
 	policy.Sent(candidates[0].ip, candidates[0].udpPort, 0);
 	for (size_t i = 1; i < KadBootstrapRotation::MaxTrackedEndpoints; ++i)
+		policy.Sent(candidates[i].ip, candidates[i].udpPort, i);
+	for (size_t i = 1; i < KadBootstrapRotation::MaxTrackedEndpoints; ++i)
 	{
-		const uint32_t now = static_cast<uint32_t>(i);
-		policy.Sent(candidates[i].ip, candidates[i].udpPort, now);
 		if (!policy.TimedOut(candidates[i].ip, candidates[i].udpPort,
-		                     now + KadBootstrapRotation::RequestTimeoutMs + 1u))
+		                     i + KadBootstrapRotation::RequestTimeoutMs))
 			return false;
 	}
 	policy.Sent(candidates.back().ip, candidates.back().udpPort,
-	            static_cast<uint32_t>(KadBootstrapRotation::MaxTrackedEndpoints));
+	            KadBootstrapRotation::RequestTimeoutMs + KadBootstrapRotation::MaxTrackedEndpoints);
 	if (policy.Tracked() != KadBootstrapRotation::MaxTrackedEndpoints)
 		return false;
 
@@ -273,15 +274,15 @@ bool test_accept_window_matches_sender_ip_on_any_port()
 	if (policy.WasRequested(c.ip + 1u, 1000))
 		return false;
 	// A late answer still clears the penalty for every port of that IP.
-	policy.Accepted(c.ip);
-	return policy.Tracked() == 0 && !policy.WasRequested(c.ip, 1000);
+	policy.Accepted(c.ip, c.udpPort, c.udpPort, 30002);
+	return policy.Tracked() == 1 && !policy.WasRequested(c.ip, 30002);
 }
 
 bool test_accept_window_is_tick_wrap_safe()
 {
 	KadBootstrapRotation policy;
 	const auto c = MakeBootstrapContact(0);
-	const uint32_t start = 0xffff0000u;
+	const uint64_t start = 0xffff0000u;
 	policy.Sent(c.ip, c.udpPort, start);
 	return policy.WasRequested(c.ip, start + 179999u) &&
 	       !policy.WasRequested(c.ip, start + KadBootstrapRotation::AcceptWindowMs);
@@ -299,8 +300,9 @@ bool test_accepted_clears_only_the_answering_ip()
 	policy.Sent(b.ip, b.udpPort, 0);
 	if (policy.Tracked() != 3)
 		return false;
-	policy.Accepted(a.ip);
-	return policy.Tracked() == 1 && !policy.WasRequested(a.ip, 0) && policy.WasRequested(b.ip, 0);
+	policy.Accepted(a.ip, a.udpPort, a.udpPort, 1);
+	return policy.Tracked() == 3 && policy.WasRequested(a.ip, 1) && policy.WasRequested(b.ip, 1) &&
+	       policy.TimedOut(a.ip, sameIpOtherPort.udpPort, 30000);
 }
 } // namespace
 

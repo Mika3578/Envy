@@ -97,7 +97,7 @@ bool CKademlia::Init()
 
 	m_bInitialized = true;
 	m_lastTimerCall = GetTickCount();
-	m_lastBootstrapTime = m_lastTimerCall - 30000u;
+	m_lastBootstrapTime = 0;
 	m_lastStatusLog = m_lastTimerCall - 60000u;
 	m_bootstrapRotation.Reset();
 	m_bootstrapCached = m_bootstrapDeferred = m_bootstrapInvalid = 0;
@@ -159,16 +159,12 @@ void CKademlia::Bootstrap()
 		return;
 
 	CSingleLock oLock(&m_pKadSection, TRUE);
-	const DWORD now = GetTickCount();
-	// eMule 0.72a and aMule retry bootstrap every 2 s while the routing table is
-	// still empty, and every 15 s once it holds contacts but Kad is not yet
-	// connected (CKademlia::Process in both). A single 30 s cycle leaves a cold
-	// start walking a host cache an order of magnitude slower than either
-	// reference, which is the cold-start stall this scheduler has to clear. The
-	// Kad timer ticks at 5 s, so use the shortest cycle that timer can honour
-	// and halve the batch there to stay within the reference request rate.
+	const uint64_t now = KadNowMs();
+	// The 5-second timer floor permits at most two requests per 5 seconds.
+	// The nine-slot bootstrap budget and 30-second timeout further limit the
+	// rate when peers do not answer. References send one request per 2 seconds.
 	const bool bColdStart = m_routingTable.GetTotalContacts() == 0;
-	if (now - m_lastBootstrapTime < (bColdStart ? 4000u : 30000u))
+	if (m_lastBootstrapTime != 0 && now - m_lastBootstrapTime < (bColdStart ? 5000u : 30000u))
 		return;
 
 	m_lastBootstrapTime = now;
@@ -227,8 +223,11 @@ void CKademlia::SendBootstrapRequest(const KadContact& contact)
 	// Send packet and track the request
 	sockaddr_in addr;
 	KadContactGetSockAddr(contact, addr);
-	AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, addr);
-	m_bootstrapRotation.Sent(contact.ip, contact.udpPort, GetTickCount());
+	if (AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, addr) == 0)
+	{
+		pPacket->Release();
+		return;
+	}
 	++m_bootstrapSent;
 	SendPacket(&addr, pPacket);
 	pPacket->Release();
@@ -474,68 +473,7 @@ void CKademlia::OnBootstrapRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	// Don't add requester to routing table - we don't have their ID from empty request
 }
 
-void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
-{
-	// Check framing before consuming the matching outstanding request: a reply
-	// too short to carry the fixed header is not a bootstrap answer at all.
-	const size_t bodyBytes = pPacket->GetRemaining();
-	if (bodyBytes < KadBootstrapResponseHeaderBytes)
-	{
-		++m_bootstrapMalformed;
-		return;
-	}
-
-	KadId responderId;
-	pPacket->Read(responderId, KAD_ID_SIZE);
-	const WORD responderTcpPort = pPacket->ReadShortLE();
-	const BYTE responderKadVersion = pPacket->ReadByte();
-	const WORD announcedContacts = pPacket->ReadShortLE();
-	// eMule 0.72a and aMule keep whatever prefix of the announced contact list
-	// the datagram actually carried, so an over-counted or short list must not
-	// cost the peer its answer. Read the framed prefix, bounded locally.
-	const size_t usableContacts = KadBootstrapUsableContacts(bodyBytes, announcedContacts);
-	if (usableContacts < static_cast<size_t>(announcedContacts))
-		++m_bootstrapClamped;
-
-	const uint32_t nFromIp = ntohl(pHost->sin_addr.s_addr);
-	// eMule/aMule correlate a BOOTSTRAP_RES on the sender IP alone, for 180 s
-	// after the request. Keep the exact endpoint match first, and fall back to
-	// that rule so a reply on another UDP source port is still usable.
-	if (!IsRequestOutstanding(0, KAD_REQUEST_BOOTSTRAP, *pHost) &&
-	    !m_bootstrapRotation.WasRequested(nFromIp, GetTickCount()))
-	{
-		++m_bootstrapRejected;
-		return;
-	}
-
-	m_bootstrapRotation.Accepted(nFromIp);
-	++m_bootstrapResponses;
-
-	unsigned contactsAdded = 0;
-	for (size_t i = 0; i < usableContacts; ++i)
-	{
-		KadContact contact;
-		pPacket->Read(contact.id, KAD_ID_SIZE);
-		contact.ip = pPacket->ReadLongLE();
-		contact.udpPort = pPacket->ReadShortLE();
-		contact.tcpPort = pPacket->ReadShortLE();
-		contact.version = pPacket->ReadByte();
-		contact.verified = false;
-
-		if (UpdateContact(contact, KadContactSource::Candidate, false))
-			++contactsAdded;
-		else
-			++m_bootstrapRejected;
-	}
-
-	KadContact responderContact(responderId, nFromIp, ntohs(pHost->sin_port), responderTcpPort);
-	responderContact.version = responderKadVersion;
-	if (UpdateContact(responderContact, KadContactSource::Observed, false))
-		++contactsAdded;
-	else
-		++m_bootstrapRejected;
-	m_bootstrapAccepted += contactsAdded;
-}
+#include "KademliaBootstrap.inl"
 
 void CKademlia::OnPing(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
@@ -996,113 +934,6 @@ void CKademlia::CleanupRateLimitMap()
 }
 
 // Request tracking implementation
-DWORD CKademlia::AddOutstandingRequest(KadRequestType type, const SOCKADDR_IN& targetAddr)
-{
-	// Simple request ID generation - use a counter for now
-	static DWORD nextRequestId = 1;
-	DWORD requestId = nextRequestId++;
-
-	// Clean up expired requests first
-	CleanupExpiredRequests();
-
-	// Don't allow too many outstanding requests
-	if (m_outstandingRequests.size() >= KAD2_MAX_OUTSTANDING_REQUESTS)
-	{
-		// Remove oldest request
-		auto oldest = m_outstandingRequests.begin();
-		for (auto it = m_outstandingRequests.begin(); it != m_outstandingRequests.end(); ++it)
-		{
-			if (it->second.sentTime < oldest->second.sentTime)
-			{
-				oldest = it;
-			}
-		}
-		if (oldest->second.type == KAD_REQUEST_BOOTSTRAP &&
-		    m_bootstrapRotation.TimedOut(ntohl(oldest->second.targetAddr.sin_addr.s_addr),
-		                                 ntohs(oldest->second.targetAddr.sin_port), GetTickCount()))
-			++m_bootstrapTimeouts;
-		m_outstandingRequests.erase(oldest);
-	}
-
-	m_outstandingRequests[requestId] = KadOutstandingRequest(type, targetAddr);
-	return requestId;
-}
-
-DWORD CKademlia::AddOutstandingRequest(KadRequestType type, const SOCKADDR_IN& targetAddr, const KadId& kadTarget)
-{
-	DWORD requestId = AddOutstandingRequest(type, targetAddr);
-	auto it = m_outstandingRequests.find(requestId);
-	if (it != m_outstandingRequests.end())
-	{
-		memcpy(it->second.targetId, kadTarget, KAD_ID_SIZE);
-		it->second.hasTargetId = true;
-	}
-	return requestId;
-}
-
-bool CKademlia::IsRequestOutstanding(DWORD requestId, KadRequestType expectedType, const SOCKADDR_IN& fromAddr)
-{
-	return MatchOutstandingRequest(requestId, expectedType, fromAddr, nullptr);
-}
-
-bool CKademlia::IsRequestOutstanding(DWORD requestId, KadRequestType expectedType, const SOCKADDR_IN& fromAddr, const KadId& kadTarget)
-{
-	return MatchOutstandingRequest(requestId, expectedType, fromAddr, kadTarget);
-}
-
-bool CKademlia::MatchOutstandingRequest(DWORD requestId, KadRequestType expectedType, const SOCKADDR_IN& fromAddr, const unsigned char* targetId)
-{
-	(void)requestId;
-	auto it = m_outstandingRequests.begin();
-	while (it != m_outstandingRequests.end())
-	{
-		if (it->second.targetAddr.sin_addr.s_addr == fromAddr.sin_addr.s_addr &&
-		    it->second.targetAddr.sin_port == fromAddr.sin_port &&
-		    it->second.type == expectedType)
-		{
-			if (targetId != nullptr)
-			{
-				if (!it->second.hasTargetId || memcmp(it->second.targetId, targetId, KAD_ID_SIZE) != 0)
-				{
-					++it;
-					continue;
-				}
-			}
-			m_outstandingRequests.erase(it);
-			return true;
-		}
-		++it;
-	}
-
-	return false;
-}
-
-void CKademlia::RemoveOutstandingRequest(DWORD requestId)
-{
-	m_outstandingRequests.erase(requestId);
-}
-
-void CKademlia::CleanupExpiredRequests()
-{
-	DWORD now = GetTickCount();
-	auto it = m_outstandingRequests.begin();
-
-	while (it != m_outstandingRequests.end())
-	{
-		if (now - it->second.sentTime > KAD2_REQUEST_TIMEOUT)
-		{
-			if (it->second.type == KAD_REQUEST_BOOTSTRAP &&
-			    m_bootstrapRotation.TimedOut(ntohl(it->second.targetAddr.sin_addr.s_addr),
-			                                 ntohs(it->second.targetAddr.sin_port), now))
-				++m_bootstrapTimeouts;
-			it = m_outstandingRequests.erase(it);
-		}
-		else
-		{
-			++it;
-		}
-	}
-}
 
 //////////////////////////////////////////////////////////////////////
 // DHT Storage

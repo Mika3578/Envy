@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include "KadRoutingTable.h"
 #include "KadBootstrapRotation.h"
+#include "KadOutstandingRequest.h"
 #include "KadSearchResDelivery.h"
 #include "KadFirewallCheck.h"
 
@@ -43,19 +44,6 @@ inline void KadContactGetSockAddr(const KadContact& contact, sockaddr_in& addr)
 	addr.sin_addr.s_addr = htonl(contact.ip);
 	addr.sin_port = htons(contact.udpPort);
 }
-
-// Kad2 request tracking
-enum KadRequestType
-{
-	KAD_REQUEST_BOOTSTRAP = 0,
-	KAD_REQUEST_FIND_NODE = 1,
-	KAD_REQUEST_SEARCH_KEY = 2,
-	KAD_REQUEST_SEARCH_SOURCE = 3,
-	KAD_REQUEST_PUBLISH_KEY = 4,
-	KAD_REQUEST_PUBLISH_SOURCE = 5,
-	KAD_REQUEST_FIREWALL_CHECK = 6,
-	KAD_REQUEST_HELLO = 7
-};
 
 // DHT stored entry (published keyword or source)
 struct KadStoredEntry
@@ -87,33 +75,6 @@ typedef std::unordered_map<KadIdKey, std::vector<KadStoredEntry>, KadIdHash> Kad
 #define KAD_STORE_MAX_ENTRIES_PER_KEY 50
 #define KAD_STORE_ENTRY_LIFETIME (2 * 60 * 60 * 1000) // 2 hours
 #define KAD_STORE_MAX_TOTAL 5000
-
-struct KadOutstandingRequest
-{
-	KadRequestType type;
-	DWORD sentTime;
-	SOCKADDR_IN targetAddr;
-	KadId targetId;
-	bool hasTargetId;
-
-	KadOutstandingRequest()
-	    : type(KAD_REQUEST_BOOTSTRAP)
-	    , sentTime(0)
-	    , hasTargetId(false)
-	{
-		memset(&targetAddr, 0, sizeof(targetAddr));
-		memset(targetId, 0, KAD_ID_SIZE);
-	}
-
-	KadOutstandingRequest(KadRequestType t, const SOCKADDR_IN& addr)
-	    : type(t)
-	    , sentTime(GetTickCount())
-	    , hasTargetId(false)
-	{
-		targetAddr = addr;
-		memset(targetId, 0, KAD_ID_SIZE);
-	}
-};
 
 // CKademlia Kad2 implementation class
 class CKademlia
@@ -242,7 +203,7 @@ private:
 	KadId m_ownId;
 	Kad2RoutingTable m_routingTable;
 	CCriticalSection m_pKadSection;
-	DWORD m_lastBootstrapTime;
+	uint64_t m_lastBootstrapTime;
 	DWORD m_lastTimerCall;
 	DWORD m_lastStatusLog;
 	KadBootstrapRotation m_bootstrapRotation;
