@@ -256,6 +256,7 @@ private:
 	uint32_t m_bootstrapResponses;
 	uint32_t m_bootstrapAccepted;
 	uint32_t m_bootstrapMalformed;
+	uint32_t m_bootstrapClamped;
 	uint32_t m_bootstrapRejected;
 	uint32_t m_sourceNoContacts;
 

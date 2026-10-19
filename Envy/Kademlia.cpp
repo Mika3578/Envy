@@ -66,6 +66,7 @@ CKademlia::CKademlia()
     , m_bootstrapResponses(0)
     , m_bootstrapAccepted(0)
     , m_bootstrapMalformed(0)
+    , m_bootstrapClamped(0)
     , m_bootstrapRejected(0)
     , m_sourceNoContacts(0)
     , m_lastRateLimitCleanup(0)
@@ -101,7 +102,8 @@ bool CKademlia::Init()
 	m_bootstrapRotation.Reset();
 	m_bootstrapCached = m_bootstrapDeferred = m_bootstrapInvalid = 0;
 	m_bootstrapSent = m_bootstrapTimeouts = m_bootstrapResponses = 0;
-	m_bootstrapAccepted = m_bootstrapMalformed = m_bootstrapRejected = m_sourceNoContacts = 0;
+	m_bootstrapAccepted = m_bootstrapMalformed = m_bootstrapClamped = 0;
+	m_bootstrapRejected = m_sourceNoContacts = 0;
 	m_lastFirewallTcpPort = (WORD)Settings.Connection.InPort;
 	m_firewall.OnKadStart(m_lastTimerCall, m_lastFirewallTcpPort);
 
@@ -158,7 +160,15 @@ void CKademlia::Bootstrap()
 
 	CSingleLock oLock(&m_pKadSection, TRUE);
 	const DWORD now = GetTickCount();
-	if (now - m_lastBootstrapTime < 30000u)
+	// eMule 0.72a and aMule retry bootstrap every 2 s while the routing table is
+	// still empty, and every 15 s once it holds contacts but Kad is not yet
+	// connected (CKademlia::Process in both). A single 30 s cycle leaves a cold
+	// start walking a host cache an order of magnitude slower than either
+	// reference, which is the cold-start stall this scheduler has to clear. The
+	// Kad timer ticks at 5 s, so use the shortest cycle that timer can honour
+	// and halve the batch there to stay within the reference request rate.
+	const bool bColdStart = m_routingTable.GetTotalContacts() == 0;
+	if (now - m_lastBootstrapTime < (bColdStart ? 4000u : 30000u))
 		return;
 
 	m_lastBootstrapTime = now;
@@ -185,7 +195,9 @@ void CKademlia::Bootstrap()
 		}
 	}
 
-	const KadBootstrapRotation::Batch batch = m_bootstrapRotation.Select(candidates, now);
+	const KadBootstrapRotation::Batch batch = m_bootstrapRotation.Select(
+	    candidates, now,
+	    bColdStart ? KadBootstrapRotation::MaxColdStartBatch : KadBootstrapRotation::MaxBatch);
 	m_bootstrapCached = static_cast<uint32_t>(candidates.size());
 	m_bootstrapDeferred = static_cast<uint32_t>(batch.deferred);
 	m_bootstrapInvalid = static_cast<uint32_t>(batch.invalid);
@@ -464,10 +476,10 @@ void CKademlia::OnBootstrapRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 
 void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
-	// Check framing before consuming the matching outstanding request.
-	// A truncated reply must not be counted as a successful bootstrap.
+	// Check framing before consuming the matching outstanding request: a reply
+	// too short to carry the fixed header is not a bootstrap answer at all.
 	const size_t bodyBytes = pPacket->GetRemaining();
-	if (bodyBytes < 21u)
+	if (bodyBytes < KadBootstrapResponseHeaderBytes)
 	{
 		++m_bootstrapMalformed;
 		return;
@@ -477,24 +489,30 @@ void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket
 	pPacket->Read(responderId, KAD_ID_SIZE);
 	const WORD responderTcpPort = pPacket->ReadShortLE();
 	const BYTE responderKadVersion = pPacket->ReadByte();
-	const WORD contactCount = pPacket->ReadShortLE();
-	if (!KadBootstrapResponseLengthValid(bodyBytes, contactCount))
-	{
-		++m_bootstrapMalformed;
-		return;
-	}
+	const WORD announcedContacts = pPacket->ReadShortLE();
+	// eMule 0.72a and aMule keep whatever prefix of the announced contact list
+	// the datagram actually carried, so an over-counted or short list must not
+	// cost the peer its answer. Read the framed prefix, bounded locally.
+	const size_t usableContacts = KadBootstrapUsableContacts(bodyBytes, announcedContacts);
+	if (usableContacts < static_cast<size_t>(announcedContacts))
+		++m_bootstrapClamped;
 
-	if (!IsRequestOutstanding(0, KAD_REQUEST_BOOTSTRAP, *pHost))
+	const uint32_t nFromIp = ntohl(pHost->sin_addr.s_addr);
+	// eMule/aMule correlate a BOOTSTRAP_RES on the sender IP alone, for 180 s
+	// after the request. Keep the exact endpoint match first, and fall back to
+	// that rule so a reply on another UDP source port is still usable.
+	if (!IsRequestOutstanding(0, KAD_REQUEST_BOOTSTRAP, *pHost) &&
+	    !m_bootstrapRotation.WasRequested(nFromIp, GetTickCount()))
 	{
 		++m_bootstrapRejected;
 		return;
 	}
 
-	m_bootstrapRotation.Accepted(ntohl(pHost->sin_addr.s_addr), ntohs(pHost->sin_port));
+	m_bootstrapRotation.Accepted(nFromIp);
 	++m_bootstrapResponses;
 
 	unsigned contactsAdded = 0;
-	for (WORD i = 0; i < contactCount; ++i)
+	for (size_t i = 0; i < usableContacts; ++i)
 	{
 		KadContact contact;
 		pPacket->Read(contact.id, KAD_ID_SIZE);
@@ -510,8 +528,7 @@ void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket
 			++m_bootstrapRejected;
 	}
 
-	KadContact responderContact(responderId, ntohl(pHost->sin_addr.s_addr),
-	                            ntohs(pHost->sin_port), responderTcpPort);
+	KadContact responderContact(responderId, nFromIp, ntohs(pHost->sin_port), responderTcpPort);
 	responderContact.version = responderKadVersion;
 	if (UpdateContact(responderContact, KadContactSource::Observed, false))
 		++contactsAdded;
@@ -791,11 +808,12 @@ void CKademlia::LogKadStatus()
 		return;
 	m_lastStatusLog = now;
 	theApp.Message(MSG_DEBUG,
-	               L"Kad2 status: routing=%u cached=%u deferred=%u invalid=%u sent=%u timed_out=%u valid_responses=%u accepted_contacts=%u malformed=%u rejected=%u source_no_contacts=%u",
+	               L"Kad2 status: routing=%u cached=%u deferred=%u invalid=%u sent=%u timed_out=%u valid_responses=%u accepted_contacts=%u malformed=%u clamped=%u rejected=%u source_no_contacts=%u",
 	               (unsigned)m_routingTable.GetTotalContacts(), m_bootstrapCached,
 	               m_bootstrapDeferred, m_bootstrapInvalid, m_bootstrapSent,
 	               m_bootstrapTimeouts, m_bootstrapResponses, m_bootstrapAccepted,
-	               m_bootstrapMalformed, m_bootstrapRejected, m_sourceNoContacts);
+	               m_bootstrapMalformed, m_bootstrapClamped, m_bootstrapRejected,
+	               m_sourceNoContacts);
 	if (m_bootstrapSent > 0 && m_bootstrapResponses == 0)
 		theApp.Message(MSG_DEBUG, L"Kad2: UDP bootstrap response not yet validated; reachability/obfuscation undetermined");
 }
