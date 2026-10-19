@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "deny": [
+      "Shell(gh:pr merge*)",
+      "Shell(git:push --force*)",
+      "Shell(git:push -f*)",
+      "Shell(git:push upstream*)",
+      "Shell(git:push --no-verify*)",
+      "Read(.env*)",
+      "Write(**/.env*)"
+    ]
+  }
+}

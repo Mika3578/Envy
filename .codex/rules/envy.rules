@@ -1,0 +1,22 @@
+# Mirrors the technical limits in AGENTS.md (Autonomy). Keep in sync.
+prefix_rule(
+    pattern = ["gh", "pr", "merge"],
+    decision = "forbidden",
+    justification = "Only the maintainer squash-merges into develop.",
+    match = ["gh pr merge 1 --squash"],
+    not_match = ["gh pr view 1"],
+)
+prefix_rule(
+    pattern = ["git", "push", ["--force", "-f", "--force-with-lease"]],
+    decision = "forbidden",
+    justification = "No force-push; push fast-forward only.",
+    match = ["git push --force origin main"],
+    not_match = ["git push origin feature"],
+)
+prefix_rule(
+    pattern = ["git", "push", "upstream"],
+    decision = "forbidden",
+    justification = "Never write to the upstream repository.",
+    match = ["git push upstream develop"],
+    not_match = ["git push origin develop"],
+)

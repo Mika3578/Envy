@@ -21,12 +21,10 @@ Rules come from root `AGENTS.md`; this skill is the procedure.
 5. Stabilize in Draft: deterministic CI runs on every push; batch related
    fixes into one push instead of pushing each one.
 6. When the head is clean (checks green, threads treated, summary current),
-   say so in one PR comment. The maintainer marks Ready and squash-merges
-   (or delegates it in writing, see `AGENTS.md` *Autonomy*: then record the
-   final head SHA, after only the permitted review and CI fixes, and merge it
-   with `--match-head-commit`),
-   applying `stage:live-test` first only when the PR needs a manual runtime
-   test (not for docs-only, workflow-only or test-only changes). Ready and
+   say so in one PR comment. Apply `stage:live-test` only when the PR needs a
+   manual runtime test (not for docs-only, workflow-only or test-only
+   changes) and wait for the maintainer's runtime result. Then mark Ready
+   yourself; the maintainer squash-merges. Ready and
    live-test run x64 and Win32 Release with EnvyTests; any later push
    invalidates recorded runtime evidence.
 

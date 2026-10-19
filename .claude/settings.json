@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(gh pr merge:*)",
+      "Bash(gh api *rulesets*)",
+      "Bash(gh api *branches/*/protection*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push upstream:*)",
+      "Bash(git push --no-verify:*)",
+      "Bash(git commit --no-verify:*)"
+    ]
+  }
+}
