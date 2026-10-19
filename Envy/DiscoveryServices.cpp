@@ -664,10 +664,16 @@ void CDiscoveryServices::AddDefaults()
 	const wchar_t* pszCataloguePath = BootstrapSelectCataloguePath(
 	    strWritablePath, ::PathFileExists(strWritablePath),
 	    strPackagedPath, ::PathFileExists(strPackagedPath));
-	const CString strFile = pszCataloguePath ? pszCataloguePath : L"";
+	CString strFile = pszCataloguePath ? pszCataloguePath : L"";
 
 	CFile pFile;
-	if (!strFile.IsEmpty() && pFile.Open(strFile, CFile::modeRead | CFile::shareDenyWrite)) // Load default list from writable or packaged data
+	BOOL bOpened = !strFile.IsEmpty() && pFile.Open(strFile, CFile::modeRead | CFile::shareDenyWrite);
+	if (!bOpened && strFile == strWritablePath && !strPackagedPath.IsEmpty() && ::PathFileExists(strPackagedPath)) // Unreadable writable copy
+	{
+		strFile = strPackagedPath;
+		bOpened = pFile.Open(strFile, CFile::modeRead | CFile::shareDenyWrite);
+	}
+	if (bOpened) // Load default list from writable or packaged data
 	{
 		theApp.Message(MSG_NOTICE, L"Loading default discovery service catalogue from %s data", strFile == strWritablePath ? L"writable" : L"packaged");
 

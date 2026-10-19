@@ -558,7 +558,7 @@ static bool test_unrelated_gwcs_do_not_replace_g1_udp_bootstrap()
 			nWebCaches, nG2, 0, 0, nEd2k, nDc, nKad, false, true, true, true );
 }
 
-static bool test_legacy_g1_cache_is_repaired_once()
+static bool test_legacy_g1_cache_needs_udp_top_up()
 {
 	std::wstring shipped;
 	if ( ! LoadRepoDataFile( "DefaultServices.dat", &shipped ) )
@@ -621,5 +621,5 @@ void register_bootstrap_catalog_smoke_tests( TestSuite& suite )
 	suite.add_test( "bootstrap_catalogue_path_fallback", test_catalogue_path_falls_back_to_packaged_defaults );
 	suite.add_test( "bootstrap_packaged_catalogue_beside_executable", test_packaged_catalogue_directory_is_beside_executable );
 	suite.add_test( "bootstrap_required_g1_udp_category", test_unrelated_gwcs_do_not_replace_g1_udp_bootstrap );
-	suite.add_test( "bootstrap_legacy_g1_cache_repaired_once", test_legacy_g1_cache_is_repaired_once );
+	suite.add_test( "bootstrap_legacy_g1_cache_needs_udp_top_up", test_legacy_g1_cache_needs_udp_top_up );
 }

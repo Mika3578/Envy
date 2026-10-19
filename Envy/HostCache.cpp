@@ -1309,7 +1309,7 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 	const wchar_t* pszCataloguePath = BootstrapSelectCataloguePath(
 	    strWritablePath, ::PathFileExists(strWritablePath),
 	    strPackagedPath, ::PathFileExists(strPackagedPath));
-	const CString strFile = pszCataloguePath ? pszCataloguePath : L"";
+	CString strFile = pszCataloguePath ? pszCataloguePath : L"";
 	int nServers = 0;
 
 	// Ignore old files (300 days)
@@ -1317,7 +1317,13 @@ int CHostCache::LoadDefaultServers(PROTOCOLID nProtocol)
 	//	return 0;
 
 	CStdioFile pFile; // Load default list from writable or packaged data
-	if (strFile.IsEmpty() || !pFile.Open(strFile, CFile::modeRead | CFile::shareDenyWrite | CFile::osSequentialScan))
+	BOOL bOpened = !strFile.IsEmpty() && pFile.Open(strFile, CFile::modeRead | CFile::shareDenyWrite | CFile::osSequentialScan);
+	if (!bOpened && strFile == strWritablePath && !strPackagedPath.IsEmpty() && ::PathFileExists(strPackagedPath)) // Unreadable writable copy
+	{
+		strFile = strPackagedPath;
+		bOpened = pFile.Open(strFile, CFile::modeRead | CFile::shareDenyWrite | CFile::osSequentialScan);
+	}
+	if (!bOpened)
 	{
 		static LONG s_nMissingCatalogueLogged = 0;
 		if (InterlockedCompareExchange(&s_nMissingCatalogueLogged, 1, 0) == 0)

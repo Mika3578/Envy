@@ -1761,13 +1761,13 @@ $(EnvyCrashPostBuildCmd)</Command>
     <Error Condition="!Exists('$(MSBuildProjectDirectory)\..\Data\DefaultServers.dat')" Text="Missing Data\DefaultServers.dat required for Envy bootstrap." />
   </Target>
   <!-- No Inputs/Outputs: dependency analysis would skip Copy when a staged catalogue was altered
-       but is newer than its source; SkipUnchangedFiles already avoids needless copies. -->
+       but is newer than its source; always copy so a staged catalogue is restored byte for byte. -->
   <Target Name="StageBootstrapCatalogues" AfterTargets="Build"
           Condition="'$(DesignTimeBuild)' != 'true'">
     <MakeDir Directories="$(TargetDir)Data" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\Data\DefaultServices.dat;$(MSBuildProjectDirectory)\..\Data\DefaultServers.dat"
           DestinationFiles="$(TargetDir)Data\DefaultServices.dat;$(TargetDir)Data\DefaultServers.dat"
-          SkipUnchangedFiles="true" />
+          SkipUnchangedFiles="false" />
   </Target>
   <!-- vcpkg.targets is not imported here. VcpkgEnabled/VcpkgEnableManifest only
        restore packages if the machine has vcpkg MSBuild integration, and even
