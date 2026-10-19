@@ -213,14 +213,10 @@ comparison notes.
 
 ## Agent PR back-pressure
 
-
-Soft target of **5** active development PRs (canonical rule in `AGENTS.md`).
-Prefer finishing or merging existing PRs first. Opening a sixth (or more)
-needs a concrete documented reason in the PR body (blocking reliability or
-security fix, required CI hotfix, or a dependency that cannot wait). Overflow
-is not a loophole for unbounded parallel work, and “small/quick/tooling” is
-not by itself a reason. Dependabot PRs are outside the agent target but should
-stay grouped.
+There is no numeric cap on open development PRs. Before opening a PR, check
+the open PRs that touch the same files and extend or finish the owning PR
+instead of opening an overlapping one (`AGENTS.md`, *Branches, commits and
+PRs*). Dependabot PRs should stay grouped.
 
 ## Related
 
