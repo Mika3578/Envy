@@ -263,6 +263,29 @@ bool test_capacity_eviction_is_cancellation()
 	       kad.m_bootstrapRotation.Select({ candidate }, testNow).contacts.size() == 1;
 }
 
+bool test_evicted_reply_cannot_consume_independent_request()
+{
+	testNow = 1000;
+	CKademlia kad;
+	const auto evicted = kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
+	++testNow;
+	const auto independent = kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint(5000));
+	for (uint16_t port = 7000; port < 7009; ++port)
+	{
+		++testNow;
+		kad.AddOutstandingRequest(KAD_REQUEST_HELLO, Endpoint(port, 0xc0000202u));
+	}
+	if (kad.m_outstandingRequests.count(evicted) != 0 ||
+	    kad.m_outstandingRequests.count(independent) != 1 || kad.m_bootstrapTimeouts != 0)
+		return false;
+	// The cancelled peer's reply port was never observed. Neither its original
+	// port nor an unknown alternate port can safely use the remaining IP credit.
+	if (Respond(kad, Endpoint()) || Respond(kad, Endpoint(6000)) ||
+	    kad.m_outstandingRequests.count(independent) != 1)
+		return false;
+	return Respond(kad, Endpoint(5000)) && kad.m_outstandingRequests.count(independent) == 0;
+}
+
 bool test_explicit_cancel_and_real_timeout()
 {
 	testNow = 1000;
@@ -369,6 +392,7 @@ void register_kad_bootstrap_response_tests(TestSuite& suite)
 	suite.add_test("kad_response_late", test_late_reply);
 	suite.add_test("kad_response_expired", test_expired_reply);
 	suite.add_test("kad_response_capacity_cancels", test_capacity_eviction_is_cancellation);
+	suite.add_test("kad_response_evicted_reply_preserves_independent", test_evicted_reply_cannot_consume_independent_request);
 	suite.add_test("kad_response_cancel_vs_timeout", test_explicit_cancel_and_real_timeout);
 	suite.add_test("kad_response_idle_over_half_cycle", test_long_idle_half_cycle);
 	suite.add_test("kad_response_idle_over_full_cycle", test_long_idle_full_cycle);

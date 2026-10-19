@@ -126,12 +126,12 @@ public:
 			{
 				// Evict the least recently touched retry state, never grow
 				// without bound when imported host caches change. Pending
-				// requests must remain tracked until completion or timeout.
+				// requests and recent correlation/cancellation/replay history
+				// must not be lost while an alternate-port reply is possible.
 				auto oldest = m_retry.end();
 				for (auto cur = m_retry.begin(); cur != m_retry.end(); ++cur)
 				{
-					if (cur->second.pending || (cur->second.answered &&
-					                            now - cur->second.lastSent < AcceptWindowMs))
+					if (cur->second.pending || now - cur->second.lastSent < AcceptWindowMs)
 						continue;
 					if (oldest == m_retry.end() ||
 					    cur->second.lastTouched < oldest->second.lastTouched)
@@ -192,6 +192,7 @@ public:
 	{
 		const State* match = nullptr;
 		size_t candidates = 0;
+		bool cancelled = false;
 		for (auto it = m_retry.lower_bound(Key(ip, MinPort)); it != m_retry.end() && it->first.first == ip; ++it)
 		{
 			const State& state = it->second;
@@ -200,7 +201,12 @@ public:
 			if (state.answered && (state.replyPort == sourcePort || it->first.second == sourcePort))
 				return false;
 			if (!state.requested)
+			{
+				// A cancelled request has no observed response port. Its late
+				// reply could otherwise consume an independent IP-only match.
+				cancelled = cancelled || !state.answered;
 				continue;
+			}
 			++candidates;
 			if (match == nullptr || it->first.second == sourcePort)
 			{
@@ -208,7 +214,7 @@ public:
 				requestedPort = it->first.second;
 			}
 		}
-		return match != nullptr && (requestedPort == sourcePort || candidates == 1);
+		return match != nullptr && (requestedPort == sourcePort || (candidates == 1 && !cancelled));
 	}
 
 	void Accepted(uint32_t ip, uint16_t requestedPort, uint16_t sourcePort, uint64_t now)
