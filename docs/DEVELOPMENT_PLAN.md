@@ -1,6 +1,8 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-11
+- **Last Updated:** 2026-10-12
+
+- **Changelog Entry:** 2026-10-12 — #461: remove the trailing C++17 Release|x64 overrides in Envy, HashLib, TorrentEnvy, and Unpacker. Envy/HashLib/TorrentEnvy now pass `/std:c++20`; Unpacker's C sources continue to compile with `/TC` despite `stdcpp20` metadata. Keep other configurations and build dependencies unchanged.
 
 - **Changelog Entry:** 2026-10-11 - #405: constrain package destinations with strict manifest/ZIP path checks, bounded construction, pinned non-reparse ancestors and complete-file staged replacement. Production-backed EnvyTests cover package types, malformed input, overwrite policy and alias escapes; the focused project supports AddressSanitizer. Essential #406 ownership and manifest-buffer fixes are included; package-wide expansion/time budgets remain open. Validation commands and limitations: `10_dev/unpacker-validation.md`.
 
