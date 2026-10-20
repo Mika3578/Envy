@@ -10,6 +10,7 @@
 #include "test_framework.h"
 #include "../Envy/KadBootstrapRotation.h"
 #include "../Envy/KadOutstandingRequest.h"
+#include <set>
 #include <stdexcept>
 #include <utility>
 
@@ -469,6 +470,95 @@ bool test_partial_reply_consumes_like_a_complete_one()
 	const auto partial = after(Reply(0, 9, 0));
 	return complete.first == 1 && partial.first == 1 && complete.second == partial.second;
 }
+
+struct ColdStartRun
+{
+	size_t sent = 0;
+	size_t peakInFlight = 0;
+	size_t oversized = 0; // a batch larger than the limit it was asked for
+	size_t blocked = 0;   // cycles where the full budget allowed nothing
+	uint64_t fullCoverageMs = 0;
+};
+
+// A cold start where no peer answers, through the production request lifecycle:
+// AddOutstandingRequest registers the request with the retry policy and
+// CleanupExpiredRequests expires it into backoff. Only the few lines of
+// CKademlia::Bootstrap that bound the batch, select and send are repeated here.
+ColdStartRun SilentColdStart(size_t cacheSize, uint64_t tickMs, uint64_t horizonMs)
+{
+	CKademlia kad;
+	std::vector<KadContact> cache;
+	for (size_t i = 0; i < cacheSize; ++i)
+	{
+		KadId id = {};
+		id[0] = 1;
+		id[1] = static_cast<unsigned char>(i & 0xffu);
+		id[2] = static_cast<unsigned char>(i >> 8);
+		cache.emplace_back(id, 0xc0000201u + static_cast<uint32_t>(i), uint16_t{ 4672 });
+	}
+	std::set<uint32_t> contacted;
+	ColdStartRun run;
+	const uint64_t start = 1000;
+	for (uint64_t now = start; now < start + horizonMs; now += tickMs)
+	{
+		testNow = now;
+		kad.CleanupExpiredRequests();
+		const size_t limit = KadBootstrapBatchLimit(KadBootstrapRotation::MaxColdStartBatch,
+		                                            kad.m_outstandingRequests.size(),
+		                                            KAD2_MAX_OUTSTANDING_REQUESTS);
+		if (limit == 0)
+		{
+			++run.blocked;
+			continue;
+		}
+		const auto batch = kad.m_bootstrapRotation.Select(cache, now, limit);
+		if (batch.contacts.size() > limit)
+			++run.oversized;
+		for (const KadContact& c : batch.contacts)
+		{
+			if (kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint(c.udpPort, c.ip)) == 0)
+				continue;
+			contacted.insert(c.ip);
+			++run.sent;
+		}
+		run.peakInFlight = std::max(run.peakInFlight, kad.m_outstandingRequests.size());
+		if (run.fullCoverageMs == 0 && contacted.size() == cacheSize)
+			run.fullCoverageMs = now - start;
+	}
+	return run;
+}
+
+bool test_cold_start_covers_the_cache_within_the_budget()
+{
+	// The periodic caller runs once per six one-second timer ticks (about 6 s, never
+	// closer than 5 s). 50 cached peers, none answering, ten minutes.
+	const ColdStartRun r = SilentColdStart(50, 6000, 600000);
+	// Bounded: the budget is never exceeded, a batch never outgrows its limit, and
+	// the total stays below the one request per two seconds of the references.
+	if (r.peakInFlight > KAD2_MAX_OUTSTANDING_REQUESTS - 1 || r.oversized != 0 ||
+	    r.sent > 600000u / 2000u)
+		return false;
+	// Nothing is selected and left untried: the whole cache gets a first request in
+	// under three and a half minutes. Selecting first and cutting the send loop on
+	// the budget took over seven minutes here.
+	return r.fullCoverageMs != 0 && r.fullCoverageMs <= 210000;
+}
+
+bool test_cold_start_rate_is_set_by_the_budget_not_the_tick()
+{
+	const ColdStartRun six = SilentColdStart(50, 6000, 600000);
+	const ColdStartRun five = SilentColdStart(50, 5000, 600000);
+	const ColdStartRun large = SilentColdStart(200, 6000, 600000);
+	// A slightly shorter tick changes nothing: nine slots held for 30 s cap the rate
+	// at 0.3 requests/s whatever the cycle.
+	const size_t spread = six.sent > five.sent ? six.sent - five.sent : five.sent - six.sent;
+	if (spread * 10 > six.sent)
+		return false;
+	// Sustained cold-start rate: above 0.2 and at most 0.3 requests/s, under the
+	// references' 0.5. A larger cache stays bounded the same way.
+	return six.sent >= 120 && six.sent <= 180 && large.peakInFlight <= KAD2_MAX_OUTSTANDING_REQUESTS - 1 &&
+	       large.oversized == 0 && large.sent <= 180;
+}
 } // namespace
 
 void register_kad_bootstrap_response_tests(TestSuite& suite)
@@ -496,4 +586,6 @@ void register_kad_bootstrap_response_tests(TestSuite& suite)
 	suite.add_test("kad_response_unsolicited_never_counts", test_unsolicited_never_counts_as_answer);
 	suite.add_test("kad_response_partial_not_valid", test_partial_replies_are_not_valid_responses);
 	suite.add_test("kad_response_partial_consumes_like_complete", test_partial_reply_consumes_like_a_complete_one);
+	suite.add_test("kad_response_cold_start_coverage", test_cold_start_covers_the_cache_within_the_budget);
+	suite.add_test("kad_response_cold_start_rate_budget_bound", test_cold_start_rate_is_set_by_the_budget_not_the_tick);
 }

@@ -165,9 +165,10 @@ void CKademlia::Bootstrap()
 	const uint64_t now = KadNowMs();
 	// OnTimer is driven by CMainWnd::OnTimer, which counts whole seconds and
 	// requires `tNow > tLast5SecInterval + 5`: it runs once per six one-second
-	// timer ticks, about every 6 s and never closer than 5 s, so the 5 s spacing
-	// below does not bind on that path and only holds back the discrete
-	// ConnectTo(PROTOCOL_KAD) entry. What bounds the sustained rate is the
+	// timer ticks, about every 6 s and never closer than 5 s, so the 5 s cold-start
+	// spacing below does not bind on that path and only holds back the discrete
+	// ConnectTo(PROTOCOL_KAD) entry; the 30 s spacing used once the table holds
+	// contacts does bind. What bounds the sustained cold-start rate is the
 	// budget: nine usable slots, each held for the 30 s request timeout, about
 	// 0.25-0.30 requests/s against silent peers. The references send one request
 	// every 2 s while the routing table is empty, so Envy is slower.

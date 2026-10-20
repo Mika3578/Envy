@@ -17,23 +17,29 @@ cold start walks the whole cache instead of re-sampling its leading entries.
 
 **Cycle and batch.** The periodic caller is `CKademlia::OnTimer`, driven by
 `CMainWnd::OnTimer`. That code counts whole seconds and runs when
-`tNow > tLast5SecInterval + 5`, i.e. once per six one-second timer ticks:
-about every 6 s and, with a steady clock, never closer than 5 s (the previous
-call may fall late in its second, the next early in the following one). Each cycle sends at most two
-bootstrap requests while the routing table is empty and at most three
-afterwards. `Bootstrap()` also enforces a minimum spacing of 5 s (cold start) or
-30 s, which does not bind on the periodic path and only holds back the discrete
-`ConnectTo(PROTOCOL_KAD)` entry.
+`tNow > tLast5SecInterval + 5`, i.e. once per six one-second timer ticks: about
+every 6 s and, with a steady clock, never closer than 5 s (the previous call may
+fall late in its second, the next early in the following one). `OnTimer` calls
+`Bootstrap()` while the routing table holds fewer than five contacts, and each
+cycle sends at most two bootstrap requests while the table is empty and at most
+three once it holds contacts.
 
-The sustained rate is set by the outstanding-request budget, not by the tick:
-nine usable slots (one of the ten stays free for other Kad traffic), each held
-for the 30-second request timeout. Against peers that never answer that is
-**0.25-0.30 requests/second**, measured by simulating the gate chain and
-asserted by `kad_bootstrap_cold_start_rate_budget_bound`; a 5 s tick or a batch
-of three gave the same rate when measured. eMule and aMule send one request every 2 seconds
+`Bootstrap()` also enforces a minimum spacing between cycles: 5 s while the
+table is empty, 30 s once it holds contacts. The 5 s cold-start spacing does not
+bind on the periodic path, since the timer is already slower, and only holds
+back the discrete `ConnectTo(PROTOCOL_KAD)` entry. The 30 s spacing does bind
+there: a table with one to four contacts bootstraps at most every 30 s.
+
+The sustained cold-start rate is set by the outstanding-request budget, not by
+the tick: nine usable slots (one of the ten stays free for other Kad traffic),
+each held for the 30-second request timeout. Against peers that never answer
+that is **0.25-0.30 requests/second**, measured by driving the production request
+lifecycle through the selection loop and asserted by
+`kad_response_cold_start_rate_budget_bound`; a 5 s tick or a batch of three gave
+the same rate when measured. eMule and aMule send one request every 2 seconds
 while `GetNumContacts() == 0` and every 15 seconds afterwards, with no
-per-request timeout, so Envy is slower at cold start than both, not equal.
-That is still enough to give every entry of a 50-entry list its first request in
+per-request timeout, so Envy is slower at cold start than both, not equal. That
+is still enough to give every entry of a 50-entry list its first request in
 about 160 seconds.
 
 The batch is bounded by the free budget **before** candidates are selected
@@ -41,8 +47,9 @@ The batch is bounded by the free budget **before** candidates are selected
 `Select()` advances the rotation cursor past every candidate it scans, so
 selecting first and cutting the send loop on the budget skipped untried peers
 until the cursor wrapped the cache: a 50-entry cold start then took about 460
-seconds to contact everyone instead of about 160. The skipped peers are the
-`budget_blocked` and untried candidates the status line makes visible.
+seconds to contact everyone instead of about 160. The status line reports the
+cycles the full budget blocked (`budget_blocked`); it has no per-candidate
+metric.
 
 **Retry and backoff.** Genuine 30-second timeouts enter per-UDP-endpoint
 backoff starting at 60 seconds, doubling to a ten-minute cap. Capacity eviction
@@ -156,7 +163,7 @@ deterministic test in this repository; **[hyp]** hypothesis, not yet verified.
 | Routing seeded from `nodes.dat` | No **[code]** | No (out of scope) **[code]** | Yes, for a normal `nodes.dat` **[code]** | Yes **[code]** | **Open gap, tracked under #86** — bootstrap responses are Envy's only path to a populated table |
 | UDP obfuscation | Not implemented (#431) **[code]** | Unchanged **[code]** | Obfuscates its request when the peer's Kad version ≥ 6; answers a plain request in clear **[code]** | Same **[code]** | A plain request still gets a clear reply, so obfuscation is not a cold-start blocker **[code]** |
 | Diagnostics | One unconditional line per cycle **[code]** | One aggregate line per minute with `valid_responses`, `partial`, `rejected`, `malformed`, `send_failed` and `budget_blocked`; no endpoints or payloads **[code]** | Per-packet debug logging behind debug levels **[code]** | Same **[code]** | Envy's aggregate form is privacy-safe and lets a live run tell budget starvation from silence |
-| Tests | None for bootstrap selection | The real response-handler body (`KademliaBootstrap.inl`) is exercised by `test_kad_bootstrap_response.cpp`; rotation, budget and cadence by `test_kad_bootstrap_rotation.cpp`. 79 with the routing-table suite; mutation checks of the new guards are all caught **[test]** | No automated tests (`SelfTest.cpp` covers neither Kad nor bootstrap) **[code]** | Large Kad unit-test suite under `unittests/tests/`, but none covering bootstrap selection or retry **[code]** | Envy has the stronger coverage of this specific path; live interop still pending (#160) |
+| Tests | None for bootstrap selection | The real response-handler body (`KademliaBootstrap.inl`) is exercised by `test_kad_bootstrap_response.cpp`; rotation and the budget helper by `test_kad_bootstrap_rotation.cpp`, and the cold-start cadence by driving that same request lifecycle through the selection loop in the response fixture. 79 with the routing-table suite; mutation checks of the new guards are all caught **[test]** | No automated tests (`SelfTest.cpp` covers neither Kad nor bootstrap) **[code]** | Large Kad unit-test suite under `unittests/tests/`, but none covering bootstrap selection or retry **[code]** | Envy has the stronger coverage of this specific path; live interop still pending (#160) |
 
 Live interoperability remains unproven either way: every row above is a
 source-level or unit-test claim, never a live-traffic measurement.
