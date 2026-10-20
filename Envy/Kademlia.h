@@ -95,7 +95,7 @@ public:
 	// Process incoming Kad2 packet
 	BOOL OnPacket(const SOCKADDR_IN* pHost, class CEDPacket* pPacket);
 
-	// Timer callback (~5 seconds)
+	// Timer callback (about every 6 seconds, never closer than 5: see CMainWnd::OnTimer)
 	void OnTimer();
 
 	// Bootstrap from host cache
@@ -184,7 +184,7 @@ private:
 	bool ReadEntryTags(CEDPacket* pPacket, KadStoredEntry& entry);
 
 	// Utility methods
-	void SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	BOOL SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	bool UpdateContact(const KadContact& contact, KadContactSource source = KadContactSource::Candidate, bool markVerified = false);
 	void GenerateOwnKadId();
 	void LogKadStatus();
@@ -217,8 +217,10 @@ private:
 	uint32_t m_bootstrapResponses;
 	uint32_t m_bootstrapAccepted;
 	uint32_t m_bootstrapMalformed;
-	uint32_t m_bootstrapClamped;
+	uint32_t m_bootstrapPartial;
 	uint32_t m_bootstrapRejected;
+	uint32_t m_bootstrapSendFailed;
+	uint32_t m_bootstrapBlocked;
 	uint32_t m_sourceNoContacts;
 
 	// Request tracking

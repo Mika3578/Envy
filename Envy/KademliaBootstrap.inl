@@ -20,10 +20,11 @@ void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket
 	const WORD announcedContacts = pPacket->ReadShortLE();
 	// eMule 0.72a and aMule keep whatever prefix of the announced contact list
 	// the datagram actually carried, so an over-counted or short list must not
-	// cost the peer its answer. Read the framed prefix, bounded locally.
+	// cost the peer its answer. Read the framed prefix, bounded locally. Such a
+	// reply is used but is not a fully framed one: it is counted apart below,
+	// and only once the sender is known to have been asked.
 	const size_t usableContacts = KadBootstrapUsableContacts(bodyBytes, announcedContacts);
-	if (usableContacts < static_cast<size_t>(announcedContacts))
-		++m_bootstrapClamped;
+	const bool partialReply = usableContacts < static_cast<size_t>(announcedContacts);
 
 	const uint32_t nFromIp = ntohl(pHost->sin_addr.s_addr);
 	const uint64_t now = KadNowMs();
@@ -48,7 +49,10 @@ void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket
 		}
 	}
 	m_bootstrapRotation.Accepted(nFromIp, requestedPort, ntohs(pHost->sin_port), now);
-	++m_bootstrapResponses;
+	if (partialReply)
+		++m_bootstrapPartial;
+	else
+		++m_bootstrapResponses;
 
 	unsigned contactsAdded = 0;
 	for (size_t i = 0; i < usableContacts; ++i)

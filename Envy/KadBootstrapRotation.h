@@ -40,6 +40,18 @@ inline size_t KadBootstrapUsableContacts(size_t bodyBytes, uint16_t announced)
 	                  static_cast<size_t>(KadBootstrapMaxResponseContacts) });
 }
 
+// Largest bootstrap batch that can actually be sent now: the batch bound, capped
+// by the free part of the outstanding-request budget minus one slot reserved for
+// other Kad traffic. Zero means the caller must not select anything. Select()
+// advances the rotation cursor past every candidate it scans, so selecting more
+// than can be sent would skip untried peers until the cursor wraps the cache.
+inline size_t KadBootstrapBatchLimit(size_t maxBatch, size_t outstanding, size_t maxOutstanding)
+{
+	const size_t usable = maxOutstanding > 0 ? maxOutstanding - 1 : 0;
+	const size_t free = outstanding >= usable ? 0 : usable - outstanding;
+	return std::min(maxBatch, free);
+}
+
 class KadBootstrapRotation
 {
 public:

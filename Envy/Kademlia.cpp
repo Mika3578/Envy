@@ -66,8 +66,10 @@ CKademlia::CKademlia()
     , m_bootstrapResponses(0)
     , m_bootstrapAccepted(0)
     , m_bootstrapMalformed(0)
-    , m_bootstrapClamped(0)
+    , m_bootstrapPartial(0)
     , m_bootstrapRejected(0)
+    , m_bootstrapSendFailed(0)
+    , m_bootstrapBlocked(0)
     , m_sourceNoContacts(0)
     , m_lastRateLimitCleanup(0)
     , m_lastStoreCleanup(0)
@@ -102,8 +104,9 @@ bool CKademlia::Init()
 	m_bootstrapRotation.Reset();
 	m_bootstrapCached = m_bootstrapDeferred = m_bootstrapInvalid = 0;
 	m_bootstrapSent = m_bootstrapTimeouts = m_bootstrapResponses = 0;
-	m_bootstrapAccepted = m_bootstrapMalformed = m_bootstrapClamped = 0;
-	m_bootstrapRejected = m_sourceNoContacts = 0;
+	m_bootstrapAccepted = m_bootstrapMalformed = m_bootstrapPartial = 0;
+	m_bootstrapRejected = m_bootstrapSendFailed = m_bootstrapBlocked = 0;
+	m_sourceNoContacts = 0;
 	m_lastFirewallTcpPort = (WORD)Settings.Connection.InPort;
 	m_firewall.OnKadStart(m_lastTimerCall, m_lastFirewallTcpPort);
 
@@ -160,9 +163,14 @@ void CKademlia::Bootstrap()
 
 	CSingleLock oLock(&m_pKadSection, TRUE);
 	const uint64_t now = KadNowMs();
-	// The 5-second timer floor permits at most two requests per 5 seconds.
-	// The nine-slot bootstrap budget and 30-second timeout further limit the
-	// rate when peers do not answer. References send one request per 2 seconds.
+	// OnTimer is driven by CMainWnd::OnTimer, which counts whole seconds and
+	// requires `tNow > tLast5SecInterval + 5`: it runs once per six one-second
+	// timer ticks, about every 6 s and never closer than 5 s, so the 5 s spacing
+	// below does not bind on that path and only holds back the discrete
+	// ConnectTo(PROTOCOL_KAD) entry. What bounds the sustained rate is the
+	// budget: nine usable slots, each held for the 30 s request timeout, about
+	// 0.25-0.30 requests/s against silent peers. The references send one request
+	// every 2 s while the routing table is empty, so Envy is slower.
 	const bool bColdStart = m_routingTable.GetTotalContacts() == 0;
 	if (m_lastBootstrapTime != 0 && now - m_lastBootstrapTime < (bColdStart ? 5000u : 30000u))
 		return;
@@ -191,21 +199,28 @@ void CKademlia::Bootstrap()
 		}
 	}
 
-	const KadBootstrapRotation::Batch batch = m_bootstrapRotation.Select(
-	    candidates, now,
-	    bColdStart ? KadBootstrapRotation::MaxColdStartBatch : KadBootstrapRotation::MaxBatch);
 	m_bootstrapCached = static_cast<uint32_t>(candidates.size());
+
+	// Bound the batch by the free budget BEFORE selecting, keeping one slot for
+	// other Kad traffic. Selecting first advanced the rotation cursor past
+	// candidates that the budget then refused to send; they stayed untried until
+	// the cursor wrapped the whole cache.
+	const size_t nLimit = KadBootstrapBatchLimit(
+	    bColdStart ? KadBootstrapRotation::MaxColdStartBatch : KadBootstrapRotation::MaxBatch,
+	    m_outstandingRequests.size(), KAD2_MAX_OUTSTANDING_REQUESTS);
+	if (nLimit == 0)
+	{
+		++m_bootstrapBlocked;
+		return;
+	}
+
+	const KadBootstrapRotation::Batch batch = m_bootstrapRotation.Select(candidates, now, nLimit);
 	m_bootstrapDeferred = static_cast<uint32_t>(batch.deferred);
 	m_bootstrapInvalid = static_cast<uint32_t>(batch.invalid);
 
-	// Keep at least one outstanding slot for non-bootstrap Kad traffic. A
-	// candidate is marked in-flight only after a request is actually queued.
+	// A candidate is marked in flight only once a request is actually sent.
 	for (const KadContact& contact : batch.contacts)
-	{
-		if (m_outstandingRequests.size() >= KAD2_MAX_OUTSTANDING_REQUESTS - 1)
-			break;
 		SendBootstrapRequest(contact);
-	}
 	// Initial FIND_NODE is deferred until usable contacts are learned.
 	// This avoids simultaneous bootstrap/FIND_NODE bursts to unknown peers.
 }
@@ -214,6 +229,16 @@ void CKademlia::SendBootstrapRequest(const KadContact& contact)
 {
 	if (!m_bInitialized) return;
 
+	sockaddr_in addr;
+	KadContactGetSockAddr(contact, addr);
+	// Same address policy as UpdateContact and Datagrams::Send: a blocked endpoint
+	// is never registered as in flight only to time out on every pass.
+	if (Security.IsDenied(&addr.sin_addr))
+	{
+		++m_bootstrapInvalid;
+		return;
+	}
+
 	// Create bootstrap request packet - empty body as per eMule spec
 	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_BOOTSTRAP_REQ, ED2K_PROTOCOL_KAD);
 	if (!pPacket) return;
@@ -221,15 +246,24 @@ void CKademlia::SendBootstrapRequest(const KadContact& contact)
 	// BOOTSTRAP_REQ has empty body according to eMule spec
 
 	// Send packet and track the request
-	sockaddr_in addr;
-	KadContactGetSockAddr(contact, addr);
-	if (AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, addr) == 0)
+	const DWORD requestId = AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, addr);
+	if (requestId == 0)
 	{
 		pPacket->Release();
 		return;
 	}
-	++m_bootstrapSent;
-	SendPacket(&addr, pPacket);
+	if (SendPacket(&addr, pPacket))
+	{
+		++m_bootstrapSent;
+	}
+	else
+	{
+		// The datagram layer refused it (no usable UDP socket yet). Nothing left the
+		// machine, so withdraw the registration without charging the peer a timeout
+		// or a backoff: RemoveOutstandingRequest cancels correlation only.
+		RemoveOutstandingRequest(requestId);
+		++m_bootstrapSendFailed;
+	}
 	pPacket->Release();
 }
 
@@ -674,11 +708,11 @@ void CKademlia::OnFindNodeResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	m_routingTable.ObserveAliveByEndpoint(ntohl(pHost->sin_addr.s_addr), ntohs(pHost->sin_port), KadNowMs());
 }
 
-void CKademlia::SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+BOOL CKademlia::SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
-	if (!pHost || !pPacket) return;
+	if (!pHost || !pPacket) return FALSE;
 
-	Datagrams.Send(pHost, pPacket, FALSE);
+	return Datagrams.Send(pHost, pPacket, FALSE);
 }
 
 bool CKademlia::UpdateContact(const KadContact& contact, KadContactSource source, bool markVerified)
@@ -746,13 +780,13 @@ void CKademlia::LogKadStatus()
 		return;
 	m_lastStatusLog = now;
 	theApp.Message(MSG_DEBUG,
-	               L"Kad2 status: routing=%u cached=%u deferred=%u invalid=%u sent=%u timed_out=%u valid_responses=%u accepted_contacts=%u malformed=%u clamped=%u rejected=%u source_no_contacts=%u",
+	               L"Kad2 status: routing=%u cached=%u deferred=%u invalid=%u sent=%u timed_out=%u valid_responses=%u partial=%u accepted_contacts=%u malformed=%u rejected=%u send_failed=%u budget_blocked=%u source_no_contacts=%u",
 	               (unsigned)m_routingTable.GetTotalContacts(), m_bootstrapCached,
 	               m_bootstrapDeferred, m_bootstrapInvalid, m_bootstrapSent,
-	               m_bootstrapTimeouts, m_bootstrapResponses, m_bootstrapAccepted,
-	               m_bootstrapMalformed, m_bootstrapClamped, m_bootstrapRejected,
-	               m_sourceNoContacts);
-	if (m_bootstrapSent > 0 && m_bootstrapResponses == 0)
+	               m_bootstrapTimeouts, m_bootstrapResponses, m_bootstrapPartial,
+	               m_bootstrapAccepted, m_bootstrapMalformed, m_bootstrapRejected,
+	               m_bootstrapSendFailed, m_bootstrapBlocked, m_sourceNoContacts);
+	if (m_bootstrapSent > 0 && m_bootstrapResponses == 0 && m_bootstrapPartial == 0)
 		theApp.Message(MSG_DEBUG, L"Kad2: UDP bootstrap response not yet validated; reachability/obfuscation undetermined");
 }
 
