@@ -1,6 +1,8 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-11
+- **Last Updated:** 2026-10-20
+
+- **Changelog Entry:** 2026-10-20 - eMule Qt audit (`v0.6.22`, `main` `aa891270`): documentation only. Registry row refreshed; findings, comparison and P0-P4 candidates in `docs/30_protocols/P2P_ECOSYSTEM_AUDIT_2026-10.md` section 7; retained candidates below under "eMule Qt audit candidates". No priority change, no new issue, no code or dependency change.
 
 - **Changelog Entry:** 2026-10-11 - #405: constrain package destinations with strict manifest/ZIP path checks, bounded construction, pinned non-reparse ancestors and complete-file staged replacement. Production-backed EnvyTests cover package types, malformed input, overwrite policy and alias escapes; the focused project supports AddressSanitizer. Essential #406 ownership and manifest-buffer fixes are included; package-wide expansion/time budgets remain open. Validation commands and limitations: `10_dev/unpacker-validation.md`.
 
@@ -414,6 +416,17 @@ References: Ember, Rucio, original Kademlia papers. Possible studies: stronger n
 
 Reference: eMule eSE. Not a short-term goal. Preconditions: stable Envy IPv6, stable Kad2 interop, clean NAT/reachability, and a protocol test harness.
 
+### eMule Qt audit candidates (2026-10-20)
+
+Evidence and limits: `docs/30_protocols/P2P_ECOSYSTEM_AUDIT_2026-10.md` section 7. These are inputs to **existing** issues, not new work items; eMule Community and aMule keep wire authority and eMule Qt (GPL-2.0) is never a code source.
+
+- **P0 guard:** do not advertise or act on server TCP flag `0x00008000` (`PR_NAT`) or eMule Qt's planned `0xB2`/`0x10` transport; they conflict with ed2k-server and with eMuleAI/aMule transports (eMule Qt issue #39). Envy defines neither today.
+- **P0/P1 (no change):** [#160](https://github.com/Mika3578/Envy/issues/160), [#86](https://github.com/Mika3578/Envy/issues/86) (Kad UDP firewall, Buddy, callback; eMule Qt `docs/protocol/lowid-reachability-audit.md` is a secondary checklist), [#431](https://github.com/Mika3578/Envy/issues/431) (IPv6 UDP obfuscation key caveat), [#161](https://github.com/Mika3578/Envy/issues/161) / [#91](https://github.com/Mika3578/Envy/issues/91) (shared core library, GUI-less tests).
+- **P2:** [#384](https://github.com/Mika3578/Envy/issues/384) per-volume hash workers (measure first via [#111](https://github.com/Mika3578/Envy/issues/111)); [#385](https://github.com/Mika3578/Envy/issues/385) watcher settle/max-hold/overflow/network-share polling; [#239](https://github.com/Mika3578/Envy/issues/239) REST design points; [#229](https://github.com/Mika3578/Envy/issues/229) fuzz scenarios; PCP/NAT-PMP grading rules for plan item P4 (exact-port match, CGNAT = degraded).
+- **P3:** [#230](https://github.com/Mika3578/Envy/issues/230) bind/VPN acceptance list; [#497](https://github.com/Mika3578/Envy/issues/497) bounded retry with give-up; share-scan regression scenarios after PR [#467](https://github.com/Mika3578/Envy/pull/467); Sybil-resistance ideas stay in the P2 DHT bucket.
+- **P4:** categories and rule-based automation ([#232](https://github.com/Mika3578/Envy/issues/232)), persistent statistics ([#316](https://github.com/Mika3578/Envy/issues/316)), upload-queue/source persistence ([#233](https://github.com/Mika3578/Envy/issues/233)), fake-file confidence column.
+- **Rejected:** code reuse, Qt migration, own NAT-T transport, HTTP cache, ExtSX and Kad `ip6`/`bi6` tags, Usenet/indexer/MCP modules, IPC AES-CBC design.
+
 ### Phase 1 — Stability & Visibility (P0)
 - [ ] Create dependency register + ownership map (2d) — **In progress on develop** (`docs/DEPENDENCIES.md` exists but remains an incomplete seed).
 - [x] Add threat model and secure-coding checklist (2d)
@@ -529,6 +542,7 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 - Archive legacy `.vcproj` files once migration is complete
 
 ## Decisions Log
+- **2026-10-20:** eMule Qt audit outcome. (1) Its principles may inform hash scheduling (#384), watcher timing (#385), bind policy (#230), REST design (#239) and port-mapping status rules; its code, tests and tables are not reused (GPL-2.0 vs AGPL-3.0-or-later, hard rule 9). (2) Its test count is not interoperability or CI evidence: its CI builds with tests off. (3) Envy does not adopt LowID NAT-T flags or transports until eMule Community and aMule agree (eMule Qt issue #39). (4) No new Envy issue: every retained item maps to an open issue or an existing plan item. Roadmap priorities unchanged.
 - **2026-09-19:** Remote automation (D-017, D-018): native REST `/api/v1` as source of truth; inbound API on Windows HTTP Server API (`http.sys`) dedicated port, not `CRemote`/P2P HTTP; outbound Torznab via `CHttpRequest`; first *arr adapter is a qBittorrent Web API v2 **subset**. Details: `docs/20_arch/AUDIT_REMOTE_API_2026-09.md`.
 - **2026-09-19 / #354:** Hybrid crash reporting — **x64** uses BugSplat SDK v8.0.0 (`ThirdParty/BugSplat`, `/MT` static lib + out-of-process monitor); **Win32** keeps Crashpad (vcpkg, local DB, upload off). Not Sentry Native, Breakpad, CrashRpt, or homemade `MiniDumpWriteDump`. Canonical: `docs/10_dev/crash-reporting.md` (D-019, D-020).
 - **2026-09-18:** Adopt cross-platform foundations (D-012…D-015): EnvyCore + platform abstraction + retained MFC Windows frontend; Linux/macOS `planned` not `supported`; Win32 legacy Stage A only; CMake portable slice prioritized over full-app CMake. Canonical doc: `docs/20_arch/PORTABILITY_PLAN.md`. Open question #1 resolved toward multi-OS **as a long-term target**, with Windows-first delivery.
