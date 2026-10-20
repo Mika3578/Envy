@@ -104,35 +104,64 @@ This does **not** mean mass-replacing those types in historical code. Windows im
 | 2 | Linux x86_64 | **planned** |
 | 3 | macOS ARM64 | **planned** |
 | 4 | Linux ARM64 | planned if useful |
-| 5 | Windows ARM64 | after study (`CMakePresets` already has an arm64 preset) |
-| 6 | macOS x86_64 | only if cost is reasonable or via Universal Binary |
+| 5 | Windows ARM64 | **planned** feasibility evaluation (#456); unsupported until it has a real build target, CI, packaging and runtime validation (`CMakePresets` already has an arm64 preset) |
+| 6 | macOS x86_64 | optional, only if cost is reasonable or via Universal Binary |
 
-Explicit non-targets:
+Policy (D-014): the product moves to **64-bit only**. Linux ARM64 is subject to feasibility. iOS is out of scope.
+
+Explicit non-targets (no new work, no support claims):
 
 - Linux x86 32-bit
 - macOS 32-bit
+- Any other 32-bit product target
+
+Windows x86/Win32 is not a *new* target: it is the existing **legacy** build, retired in stages (section 5).
 - Claiming Linux/macOS “supported” before compile + test + CI evidence
 
 ---
 
-## 5. Win32 / x86 policy (no removal in this phase)
+## 5. Win32 / x86 policy (64-bit-only, phased retirement)
 
-| Role | Policy |
-| --- | --- |
-| Windows x64 | Official primary platform |
-| Win32 / x86 | **Legacy** — keep building/testing for now |
-| This task | Document deprecation path only |
-| Forbidden now | Drop Win32 from CI, release artifacts, or solution configs without a dedicated issue + evidence |
+The maintainer decision recorded in D-014 (tracker #178) is to retire all 32-bit product targets progressively. This section is policy only: nothing below has been removed yet.
+
+| Role | Status | Policy |
+| --- | --- | --- |
+| Windows x64 | Implemented, supported | Official primary platform |
+| Windows x86 / Win32 | Legacy, scheduled for retirement | Still built, tested and shipped (Stage A) until the stages below land |
+| Linux x86_64, macOS ARM64 | Planned | Portable core first; no support claim before compile + test + CI evidence |
+| Linux ARM64, Windows ARM64 | Planned, feasibility only (#456) | No support claim |
+| macOS x86_64 | Optional | Only if maintenance cost is reasonable |
+| Linux x86, macOS 32-bit, iOS | Not targeted | No new work |
+| Windows XP / Vista / 7 / 8 | Already unsupported | Dropped earlier; minimum runtime is Windows 10 1809 (`Envy/StdAfx.h`, installer `MinVersion=10.0.17763`). Not part of this retirement; changing the minimum needs its own decision |
+
+Forbidden until the relevant stage PR: dropping Win32 from CI, release artifacts or solution configurations.
 
 ### Progressive stages
 
-**Stage A (current):** Keep Win32 in CI to catch type-size, cast, pointer, serialization, and 32/64 assumption bugs.
+**Stage A (current):** Win32 builds, CI and release configurations stay intact, and required checks and branch protections stay enforced. Win32 keeps catching type-size, cast, pointer, serialization and 32/64 assumption bugs.
 
-**Stage B:** After `EnvyCore` is stable enough under MSVC 64-bit **and** Clang/GCC 64-bit with Linux/macOS tests, evaluate removing Win32 from **user-facing releases**.
+**Stage B (#454):** validate migration of users, settings, libraries, downloads and plugins on x64; stop publishing Win32 installers and portable packages; keep Win32 CI temporarily for regression coverage. The Linux/macOS ports are **not** a prerequisite, provided the residual risks (loss of 32-bit type-size coverage, no 32-bit fallback for end users beyond earlier releases) are documented in the Stage B PR.
 
-**Stage C:** If Win32 CI cost exceeds its value, evaluate removing Win32 from CI. Requires a dedicated decision issue and maintainer approval.
+**Stage C (#455):** remove Win32 build targets, x86 dependencies and obsolete release infrastructure; remove the remaining Crashpad integration and retain native BugSplat on Windows x64 subject to runtime validation (#353); replace useful Win32 regression coverage with explicit fixed-width serialization, overflow, parsing and portability tests; remove the Win32 CI jobs only together with the `Protect develop` required-check update, never by bypassing protections.
 
-No Stage B/C execution without proof.
+Stage B and C each need their own PR and maintainer approval; this policy does not execute them.
+
+### Out of scope for the retirement
+
+- Win32 *API* names and calls (`HANDLE`, `HWND`, `SOCKET`, ...) are the Windows API, not the 32-bit x86 target, and stay.
+- P2P wire formats and legitimate 32-bit protocol fields stay unchanged.
+- Legacy compatibility declarations (the Vista/7/8/8.1 `supportedOS` entries in `Envy/Res/Manifest.xml`, the XP-era `_WIN32_WINNT` defaults in `HashLib/stdafx.h`, commented XP blocks in `Envy/StdAfx.h`) are noted for a later technical cleanup and are not edited by the policy PR.
+
+### Planning overlap
+
+| Item | Role | Disposition under this policy |
+| --- | --- | --- |
+| #178 | Architecture policy | This document and D-014 |
+| #454 | Stage B: stop Win32 user releases | Sequenced first; acceptance criteria stay in the issue |
+| #455 | Stage C: remove Win32 toolchain and Crashpad | Follows Stage B |
+| #353 | BugSplat x64 end-to-end validation | Prerequisite for relying on BugSplat as the sole reporter |
+| #449 | Win32 Crashpad toolchain discovery | Closed by Stage C when Crashpad is removed |
+| #466 / PR #468 | Unify BugSplat across Win32 and x64 | A BugSplat x86 backend is no longer a priority; recommendation: close PR #468 as superseded and fold #466 into #455 (keep only x64 hardening that still applies) |
 
 ---
 
@@ -197,7 +226,7 @@ No large dependency swap is part of the foundations task. See `docs/DEPENDENCIES
 | [#89](https://github.com/Mika3578/Envy/issues/89) | Dual-stack address/socket foundation; prefer portable address types |
 | [#85](https://github.com/Mika3578/Envy/issues/85) | Docs reconciliation; this plan must not reintroduce stale paths |
 | Parent portability issue | [#177](https://github.com/Mika3578/Envy/issues/177) — tracks cross-OS sequencing, non-goals, and CI bootstrap criteria |
-| Win32 deprecation issue | [#178](https://github.com/Mika3578/Envy/issues/178) — Stages A→C only; no premature removal |
+| Win32 retirement tracker | [#178](https://github.com/Mika3578/Envy/issues/178) — Stages A→C; execution in [#454](https://github.com/Mika3578/Envy/issues/454) and [#455](https://github.com/Mika3578/Envy/issues/455) |
 | Platform abstraction | [#179](https://github.com/Mika3578/Envy/issues/179) — sockets/DNS/FS/threads/RNG frontier |
 | Non-Windows CI | [#180](https://github.com/Mika3578/Envy/issues/180) — Linux then macOS advisory bootstrap |
 
@@ -216,7 +245,7 @@ No large dependency swap is part of the foundations task. See `docs/DEPENDENCIES
 | F4 Linux x86_64 CI bootstrap | Compile + run portable tests | Linux job exists; **not** a required product gate until green and useful |
 | F5 macOS ARM64 CI bootstrap | Same for macOS | Same caution as F4 |
 | F6 Optional ARM64 expansion | Linux ARM64 / Windows ARM64 | Interest + cost justified |
-| F7 Win32 Stage B/C | Release/CI deprecation | Dedicated issue + evidence |
+| F7 Win32 Stage B/C | Release/CI retirement | #454 then #455, each with its own PR and approval |
 
 Suggested future CI sequence (advisory until portable code exists):
 
@@ -232,7 +261,7 @@ macOS ARM64 Clang
 Linux ARM64 / Windows ARM64 as warranted
 ```
 
-Win32 remains in current Windows CI through Stage A.
+Win32 remains in current Windows CI through Stage A and, if needed, temporarily through Stage B.
 
 ---
 
@@ -272,7 +301,7 @@ Until then, status vocabulary stays **`planned`**.
 | Premature “supported” claims | Status matrix + README wording; F0 docs only |
 | Duplicate architecture issues | Reuse #91/#161/#89; one parent tracker |
 | CMake vs VS confusion | D-002/D-004/D-015: VS for full app; CMake for portable slice |
-| Win32 removed too early | Stage A mandatory until multi-compiler 64-bit proof |
+| Win32 removed too early | Staged retirement (D-014): migration validation in Stage B, replacement fixed-width/overflow/parsing tests before Stage C |
 | Protocol breakage during extraction | D-005; no wire changes for portability |
 | Scope creep into Qt rewrite | GUI policy §7 |
 

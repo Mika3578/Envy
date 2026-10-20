@@ -13,7 +13,7 @@ The modernized version of Envy is currently under active development.
 **Latest test release target:** Envy 4.2.0 Preview 1 (`v4.2.0-preview.1`)
 
 - **Windows x64:** recommended download
-- **Windows x86 (Win32):** legacy compatibility
+- **Windows x86 (Win32):** legacy, scheduled for retirement (64-bit-only policy, D-014); no new 32-bit targets
 - **Portable ZIP:** diagnostic / no-installer runs
 
 Download builds from the GitHub [Releases](https://github.com/Mika3578/Envy/releases) page once Preview 1 is published.
