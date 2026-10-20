@@ -295,6 +295,7 @@ void CDownloadsSettingsPage::OnOK()
 	{
 		if ( LibraryFolders.GetFolderCount() == 0 )
 		{
+			CQuickLock oLock( Library.m_pSection );
 			LibraryFolders.AddFolder( m_sDownloadsPath );
 		}
 		else if ( ! LibraryFolders.IsFolderShared( m_sDownloadsPath ) )
@@ -306,7 +307,11 @@ void CDownloadsSettingsPage::OnOK()
 
 			if ( MsgBox( strMessage, MB_ICONQUESTION|MB_YESNO ) == IDYES )
 			{
-				CLibraryFolder* pFolder = LibraryFolders.AddFolder( m_sDownloadsPath );
+				CLibraryFolder* pFolder = NULL;
+			{
+				CQuickLock oLock( Library.m_pSection );
+				pFolder = LibraryFolders.AddFolder( m_sDownloadsPath );
+			}
 
 				if ( pFolder )
 				{

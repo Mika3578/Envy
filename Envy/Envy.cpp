@@ -715,8 +715,12 @@ int CEnvyApp::ExitInstance()
 		}
 
 		SplashStep( L"Stopping Library Tasks" );
+		// Shutdown-latency diagnostic: if closing ever hangs again, this bound
+		// shows whether the wait was on the scanner or the hasher.
+		const DWORD nLibraryStopStart = GetTickCount();
 		LibraryBuilder.CloseThread();
 		Library.CloseThread();
+		theApp.Message( MSG_DEBUG, L"Library tasks stopped in %lu ms.", GetTickCount() - nLibraryStopStart );
 
 		SplashStep( L"Stopping Security Tasks" );
 		ListLoader.CloseThread();
@@ -1376,7 +1380,12 @@ BOOL CEnvyApp::OpenPath(LPCTSTR lpszFileName)
 	}
 
 	// Add new folder to Library
-	if ( CLibraryFolder* pFolder = LibraryFolders.AddFolder( lpszFileName ) )
+	CLibraryFolder* pFolder = NULL;
+	{
+		CQuickLock oLock( Library.m_pSection );
+		pFolder = LibraryFolders.AddFolder( lpszFileName );
+	}
+	if ( pFolder )
 	{
 		CMainWnd* pMainWnd = (CMainWnd*)AfxGetMainWnd();
 		if ( CLibraryWnd* pLibraryWnd = (CLibraryWnd*)pMainWnd->m_pWindows.Open( RUNTIME_CLASS(CLibraryWnd) ) )
