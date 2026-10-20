@@ -9,7 +9,7 @@ Source of truth: protocol specifications first; this document is the complementa
 [`tools/references/`](../../tools/references/README.md). Do not vendor sources,
 add submodules, or couple the Envy build to these trees. Decision: D-023.
 
-Verification snapshot below reflects GitHub/SourceForge checks on **2026-10-07**; the eMule Qt row was re-verified on **2026-10-20**.
+Verification snapshot below reflects GitHub/SourceForge checks on **2026-10-07**; the eMule Qt and eMule AI rows were re-verified on **2026-10-20**.
 Do not treat GitHub page `updated_at` alone as "maintained"; prefer commits and releases.
 Detailed evidence tables: [`P2P_ECOSYSTEM_AUDIT_2026-10.md`](P2P_ECOSYSTEM_AUDIT_2026-10.md).
 
@@ -125,7 +125,7 @@ Never document Ember, eSE, or NeoLoader overlays as Kad2 or eMule standard.
 | eMuleBB | <https://github.com/emulebb/emulebb> | ED2K, Kad, API | implementation / architecture | P1 | implementation | maintenance | 2026-10-07 | tag `emulebb-v0.7.3`; BUG-117 / ed2k_tcp commits 2026-07 | `Examples/References/emulebb/` | Stable MFC 0.7.x line. Not Kad2-normative. |
 | emulebb-rust | <https://github.com/emulebb/emulebb-rust> | ED2K, Kad | implementation | P1 | implementation | active | 2026-10-07 | tip ~`e6f20a59` (2026-10-06); beta nightlies | `Examples/References/emulebb-rust/` | Experimental Rust client; parsers/tests. |
 | eMule Qt | <https://github.com/ModderMule/emule-qt> | architecture, API | architecture | P1 | architecture | active | 2026-10-20 | release `v0.6.22` (2026-10-19); `main` `aa891270` | `Examples/References/emule-qt/` | Daemon / IPC / REST ideas for incremental `EnvyCore` split; hash scheduling and port-mapping principles. GPL-2.0: no code reuse. Its CI builds without tests; LowID NAT traversal is plan-only and disputed (its issue #39). Audit: `P2P_ECOSYSTEM_AUDIT_2026-10.md` section 7. |
-| eMule AI | <https://github.com/eMuleAI/eMuleAI> | IPv6, NAT | architecture | P1 | architecture | active | 2026-10-07 | release `eMuleAI_v1.6` (2026-07-25) | `Examples/References/emule-ai/` | Reachability ideas only; not ED2K-normative. |
+| eMule AI | <https://github.com/eMuleAI/eMuleAI> | IPv6, NAT, share scan | architecture | P1 | architecture | active | 2026-10-20 | release `eMuleAI_v1.6` (2026-07-25); `master` `a2f05dc8` (no newer release or source) | `Examples/References/emule-ai/` | Mod-level dialect, not ED2K-normative: NAT-T (`0xA0`/`0xA1`/`0xAA`, `0xB2` uTP/QUIC) and IPv6 tags are not in Community or aMule. No tests or CI. GPL-2.0-or-later headers; no code reuse. Useful as an MFC share-scan and bind/VPN reference. Audit: `P2P_ECOSYSTEM_AUDIT_2026-10.md` section 8. |
 | padMule | <https://github.com/ajbufort/padMule> | ED2K, Kad | implementation | P1 | implementation | active | 2026-10-07 | tip ~`ce2d91b9` (2026-08-14) | `Examples/References/padmule/` | Rust engine; documents eMule 0.50a wire authority and aMule differential oracle. |
 
 ### P2 - Historical ED2K mods (never wire authority)
@@ -251,6 +251,13 @@ directory), LowID NAT traversal (`0x8000`/`0xB2` are unsettled between eMule Qt,
 aMule and eMuleAI), the HTTP cache, Usenet/MCP modules or its IPC encryption.
 Its test count is not evidence: CI there does not run the tests. Licence
 GPL-2.0 (partly eMuleAI-derived): principles and scenarios only, never code.
+
+eMule AI specifics (audit 2026-10-20): the closest reference for a recursive,
+cancellable share scan on Windows (visited set by file ID, long paths, hash
+cache), for bind/VPN guard behaviour and for an inventory of the IPv6 dialect.
+Its NAT-T stack (rendezvous, hole punch, QUIC/uTP over `0xB2`) is a mod
+dialect with protocol weaknesses reported by aMule; Envy neither advertises nor
+implements it. No tests or CI; peer-penalty heuristics produce false positives.
 
 ### MorphXT - P2, historical interop target
 

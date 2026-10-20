@@ -1,7 +1,7 @@
 # P2P ecosystem audit (October 2026)
 
 Status: research / audit pass (documentation only — no protocol implementation)
-Last updated: 2026-10-20 (section 7 added: eMule Qt deep audit; sections 1-6 verified 2026-10-07)
+Last updated: 2026-10-20 (sections 7 and 8 added: eMule Qt and eMule AI deep audits; sections 1-6 verified 2026-10-07)
 Base commit: `develop` @ `c8cc5c3`
 Scope: Open-source P2P clients and engines compared against Envy docs and tracker for **reference selection**, not feature claims.
 Authority: specifications and BEPs first; `docs/10_dev/status.md` for Envy claims; `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` for the canonical registry; local clones via `tools/references/` (D-023).
@@ -88,7 +88,7 @@ ideas only and are **not** Envy protocol targets.
 | [emulebb/emulebb](https://github.com/emulebb/emulebb) | maintenance | Release [`emulebb-v0.7.3`](https://github.com/emulebb/emulebb/releases/tag/emulebb-v0.7.3) 2026-07-05; functional commits 2026-07 (BUG-117 part flush/resume, `diag(ed2k_tcp)`); nightly 2026-10-03 | Large library, upload/queue, REST/automation patterns | Not Kad2-normative |
 | [emulebb/emulebb-rust](https://github.com/emulebb/emulebb-rust) | active experimental | Nightly betas Oct 2026; functional commits 2026-10-06 (`fix(ed2k)` UDP trains, `fix(kad)` search matching, `feat(search)` evidence) | Parsers, headless, differential tests | Beta; not wire authority |
 | [ModderMule/emule-qt](https://github.com/ModderMule/emule-qt) | active reference | Release [`v0.6.22`](https://github.com/ModderMule/emule-qt/releases/tag/v0.6.22) 2026-10-19 (re-verified 2026-10-20; was `v0.5.6`); `main` @ `aa891270`; details in section 7 | #161 core/UI, IPC, REST; hash scheduling and port-mapping principles | Architecture only; GPL-2.0, no code reuse; its tests are not run in its CI |
-| [eMuleAI/eMuleAI](https://github.com/eMuleAI/eMuleAI) | active experimental | Release [`eMuleAI_v1.6`](https://github.com/eMuleAI/eMuleAI/releases/tag/eMuleAI_v1.6) 2026-07-25 | IPv6 / NAT / reachability ideas | Not ED2K-normative |
+| [eMuleAI/eMuleAI](https://github.com/eMuleAI/eMuleAI) | active experimental | Release [`eMuleAI_v1.6`](https://github.com/eMuleAI/eMuleAI/releases/tag/eMuleAI_v1.6) 2026-07-25 (re-verified 2026-10-20, still latest; source unchanged since; maintainer answers issues to 2026-10-16); details in section 8 | Share-scan design (MFC, Windows), IPv6 dialect inventory, bind/VPN guard ideas | Not ED2K-normative; mod-level NAT-T; no tests or CI; GPL-2.0-or-later headers |
 | [ajbufort/padMule](https://github.com/ajbufort/padMule) | active experimental | Functional commits 2026-08-14 (share naming, atomic `nodes.dat`/`clients.met`, Kad diagnostics) | Independent Rust ED2K/Kad engine + differential testing | Declares eMule 0.50a wire authority / aMule oracle |
 | [AnInsomniacy/aria2-next](https://github.com/AnInsomniacy/aria2-next) | active reference | Releases [`v2.8.6`](https://github.com/AnInsomniacy/aria2-next/releases/tag/v2.8.6) 2026-10-04; stream I/O fix commits | Engine/RPC/headless; BT+ED2K | Not Envy UI replacement |
 | [diad87/eMule-eSE-LiveTV](https://github.com/diad87/eMule-eSE-LiveTV) | active experimental | Releases eSE 9.1.0 / 9.2.0-rc (2026-08–09) | IPv6 / Kad6 R&D | **Kad6 ≠ Kad2** |
@@ -217,7 +217,7 @@ Paths below are relative to that `main` tip. Authority is unchanged: eMule Qt st
 7. **Bind-interface policy fails closed** (`net/BindAddress.h`): a selection that does not resolve yields state `Blocked` and no socket is opened; the pin applies to UDP as well. `tst_BindInterface` covers literal/interface/subnet resolution, loopback pin, "refuses other routes", "blocked opens nothing, then resumes" and UDP pinning. This is a ready acceptance list for Envy #230 (still routing control, not anonymity).
 8. **Daemon/GUI split is real**: `emulecored` and `emuleqt` link one static core library and talk over length-prefixed CBOR (`IpcProtocol.h`, 16 MiB payload cap), with IPC and core tests that run without a GUI. The optional encryption layer, however, is AES-256-CBC with the key derived as an unsalted SHA-256 of the access token (`IpcProtocol.h:874-885`) and no MAC was found in `IpcProtocol.cpp` / `IpcConnection.cpp`. **Do not copy that design.**
 9. **Documentation of other clients' bugs is valuable interop evidence.** `ipv6-spec.md` §10.7 reports that at least one implementation's IPv6 UDP obfuscation key overwrites its magic byte and leaves offset 32 uninitialised, so it is not even self-consistent; §10.8 reports an ExtSX reader that drops a whole answer on one unknown tag. Both are inputs for Envy #431 and the Source Exchange vectors, to be confirmed against Community/aMule.
-10. **Licence**: GPL-2.0, partly derived from eMuleAI. Envy is AGPL-3.0-or-later and `AGENTS.md` hard rule 9 forbids GPL-2.0 dependencies. No code, tables or tests are to be copied; use the principles, the scenarios, and the published specifications, then re-implement independently.
+10. **Licence**: GPL-2.0 (declared), partly derived from eMuleAI (whose files say GPL-2.0-or-later; per-file inheritance in eMule Qt was not verified, see section 8). Envy is AGPL-3.0-or-later and `AGENTS.md` hard rule 9 forbids GPL-2.0 dependencies. No code, tables or tests are to be copied; use the principles, the scenarios, and the published specifications, then re-implement independently.
 
 README claims that were **not** verified: "150+ test executables" (the tree has more, but none runs in CI), "51 MCP tools", "9 languages", PCP/NAT-PMP behaviour on real routers, hardened-Kad benefits on the live network.
 
@@ -318,6 +318,113 @@ No new issue is justified: every retained item is covered by an open issue or an
 - Envy "absent" statements for persistence features (source saver, upload-queue store, fake-file detector, PCP/NAT-PMP) come from searching `Envy/`; they are not an exhaustive code review.
 - Issue #39 is one day old and unanswered; the positions of aMule and eMuleAI cited there were not independently re-checked against their sources.
 - The September audit file referenced by issues #384/#385 does not exist in this tree (see the header); the claims there were not reused.
+
+---
+
+## 8. eMule AI deep audit (2026-10-20)
+
+Scope: documentation only, same method as section 7. eMule AI is an MFC/Windows fork of eMule (same toolchain family as Envy), so unlike eMule Qt its code is directly comparable to Envy's. No Envy production code, dependency or governance rule changes.
+
+### 8.1 Revision examined
+
+| Item | Value |
+| --- | --- |
+| Repository | <https://github.com/eMuleAI/eMuleAI> (default branch `master`, 73 stars, 33 open issues, 2 pull requests ever) |
+| Latest release (re-verified 2026-10-20) | [`eMuleAI_v1.6`](https://github.com/eMuleAI/eMuleAI/releases/tag/eMuleAI_v1.6), 2026-07-25; tag commit `a2f05dc8db772a11ca874adf0a16baaf30560519` = `master` tip |
+| History | One "Cumulative vX update" commit per release; no fine-grained history, so no commit-level evidence is available |
+| Source vs. binaries | A comment on [issue #182](https://github.com/eMuleAI/eMuleAI/issues/182) (2026-10-20) reports "v1.6.1" builds; no `v1.6.1` tag or commit exists in the repository. Source for current binaries is therefore not public as of this audit (user report, not verified) |
+| Maintainer activity | Answers issues (latest maintainer comment 2026-10-16); no source update for three months. Registry class stays `active experimental`, with that caveat |
+| Licence | GitHub shows none. README and file headers (for example `srchybrid/BaseClient.cpp`) state GPL-2.0-or-later; `Licenses/license.txt` and third-party notices are shipped. Some files carry other copyrights (for example `UtpSocket.h`, NeoLoader lineage) |
+| Examined | `README.md`, `Release_Notes.txt`, `srchybrid/SharedFileList.{h,cpp}`, `Opcodes.h`, `srchybrid/eMuleAI/*` (`SafeKad`, `FastKad`, `NetBind`, `IpGuard`, `SourceSaver`, `SharedCache`, `QuicNatConfig.h`, `UtpSocket.h`), `srchybrid/kademlia/`, `ListenSocket.cpp`, `ClientUDPSocket.cpp`, open issues #167, #171-#173, #178, #181, #184 |
+
+Paths are relative to `https://github.com/eMuleAI/eMuleAI/blob/eMuleAI_v1.6/`. Authority is unchanged: eMule AI is a **mod** and stays below eMule Community and aMule.
+
+### 8.2 Principal findings
+
+1. **There is no verification layer in the repository.** No `.github/`, no CI, no test directory; `srchybrid/SelfTest.cpp` is a debug-build resource enumerator, not a test suite. Release-note performance claims (QUIC "up to about 2x" faster than uTP) are unreproduced vendor statements. The real review evidence is external: an aMule contributor filed protocol reviews, and the maintainer confirmed at least one defect (#171).
+2. **Its recursive share scan is the closest reference to Envy's problem** (Windows, MFC, long paths, mapped drives). `CSharedFileListSearchThread` (`SharedFileList.h:436`, `.cpp:5273-5720`): a dedicated lowest-priority thread working a queue of search paths; a **visited set keyed by volume serial + file index** (`.cpp:5585-5610`) so junctions and links are followed without loops; offline directories skipped; `\\?\` and UNC prefixes handled; `ShouldAbortWork(generation)` checked throughout; include/exclude subdirectory rules read from a snapshot; `FindFirstFileExW(FindExInfoBasic, FIND_FIRST_EX_LARGE_FETCH)` (`.cpp:5465`). `CSharedCache` (`eMuleAI/SharedCache.h`) maps path + date + size to a known hash so a restart does not rehash, with a cancellation token. Release notes also describe startup caches for large shares, reloads that no longer clear the list, and a timestamp-tolerance fix that stopped needless reprocessing. Difference with Envy PR [#467](https://github.com/Mika3578/Envy/pull/467): Envy **skips** directory reparse points, eMule AI **follows** them under a visited set. Both are defensible; the choice should be explicit and tested.
+3. **NAT traversal exists in the code, as a mod-level dialect.** LowID-to-LowID connections use `OP_RENDEZVOUS 0xA0`, `OP_HOLEPUNCH 0xA1`, `OP_NATT_ENDPOINT_HINT 0xAA`, serving-buddy pull (`0xA8`/`0xA9`, hello tag `0xA7`), and data frames inside `OP_UDPRESERVEDPROT2 0xB2` with sub-types `0x00` uTP, `0x01` QUIC, `0x02`/`0x03` capability exchange, `0xFF` key (`Opcodes.h:175-177`, `:207-221`, `:696-723`). Capability bits in `CT_MOD_MISCOPTIONS`: ExtXS, NAT-T (uTP), IPv6, serving-buddy pull, QUIC. QUIC rests on ngtcp2 + GnuTLS (ALPN `ed2k-ai-natt-quic-v1`, `QuicNatConfig.h`), uTP on libutp. None of this is in eMule Community or aMule; aMule is now building a compatible implementation and its contributor reports spec weaknesses: the rendezvous body has no extension mechanism ([#172](https://github.com/eMuleAI/eMuleAI/issues/172)), unmatched uTP frames trigger an unsolicited reset to an unverified source ([#173](https://github.com/eMuleAI/eMuleAI/issues/173)), and a LowID source with a usable IPv6 address is sent to rendezvous instead of a direct dial ([#184](https://github.com/eMuleAI/eMuleAI/issues/184)). This is the same unsettled area as in eMule Qt issue #39.
+4. **Robustness defects are open, reproducible and informative.** A plain `OP_HELLO` with zero tags (33-byte body) raises an unhandled exception and the client disconnects ([#167](https://github.com/eMuleAI/eMuleAI/issues/167), open); one unknown ExtSX tag makes `AddClientSources()` drop every source of the packet ([#171](https://github.com/eMuleAI/eMuleAI/issues/171), confirmed by the maintainer, fix announced). Both are cheap to turn into Envy parser tests.
+5. **IPv6 is a dialect, not a standard.** `CAddress` type, `CT_MOD_IP_V6 0xAE`, `CT_MOD_SVR_IP_V6 0xAF`, `OP_CHANGE_CLIENT_IP 0xAC` with a 16-byte address, `ip6` / `bi6` source tags and a variable-size ExtSX. eMule Qt documents the same identifiers (its spec section 1), so a de-facto eMule AI / eMule Qt / aMule dialect is forming. v1.6 release notes mention a dual-stack LowID bug caused by obfuscation. Envy's Source Exchange is IPv4-only on the wire (`status.md`), so this is an interoperability gap to inventory, not a bug.
+6. **Bind and VPN protection is more complete than eMule Qt's on the user-facing side**: `NetBind` (interface or IP, startup block when the target is unavailable, exit on runtime bind loss, random listen port) and `IpGuard` / VPN Guard (public-IP probe through the bound interface, allowed ranges, country block, optional block for unknown location). The probe contacts a configurable third-party URL, so any Envy equivalent must be opt-in and described as routing control, not anonymity.
+7. **Kad is the Community code plus two additions**: `CSafeKad2` (per-address tracking, aging) and `CFastKad` (response-time estimator over at most 100 samples), both original to eMule AI; eMule Qt's `KadSafeKad` header says it was ported from here, and `KadFastKad` has the same name and purpose. Nothing in the repository measures their benefit.
+8. **Behaviour-based peer penalties produce false positives.** Open and closed issues report wrongly flagged clients (#154 Rucio/Ember detected as eMule AI, #155 ban by user name, #156 and #166 false abuse), and release notes list repeated corrections (MLDonkey requests, user-hash conflicts, outdated phishing-name rules). Relevant to Envy [#319](https://github.com/Mika3578/Envy/issues/319) and [#451](https://github.com/Mika3578/Envy/issues/451).
+9. **Not a headless core.** The Docker image runs the Windows build under Wine with Xpra or noVNC; there is no daemon/GUI split to learn from (eMule Qt and aMule remain the references).
+10. **Licence and provenance**: GPL-2.0-or-later headers make a combination with AGPL-3.0 legally conceivable, but the tree mixes eMule, mod-author, NeoLoader-lineage and third-party code under several notices, and `AGENTS.md` hard rule 9 and the "no copying without explicit validation" rule stand. Principles, scenarios and independent re-implementation only. (This also nuances section 7: whether eMule Qt files that derive from eMule AI inherit the "or later" grant was not verified per file.)
+
+Not verified: the speed claims, real-network NAT-T success rates, QUIC interoperability, the documentation hub at `emuleai.github.io` (not read), and anything in the unpublished v1.6.1.
+
+### 8.3 Comparison eMule AI / Envy
+
+State vocabulary as in section 7.3. "Tests in CI": never, for eMule AI. Envy state from `develop` @ `80f091b4`.
+
+| Area | eMule AI (state, source) | Envy today | Decision |
+| --- | --- | --- | --- |
+| Recursive share scan | implemented: queue thread, visited set, abort generation, long paths (`SharedFileList.cpp:5273-5720`) | recursive, under `Library.m_pSection`; PR #467, [#499](https://github.com/Mika3578/Envy/issues/499), [#498](https://github.com/Mika3578/Envy/issues/498), [#497](https://github.com/Mika3578/Envy/issues/497) | **Retain** design points as review input; explicit reparse-point policy |
+| Large directory enumeration API | `FindFirstFileExW` basic info + large fetch (`:5465`) | candidate named in #499, not yet applied | Confirms #499's direction; measure first |
+| Hash reuse across restarts | implemented (`SharedCache`: path + date + size) | `LibraryHashDB`; bug fixed in PR #467 | Reference for #384 / #498 |
+| Hash scheduling per volume | not seen (single add-file thread, `.cpp:3296`) | none ([#384](https://github.com/Mika3578/Envy/issues/384)) | eMule Qt's design stays the better input |
+| NAT-T rendezvous, hole punch | implemented as mod dialect; spec weaknesses reported by aMule (#172, #173, #184) | none; Envy defines none of `0xA0`/`0xA1`/`0xAA` mod opcodes (its `0xA0`/`0xA1` are TCP C2C `BUDDYPONG` / `COMPRESSEDPART_I64`, `EDPacket.h:296-297`) | **Guard**: do not adopt; revisit only after Community and aMule converge |
+| QUIC / uTP transports for ED2K | implemented (ngtcp2, GnuTLS, libutp) | uTP not wired for BitTorrent either ([#88](https://github.com/Mika3578/Envy/issues/88)) | **Reject** for ED2K; new dependencies need plan discussion (AGENTS §7) |
+| IPv6 dialect (`0xAE`, `0xAF`, `0xAC`, `ip6`/`bi6`, ExtSX) | implemented; shared with eMule Qt | partial ([#89](https://github.com/Mika3578/Envy/issues/89)); SX IPv4-only | **Retain** as inventory input; no wire adoption now |
+| Bind interface, VPN Guard | implemented (`NetBind`, `IpGuard`) | none ([#230](https://github.com/Mika3578/Envy/issues/230)) | **Retain** acceptance ideas |
+| Kad Sybil / timing extras | `CSafeKad2`, `CFastKad`, unmeasured | `/24` diversity, 1 ID per IP | **Defer** (as eMule Qt) |
+| Source persistence | implemented (`SourceSaver`: expiry, SX version) | not found by search; [#233](https://github.com/Mika3578/Envy/issues/233) | **Defer** (P3) |
+| Peer penalties, name rules, Shield | implemented; recurrent false positives | none comparable; [#319](https://github.com/Mika3578/Envy/issues/319), [#451](https://github.com/Mika3578/Envy/issues/451) | **Reject** as a model; keep lessons |
+| Download Validator, similarity scoring | implemented | none | **Defer** (P4; related to fake-file ideas) |
+| Windows Firewall rule repair | implemented option (UAC prompt) | WFAS `INetFwPolicy2` delivered ([#166](https://github.com/Mika3578/Envy/issues/166)) | Nothing to add |
+| Parser robustness | defects open: zero-tag Hello (#167), ExtSX unknown tag (#171) | tests not audited for these cases | **Retain** as test cases |
+| Tests and CI | none | EnvyTests in staged CI | Do not cite eMule AI as verified |
+| Headless / API | Wine in Docker | none ([#161](https://github.com/Mika3578/Envy/issues/161)) | Nothing to learn |
+
+### 8.4 Retained candidates
+
+| ID | Candidate | Benefit | Risks (security / compat / maintenance) | Complexity, dependencies | Tests needed | Priority, issue |
+| --- | --- | --- | --- | --- | --- | --- |
+| E1 | Extend guard C1: do not advertise or act on eMule AI mod opcodes (`0xA0`/`0xA1`/`0xAA` UDP/embedded, `0xA7`-`0xA9`), mod misc bits, `0xB2` sub-types | Avoids half-implemented dialects and capability dishonesty | None (documentation guard) | None | None | P0 guard, no issue |
+| E2 | Parser tests: plain 33-byte `OP_HELLO` with zero tags is answered; a tag block with unknown tags does not discard the rest of the packet | Cheap regression net for hostile or unusual peers | None | Small; existing EnvyTests | The two cases, plus truncation variants | P1, [#87](https://github.com/Mika3578/Envy/issues/87) / [#91](https://github.com/Mika3578/Envy/issues/91) |
+| E3 | Share-scan review checklist: visited-set vs skip for reparse points, offline files, long/UNC paths, abort checkpoints, hash reuse keyed by path + date + size | Concrete acceptance points for #467 follow-ups and #498/#499 | Following reparse points risks loops and cloud placeholders; skipping hides legitimate junctions | Small to moderate | Junction loop, junction to other volume, UNC, long path, offline attribute | P2, [#499](https://github.com/Mika3578/Envy/issues/499) / [#498](https://github.com/Mika3578/Envy/issues/498) / [#467](https://github.com/Mika3578/Envy/pull/467) follow-up |
+| E4 | IPv6 dialect inventory (identifiers, tag names, ExtSX layout) in `docs/ipv6/PLAN.md`, plus the lesson from #184: prefer a direct IPv6 dial over rendezvous | Informs the Envy decision on reading `ip6`/`bi6` and ExtSX | Wrong if copied as spec; Community/aMule remain authority | Documentation | Later: SX/IPv6 vectors against aMule | P1, [#89](https://github.com/Mika3578/Envy/issues/89) |
+| E5 | Bind / VPN acceptance additions: block at startup when the target interface is missing, exit or pause on runtime bind loss, opt-in public-IP probe | Completes C10 | Third-party probe is a privacy leak if on by default | Depends on core socket layer | Interface down at start / during run, probe off by default | P3, [#230](https://github.com/Mika3578/Envy/issues/230) |
+| E6 | Penalty hygiene: allow by default, no punishment from name or client-string heuristics alone, record evidence before acting | Avoids repeating eMule AI's false positives | Behaviour change in uploads | Design | Misidentified client fixtures | P3, [#319](https://github.com/Mika3578/Envy/issues/319) / [#451](https://github.com/Mika3578/Envy/issues/451) |
+
+### 8.5 Rejected or deferred
+
+| Item | Verdict | Reason |
+| --- | --- | --- |
+| Any eMule AI code or table | **Rejected** | Rule 9 and explicit-validation rule; mixed provenance (see 8.2 item 10) |
+| NAT-T rendezvous, hole punch, endpoint hint, serving buddy | **Rejected** for now | Mod-level dialect with open protocol weaknesses; not in Community or aMule |
+| QUIC and uTP transports for ED2K (ngtcp2, GnuTLS, libutp) | **Rejected** | New protocol and heavy dependencies; not justified by evidence (speed claims unreproduced) |
+| Behaviour-based bans, Shield, AntiNick | **Rejected** | Recurrent false positives |
+| Wine/Docker "headless" | **Rejected** | Not a core/daemon split |
+| `CSafeKad2`, `CFastKad` | **Deferred** | Same as eMule Qt's derivatives; wait for the live Kad2 baseline |
+| Download Validator, source persistence | **Deferred** | P3/P4 convenience features |
+
+### 8.6 Priority list (P0 to P4)
+
+No existing priority changes.
+
+- **P0**: guard E1 (extends C1). #160 and #86 unchanged.
+- **P1**: E2 on #87 / #91; E4 on #89.
+- **P2**: E3 on #499 / #498 / #467 follow-up.
+- **P3**: E5 on #230; E6 on #319 / #451; source persistence on #233.
+- **P4**: Download Validator and similar convenience features.
+
+No new issue is justified. Suggested comments are drafted in `.local/DEV_TRACKER.md` and are not posted.
+
+### 8.7 Order of technical PRs (additions to 7.7)
+
+1. Test-only PR for E2 (zero-tag `OP_HELLO`, unknown-tag tolerance) ahead of the Source Exchange vectors in 7.7 step 2.
+2. When PR #467 settles, a short documentation or test PR for the reparse-point policy (E3).
+3. Everything else keeps the order in 7.7; nothing in eMule AI justifies moving NAT work earlier.
+
+### 8.8 Limits of this audit
+
+- Read, not built or run; no test could be executed because none exists.
+- The repository exposes release snapshots only, so authorship, dates of individual changes and review history are not recoverable.
+- Behaviour of the unpublished v1.6.1 and of the documentation hub was not examined.
+- Issue content comes from third-party reporters and one maintainer; the aMule contributor's and the maintainer's positions were not checked against aMule sources.
+- Envy "absent" statements again come from searches in `Envy/`, not exhaustive review.
 
 ---
 
