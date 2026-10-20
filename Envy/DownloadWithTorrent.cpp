@@ -418,7 +418,7 @@ BOOL CDownloadWithTorrent::SetTorrent(const CBTInfo* pTorrent /*NULL*/)
 
 	if ( CreateDirectory( Settings.Downloads.TorrentPath ) )
 	{
-		CQuickLock oLock( Library.m_pSection );
+		CQuickLock oLock(Library.m_pSection);
 		LibraryFolders.AddFolder( Settings.Downloads.TorrentPath, FALSE );
 		m_pTorrent.SaveTorrentFile( Settings.Downloads.TorrentPath );
 	}

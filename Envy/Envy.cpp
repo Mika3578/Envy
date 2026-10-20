@@ -720,7 +720,7 @@ int CEnvyApp::ExitInstance()
 		const DWORD nLibraryStopStart = GetTickCount();
 		LibraryBuilder.CloseThread();
 		Library.CloseThread();
-		theApp.Message( MSG_DEBUG, L"Library tasks stopped in %lu ms.", GetTickCount() - nLibraryStopStart );
+		theApp.Message(MSG_DEBUG, L"Library tasks stopped in %lu ms.", GetTickCount() - nLibraryStopStart);
 
 		SplashStep( L"Stopping Security Tasks" );
 		ListLoader.CloseThread();
@@ -1382,10 +1382,10 @@ BOOL CEnvyApp::OpenPath(LPCTSTR lpszFileName)
 	// Add new folder to Library
 	CLibraryFolder* pFolder = NULL;
 	{
-		CQuickLock oLock( Library.m_pSection );
-		pFolder = LibraryFolders.AddFolder( lpszFileName );
+		CQuickLock oLock(Library.m_pSection);
+		pFolder = LibraryFolders.AddFolder(lpszFileName);
 	}
-	if ( pFolder )
+	if (pFolder)
 	{
 		CMainWnd* pMainWnd = (CMainWnd*)AfxGetMainWnd();
 		if ( CLibraryWnd* pLibraryWnd = (CLibraryWnd*)pMainWnd->m_pWindows.Open( RUNTIME_CLASS(CLibraryWnd) ) )

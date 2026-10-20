@@ -360,16 +360,16 @@ void CDownloadGroupDlg::OnOK()
 
 					bAdd = ( MsgBox( strMessage, MB_ICONQUESTION|MB_YESNO ) == IDYES );
 					if ( bAdd )
-				{
-					// The nested shared folders are removed from the map the
-					// scan worker is mutating between listings.
-					CQuickLock oLock( Library.m_pSection );
-					CLibraryFolder* pFolder;
-					while ( ( pFolder = LibraryFolders.IsSubFolderShared( m_sFolder ) ) != NULL )
 					{
-						LibraryFolders.RemoveFolder( pFolder );
+						// The nested shared folders are removed from the map the
+						// scan worker is mutating between listings.
+						CQuickLock oLock(Library.m_pSection);
+						CLibraryFolder* pFolder;
+						while ((pFolder = LibraryFolders.IsSubFolderShared(m_sFolder)) != NULL)
+						{
+							LibraryFolders.RemoveFolder(pFolder);
+						}
 					}
-				}
 				}
 				if ( bAdd )
 				{
@@ -384,10 +384,10 @@ void CDownloadGroupDlg::OnOK()
 				{
 					CLibraryFolder* pFolder = NULL;
 					{
-						CQuickLock oLock( Library.m_pSection );
-						pFolder = LibraryFolders.AddFolder( m_sFolder );
+						CQuickLock oLock(Library.m_pSection);
+						pFolder = LibraryFolders.AddFolder(m_sFolder);
 					}
-					if ( pFolder )
+					if (pFolder)
 					{
 						BOOL bShare = MsgBox( IDS_LIBRARY_DOWNLOADS_SHARE, MB_ICONQUESTION|MB_YESNO ) == IDYES;
 
