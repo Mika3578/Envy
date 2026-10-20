@@ -9,6 +9,7 @@
 
 #include "test_framework.h"
 #include "../Envy/KadBootstrapRotation.h"
+#include <algorithm>
 #include <cstring>
 #include <vector>
 
@@ -83,7 +84,7 @@ bool test_exponential_bounded_backoff()
 {
 	KadBootstrapRotation policy;
 	const auto candidate = MakeBootstrapContact(0);
-	const std::vector<KadContact> all = {candidate};
+	const std::vector<KadContact> all = { candidate };
 	policy.Sent(candidate.ip, candidate.udpPort, 0);
 	if (!policy.TimedOut(candidate.ip, candidate.udpPort, 30001))
 		return false;
@@ -106,7 +107,7 @@ bool test_pending_cannot_reenter_without_timeout()
 {
 	KadBootstrapRotation policy;
 	const KadContact candidate = MakeBootstrapContact(0);
-	const std::vector<KadContact> all = {candidate};
+	const std::vector<KadContact> all = { candidate };
 	policy.Sent(candidate.ip, candidate.udpPort, 0);
 	// Elapsed time does not implicitly complete or cancel the request.
 	if (!policy.Select(all, 600000).contacts.empty())
@@ -122,7 +123,7 @@ bool test_success_clears_penalty()
 {
 	KadBootstrapRotation policy;
 	const auto c = MakeBootstrapContact(0);
-	const std::vector<KadContact> all = {c};
+	const std::vector<KadContact> all = { c };
 	policy.Sent(c.ip, c.udpPort, 0);
 	if (!policy.TimedOut(c.ip, c.udpPort, 30001))
 		return false;
@@ -135,7 +136,7 @@ bool test_wraparound_timing()
 {
 	KadBootstrapRotation policy;
 	const auto c = MakeBootstrapContact(0);
-	const std::vector<KadContact> all = {c};
+	const std::vector<KadContact> all = { c };
 	const uint64_t start = 0xfffffff0u;
 	policy.Sent(c.ip, c.udpPort, start);
 	if (!policy.Select(all, start + 2000u).contacts.empty())
@@ -323,6 +324,118 @@ bool test_accepted_clears_only_the_answering_ip()
 	return policy.Tracked() == 3 && policy.WasRequested(a.ip, 1) && policy.WasRequested(b.ip, 1) &&
 	       policy.TimedOut(a.ip, sameIpOtherPort.udpPort, 30000);
 }
+
+constexpr size_t kOutstandingBudget = 10; // KAD2_MAX_OUTSTANDING_REQUESTS
+
+bool test_batch_limit_bounds_the_budget()
+{
+	const size_t cold = KadBootstrapRotation::MaxColdStartBatch;
+	const size_t warm = KadBootstrapRotation::MaxBatch;
+	return KadBootstrapBatchLimit(cold, 0, kOutstandingBudget) == cold &&
+	       KadBootstrapBatchLimit(warm, 0, kOutstandingBudget) == warm &&
+	       // One slot always stays free for other Kad traffic.
+	       KadBootstrapBatchLimit(warm, 6, kOutstandingBudget) == warm &&
+	       KadBootstrapBatchLimit(warm, 7, kOutstandingBudget) == 2 &&
+	       KadBootstrapBatchLimit(warm, 8, kOutstandingBudget) == 1 &&
+	       KadBootstrapBatchLimit(warm, 9, kOutstandingBudget) == 0 &&
+	       KadBootstrapBatchLimit(warm, 10, kOutstandingBudget) == 0 &&
+	       KadBootstrapBatchLimit(warm, 25, kOutstandingBudget) == 0 &&
+	       KadBootstrapBatchLimit(warm, 0, 1) == 0 && KadBootstrapBatchLimit(warm, 0, 0) == 0;
+}
+
+struct SilentColdStart
+{
+	size_t sent = 0;
+	size_t peakInFlight = 0;
+	size_t oversized = 0; // a batch larger than the limit it was asked for
+	size_t blocked = 0;   // cycles where nothing could be selected
+	uint64_t fullCoverageMs = 0;
+};
+
+// The real chain for a cold start where no peer answers: the Kad tick, the batch
+// limit, Select, Sent, and a 30 s request timeout that releases the slot.
+SilentColdStart SimulateSilentColdStart(size_t cacheSize, uint64_t tickMs, uint64_t horizonMs)
+{
+	struct InFlight
+	{
+		uint64_t sentMs;
+		uint32_t ip;
+		uint16_t port;
+	};
+	KadBootstrapRotation policy;
+	const auto cache = Candidates(cacheSize);
+	std::vector<InFlight> inFlight;
+	std::vector<uint32_t> contacted;
+	SilentColdStart r;
+	const uint64_t start = 1000;
+	for (uint64_t now = start; now < start + horizonMs; now += tickMs)
+	{
+		std::vector<InFlight> keep;
+		for (const InFlight& q : inFlight)
+		{
+			if (now - q.sentMs >= KadBootstrapRotation::RequestTimeoutMs)
+				policy.TimedOut(q.ip, q.port, now);
+			else
+				keep.push_back(q);
+		}
+		inFlight.swap(keep);
+
+		const size_t limit = KadBootstrapBatchLimit(KadBootstrapRotation::MaxColdStartBatch,
+		                                            inFlight.size(), kOutstandingBudget);
+		if (limit == 0)
+		{
+			++r.blocked;
+			continue;
+		}
+		const auto batch = policy.Select(cache, now, limit);
+		if (batch.contacts.size() > limit)
+			++r.oversized;
+		for (const KadContact& c : batch.contacts)
+		{
+			if (!policy.Sent(c.ip, c.udpPort, now))
+				continue;
+			inFlight.push_back({ now, c.ip, c.udpPort });
+			if (std::find(contacted.begin(), contacted.end(), c.ip) == contacted.end())
+				contacted.push_back(c.ip);
+			++r.sent;
+		}
+		r.peakInFlight = std::max(r.peakInFlight, inFlight.size());
+		if (r.fullCoverageMs == 0 && contacted.size() == cacheSize)
+			r.fullCoverageMs = now - start;
+	}
+	return r;
+}
+
+bool test_cold_start_covers_the_cache_within_the_budget()
+{
+	// The periodic caller runs once per six one-second timer ticks (about 6 s, never
+	// closer than 5 s), 50 cached peers, none answering, ten minutes.
+	const SilentColdStart r = SimulateSilentColdStart(50, 6000, 600000);
+	// Bounded: the budget is never exceeded, a batch never outgrows its limit, and
+	// the total stays below the one-request-per-two-seconds of the references.
+	if (r.peakInFlight > kOutstandingBudget - 1 || r.oversized != 0 || r.sent > 600000u / 2000u)
+		return false;
+	// Nothing is selected and left untried: the whole cache gets a first request in
+	// under three and a half minutes. Selecting first and cutting the send loop on
+	// the budget instead took over seven minutes here.
+	return r.fullCoverageMs != 0 && r.fullCoverageMs <= 210000;
+}
+
+bool test_cold_start_rate_is_set_by_the_budget_not_the_tick()
+{
+	const SilentColdStart six = SimulateSilentColdStart(50, 6000, 600000);
+	const SilentColdStart five = SimulateSilentColdStart(50, 5000, 600000);
+	const SilentColdStart batchOnly = SimulateSilentColdStart(200, 6000, 600000);
+	// A slightly shorter tick changes nothing: nine slots held for 30 s cap the rate
+	// at 0.3 requests/s whatever the cycle (about 0.25 once the grid is included).
+	const size_t spread = six.sent > five.sent ? six.sent - five.sent : five.sent - six.sent;
+	if (spread * 10 > six.sent)
+		return false;
+	// Sustained cold-start rate: above 0.2 and below 0.3 requests/s, under half of the
+	// references' 0.5. A larger cache stays bounded the same way.
+	return six.sent >= 120 && six.sent <= 180 && batchOnly.peakInFlight <= kOutstandingBudget - 1 &&
+	       batchOnly.oversized == 0 && batchOnly.sent <= 180;
+}
 } // namespace
 
 void register_kad_bootstrap_rotation_tests(TestSuite& suite)
@@ -342,4 +455,7 @@ void register_kad_bootstrap_rotation_tests(TestSuite& suite)
 	suite.add_test("kad_bootstrap_accept_window_any_port", test_accept_window_matches_sender_ip_on_any_port);
 	suite.add_test("kad_bootstrap_accept_window_wraparound", test_accept_window_is_tick_wrap_safe);
 	suite.add_test("kad_bootstrap_accept_clears_one_ip", test_accepted_clears_only_the_answering_ip);
+	suite.add_test("kad_bootstrap_batch_limit", test_batch_limit_bounds_the_budget);
+	suite.add_test("kad_bootstrap_cold_start_coverage", test_cold_start_covers_the_cache_within_the_budget);
+	suite.add_test("kad_bootstrap_cold_start_rate_budget_bound", test_cold_start_rate_is_set_by_the_budget_not_the_tick);
 }

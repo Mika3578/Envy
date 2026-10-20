@@ -11,6 +11,7 @@
 #include "../Envy/KadBootstrapRotation.h"
 #include "../Envy/KadOutstandingRequest.h"
 #include <stdexcept>
+#include <utility>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -59,7 +60,7 @@ class CKademlia
 public:
 	KadBootstrapRotation m_bootstrapRotation;
 	std::map<DWORD, KadOutstandingRequest> m_outstandingRequests;
-	uint32_t m_bootstrapMalformed = 0, m_bootstrapClamped = 0, m_bootstrapRejected = 0;
+	uint32_t m_bootstrapMalformed = 0, m_bootstrapPartial = 0, m_bootstrapRejected = 0;
 	uint32_t m_bootstrapResponses = 0, m_bootstrapAccepted = 0, m_bootstrapTimeouts = 0;
 	std::vector<KadContact> admitted;
 	bool UpdateContact(const KadContact& c, KadContactSource, bool verified)
@@ -113,11 +114,13 @@ CEDPacket Reply(size_t framed = 0, uint16_t announced = 0, size_t trailing = 0)
 	return packet;
 }
 
+// True when the reply was accepted as an answer, whether fully framed (counted as
+// a valid response) or partial (counted apart): exactly one of the two moved.
 bool Respond(CKademlia& kad, const SOCKADDR_IN& from, CEDPacket packet = Reply())
 {
-	const uint32_t before = kad.m_bootstrapResponses;
+	const uint32_t before = kad.m_bootstrapResponses + kad.m_bootstrapPartial;
 	kad.OnBootstrapResponse(&from, &packet);
-	return kad.m_bootstrapResponses == before + 1;
+	return kad.m_bootstrapResponses + kad.m_bootstrapPartial == before + 1;
 }
 
 bool test_expected_port()
@@ -203,7 +206,8 @@ bool test_partial_first_contact_keeps_responder()
 	CKademlia kad;
 	kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
 	return Respond(kad, Endpoint(), Reply(0, 1, 24)) && kad.admitted.size() == 1 &&
-	       kad.m_bootstrapClamped == 1 && kad.m_outstandingRequests.empty();
+	       kad.m_bootstrapPartial == 1 && kad.m_bootstrapResponses == 0 &&
+	       kad.m_outstandingRequests.empty();
 }
 
 bool test_other_pending_still_times_out()
@@ -363,7 +367,7 @@ bool test_partial_contacts_keep_framed_prefix()
 	CKademlia kad;
 	kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
 	if (!Respond(kad, Endpoint(6000), Reply(1, 2, 24)) || kad.admitted.size() != 2 ||
-	    kad.m_bootstrapClamped != 1 || !kad.m_outstandingRequests.empty())
+	    kad.m_bootstrapPartial != 1 || kad.m_bootstrapResponses != 0 || !kad.m_outstandingRequests.empty())
 		return false;
 	return kad.admitted[0].id[0] == 2 && kad.admitted[0].udpPort == 4672 &&
 	       kad.admitted[1].udpPort == 6000 && !Respond(kad, Endpoint(6000), Reply(1, 2, 24));
@@ -375,7 +379,95 @@ bool test_receive_cap_and_trailing_bytes()
 	CKademlia kad;
 	kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
 	return Respond(kad, Endpoint(), Reply(21, 21, 10)) && kad.admitted.size() == 21 &&
-	       kad.m_bootstrapClamped == 1;
+	       kad.m_bootstrapPartial == 1 && kad.m_bootstrapResponses == 0;
+}
+
+void Feed(CKademlia& kad, const SOCKADDR_IN& from, CEDPacket packet)
+{
+	kad.OnBootstrapResponse(&from, &packet);
+}
+
+// A datagram nobody asked for must not move any "answered" counter, whatever its
+// framing; otherwise any UDP sender could inflate the diagnostics.
+bool test_unsolicited_never_counts_as_answer()
+{
+	testNow = 1000;
+	CKademlia kad;
+	const auto pending = kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
+	const auto stranger = Endpoint(4672, 0xc0000209u);
+	for (int i = 0; i < 250; ++i)
+	{
+		Feed(kad, stranger, Reply(0, 20, 0));  // announces 20, carries none
+		Feed(kad, stranger, Reply(1, 2, 24));  // short list
+		Feed(kad, stranger, Reply(25, 25, 0)); // above the local bound
+		Feed(kad, stranger, Reply(3, 3, 0));   // clean
+	}
+	return kad.m_bootstrapResponses == 0 && kad.m_bootstrapPartial == 0 &&
+	       kad.m_bootstrapRejected == 1000 && kad.m_bootstrapMalformed == 0 && kad.admitted.empty() &&
+	       kad.m_outstandingRequests.count(pending) == 1;
+}
+
+// Only a fully framed reply within the local bound is a valid response. A short or
+// over-counted one is still used (the references keep the framed prefix, and the
+// request is consumed) but is counted apart, never as valid.
+bool test_partial_replies_are_not_valid_responses()
+{
+	struct Case
+	{
+		size_t framed;
+		uint16_t announced;
+		size_t trailing;
+		bool partial;
+		size_t admitted; // contacts read plus the responder itself
+	};
+	const Case cases[] = {
+		{ 0, 0, 0, false, 1 },     // empty, complete
+		{ 3, 3, 0, false, 4 },     // clean
+		{ 20, 20, 10, false, 21 }, // at the bound, trailing bytes ignored
+		{ 0, 4, 0, true, 1 },      // header only, list absent: the responder alone
+		{ 1, 2, 24, true, 2 },     // one whole contact, one cut short
+		{ 3, 5, 0, true, 4 },      // short list
+		{ 25, 25, 0, true, 21 },   // fully framed but above the local bound of 20
+		{ 0, 0xffff, 0, true, 1 }  // absurd announcement, nothing carried
+	};
+	for (const Case& c : cases)
+	{
+		testNow = 1000;
+		CKademlia kad;
+		kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
+		if (!Respond(kad, Endpoint(), Reply(c.framed, c.announced, c.trailing)))
+			return false;
+		if (kad.m_bootstrapPartial != (c.partial ? 1u : 0u) ||
+		    kad.m_bootstrapResponses != (c.partial ? 0u : 1u) || kad.admitted.size() != c.admitted)
+			return false;
+		// Consumed in both cases: nothing left in flight, and a repeat is rejected.
+		if (!kad.m_outstandingRequests.empty() || Respond(kad, Endpoint()) || kad.m_bootstrapRejected != 1)
+			return false;
+	}
+	return true;
+}
+
+// A partial reply must leave the rotation exactly as a complete one does.
+bool test_partial_reply_consumes_like_a_complete_one()
+{
+	const auto after = [](CEDPacket packet)
+	{
+		testNow = 1000;
+		CKademlia kad;
+		kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
+		testNow += KAD2_REQUEST_TIMEOUT;
+		kad.CleanupExpiredRequests(); // a genuine timeout: the endpoint is now in backoff
+		testNow += 1000;
+		const auto from = Endpoint();
+		kad.OnBootstrapResponse(&from, &packet); // late but inside the window
+		KadId id = { 1 };
+		const KadContact candidate(id, 0xc0000201u, 4672);
+		return std::make_pair(kad.m_bootstrapResponses + kad.m_bootstrapPartial,
+		                      kad.m_bootstrapRotation.Select({ candidate }, testNow).contacts.size());
+	};
+	const auto complete = after(Reply(2, 2, 0));
+	const auto partial = after(Reply(0, 9, 0));
+	return complete.first == 1 && partial.first == 1 && complete.second == partial.second;
 }
 } // namespace
 
@@ -401,4 +493,7 @@ void register_kad_bootstrap_response_tests(TestSuite& suite)
 	suite.add_test("kad_response_short_header_preserves_request", test_truncated_header_preserves_request);
 	suite.add_test("kad_response_partial_framed_contacts", test_partial_contacts_keep_framed_prefix);
 	suite.add_test("kad_response_receive_cap", test_receive_cap_and_trailing_bytes);
+	suite.add_test("kad_response_unsolicited_never_counts", test_unsolicited_never_counts_as_answer);
+	suite.add_test("kad_response_partial_not_valid", test_partial_replies_are_not_valid_responses);
+	suite.add_test("kad_response_partial_consumes_like_complete", test_partial_reply_consumes_like_a_complete_one);
 }
