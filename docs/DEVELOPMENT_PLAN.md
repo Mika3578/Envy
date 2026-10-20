@@ -1,6 +1,13 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-11
+- **Changelog Entry:** 2026-10-12 — #470: make schema icon fallback order
+  explicit (`.Skin`, optional `.Alt`, descriptor default, `.Safe`), repair the
+  missing Collection icon reference, and force generic file-icon indices for
+  malformed or partial resources. Added descriptor-resource regression coverage
+  and maintainer UI validation steps; no schema URI or download-group behavior
+  changes.
+
+- **Last Updated:** 2026-10-20
 
 - **Changelog Entry:** 2026-10-11 - #405: constrain package destinations with strict manifest/ZIP path checks, bounded construction, pinned non-reparse ancestors and complete-file staged replacement. Production-backed EnvyTests cover package types, malformed input, overwrite policy and alias escapes; the focused project supports AddressSanitizer. Essential #406 ownership and manifest-buffer fixes are included; package-wide expansion/time budgets remain open. Validation commands and limitations: `10_dev/unpacker-validation.md`.
 

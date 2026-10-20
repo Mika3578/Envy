@@ -1467,6 +1467,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="Schema.h" />
     <ClInclude Include="SchemaCache.h" />
     <ClInclude Include="SchemaChild.h" />
+    <ClInclude Include="SchemaIconPolicy.h" />
     <ClInclude Include="SchemaMember.h" />
     <ClInclude Include="SearchManager.h" />
     <ClInclude Include="SecureRule.h" />

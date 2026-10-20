@@ -54,7 +54,9 @@ void register_crash_report_policy_smoke_tests(TestSuite& suite);
 void register_ed2k_lowid_callback_smoke_tests(TestSuite& suite);
 void register_albumfolder_mountcollection_smoke_tests(TestSuite& suite);
 void register_btinfo_piece_hash_smoke_tests(TestSuite& suite);
+void register_schema_icon_resource_tests(TestSuite& suite);
 
+/// Register all unit-test modules and return a nonzero exit code if any test fails.
 int main(int argc, char** argv)
 {
 	(void)argc;
@@ -104,6 +106,7 @@ int main(int argc, char** argv)
 	register_ed2k_lowid_callback_smoke_tests(suite);
 	register_albumfolder_mountcollection_smoke_tests(suite);
 	register_btinfo_piece_hash_smoke_tests(suite);
+	register_schema_icon_resource_tests(suite);
 
 	int failures = suite.run_all_tests();
 
