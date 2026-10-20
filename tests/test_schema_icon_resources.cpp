@@ -19,6 +19,9 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <shellapi.h>
+#pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "user32.lib")
 #endif
 
 /// Find checked-in schema resources above the executable or current working directory.
@@ -225,6 +228,95 @@ static bool test_schema_icon_draw_indices()
 	       GetSchemaIconDrawIndex(3, -1, 2) == 2 && GetSchemaIconDrawIndex(3, 1, -1) == 1;
 }
 
+/// A build-staged Schemas folder wins over a persisted install path; an install keeps working unchanged.
+static bool test_schema_root_selection()
+{
+	return SelectSchemaRoot(true, true) == 0 && SelectSchemaRoot(true, false) == 0 &&
+	       SelectSchemaRoot(false, true) == 1 && SelectSchemaRoot(false, false) == -1;
+}
+
+#ifdef _WIN32
+/// Count 16px frames declared by an ICO directory; reject truncated or non-icon data.
+static int count_ico_16px_frames(const std::filesystem::path& path)
+{
+	std::ifstream file(path, std::ios::binary);
+	std::string data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	if (data.size() < 6 || data[2] != 1 || data[3] != 0) return -1;
+	const std::size_t count = static_cast<unsigned char>(data[4]) | (static_cast<unsigned char>(data[5]) << 8);
+	if (count == 0 || data.size() < 6 + count * 16) return -1;
+	int frames = 0;
+	for (std::size_t i = 0; i < count; ++i)
+	{
+		const unsigned char* entry = reinterpret_cast<const unsigned char*>(data.data()) + 6 + i * 16;
+		const std::size_t size = entry[8] | (entry[9] << 8) | (entry[10] << 16) | (static_cast<std::size_t>(entry[11]) << 24);
+		const std::size_t offset = entry[12] | (entry[13] << 8) | (entry[14] << 16) | (static_cast<std::size_t>(entry[15]) << 24);
+		if (offset > data.size() || size > data.size() - offset) return -1;
+		if (entry[0] == 16) ++frames;
+	}
+	return frames;
+}
+
+/// Load a shipped ICO the way CSchema::LoadIcon does and require usable 16px and 48px frames.
+static bool load_icon_with_windows(const std::filesystem::path& path, bool& has16, bool& has48)
+{
+	HICON hLarge = nullptr, hSmall = nullptr, hHuge = nullptr, hExact16 = nullptr;
+	UINT id = 0;
+	ExtractIconExW(path.c_str(), 0, &hLarge, &hSmall, 1);
+	PrivateExtractIconsW(path.c_str(), 0, 16, 16, &hExact16, &id, 1, 0);
+	PrivateExtractIconsW(path.c_str(), 0, 48, 48, &hHuge, &id, 1, 0);
+	has16 = hSmall != nullptr && hExact16 != nullptr;
+	has48 = hHuge != nullptr;
+	for (HICON h : { hLarge, hSmall, hHuge, hExact16 })
+		if (h) DestroyIcon(h);
+	return true;
+}
+
+/// Every shipped schema icon must be readable by the real Windows loaders, with a 16px frame, so the
+/// download-group combo never falls back to the generic icon because of an unreadable resource.
+static bool test_schema_icons_load_with_windows()
+{
+	const std::filesystem::path schemas = find_schema_directory();
+	if (schemas.empty()) return false;
+	int checked = 0;
+	for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(schemas))
+	{
+		if (entry.path().extension() != L".ico") continue;
+		bool has16 = false, has48 = false;
+		if (count_ico_16px_frames(entry.path()) < 1) return false;
+		load_icon_with_windows(entry.path(), has16, has48);
+		if (!has16 || !has48) return false;
+		++checked;
+	}
+	return checked > 0;
+}
+
+/// Absent, empty, truncated and non-icon files yield no handle, so the generic fallback applies.
+static bool test_schema_icons_invalid_files()
+{
+	const std::filesystem::path dir = std::filesystem::temp_directory_path() / L"envy_schema_icon_test";
+	std::filesystem::create_directories(dir);
+	bool ok = true;
+	const std::pair<const wchar_t*, std::string> files[] = {
+		{ L"empty.ico", std::string() },
+		{ L"truncated.ico", std::string("\0\0\1\0\1\0\x10\x10", 8) },
+		{ L"notico.ico", std::string("this is not an icon file") },
+	};
+	for (const auto& file : files)
+	{
+		std::ofstream(dir / file.first, std::ios::binary) << file.second;
+		bool has16 = true, has48 = true;
+		load_icon_with_windows(dir / file.first, has16, has48);
+		ok = ok && !has16 && !has48;
+	}
+	bool has16 = true, has48 = true;
+	load_icon_with_windows(dir / L"absent.ico", has16, has48);
+	ok = ok && !has16 && !has48;
+	std::error_code ec;
+	std::filesystem::remove_all(dir, ec);
+	return ok;
+}
+#endif
+
 /// Register descriptor-resource coverage and deterministic production-policy regressions.
 void register_schema_icon_resource_tests(TestSuite& suite)
 {
@@ -236,4 +328,9 @@ void register_schema_icon_resource_tests(TestSuite& suite)
 	suite.add_test("Schema icons: preserve earlier per-size entries", test_schema_icon_preserves_prior_entries);
 	suite.add_test("Schema icons: generic fallback and existing entries", test_schema_icon_generic_and_existing_entries);
 	suite.add_test("Schema icons: invalid draw indices and unavailable lists", test_schema_icon_draw_indices);
+	suite.add_test("Schema icons: staged Schemas folder wins over a stale install path", test_schema_root_selection);
+#ifdef _WIN32
+	suite.add_test("Schema icons: every shipped ICO loads through ExtractIconEx/PrivateExtractIcons", test_schema_icons_load_with_windows);
+	suite.add_test("Schema icons: absent or malformed ICO files yield no handle", test_schema_icons_invalid_files);
+#endif
 }

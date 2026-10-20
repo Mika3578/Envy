@@ -12,11 +12,27 @@ used by `CSchema::Load`, `CSchema::LoadIcon` and `CShellIcons::Draw`:
   unavailable generic entry.
 
 Resource/frame availability and image-list insertion results are supplied by
-fixtures at the OS boundary. These tests do not exercise Windows ICO decoding,
-MFC image-list creation or actual painting; the visual matrix below remains
-necessary. Windows `EnvyTests` (`tests/EnvyTests.vcxproj`) registers the module
+fixtures at the OS boundary. Separate Windows tests load every shipped
+`Schemas/*.ico` through `ExtractIconEx` and `PrivateExtractIcons` (16px and
+48px frames required) and check that absent, empty, truncated and non-icon
+files yield no handle. They do not exercise MFC image-list creation or actual
+painting; the visual matrix below remains necessary. Windows `EnvyTests` (`tests/EnvyTests.vcxproj`) registers the module
 via `register_schema_icon_resource_tests` in `test_main.cpp`; run from the
 repository root so it can locate `Schemas/`.
+
+## Resource root
+
+`CSchemaCache::Load` reads `Schemas/` from the executable's folder when it
+holds schema definitions, and otherwise from the persisted `General.Path`
+(`SelectSchemaRoot`). `General.Path` is only reset when empty or missing, so a
+development build could previously load older installed `Schemas/*.xml` and
+`*.ico` while the checked-in set was correct. The Envy project now stages
+`Schemas/` (`*.xsd`, `*.xml`, `*.ico`) next to every output (`StageSchemas`).
+An installed copy is unchanged: its executable folder is `General.Path`.
+`General.Path` and user data are never rewritten. A debug-level log line
+reports the substitution without printing paths. `Vendors.xml` still follows
+`General.Path`, and `Flags.png`/missing-string diagnostics are unrelated to
+schema icons.
 
 Manual UI checks for the maintainer:
 

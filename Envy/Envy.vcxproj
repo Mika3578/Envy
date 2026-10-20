@@ -1770,6 +1770,16 @@ $(EnvyCrashPostBuildCmd)</Command>
           DestinationFiles="$(TargetDir)Data\DefaultServices.dat;$(TargetDir)Data\DefaultServers.dat"
           SkipUnchangedFiles="false" />
   </Target>
+  <!-- Schema descriptors and icons are resolved from the executable folder first, so a build must carry its
+       own copy; otherwise a persisted General.Path can serve older installed schemas to a fresh build. -->
+  <Target Name="StageSchemas" AfterTargets="Build"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <ItemGroup>
+      <EnvySchemaFile Include="$(MSBuildProjectDirectory)\..\Schemas\*.xsd;$(MSBuildProjectDirectory)\..\Schemas\*.xml;$(MSBuildProjectDirectory)\..\Schemas\*.ico" />
+    </ItemGroup>
+    <MakeDir Directories="$(TargetDir)Schemas" />
+    <Copy SourceFiles="@(EnvySchemaFile)" DestinationFolder="$(TargetDir)Schemas" SkipUnchangedFiles="true" />
+  </Target>
   <!-- vcpkg.targets is not imported here. VcpkgEnabled/VcpkgEnableManifest only
        restore packages if the machine has vcpkg MSBuild integration, and even
        then restore is BeforeTargets=ClCompile/Midl — after PreBuildEvent.

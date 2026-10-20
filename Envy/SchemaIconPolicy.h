@@ -57,3 +57,14 @@ inline int GetSchemaIconDrawIndex(int nImageCount, int nIcon, int nGeneric)
 	if (nIcon < 0 || nIcon >= nImageCount) nIcon = nGeneric;
 	return nIcon >= 0 && nIcon < nImageCount ? nIcon : -1;
 }
+
+/// Pick the directory that holds the Schemas folder to load.
+/// A build stages Schemas beside its own executable; a persisted General.Path can still name an older
+/// installation, so the executable's own set wins when it is complete. An installed copy is unchanged
+/// because its executable folder and General.Path are the same.
+/// Return 0 for the executable folder, 1 for General.Path, -1 when neither has schemas.
+inline int SelectSchemaRoot(bool bModuleHasSchemas, bool bConfiguredHasSchemas)
+{
+	if (bModuleHasSchemas) return 0;
+	return bConfiguredHasSchemas ? 1 : -1;
+}
