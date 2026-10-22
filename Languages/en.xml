@@ -3602,7 +3602,7 @@
 	<string id="20902" text="Waiting for the library scanner to start..."/>
 	<string id="20903" text="Scanning shared folders..."/>
 	<string id="20904" text="The library scanner is not running, so the shared-folder scan could not run. Existing entries were kept."/>
-	<string id="20905" text="Shared-folder scan failed on %s (Windows error %lu). Existing entries were kept."/>
+	<string id="20905" text="Shared-folder scan failed on %s (%s, Windows error %lu). Existing entries were kept."/>
 	<!--string value="Torrent Information"-->
 	<!--string value="Tracker did not respond. Retrying announce (%i of %i)"-->
 	<!--string value="You already have the file &quot;%s&quot; in your library. Do you still wish to download it?"-->

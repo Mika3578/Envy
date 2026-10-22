@@ -140,7 +140,8 @@ void CFolderScanDlg::OnTimer(UINT_PTR /*nIDEvent*/)
 		}
 		if (nError != ERROR_SUCCESS)
 		{
-			strItem.Format(LoadString(IDS_FOLDER_SCAN_FAILED), (LPCTSTR)strErrorPath, nError);
+			strItem.Format(LoadString(IDS_FOLDER_SCAN_FAILED), (LPCTSTR)strErrorPath, (LPCTSTR)GetErrorString(nError),
+			               nError);
 			MsgBox(strItem, MB_OK | MB_ICONWARNING);
 		}
 		OnCancel();
@@ -171,8 +172,9 @@ void CFolderScanDlg::Update(LPCTSTR pszName, DWORD nVolume)
 void CFolderScanDlg::ReportError(DWORD nError, LPCTSTR pszPath, bool bLog)
 {
 	if (bLog)
-		theApp.Message(MSG_ERROR, L"Shared-folder scan failed on %s (Windows error %lu). Existing entries were kept.",
-		               pszPath, nError);
+		theApp.Message(MSG_ERROR,
+		               L"Shared-folder scan failed on %s (%s, Windows error %lu). Existing entries were kept.", pszPath,
+		               (LPCTSTR)GetErrorString(nError), nError);
 
 	CSingleLock oLock(&m_pProgressSection, TRUE);
 	// The dialog reports the first failure of the scan it requested; failures

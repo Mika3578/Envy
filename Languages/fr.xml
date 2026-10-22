@@ -1930,7 +1930,7 @@
 			<text>)</text>
 			<group id="1">
 				<newline gap="8"/>
-				<text>Indexation de </text>
+				<text>Hachage de </text>
 				<text id="LibraryHashRemaining" format="b">%lu </text>
 				<text>fichiers :</text>
 				<newline gap="2"/>
@@ -3491,7 +3491,7 @@
 	<string id="20902" text="En attente du démarrage de l'analyseur de la bibliothèque..."/>
 	<string id="20903" text="Analyse des dossiers partagés..."/>
 	<string id="20904" text="L'analyseur de la bibliothèque n'est pas en cours d'exécution, l'analyse des dossiers partagés n'a donc pas pu avoir lieu. Les entrées existantes ont été conservées."/>
-	<string id="20905" text="L'analyse du dossier partagé a échoué sur %s (erreur Windows %lu). Les entrées existantes ont été conservées."/>
+	<string id="20905" text="L'analyse du dossier partagé a échoué sur %s (%s, erreur Windows %lu). Les entrées existantes ont été conservées."/>
 	<!--string value="Information Torrent"-->
 	<!--string value="Le traqueur n'a pas répondu - Nouvel essai de l'annonce (%i de %i)"-->
 	<!--string value="Le fichier « %s » est déjà présent dans votre bibliothèque. Voulez-vous le télécharger tout de même ?"-->

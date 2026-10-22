@@ -4014,7 +4014,7 @@ BEGIN
 	IDS_FOLDER_SCAN_WAITING	"Waiting for the library scanner to start..."
 	IDS_FOLDER_SCAN_RUNNING	"Scanning shared folders..."
 	IDS_FOLDER_SCAN_NO_WORKER	"The library scanner is not running, so the shared-folder scan could not run. Existing entries were kept."
-	IDS_FOLDER_SCAN_FAILED	"Shared-folder scan failed on %s (Windows error %lu). Existing entries were kept."
+	IDS_FOLDER_SCAN_FAILED	"Shared-folder scan failed on %s (%s, Windows error %lu). Existing entries were kept."
 	IDS_DOWNLOAD_FILENOTFOUND	"Download host %s does not have the file ""%s""."
 	IDS_DOWNLOAD_FILE_CREATE	"Creating file ""%s"" for download."
 	IDS_DOWNLOAD_FILE_CREATE_ERROR "Unable to create local file ""%s"" for download, aborting."
