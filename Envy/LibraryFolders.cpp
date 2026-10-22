@@ -284,7 +284,8 @@ void CLibraryFolders::AdoptNestedRoots(CLibraryFolder* pFolder)
 		if (!pFolder->Adopt(pRoot))
 			continue;
 
-		m_pFolders.RemoveAt(m_pFolders.Find(pRoot));
+		if (POSITION posRoot = m_pFolders.Find(pRoot))
+			m_pFolders.RemoveAt(posRoot);
 		pRoot->Maintain(FALSE); // No longer a root: drop its desktop.ini customisation
 	}
 }

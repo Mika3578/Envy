@@ -47,6 +47,8 @@ enum class PathRelation
 inline bool PathPrefixEquals(const std::wstring& path, const std::wstring& prefix)
 {
 	const int length = static_cast<int>(prefix.size());
+	if (path.size() < prefix.size())
+		return false; // The comparison reads length characters from both strings
 #if defined(_WIN32_WINNT) && _WIN32_WINNT >= 0x0600
 	// Ordinal, like NTFS: linguistic collation could equate distinct spellings.
 	return CompareStringOrdinal(path.c_str(), length, prefix.c_str(), length, TRUE) == CSTR_EQUAL;

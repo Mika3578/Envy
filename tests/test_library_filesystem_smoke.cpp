@@ -124,6 +124,13 @@ static bool test_path_relation_is_ordinal()
 	       EnvyFileSystem::RelatePaths(L"C:\\Share", L"C:\\ShareX") == EnvyFileSystem::PathRelation::Unrelated;
 }
 
+// A path shorter than the prefix must be rejected before any comparison reads past its end.
+static bool test_path_prefix_rejects_shorter_path()
+{
+	return !EnvyFileSystem::PathPrefixEquals(L"C:", L"C:\\Share") &&
+	       EnvyFileSystem::PathPrefixEquals(L"C:\\Share\\Music", L"c:\\share");
+}
+
 void register_library_filesystem_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("library_filesystem_local_long_path", test_local_long_path);
@@ -134,4 +141,5 @@ void register_library_filesystem_smoke_tests(TestSuite& suite)
 	suite.add_test("library_filesystem_reparse_point_directories", test_reparse_point_directories_are_not_traversed);
 	suite.add_test("library_filesystem_real_enumeration", test_real_enumeration_completeness);
 	suite.add_test("library_filesystem_path_relation_is_ordinal", test_path_relation_is_ordinal);
+	suite.add_test("library_filesystem_path_prefix_rejects_shorter_path", test_path_prefix_rejects_shorter_path);
 }
