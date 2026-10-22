@@ -358,18 +358,9 @@ void CDownloadGroupDlg::OnOK()
 					LoadString( strFormat, IDS_LIBRARY_SUBFOLDER_IN_LIBRARY );
 					strMessage.Format( strFormat, (LPCTSTR)m_sFolder );
 
+					// AddFolder below moves the nested shares under the new folder,
+					// keeping their files and hashes.
 					bAdd = ( MsgBox( strMessage, MB_ICONQUESTION|MB_YESNO ) == IDYES );
-					if ( bAdd )
-					{
-						// The nested shared folders are removed from the map the
-						// scan worker is mutating between listings.
-						CQuickLock oLock(Library.m_pSection);
-						CLibraryFolder* pFolder;
-						while ((pFolder = LibraryFolders.IsSubFolderShared(m_sFolder)) != NULL)
-						{
-							LibraryFolders.RemoveFolder(pFolder);
-						}
-					}
 				}
 				if ( bAdd )
 				{

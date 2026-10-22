@@ -110,8 +110,8 @@ void CFolderScanDlg::OnTimer(UINT_PTR /*nIDEvent*/)
 
 	const EnvyLibraryScan::Phase nPhase = Library.GetScanPhase(m_nGeneration);
 	if (strFile.IsEmpty() && nPhase != EnvyLibraryScan::Phase::Completed)
-		strFile = (nPhase == EnvyLibraryScan::Phase::Pending) ? L"Waiting for the library scanner to start..."
-		                                                      : L"Scanning shared folders...";
+		strFile = LoadString(nPhase == EnvyLibraryScan::Phase::Pending ? IDS_FOLDER_SCAN_WAITING
+		                                                               : IDS_FOLDER_SCAN_RUNNING);
 
 	CString strItem;
 	strItem.Format(L"%lu", nFiles);
@@ -124,9 +124,7 @@ void CFolderScanDlg::OnTimer(UINT_PTR /*nIDEvent*/)
 		// Without the worker the request can never complete; say so instead of
 		// leaving the counter at zero.
 		KillTimer(1);
-		MsgBox(L"The library scanner is not running, so the shared-folder scan could not run. Existing entries were "
-		       L"kept.",
-		       MB_OK | MB_ICONWARNING);
+		MsgBox(LoadString(IDS_FOLDER_SCAN_NO_WORKER), MB_OK | MB_ICONWARNING);
 		OnCancel();
 		return;
 	}
@@ -142,8 +140,7 @@ void CFolderScanDlg::OnTimer(UINT_PTR /*nIDEvent*/)
 		}
 		if (nError != ERROR_SUCCESS)
 		{
-			strItem.Format(L"Shared-folder scan failed on %s (Windows error %lu). Existing entries were kept.",
-			               (LPCTSTR)strErrorPath, nError);
+			strItem.Format(LoadString(IDS_FOLDER_SCAN_FAILED), (LPCTSTR)strErrorPath, nError);
 			MsgBox(strItem, MB_OK | MB_ICONWARNING);
 		}
 		OnCancel();
