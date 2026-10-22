@@ -83,8 +83,10 @@ old datagram on this wire protocol. Contacts still pass normal admission,
 security and subnet checks; no additional verification is inferred.
 
 All bootstrap retry/correlation and outstanding-request timestamps use
-`GetTickCount64()` milliseconds. Prune non-pending retry state older than the
-maximum backoff once its acceptance window and cooldown have elapsed. Each
+`GetTickCount64()` milliseconds. Prune non-pending retry state once its
+acceptance window has elapsed and it has stayed idle for a further maximum backoff past
+its cooldown, so an unresponsive peer keeps its backoff level instead of restarting at
+60 seconds when the cap expires. Each
 scan is bounded by the 2048-entry map; pending requests and all recent correlation/cancellation/replay history
 are protected under capacity pressure. A full protected map prevents sending
 another bootstrap instead of silently losing its correlation state. A cleanup

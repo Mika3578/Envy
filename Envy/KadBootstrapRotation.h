@@ -256,10 +256,13 @@ public:
 
 	void Prune(uint64_t now)
 	{
+		// Failure history outlives the cooldown it set: dropping it the moment
+		// the capped delay expires would restart an unresponsive peer at the
+		// shortest delay. It is released after a further idle cap instead.
 		for (auto it = m_retry.begin(); it != m_retry.end();)
 		{
 			if (!it->second.pending && now - it->second.lastTouched >= BackoffCapMs &&
-			    now - it->second.lastSent >= AcceptWindowMs && now >= it->second.retryAt)
+			    now - it->second.lastSent >= AcceptWindowMs && now >= it->second.retryAt + BackoffCapMs)
 				it = m_retry.erase(it);
 			else
 				++it;
