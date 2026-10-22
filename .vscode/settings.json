@@ -50,15 +50,39 @@
   "VsCodeTaskButtons.showCounter": true,
   "VsCodeTaskButtons.tasks": [
     {
-      "label": "$(gear) Fast Build",
-      "task": "Envy: Fast Build",
-      "tooltip": "Envy + dependencies only, no Installer (prompts for Debug/Release and x64/Win32)",
+      "label": "$(rocket) Build",
+      "task": "Envy: Build Solution",
+      "tooltip": "Build Solution: whole solution incl. Installer (prompts for Debug/Release and x64/Win32)",
       "alignment": "left"
     },
     {
-      "label": "$(rocket) Full Build",
-      "task": "Envy: Full Build",
-      "tooltip": "Whole solution incl. Installer (prompts for Debug/Release and x64/Win32)",
+      "label": "$(refresh) Rebuild",
+      "task": "Envy: Rebuild Solution",
+      "tooltip": "Rebuild Solution: clean + build everything (prompts for Debug/Release and x64/Win32)",
+      "alignment": "left"
+    },
+    {
+      "label": "$(trash) Clean",
+      "task": "Envy: Clean Solution",
+      "tooltip": "Clean Solution: remove build outputs (prompts for Debug/Release and x64/Win32)",
+      "alignment": "left"
+    },
+    {
+      "label": "$(gear) Project",
+      "task": "Envy: Build Project",
+      "tooltip": "Build one project (Envy, TorrentEnvy, Unpacker, ...) + dependencies (prompts for Debug/Release and x64/Win32)",
+      "alignment": "left"
+    },
+    {
+      "label": "$(beaker) Tests",
+      "task": "Envy: Test",
+      "tooltip": "Build and run EnvyTests (prompts for Debug/Release and x64/Win32)",
+      "alignment": "left"
+    },
+    {
+      "label": "$(play) Run",
+      "task": "Envy: Run",
+      "tooltip": "Start the built Envy.exe (no build) (prompts for Debug/Release and x64/Win32)",
       "alignment": "left"
     }
   ]

@@ -319,8 +319,14 @@ Envy\Res\gzip.exe -n -c Envy\Res\Browser.htm > Envy\Res\Browser.htm.gz
 ```
 
 `-n` (`--no-name`) forces `mtime = 0` and omits the original filename so two
-builds with unchanged HTML produce identical `.gz` bytes. The tracked `.gz`
-files must remain valid binary gzip (see root `.gitattributes`: `*.gz binary`).
+builds with unchanged HTML produce identical `.gz` bytes.
+
+`About.htm.gz` and `Browser.htm.gz` are build outputs: they are untracked and
+listed in `.gitignore`, so Clean Solution can delete them and the next build
+recreates them without dirtying `git status`. A fresh checkout has them only
+after the first MSBuild/Visual Studio build. Other `.gz` files under `Envy/Res`
+remain tracked and must stay valid binary gzip (`*.gz binary` in
+`.gitattributes`).
 
 ## 🔄 Build System Limitations
 
