@@ -11,3 +11,12 @@ Scope: Envy Kad2 notes. Opcode matching is not live interop. Kad6/Ember overlays
 
 ## Related
 - [Status](../../10_dev/status.md) · [Dev docs](../../10_dev/) · [Protocol index](../README.md)
+
+## Initial exchange wire layout and inbound limits
+
+Compared against eMule Community v0.72a `ac3d52eafd88e9f6d9e0c2204c6dbead18db750b` (`SendMyDetails`, `AddContact_KADEMLIA2`, `InTrackListIsAllowedPacket`) and aMule `0bfe11d65bcf4ac8449eb12e98cdd303e9e3dcf6` (`Process2HelloRequest`, `PacketTracking`):
+
+- `HELLO_REQ` and `HELLO_RES` share one body: `<SenderKadID 16><TCPPort 2><Version 1><TagCount 1><Tag>*`, tags as `<Type 1><NameLength 2><Name><Value>`. There is no fixed UDP port field; `TAG_SOURCEUPORT` (0xFC, UINT16) carries it when sent. Envy previously sent a zero ID and a fixed UDP port with no tag count, which the references cannot parse. Envy now sends its own ID, the configured TCP port and no tags, parses the references' layout, skips tags it does not use and rejects truncated bodies. `KadHello.h`.
+- A Kad2 request without a body (`BOOTSTRAP_REQ`, `PING`) is exactly the two header bytes. The UDP dispatcher accepts that length for Kad only; other ED2K UDP packets still require a payload.
+- Inbound `BOOTSTRAP_REQ` is limited to two per minute per source IP and `HELLO_REQ` to three, as in the references (token bucket, burst equal to the per-minute rate, opcode-specific, 4096 tracked IPs and fail-closed when full). The older `CheckRateLimit` stays as is for the other requests. Envy does not ban on flood, unlike eMule.
+- Remaining limit: a `HELLO_RES` from the exact endpoint that was sent a `HELLO_REQ` still marks the contact verified. The references additionally use UDP keys and `HELLO_RES_ACK` to prove the address; Envy implements neither, so this is weaker than the references against an off-path spoofer. Not validated against live eMule/aMule (#160); obfuscation is #431.
