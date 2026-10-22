@@ -74,18 +74,20 @@ inline bool KadParseHello(const uint8_t* p, size_t n, KadHello& out)
 		bool known = true;
 		switch (type)
 		{
-		case 0x01: valueLen = 16; break;                // HASH16
-		case 0x03: case 0x04: valueLen = 4; break;      // UINT32, FLOAT32
-		case 0x05: case 0x09: valueLen = 1; break;      // BOOL, UINT8
-		case 0x08: valueLen = 2; break;                 // UINT16
-		case 0x0b: valueLen = 8; break;                 // UINT64
-		case 0x02:                                      // STRING
+		case 0x01: valueLen = 16; break; // HASH16
+		case 0x03:
+		case 0x04: valueLen = 4; break; // UINT32, FLOAT32
+		case 0x05:
+		case 0x09: valueLen = 1; break; // BOOL, UINT8
+		case 0x08: valueLen = 2; break; // UINT16
+		case 0x0b: valueLen = 8; break; // UINT64
+		case 0x02:                      // STRING
 			if (n - pos < 2)
 				return false;
 			valueLen = 2 + static_cast<size_t>(p[pos] | (p[pos + 1] << 8));
 			break;
 		default:
-			if (type >= 0x11 && type <= 0x20)       // short string, length in the type
+			if (type >= 0x11 && type <= 0x20) // short string, length in the type
 				valueLen = static_cast<size_t>(type - 0x10);
 			else
 				known = false;
