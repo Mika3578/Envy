@@ -324,6 +324,43 @@ bool test_accepted_clears_only_the_answering_ip()
 	       policy.TimedOut(a.ip, sameIpOtherPort.udpPort, 30000);
 }
 
+bool test_backoff_survives_reaching_the_cap()
+{
+	// The failure count must not be forgotten at the instant the longest delay
+	// expires, or an unresponsive peer cycles 60 s, 120 s, ... instead of
+	// settling at the cap.
+	KadBootstrapRotation policy;
+	const auto c = MakeBootstrapContact(0);
+	const std::vector<KadContact> all = { c };
+	uint64_t now = 0;
+	for (uint32_t failure = 1; failure <= 5; ++failure)
+	{
+		const auto batch = policy.Select(all, now);
+		if (batch.contacts.size() != 1 || !policy.Sent(c.ip, c.udpPort, now))
+			return false;
+		now += KadBootstrapRotation::RequestTimeoutMs;
+		if (!policy.TimedOut(c.ip, c.udpPort, now))
+			return false;
+		now += KadBootstrapRotation::Delay(failure);
+	}
+	// Eligible again once the capped delay has elapsed; the state must still be there.
+	if (policy.Select(all, now).contacts.size() != 1 || policy.Tracked() != 1)
+		return false;
+	if (!policy.Sent(c.ip, c.udpPort, now))
+		return false;
+	now += KadBootstrapRotation::RequestTimeoutMs;
+	if (!policy.TimedOut(c.ip, c.udpPort, now))
+		return false;
+	// A sixth failure waits the cap again, not the 60 s of a fresh peer.
+	if (!policy.Select(all, now + KadBootstrapRotation::BackoffCapMs - 1u).contacts.empty())
+		return false;
+	if (policy.Select(all, now + KadBootstrapRotation::BackoffCapMs).contacts.size() != 1)
+		return false;
+	// Left idle for a further full cap, the history is released.
+	return policy.Select(all, now + 2u * KadBootstrapRotation::BackoffCapMs).contacts.size() == 1 &&
+	       policy.Tracked() == 0;
+}
+
 constexpr size_t kOutstandingBudget = 10; // KAD2_MAX_OUTSTANDING_REQUESTS
 
 bool test_batch_limit_bounds_the_budget()
@@ -361,4 +398,5 @@ void register_kad_bootstrap_rotation_tests(TestSuite& suite)
 	suite.add_test("kad_bootstrap_accept_window_wraparound", test_accept_window_is_tick_wrap_safe);
 	suite.add_test("kad_bootstrap_accept_clears_one_ip", test_accepted_clears_only_the_answering_ip);
 	suite.add_test("kad_bootstrap_batch_limit", test_batch_limit_bounds_the_budget);
+	suite.add_test("kad_bootstrap_backoff_survives_cap", test_backoff_survives_reaching_the_cap);
 }
