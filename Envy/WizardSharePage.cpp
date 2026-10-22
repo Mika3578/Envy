@@ -283,6 +283,12 @@ LRESULT CWizardSharePage::OnWizardNext()
 		{
 			LibraryFolders.AddFolder( m_wndList.GetItemText( nItem, 0 ), m_wndList.GetCheck( nItem ) );
 		}
+
+		// Folders adopted below a new parent, or already nested, keep their own choice.
+		for (int nItem = 0; nItem < m_wndList.GetItemCount(); nItem++)
+		{
+			LibraryFolders.ApplyShare(m_wndList.GetItemText(nItem, 0), m_wndList.GetCheck(nItem));
+		}
 	}
 
 	Library.Update(true);

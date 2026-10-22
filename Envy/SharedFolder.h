@@ -88,7 +88,15 @@ public:
 	BOOL ApplyListing(const std::vector<EnvyFileSystem::DirectoryEntry>& pEntries, DWORD nFindError,
 	                  CList<CString>& pSubFolders);
 	void RecalculateTotals();                           // Recompute recursive m_nFiles/m_nVolume
-	BOOL Adopt(CLibraryFolder* pRoot);                  // Move a former root below this root, keeping its contents
+	// Refresh this folder's totals after a listing and pass the change on to its
+	// ancestors; nOld* are the totals taken before the listing was applied.
+	void UpdateTotals(DWORD nOldFiles, QWORD nOldVolume);
+	// Move a former root below this root, keeping its files, hashes and explicit
+	// share choice, and creating intermediate folders as needed (library lock held).
+	// TRUE: pRoot now belongs to this tree and the caller must take it out of the
+	// root list without deleting it. FALSE: pRoot was not moved and stays a valid
+	// root owned by the caller; intermediate folders may have been created.
+	BOOL Adopt(CLibraryFolder* pRoot);
 	BOOL			IsChanged();						// Manage filesystem change notification. Returns TRUE if changes detected.
 	void			OnDelete(TRISTATE bCreateGhost = TRI_UNKNOWN);
 	void			OnFileRename(CLibraryFile* pFile);

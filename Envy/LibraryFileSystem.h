@@ -46,12 +46,17 @@ enum class PathRelation
 // Case-insensitive comparison of path with prefix over the length of prefix.
 inline bool PathPrefixEquals(const std::wstring& path, const std::wstring& prefix)
 {
-	// CompareStringW with the invariant locale instead of CompareStringOrdinal:
-	// this header is also compiled by legacy plugin units that still target
-	// _WIN32_WINNT 0x0501, where CompareStringOrdinal is not declared.
 	const int length = static_cast<int>(prefix.size());
+#if defined(_WIN32_WINNT) && _WIN32_WINNT >= 0x0600
+	// Ordinal, like NTFS: linguistic collation could equate distinct spellings.
+	return CompareStringOrdinal(path.c_str(), length, prefix.c_str(), length, TRUE) == CSTR_EQUAL;
+#else
+	// Only legacy plugin units that compile Strings.cpp for _WIN32_WINNT 0x0501
+	// reach this branch, where CompareStringOrdinal is not declared. They use
+	// ApiPath alone and never call this function.
 	return CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, path.c_str(), length,
 	                      prefix.c_str(), length) == CSTR_EQUAL;
+#endif
 }
 
 // Case-insensitive relation between two folder paths without trailing

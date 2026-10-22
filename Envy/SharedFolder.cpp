@@ -560,6 +560,42 @@ void CLibraryFolder::RecalculateTotals()
 	}
 }
 
+void CLibraryFolder::UpdateTotals(DWORD nOldFiles, QWORD nOldVolume)
+{
+	ASSUME_LOCK(Library.m_pSection);
+
+	// Direct files plus the cached totals of the subfolders, which their own
+	// listings keep current.
+	DWORD nFiles = (DWORD)m_pFiles.GetCount();
+	QWORD nVolume = 0;
+
+	for (POSITION pos = GetFileIterator(); pos;)
+	{
+		const CLibraryFile* pFile = GetNextFile(pos);
+		if (pFile->m_nSize != SIZE_UNKNOWN)
+			nVolume += pFile->m_nSize;
+	}
+
+	for (POSITION pos = GetFolderIterator(); pos;)
+	{
+		const CLibraryFolder* pFolder = GetNextFolder(pos);
+		nFiles += pFolder->m_nFiles;
+		nVolume += pFolder->m_nVolume;
+	}
+
+	m_nFiles = nFiles;
+	m_nVolume = nVolume;
+
+	// Ancestors include this folder's totals, so they follow by the difference.
+	const LONGLONG nDeltaFiles = (LONGLONG)nFiles - (LONGLONG)nOldFiles;
+	const LONGLONG nDeltaVolume = (LONGLONG)nVolume - (LONGLONG)nOldVolume;
+	for (CLibraryFolder* pParent = m_pParent; pParent; pParent = pParent->m_pParent)
+	{
+		pParent->m_nFiles = (DWORD)((LONGLONG)pParent->m_nFiles + nDeltaFiles);
+		pParent->m_nVolume = (QWORD)((LONGLONG)pParent->m_nVolume + nDeltaVolume);
+	}
+}
+
 BOOL CLibraryFolder::Adopt(CLibraryFolder* pRoot)
 {
 	ASSUME_LOCK(Library.m_pSection);
@@ -583,14 +619,13 @@ BOOL CLibraryFolder::Adopt(CLibraryFolder* pRoot)
 	}
 
 	if (pParent->GetFolderByName(pRoot->m_sName) != NULL)
-		return FALSE; // Already known below this root; the caller drops pRoot
+		return FALSE; // Already known below this root; pRoot is left untouched
 
-	// pRoot keeps its files and hashes; root-only state goes. A share that was
-	// shared now follows its new parent, an explicitly unshared one stays so.
+	// pRoot keeps its files and hashes; only root-only state goes. Its explicit
+	// shared or unshared choice stays, so a shared folder remains shared when
+	// its new parent is not.
 	pRoot->CloseMonitor();
 	pRoot->m_bOffline = FALSE;
-	if (pRoot->m_bShared == TRI_TRUE)
-		pRoot->m_bShared = TRI_UNKNOWN;
 	pRoot->m_pParent = pParent;
 	pParent->m_pFolders.SetAt(pRoot->m_sName, pRoot);
 	m_nUpdateCookie++;

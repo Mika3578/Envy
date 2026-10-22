@@ -240,6 +240,10 @@ CLibraryFolder* CLibraryFolders::AddFolder(LPCTSTR pszPath)
 
 CLibraryFolder* CLibraryFolders::AddFolder(LPCTSTR pszPath, BOOL bShared)
 {
+	// Held across the share choice too, so the scan worker never sees a new root
+	// without it.
+	CQuickLock oLock(Library.m_pSection);
+
 	CLibraryFolder* pFolder = AddFolder( pszPath );
 
 	if ( pFolder )
@@ -273,14 +277,30 @@ void CLibraryFolders::AdoptNestedRoots(CLibraryFolder* pFolder)
 	for (POSITION pos = pNested.GetHeadPosition(); pos;)
 	{
 		CLibraryFolder* pRoot = pNested.GetNext(pos);
-		m_pFolders.RemoveAt(m_pFolders.Find(pRoot));
-		pRoot->Maintain(FALSE); // No longer a root: drop its desktop.ini customisation
 
 		// The former root keeps its files and hashes, so the parent's first scan
-		// finds them unchanged instead of hashing them again.
+		// finds them unchanged instead of hashing them again. If it cannot be
+		// moved it stays a root of its own: nothing is deleted.
 		if (!pFolder->Adopt(pRoot))
-			pRoot->OnDelete(Settings.Library.CreateGhosts ? TRI_TRUE : TRI_FALSE);
+			continue;
+
+		m_pFolders.RemoveAt(m_pFolders.Find(pRoot));
+		pRoot->Maintain(FALSE); // No longer a root: drop its desktop.ini customisation
 	}
+}
+
+void CLibraryFolders::ApplyShare(const CString& strPath, BOOL bShared)
+{
+	ASSUME_LOCK(Library.m_pSection);
+
+	CLibraryFolder* pFolder = GetFolder(strPath);
+	if (pFolder == NULL)
+		return;
+
+	if (bShared && !pFolder->IsShared())
+		pFolder->SetShared(TRI_TRUE);
+	else if (!bShared && pFolder->IsShared())
+		pFolder->SetShared(TRI_FALSE);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -807,11 +827,17 @@ BOOL CLibraryFolders::ThreadScanRoot(const CString& strRoot)
 		CQuickLock oLock(Library.m_pSection);
 		if (CLibraryFolder* pFolder = GetScanFolder(strRoot, strPath))
 		{
+			const DWORD nOldFiles = pFolder->m_nFiles;
+			const QWORD nOldVolume = pFolder->m_nVolume;
+
 			if (pFolder->ApplyListing(pEntries, nError, pPending))
 			{
 				bChanged = TRUE;
 				Library.Update();
 			}
+
+			// Totals follow each applied listing, also for partial or cancelled ones.
+			pFolder->UpdateTotals(nOldFiles, nOldVolume);
 		}
 
 		// A long first scan keeps its progress if the application stops early.

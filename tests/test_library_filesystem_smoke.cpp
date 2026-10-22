@@ -111,6 +111,19 @@ static bool test_real_enumeration_completeness()
 	return files == 1 && EnvyFileSystem::EnumerationComplete(error) && missingFails;
 }
 
+// Equal-length spellings that differ only by an ignorable soft hyphen are
+// different NTFS names, so they must not be treated as the same folder.
+static bool test_path_relation_is_ordinal()
+{
+	const std::wstring a = L"C:\\Share\\ab\u00AD";
+	const std::wstring b = L"C:\\Share\\a\u00ADb";
+	return EnvyFileSystem::RelatePaths(a, b) == EnvyFileSystem::PathRelation::Unrelated &&
+	       EnvyFileSystem::RelatePaths(L"C:\\Share\\Music", L"c:\\share\\music") == EnvyFileSystem::PathRelation::Same &&
+	       EnvyFileSystem::RelatePaths(L"C:\\Share", L"C:\\Share\\Music") == EnvyFileSystem::PathRelation::Ancestor &&
+	       EnvyFileSystem::RelatePaths(L"C:\\Share\\Music", L"C:\\Share") == EnvyFileSystem::PathRelation::Descendant &&
+	       EnvyFileSystem::RelatePaths(L"C:\\Share", L"C:\\ShareX") == EnvyFileSystem::PathRelation::Unrelated;
+}
+
 void register_library_filesystem_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("library_filesystem_local_long_path", test_local_long_path);
@@ -120,4 +133,5 @@ void register_library_filesystem_smoke_tests(TestSuite& suite)
 	suite.add_test("library_filesystem_enumeration_errors", test_enumeration_errors);
 	suite.add_test("library_filesystem_reparse_point_directories", test_reparse_point_directories_are_not_traversed);
 	suite.add_test("library_filesystem_real_enumeration", test_real_enumeration_completeness);
+	suite.add_test("library_filesystem_path_relation_is_ordinal", test_path_relation_is_ordinal);
 }

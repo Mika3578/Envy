@@ -90,7 +90,15 @@ protected:
 	// Without the library lock held: scan one root, locking per folder.
 	BOOL ThreadScanRoot(const CString& strRoot);
 	CLibraryFolder* GetScanFolder(const CString& strRoot, const CString& strPath) const;
-	void AdoptNestedRoots(CLibraryFolder* pFolder); // Move existing roots inside pFolder below it
+	// Library lock held. Move the existing roots located inside pFolder (a new
+	// root not yet in the list) below it, with their files and hashes. A root that
+	// cannot be moved stays a root of its own; nothing is deleted.
+	void AdoptNestedRoots(CLibraryFolder* pFolder);
+
+public:
+	// Library lock held. Apply a share choice to the folder at strPath, whether it
+	// is a root or lies below one; unknown paths are ignored.
+	void ApplyShare(const CString& strPath, BOOL bShared);
 
 	// COM
 protected:

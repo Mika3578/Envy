@@ -715,12 +715,17 @@ int CEnvyApp::ExitInstance()
 		}
 
 		SplashStep( L"Stopping Library Tasks" );
-		// Shutdown-latency diagnostic: if closing ever hangs again, this bound
-		// shows whether the wait was on the scanner or the hasher.
-		const DWORD nLibraryStopStart = GetTickCount();
+		// Shutdown-latency diagnostic: each wait is announced before it starts and
+		// timed on its own, so a hang names the task that did not stop.
+		theApp.Message(MSG_DEBUG, L"Waiting for the library hasher to stop...");
+		const DWORD nHasherStopStart = GetTickCount();
 		LibraryBuilder.CloseThread();
+		theApp.Message(MSG_DEBUG, L"Library hasher stopped in %lu ms.", GetTickCount() - nHasherStopStart);
+
+		theApp.Message(MSG_DEBUG, L"Waiting for the library scanner to stop...");
+		const DWORD nScannerStopStart = GetTickCount();
 		Library.CloseThread();
-		theApp.Message(MSG_DEBUG, L"Library tasks stopped in %lu ms.", GetTickCount() - nLibraryStopStart);
+		theApp.Message(MSG_DEBUG, L"Library scanner stopped in %lu ms.", GetTickCount() - nScannerStopStart);
 
 		SplashStep( L"Stopping Security Tasks" );
 		ListLoader.CloseThread();
