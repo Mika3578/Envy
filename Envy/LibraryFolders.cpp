@@ -299,8 +299,8 @@ void CLibraryFolders::ApplyShare(const CString& strPath, BOOL bShared)
 
 	if (bShared && !pFolder->IsShared())
 		pFolder->SetShared(TRI_TRUE);
-	else if (!bShared && pFolder->IsShared())
-		pFolder->SetShared(TRI_FALSE);
+	else if (!bShared && (pFolder->IsShared() || pFolder->IsOffline()))
+		pFolder->SetShared(TRI_FALSE); // IsShared() is false offline, but the choice must survive reconnection
 }
 
 //////////////////////////////////////////////////////////////////////
