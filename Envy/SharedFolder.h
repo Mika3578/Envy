@@ -87,7 +87,7 @@ public:
 	// Applies a listing taken without the library lock; appends listed subfolder paths.
 	BOOL ApplyListing(const std::vector<EnvyFileSystem::DirectoryEntry>& pEntries, DWORD nFindError,
 	                  CList<CString>& pSubFolders);
-	void RecalculateTotals();                           // Recompute recursive m_nFiles/m_nVolume
+	void RecalculateTotals(); // Recompute recursive m_nFiles/m_nVolume
 	// Refresh this folder's totals after a listing and pass the change on to its
 	// ancestors; nOld* are the totals taken before the listing was applied.
 	void UpdateTotals(DWORD nOldFiles, QWORD nOldVolume);
