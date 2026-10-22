@@ -3132,7 +3132,7 @@
 	<string id="20447" text="Souhaitez-vous retirer l'attribut « potentiellement corrompu » attribué à ce fichier ?"/>
 	<string id="20448" text="Public"/>	<!--Shared-->
 	<string id="20449" text="Privé"/>	<!--Unshared-->
-	<string id="20450" text="Un sous-dossier du dossier sélectionné « %s » fait déjà partie de votre bibliothèque.nL'ajout ce dossier entraînera le re-hachage de certains fichiers.\n\nVoulez-vous continuer ?"/>
+	<string id="20450" text="Un sous-dossier du dossier sélectionné « %s » fait déjà partie de votre bibliothèque.\nL'ajout de ce dossier entraînera le re-hachage de certains fichiers.\n\nVoulez-vous continuer ?"/>
 	<string id="20451" text="Aucun fichier en lecture. Double-cliquez un fichier média dans votre bibliothèque pour le lire."/>
 	<string id="20452" text="Fichiers multimédia|*.asx;*.wax;*.m3u;*.wvx;*.wmx;*.asf;*.wav;*.snd;*.au;*.aif;*.aifc;*.aiff;*.wma;*.rm;*.mp3;*.ogg;*.ogm;*.cda;*.mid;*.rmi;*.midi;*.avi;*.asf;*.mpeg;*.mpg;*.m1v;*.mp2;*.mpa;*.mpe;*.wmv|Playlists|*.asx;*.wax;*.m3u;*.wvx;*.wmx|Fichiers Audio|*.asf;*.wav;*.snd;*.au;*.aif;*.aifc;*.aiff;*.wma;*.rm;*.mp3;*.ogg;*.ogm|Fichiers Video|*.avi;*.asf;*.mpeg;*.mpg;*.m1v;*.mp2;*.mpa;*.mpe;*.wmv|Pistes CD Audio|*.cda|Fichiers MIDI|*.mid;*.rmi;*.midi|Tous|*.*||"/>
 	<string id="20453" text="Impossible de charger le fichier média « %s »"/>
