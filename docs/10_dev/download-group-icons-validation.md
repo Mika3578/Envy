@@ -23,18 +23,20 @@ repository root so it can locate `Schemas/`.
 ## Resource root
 
 `CSchemaCache::Load` reads `Schemas/` from the executable's folder when it
-contains at least one `Schemas/*.xsd` file (completeness is not verified), and otherwise from the persisted `General.Path`
-(`SelectSchemaRoot`). `General.Path` is only reset when empty or missing, so a
+contains at least one `Schemas/*.xsd` file (completeness is not verified), and
+otherwise from the persisted `General.Path` (`SelectSchemaRoot`). `General.Path` is only reset when empty or missing, so a
 development build could previously load older installed `Schemas/*.xml` and
 `*.ico` while the checked-in set was correct. The Envy project now stages
 `Schemas/` (`*.xsd`, `*.xml`, `*.ico`) next to every output (`StageSchemas`).
 `StageSchemas` only copies; it does not delete files removed from `Schemas/`, so
 delete a stale output `Schemas/` folder by hand when validating a removal.
-An installed copy is unchanged: its executable folder is `General.Path`.
+An installed copy is unchanged when `General.Path` names its executable folder.
 `General.Path` and user data are never rewritten. A debug-level log line
-reports the substitution without printing paths. Other `General.Path` consumers
-are unchanged: `Vendors.xml` and `Schemas\WindowsLibrary.ico` (read by
-`LibraryFolders.cpp`) still follow it, and `Flags.png`/missing-string diagnostics are unrelated to
+reports the substitution without printing paths. Only the schema descriptor and
+schema icon lookup in `CSchemaCache::Load` changed. Every other consumer keeps
+its own lookup: `Schemas\WindowsLibrary.ico` (`LibraryFolders.cpp`) still reads
+`General.Path`, `Vendors.xml` still starts from `General.DataPath`
+(`VendorCache.cpp`), and `Flags.png`/missing-string diagnostics are unrelated to
 schema icons.
 
 Manual UI checks for the maintainer:

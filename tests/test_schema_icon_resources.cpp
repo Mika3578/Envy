@@ -297,10 +297,10 @@ static bool test_schema_icons_invalid_files()
 	// Keep scratch files out of shared, publicly writable temp folders: use a fresh directory beside the test
 	// executable (or the working directory) and fail if the name already exists.
 	std::filesystem::path root = std::filesystem::current_path();
-	wchar_t module[MAX_PATH] = {};
-	const DWORD length = GetModuleFileNameW(nullptr, module, _countof(module));
-	if (length != 0 && length < _countof(module))
-		root = std::filesystem::path(module).parent_path();
+	wchar_t exePath[MAX_PATH] = {};
+	const DWORD length = GetModuleFileNameW(nullptr, exePath, _countof(exePath));
+	if (length != 0 && length < _countof(exePath))
+		root = std::filesystem::path(exePath).parent_path();
 
 	std::filesystem::path dir;
 	std::error_code ec;
