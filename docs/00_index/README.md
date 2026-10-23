@@ -7,6 +7,7 @@
 |-----|---------|
 | [CURSOR_INDEX](CURSOR_INDEX.md) | Quick entry points for development |
 | [DEVELOPMENT_PLAN](../DEVELOPMENT_PLAN.md) | Strategic roadmap (canonical) |
+| [ideas](../10_dev/ideas.md) | Pre-issue candidate register (not a second roadmap) |
 | [DECISIONS](../DECISIONS.md) | ADR-lite decisions |
 | [STYLE_GUIDE](STYLE_GUIDE.md) | Writing and formatting |
 
@@ -15,7 +16,7 @@
 | Section | Location | Notes |
 |---------|----------|-------|
 | **User** | `docs/50_user/` | Guide, installation, configuration, [crash reports](../50_user/crash-reports.md), [transfer settings](../50_user/transfer-settings.md), [settings reference](../50_user/reference/COMPLETE_SETTINGS_REFERENCE.md) |
-| **Developer** | `docs/10_dev/` | Build, guide, standards, contributing, status, roadmap, [crash reporting](../10_dev/crash-reporting.md) |
+| **Developer** | `docs/10_dev/` | Build, guide, standards, contributing, status, roadmap, [idea capture](../10_dev/idea-capture.md), [crash reporting](../10_dev/crash-reporting.md) |
 | **Architecture** | [architecture](../20_arch/architecture.md) · [PORTABILITY_PLAN](../20_arch/PORTABILITY_PLAN.md) · [UI modernization](../20_arch/UI_MODERNIZATION.md) · [remote API](../20_arch/remote-api.md) | System design, portability, MFC UI plan, automation API |
 | **Protocols** | `docs/30_protocols/` | ED2K, Kad, BitTorrent, [bootstrap sources](../30_protocols/bootstrap-sources.md), [reference implementations](../30_protocols/REFERENCE_IMPLEMENTATIONS.md) |
 | **Quality** | `docs/40_quality/` | Analysis, performance, security, testing |
