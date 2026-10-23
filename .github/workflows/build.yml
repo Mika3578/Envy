@@ -105,6 +105,9 @@ jobs:
       - name: Review digest self-test
         run: python3 .github/scripts/review-digest.selftest.py
 
+      - name: Changelog compiler self-test
+        run: python3 .github/scripts/compile-changelog.selftest.py
+
       - name: BugSplat SDK import self-test
         shell: pwsh
         run: pwsh scripts/import-bugsplat-sdk.selftest.ps1
