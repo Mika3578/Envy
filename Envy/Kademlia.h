@@ -219,7 +219,7 @@ private:
 	uint32_t m_bootstrapMalformed;
 	uint32_t m_bootstrapPartial;
 	uint32_t m_bootstrapRejected;        // replies refused by request correlation
-	uint32_t m_bootstrapContactsRefused; // listed contacts refused by routing admission
+	uint32_t m_bootstrapContactsRefused; // contacts refused by routing admission
 	uint32_t m_bootstrapSendFailed;
 	uint32_t m_bootstrapBlocked;
 	uint32_t m_sourceNoContacts;

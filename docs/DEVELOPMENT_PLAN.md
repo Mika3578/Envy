@@ -1,6 +1,6 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-22
+- **Last Updated:** 2026-10-23
 
 - **Changelog Entry:** 2026-10-23 - #430: bootstrap outcome diagnostics. The `rejected` counter mixed replies refused by request correlation with contacts of a correlated reply that routing admission refused, so an expired candidate, a missing reply, a spoofed or ambiguous reply and an unvalidated contact could not be told apart in the status line; admission refusals now have their own `contacts_refused` counter. New regressions drive the production handler against the real routing table (a 20-contact reply from one /24 stays within the diversity limits and stays unverified), check that spoofed or ambiguous replies leave genuine requests to time out, and run 20 silent candidates for three hours against the literal 60/120/240/480/600 s schedule. No wire-format change; HELLO and inbound limits stay in #502, live interoperability in #160.
 

@@ -127,7 +127,7 @@ contacts is deferred until normal routing-table maintenance.
 The status log emits one aggregate Kad line per minute: cache candidates,
 deferred/invalid candidates, sent/expired bootstrap requests, received
 fully framed (`valid_responses`) and `partial` responses, accepted contacts,
-`malformed` and `rejected` (uncorrelated: unsolicited, duplicate or ambiguous)
+`malformed` and `rejected` (uncorrelated: unsolicited, duplicate, ambiguous or past the 180 s window)
 responses, `contacts_refused` (contacts of a correlated response that routing
 admission refused: address policy, per-IP and per-/24 diversity, table full),
 requests the datagram layer
