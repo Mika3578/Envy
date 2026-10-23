@@ -1,9 +1,9 @@
-# Claude Code - Envy repository
+@AGENTS.md
 
-Root [`AGENTS.md`](./AGENTS.md) is the canonical repository-wide rule set.
-Read and follow it before acting. Do not maintain a second copy of repository
-workflow, toolchain, style, quality, protocol, or documentation rules here.
+## Claude Code
 
-Use the canonical project/status/protocol documents linked from `AGENTS.md`
-for task-specific context. Tool-specific behavior may be added here only when
-it is genuinely Claude-specific.
+- Skills live in `.agents/skills/` (shared with Codex, Copilot and Cursor);
+  Claude Code does not auto-discover that directory. When a task matches the
+  skills table above, read that `SKILL.md` before acting.
+- Before editing a path covered by `.cursor/rules/*.mdc` (C++, MFC resources,
+  protocol code, docs), read every matching rule file once per session.

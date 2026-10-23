@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr ready:*)",
+      "Bash(gh api *merge*)",
+      "Bash(gh api *ready_for_review*)",
+      "Bash(gh api *auto_merge*)",
+      "Bash(gh api *rulesets*)",
+      "Bash(gh api *branches/*/protection*)",
+      "Bash(git push *--force*)",
+      "Bash(git push *-f *)",
+      "Bash(git push *-f)",
+      "Bash(git push *upstream*)",
+      "Bash(git push *--no-verify*)",
+      "Bash(git push *-n *)",
+      "Bash(git push *-n)",
+      "Bash(git commit *--no-verify*)",
+      "Bash(git commit *-n *)",
+      "Bash(git commit *-n)"
+    ]
+  }
+}

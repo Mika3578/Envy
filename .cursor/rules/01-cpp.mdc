@@ -1,0 +1,46 @@
+---
+description:
+globs: **/*.cpp,**/*.h,**/*.hpp,**/*.inl
+alwaysApply: false
+---
+
+# C++ and MFC code (Envy)
+
+Global rules (style, read-only trees, banned constructs) are in `AGENTS.md`.
+
+## Language level
+- C++20 policy, but live Release|x64 Envy, HashLib, TorrentEnvy and Unpacker
+  end their `ClCompile` block with `stdcpp17`: keep that code C++17-clean
+  until a dedicated vcxproj change removes the override.
+- Prefer small local modernization: `nullptr`, `override`, `constexpr`
+  instead of `#define`, `noexcept` instead of `throw()`, range-for when it
+  reads better, `std::optional` for missing values.
+
+## Ownership and lifetime
+- RAII for handles, sockets, locks and buffers; no new manual `new`/`delete`.
+- Raw pointers are non-owning unless the owner is documented.
+- `const&` inputs; move only when ownership transfers.
+
+## MFC conventions
+- `C` + PascalCase classes, PascalCase methods, `On...` handlers.
+- Members: `m_s` strings (not `m_str`), `m_n` numbers, `m_b` flags (`BOOL`
+  in MFC members), `m_p` pointers, `m_h` handles, `m_t` times, `m_o` objects.
+- `CString` and `_T("...")` in UI/MFC code; Unicode (UTF-16) paths.
+- Shared state: existing `CCriticalSection` / `CSingleLock` / `CQuickLock`
+  patterns. Never block the UI thread; never touch UI controls from worker
+  threads (use `PostMessage`).
+- Includes: in `.cpp` files of projects that use the `StdAfx.h` precompiled
+  header, include it first, then the file's own header; never add it where
+  the project has none, and do not reorder legacy includes.
+
+## Errors
+- Check Win32/MFC/WSA results; keep the error code and the context (operation,
+  file, peer).
+- `ASSERT` for debug invariants, `VERIFY` when the call must run in release.
+- User-visible errors via `theApp.Message(MSG_ERROR, ...)`. Never swallow
+  errors silently; never throw from destructors.
+
+## Performance
+- Profile before optimizing. In hot paths avoid per-iteration allocation and
+  logging, reuse buffers, pre-size containers, avoid repeated `CString`
+  concatenation, batch UI updates.

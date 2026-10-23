@@ -1,41 +1,40 @@
 # GitHub Copilot instructions for Envy
 
-Root [`AGENTS.md`](../AGENTS.md) is the canonical repository-wide rule set.
-Read it before proposing, editing, reviewing, or merging changes. Do not copy
-its global rules into this file.
+Root `AGENTS.md` is the canonical rule set; Copilot agents read it. Copilot
+code review reads only the first 4,000 characters of this file, so the review
+essentials below are self-contained. Full reviewer procedure:
+`.agents/skills/envy-code-review/SKILL.md`.
 
-For task context also consult the canonical documents linked by `AGENTS.md`,
-especially `docs/DEVELOPMENT_PLAN.md`, `docs/10_dev/status.md`, and the
-relevant protocol/architecture docs.
+## Reviewing
 
-For Copilot Code Review, follow `.github/skills/code-review/SKILL.md`.
+- Envy is a Windows C++/MFC P2P client (ED2K/Kad, G1/G2, BitTorrent, DC).
+  Report correctness, security and interoperability defects first; mark
+  style nits optional. Do not repeat findings already answered on the PR.
+- Network, peer, file and Remote input is hostile: flag missing length or
+  bounds checks, unchecked size arithmetic, uncapped allocations or queues,
+  path traversal, and crashes on malformed input.
+- Wire-format or protocol behaviour changes need a regression test or a
+  spec/reference comparison. Crypto, auth, threading, locking and memory
+  lifetime changes need targeted tests; `Wire-format impact: none` does not
+  cover them.
+- Flag: re-encoded files, EOL churn, removed copyright or provenance notices,
+  edits to read-only third-party trees (`Services/*`, `HashLib/HashLib/*`,
+  `Plugins/{RatDVDPlugin,SWFPlugin}`), XP-targeting macros, GPL-2.0/3.0
+  dependencies, personal emails, AI `Co-authored-by` trailers.
+- Flag any change that skips, disables or weakens a required check, test or
+  quality gate.
 
-- Do **not** request or invoke Copilot Code Review while the pull request is a
-  **draft**. Correction agents and other assistants follow the same rule for
-  **any** review product (Bugbot, CodeRabbit, human reviewer requests).
-- Do **not** request Copilot Code Review until every review thread on the
-  current head is **treated** (`AGENTS.md` §5): fix in code or reply with
-  technical justification, then resolve on GitHub. One Copilot request per
-  stable treated head — no re-requests while threads are open or between
-  partial batches.
-- When the review finds **no blocking defects** on that head, submit
-  **`APPROVED`** on GitHub — not comment-only — **except** when any
-  privileged governance path changes (see skill). If you find blocking
-  issues, request changes; after fixes, re-review and **`APPROVED`** when
-  clean and no privileged governance path is in the diff.
-- Privileged governance paths (`AGENTS.md`, this file, `.github/skills/**`,
-  `.github/settings.yml`, `.github/workflows/**`, `.github/rulesets/**`,
-  gate scripts under `.github/scripts/`) are high-risk. Do not use the
-  docs-only path for them. Do **not** submit `APPROVED` when they change —
-  leave a comment review and require an independent human approval. Follow
-  `.github/skills/code-review/SKILL.md`.
-- `Wire-format impact: none` is not evidence for crypto, auth, threading,
-  locking, memory, workflows, or `.github/settings.yml`.
-- Never approve a pull request authored by Copilot cloud agent.
-- A Copilot `APPROVED` review is not proof of correctness; required CI and
-  security checks stay independent.
-- Minimize cost: see **Model and token economy** in root `AGENTS.md` §8.
-- **Review economy:** no review requests in **Draft**; do not request Copilot to
-  poll status. Treat and resolve all threads first; one Copilot review per
-  stable **Ready** head when `AGENTS.md` §5 *Review and Copilot economy*
-  checklist is complete.
+## Review state
+
+- Governance paths (`AGENTS.md`, `CLAUDE.md`, `.agents/**`, `.claude/**`,
+  `.cursor/**`, `.continue/**`, `.gemini/**`, `.clinerules`, `.windsurfrules`,
+  `.aider.conf.yml`, `.coderabbit.yaml`, this file, `.github/workflows/**`,
+  `.github/scripts/**`, `.github/rulesets/**`, `.github/settings.yml`): never
+  `APPROVED`. Leave
+  `COMMENTED` or `CHANGES_REQUESTED`; a human approves.
+- Never approve a Draft or a PR authored by Copilot cloud agent.
+- Blocking defect or missing evidence: `CHANGES_REQUESTED`. Otherwise
+  `COMMENTED`, or `APPROVED` only when checks are green, the branch is up to
+  date, no thread or `CHANGES_REQUESTED` is open, the branch name has no
+  tool prefix and the Squash Commit Summary matches the final head.
+- A Copilot review is advisory. The maintainer merges; CI stays independent.

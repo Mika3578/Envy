@@ -1,25 +1,11 @@
 ---
-description: P2P protocol-specific considerations, network code guidelines, and security
-globs: ["**/Services/**", "**/Envy/**", "**/*Network*.cpp", "**/*Network*.h", "**/*Protocol*.cpp", "**/*Protocol*.h", "**/*P2P*.cpp", "**/*P2P*.h"]
+description:
+globs: Envy/BT*,Envy/DC*,Envy/ED*,Envy/G1*,Envy/G2*,Envy/Kad*,Envy/Kademlia*,Envy/Datagram*,Envy/*Packet*,Envy/Neighbour*,Envy/Handshake*,Envy/Network*,Envy/Connection*,Envy/Buffer*,Envy/Query*,Envy/HostCache*,Envy/DiscoveryServices*,Envy/CrawlSession*,Envy/HubHorizon*,Envy/*Transfer*,Envy/UPnP*,Envy/Firewall*,Envy/Remote*,Envy/Security*,Envy/XML*,Envy/*Validate*,Envy/BitTorrentDHT/**,Envy/Chat*,Envy/CtrlIRC*,Envy/Bitprints*,Remote/**
 alwaysApply: false
 ---
 
-# P2P protocols (Envy)
+# Protocol and network code (Envy)
 
-## Treat the network as hostile (hard rules)
-- Validate sizes, bounds, and types before parsing.
-- Reject malformed/oversized packets safely (no crashes, no allocations based on untrusted sizes).
-- Never trust remote-provided paths/names: prevent traversal and invalid characters.
-
-## Timeouts + responsiveness
-- All sockets must have sane send/recv timeouts.
-- Never block the UI thread on network I/O.
-- Handle partial sends/receives and transient errors (`WSAEWOULDBLOCK`, `WSAEINTR`) correctly.
-
-## Rate limiting + resource caps
-- Apply rate limiting where appropriate (per-peer and/or global).
-- Cap memory growth from peer-controlled inputs (queues, buffers, message maps).
-
-## Compatibility
-- Preserve backward compatibility: gate new behavior behind capability/version detection.
-- Unknown/extra fields: ignore safely when possible; never assume a fixed layout.
+Untrusted-input handling, interoperability references and the evidence a
+change needs are in `.agents/skills/envy-protocol-change/SKILL.md`. Read it
+before editing these files.
