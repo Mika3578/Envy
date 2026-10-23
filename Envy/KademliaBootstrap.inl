@@ -97,8 +97,9 @@ DWORD CKademlia::AddOutstandingRequest(KadRequestType type, const SOCKADDR_IN& t
 	if (type == KAD_REQUEST_BOOTSTRAP &&
 	    !m_bootstrapRotation.Sent(ntohl(targetAddr.sin_addr.s_addr), ntohs(targetAddr.sin_port), now))
 	{
-		// Nothing is registered or sent: the endpoint is still in flight or inside its
-		// answered window, or the retry map is full of protected history.
+		// Nothing is registered or sent. From the rotation cycle only a retry map full
+		// of protected history reaches this, since Select() already defers endpoints
+		// still in flight or inside their answered window; other callers can hit those.
 		++m_bootstrapBlocked;
 		return 0;
 	}
