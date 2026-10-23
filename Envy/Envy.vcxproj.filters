@@ -1602,6 +1602,9 @@
     <None Include="..\Data\DefaultServices.dat">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\Data\DefaultServers.dat">
+      <Filter>Resource Files</Filter>
+    </None>
     <None Include="..\Schemas\SchemaMappings.xml">
       <Filter>Resource Files</Filter>
     </None>
@@ -1908,6 +1911,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LibraryDictionary.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LibraryFileSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LibraryScanState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LibraryFolders.h">
