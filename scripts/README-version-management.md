@@ -1,221 +1,67 @@
-# Version Management System
+# Version Management
 
-This directory contains scripts for automatic version management in the Envy project.
-
-## Overview
-
-The version management system automatically increments version numbers based on:
-- Git commit count (build number)
-- Semantic versioning (major.minor.patch)
-- Pre-release labels
-- Branch information
+Scripts that bump the Envy product version. The release procedure that uses
+them is in [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md).
 
 ## Files
 
-- `auto-version.ps1` - Core version management script
-- `bump-version.ps1` - Interactive version bumping tool
-- `README-version-management.md` - This documentation
+- `auto-version.ps1` - core bump logic (PowerShell 7)
+- `bump-version.ps1` - local wrapper with an interactive menu
+- `release/verify-version.ps1` - release gate that checks the result
+- `.github/workflows/version-management.yml` - opens the bump as a Draft PR
 
-## Version File Format
+## Version convention
 
-The `version.json` file contains:
+| Field | Meaning | Example |
+| --- | --- | --- |
+| `major` / `minor` / `patch` | Semantic version | `4` / `2` / `0` |
+| `build` | Release counter within `M.m.p`: `1` for the first release of a new `M.m.p`, `+1` for each following prerelease or final | `3` |
+| `preRelease` | `<label>.N` or `null` | `preview.3` |
+| `fullVersion` | `M.m.p[-<label>.N]` | `4.2.0-preview.3` |
+| `displayVersion` | `M.m.p[ <Label> N]` | `4.2.0 Preview 3` |
+| `git.intendedTag` | `v<fullVersion>` | `v4.2.0-preview.3` |
+| `git.lastTag` | Previous release tag | `v4.2.0-preview.2` |
+| `git.branch` | Branch that carried the bump | `chore/bump-version-4-2-0-preview-3` |
 
-```json
-{
-  "major": 4,
-  "minor": 1,
-  "patch": 0,
-  "build": 53,
-  "preRelease": null,
-  "fullVersion": "4.1.0",
-  "displayVersion": "4.1.0.53",
-  "lastUpdated": "2026-01-15T00:00:00Z",
-  "git": {
-    "commitCount": 53,
-    "lastTag": "v4.1.0",
-    "branch": "develop"
-  }
-}
-```
+`Envy/Envy.rc` mirrors it: `FILEVERSION` / `PRODUCTVERSION` `M,m,p,build`,
+`FileVersion` string `M.m.p.build`, `ProductVersion` string = `displayVersion`.
+`scripts/release/verify-version.ps1 -Tag <tag>` fails if any of these disagree.
+
+## Actions
+
+| `auto-version.ps1` | `bump-version.ps1 -Type` | Result from `4.2.0-preview.2` (build 2) |
+| --- | --- | --- |
+| `-PreRelease` | `prerelease` | `4.2.0-preview.3`, build 3 |
+| `-PreRelease -PreReleaseLabel rc` | `prerelease -PreReleaseLabel rc` | `4.2.0-rc.1`, build 3 |
+| `-Final` | `final` | `4.2.0`, build 3 |
+| `-IncrementMinor -PreRelease` | - | `4.3.0-preview.1`, build 1 |
+| `-IncrementPatch` | `patch` | `4.2.1`, build 1 |
+
+`-IncrementMajor` / `-IncrementMinor` / `-IncrementPatch` reset `build` to 1
+and start a final version unless `-PreRelease` is also given. `-PreRelease`
+alone requires a current prerelease. The default label is `preview`.
+
+`-UpdateFiles` also rewrites `Envy/Envy.rc` and inserts a
+`## [<fullVersion>] - TBD` heading under `## [Unreleased]` in `CHANGELOG.md`
+(the pending entries move into that release). `CMakeLists.txt` and
+`Visual Studio\SetReleaseVersion.bat` are not touched.
+
+The scripts never tag or push; `bump-version.ps1 -Interactive` can commit
+locally on the current branch.
 
 ## Usage
 
-### Automatic (CI/CD)
-
-Version management is automatically handled in GitHub Actions:
-- **Build workflow**: Updates build numbers on every build
-- **Release workflow**: Increments patch version on releases
-- **Version management workflow**: Manual version control
-
-### Manual (Local Development)
-
-#### Interactive Mode
 ```powershell
-.\scripts\bump-version.ps1 -Interactive
+# Next preview, all version files
+pwsh ./scripts/auto-version.ps1 -PreRelease -UpdateFiles
+
+# Check the result against the tag you intend to push
+pwsh ./scripts/release/verify-version.ps1 -Tag v4.2.0-preview.3
+
+# Interactive
+pwsh ./scripts/bump-version.ps1 -Interactive
 ```
 
-#### Command Line
-```powershell
-# Patch version (bug fixes)
-.\scripts\bump-version.ps1 -Type patch -UpdateFiles
-
-# Minor version (new features)
-.\scripts\bump-version.ps1 -Type minor -UpdateFiles
-
-# Major version (breaking changes)
-.\scripts\bump-version.ps1 -Type major -UpdateFiles
-
-# Pre-release
-.\scripts\bump-version.ps1 -Type prerelease -PreReleaseLabel beta -UpdateFiles
-```
-
-#### Advanced Usage
-```powershell
-# Just update build number without incrementing version
-.\scripts\auto-version.ps1
-
-# Increment and update project files
-.\scripts\auto-version.ps1 -IncrementPatch -UpdateFiles
-```
-
-## Version Increment Rules
-
-### Automatic Build Numbers
-- Build number = Git commit count
-- Updated on every commit/build
-- Never decrements
-
-### Semantic Versioning
-- **Patch** (`x.y.z` → `x.y.z+1`): Bug fixes, no API changes
-- **Minor** (`x.y.z` → `x.(y+1).0`): New features, backward compatible
-- **Major** (`x.y.z` → `(x+1).0.0`): Breaking changes
-- **Pre-release**: Adds label (e.g., `1.2.3-dev`)
-
-## Integration
-
-### Project Files Updated
-When `-UpdateFiles` is used, the following files are automatically updated:
-- `CMakeLists.txt` - Project version
-- `Visual Studio\SetReleaseVersion.bat` - Version variables
-- `Envy.h` - Version defines (may need manual adjustment)
-
-### GitHub Actions
-- **build.yml**: Updates build numbers on every build
-- **release.yml**: Increments patch version on releases
-- **version-management.yml**: Manual version control workflow
-
-### CI/CD Integration
-```yaml
-- name: Auto-Version Management
-  shell: pwsh
-  run: |
-    .\scripts\auto-version.ps1 -UpdateFiles
-```
-
-## Best Practices
-
-### When to Bump Versions
-
-#### Patch Version
-- Bug fixes
-- Performance improvements
-- Documentation updates
-- Internal refactoring
-
-#### Minor Version
-- New features
-- API additions (backward compatible)
-- Enhanced functionality
-
-#### Major Version
-- Breaking API changes
-- Significant architectural changes
-- Major feature overhauls
-
-### Pre-release Labels
-- `dev`: Development builds
-- `beta`: Beta testing
-- `rc`: Release candidate
-- `alpha`: Early testing
-
-### Commit Messages
-Version bumps should be committed with:
-```
-chore: bump version to 4.1.0.53
-```
-
-## Troubleshooting
-
-### Version File Issues
-```powershell
-# Reset version file
-Remove-Item version.json
-.\scripts\auto-version.ps1 -UpdateFiles
-```
-
-### Git Integration Issues
-```powershell
-# Check git status
-git status
-
-# Reset local changes
-git checkout -- version.json
-```
-
-### Build Integration Issues
-- Ensure PowerShell execution policy allows script running
-- Check file permissions on version.json
-- Verify git is available in PATH
-
-## Examples
-
-### Development Workflow
-```powershell
-# Start new feature branch
-git checkout -b feat/new-feature
-
-# Make changes...
-
-# Bump minor version for new feature
-.\scripts\bump-version.ps1 -Type minor -UpdateFiles
-
-# Commit changes
-git add .
-git commit -m "feat: implement new feature
-
-Bump version to 4.2.0"
-```
-
-### Release Workflow
-```powershell
-# Prepare release
-.\scripts\bump-version.ps1 -Type patch -UpdateFiles
-
-# Create release commit
-git add .
-git commit -m "chore: prepare release 4.1.1"
-
-# Create tag
-git tag v4.1.1
-git push origin v4.1.1
-```
-
-## Migration from Manual Versioning
-
-### Previous System
-- Manual updates to `SetReleaseVersion.bat`
-- Hardcoded version numbers
-- Manual build number management
-
-### New System Benefits
-- Automatic build number management
-- Consistent version formatting
-- Git integration
-- CI/CD automation
-- Semantic versioning compliance
-
-### Migration Steps
-1. Run `.\scripts\auto-version.ps1 -UpdateFiles` to initialize
-2. Update any hardcoded version references
-3. Test build process
-4. Update documentation references
+In GitHub Actions, run **Version Management** from `develop`
+(`version_action`, `prerelease_label`, `as_prerelease`). It opens a Draft PR
+on `chore/bump-version-<version>`; see `docs/DEPLOYMENT.md` for the rest.
