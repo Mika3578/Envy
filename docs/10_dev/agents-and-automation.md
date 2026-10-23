@@ -20,8 +20,8 @@ Cursor has been configured or that runtime validation has occurred.
 
 ```
 Draft -> cheap CI + optional reviews -> one subscribed fixer
-  -> agent: stage:live-test -> Windows + EnvyTests + artifacts
-  -> agent: stage:live-test -> maintainer: runtime test -> agent: Ready
+  -> maintainer: stage:live-test -> Windows + EnvyTests + artifacts
+  -> maintainer: runtime test -> maintainer: Ready
   -> full CI + Copilot -> same fixer -> native mergeability -> manual squash
 ```
 
@@ -243,7 +243,7 @@ allows. Escalate per AGENTS.md *Autonomy* when progress stops; do not write
 after escalating.
 
 When the PR is Draft and the head is clean, comment once: "Draft
-stabilization complete - candidate for Ready." While stage:live-test is present, do not push. After a Ready fix,
+stabilization complete - technically ready for human validation." While stage:live-test is present, do not push. After a Ready fix,
 flag that runtime evidence must be reassessed. Unsubscribe when the PR is
 merged or closed, after escalation, or when asked to stop.
 ```
@@ -381,9 +381,9 @@ Dogfood on the Draft implementation PR:
    Exercise two findings in one review and a late finding on unchanged HEAD.
 3. Replay an event and deliver CI/review events together: measure conversations,
    wakeups, duplicate processing, writer overlap, rounds and tokens from usage.
-4. Apply live-test; record x64/Win32 builds, EnvyTests, C# analysis and
+4. The maintainer applies live-test; record x64/Win32 builds, EnvyTests, C# analysis and
    artifact hashes. PR stays Draft. Human performs the live runtime test.
-5. After the human runtime test is OK, the agent marks Ready; observe full CI and Copilot, then one valid finding/fix
+5. After the human runtime test is OK, the maintainer marks Ready; observe full CI and Copilot, then one valid finding/fix
    cycle and a fresh Copilot review on the new HEAD. Check stale-review behavior
    when an actual approval existed; COMMENTED reviews are not approvals.
 6. Exercise recurrence/budget stop and inspect cancelled/superseded runs.

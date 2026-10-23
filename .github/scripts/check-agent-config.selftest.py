@@ -34,6 +34,23 @@ class RepoState(unittest.TestCase):
         self.assertEqual(cac.run(cac.REPO_ROOT), [])
 
 
+    def skill_text(self, name):
+        return (cac.REPO_ROOT / ".agents/skills" / name / "SKILL.md").read_text(encoding="utf-8")
+
+    def test_finish_verdict_phrases(self):
+        text = self.skill_text("envy-pr-workflow")
+        self.assertIn("Technically ready for human validation", text)
+        self.assertIn("Blocked: <precise reason>", text)
+
+    def test_skills_keep_no_blocked_or_unsafe_advice(self):
+        for path in (cac.REPO_ROOT / ".agents/skills").rglob("*.md"):
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("gh pr checks --", text, path)
+            self.assertNotIn("force-with-lease", text, path)
+
+    def test_review_skill_uses_ccr_route(self):
+        self.assertIn("/ccr/review_threads", self.skill_text("envy-review-requests"))
+
     def test_live_ruleset_path_must_stay_in_repository(self):
         for source in ("../outside.json", "/etc/passwd"):
             with self.assertRaises(SystemExit):

@@ -2,10 +2,20 @@
   "permissions": {
     "deny": [
       "Shell(gh:pr merge*)",
-      "Shell(git:push --force*)",
-      "Shell(git:push -f*)",
-      "Shell(git:push upstream*)",
-      "Shell(git:push --no-verify*)",
+      "Shell(gh:pr ready*)",
+      "Shell(gh:api *merge*)",
+      "Shell(gh:api *ready_for_review*)",
+      "Shell(gh:api *auto_merge*)",
+      "Shell(git:push*--force*)",
+      "Shell(git:push*-f)",
+      "Shell(git:push*-f *)",
+      "Shell(git:push*upstream*)",
+      "Shell(git:push*--no-verify*)",
+      "Shell(git:push*-n)",
+      "Shell(git:push*-n *)",
+      "Shell(git:commit*--no-verify*)",
+      "Shell(git:commit*-n)",
+      "Shell(git:commit*-n *)",
       "Read(.env*)",
       "Write(**/.env*)"
     ]

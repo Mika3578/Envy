@@ -11,8 +11,10 @@ Agent procedures: `.agents/skills/envy-pr-workflow/SKILL.md` and
 Branch from the latest `origin/develop`, open Draft, run cheap deterministic
 checks, and batch corrections. Agents may inspect, correct, test, commit, push
 the feature branch, request reviews per the review skill, reply to and resolve
-treated threads, watch CI, apply `stage:live-test` when a runtime test is
-needed, and mark Ready once the maintainer reports the runtime test OK.
+treated threads and watch CI, up to *technically ready for human validation*.
+**Only the maintainer** applies `stage:live-test` (when a manual runtime test
+is needed; not for docs-only, workflow-only or test-only PRs, which need no
+runtime result), marks Ready and approves.
 **Only the maintainer** performs the live runtime test and the manual squash
 merge. Ready/live-test run real Release x64 and Win32 builds
 with EnvyTests; a Draft deferral is not build evidence, and any later push
