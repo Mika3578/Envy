@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0-preview.2] - TBD
+
+First published preview of the 4.2.0 line. The `v4.2.0-preview.1` tag and its draft GitHub Release were never published; everything below (including the Preview 1 packaging work) ships in Preview 2. Product version metadata: `version.json` `4.2.0-preview.2`, Windows `FILEVERSION`/`PRODUCTVERSION` `4.2.0.2`, display `4.2.0 Preview 2`.
+
 ### Fixed
 - Fix shared-folder indexing for long local, mapped and UNC paths. Failed network enumeration now preserves existing library entries and reports the Windows error instead of treating the share as empty. Restore library scanning after a restart with an existing library: the deferred-loading thread suppressed the maintenance thread, so scans never ran and the progress dialog stayed at zero. Open the hash database at load so tiger trees and ED2K hash sets hashed in a first session are stored, rescan folders that come back online or lose their change notification, and let the scan dialog wait for its own scan and report when the scanner is not running. Scan one shared root at a time without holding the library lock across the whole tree, so closing Envy or browsing the library no longer waits on a large scan; adding a parent folder adopts its already shared subfolders with their files and hashes instead of failing, and closing during indexing or hashing stops the scanner and hasher cooperatively without pruning the entries the interrupted listing did not reach.
 - **Bootstrap catalogue deployment (#419)** — Stage only `DefaultServices.dat` and `DefaultServers.dat` into each local Debug/Release x64/Win32 runtime output, replacing altered staged copies on each build. Startup loaders fall back to the packaged catalogues without clearing learned caches or user-added services, and Gnutella UDP bootstrap availability is checked independently from GWebCache counts. Missing, oversized, and malformed catalogues produce bounded diagnostics.
