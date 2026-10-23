@@ -541,6 +541,10 @@ void CKademlia::OnPing(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	theApp.Message(MSG_DEBUG, L"Kad2: Ping from %s",
 	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
 
+	// A 2-byte PING draws a 4-byte PONG to a forgeable address; eMule and aMule allow two per minute per IP.
+	if (!m_inboundLimiter.Allow(ntohl(pHost->sin_addr.s_addr), KADEMLIA2_PING, 2, KadNowMs()))
+		return;
+
 	// Send pong response - eMule format: 2 bytes (UDP port observed)
 	CEDPacket* pResponse = CEDPacket::New(KADEMLIA2_PONG, ED2K_PROTOCOL_KAD);
 	if (!pResponse) return;
@@ -735,11 +739,11 @@ void CKademlia::OnFindNodeResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	m_routingTable.ObserveAliveByEndpoint(ntohl(pHost->sin_addr.s_addr), ntohs(pHost->sin_port), KadNowMs());
 }
 
-void CKademlia::SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+bool CKademlia::SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
-	if (!pHost || !pPacket) return;
+	if (!pHost || !pPacket) return false;
 
-	Datagrams.Send(pHost, pPacket, FALSE);
+	return Datagrams.Send(pHost, pPacket, FALSE) != FALSE;
 }
 
 bool CKademlia::UpdateContact(const KadContact& contact, KadContactSource source, bool markVerified)
@@ -880,10 +884,17 @@ void CKademlia::SendHelloRequest(const SOCKADDR_IN* pTarget)
 	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_HELLO_REQ, ED2K_PROTOCOL_KAD);
 	if (!pPacket) return;
 
-	WriteHelloBody(pPacket);
-	SendPacket(pTarget, pPacket);
+	if (!WriteHelloBody(pPacket))
+	{
+		pPacket->Release();
+		return;
+	}
+
+	// Register before sending so a fast HELLO_RES cannot arrive unmatched.
+	const DWORD requestId = AddOutstandingRequest(KAD_REQUEST_HELLO, *pTarget);
+	if (!SendPacket(pTarget, pPacket))
+		RemoveOutstandingRequest(requestId);
 	pPacket->Release();
-	AddOutstandingRequest(KAD_REQUEST_HELLO, *pTarget);
 }
 
 void CKademlia::SendHelloResponse(const SOCKADDR_IN* pTarget)
@@ -894,18 +905,20 @@ void CKademlia::SendHelloResponse(const SOCKADDR_IN* pTarget)
 	CEDPacket* pResponse = CEDPacket::New(KADEMLIA2_HELLO_RES, ED2K_PROTOCOL_KAD);
 	if (!pResponse) return;
 
-	WriteHelloBody(pResponse);
-	SendPacket(pTarget, pResponse);
+	if (WriteHelloBody(pResponse))
+		SendPacket(pTarget, pResponse);
 	pResponse->Release();
 }
 
-void CKademlia::WriteHelloBody(CEDPacket* pPacket)
+bool CKademlia::WriteHelloBody(CEDPacket* pPacket)
 {
 	WORD tcpPort = (WORD)Settings.Connection.InPort;
 	if (tcpPort == 0) tcpPort = 4662;
-	BYTE body[KadHelloFixedBytes];
+	BYTE body[KadHelloFixedBytes] = {};
 	const size_t len = KadWriteHello(body, sizeof(body), m_ownId, tcpPort, KADEMLIA_VERSION);
-	pPacket->Write(body, (DWORD)len);
+	if (len == 0)
+		return false; // never send an unwritten buffer
+	return pPacket->Write(body, (DWORD)len) != FALSE;
 }
 
 // Security and rate limiting implementation

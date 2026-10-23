@@ -119,6 +119,70 @@ bool test_limiter_bounded_and_clock_safe()
 	return l2.Allow(5, 1, 2, base) && l2.Allow(5, 1, 2, base) && !l2.Allow(5, 1, 2, base) &&
 	       l2.Allow(5, 1, 2, base + 60000) && !l2.Allow(5, 1, 0, base);
 }
+bool test_limiter_clock_regression_and_boundaries()
+{
+	// Equal timestamps: no refill, no wrap.
+	KadInboundLimiter a;
+	if (!a.Allow(7, 1, 2, 1000) || !a.Allow(7, 1, 2, 1000) || a.Allow(7, 1, 2, 1000))
+		return false;
+	// A smaller timestamp must not wrap the unsigned difference into a full refill.
+	if (a.Allow(7, 1, 2, 999) || a.Allow(7, 1, 2, 0))
+		return false;
+	// The stamp did not move back: a full bucket after one minute from the original stamp.
+	if (!a.Allow(7, 1, 2, 1000 + KadInboundLimiter::BucketMs))
+		return false;
+	// Pruning keeps an entry stamped in the future and drops one exactly a bucket old.
+	KadInboundLimiter b;
+	b.Allow(1, 1, 2, 5000);
+	b.Allow(2, 1, 2, 100);
+	b.Prune(100 + KadInboundLimiter::BucketMs - 1);
+	if (b.Tracked() != 2)
+		return false;
+	b.Prune(100 + KadInboundLimiter::BucketMs);
+	if (b.Tracked() != 1)
+		return false;
+	b.Prune(0);
+	return b.Tracked() == 1;
+}
+
+bool test_bodyless_request_gate()
+{
+	const uint8_t bootstrap[] = { 0xE4, 0x01 }, ping[] = { 0xE4, 0x60 };
+	if (!KadIsBodylessRequest(bootstrap, 2) || !KadIsBodylessRequest(ping, 2))
+		return false;
+	// Any other Kad opcode, including ones that reach a larger reply or the ED2K server-result path.
+	for (unsigned op = 0; op < 256; ++op)
+	{
+		const uint8_t d[] = { 0xE4, static_cast<uint8_t>(op) };
+		if (KadIsBodylessRequest(d, 2) != (op == 0x01 || op == 0x60))
+			return false;
+	}
+	// Every other protocol byte (eDonkey, eMule, packed Kad, RevConnect, Gnutella...) at two bytes.
+	for (unsigned proto = 0; proto < 256; ++proto)
+		for (unsigned op : { 0x01u, 0x60u, 0x99u, 0x9Bu })
+		{
+			const uint8_t d[] = { static_cast<uint8_t>(proto), static_cast<uint8_t>(op) };
+			if (proto != 0xE4 && KadIsBodylessRequest(d, 2))
+				return false;
+		}
+	// Only exactly two bytes; null and other lengths are refused.
+	const uint8_t longer[] = { 0xE4, 0x01, 0x00 };
+	return !KadIsBodylessRequest(bootstrap, 1) && !KadIsBodylessRequest(bootstrap, 0) &&
+	       !KadIsBodylessRequest(longer, 3) && !KadIsBodylessRequest(nullptr, 2);
+}
+
+bool test_write_failure_leaves_buffer_untouched()
+{
+	uint8_t out[24];
+	memset(out, 0xAB, sizeof(out));
+	if (KadWriteHello(out, KadHelloFixedBytes - 1, kId, 1, 8) != 0 || KadWriteHello(out, 0, kId, 1, 8) != 0 ||
+	    KadWriteHello(out, sizeof(out), nullptr, 1, 8) != 0 || KadWriteHello(nullptr, sizeof(out), kId, 1, 8) != 0)
+		return false;
+	for (uint8_t b : out)
+		if (b != 0xAB)
+			return false;
+	return true;
+}
 } // namespace
 
 void register_kad_hello_tests(TestSuite& suite)
@@ -130,4 +194,7 @@ void register_kad_hello_tests(TestSuite& suite)
 	suite.add_test("kad_hello_unknown_tags", test_unknown_tag_type_keeps_contact_and_other_tags_are_skipped);
 	suite.add_test("kad_inbound_limiter_burst_refill", test_limiter_burst_then_refill);
 	suite.add_test("kad_inbound_limiter_bounded", test_limiter_bounded_and_clock_safe);
+	suite.add_test("kad_inbound_limiter_clock_regression", test_limiter_clock_regression_and_boundaries);
+	suite.add_test("kad_bodyless_request_gate", test_bodyless_request_gate);
+	suite.add_test("kad_hello_write_failure_untouched", test_write_failure_leaves_buffer_untouched);
 }

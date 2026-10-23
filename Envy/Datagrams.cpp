@@ -29,6 +29,7 @@
 #include "G1Packet.h"
 #include "G2Packet.h"
 #include "EDPacket.h"
+#include "KadHello.h"
 #include "DCPacket.h"
 #include "BTPacket.h"
 #include "BTTrackerRequest.h"
@@ -828,8 +829,7 @@ BOOL CDatagrams::OnDatagram(const SOCKADDR_IN* pHost, const BYTE* pBuffer, DWORD
 	// Detect ED2K and KAD packets
 	// A Kad2 request without a body (BOOTSTRAP_REQ, PING) is exactly the two header bytes;
 	// the other ED2K UDP packets always carry a payload.
-	if (nLength > sizeof(ED2K_UDP_HEADER) ||
-	    (nLength == sizeof(ED2K_UDP_HEADER) && pBuffer[0] == ED2K_PROTOCOL_KAD))
+	if (nLength > sizeof(ED2K_UDP_HEADER) || KadIsBodylessRequest(pBuffer, nLength))
 	{
 		const ED2K_UDP_HEADER* pMULE = (const ED2K_UDP_HEADER*)pBuffer;
 		switch ( pMULE->nProtocol )
