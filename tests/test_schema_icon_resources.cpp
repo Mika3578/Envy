@@ -293,8 +293,19 @@ static bool test_schema_icons_load_with_windows()
 /// Absent, empty, truncated and non-icon files yield no handle, so the generic fallback applies.
 static bool test_schema_icons_invalid_files()
 {
-	const std::filesystem::path dir = std::filesystem::temp_directory_path() / L"envy_schema_icon_test";
-	std::filesystem::create_directories(dir);
+	// A fixed name in the shared temp folder could be pre-created or redirected by another process before
+	// the files are written and removed; create a fresh per-run directory and fail if it already exists.
+	std::filesystem::path dir;
+	std::error_code ec;
+	for (unsigned nAttempt = 0; nAttempt < 16 && dir.empty(); ++nAttempt)
+	{
+		const std::filesystem::path candidate = std::filesystem::temp_directory_path() /
+			(L"envy_schema_icon_test_" + std::to_wstring(GetCurrentProcessId()) + L"_" +
+			 std::to_wstring(GetTickCount64()) + L"_" + std::to_wstring(nAttempt));
+		if (std::filesystem::create_directory(candidate, ec) && !ec)
+			dir = candidate;
+	}
+	if (dir.empty()) return false;
 	bool ok = true;
 	const std::pair<const wchar_t*, std::string> files[] = {
 		{ L"empty.ico", std::string() },
@@ -311,7 +322,6 @@ static bool test_schema_icons_invalid_files()
 	bool has16 = true, has48 = true;
 	load_icon_with_windows(dir / L"absent.ico", has16, has48);
 	ok = ok && !has16 && !has48;
-	std::error_code ec;
 	std::filesystem::remove_all(dir, ec);
 	return ok;
 }

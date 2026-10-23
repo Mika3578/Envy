@@ -39,12 +39,12 @@ static char THIS_FILE[] = __FILE__;
 
 /// Initialize a file schema with generic file icons for every supported size.
 CSchema::CSchema()
-    : m_nType(typeFile)
-    , m_nAvailability(saDefault)
-    , m_bPrivate(FALSE)
-    , m_nIcon16(SHI_FILE)
-    , m_nIcon32(SHI_FILE)
-    , m_nIcon48(SHI_FILE)
+	: m_nType		( typeFile )
+	, m_nAvailability ( saDefault )
+	, m_bPrivate	( FALSE )
+	, m_nIcon16 	( SHI_FILE )
+	, m_nIcon32 	( SHI_FILE )
+	, m_nIcon48 	( SHI_FILE )
 {
 	m_pTypeFilters.InitHashTable( 127 );
 }
@@ -197,16 +197,17 @@ BOOL CSchema::Load(LPCTSTR pszFile)
 
 	CString strRoot = m_sIcon.Left( m_sIcon.GetLength() - 4 );
 
-	LoadSchemaIconFallback(Settings.Skin.AltIcons != FALSE, [&](SchemaIconCandidate candidate) -> bool
-	                       {
-		switch (candidate)
+	LoadSchemaIconFallback( Settings.Skin.AltIcons != FALSE, [&]( SchemaIconCandidate candidate ) -> bool
+	{
+		switch ( candidate )
 		{
-		case SchemaIconCandidate::Skin: return LoadIcon(strRoot + L".Skin.ico") != FALSE;
-		case SchemaIconCandidate::Alternate: return LoadIcon(strRoot + L".Alt.ico") != FALSE;
-		case SchemaIconCandidate::Default: return LoadIcon() != FALSE;
-		case SchemaIconCandidate::Safe: return LoadIcon(strRoot + L".Safe.ico") != FALSE;
+		case SchemaIconCandidate::Skin:		return LoadIcon( strRoot + L".Skin.ico" ) != FALSE;
+		case SchemaIconCandidate::Alternate:	return LoadIcon( strRoot + L".Alt.ico" ) != FALSE;
+		case SchemaIconCandidate::Default:	return LoadIcon() != FALSE;
+		case SchemaIconCandidate::Safe:		return LoadIcon( strRoot + L".Safe.ico" ) != FALSE;
 		}
-		return false; });
+		return false;
+	} );
 
 	// LoadIcon() causes bad registry reads (?)
 	// CCoolInterface::IsNewWindows() caused several reapeat ones (?)
@@ -647,14 +648,15 @@ BOOL CSchema::LoadIcon(CString sPath /*Empty*/)
 
 	::LoadIcon( sPath, &hIcon16, &hIcon32, &hIcon48 );
 
-	return LoadSchemaIconFrames(m_nIcon16, m_nIcon32, m_nIcon48, SHI_FILE, [&](int nSize)
-	                            {
-		HICON hIcon = nSize == 16 ? hIcon16 : (nSize == 32 ? hIcon32 : hIcon48);
-		if (!hIcon) return -1;
-		if (Settings.General.LanguageRTL) hIcon = CreateMirroredIcon(hIcon);
-		const int nIcon = ShellIcons.Add(hIcon, nSize);
-		DestroyIcon(hIcon);
-		return nIcon; });
+	return LoadSchemaIconFrames( m_nIcon16, m_nIcon32, m_nIcon48, SHI_FILE, [&]( int nSize )
+	{
+		HICON hIcon = nSize == 16 ? hIcon16 : ( nSize == 32 ? hIcon32 : hIcon48 );
+		if ( ! hIcon ) return -1;
+		if ( Settings.General.LanguageRTL ) hIcon = CreateMirroredIcon( hIcon );
+		const int nIcon = ShellIcons.Add( hIcon, nSize );
+		DestroyIcon( hIcon );
+		return nIcon;
+	} );
 }
 
 //////////////////////////////////////////////////////////////////////
