@@ -45,7 +45,7 @@ class RepoState(unittest.TestCase):
     def test_skills_keep_no_blocked_or_unsafe_advice(self):
         for path in (cac.REPO_ROOT / ".agents/skills").rglob("*.md"):
             text = path.read_text(encoding="utf-8")
-            self.assertNotIn("gh pr checks --", text, path)
+            self.assertNotRegex(text, r"`gh pr checks\s+\S[^`]*`", path)
             self.assertNotIn("force-with-lease", text, path)
 
     def test_review_skill_uses_ccr_route(self):

@@ -68,8 +68,9 @@ installed). Treat quota and availability estimates as hints, not facts.
 ## Treating threads
 
 Primary source: the CCR REST route (GraphQL is blocked in cloud sessions).
-List open threads with `gh api repos/Mika3578/Envy/pulls/<N>/ccr/review_threads`
-(`resolved==false`), read each with `gh api
+List open threads with `gh api --paginate
+repos/Mika3578/Envy/pulls/<N>/ccr/review_threads` (fetch every page, then
+filter `resolved==false`), read each with `gh api
 repos/Mika3578/Envy/pulls/comments/<id>`, reply with `POST
 pulls/comments/<id>/replies` and resolve with `POST
 pulls/<N>/ccr/comments/<id>/resolve`. The Review digest comment may be read

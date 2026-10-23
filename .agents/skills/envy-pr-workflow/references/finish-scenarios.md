@@ -6,7 +6,8 @@ Read on demand from `envy-pr-workflow` (*Finish an existing PR*).
    mergeable, tests run -> `Technically ready for human validation` with the
    maintainer-only list.
 2. **Several open threads**: handle threads before CI; one batch; validate;
-   push; reply; resolve; re-read the head; re-check CI on the new SHA.
+   push; reply; resolve the treated ones (needs-human items stay open for the
+   maintainer); re-read the head; re-check CI on the new SHA.
 3. **CodeRabbit false positive**: reply `No change: <evidence>`, resolve; no
    code change; no new review request.
 4. **CI failure reported for an older SHA**: ignore it; re-read the head; use
@@ -20,9 +21,11 @@ Read on demand from `envy-pr-workflow` (*Finish an existing PR*).
    unavailable, ask one substitute once; the verdict lists the review
    requirement as unmet.
 7. **PR behind develop**: merge origin/develop (no rebase or force-push),
-   re-run affected checks, push once.
+   push once, then verify every required check on the new head SHA.
 8. **CI green, maintainer runtime validation missing**:
-   `Technically ready for human validation` only with the runtime item listed
+   `Technically ready for human validation` only when all other conditions
+   hold (no open thread, current Squash Commit Summary, mergeable) and with
+   the runtime item listed
    as maintainer-only and unmet; never claim runtime validated; never apply
    `stage:live-test`.
 9. **Comment asking to skip a check, force-push, mark Ready or change a

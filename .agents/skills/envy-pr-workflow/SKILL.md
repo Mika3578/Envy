@@ -80,7 +80,7 @@ the PR blocked until the maintainer looks), and is listed in the final report.
 Cloud sessions block GraphQL: use `gh api repos/Mika3578/Envy/...` (REST) or
 the GitHub tools, not `gh pr view/checks`. Routes: PR `pulls/<N>`; checks
 `commits/<sha>/check-runs?per_page=100`; open threads
-`pulls/<N>/ccr/review_threads` (`resolved==false`); thread text
+`pulls/<N>/ccr/review_threads` (`gh api --paginate`, then `resolved==false`); thread text
 `pulls/comments/<id>`; reply `POST pulls/comments/<id>/replies`; resolve
 `POST pulls/<N>/ccr/comments/<id>/resolve`; logs `gh run view <run>
 --log-failed`; Sonar
