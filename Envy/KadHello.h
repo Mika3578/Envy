@@ -36,9 +36,9 @@ constexpr uint8_t KadHelloTagSourceUdpPort = 0xFC;
 // Kad2 requests that are exactly the two header bytes (protocol, opcode) and draw a reply.
 // Both are rate limited on receipt; no other opcode and no other ED2K UDP protocol may use a
 // two-byte datagram, so a forged source cannot turn one into a reflected reply.
-constexpr uint8_t KadProtocolByte = 0xE4;     // ED2K_PROTOCOL_KAD
-constexpr uint8_t KadOpBootstrapReq = 0x01;   // KADEMLIA2_BOOTSTRAP_REQ
-constexpr uint8_t KadOpPing = 0x60;           // KADEMLIA2_PING
+constexpr uint8_t KadProtocolByte = 0xE4;   // ED2K_PROTOCOL_KAD
+constexpr uint8_t KadOpBootstrapReq = 0x01; // KADEMLIA2_BOOTSTRAP_REQ
+constexpr uint8_t KadOpPing = 0x60;         // KADEMLIA2_PING
 
 inline bool KadIsBodylessRequest(const uint8_t* p, size_t n)
 {
