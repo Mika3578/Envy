@@ -155,7 +155,7 @@ public:
 	void SendHelloRequest(const SOCKADDR_IN* pTarget);
 
 	// Send hello response to specific host
-	void WriteHelloBody(CEDPacket* pPacket);
+	bool WriteHelloBody(CEDPacket* pPacket);
 	void SendHelloResponse(const SOCKADDR_IN* pTarget);
 
 	// Mark contact as verified
@@ -224,7 +224,7 @@ private:
 	bool ReadEntryTags(CEDPacket* pPacket, KadStoredEntry& entry);
 
 	// Utility methods
-	void SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	bool SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	bool UpdateContact(const KadContact& contact, KadContactSource source = KadContactSource::Candidate, bool markVerified = false);
 	void GenerateOwnKadId();
 	void LogKadStatus();

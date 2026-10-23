@@ -33,6 +33,18 @@ struct KadHello
 constexpr size_t KadHelloFixedBytes = 16 + 2 + 1 + 1;
 constexpr uint8_t KadHelloTagSourceUdpPort = 0xFC;
 
+// Kad2 requests that are exactly the two header bytes (protocol, opcode) and draw a reply.
+// Both are rate limited on receipt; no other opcode and no other ED2K UDP protocol may use a
+// two-byte datagram, so a forged source cannot turn one into a reflected reply.
+constexpr uint8_t KadProtocolByte = 0xE4;     // ED2K_PROTOCOL_KAD
+constexpr uint8_t KadOpBootstrapReq = 0x01;   // KADEMLIA2_BOOTSTRAP_REQ
+constexpr uint8_t KadOpPing = 0x60;           // KADEMLIA2_PING
+
+inline bool KadIsBodylessRequest(const uint8_t* p, size_t n)
+{
+	return p != nullptr && n == 2 && p[0] == KadProtocolByte && (p[1] == KadOpBootstrapReq || p[1] == KadOpPing);
+}
+
 // Writes a HELLO body without tags. Returns the byte count, or 0 if cap is too small.
 inline size_t KadWriteHello(uint8_t* out, size_t cap, const uint8_t* id, uint16_t tcpPort, uint8_t version)
 {
@@ -143,10 +155,13 @@ public:
 			return true;
 		}
 		State& s = it->second;
-		const uint64_t elapsed = now - s.latest;
+		// A clock that went backwards refills nothing and does not move the stamp back, so a
+		// regression can neither wrap the unsigned difference nor grant a free refill.
+		const uint64_t elapsed = now > s.latest ? now - s.latest : 0;
 		s.tokens = elapsed >= static_cast<uint64_t>(BucketMs) ? BucketMs
 		                                                      : (s.tokens + static_cast<int64_t>(elapsed) > BucketMs ? BucketMs : s.tokens + static_cast<int64_t>(elapsed));
-		s.latest = now;
+		if (now > s.latest)
+			s.latest = now;
 		if (s.tokens < cost)
 			return false; // a refused packet does not deepen the debt
 		s.tokens -= cost;
@@ -159,7 +174,7 @@ public:
 	{
 		for (auto it = m_state.begin(); it != m_state.end();)
 		{
-			if (now - it->second.latest >= static_cast<uint64_t>(BucketMs))
+			if (now > it->second.latest && now - it->second.latest >= static_cast<uint64_t>(BucketMs))
 				it = m_state.erase(it);
 			else
 				++it;
