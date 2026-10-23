@@ -68,7 +68,7 @@ void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket
 		if (UpdateContact(contact, KadContactSource::Candidate, false))
 			++contactsAdded;
 		else
-			++m_bootstrapRejected;
+			++m_bootstrapContactsRefused;
 	}
 
 	KadContact responderContact(responderId, nFromIp, ntohs(pHost->sin_port), responderTcpPort);
@@ -76,7 +76,7 @@ void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket
 	if (UpdateContact(responderContact, KadContactSource::Observed, false))
 		++contactsAdded;
 	else
-		++m_bootstrapRejected;
+		++m_bootstrapContactsRefused;
 	m_bootstrapAccepted += contactsAdded;
 }
 
