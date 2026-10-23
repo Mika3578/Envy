@@ -48,8 +48,9 @@ The batch is bounded by the free budget **before** candidates are selected
 selecting first and cutting the send loop on the budget skipped untried peers
 until the cursor wrapped the cache: a 50-entry cold start then took about 460
 seconds to contact everyone instead of about 160. The status line reports the
-cycles the full budget blocked (`budget_blocked`); it has no per-candidate
-metric.
+cycles the full budget blocked, and bootstrap registrations the retry policy
+refused (endpoint still in flight or answered, or a full protected map), as
+`budget_blocked`; it has no per-candidate metric.
 
 **Retry and backoff.** Genuine 30-second timeouts enter per-UDP-endpoint
 backoff starting at 60 seconds, doubling to a ten-minute cap. Capacity eviction
@@ -150,8 +151,8 @@ by #86.
 tests): whether live eMule/aMule peers answer `BOOTSTRAP_REQ` from the cache
 endpoints at all (a silent endpoint is a timeout, not a rotation defect);
 whether replies arrive from the requested UDP port or an alternate one behind
-NAT; whether the stricter IP-and-port correlation drops honest replies the
-references would accept; whether `contacts_refused` stays low on real
+NAT; whether the ambiguity, replay and cancellation guards on IP-only fallback
+drop honest replies the references would accept; whether `contacts_refused` stays low on real
 responses (routing diversity, address policy); and whether unverified
 candidates become usable contacts once HELLO handling (#502) lands.
 

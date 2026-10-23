@@ -96,7 +96,12 @@ DWORD CKademlia::AddOutstandingRequest(KadRequestType type, const SOCKADDR_IN& t
 	const uint64_t now = KadNowMs();
 	if (type == KAD_REQUEST_BOOTSTRAP &&
 	    !m_bootstrapRotation.Sent(ntohl(targetAddr.sin_addr.s_addr), ntohs(targetAddr.sin_port), now))
+	{
+		// Nothing is registered or sent: the endpoint is still in flight or inside its
+		// answered window, or the retry map is full of protected history.
+		++m_bootstrapBlocked;
 		return 0;
+	}
 
 	// Don't allow too many outstanding requests
 	if (m_outstandingRequests.size() >= KAD2_MAX_OUTSTANDING_REQUESTS)

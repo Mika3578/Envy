@@ -62,7 +62,7 @@ public:
 	KadBootstrapRotation m_bootstrapRotation;
 	std::map<DWORD, KadOutstandingRequest> m_outstandingRequests;
 	uint32_t m_bootstrapMalformed = 0, m_bootstrapPartial = 0, m_bootstrapRejected = 0;
-	uint32_t m_bootstrapContactsRefused = 0;
+	uint32_t m_bootstrapContactsRefused = 0, m_bootstrapBlocked = 0;
 	uint32_t m_bootstrapResponses = 0, m_bootstrapAccepted = 0, m_bootstrapTimeouts = 0;
 	std::vector<KadContact> admitted;
 	// When set, admission is the production routing table (address policy, per-IP
@@ -630,6 +630,23 @@ bool test_reply_cannot_fill_table_from_one_subnet()
 	       kad.m_outstandingRequests.empty();
 }
 
+// A bootstrap registration the retry policy refuses sends nothing, so it must show
+// up in the aggregate status line instead of leaving every counter at zero.
+bool test_refused_registration_is_counted()
+{
+	testNow = 1000;
+	CKademlia kad;
+	if (kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint()) == 0 || kad.m_bootstrapBlocked != 0)
+		return false;
+	// Still in flight: a second registration for the same endpoint is refused.
+	if (kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint()) != 0 || kad.m_bootstrapBlocked != 1)
+		return false;
+	// Answered, inside the 180 s window: refused again, replay protection intact.
+	if (!Respond(kad, Endpoint()) || kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint()) != 0)
+		return false;
+	return kad.m_bootstrapBlocked == 2 && kad.m_outstandingRequests.empty();
+}
+
 // Replies that fail correlation (spoofed source, wrong IP, ambiguous port) leave
 // the genuine requests pending, so they still age into real timeouts and backoff.
 bool test_spoofed_replies_do_not_hide_a_timeout()
@@ -721,6 +738,7 @@ void register_kad_bootstrap_response_tests(TestSuite& suite)
 	suite.add_test("kad_response_expired", test_expired_reply);
 	suite.add_test("kad_response_capacity_cancels", test_capacity_eviction_is_cancellation);
 	suite.add_test("kad_response_evicted_reply_preserves_independent", test_evicted_reply_cannot_consume_independent_request);
+	suite.add_test("kad_response_refused_registration_counted", test_refused_registration_is_counted);
 	suite.add_test("kad_response_cancel_vs_timeout", test_explicit_cancel_and_real_timeout);
 	suite.add_test("kad_response_idle_over_half_cycle", test_long_idle_half_cycle);
 	suite.add_test("kad_response_idle_over_full_cycle", test_long_idle_full_cycle);
