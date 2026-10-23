@@ -49,8 +49,9 @@ selecting first and cutting the send loop on the budget skipped untried peers
 until the cursor wrapped the cache: a 50-entry cold start then took about 460
 seconds to contact everyone instead of about 160. The status line reports the
 cycles the full budget blocked, and bootstrap registrations the retry policy
-refused (endpoint still in flight or answered, or a full protected map), as
-`budget_blocked`; it has no per-candidate metric.
+refused, as `budget_blocked`. From the rotation cycle that means a full
+protected map, since `Select()` already defers endpoints still in flight or
+answered; it has no per-candidate metric.
 
 **Retry and backoff.** Genuine 30-second timeouts enter per-UDP-endpoint
 backoff starting at 60 seconds, doubling to a ten-minute cap. Capacity eviction
