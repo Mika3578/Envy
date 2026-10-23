@@ -114,9 +114,9 @@ Explicit non-targets (no new work, no support claims):
 - Linux x86 32-bit
 - macOS 32-bit
 - Any other 32-bit product target
+- Claiming Linux/macOS “supported” before compile + test + CI evidence
 
 Windows x86/Win32 is not a *new* target: it is the existing **legacy** build, retired in stages (section 5).
-- Claiming Linux/macOS “supported” before compile + test + CI evidence
 
 ---
 
