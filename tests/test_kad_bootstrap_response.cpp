@@ -62,12 +62,25 @@ public:
 	KadBootstrapRotation m_bootstrapRotation;
 	std::map<DWORD, KadOutstandingRequest> m_outstandingRequests;
 	uint32_t m_bootstrapMalformed = 0, m_bootstrapPartial = 0, m_bootstrapRejected = 0;
+	uint32_t m_bootstrapContactsRefused = 0;
 	uint32_t m_bootstrapResponses = 0, m_bootstrapAccepted = 0, m_bootstrapTimeouts = 0;
 	std::vector<KadContact> admitted;
-	bool UpdateContact(const KadContact& c, KadContactSource, bool verified)
+	// When set, admission is the production routing table (address policy, per-IP
+	// and per-/24 diversity, bin capacity) instead of the always-admit adapter.
+	Kad2RoutingTable* table = nullptr;
+	bool UpdateContact(const KadContact& c, KadContactSource source, bool verified)
 	{
 		if (verified)
 			throw std::runtime_error("bootstrap must not mark contacts verified");
+		if (table != nullptr)
+		{
+			KadContactUpdate update;
+			update.source = source;
+			update.markAlive = source == KadContactSource::Observed;
+			update.nowMs = KadNowMs();
+			if (!table->AddContact(c, update))
+				return false;
+		}
 		admitted.push_back(c);
 		return true;
 	}
@@ -559,6 +572,139 @@ bool test_cold_start_rate_is_set_by_the_budget_not_the_tick()
 	return six.sent >= 120 && six.sent <= 180 && large.peakInFlight <= KAD2_MAX_OUTSTANDING_REQUESTS - 1 &&
 	       large.oversized == 0 && large.sent <= 180;
 }
+// Unsolicited and ambiguous replies are correlation rejections; contacts that a
+// correlated reply carried but routing refused are a different outcome. Neither
+// may be reported as the other, and neither is a timeout.
+bool test_outcomes_are_counted_apart()
+{
+	testNow = 1000;
+	CKademlia kad;
+	Kad2RoutingTable table;
+	KadId own = { 0x7f };
+	table.Initialize(own);
+	kad.table = &table;
+	kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
+
+	// Uncorrelated: a stranger answers a request nobody sent it.
+	Feed(kad, Endpoint(4672, 0xc0000209u), Reply(3, 3, 0));
+	if (kad.m_bootstrapRejected != 1 || kad.m_bootstrapContactsRefused != 0 ||
+	    kad.m_bootstrapTimeouts != 0 || !kad.admitted.empty() || table.GetTotalContacts() != 0)
+		return false;
+
+	// Correlated, but one /24 floods the table: a valid response with refused contacts.
+	if (!Respond(kad, Endpoint(), Reply(20, 20, 0)))
+		return false;
+	return kad.m_bootstrapResponses == 1 && kad.m_bootstrapRejected == 1 &&
+	       kad.m_bootstrapContactsRefused > 0 && kad.m_bootstrapTimeouts == 0 &&
+	       kad.m_bootstrapAccepted == kad.admitted.size() &&
+	       kad.m_bootstrapAccepted + kad.m_bootstrapContactsRefused == 21;
+}
+
+// A reply that lists 20 contacts in one /24 must not fill the routing table from
+// that network, and every contact it does admit stays an unverified candidate.
+bool test_reply_cannot_fill_table_from_one_subnet()
+{
+	testNow = 1000;
+	CKademlia kad;
+	Kad2RoutingTable table;
+	KadId own = { 0x7f };
+	table.Initialize(own);
+	kad.table = &table;
+	kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
+	if (!Respond(kad, Endpoint(), Reply(20, 20, 0)))
+		return false;
+
+	size_t sameSubnet = 0;
+	bool anyVerified = false;
+	std::vector<KadContact> held;
+	table.GetContactsForBootstrap(held, static_cast<int>(KAD_MAX_CONTACTS));
+	for (const KadContact& c : held)
+	{
+		if ((c.ip & 0xffffff00u) == 0xcb000000u)
+			++sameSubnet;
+		anyVerified = anyVerified || c.verified || c.receivedHello;
+	}
+	// The responder sits in another /24 and is admitted next to the capped group.
+	return sameSubnet >= 1 && sameSubnet <= KAD_MAX_CONTACTS_SUBNET_GLOBAL &&
+	       table.GetTotalContacts() == sameSubnet + 1 && !anyVerified &&
+	       kad.m_outstandingRequests.empty();
+}
+
+// Replies that fail correlation (spoofed source, wrong IP, ambiguous port) leave
+// the genuine requests pending, so they still age into real timeouts and backoff.
+bool test_spoofed_replies_do_not_hide_a_timeout()
+{
+	testNow = 1000;
+	CKademlia kad;
+	const auto pending = kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
+	const auto second = kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint(5000));
+	Feed(kad, Endpoint(4672, 0xc0000209u), Reply(2, 2, 0)); // other IP, requested port
+	Feed(kad, Endpoint(9, 0xc0000209u), Reply(2, 2, 0));    // other IP, other port
+	Feed(kad, Endpoint(6000), Reply(2, 2, 0));              // right IP, two candidates
+	if (kad.m_bootstrapRejected != 3 || kad.m_outstandingRequests.size() != 2 ||
+	    kad.m_outstandingRequests.count(pending) != 1 || kad.m_outstandingRequests.count(second) != 1 ||
+	    !kad.admitted.empty() || kad.m_bootstrapResponses != 0 || kad.m_bootstrapPartial != 0)
+		return false;
+	testNow += KAD2_REQUEST_TIMEOUT;
+	kad.CleanupExpiredRequests();
+	KadId id = { 1 };
+	const KadContact first(id, 0xc0000201u, 4672);
+	const KadContact other(id, 0xc0000201u, 5000);
+	return kad.m_bootstrapTimeouts == 2 && kad.m_outstandingRequests.empty() &&
+	       kad.m_bootstrapRotation.Select({ first, other }, testNow).contacts.empty();
+}
+
+// Twenty cached candidates, no routing contact, nobody answers. Through the
+// production request lifecycle every candidate is tried, then retried only after
+// its own timeout plus a doubling delay that stops at the cap, for the whole run.
+bool test_twenty_silent_candidates_follow_the_backoff_schedule()
+{
+	testNow = 1000;
+	CKademlia kad;
+	std::vector<KadContact> cache;
+	for (uint32_t i = 0; i < 20; ++i)
+	{
+		KadId id = { 1, static_cast<unsigned char>(i) };
+		cache.emplace_back(id, 0xc0000201u + i * 256u, uint16_t{ 4672 });
+	}
+	std::map<uint32_t, std::vector<uint64_t>> sends;
+	const uint64_t start = 1000, horizon = 3u * 60u * 60u * 1000u, tick = 6000;
+	for (uint64_t now = start; now < start + horizon; now += tick)
+	{
+		testNow = now;
+		kad.CleanupExpiredRequests();
+		const size_t limit = KadBootstrapBatchLimit(KadBootstrapRotation::MaxColdStartBatch,
+		                                            kad.m_outstandingRequests.size(),
+		                                            KAD2_MAX_OUTSTANDING_REQUESTS);
+		if (limit == 0)
+			continue;
+		for (const KadContact& c : kad.m_bootstrapRotation.Select(cache, now, limit).contacts)
+			if (kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint(c.udpPort, c.ip)) != 0)
+				sends[c.ip].push_back(now);
+	}
+	if (sends.size() != cache.size())
+		return false; // an untried candidate was skipped
+	for (const auto& entry : sends)
+	{
+		const auto& times = entry.second;
+		if (times.size() < 2)
+			return false;
+		for (size_t k = 1; k < times.size(); ++k)
+		{
+			// k-th retry: the timeout, then Delay(k) (60 s doubling, capped at 10 min).
+			static const uint64_t delaySeconds[] = { 60, 120, 240, 480, 600 };
+			const uint64_t floorMs = KAD2_REQUEST_TIMEOUT + 1000u * delaySeconds[std::min<size_t>(k, 5) - 1];
+			if (times[k] - times[k - 1] < floorMs)
+				return false; // retried before its backoff elapsed
+			if (k >= 5 && times[k] - times[k - 1] > 2u * KadBootstrapRotation::BackoffCapMs)
+				return false; // a capped peer must not be abandoned
+		}
+		// The cap bounds the per-peer rate: about one request per 10.5 minutes.
+		if (times.size() > horizon / (KadBootstrapRotation::BackoffCapMs + KadBootstrapRotation::RequestTimeoutMs) + 8)
+			return false;
+	}
+	return kad.m_bootstrapResponses == 0 && kad.m_bootstrapTimeouts > cache.size();
+}
 } // namespace
 
 void register_kad_bootstrap_response_tests(TestSuite& suite)
@@ -588,4 +734,8 @@ void register_kad_bootstrap_response_tests(TestSuite& suite)
 	suite.add_test("kad_response_partial_consumes_like_complete", test_partial_reply_consumes_like_a_complete_one);
 	suite.add_test("kad_response_cold_start_coverage", test_cold_start_covers_the_cache_within_the_budget);
 	suite.add_test("kad_response_cold_start_rate_budget_bound", test_cold_start_rate_is_set_by_the_budget_not_the_tick);
+	suite.add_test("kad_response_outcomes_counted_apart", test_outcomes_are_counted_apart);
+	suite.add_test("kad_response_subnet_bounded_by_routing_diversity", test_reply_cannot_fill_table_from_one_subnet);
+	suite.add_test("kad_response_spoof_keeps_timeout", test_spoofed_replies_do_not_hide_a_timeout);
+	suite.add_test("kad_response_twenty_silent_candidates_backoff", test_twenty_silent_candidates_follow_the_backoff_schedule);
 }

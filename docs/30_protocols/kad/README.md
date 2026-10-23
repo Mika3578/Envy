@@ -127,7 +127,10 @@ contacts is deferred until normal routing-table maintenance.
 The status log emits one aggregate Kad line per minute: cache candidates,
 deferred/invalid candidates, sent/expired bootstrap requests, received
 fully framed (`valid_responses`) and `partial` responses, accepted contacts,
-`malformed` and `rejected` (unsolicited) responses, requests the datagram layer
+`malformed` and `rejected` (uncorrelated: unsolicited, duplicate or ambiguous)
+responses, `contacts_refused` (contacts of a correlated response that routing
+admission refused: address policy, per-IP and per-/24 diversity, table full),
+requests the datagram layer
 refused (`send_failed`), cycles skipped because the request budget was full
 (`budget_blocked`), source searches without contacts, and routing-table count. No endpoints, contents, IDs or payloads are included in that status
 line.
@@ -142,6 +145,15 @@ entries leaves Envy with no second path to a populated table. Kad2 remains
 **partial / unverified** until eMule/aMule exchange tests in #160 show
 sustained routing and searches. A full Kad completion claim remains blocked
 by #86.
+
+**Needs real-peer validation under #160** (not provable by the deterministic
+tests): whether live eMule/aMule peers answer `BOOTSTRAP_REQ` from the cache
+endpoints at all (a silent endpoint is a timeout, not a rotation defect);
+whether replies arrive from the requested UDP port or an alternate one behind
+NAT; whether the stricter IP-and-port correlation drops honest replies the
+references would accept; whether `contacts_refused` stays low on real
+responses (routing diversity, address policy); and whether unverified
+candidates become usable contacts once HELLO handling (#502) lands.
 
 ### Bootstrap behaviour compared
 
@@ -164,7 +176,7 @@ deterministic test in this repository; **[hyp]** hypothesis, not yet verified.
 | Routing insertion | `UpdateContact`, unverified candidate **[code]** | Unchanged **[code] [test]** | `Add(..., verified = GetNumContacts() == 0, ...)` — verified while the table is empty **[code]** | Same **[code]** | Deliberate divergence: Envy keeps `verified` meaning `HELLO_RES` evidence; `FindClosestContacts` does not require it |
 | Routing seeded from `nodes.dat` | No **[code]** | No (out of scope) **[code]** | Yes, for a normal `nodes.dat` **[code]** | Yes **[code]** | **Open gap, tracked under #86** — bootstrap responses are Envy's only path to a populated table |
 | UDP obfuscation | Not implemented (#431) **[code]** | Unchanged **[code]** | Obfuscates its request when the peer's Kad version ≥ 6; answers a plain request in clear **[code]** | Same **[code]** | A plain request still gets a clear reply, so obfuscation is not a cold-start blocker **[code]** |
-| Diagnostics | One unconditional line per cycle **[code]** | One aggregate line per minute with `valid_responses`, `partial`, `rejected`, `malformed`, `send_failed` and `budget_blocked`; no endpoints or payloads **[code]** | Per-packet debug logging behind debug levels **[code]** | Same **[code]** | Envy's aggregate form is privacy-safe and lets a live run tell budget starvation from silence |
+| Diagnostics | One unconditional line per cycle **[code]** | One aggregate line per minute with `valid_responses`, `partial`, `rejected`, `contacts_refused`, `malformed`, `send_failed` and `budget_blocked`; no endpoints or payloads **[code]** | Per-packet debug logging behind debug levels **[code]** | Same **[code]** | Envy's aggregate form is privacy-safe and lets a live run tell budget starvation from silence |
 | Tests | None for bootstrap selection | The real response-handler body (`KademliaBootstrap.inl`) is exercised by `test_kad_bootstrap_response.cpp`; rotation and the budget helper by `test_kad_bootstrap_rotation.cpp`, and the cold-start cadence by driving that same request lifecycle through the selection loop in the response fixture. 79 with the routing-table suite; mutation checks of the new guards are all caught **[test]** | No automated tests (`SelfTest.cpp` covers neither Kad nor bootstrap) **[code]** | Large Kad unit-test suite under `unittests/tests/`, but none covering bootstrap selection or retry **[code]** | Envy has the stronger coverage of this specific path; live interop still pending (#160) |
 
 Live interoperability remains unproven either way: every row above is a

@@ -68,6 +68,7 @@ CKademlia::CKademlia()
     , m_bootstrapMalformed(0)
     , m_bootstrapPartial(0)
     , m_bootstrapRejected(0)
+    , m_bootstrapContactsRefused(0)
     , m_bootstrapSendFailed(0)
     , m_bootstrapBlocked(0)
     , m_sourceNoContacts(0)
@@ -105,7 +106,8 @@ bool CKademlia::Init()
 	m_bootstrapCached = m_bootstrapDeferred = m_bootstrapInvalid = 0;
 	m_bootstrapSent = m_bootstrapTimeouts = m_bootstrapResponses = 0;
 	m_bootstrapAccepted = m_bootstrapMalformed = m_bootstrapPartial = 0;
-	m_bootstrapRejected = m_bootstrapSendFailed = m_bootstrapBlocked = 0;
+	m_bootstrapRejected = m_bootstrapContactsRefused = 0;
+	m_bootstrapSendFailed = m_bootstrapBlocked = 0;
 	m_sourceNoContacts = 0;
 	m_lastFirewallTcpPort = (WORD)Settings.Connection.InPort;
 	m_firewall.OnKadStart(m_lastTimerCall, m_lastFirewallTcpPort);
@@ -781,11 +783,11 @@ void CKademlia::LogKadStatus()
 		return;
 	m_lastStatusLog = now;
 	theApp.Message(MSG_DEBUG,
-	               L"Kad2 status: routing=%u cached=%u deferred=%u invalid=%u sent=%u timed_out=%u valid_responses=%u partial=%u accepted_contacts=%u malformed=%u rejected=%u send_failed=%u budget_blocked=%u source_no_contacts=%u",
+	               L"Kad2 status: routing=%u cached=%u deferred=%u invalid=%u sent=%u timed_out=%u valid_responses=%u partial=%u accepted_contacts=%u malformed=%u rejected=%u contacts_refused=%u send_failed=%u budget_blocked=%u source_no_contacts=%u",
 	               (unsigned)m_routingTable.GetTotalContacts(), m_bootstrapCached,
 	               m_bootstrapDeferred, m_bootstrapInvalid, m_bootstrapSent,
 	               m_bootstrapTimeouts, m_bootstrapResponses, m_bootstrapPartial,
-	               m_bootstrapAccepted, m_bootstrapMalformed, m_bootstrapRejected,
+	               m_bootstrapAccepted, m_bootstrapMalformed, m_bootstrapRejected, m_bootstrapContactsRefused,
 	               m_bootstrapSendFailed, m_bootstrapBlocked, m_sourceNoContacts);
 	if (m_bootstrapSent > 0 && m_bootstrapResponses == 0 && m_bootstrapPartial == 0)
 		theApp.Message(MSG_DEBUG, L"Kad2: UDP bootstrap response not yet validated; reachability/obfuscation undetermined");
