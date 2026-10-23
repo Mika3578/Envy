@@ -256,7 +256,8 @@ static int count_ico_16px_frames(const std::filesystem::path& path)
 	return frames;
 }
 
-/// Load a shipped ICO the way CSchema::LoadIcon does and require usable 16px and 48px frames.
+/// Load an ICO the way CSchema::LoadIcon does. PrivateExtractIcons substitutes the nearest available frame,
+/// so has48 only proves the file is loadable at that size, not that it contains a 48px frame.
 static bool load_icon_with_windows(const std::filesystem::path& path, bool& has16, bool& has48)
 {
 	HICON hLarge = nullptr, hSmall = nullptr, hHuge = nullptr, hExact16 = nullptr;
@@ -271,7 +272,7 @@ static bool load_icon_with_windows(const std::filesystem::path& path, bool& has1
 	return true;
 }
 
-/// Every shipped schema icon must be readable by the real Windows loaders, with a 16px frame, so the
+/// Every shipped schema icon must declare a 16px frame and load through the real Windows loaders, so the
 /// download-group combo never falls back to the generic icon because of an unreadable resource.
 static bool test_schema_icons_load_with_windows()
 {
@@ -284,7 +285,7 @@ static bool test_schema_icons_load_with_windows()
 		bool has16 = false, has48 = false;
 		if (count_ico_16px_frames(entry.path()) < 1) return false;
 		load_icon_with_windows(entry.path(), has16, has48);
-		if (!has16 || !has48) return false;
+		if (!has16 || !has48) return false; // has48: loadable at 48px, possibly scaled from another frame.
 		++checked;
 	}
 	return checked > 0;
@@ -293,13 +294,19 @@ static bool test_schema_icons_load_with_windows()
 /// Absent, empty, truncated and non-icon files yield no handle, so the generic fallback applies.
 static bool test_schema_icons_invalid_files()
 {
-	// A fixed name in the shared temp folder could be pre-created or redirected by another process before
-	// the files are written and removed; create a fresh per-run directory and fail if it already exists.
+	// Keep scratch files out of shared, publicly writable temp folders: use a fresh directory beside the test
+	// executable (or the working directory) and fail if the name already exists.
+	std::filesystem::path root = std::filesystem::current_path();
+	wchar_t module[MAX_PATH] = {};
+	const DWORD length = GetModuleFileNameW(nullptr, module, _countof(module));
+	if (length != 0 && length < _countof(module))
+		root = std::filesystem::path(module).parent_path();
+
 	std::filesystem::path dir;
 	std::error_code ec;
 	for (unsigned nAttempt = 0; nAttempt < 16 && dir.empty(); ++nAttempt)
 	{
-		const std::filesystem::path candidate = std::filesystem::temp_directory_path() /
+		const std::filesystem::path candidate = root /
 			(L"envy_schema_icon_test_" + std::to_wstring(GetCurrentProcessId()) + L"_" +
 			 std::to_wstring(GetTickCount64()) + L"_" + std::to_wstring(nAttempt));
 		if (std::filesystem::create_directory(candidate, ec) && !ec)

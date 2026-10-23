@@ -57,11 +57,11 @@ CSchemaCache::~CSchemaCache()
 /// True when strRoot\Schemas contains at least one schema definition.
 static bool HasSchemas(const CString& strRoot)
 {
-	if ( strRoot.IsEmpty() ) return false;
+	if (strRoot.IsEmpty()) return false;
 	WIN32_FIND_DATA pFind = {};
-	HANDLE hSearch = FindFirstFile( strRoot + L"\\Schemas\\*.xsd", &pFind );
-	if ( hSearch == INVALID_HANDLE_VALUE ) return false;
-	FindClose( hSearch );
+	HANDLE hSearch = FindFirstFile(strRoot + L"\\Schemas\\*.xsd", &pFind);
+	if (hSearch == INVALID_HANDLE_VALUE) return false;
+	FindClose(hSearch);
 	return true;
 }
 
@@ -75,17 +75,17 @@ int CSchemaCache::Load()
 
 	// The executable's own Schemas folder takes precedence over a persisted General.Path that may name
 	// an older installation; icons and descriptors must match the running build.
-	const CString strModuleRoot = theApp.m_strBinaryPath.Left( theApp.m_strBinaryPath.ReverseFind( L'\\' ) );
+	const CString strModuleRoot = theApp.m_strBinaryPath.Left(theApp.m_strBinaryPath.ReverseFind(L'\\'));
 	CString strRoot = Settings.General.Path;
-	if ( SelectSchemaRoot( HasSchemas( strModuleRoot ), HasSchemas( Settings.General.Path ) ) == 0 )
+	if (SelectSchemaRoot(HasSchemas(strModuleRoot), HasSchemas(Settings.General.Path)) == 0)
 	{
-		if ( strModuleRoot.CompareNoCase( Settings.General.Path ) != 0 )
-			theApp.Message( MSG_DEBUG, L"Schemas: using the executable folder instead of the configured install path" );
+		if (strModuleRoot.CompareNoCase(Settings.General.Path) != 0)
+			theApp.Message(MSG_DEBUG, L"Schemas: using the executable folder instead of the configured install path");
 		strRoot = strModuleRoot;
 	}
 
 	CString strPath;
-	strPath.Format( L"%s\\Schemas\\*.xsd", (LPCTSTR)strRoot );
+	strPath.Format(L"%s\\Schemas\\*.xsd", (LPCTSTR)strRoot);
 
 	WIN32_FIND_DATA pFind = {};
 	HANDLE hSearch = FindFirstFile( strPath, &pFind );
@@ -98,9 +98,9 @@ int CSchemaCache::Load()
 #ifdef _DEBUG
 		__int64 nStart = GetMicroCount();
 #endif
-		strPath.Format( L"%s\\Schemas\\%s", (LPCTSTR)strRoot, pFind.cFileName );
+		strPath.Format(L"%s\\Schemas\\%s", (LPCTSTR)strRoot, pFind.cFileName);
 
-	//	const std::shared_ptr< CSchema > pSchema( new CSchema );
+		//	const std::shared_ptr< CSchema > pSchema( new CSchema );
 		CSchema* pSchema = new CSchema();
 		if ( pSchema && pSchema->Load( strPath ) )
 		{
