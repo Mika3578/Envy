@@ -139,6 +139,10 @@ jobs:
         shell: pwsh
         run: pwsh ./tools/dev/run-msbuild.ps1 -SelfTest
 
+      - name: Self-test review scoreboard
+        shell: bash
+        run: python3 .github/scripts/review-scoreboard.selftest.py
+
   build-x64-release:
     name: Build x64 Release
     permissions:
