@@ -2000,6 +2000,15 @@
     <ClInclude Include="KadHello.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="KadBootstrapRotation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KadOutstandingRequest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KademliaBootstrap.inl">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="KadRoutingTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
