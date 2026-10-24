@@ -19,25 +19,37 @@
 
 // A Kad2 bootstrap response begins with NodeID[16], TCP port[2], version[1],
 // count[2], followed by count 25-byte contacts (eMule/aMule Kad2).
-// Both reference implementations emit at most 20 contacts here, but neither
-// enforces that bound when reading: they consume whatever prefix of the
-// announced list the datagram actually carried and keep those contacts. So the
-// 20-contact bound is a local allocation cap, not a wire requirement, and an
-// over-counted or short list must not cost the peer its whole answer.
-// Trailing bytes stay ignored, as before.
+// Both reference implementations emit at most 20 contacts here and write a count
+// equal to the contacts they carry, so no honest peer sends a count the datagram
+// cannot hold. On receipt the references differ only for such a malformed body:
+// eMule Community v0.72a reads the list incrementally and keeps what it read
+// before the short read throws, while current amule-org/amule (ea85d0d, #2054)
+// rejects the whole reply before applying anything when count * 25 exceeds the
+// bytes left. Envy follows the stricter, newer rule: an impossible count is a
+// malformed reply, used for nothing and not correlated with a request.
+// The 20-contact bound is a local allocation cap, not a wire requirement; a
+// fully framed list above it is read up to the cap. Trailing bytes stay ignored.
 static constexpr size_t KadBootstrapResponseHeaderBytes = 21;
 static constexpr size_t KadBootstrapContactBytes = 25;
 static constexpr uint16_t KadBootstrapMaxResponseContacts = 20;
 
+// True when a response body of bodyBytes holds the header and every announced
+// contact. size_t arithmetic cannot overflow: announced is at most 65535.
+inline bool KadBootstrapCountFits(size_t bodyBytes, uint16_t announced)
+{
+	return bodyBytes >= KadBootstrapResponseHeaderBytes &&
+	       static_cast<size_t>(announced) * KadBootstrapContactBytes <=
+	           bodyBytes - KadBootstrapResponseHeaderBytes;
+}
+
 // Number of contacts that may be read from a response body of bodyBytes which
-// announced `announced` contacts: the framed prefix, capped at the bound above.
+// announced `announced` contacts: all of them, capped at the local bound above,
+// or none when the body cannot hold the announced list.
 inline size_t KadBootstrapUsableContacts(size_t bodyBytes, uint16_t announced)
 {
-	if (bodyBytes < KadBootstrapResponseHeaderBytes)
+	if (!KadBootstrapCountFits(bodyBytes, announced))
 		return 0;
-	const size_t framed = (bodyBytes - KadBootstrapResponseHeaderBytes) / KadBootstrapContactBytes;
-	return std::min({ static_cast<size_t>(announced), framed,
-	                  static_cast<size_t>(KadBootstrapMaxResponseContacts) });
+	return std::min(static_cast<size_t>(announced), static_cast<size_t>(KadBootstrapMaxResponseContacts));
 }
 
 // Largest bootstrap batch that can actually be sent now: the batch bound, capped

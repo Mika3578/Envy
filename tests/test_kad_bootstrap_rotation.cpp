@@ -243,16 +243,21 @@ bool test_response_framing_and_correlation_policy()
 	// A body too short for the fixed header yields nothing.
 	if (KadBootstrapUsableContacts(20, 0) != 0 || KadBootstrapUsableContacts(20, 5) != 0)
 		return false;
-	// eMule/aMule keep the framed prefix of a short list instead of discarding
-	// the whole response, so a partial contact is dropped but the rest stands.
-	if (KadBootstrapUsableContacts(45, 1) != 0 || KadBootstrapUsableContacts(70, 2) != 1 ||
-	    KadBootstrapUsableContacts(520, KadBootstrapMaxResponseContacts) !=
-	        static_cast<size_t>(KadBootstrapMaxResponseContacts) - 1u)
+	// A count the body cannot hold is malformed, whatever prefix it carries (current
+	// aMule rejects it whole), at every boundary and for the largest announcement.
+	if (KadBootstrapCountFits(45, 1) || KadBootstrapCountFits(70, 2) || KadBootstrapCountFits(520, 20) ||
+	    KadBootstrapCountFits(20, 0) || KadBootstrapCountFits(100000, 0xffffu) ||
+	    !KadBootstrapCountFits(46, 1) || !KadBootstrapCountFits(71, 2) || !KadBootstrapCountFits(21, 0) ||
+	    !KadBootstrapCountFits(21u + 0xffffu * 25u, 0xffffu))
 		return false;
-	// An over-counted list is clamped to the local bound, never trusted.
+	if (KadBootstrapUsableContacts(45, 1) != 0 || KadBootstrapUsableContacts(70, 2) != 0 ||
+	    KadBootstrapUsableContacts(520, KadBootstrapMaxResponseContacts) != 0 ||
+	    KadBootstrapUsableContacts(100000, 0xffffu) != 0)
+		return false;
+	// A fully framed list above the local bound is clamped to it, never trusted further.
 	if (KadBootstrapUsableContacts(546, static_cast<uint16_t>(KadBootstrapMaxResponseContacts + 1u)) !=
 	        KadBootstrapMaxResponseContacts ||
-	    KadBootstrapUsableContacts(100000, 0xffffu) != KadBootstrapMaxResponseContacts)
+	    KadBootstrapUsableContacts(21u + 0xffffu * 25u, 0xffffu) != KadBootstrapMaxResponseContacts)
 		return false;
 	// Trailing bytes beyond the announced list stay ignored.
 	return KadBootstrapUsableContacts(600, 1) == 1;

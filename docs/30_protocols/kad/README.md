@@ -95,24 +95,29 @@ another bootstrap instead of silently losing its correlation state. A cleanup
 triggered only on selection with modulo-32-bit ages would still mistake a
 whole-counter-cycle-old request for a recent one after inactivity.
 
-**Response bounds.** At most 20 contacts are read from a response, and only
-those the datagram actually framed. An over-counted or short contact list is
-used up to what it carries and counted as `partial`, not discarded: both reference clients read the announced list without a receive count cap,
-adding contacts incrementally; a short read throws after already-added contacts
-remain. Envy precomputes the fully framed prefix instead of relying on an
-exception, retaining usable contacts without attempting a partial read. Trailing bytes
-remain ignored. A body too short for the fixed 21-byte header is rejected as
-malformed before any outstanding request is consumed.
+**Response bounds.** A reply whose announced contact count cannot fit in the
+datagram (`count * 25` above the bytes after the 21-byte header) is malformed: it
+is counted as `malformed`, applies nothing, not even the responder, and is not
+correlated, so it neither completes nor consumes a genuine request, which stays in
+flight and can still be answered or time out. This follows current
+`amule-org/amule` (`ea85d0d`, #2054, 2026-10-24), which validates the whole list
+with `CHECK_PACKET_SANE_COUNT(numContacts, 25)` before adding even the responding
+peer. eMule Community v0.72a has no such check: it reads the list incrementally,
+so a short read throws after the contacts already added are kept. The two
+references therefore differ only on a malformed body; both emit at most 20
+contacts and write a count equal to what they carry, so no honest peer is
+affected and Envy takes the stricter, more recent rule. An earlier revision of
+this document said both references keep the framed prefix; that is no longer true
+of aMule. A body too short for the fixed 21-byte header is malformed the same way.
 
-This tolerance is not needed for well-behaved senders, which announce exactly
-what they write; it only applies to a malformed or capped reply, and it is
-never silent. A reply is counted as `valid_responses` only when its announced
-list is fully framed and within the local bound of 20; otherwise it is counted
-as `partial`. Both are counted only after the sender has been correlated with a
-request, so unsolicited datagrams cannot move either counter. A partial reply
-still consumes its request exactly as a complete one does, as the references do:
-they remove the tracked request before parsing, and keep the contacts already
-added when a short list hits end-of-file.
+A fully framed list above 20 contacts is read up to the local bound of 20 (an
+allocation cap; neither reference enforces a receive bound) and counted as
+`partial`, never as `valid_responses`. A reply is `valid_responses` only when its
+list is fully framed and within the bound. Counters other than `malformed` move
+only after the sender has been correlated, so unsolicited datagrams cannot move
+`valid_responses` or `partial` (they can move `malformed` and `rejected`, as any
+UDP sender can). A `partial` reply consumes its request exactly as a complete one
+does; both references remove the tracked request before parsing.
 
 Contacts learned from a bootstrap response enter the routing table as
 unverified candidates. The reference clients instead mark every contact of a
@@ -173,8 +178,8 @@ deterministic test in this repository; **[hyp]** hypothesis, not yet verified.
 | Backoff | None **[code]** | 60 s doubling to 10 min, bounded map of 2048 endpoints **[code] [test]** | None **[code]** | None **[code]** | Envy addition, not a wire requirement; keeps a persistent cache from hammering dead peers |
 | Late response | Rejected after 30 s **[code]** | Accepted for 180 s after the request **[code] [test]** | 180 s track list **[code]** | Same **[code]** | Now matches both references |
 | Response correlation | IP + UDP port + type **[code]** | One request within 180 s: exact endpoint preferred, unique IP fallback; replay/ambiguity guards **[code] [test]** | Sender IP + opcode, no port **[code]** | Same **[code]** | Accept changed ports without guessing between independent requests; ambiguity/replay guards are intentional local policy |
-| Contact-count bound | Reject if count > 100 **[code]** | Read at most 20 framed contacts; the rest is counted as `partial` **[code] [test]** | No receive bound; keeps the framed prefix; sends at most 20 **[code]** | Same **[code]** | Envy stays bounded and no longer discards a usable answer; the 20 is a sender bound in both references, a local allocation cap here |
-| Truncated contact list | Partial contact ends the loop, earlier ones kept **[code]** | Framed prefix kept; counted as `partial`, never as `valid_responses`, and only once the sender is correlated; request consumed **[code] [test]** | Request removed before parsing; the read throws at EOF and contacts already added are kept **[code]** | Same **[code]** | Same data outcome as both references, with an honest counter. The tolerance is not needed for well-behaved senders, which announce exactly what they write |
+| Contact-count bound | Reject if count > 100 **[code]** | Read at most 20 contacts; a fully framed list above 20 is counted as `partial` **[code] [test]** | No receive bound; sends at most 20 **[code]** | Same; rejects a count the datagram cannot hold (`CHECK_PACKET_SANE_COUNT`, `ea85d0d`) **[code]** | Envy stays bounded; the 20 is a sender bound in both references, a local allocation cap here |
+| Malformed contact list | Partial contact ends the loop, earlier ones kept **[code]** | Count the datagram cannot hold: `malformed`, nothing applied, request not consumed **[code] [test]** | Request removed before parsing; the read throws at EOF and contacts already added are kept **[code]** | Request removed before parsing, then the whole list is rejected before any contact, responder included, is added **[code]** | The references differ only on a body no honest peer sends; Envy follows current aMule, and a malformed reply cannot burn a genuine request |
 | Routing insertion | `UpdateContact`, unverified candidate **[code]** | Unchanged **[code] [test]** | `Add(..., verified = GetNumContacts() == 0, ...)` — verified while the table is empty **[code]** | Same **[code]** | Deliberate divergence: Envy keeps `verified` meaning `HELLO_RES` evidence; `FindClosestContacts` does not require it |
 | Routing seeded from `nodes.dat` | No **[code]** | No (out of scope) **[code]** | Yes, for a normal `nodes.dat` **[code]** | Yes **[code]** | **Open gap, tracked under #86** — bootstrap responses are Envy's only path to a populated table |
 | UDP obfuscation | Not implemented (#431) **[code]** | Unchanged **[code]** | Obfuscates its request when the peer's Kad version ≥ 6; answers a plain request in clear **[code]** | Same **[code]** | A plain request still gets a clear reply, so obfuscation is not a cold-start blocker **[code]** |
@@ -184,10 +189,56 @@ deterministic test in this repository; **[hyp]** hypothesis, not yet verified.
 Live interoperability remains unproven either way: every row above is a
 source-level or unit-test claim, never a live-traffic measurement.
 
+### Measured convergence (simulation, not live traffic)
+
+Does the lower cold-start rate (about 0.3 against the references' 0.5 requests/s)
+delay convergence? A deterministic simulation on a simulated clock drives the
+production request lifecycle (`KademliaBootstrap.inl`, `KadBootstrapRotation.h`)
+with the Kad timer every 6 s, against a model of the reference scheduler
+(`CKademlia::Process` in eMule v0.72a and aMule master: one request per 2 s while
+the table is empty, one per 15 s otherwise, no in-flight budget, each candidate
+asked once, reply correlated on the sender IP for 180 s). Responsive peers answer
+with 20 contacts spread over distinct /24 networks; peers are chosen by a fixed
+hash, so a run is reproducible. One run per row; the reference column is a model
+of the source, not a measurement of a running client.
+
+| Scenario (cache size, responsive share) | Envy first contact | Reference model | Envy requests / peak in flight |
+| --- | --- | --- | --- |
+| 20 peers, none answer, 30 min | none; 6 requests per peer on the 60 s to 10 min backoff | none; list exhausted after 20 | 120 / 9 |
+| 20 or 50 or 500 peers, 10% | 12.3 s | 10.3 s | 6 / 6 |
+| 20 or 50 peers, 50% or 90% | 0.3 s | 0.3 s | 2 / 2 |
+| 50 peers, 50%, replies delayed 5 s | 5.0 s | 5.0 s | 2 / 2 |
+| 50 peers, 50%, half reply from port + 1 | 0.3 s | 0.3 s | 2 / 2 |
+| 500 peers, 1% | 240.3 s (74 peers asked) | never (list capped at 50) | 74 / 9 |
+| 2000 peers, 10% | 12.3 s | 10.3 s | 6 / 6 |
+| Routing table holds 3 contacts, 50 peers, 10% | 30.3 s | 80.3 s | 6 / 3 |
+
+Findings: time to the first usable contact differs from the reference schedule by
+about 2 s here (less than one Kad timer cycle), because it is set by how many
+peers must be asked before one answers, and Envy asks two per 6 s cycle against
+one per 2 s. A first reply carries up to 20 contacts, so five admitted contacts
+arrive with the first reply. The 0.5 request/s figure is not the bottleneck, and
+the budget never exceeds 9 requests in flight. After losing contacts Envy
+recovers faster than the reference (three peers per 30 s against one per 15 s)
+and, unlike the one-shot reference list, it keeps trying a large dead cache with
+backoff instead of giving up, with fair coverage: in 30 minutes of silence a
+50-peer cache is asked 267 times (5 or 6 per peer), a 500-peer cache is covered
+once (540 requests, 1 or 2 per peer), and a 2000-peer cache would need about
+two hours at this rate (the cache is bounded by the host-cache size limit), always with
+at most 9 requests in flight and at most 2048 tracked endpoints. Restart: `Init()` clears the retry history, so a
+restarted client asks every cached peer again, as the references do with a fresh
+list. No change to the cadence is warranted, so none was made. The deterministic
+regression is `kad_response_first_contact_vs_reference`; the other rows come from
+a scratch driver that is not part of the repository.
+
 ### Reference sources compared
 
 - aMule, `amule-org/amule` (the active upstream since the project moved off
-  `amule-project`), `master` at `6b0500cb743a361cb8c1b4f3df713524064dfb06`:
+  `amule-project`). Rows above were first verified at
+  `6b0500cb743a361cb8c1b4f3df713524064dfb06`; the response-parsing rows were
+  re-read on 2026-10-24 at `d043ffa5a6bb7e000ec6d8c3a1f95dfb4f7d4e12`, which
+  contains `ea85d0d` (#2054, "reject impossible counts, truncated Kad records").
+  Links below keep the first revision:
   [`src/kademlia/kademlia/Kademlia.cpp`](https://github.com/amule-org/amule/blob/6b0500cb743a361cb8c1b4f3df713524064dfb06/src/kademlia/kademlia/Kademlia.cpp)
   (bootstrap cycle),
   [`src/kademlia/net/KademliaUDPListener.cpp`](https://github.com/amule-org/amule/blob/6b0500cb743a361cb8c1b4f3df713524064dfb06/src/kademlia/net/KademliaUDPListener.cpp)
@@ -218,10 +269,11 @@ x64 and Win32: exact/alternate ports, unsolicited/duplicate/late/expired
 responses, independent ports, ambiguous fallback, true timeout vs capacity
 or explicit cancellation, late replies after eviction with another port pending,
 inactivity beyond both half and full 32-bit cycles,
-short headers, partial contact lists and the local contact cap, plus that
-unsolicited datagrams of any framing never move a response counter and that a
-partial reply is counted as `partial`, not as valid, while consuming its request
-like a complete one. Fixtures use
+short headers, malformed contact counts (never applied, never consuming a request),
+the local contact cap, and time to a first contact against the reference schedule,
+plus that unsolicited datagrams of any framing never move a response counter and
+that a reply above the local bound is counted as `partial`, not as valid, while
+consuming its request like a complete one. Fixtures use
 the Windows temp directory with scoped cleanup and bounded child paths.
 
 ## Related

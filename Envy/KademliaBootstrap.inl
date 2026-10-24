@@ -18,10 +18,15 @@ void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket
 	const WORD responderTcpPort = pPacket->ReadShortLE();
 	const BYTE responderKadVersion = pPacket->ReadByte();
 	const WORD announcedContacts = pPacket->ReadShortLE();
-	// eMule 0.72a and aMule keep whatever prefix of the announced contact list
-	// the datagram actually carried, so an over-counted or short list must not
-	// cost the peer its answer. Read the framed prefix, bounded locally. A reply
-	// that is short, or longer than the local bound, is still used but is counted
+	// A count the datagram cannot hold is malformed (amule-org/amule ea85d0d
+	// rejects it before applying anything; no honest peer sends one). It is not
+	// correlated, so it can neither complete nor consume a genuine request.
+	if (!KadBootstrapCountFits(bodyBytes, announcedContacts))
+	{
+		++m_bootstrapMalformed;
+		return;
+	}
+	// A fully framed list above the local bound is read up to the bound and counted
 	// apart below, and only once the sender is known to have been asked.
 	const size_t usableContacts = KadBootstrapUsableContacts(bodyBytes, announcedContacts);
 	const bool partialReply = usableContacts < static_cast<size_t>(announcedContacts);
