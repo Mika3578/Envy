@@ -82,17 +82,25 @@ def _pcap_evidence_ports(cfg: HarnessConfig) -> List[int]:
 
 def _convert_owned_pcap(ctx: RunContext, cfg: HarnessConfig) -> Optional[Path]:
     """Extract per-packet payloads from owned pcap into captures/evidence/."""
+    if not ctx.pcap_stopped or ctx.pcap_usable is False:
+        return None
     if ctx.pcap_path is None or not ctx.pcap_path.is_file():
         return None
+    from .evidence import find_tshark
+
+    if not find_tshark():
+        return None  # Capture usability is unknown without an independent reader.
     try:
         extracted = extract_from_pcap_via_tshark(
             ctx.pcap_path,
             ports=_pcap_evidence_ports(cfg),
         )
     except EvidenceError as exc:
+        ctx.pcap_usable = False
         (ctx.logs_dir / "pcap-extract-error.txt").write_text(str(exc) + "\n", encoding="utf-8")
         return None
     if extracted.is_empty():
+        ctx.pcap_usable = False
         (ctx.logs_dir / "pcap-extract-empty.txt").write_text(
             "tshark found no TCP/UDP payloads for configured ports\n",
             encoding="utf-8",
@@ -100,37 +108,14 @@ def _convert_owned_pcap(ctx: RunContext, cfg: HarnessConfig) -> Optional[Path]:
         return None
     dest_dir = ctx.run_dir / "captures" / "evidence"
     dest_dir.mkdir(parents=True, exist_ok=True)
-    # Transport-tagged files: TCP reassembly joins only within one unidirectional
-    # flow (tcp.stream + srcport + dstport). Keys are "<stream>-<src>-<dst>".
-    for flow, chunks in sorted(extracted.tcp_by_stream.items(), key=lambda item: item[0]):
-        parts = flow.split("-")
-        if len(parts) >= 3:
-            stream_id, src, dst = parts[0], parts[1], parts[2]
-            try:
-                stream_id = f"{int(stream_id):04d}"
-            except ValueError:
-                stream_id = "".join(ch if ch.isalnum() else "_" for ch in stream_id)[:16] or "0"
-            try:
-                src = str(int(src))
-                dst = str(int(dst))
-            except ValueError:
-                src = "".join(ch if ch.isdigit() else "0" for ch in src)[:8] or "0"
-                dst = "".join(ch if ch.isdigit() else "0" for ch in dst)[:8] or "0"
-            for index, chunk in enumerate(chunks):
-                (dest_dir / f"from-pcap-tcp-{stream_id}-{src}-{dst}-{index:04d}.bin").write_bytes(
-                    chunk
-                )
-        else:
-            # Legacy stream-only key (tests / older extracts).
-            stream_id = parts[0] if parts else "0"
-            try:
-                stream_id = f"{int(stream_id):04d}"
-            except ValueError:
-                stream_id = "".join(ch if ch.isalnum() else "_" for ch in stream_id)[:16] or "0"
-            for index, chunk in enumerate(chunks):
-                (dest_dir / f"from-pcap-tcp-{stream_id}-{index:04d}.bin").write_bytes(chunk)
+    # Each payload is a complete validated direction, not a capture-order segment.
+    # Local flow ordinals avoid exposing endpoint addresses in filenames.
+    for index, (_, chunks) in enumerate(sorted(extracted.tcp_by_stream.items())):
+        for part, chunk in enumerate(chunks):
+            (dest_dir / f"from-pcap-tcp-{index:04d}-{part:04d}.bin").write_bytes(chunk)
     for index, chunk in enumerate(extracted.udp):
         (dest_dir / f"from-pcap-udp-{index:04d}.bin").write_bytes(chunk)
+    ctx.pcap_usable = True
     return dest_dir
 
 
@@ -165,7 +150,12 @@ def _finalize_pcap_lifecycle(ctx: RunContext, cfg: HarnessConfig) -> None:
         pre = poll()
         alive_before_stop = pre is None
     code = ctx.processes.terminate_owned(owned, cfg.shutdown_timeout_sec)
-    ctx.pcap_stopped = True
+    ctx.pcap_stopped = code is not None
+    ctx.pcap_usable = None
+    if not ctx.pcap_stopped:
+        ctx.pcap_usable = False
+        ctx.pcap_start_error = "capture did not exit after bounded shutdown"
+        return
     size = 0
     if ctx.pcap_path is not None and ctx.pcap_path.is_file():
         try:
@@ -180,18 +170,11 @@ def _finalize_pcap_lifecycle(ctx: RunContext, cfg: HarnessConfig) -> None:
                 f"capture exited early with code {code} before harness stop"
             )
         return
-    # SIGTERM/SIGINT after a requested stop often yields non-zero; treat as OK
-    # when bytes were written (or clean empty exit after a requested stop).
-    if size > 0:
-        ctx.pcap_usable = True
-    elif code in (0, None):
-        ctx.pcap_usable = True
-    else:
+    # Bytes alone are not proof of a usable capture. Conversion by tshark must
+    # succeed before any capture-derived scenario can pass.
+    if size == 0:
         ctx.pcap_usable = False
-        if not ctx.pcap_start_error:
-            ctx.pcap_start_error = (
-                f"capture exited with code {code} and produced no pcap bytes"
-            )
+        ctx.pcap_start_error = "capture stopped without pcap bytes"
 
 
 def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = None) -> dict:
@@ -297,12 +280,14 @@ def run_harness(cfg: HarnessConfig, *, scenario_ids: Optional[Sequence[str]] = N
             spec = SCENARIOS[scenario_id]
             results.append(run_scenario(ctx, spec))
     finally:
-        processes.terminate_all(cfg.shutdown_timeout_sec)
-        if ctx.pcap_owned:
-            _finalize_pcap_lifecycle(ctx, cfg)
-            extracted = _convert_owned_pcap(ctx, cfg)
-            if extracted is not None:
-                ctx.packet_evidence_path = extracted
+        try:
+            if ctx.pcap_owned:
+                _finalize_pcap_lifecycle(ctx, cfg)
+                extracted = _convert_owned_pcap(ctx, cfg)
+                if extracted is not None:
+                    ctx.packet_evidence_path = extracted
+        finally:
+            processes.terminate_all(cfg.shutdown_timeout_sec)
 
     if ctx.pcap_owned or ctx.packet_evidence_path is not None or any(
         r.id == "optional_pcap" for r in results

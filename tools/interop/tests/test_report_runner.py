@@ -421,8 +421,8 @@ class EvidenceExtractorTests(unittest.TestCase):
         self.assertTrue(ok)
         self.assertEqual(matched, ("sourceex2_req", "sourceex2_ans"))
 
-    def test_tcp_segment_reassembly_across_files(self) -> None:
-        """ED2K frame split across two TCP payload files still matches."""
+    def test_legacy_tcp_segments_without_sequences_are_not_joined(self) -> None:
+        """Legacy capture ordinals cannot prove TCP sequence continuity."""
         hello_path = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
         frame = bytes.fromhex(
             json.loads(hello_path.read_text(encoding="utf-8"))["tcp_frame_hex"]
@@ -445,10 +445,10 @@ class EvidenceExtractorTests(unittest.TestCase):
                     root / "from-pcap-udp-0000.bin",
                 ]
             )
-            self.assertTrue(any(h.label == "hello" for h in hits))
+            self.assertFalse(any(h.label == "hello" for h in hits))
             self.assertTrue(any(h.label == "kad_hello_req" for h in hits))
 
-    def test_tcp_reassembly_keeps_directions_separate(self) -> None:
+    def test_legacy_direction_names_do_not_prove_sequence_continuity(self) -> None:
         """Opposite TCP directions in one stream must not be concatenated."""
         hello_path = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
         frame = bytes.fromhex(
@@ -468,7 +468,7 @@ class EvidenceExtractorTests(unittest.TestCase):
                     root / "from-pcap-tcp-0000-4663-4662-0000.bin",
                 ]
             )
-            self.assertTrue(any(h.label == "hello" for h in hits))
+            self.assertFalse(any(h.label == "hello" for h in hits))
 
     def test_udp_not_joined_into_tcp_reassembly(self) -> None:
         """Kad UDP chunks must never be concatenated into ED2K TCP reassembly."""
