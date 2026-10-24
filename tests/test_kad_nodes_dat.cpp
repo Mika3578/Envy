@@ -88,10 +88,11 @@ void PushBytes(std::vector<uint8_t>& o, const uint8_t* p, size_t n)
 
 void PushIp(std::vector<uint8_t>& o, uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 {
-	PushU8(o, a);
-	PushU8(o, b);
-	PushU8(o, c);
+	// The file carries the host-order uint32 little-endian: octets reversed.
 	PushU8(o, d);
+	PushU8(o, c);
+	PushU8(o, b);
+	PushU8(o, a);
 }
 
 void PushId(std::vector<uint8_t>& o, uint8_t nSeed)
@@ -556,6 +557,30 @@ static bool test_empty_count()
 	return r.status == KadNodesDatStatus::Empty;
 }
 
+// Regression: eMule/aMule store the contact IP as a little-endian host-order uint32, so
+// 79.150.33.1 is the file bytes 01 21 96 4F. Literal bytes, independent of PushIp, so the
+// fixture helper cannot mask a reversed parse (the shipped parser once yielded 1.33.150.79).
+static bool test_ip_is_little_endian_host_order()
+{
+	std::vector<uint8_t> o;
+	PushU32LE(o, 0);
+	PushU32LE(o, 1);
+	PushU32LE(o, 1);
+	PushBytes(o, kId1, 16);
+	PushU8(o, 0x01);
+	PushU8(o, 0x21);
+	PushU8(o, 0x96);
+	PushU8(o, 0x4F);
+	PushU16LE(o, 4672);
+	PushU16LE(o, 4662);
+	PushU8(o, 8);
+	KadNodesDatContact c[2] = {};
+	const KadNodesDatResult r = ParseBuf(o, c, 2);
+	if (r.status != KadNodesDatStatus::Ok || r.acceptedCount != 1)
+		return false;
+	return ContactIpIs(c[0], 79, 150, 33, 1);
+}
+
 void register_kad_nodes_dat_tests(TestSuite& suite)
 {
 	suite.add_test("kad_nodes_dat_count_fits", test_count_fits_overflow_and_zero);
@@ -582,6 +607,7 @@ void register_kad_nodes_dat_tests(TestSuite& suite)
 	suite.add_test("kad_nodes_dat_slash24_cap", test_slash24_cap);
 	suite.add_test("kad_nodes_dat_xor_cmp", test_xor_helper_order);
 	suite.add_test("kad_nodes_dat_empty_count", test_empty_count);
+	suite.add_test("kad_nodes_dat_ip_little_endian", test_ip_is_little_endian_host_order);
 }
 
 #ifdef ENVY_KAD_NODES_DAT_STANDALONE

@@ -77,7 +77,7 @@ enum class KadNodesDatKind
 struct KadNodesDatContact
 {
 	uint8_t id[16];
-	uint8_t ip[4];    // network-order octets
+	uint8_t ip[4];    // dotted-quad order (first octet at [0]); the file stores them reversed
 	uint16_t udpPort; // host order
 	uint16_t tcpPort; // host order
 	uint8_t contactVersion;
@@ -382,7 +382,12 @@ inline bool KadNodesDatReadOneContact(
 	const uint8_t* pIp = nullptr;
 	if (!KadNodesDatTake(cur, 4, &pIp))
 		return false;
-	std::memcpy(c.ip, pIp, 4);
+	// eMule/aMule write the contact IP as a host-order uint32 in little-endian, so the
+	// file carries the dotted-quad octets reversed (79.150.33.1 is 01 21 96 4F).
+	c.ip[0] = pIp[3];
+	c.ip[1] = pIp[2];
+	c.ip[2] = pIp[1];
+	c.ip[3] = pIp[0];
 
 	if (!KadNodesDatTakeU16(cur, &c.udpPort))
 		return false;
