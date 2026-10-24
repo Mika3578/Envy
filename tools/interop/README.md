@@ -16,6 +16,38 @@ self-test only — never native `Envy.exe`.
 **Required PR CI never launches eMule/aMule and never depends on the public
 ED2K/Kad network.**
 
+### MuleInfo evidence parser scope
+
+The parser reads `<client version:u8><protocol version:u8><tag count:u32 LE>`
+before classic tags. It requires a complete frame and every declared tag;
+truncation and unconsumed bytes cannot be parse-clean evidence. Client version
+and protocol version are reported separately. String values are not exported.
+
+This inspector supports protocol version 1, at most 64 classic tags with
+one-byte names, and INT32/STRING values. Unknown names with these encodings
+are accepted. Other encodings and aMule's OSInfo protocol 0xFF are explicitly
+outside this inspector's scope and rejected, not evidence of a production
+client incompatibility. The 64-tag limit is a harness resource bound, not an
+ED2K protocol limit.
+
+Implementation comparison (source-derived synthetic tests, **not captures**):
+
+- [eMule Community `88a8c8f2d782849642880ea616cdca60b01bd8c7`, BaseClient.cpp](https://github.com/irwir/eMule/blob/88a8c8f2d782849642880ea616cdca60b01bd8c7/BaseClient.cpp#L747):
+  `SendMuleInfoPacket` / `ProcessMuleInfoPacket` write/read the two separate
+  bytes, then the tag count.
+- [aMule `a45dc3fb69104c48171fe16a00ece2f892a487eb`, src/BaseClient.cpp](https://github.com/amule-org/amule/blob/a45dc3fb69104c48171fe16a00ece2f892a487eb/src/BaseClient.cpp#L932):
+  normal MuleInfo uses the same layout; OSInfo is a separate variant.
+- Envy `e04231f6014e978d4942caf1a64c483c9bb385ed`,
+  `Envy/EDClient.cpp::SendEmuleInfo` already emits both bytes. Production
+  identity/version naming is tracked separately by #378 / PR #509.
+
+The same focused harness change also closes the four evidence-integrity defects
+tracked by #375: MuleInfo truncation, TCP capture ordering/retransmissions,
+capture finalization order, and unknown capture usability. It also makes the two
+known #410 tests independent of POSIX process launching and mixed host-platform
+globals. These deterministic fixes do not supply the Windows run still required
+by #410 or any live peer evidence required by #160.
+
 ## What this is / is not
 
 | Class | Where | Required for unit tests / PR CI? |
@@ -144,17 +176,24 @@ verified. Do not change the advertised nibble from this harness.
 `--enable-pcap` uses `dumpcap`, `tshark`, or `tcpdump` when on `PATH`. Bounded
 filters cover the configured ED2K **TCP** ports and the Kad **UDP** port
 (default `4672`, override with `--kad-udp-port` / `ENVY_INTEROP_KAD_UDP_PORT`).
-When capture stops, the runner converts the owned pcap via `tshark` (when
-present) into transport-tagged payload files:
-`captures/evidence/from-pcap-tcp-<stream>-<srcport>-<dstport>-<seq>.bin` and
-`from-pcap-udp-<seq>.bin`. SKIP protocol scenarios that can PASS from packet
-labels are then re-evaluated (labels aggregate across files; ED2K TCP frames
-may be reassembled **within the same unidirectional TCP flow only** — opposite
-directions of a `tcp.stream` are never joined, and UDP datagrams are never
-joined). Raw pcaps stay gitignored. Missing
-tools → SKIP (never silent install). The `optional_pcap` scenario **PASS**es
-only when the live runner started (and later stopped) an owned capture; tool
-availability alone remains SKIP.
+When capture stops, the runner first stops its owned capture process, then uses
+`tshark` to validate and reassemble each unidirectional TCP stream from raw
+32-bit sequence numbers. Exact retransmissions are deduplicated; gaps,
+conflicting overlaps, missing sequence metadata and oversized windows fail
+closed. SYN consumes one sequence number. Opposite directions are separated by
+their endpoints even when both ports are equal, but endpoint addresses are not
+exported. Validated streams are written as
+`captures/evidence/from-pcap-tcp-<local-flow>-0000.bin`; UDP datagrams remain
+independent `from-pcap-udp-<ordinal>.bin` files and are never joined.
+
+Legacy per-packet extract filenames are inspected individually and are no
+longer concatenated: their ordinal suffixes do not establish TCP sequence
+continuity. Raw pcaps stay gitignored. Missing tools produce SKIP and never
+trigger installation. The `optional_pcap` scenario passes only after the owned
+process has stopped and independent `tshark` extraction has produced non-empty,
+usable evidence. A non-empty file alone and an unknown usability state cannot
+pass. Capture finalization runs before the other owned processes are stopped so
+their final packets can be flushed.
 
 `--packet-evidence` accepts a hex/binary dump of ED2K **TCP** frames
 (`0xE3`/`0xC5` sized headers) and Kad2 **UDP** datagrams (`0xE4` + opcode,

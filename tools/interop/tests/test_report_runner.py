@@ -132,11 +132,12 @@ class HelloGoldenTests(unittest.TestCase):
             parse_hello_tcp(bytes.fromhex("e301000000014c"))
 
     def test_muleinfo_minimal_frame(self) -> None:
-        frame = bytes.fromhex("c506000000010100000000")
+        frame = bytes.fromhex("c50700000001500100000000")
         info = parse_emule_info_tcp(frame)
         self.assertEqual(info["protocol"], 0xC5)
         self.assertEqual(info["opcode"], 0x01)
         self.assertEqual(info["emule_protocol_version"], 1)
+        self.assertEqual(info["emule_client_version"], 0x50)
 
     def test_muleinfo_rejects_hello_protocol(self) -> None:
         hello = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
@@ -196,7 +197,7 @@ class EvidenceExtractorTests(unittest.TestCase):
 
         # Fake truncated C5 frame (size claims more bytes than remain), then a real muleinfo.
         truncated = bytes([0xC5]) + struct.pack("<I", 1000) + bytes([0x01])
-        mule_body = b"\x01\x00\x00\x00\x00"
+        mule_body = b"\x50\x01\x00\x00\x00\x00"
         mule = bytes([0xC5]) + struct.pack("<I", 1 + len(mule_body)) + bytes([0x01]) + mule_body
         hits = extract_ed2k_frames(truncated + mule)
         self.assertTrue(any(h.label == "muleinfo" for h in hits))
@@ -420,8 +421,8 @@ class EvidenceExtractorTests(unittest.TestCase):
         self.assertTrue(ok)
         self.assertEqual(matched, ("sourceex2_req", "sourceex2_ans"))
 
-    def test_tcp_segment_reassembly_across_files(self) -> None:
-        """ED2K frame split across two TCP payload files still matches."""
+    def test_legacy_tcp_segments_without_sequences_are_not_joined(self) -> None:
+        """Legacy capture ordinals cannot prove TCP sequence continuity."""
         hello_path = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
         frame = bytes.fromhex(
             json.loads(hello_path.read_text(encoding="utf-8"))["tcp_frame_hex"]
@@ -444,10 +445,10 @@ class EvidenceExtractorTests(unittest.TestCase):
                     root / "from-pcap-udp-0000.bin",
                 ]
             )
-            self.assertTrue(any(h.label == "hello" for h in hits))
+            self.assertFalse(any(h.label == "hello" for h in hits))
             self.assertTrue(any(h.label == "kad_hello_req" for h in hits))
 
-    def test_tcp_reassembly_keeps_directions_separate(self) -> None:
+    def test_legacy_direction_names_do_not_prove_sequence_continuity(self) -> None:
         """Opposite TCP directions in one stream must not be concatenated."""
         hello_path = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
         frame = bytes.fromhex(
@@ -467,7 +468,7 @@ class EvidenceExtractorTests(unittest.TestCase):
                     root / "from-pcap-tcp-0000-4663-4662-0000.bin",
                 ]
             )
-            self.assertTrue(any(h.label == "hello" for h in hits))
+            self.assertFalse(any(h.label == "hello" for h in hits))
 
     def test_udp_not_joined_into_tcp_reassembly(self) -> None:
         """Kad UDP chunks must never be concatenated into ED2K TCP reassembly."""
@@ -619,7 +620,7 @@ class RunnerDryRunTests(unittest.TestCase):
         hello_frame = bytes.fromhex(json.loads(hello_path.read_text(encoding="utf-8"))["tcp_frame_hex"])
         answer_path = REPO / "tools/interop/fixtures/golden/envy-self-helloanswer.json"
         answer_frame = bytes.fromhex(json.loads(answer_path.read_text(encoding="utf-8"))["tcp_frame_hex"])
-        mule_body = b"\x01\x00\x00\x00\x00"
+        mule_body = b"\x50\x01\x00\x00\x00\x00"
         mule_frame = bytes([0xC5]) + struct.pack("<I", 1 + len(mule_body)) + bytes([0x01]) + mule_body
         # Leading noise + concatenated frames (HelloAnswer first, then Hello, then MuleInfo).
         blob = b"\x00NOISE\xff" + answer_frame + hello_frame + mule_frame
