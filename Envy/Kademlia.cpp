@@ -333,6 +333,7 @@ void CKademlia::OnTimer()
 	}
 	MaybeStartFirewallChecks();
 
+	LogHelloStatus();
 	LogKadStatus();
 
 	if (now - m_lastStoreCleanup > 5 * 60 * 1000)
@@ -789,6 +790,20 @@ void CKademlia::MarkContactVerified(const KadId& id)
 	m_routingTable.MarkContactVerified(id, KadNowMs());
 }
 
+// One bounded line a minute with HELLO counters since start; no endpoints, IDs or payloads.
+void CKademlia::LogHelloStatus()
+{
+	const DWORD now = GetTickCount();
+	if (m_lastHelloStatusLog != 0 && now - m_lastHelloStatusLog < 60000u)
+		return;
+	m_lastHelloStatusLog = now ? now : 1;
+	theApp.Message(MSG_DEBUG,
+	               L"Kad2 hello: req_sent=%u send_failed=%u res_received=%u res_verified=%u res_refused=%u res_unsolicited=%u res_malformed=%u req_received=%u req_rate_limited=%u req_malformed=%u",
+	               m_helloReqSent, m_helloSendFailed, m_helloResReceived, m_helloResVerified,
+	               m_helloResRefused, m_helloResUnsolicited, m_helloResMalformed,
+	               m_helloReqReceived, m_helloReqLimited, m_helloReqMalformed);
+}
+
 void CKademlia::LogKadStatus()
 {
 	const DWORD now = GetTickCount();
@@ -808,18 +823,21 @@ void CKademlia::LogKadStatus()
 
 void CKademlia::OnHelloRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
-	theApp.Message(MSG_DEBUG, L"Kad2: Hello request from %s:%d",
-	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), ntohs(pHost->sin_port));
+	// Only aggregate counts are logged for inbound HELLO traffic (see LogHelloStatus): a
+	// per-datagram line would let a flood of forged sources fill the log.
+	++m_helloReqReceived;
 
 	// eMule and aMule allow three HELLO_REQ per minute per IP; each one costs a reply.
 	if (!m_inboundLimiter.Allow(ntohl(pHost->sin_addr.s_addr), KADEMLIA2_HELLO_REQ, 3, KadNowMs()))
+	{
+		++m_helloReqLimited;
 		return;
+	}
 
 	KadHello hello;
 	if (!KadParseHello(pPacket->GetCurrent(), pPacket->GetRemaining(), hello))
 	{
-		theApp.Message(MSG_DEBUG, L"Kad2: Malformed hello request from %s",
-		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		++m_helloReqMalformed;
 		return;
 	}
 
@@ -838,20 +856,18 @@ void CKademlia::OnHelloRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 
 void CKademlia::OnHelloResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
-	theApp.Message(MSG_DEBUG, L"Kad2: Hello response from %s",
-	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+	++m_helloResReceived;
 
 	KadHello hello;
 	if (!KadParseHello(pPacket->GetCurrent(), pPacket->GetRemaining(), hello))
 	{
-		theApp.Message(MSG_DEBUG, L"Kad2: Malformed hello response");
+		++m_helloResMalformed;
 		return;
 	}
 
 	if (!IsRequestOutstanding(0, KAD_REQUEST_HELLO, *pHost))
 	{
-		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring unsolicited hello response from %s",
-		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		++m_helloResUnsolicited;
 		return;
 	}
 
@@ -866,22 +882,25 @@ void CKademlia::OnHelloResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 
 	// A contact that reports itself UDP firewalled is neither added nor verified.
 	if (!KadHelloMayEnterRoutingTable(hello))
+	{
+		++m_helloResRefused;
 		return;
+	}
 
 	// HELLO_RES is the event that marks a contact IP-verified.
 	if (UpdateContact(contact, KadContactSource::Observed, true))
 	{
 		MarkContactVerified(contact.id);
+		++m_helloResVerified;
 	}
-
-	theApp.Message(MSG_DEBUG, L"Kad2: Added/updated contact from hello response");
+	else
+	{
+		++m_helloResRefused;
+	}
 }
 
 void CKademlia::SendHelloRequest(const SOCKADDR_IN* pTarget)
 {
-	theApp.Message(MSG_DEBUG, L"Kad2: Sending hello request to %s",
-	               (LPCTSTR)CString(inet_ntoa(pTarget->sin_addr)));
-
 	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_HELLO_REQ, ED2K_PROTOCOL_KAD);
 	if (!pPacket) return;
 
@@ -893,21 +912,22 @@ void CKademlia::SendHelloRequest(const SOCKADDR_IN* pTarget)
 
 	// Register before sending so a fast HELLO_RES cannot arrive unmatched, and withdraw the
 	// entry if the datagram did not go out so no request is left waiting for a reply.
-	KadSendRegistered(
+	const bool bSent = KadSendRegistered(
 	    [&]
 	    { return AddOutstandingRequest(KAD_REQUEST_HELLO, *pTarget); },
 	    [&](DWORD requestId)
 	    { RemoveOutstandingRequest(requestId); },
 	    [&]
 	    { return SendPacket(pTarget, pPacket); });
+	if (bSent)
+		++m_helloReqSent;
+	else
+		++m_helloSendFailed;
 	pPacket->Release();
 }
 
 void CKademlia::SendHelloResponse(const SOCKADDR_IN* pTarget)
 {
-	theApp.Message(MSG_DEBUG, L"Kad2: Sending hello response to %s",
-	               (LPCTSTR)CString(inet_ntoa(pTarget->sin_addr)));
-
 	CEDPacket* pResponse = CEDPacket::New(KADEMLIA2_HELLO_RES, ED2K_PROTOCOL_KAD);
 	if (!pResponse) return;
 
