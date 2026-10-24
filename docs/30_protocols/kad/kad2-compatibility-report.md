@@ -326,7 +326,8 @@ When the #160 eMule/aMule harness lands, add opt-in scenarios:
 
 Endianness (from eMule `WriteUInt32(GetIPAddress())` / `ReadUInt32`+`ntohl`, aMule ports):
 - Header integers and ports: little-endian
-- IPv4 field: four network-order octets (`203.0.113.5` = `CB 00 71 05`)
+- IPv4 field: a host-order uint32 written little-endian, so the file carries the dotted-quad octets reversed (`203.0.113.5` = `05 71 00 CB`). eMule reads it with `ReadUInt32` and applies `htonl` before its address checks; aMule applies `wxUINT32_SWAP_ALWAYS`. Envy reverses the four bytes in `KadNodesDatReadContact` so `KadNodesDatContact::ip` holds the dotted-quad order.
+- Checked on a public bootstrap `nodes.dat` (184 v2 records): read this way, 3 records have a first octet that is reserved (below 11 or above 223); read in file order, 31 do. Earlier Envy builds used file order, so Kad entries imported from any `nodes.dat` before this fix hold reversed addresses and never answered.
 - KadUDPKey: two little-endian uint32 values
 
 ⚠️ **PARTIAL** — local modern `nodes.dat` parsing is implemented. That is not live Kad bootstrap packet success and not complete Kad interoperability. See `docs/10_dev/status.md`.

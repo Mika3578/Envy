@@ -558,8 +558,8 @@ static bool test_empty_count()
 }
 
 // Regression: eMule/aMule store the contact IP as a little-endian host-order uint32, so
-// 79.150.33.1 is the file bytes 01 21 96 4F. Literal bytes, independent of PushIp, so the
-// fixture helper cannot mask a reversed parse (the shipped parser once yielded 1.33.150.79).
+// 198.51.100.7 is the file bytes 07 64 33 C6. Literal bytes, independent of PushIp, so the
+// fixture helper cannot mask a reversed parse (the shipped parser once yielded 7.100.51.198).
 static bool test_ip_is_little_endian_host_order()
 {
 	std::vector<uint8_t> o;
@@ -567,10 +567,10 @@ static bool test_ip_is_little_endian_host_order()
 	PushU32LE(o, 1);
 	PushU32LE(o, 1);
 	PushBytes(o, kId1, 16);
-	PushU8(o, 0x01);
-	PushU8(o, 0x21);
-	PushU8(o, 0x96);
-	PushU8(o, 0x4F);
+	PushU8(o, 0x07);
+	PushU8(o, 0x64);
+	PushU8(o, 0x33);
+	PushU8(o, 0xC6);
 	PushU16LE(o, 4672);
 	PushU16LE(o, 4662);
 	PushU8(o, 8);
@@ -578,7 +578,29 @@ static bool test_ip_is_little_endian_host_order()
 	const KadNodesDatResult r = ParseBuf(o, c, 2);
 	if (r.status != KadNodesDatStatus::Ok || r.acceptedCount != 1)
 		return false;
-	return ContactIpIs(c[0], 79, 150, 33, 1);
+	return ContactIpIs(c[0], 198, 51, 100, 7);
+}
+
+// The reserved-range policy must see the dotted-quad order. File bytes 01 00 A8 C0 are
+// 192.168.0.1 and 01 00 00 7F are 127.0.0.1; a reversed read would accept both as public.
+static bool test_ip_policy_uses_dotted_order()
+{
+	std::vector<uint8_t> o;
+	PushU32LE(o, 0);
+	PushU32LE(o, 1);
+	PushU32LE(o, 3);
+	const uint8_t rawIp[3][4] = { { 0x01, 0x00, 0xA8, 0xC0 }, { 0x01, 0x00, 0x00, 0x7F }, { 0x07, 0x64, 0x33, 0xC6 } };
+	for (uint8_t i = 0; i < 3; ++i)
+	{
+		PushId(o, static_cast<uint8_t>(i + 1));
+		PushBytes(o, rawIp[i], 4);
+		PushU16LE(o, 4672);
+		PushU16LE(o, 4662);
+		PushU8(o, 8);
+	}
+	KadNodesDatContact c[4] = {};
+	const KadNodesDatResult r = ParseBuf(o, c, 4);
+	return r.status == KadNodesDatStatus::Ok && r.acceptedCount == 1 && ContactIpIs(c[0], 198, 51, 100, 7);
 }
 
 void register_kad_nodes_dat_tests(TestSuite& suite)
@@ -608,6 +630,7 @@ void register_kad_nodes_dat_tests(TestSuite& suite)
 	suite.add_test("kad_nodes_dat_xor_cmp", test_xor_helper_order);
 	suite.add_test("kad_nodes_dat_empty_count", test_empty_count);
 	suite.add_test("kad_nodes_dat_ip_little_endian", test_ip_is_little_endian_host_order);
+	suite.add_test("kad_nodes_dat_ip_policy_dotted_order", test_ip_policy_uses_dotted_order);
 }
 
 #ifdef ENVY_KAD_NODES_DAT_STANDALONE

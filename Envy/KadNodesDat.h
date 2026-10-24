@@ -383,7 +383,7 @@ inline bool KadNodesDatReadOneContact(
 	if (!KadNodesDatTake(cur, 4, &pIp))
 		return false;
 	// eMule/aMule write the contact IP as a host-order uint32 in little-endian, so the
-	// file carries the dotted-quad octets reversed (79.150.33.1 is 01 21 96 4F).
+	// file carries the dotted-quad octets reversed (198.51.100.7 is 07 64 33 C6).
 	c.ip[0] = pIp[3];
 	c.ip[1] = pIp[2];
 	c.ip[2] = pIp[1];
