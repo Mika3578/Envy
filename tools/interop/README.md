@@ -16,6 +16,36 @@ self-test only — never native `Envy.exe`.
 **Required PR CI never launches eMule/aMule and never depends on the public
 ED2K/Kad network.**
 
+### MuleInfo evidence parser scope
+
+The parser reads `<client version:u8><protocol version:u8><tag count:u32 LE>`
+before classic tags. It requires a complete frame and every declared tag;
+truncation and unconsumed bytes cannot be parse-clean evidence. Client version
+and protocol version are reported separately. String values are not exported.
+
+This inspector supports protocol version 1, at most 64 classic tags with
+one-byte names, and INT32/STRING values. Unknown names with these encodings
+are accepted. Other encodings and aMule's OSInfo protocol 0xFF are explicitly
+outside this inspector's scope and rejected, not evidence of a production
+client incompatibility. The 64-tag limit is a harness resource bound, not an
+ED2K protocol limit.
+
+Implementation comparison (source-derived synthetic tests, **not captures**):
+
+- [eMule Community `88a8c8f2d782849642880ea616cdca60b01bd8c7`, BaseClient.cpp](https://github.com/irwir/eMule/blob/88a8c8f2d782849642880ea616cdca60b01bd8c7/BaseClient.cpp#L747):
+  `SendMuleInfoPacket` / `ProcessMuleInfoPacket` write/read the two separate
+  bytes, then the tag count.
+- [aMule `a45dc3fb69104c48171fe16a00ece2f892a487eb`, src/BaseClient.cpp](https://github.com/amule-org/amule/blob/a45dc3fb69104c48171fe16a00ece2f892a487eb/src/BaseClient.cpp#L932):
+  normal MuleInfo uses the same layout; OSInfo is a separate variant.
+- Envy `e04231f6014e978d4942caf1a64c483c9bb385ed`,
+  `Envy/EDClient.cpp::SendEmuleInfo` already emits both bytes. Production
+  identity/version naming is tracked separately by #378 / PR #509.
+
+This resolves only the MuleInfo parser portion of #375. TCP sequence-aware
+reconstruction, capture shutdown/finalization and unknown capture-usability
+handling remain open in #375; Windows harness portability remains #410.
+Do not use this parser correction as clearance for #160 live PASS claims.
+
 ## What this is / is not
 
 | Class | Where | Required for unit tests / PR CI? |
