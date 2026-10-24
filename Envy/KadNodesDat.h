@@ -12,11 +12,12 @@
 //   v3 bootstrap  — marker 0, version 3, edition 1, count, 25-byte records
 //
 // IP on disk is a host-order uint32 written little-endian (eMule
-// CContact::GetIPAddress() via WriteUInt32; eMule applies htonl after ReadUInt32 and
-// aMule swaps before its address checks), so the file carries the dotted-quad octets
-// reversed: 203.0.113.5 is 05 71 00 CB. KadNodesDatReadContact restores the dotted-quad
-// order. UDP/TCP ports are little-endian host-order integers (4672 = 40 12). KadUDPKey
-// is two little-endian uint32 fields (key, associated IP in the same encoding as the IP).
+// CContact::GetIPAddress() via WriteUInt32; after ReadUInt32 eMule byte-swaps it with
+// ntohl and aMule with wxUINT32_SWAP_ALWAYS before their address checks), so the file
+// carries the dotted-quad octets reversed: 203.0.113.5 is 05 71 00 CB.
+// KadNodesDatReadOneContact restores the dotted-quad order. UDP/TCP ports are
+// little-endian host-order integers (4672 = 40 12). KadUDPKey is two little-endian
+// uint32 fields (key, associated IP in the same encoding as the IP).
 //
 // Runtime Kad UDP-key protocol and IP-verified trust are NOT implemented.
 // Those fields are parsed so the file is consumed correctly, then discarded.
@@ -49,6 +50,19 @@ constexpr uint8_t KadNodesDatMinKad2Version = 2u;
 // eMule KADEMLIA_VERSION5_48a: UDP/53 without encryption is rejected.
 constexpr uint8_t KadNodesDatDnsPortEncVersion = 5u;
 constexpr uint16_t KadNodesDatDnsUdpPort = 53u;
+
+// First HostCache.dat archive version written with the dotted-quad reader above. Older
+// archives (including the legacy 1000 format) can hold contacts imported from nodes.dat
+// with their IPv4 bytes reversed, because the earlier reader copied the file bytes as
+// network order. Those entries are dropped on load and imported again from nodes.dat
+// instead of being byte-swapped in place, so a second load, or an archive written again
+// by an older build, cannot turn a correct address into a wrong one.
+constexpr int KadNodesDatHostCacheFixedVersion = 3;
+
+inline bool KadNodesDatHostCacheNeedsReimport(int nArchiveVersion)
+{
+	return nArchiveVersion < KadNodesDatHostCacheFixedVersion || nArchiveVersion == 1000;
+}
 
 constexpr uint32_t KadNodesDatRecordBytesV0 = 25u;
 constexpr uint32_t KadNodesDatRecordBytesV1 = 25u;

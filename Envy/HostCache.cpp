@@ -186,7 +186,12 @@ BOOL CHostCache::Save()
 
 
 // Set at INTERNAL_VERSION on change:
-#define HOSTCACHE_SER_VERSION 2
+#define HOSTCACHE_SER_VERSION 3
+
+// Builds whose INTERNAL_VERSION is 4 reject only archives above it, so they still load
+// version 3 files (same layout as version 2).
+static_assert( HOSTCACHE_SER_VERSION <= INTERNAL_VERSION, "older builds would reject the host cache" );
+static_assert( HOSTCACHE_SER_VERSION >= KadNodesDatHostCacheFixedVersion, "Kad entries must be marked as dotted-quad" );
 
 // nVersion History:
 // 14 - Add m_sCountry
@@ -198,6 +203,7 @@ BOOL CHostCache::Save()
 // 1000 - Remove m_bDHT
 // 1 - (Envy 1.0)
 // 2 - Add m_nCodePage (NMDC hub text encoding)
+// 3 - Same layout; Kad entries imported from nodes.dat hold the dotted-quad IPv4 order
 
 void CHostCache::Serialize(CArchive& ar)
 {
@@ -235,6 +241,16 @@ void CHostCache::Serialize(CArchive& ar)
 					break;
 				}
 			}
+		}
+
+		// Older archives can hold nodes.dat contacts with byte-reversed addresses (see
+		// KadNodesDatHostCacheFixedVersion). Load imports nodes.dat again when this leaves
+		// the Kad list empty.
+		if ( KadNodesDatHostCacheNeedsReimport( nVersion ) )
+		{
+			const int nDropped = Kademlia.RemoveNodesDatContacts();
+			if ( nDropped )
+				theApp.Message( MSG_NOTICE, L"Kad host cache: dropped %d contact(s) imported from nodes.dat by an earlier build", nDropped );
 		}
 	}
 }
@@ -522,6 +538,27 @@ CHostCacheMapItr CHostCacheList::Remove(CHostCacheHostPtr pHost)
 	m_nCookie++;
 
 	return i;
+}
+
+int CHostCacheList::RemoveNodesDatContacts()
+{
+	CQuickLock oLock( m_pSection );
+
+	// Only ImportNodes sets a Kad ID; the nodes.dat reader rejects contacts whose ID is zero.
+	int nRemoved = 0;
+	for ( CHostCacheMapItr i = m_Hosts.begin(); i != m_Hosts.end(); )
+	{
+		CHostCacheHostPtr pHost = (*i).second;
+		if ( ! KadNodesDatIdIsZero( &pHost->m_oGUID[ 0 ] ) )
+		{
+			i = Remove( pHost );
+			++nRemoved;
+		}
+		else
+			++i;
+	}
+
+	return nRemoved;
 }
 
 CHostCacheMapItr CHostCacheList::Remove(const IN_ADDR* pAddress)
@@ -1937,10 +1974,11 @@ void CHostCache::TestKadImport()
 	// GUID (16 bytes) - using a simple pattern
 	BYTE guid1[16] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
 					  0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10};
-	// IP: 192.168.1.100 (network byte order: 0xC0A80164)
-	DWORD ip1 = htonl(0xC0A80164); // 192.168.1.100 - convert to network byte order
-	WORD udpPort1 = htons(4672);   // Default Kademlia UDP port
-	WORD tcpPort1 = htons(4672);   // Default Kademlia TCP port
+	// nodes.dat stores the IP and ports as little-endian host-order integers, so the
+	// IP bytes are the dotted-quad octets reversed (see KadNodesDat.h).
+	DWORD ip1 = 0xC0A80164;        // 192.168.1.100 (private: the parser rejects it)
+	WORD udpPort1 = 4672;          // Default Kademlia UDP port
+	WORD tcpPort1 = 4672;          // Default Kademlia TCP port
 	BYTE kadVersion1 = 8;   // Sample Kademlia version
 
 	fwrite(guid1, 16, 1, file);
@@ -1952,9 +1990,9 @@ void CHostCache::TestKadImport()
 	// Node 2: Another sample node
 	BYTE guid2[16] = {0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE,
 					  0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01};
-	DWORD ip2 = htonl(0xC0A80165); // 192.168.1.101
-	WORD udpPort2 = htons(4673);
-	WORD tcpPort2 = htons(4673);
+	DWORD ip2 = 0xC0A80165;        // 192.168.1.101
+	WORD udpPort2 = 4673;
+	WORD tcpPort2 = 4673;
 	BYTE kadVersion2 = 9;
 
 	fwrite(guid2, 16, 1, file);

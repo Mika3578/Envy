@@ -193,6 +193,7 @@ public:
 	void				Update(CHostCacheHostPtr pHost, WORD nPort = 0, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0, DWORD nCurrentLeaves = 0, DWORD nLeafLimit = 0);
 	CHostCacheMapItr	Remove(CHostCacheHostPtr pHost);
 	CHostCacheMapItr	Remove(const IN_ADDR* pAddress);
+	int					RemoveNodesDatContacts();	// Drop hosts that carry a Kad ID; returns the count
 	void				OnResolve(LPCTSTR szAddress, const IN_ADDR* pAddress, WORD nPort);
 	void				OnFailure(LPCTSTR szAddress, bool bRemove = true);
 	void				OnFailure(const IN_ADDR* pAddress, WORD nPort, bool bRemove = true);
