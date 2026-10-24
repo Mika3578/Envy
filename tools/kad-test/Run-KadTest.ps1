@@ -42,22 +42,23 @@ $testRoot = Join-Path $env:USERPROFILE "EnvyKadTest\$stamp"
 $copy = Join-Path $testRoot 'envy'
 $testRootFull = [System.IO.Path]::GetFullPath($testRoot)
 
-# Read-only check of the registry values that decide where Envy keeps its data.
-$regKey = 'HKCU:\Software\Envy\Envy'
+# Read-only check of the registry values that decide where Envy keeps its data. Envy reads
+# each value from HKCU and falls back to HKLM (the installer writes MultiUser there).
 $shared = @()
-if (Test-Path $regKey) {
+foreach ($regKey in 'HKCU:\Software\Envy\Envy', 'HKLM:\Software\Envy\Envy') {
+    if (-not (Test-Path $regKey)) { continue }
     $item = Get-ItemProperty -Path $regKey
     foreach ($name in 'Path', 'UserPath', 'DataPath') {
         $prop = $item.PSObject.Properties[$name]
         if ($prop -and $prop.Value) {
             $full = [System.IO.Path]::GetFullPath([string]$prop.Value)
             if (-not $full.StartsWith($testRootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
-                $shared += "$name = $full"
+                $shared += "$regKey $name = $full"
             }
         }
     }
     $multi = $item.PSObject.Properties['MultiUser']
-    if ($multi -and $multi.Value -eq 1) { $shared += 'MultiUser = 1 (data goes to %APPDATA%\Envy)' }
+    if ($multi -and $multi.Value -eq 1) { $shared += "$regKey MultiUser = 1 (data goes to %APPDATA%\Envy)" }
 }
 if ($shared.Count -gt 0) {
     Write-Host 'Your registry makes a copy use these locations, which may be your personal data:' -ForegroundColor Yellow
@@ -100,7 +101,7 @@ $lines = Get-Content -LiteralPath $log.FullName -Encoding UTF8 | ForEach-Object 
 }
 
 $report = Join-Path $testRoot 'Envy-kad-report-anonymised.txt'
-$kadLines = $lines | Where-Object { $_ -match 'Kad2|Kad nodes\.dat|Kademlia' }
+$kadLines = $lines | Where-Object { $_ -match 'Kad2|Kad nodes\.dat|Kad host cache|Kademlia' }
 $status = $kadLines | Where-Object { $_ -match 'Kad2 status:' } | Select-Object -Last 1
 $summary = @(
     "Envy Kad test report ($stamp)",

@@ -12,7 +12,7 @@ function Mask-Ip([string]$ip) {
     return $ipMap[$ip]
 }
 $out = [System.IO.Path]::ChangeExtension($LogFile, '.anonymised.txt')
-Get-Content -LiteralPath $LogFile -Encoding UTF8 | Where-Object { $_ -match 'Kad2|Kad nodes\.dat|Kademlia' } | ForEach-Object {
+Get-Content -LiteralPath $LogFile -Encoding UTF8 | Where-Object { $_ -match 'Kad2|Kad nodes\.dat|Kad host cache|Kademlia' } | ForEach-Object {
     $l = $_
     $l = [regex]::Replace($l, '\b(\d{1,3}\.){3}\d{1,3}\b', { param($m) Mask-Ip $m.Value })
     $l = [regex]::Replace($l, '[A-Za-z]:\\[^\s"'']+', '<path>')
