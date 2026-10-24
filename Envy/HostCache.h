@@ -301,7 +301,7 @@ public:
 	int ImportValidatedNodesDat(const BYTE* pData, DWORD nLength, KadBootstrapAcquireResult* pnFailureOut = NULL);
 	//int				ImportCache(CFile* pFile);		// ToDo: Support custom G2/Gnutella import/export .xml/.dat
 
-	bool				CheckMinimumServers(PROTOCOLID nProtocol);
+	bool				CheckMinimumServers(PROTOCOLID nProtocol, bool bForceImport = false);
 	BOOL				Check(const CHostCacheHostPtr pHost) const;
 	CHostCacheHostPtr	Find(const IN_ADDR* pAddress) const;
 	CHostCacheHostPtr	Find(LPCTSTR szAddress) const;
@@ -363,6 +363,7 @@ protected:
 	CList< CHostCacheList* >	m_pList;
 	mutable CCriticalSection	m_pSection;
 	//DWORD		m_tLastPruneTime;	// Using static
+	int			m_nKadDropped;		// Kad contacts the last load dropped from an older archive
 
 	void		Serialize(CArchive& ar);
 	int			LoadDefaultServers(PROTOCOLID nProtocol);

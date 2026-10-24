@@ -55,6 +55,7 @@ CHostCache::CHostCache()
 	, Kademlia	( PROTOCOL_KAD )
 	, DC		( PROTOCOL_DC )
 //	, m_tLastPruneTime ( 0 )	// Using static
+	, m_nKadDropped(0)
 {
 	m_pList.AddTail( &Gnutella1 );
 	m_pList.AddTail( &Gnutella2 );
@@ -122,7 +123,8 @@ BOOL CHostCache::Load()
 	if ( Gnutella1.IsEmpty() )	CheckMinimumServers( PROTOCOL_G1 );
 	if ( eDonkey.IsEmpty() )	CheckMinimumServers( PROTOCOL_ED2K );
 	if ( BitTorrent.IsEmpty() )	CheckMinimumServers( PROTOCOL_BT );
-	if ( Kademlia.IsEmpty() )	CheckMinimumServers( PROTOCOL_KAD );
+	if (KadNodesDatHostCacheMustImport(Kademlia.IsEmpty(), m_nKadDropped))
+		CheckMinimumServers(PROTOCOL_KAD, m_nKadDropped > 0);
 	if ( DC.IsEmpty() )			CheckMinimumServers( PROTOCOL_DC );
 
 	if ( ! bResult )
@@ -244,13 +246,13 @@ void CHostCache::Serialize(CArchive& ar)
 		}
 
 		// Older archives can hold nodes.dat contacts with byte-reversed addresses (see
-		// KadNodesDatHostCacheFixedVersion). Load imports nodes.dat again when this leaves
-		// the Kad list empty.
+		// KadNodesDatHostCacheFixedVersion). Load imports nodes.dat again after a drop.
+		m_nKadDropped = 0;
 		if (KadNodesDatHostCacheNeedsReimport(nVersion))
 		{
-			const int nDropped = Kademlia.RemoveNodesDatContacts();
-			if (nDropped)
-				theApp.Message(MSG_NOTICE, L"Kad host cache: dropped %d contact(s) imported from nodes.dat by an earlier build", nDropped);
+			m_nKadDropped = Kademlia.RemoveNodesDatContacts();
+			if (m_nKadDropped)
+				theApp.Message(MSG_NOTICE, L"Kad host cache: dropped %d contact(s) imported from nodes.dat by an earlier build", m_nKadDropped);
 		}
 	}
 }
@@ -1250,12 +1252,12 @@ bool CHostCache::EnoughServers(PROTOCOLID nProtocol) const
 //////////////////////////////////////////////////////////////////////
 // CHostCache Check Minimum Servers
 
-bool CHostCache::CheckMinimumServers(PROTOCOLID nProtocol)
+bool CHostCache::CheckMinimumServers(PROTOCOLID nProtocol, bool bForceImport)
 {
 	if ( nProtocol != PROTOCOL_G2 && Settings.Experimental.LAN_Mode )
 		return true;
 
-	if ( EnoughServers( nProtocol ) )
+	if (!bForceImport && EnoughServers(nProtocol))
 		return true;
 
 	// Load default server list (if necessary)
