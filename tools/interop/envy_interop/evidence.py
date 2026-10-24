@@ -201,6 +201,60 @@ def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
     return hits
 
 
+_KAD_TAG_FIXED_VALUE_LEN = {0x01: 16, 0x03: 4, 0x04: 4, 0x05: 1, 0x08: 2, 0x09: 1, 0x0B: 8}
+
+
+def _kad_hello_tag_error(body: bytes) -> Optional[str]:
+    """Walk the HELLO tag list like KadParseHello; return an error text or None.
+
+    Types are the union of eMule's and aMule's Kad tag readers; an unknown type,
+    BOOLARRAY or any length running past the body is an error. Trailing bytes
+    after the declared tag count are allowed.
+    """
+    n = len(body)
+    pos = 20
+    for _ in range(body[19]):
+        if n - pos < 1:
+            return "HELLO tag list truncated"
+        tag_type = body[pos]
+        pos += 1
+        if tag_type & 0x80:
+            tag_type &= 0x7F
+            if n - pos < 1:
+                return "HELLO tag list truncated"
+            pos += 1
+        else:
+            if n - pos < 2:
+                return "HELLO tag list truncated"
+            name_len = body[pos] | (body[pos + 1] << 8)
+            pos += 2
+            if n - pos < name_len:
+                return "HELLO tag name overruns the body"
+            pos += name_len
+        if tag_type in _KAD_TAG_FIXED_VALUE_LEN:
+            value_len = _KAD_TAG_FIXED_VALUE_LEN[tag_type]
+        elif tag_type == 0x02:
+            if n - pos < 2:
+                return "HELLO tag list truncated"
+            value_len = 2 + (body[pos] | (body[pos + 1] << 8))
+        elif tag_type == 0x07:
+            if n - pos < 4:
+                return "HELLO tag list truncated"
+            value_len = 4 + int.from_bytes(body[pos : pos + 4], "little")
+        elif tag_type == 0x0A:
+            if n - pos < 1:
+                return "HELLO tag list truncated"
+            value_len = 1 + body[pos]
+        elif 0x11 <= tag_type <= 0x20:
+            value_len = tag_type - 0x10
+        else:
+            return f"HELLO tag type 0x{tag_type:02x} cannot be delimited"
+        if n - pos < value_len:
+            return "HELLO tag value overruns the body"
+        pos += value_len
+    return None
+
+
 def _next_kad_opcode_offset(blob: bytes, start: int) -> int:
     """Return offset of the next 0xE4 + known Kad opcode, or len(blob)."""
     n = len(blob)
@@ -255,9 +309,13 @@ def extract_kad_udp_frames(
             elif body[18] == 0:
                 details["parse_error"] = "HELLO version is 0"
             else:
-                details["has_node_id"] = True
-                details["kad_version"] = body[18]
-                details["tag_count"] = body[19]
+                tag_error = _kad_hello_tag_error(body)
+                if tag_error:
+                    details["parse_error"] = tag_error
+                else:
+                    details["has_node_id"] = True
+                    details["kad_version"] = body[18]
+                    details["tag_count"] = body[19]
         elif opcode == KAD_OP_PING:
             # eMule SendNullPacket(PING) is exactly the two header bytes; a tag list is tolerated.
             pass

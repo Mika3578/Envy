@@ -272,10 +272,20 @@ class EvidenceExtractorTests(unittest.TestCase):
         self.assertEqual(hits[0].details.get("kad_version"), 10)
         self.assertEqual(hits[0].details.get("tag_count"), 1)
         # Previous Envy body (no tag count, 19 bytes) and version 0 are flagged.
-        old = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8])
+        # Previous Envy body: ID, TCP, version, UDP port (2 bytes), no tag count; the low UDP
+        # byte lands where the tag count is read and the list cannot be delimited.
+        old = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8]) + struct.pack("<H", 4672)
         self.assertTrue(extract_kad_udp_frames(old, single_datagram=True)[0].details.get("parse_error"))
         zero = bytes([0xE4, 0x19]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([0, 0])
         self.assertTrue(extract_kad_udp_frames(zero, single_datagram=True)[0].details.get("parse_error"))
+        # A tag count that overruns the body, and an unknown tag type, are parse errors.
+        over = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8, 2, 0x08, 1, 0, 0xFC, 0x40, 0x12])
+        self.assertTrue(extract_kad_udp_frames(over, single_datagram=True)[0].details.get("parse_error"))
+        unknown = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8, 1, 0x7E, 1, 0, 0x01, 0])
+        self.assertTrue(extract_kad_udp_frames(unknown, single_datagram=True)[0].details.get("parse_error"))
+        # A BLOB tag is delimited and accepted.
+        blob = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8, 1, 0x07, 1, 0, 0x41, 2, 0, 0, 0, 9, 9])
+        self.assertNotIn("parse_error", extract_kad_udp_frames(blob, single_datagram=True)[0].details)
         # A two-byte PING is valid; a PONG needs the observed port.
         ping = extract_kad_udp_frames(bytes([0xE4, 0x60]), single_datagram=True)
         self.assertEqual(ping[0].label, "kad_ping")
