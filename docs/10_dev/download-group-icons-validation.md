@@ -31,7 +31,8 @@ is used. Unlisted files, user folders and installed copies are never touched.
 Output folders staged before the manifest existed have no record, so delete a
 stale `<output>\Schemas\` folder once by hand.
 
-`CSchemaCache::Load` (`SelectSchemaRoot`) uses the executable's `Schemas/`
+`CSchemaCache::Load` only selects the root (`SelectSchemaRoot`); the icon and
+descriptor lookup itself stays in `CSchema::Load` (`Schema.cpp`). It uses the executable's `Schemas/`
 folder only when `Schemas.manifest` is present, valid, and every file it lists
 exists. A partial copy (an interrupted build, a missing icon or descriptor) or a
 folder without a manifest is not trusted: `General.Path` is used when it has
@@ -42,10 +43,10 @@ build, not the runtime, removes them. `General.Path` is only reset when empty
 or missing and is never rewritten. A debug-level log line reports the
 substitution without printing paths.
 
-Only the schema descriptor and schema icon lookup in `CSchemaCache::Load`
-changed. Every other consumer keeps its own lookup: `Schemas\WindowsLibrary.ico`
-(`LibraryFolders.cpp`) still reads `General.Path`, `Vendors.xml` still starts
-from `General.DataPath` (`VendorCache.cpp`), and `Flags.png`/missing-string
+Only the choice of the `Schemas/` root changed. Every other consumer keeps its
+own lookup: `Schemas\WindowsLibrary.ico` (`LibraryFolders.cpp`) still reads
+`General.Path`, `Vendors.xml` still tries `General.DataPath` first and then
+`General.Path\Data` (`VendorCache.cpp`), and `Flags.png`/missing-string
 diagnostics are unrelated to schema icons.
 
 Manual UI checks for the maintainer:
