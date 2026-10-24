@@ -291,12 +291,18 @@ static bool test_stage_schemas_target_matches_runtime()
 	const std::size_t target = project.find("<Target Name=\"StageSchemas\"");
 	if (target == std::string::npos) return false;
 	const std::string body = project.substr(target, project.find("</Target>", target) - target);
-	const std::size_t read = body.find("<ReadLinesFromFile");
+	// The property must name the file the runtime reads, and both the read and the write must use that property.
+	const std::size_t property = body.find("<EnvySchemaManifest>");
+	const std::size_t propertyEnd = body.find("</EnvySchemaManifest>", property);
+	if (property == std::string::npos || propertyEnd == std::string::npos) return false;
+	const std::string value = body.substr(property, propertyEnd - property);
+	const std::size_t read = body.find("<ReadLinesFromFile File=\"$(EnvySchemaManifest)\"");
 	const std::size_t del = body.find("<Delete ");
 	const std::size_t copy = body.find("<Copy ");
-	const std::size_t write = body.find("<WriteLinesToFile");
-	return body.find(name) != std::string::npos && read != std::string::npos && read < del && del < copy &&
-	       copy < write && body.find("%(Filename)%(Extension)") != std::string::npos;
+	const std::size_t write = body.find("<WriteLinesToFile File=\"$(EnvySchemaManifest)\"");
+	return value.size() >= name.size() && value.compare(value.size() - name.size(), name.size(), name) == 0 &&
+	       read != std::string::npos && read < del && del < copy && copy < write &&
+	       body.find("%(Filename)%(Extension)") != std::string::npos;
 }
 
 #ifdef _WIN32
