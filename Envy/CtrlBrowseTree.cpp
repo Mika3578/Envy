@@ -1304,6 +1304,8 @@ void CBrowseTreeItem::AddFileIndex(DWORD nIndex)
 	if (m_nFiles >= m_nFileBuffer)
 	{
 		const DWORD nNew = m_nFileBuffer ? (m_nFileBuffer * 2) : 4;
+		if (nNew <= m_nFiles)
+			return;
 		DWORD* pFiles = new DWORD[nNew];
 		DWORD* pOld = m_pFiles;
 		if (m_nFiles && pOld)
