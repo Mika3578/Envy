@@ -249,15 +249,22 @@ def extract_kad_udp_frames(
         body = blob[i + 2 : frame_end]
         details: Dict[str, Any] = {"body_len": len(body), "transport": "udp"}
         if opcode in (KAD_OP_HELLO_REQ, KAD_OP_HELLO_RES):
-            # <NodeID 16><TagList…> — NodeID is mandatory.
-            if len(body) < 16:
-                details["parse_error"] = f"HELLO body too short ({len(body)} < 16)"
+            # <NodeID 16><TCPPort 2><Version 1><TagCount 1><Tag>* (eMule SendMyDetails).
+            if len(body) < 20:
+                details["parse_error"] = f"HELLO body too short ({len(body)} < 20)"
+            elif body[18] == 0:
+                details["parse_error"] = "HELLO version is 0"
             else:
                 details["has_node_id"] = True
-        elif opcode in (KAD_OP_PING, KAD_OP_PONG):
-            # <TagList> — at least the tag-count byte.
-            if len(body) < 1:
-                details["parse_error"] = f"PING/PONG body too short ({len(body)} < 1)"
+                details["kad_version"] = body[18]
+                details["tag_count"] = body[19]
+        elif opcode == KAD_OP_PING:
+            # eMule SendNullPacket(PING) is exactly the two header bytes; a tag list is tolerated.
+            pass
+        elif opcode == KAD_OP_PONG:
+            # <ObservedUDPPort 2> (+ optional tags).
+            if len(body) < 2:
+                details["parse_error"] = f"PONG body too short ({len(body)} < 2)"
         elif opcode in (KAD_OP_FIND_NODE, KAD_OP_FIND_NODE_RES):
             # <NodeID 16><Type 1><TagList…>
             if len(body) < 17:
