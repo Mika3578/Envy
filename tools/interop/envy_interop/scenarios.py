@@ -455,7 +455,8 @@ class RunContext:
     pcap_path: Optional[Path] = None
     pcap_start_error: Optional[str] = None
     pcap_stopped: bool = False
-    pcap_usable: Optional[bool] = None  # set after stop: True/False/None(pending)
+    # True only after bounded stop plus successful independent tshark extraction.
+    pcap_usable: Optional[bool] = None
 
 
 Handler = Callable[[RunContext, ScenarioSpec], ScenarioResult]
@@ -754,6 +755,8 @@ def handle_optional_pcap(ctx: RunContext, spec: ScenarioSpec) -> ScenarioResult:
                 f"(exit={getattr(owned, 'exit_code', None)})",
                 tool=tool_name,
             )
+        if ctx.pcap_usable is not True:
+            return _skip(spec, "capture usability not established; independent extraction required")
         return _pass(
             spec,
             f"owned capture started and stopped via {tool_name}",
