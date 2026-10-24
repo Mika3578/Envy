@@ -1469,6 +1469,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="Schema.h" />
     <ClInclude Include="SchemaCache.h" />
     <ClInclude Include="SchemaChild.h" />
+    <ClInclude Include="SchemaIconPolicy.h" />
     <ClInclude Include="SchemaMember.h" />
     <ClInclude Include="SearchManager.h" />
     <ClInclude Include="SecureRule.h" />
@@ -1770,6 +1771,33 @@ $(EnvyCrashPostBuildCmd)</Command>
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\Data\DefaultServices.dat;$(MSBuildProjectDirectory)\..\Data\DefaultServers.dat"
           DestinationFiles="$(TargetDir)Data\DefaultServices.dat;$(TargetDir)Data\DefaultServers.dat"
           SkipUnchangedFiles="false" />
+  </Target>
+  <!-- Schema descriptors and icons are resolved from the executable folder first, so a build must carry its
+       own copy; otherwise a persisted General.Path can serve older installed schemas to a fresh build.
+       Schemas.manifest records exactly the files this target staged. A file listed by the previous run but
+       no longer in the repository is deleted from the output; nothing else in the folder is touched, and
+       only the file-name part of a recorded entry is used. The manifest is written last, so the runtime
+       (SchemaCache.cpp) treats a folder as a complete build copy only when every listed file exists. -->
+  <Target Name="StageSchemas" AfterTargets="Build"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <EnvySchemaOutDir>$(TargetDir)Schemas\</EnvySchemaOutDir>
+      <EnvySchemaManifest>$(EnvySchemaOutDir)Schemas.manifest</EnvySchemaManifest>
+    </PropertyGroup>
+    <ItemGroup>
+      <EnvySchemaFile Include="$(MSBuildProjectDirectory)\..\Schemas\*.xsd;$(MSBuildProjectDirectory)\..\Schemas\*.xml;$(MSBuildProjectDirectory)\..\Schemas\*.ico" />
+      <EnvySchemaName Include="@(EnvySchemaFile->'%(Filename)%(Extension)')" />
+    </ItemGroup>
+    <ReadLinesFromFile File="$(EnvySchemaManifest)" Condition="Exists('$(EnvySchemaManifest)')">
+      <Output TaskParameter="Lines" ItemName="EnvySchemaPrevious" />
+    </ReadLinesFromFile>
+    <ItemGroup>
+      <EnvySchemaStale Include="@(EnvySchemaPrevious)" Exclude="@(EnvySchemaName)" />
+    </ItemGroup>
+    <Delete Files="@(EnvySchemaStale->'$(EnvySchemaOutDir)%(Filename)%(Extension)')" />
+    <MakeDir Directories="$(EnvySchemaOutDir)" />
+    <Copy SourceFiles="@(EnvySchemaFile)" DestinationFolder="$(EnvySchemaOutDir)" SkipUnchangedFiles="true" />
+    <WriteLinesToFile File="$(EnvySchemaManifest)" Lines="@(EnvySchemaName)" Overwrite="true" />
   </Target>
   <!-- vcpkg.targets is not imported here. VcpkgEnabled/VcpkgEnableManifest only
        restore packages if the machine has vcpkg MSBuild integration, and even

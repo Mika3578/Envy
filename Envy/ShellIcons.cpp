@@ -19,6 +19,7 @@
 #include "StdAfx.h"
 #include "Settings.h"
 #include "ShellIcons.h"
+#include "SchemaIconPolicy.h"
 #include "CoolInterface.h"
 
 //#include <commoncontrols.h>	// IImageList interfaces
@@ -521,9 +522,17 @@ void CShellIcons::AttachTo(CTreeCtrl* const pTree) const
 	pTree->SetImageList( const_cast< CImageList* >( &m_i16 ), LVSIL_NORMAL );
 }
 
+/// Validate a draw request against the selected image list; -1 means no drawable entry exists.
+static int GetDrawIconIndex(HIMAGELIST hImages, int nIcon)
+{
+	return GetSchemaIconDrawIndex(hImages ? ImageList_GetImageCount(hImages) : 0, nIcon, SHI_FILE);
+}
+
 //////////////////////////////////////////////////////////////////////
 // CShellIcons draw icon
 
+/// Draw a supported-size icon with the selection style, substituting SHI_FILE for invalid indices.
+/// Return FALSE for unsupported sizes, unavailable entries, or an ImageList_DrawEx failure.
 BOOL CShellIcons::Draw(CDC* pDC, int nIcon, int nSize, int nX, int nY, COLORREF crBack, BOOL bSelected) const
 {
 	HIMAGELIST hImages;
@@ -546,12 +555,18 @@ BOOL CShellIcons::Draw(CDC* pDC, int nIcon, int nSize, int nX, int nY, COLORREF 
 		return FALSE;
 	}
 
+	nIcon = GetDrawIconIndex(hImages, nIcon);
+	if (nIcon < 0)
+		return FALSE;
+
 	return ImageList_DrawEx( hImages, nIcon, pDC->GetSafeHdc(),
 		nX, nY, nSize, nSize, crBack,
 		CLR_DEFAULT,	// bSelected ? Colors.m_crHighlight : CLR_NONE,
 		bSelected ? ILD_SELECTED : ILD_NORMAL );
 }
 
+/// Draw a supported-size icon using explicit blend/style values and a validated image-list index.
+/// Return FALSE when neither the requested nor generic entry is available, or drawing fails.
 BOOL CShellIcons::Draw(CDC* pDC, int nIcon, int nSize, int nX, int nY, COLORREF crBack, COLORREF crBlend, UINT nStyle) const
 {
 	HIMAGELIST hImages;
@@ -573,6 +588,10 @@ BOOL CShellIcons::Draw(CDC* pDC, int nIcon, int nSize, int nX, int nY, COLORREF 
 		ASSERT( FALSE );
 		return FALSE;
 	}
+
+	nIcon = GetDrawIconIndex(hImages, nIcon);
+	if (nIcon < 0)
+		return FALSE;
 
 	return ImageList_DrawEx( hImages, nIcon, pDC->GetSafeHdc(),
 		nX, nY, nSize, nSize, crBack, crBlend, nStyle );

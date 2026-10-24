@@ -1,6 +1,14 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-22
+- **Last Updated:** 2026-10-24
+
+- **Changelog Entry:** 2026-10-12 — #470: make schema icon fallback order
+  explicit (`.Skin`, optional `.Alt`, descriptor default, `.Safe`), repair the
+  missing Collection icon reference, and force generic file-icon indices for
+  malformed or partial resources. Added descriptor-resource regression coverage
+  and maintainer UI validation steps; no schema URI or download-group behavior
+  changes. Build output now carries a `Schemas.manifest` so stale staged files
+  are removed and the executable's `Schemas/` is trusted only when complete.
 
 - **Changelog Entry:** 2026-10-19 — #452/#493: harden shared-folder scans for long local, mapped and UNC paths, preserve indexed entries when enumeration fails, skip directory reparse points and report Windows scan errors. Root cause of the "0 files after restart" report: `CLibrary::Load()` started a lazy-loading thread and then the maintenance thread, and `CThreadImpl::BeginThread()` ignored the second start while the first was alive, so a library with files never scanned again. One worker now finishes deferred loading and keeps scanning; scan requests carry a generation the progress dialog follows, and a waiter joins an unstarted request so `Library.Update( true )` plus the dialog's request trigger one full pass, not two. Measured follow-ups (hash-queue O(N²) enqueue and fixed sleeps, lock hold time during enumeration) are tracked under #384; maintainer live test on local, mapped and UNC/NAS shares is still required.
 

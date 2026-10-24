@@ -2198,6 +2198,9 @@
     <ClInclude Include="SchemaChild.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SchemaIconPolicy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="SchemaMember.h">
       <Filter>Header Files</Filter>
     </ClInclude>
