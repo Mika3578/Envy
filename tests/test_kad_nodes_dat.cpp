@@ -654,14 +654,6 @@ static bool test_hostcache_reimport_only_before_fix()
 	       !KadNodesDatHostCacheNeedsReimport(4);
 }
 
-// A load that dropped contacts imports nodes.dat again even when Kad entries without an ID
-// keep the list non-empty; an empty list imports as before; nothing else triggers it.
-static bool test_hostcache_import_after_drop()
-{
-	return KadNodesDatHostCacheMustImport(false, 3) && KadNodesDatHostCacheMustImport(true, 3) &&
-	       KadNodesDatHostCacheMustImport(true, 0) && !KadNodesDatHostCacheMustImport(false, 0);
-}
-
 void register_kad_nodes_dat_tests(TestSuite& suite)
 {
 	suite.add_test("kad_nodes_dat_count_fits", test_count_fits_overflow_and_zero);
@@ -692,7 +684,6 @@ void register_kad_nodes_dat_tests(TestSuite& suite)
 	suite.add_test("kad_nodes_dat_ip_policy_dotted_order", test_ip_policy_uses_dotted_order);
 	suite.add_test("kad_nodes_dat_literal_vectors", test_literal_vectors_all_layouts);
 	suite.add_test("kad_nodes_dat_hostcache_reimport_policy", test_hostcache_reimport_only_before_fix);
-	suite.add_test("kad_nodes_dat_hostcache_import_after_drop", test_hostcache_import_after_drop);
 }
 
 #ifdef ENVY_KAD_NODES_DAT_STANDALONE
