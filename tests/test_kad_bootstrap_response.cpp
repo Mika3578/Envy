@@ -214,14 +214,17 @@ bool test_capacity_age_crosses_32bit_boundary()
 	       !Respond(kad, Endpoint());
 }
 
-bool test_partial_first_contact_keeps_responder()
+// An announced contact the body cannot hold (24 of 25 bytes) is malformed: nothing is
+// applied, not even the responder, and the genuine request stays in flight.
+bool test_cut_short_contact_is_malformed_and_not_applied()
 {
 	testNow = 1000;
 	CKademlia kad;
 	kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
-	return Respond(kad, Endpoint(), Reply(0, 1, 24)) && kad.admitted.size() == 1 &&
-	       kad.m_bootstrapPartial == 1 && kad.m_bootstrapResponses == 0 &&
-	       kad.m_outstandingRequests.empty();
+	if (Respond(kad, Endpoint(), Reply(0, 1, 24)) || kad.m_bootstrapMalformed != 1 || !kad.admitted.empty() ||
+	    kad.m_bootstrapPartial != 0 || kad.m_bootstrapResponses != 0 || kad.m_outstandingRequests.size() != 1)
+		return false;
+	return Respond(kad, Endpoint(), Reply(0, 0, 0)) && kad.m_outstandingRequests.empty();
 }
 
 bool test_other_pending_still_times_out()
@@ -375,16 +378,22 @@ bool test_truncated_header_preserves_request()
 	return kad.m_bootstrapMalformed == KadBootstrapResponseHeaderBytes && Respond(kad, Endpoint());
 }
 
-bool test_partial_contacts_keep_framed_prefix()
+// A list shorter than its count is not used for its framed prefix either (current
+// aMule rejects it whole; eMule v0.72a would keep the prefix). Nothing is applied and
+// nothing is consumed, from the exact endpoint as from an alternate port.
+bool test_short_list_is_malformed_and_not_applied()
 {
 	testNow = 1000;
 	CKademlia kad;
 	kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
-	if (!Respond(kad, Endpoint(6000), Reply(1, 2, 24)) || kad.admitted.size() != 2 ||
-	    kad.m_bootstrapPartial != 1 || kad.m_bootstrapResponses != 0 || !kad.m_outstandingRequests.empty())
+	if (Respond(kad, Endpoint(6000), Reply(1, 2, 24)) || Respond(kad, Endpoint(), Reply(1, 2, 24)) ||
+	    kad.m_bootstrapMalformed != 2 || !kad.admitted.empty() || kad.m_bootstrapRejected != 0 ||
+	    kad.m_bootstrapPartial != 0 || kad.m_bootstrapResponses != 0 || kad.m_outstandingRequests.size() != 1)
 		return false;
-	return kad.admitted[0].id[0] == 2 && kad.admitted[0].udpPort == 4672 &&
-	       kad.admitted[1].udpPort == 6000 && !Respond(kad, Endpoint(6000), Reply(1, 2, 24));
+	// The request is still correlated: a well-formed answer completes it once.
+	return Respond(kad, Endpoint(6000), Reply(1, 1, 0)) && kad.admitted.size() == 2 &&
+	       kad.admitted[0].id[0] == 2 && kad.admitted[1].udpPort == 6000 && kad.m_outstandingRequests.empty() &&
+	       !Respond(kad, Endpoint(6000), Reply(1, 1, 0));
 }
 
 bool test_receive_cap_and_trailing_bytes()
@@ -411,58 +420,66 @@ bool test_unsolicited_never_counts_as_answer()
 	const auto stranger = Endpoint(4672, 0xc0000209u);
 	for (int i = 0; i < 250; ++i)
 	{
-		Feed(kad, stranger, Reply(0, 20, 0));  // announces 20, carries none
-		Feed(kad, stranger, Reply(1, 2, 24));  // short list
-		Feed(kad, stranger, Reply(25, 25, 0)); // above the local bound
-		Feed(kad, stranger, Reply(3, 3, 0));   // clean
+		Feed(kad, stranger, Reply(0, 20, 0));  // announces 20, carries none: malformed
+		Feed(kad, stranger, Reply(1, 2, 24));  // short list: malformed
+		Feed(kad, stranger, Reply(25, 25, 0)); // above the local bound, uncorrelated
+		Feed(kad, stranger, Reply(3, 3, 0));   // clean, uncorrelated
 	}
 	return kad.m_bootstrapResponses == 0 && kad.m_bootstrapPartial == 0 &&
-	       kad.m_bootstrapRejected == 1000 && kad.m_bootstrapMalformed == 0 && kad.admitted.empty() &&
+	       kad.m_bootstrapRejected == 500 && kad.m_bootstrapMalformed == 500 && kad.admitted.empty() &&
 	       kad.m_outstandingRequests.count(pending) == 1;
 }
 
-// Only a fully framed reply within the local bound is a valid response. A short or
-// over-counted one is still used (the references keep the framed prefix, and the
-// request is consumed) but is counted apart, never as valid.
-bool test_partial_replies_are_not_valid_responses()
+// Three outcomes, never conflated. A body that holds its announced list is a valid
+// response, or `partial` only when it is fully framed above the local bound of 20.
+// A body that cannot hold it is malformed: it applies nothing, does not count as a
+// response, and leaves the request in flight so it can still be answered or time out.
+bool test_malformed_replies_are_never_valid_responses()
 {
 	struct Case
 	{
 		size_t framed;
 		uint16_t announced;
 		size_t trailing;
-		bool partial;
+		int outcome;     // 0 valid, 1 partial (above the local bound), 2 malformed
 		size_t admitted; // contacts read plus the responder itself
 	};
 	const Case cases[] = {
-		{ 0, 0, 0, false, 1 },     // empty, complete
-		{ 3, 3, 0, false, 4 },     // clean
-		{ 20, 20, 10, false, 21 }, // at the bound, trailing bytes ignored
-		{ 0, 4, 0, true, 1 },      // header only, list absent: the responder alone
-		{ 1, 2, 24, true, 2 },     // one whole contact, one cut short
-		{ 3, 5, 0, true, 4 },      // short list
-		{ 25, 25, 0, true, 21 },   // fully framed but above the local bound of 20
-		{ 0, 0xffff, 0, true, 1 }  // absurd announcement, nothing carried
+		{ 0, 0, 0, 0, 1 },     // empty, complete
+		{ 3, 3, 0, 0, 4 },     // clean
+		{ 20, 20, 10, 0, 21 }, // at the bound, trailing bytes ignored
+		{ 25, 25, 0, 1, 21 },  // fully framed but above the local bound of 20
+		{ 0, 4, 0, 2, 0 },     // header only, list absent
+		{ 1, 2, 24, 2, 0 },    // one whole contact, one cut short
+		{ 3, 5, 0, 2, 0 },     // short list
+		{ 20, 21, 0, 2, 0 },   // one contact more than the datagram holds
+		{ 0, 0xffff, 0, 2, 0 } // absurd announcement, nothing carried
 	};
 	for (const Case& c : cases)
 	{
 		testNow = 1000;
 		CKademlia kad;
 		kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint());
-		if (!Respond(kad, Endpoint(), Reply(c.framed, c.announced, c.trailing)))
+		const bool accepted = Respond(kad, Endpoint(), Reply(c.framed, c.announced, c.trailing));
+		if (accepted != (c.outcome != 2) || kad.m_bootstrapPartial != (c.outcome == 1 ? 1u : 0u) ||
+		    kad.m_bootstrapResponses != (c.outcome == 0 ? 1u : 0u) ||
+		    kad.m_bootstrapMalformed != (c.outcome == 2 ? 1u : 0u) || kad.admitted.size() != c.admitted)
 			return false;
-		if (kad.m_bootstrapPartial != (c.partial ? 1u : 0u) ||
-		    kad.m_bootstrapResponses != (c.partial ? 0u : 1u) || kad.admitted.size() != c.admitted)
-			return false;
-		// Consumed in both cases: nothing left in flight, and a repeat is rejected.
-		if (!kad.m_outstandingRequests.empty() || Respond(kad, Endpoint()) || kad.m_bootstrapRejected != 1)
+		if (c.outcome == 2)
+		{
+			// Still in flight and still answerable; no rejection was charged.
+			if (kad.m_outstandingRequests.size() != 1 || kad.m_bootstrapRejected != 0 || !Respond(kad, Endpoint()))
+				return false;
+		}
+		// Consumed once: nothing left in flight, and a repeat is rejected.
+		else if (!kad.m_outstandingRequests.empty() || Respond(kad, Endpoint()) || kad.m_bootstrapRejected != 1)
 			return false;
 	}
 	return true;
 }
 
-// A partial reply must leave the rotation exactly as a complete one does.
-bool test_partial_reply_consumes_like_a_complete_one()
+// A reply above the local bound must leave the rotation exactly as a complete one does.
+bool test_over_bound_reply_consumes_like_a_complete_one()
 {
 	const auto after = [](CEDPacket packet)
 	{
@@ -480,7 +497,7 @@ bool test_partial_reply_consumes_like_a_complete_one()
 		                      kad.m_bootstrapRotation.Select({ candidate }, testNow).contacts.size());
 	};
 	const auto complete = after(Reply(2, 2, 0));
-	const auto partial = after(Reply(0, 9, 0));
+	const auto partial = after(Reply(25, 25, 0));
 	return complete.first == 1 && partial.first == 1 && complete.second == partial.second;
 }
 
@@ -572,6 +589,89 @@ bool test_cold_start_rate_is_set_by_the_budget_not_the_tick()
 	return six.sent >= 120 && six.sent <= 180 && large.peakInFlight <= KAD2_MAX_OUTSTANDING_REQUESTS - 1 &&
 	       large.oversized == 0 && large.sent <= 180;
 }
+// Time to the first usable contact through the production lifecycle on a simulated
+// clock: the Kad timer fires every 6 s, the first `deadBefore` cached peers are silent,
+// the next one answers 300 ms after it is asked. `warm` pre-loads routing contacts
+// (below the five that keep bootstrap running). Returns ms from start, 0 if never.
+uint64_t FirstContactMs(size_t cacheSize, size_t deadBefore, size_t warm, size_t& peakInFlight)
+{
+	testNow = 1000;
+	CKademlia kad;
+	for (size_t w = 0; w < warm; ++w)
+	{
+		KadContact c;
+		c.ip = 0x0a000001u + static_cast<uint32_t>(w) * 256u;
+		kad.admitted.push_back(c);
+	}
+	std::vector<KadContact> cache;
+	for (size_t i = 0; i < cacheSize; ++i)
+	{
+		KadId id = {};
+		id[0] = 1;
+		id[1] = static_cast<unsigned char>(i);
+		cache.emplace_back(id, 0xc0000201u + static_cast<uint32_t>(i) * 256u, uint16_t{ 4672 });
+	}
+	const uint64_t start = 1000;
+	uint64_t lastBootstrap = 0, answerAt = 0;
+	uint32_t answerIp = 0;
+	peakInFlight = 0;
+	for (uint64_t now = start; now < start + 600000; now += 100)
+	{
+		testNow = now;
+		if (answerAt != 0 && now >= answerAt)
+		{
+			const auto from = Endpoint(4672, answerIp);
+			CEDPacket packet = Reply(1, 1, 0);
+			kad.OnBootstrapResponse(&from, &packet);
+			return kad.admitted.size() > warm ? now - start : 0;
+		}
+		if ((now - start) % 6000 == 0)
+		{
+			const bool cold = kad.admitted.empty();
+			if (lastBootstrap == 0 || now - lastBootstrap >= (cold ? 5000u : 30000u))
+			{
+				lastBootstrap = now;
+				kad.CleanupExpiredRequests();
+				const size_t limit = KadBootstrapBatchLimit(
+				    cold ? KadBootstrapRotation::MaxColdStartBatch : KadBootstrapRotation::MaxBatch,
+				    kad.m_outstandingRequests.size(), KAD2_MAX_OUTSTANDING_REQUESTS);
+				for (const KadContact& c : kad.m_bootstrapRotation.Select(cache, now, limit).contacts)
+				{
+					if (kad.AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, Endpoint(c.udpPort, c.ip)) == 0)
+						continue;
+					if (c.ip == cache[deadBefore].ip && answerAt == 0)
+					{
+						answerAt = now + 300;
+						answerIp = c.ip;
+					}
+				}
+			}
+		}
+		peakInFlight = std::max(peakInFlight, kad.m_outstandingRequests.size());
+		if ((now - start) % 1000 == 0)
+			kad.CleanupExpiredRequests();
+	}
+	return 0;
+}
+
+// Convergence against the reference schedule (eMule v0.72a and aMule master send one
+// request every 2 s while the table is empty, every 15 s otherwise, with no in-flight
+// budget). The 0.5 request/s reference rate is not what bounds time to a first contact:
+// with the first answering peer sixth in a 50-entry cache, Envy needs one extra Kad
+// timer cycle (measured 12.3 s against 10.3 s), and after losing contacts it recovers
+// faster than the reference (30.3 s against 80.3 s) because it asks three peers per
+// 30 s where they ask one per 15 s.
+bool test_first_contact_is_not_delayed_by_the_budget()
+{
+	size_t peak = 0;
+	const uint64_t cold = FirstContactMs(50, 5, 0, peak);
+	if (cold == 0 || cold > 10300u + 6000u || peak > KAD2_MAX_OUTSTANDING_REQUESTS - 1)
+		return false;
+	const uint64_t warm = FirstContactMs(50, 5, 3, peak);
+	// Reference with three contacts: 15 s per peer, the sixth peer is asked at 75 s.
+	return warm != 0 && warm <= 31000u && warm < 75000u && peak <= 3;
+}
+
 // Unsolicited and ambiguous replies are correlation rejections; contacts that a
 // correlated reply carried but routing refused are a different outcome. Neither
 // may be reported as the other, and neither is a timeout.
@@ -732,12 +832,13 @@ void register_kad_bootstrap_response_tests(TestSuite& suite)
 	suite.add_test("kad_response_independent_ports_duplicates", test_independent_ports_and_duplicates);
 	suite.add_test("kad_response_completed_port_replay", test_completed_port_cannot_consume_other_request);
 	suite.add_test("kad_response_eviction_64bit_age", test_capacity_age_crosses_32bit_boundary);
-	suite.add_test("kad_response_partial_first_contact", test_partial_first_contact_keeps_responder);
+	suite.add_test("kad_response_cut_short_contact_malformed", test_cut_short_contact_is_malformed_and_not_applied);
 	suite.add_test("kad_response_other_pending_timeout", test_other_pending_still_times_out);
 	suite.add_test("kad_response_late", test_late_reply);
 	suite.add_test("kad_response_expired", test_expired_reply);
 	suite.add_test("kad_response_capacity_cancels", test_capacity_eviction_is_cancellation);
 	suite.add_test("kad_response_evicted_reply_preserves_independent", test_evicted_reply_cannot_consume_independent_request);
+	suite.add_test("kad_response_first_contact_vs_reference", test_first_contact_is_not_delayed_by_the_budget);
 	suite.add_test("kad_response_refused_registration_counted", test_refused_registration_is_counted);
 	suite.add_test("kad_response_cancel_vs_timeout", test_explicit_cancel_and_real_timeout);
 	suite.add_test("kad_response_idle_over_half_cycle", test_long_idle_half_cycle);
@@ -745,11 +846,11 @@ void register_kad_bootstrap_response_tests(TestSuite& suite)
 	suite.add_test("kad_response_pending_full_cycle", test_pending_full_cycle);
 	suite.add_test("kad_response_cross_32bit_boundary", test_crosses_32bit_clock_boundary);
 	suite.add_test("kad_response_short_header_preserves_request", test_truncated_header_preserves_request);
-	suite.add_test("kad_response_partial_framed_contacts", test_partial_contacts_keep_framed_prefix);
+	suite.add_test("kad_response_short_list_malformed", test_short_list_is_malformed_and_not_applied);
 	suite.add_test("kad_response_receive_cap", test_receive_cap_and_trailing_bytes);
 	suite.add_test("kad_response_unsolicited_never_counts", test_unsolicited_never_counts_as_answer);
-	suite.add_test("kad_response_partial_not_valid", test_partial_replies_are_not_valid_responses);
-	suite.add_test("kad_response_partial_consumes_like_complete", test_partial_reply_consumes_like_a_complete_one);
+	suite.add_test("kad_response_malformed_not_valid", test_malformed_replies_are_never_valid_responses);
+	suite.add_test("kad_response_over_bound_consumes_like_complete", test_over_bound_reply_consumes_like_a_complete_one);
 	suite.add_test("kad_response_cold_start_coverage", test_cold_start_covers_the_cache_within_the_budget);
 	suite.add_test("kad_response_cold_start_rate_budget_bound", test_cold_start_rate_is_set_by_the_budget_not_the_tick);
 	suite.add_test("kad_response_outcomes_counted_apart", test_outcomes_are_counted_apart);
