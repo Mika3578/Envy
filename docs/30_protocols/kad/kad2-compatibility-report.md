@@ -280,7 +280,7 @@ When the #160 eMule/aMule harness lands, add opt-in scenarios:
 
 ### Storage Format
 
-**eMule/aMule:** IPs stored in network byte order in packets, converted to host order when reading
+**eMule/aMule:** IPs are host-order integers, little-endian in packets and in `nodes.dat`, so the bytes on the wire and on disk are the dotted-quad octets reversed
 **Envy:** IPs stored in host order in `KadContact.ip` (first octet in the high byte), converted to network order in `KadContactGetSockAddr()` (`Envy/Kademlia.h`)
 
 **Packet Payload:**

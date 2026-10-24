@@ -603,6 +603,47 @@ static bool test_ip_policy_uses_dotted_order()
 	return r.status == KadNodesDatStatus::Ok && r.acceptedCount == 1 && ContactIpIs(c[0], 198, 51, 100, 7);
 }
 
+// Literal file bytes for every supported layout, independent of PushIp/PushV1Contact:
+// 192.0.2.77 is 4D 02 00 C0 and 203.0.113.245 is F5 71 00 CB.
+static bool ParsesTo(const std::vector<uint8_t>& file, uint8_t a, uint8_t b, uint8_t c3, uint8_t d, uint16_t udp)
+{
+	KadNodesDatContact c[2] = {};
+	const KadNodesDatResult r = ParseBuf(file, c, 2);
+	return r.status == KadNodesDatStatus::Ok && r.acceptedCount == 1 && ContactIpIs(c[0], a, b, c3, d) && c[0].udpPort == udp;
+}
+
+static void PushLiteralRecord(std::vector<uint8_t>& o, const uint8_t ip[4], uint16_t udp, bool wide)
+{
+	PushBytes(o, kId1, 16);
+	PushBytes(o, ip, 4);
+	PushU16LE(o, udp);
+	PushU16LE(o, 4662);
+	PushU8(o, 8);
+	if (wide)
+	{
+		PushU32LE(o, 9);
+		PushU32LE(o, 10);
+		PushU8(o, 1);
+	}
+}
+
+static bool test_literal_vectors_all_layouts()
+{
+	const uint8_t ipA[4] = { 0x4D, 0x02, 0x00, 0xC0 };
+	const uint8_t ipB[4] = { 0xF5, 0x71, 0x00, 0xCB };
+	std::vector<uint8_t> v1, v2, v3n, v3b;
+	PushU32LE(v1, 0); PushU32LE(v1, 1); PushU32LE(v1, 1);
+	PushLiteralRecord(v1, ipA, 4672, false);
+	PushU32LE(v2, 0); PushU32LE(v2, 2); PushU32LE(v2, 1);
+	PushLiteralRecord(v2, ipB, 4673, true);
+	PushU32LE(v3n, 0); PushU32LE(v3n, 3); PushU32LE(v3n, 0); PushU32LE(v3n, 1);
+	PushLiteralRecord(v3n, ipA, 40000, true);
+	PushU32LE(v3b, 0); PushU32LE(v3b, 3); PushU32LE(v3b, 1); PushU32LE(v3b, 1);
+	PushLiteralRecord(v3b, ipB, 4674, false);
+	return ParsesTo(v1, 192, 0, 2, 77, 4672) && ParsesTo(v2, 203, 0, 113, 245, 4673) &&
+	       ParsesTo(v3n, 192, 0, 2, 77, 40000) && ParsesTo(v3b, 203, 0, 113, 245, 4674);
+}
+
 void register_kad_nodes_dat_tests(TestSuite& suite)
 {
 	suite.add_test("kad_nodes_dat_count_fits", test_count_fits_overflow_and_zero);
@@ -631,6 +672,7 @@ void register_kad_nodes_dat_tests(TestSuite& suite)
 	suite.add_test("kad_nodes_dat_empty_count", test_empty_count);
 	suite.add_test("kad_nodes_dat_ip_little_endian", test_ip_is_little_endian_host_order);
 	suite.add_test("kad_nodes_dat_ip_policy_dotted_order", test_ip_policy_uses_dotted_order);
+	suite.add_test("kad_nodes_dat_literal_vectors", test_literal_vectors_all_layouts);
 }
 
 #ifdef ENVY_KAD_NODES_DAT_STANDALONE

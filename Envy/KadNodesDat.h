@@ -11,11 +11,12 @@
 //   v3 normal     — marker 0, version 3, edition 0, count, 34-byte records
 //   v3 bootstrap  — marker 0, version 3, edition 1, count, 25-byte records
 //
-// IP on disk is the four IPv4 octets in network order, which matches
-// eMule CContact::GetIPAddress() written via WriteUInt32 on little-endian
-// (ReadUInt32 then ntohl for IsGoodIPPort). UDP/TCP ports are little-endian
-// host-order integers (4672 = 40 12). KadUDPKey is two little-endian uint32
-// fields (key, associated IP in the same internal IP encoding).
+// IP on disk is a host-order uint32 written little-endian (eMule
+// CContact::GetIPAddress() via WriteUInt32; eMule applies htonl after ReadUInt32 and
+// aMule swaps before its address checks), so the file carries the dotted-quad octets
+// reversed: 203.0.113.5 is 05 71 00 CB. KadNodesDatReadContact restores the dotted-quad
+// order. UDP/TCP ports are little-endian host-order integers (4672 = 40 12). KadUDPKey
+// is two little-endian uint32 fields (key, associated IP in the same encoding as the IP).
 //
 // Runtime Kad UDP-key protocol and IP-verified trust are NOT implemented.
 // Those fields are parsed so the file is consumed correctly, then discarded.
