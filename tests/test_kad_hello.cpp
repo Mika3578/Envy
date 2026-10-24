@@ -1,30 +1,44 @@
 //
 // test_kad_hello.cpp
 //
-// Kad2 HELLO wire layout and inbound request limiter, synthetic data only.
+// Kad2 HELLO wire layout, tag handling, two-byte request gate and inbound request limiter.
+// Synthetic data only. The "golden" vectors are derived by hand from the serializers of
+// eMule Community v0.72a (CKademliaUDPListener::SendMyDetails) and amule-org/amule master
+// (CKademliaUDPListener::SendMyDetails, AddContact2); they are not captures of live peers.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //
 
 #include "test_framework.h"
 #include "../Envy/KadHello.h"
+#include <algorithm>
 #include <vector>
 
 namespace
 {
 const uint8_t kId[16] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 
-std::vector<uint8_t> Body(uint8_t tagCount, std::vector<uint8_t> tags)
+std::vector<uint8_t> Body(uint8_t tagCount, std::vector<uint8_t> tags, uint8_t version = 8)
 {
 	std::vector<uint8_t> b(kId, kId + 16);
-	b.insert(b.end(), { 0x36, 0x12, 8, tagCount }); // TCP 0x1236, version 8
+	b.insert(b.end(), { 0x36, 0x12, version, tagCount }); // TCP 0x1236
 	b.insert(b.end(), tags.begin(), tags.end());
 	return b;
 }
 
-// Layout produced by eMule SendMyDetails with TAG_SOURCEUPORT: 3 bytes of tag
-// header (type, name length), name 0xFC, then the UINT16 value.
+// TAG_SOURCEUPORT as eMule writes it: type UINT16, name length 1, name 0xFC, value 4672.
 const std::vector<uint8_t> kUdpTag = { 0x08, 0x01, 0x00, 0xFC, 0x40, 0x12 };
+// TAG_KADMISCOPTIONS as eMule writes it: type UINT8, name 0xF2.
+std::vector<uint8_t> MiscTag(uint8_t v) { return { 0x09, 0x01, 0x00, 0xF2, v }; }
+
+std::vector<uint8_t> Cat(std::vector<uint8_t> a, const std::vector<uint8_t>& b)
+{
+	a.insert(a.end(), b.begin(), b.end());
+	return a;
+}
+
+bool Parse(const std::vector<uint8_t>& b, KadHello& h) { return KadParseHello(b.data(), b.size(), h); }
 
 bool test_write_matches_reference_layout()
 {
@@ -35,15 +49,110 @@ bool test_write_matches_reference_layout()
 	return std::equal(expected.begin(), expected.end(), out);
 }
 
-bool test_parse_round_trip_and_udp_tag()
+// eMule SendMyDetails, not firewalled, internal port sent: <ID><TCP><Version 0x0A><1><SOURCEUPORT>.
+bool test_golden_emule_hello_request()
+{
+	const auto v = Body(1, kUdpTag, 0x0A);
+	if (v.size() != 26)
+		return false;
+	KadHello h;
+	return Parse(v, h) && h.version == 0x0A && h.tcpPort == 0x1236 && h.udpPort == 4672 && h.miscOptions == 0 &&
+	       h.consumed == v.size() && memcmp(h.id, kId, 16) == 0;
+}
+
+// eMule SendMyDetails with the firewall tag: UDP firewalled (bit 0) and requesting HELLO_RES_ACK (bit 2).
+bool test_golden_emule_hello_res_with_misc_options()
+{
+	const auto v = Body(2, Cat(kUdpTag, MiscTag(0x05)), 0x0A);
+	KadHello h;
+	if (!Parse(v, h) || h.miscOptions != 0x05 || !h.UdpFirewalled() || h.TcpFirewalled() || !h.RequestsAck() || h.udpPort != 4672)
+		return false;
+	// The request-ACK bit is meaningless below Kad version 8.
+	const auto old = Body(1, MiscTag(0x04), 7);
+	return Parse(old, h) && !h.RequestsAck() && !h.UdpFirewalled();
+}
+
+bool test_udp_port_value_widths_and_limits()
 {
 	KadHello h;
-	const auto plain = Body(0, {});
-	if (!KadParseHello(plain.data(), plain.size(), h) || h.tcpPort != 0x1236 || h.version != 8 ||
-	    h.udpPort != 0 || memcmp(h.id, kId, 16) != 0)
+	// aMule writes the smallest integer width that holds the value.
+	if (!Parse(Body(1, { 0x09, 0x01, 0x00, 0xFC, 80 }), h) || h.udpPort != 80)
 		return false;
-	const auto tagged = Body(1, kUdpTag);
-	return KadParseHello(tagged.data(), tagged.size(), h) && h.udpPort == 0x1240;
+	if (!Parse(Body(1, { 0x03, 0x01, 0x00, 0xFC, 0x40, 0x12, 0, 0 }), h) || h.udpPort != 4672)
+		return false;
+	if (!Parse(Body(1, { 0x0b, 0x01, 0x00, 0xFC, 0x40, 0x12, 0, 0, 0, 0, 0, 0 }), h) || h.udpPort != 4672)
+		return false;
+	// Zero and out-of-range values are ignored, not truncated; the contact keeps the observed port.
+	if (!Parse(Body(1, { 0x08, 0x01, 0x00, 0xFC, 0, 0 }), h) || h.udpPort != 0)
+		return false;
+	if (!Parse(Body(1, { 0x03, 0x01, 0x00, 0xFC, 0x40, 0x12, 1, 0 }), h) || h.udpPort != 0)
+		return false;
+	// A string under the same name is not a port.
+	if (!Parse(Body(1, { 0x11, 0x01, 0x00, 0xFC, 'x' }), h) || h.udpPort != 0)
+		return false;
+	// A multi-byte name equal to 0xFC in its first byte is another tag.
+	if (!Parse(Body(1, { 0x08, 0x02, 0x00, 0xFC, 0x00, 0x40, 0x12 }), h) || h.udpPort != 0)
+		return false;
+	return KadHelloContactUdpPort(h, 7000) == 7000;
+}
+
+bool test_compact_tag_form()
+{
+	// aMule's CTag reader also accepts type | 0x80 with a one-byte name.
+	KadHello h;
+	return Parse(Body(1, { 0x88, 0xFC, 0x40, 0x12 }), h) && h.udpPort == 4672 && h.consumed == 20 + 4;
+}
+
+bool test_blob_bsob_and_other_values_are_delimited()
+{
+	KadHello h;
+	// BLOB (32-bit length), BSOB (8-bit length), STRING, STR3, HASH16, FLOAT32, BOOL, then the port.
+	std::vector<uint8_t> tags;
+	tags = Cat(tags, { 0x07, 0x01, 0x00, 0x41, 3, 0, 0, 0, 'a', 'b', 'c' });
+	tags = Cat(tags, { 0x0a, 0x01, 0x00, 0x42, 2, 'x', 'y' });
+	tags = Cat(tags, { 0x02, 0x01, 0x00, 0x43, 2, 0, 'h', 'i' });
+	tags = Cat(tags, { 0x13, 0x01, 0x00, 0x44, 'a', 'b', 'c' });
+	tags = Cat(tags, { 0x01, 0x01, 0x00, 0x45, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 });
+	tags = Cat(tags, { 0x04, 0x01, 0x00, 0x46, 0, 0, 0x80, 0x3f });
+	tags = Cat(tags, { 0x05, 0x01, 0x00, 0x47, 1 });
+	tags = Cat(tags, kUdpTag);
+	const auto v = Body(8, tags);
+	return Parse(v, h) && h.udpPort == 4672 && h.consumed == v.size();
+}
+
+bool test_malformed_tags_fail_the_whole_hello()
+{
+	KadHello h;
+	// BLOB length larger than the body, including a 32-bit value that would wrap a size_t sum.
+	if (Parse(Body(1, { 0x07, 0x01, 0x00, 0x41, 0xff, 0xff, 0xff, 0xff, 'a' }), h))
+		return false;
+	if (Parse(Body(1, { 0x07, 0x01, 0x00, 0x41, 5, 0, 0, 0, 'a', 'b' }), h))
+		return false;
+	// BSOB and STRING lengths running past the end.
+	if (Parse(Body(1, { 0x0a, 0x01, 0x00, 0x42, 9, 'x' }), h) || Parse(Body(1, { 0x02, 0x01, 0x00, 0x43, 0xff, 0xff }), h))
+		return false;
+	// Name length running past the end.
+	if (Parse(Body(1, { 0x08, 0xff, 0xff, 0xfc }), h))
+		return false;
+	// Unknown types and BOOLARRAY cannot be delimited the same way by both references.
+	for (uint8_t type : { 0x00, 0x06, 0x0c, 0x10, 0x21, 0x7e })
+		if (Parse(Body(2, Cat({ type, 0x01, 0x00, 0x01, 0x00 }, kUdpTag)), h))
+			return false;
+	// Declared tag count larger than the tags present.
+	if (Parse(Body(3, kUdpTag), h))
+		return false;
+	// Version 0 is invalid, a null buffer is refused.
+	return !Parse(Body(0, {}, 0), h) && !KadParseHello(nullptr, 20, h);
+}
+
+bool test_truncation_sweep()
+{
+	KadHello h;
+	const auto ok = Body(2, Cat(kUdpTag, MiscTag(1)), 0x0A);
+	for (size_t n = 0; n < ok.size(); ++n)
+		if (KadParseHello(ok.data(), n, h))
+			return false;
+	return KadParseHello(ok.data(), ok.size(), h);
 }
 
 bool test_old_envy_layout_is_not_accepted_as_valid_tags()
@@ -53,36 +162,83 @@ bool test_old_envy_layout_is_not_accepted_as_valid_tags()
 	std::vector<uint8_t> legacy(kId, kId + 16);
 	legacy.insert(legacy.end(), { 0x36, 0x12, 8, 0x40, 0x12 });
 	KadHello h;
-	return !KadParseHello(legacy.data(), legacy.size(), h);
+	return !Parse(legacy, h);
 }
 
-bool test_truncated_and_malformed()
+bool test_duplicate_and_contradictory_tags()
 {
 	KadHello h;
-	const auto ok = Body(1, kUdpTag);
-	for (size_t n = 0; n < ok.size(); ++n)
-		if (KadParseHello(ok.data(), n, h))
-			return false;
-	// Declares more tags than bytes carry.
-	const auto lying = Body(3, kUdpTag);
-	if (KadParseHello(lying.data(), lying.size(), h))
+	// Identical duplicates are harmless; different valid values are ambiguous and refused.
+	if (!Parse(Body(2, Cat(kUdpTag, kUdpTag)), h) || h.udpPort != 4672)
 		return false;
-	// Name length running past the end, string length running past the end.
-	const auto badName = Body(1, { 0x08, 0xff, 0xff, 0xfc });
-	const auto badStr = Body(1, { 0x02, 0x01, 0x00, 0x01, 0xff, 0xff });
-	return !KadParseHello(badName.data(), badName.size(), h) && !KadParseHello(badStr.data(), badStr.size(), h) &&
-	       !KadParseHello(nullptr, 20, h);
+	if (Parse(Body(2, Cat(kUdpTag, { 0x08, 0x01, 0x00, 0xFC, 0x41, 0x12 })), h))
+		return false;
+	if (Parse(Body(2, Cat(MiscTag(1), MiscTag(2))), h))
+		return false;
+	// A zero (ignored) value next to a valid one is not a contradiction.
+	return Parse(Body(2, Cat({ 0x08, 0x01, 0x00, 0xFC, 0, 0 }, kUdpTag)), h) && h.udpPort == 4672;
 }
 
-bool test_unknown_tag_type_keeps_contact_and_other_tags_are_skipped()
+bool test_trailing_bytes_and_cursor()
 {
 	KadHello h;
-	// A string tag and a UINT8 tag first, then the UDP port; then an unknown type.
-	std::vector<uint8_t> tags = { 0x02, 0x01, 0x00, 0x01, 0x02, 0x00, 'h', 'i', 0x09, 0x01, 0x00, 0xf2, 0x05 };
-	tags.insert(tags.end(), kUdpTag.begin(), kUdpTag.end());
-	tags.insert(tags.end(), { 0x7e, 0x01, 0x00, 0x01, 0x00 });
-	const auto b = Body(4, tags);
-	return KadParseHello(b.data(), b.size(), h) && h.udpPort == 0x1240 && h.tcpPort == 0x1236;
+	const auto base = Body(1, kUdpTag);
+	auto trailing = base;
+	trailing.insert(trailing.end(), { 0xde, 0xad, 0xbe, 0xef });
+	return Parse(trailing, h) && h.consumed == base.size() && h.udpPort == 4672;
+}
+
+bool test_routing_admission_policy()
+{
+	KadHello h;
+	if (!Parse(Body(1, MiscTag(0x01)), h) || KadHelloMayEnterRoutingTable(h))
+		return false;
+	// TCP-firewalled only and the request-ACK bit do not keep a contact out.
+	return Parse(Body(1, MiscTag(0x06)), h) && KadHelloMayEnterRoutingTable(h) && Parse(Body(0, {}), h) &&
+	       KadHelloMayEnterRoutingTable(h);
+}
+
+bool test_register_before_send_and_cancel_on_failure()
+{
+	std::vector<int> log;
+	int cancelled = -1;
+	// Success: registered first, never cancelled.
+	bool ok = KadSendRegistered([&]
+	                            { log.push_back(1); return 42; }, [&](int h)
+	                            { cancelled = h; log.push_back(3); },
+	                            [&]
+	                            { log.push_back(2); return true; });
+	if (!ok || cancelled != -1 || log != std::vector<int>({ 1, 2 }))
+		return false;
+	// Send failure: the same handle that was registered is withdrawn after the attempt.
+	log.clear();
+	ok = KadSendRegistered([&]
+	                       { log.push_back(1); return 43; }, [&](int h)
+	                       { cancelled = h; log.push_back(3); },
+	                       [&]
+	                       { log.push_back(2); return false; });
+	return !ok && cancelled == 43 && log == std::vector<int>({ 1, 2, 3 });
+}
+
+bool test_parser_never_overreads_on_random_input()
+{
+	// Deterministic pseudo-random bodies with a valid header; run under sanitizers in CI-less checks.
+	uint32_t state = 0x1234567u;
+	auto next = [&]
+	{ state = state * 1664525u + 1013904223u; return static_cast<uint8_t>(state >> 24); };
+	for (int round = 0; round < 20000; ++round)
+	{
+		std::vector<uint8_t> b(kId, kId + 16);
+		b.insert(b.end(), { 0x36, 0x12, 8, next() });
+		const size_t extra = next() % 48;
+		for (size_t i = 0; i < extra; ++i)
+			b.push_back(next());
+		std::vector<uint8_t> exact(b); // exact-size heap copy so sanitizers see any over-read
+		KadHello h;
+		if (KadParseHello(exact.data(), exact.size(), h) && h.consumed > exact.size())
+			return false;
+	}
+	return true;
 }
 
 bool test_limiter_burst_then_refill()
@@ -188,10 +344,19 @@ bool test_write_failure_leaves_buffer_untouched()
 void register_kad_hello_tests(TestSuite& suite)
 {
 	suite.add_test("kad_hello_write_layout", test_write_matches_reference_layout);
-	suite.add_test("kad_hello_parse_and_udp_tag", test_parse_round_trip_and_udp_tag);
+	suite.add_test("kad_hello_golden_emule_request", test_golden_emule_hello_request);
+	suite.add_test("kad_hello_golden_emule_response_misc", test_golden_emule_hello_res_with_misc_options);
+	suite.add_test("kad_hello_udp_port_widths_and_limits", test_udp_port_value_widths_and_limits);
+	suite.add_test("kad_hello_compact_tag_form", test_compact_tag_form);
+	suite.add_test("kad_hello_blob_bsob_delimited", test_blob_bsob_and_other_values_are_delimited);
+	suite.add_test("kad_hello_malformed_tags_fail", test_malformed_tags_fail_the_whole_hello);
+	suite.add_test("kad_hello_truncation_sweep", test_truncation_sweep);
 	suite.add_test("kad_hello_rejects_old_envy_layout", test_old_envy_layout_is_not_accepted_as_valid_tags);
-	suite.add_test("kad_hello_truncated_malformed", test_truncated_and_malformed);
-	suite.add_test("kad_hello_unknown_tags", test_unknown_tag_type_keeps_contact_and_other_tags_are_skipped);
+	suite.add_test("kad_hello_duplicate_contradictory_tags", test_duplicate_and_contradictory_tags);
+	suite.add_test("kad_hello_trailing_bytes_cursor", test_trailing_bytes_and_cursor);
+	suite.add_test("kad_hello_routing_admission", test_routing_admission_policy);
+	suite.add_test("kad_hello_register_before_send", test_register_before_send_and_cancel_on_failure);
+	suite.add_test("kad_hello_random_input_bounded", test_parser_never_overreads_on_random_input);
 	suite.add_test("kad_inbound_limiter_burst_refill", test_limiter_burst_then_refill);
 	suite.add_test("kad_inbound_limiter_bounded", test_limiter_bounded_and_clock_safe);
 	suite.add_test("kad_inbound_limiter_clock_regression", test_limiter_clock_regression_and_boundaries);
