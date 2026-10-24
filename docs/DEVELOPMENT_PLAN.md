@@ -1,6 +1,8 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-23
+- **Last Updated:** 2026-10-24
+
+- **ED2K program, first evidence-integrity slice:** #375 / #160 — correct the Python MuleInfo inspector's missing client-version byte and reject incomplete tag counts/values instead of silently accepting partial evidence. Compare pinned eMule Community and aMule implementation sources; add exhaustive byte-truncation and report-level regressions. No production packet, queue, platform or advertised capability changes. The remaining #375 capture/reassembly paths and #410 Windows portability still block trustworthy live sign-off; #332 and #495 reliability precede #344 slot scaling, and #343/#344 optimizations require before/after benchmarks (#111 / open PR #368). Existing MuleInfo identity work (#509) and Kad work (#462/#502/#511) remain separate, unmerged work at this baseline. See `tools/interop/README.md` for exact references and parser scope. Native Windows builds and independent live transfers have not been run in this Linux environment.
 
 - **Changelog Entry:** 2026-10-20 - #178: record the 64-bit-only platform policy as D-024 (phased Stage A/B/C; supersedes D-014); D-019/D-020 marked for Stage C removal of Crashpad; portability plan section 5, roadmap, status and crash-reporting aligned. Policy and documentation only: Win32 builds, CI, packaging and Crashpad are unchanged until #454 / #455. Windows 10 1809 stays the minimum runtime. Recommendation: close PR #468 as superseded and fold #466 into #455.
 
