@@ -25,6 +25,7 @@
 #include "KadRoutingTable.h"
 #include "KadSearchResDelivery.h"
 #include "KadFirewallCheck.h"
+#include "KadHello.h"
 
 // Kad2 protocol constants
 #define KAD2_UDP_PORT 4672               // Default Kad UDP port
@@ -154,6 +155,7 @@ public:
 	void SendHelloRequest(const SOCKADDR_IN* pTarget);
 
 	// Send hello response to specific host
+	bool WriteHelloBody(CEDPacket* pPacket);
 	void SendHelloResponse(const SOCKADDR_IN* pTarget);
 
 	// Mark contact as verified
@@ -222,7 +224,7 @@ private:
 	bool ReadEntryTags(CEDPacket* pPacket, KadStoredEntry& entry);
 
 	// Utility methods
-	void SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	bool SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	bool UpdateContact(const KadContact& contact, KadContactSource source = KadContactSource::Candidate, bool markVerified = false);
 	void GenerateOwnKadId();
 	void LogKadStatus();
@@ -271,6 +273,7 @@ private:
 	void MaybeStartFirewallChecks();
 	void CollectFirewallCheckCandidates(KadFwPeerCandidate* out, size_t outMax, size_t& outCount) const;
 	KadFirewallCheck m_firewall;
+	KadInboundLimiter m_inboundLimiter;
 	WORD m_lastFirewallTcpPort;
 };
 
