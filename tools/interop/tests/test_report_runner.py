@@ -263,6 +263,42 @@ class EvidenceExtractorTests(unittest.TestCase):
         dumped = str(hits[0].details)
         self.assertNotIn("167772170", dumped)  # would be LE int of 10.0.0.1
 
+    def test_kad_hello_and_bodyless_ping_layout(self) -> None:
+        # eMule SendMyDetails: <ID 16><TCP 2><Version 1><TagCount 1><Tag>*
+        body = (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([0x0A, 1]) + bytes([0x08, 1, 0, 0xFC, 0x40, 0x12])
+        hits = extract_kad_udp_frames(bytes([0xE4, 0x11]) + body, single_datagram=True)
+        self.assertEqual(hits[0].label, "kad_hello_req")
+        self.assertNotIn("parse_error", hits[0].details)
+        self.assertEqual(hits[0].details.get("kad_version"), 10)
+        self.assertEqual(hits[0].details.get("tag_count"), 1)
+        # Previous Envy body (no tag count, 19 bytes) and version 0 are flagged.
+        # Previous Envy body: ID, TCP, version, UDP port (2 bytes), no tag count; the low UDP
+        # byte lands where the tag count is read and the list cannot be delimited.
+        old = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8]) + struct.pack("<H", 4672)
+        self.assertTrue(extract_kad_udp_frames(old, single_datagram=True)[0].details.get("parse_error"))
+        zero = bytes([0xE4, 0x19]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([0, 0])
+        self.assertTrue(extract_kad_udp_frames(zero, single_datagram=True)[0].details.get("parse_error"))
+        # A tag count that overruns the body, and an unknown tag type, are parse errors.
+        over = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8, 2, 0x08, 1, 0, 0xFC, 0x40, 0x12])
+        self.assertTrue(extract_kad_udp_frames(over, single_datagram=True)[0].details.get("parse_error"))
+        unknown = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8, 1, 0x7E, 1, 0, 0x01, 0])
+        self.assertTrue(extract_kad_udp_frames(unknown, single_datagram=True)[0].details.get("parse_error"))
+        # A BLOB tag is delimited and accepted.
+        blob = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8, 1, 0x07, 1, 0, 0x41, 2, 0, 0, 0, 9, 9])
+        self.assertNotIn("parse_error", extract_kad_udp_frames(blob, single_datagram=True)[0].details)
+        # An ID that happens to contain E4 11 stays inside its HELLO frame in a multi-frame blob.
+        tricky_id = b"\x01" * 6 + bytes([0xE4, 0x11]) + b"\x02" * 8
+        two = bytes([0xE4, 0x11]) + tricky_id + struct.pack("<H", 4662) + bytes([8, 0]) + bytes([0xE4, 0x60])
+        frames = extract_kad_udp_frames(two)
+        self.assertEqual([h.label for h in frames], ["kad_hello_req", "kad_ping"])
+        self.assertNotIn("parse_error", frames[0].details)
+        # A two-byte PING is valid; a PONG needs the observed port.
+        ping = extract_kad_udp_frames(bytes([0xE4, 0x60]), single_datagram=True)
+        self.assertEqual(ping[0].label, "kad_ping")
+        self.assertNotIn("parse_error", ping[0].details)
+        pong = extract_kad_udp_frames(bytes([0xE4, 0x61, 0x40]), single_datagram=True)
+        self.assertTrue(pong[0].details.get("parse_error"))
+
     def test_kad_udp_search_res_opcode_3b(self) -> None:
         # Production inbound / eMule: <SenderID 16><TargetID 16><Count 2 LE>
         body = (b"\x11" * 16) + (b"\x22" * 16) + struct.pack("<H", 0)
@@ -322,10 +358,10 @@ class EvidenceExtractorTests(unittest.TestCase):
     def test_kad_hello_ping_find_node_opcodes(self) -> None:
         # Production HELLO is 0x11/0x19 — Bootstrap 0x01/0x09 must not match.
         # Request and response keep distinct labels.
-        hello_req = bytes([0xE4, 0x11]) + (b"\x01" * 16) + bytes([0])  # NodeID + empty TagList
-        hello_res = bytes([0xE4, 0x19]) + (b"\x02" * 16) + bytes([0])
+        hello_req = bytes([0xE4, 0x11]) + (b"\x01" * 16) + struct.pack("<H", 4662) + bytes([8, 0])  # NodeID + empty TagList
+        hello_res = bytes([0xE4, 0x19]) + (b"\x02" * 16) + struct.pack("<H", 4662) + bytes([8, 0])
         ping = bytes([0xE4, 0x60, 0x00])  # tag count
-        pong = bytes([0xE4, 0x61, 0x00])
+        pong = bytes([0xE4, 0x61, 0x40, 0x12])  # observed UDP port
         find = bytes([0xE4, 0x21]) + (b"\x03" * 16) + bytes([0x02, 0x00])
         find_res = bytes([0xE4, 0x29]) + (b"\x03" * 16) + bytes([0x02, 0x00])
         bootstrap = bytes([0xE4, 0x01]) + (b"\x04" * 16)
@@ -362,7 +398,7 @@ class EvidenceExtractorTests(unittest.TestCase):
 
     def test_kad_hit_inside_tcp_frame_excluded(self) -> None:
         # Craft an ED2K TCP frame whose body contains E4 11 … bytes.
-        kad_like = bytes([0xE4, 0x11]) + (b"\xaa" * 16) + bytes([0])
+        kad_like = bytes([0xE4, 0x11]) + (b"\xaa" * 16) + struct.pack("<H", 4662) + bytes([8, 0])
         body = b"noise" + kad_like + b"tail"
         tcp = bytes([0xE3]) + struct.pack("<I", 1 + len(body)) + bytes([0x01]) + body
         hits = extract_frames(tcp)
@@ -378,7 +414,7 @@ class EvidenceExtractorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "alice-home-secret.bin"
             # Minimal valid Kad HELLO so ingest succeeds.
-            src.write_bytes(bytes([0xE4, 0x11]) + (b"\x01" * 16) + bytes([0]))
+            src.write_bytes(bytes([0xE4, 0x11]) + (b"\x01" * 16) + struct.pack("<H", 4662) + bytes([8, 0]))
             dest = Path(tmp) / "out"
             summary = ingest_packet_dump(src, dest, required_labels=["kad_hello_req"])
             self.assertEqual(summary["source_name"], "packet-evidence.bin")
@@ -391,10 +427,10 @@ class EvidenceExtractorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "a.bin").write_bytes(
-                bytes([0xE4, 0x11]) + (b"\x01" * 16) + bytes([0])
+                bytes([0xE4, 0x11]) + (b"\x01" * 16) + struct.pack("<H", 4662) + bytes([8, 0])
             )
             (root / "b.bin").write_bytes(
-                bytes([0xE4, 0x19]) + (b"\x02" * 16) + bytes([0])
+                bytes([0xE4, 0x19]) + (b"\x02" * 16) + struct.pack("<H", 4662) + bytes([8, 0])
             )
             hits = collect_hits_from_paths([root / "a.bin", root / "b.bin"])
             ok, reason, matched = require_any_label_group(
@@ -433,7 +469,7 @@ class EvidenceExtractorTests(unittest.TestCase):
             (root / "from-pcap-tcp-0000-0000.bin").write_bytes(frame[:mid])
             (root / "from-pcap-tcp-0000-0001.bin").write_bytes(frame[mid:])
             (root / "from-pcap-udp-0000.bin").write_bytes(
-                bytes([0xE4, 0x11]) + (b"\xaa" * 16) + bytes([0])
+                bytes([0xE4, 0x11]) + (b"\xaa" * 16) + struct.pack("<H", 4662) + bytes([8, 0])
             )
             per = extract_frames((root / "from-pcap-tcp-0000-0000.bin").read_bytes())
             self.assertFalse(any(h.label == "hello" for h in per))
