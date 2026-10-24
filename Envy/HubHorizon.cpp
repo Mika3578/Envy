@@ -215,15 +215,14 @@ void CHubHorizonGroup::Add(IN_ADDR* pAddress, WORD nPort)
 
 	if ( m_nCount == m_nBuffer )
 	{
-		m_nBuffer += 8;
-		CHubHorizonHub** pList = new CHubHorizonHub*[ m_nBuffer ];
-		if ( m_pList )
-		{
-			if ( m_nCount ) CopyMemory( pList, m_pList, sizeof(CHubHorizonHub*) * m_nCount );
-			delete [] m_pList;
-			m_pList = NULL;
-		}
+		// Allocate first so a failed allocation leaves buffer and count consistent.
+		const DWORD nNewBuffer = m_nBuffer + 8;
+		CHubHorizonHub** pList = new CHubHorizonHub*[ nNewBuffer ];
+		CHubHorizonHub** pOld = m_pList;
+		if ( pOld && m_nCount ) CopyMemory( pList, pOld, sizeof(CHubHorizonHub*) * m_nCount );
 		m_pList = pList;
+		m_nBuffer = nNewBuffer;
+		delete [] pOld;
 	}
 
 	m_pList[ m_nCount++ ] = pHub;
