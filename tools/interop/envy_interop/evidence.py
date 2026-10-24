@@ -204,8 +204,8 @@ def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
 _KAD_TAG_FIXED_VALUE_LEN = {0x01: 16, 0x03: 4, 0x04: 4, 0x05: 1, 0x08: 2, 0x09: 1, 0x0B: 8}
 
 
-def _kad_hello_tag_error(body: bytes) -> Optional[str]:
-    """Walk the HELLO tag list like KadParseHello; return an error text or None.
+def _kad_hello_walk(body: bytes) -> Tuple[Optional[str], int]:
+    """Walk the HELLO tag list like KadParseHello; return (error text or None, end offset).
 
     Types are the union of eMule's and aMule's Kad tag readers; an unknown type,
     BOOLARRAY or any length running past the body is an error. Trailing bytes
@@ -215,44 +215,48 @@ def _kad_hello_tag_error(body: bytes) -> Optional[str]:
     pos = 20
     for _ in range(body[19]):
         if n - pos < 1:
-            return "HELLO tag list truncated"
+            return ("HELLO tag list truncated", pos)
         tag_type = body[pos]
         pos += 1
         if tag_type & 0x80:
             tag_type &= 0x7F
             if n - pos < 1:
-                return "HELLO tag list truncated"
+                return ("HELLO tag list truncated", pos)
             pos += 1
         else:
             if n - pos < 2:
-                return "HELLO tag list truncated"
+                return ("HELLO tag list truncated", pos)
             name_len = body[pos] | (body[pos + 1] << 8)
             pos += 2
             if n - pos < name_len:
-                return "HELLO tag name overruns the body"
+                return ("HELLO tag name overruns the body", pos)
             pos += name_len
         if tag_type in _KAD_TAG_FIXED_VALUE_LEN:
             value_len = _KAD_TAG_FIXED_VALUE_LEN[tag_type]
         elif tag_type == 0x02:
             if n - pos < 2:
-                return "HELLO tag list truncated"
+                return ("HELLO tag list truncated", pos)
             value_len = 2 + (body[pos] | (body[pos + 1] << 8))
         elif tag_type == 0x07:
             if n - pos < 4:
-                return "HELLO tag list truncated"
+                return ("HELLO tag list truncated", pos)
             value_len = 4 + int.from_bytes(body[pos : pos + 4], "little")
         elif tag_type == 0x0A:
             if n - pos < 1:
-                return "HELLO tag list truncated"
+                return ("HELLO tag list truncated", pos)
             value_len = 1 + body[pos]
         elif 0x11 <= tag_type <= 0x20:
             value_len = tag_type - 0x10
         else:
-            return f"HELLO tag type 0x{tag_type:02x} cannot be delimited"
+            return (f"HELLO tag type 0x{tag_type:02x} cannot be delimited", pos)
         if n - pos < value_len:
-            return "HELLO tag value overruns the body"
+            return ("HELLO tag value overruns the body", pos)
         pos += value_len
-    return None
+    return None, pos
+
+
+def _kad_hello_tag_error(body: bytes) -> Optional[str]:
+    return _kad_hello_walk(body)[0]
 
 
 def _next_kad_opcode_offset(blob: bytes, start: int) -> int:
@@ -300,6 +304,14 @@ def extract_kad_udp_frames(
             frame_end = n
         else:
             frame_end = _next_kad_opcode_offset(blob, i + 2)
+            if opcode in (KAD_OP_HELLO_REQ, KAD_OP_HELLO_RES):
+                # A HELLO payload (ID, tag values) may contain E4 <opcode> bytes; when its tag list
+                # delimits cleanly, that length decides the frame, not the next embedded opcode.
+                rest = blob[i + 2 : n]
+                if len(rest) >= 20 and rest[18] != 0:
+                    walk_error, walk_end = _kad_hello_walk(rest)
+                    if walk_error is None:
+                        frame_end = i + 2 + walk_end
         body = blob[i + 2 : frame_end]
         details: Dict[str, Any] = {"body_len": len(body), "transport": "udp"}
         if opcode in (KAD_OP_HELLO_REQ, KAD_OP_HELLO_RES):
