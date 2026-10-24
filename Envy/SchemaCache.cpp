@@ -65,6 +65,27 @@ static bool HasSchemas(const CString& strRoot)
 	return true;
 }
 
+/// True when strRoot\Schemas holds the build's manifest and every file it lists.
+static bool HasCompleteSchemas(const CString& strRoot)
+{
+	if (strRoot.IsEmpty()) return false;
+	const CString strDir = strRoot + L"\\Schemas\\";
+	HANDLE hFile = CreateFile(strDir + GetSchemaManifestName(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+	                          FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hFile == INVALID_HANDLE_VALUE) return false;
+	const DWORD nSize = GetFileSize(hFile, NULL);
+	std::string sText;
+	DWORD nRead = 0;
+	if (nSize != INVALID_FILE_SIZE && nSize <= 65536)
+	{
+		sText.resize(nSize);
+		if (!ReadFile(hFile, &sText[0], nSize, &nRead, NULL) || nRead != nSize) sText.clear();
+	}
+	CloseHandle(hFile);
+	return IsSchemaManifestComplete(sText, [&](const std::string& sName)
+	                                { return GetFileAttributes(strDir + CString(sName.c_str())) != INVALID_FILE_ATTRIBUTES; });
+}
+
 int CSchemaCache::Load()
 {
 #ifdef _DEBUG
@@ -73,11 +94,11 @@ int CSchemaCache::Load()
 
 	Clear();
 
-	// The executable's own Schemas folder takes precedence over a persisted General.Path that may name
-	// an older installation; icons and descriptors must match the running build.
+	// The executable's Schemas folder takes precedence over a persisted General.Path that may name an older
+	// installation, but only when the build manifest proves it complete; otherwise General.Path is used.
 	const CString strModuleRoot = theApp.m_strBinaryPath.Left(theApp.m_strBinaryPath.ReverseFind(L'\\'));
 	CString strRoot = Settings.General.Path;
-	if (SelectSchemaRoot(HasSchemas(strModuleRoot), HasSchemas(Settings.General.Path)) == 0)
+	if (SelectSchemaRoot(HasCompleteSchemas(strModuleRoot), HasSchemas(strModuleRoot), HasSchemas(Settings.General.Path)) == 0)
 	{
 		if (strModuleRoot.CompareNoCase(Settings.General.Path) != 0)
 			theApp.Message(MSG_DEBUG, L"Schemas: using the executable folder instead of the configured install path");

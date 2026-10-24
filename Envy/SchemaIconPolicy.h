@@ -9,6 +9,9 @@
 
 #pragma once
 
+#include <cstddef>
+#include <string>
+
 enum class SchemaIconCandidate
 {
 	Skin,
@@ -58,14 +61,64 @@ inline int GetSchemaIconDrawIndex(int nImageCount, int nIcon, int nGeneric)
 	return nIcon >= 0 && nIcon < nImageCount ? nIcon : -1;
 }
 
-/// Pick the directory that holds the Schemas folder to load.
-/// A build stages Schemas beside its own executable; a persisted General.Path can still name an older
-/// installation, so the executable's own set wins when it contains at least one .xsd (completeness is not
-/// verified; the build stages the full set). An installed copy is unchanged
-/// because its executable folder and General.Path are the same.
-/// Return 0 for the executable folder, 1 for General.Path, -1 when neither has schemas.
-inline int SelectSchemaRoot(bool bModuleHasSchemas, bool bConfiguredHasSchemas)
+/// Name of the file the build writes into a staged Schemas folder, listing one staged file per line.
+/// Keep in sync with StageSchemas in Envy.vcxproj.
+inline const wchar_t* GetSchemaManifestName()
 {
-	if (bModuleHasSchemas) return 0;
-	return bConfiguredHasSchemas ? 1 : -1;
+	return L"Schemas.manifest";
+}
+
+/// A manifest entry is a plain file name with a schema extension (.xsd, .xml, .ico): no separators, drive
+/// letters, "..", spaces or non-ASCII characters, so it can only name a file inside the Schemas folder.
+inline bool IsSchemaManifestName(const std::string& sName)
+{
+	if (sName.empty() || sName.size() > 128 || sName[0] == '.') return false;
+	for (char c : sName)
+	{
+		const bool bOk = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' ||
+		                 c == '_' || c == '-';
+		if (!bOk) return false;
+	}
+	if (sName.find("..") != std::string::npos) return false;
+	const std::size_t nDot = sName.rfind('.');
+	if (nDot == std::string::npos) return false;
+	std::string sExt = sName.substr(nDot);
+	for (char& c : sExt)
+		if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+	return sExt == ".xsd" || sExt == ".xml" || sExt == ".ico";
+}
+
+/// True when the manifest text is valid and every listed file exists. exists(name) checks one entry.
+/// An empty, unreadable or malformed manifest is never complete, so the caller falls back to another root.
+/// Files present but not listed are ignored: the build, not the runtime, owns removing stale ones.
+template<typename FileExists>
+bool IsSchemaManifestComplete(const std::string& sText, FileExists exists)
+{
+	std::size_t nPos = sText.compare(0, 3, "\xEF\xBB\xBF") == 0 ? 3 : 0;
+	std::size_t nEntries = 0;
+	while (nPos < sText.size())
+	{
+		std::size_t nEnd = sText.find('\n', nPos);
+		if (nEnd == std::string::npos) nEnd = sText.size();
+		std::string sLine = sText.substr(nPos, nEnd - nPos);
+		nPos = nEnd + 1;
+		if (!sLine.empty() && sLine.back() == '\r') sLine.pop_back();
+		if (sLine.empty()) continue;
+		if (!IsSchemaManifestName(sLine) || !exists(sLine)) return false;
+		++nEntries;
+	}
+	return nEntries > 0;
+}
+
+/// Pick the directory that holds the Schemas folder to load.
+/// A build stages Schemas beside its own executable together with a manifest of what it staged; a persisted
+/// General.Path can still name an older installation. The executable's set wins only when the manifest
+/// proves it complete. Otherwise General.Path is used when it has schemas (an installed copy, where both
+/// folders are the same, behaves as before), and a partial executable set is only a last resort.
+/// Return 0 for the executable folder, 1 for General.Path, -1 when neither has schemas.
+inline int SelectSchemaRoot(bool bModuleComplete, bool bModuleHasSchemas, bool bConfiguredHasSchemas)
+{
+	if (bModuleComplete) return 0;
+	if (bConfiguredHasSchemas) return 1;
+	return bModuleHasSchemas ? 0 : -1;
 }

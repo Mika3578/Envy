@@ -22,22 +22,31 @@ repository root so it can locate `Schemas/`.
 
 ## Resource root
 
-`CSchemaCache::Load` reads `Schemas/` from the executable's folder when it
-contains at least one `Schemas/*.xsd` file (completeness is not verified), and
-otherwise from the persisted `General.Path` (`SelectSchemaRoot`). `General.Path` is only reset when empty or missing, so a
-development build could previously load older installed `Schemas/*.xml` and
-`*.ico` while the checked-in set was correct. The Envy project now stages
-`Schemas/` (`*.xsd`, `*.xml`, `*.ico`) next to every output (`StageSchemas`).
-`StageSchemas` only copies; it does not delete files removed from `Schemas/`, so
-delete a stale output `Schemas/` folder by hand when validating a removal.
-An installed copy is unchanged when `General.Path` names its executable folder.
-`General.Path` and user data are never rewritten. A debug-level log line
-reports the substitution without printing paths. Only the schema descriptor and
-schema icon lookup in `CSchemaCache::Load` changed. Every other consumer keeps
-its own lookup: `Schemas\WindowsLibrary.ico` (`LibraryFolders.cpp`) still reads
-`General.Path`, `Vendors.xml` still starts from `General.DataPath`
-(`VendorCache.cpp`), and `Flags.png`/missing-string diagnostics are unrelated to
-schema icons.
+`StageSchemas` (`Envy.vcxproj`) copies `Schemas/*.xsd`, `*.xml` and `*.ico` into
+`<output>\Schemas\` and then writes `Schemas.manifest`, listing exactly the
+files it staged. On the next build, files listed by the previous manifest but no
+longer in the repository are deleted from the output. Only manifest-recorded
+names are removed, only inside that output folder, and only their file-name part
+is used. Unlisted files, user folders and installed copies are never touched.
+Output folders staged before the manifest existed have no record, so delete a
+stale `<output>\Schemas\` folder once by hand.
+
+`CSchemaCache::Load` (`SelectSchemaRoot`) uses the executable's `Schemas/`
+folder only when `Schemas.manifest` is present, valid, and every file it lists
+exists. A partial copy (an interrupted build, a missing icon or descriptor) or a
+folder without a manifest is not trusted: `General.Path` is used when it has
+`*.xsd` files, so an installed copy, where both folders are the same, behaves as
+before. A partial executable folder is only a last resort when `General.Path`
+has no schemas at all. Unlisted extra files do not make a folder incomplete; the
+build, not the runtime, removes them. `General.Path` is only reset when empty
+or missing and is never rewritten. A debug-level log line reports the
+substitution without printing paths.
+
+Only the schema descriptor and schema icon lookup in `CSchemaCache::Load`
+changed. Every other consumer keeps its own lookup: `Schemas\WindowsLibrary.ico`
+(`LibraryFolders.cpp`) still reads `General.Path`, `Vendors.xml` still starts
+from `General.DataPath` (`VendorCache.cpp`), and `Flags.png`/missing-string
+diagnostics are unrelated to schema icons.
 
 Manual UI checks for the maintainer:
 
@@ -57,3 +66,11 @@ Manual UI checks for the maintainer:
    `.ico`, and `.Safe.ico`). Confirm the group and combo show the generic file
    icon and do not assert or display a blank/invalid image. Removing a single
    candidate should instead show the next fallback icon, never a blank image.
+7. Resource root, in a private test copy of a build output: (a) rename one
+   `<output>\Schemas\*.ico` listed in `Schemas.manifest`, start Envy, and confirm
+   the schema icons still appear (loaded from `General.Path`) with no blank
+   entries; (b) restore it and confirm the output folder is used again; (c) delete
+   a schema from the repository set (or simulate with a manifest entry), rebuild,
+   and confirm the stale file is removed from the output while unrelated files in
+   that folder remain; (d) set `General.Path` to another install and confirm a
+   complete output folder still wins and the other install is unchanged.

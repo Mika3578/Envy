@@ -15,6 +15,7 @@
 #include <fstream>
 #include <limits>
 #include <regex>
+#include <set>
 #include <string>
 
 #ifdef _WIN32
@@ -228,11 +229,74 @@ static bool test_schema_icon_draw_indices()
 	       GetSchemaIconDrawIndex(3, -1, 2) == 2 && GetSchemaIconDrawIndex(3, 1, -1) == 1;
 }
 
-/// A build-staged Schemas folder wins over a persisted install path; an install keeps working unchanged.
+/// Root selection: only a manifest-complete executable folder wins; partial sets fall back to General.Path.
 static bool test_schema_root_selection()
 {
-	return SelectSchemaRoot(true, true) == 0 && SelectSchemaRoot(true, false) == 0 &&
-	       SelectSchemaRoot(false, true) == 1 && SelectSchemaRoot(false, false) == -1;
+	// complete, has schemas, configured has schemas
+	return SelectSchemaRoot(true, true, true) == 0 && SelectSchemaRoot(true, true, false) == 0 &&
+	       // partial build copy: use the configured install when it has schemas
+	       SelectSchemaRoot(false, true, true) == 1 && SelectSchemaRoot(false, false, true) == 1 &&
+	       // only a partial build copy exists: last resort
+	       SelectSchemaRoot(false, true, false) == 0 &&
+	       // nothing anywhere
+	       SelectSchemaRoot(false, false, false) == -1;
+}
+
+/// Manifest entries must be plain schema file names that cannot leave the Schemas folder.
+static bool test_schema_manifest_names()
+{
+	const char* good[] = { "Application.xsd", "Application.xml", "AllFilesFolder.Safe.ico", "A-b_1.ICO" };
+	const char* bad[] = { "", ".hidden.xsd", "..\\evil.xsd", "../evil.xsd", "sub/a.xsd", "C:a.xsd", "a..b.xsd",
+		                  "name with space.xsd", "a.dll", "noext", "caf\xC3\xA9.xsd", "Schemas.manifest" };
+	for (const char* name : good)
+		if (!IsSchemaManifestName(name)) return false;
+	for (const char* name : bad)
+		if (IsSchemaManifestName(name)) return false;
+	return !IsSchemaManifestName(std::string(129, 'a') + ".xsd");
+}
+
+/// Stale, partial and malformed staged folders are never reported as complete.
+static bool test_schema_manifest_completeness()
+{
+	std::set<std::string> present = { "A.xsd", "A.xml", "A.ico", "B.xsd" };
+	const auto exists = [&](const std::string& name) { return present.count(name) != 0; };
+
+	if (!IsSchemaManifestComplete("A.xsd\r\nA.xml\r\nA.ico\r\nB.xsd\r\n", exists)) return false;
+	if (!IsSchemaManifestComplete("\xEF\xBB\xBF" "A.xsd\n\nB.xsd", exists)) return false; // BOM, LF, blank line
+
+	// Partial staging: a listed resource is missing.
+	if (IsSchemaManifestComplete("A.xsd\nA.xml\nC.xsd\n", exists)) return false;
+	present.erase("A.ico");
+	if (IsSchemaManifestComplete("A.xsd\nA.ico\n", exists)) return false;
+
+	// Extra files that the manifest does not list (stale output) do not make the listed set incomplete.
+	present.insert("Removed.xsd");
+	if (!IsSchemaManifestComplete("A.xsd\nB.xsd\n", exists)) return false;
+
+	// Empty or malformed manifests are untrusted, including entries that try to leave the folder.
+	return !IsSchemaManifestComplete("", exists) && !IsSchemaManifestComplete("\r\n\r\n", exists) &&
+	       !IsSchemaManifestComplete("A.xsd\n..\\A.xsd\n", exists) && !IsSchemaManifestComplete("A.xsd\nnotes.txt\n", exists);
+}
+
+/// The project must write the manifest the runtime reads and delete only entries it recorded earlier.
+static bool test_stage_schemas_target_matches_runtime()
+{
+	std::filesystem::path path = find_schema_directory();
+	if (path.empty()) return false;
+	std::ifstream file(path.parent_path() / L"Envy" / L"Envy.vcxproj", std::ios::binary);
+	if (!file) return false;
+	const std::string project((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	const std::wstring wide = GetSchemaManifestName();
+	const std::string name(wide.begin(), wide.end());
+	const std::size_t target = project.find("<Target Name=\"StageSchemas\"");
+	if (target == std::string::npos) return false;
+	const std::string body = project.substr(target, project.find("</Target>", target) - target);
+	const std::size_t read = body.find("<ReadLinesFromFile");
+	const std::size_t del = body.find("<Delete ");
+	const std::size_t copy = body.find("<Copy ");
+	const std::size_t write = body.find("<WriteLinesToFile");
+	return body.find(name) != std::string::npos && read != std::string::npos && read < del && del < copy &&
+	       copy < write && body.find("%(Filename)%(Extension)") != std::string::npos;
 }
 
 #ifdef _WIN32
@@ -345,7 +409,10 @@ void register_schema_icon_resource_tests(TestSuite& suite)
 	suite.add_test("Schema icons: preserve earlier per-size entries", test_schema_icon_preserves_prior_entries);
 	suite.add_test("Schema icons: generic fallback and existing entries", test_schema_icon_generic_and_existing_entries);
 	suite.add_test("Schema icons: invalid draw indices and unavailable lists", test_schema_icon_draw_indices);
-	suite.add_test("Schema icons: staged Schemas folder wins over a stale install path", test_schema_root_selection);
+	suite.add_test("Schema icons: only a complete staged Schemas folder wins over the install path", test_schema_root_selection);
+	suite.add_test("Schema icons: manifest names stay inside the Schemas folder", test_schema_manifest_names);
+	suite.add_test("Schema icons: stale, partial and malformed manifests are incomplete", test_schema_manifest_completeness);
+	suite.add_test("Schema icons: StageSchemas manifest and cleanup match the runtime", test_stage_schemas_target_matches_runtime);
 #ifdef _WIN32
 	suite.add_test("Schema icons: every shipped ICO loads through ExtractIconEx/PrivateExtractIcons", test_schema_icons_load_with_windows);
 	suite.add_test("Schema icons: absent or malformed ICO files yield no handle", test_schema_icons_invalid_files);
