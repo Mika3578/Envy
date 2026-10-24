@@ -1304,12 +1304,15 @@ void CBrowseTreeItem::AddFileIndex(DWORD nIndex)
 	if (m_nFiles >= m_nFileBuffer)
 	{
 		const DWORD nNew = m_nFileBuffer ? (m_nFileBuffer * 2) : 4;
+		if (nNew <= m_nFiles)
+			return;
 		DWORD* pFiles = new DWORD[nNew];
-		if (m_nFiles && m_pFiles)
-			CopyMemory(pFiles, m_pFiles, m_nFiles * sizeof(DWORD));
-		delete[] m_pFiles;
+		DWORD* pOld = m_pFiles;
+		if (m_nFiles && pOld)
+			CopyMemory(pFiles, pOld, m_nFiles * sizeof(DWORD));
 		m_pFiles = pFiles;
 		m_nFileBuffer = nNew;
+		delete[] pOld;
 	}
 	m_pFiles[m_nFiles++] = nIndex;
 }

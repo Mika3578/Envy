@@ -227,14 +227,15 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 	{
 		if ( m_nIndex >= m_nBuffer )
 		{
-			m_nBuffer += 64;
-			HASHDB_INDEX* pNew = new HASHDB_INDEX[ m_nBuffer ];
-			if ( m_pIndex )
-			{
-				if ( m_nIndex ) CopyMemory( pNew, m_pIndex, sizeof( HASHDB_INDEX ) * m_nIndex );
-				delete [] m_pIndex;
-			}
+			// Allocate first so a failed allocation leaves buffer and count consistent.
+			const DWORD nNewBuffer = m_nBuffer + 64;
+			if (nNewBuffer < m_nBuffer || nNewBuffer > MAXDWORD / sizeof(HASHDB_INDEX)) return NULL;
+			HASHDB_INDEX* pNew = new HASHDB_INDEX[nNewBuffer];
+			HASHDB_INDEX* pOld = m_pIndex;
+			if (pOld && m_nIndex) CopyMemory(pNew, pOld, sizeof(HASHDB_INDEX) * m_nIndex);
 			m_pIndex = pNew;
+			m_nBuffer = nNewBuffer;
+			delete[] pOld;
 		}
 
 		pIndex = m_pIndex + m_nIndex++;

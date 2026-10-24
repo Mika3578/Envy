@@ -210,21 +210,22 @@ void CHubHorizonGroup::Add(IN_ADDR* pAddress, WORD nPort)
 		}
 	}
 
-	CHubHorizonHub* pHub = HubHorizonPool.Add( pAddress, nPort );
-	if ( pHub == NULL ) return;
-
+	// Grow the list before taking a pool reference: a failed allocation must
+	// not leave a reference that no group owns.
 	if ( m_nCount == m_nBuffer )
 	{
-		m_nBuffer += 8;
-		CHubHorizonHub** pList = new CHubHorizonHub*[ m_nBuffer ];
-		if ( m_pList )
-		{
-			if ( m_nCount ) CopyMemory( pList, m_pList, sizeof(CHubHorizonHub*) * m_nCount );
-			delete [] m_pList;
-			m_pList = NULL;
-		}
+		const DWORD nNewBuffer = m_nBuffer + 8;
+		if (nNewBuffer < m_nBuffer) return;
+		CHubHorizonHub** pList = new CHubHorizonHub*[nNewBuffer];
+		CHubHorizonHub** pOld = m_pList;
+		if (pOld && m_nCount) CopyMemory(pList, pOld, sizeof(CHubHorizonHub*) * m_nCount);
 		m_pList = pList;
+		m_nBuffer = nNewBuffer;
+		delete[] pOld;
 	}
+
+	CHubHorizonHub* pHub = HubHorizonPool.Add(pAddress, nPort);
+	if (pHub == NULL) return;
 
 	m_pList[ m_nCount++ ] = pHub;
 }

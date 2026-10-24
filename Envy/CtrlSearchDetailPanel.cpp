@@ -764,11 +764,15 @@ BOOL CSearchDetailPanel::CachePreviewImage(const Hashes::Sha1Hash& /*oSHA1*/, LP
 
 	if ( m_pMatches->FileToItem( m_pFile ) != 0xFFFFFFFF )
 	{
-		if ( m_pFile->m_pPreview != NULL ) delete [] m_pFile->m_pPreview;
+		// Build the replacement before releasing the old preview so a failed
+		// allocation cannot leave a dangling m_pPreview.
+		LPBYTE pNew = new BYTE[nBuffer];
+		CopyMemory(pNew, pBuffer, nBuffer);
 
+		LPBYTE pOld = m_pFile->m_pPreview;
+		m_pFile->m_pPreview = pNew;
 		m_pFile->m_nPreview = nBuffer;
-		m_pFile->m_pPreview = new BYTE[ nBuffer ];
-		CopyMemory( m_pFile->m_pPreview, pBuffer, nBuffer );
+		delete[] pOld;
 
 		return TRUE;
 	}
