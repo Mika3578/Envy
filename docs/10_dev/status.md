@@ -56,6 +56,8 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 
 ### ED2K
 
+- Legacy MuleInfo: `CEDClient::SendEmuleInfo` uses a fixed historical `0x50` short-version byte and protocol byte `0x01` independently of Envy's compatible-client ID in `ET_COMPATIBLECLIENT`/modern Hello (`Ed2kMuleInfoWire.h`). This is a semantic separation only; emitted bytes remain unchanged. Live eMule/aMule fallback interoperability still requires #160.
+
 - Handshake, transfer, Source Exchange v1/v2, large-file I64 packets, and many eMule opcodes are present in `Envy/EDClient.cpp` / `Envy/EDPacket.h`.
 - Source Exchange remains **IPv4-only on-wire** (`docs/30_protocols/ed2k/SOURCE_EXCHANGE_INTEROP_NOTES.md`).
 - Capability advertisement rule: Envy must advertise an eMule capability only when it is implemented and tested (`docs/DEVELOPMENT_PLAN.md`). Helpers live in `Envy/Ed2kHelloCapabilities.h` / `Envy/SecureIdentPolicy.h`.
