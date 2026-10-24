@@ -9,7 +9,7 @@
 //
 // Layout of the golden v1 record (little-endian integers):
 //   marker 00 00 00 00 | version 01 00 00 00 | count 01 00 00 00
-//   id 01..10 | IP CB 00 71 05 (203.0.113.5) | UDP 40 12 (4672)
+//   id 01..10 | IP 05 71 00 CB (203.0.113.5, octets reversed) | UDP 40 12 (4672)
 //   TCP 36 12 (4662) | Kad version 08
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
@@ -644,6 +644,16 @@ static bool test_literal_vectors_all_layouts()
 	       ParsesTo(v3n, 192, 0, 2, 77, 40000) && ParsesTo(v3b, 203, 0, 113, 245, 4674);
 }
 
+// Only HostCache.dat archives written before the dotted-quad reader drop their nodes.dat
+// contacts on load; archives from this reader on are kept, so loading the same data again
+// cannot drop or alter corrected entries.
+static bool test_hostcache_reimport_only_before_fix()
+{
+	return KadNodesDatHostCacheNeedsReimport(1) && KadNodesDatHostCacheNeedsReimport(2) &&
+	       KadNodesDatHostCacheNeedsReimport(1000) && !KadNodesDatHostCacheNeedsReimport(3) &&
+	       !KadNodesDatHostCacheNeedsReimport(4);
+}
+
 void register_kad_nodes_dat_tests(TestSuite& suite)
 {
 	suite.add_test("kad_nodes_dat_count_fits", test_count_fits_overflow_and_zero);
@@ -673,6 +683,7 @@ void register_kad_nodes_dat_tests(TestSuite& suite)
 	suite.add_test("kad_nodes_dat_ip_little_endian", test_ip_is_little_endian_host_order);
 	suite.add_test("kad_nodes_dat_ip_policy_dotted_order", test_ip_policy_uses_dotted_order);
 	suite.add_test("kad_nodes_dat_literal_vectors", test_literal_vectors_all_layouts);
+	suite.add_test("kad_nodes_dat_hostcache_reimport_policy", test_hostcache_reimport_only_before_fix);
 }
 
 #ifdef ENVY_KAD_NODES_DAT_STANDALONE
