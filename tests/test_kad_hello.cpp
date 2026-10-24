@@ -194,8 +194,11 @@ bool test_routing_admission_policy()
 	if (!Parse(Body(1, MiscTag(0x01)), h) || KadHelloMayEnterRoutingTable(h))
 		return false;
 	// TCP-firewalled only and the request-ACK bit do not keep a contact out.
-	return Parse(Body(1, MiscTag(0x06)), h) && KadHelloMayEnterRoutingTable(h) && Parse(Body(0, {}), h) &&
-	       KadHelloMayEnterRoutingTable(h);
+	if (!Parse(Body(1, MiscTag(0x06)), h) || !KadHelloMayEnterRoutingTable(h))
+		return false;
+	// No options tag at all: admitted.
+	KadHello plain;
+	return Parse(Body(0, {}), plain) && KadHelloMayEnterRoutingTable(plain);
 }
 
 bool test_register_before_send_and_cancel_on_failure()
