@@ -274,6 +274,13 @@ private:
 	void CollectFirewallCheckCandidates(KadFwPeerCandidate* out, size_t outMax, size_t& outCount) const;
 	KadFirewallCheck m_firewall;
 	KadInboundLimiter m_inboundLimiter;
+	// Aggregate HELLO diagnostics (counts only), logged once a minute by LogHelloStatus().
+	uint32_t m_helloReqSent = 0, m_helloSendFailed = 0;
+	uint32_t m_helloResReceived = 0, m_helloResVerified = 0, m_helloResRefused = 0;
+	uint32_t m_helloResUnsolicited = 0, m_helloResMalformed = 0;
+	uint32_t m_helloReqReceived = 0, m_helloReqLimited = 0, m_helloReqMalformed = 0;
+	DWORD m_lastHelloStatusLog = 0;
+	void LogHelloStatus();
 	WORD m_lastFirewallTcpPort;
 };
 
