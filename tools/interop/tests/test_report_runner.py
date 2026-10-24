@@ -286,6 +286,12 @@ class EvidenceExtractorTests(unittest.TestCase):
         # A BLOB tag is delimited and accepted.
         blob = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8, 1, 0x07, 1, 0, 0x41, 2, 0, 0, 0, 9, 9])
         self.assertNotIn("parse_error", extract_kad_udp_frames(blob, single_datagram=True)[0].details)
+        # An ID that happens to contain E4 11 stays inside its HELLO frame in a multi-frame blob.
+        tricky_id = b"\x01" * 6 + bytes([0xE4, 0x11]) + b"\x02" * 8
+        two = bytes([0xE4, 0x11]) + tricky_id + struct.pack("<H", 4662) + bytes([8, 0]) + bytes([0xE4, 0x60])
+        frames = extract_kad_udp_frames(two)
+        self.assertEqual([h.label for h in frames], ["kad_hello_req", "kad_ping"])
+        self.assertNotIn("parse_error", frames[0].details)
         # A two-byte PING is valid; a PONG needs the observed port.
         ping = extract_kad_udp_frames(bytes([0xE4, 0x60]), single_datagram=True)
         self.assertEqual(ping[0].label, "kad_ping")
