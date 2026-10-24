@@ -739,11 +739,14 @@ void CKademlia::OnFindNodeResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	m_routingTable.ObserveAliveByEndpoint(ntohl(pHost->sin_addr.s_addr), ntohs(pHost->sin_port), KadNowMs());
 }
 
+// True only when the datagram layer accepted the packet and the socket reported the whole
+// datagram sent (construction of the packet is the caller's, and its failure never reaches here).
 bool CKademlia::SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
 	if (!pHost || !pPacket) return false;
 
-	return Datagrams.Send(pHost, pPacket, FALSE) != FALSE;
+	BOOL bSocketSent = FALSE;
+	return Datagrams.Send(pHost, pPacket, FALSE, NULL, TRUE, &bSocketSent) != FALSE && bSocketSent != FALSE;
 }
 
 bool CKademlia::UpdateContact(const KadContact& contact, KadContactSource source, bool markVerified)
@@ -831,10 +834,11 @@ void CKademlia::OnHelloRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	KadContact contact;
 	memcpy(contact.id, hello.id, KAD_ID_SIZE);
 	contact.ip = ntohl(pHost->sin_addr.s_addr);
-	contact.udpPort = hello.udpPort ? hello.udpPort : ntohs(pHost->sin_port);
 	contact.tcpPort = hello.tcpPort;
 	contact.version = hello.version;
-	UpdateContact(contact, KadContactSource::Candidate, false);
+	contact.udpPort = KadHelloContactUdpPort(hello, ntohs(pHost->sin_port));
+	if (KadHelloMayEnterRoutingTable(hello))
+		UpdateContact(contact, KadContactSource::Candidate, false);
 
 	SendHelloResponse(pHost);
 }
@@ -863,9 +867,13 @@ void CKademlia::OnHelloResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	memcpy(contact.id, hello.id, KAD_ID_SIZE);
 	contact.ip = ntohl(pHost->sin_addr.s_addr);
 	contact.tcpPort = hello.tcpPort;
-	contact.udpPort = ntohs(pHost->sin_port);
+	contact.udpPort = KadHelloContactUdpPort(hello, ntohs(pHost->sin_port));
 	contact.version = hello.version;
 	contact.lastSeen = KadNowMs();
+
+	// A contact that reports itself UDP firewalled is neither added nor verified.
+	if (!KadHelloMayEnterRoutingTable(hello))
+		return;
 
 	// HELLO_RES is the event that marks a contact IP-verified.
 	if (UpdateContact(contact, KadContactSource::Observed, true))
@@ -890,10 +898,15 @@ void CKademlia::SendHelloRequest(const SOCKADDR_IN* pTarget)
 		return;
 	}
 
-	// Register before sending so a fast HELLO_RES cannot arrive unmatched.
-	const DWORD requestId = AddOutstandingRequest(KAD_REQUEST_HELLO, *pTarget);
-	if (!SendPacket(pTarget, pPacket))
-		RemoveOutstandingRequest(requestId);
+	// Register before sending so a fast HELLO_RES cannot arrive unmatched, and withdraw the
+	// entry if the datagram did not go out so no request is left waiting for a reply.
+	KadSendRegistered(
+	    [&]
+	    { return AddOutstandingRequest(KAD_REQUEST_HELLO, *pTarget); },
+	    [&](DWORD requestId)
+	    { RemoveOutstandingRequest(requestId); },
+	    [&]
+	    { return SendPacket(pTarget, pPacket); });
 	pPacket->Release();
 }
 
