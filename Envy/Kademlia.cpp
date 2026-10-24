@@ -57,6 +57,21 @@ CKademlia::CKademlia()
     : m_bInitialized(false)
     , m_lastBootstrapTime(0)
     , m_lastTimerCall(0)
+    , m_lastStatusLog(0)
+    , m_bootstrapCached(0)
+    , m_bootstrapDeferred(0)
+    , m_bootstrapInvalid(0)
+    , m_bootstrapSent(0)
+    , m_bootstrapTimeouts(0)
+    , m_bootstrapResponses(0)
+    , m_bootstrapAccepted(0)
+    , m_bootstrapMalformed(0)
+    , m_bootstrapPartial(0)
+    , m_bootstrapRejected(0)
+    , m_bootstrapContactsRefused(0)
+    , m_bootstrapSendFailed(0)
+    , m_bootstrapBlocked(0)
+    , m_sourceNoContacts(0)
     , m_lastRateLimitCleanup(0)
     , m_lastStoreCleanup(0)
     , m_lastFirewallTcpPort(0)
@@ -84,8 +99,16 @@ bool CKademlia::Init()
 	}
 
 	m_bInitialized = true;
-	m_lastBootstrapTime = 0;
 	m_lastTimerCall = GetTickCount();
+	m_lastBootstrapTime = 0;
+	m_lastStatusLog = m_lastTimerCall - 60000u;
+	m_bootstrapRotation.Reset();
+	m_bootstrapCached = m_bootstrapDeferred = m_bootstrapInvalid = 0;
+	m_bootstrapSent = m_bootstrapTimeouts = m_bootstrapResponses = 0;
+	m_bootstrapAccepted = m_bootstrapMalformed = m_bootstrapPartial = 0;
+	m_bootstrapRejected = m_bootstrapContactsRefused = 0;
+	m_bootstrapSendFailed = m_bootstrapBlocked = 0;
+	m_sourceNoContacts = 0;
 	m_lastFirewallTcpPort = (WORD)Settings.Connection.InPort;
 	m_firewall.OnKadStart(m_lastTimerCall, m_lastFirewallTcpPort);
 
@@ -105,6 +128,8 @@ void CKademlia::Stop()
 	if (!m_bInitialized) return;
 
 	m_bInitialized = false;
+	m_outstandingRequests.clear();
+	m_bootstrapRotation.Reset();
 	memset(m_ownId, 0, KAD_ID_SIZE);
 	m_firewall.OnKadStop();
 	m_lastFirewallTcpPort = 0;
@@ -135,71 +160,87 @@ void CKademlia::GenerateOwnKadId()
 
 void CKademlia::Bootstrap()
 {
-	if (!m_bInitialized) return;
-
-	DWORD now = GetTickCount();
-	if (now - m_lastBootstrapTime < 30000)
-	{ // Don't bootstrap more than once every 30 seconds
+	if (!m_bInitialized)
 		return;
-	}
+
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	const uint64_t now = KadNowMs();
+	// OnTimer is driven by CMainWnd::OnTimer, which counts whole seconds and
+	// requires `tNow > tLast5SecInterval + 5`: it runs once per six one-second
+	// timer ticks, about every 6 s and never closer than 5 s, so the 5 s cold-start
+	// spacing below does not bind on that path and only holds back the discrete
+	// ConnectTo(PROTOCOL_KAD) entry; the 30 s spacing used once the table holds
+	// contacts does bind. What bounds the sustained cold-start rate is the
+	// budget: nine usable slots, each held for the 30 s request timeout, about
+	// 0.25-0.30 requests/s against silent peers. The references send one request
+	// every 2 s while the routing table is empty, so Envy is slower.
+	const bool bColdStart = m_routingTable.GetTotalContacts() == 0;
+	if (m_lastBootstrapTime != 0 && now - m_lastBootstrapTime < (bColdStart ? 5000u : 30000u))
+		return;
 
 	m_lastBootstrapTime = now;
+	CleanupExpiredRequests();
 
-	// Get bootstrap contacts from host cache
-	std::vector<KadContact> bootstrapContacts;
-	int contactsFound = 0;
-
-	// Import from host cache
-	for (CHostCacheIterator it = HostCache.Kademlia.Begin(); it != HostCache.Kademlia.End() && contactsFound < 20; ++it)
+	// Snapshot under the host-cache lock: callers must never retain cache
+	// pointers after releasing it, since import/pruning can remove entries.
+	std::vector<KadContact> candidates;
 	{
-		CHostCacheHostPtr pHost = *it;
-		if (pHost && pHost->m_pAddress.s_addr != INADDR_ANY)
+		CQuickLock cacheLock(HostCache.Kademlia.m_pSection);
+		for (CHostCacheIterator it = HostCache.Kademlia.Begin(); it != HostCache.Kademlia.End(); ++it)
 		{
+			CHostCacheHostPtr pHost = *it;
+			if (!pHost || pHost->m_pAddress.s_addr == INADDR_ANY)
+				continue;
+
 			KadContact contact;
 			memcpy(contact.id, &pHost->m_oGUID, KAD_ID_SIZE);
-			contact.ip = ntohl(pHost->m_pAddress.s_addr); // Convert network order to host order
+			contact.ip = ntohl(pHost->m_pAddress.s_addr);
 			contact.udpPort = pHost->m_nUDPPort ? pHost->m_nUDPPort : pHost->m_nPort;
 			contact.tcpPort = pHost->m_nPort;
-			contact.verified = FALSE;
 			contact.version = pHost->m_nKADVersion;
-
-			bootstrapContacts.push_back(contact);
-			contactsFound++;
+			candidates.push_back(contact);
 		}
 	}
 
-	if (bootstrapContacts.empty())
+	m_bootstrapCached = static_cast<uint32_t>(candidates.size());
+
+	// Bound the batch by the free budget BEFORE selecting, keeping one slot for
+	// other Kad traffic. Selecting first advanced the rotation cursor past
+	// candidates that the budget then refused to send; they stayed untried until
+	// the cursor wrapped the whole cache.
+	const size_t nLimit = KadBootstrapBatchLimit(
+	    bColdStart ? KadBootstrapRotation::MaxColdStartBatch : KadBootstrapRotation::MaxBatch,
+	    m_outstandingRequests.size(), KAD2_MAX_OUTSTANDING_REQUESTS);
+	if (nLimit == 0)
 	{
-		theApp.Message(MSG_DEBUG, L"Kad2: No bootstrap contacts found in host cache");
+		++m_bootstrapBlocked;
 		return;
 	}
 
-	theApp.Message(MSG_DEBUG, L"Kad2: Bootstrapping with %d contacts", bootstrapContacts.size());
+	const KadBootstrapRotation::Batch batch = m_bootstrapRotation.Select(candidates, now, nLimit);
+	m_bootstrapDeferred = static_cast<uint32_t>(batch.deferred);
+	m_bootstrapInvalid = static_cast<uint32_t>(batch.invalid);
 
-	// Send bootstrap requests to first few contacts
-	int bootstrapRequestsSent = 0;
-	int findNodeRequestsSent = 0;
-
-	for (const auto& contact : bootstrapContacts)
-	{
-		if (bootstrapRequestsSent < 5)
-		{ // Bootstrap with up to 5 nodes initially
-			SendBootstrapRequest(contact);
-			bootstrapRequestsSent++;
-		}
-
-		// Also send some find node requests to build routing table
-		if (findNodeRequestsSent < 3)
-		{
-			SendFindNodeRequest(contact);
-			findNodeRequestsSent++;
-		}
-	}
+	// A candidate is marked in flight only once a request is actually sent.
+	for (const KadContact& contact : batch.contacts)
+		SendBootstrapRequest(contact);
+	// Initial FIND_NODE is deferred until usable contacts are learned.
+	// This avoids simultaneous bootstrap/FIND_NODE bursts to unknown peers.
 }
 
 void CKademlia::SendBootstrapRequest(const KadContact& contact)
 {
 	if (!m_bInitialized) return;
+
+	sockaddr_in addr;
+	KadContactGetSockAddr(contact, addr);
+	// Same address policy as UpdateContact and Datagrams::Send: a blocked endpoint
+	// is never registered as in flight only to time out on every pass.
+	if (Security.IsDenied(&addr.sin_addr))
+	{
+		++m_bootstrapInvalid;
+		return;
+	}
 
 	// Create bootstrap request packet - empty body as per eMule spec
 	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_BOOTSTRAP_REQ, ED2K_PROTOCOL_KAD);
@@ -208,14 +249,24 @@ void CKademlia::SendBootstrapRequest(const KadContact& contact)
 	// BOOTSTRAP_REQ has empty body according to eMule spec
 
 	// Send packet and track the request
-	sockaddr_in addr;
-	KadContactGetSockAddr(contact, addr);
-	DWORD requestId = AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, addr);
-
-	theApp.Message(MSG_DEBUG, L"Kad2: Sent bootstrap request to %s (ID: %u)",
-	               (LPCTSTR)CString(inet_ntoa(addr.sin_addr)), requestId);
-
-	SendPacket(&addr, pPacket);
+	const DWORD requestId = AddOutstandingRequest(KAD_REQUEST_BOOTSTRAP, addr);
+	if (requestId == 0)
+	{
+		pPacket->Release();
+		return;
+	}
+	if (SendPacket(&addr, pPacket))
+	{
+		++m_bootstrapSent;
+	}
+	else
+	{
+		// The datagram layer refused it (no usable UDP socket yet). Nothing left the
+		// machine, so withdraw the registration without charging the peer a timeout
+		// or a backoff: RemoveOutstandingRequest cancels correlation only.
+		RemoveOutstandingRequest(requestId);
+		++m_bootstrapSendFailed;
+	}
 	pPacket->Release();
 }
 
@@ -459,76 +510,7 @@ void CKademlia::OnBootstrapRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	// Don't add requester to routing table - we don't have their ID from empty request
 }
 
-void CKademlia::OnBootstrapResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
-{
-	// Check if this response matches an outstanding request
-	if (!IsRequestOutstanding(0, KAD_REQUEST_BOOTSTRAP, *pHost))
-	{
-		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring unsolicited bootstrap response from %s",
-		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
-		return;
-	}
-
-	theApp.Message(MSG_DEBUG, L"Kad2: Bootstrap response from %s (accepted)",
-	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
-
-	// Minimum size check: MyKadID(16) + TCPPort(2) + KadVersion(1) + Count(2)
-	if (pPacket->GetRemaining() < (KAD_ID_SIZE + 2 + 1 + 2))
-	{
-		theApp.Message(MSG_DEBUG, L"Kad2: Bootstrap response too small");
-		return;
-	}
-
-	// Read responder's node ID (16 bytes)
-	if (pPacket->GetRemaining() < KAD_ID_SIZE) return;
-	KadId responderId;
-	pPacket->Read(responderId, KAD_ID_SIZE);
-
-	// Read responder's TCP port (2 bytes)
-	WORD responderTcpPort = pPacket->ReadShortLE();
-
-	// Read Kad version (1 byte)
-	BYTE responderKadVersion = pPacket->ReadByte();
-
-	// Read contact count (2 bytes)
-	WORD contactCount = pPacket->ReadShortLE();
-
-	// Sanity check on contact count
-	if (contactCount > 100)
-	{
-		theApp.Message(MSG_DEBUG, L"Kad2: Bootstrap response has too many contacts (%d)", contactCount);
-		return;
-	}
-
-	// Read contacts: each <ID(16)><IP(4)><UDP(2)><TCP(2)><Ver(1)>
-	int contactsAdded = 0;
-	for (WORD i = 0; i < contactCount; i++)
-	{
-		if (pPacket->GetRemaining() < (KAD_ID_SIZE + 4 + 2 + 2 + 1)) break;
-
-		KadContact contact;
-		if (pPacket->GetRemaining() < KAD_ID_SIZE) break;
-		pPacket->Read(contact.id, KAD_ID_SIZE);
-		contact.ip = pPacket->ReadLongLE(); // eMule stores IP in host order LE in payload
-		contact.udpPort = pPacket->ReadShortLE();
-		contact.tcpPort = pPacket->ReadShortLE();
-		contact.version = pPacket->ReadByte();
-		contact.verified = false;
-
-		if (UpdateContact(contact, KadContactSource::Candidate, false))
-		{
-			contactsAdded++;
-		}
-	}
-
-	theApp.Message(MSG_DEBUG, L"Kad2: Bootstrap response added %d contacts", contactsAdded);
-
-	// Add responder to routing table
-	KadContact responderContact(responderId, ntohl(pHost->sin_addr.s_addr), // Convert to host order
-	                            ntohs(pHost->sin_port), responderTcpPort);
-	responderContact.version = responderKadVersion;
-	UpdateContact(responderContact, KadContactSource::Observed, false);
-}
+#include "KademliaBootstrap.inl"
 
 void CKademlia::OnPing(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
@@ -729,11 +711,11 @@ void CKademlia::OnFindNodeResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	m_routingTable.ObserveAliveByEndpoint(ntohl(pHost->sin_addr.s_addr), ntohs(pHost->sin_port), KadNowMs());
 }
 
-void CKademlia::SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+BOOL CKademlia::SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 {
-	if (!pHost || !pPacket) return;
+	if (!pHost || !pPacket) return FALSE;
 
-	Datagrams.Send(pHost, pPacket, FALSE);
+	return Datagrams.Send(pHost, pPacket, FALSE);
 }
 
 bool CKademlia::UpdateContact(const KadContact& contact, KadContactSource source, bool markVerified)
@@ -796,8 +778,19 @@ void CKademlia::MarkContactVerified(const KadId& id)
 
 void CKademlia::LogKadStatus()
 {
-	size_t contactCount = m_routingTable.GetTotalContacts();
-	theApp.Message(MSG_DEBUG, L"Kad2: Routing table has %d contacts", contactCount);
+	const DWORD now = GetTickCount();
+	if (now - m_lastStatusLog < 60000u)
+		return;
+	m_lastStatusLog = now;
+	theApp.Message(MSG_DEBUG,
+	               L"Kad2 status: routing=%u cached=%u deferred=%u invalid=%u sent=%u timed_out=%u valid_responses=%u partial=%u accepted_contacts=%u malformed=%u rejected=%u contacts_refused=%u send_failed=%u budget_blocked=%u source_no_contacts=%u",
+	               (unsigned)m_routingTable.GetTotalContacts(), m_bootstrapCached,
+	               m_bootstrapDeferred, m_bootstrapInvalid, m_bootstrapSent,
+	               m_bootstrapTimeouts, m_bootstrapResponses, m_bootstrapPartial,
+	               m_bootstrapAccepted, m_bootstrapMalformed, m_bootstrapRejected, m_bootstrapContactsRefused,
+	               m_bootstrapSendFailed, m_bootstrapBlocked, m_sourceNoContacts);
+	if (m_bootstrapSent > 0 && m_bootstrapResponses == 0 && m_bootstrapPartial == 0)
+		theApp.Message(MSG_DEBUG, L"Kad2: UDP bootstrap response not yet validated; reachability/obfuscation undetermined");
 }
 
 void CKademlia::OnHelloRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
@@ -978,105 +971,6 @@ void CKademlia::CleanupRateLimitMap()
 }
 
 // Request tracking implementation
-DWORD CKademlia::AddOutstandingRequest(KadRequestType type, const SOCKADDR_IN& targetAddr)
-{
-	// Simple request ID generation - use a counter for now
-	static DWORD nextRequestId = 1;
-	DWORD requestId = nextRequestId++;
-
-	// Clean up expired requests first
-	CleanupExpiredRequests();
-
-	// Don't allow too many outstanding requests
-	if (m_outstandingRequests.size() >= KAD2_MAX_OUTSTANDING_REQUESTS)
-	{
-		// Remove oldest request
-		auto oldest = m_outstandingRequests.begin();
-		for (auto it = m_outstandingRequests.begin(); it != m_outstandingRequests.end(); ++it)
-		{
-			if (it->second.sentTime < oldest->second.sentTime)
-			{
-				oldest = it;
-			}
-		}
-		m_outstandingRequests.erase(oldest);
-	}
-
-	m_outstandingRequests[requestId] = KadOutstandingRequest(type, targetAddr);
-	return requestId;
-}
-
-DWORD CKademlia::AddOutstandingRequest(KadRequestType type, const SOCKADDR_IN& targetAddr, const KadId& kadTarget)
-{
-	DWORD requestId = AddOutstandingRequest(type, targetAddr);
-	auto it = m_outstandingRequests.find(requestId);
-	if (it != m_outstandingRequests.end())
-	{
-		memcpy(it->second.targetId, kadTarget, KAD_ID_SIZE);
-		it->second.hasTargetId = true;
-	}
-	return requestId;
-}
-
-bool CKademlia::IsRequestOutstanding(DWORD requestId, KadRequestType expectedType, const SOCKADDR_IN& fromAddr)
-{
-	return MatchOutstandingRequest(requestId, expectedType, fromAddr, nullptr);
-}
-
-bool CKademlia::IsRequestOutstanding(DWORD requestId, KadRequestType expectedType, const SOCKADDR_IN& fromAddr, const KadId& kadTarget)
-{
-	return MatchOutstandingRequest(requestId, expectedType, fromAddr, kadTarget);
-}
-
-bool CKademlia::MatchOutstandingRequest(DWORD requestId, KadRequestType expectedType, const SOCKADDR_IN& fromAddr, const unsigned char* targetId)
-{
-	(void)requestId;
-	auto it = m_outstandingRequests.begin();
-	while (it != m_outstandingRequests.end())
-	{
-		if (it->second.targetAddr.sin_addr.s_addr == fromAddr.sin_addr.s_addr &&
-		    it->second.targetAddr.sin_port == fromAddr.sin_port &&
-		    it->second.type == expectedType)
-		{
-			if (targetId != nullptr)
-			{
-				if (!it->second.hasTargetId || memcmp(it->second.targetId, targetId, KAD_ID_SIZE) != 0)
-				{
-					++it;
-					continue;
-				}
-			}
-			m_outstandingRequests.erase(it);
-			return true;
-		}
-		++it;
-	}
-
-	return false;
-}
-
-void CKademlia::RemoveOutstandingRequest(DWORD requestId)
-{
-	m_outstandingRequests.erase(requestId);
-}
-
-void CKademlia::CleanupExpiredRequests()
-{
-	DWORD now = GetTickCount();
-	auto it = m_outstandingRequests.begin();
-
-	while (it != m_outstandingRequests.end())
-	{
-		if (now - it->second.sentTime > KAD2_REQUEST_TIMEOUT)
-		{
-			it = m_outstandingRequests.erase(it);
-		}
-		else
-		{
-			++it;
-		}
-	}
-}
 
 //////////////////////////////////////////////////////////////////////
 // DHT Storage
@@ -1459,7 +1353,7 @@ void CKademlia::SearchSource(const KadId& fileHash, QWORD nFileSize)
 
 	if (closest.empty())
 	{
-		theApp.Message(MSG_DEBUG, L"Kad2: No contacts for source search");
+		++m_sourceNoContacts;
 		return;
 	}
 
