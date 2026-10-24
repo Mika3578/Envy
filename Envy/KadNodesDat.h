@@ -64,14 +64,6 @@ inline bool KadNodesDatHostCacheNeedsReimport(int nArchiveVersion)
 	return nArchiveVersion < KadNodesDatHostCacheFixedVersion || nArchiveVersion == 1000;
 }
 
-// After a load that dropped contacts, nodes.dat must be imported even if Kad entries without
-// an ID (catalogue or manually added hosts) keep the list non-empty: the next save writes the
-// fixed version, so a skipped import would never be retried.
-inline bool KadNodesDatHostCacheMustImport(bool bKadListEmpty, int nDroppedContacts)
-{
-	return bKadListEmpty || nDroppedContacts > 0;
-}
-
 constexpr uint32_t KadNodesDatRecordBytesV0 = 25u;
 constexpr uint32_t KadNodesDatRecordBytesV1 = 25u;
 constexpr uint32_t KadNodesDatRecordBytesV2 = 34u;

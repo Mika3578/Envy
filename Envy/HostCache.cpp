@@ -79,6 +79,8 @@ void CHostCache::Clear()
 
 BOOL CHostCache::Load()
 {
+	m_nKadDropped = 0;
+
 	const CString strFile = Settings.General.DataPath + L"HostCache.dat";
 
 	BOOL bResult = FALSE;
@@ -118,12 +120,15 @@ BOOL CHostCache::Load()
 		}
 	}
 
+	// Restore migrated contacts after closing the archive, even if ID-less hosts remain.
+	if (m_nKadDropped > 0)
+		ImportKadNodes();
+
 	if ( Gnutella2.IsEmpty() )	CheckMinimumServers( PROTOCOL_G2 );
 	if ( Gnutella1.IsEmpty() )	CheckMinimumServers( PROTOCOL_G1 );
 	if ( eDonkey.IsEmpty() )	CheckMinimumServers( PROTOCOL_ED2K );
 	if ( BitTorrent.IsEmpty() )	CheckMinimumServers( PROTOCOL_BT );
-	if (KadNodesDatHostCacheMustImport(Kademlia.IsEmpty(), m_nKadDropped))
-		CheckMinimumServers(PROTOCOL_KAD, m_nKadDropped > 0);
+	if ( Kademlia.IsEmpty() )	CheckMinimumServers( PROTOCOL_KAD );
 	if ( DC.IsEmpty() )			CheckMinimumServers( PROTOCOL_DC );
 
 	if ( ! bResult )
@@ -1248,42 +1253,45 @@ bool CHostCache::EnoughServers(PROTOCOLID nProtocol) const
 	}
 }
 
+void CHostCache::ImportKadNodes()
+{
+	Import(Settings.General.DataPath + L"nodes.dat", FALSE);
+
+	const static LPCTSTR sNodesDatPaths[4] = {
+		{ L"\\eMule\\config\\nodes.dat" },
+		{ L"\\eMule\\nodes.dat" },
+		{ L"\\aMule\\config\\nodes.dat" },
+		{ L"\\aMule\\nodes.dat" }
+	};
+	CString strKadRoots[4] = {
+		theApp.GetProgramFilesFolder(),
+		theApp.GetProgramFilesFolder64(),
+		theApp.GetLocalAppDataFolder(),
+		theApp.GetAppDataFolder()
+	};
+	for (int i = 0; i < _countof(strKadRoots); ++i)
+	{
+		for (int j = 0; j < _countof(sNodesDatPaths); ++j)
+			Import(strKadRoots[i] + sNodesDatPaths[j], TRUE);
+	}
+}
+
 //////////////////////////////////////////////////////////////////////
 // CHostCache Check Minimum Servers
 
-bool CHostCache::CheckMinimumServers(PROTOCOLID nProtocol, bool bForceImport)
+bool CHostCache::CheckMinimumServers(PROTOCOLID nProtocol)
 {
 	if ( nProtocol != PROTOCOL_G2 && Settings.Experimental.LAN_Mode )
 		return true;
 
-	if (!bForceImport && EnoughServers(nProtocol))
+	if (EnoughServers(nProtocol))
 		return true;
 
 	// Load default server list (if necessary)
 	LoadDefaultServers( nProtocol );
 
 	if (nProtocol == PROTOCOL_KAD)
-	{
-		Import(Settings.General.DataPath + L"nodes.dat", FALSE);
-
-		const static LPCTSTR sNodesDatPaths[4] = {
-			{ L"\\eMule\\config\\nodes.dat" },
-			{ L"\\eMule\\nodes.dat" },
-			{ L"\\aMule\\config\\nodes.dat" },
-			{ L"\\aMule\\nodes.dat" }
-		};
-		CString strKadRoots[4] = {
-			theApp.GetProgramFilesFolder(),
-			theApp.GetProgramFilesFolder64(),
-			theApp.GetLocalAppDataFolder(),
-			theApp.GetAppDataFolder()
-		};
-		for (int i = 0; i < _countof(strKadRoots); ++i)
-		{
-			for (int j = 0; j < _countof(sNodesDatPaths); ++j)
-				Import(strKadRoots[i] + sNodesDatPaths[j], TRUE);
-		}
-	}
+		ImportKadNodes();
 
 	// Get the server list from local eMule/mods if possible
 	if ( nProtocol == PROTOCOL_ED2K )
