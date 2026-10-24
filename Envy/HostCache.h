@@ -363,7 +363,7 @@ protected:
 	CList< CHostCacheList* >	m_pList;
 	mutable CCriticalSection	m_pSection;
 	//DWORD		m_tLastPruneTime;	// Using static
-	int			m_nKadDropped;		// Kad contacts the last load dropped from an older archive
+	int m_nKadDropped = 0; // Kad contacts the last load dropped from an older archive
 
 	void		Serialize(CArchive& ar);
 	int			LoadDefaultServers(PROTOCOLID nProtocol);

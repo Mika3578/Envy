@@ -55,7 +55,6 @@ CHostCache::CHostCache()
 	, Kademlia	( PROTOCOL_KAD )
 	, DC		( PROTOCOL_DC )
 //	, m_tLastPruneTime ( 0 )	// Using static
-	, m_nKadDropped(0)
 {
 	m_pList.AddTail( &Gnutella1 );
 	m_pList.AddTail( &Gnutella2 );
