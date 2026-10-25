@@ -18,6 +18,7 @@ from extract_thex_test_methods import extract
 
 
 HARNESS = r'''
+#undef NDEBUG  // the checks below call the code under test
 #include "KadNodesDat.h"
 #include <algorithm>
 #include <array>
@@ -47,7 +48,7 @@ struct {
 template<class T, size_t N> constexpr int _countof(const T (&)[N]) { return N; }
 struct CException { void Delete() {} };
 int archiveVersion = 2;
-bool lanMode = false, archiveAvailable = true, archiveOpen = false, fileOpen = false;
+bool lanMode = false, archiveAvailable = true, archiveOpen = false, fileOpen = false, closeFails = false;
 int lockDepth = 0;
 struct CQuickLock {
     explicit CQuickLock(int&) { ++lockDepth; }
@@ -62,8 +63,12 @@ struct CFile {
 struct CArchive {
     enum { load };
     CArchive(CFile*, int, int) { archiveOpen = true; }
-    void Close() { archiveOpen = false; }
-    void Abort() { Close(); }
+    void Close() {
+        archiveOpen = false;
+        if (closeFails)
+            throw new CException;
+    }
+    void Abort() { archiveOpen = false; }
 };
 struct Host {
     std::array<uint8_t, 16> m_oGUID{};
@@ -165,6 +170,15 @@ int main(int argc, char** argv) {
     archiveAvailable = false;
     assert(!cache.Load());
     assert(cache.imports == imported); // A failed reload must not reuse the drop count.
+
+    // Serialize succeeds but closing the archive throws: Load fails and must not
+    // import or persist anything, even though contacts were dropped in memory.
+    archiveAvailable = true;
+    closeFails = true;
+    CHostCache failing;
+    assert(!failing.Load());
+    assert(failing.imports == 0 && failing.minimumChecks == 0);
+    closeFails = false;
     std::cout << "PASS archive=" << archiveVersion << " LAN=" << lanMode << '\n';
 }
 '''
@@ -173,7 +187,7 @@ int main(int argc, char** argv) {
 class HostCacheLoadTests(unittest.TestCase):
     def test_reimport_with_idless_host(self):
         root = Path(__file__).resolve().parent.parent
-        source = (root / "Envy/HostCache.cpp").read_bytes().decode("latin1")
+        source = (root / "Envy/HostCache.cpp").read_bytes().decode("latin1").replace("\r\n", "\n")
         methods = [extract(source, signature)[0] for signature in (
             "BOOL CHostCache::Load()",
             "int CHostCacheList::RemoveNodesDatContacts()",

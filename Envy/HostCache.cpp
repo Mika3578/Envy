@@ -121,7 +121,8 @@ BOOL CHostCache::Load()
 	}
 
 	// Restore migrated contacts after closing the archive, even if ID-less hosts remain.
-	if (m_nKadDropped > 0)
+	// A failed load (including a failed close) must not import and persist a version 3 cache.
+	if (bResult && m_nKadDropped > 0)
 		ImportKadNodes();
 
 	if ( Gnutella2.IsEmpty() )	CheckMinimumServers( PROTOCOL_G2 );
