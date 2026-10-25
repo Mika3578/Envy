@@ -280,7 +280,7 @@ When the #160 eMule/aMule harness lands, add opt-in scenarios:
 
 ### Storage Format
 
-**eMule/aMule:** IPs stored in network byte order in packets, converted to host order when reading
+**eMule/aMule:** IPs are host-order integers, little-endian in packets and in `nodes.dat`, so the bytes on the wire and on disk are the dotted-quad octets reversed
 **Envy:** IPs stored in host order in `KadContact.ip` (first octet in the high byte), converted to network order in `KadContactGetSockAddr()` (`Envy/Kademlia.h`)
 
 **Packet Payload:**
@@ -321,12 +321,14 @@ When the #160 eMule/aMule harness lands, add opt-in scenarios:
 - v2 UDP-key / verified fields are parsed then discarded (no runtime UDP-key protocol)
 - v3 bootstrap edition selects at most 50 XOR-closest valid contacts (also `/24` cap 2)
 - Normal files import at most 200 accepted contacts into `HostCache.Kademlia`
-- Parser tests: `tests/test_kad_nodes_dat.cpp`
-- Remote HTTP download of `https://upd.emule-security.org/nodes.dat` is **not** wired
+- Parser tests: `tests/test_kad_nodes_dat.cpp`; mixed-contact host-cache recovery: `python3 tests/test_hostcache_load.py` (compiles production load/removal methods with archive adapters)
+- When no usable local contact remains, a validated HTTPS `K` row of `Data/DefaultServices.dat` (`https://upd.emule-security.org/nodes.dat`) is downloaded and imported through the same parser
 
 Endianness (from eMule `WriteUInt32(GetIPAddress())` / `ReadUInt32`+`ntohl`, aMule ports):
 - Header integers and ports: little-endian
-- IPv4 field: four network-order octets (`203.0.113.5` = `CB 00 71 05`)
+- IPv4 field: a host-order uint32 written little-endian, so the file carries the dotted-quad octets reversed (`203.0.113.5` = `05 71 00 CB`). After `ReadUInt32`, eMule byte-swaps it with `ntohl` before its address checks and aMule with `wxUINT32_SWAP_ALWAYS`. Envy reverses the four bytes in `KadNodesDatReadOneContact` so `KadNodesDatContact::ip` holds the dotted-quad order; `CHostCache::ImportNodes` stores those octets as an `IN_ADDR` (network order), `CKademlia::Bootstrap` converts it with `ntohl` to `KadContact::ip` (first octet in the high byte, the order aMule calls Kad order), and `KadContactGetSockAddr` converts back with `htonl` for the UDP send.
+- Checked on a public bootstrap `nodes.dat` (184 v2 records) with a coarse heuristic, not Envy's address policy: read this way, 3 records have a first octet below 11 or above 223; read in file order, 31 do. Earlier Envy builds used file order, so Kad entries they imported from `nodes.dat` hold reversed addresses and could not reach the intended contacts.
+- Recovery of those entries: `HostCache.dat` archive version 3 marks the corrected order. When `CHostCache` loads an older archive (version 1, 2 or the legacy 1000 format), it drops the Kad entries that carry a Kad ID, which only `ImportNodes` sets, and leaves every other network and Kad entries without an ID untouched. `CHostCache::Load` then imports `nodes.dat` again through the corrected reader, also when Kad entries without an ID keep the list non-empty (a direct local import after closing the archive, independent of minimum-server checks and LAN mode), because the next save writes version 3 and would not retry. Entries are dropped, not byte-swapped, so loading the same data twice, or an archive written again by an older build, cannot turn a correct address into a wrong one. Older builds still load version 3 archives (their `INTERNAL_VERSION` is 4 and the layout is unchanged). Kad entries that are not migrated this way are never refreshed by the Kad runtime and expire 24 hours after they were last imported, while the network is running.
 - KadUDPKey: two little-endian uint32 values
 
 ⚠️ **PARTIAL** — local modern `nodes.dat` parsing is implemented. That is not live Kad bootstrap packet success and not complete Kad interoperability. See `docs/10_dev/status.md`.

@@ -79,6 +79,8 @@ void CHostCache::Clear()
 
 BOOL CHostCache::Load()
 {
+	m_nKadDropped = 0;
+
 	const CString strFile = Settings.General.DataPath + L"HostCache.dat";
 
 	BOOL bResult = FALSE;
@@ -117,6 +119,10 @@ BOOL CHostCache::Load()
 			pException->Delete();
 		}
 	}
+
+	// Restore migrated contacts after closing the archive, even if ID-less hosts remain.
+	if (m_nKadDropped > 0)
+		ImportKadNodes();
 
 	if ( Gnutella2.IsEmpty() )	CheckMinimumServers( PROTOCOL_G2 );
 	if ( Gnutella1.IsEmpty() )	CheckMinimumServers( PROTOCOL_G1 );
@@ -186,7 +192,12 @@ BOOL CHostCache::Save()
 
 
 // Set at INTERNAL_VERSION on change:
-#define HOSTCACHE_SER_VERSION 2
+#define HOSTCACHE_SER_VERSION 3
+
+// Builds whose INTERNAL_VERSION is 4 reject only archives above it, so they still load
+// version 3 files (same layout as version 2).
+static_assert(HOSTCACHE_SER_VERSION <= INTERNAL_VERSION, "older builds would reject the host cache");
+static_assert(HOSTCACHE_SER_VERSION >= KadNodesDatHostCacheFixedVersion, "Kad entries must be marked as dotted-quad");
 
 // nVersion History:
 // 14 - Add m_sCountry
@@ -198,6 +209,7 @@ BOOL CHostCache::Save()
 // 1000 - Remove m_bDHT
 // 1 - (Envy 1.0)
 // 2 - Add m_nCodePage (NMDC hub text encoding)
+// 3 - Same layout; Kad entries imported from nodes.dat hold the dotted-quad IPv4 order
 
 void CHostCache::Serialize(CArchive& ar)
 {
@@ -235,6 +247,16 @@ void CHostCache::Serialize(CArchive& ar)
 					break;
 				}
 			}
+		}
+
+		// Older archives can hold nodes.dat contacts with byte-reversed addresses (see
+		// KadNodesDatHostCacheFixedVersion). Load imports nodes.dat again after a drop.
+		m_nKadDropped = 0;
+		if (KadNodesDatHostCacheNeedsReimport(nVersion))
+		{
+			m_nKadDropped = Kademlia.RemoveNodesDatContacts();
+			if (m_nKadDropped)
+				theApp.Message(MSG_NOTICE, L"Kad host cache: dropped %d contact(s) imported from nodes.dat by an earlier build", m_nKadDropped);
 		}
 	}
 }
@@ -522,6 +544,27 @@ CHostCacheMapItr CHostCacheList::Remove(CHostCacheHostPtr pHost)
 	m_nCookie++;
 
 	return i;
+}
+
+int CHostCacheList::RemoveNodesDatContacts()
+{
+	CQuickLock oLock(m_pSection);
+
+	// Only ImportNodes sets a Kad ID; the nodes.dat reader rejects contacts whose ID is zero.
+	int nRemoved = 0;
+	for (CHostCacheMapItr i = m_Hosts.begin(); i != m_Hosts.end();)
+	{
+		CHostCacheHostPtr pHost = (*i).second;
+		if (!KadNodesDatIdIsZero(&pHost->m_oGUID[0]))
+		{
+			i = Remove(pHost);
+			++nRemoved;
+		}
+		else
+			++i;
+	}
+
+	return nRemoved;
 }
 
 CHostCacheMapItr CHostCacheList::Remove(const IN_ADDR* pAddress)
@@ -1210,6 +1253,29 @@ bool CHostCache::EnoughServers(PROTOCOLID nProtocol) const
 	}
 }
 
+void CHostCache::ImportKadNodes()
+{
+	Import(Settings.General.DataPath + L"nodes.dat", FALSE);
+
+	const static LPCTSTR sNodesDatPaths[4] = {
+		{ L"\\eMule\\config\\nodes.dat" },
+		{ L"\\eMule\\nodes.dat" },
+		{ L"\\aMule\\config\\nodes.dat" },
+		{ L"\\aMule\\nodes.dat" }
+	};
+	CString strKadRoots[4] = {
+		theApp.GetProgramFilesFolder(),
+		theApp.GetProgramFilesFolder64(),
+		theApp.GetLocalAppDataFolder(),
+		theApp.GetAppDataFolder()
+	};
+	for (int i = 0; i < _countof(strKadRoots); ++i)
+	{
+		for (int j = 0; j < _countof(sNodesDatPaths); ++j)
+			Import(strKadRoots[i] + sNodesDatPaths[j], TRUE);
+	}
+}
+
 //////////////////////////////////////////////////////////////////////
 // CHostCache Check Minimum Servers
 
@@ -1218,34 +1284,14 @@ bool CHostCache::CheckMinimumServers(PROTOCOLID nProtocol)
 	if ( nProtocol != PROTOCOL_G2 && Settings.Experimental.LAN_Mode )
 		return true;
 
-	if ( EnoughServers( nProtocol ) )
+	if (EnoughServers(nProtocol))
 		return true;
 
 	// Load default server list (if necessary)
 	LoadDefaultServers( nProtocol );
 
 	if (nProtocol == PROTOCOL_KAD)
-	{
-		Import(Settings.General.DataPath + L"nodes.dat", FALSE);
-
-		const static LPCTSTR sNodesDatPaths[4] = {
-			{ L"\\eMule\\config\\nodes.dat" },
-			{ L"\\eMule\\nodes.dat" },
-			{ L"\\aMule\\config\\nodes.dat" },
-			{ L"\\aMule\\nodes.dat" }
-		};
-		CString strKadRoots[4] = {
-			theApp.GetProgramFilesFolder(),
-			theApp.GetProgramFilesFolder64(),
-			theApp.GetLocalAppDataFolder(),
-			theApp.GetAppDataFolder()
-		};
-		for (int i = 0; i < _countof(strKadRoots); ++i)
-		{
-			for (int j = 0; j < _countof(sNodesDatPaths); ++j)
-				Import(strKadRoots[i] + sNodesDatPaths[j], TRUE);
-		}
-	}
+		ImportKadNodes();
 
 	// Get the server list from local eMule/mods if possible
 	if ( nProtocol == PROTOCOL_ED2K )
@@ -1937,10 +1983,11 @@ void CHostCache::TestKadImport()
 	// GUID (16 bytes) - using a simple pattern
 	BYTE guid1[16] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
 					  0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10};
-	// IP: 192.168.1.100 (network byte order: 0xC0A80164)
-	DWORD ip1 = htonl(0xC0A80164); // 192.168.1.100 - convert to network byte order
-	WORD udpPort1 = htons(4672);   // Default Kademlia UDP port
-	WORD tcpPort1 = htons(4672);   // Default Kademlia TCP port
+	// nodes.dat stores the IP and ports as little-endian host-order integers, so the
+	// IP bytes are the dotted-quad octets reversed (see KadNodesDat.h).
+	DWORD ip1 = 0xC0A80164; // 192.168.1.100 (private: the parser rejects it)
+	WORD udpPort1 = 4672;   // Default Kademlia UDP port
+	WORD tcpPort1 = 4672;   // Default Kademlia TCP port
 	BYTE kadVersion1 = 8;   // Sample Kademlia version
 
 	fwrite(guid1, 16, 1, file);
@@ -1952,9 +1999,9 @@ void CHostCache::TestKadImport()
 	// Node 2: Another sample node
 	BYTE guid2[16] = {0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE,
 					  0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01};
-	DWORD ip2 = htonl(0xC0A80165); // 192.168.1.101
-	WORD udpPort2 = htons(4673);
-	WORD tcpPort2 = htons(4673);
+	DWORD ip2 = 0xC0A80165; // 192.168.1.101
+	WORD udpPort2 = 4673;
+	WORD tcpPort2 = 4673;
 	BYTE kadVersion2 = 9;
 
 	fwrite(guid2, 16, 1, file);
