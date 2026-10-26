@@ -1,7 +1,7 @@
 # Crash reporting (maintainers)
 
 Status: #353 / D-020 (hybrid migration)
-Last updated: 2026-09-25
+Last updated: 2026-10-20
 
 ENVY uses **two crash backends** during the BugSplat migration:
 
@@ -10,7 +10,7 @@ ENVY uses **two crash backends** during the BugSplat migration:
 | **x64** (primary) | **BugSplat** (v8.0.0 `/MT` static lib, out-of-process `BugSplatMonitor.exe`) | Native BugSplat crash dialog (Don't Send / Send Error Report); optional server symbolication when enabled |
 | **Win32** (legacy Stage A) | **Crashpad** (vcpkg, local DB, upload off) | Unchanged next-launch TaskDialog from #90 |
 
-Win32 lifecycle and D-014 are **out of scope** for the BugSplat PR; Win32 keeps Crashpad until separately decided.
+Win32 keeps Crashpad until D-024 Stage C (#455) removes it together with the Win32 build. A BugSplat x86 backend (#466 / PR #468) is no longer planned under the 64-bit-only policy; native BugSplat on x64 is the intended single backend, subject to end-to-end validation (#353).
 
 ## x64 — BugSplat
 
