@@ -24,6 +24,7 @@
 #include "test_framework.h"
 
 #include "../Envy/Ed2kHelloWire.h"
+#include "../Envy/Ed2kMuleInfoWire.h"
 #include "../Envy/Ed2kHelloCapabilities.h"
 #include "../Envy/SecureIdentPolicy.h"
 
@@ -425,9 +426,24 @@ static bool test_reference_golden_amule_capture_slot_empty()
 	return reference_capture_slot_empty( kAmuleHelloCapture, kAmuleHelloCaptureLen );
 }
 
+// MuleInfo and MuleInfoAnswer use the same historical two-byte prefix.
+// SendEmuleInfo(nType) writes Ed2kLegacyMuleInfoWirePrefix() for both
+// ED2K_C2C_EMULEINFO and ED2K_C2C_EMULEINFOANSWER. Full CEDPacket body
+// goldens need a portable packer seam (Hello-style) and stay out of this
+// MFC-free suite; live captures remain owned by #160.
+static bool test_muleinfo_legacy_prefix_golden()
+{
+	constexpr Ed2kMuleInfoWirePrefix prefix = Ed2kLegacyMuleInfoWirePrefix();
+	static_assert( sizeof( prefix ) == 2, "Legacy MuleInfo prefix must be two octets" );
+	const BYTE actual[] = { prefix.legacyVersion, prefix.protocolVersion };
+	const BYTE expected[] = { 0x50, 0x01 };
+	return bytes_equal( expected, sizeof( expected ), actual, sizeof( actual ) );
+}
+
 void register_ed2k_hello_golden_tests(TestSuite& suite)
 {
 	suite.add_test("ed2k_hello_guid_mutation", test_guid_mutation_matches_sendhello);
+	suite.add_test("ed2k_muleinfo_legacy_prefix_golden", test_muleinfo_legacy_prefix_golden);
 	suite.add_test("ed2k_hello_golden_vector_a_nominal", test_vector_a_hello_nominal_bytes);
 	suite.add_test("ed2k_helloanswer_golden_vector_b_nominal", test_vector_b_helloanswer_nominal_bytes);
 	suite.add_test("ed2k_hello_golden_vector_c_miscoptions", test_vector_c_miscoptions_match_capability_helpers);
