@@ -614,11 +614,25 @@ BOOL CDownloadTransferHTTP::ReadInput()
 
 		case dtsHeaders:
 			if (!ReadHeaders()) return FALSE;
+			// Header-phase receive is capped at 16 KiB. Fail closed only after
+			// attempting to parse headers so a short header block plus a
+			// prefetched body prefix is not rejected as "oversized headers".
 			// OnHeadersComplete already ran ReadMetadata when it set dtsMetadata,
 			// so a body buffered with the headers was consumed there. Running the
 			// reader again in the same read would wait on the emptied buffer and
 			// misreport a completed fetch as unfinished (OnDropped then fails a
 			// succeeded transfer). Later reads dispatch through case dtsMetadata.
+			if (m_nState != dtsMetadata)
+			{
+				const DWORD nHeaderCap = 16u * 1024u;
+				if (GetInputLength() >= nHeaderCap)
+				{
+					theApp.Message(MSG_ERROR, L"Rejected oversized metadata headers from %s",
+					               (LPCTSTR)m_sAddress);
+					Close(TRI_FALSE);
+					return FALSE;
+				}
+			}
 			break;
 
 		case dtsMetadata:
@@ -1730,35 +1744,29 @@ BOOL CDownloadTransferHTTP::ReceiveTigerInput()
 
 BOOL CDownloadTransferHTTP::ReceiveMetadataInput()
 {
-	// Body budget is XML_PEER_PARSE_CHARS_MAX (+1 overflow detect). While the
-	// status/headers are still in m_pInput (before dtsMetadata), allow a small
-	// header slack so a Content-Length of exactly the body max is not rejected
-	// merely because header bytes share the buffer.
-	const DWORD nHeaderSlack = (m_nState == dtsMetadata) ? 0u : (16u * 1024u);
-	const DWORD nHardCap = XML_PEER_PARSE_CHARS_MAX + 1u + nHeaderSlack;
-	if (!OnReadBounded(nHardCap))
-		return FALSE;
-
-	// Incomplete headers at the hard cap: ReadHeaders() returns TRUE when no
-	// complete line is available, which would otherwise spin forever.
-	if (m_nState != dtsMetadata && GetInputLength() >= nHardCap)
+	// Header phase: bound receive at 16 KiB (no body budget). Do not fail closed
+	// here - OnRead parses headers first; a single read may include a valid
+	// body prefix after short headers. Body phase: XML char cap, fail closed on
+	// overflow past the inclusive XML_PEER_PARSE_CHARS_MAX limit.
+	const DWORD nHeaderCap = 16u * 1024u;
+	if (m_nState == dtsMetadata)
 	{
-		theApp.Message(MSG_ERROR, L"Rejected oversized peer metadata headers from %s",
-		               (LPCTSTR)m_sAddress);
-		Close(TRI_FALSE);
-		return FALSE;
+		const DWORD nBodyCap = XML_PEER_PARSE_CHARS_MAX;
+		// Admit exactly nBodyCap; read one extra byte so overflow is detectable.
+		const DWORD nOverflowCap = nBodyCap + 1u;
+		if (!OnReadBounded(nOverflowCap))
+			return FALSE;
+		if (GetInputLength() > nBodyCap)
+		{
+			theApp.Message(MSG_ERROR, L"Rejected oversized peer metadata from %s",
+			               (LPCTSTR)m_sAddress);
+			Close(TRI_FALSE);
+			return FALSE;
+		}
+		return TRUE;
 	}
 
-	// Enforce the body-only cap once headers have been consumed.
-	if (m_nState == dtsMetadata && GetInputLength() > XML_PEER_PARSE_CHARS_MAX)
-	{
-		theApp.Message(MSG_ERROR, L"Rejected oversized peer metadata from %s",
-		               (LPCTSTR)m_sAddress);
-		Close(TRI_FALSE);
-		return FALSE;
-	}
-
-	return TRUE;
+	return OnReadBounded(nHeaderCap);
 }
 
 //////////////////////////////////////////////////////////////////////
