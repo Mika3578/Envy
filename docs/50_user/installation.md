@@ -21,7 +21,7 @@ This guide covers installing and setting up Envy on your Windows system.
 ### Supported Platforms
 - **Windows 10 / Windows 11 x64**: primary supported product platform
 - **Windows 10 / Windows 11 x86 (Win32)**: legacy Stage A only — still built and shipped until Stage B stops publishing packages (D-024); scheduled for retirement
-- **Windows Server** (2016, 2019, 2022) on x64 when the host meets Windows 10 1809+ API level
+- **Windows Server** (2019, 2022) on x64 when the host meets Windows 10 1809+ API level
 - **Not supported**: Windows XP / Vista / 7 / 8 / 8.1 (already dropped; installer `MinVersion=10.0.17763`)
 
 ## 📥 Downloading Envy
@@ -331,4 +331,4 @@ Envy is now ready to use. Continue with the [User Guide](guide.md) to learn how 
 
 ---
 
-**Last Updated:** January 15, 2026
+**Last Updated:** October 20, 2026
