@@ -1,7 +1,7 @@
 # Cross-platform portability plan
 
 Status: active (planning)
-Last updated: 2026-09-19
+Last updated: 2026-10-20
 Scope: Architectural foundations, documentation, and sequencing for a **future** multi-OS Envy.
 **Linux and macOS are `planned`, not `supported`.** Do not claim multiplatform product support until those targets compile, run, and have CI evidence.
 
@@ -9,13 +9,13 @@ Canonical companions:
 
 - Status vocabulary: `docs/10_dev/status.md`
 - Strategic sequence: `docs/DEVELOPMENT_PLAN.md`
-- Decisions: `docs/DECISIONS.md` (D-012 … D-015)
+- Decisions: `docs/DECISIONS.md` (D-012 … D-015, D-024)
 - Existing extraction work: issues [#91](https://github.com/Mika3578/Envy/issues/91), [#161](https://github.com/Mika3578/Envy/issues/161), [#89](https://github.com/Mika3578/Envy/issues/89)
 - Tracker issues filed 2026-09-18: [#177](https://github.com/Mika3578/Envy/issues/177) (parent), [#178](https://github.com/Mika3578/Envy/issues/178) (Win32 policy), [#179](https://github.com/Mika3578/Envy/issues/179) (platform abstraction), [#180](https://github.com/Mika3578/Envy/issues/180) (non-Windows CI)
 
 ---
 
-## 1. Current state (verified 2026-09-18 on `develop`)
+## 1. Current state (verified 2026-10-20 on `develop`)
 
 | Area | Reality |
 | --- | --- |
@@ -107,7 +107,7 @@ This does **not** mean mass-replacing those types in historical code. Windows im
 | 5 | Windows ARM64 | **planned** feasibility evaluation (#456); unsupported until it has a real build target, CI, packaging and runtime validation (`CMakePresets` already has an arm64 preset) |
 | 6 | macOS x86_64 | optional, only if cost is reasonable or via Universal Binary |
 
-Policy (D-014): the product moves to **64-bit only**. Linux ARM64 is subject to feasibility. iOS is out of scope.
+Policy (D-024): the product moves to **64-bit only**. Linux ARM64 is subject to feasibility. iOS is out of scope.
 
 Explicit non-targets (no new work, no support claims):
 
@@ -122,17 +122,17 @@ Windows x86/Win32 is not a *new* target: it is the existing **legacy** build, re
 
 ## 5. Win32 / x86 policy (64-bit-only, phased retirement)
 
-The maintainer decision recorded in D-014 (tracker #178) is to retire all 32-bit product targets progressively. This section is policy only: nothing below has been removed yet.
+The maintainer decision recorded in D-024 (tracker #178; supersedes D-014) is to retire all 32-bit product targets progressively. This section is policy only: nothing below has been removed yet.
 
 | Role | Status | Policy |
 | --- | --- | --- |
 | Windows x64 | Implemented, supported | Official primary platform |
-| Windows x86 / Win32 | Legacy, scheduled for retirement | Still built, tested and shipped (Stage A) until the stages below land |
+| Windows x86 / Win32 | Legacy, scheduled for retirement | Still built, tested and shipped during Stage A; Stage B stops publishing packages, and Stage C removes the target |
 | Linux x86_64, macOS ARM64 | Planned | Portable core first; no support claim before compile + test + CI evidence |
 | Linux ARM64, Windows ARM64 | Planned, feasibility only (#456) | No support claim |
 | macOS x86_64 | Optional | Only if maintenance cost is reasonable |
 | Linux x86, macOS 32-bit, iOS | Not targeted | No new work |
-| Windows XP / Vista / 7 / 8 | Already unsupported | Dropped earlier; minimum runtime is Windows 10 1809 (`Envy/StdAfx.h`, installer `MinVersion=10.0.17763`). Not part of this retirement; changing the minimum needs its own decision |
+| Windows XP / Vista / 7 / 8 / 8.1 | Already unsupported | Dropped earlier; minimum runtime is Windows 10 1809 (`Envy/StdAfx.h`, installer `MinVersion=10.0.17763`). Not part of this retirement; changing the minimum needs its own decision |
 
 Forbidden until the relevant stage PR: dropping Win32 from CI, release artifacts or solution configurations.
 
@@ -156,12 +156,12 @@ Stage B and C each need their own PR and maintainer approval; this policy does n
 
 | Item | Role | Disposition under this policy |
 | --- | --- | --- |
-| #178 | Architecture policy | This document and D-014 |
+| #178 | Architecture policy | This document and D-024 |
 | #454 | Stage B: stop Win32 user releases | Sequenced first; acceptance criteria stay in the issue |
 | #455 | Stage C: remove Win32 toolchain and Crashpad | Follows Stage B |
 | #353 | BugSplat x64 end-to-end validation | Prerequisite for relying on BugSplat as the sole reporter |
 | #449 | Win32 Crashpad toolchain discovery | Closed by Stage C when Crashpad is removed |
-| #466 / PR #468 | Unify BugSplat across Win32 and x64 | A BugSplat x86 backend is no longer a priority; recommendation: close PR #468 as superseded and fold #466 into #455 (keep only x64 hardening that still applies) |
+| #466 / PR #468 | Unify BugSplat across Win32 and x64 | A BugSplat x86 backend is no longer planned; recommendation: close PR #468 as superseded and fold #466 into #455 (keep only x64 hardening that still applies) |
 
 ---
 
@@ -208,7 +208,8 @@ Classify work by: portable / Windows-only / replaceable / needs abstraction / ve
 | zlib, bzip2, sqlite3 | Portable (vendored + vcpkg) | Prefer portable APIs at core boundary |
 | OpenSSL (vcpkg) | Portable | Prefer over Windows-only crypto for new core paths when practical |
 | MiniUPnP | Mostly portable C; Windows NAT/firewall glue is OS-specific | Keep vendored track (D-009); platform layer owns OS integration |
-| Crash reporting | Windows-only Crashpad (local DB, upload off) | Replaced BugTrap (#90 / D-017). Next-launch opt-in GitHub issue. Not EnvyCore. |
+| Crash reporting (x64) | Windows-only BugSplat (SDK v8.0.0, optional upload) | Primary backend (D-020); Stage C keeps BugSplat on x64 after Win32 removal. Not EnvyCore. |
+| Crash reporting (Win32) | Windows-only Crashpad (local DB, upload off) | Legacy Stage A capture (D-019); removed in D-024 Stage C (#455). Not EnvyCore. |
 | MFC / ATL / Win32 | Windows frontend + historical core coupling | Not a core dependency for new EnvyCore interfaces |
 | LibUTP (vendored) | Portable C candidate | Not wired by Envy yet |
 | GeoIP DB / data files | Data; OS-agnostic | Path/fs access goes through platform layer |
@@ -301,7 +302,7 @@ Until then, status vocabulary stays **`planned`**.
 | Premature “supported” claims | Status matrix + README wording; F0 docs only |
 | Duplicate architecture issues | Reuse #91/#161/#89; one parent tracker |
 | CMake vs VS confusion | D-002/D-004/D-015: VS for full app; CMake for portable slice |
-| Win32 removed too early | Staged retirement (D-014): migration validation in Stage B, replacement fixed-width/overflow/parsing tests before Stage C |
+| Win32 removed too early | Staged retirement (D-024): migration validation in Stage B, replacement fixed-width/overflow/parsing tests before Stage C |
 | Protocol breakage during extraction | D-005; no wire changes for portability |
 | Scope creep into Qt rewrite | GUI policy §7 |
 
