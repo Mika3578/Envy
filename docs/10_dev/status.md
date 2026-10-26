@@ -1,7 +1,7 @@
 # Envy implementation status
 
 Status: active
-Last updated: 2026-09-20
+Last updated: 2026-10-20
 Scope: Evidence-based protocol and architecture status for Envy on `develop`.
 Source of truth: Envy source under `Envy/`, tests under `tests/`, and the documents linked below. External projects are references only.
 
@@ -29,8 +29,8 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 | Function | Envy current | Reference | Target |
 | --- | --- | --- | --- |
 | Windows x64 product | implemented (primary) | — | preserve |
-| Windows Win32/x86 product | implemented (legacy Stage A, scheduled for retirement) | — | Stage B #454, Stage C #455 (D-014) |
-| Local crash reports | implemented (#90 / #354) | x64: BugSplat SDK v8.0.0; Win32: Crashpad (upload off) | hybrid; optional BugSplat backend when configured |
+| Windows Win32/x86 product | implemented (legacy Stage A, scheduled for retirement) | — | Stage B #454, Stage C #455 (D-024) |
+| Local crash reports | implemented (#90 / #354) | x64: BugSplat SDK v8.0.0; Win32: Crashpad (upload off) | Stage A/B hybrid; after Stage C (#455): native BugSplat on x64 only |
 | Linux x86_64 product | planned | aMule | planned → supported only with CI evidence |
 | macOS ARM64 product | planned | aMule | planned → supported only with CI evidence |
 | EnvyCore portable boundary | not implemented | eMule Qt, aria2-next | planned (#161) |
@@ -108,7 +108,7 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 ### Platforms / portability
 
 - **Supported:** Windows x64 (primary shipping target).
-- **Legacy:** Windows Win32/x86 — still built, tested and shipped (D-014 Stage A); scheduled for phased retirement (Stage B #454, Stage C #455); no 32-bit target is accepted for new work.
+- **Legacy:** Windows Win32/x86 — still built, tested and shipped (D-024 Stage A); scheduled for phased retirement (Stage B #454, Stage C #455); no 32-bit target is accepted for new work.
 - **Planned:** Linux x86_64, macOS ARM64; Linux ARM64 and Windows ARM64 feasibility (#456); macOS x86_64 optional. Non-targets: Linux x86-32, macOS 32-bit, iOS.
 - vcpkg manifest currently `supports` Windows only; non-Windows dependency strategy follows portable-slice work.
 - Authoritative full app build remains `Visual Studio/Envy.sln`; CMake portable slice is the multiplatform foundation (D-015).

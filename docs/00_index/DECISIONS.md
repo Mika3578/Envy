@@ -18,8 +18,8 @@ Use this file to record decisions that affect architecture, protocol compatibili
 - **Status:** accepted
 - **ID:** D-012…D-015 in `docs/DECISIONS.md`
 - **Context:** Envy is a Windows MFC monolith; future multi-OS work must not start as a rewrite or claim unsupported platforms.
-- **Decision:** Target EnvyCore + platform abstraction + retained MFC Windows frontend. Linux/macOS are **planned** not supported. New EnvyCore APIs avoid MFC/Win32 types. Win32 stays in CI and releases during Stage A; D-014 (2026-10-20) retires all 32-bit product targets in stages. CMake portable slice is foundational; full-app CMake stays low priority.
-- **Consequences:** #91/#161/#89 proceed Windows-first under the portability plan; no required Linux/macOS CI until portable code exists; Win32 removal only through the staged #454 / #455 PRs (D-014).
+- **Decision:** Target EnvyCore + platform abstraction + retained MFC Windows frontend. Linux/macOS are **planned** not supported. New EnvyCore APIs avoid MFC/Win32 types. Win32 stays in CI and releases during Stage A; D-024 (2026-10-20; supersedes D-014) retires all 32-bit product targets in stages. CMake portable slice is foundational; full-app CMake stays low priority.
+- **Consequences:** #91/#161/#89 proceed Windows-first under the portability plan; no required Linux/macOS CI until portable code exists; Win32 removal only through the staged #454 / #455 PRs (D-024).
 - **References:** `docs/20_arch/PORTABILITY_PLAN.md`, `docs/ARCHITECTURE.md`.
 
 ### Decision: Remote API stack and *arr adapter

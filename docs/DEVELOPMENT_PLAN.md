@@ -1,12 +1,13 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-22
+- **Last Updated:** 2026-10-23
+
+- **Changelog Entry:** 2026-10-20 - #178: record the 64-bit-only platform policy as D-024 (phased Stage A/B/C; supersedes D-014); D-019/D-020 marked for Stage C removal of Crashpad; portability plan section 5, roadmap, status and crash-reporting aligned. Policy and documentation only: Win32 builds, CI, packaging and Crashpad are unchanged until #454 / #455. Windows 10 1809 stays the minimum runtime. Recommendation: close PR #468 as superseded and fold #466 into #455.
 
 - **Changelog Entry:** 2026-10-19 — #452/#493: harden shared-folder scans for long local, mapped and UNC paths, preserve indexed entries when enumeration fails, skip directory reparse points and report Windows scan errors. Root cause of the "0 files after restart" report: `CLibrary::Load()` started a lazy-loading thread and then the maintenance thread, and `CThreadImpl::BeginThread()` ignored the second start while the first was alive, so a library with files never scanned again. One worker now finishes deferred loading and keeps scanning; scan requests carry a generation the progress dialog follows, and a waiter joins an unstarted request so `Library.Update( true )` plus the dialog's request trigger one full pass, not two. Measured follow-ups (hash-queue O(N²) enqueue and fixed sleeps, lock hold time during enumeration) are tracked under #384; maintainer live test on local, mapped and UNC/NAS shares is still required.
 
 - **Changelog Entry:** 2026-10-20 — #452 follow-up (real-test report): shared roots are scanned one at a time without holding the library lock across the whole tree (`SelectRootsToScan` + `ThreadScanRoot` + `ApplyListing`), and `CMainWnd::OnClose()` stops the scanner and hasher before teardown, so closing Envy during a large scan or hash no longer waits on the whole tree. Adding a parent folder moves its already shared subfolders below it with their files, hashes and explicit share choice (`AdoptNestedRoots`/`Adopt`); a subfolder that cannot be moved stays a root, and folder totals follow every applied listing. Entry points that add library folders take the library lock against the worker. Maintainer manual checks so far (restart with an existing library, adding a parent of an existing share, closing while hashing) behaved as expected; closing during a large scan, hash preservation on large trees and mapped/UNC/NAS shares are still to be verified before merge.
 
-- **Changelog Entry:** 2026-10-20 - #178: record the 64-bit-only platform policy (D-014 rewritten as phased Stage A/B/C; D-019/D-020 marked for Stage C removal of Crashpad; portability plan section 5, roadmap, status and crash-reporting aligned). Policy and documentation only: Win32 builds, CI, packaging and Crashpad are unchanged until #454 / #455. Windows 10 1809 stays the minimum runtime. Recommendation: close PR #468 as superseded and fold #466 into #455.
 - **Changelog Entry:** 2026-10-11 - #405: constrain package destinations with strict manifest/ZIP path checks, bounded construction, pinned non-reparse ancestors and complete-file staged replacement. Production-backed EnvyTests cover package types, malformed input, overwrite policy and alias escapes; the focused project supports AddressSanitizer. Essential #406 ownership and manifest-buffer fixes are included; package-wide expansion/time budgets remain open. Validation commands and limitations: `10_dev/unpacker-validation.md`.
 
 - **Governance observation:** 2026-10-11 - The live Protect develop ruleset (16457466) reports `required_approving_review_count: 0`, differing from AGENTS.md and the documented one-review policy. This security patch does not change governance or rely on that reduction; maintainer review, Draft promotion and manual squash merge remain required.
@@ -391,7 +392,7 @@ Incremental extraction only. No full rewrite. No Qt (or other GUI toolkit) intro
 
 ### P1 — Cross-platform foundations (docs + sequencing)
 
-Formalize platforms (Windows x64 primary; Win32 legacy Stage A; Linux/macOS **planned**), CMake portable-slice priority (D-015), and future CI order: Windows x64 → portable tests → Linux x86_64 → macOS ARM64. Do not add required non-Windows CI until portable code exists. Do not remove Win32 without Stage B/C evidence (D-014).
+Formalize platforms (Windows x64 primary; Win32 legacy Stage A; Linux/macOS **planned**), CMake portable-slice priority (D-015), and future CI order: Windows x64 → portable tests → Linux x86_64 → macOS ARM64. Do not add required non-Windows CI until portable code exists. Do not remove Win32 without Stage B/C evidence (D-024).
 
 ### P1 — Skin engine HiDPI / modern display (after P0)
 
@@ -449,7 +450,7 @@ Do not reuse [#102](https://github.com/Mika3578/Envy/issues/102) (CI runner late
 - [ ] Introduce portable platform abstractions (sockets/DNS/FS/threads/RNG) behind EnvyCore — no mass `#ifdef` rewrite
 - [ ] Version plugin-facing APIs and compatibility policy (5d)
 - [ ] Create automated dependency/SBOM release artifact (3d)
-- [ ] Execute Win32 retirement per D-014: Stage B #454 (stop Win32 releases), Stage C #455 (remove Win32 build/CI and Crashpad); no dependency on the Linux/macOS ports
+- [ ] Execute Win32 retirement per D-024: Stage B #454 (stop Win32 releases), Stage C #455 (remove Win32 build/CI and Crashpad); no dependency on the Linux/macOS ports
 
 ## ED2K / eMule SecureIdent roadmap
 
