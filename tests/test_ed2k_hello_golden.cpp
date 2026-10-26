@@ -427,7 +427,10 @@ static bool test_reference_golden_amule_capture_slot_empty()
 }
 
 // MuleInfo and MuleInfoAnswer use the same historical two-byte prefix.
-// This is an Envy self-golden: live eMule/aMule captures remain owned by #160.
+// SendEmuleInfo(nType) writes Ed2kLegacyMuleInfoWirePrefix() for both
+// ED2K_C2C_EMULEINFO and ED2K_C2C_EMULEINFOANSWER. Full CEDPacket body
+// goldens need a portable packer seam (Hello-style) and stay out of this
+// MFC-free suite; live captures remain owned by #160.
 static bool test_muleinfo_legacy_prefix_golden()
 {
 	constexpr Ed2kMuleInfoWirePrefix prefix = Ed2kLegacyMuleInfoWirePrefix();
