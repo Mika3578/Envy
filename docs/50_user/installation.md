@@ -152,6 +152,16 @@ Some antivirus programs may flag P2P applications:
 
 ## 📁 File Locations
 
+### Writable data and downloads
+
+Fresh installs keep mutable application data in `%APPDATA%\Envy`. Incomplete downloads use `%LOCALAPPDATA%\Envy\Incomplete`. Completed downloads use the Windows Downloads known folder in an `Envy` subfolder; if Windows does not provide that folder, Envy falls back to the user's profile `Downloads\Envy` folder. Collections and torrents are placed in `Collections` and `Torrents` subfolders under the effective completed-download location.
+
+The Downloads known folder follows Windows folder redirection, so redirected Downloads locations are respected. Existing nonempty path settings and explicitly configured paths are retained. If an older installation has no saved incomplete-download path but its former install-folder `Incomplete` directory contains data or cannot be inspected, Envy keeps using that directory to protect paused transfers. Nonempty legacy Collections folders are preserved the same way. Envy does not automatically move existing incomplete downloads: their `.pd` and `.pd.sav` state files must remain together. To relocate an existing incomplete-download folder, stop Envy first, copy the complete folder including both file types to a writable destination, select that destination in Downloads settings, and verify existing transfers before deleting the old copy. Do not remove the old folder until that verification is complete.
+
+If the data folder or the incomplete-download folder cannot be written at startup (for example a disconnected drive or a folder without write permission), Envy stops before loading any state and shows the folder. Choose **Try Again** after reconnecting the drive or fixing permissions, or **Cancel** to exit. For a customised location, **Continue** switches that setting back to the default per-user folder; existing partial downloads in the old folder are not moved.
+
+Uninstalling Envy removes installed application files but preserves user data and download folders. A portable ZIP without an installer registration keeps mutable application data, incomplete downloads, and collections in its package folder, matching portable behavior. Extract it to a writable location; a portable folder under Program Files cannot be used for writes by a standard user.
+
 ### Installation Directories
 
 **Standard Installation:**
