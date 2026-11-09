@@ -1,6 +1,9 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-22
+- **Last Updated:** 2026-11-09
+
+- **Changelog Entry:** 2026-10-12 — #471: make schema extension filters typed and case-insensitive, ignore malformed empty/trailing-dot inputs, select one deterministic automatic group, and keep protocol classification separate from file-type and user-defined groups. Existing group memberships and `DownloadGroups.dat` version 1 remain authoritative; focused native smoke coverage added. Deferred group icons/colors/tags/rules/previews/reset UX is recorded in the local idea inbox.
+
 
 - **Changelog Entry:** 2026-10-19 — #452/#493: harden shared-folder scans for long local, mapped and UNC paths, preserve indexed entries when enumeration fails, skip directory reparse points and report Windows scan errors. Root cause of the "0 files after restart" report: `CLibrary::Load()` started a lazy-loading thread and then the maintenance thread, and `CThreadImpl::BeginThread()` ignored the second start while the first was alive, so a library with files never scanned again. One worker now finishes deferred loading and keeps scanning; scan requests carry a generation the progress dialog follows, and a waiter joins an unstarted request so `Library.Update( true )` plus the dialog's request trigger one full pass, not two. Measured follow-ups (hash-queue O(N²) enqueue and fixed sleeps, lock hold time during enumeration) are tracked under #384; maintainer live test on local, mapped and UNC/NAS shares is still required.
 
