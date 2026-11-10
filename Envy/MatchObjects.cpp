@@ -39,6 +39,7 @@
 #include "CtrlMatch.h"
 #include "LiveList.h"
 #include "ResultFilters.h"
+#include "SearchFilterMask.h"
 #include "CtrlSearchDetailPanel.h"
 #include "WndSearch.h"
 
@@ -100,17 +101,18 @@ CMatchList::CMatchList(CBaseMatchWnd* pParent)
 	}
 	else
 	{
-		m_bRegExp			= ( Settings.Search.FilterMask & ( 1 << 0 ) ) > 0;	// 0;
-		m_bFilterPush		= ( Settings.Search.FilterMask & ( 1 << 1 ) ) > 0;	// 0;
-		m_bFilterUnstable	= ( Settings.Search.FilterMask & ( 1 << 2 ) ) > 0;	// 0;
-		m_bFilterBusy		= ( Settings.Search.FilterMask & ( 1 << 3 ) ) > 0;	// 0;
-		m_bFilterLocal		= ( Settings.Search.FilterMask & ( 1 << 4 ) ) > 0;	// 0;
-		m_bFilterReject		= ( Settings.Search.FilterMask & ( 1 << 5 ) ) > 0 || bBrowsing;	// 0;
-		m_bFilterBogus		= ( Settings.Search.FilterMask & ( 1 << 6 ) ) > 0;	// 0;
-		m_bFilterDRM		= ( Settings.Search.FilterMask & ( 1 << 7 ) ) > 0;	// 1;
-		m_bFilterRestricted	= ( Settings.Search.FilterMask & ( 1 << 8 ) ) > 0;	// 0;
-		m_bFilterSuspicious	= ( Settings.Search.FilterMask & ( 1 << 9 ) ) > 0;	// 1;
-		m_bFilterAdult		= ( Settings.Search.FilterMask & ( 1 << 10 ) ) > 0;	// 0;
+		const SearchFilterMask::Flags oMask = SearchFilterMask::Decode(Settings.Search.FilterMask);
+		m_bRegExp = oMask.bRegExp;
+		m_bFilterPush = oMask.bPush;
+		m_bFilterUnstable = oMask.bUnstable;
+		m_bFilterBusy = oMask.bBusy;
+		m_bFilterLocal = oMask.bLocal;
+		m_bFilterReject = oMask.bReject || bBrowsing;
+		m_bFilterBogus = oMask.bBogus;
+		m_bFilterDRM = oMask.bDRM;
+		m_bFilterRestricted = oMask.bRestricted;
+		m_bFilterSuspicious = oMask.bSuspicious;
+		m_bFilterAdult = oMask.bAdult;
 		m_nFilterMinSize	= 1;
 		m_nFilterMaxSize	= 0;
 		m_nFilterSources	= 1;
@@ -778,22 +780,19 @@ void CMatchList::Filter()
 {
 	CSingleLock pLock( &m_pSection, TRUE );
 
-	Settings.Search.FilterMask = 0;
-
-	if ( m_bRegExp )			Settings.Search.FilterMask |= ( 1 << 0 );	// 0;
-	if ( m_bFilterPush )		Settings.Search.FilterMask |= ( 1 << 1 );	// 0;
-	if ( m_bFilterUnstable )	Settings.Search.FilterMask |= ( 1 << 2 );	// 0;
-	if ( m_bFilterBusy )		Settings.Search.FilterMask |= ( 1 << 3 );	// 0;
-	if ( m_bFilterLocal )		Settings.Search.FilterMask |= ( 1 << 4 );	// 0;
-	if ( m_bFilterReject )		Settings.Search.FilterMask |= ( 1 << 5 );	// 0;
-	if ( m_bFilterBogus )		Settings.Search.FilterMask |= ( 1 << 6 );	// 0;
-	if ( m_bFilterDRM )			Settings.Search.FilterMask |= ( 1 << 7 );	// 1;
-	if ( m_bFilterRestricted )	Settings.Search.FilterMask |= ( 1 << 8 );	// 0;
-	if ( m_bFilterSuspicious )	Settings.Search.FilterMask |= ( 1 << 9 );	// 1;
-	if ( m_bFilterAdult )		Settings.Search.FilterMask |= ( 1 << 10 );	// 0;
-//	if ( m_nFilterSources > 0 )	Settings.Search.FilterMask |= ( 1 << 12 );	// 1;
-//	if ( m_nFilterMinSize > 0 )	Settings.Search.FilterMask |= ( 1 << 10 );	// 1;
-//	if ( m_nFilterMaxSize > m_nFilterMinSize )	Settings.Search.FilterMask |= ( 1 << 11 );	// 0;
+	SearchFilterMask::Flags oMask;
+	oMask.bRegExp = m_bRegExp != FALSE;
+	oMask.bPush = m_bFilterPush != FALSE;
+	oMask.bUnstable = m_bFilterUnstable != FALSE;
+	oMask.bBusy = m_bFilterBusy != FALSE;
+	oMask.bLocal = m_bFilterLocal != FALSE;
+	oMask.bReject = m_bFilterReject != FALSE;
+	oMask.bBogus = m_bFilterBogus != FALSE;
+	oMask.bDRM = m_bFilterDRM != FALSE;
+	oMask.bRestricted = m_bFilterRestricted != FALSE;
+	oMask.bSuspicious = m_bFilterSuspicious != FALSE;
+	oMask.bAdult = m_bFilterAdult != FALSE;
+	Settings.Search.FilterMask = SearchFilterMask::Encode(oMask);
 
 	delete [] m_pszFilter;
 	m_pszFilter = NULL;

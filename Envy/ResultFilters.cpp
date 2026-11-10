@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "ResultFilters.h"
+#include "SearchFilterMask.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -264,21 +265,19 @@ BOOL CResultFilters::Save()
 
 CFilterOptions::CFilterOptions()
 {
-	// Mask 0x280 = 01010000000  (Reverse Order)
-	m_bRegExp			= ( Settings.Search.FilterMask & ( 1 << 0 ) ) > 0;	// 0
-	m_bFilterPush		= ( Settings.Search.FilterMask & ( 1 << 1 ) ) > 0;	// 0
-	m_bFilterUnstable	= ( Settings.Search.FilterMask & ( 1 << 2 ) ) > 0;	// 0
-	m_bFilterBusy		= ( Settings.Search.FilterMask & ( 1 << 3 ) ) > 0;	// 0
-	m_bFilterReject		= ( Settings.Search.FilterMask & ( 1 << 4 ) ) > 0;	// 0
-	m_bFilterLocal		= ( Settings.Search.FilterMask & ( 1 << 5 ) ) > 0;	// 0
-	m_bFilterBogus		= ( Settings.Search.FilterMask & ( 1 << 6 ) ) > 0;	// 0
-	m_bFilterDRM		= ( Settings.Search.FilterMask & ( 1 << 7 ) ) > 0;	// 1
-	m_bFilterRestricted	= ( Settings.Search.FilterMask & ( 1 << 8 ) ) > 0;	// 0
-	m_bFilterSuspicious	= ( Settings.Search.FilterMask & ( 1 << 9 ) ) > 0;	// 1
-	m_bFilterAdult		= ( Settings.Search.FilterMask & ( 1 << 10 ) ) > 0;	// 0
-	//m_nFilterMinSize	= ( Settings.Search.FilterMask & ( 1 << 10 ) ) > 0;	// 1;
-	//m_nFilterMaxSize	= ( Settings.Search.FilterMask & ( 1 << 11 ) ) > 0;	// 0;
-	//m_nFilterSources	= ( Settings.Search.FilterMask & ( 1 << 12 ) ) > 0;	// 1;
+	// New filter sets start from the options the result list last persisted.
+	const SearchFilterMask::Flags oMask = SearchFilterMask::Decode(Settings.Search.FilterMask);
+	m_bRegExp = oMask.bRegExp;
+	m_bFilterPush = oMask.bPush;
+	m_bFilterUnstable = oMask.bUnstable;
+	m_bFilterBusy = oMask.bBusy;
+	m_bFilterLocal = oMask.bLocal;
+	m_bFilterReject = oMask.bReject;
+	m_bFilterBogus = oMask.bBogus;
+	m_bFilterDRM = oMask.bDRM;
+	m_bFilterRestricted = oMask.bRestricted;
+	m_bFilterSuspicious = oMask.bSuspicious;
+	m_bFilterAdult = oMask.bAdult;
 }
 
 void CFilterOptions::Serialize(CArchive & ar, int /*nVersion*/)	// RESULTFILTERS_SER_VERSION

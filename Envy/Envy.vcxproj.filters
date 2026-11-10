@@ -2069,6 +2069,9 @@
     <ClInclude Include="RemoteBase64.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SearchFilterMask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="SecureRandom.h">
       <Filter>Header Files</Filter>
     </ClInclude>

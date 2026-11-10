@@ -1350,6 +1350,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="DownloadTransferHttpValidate.h" />
     <ClInclude Include="SecureIdentPolicy.h" />
     <ClInclude Include="RemoteBase64.h" />
+    <ClInclude Include="SearchFilterMask.h" />
     <ClInclude Include="SecureRandom.h" />
     <ClInclude Include="Ed2kLockOrder.h" />
     <ClInclude Include="EnvyThreadPolicy.h" />

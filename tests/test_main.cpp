@@ -26,6 +26,7 @@ void register_webhook_registration_smoke_tests(TestSuite& suite);
 void register_skin_engine_p0_smoke_tests(TestSuite& suite);
 void register_network_interface_selector_smoke_tests(TestSuite& suite);
 void register_remote_base64_smoke_tests(TestSuite& suite);
+void register_search_filter_mask_smoke_tests(TestSuite& suite);
 void register_secure_random_smoke_tests(TestSuite& suite);
 void register_dc_packet_length_smoke_tests(TestSuite& suite);
 void register_dc_hublist_sources_smoke_tests(TestSuite& suite);
@@ -76,6 +77,7 @@ int main(int argc, char** argv)
 	register_skin_engine_p0_smoke_tests(suite);
 	register_network_interface_selector_smoke_tests(suite);
 	register_remote_base64_smoke_tests(suite);
+	register_search_filter_mask_smoke_tests(suite);
 	register_secure_random_smoke_tests(suite);
 	register_dc_packet_length_smoke_tests(suite);
 	register_dc_hublist_sources_smoke_tests(suite);

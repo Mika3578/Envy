@@ -25,6 +25,7 @@
 #include "Ed2kKadSettingsPolicy.h"
 #include "DcHublistSources.h"
 #include "TransferSettingsLimits.h"
+#include "SearchFilterMask.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -271,7 +272,7 @@ void CSettings::Load()
 	Add( L"Search", L"DetailPanelSize", &Search.DetailPanelSize, 100 );
 	Add( L"Search", L"DetailPanelVisible", &Search.DetailPanelVisible, true );
 	Add( L"Search", L"ExpandMatches", &Search.ExpandMatches, false );
-	Add( L"Search", L"FilterMask", &Search.FilterMask, 0x280 );	// 01010000000 (Reverse Order Options)
+	Add(L"Search", L"FilterMask", &Search.FilterMask, SearchFilterMask::Default); // 0x280: hide DRM and suspicious results
 	Add( L"Search", L"GeneralThrottle", &Search.GeneralThrottle, 200, 1, 200, 1000, L" ms" );
 	Add( L"Search", L"HideSearchPanel", &Search.HideSearchPanel, false );
 	Add( L"Search", L"HighlightNew", &Search.HighlightNew, true );

@@ -41,6 +41,9 @@
     <ClCompile Include="test_remote_base64_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_search_filter_mask_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_secure_random_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
