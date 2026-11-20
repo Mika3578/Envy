@@ -767,6 +767,7 @@ BOOL CSearchDetailPanel::CachePreviewImage(const Hashes::Sha1Hash& /*oSHA1*/, LP
 		// Build the replacement before releasing the old preview so a failed
 		// allocation cannot leave a dangling m_pPreview.
 		LPBYTE pNew = new BYTE[nBuffer];
+		if (pNew == NULL) return FALSE;
 		CopyMemory(pNew, pBuffer, nBuffer);
 
 		LPBYTE pOld = m_pFile->m_pPreview;

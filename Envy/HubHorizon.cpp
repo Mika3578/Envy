@@ -87,6 +87,11 @@ void CHubHorizonPool::Clear()
 //////////////////////////////////////////////////////////////////////
 // CHubHorizonPool add
 
+BOOL CHubHorizonPool::CanAdd(IN_ADDR* pAddress)
+{
+	return Find(pAddress) != NULL || (m_nActive < m_nBuffer && m_pFree != NULL);
+}
+
 CHubHorizonHub* CHubHorizonPool::Add(IN_ADDR* pAddress, WORD nPort)
 {
 	CHubHorizonHub* pHub = m_pActive;
@@ -210,13 +215,17 @@ void CHubHorizonGroup::Add(IN_ADDR* pAddress, WORD nPort)
 		}
 	}
 
+	// A full pool still permits references to existing hubs.
+	if (!HubHorizonPool.CanAdd(pAddress)) return;
+
 	// Grow the list before taking a pool reference: a failed allocation must
 	// not leave a reference that no group owns.
 	if ( m_nCount == m_nBuffer )
 	{
 		const DWORD nNewBuffer = m_nBuffer + 8;
-		if (nNewBuffer < m_nBuffer) return;
+		if (nNewBuffer < m_nBuffer || nNewBuffer > MAXDWORD / sizeof(CHubHorizonHub*)) return;
 		CHubHorizonHub** pList = new CHubHorizonHub*[nNewBuffer];
+		if (pList == NULL) return;
 		CHubHorizonHub** pOld = m_pList;
 		if (pOld && m_nCount) CopyMemory(pList, pOld, sizeof(CHubHorizonHub*) * m_nCount);
 		m_pList = pList;

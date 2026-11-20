@@ -1307,6 +1307,7 @@ void CBrowseTreeItem::AddFileIndex(DWORD nIndex)
 		if (nNew <= m_nFiles)
 			return;
 		DWORD* pFiles = new DWORD[nNew];
+		if (pFiles == NULL) return;
 		DWORD* pOld = m_pFiles;
 		if (m_nFiles && pOld)
 			CopyMemory(pFiles, pOld, m_nFiles * sizeof(DWORD));
