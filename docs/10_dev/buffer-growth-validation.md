@@ -18,8 +18,8 @@ methods, `CSearchDetailPanel::CachePreviewImage`, and
 Allocation overloads inject failure only into the extracted methods. Fixtures
 replace surrounding MFC services and expose storage fields; the preview lock
 and matches lookup are stubs, so this does not validate synchronization or UI
-integration. This standalone suite is run explicitly; it is not part of
-`EnvyTests` or a required CI check.
+integration. The standalone executable remains separate from the EnvyTests
+process so its fault-injecting allocator cannot affect unrelated tests.
 
 Coverage checks:
 
@@ -35,7 +35,13 @@ Coverage checks:
   that preview exactly once. An absent matches entry skips allocation.
 - Failed browse growth preserves entries, count, pointer, and capacity.
   Successful growth retains the entries and frees the old array once;
-  capacity wrap-around skips allocation and append.
+  capacity wrap-around and element-byte-size overflow skip allocation and append.
+
+`EnvyTests.vcxproj` runs the same suite before C++ compilation, using the
+project platform to initialize the Native Tools environment. A failing harness
+command fails the project build, so both required Release platform checks
+enforce this coverage. Python 3 and the selected Visual Studio toolset must be
+available when building EnvyTests.
 
 These are allocation and ownership regressions, not evidence of a full Windows
 application build, live runtime testing, or closure of CodeQL alerts on

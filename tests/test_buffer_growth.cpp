@@ -286,6 +286,9 @@ void TestBrowse()
 	item.AddFileIndex(8);
 	assert(item.m_nFiles == 2 && item.m_pFiles[0] == 7 && item.m_pFiles[1] == 8 && watchedFrees == 1);
 	const unsigned before = allocations;
+	item.m_nFiles = item.m_nFileBuffer = 0x40000000u;
+	item.AddFileIndex(9);
+	assert(allocations == before && item.m_nFiles == 0x40000000u);
 	item.m_nFiles = item.m_nFileBuffer = 0x80000000u;
 	item.AddFileIndex(9);
 	assert(allocations == before && item.m_nFiles == 0x80000000u);
