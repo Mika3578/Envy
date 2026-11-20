@@ -64,6 +64,7 @@ protected:
 public:
 	void				Setup();
 	void				Clear();
+	BOOL CanAdd(IN_ADDR* pAddress);
 	CHubHorizonHub*		Add(IN_ADDR* pAddress, WORD nPort);
 	void				Remove(CHubHorizonHub* pHub);
 	CHubHorizonHub*		Find(IN_ADDR* pAddress);

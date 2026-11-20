@@ -187,14 +187,13 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 	ASSERT( m_bOpen );
 	HASHDB_INDEX* pIndex = Lookup( nIndex, nType );
 
-	if ( pIndex )
-	{
-		if ( pIndex->nLength == nLength )
-			return pIndex;
+	if (pIndex && pIndex->nLength == nLength)
+		return pIndex;
 
-		pIndex->nIndex = 0;
-		pIndex = NULL;
-	}
+	// Keep the old record discoverable until replacement capacity is secured.
+	const size_t nPreviousPos = pIndex ? static_cast<size_t>(pIndex - m_pIndex) : m_nIndex;
+	HASHDB_INDEX* pPrevious = pIndex;
+	const BOOL bHavePrevious = pIndex != NULL;
 
 	size_t nBestPos = 0;
 	BOOL bHaveBest = FALSE;
@@ -203,7 +202,7 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 
 	for ( pIndex = m_pIndex, nCount = m_nIndex; nCount; nCount--, pIndex++ )
 	{
-		if ( pIndex->nIndex == 0 && pIndex->nLength >= nLength )
+		if ((pIndex->nIndex == 0 || pIndex == pPrevious) && pIndex->nLength >= nLength)
 		{
 			const DWORD nOverhead = pIndex->nLength - nLength;
 
@@ -227,14 +226,16 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 	{
 		if ( m_nIndex >= m_nBuffer )
 		{
-			m_nBuffer += 64;
-			HASHDB_INDEX* pNew = new HASHDB_INDEX[ m_nBuffer ];
-			if ( m_pIndex )
-			{
-				if ( m_nIndex ) CopyMemory( pNew, m_pIndex, sizeof( HASHDB_INDEX ) * m_nIndex );
-				delete [] m_pIndex;
-			}
+			// Allocate first so a failed allocation leaves buffer and count consistent.
+			const DWORD nNewBuffer = m_nBuffer + 64;
+			if (nNewBuffer < m_nBuffer || nNewBuffer > MAXDWORD / sizeof(HASHDB_INDEX)) return NULL;
+			HASHDB_INDEX* pNew = new HASHDB_INDEX[nNewBuffer];
+			if (pNew == NULL) return NULL;
+			HASHDB_INDEX* pOld = m_pIndex;
+			if (pOld && m_nIndex) CopyMemory(pNew, pOld, sizeof(HASHDB_INDEX) * m_nIndex);
 			m_pIndex = pNew;
+			m_nBuffer = nNewBuffer;
+			delete[] pOld;
 		}
 
 		pIndex = m_pIndex + m_nIndex++;
@@ -244,6 +245,7 @@ HASHDB_INDEX* CHashDatabase::PrepareToStore(DWORD nIndex, DWORD nType, DWORD nLe
 		m_nOffset += nLength;
 	}
 
+	if (bHavePrevious) m_pIndex[nPreviousPos].nIndex = 0;
 	pIndex->nIndex = nIndex;
 	pIndex->nType  = nType;
 
