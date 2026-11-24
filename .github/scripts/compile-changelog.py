@@ -102,6 +102,8 @@ def atomic_write(path, data):
 			handle.write(data)
 			handle.flush()
 			os.fsync(handle.fileno())
+		# mkstemp defaults to 0600; keep the existing CHANGELOG mode (typically 0644).
+		os.chmod(tmp_path, path.stat().st_mode & 0o777)
 		os.replace(tmp_path, path)
 	except Exception:
 		try:
