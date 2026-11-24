@@ -107,6 +107,7 @@ def atomic_write(path, data):
 		try:
 			tmp_path.unlink(missing_ok=True)
 		except OSError:
+			# Best-effort cleanup only; the original write error is re-raised.
 			pass
 		raise
 
