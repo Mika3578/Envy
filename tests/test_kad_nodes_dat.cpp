@@ -9,7 +9,7 @@
 //
 // Layout of the golden v1 record (little-endian integers):
 //   marker 00 00 00 00 | version 01 00 00 00 | count 01 00 00 00
-//   id 01..10 | IP CB 00 71 05 (203.0.113.5) | UDP 40 12 (4672)
+//   id 01..10 | IP 05 71 00 CB (203.0.113.5, octets reversed) | UDP 40 12 (4672)
 //   TCP 36 12 (4662) | Kad version 08
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
@@ -88,10 +88,11 @@ void PushBytes(std::vector<uint8_t>& o, const uint8_t* p, size_t n)
 
 void PushIp(std::vector<uint8_t>& o, uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 {
-	PushU8(o, a);
-	PushU8(o, b);
-	PushU8(o, c);
+	// The file carries the host-order uint32 little-endian: octets reversed.
 	PushU8(o, d);
+	PushU8(o, c);
+	PushU8(o, b);
+	PushU8(o, a);
 }
 
 void PushId(std::vector<uint8_t>& o, uint8_t nSeed)
@@ -556,6 +557,103 @@ static bool test_empty_count()
 	return r.status == KadNodesDatStatus::Empty;
 }
 
+// Regression: eMule/aMule store the contact IP as a little-endian host-order uint32, so
+// 198.51.100.7 is the file bytes 07 64 33 C6. Literal bytes, independent of PushIp, so the
+// fixture helper cannot mask a reversed parse (the shipped parser once yielded 7.100.51.198).
+static bool test_ip_is_little_endian_host_order()
+{
+	std::vector<uint8_t> o;
+	PushU32LE(o, 0);
+	PushU32LE(o, 1);
+	PushU32LE(o, 1);
+	PushBytes(o, kId1, 16);
+	PushU8(o, 0x07);
+	PushU8(o, 0x64);
+	PushU8(o, 0x33);
+	PushU8(o, 0xC6);
+	PushU16LE(o, 4672);
+	PushU16LE(o, 4662);
+	PushU8(o, 8);
+	KadNodesDatContact c[2] = {};
+	const KadNodesDatResult r = ParseBuf(o, c, 2);
+	if (r.status != KadNodesDatStatus::Ok || r.acceptedCount != 1)
+		return false;
+	return ContactIpIs(c[0], 198, 51, 100, 7);
+}
+
+// The reserved-range policy must see the dotted-quad order. File bytes 01 00 A8 C0 are
+// 192.168.0.1 and 01 00 00 7F are 127.0.0.1; a reversed read would accept both as public.
+static bool test_ip_policy_uses_dotted_order()
+{
+	std::vector<uint8_t> o;
+	PushU32LE(o, 0);
+	PushU32LE(o, 1);
+	PushU32LE(o, 3);
+	const uint8_t rawIp[3][4] = { { 0x01, 0x00, 0xA8, 0xC0 }, { 0x01, 0x00, 0x00, 0x7F }, { 0x07, 0x64, 0x33, 0xC6 } };
+	for (uint8_t i = 0; i < 3; ++i)
+	{
+		PushId(o, static_cast<uint8_t>(i + 1));
+		PushBytes(o, rawIp[i], 4);
+		PushU16LE(o, 4672);
+		PushU16LE(o, 4662);
+		PushU8(o, 8);
+	}
+	KadNodesDatContact c[4] = {};
+	const KadNodesDatResult r = ParseBuf(o, c, 4);
+	return r.status == KadNodesDatStatus::Ok && r.acceptedCount == 1 && ContactIpIs(c[0], 198, 51, 100, 7);
+}
+
+// Literal file bytes for every supported layout, independent of PushIp/PushV1Contact:
+// 192.0.2.77 is 4D 02 00 C0 and 203.0.113.245 is F5 71 00 CB.
+static bool ParsesTo(const std::vector<uint8_t>& file, uint8_t a, uint8_t b, uint8_t c3, uint8_t d, uint16_t udp)
+{
+	KadNodesDatContact c[2] = {};
+	const KadNodesDatResult r = ParseBuf(file, c, 2);
+	return r.status == KadNodesDatStatus::Ok && r.acceptedCount == 1 && ContactIpIs(c[0], a, b, c3, d) && c[0].udpPort == udp;
+}
+
+static void PushLiteralRecord(std::vector<uint8_t>& o, const uint8_t ip[4], uint16_t udp, bool wide)
+{
+	PushBytes(o, kId1, 16);
+	PushBytes(o, ip, 4);
+	PushU16LE(o, udp);
+	PushU16LE(o, 4662);
+	PushU8(o, 8);
+	if (wide)
+	{
+		PushU32LE(o, 9);
+		PushU32LE(o, 10);
+		PushU8(o, 1);
+	}
+}
+
+static bool test_literal_vectors_all_layouts()
+{
+	const uint8_t ipA[4] = { 0x4D, 0x02, 0x00, 0xC0 };
+	const uint8_t ipB[4] = { 0xF5, 0x71, 0x00, 0xCB };
+	std::vector<uint8_t> v1, v2, v3n, v3b;
+	PushU32LE(v1, 0); PushU32LE(v1, 1); PushU32LE(v1, 1);
+	PushLiteralRecord(v1, ipA, 4672, false);
+	PushU32LE(v2, 0); PushU32LE(v2, 2); PushU32LE(v2, 1);
+	PushLiteralRecord(v2, ipB, 4673, true);
+	PushU32LE(v3n, 0); PushU32LE(v3n, 3); PushU32LE(v3n, 0); PushU32LE(v3n, 1);
+	PushLiteralRecord(v3n, ipA, 40000, true);
+	PushU32LE(v3b, 0); PushU32LE(v3b, 3); PushU32LE(v3b, 1); PushU32LE(v3b, 1);
+	PushLiteralRecord(v3b, ipB, 4674, false);
+	return ParsesTo(v1, 192, 0, 2, 77, 4672) && ParsesTo(v2, 203, 0, 113, 245, 4673) &&
+	       ParsesTo(v3n, 192, 0, 2, 77, 40000) && ParsesTo(v3b, 203, 0, 113, 245, 4674);
+}
+
+// Only HostCache.dat archives written before the dotted-quad reader drop their nodes.dat
+// contacts on load; archives from this reader on are kept, so loading the same data again
+// cannot drop or alter corrected entries.
+static bool test_hostcache_reimport_only_before_fix()
+{
+	return KadNodesDatHostCacheNeedsReimport(1) && KadNodesDatHostCacheNeedsReimport(2) &&
+	       KadNodesDatHostCacheNeedsReimport(1000) && !KadNodesDatHostCacheNeedsReimport(3) &&
+	       !KadNodesDatHostCacheNeedsReimport(4);
+}
+
 void register_kad_nodes_dat_tests(TestSuite& suite)
 {
 	suite.add_test("kad_nodes_dat_count_fits", test_count_fits_overflow_and_zero);
@@ -582,6 +680,10 @@ void register_kad_nodes_dat_tests(TestSuite& suite)
 	suite.add_test("kad_nodes_dat_slash24_cap", test_slash24_cap);
 	suite.add_test("kad_nodes_dat_xor_cmp", test_xor_helper_order);
 	suite.add_test("kad_nodes_dat_empty_count", test_empty_count);
+	suite.add_test("kad_nodes_dat_ip_little_endian", test_ip_is_little_endian_host_order);
+	suite.add_test("kad_nodes_dat_ip_policy_dotted_order", test_ip_policy_uses_dotted_order);
+	suite.add_test("kad_nodes_dat_literal_vectors", test_literal_vectors_all_layouts);
+	suite.add_test("kad_nodes_dat_hostcache_reimport_policy", test_hostcache_reimport_only_before_fix);
 }
 
 #ifdef ENVY_KAD_NODES_DAT_STANDALONE
