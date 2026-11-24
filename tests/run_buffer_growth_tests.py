@@ -10,7 +10,9 @@ import sys
 
 def main():
     root = Path(__file__).resolve().parent.parent
-    output = root / ".local" / "buffer-growth" / os.environ.get("VSCMD_ARG_TGT_ARCH", "native")
+    output = (root / ".local" / "buffer-growth"
+              / os.environ.get("VSCMD_ARG_TGT_ARCH", "native")
+              / os.environ.get("ENVY_BUFFER_GROWTH_CONFIGURATION", "standalone"))
     output.mkdir(parents=True, exist_ok=True)
     subprocess.run(
         [sys.executable, str(root / "tests/extract_buffer_growth_methods.py"),

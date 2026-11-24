@@ -10,7 +10,8 @@ Repeat from an **x86 Native Tools** prompt for Win32 coverage. The runner
 extracts the current production method bodies, compiles a standalone harness
 with MSVC at `/Od` and `/O2`, and runs both nullable and throwing allocation
 variants. Assertions remain active even with `NDEBUG`. Generated files stay
-under ignored `.local/buffer-growth/`; no MFC application build is required.
+under ignored `.local/buffer-growth/<architecture>/<configuration>/` (or
+`standalone` outside MSBuild); no MFC application build is required.
 
 The harness exercises `CHashDatabase::PrepareToStore`, the hub pool and group
 methods, `CSearchDetailPanel::CachePreviewImage`, and
@@ -40,8 +41,12 @@ Coverage checks:
 `EnvyTests.vcxproj` runs the same suite before C++ compilation, using the
 project platform to initialize the Native Tools environment. A failing harness
 command fails the project build, so both required Release platform checks
-enforce this coverage. Python 3 and the selected Visual Studio toolset must be
-available when building EnvyTests.
+enforce this coverage when they execute the real builds (non-draft PRs or
+Draft PRs labelled `stage:live-test`). A Draft deferral is not test evidence.
+The suite intentionally runs on every MSBuild invocation that reaches C++
+compilation, including incremental builds. Architecture and configuration
+isolate generated files for concurrent Debug/Release builds. Python 3 and the
+selected Visual Studio toolset must be available when building EnvyTests.
 
 These are allocation and ownership regressions, not evidence of a full Windows
 application build, live runtime testing, or closure of CodeQL alerts on

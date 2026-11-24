@@ -263,7 +263,7 @@
       <BufferGrowthArch Condition="'$(Platform)'=='x64'">x64</BufferGrowthArch>
     </PropertyGroup>
     <Error Condition="'$(BufferGrowthArch)'==''" Text="Buffer growth regressions require Win32 or x64." />
-    <Exec WorkingDirectory="$(ProjectDir).." Command="call &quot;$(VSInstallDir)Common7\Tools\VsDevCmd.bat&quot; -no_logo -host_arch=x64 -arch=$(BufferGrowthArch) &amp;&amp; python &quot;$(ProjectDir)run_buffer_growth_tests.py&quot;" />
+    <Exec WorkingDirectory="$(ProjectDir).." Command="call &quot;$(VSInstallDir)Common7\Tools\VsDevCmd.bat&quot; -no_logo -host_arch=x64 -arch=$(BufferGrowthArch) &amp;&amp; set &quot;ENVY_BUFFER_GROWTH_CONFIGURATION=$(Configuration)&quot; &amp;&amp; python &quot;$(ProjectDir)run_buffer_growth_tests.py&quot;" />
   </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
