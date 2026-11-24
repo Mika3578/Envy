@@ -127,6 +127,40 @@ class CompileChangelogTests(unittest.TestCase):
         self.assertEqual(r.returncode, 0)
         self.assertIn("no fragments", r.stdout)
 
+    def test_unexpected_non_md_rejected(self):
+        (self.root / "changelog.d" / "notes.txt").write_text("x", encoding="utf-8")
+        r = run(self.root)
+        self.assertEqual(r.returncode, 1, r.stderr)
+        self.assertIn("not *.md", r.stderr)
+
+    def test_mixed_line_endings_rejected(self):
+        mixed = "# Changelog\r\n\n## [Unreleased]\r\n\n### Fixed\r\n- old\r\n\n## [1.0]\r\n- x\r\n"
+        self.write_changelog(mixed)
+        self.frag("1.fixed.md", "x")
+        r = run(self.root)
+        self.assertEqual(r.returncode, 1, r.stderr)
+        self.assertIn("mixed line endings", r.stderr)
+
+    def test_utf8_bom_stripped_from_fragment(self):
+        self.frag("1.fixed.md", b"\xef\xbb\xbfbom entry")
+        r = run(self.root)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("- bom entry\n", self.changelog())
+        self.assertNotIn("\ufeff", self.changelog())
+
+    def test_symlinked_fragment_rejected(self):
+        target = self.outer / "outside-frag.md"
+        target.write_text("leaked", encoding="utf-8")
+        link = self.root / "changelog.d" / "1.fixed.md"
+        try:
+            os.symlink(target, link)
+        except (OSError, NotImplementedError):
+            self.skipTest("symlinks unavailable")
+        r = run(self.root)
+        self.assertEqual(r.returncode, 1, r.stderr)
+        self.assertIn("not a regular file", r.stderr)
+        self.assertTrue(target.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -12,6 +12,9 @@ The file holds a single entry in the existing style, without the leading
     **Kad bootstrap rotation (#462)** - Rotate candidates with bounded retries.
 
 At release time the maintainer runs
-`python .github/scripts/compile-changelog.py`, which appends the fragments to
-`## [Unreleased]` of `CHANGELOG.md` and deletes them. Use `--dry-run` to
-preview. Entries already in `CHANGELOG.md` stay as they are.
+`python .github/scripts/compile-changelog.py`, which inserts the fragments at
+the top of each matching category under `## [Unreleased]` of `CHANGELOG.md`
+and deletes them. Use `--dry-run` to preview. Entries already in
+`CHANGELOG.md` stay as they are. Until `AGENTS.md` is updated to require
+fragments, keep user-visible notes as fragments for concurrent PRs and avoid
+editing `[Unreleased]` directly when possible.
