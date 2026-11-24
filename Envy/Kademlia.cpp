@@ -729,7 +729,8 @@ bool CKademlia::SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	if (!pHost || !pPacket) return false;
 
 	BOOL bSocketSent = FALSE;
-	return Datagrams.Send(pHost, pPacket, FALSE, NULL, TRUE, &bSocketSent) != FALSE && bSocketSent != FALSE;}
+	return Datagrams.Send(pHost, pPacket, FALSE, NULL, TRUE, &bSocketSent) != FALSE && bSocketSent != FALSE;
+}
 
 bool CKademlia::UpdateContact(const KadContact& contact, KadContactSource source, bool markVerified)
 {

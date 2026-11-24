@@ -186,7 +186,8 @@ private:
 	bool ReadEntryTags(CEDPacket* pPacket, KadStoredEntry& entry);
 
 	// Utility methods
-	bool SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);	bool UpdateContact(const KadContact& contact, KadContactSource source = KadContactSource::Candidate, bool markVerified = false);
+	bool SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	bool UpdateContact(const KadContact& contact, KadContactSource source = KadContactSource::Candidate, bool markVerified = false);
 	void GenerateOwnKadId();
 	void LogKadStatus();
 
