@@ -246,6 +246,32 @@ deterministic test in this repository; **[hyp]** hypothesis, not yet verified.
 Live interoperability remains unproven either way: every row above is a
 source-level or unit-test claim, never a live-traffic measurement.
 
+### Existing host-cache failure policy (why it is not reused)
+
+Issue #430 asks for a comparison with Envy's own host-cache failure handling
+before choosing a retry approach. `CHostCacheList::OnFailure` counts failures per
+cache entry (`m_nFailures`, `m_tFailure` in wall-clock seconds from `time()`),
+`CHostCacheHost::CanConnect` rests a failed entry for the flat
+`Connection.FailurePenalty` (default 300 s), and the entry is removed once it has
+failed more than `Connection.FailureLimit` times (default 3, unless it is a
+priority entry). Kad bootstrap does not call it today. It was not reused because:
+
+- removal is the wrong outcome here: with the default limit, a cache of silent
+  peers loses each of them after four failed passes, and the Kad cache that
+  bootstrap depends on is refilled only by the `nodes.dat` and HTTPS import paths,
+  which can return the same dead contacts;
+- the penalty is flat, so it neither backs off nor keeps an unresponsive peer at a
+  long delay;
+- entries are keyed by IP, while a Kad endpoint is an IP and UDP port and the
+  correlation rules above treat two ports of one IP as independent;
+- the timestamps are 32-bit seconds, against the 64-bit millisecond clock used for
+  retry and correlation state.
+
+The retry state is therefore a separate in-memory map, bounded at 2048 endpoints,
+that never removes a host-cache entry. This is a design rationale, not a
+measurement; a persisted per-entry failure count could be added later if
+restarts should remember backoff.
+
 ### Measured convergence (simulation, not live traffic)
 
 Does the lower cold-start rate (about 0.3 against the references' 0.5 requests/s)
