@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Fold changelog.d/<id>.<category>.md fragments into CHANGELOG.md [Unreleased]."""
 import argparse
 import os
