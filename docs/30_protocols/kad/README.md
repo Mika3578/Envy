@@ -253,13 +253,15 @@ before choosing a retry approach. `CHostCacheList::OnFailure` counts failures pe
 cache entry (`m_nFailures`, `m_tFailure` in wall-clock seconds from `time()`),
 `CHostCacheHost::CanConnect` rests a failed entry for the flat
 `Connection.FailurePenalty` (default 300 s), and the entry is removed once it has
-failed more than `Connection.FailureLimit` times (default 3, unless it is a
-priority entry). Kad bootstrap does not call it today. It was not reused because:
+failed more than `Connection.FailureLimit` times (default 3), or on its first
+failure when the caller keeps the default `bRemove = true`; priority entries are
+kept. Kad bootstrap does not call it today. It was not reused because:
 
-- removal is the wrong outcome here: with the default limit, a cache of silent
-  peers loses each of them after four failed passes, and the Kad cache that
-  bootstrap depends on is refilled only by the `nodes.dat` and HTTPS import paths,
-  which can return the same dead contacts;
+- removal is the wrong outcome here: a cache of silent peers would lose each of
+  them on the first failure (default `bRemove = true`) or after four failed passes
+  (`bRemove = false`), and the Kad cache that bootstrap depends on is refilled only
+  by the `nodes.dat` import, the HTTPS `nodes.dat` download and `K` entries of
+  `DefaultServers.dat`, any of which can return the same dead contacts;
 - the penalty is flat, so it neither backs off nor keeps an unresponsive peer at a
   long delay;
 - entries are keyed by IP, while a Kad endpoint is an IP and UDP port and the
