@@ -11,11 +11,13 @@
 //   v3 normal     — marker 0, version 3, edition 0, count, 34-byte records
 //   v3 bootstrap  — marker 0, version 3, edition 1, count, 25-byte records
 //
-// IP on disk is the four IPv4 octets in network order, which matches
-// eMule CContact::GetIPAddress() written via WriteUInt32 on little-endian
-// (ReadUInt32 then ntohl for IsGoodIPPort). UDP/TCP ports are little-endian
-// host-order integers (4672 = 40 12). KadUDPKey is two little-endian uint32
-// fields (key, associated IP in the same internal IP encoding).
+// IP on disk is a host-order uint32 written little-endian (eMule
+// CContact::GetIPAddress() via WriteUInt32; after ReadUInt32 eMule byte-swaps it with
+// ntohl and aMule with wxUINT32_SWAP_ALWAYS before their address checks), so the file
+// carries the dotted-quad octets reversed: 203.0.113.5 is 05 71 00 CB.
+// KadNodesDatReadOneContact restores the dotted-quad order. UDP/TCP ports are
+// little-endian host-order integers (4672 = 40 12). KadUDPKey is two little-endian
+// uint32 fields (key, associated IP in the same encoding as the IP).
 //
 // Runtime Kad UDP-key protocol and IP-verified trust are NOT implemented.
 // Those fields are parsed so the file is consumed correctly, then discarded.
@@ -49,6 +51,19 @@ constexpr uint8_t KadNodesDatMinKad2Version = 2u;
 constexpr uint8_t KadNodesDatDnsPortEncVersion = 5u;
 constexpr uint16_t KadNodesDatDnsUdpPort = 53u;
 
+// First HostCache.dat archive version written with the dotted-quad reader above. Older
+// archives (including the legacy 1000 format) can hold contacts imported from nodes.dat
+// with their IPv4 bytes reversed, because the earlier reader copied the file bytes as
+// network order. Those entries are dropped on load and imported again from nodes.dat
+// instead of being byte-swapped in place, so a second load, or an archive written again
+// by an older build, cannot turn a correct address into a wrong one.
+constexpr int KadNodesDatHostCacheFixedVersion = 3;
+
+inline bool KadNodesDatHostCacheNeedsReimport(int nArchiveVersion)
+{
+	return nArchiveVersion < KadNodesDatHostCacheFixedVersion || nArchiveVersion == 1000;
+}
+
 constexpr uint32_t KadNodesDatRecordBytesV0 = 25u;
 constexpr uint32_t KadNodesDatRecordBytesV1 = 25u;
 constexpr uint32_t KadNodesDatRecordBytesV2 = 34u;
@@ -77,7 +92,7 @@ enum class KadNodesDatKind
 struct KadNodesDatContact
 {
 	uint8_t id[16];
-	uint8_t ip[4];    // network-order octets
+	uint8_t ip[4];    // dotted-quad order (first octet at [0]); the file stores them reversed
 	uint16_t udpPort; // host order
 	uint16_t tcpPort; // host order
 	uint8_t contactVersion;
@@ -382,7 +397,12 @@ inline bool KadNodesDatReadOneContact(
 	const uint8_t* pIp = nullptr;
 	if (!KadNodesDatTake(cur, 4, &pIp))
 		return false;
-	std::memcpy(c.ip, pIp, 4);
+	// eMule/aMule write the contact IP as a host-order uint32 in little-endian, so the
+	// file carries the dotted-quad octets reversed (198.51.100.7 is 07 64 33 C6).
+	c.ip[0] = pIp[3];
+	c.ip[1] = pIp[2];
+	c.ip[2] = pIp[1];
+	c.ip[3] = pIp[0];
 
 	if (!KadNodesDatTakeU16(cur, &c.udpPort))
 		return false;
