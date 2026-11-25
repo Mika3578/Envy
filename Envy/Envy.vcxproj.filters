@@ -1646,6 +1646,9 @@
     <ClInclude Include="BTInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BTDiscoveryPolicy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="BTPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

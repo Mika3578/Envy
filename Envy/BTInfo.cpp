@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "BTInfo.h"
+#include "BTDiscoveryPolicy.h"
 #include "BTInfoPieceHash.h"
 #include "BENode.h"
 #include "Buffer.h"
@@ -823,7 +824,8 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 	// Prefer a fresh CBTInfo / Clear() before reload. An existing m_pBlockBTH
 	// is replaced via swap when pieces are installed below (no leak / dangling).
 
-	theApp.Message( MSG_DEBUG, L"[BT] Loading torrent tree: %s", (LPCTSTR)pRoot->Encode() );
+	// The metainfo can contain private tracker credentials.
+	theApp.Message(MSG_DEBUG, L"[BT] Loading torrent tree");
 
 	if ( ! pRoot->IsType( CBENode::beDict ) )
 		return FALSE;
@@ -832,6 +834,9 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 	const CBENode* pInfo = pRoot->GetNode( "info" );
 	if ( ! pInfo || ! pInfo->IsType( CBENode::beDict ) )
 		return FALSE;
+
+	const CBENode* pPrivate = pInfo->GetNode("private");
+	const bool bPrivate = pPrivate && pPrivate->IsType(CBENode::beInt) ? pPrivate->GetInt() != 0 : m_bPrivate != FALSE;
 
 	if ( m_oBTH )
 	{
@@ -1044,41 +1049,23 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 				strTracker.Replace( L"%3A", L":" );
 			}
 
-			// Store it if it's valid. (Some torrents have invalid trackers)
-			if ( strTracker.GetLength() < 10 ||
-				 ( ! StartsWith( strTracker, _P( L"http://" ) ) &&	// (ToDo: Support https://)
-				   ! StartsWith( strTracker, _P( L"udp://" ) ) ) ||
-				 IsDeadTracker( strTracker ) )
+			const bool bSupportedScheme = StartsWith(strTracker, _P(L"http://")) || StartsWith(strTracker, _P(L"udp://"));
+			const bool bUsableTracker = strTracker.GetLength() >= 10 && bSupportedScheme && !IsDeadTracker(strTracker);
+			const BtSingleTracker selection = BtSelectSingleTracker(bPrivate, bUsableTracker);
+			if (selection == BtSingleTracker::Inactive)
 			{
-				// Catch unknown and common defunct trackers  (ToDo: Get Private tag first)
-				strTracker = Settings.BitTorrent.DefaultTracker;	// L"udp://tracker.openbittorrent.com:80/announce"
-
-				// Set the torrent to be a single-tracker torrent
-				m_nTrackerMode = tSingle;
-				SetTracker( strTracker );
-
-				// Backup tracker
-				//CBTTracker oTracker;
-				//oTracker.m_sAddress = Settings.BitTorrent.DefaultTracker;
-				//oTracker.m_nTier = 0;
-				//m_nTrackerMode = tMultiFinding;
-				//AddTracker( oTracker );
+				AddTracker(CBTTracker(strTracker));
+				SetTrackerMode(tNull);
 			}
-
-			SetTracker( strTracker );
-			m_nTrackerMode = tSingle;
+			else
+			{
+				SetTracker(selection == BtSingleTracker::PublicDefault ? Settings.BitTorrent.DefaultTracker : strTracker);
+				m_nTrackerMode = tSingle;
+			}
 		}
 	}
 
-	// Get the info node (As above, for reference)
-	//CBENode* pInfo = pRoot->GetNode( "info" );
-	//if ( ! pInfo || ! pInfo->IsType( CBENode::beDict ) )
-	//	return FALSE;
-
-	// Get the private flag (if present)
-	const CBENode* pPrivate = pInfo->GetNode( "private" );
-	if ( pPrivate && pPrivate->IsType( CBENode::beInt ) )
-		m_bPrivate = pPrivate->GetInt() != 0;
+	m_bPrivate = bPrivate;
 
 	// Get the name
 	m_sName = pInfo->GetStringFromSubNode( "name", m_nEncoding );

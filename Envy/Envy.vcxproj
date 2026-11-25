@@ -1280,6 +1280,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="BTCrypto.h" />
     <ClInclude Include="BTClients.h" />
     <ClInclude Include="BTInfo.h" />
+    <ClInclude Include="BTDiscoveryPolicy.h" />
     <ClInclude Include="BTPacket.h" />
     <ClInclude Include="BTTrackerRequest.h" />
     <ClInclude Include="Buffer.h" />

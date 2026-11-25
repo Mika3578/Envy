@@ -35,6 +35,7 @@
 #include "Network.h"
 #include "HostCache.h"
 #include "Buffer.h"
+#include "BTDiscoveryPolicy.h"
 #include "BTPacket.h"
 #include "BTClient.h"
 #include "BTClients.h"
@@ -590,7 +591,8 @@ void CDownloadWithTorrent::SendStarted(DWORD nNumWant)
 	m_tTorrentTracker += Settings.BitTorrent.DefaultTrackerPeriod;
 	m_nTorrentDownloaded = m_nTorrentUploaded = 0ull;
 
-	DHT.Search( m_oBTH );
+	if (BtAllowsPublicDiscovery(m_pTorrent.m_bPrivate != FALSE))
+		DHT.Search(m_oBTH);
 
 	// Return if there is no tracker
 	if ( ! m_pTorrent.HasTracker() )
@@ -609,7 +611,8 @@ void CDownloadWithTorrent::SendUpdate(DWORD nNumWant)
 	m_tTorrentTracker = m_tTorrentSources = GetTickCount();
 	m_tTorrentTracker += Settings.BitTorrent.DefaultTrackerPeriod;
 
-	DHT.Search( m_oBTH );
+	if (BtAllowsPublicDiscovery(m_pTorrent.m_bPrivate != FALSE))
+		DHT.Search(m_oBTH);
 
 	// Return if there is no tracker
 	if ( ! m_pTorrent.HasTracker() )
