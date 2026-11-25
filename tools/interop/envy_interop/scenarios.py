@@ -29,7 +29,7 @@ from .evidence import (
     EvidenceError,
     collect_hits_from_paths,
     extract_ed2k_frames,
-    extract_frames,
+    extract_frames_for_path,
     require_any_label_group,
     safe_evidence_source_name,
     summarize_hits,
@@ -963,9 +963,9 @@ def _evidence_label_groups(spec: ScenarioSpec) -> Tuple[Tuple[str, ...], ...]:
 def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[ScenarioResult]:
     """Attempt PASS from --packet-evidence / --hello-capture / evidence dir.
 
-    Label matching aggregates across candidate files (and TCP-concat reassembles
-    ED2K frames split across segments). Per-file Hello/MuleInfo parse paths
-    remain for dedicated handlers that need a concrete frame slice.
+    Label matching aggregates across candidate files. The per-file Hello and
+    MuleInfo fallbacks keep capture transport boundaries when locating a frame
+    to parse for detailed evidence.
     """
     configured: List[Path] = []
     if ctx.cfg.packet_evidence is not None:
@@ -1040,7 +1040,7 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
     for path in files:
         try:
             raw = load_bytes(path)
-            hits = extract_frames(raw)
+            hits = extract_frames_for_path(path, raw)
             if spec.id in {"hello", "hello_answer"}:
                 label = "hello" if spec.id == "hello" else "hello_answer"
                 malformed = [
@@ -1074,13 +1074,13 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
             hello_raw = hello_hit = None
             answer_raw = answer_hit = None
             for blob in tcp_reassembly_blobs(files):
-                concat_hits = extract_ed2k_frames(blob)
+                stream_hits = extract_ed2k_frames(blob, sequential=True)
                 if hello_hit is None:
-                    hello_hit = _first_hit(concat_hits, "hello")
+                    hello_hit = _first_hit(stream_hits, "hello")
                     if hello_hit is not None:
                         hello_raw = blob
                 if answer_hit is None:
-                    answer_hit = _first_hit(concat_hits, "hello_answer")
+                    answer_hit = _first_hit(stream_hits, "hello_answer")
                     if answer_hit is not None:
                         answer_raw = blob
                 if hello_hit is not None and answer_hit is not None:
@@ -1091,7 +1091,7 @@ def _try_packet_evidence(ctx: RunContext, spec: ScenarioSpec) -> Optional[Scenar
                 saw_malformed = False
                 for path in files:
                     raw = load_bytes(path)
-                    hits = extract_frames(raw)
+                    hits = extract_frames_for_path(path, raw)
                     if any(
                         h.label in {"hello", "hello_answer"} and h.details.get("parse_error")
                         for h in hits

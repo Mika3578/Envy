@@ -195,6 +195,8 @@ datagram whose Kad header must start it; packed (`0xE5`) or obfuscated
 datagrams yield no frames. Bytes inside a frame or datagram are therefore
 never searched for embedded frames, so file data, compressed payloads and
 random obfuscated traffic cannot produce PASS evidence.
+The Hello, HelloAnswer, MuleInfo and capability-negotiation fallback parsers
+use the same boundaries when extracting frame bytes for their reports.
 
 Legacy per-packet extract filenames are inspected individually and are no
 longer concatenated: their ordinal suffixes do not establish TCP sequence

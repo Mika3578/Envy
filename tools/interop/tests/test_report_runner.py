@@ -678,6 +678,38 @@ class RunnerDryRunTests(unittest.TestCase):
             self.assertEqual(by_id["hello_answer"]["result"], "PASS", by_id["hello_answer"].get("reason"))
             self.assertEqual(by_id["muleinfo"]["result"], "PASS", by_id["muleinfo"].get("reason"))
 
+    def test_capture_scenarios_preserve_transport_boundaries(self) -> None:
+        golden_dir = REPO / "tools/interop/fixtures/golden"
+        frames = [
+            bytes.fromhex(json.loads((golden_dir / name).read_text(encoding="utf-8"))["tcp_frame_hex"])
+            for name in ("envy-self-hello.json", "envy-self-helloanswer.json")
+        ]
+        frames.append(bytes.fromhex("c50700000001500100000000"))
+        payload = b"".join(frames)
+        packed = b"\xd4" + (len(payload) + 1).to_bytes(4, "little") + b"\x01" + payload
+        scenarios = ["hello", "hello_answer", "muleinfo", "capability_negotiation"]
+        for filename, capture, expected in (
+            ("from-pcap-tcp-0-0.bin", payload, "PASS"),
+            ("from-pcap-tcp-0-0.bin", packed, "SKIP"),
+            ("from-pcap-tcp-0-0.bin", b"noise" + payload, "SKIP"),
+            ("from-pcap-udp-0.bin", payload, "SKIP"),
+        ):
+            with self.subTest(filename=filename, first_byte=capture[0]), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                evidence = root / filename
+                evidence.write_bytes(capture)
+                cfg = HarnessConfig(
+                    repo_root=REPO,
+                    artifact_dir=root / "artifacts",
+                    work_dir=root / "work",
+                    dry_run=True,
+                    live=False,
+                    packet_evidence=evidence,
+                    scenarios=scenarios,
+                )
+                results = {item["id"]: item["result"] for item in run_harness(cfg)["scenarios"]}
+                self.assertEqual(results, dict.fromkeys(scenarios, expected))
+
     def test_expand_aliases(self) -> None:
         self.assertIn("compressed_transfer_envy_to_ref", expand_selection(["current"]))
         self.assertIn("lowid_buddy", expand_selection(["deferred"]))
