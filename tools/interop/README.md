@@ -184,7 +184,17 @@ closed. SYN consumes one sequence number. Opposite directions are separated by
 their endpoints even when both ports are equal, but endpoint addresses are not
 exported. Validated streams are written as
 `captures/evidence/from-pcap-tcp-<local-flow>-0000.bin`; UDP datagrams remain
-independent `from-pcap-udp-<ordinal>.bin` files and are never joined.
+independent `from-pcap-udp-<ordinal>.bin` files and are never joined. A UDP
+datagram whose captured length differs from its UDP length fails closed.
+
+Evidence parsing is anchored. A TCP stream is read frame by frame from its
+first byte: packed (`0xD4`) frames are skipped by their size without
+inflation and never count as evidence, and the first unknown header or
+truncated frame ends the stream with a parse error. A UDP file is one
+datagram whose Kad header must start it; packed (`0xE5`) or obfuscated
+datagrams yield no frames. Bytes inside a frame or datagram are therefore
+never searched for embedded frames, so file data, compressed payloads and
+random obfuscated traffic cannot produce PASS evidence.
 
 Legacy per-packet extract filenames are inspected individually and are no
 longer concatenated: their ordinal suffixes do not establish TCP sequence

@@ -15,9 +15,10 @@ if str(_INTEROP_ROOT) not in sys.path:
 
 from envy_interop.config import HarnessConfig
 from envy_interop.evidence import (
-    EvidenceError, PcapPayloadExtract, extract_from_pcap_via_tshark,
-    reassemble_tcp_segments,
+    EvidenceError, PcapPayloadExtract, extract_frames_for_path,
+    extract_from_pcap_via_tshark, reassemble_tcp_segments, require_labels,
 )
+from envy_interop.golden import load_bytes
 from envy_interop.runner import _convert_owned_pcap, _finalize_pcap_lifecycle, run_harness
 from envy_interop.scenarios import SCENARIOS, handle_optional_pcap
 
@@ -74,11 +75,16 @@ class TcpSequenceTests(unittest.TestCase):
             self.row(100, b"abcd"), self.row(40, b"reverse", source="192.0.2.2"),
             self.row(10, b"other", stream=1),
         ])
-        result = self.extract(rows, "e4:60\ne4:60\n")
+        result = self.extract(rows, "10\te4:60\n\t\n10\te4:60\n")
         self.assertEqual(sorted(x[0] for x in result.tcp_by_stream.values()),
                          [b"abcdef", b"other", b"reverse"])
         self.assertEqual(result.udp, [b"\xe4\x60", b"\xe4\x60"])
         self.assertNotIn("192.0.2", repr(result))
+
+    def test_extraction_rejects_truncated_udp_datagrams(self):
+        for udp in ("11\te4:60\n", "9\te4:60\n", "x\te4:60\n", "10\tzz\n"):
+            with self.subTest(udp=udp), self.assertRaises(EvidenceError):
+                self.extract(self.row(1, b"ab"), udp)
 
     def test_extraction_rejects_missing_metadata_truncation_and_conflict(self):
         for rows in (
@@ -89,6 +95,59 @@ class TcpSequenceTests(unittest.TestCase):
         ):
             with self.assertRaises(EvidenceError):
                 self.extract(rows)
+
+
+class AnchoredFramingTests(unittest.TestCase):
+    """Payload bytes of one frame or datagram must never become evidence."""
+
+    TCP = Path("from-pcap-tcp-0000-0000.bin")
+    UDP = Path("from-pcap-udp-0000.bin")
+    HELLO = load_bytes(_INTEROP_ROOT / "fixtures" / "golden" / "envy-self-hello.json")
+    # <NodeID 16><TCP port 2><version 1><tag count 1> (eMule HELLO layout).
+    KAD_HELLO = b"\xe4\x11" + bytes(range(16)) + b"\x36\x12\x09\x00"
+
+    @staticmethod
+    def frame(protocol, opcode, body):
+        return bytes([protocol]) + (len(body) + 1).to_bytes(4, "little") + bytes([opcode]) + body
+
+    def labels(self, path, blob, required):
+        hits = extract_frames_for_path(path, blob)
+        return [hit.label for hit in hits], require_labels(hits, required)[0]
+
+    def test_valid_stream_and_datagram_still_pass(self):
+        stream = self.HELLO + self.frame(0xC5, 0x60, b"")
+        self.assertEqual(self.labels(self.TCP, stream, ["hello"]),
+                         (["hello", "op_c5_60"], True))
+        self.assertEqual(self.labels(self.UDP, self.KAD_HELLO, ["kad_hello_req"]),
+                         (["kad_hello_req"], True))
+
+    def test_tcp_payload_is_never_searched_for_frames(self):
+        cases = {
+            "packed": self.frame(0xD4, 0x40, b"\x00" + self.HELLO),
+            "leading": b"\x00" + self.HELLO,
+            "truncated": (self.HELLO[:1] + (len(self.HELLO) + 100).to_bytes(4, "little")
+                          + self.HELLO[5:6] + self.HELLO),
+            "short-tail": self.HELLO[:-1],
+        }
+        for name, stream in cases.items():
+            with self.subTest(name=name):
+                labels, ok = self.labels(self.TCP, stream, ["hello"])
+                self.assertFalse(ok)
+                self.assertNotIn("hello", labels)
+
+    def test_packed_frame_is_skipped_by_size_but_never_clean(self):
+        stream = self.frame(0xD4, 0x40, b"\x00" + self.HELLO) + self.HELLO
+        hits = extract_frames_for_path(self.TCP, stream)
+        self.assertEqual([hit.label for hit in hits], ["op_d4_40", "hello"])
+        self.assertTrue(hits[0].details["parse_error"])
+        self.assertFalse(require_labels(hits, ["op_d4_40"])[0])
+
+    def test_udp_datagram_header_must_start_the_datagram(self):
+        for prefix in (b"\xe5\x11", b"\x9a\x33\x71", b"\xe3", b"\xe4\x77"):
+            with self.subTest(prefix=prefix.hex()):
+                labels, ok = self.labels(self.UDP, prefix + b"\x00" * 5 + self.KAD_HELLO,
+                                         ["kad_hello_req"])
+                self.assertEqual((labels, ok), ([], False))
 
 
 class CaptureLifecycleTests(unittest.TestCase):
