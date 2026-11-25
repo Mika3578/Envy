@@ -327,9 +327,19 @@ BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 		return FALSE;
 	}
 
+	// Standard PUBLISH and HELLO_RES_ACK payloads are not implemented. Drop
+	// them before any handler, reply, rate-limit or routing-table update
+	// rather than misread them with a non-standard layout.
+	if (KadUdpOpcodeDispositionOf(pPacket->m_nType) == KadUdpOpcodeDisposition::Unsupported)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: Dropped unsupported opcode 0x%02x from %s",
+		               pPacket->m_nType, (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		return FALSE;
+	}
+
 	CSingleLock oLock(&m_pKadSection, TRUE);
 
-	// Route packet based on opcode
+	// Route packet based on opcode. Keep in sync with KadUdpOpcodeDispositionOf.
 	switch (pPacket->m_nType)
 	{
 	case KADEMLIA2_BOOTSTRAP_REQ:
@@ -374,18 +384,6 @@ BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 
 	case KADEMLIA2_SEARCH_RES:
 		OnSearchResponse(pHost, pPacket);
-		return TRUE;
-
-	case KADEMLIA2_PUBLISH_KEY_REQ:
-		OnPublishKeyRequest(pHost, pPacket);
-		return TRUE;
-
-	case KADEMLIA2_PUBLISH_SOURCE_REQ:
-		OnPublishSourceRequest(pHost, pPacket);
-		return TRUE;
-
-	case KADEMLIA2_PUBLISH_RES:
-		OnPublishResponse(pHost, pPacket);
 		return TRUE;
 
 	case KADEMLIA2_FIREWALLED_REQ:
@@ -1177,36 +1175,6 @@ void CKademlia::WriteEntryTags(CEDPacket* pPacket, const KadStoredEntry& entry)
 	}
 }
 
-bool CKademlia::ReadEntryTags(CEDPacket* pPacket, KadStoredEntry& entry)
-{
-	if (pPacket->GetRemaining() < KAD_ID_SIZE + 4 + 2 + 2 + 1)
-		return false;
-
-	pPacket->Read(entry.sourceId, KAD_ID_SIZE);
-	entry.ip = pPacket->ReadLongLE();
-	entry.udpPort = pPacket->ReadShortLE();
-	entry.tcpPort = pPacket->ReadShortLE();
-	entry.lifetime = GetTickCount() + KAD_STORE_ENTRY_LIFETIME;
-
-	BYTE tagCount = pPacket->ReadByte();
-	if (tagCount > 32) return false;
-
-	for (BYTE t = 0; t < tagCount; t++)
-	{
-		if (pPacket->GetRemaining() < 3) return false;
-		BYTE tagId = pPacket->ReadByte();
-		WORD tagLen = pPacket->ReadShortLE();
-		if (!KadStoreTagLengthOk(tagLen)) return false;
-		if (pPacket->GetRemaining() < tagLen) return false;
-
-		std::vector<BYTE> tagData(tagLen);
-		if (tagLen > 0)
-			pPacket->Read(tagData.data(), tagLen);
-		entry.tags.push_back(std::make_pair(tagId, std::move(tagData)));
-	}
-	return true;
-}
-
 //////////////////////////////////////////////////////////////////////
 // Search handlers
 
@@ -1316,134 +1284,7 @@ void CKademlia::OnSearchResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 }
 
 //////////////////////////////////////////////////////////////////////
-// Publish handlers
-
-void CKademlia::OnPublishKeyRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
-{
-	// KADEMLIA2_PUBLISH_KEY_REQ: <KeywordHash 16><PublisherID 16><TagList>
-	if (pPacket->GetRemaining() < KAD_ID_SIZE)
-		return;
-
-	if (!CheckRateLimit(pHost, KAD_REQUEST_PUBLISH_KEY))
-		return;
-
-	KadId keywordHash;
-	pPacket->Read(keywordHash, KAD_ID_SIZE);
-
-	KadStoredEntry entry;
-	if (!ReadEntryTags(pPacket, entry))
-		return;
-
-	theApp.Message(MSG_DEBUG, L"Kad2: Publish key request from %s",
-	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
-
-	KadIdKey key = ToKey(keywordHash);
-	auto& entries = m_keywordStore[key];
-
-	BYTE load = 0; // 0 = success
-
-	if (entries.size() < KAD_STORE_MAX_ENTRIES_PER_KEY && GetStoredEntryCount() < KAD_STORE_MAX_TOTAL)
-	{
-		// Check for duplicate by sourceId
-		bool found = false;
-		for (auto& existing : entries)
-		{
-			if (memcmp(existing.sourceId, entry.sourceId, KAD_ID_SIZE) == 0)
-			{
-				existing = entry;
-				found = true;
-				break;
-			}
-		}
-		if (!found)
-			entries.push_back(entry);
-	}
-	else
-	{
-		load = 100; // Overloaded
-	}
-
-	// Send PUBLISH_RES
-	CEDPacket* pResponse = CEDPacket::New(KADEMLIA2_PUBLISH_RES, ED2K_PROTOCOL_KAD);
-	if (!pResponse) return;
-
-	pResponse->Write(keywordHash, KAD_ID_SIZE);
-	pResponse->WriteByte(load);
-
-	SendPacket(pHost, pResponse);
-	pResponse->Release();
-}
-
-void CKademlia::OnPublishSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
-{
-	// KADEMLIA2_PUBLISH_SOURCE_REQ: <FileHash 16><PublisherID 16><TagList>
-	if (pPacket->GetRemaining() < KAD_ID_SIZE)
-		return;
-
-	if (!CheckRateLimit(pHost, KAD_REQUEST_PUBLISH_SOURCE))
-		return;
-
-	KadId fileHash;
-	pPacket->Read(fileHash, KAD_ID_SIZE);
-
-	KadStoredEntry entry;
-	if (!ReadEntryTags(pPacket, entry))
-		return;
-
-	theApp.Message(MSG_DEBUG, L"Kad2: Publish source request from %s",
-	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
-
-	KadIdKey key = ToKey(fileHash);
-	auto& entries = m_sourceStore[key];
-
-	BYTE load = 0;
-
-	if (entries.size() < KAD_STORE_MAX_ENTRIES_PER_KEY && GetStoredEntryCount() < KAD_STORE_MAX_TOTAL)
-	{
-		bool found = false;
-		for (auto& existing : entries)
-		{
-			if (memcmp(existing.sourceId, entry.sourceId, KAD_ID_SIZE) == 0)
-			{
-				existing = entry;
-				found = true;
-				break;
-			}
-		}
-		if (!found)
-			entries.push_back(entry);
-	}
-	else
-	{
-		load = 100;
-	}
-
-	CEDPacket* pResponse = CEDPacket::New(KADEMLIA2_PUBLISH_RES, ED2K_PROTOCOL_KAD);
-	if (!pResponse) return;
-
-	pResponse->Write(fileHash, KAD_ID_SIZE);
-	pResponse->WriteByte(load);
-
-	SendPacket(pHost, pResponse);
-	pResponse->Release();
-}
-
-void CKademlia::OnPublishResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
-{
-	// KADEMLIA2_PUBLISH_RES: <TargetID 16><Load 1>
-	if (pPacket->GetRemaining() < KAD_ID_SIZE + 1)
-		return;
-
-	KadId targetId;
-	pPacket->Read(targetId, KAD_ID_SIZE);
-	BYTE load = pPacket->ReadByte();
-
-	theApp.Message(MSG_DEBUG, L"Kad2: Publish response from %s (load: %d)",
-	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), load);
-}
-
-//////////////////////////////////////////////////////////////////////
-// Search/Publish initiation (send to closest contacts)
+// Search initiation (send to closest contacts)
 
 void CKademlia::SearchKeyword(const KadId& keywordHash)
 {
@@ -1501,36 +1342,8 @@ void CKademlia::SearchSource(const KadId& fileHash, QWORD nFileSize)
 		SendSearchSourceRequest(contact, fileHash, nFileSize);
 }
 
-void CKademlia::PublishKeyword(const KadId& keywordHash, const KadStoredEntry& entry)
-{
-	if (!m_bInitialized) return;
-
-	CSingleLock oLock(&m_pKadSection, TRUE);
-	std::vector<KadContact> closest;
-	m_routingTable.FindClosestContacts(keywordHash, closest, KAD_K);
-
-	theApp.Message(MSG_DEBUG, L"Kad2: Publishing keyword to %d contacts", closest.size());
-
-	for (const auto& contact : closest)
-		SendPublishKeyRequest(contact, keywordHash, entry);
-}
-
-void CKademlia::PublishSource(const KadId& fileHash, const KadStoredEntry& entry)
-{
-	if (!m_bInitialized) return;
-
-	CSingleLock oLock(&m_pKadSection, TRUE);
-	std::vector<KadContact> closest;
-	m_routingTable.FindClosestContacts(fileHash, closest, KAD_K);
-
-	theApp.Message(MSG_DEBUG, L"Kad2: Publishing source to %d contacts", closest.size());
-
-	for (const auto& contact : closest)
-		SendPublishSourceRequest(contact, fileHash, entry);
-}
-
 //////////////////////////////////////////////////////////////////////
-// Send search/publish packets
+// Send search packets
 
 void CKademlia::SendSearchKeyRequest(const KadContact& contact, const KadId& targetId)
 {
@@ -1567,38 +1380,6 @@ void CKademlia::SendSearchSourceRequest(const KadContact& contact, const KadId& 
 	sockaddr_in addr;
 	KadContactGetSockAddr(contact, addr);
 	AddOutstandingRequest(KAD_REQUEST_SEARCH_SOURCE, addr);
-
-	SendPacket(&addr, pPacket);
-	pPacket->Release();
-}
-
-void CKademlia::SendPublishKeyRequest(const KadContact& contact, const KadId& targetId, const KadStoredEntry& entry)
-{
-	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_PUBLISH_KEY_REQ, ED2K_PROTOCOL_KAD);
-	if (!pPacket) return;
-
-	pPacket->Write(targetId, KAD_ID_SIZE);
-	WriteEntryTags(pPacket, entry);
-
-	sockaddr_in addr;
-	KadContactGetSockAddr(contact, addr);
-	AddOutstandingRequest(KAD_REQUEST_PUBLISH_KEY, addr);
-
-	SendPacket(&addr, pPacket);
-	pPacket->Release();
-}
-
-void CKademlia::SendPublishSourceRequest(const KadContact& contact, const KadId& targetId, const KadStoredEntry& entry)
-{
-	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_PUBLISH_SOURCE_REQ, ED2K_PROTOCOL_KAD);
-	if (!pPacket) return;
-
-	pPacket->Write(targetId, KAD_ID_SIZE);
-	WriteEntryTags(pPacket, entry);
-
-	sockaddr_in addr;
-	KadContactGetSockAddr(contact, addr);
-	AddOutstandingRequest(KAD_REQUEST_PUBLISH_SOURCE, addr);
 
 	SendPacket(&addr, pPacket);
 	pPacket->Release();

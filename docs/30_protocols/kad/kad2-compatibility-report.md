@@ -35,11 +35,42 @@ Shareaza and MLDonkey were not used as Kad2 references.
 | `KADEMLIA2_PONG` | 0x61 | ✅ | ✅ | ✅ | **MATCH** |
 | `KADEMLIA_FIND_NODE` | 0x0B | ✅ | ✅ | ✅ | **MATCH** |
 
+### PUBLISH and ACK opcodes (2026-11-25)
+
+Envy previously defined `KADEMLIA2_PUBLISH_KEY_REQ` 0x41, `PUBLISH_SOURCE_REQ`
+0x42, `PUBLISH_NOTES_REQ` 0x43, `PUBLISH_RES` 0x49, `PUBLISH_RES_ACK` 0x4A and
+`HELLO_RES_ACK` 0x1A, plus invented ACK aliases (`HELLO_REQ_ACK` 0x12,
+`REQ_ACK` 0x22, `RES_ACK` 0x2A, `SEARCH_KEY_REQ_ACK` 0x34, `SEARCH_RES_ACK`
+0x3C, `PUBLISH_KEY_REQ_ACK` 0x42). In both references 0x41/0x49 are retired
+("Old Opcode, don't use"), 0x42/0x4A are Kad1 `PUBLISH_NOTES_*_DEPRECATED`, 0x22
+is `HELLO_RES_ACK` and 0x34 is `SEARCH_SOURCE_REQ`.
+
+| Opcode | Value | eMule | aMule | Envy handling |
+|--------|-------|-------|-------|---------------|
+| `KADEMLIA2_HELLO_RES_ACK` | 0x22 | ✅ | ✅ | dropped (no UDP keys, never requested) |
+| `KADEMLIA2_PUBLISH_KEY_REQ` | 0x43 | ✅ | ✅ | dropped, never sent |
+| `KADEMLIA2_PUBLISH_SOURCE_REQ` | 0x44 | ✅ | ✅ | dropped, never sent |
+| `KADEMLIA2_PUBLISH_NOTES_REQ` | 0x45 | ✅ | ✅ | dropped, never sent |
+| `KADEMLIA2_PUBLISH_RES` | 0x4B | ✅ | ✅ | dropped |
+| `KADEMLIA2_PUBLISH_RES_ACK` | 0x4C | ✅ | ✅ | dropped |
+
+`Envy/KadOpcodes.h` now holds the corrected values and the invented aliases are
+gone. PUBLISH stays fail-closed: the previous handlers parsed and stored a
+non-standard `<Hash 16><SourceID 16><IP 4><UDP 2><TCP 2><count 1>[<id 1><len 2><data>]*`
+entry and the unused senders emitted it, so moving them to the standard opcodes
+would have misread eMule/aMule publishes and published a proprietary payload
+under standard opcodes. Those handlers and senders were removed;
+`CKademlia::OnPacket` drops the six opcodes above before any handler, reply,
+rate-limit or routing-table update, and the retired values are unknown opcodes.
+PUBLISH needs the standard TagList entry model first (#428); search answers
+still use the simplified entry encoding (#427). `test_kad_opcodes.cpp` pins the
+wire values and the dispatch classification of all 256 opcode bytes.
+
 **Sources:**
 - `Examples/aMule/src/include/protocol/kad2/Client2Client/UDP.h` (opcode definitions)
 - `Examples/eMule/srchybrid/kademlia/net/KademliaUDPListener.cpp` (opcodes verified in code)
 
-**Envy:** `Envy/EDPacket.h` lines 318-337
+**Envy:** `Envy/KadOpcodes.h` (included by `Envy/EDPacket.h`)
 
 **Verified Clients:**
 - ✅ **eMule** - opcode/format match in the inspected sources (not live interop)

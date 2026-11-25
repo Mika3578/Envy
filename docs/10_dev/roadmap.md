@@ -108,7 +108,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 
 ### Partial (wire handlers exist; app integration incomplete)
 - **SEARCH_KEY / SEARCH_SOURCE / SEARCH_RES** — handlers in `Kademlia.cpp`. **Source SEARCH_RES delivery:** inbound eMule/aMule framing parsed; outstanding search context; HighID sources → `AddSourceED2K` (`KadSearchResDelivery.h` + EnvyTests). Keyword SEARCH_RES does not create sources. Buddy/callback source types and live interop remain open. **App-trigger:** ED2K downloads call `SearchSource` when `EnableKad` is on (`DownloadWithSearch::MaybeSearchKadSources`); outbound SEARCH_SOURCE_REQ includes FileSize. `SearchKeyword` still has no app caller.
-- **PUBLISH_KEY / PUBLISH_SOURCE / PUBLISH_RES** — handlers present; `StoreEntry` is a no-op stub; no app callers for `PublishKeyword` / `PublishSource`. Envy outbound answers to SEARCH_*_REQ still use simplified `WriteEntryTags` (not reference TagList).
+- **PUBLISH_KEY / PUBLISH_SOURCE / PUBLISH_NOTES / PUBLISH_RES** — opcode values match eMule/aMule (0x43/0x44/0x45/0x4B, ACK 0x4C); inbound packets are dropped unparsed and Envy never publishes. The previous non-standard publish handlers and unused senders were removed (#514); a standard implementation needs the TagList entry model (#428). Envy outbound answers to SEARCH_*_REQ still use simplified `WriteEntryTags` (not reference TagList, #427).
 - Legacy `KadProtocol` / `KBucket` / `KadStorage` — **inactive** (`ENVY_LEGACY_KADEMLIA` undefined).
 
 ### TODO

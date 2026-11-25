@@ -53,6 +53,7 @@ void register_kad_firewall_check_smoke_tests(TestSuite& suite);
 void register_kad_bootstrap_cold_start_smoke_tests(TestSuite& suite);
 void register_kad_routing_table_tests(TestSuite& suite);
 void register_kad_hello_tests(TestSuite& suite);
+void register_kad_opcodes_tests(TestSuite& suite);
 void register_crash_report_policy_smoke_tests(TestSuite& suite);
 void register_ed2k_lowid_callback_smoke_tests(TestSuite& suite);
 void register_albumfolder_mountcollection_smoke_tests(TestSuite& suite);
@@ -104,6 +105,7 @@ int main(int argc, char** argv)
 	register_kad_bootstrap_cold_start_smoke_tests(suite);
 	register_kad_routing_table_tests(suite);
 	register_kad_hello_tests(suite);
+	register_kad_opcodes_tests(suite);
 	register_crash_report_policy_smoke_tests(suite);
 	register_ed2k_lowid_callback_smoke_tests(suite);
 	register_albumfolder_mountcollection_smoke_tests(suite);
