@@ -242,6 +242,14 @@
     <ClInclude Include="test_framework.h" />
     <ClInclude Include="test_envy_rc_fixture.h" />
   </ItemGroup>
+  <Target Name="RunMetaFetchReceiveRegressions" BeforeTargets="ClCompile">
+    <PropertyGroup>
+      <MetaFetchArch Condition="'$(Platform)'=='Win32'">x86</MetaFetchArch>
+      <MetaFetchArch Condition="'$(Platform)'=='x64'">x64</MetaFetchArch>
+    </PropertyGroup>
+    <Error Condition="'$(MetaFetchArch)'==''" Text="MetaFetch receive regressions require Win32 or x64." />
+    <Exec WorkingDirectory="$(ProjectDir).." Command="call &quot;$(VSInstallDir)Common7\Tools\VsDevCmd.bat&quot; -no_logo -host_arch=x64 -arch=$(MetaFetchArch) &amp;&amp; set &quot;ENVY_METAFETCH_CONFIGURATION=$(Configuration)&quot; &amp;&amp; python &quot;$(ProjectDir)run_metafetch_receive_tests.py&quot;" />
+  </Target>
   <Target Name="CopyUnpackerTestRuntime" AfterTargets="Build">
     <Copy SourceFiles="$(ProjectDir)..\Services\zlib\$(Configuration) $(Platform)\zlibwapi.dll" DestinationFolder="$(OutDir)" />
   </Target>
