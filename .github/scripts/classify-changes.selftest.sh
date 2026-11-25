@@ -64,6 +64,16 @@ check workflow-not-docs-only "$F_WORKFLOW" docs_only false
 check deps "$F_VCPKG" run_dep_review true
 check deps-build "$F_VCPKG" build true
 
+# Dependabot non-code: Actions pin bumps (#524) and vcpkg baseline (#518).
+# Neither touches first-party C++; both must stay out of docs_only.
+readonly F_DEPENDABOT_ACTIONS=$'.github/workflows/codeql-csharp.yml\n.github/workflows/codeql.yml\n.github/workflows/dependency-review.yml\n.github/workflows/security.yml'
+check dependabot-actions-cpp "$F_DEPENDABOT_ACTIONS" cpp false
+check dependabot-actions-workflow "$F_DEPENDABOT_ACTIONS" workflow true
+check dependabot-actions-deps "$F_DEPENDABOT_ACTIONS" run_dep_review true
+check dependabot-actions-docs-only "$F_DEPENDABOT_ACTIONS" docs_only false
+check dependabot-vcpkg-cpp "$F_VCPKG" cpp false
+check dependabot-vcpkg-docs-only "$F_VCPKG" docs_only false
+
 readonly F_PROBE='tools/crash-probe/CrashProbe.cpp'
 readonly F_PROBE_DOCS=$'tools/crash-probe/CrashProbe.cpp\ndocs/10_dev/crash-reporting.md'
 readonly F_PROBE_ENVY=$'tools/crash-probe/CrashProbe.cpp\nEnvy/Envy.cpp'

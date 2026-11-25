@@ -29,6 +29,7 @@
 #include "G1Packet.h"
 #include "G2Packet.h"
 #include "EDPacket.h"
+#include "KadHello.h"
 #include "DCPacket.h"
 #include "BTPacket.h"
 #include "BTTrackerRequest.h"
@@ -336,9 +337,12 @@ BOOL CDatagrams::Send(const IN_ADDR* pAddress, WORD nPort, CPacket* pPacket, BOO
 	return Send( &pHost, pPacket, bRelease, pToken, bAck );
 }
 
-BOOL CDatagrams::Send(const SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease, LPVOID pToken, BOOL bAck)
+BOOL CDatagrams::Send(const SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease, LPVOID pToken, BOOL bAck, BOOL* pbSocketSent)
 {
 	ASSERT( pHost != NULL && pPacket != NULL );
+
+	// Optional out value: whether the socket accepted the whole datagram (non-G2 only; G2 frames are queued).
+	if (pbSocketSent) *pbSocketSent = FALSE;
 
 	if ( ! IsValid() || Security.IsDenied( &pHost->sin_addr ) )
 	{
@@ -373,7 +377,8 @@ BOOL CDatagrams::Send(const SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease,
 		pPacket->SmartDump( pHost, TRUE, TRUE );
 		if ( bRelease ) pPacket->Release();
 
-		CNetwork::SendTo( m_hSocket[ 0 ], (LPSTR)pBuffer.m_pBuffer, pBuffer.m_nLength, pHost );
+		const int nSent = CNetwork::SendTo(m_hSocket[0], (LPSTR)pBuffer.m_pBuffer, pBuffer.m_nLength, pHost);
+		if (pbSocketSent) *pbSocketSent = (nSent == (int)pBuffer.m_nLength);
 
 		return TRUE;
 	}
@@ -826,7 +831,9 @@ BOOL CDatagrams::OnDatagram(const SOCKADDR_IN* pHost, const BYTE* pBuffer, DWORD
 	}
 
 	// Detect ED2K and KAD packets
-	if ( nLength > sizeof( ED2K_UDP_HEADER ) )
+	// A Kad2 request without a body (BOOTSTRAP_REQ, PING) is exactly the two header bytes;
+	// the other ED2K UDP packets always carry a payload.
+	if (nLength > sizeof(ED2K_UDP_HEADER) || KadIsBodylessRequest(pBuffer, nLength))
 	{
 		const ED2K_UDP_HEADER* pMULE = (const ED2K_UDP_HEADER*)pBuffer;
 		switch ( pMULE->nProtocol )
