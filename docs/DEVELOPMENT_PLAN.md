@@ -1,6 +1,9 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-22
+- **Last Updated:** 2026-11-09
+
+- **Changelog Entry:** 2026-10-12 — #461: remove the trailing C++17 Release|x64 overrides in Envy, HashLib, TorrentEnvy, and Unpacker. Envy/HashLib/TorrentEnvy now pass `/std:c++20`; Unpacker's C sources continue to compile with `/TC` despite `stdcpp20` metadata. Keep other configurations and build dependencies unchanged.
+
 
 - **Changelog Entry:** 2026-10-19 — #452/#493: harden shared-folder scans for long local, mapped and UNC paths, preserve indexed entries when enumeration fails, skip directory reparse points and report Windows scan errors. Root cause of the "0 files after restart" report: `CLibrary::Load()` started a lazy-loading thread and then the maintenance thread, and `CThreadImpl::BeginThread()` ignored the second start while the first was alive, so a library with files never scanned again. One worker now finishes deferred loading and keeps scanning; scan requests carry a generation the progress dialog follows, and a waiter joins an unstarted request so `Library.Update( true )` plus the dialog's request trigger one full pass, not two. Measured follow-ups (hash-queue O(N²) enqueue and fixed sleeps, lock hold time during enumeration) are tracked under #384; maintainer live test on local, mapped and UNC/NAS shares is still required.
 

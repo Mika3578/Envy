@@ -23,9 +23,9 @@ Envy is a multi-network peer-to-peer client for Windows. Stack:
 - **C++** (MFC + ATL, mostly Windows-specific) - ~677 .cpp / 709 .h files
 - **MSBuild** 46 `.vcxproj` projects under `Visual Studio/Envy.sln`
 - **Target toolchain**: Visual Studio 2026 (toolset **v145**, MSVC 14.50,
-  C++20 policy for first-party, C++17 for legacy plugins; live Release|x64
-  Envy/HashLib/TorrentEnvy/Unpacker currently compile as C++17 — see
-  `docs/10_dev/standards.md`)
+  C++20 for Envy/HashLib/TorrentEnvy Release|x64; Unpacker records
+  `stdcpp20` but compiles C sources with `/TC`; C++17 for legacy plugins
+  — see `docs/10_dev/standards.md`)
 - **Target OS**: Windows 10 1809+ (XP/Vista/7/8 deliberately dropped)
 - **Product platforms**: Windows x64 is primary; Win32 is legacy Stage A;
   Windows ARM64 is **planned / unsupported** until it has a real build target,
