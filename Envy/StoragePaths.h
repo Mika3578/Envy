@@ -3,6 +3,7 @@
 
 #include <cwctype>
 #include <string>
+#include <string_view>
 
 struct StoragePathDefaults
 {
@@ -70,6 +71,22 @@ inline std::wstring ResolveStoragePath(
 	if (!strConfigured.empty())
 		return strConfigured;
 	return strNonemptyLegacy.empty() ? strDefault : strNonemptyLegacy;
+}
+
+inline std::wstring ResolveCompletedStoragePath(
+    std::wstring_view completeRoot, std::wstring_view groupFolder)
+{
+	// Drive-absolute group destinations do not depend on the default folder.
+	if (groupFolder.find(L":\\") == 1)
+		return std::wstring(groupFolder);
+	if (completeRoot.size() < 3)
+		return {};
+	if (groupFolder.empty())
+		return std::wstring(completeRoot);
+	std::wstring destination(completeRoot);
+	destination += L'\\';
+	destination += groupFolder;
+	return destination;
 }
 
 inline bool StoragePathsEqual(const std::wstring& strLeft, const std::wstring& strRight)

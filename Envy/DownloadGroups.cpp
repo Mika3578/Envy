@@ -24,6 +24,7 @@
 #include "Downloads.h"
 #include "Download.h"
 #include "Schema.h"
+#include "StoragePaths.h"
 #include "Transfers.h"	// Locks
 
 #ifdef _DEBUG
@@ -263,31 +264,26 @@ void CDownloadGroups::CreateDefault()
 
 CString CDownloadGroups::GetCompletedPath(CDownload* pDownload) const
 {
-	if (Settings.Downloads.CompletePath.GetLength() < 3)
+	CString strGroupFolder;
 	{
-		theApp.Message(MSG_ERROR, L"The completed download folder is unavailable; choose a writable location in settings");
-		return CString();
-	}
+		CQuickLock pLock(m_pSection);
 
-	CQuickLock pLock( m_pSection );
-
-	for ( POSITION pos = GetIterator(); pos; )
-	{
-		const CDownloadGroup* pGroup = GetNext( pos );
-
-		if ( pGroup != m_pSuper && pGroup->Contains( pDownload ) )
+		for (POSITION pos = GetIterator(); pos;)
 		{
-			if ( ! pGroup->m_sFolder.IsEmpty() )
+			const CDownloadGroup* pGroup = GetNext(pos);
+			if (pGroup != m_pSuper && !pGroup->m_sFolder.IsEmpty() && pGroup->Contains(pDownload))
 			{
-				if ( pGroup->m_sFolder.Find( L":\\" ) == 1 )
-					return pGroup->m_sFolder;
-
-				return Settings.Downloads.CompletePath + L"\\" + pGroup->m_sFolder;
+				strGroupFolder = pGroup->m_sFolder;
+				break;
 			}
 		}
 	}
 
-	return Settings.Downloads.CompletePath;
+	const std::wstring destination = ResolveCompletedStoragePath(
+	    Settings.Downloads.CompletePath.GetString(), strGroupFolder.GetString());
+	if (destination.empty())
+		theApp.Message(MSG_ERROR, L"The completed download folder is unavailable; choose a writable location in settings");
+	return CString(destination.c_str());
 }
 
 //////////////////////////////////////////////////////////////////////

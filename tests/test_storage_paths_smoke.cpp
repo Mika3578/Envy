@@ -76,6 +76,17 @@ bool test_storage_path_reparse_point_detection()
 	       !StoragePathIsReparsePoint(0xFFFFFFFF);
 }
 
+bool test_completed_storage_path_preserves_absolute_group_folder()
+{
+	return ResolveCompletedStoragePath(L"", L"E:\\Group") == L"E:\\Group" &&
+	       ResolveCompletedStoragePath(L"C:", L"E:\\Group") == L"E:\\Group" &&
+	       ResolveCompletedStoragePath(L"D:\\Downloads", L"E:\\Group") == L"E:\\Group" &&
+	       ResolveCompletedStoragePath(L"", L"Group").empty() &&
+	       ResolveCompletedStoragePath(L"", L"").empty() &&
+	       ResolveCompletedStoragePath(L"D:\\Downloads", L"Group") == L"D:\\Downloads\\Group" &&
+	       ResolveCompletedStoragePath(L"D:\\Downloads", L"") == L"D:\\Downloads";
+}
+
 bool test_storage_recovery_offers_default_only_when_customised()
 {
 	return ChooseStorageRecovery(L"F:\\Incomplete", L"C:\\Users\\User\\AppData\\Local\\Envy\\Incomplete") ==
@@ -129,6 +140,7 @@ void register_storage_paths_smoke_tests(TestSuite& suite)
 	suite.add_test("storage_paths_installer_registration", test_storage_mode_uses_installer_registration);
 	suite.add_test("storage_paths_join_roots", test_storage_path_join_preserves_drive_root);
 	suite.add_test("storage_paths_preserve_configuration", test_storage_paths_preserve_nonempty_configuration);
+	suite.add_test("storage_paths_absolute_group_destination", test_completed_storage_path_preserves_absolute_group_folder);
 	suite.add_test("storage_paths_reparse_detection", test_storage_path_reparse_point_detection);
 	suite.add_test("storage_paths_recovery_choice", test_storage_recovery_offers_default_only_when_customised);
 	suite.add_test("storage_paths_probe_access_denied", test_storage_probe_rejects_access_denied_directory);
