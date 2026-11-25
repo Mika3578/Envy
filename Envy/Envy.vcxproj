@@ -1339,7 +1339,6 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="KadSearchResDelivery.h" />
     <ClInclude Include="KadFirewallCheck.h" />
     <ClInclude Include="KadHello.h" />
-    <ClInclude Include="KadOpcodes.h" />
     <ClInclude Include="KadRoutingTable.h" />
     <ClInclude Include="DcPacketLengthValidate.h" />
     <ClInclude Include="DcNickList.h" />
@@ -1363,6 +1362,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="AdaptiveListLayout.h" />
     <ClInclude Include="BootstrapCatalog.h" />
     <ClInclude Include="KadNodesDat.h" />
+    <ClInclude Include="KadOpcodes.h" />
     <ClInclude Include="KadBootstrapColdStart.h" />
     <ClInclude Include="Ed2kHelloCapabilities.h" />
     <ClInclude Include="Ed2kCompressedUpload.h" />
