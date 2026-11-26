@@ -1829,7 +1829,7 @@ void CKademlia::SendFirewalledRequest(const KadContact& contact)
 		return;
 
 	// The packet is allocated before the outbound check commits a slot, so an
-	// allocation failure cannot strand a check slot until its TTL (#374).
+	// allocation failure cannot strand a check slot until its TTL expires.
 	if (!m_firewall.BeginOutboundCheck(peer, GetTickCount()))
 	{
 		pPacket->Release();

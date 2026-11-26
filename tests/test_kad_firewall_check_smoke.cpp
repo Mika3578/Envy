@@ -192,7 +192,7 @@ static bool test_test_starts_and_context()
 }
 
 // A duplicate Begin for a peer that already has an outstanding check must be
-// refused without consuming a second slot (#374).
+// refused without consuming a second slot.
 static bool test_duplicate_begin_keeps_single_slot()
 {
 	KadFirewallCheck fw;
