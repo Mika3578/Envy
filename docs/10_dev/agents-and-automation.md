@@ -76,9 +76,10 @@ SonarCloud `12526`, GHAS/gitleaks `57789`).
 
 The target native contexts are `Build x64 Release`, `Build Win32 Release`,
 `Lint build files`, `Vcpkg manifest sanity`, `Format Check`, `secret-scan`,
-`Analyze (c-cpp)`, `Dependency review`, and `SonarCloud Code Analysis`. Documentation Check and
-the GHAS gitleaks status remain visible but are advisory duplicates; the live
-Protect develop ruleset no longer requires them as status contexts.
+`Analyze (c-cpp)`, and `SonarCloud Code Analysis`. `Dependency review`,
+Documentation Check, and
+the GHAS gitleaks status remain visible but are advisory; the live
+Protect develop ruleset does not require them as status contexts.
 
 Cheap Draft PRs still **emit** `Build x64 Release` and
 `Build Win32 Release` as success no-ops on `ubuntu-latest` when `pr-phase`

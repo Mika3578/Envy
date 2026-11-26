@@ -245,8 +245,11 @@ def check_claude_stubs(root: Path) -> list[str]:
             errors.append(f"{rel}: stub '{name}' has no canonical skill in {SKILLS_DIR}/")
         elif f"{SKILLS_DIR}/{name}/SKILL.md" not in text:
             errors.append(f"{rel}: stub must reference {SKILLS_DIR}/{name}/SKILL.md")
-        if len(text) > CLAUDE_STUB_MAX_BYTES:
+        if len(text.encode("utf-8")) > CLAUDE_STUB_MAX_BYTES:
             errors.append(f"{rel}: stub exceeds {CLAUDE_STUB_MAX_BYTES} bytes; it must only point at the canonical skill")
+    stubbed = {p.parent.name for p in stub_dir.glob("*/SKILL.md")}
+    for missing in sorted(canonical - stubbed):
+        errors.append(f"{SKILLS_DIR}/{missing} has no Claude stub in {CLAUDE_STUB_DIR}/")
     for child in sorted(stub_dir.glob("*")):
         if child.is_dir() and not (child / "SKILL.md").is_file():
             errors.append(f"{child.relative_to(root).as_posix()}: stub directory without SKILL.md")

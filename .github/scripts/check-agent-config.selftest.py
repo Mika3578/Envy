@@ -160,6 +160,10 @@ class Mutations(unittest.TestCase):
         stub.write_text("---\nname: envy-extra\ndescription: Extra.\n---\nRead `.agents/skills/envy-extra/SKILL.md`.\n", encoding="utf-8")
         self.assertIn("has no canonical skill", self.errors())
 
+    def test_canonical_skill_without_claude_stub(self):
+        shutil.rmtree(self.tmp / ".claude/skills/envy-code-review")
+        self.assertIn("has no Claude stub", self.errors())
+
     def test_duplicated_core_rules(self):
         core = (self.tmp / "AGENTS.md").read_text(encoding="utf-8")
         with (self.tmp / ".windsurfrules").open("a", encoding="utf-8") as fh:

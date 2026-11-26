@@ -38,7 +38,8 @@ secret scanning.
 
 Target required status checks: Build x64 Release, Build Win32 Release,
 Lint build files, Vcpkg manifest sanity, Format Check, secret-scan,
-Analyze (c-cpp), Dependency review, and SonarCloud Code Analysis. Documentation Check and the
+Analyze (c-cpp), and SonarCloud Code Analysis. Dependency review,
+Documentation Check, and the
 duplicate gitleaks status remain visible as advisory checks; Protect develop
 does not require them as status contexts.
 
@@ -113,8 +114,10 @@ paths still need an independent human approval regardless of Sourcery.
 **Maintainer action outside git:** apps that still review automatically on
 open or on every push (observed on recent PRs: cubic) must be switched to
 manual or on-request mode in their own dashboards; repository files cannot do
-it. Amazon Q Developer is being uninstalled (AWS support for its GitHub App
-ends 2027-01-30). Keep auto-fix/auto-commit features off for every app.
+it. **Sourcery is the deliberate exception:** its push-triggered reviews are
+the counted-approval path (2026-11-26 decision), so it stays on automatic.
+Amazon Q Developer is being uninstalled (AWS support for its GitHub App ends
+2027-01-30). Keep auto-fix/auto-commit features off for every app.
 
 High-risk paths (extra bar before merge): G1/G2, ED2K/Kad, BitTorrent, NMDC/ADC,
 Network/NAT, packet parsing, crypto, threading/locking, serialization, Remote.
