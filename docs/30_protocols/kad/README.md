@@ -24,7 +24,7 @@ Compared against eMule Community v0.72a (`irwir/eMule` `ac3d52eafd88e9f6d9e0c220
 
 ### Version and capability behaviour
 
-- Envy advertises Kad version 8 (eMule v0.72a advertises 10). Version 8 means `TAG_KADMISCOPTIONS` and `HELLO_RES_ACK` exist. Envy has no UDP keys and no obfuscation, so it sends unobfuscated packets with no sender key; a peer that requests a `HELLO_RES_ACK` from Envy cannot get one (eMule skips the ACK itself when it holds no sender key). Consequence: eMule/aMule may keep Envy unverified in their routing tables. Advertising a lower version would instead trigger their legacy challenge paths and was not chosen without live evidence. Not validated live.
+- Envy advertises Kad version 8 (eMule v0.72a advertises 10). Version 8 means `TAG_KADMISCOPTIONS` and `HELLO_RES_ACK` exist. Envy has no UDP keys and sends unobfuscated packets with no sender key, so a peer that requests a `HELLO_RES_ACK` from Envy cannot get one (eMule skips the ACK itself when it holds no sender key). It does decrypt the obfuscated datagrams peers send it: `KadUdpDeobfuscate` (`Envy/KadUdpObfuscation.h`, wired into `CDatagrams::OnDatagram`) recovers Kad2 packets encrypted with MD5(our NodeID | 2 random bytes), which is what aMule and eMule use for every reply to a Kad version >= 6 requester. Outgoing Kad encryption and the UDP verify keys (`KadUDPKeys.h`) remain unimplemented, so eMule/aMule may still keep Envy unverified in their routing tables. Advertising a lower version would instead trigger their legacy challenge paths and was not chosen without live evidence.
 - Envy does not send `TAG_SOURCEUPORT`, so peers use the datagram source port; this is correct without NAT port remapping on the Kad socket.
 
 ### Correlation and replay
@@ -38,11 +38,15 @@ Compared against eMule Community v0.72a (`irwir/eMule` `ac3d52eafd88e9f6d9e0c220
 - Limits per source IP and opcode: `BOOTSTRAP_REQ` 2, `PING` 2, `HELLO_REQ` 3 per minute. aMule (`InTrackListIsAllowedPacket`) uses exactly these three. eMule v0.72a limits `BOOTSTRAP_REQ` and `PING` to 2 per minute but does **not** track `HELLO_REQ`; Envy keeps aMule's stricter figure. Envy uses a token bucket per (IP, opcode): a bucket of one minute of tokens, each packet costing 60 s divided by the rate, so a source may burst to the rate and then sustain it. eMule uses the same bucket but lets refused packets keep draining it and bans the IP below minus three minutes; aMule counts packets in a sliding window and bans above five times the rate. Divergence: in Envy a refused packet does not deepen the debt and Envy never bans, so a legitimate retry recovers after at most one token interval.
 - The bound of 4096 tracked (IP, opcode) entries, fail-closed when full after pruning entries idle for a minute, is Envy's own; the references keep one list entry per source IP without a size bound and clean it every 12 minutes. A clock that moves backwards counts as zero elapsed time. The older `CheckRateLimit` stays as is for the other requests. Source addresses are forgeable, which is why a reply is only sent after the limit check and no reply is larger than the request class allows (`BOOTSTRAP_RES` up to a few hundred bytes remains the amplification the limit is there for).
 
+### Obfuscated Kad datagrams
+
+- Peers that saw our Kad version 8 encrypt their replies (and later all their Kad2 traffic to us) as `<marker plain><random key part 2 plain><RC4(magic 4)><RC4(padLen 1)><RC4(padding)><RC4(receiverVerifyKey 4)><RC4(senderVerifyKey 4)><RC4(Kad datagram)>`, key `MD5(<our KadID 16 as written in HELLO_REQ><random key part>)`; the magic `0x395F2EC1` and both verify keys travel byte-swapped (big-endian wire bytes), and the marker only hints which key to try first (aMule `EncryptSendClient` / `DecryptReceivedClient`). `KadUdpDeobfuscate` (`Envy/KadUdpObfuscation.h`) decrypts these in `CDatagrams::OnDatagram`'s fall-through and re-dispatches the result through the normal ED2K/Kad path; the aggregate `deobf` count in the `Kad2 hello:` status line reports them. The ED2K user-hash key, outgoing encryption, UDP verify keys and `HELLO_RES_ACK` are separate follow-ups; `tests/test_kad_udp_obfuscation.cpp` pins the layout with round-trips and golden vectors.
+
 ### Remaining limits
 
 - A `HELLO_RES` from the exact endpoint that was sent a `HELLO_REQ` still marks the contact verified. The references additionally use UDP keys and `HELLO_RES_ACK` to prove the address; Envy implements neither, so this is weaker than the references against an off-path spoofer.
 - Kad IDs are exchanged as opaque 16 bytes; eMule serializes them as four little-endian 32-bit words. Distance and bucket handling of Envy's routing table were not re-checked here.
-- Not validated against live eMule/aMule (#160); obfuscation is #431.
+- Not validated against live eMule/aMule (#160); inbound deobfuscation is implemented (#431), outgoing encryption and UDP keys are not.
 
 ## Related
 - [Status](../../10_dev/status.md) · [Dev docs](../../10_dev/) · [Protocol index](../README.md)

@@ -30,6 +30,8 @@
 #include "G2Packet.h"
 #include "EDPacket.h"
 #include "KadHello.h"
+#include "Kademlia.h"
+#include "KadUdpObfuscation.h"
 #include "DCPacket.h"
 #include "BTPacket.h"
 #include "BTTrackerRequest.h"
@@ -831,52 +833,31 @@ BOOL CDatagrams::OnDatagram(const SOCKADDR_IN* pHost, const BYTE* pBuffer, DWORD
 	}
 
 	// Detect ED2K and KAD packets
-	// A Kad2 request without a body (BOOTSTRAP_REQ, PING) is exactly the two header bytes;
-	// the other ED2K UDP packets always carry a payload.
-	if (nLength > sizeof(ED2K_UDP_HEADER) || KadIsBodylessRequest(pBuffer, nLength))
+	if (OnEd2kKad(pHost, pBuffer, nLength))
+		return TRUE;
+
+	// Obfuscated eMule-compatible Kad UDP: aMule and eMule encrypt Kad2 replies
+	// (and, once a peer has learned our NodeID, every further Kad2 packet it
+	// sends us) with MD5(own KadID | 2 random bytes) as soon as we advertise a
+	// Kad version >= 6; we advertise 8 (KADEMLIA_VERSION, Kademlia.h). Those
+	// datagrams start with a marker byte, so they fall through every clear
+	// protocol detection above and used to be reported as unknown packets,
+	// which starved Kad2 hello verification and bled the routing table.
+	// Envy issues no UDP verify keys yet, so only the NodeID key path matches.
+	KadId oKadId;
+	if (Kademlia.IsInitialized() && Kademlia.GetOwnKadId(oKadId))
 	{
-		const ED2K_UDP_HEADER* pMULE = (const ED2K_UDP_HEADER*)pBuffer;
-		switch ( pMULE->nProtocol )
+		size_t nPlainLen = 0;
+		if (KadUdpDeobfuscate(pBuffer, nLength, oKadId, 0, m_pKadPlain,
+		                      sizeof(m_pKadPlain), nPlainLen) == KadUdpDecrypted &&
+		    (m_pKadPlain[0] == ED2K_PROTOCOL_KAD ||
+		     m_pKadPlain[0] == ED2K_PROTOCOL_KAD_PACKED))
 		{
-		case ED2K_PROTOCOL_EDONKEY:
-		case ED2K_PROTOCOL_EMULE:
-		case ED2K_PROTOCOL_EMULE_PACKED:
-		case ED2K_PROTOCOL_KAD:
-		case ED2K_PROTOCOL_KAD_PACKED:
-		case ED2K_PROTOCOL_REVCONNECT:
-		case ED2K_PROTOCOL_REVCONNECT_PACKED:
-			// Check if this is a server search result that might contain concatenated packets
-			if ( pMULE->nType == ED2K_S2CG_SEARCHRESULT || pMULE->nType == ED2K_S2CG_FOUNDSOURCES )
-			{
-				// Handle concatenated ED2K UDP sub-packets (eMule-compatible)
-				// Pass raw buffer to handle multiple packets in one datagram
-				if ( EDClients.OnServerSearchResultRaw( pHost, pBuffer, nLength, pMULE->nType ) )
-				{
-					m_nInPackets++;
-					return TRUE;
-				}
-			}
-
-			// Regular single packet handling
-			if ( CEDPacket* pPacket = CEDPacket::New( pMULE, nLength ) )
-			{
-				try
-				{
-					m_nInPackets++;
-					bHandled = pPacket->OnPacket( pHost );
-				}
-				catch ( CException* pException )
-				{
-					pException->Delete();
-					DEBUG_ONLY( pPacket->Debug( L"Malformed packet (ED2K)." ) );
-				}
-
-				pPacket->Release();
-
-				if ( bHandled )
-					return TRUE;
-			}
-			// ToDo: Detect obfuscated eMule packets
+			Kademlia.CountUdpDeobfuscated();
+			if (OnEd2kKad(pHost, m_pKadPlain, static_cast<DWORD>(nPlainLen)))
+				return TRUE;
+			// Decrypted but unhandled: keep reporting the original bytes below
+			// rather than exposing plaintext in the unknown-packet dump.
 		}
 	}
 
@@ -993,6 +974,65 @@ BOOL CDatagrams::OnDatagram(const SOCKADDR_IN* pHost, const BYTE* pBuffer, DWORD
 //		strText += ( ( pBuffer[ i ] < ' ' ) ? '.' : (char)pBuffer[ i ] );
 //	}
 //	theApp.Message( MSG_DEBUG | MSG_FACILITY_INCOMING, L"%s", (LPCTSTR)strText );
+
+	return FALSE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CDatagrams ED2K/KAD datagram handler
+
+// Detect and dispatch ED2K and KAD packets; FALSE falls through to the next
+// family. A Kad2 request without a body (BOOTSTRAP_REQ, PING) is exactly the
+// two header bytes; the other ED2K UDP packets always carry a payload.
+BOOL CDatagrams::OnEd2kKad(const SOCKADDR_IN* pHost, const BYTE* pBuffer, DWORD nLength)
+{
+	if (nLength <= sizeof(ED2K_UDP_HEADER) && !KadIsBodylessRequest(pBuffer, nLength))
+		return FALSE;
+
+	const ED2K_UDP_HEADER* pMULE = (const ED2K_UDP_HEADER*)pBuffer;
+	switch (pMULE->nProtocol)
+	{
+	case ED2K_PROTOCOL_EDONKEY:
+	case ED2K_PROTOCOL_EMULE:
+	case ED2K_PROTOCOL_EMULE_PACKED:
+	case ED2K_PROTOCOL_KAD:
+	case ED2K_PROTOCOL_KAD_PACKED:
+	case ED2K_PROTOCOL_REVCONNECT:
+	case ED2K_PROTOCOL_REVCONNECT_PACKED:
+		// Check if this is a server search result that might contain concatenated packets
+		if (pMULE->nType == ED2K_S2CG_SEARCHRESULT || pMULE->nType == ED2K_S2CG_FOUNDSOURCES)
+		{
+			// Handle concatenated ED2K UDP sub-packets (eMule-compatible)
+			// Pass raw buffer to handle multiple packets in one datagram
+			if (EDClients.OnServerSearchResultRaw(pHost, pBuffer, nLength, pMULE->nType))
+			{
+				m_nInPackets++;
+				return TRUE;
+			}
+		}
+
+		// Regular single packet handling
+		if (CEDPacket* pPacket = CEDPacket::New(pMULE, nLength))
+		{
+			BOOL bHandled = FALSE;
+
+			try
+			{
+				m_nInPackets++;
+				bHandled = pPacket->OnPacket(pHost);
+			}
+			catch (CException* pException)
+			{
+				pException->Delete();
+				DEBUG_ONLY(pPacket->Debug(L"Malformed packet (ED2K)."));
+			}
+
+			pPacket->Release();
+
+			if (bHandled)
+				return TRUE;
+		}
+	}
 
 	return FALSE;
 }
