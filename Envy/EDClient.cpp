@@ -28,6 +28,7 @@
 #include "SecureIdentPolicy.h"
 #include "Ed2kHelloCapabilities.h"
 #include "Ed2kLowIdCallback.h"
+#include "Ed2kMuleInfoWire.h"
 #include "EDNeighbour.h"
 #include "FileIdentifier.h"
 #include "Neighbours.h"
@@ -1626,8 +1627,10 @@ void CEDClient::SendEmuleInfo(BYTE nType)
 {
 	CEDPacket* pPacket = CEDPacket::New( nType, ED2K_PROTOCOL_EMULE );
 
-	pPacket->WriteByte( ED2K_CLIENT_ID );	// eMule version (80 = 0x50?) 0x40?
-	pPacket->WriteByte( 0x01 );				// eMule protocol
+	BYTE aLegacyPrefix[2];
+	PackEd2kLegacyMuleInfoPrefix(aLegacyPrefix);
+	pPacket->WriteByte(aLegacyPrefix[0]);
+	pPacket->WriteByte(aLegacyPrefix[1]);
 
 	// Write number of tags
 	pPacket->WriteLongLE( Settings.eDonkey.ExtendedRequest ? 7 : 6 );
