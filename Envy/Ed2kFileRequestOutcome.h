@@ -14,25 +14,25 @@
 // busy case defers by silence instead of reporting a missing file.
 enum class Ed2kFileRequestOutcome : unsigned char
 {
-	AnswerShared,	// Shared and uploadable: FILEREQANSWER + comments
-	AnswerDownload,	// Active download source: FILEREQANSWER with its name
-	DeferredBusy,	// Library lock unavailable: no reply, peer re-asks
-	NotFound		// Genuinely missing or not uploadable: FILENOTFOUND
+	AnswerShared,   // Shared and uploadable: FILEREQANSWER + comments
+	AnswerDownload, // Active download source: FILEREQANSWER with its name
+	DeferredBusy,   // Library lock unavailable: no reply, peer re-asks
+	NotFound        // Genuinely missing or not uploadable: FILENOTFOUND
 };
 
 // Precedence: a shared file the queues can serve wins over an active
 // download, a download match wins over deferral and a real miss, and
 // contention defers before any negative reply is produced.
 inline Ed2kFileRequestOutcome Ed2kResolveFileRequestOutcome(
-	bool bLibraryLockHeld,
-	bool bSharedFileAvailable,
-	bool bDownloadMatch)
+    bool bLibraryLockHeld,
+    bool bSharedFileAvailable,
+    bool bDownloadMatch)
 {
-	if ( bLibraryLockHeld && bSharedFileAvailable )
+	if (bLibraryLockHeld && bSharedFileAvailable)
 		return Ed2kFileRequestOutcome::AnswerShared;
-	if ( bDownloadMatch )
+	if (bDownloadMatch)
 		return Ed2kFileRequestOutcome::AnswerDownload;
-	if ( ! bLibraryLockHeld )
+	if (!bLibraryLockHeld)
 		return Ed2kFileRequestOutcome::DeferredBusy;
 	return Ed2kFileRequestOutcome::NotFound;
 }

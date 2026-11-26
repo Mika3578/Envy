@@ -2028,16 +2028,16 @@ static volatile LONG s_tLastLibraryBusyLog = -1;
 
 static void NoteLibraryBusyFileRequest(LPCTSTR pszAddress)
 {
-	const ULONG nEvents = (ULONG)InterlockedIncrement( &s_nLibraryBusyFileRequests );
+	const ULONG nEvents = (ULONG)InterlockedIncrement(&s_nLibraryBusyFileRequests);
 	const DWORD tNow = GetTickCount();
 	const LONG tLast = s_tLastLibraryBusyLog;
 
-	if ( tNow - (DWORD)tLast < 30000 ) return;
+	if (tNow - (DWORD)tLast < 30000) return;
 
 	// Best-effort single winner: a lost update only delays the next message.
-	if ( InterlockedCompareExchange( &s_tLastLibraryBusyLog, (LONG)tNow, tLast ) == tLast )
-		theApp.Message( MSG_ERROR, L"ED2K file request from %s deferred, library busy (%lu total).",
-			pszAddress, nEvents );
+	if (InterlockedCompareExchange(&s_tLastLibraryBusyLog, (LONG)tNow, tLast) == tLast)
+		theApp.Message(MSG_ERROR, L"ED2K file request from %s deferred, library busy (%lu total).",
+		               pszAddress, nEvents);
 }
 
 BOOL CEDClient::OnFileRequest(CEDPacket* pPacket)
@@ -2071,19 +2071,19 @@ BOOL CEDClient::OnFileRequest(CEDPacket* pPacket)
 	}
 
 	CSingleLock pLock( &Library.m_pSection );
-	const bool bLibraryLocked = SafeLock( pLock ) != FALSE;
+	const bool bLibraryLocked = SafeLock(pLock) != FALSE;
 	bool bSharedAvailable = false;
 	int nRating = 0;
 	CString strComments;
 
-	if ( bLibraryLocked )
+	if (bLibraryLocked)
 	{
-		if ( CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( m_oUpED2K, TRUE, TRUE ) )
+		if (CLibraryFile* pFile = LibraryMaps.LookupFileByED2K(m_oUpED2K, TRUE, TRUE))
 		{
-			bSharedAvailable = UploadQueues.CanUpload( PROTOCOL_ED2K, pFile, TRUE ) != FALSE;
-			if ( bSharedAvailable )
+			bSharedAvailable = UploadQueues.CanUpload(PROTOCOL_ED2K, pFile, TRUE) != FALSE;
+			if (bSharedAvailable)
 			{
-				pReply->WriteEDString( pFile->m_sName, m_bEmUnicode );
+				pReply->WriteEDString(pFile->m_sName, m_bEmUnicode);
 				nRating = pFile->m_nRating;
 				strComments = pFile->m_sComments;
 			}
@@ -2094,13 +2094,13 @@ BOOL CEDClient::OnFileRequest(CEDPacket* pPacket)
 	// Skip the download scan when a shared, uploadable file already won:
 	// the outcome is decided and the extra Transfers traversal is pure
 	// overhead on the hot path.
-	CDownload* pDownload = bSharedAvailable ? NULL : Downloads.FindByED2K( m_oUpED2K, TRUE );
+	CDownload* pDownload = bSharedAvailable ? NULL : Downloads.FindByED2K(m_oUpED2K, TRUE);
 
-	switch ( Ed2kResolveFileRequestOutcome( bLibraryLocked, bSharedAvailable, pDownload != NULL ) )
+	switch (Ed2kResolveFileRequestOutcome(bLibraryLocked, bSharedAvailable, pDownload != NULL))
 	{
 	case Ed2kFileRequestOutcome::AnswerShared:
-		Send( pReply );
-		SendCommentsPacket( nRating, strComments );
+		Send(pReply);
+		SendCommentsPacket(nRating, strComments);
 		return TRUE;
 
 	case Ed2kFileRequestOutcome::AnswerDownload:
@@ -2112,7 +2112,7 @@ BOOL CEDClient::OnFileRequest(CEDPacket* pPacket)
 		// Send() releases the reply on the answer paths; the deferred path
 		// sends nothing, so release the pooled packet here.
 		pReply->Release();
-		NoteLibraryBusyFileRequest( m_sAddress );
+		NoteLibraryBusyFileRequest(m_sAddress);
 		return TRUE;
 
 	case Ed2kFileRequestOutcome::NotFound:
