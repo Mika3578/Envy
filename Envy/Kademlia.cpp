@@ -1541,7 +1541,9 @@ void CKademlia::SendSearchKeyRequest(const KadContact& contact, const KadId& tar
 
 	sockaddr_in addr;
 	KadContactGetSockAddr(contact, addr);
-	AddOutstandingRequest(KAD_REQUEST_SEARCH_KEY, addr);
+	// Record the target so the response can be bound to the request that
+	// produced it (peer + target + kind), not just to the peer.
+	AddOutstandingRequest(KAD_REQUEST_SEARCH_KEY, addr, targetId);
 
 	SendPacket(&addr, pPacket);
 	pPacket->Release();
@@ -1566,7 +1568,9 @@ void CKademlia::SendSearchSourceRequest(const KadContact& contact, const KadId& 
 
 	sockaddr_in addr;
 	KadContactGetSockAddr(contact, addr);
-	AddOutstandingRequest(KAD_REQUEST_SEARCH_SOURCE, addr);
+	// Record the target so the response can be bound to the request that
+	// produced it (peer + target + kind), not just to the peer.
+	AddOutstandingRequest(KAD_REQUEST_SEARCH_SOURCE, addr, targetId);
 
 	SendPacket(&addr, pPacket);
 	pPacket->Release();
@@ -1677,14 +1681,16 @@ void CKademlia::ProcessSearchResponseDelivery(const SOCKADDR_IN* pHost, CEDPacke
 	const KadSearchResDisposition disp = KadClassifySearchResponse(
 	    bHasCtx, bExpired, bHasCtx /* target key match */, searchCtx.kind);
 
-	// Peer must have been queried for this search kind (unsolicited IP reject).
+	// The peer must have been queried for this search kind and this target:
+	// a peer asked for one hash cannot deliver results claimed for another
+	// (unsolicited and cross-target reject, mirroring the FIND_NODE check).
 	bool bPeerAsked = false;
 	if (bHasCtx && !bExpired)
 	{
 		if (searchCtx.kind == KadSearchKind::Keyword)
-			bPeerAsked = IsRequestOutstanding(0, KAD_REQUEST_SEARCH_KEY, *pHost);
+			bPeerAsked = IsRequestOutstanding(0, KAD_REQUEST_SEARCH_KEY, *pHost, targetId);
 		else if (searchCtx.kind == KadSearchKind::Source)
-			bPeerAsked = IsRequestOutstanding(0, KAD_REQUEST_SEARCH_SOURCE, *pHost);
+			bPeerAsked = IsRequestOutstanding(0, KAD_REQUEST_SEARCH_SOURCE, *pHost, targetId);
 	}
 
 	if (disp == KadSearchResDisposition::RejectUnsolicited ||

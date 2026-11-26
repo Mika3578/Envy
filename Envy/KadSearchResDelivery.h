@@ -106,7 +106,7 @@ struct KadOutstandingSearch
 {
 	KadSearchKind kind = KadSearchKind::None;
 	std::array<BYTE, KAD_ID_SIZE> target{};
-	DWORD expiresAt = 0;
+	DWORD registeredAt = 0;
 };
 
 struct KadSourceCandidate
@@ -215,12 +215,12 @@ public:
 		if (it != m_map.end())
 		{
 			it->second.kind = kind;
-			it->second.expiresAt = nowTick + KAD_SEARCH_CONTEXT_LIFETIME_MS;
+			it->second.registeredAt = nowTick;
 			return true;
 		}
 
 		if (m_map.size() >= KAD_OUTSTANDING_SEARCH_MAX)
-			EvictOldestUnlocked();
+			EvictOldestUnlocked(nowTick);
 
 		if (m_map.size() >= KAD_OUTSTANDING_SEARCH_MAX)
 			return false;
@@ -228,7 +228,7 @@ public:
 		KadOutstandingSearch entry;
 		entry.kind = kind;
 		entry.target = key;
-		entry.expiresAt = nowTick + KAD_SEARCH_CONTEXT_LIFETIME_MS;
+		entry.registeredAt = nowTick;
 		m_map.emplace(key, entry);
 		return true;
 	}
@@ -252,8 +252,8 @@ public:
 			return false;
 
 		out = it->second;
-		if (nowTick >= out.expiresAt)
-			bExpired = true;
+		// Elapsed subtraction stays correct across GetTickCount() wrap.
+		bExpired = (nowTick - out.registeredAt) >= KAD_SEARCH_CONTEXT_LIFETIME_MS;
 		return true;
 	}
 
@@ -261,7 +261,7 @@ public:
 	{
 		for (auto it = m_map.begin(); it != m_map.end();)
 		{
-			if (nowTick >= it->second.expiresAt)
+			if ((nowTick - it->second.registeredAt) >= KAD_SEARCH_CONTEXT_LIFETIME_MS)
 				it = m_map.erase(it);
 			else
 				++it;
@@ -269,12 +269,12 @@ public:
 	}
 
 private:
-	void EvictOldestUnlocked()
+	void EvictOldestUnlocked(DWORD nowTick)
 	{
 		auto oldest = m_map.begin();
 		for (auto it = m_map.begin(); it != m_map.end(); ++it)
 		{
-			if (it->second.expiresAt < oldest->second.expiresAt)
+			if (nowTick - it->second.registeredAt > nowTick - oldest->second.registeredAt)
 				oldest = it;
 		}
 		if (oldest != m_map.end())
@@ -605,7 +605,10 @@ inline bool KadParseSearchResBody(
 		if (pEntriesOut)
 			pEntriesOut->push_back(cand);
 	}
-	return true;
+
+	// Fail closed when the declared entry count does not consume the whole
+	// body: trailing bytes mean a malformed or smuggled frame.
+	return cur.Remaining() == 0;
 }
 
 // Append a compact UINT8/UINT16/INT name-ID tag (type|0x80, key, value).
