@@ -693,7 +693,7 @@ static bool test_ggep_item_count_dword_storage()
 		|| !smoke_read_text_file( ggepCppPaths.data(), ggepCppPaths.size(), impl ) )
 		return false;
 
-	return header.find( "DWORD\t\tm_nItemCount" ) != std::string::npos
+	return header.find( "DWORD m_nItemCount" ) != std::string::npos
 		&& impl.find( "m_nItemCount >= GGEP_ITEM_COUNT_MAX" ) != std::string::npos;
 }
 
