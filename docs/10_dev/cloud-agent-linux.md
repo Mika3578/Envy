@@ -28,7 +28,7 @@ legacy off-diff lines never fail the run.
 ### Repository self-tests (a Linux-runnable subset of CI's `Lint build files` job)
 
 The `Lint build files` job additionally runs inline checks an agent can also
-replicate by hand (every `.vcxproj` uses toolset `v145`, `Envy.sln` is
+replicate by hand (every `.vcxproj` uses toolset `v145` or newer, `Envy.sln` is
 `Format Version 12.00`, no `_ATL_XP_TARGETING` in first-party project files)
 plus BugSplat SDK/runtime and compile-commands/portable-runner self-tests; the
 script-based commands below are the subset agents normally need.
