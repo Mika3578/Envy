@@ -15,6 +15,8 @@ context:
 - `05-performance.mdc` — C++ performance-sensitive code
 - `06-p2p-protocols.mdc` — protocol/network code
 - `07-documentation.mdc` — documentation paths
+- `08-project-coordination.mdc` — Cursor Project multi-agent coordination
+  (off by default; invoke manually in Project runs)
 
 Do not add another always-on project-context, workflow, or documentation-sync
 rule here. Put global rules in `AGENTS.md`. The legacy root `.cursorrules`

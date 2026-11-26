@@ -1,0 +1,50 @@
+---
+description: Cursor Project multi-agent coordination (manual / Project context only)
+alwaysApply: false
+---
+
+# Cursor Project coordination
+
+This file summarizes **Project-level** conventions for parallel Cursor Cloud
+Agents. It does not replace repository policy.
+
+**Canonical sources:** root [`AGENTS.md`](../../AGENTS.md) (workflow, branching,
+quality, merge gates) and [`.github/CONTRIBUTING.md`](../../.github/CONTRIBUTING.md)
+(linked from [`docs/CONTRIBUTING.md`](../../docs/CONTRIBUTING.md)).
+
+## Parallelism
+
+- Prefer at most **3–4** cloud worker agents in flight on one Project.
+- **One agent → one pull request or one issue** (no shared PR unless the
+  coordinator assigns a follow-up on the same branch).
+
+## Hotspot mutex (one owner at a time)
+
+Do not open overlapping PRs that edit the same hotspot without coordinator
+approval:
+
+- `Envy/Kademlia.cpp`
+- `Visual Studio/Envy.vcxproj`
+- `docs/DEVELOPMENT_PLAN.md`
+- `CHANGELOG.md`
+- Root `AGENTS.md` and other privileged governance paths (see `AGENTS.md`
+  rule 12)
+
+## Git and PR hygiene (summary)
+
+- Branch from `origin/develop`; names **`type/short-kebab-summary`** only
+  (`feat/`, `fix/`, `docs/`, `ci/`, …) — never tool/agent prefixes
+  (`cursor/`, `claude/`, …).
+- **Conventional Commits** on the branch; English PR title
+  `type(scope): short description`.
+- Format **changed lines** with `.clang-format` (do not bulk-reformat legacy
+  files).
+- Open PRs from the template (`.github/pull_request_template.md`); start as
+  **Draft** unless the maintainer or coordinator says otherwise.
+- Only the **maintainer** applies `stage:live-test`, marks Ready, and
+  **squash-merges** onto `develop` (agents do not merge or bypass rulesets).
+
+## Lifecycle
+
+When a worker’s PR is merged or closed, **archive** that Cursor agent run so
+parallel slots and store status stay accurate.
