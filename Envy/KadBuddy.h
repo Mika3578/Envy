@@ -86,6 +86,11 @@ constexpr DWORD KAD_BUDDY_SEARCH_RETRY_MS = 20 * 60 * 1000;
 // FINDBUDDY_REQ recipients per round (bounded subset of eMule's
 // SEARCHFINDBUDDY_TOTAL = 10 answers; eMule sends to every answering contact).
 constexpr size_t KAD_BUDDY_REQ_CONTACTS_PER_ROUND = 4;
+// Envy retains a queued OP_CALLBACK relay briefly so a buddy that is still
+// connecting (it dialed out seconds after our FINDBUDDY_RES) can still
+// receive it; eMule relays immediately and drops when the buddy socket is
+// absent. The requester's own callback wait times out regardless.
+constexpr DWORD KAD_BUDDY_RELAY_RETAIN_MS = 30000;
 
 enum class KadBuddyParseStatus : BYTE
 {
@@ -361,25 +366,24 @@ public:
 
 	bool HasOutstandingFindBuddyRequest(DWORD ipHost, DWORD now) const
 	{
-		for (size_t i = 0; i < KAD_BUDDY_TRACK_MAX; ++i)
-		{
-			if (m_track[i].occupied && m_track[i].ipHost == ipHost && !KadTickElapsed(now, m_track[i].sentAt, KAD_BUDDY_OUT_TRACK_TTL_MS))
-				return true;
-		}
-		return false;
+		return FindFreshTrack(ipHost, now) != nullptr;
 	}
 
-	// eMule Process_KADEMLIA_FINDBUDDY_RES: out-track + echo check, then the
-	// responder becomes our buddy candidate (ip = UDP source).
+	// eMule Process_KADEMLIA_FINDBUDDY_RES: the tracked FINDBUDDY_REQ is
+	// consumed by the FIRST response from that IP (IsOnOutTrackList removes
+	// on match, before the echo check), so a duplicate or forged response
+	// cannot be accepted again within the 180 s window.
 	KadBuddyCandidateStatus OnFindBuddyResponse(
 	    DWORD ipHost, const KadFindBuddyRes& res, const BYTE* pOwnKadId16, DWORD now)
 	{
 		if (pOwnKadId16 == nullptr)
 			return KadBuddyCandidateStatus::EchoMismatch;
-		if (!TrackContains(ipHost))
-			return KadBuddyCandidateStatus::Unrequested;
-		if (!HasOutstandingFindBuddyRequest(ipHost, now))
-			return KadBuddyCandidateStatus::Stale;
+		KadBuddyTrack* slot = FindFreshTrack(ipHost, now);
+		if (slot == nullptr)
+			return TrackContains(ipHost) ? KadBuddyCandidateStatus::Stale
+			                             : KadBuddyCandidateStatus::Unrequested;
+		// eMule consumes the tracked request before validating the echo.
+		*slot = KadBuddyTrack{};
 		if (!KadBuddyIdMatchesKadId(res.buddyId, pOwnKadId16))
 			return KadBuddyCandidateStatus::EchoMismatch;
 		if (m_buddyConnected)
@@ -497,6 +501,26 @@ private:
 			if (m_track[i].occupied && KadTickElapsed(now, m_track[i].sentAt, KAD_BUDDY_OUT_TRACK_TTL_MS))
 				m_track[i] = KadBuddyTrack{};
 		}
+	}
+
+	KadBuddyTrack* FindFreshTrack(DWORD ipHost, DWORD now)
+	{
+		for (size_t i = 0; i < KAD_BUDDY_TRACK_MAX; ++i)
+		{
+			if (m_track[i].occupied && m_track[i].ipHost == ipHost && !KadTickElapsed(now, m_track[i].sentAt, KAD_BUDDY_OUT_TRACK_TTL_MS))
+				return &m_track[i];
+		}
+		return nullptr;
+	}
+
+	const KadBuddyTrack* FindFreshTrack(DWORD ipHost, DWORD now) const
+	{
+		for (size_t i = 0; i < KAD_BUDDY_TRACK_MAX; ++i)
+		{
+			if (m_track[i].occupied && m_track[i].ipHost == ipHost && !KadTickElapsed(now, m_track[i].sentAt, KAD_BUDDY_OUT_TRACK_TTL_MS))
+				return &m_track[i];
+		}
+		return nullptr;
 	}
 
 	KadBuddyTrack* FreeTrackSlot()

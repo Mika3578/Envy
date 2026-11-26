@@ -207,8 +207,12 @@ public:
 	{
 		DWORD buddyIpHost = 0;
 		BYTE body[KAD_CALLBACK_RELAY_SIZE] = {};
+		DWORD queuedAt = 0;
 	};
-	bool TakePendingCallbackRelay(KadCallbackRelayItem& out);
+	// Peek the next relay without consuming it; `expired` reports items older
+	// than the retain window (the caller drops those via PopPendingCallbackRelay).
+	bool PeekPendingCallbackRelay(KadCallbackRelayItem& out, bool& expired, DWORD now);
+	void PopPendingCallbackRelay();
 
 	// Search for keyword results in DHT
 	void SearchKeyword(const KadId& keywordHash);

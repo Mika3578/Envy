@@ -339,6 +339,42 @@ static bool test_res_unrequested_and_stale()
 	return s.OnFindBuddyResponse(kPeerA, res, kKadId, 110) == KadBuddyCandidateStatus::Accepted;
 }
 
+static bool test_res_consumes_track_on_first_response()
+{
+	// eMule consumes the tracked FINDBUDDY_REQ with the first response
+	// (IsOnOutTrackList removes on match, before the echo check), so a
+	// duplicate or spoofed answer cannot be accepted again in the window.
+	KadBuddySession s;
+	s.Reset();
+	s.BeginFindBuddyRequest(kPeerA, 100);
+	KadFindBuddyRes res = {};
+	BYTE xored[16];
+	KadKadIdToBuddyId(kKadId, xored);
+	memcpy(res.buddyId, xored, 16);
+	res.tcpPort = kTcp;
+	if (s.OnFindBuddyResponse(kPeerA, res, kKadId, 110) != KadBuddyCandidateStatus::Accepted)
+		return false;
+	if (s.HasOutstandingFindBuddyRequest(kPeerA, 120))
+		return false;
+	return s.OnFindBuddyResponse(kPeerA, res, kKadId, 130) == KadBuddyCandidateStatus::Unrequested;
+}
+
+static bool test_res_echo_mismatch_consumes_track()
+{
+	// eMule consumes the tracked request even when the echo fails (the
+	// IsOnOutTrackList removal happens before validation), so the same IP
+	// cannot hammer the check with invalid answers.
+	KadBuddySession s;
+	s.Reset();
+	s.BeginFindBuddyRequest(kPeerA, 100);
+	KadFindBuddyRes res = {};
+	memcpy(res.buddyId, kKadId, 16); // NOT XORed - must not validate
+	res.tcpPort = kTcp;
+	if (s.OnFindBuddyResponse(kPeerA, res, kKadId, 110) != KadBuddyCandidateStatus::EchoMismatch)
+		return false;
+	return s.OnFindBuddyResponse(kPeerA, res, kKadId, 120) == KadBuddyCandidateStatus::Unrequested;
+}
+
 static bool test_res_echo_mismatch()
 {
 	KadBuddySession s;
@@ -483,6 +519,8 @@ void register_kad_buddy_smoke_tests(TestSuite& suite)
 	suite.add_test("kad_buddy_search_gates", test_wants_buddy_search_gates);
 	suite.add_test("kad_buddy_out_track_ttl", test_out_track_dedupe_and_ttl);
 	suite.add_test("kad_buddy_res_unrequested_stale", test_res_unrequested_and_stale);
+	suite.add_test("kad_buddy_res_consumes_track", test_res_consumes_track_on_first_response);
+	suite.add_test("kad_buddy_res_echo_consumes_track", test_res_echo_mismatch_consumes_track);
 	suite.add_test("kad_buddy_res_echo_mismatch", test_res_echo_mismatch);
 	suite.add_test("kad_buddy_res_candidate_fields", test_res_candidate_fields);
 	suite.add_test("kad_buddy_res_have_buddy_wins", test_res_have_buddy_wins);

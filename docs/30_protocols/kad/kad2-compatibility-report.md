@@ -238,13 +238,36 @@ Envy constants `KADEMLIA2_FIREWALLED_REQ` (0x50) / `KADEMLIA2_FIREWALLED_RES` (0
 - `FIREWALLED_RES` (0x58): exact **4 bytes**, little-endian IPv4 as observed by the responder (`WriteUInt32(uIP)` host-order).
 - `FIREWALLED2_REQ` (0x53, Kad version > 6): min **19 bytes** `<TCPPort 2><UserHash 16><ConnectOptions 1>`. Envy **parses inbound** 0x53 and answers with 0x58; outbound still emits 0x50 (v7+ still accept it).
 - `FIREWALLED_ACK_RES` (0x59): empty UDP ACK, **deprecated for Kad ≥ 7** in favor of ED2K TCP `OP_KAD_FWTCPCHECK_ACK` (0xA8). Envy accepts both toward TCP Open; it does **not** open a TCP connect-back in this slice.
-- `FIREWALLED_RES` updates public-IP observation only. TCP Open requires two independent ACKs (`IncFirewalled`-style). UDP reachability is a separate tester (`FWCHECKUDPREQ` / `KADEMLIA2_FIREWALLUDP`) and is **not** implemented.
+- `FIREWALLED_RES` updates public-IP observation only. TCP Open requires two independent ACKs (`IncFirewalled`-style). UDP reachability is a separate tester (`FWCHECKUDPREQ` / `KADEMLIA2_FIREWALLUDP`); the tester is now implemented locally (see below) and remains **not live-verified**.
 
 **Envy:** `Envy/KadFirewallCheck.h`, `Envy/Kademlia.cpp` (`OnFirewalledRequest` / `OnFirewalledResponse` / `OnFirewalledAck`), `CEDClient` handles empty 0xA8. State is Kad-specific and does not write `Network.IsFirewalled()`.
 
 **Wire-format impact:** ENVY now consumes/emits the existing Kad2/Kad1 `FIREWALLED_REQ` and `FIREWALLED_RES` (and consumes ACK 0x59 / 0xA8). No proprietary extension.
 
-**Status:** TCP firewall-detection **baseline** (parser + bounded state). UDP firewall verification, Buddy and callback remain incomplete. Live interop **unverified**.
+**Status:** TCP firewall-detection **baseline** (parser + bounded state). UDP firewall verification and Buddy/callback are implemented locally and **not live-verified**; the download-side callback consumer remains open. Live interop **unverified**.
+
+## 7. KADEMLIA2_FIREWALLUDP (0x62) / OP_FWCHECKUDPREQ (0xA7) — UDP firewall tester (#515)
+
+Implemented locally in `Envy/KadUdpFirewallTester.h` following eMule Community (`opcodes.h:618/282`, `KademliaUDPListener.cpp Process_KADEMLIA2_FIREWALLUDP`, `UDPFirewallTester.cpp`, `BaseClient.cpp SendFirewallCheckUDPRequest` / `ProcessFirewallCheckUDPRequest`):
+
+- Inbound 0x62 result: min 3 bytes `<errorcode 1><incomingPort 2>`; the port must be one of our Kad UDP ports and non-zero; errorcode 0 is a success, any other value cancels. Results count only for IPs this node asked; per-IP rate limit mirrors the TCP baseline discipline.
+- Outbound 0xA7 request over an ED2K C2C TCP connection: `<Intern_Port 2><Extern_Port 2><KadUDPKey 4>`; Envy sends a zero key (no UDP keys yet) and selects eligible idle connected clients (kad ≥ 6, UDP port known, endpoint absent from the routing zone). Envy never dials a fresh connection for the test (eMule deviation, documented).
+- Inbound 0xA7 is answered with UDP probes to the intern port (and a differing extern port), with errorcode 1 marking a biased result when the requester is already known.
+- State machine: one positive result → Open (verified); 6-minute timeout while TCP-firewalled → Firewalled (unverified); bounded recheck cadence. TCP and UDP states stay distinct.
+
+Tests: `tests/test_kad_udp_firewall_tester_smoke.cpp`. Live verification belongs to #160.
+
+## 8. KADEMLIA_FINDBUDDY_REQ/RES (0x51/0x5A) / KADEMLIA_CALLBACK_REQ (0x52) — buddy bond and callback relay (#516, partial)
+
+Implemented locally in `Envy/KadBuddy.h` following eMule Community (`opcodes.h:607/608/613`, `KademliaUDPListener.cpp Process_KADEMLIA_FINDBUDDY_REQ/_RES/Process_KADEMLIA_CALLBACK_REQ`, `ClientList.cpp` buddy search/bond, `PacketTracking.cpp`, `updownclient.h` ping/pong cadence) and aMule (`KadBuddyCallback.h`, `ClientTCPSocket.cpp OP_CALLBACK`):
+
+- `FINDBUDDY_REQ` (0x51): min 34 bytes `<BuddyID 16 = requester KadID XOR 0xFF..FF><ClientHash 16><TCPPort 2>`. An open node (not TCP-firewalled, UDP open and verified, no bonded buddy) answers `FINDBUDDY_RES` (0x5A): `<BuddyID echo 16><ClientHash 16><TCPPort 2>[<ConnectOptions 1>]`.
+- The ClientHash field is the canonical wire user hash the HELLO emits, so the buddy's HELLO matches the advertised hash (eMule bans on userhash change).
+- `CALLBACK_REQ` (0x52): min 34 bytes `<KadCheck 16><FileHash 16><TCPPort 2>`; only a node with a connected bonded firewalled client relays it as a 38-byte TCP `OP_CALLBACK` (0x99) body `<KadCheck 16><FileHash 16><requester IP 4><TCPPort 2>`; the requester IP is the UDP source address.
+- The relay IP field is the requester's IPv4 little-endian encoded from its host-order value (eMule `SafeFile.cpp WriteUInt32` stores the native value; eMule's `CUpDownClient` ctor applies `ntohl` for Kad sources and aMule swaps via `FromIPv4NetworkOrder(wxUINT32_SWAP_ALWAYS(...))` — both recover the same address).
+- Buddy search/bond: firewalled node seeks a buddy among verified contacts when both firewall tests report firewalled (20-minute re-arm, eMule ClientList cadence); answers accepted within the 180 s out-track window and consumed on the first response (eMule `IsOnOutTrackList`); BUDDYPING/BUDDYPONG keepalive every 10 minutes with a 3-minute inbound gap.
+
+**Still open for #516:** outbound `CALLBACK_REQ` emission from download source connects (the eMule `TryToConnect` CCS_KADCALLBACK analog), `REASKCALLBACKTCP` forwarding, and SEARCH_RES source types 3/5/6 delivery. Tests: `tests/test_kad_buddy_smoke.cpp`. Live verification belongs to #160.
 
 ### #160 live harness scenarios (optional, not required CI)
 

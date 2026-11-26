@@ -387,16 +387,24 @@ void CEDClients::OnRun()
 	}
 
 	// #516: deliver queued OP_CALLBACK relays over bonded buddy connections.
+	// A relay whose bonded client is not online yet is retained (bounded
+	// window) instead of dropped; only delivery or expiry consumes it.
 	CKademlia::KadCallbackRelayItem oRelay;
-	while (Kademlia.TakePendingCallbackRelay(oRelay))
+	bool oRelayExpired = false;
+	while (Kademlia.PeekPendingCallbackRelay(oRelay, oRelayExpired, tNow))
 	{
+		if (oRelayExpired)
+		{
+			Kademlia.PopPendingCallbackRelay();
+			continue;
+		}
 		IN_ADDR pBuddyAddr = {};
 		pBuddyAddr.S_un.S_addr = htonl(oRelay.buddyIpHost);
-		if (CEDClient* pBuddy = GetByIP(&pBuddyAddr))
-		{
-			if (pBuddy->IsOnline() && pBuddy->m_bKadBuddyIncoming)
-				pBuddy->SendKadCallbackRelay(oRelay.body);
-		}
+		CEDClient* pBuddy = GetByIP(&pBuddyAddr);
+		if (pBuddy == NULL || !pBuddy->IsOnline() || !pBuddy->m_bKadBuddyIncoming)
+			break; // retain until the bonded client is online or the item expires
+		Kademlia.PopPendingCallbackRelay();
+		pBuddy->SendKadCallbackRelay(oRelay.body);
 	}
 
 	m_tLastRun = tNow;

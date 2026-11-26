@@ -30,6 +30,7 @@
 #include "KadSearchSourceRequest.h"
 #include "Security.h"
 #include "Network.h"
+#include "Ed2kHelloWire.h"
 #include <array>
 #include <algorithm>
 #include <vector>
@@ -2161,11 +2162,15 @@ void CKademlia::OnFindBuddyRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 void CKademlia::SendFindBuddyResponse(const SOCKADDR_IN* pHost, const BYTE* pBuddyId16)
 {
 	// <BuddyID 16 (echo)><ClientHash 16><TCPPort 2><ConnectOptions 1>.
-	// Envy's Kad ID and ED2K user hash share the profile GUID bytes, and
-	// ConnectOptions stays 0 while obfuscation/direct-UDP-callback bits are
-	// honestly unimplemented (#121, #513).
+	// The ClientHash is the same canonical wire user hash SendHello emits
+	// (eMule cross-checks the connecting buddy's HELLO against the hash
+	// advertised here); ConnectOptions stays 0 while obfuscation and the
+	// direct-UDP-callback bit are honestly unimplemented (#121, #513).
+	BYTE clientHash[KAD_ID_SIZE];
+	memcpy(clientHash, m_ownId, KAD_ID_SIZE);
+	Ed2kHelloApplyGuidMutation(clientHash);
 	BYTE body[KAD_BUDDY_RES_WITH_OPTIONS];
-	KadBuildFindBuddyRes(body, pBuddyId16, m_ownId, (WORD)Settings.Connection.InPort, 0);
+	KadBuildFindBuddyRes(body, pBuddyId16, clientHash, (WORD)Settings.Connection.InPort, 0);
 	CEDPacket* pPacket = CEDPacket::New(KADEMLIA_FINDBUDDY_RES, ED2K_PROTOCOL_KAD);
 	if (!pPacket)
 		return;
@@ -2230,6 +2235,7 @@ void CKademlia::OnCallbackRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 
 	KadCallbackRelayItem item;
 	item.buddyIpHost = m_buddy.Buddy().ipHost;
+	item.queuedAt = now;
 	const KadBuddyRelayStatus st = m_buddy.OnCallbackRequest(ipHost, req, item.body);
 	if (st != KadBuddyRelayStatus::Relay)
 	{
@@ -2289,11 +2295,16 @@ void CKademlia::SendFindBuddyRequest(const KadContact& contact)
 	KadContactGetSockAddr(contact, addr);
 
 	// <BuddyID 16 = own KadID XOR 0xFF..FF><ClientHash 16><TCPPort 2>
-	// (eMule Search.cpp FINDBUDDY + ClientList.cpp lookup target).
+	// (eMule Search.cpp FINDBUDDY + ClientList.cpp lookup target). The
+	// ClientHash is the canonical wire user hash SendHello emits, so the
+	// responding buddy's HELLO matches what we advertised.
 	BYTE body[KAD_BUDDY_REQ_MIN_SIZE];
 	BYTE buddyId[KAD_ID_SIZE];
 	KadKadIdToBuddyId(m_ownId, buddyId);
-	KadBuildFindBuddyReq(body, buddyId, m_ownId, (WORD)Settings.Connection.InPort);
+	BYTE clientHash[KAD_ID_SIZE];
+	memcpy(clientHash, m_ownId, KAD_ID_SIZE);
+	Ed2kHelloApplyGuidMutation(clientHash);
+	KadBuildFindBuddyReq(body, buddyId, clientHash, (WORD)Settings.Connection.InPort);
 
 	CEDPacket* pPacket = CEDPacket::New(KADEMLIA_FINDBUDDY_REQ, ED2K_PROTOCOL_KAD);
 	if (!pPacket)
@@ -2349,12 +2360,19 @@ bool CKademlia::TakePendingBuddyContact(KadBuddyRecord& out)
 	return true;
 }
 
-bool CKademlia::TakePendingCallbackRelay(KadCallbackRelayItem& out)
+bool CKademlia::PeekPendingCallbackRelay(KadCallbackRelayItem& out, bool& expired, DWORD now)
 {
 	CSingleLock oLock(&m_pKadSection, TRUE);
 	if (m_pendingCallbackRelays.empty())
 		return false;
 	out = m_pendingCallbackRelays.front();
-	m_pendingCallbackRelays.erase(m_pendingCallbackRelays.begin());
+	expired = KadTickElapsed(now, out.queuedAt, KAD_BUDDY_RELAY_RETAIN_MS);
 	return true;
+}
+
+void CKademlia::PopPendingCallbackRelay()
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	if (!m_pendingCallbackRelays.empty())
+		m_pendingCallbackRelays.erase(m_pendingCallbackRelays.begin());
 }

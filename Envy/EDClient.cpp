@@ -979,8 +979,12 @@ void CEDClient::OnRunEx(DWORD tNow)
 			}
 		}
 	}
+
 	// #516: bonded outgoing buddy keepalive (eMule SendBuddyPingPong, 10 min).
-	else if (IsOnline() && m_bKadBuddyRequested && KadBuddyPingDue(m_tLastBuddyPingPong, tNow))
+	// Its own check, not an arm of the else-if chain above: a bonded buddy
+	// that also matches the probe branch's guard must not lose its ping
+	// when the probe itself is skipped.
+	if (IsOnline() && m_bKadBuddyRequested && KadBuddyPingDue(m_tLastBuddyPingPong, tNow))
 	{
 		SendBuddyPing();
 	}
