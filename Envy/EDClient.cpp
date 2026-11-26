@@ -2106,6 +2106,9 @@ BOOL CEDClient::OnFileRequest(CEDPacket* pPacket)
 		return TRUE;
 
 	case Ed2kFileRequestOutcome::DeferredBusy:
+		// Send() releases the reply on the answer paths; the deferred path
+		// sends nothing, so release the pooled packet here.
+		pReply->Release();
 		NoteLibraryBusyFileRequest( m_sAddress );
 		return TRUE;
 
