@@ -76,7 +76,7 @@ BOOL CTorrentEnvyApp::InitInstance()
 		 ! m_sCommandLineTracker.IsEmpty() )
 	{
 		if ( m_sCommandLineComment.IsEmpty() )
-			m_sCommandLineComment = L"http://getenvy.com/";
+			m_sCommandLineComment = L"https://github.com/Mika3578/Envy";
 	}
 	else
 	{
