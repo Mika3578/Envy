@@ -1,6 +1,6 @@
 # Pull request workflow and CI governance
 
-Last verified: 2026-10-18. Root `AGENTS.md` is canonical; the live Protect
+Last verified: 2026-11-26. Root `AGENTS.md` is canonical; the live Protect
 develop ruleset (16457466) is authoritative and
 `.github/scripts/audit-ruleset.py` reports drift without applying settings.
 Agent procedures: `.agents/skills/envy-pr-workflow/SKILL.md` and
