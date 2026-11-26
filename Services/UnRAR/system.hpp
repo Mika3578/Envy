@@ -19,14 +19,27 @@
 
 void InitSystemOptions(int SleepTime);
 void SetPriority(int Priority);
+
+void CheckAllocate(uint64 Requested,uint64 MaxAllocate,const std::wstring &ArcName);
+void CheckDiskWrite(uint64 CurWrite,uint64 MaxWrite,const std::wstring &ArcName);
+void CheckRuntime(uint StartTime,uint MaxTime,const std::wstring &ArcName);
+
 clock_t MonoClock();
 void Wait();
-bool EmailFile(const wchar *FileName,const wchar *MailToW);
-void Shutdown();
+bool EmailFile(const std::wstring &FileName,std::wstring MailToW);
+#ifdef _WIN_ALL
+bool SetPrivilege(LPCTSTR PrivName);
+#endif
+void Shutdown(POWER_MODE Mode);
+bool ShutdownCheckAnother(bool Open);
 
+#ifdef _WIN_ALL
+HMODULE WINAPI LoadSysLibrary(const wchar *Name);
+bool IsUserAdmin();
+#endif
 
 #ifdef USE_SSE
-enum SSE_VERSION {SSE_NONE,SSE_SSE,SSE_SSE2,SSE_SSSE3,SSE_SSE41};
+enum SSE_VERSION {SSE_NONE,SSE_SSE,SSE_SSE2,SSE_SSSE3,SSE_SSE41,SSE_AVX2};
 SSE_VERSION GetSSEVersion();
 extern SSE_VERSION _SSE_Version;
 #endif

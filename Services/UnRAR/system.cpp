@@ -8,7 +8,7 @@ void InitSystemOptions(int SleepTime)
 }
 
 
-#if !defined(SFX_MODULE) && !defined(SETUP)
+#if !defined(SFX_MODULE)
 void SetPriority(int Priority)
 {
 #ifdef _WIN_ALL
@@ -66,25 +66,51 @@ void SetPriority(int Priority)
 }
 #endif
 
+void CheckAllocate(uint64 Requested,uint64 MaxAllocate,const std::wstring &ArcName)
+{
+  if (MaxAllocate!=0 && Requested>MaxAllocate)
+  {
+    uiMsg(UIERROR_MAXMEMORY,ArcName,uiMsg64(MaxAllocate),uiMsg64(Requested));
+
+    ErrHandler.Exit(RARX_USERLIMIT);
+  }
+}
+
+
+void CheckDiskWrite(uint64 CurWrite,uint64 MaxWrite,const std::wstring &ArcName)
+{
+  if (MaxWrite!=0 && CurWrite>MaxWrite)
+  {
+    uiMsg(UIERROR_MAXWRITE,ArcName,uiMsg64(MaxWrite),uiMsg64(CurWrite));
+    ErrHandler.Exit(RARX_USERLIMIT);
+  }
+}
+
+
+void CheckRuntime(uint StartTime,uint MaxTime,const std::wstring &ArcName)
+{
+  if (MaxTime!=0)
+  {
+    uint SpentTime=uint(MonoClock()/CLOCKS_PER_SEC)-StartTime;
+    if (SpentTime>MaxTime)
+    {
+      uiMsg(UIERROR_MAXRUNTIME,ArcName,MaxTime,SpentTime);
+      ErrHandler.Exit(RARX_USERLIMIT);
+    }
+  }
+}
+
 
 // Monotonic clock. Like clock(), returns time passed in CLOCKS_PER_SEC items.
 // In Android 5+ and Unix usual clock() returns time spent by all threads
 // together, so we cannot use it to measure time intervals anymore.
 clock_t MonoClock()
 {
-//#if defined(_ANDROID) && defined(_UNIX) && defined(CLOCK_MONOTONIC)
-//  struct timespec CurTime;
-//  clock_gettime(CLOCK_MONOTONIC, &CurTime);
-//  int64 nsec = int64(CurTime.tv_sec)*1000000000 + CurTime.tv_nsec;
-//  nsec /= 1000000000 / CLOCKS_PER_SEC;
-//  return (clock_t)nsec;
-//#else
   return clock();
-//#endif
 }
 
 
-#ifndef SETUP
+
 void Wait()
 {
   if (ErrHandler.UserBreak)
@@ -100,29 +126,110 @@ void Wait()
     }
   }
 #endif
-#ifdef _WIN_ALL
+#if defined(_WIN_ALL)
   // Reset system sleep timer to prevent system going sleep.
   SetThreadExecutionState(ES_SYSTEM_REQUIRED);
 #endif
 }
+
+
+
+
+#ifdef _WIN_ALL
+bool SetPrivilege(LPCTSTR PrivName)
+{
+  bool Success=false;
+
+  HANDLE hToken;
+  if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken))
+  {
+    TOKEN_PRIVILEGES tp;
+    tp.PrivilegeCount = 1;
+    tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+    if (LookupPrivilegeValue(NULL,PrivName,&tp.Privileges[0].Luid) &&
+        AdjustTokenPrivileges(hToken, FALSE, &tp, 0, NULL, NULL) &&
+        GetLastError() == ERROR_SUCCESS)
+      Success=true;
+
+    CloseHandle(hToken);
+  }
+
+  return Success;
+}
 #endif
 
 
-#if defined(_WIN_ALL) && !defined(SFX_MODULE) && !defined(SHELL_EXT) && !defined(SETUP)
-void Shutdown()
+#if defined(_WIN_ALL) && !defined(SFX_MODULE)
+void Shutdown(POWER_MODE Mode)
 {
-  HANDLE hToken;
-  TOKEN_PRIVILEGES tkp;
-  if (OpenProcessToken(GetCurrentProcess(),TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY,&hToken))
-  {
-    LookupPrivilegeValue(NULL,SE_SHUTDOWN_NAME,&tkp.Privileges[0].Luid);
-    tkp.PrivilegeCount = 1;
-    tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-
-    AdjustTokenPrivileges(hToken,FALSE,&tkp,0,(PTOKEN_PRIVILEGES)NULL,0);
-  }
-  ExitWindowsEx(EWX_SHUTDOWN|EWX_FORCE|EWX_POWEROFF,SHTDN_REASON_FLAG_PLANNED);
+  SetPrivilege(SE_SHUTDOWN_NAME);
+  if (Mode==POWERMODE_OFF)
+    ExitWindowsEx(EWX_SHUTDOWN|EWX_FORCE,SHTDN_REASON_FLAG_PLANNED);
+  if (Mode==POWERMODE_SLEEP)
+    SetSuspendState(FALSE,FALSE,FALSE);
+  if (Mode==POWERMODE_HIBERNATE)
+    SetSuspendState(TRUE,FALSE,FALSE);
+  if (Mode==POWERMODE_RESTART)
+    ExitWindowsEx(EWX_REBOOT|EWX_FORCE,SHTDN_REASON_FLAG_PLANNED);
 }
+
+
+bool ShutdownCheckAnother(bool Open)
+{
+  const wchar *EventName=L"rar -ioff";
+  static HANDLE hEvent=NULL;
+  bool Result=false; // Return false if no other RAR -ioff are running.
+  if (Open) // Create or open the event.
+    hEvent=CreateEvent(NULL,FALSE,FALSE,EventName);
+  else
+  {
+    if (hEvent!=NULL)
+      CloseHandle(hEvent); // Close our event.
+    // Check if other copies still own the event. While race conditions
+    // are possible, they are improbable and their harm is minimal.
+    hEvent=CreateEvent(NULL,FALSE,FALSE,EventName);
+    Result=GetLastError()==ERROR_ALREADY_EXISTS;
+    if (hEvent!=NULL)
+      CloseHandle(hEvent);
+  }
+  return Result;
+}
+#endif
+
+
+
+
+
+#if defined(_WIN_ALL)
+// Load library from Windows System32 folder. Use this function to prevent
+// loading a malicious code from current folder or same folder as exe.
+HMODULE WINAPI LoadSysLibrary(const wchar *Name)
+{
+  std::vector<wchar> SysDir(MAX_PATH);
+  if (GetSystemDirectory(SysDir.data(),(UINT)SysDir.size())==0)
+    return nullptr;
+  std::wstring FullName;
+  MakeName(SysDir.data(),Name,FullName);
+  return LoadLibrary(FullName.c_str());
+}
+
+
+bool IsUserAdmin()
+{
+  SID_IDENTIFIER_AUTHORITY NtAuthority = SECURITY_NT_AUTHORITY;
+  PSID AdministratorsGroup; 
+  BOOL b = AllocateAndInitializeSid(&NtAuthority,2,SECURITY_BUILTIN_DOMAIN_RID,
+           DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &AdministratorsGroup); 
+  if (b) 
+  {
+    if (!CheckTokenMembership( NULL, AdministratorsGroup, &b)) 
+      b = FALSE;
+    FreeSid(AdministratorsGroup); 
+  }
+  return b!=FALSE;
+}
+
 #endif
 
 
@@ -131,16 +238,43 @@ SSE_VERSION _SSE_Version=GetSSEVersion();
 
 SSE_VERSION GetSSEVersion()
 {
+#ifdef _MSC_VER
   int CPUInfo[4];
-  __cpuid(CPUInfo, 1);
-  if ((CPUInfo[2] & 0x80000)!=0)
+  __cpuid(CPUInfo, 0);
+
+  // Maximum supported cpuid function.
+  uint MaxSupported=CPUInfo[0];
+
+  if (MaxSupported>=7)
+  {
+    __cpuid(CPUInfo, 7);
+    if ((CPUInfo[1] & 0x20)!=0)
+      return SSE_AVX2;
+  }
+  if (MaxSupported>=1)
+  {
+    __cpuid(CPUInfo, 1);
+    if ((CPUInfo[2] & 0x80000)!=0)
+      return SSE_SSE41;
+    if ((CPUInfo[2] & 0x200)!=0)
+      return SSE_SSSE3;
+    if ((CPUInfo[3] & 0x4000000)!=0)
+      return SSE_SSE2;
+    if ((CPUInfo[3] & 0x2000000)!=0)
+      return SSE_SSE;
+  }
+#elif defined(__GNUC__)
+  if (__builtin_cpu_supports("avx2"))
+    return SSE_AVX2;
+  if (__builtin_cpu_supports("sse4.1"))
     return SSE_SSE41;
-  if ((CPUInfo[2] & 0x200)!=0)
+  if (__builtin_cpu_supports("ssse3"))
     return SSE_SSSE3;
-  if ((CPUInfo[3] & 0x4000000)!=0)
+  if (__builtin_cpu_supports("sse2"))
     return SSE_SSE2;
-  if ((CPUInfo[3] & 0x2000000)!=0)
+  if (__builtin_cpu_supports("sse"))
     return SSE_SSE;
+#endif
   return SSE_NONE;
 }
 #endif

@@ -1,28 +1,46 @@
-#include "rar.hpp"
-
 static const uint MaxVolumes=65535;
 
-RecVolumes5::RecVolumes5()
+// We select this limit arbitrarily, to prevent user creating too many
+// rev files by mistake.
+#define MAX_REV_TO_DATA_RATIO 10 // 1000% of rev files.
+
+RecVolumes5::RecVolumes5(CommandData *Cmd,bool TestOnly)
 {
-  RealReadBuffer=NULL;
+  RealBuf=nullptr;
+  RealReadBuffer=nullptr;
 
   DataCount=0;
   RecCount=0;
   TotalCount=0;
   RecBufferSize=0;
 
-  for (uint I=0;I<ASIZE(ThreadData);I++)
-  {
-    ThreadData[I].RecRSPtr=this;
-    ThreadData[I].RS=NULL;
-  }
 #ifdef RAR_SMP
-  RecThreadPool=CreateThreadPool();
+  MaxUserThreads=Cmd->Threads;
+#else
+  MaxUserThreads=1;
 #endif
 
-  RealBuf=NULL; // Might be needed in case of exception.
-  RealBuf=new byte[TotalBufferSize+SSE_ALIGNMENT];
-  Buf=(byte *)ALIGN_VALUE(RealBuf,SSE_ALIGNMENT);
+  ThreadData=new RecRSThreadData[MaxUserThreads];
+  for (uint I=0;I<MaxUserThreads;I++)
+  {
+    ThreadData[I].RecRSPtr=this;
+    ThreadData[I].RS=nullptr;
+  }
+
+  if (TestOnly)
+  {
+#ifdef RAR_SMP
+    RecThreadPool=nullptr;
+#endif
+  }
+  else
+  {
+#ifdef RAR_SMP
+    RecThreadPool=new ThreadPool(MaxUserThreads);
+#endif
+    RealBuf=new byte[TotalBufferSize+RS16_ALIGNMENT];
+    Buf=(byte *)ALIGN_VALUE(RealBuf,RS16_ALIGNMENT);
+  }
 }
 
 
@@ -30,14 +48,18 @@ RecVolumes5::~RecVolumes5()
 {
   delete[] RealBuf;
   delete[] RealReadBuffer;
-  for (uint I=0;I<RecItems.Size();I++)
-    delete RecItems[I].f;
-  for (uint I=0;I<ASIZE(ThreadData);I++)
+  for (RecVolItem &Item : RecItems)
+    delete Item.f;
+  for (uint I=0;I<MaxUserThreads;I++)
     delete ThreadData[I].RS;
+  delete[] ThreadData;
+  delete[] SharedMX;
 #ifdef RAR_SMP
-  DestroyThreadPool(RecThreadPool);
+  delete RecThreadPool;
 #endif
 }
+
+
 
 
 #ifdef RAR_SMP
@@ -49,7 +71,7 @@ THREAD_PROC(RecThreadRS)
 #endif
 
 
-void RecVolumes5::ProcessRS(RAROptions *Cmd,uint DataNum,const byte *Data,uint MaxRead,bool Encode)
+bool RecVolumes5::ProcessRS(CommandData *Cmd,uint DataNum,const byte *Data,uint MaxRead,bool Encode)
 {
 /*
   RSCoder16 RS;
@@ -59,11 +81,7 @@ void RecVolumes5::ProcessRS(RAROptions *Cmd,uint DataNum,const byte *Data,uint M
     RS.UpdateECC(DataNum, I, Data, Buf+I*RecBufferSize, MaxRead);
 */
 
-#ifdef RAR_SMP
-  uint ThreadNumber=Cmd->Threads;
-#else
-  uint ThreadNumber=1;
-#endif
+  uint ThreadNumber=MaxUserThreads;
 
   const uint MinThreadBlock=0x1000;
   ThreadNumber=Min(ThreadNumber,MaxRead/MinThreadBlock);
@@ -71,20 +89,24 @@ void RecVolumes5::ProcessRS(RAROptions *Cmd,uint DataNum,const byte *Data,uint M
   if (ThreadNumber<1)
     ThreadNumber=1;
   uint ThreadDataSize=MaxRead/ThreadNumber;
-  ThreadDataSize+=(ThreadDataSize&1); // Must be even for 16-bit RS coder.
-#ifdef USE_SSE
-  ThreadDataSize=ALIGN_VALUE(ThreadDataSize,SSE_ALIGNMENT); // Alignment for SSE operations.
-#endif
+  
+  ThreadDataSize=ALIGN_VALUE(ThreadDataSize,RS16_ALIGNMENT); // Align properly.
+
   if (ThreadDataSize<MinThreadBlock)
     ThreadDataSize=MinThreadBlock;
 
   for (size_t I=0,CurPos=0;I<ThreadNumber && CurPos<MaxRead;I++)
   {
     RecRSThreadData *td=ThreadData+I;
-    if (td->RS==NULL)
+    if (td->RS==nullptr)
     {
       td->RS=new RSCoder16;
-      td->RS->Init(DataCount,RecCount,Encode ? NULL:ValidFlags);
+      td->RS->SetSharedMX(&SharedMX);
+#ifdef RAR_SMP
+      td->RS->SetThreadPool(RecThreadPool,MaxUserThreads);
+#endif
+      if (!td->RS->Init(DataCount,RecCount,Encode ? nullptr:ValidFlags))
+        return false;
     }
     td->DataNum=DataNum;
     td->Data=Data;
@@ -109,8 +131,9 @@ void RecVolumes5::ProcessRS(RAROptions *Cmd,uint DataNum,const byte *Data,uint M
 #endif
   }
 #ifdef RAR_SMP
-    RecThreadPool->WaitDone();
+  RecThreadPool->WaitDone();
 #endif // RAR_SMP
+  return true;
 }
 
 
@@ -122,20 +145,23 @@ void RecVolumes5::ProcessAreaRS(RecRSThreadData *td)
 }
 
 
-bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
+
+
+bool RecVolumes5::Restore(CommandData *Cmd,const std::wstring &Name,bool FromExtract)
 {
-  wchar ArcName[NM];
-  wcscpy(ArcName,Name);
+  std::wstring ArcName=Name;
 
-  wchar *Num=GetVolNumPart(ArcName);
-  while (Num>ArcName && IsDigit(*(Num-1)))
-    Num--;
-  wcsncpyz(Num,L"*.*",ASIZE(ArcName)-(Num-ArcName));
+  size_t NumPos=GetVolNumPos(ArcName);
+  while (NumPos>0 && IsDigit(ArcName[NumPos-1]))
+    NumPos--;
+  if (NumPos<=GetNamePos(ArcName))
+    return false; // Numeric part is missing or entire volume name is numeric, not possible for RAR or REV volume.
+  ArcName.replace(NumPos,std::wstring::npos,L"*.*");
+  
+  std::wstring FirstVolName;
+  std::wstring LongestRevName;
 
-  wchar FirstVolName[NM];
-  *FirstVolName=0;
-
-  int64 RecFileSize=0;
+  uint64 RecFileSize=0,FirstVolSize=0;
 
   FindFile VolFind;
   VolFind.SetMask(ArcName);
@@ -147,7 +173,7 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
 
     Archive *Vol=new Archive(Cmd);
     int ItemPos=-1;
-    if (Vol->WOpen(fd.Name))
+    if (!fd.IsDir && Vol->WOpen(fd.Name))
     {
       if (CmpExt(fd.Name,L"rev"))
       {
@@ -159,6 +185,9 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
 
           ItemPos=RecNum;
           FoundRecVolumes++;
+
+          if (fd.Name.size()>LongestRevName.size())
+            LongestRevName=fd.Name;
         }
       }
       else
@@ -172,47 +201,61 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
           // We work with archive as with raw data file, so we do not want
           // to spend time to QOpen I/O redirection.
           Vol->QOpenUnload();
-
+      
           Vol->Seek(0,SEEK_SET);
 
           // RAR volume found. Get its number, store the handle in appropriate
           // array slot, clean slots in between if we had to grow the array.
-          wchar *Num=GetVolNumPart(fd.Name);
+          size_t NumPos=GetVolNumPos(fd.Name);
           uint VolNum=0;
-          for (uint K=1;Num>=fd.Name && IsDigit(*Num);K*=10,Num--)
-            VolNum+=(*Num-'0')*K;
+          for (uint K=1;(int)NumPos>=0 && IsDigit(fd.Name[NumPos]);K*=10,NumPos--)
+            VolNum+=(fd.Name[NumPos]-'0')*K;
           if (VolNum==0 || VolNum>MaxVolumes)
             continue;
-          size_t CurSize=RecItems.Size();
+          if (FirstVolSize==0)
+            FirstVolSize=Vol->FileLength();
+
+          size_t CurSize=RecItems.size();
           if (VolNum>CurSize)
           {
-            RecItems.Alloc(VolNum);
-            for (size_t I=CurSize;I<VolNum;I++)
-              RecItems[I].f=NULL;
+            RecItems.resize(VolNum);
+//            for (size_t I=CurSize;I<VolNum;I++)
+//              RecItems[I].f=NULL;
           }
           ItemPos=VolNum-1;
 
-          if (*FirstVolName==0)
-            VolNameToFirstName(fd.Name,FirstVolName,ASIZE(FirstVolName),true);
+          if (FirstVolName.empty())
+            VolNameToFirstName(fd.Name,FirstVolName,true);
         }
     }
-    if (ItemPos==-1)
-      delete Vol; // Skip found file, it is not RAR or REV volume.
+
+    // Skip found file if it is not RAR or REV volume. Also skip if found
+    // more REV volumes than needed.
+    if (ItemPos==-1 || (size_t)ItemPos>=RecItems.size())
+      delete Vol;
     else
-      if ((uint)ItemPos<RecItems.Size()) // Check if found more REV than needed.
-      {
-        // Store found RAR or REV volume.
-        RecVolItem *Item=RecItems+ItemPos;
-        Item->f=Vol;
-        Item->New=false;
-        wcsncpyz(Item->Name,fd.Name,ASIZE(Item->Name));
-      }
+    {
+      // Store found RAR or REV volume.
+      RecVolItem *Item=&RecItems[ItemPos];
+      Item->f=Vol;
+      Item->New=false;
+      Item->Name=fd.Name;
+    }
   }
 
-  if (!Silent || FoundRecVolumes!=0)
+  if (!FromExtract || FoundRecVolumes!=0)
     uiMsg(UIMSG_RECVOLFOUND,FoundRecVolumes);
   if (FoundRecVolumes==0)
     return false;
+
+  // If we did not find even a single .rar volume, create .rar volume name
+  // based on the longest .rev file name. Use longest .rev, so we have
+  // enough space for volume number.
+  if (FirstVolName.empty())
+  {
+    SetExt(LongestRevName,L"rar");
+    VolNameToFirstName(LongestRevName,FirstVolName,true);
+  }
 
   uiMsg(UIMSG_RECVOLCALCCHECKSUM);
 
@@ -220,12 +263,12 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
   for (uint I=0;I<TotalCount;I++)
   {
     RecVolItem *Item=&RecItems[I];
-    if (Item->f!=NULL)
+    if (Item->f!=nullptr)
     {
       uiMsg(UIMSG_STRING,Item->Name);
 
       uint RevCRC;
-      CalcFileSum(Item->f,&RevCRC,NULL,Cmd->Threads,INT64NDF,CALCFSUM_CURPOS);
+      CalcFileSum(Item->f,&RevCRC,NULL,MaxUserThreads,INT64NDF,CALCFSUM_CURPOS);
       Item->Valid=RevCRC==Item->CRC;
       if (!Item->Valid)
       {
@@ -236,12 +279,12 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
         if (I>=DataCount)
         {
           Item->f->Close();
-          Item->f=NULL;
+          Item->f=nullptr;
           FoundRecVolumes--;
         }
       }
     }
-    if (I<DataCount && (Item->f==NULL || !Item->Valid))
+    if (I<DataCount && (Item->f==nullptr || !Item->Valid))
       MissingVolumes++;
   }
 
@@ -260,6 +303,13 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
     return false;
   }
 
+  if (FromExtract && (DataCount>4096 || MissingVolumes>1024))
+  {
+    uiMsg(UIERROR_RECVOLEXTRLIMIT,ArcName);
+    uiMsg(UIERROR_RECVOLCANNOTFIX);
+    return false;
+  }
+
   uiMsg(UIMSG_RECONSTRUCTING);
 
   // Create missing and rename bad volumes.
@@ -273,9 +323,8 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
     {
       Item->f->Close();
 
-      wchar NewName[NM];
-      wcscpy(NewName,Item->Name);
-      wcscat(NewName,L".bad");
+      std::wstring NewName;
+      NewName=Item->Name+L".bad";
 
       uiMsg(UIMSG_BADARCHIVE,Item->Name);
       uiMsg(UIMSG_RENAMING,Item->Name,NewName);
@@ -284,32 +333,30 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       Item->f=NULL;
     }
 
-    if (Item->New=(Item->f==NULL))
+    Item->New=(Item->f==nullptr);
+    if (Item->New)
     {
-      wcsncpyz(Item->Name,FirstVolName,ASIZE(Item->Name));
+      Item->Name=FirstVolName;
       uiMsg(UIMSG_CREATING,Item->Name);
       uiMsg(UIEVENT_NEWARCHIVE,Item->Name);
       File *NewVol=new File;
       bool UserReject;
-      if (!FileCreate(Cmd,NewVol,Item->Name,ASIZE(Item->Name),&UserReject))
+      if (!FileCreate(Cmd,NewVol,Item->Name,&UserReject))
       {
         if (!UserReject)
           ErrHandler.CreateErrorMsg(Item->Name);
         ErrHandler.Exit(UserReject ? RARX_USERBREAK:RARX_CREATE);
       }
-      NewVol->Prealloc(Item->FileSize);
+      NewVol->Prealloc(Min(Item->FileSize,FirstVolSize));
       Item->f=NewVol;
-      Item->New=true;
     }
-    NextVolumeName(FirstVolName,ASIZE(FirstVolName),false);
+    NextVolumeName(FirstVolName,false);
   }
 
 
   int64 ProcessedSize=0;
-#ifndef GUI
   int LastPercent=-1;
   mprintf(L"     ");
-#endif
 
   // Even though we already preliminary calculated missing volume number,
   // let's do it again now, when we have the final and exact information.
@@ -318,27 +365,25 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
   ValidFlags=new bool[TotalCount];
   for (uint I=0;I<TotalCount;I++)
   {
-    ValidFlags[I]=RecItems[I].f!=NULL && !RecItems[I].New;
+    ValidFlags[I]=RecItems[I].f!=nullptr && !RecItems[I].New;
     if (I<DataCount && !ValidFlags[I])
       MissingVolumes++;
   }
+  // We already checked it previously. Re-calculating MissingVolumes just above
+  // and re-checking it here is likely to be excessive. Still keep it here
+  // for extra safety and in case earlier code will be changed.
+  if (MissingVolumes>FoundRecVolumes)
+    return false;
 
   // Size of per file buffer.
   RecBufferSize=TotalBufferSize/MissingVolumes;
-  if ((RecBufferSize&1)==1) // Must be even for our RS16 codec.
-    RecBufferSize--;
-#ifdef USE_SSE
-  RecBufferSize&=~(SSE_ALIGNMENT-1); // Align for SSE.
-#endif
+  RecBufferSize&=~(RS16_ALIGNMENT-1); // Align properly.
 
-  uint *Data=new uint[TotalCount];
+  delete[] SharedMX;
+  SharedMX = nullptr;
 
-  RSCoder16 RS;
-  if (!RS.Init(DataCount,RecCount,ValidFlags))
-    return false; // Should not happen, we check parameter validity above.
-
-  RealReadBuffer=new byte[RecBufferSize+SSE_ALIGNMENT];
-  byte *ReadBuf=(byte *)ALIGN_VALUE(RealReadBuffer,SSE_ALIGNMENT);
+  RealReadBuffer=new byte[RecBufferSize+RS16_ALIGNMENT];
+  byte *ReadBuf=(byte *)ALIGN_VALUE(RealReadBuffer,RS16_ALIGNMENT);
 
   while (true)
   {
@@ -350,11 +395,15 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       uint VolNum=I;
       if (!ValidFlags[I]) // If next RAR volume is missing or invalid.
       {
+        // We ensured MissingVolumes<=FoundRecVolumes above, so we do not need
+        // to check that J<TotalCount here. There can't be more invalid
+        // or missing RAR volumes than we have valid REV volumes
+        // in ValidFlags[DataCount...TotalCount].
         while (!ValidFlags[J]) // Find next valid REV volume.
           J++;
         VolNum=J++; // Use next valid REV volume data instead of RAR.
       }
-      RecVolItem *Item=RecItems+VolNum;
+      RecVolItem *Item=&RecItems[VolNum];
 
       byte *B=&ReadBuf[0];
       int ReadSize=0;
@@ -368,7 +417,14 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       // We can have volumes of different size. Let's use data chunk
       // for largest volume size.
       uint DataToProcess=(uint)Min(RecBufferSize,MaxVolSize-ProcessedSize);
-      ProcessRS(Cmd,I,B,DataToProcess,false);
+      if (!ProcessRS(Cmd,I,B,DataToProcess,false))
+      {
+        // RSCoder16 failed to init. Must not happen, we check parameters
+        // validity earlier.
+        uiMsg(UIERROR_OPFAILED);
+        delete[] ValidFlags;
+        return false;
+      }
     }
     if (MaxRead==0)
       break;
@@ -376,7 +432,7 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
     for (uint I=0,J=0;I<DataCount;I++)
       if (!ValidFlags[I])
       {
-        RecVolItem *Item=RecItems+I;
+        RecVolItem *Item=&RecItems[I];
         size_t WriteSize=(size_t)Min(MaxRead,Item->FileSize);
         Item->f->Write(Buf+(J++)*RecBufferSize,WriteSize);
         Item->FileSize-=WriteSize;
@@ -396,11 +452,10 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       RecItems[I].f->Close();
 
   delete[] ValidFlags;
-  delete[] Data;
-#if !defined(GUI) && !defined(SILENT)
+#if !defined(SILENT)
   if (!Cmd->DisablePercentage)
     mprintf(L"\b\b\b\b100%%");
-  if (!Silent && !Cmd->DisableDone)
+  if (!FromExtract && !Cmd->DisableDone)
     mprintf(St(MDone));
 #endif
   return true;
@@ -431,9 +486,16 @@ uint RecVolumes5::ReadHeader(File *RecFile,bool FirstRev)
 
   if (Raw.Get1()!=1) // Version check.
     return 0;
-  DataCount=Raw.Get2();
-  RecCount=Raw.Get2();
+
+  uint CurDataCount=Raw.Get2();
+  uint CurRecCount=Raw.Get2();
+  if (!FirstRev && (CurDataCount!=DataCount || CurRecCount!=RecCount))
+    return 0;
+
+  DataCount=CurDataCount;
+  RecCount=CurRecCount;
   TotalCount=DataCount+RecCount;
+
   uint RecNum=Raw.Get2(); // Number of recovery volume.
   if (RecNum>=TotalCount || TotalCount>MaxVolumes)
     return 0;
@@ -443,10 +505,10 @@ uint RecVolumes5::ReadHeader(File *RecFile,bool FirstRev)
   {
     // If we have read the first valid REV file, init data structures
     // using information from REV header.
-    size_t CurSize=RecItems.Size();
-    RecItems.Alloc(TotalCount);
-    for (size_t I=CurSize;I<TotalCount;I++)
-      RecItems[I].f=NULL;
+    size_t CurSize=RecItems.size();
+    RecItems.resize(TotalCount);
+//    for (size_t I=CurSize;I<TotalCount;I++)
+//      RecItems[I].f=NULL;
     for (uint I=0;I<DataCount;I++)
     {
       RecItems[I].FileSize=Raw.Get8();
@@ -457,4 +519,47 @@ uint RecVolumes5::ReadHeader(File *RecFile,bool FirstRev)
   RecItems[RecNum].CRC=RevCRC; // Assign it here, after allocating RecItems.
 
   return RecNum;
+}
+
+
+void RecVolumes5::Test(CommandData *Cmd,const std::wstring &Name)
+{
+  std::wstring VolName=Name;
+
+  uint FoundRecVolumes=0;
+  while (FileExist(VolName))
+  {
+    File CurFile;
+    if (!CurFile.Open(VolName))
+    {
+      ErrHandler.OpenErrorMsg(VolName); // It also sets RARX_OPEN.
+      continue;
+    }
+    if (!uiStartFileExtract(VolName,false,true,false))
+      return;
+    mprintf(St(MExtrTestFile),VolName.c_str());
+    mprintf(L"     ");
+    bool Valid=false;
+    uint RecNum=ReadHeader(&CurFile,FoundRecVolumes==0);
+    if (RecNum!=0)
+    {
+      FoundRecVolumes++;
+
+      uint RevCRC;
+      CalcFileSum(&CurFile,&RevCRC,NULL,1,INT64NDF,CALCFSUM_CURPOS|(Cmd->DisablePercentage ? 0 : CALCFSUM_SHOWPROGRESS));
+      Valid=RevCRC==RecItems[RecNum].CRC;
+    }
+
+    if (Valid)
+    {
+      mprintf(L"\b\b\b\b\b %s ",St(MOk));
+    }
+    else
+    {
+      uiMsg(UIERROR_CHECKSUM,VolName,VolName);
+      ErrHandler.SetErrorCode(RARX_CRC);
+    }
+
+    NextVolumeName(VolName,false);
+  }
 }

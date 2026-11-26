@@ -27,7 +27,10 @@ typedef struct _REPARSE_DATA_BUFFER {
 } REPARSE_DATA_BUFFER, *PREPARSE_DATA_BUFFER;
 
 
-bool CreateReparsePoint(CommandData *Cmd,const wchar *Name,FileHeader *hd)
+
+
+bool CreateReparsePoint(CommandData *Cmd,const std::wstring &LinkName,
+  const std::wstring &TargetName,FileHeader *hd)
 {
   static bool PrivSet=false;
   if (!PrivSet)
@@ -38,49 +41,77 @@ bool CreateReparsePoint(CommandData *Cmd,const wchar *Name,FileHeader *hd)
     PrivSet=true;
   }
 
-  const DWORD BufSize=sizeof(REPARSE_DATA_BUFFER)+2*NM+1024;
-  Array<byte> Buf(BufSize);
-  REPARSE_DATA_BUFFER *rdb=(REPARSE_DATA_BUFFER *)&Buf[0];
+  const std::wstring &SubstName=TargetName;
+  size_t SubstLength=SubstName.size();
 
-  wchar SubstName[NM];
-  wcsncpyz(SubstName,hd->RedirName,ASIZE(SubstName));
-  size_t SubstLength=wcslen(SubstName);
+  // REPARSE_DATA_BUFFER receives both SubstName and PrintName strings,
+  // thus "*2" below. PrintName is either shorter or same length as SubstName.
+  const DWORD BufSize=sizeof(REPARSE_DATA_BUFFER)+((DWORD)SubstLength+1)*2*sizeof(wchar);
 
-  wchar PrintName[NM],*PrintNameSrc=SubstName,*PrintNameDst=PrintName;
-  bool WinPrefix=wcsncmp(PrintNameSrc,L"\\??\\",4)==0;
-  if (WinPrefix)
-    PrintNameSrc+=4;
-  if (WinPrefix && wcsncmp(PrintNameSrc,L"UNC\\",4)==0)
-  {
-    *(PrintNameDst++)='\\'; // Insert second \ in beginning of share name.
-    PrintNameSrc+=3;
-  }
-  wcscpy(PrintNameDst,PrintNameSrc);
+  std::vector<byte> Buf(BufSize);
+  REPARSE_DATA_BUFFER *rdb=(REPARSE_DATA_BUFFER *)Buf.data();
 
-  size_t PrintLength=wcslen(PrintName);
+  // Remove \??\ NTFS junction prefix if present.
+  bool WinPrefix=starts_with(SubstName,L"\\??\\");
+  std::wstring PrintName=WinPrefix ? SubstName.substr(4):SubstName;
+
+  if (WinPrefix && starts_with(PrintName,L"UNC\\"))
+    PrintName=L"\\"+PrintName.substr(3); // Convert UNC\server\share to \\server\share.
+
+  size_t PrintLength=PrintName.size();
 
   bool AbsPath=WinPrefix;
-  // IsFullPath is not really needed here, AbsPath check is enough.
+  // IsFullPath is not really needed here for symlinks, AbsPath check is enough.
   // We added it just for extra safety, in case some Windows version would
   // allow to create absolute targets with SYMLINK_FLAG_RELATIVE.
-  if (!Cmd->AbsoluteLinks && (AbsPath || IsFullPath(hd->RedirName) ||
-      !IsRelativeSymlinkSafe(hd->FileName,hd->RedirName)))
+  // Junction points are either catched by \??\ or fail to follow the target
+  // once created, if \??\ was manually stripped from path.
+  // Use hd->FileName instead of Name, since Name can include the destination
+  // path as a prefix, which can confuse IsRelativeSymlinkSafe algorithm.
+  // 2026.08.19: We added FSREDIR_JUNCTION check, because normally junctions
+  // are always absolute, even if they pretent to not be. But this check is
+  // excessive and we keep it just in case here. If junction is absolute,
+  // it will be catched by other checks below. If junction isn't absolute,
+  // it will not follow the target path once created.
+  if (!Cmd->AbsoluteLinks && (AbsPath || IsFullPath(TargetName) ||
+      hd->RedirType==FSREDIR_JUNCTION ||
+      !IsRelativeSymlinkSafe(Cmd,hd->FileName,LinkName,TargetName)))
+  {
+    uiMsg(UIERROR_SKIPUNSAFELINK,hd->FileName,TargetName);
+    ErrHandler.SetErrorCode(RARX_WARNING);
     return false;
+  }
 
-  CreatePath(Name,true);
+  CreatePath(LinkName,true,Cmd->DisableNames);
+
+  // Overwrite prompt was already issued and confirmed earlier, so we can
+  // remove existing symlink or regular file here. PrepareToDelete was also
+  // called earlier inside of uiAskReplaceEx.
+  if (FileExist(LinkName))
+    if (IsDir(GetFileAttr(LinkName)))
+      DelDir(LinkName);
+    else
+      DelFile(LinkName);
 
   // 'DirTarget' check is important for Unix symlinks to directories.
   // Unix symlinks do not have their own 'directory' attribute.
   if (hd->Dir || hd->DirTarget)
   {
-    if (!CreateDirectory(Name,NULL))
+    if (!CreateDir(LinkName))
+    {
+      uiMsg(UIERROR_DIRCREATE,L"",LinkName);
+      ErrHandler.SetErrorCode(RARX_CREATE);
       return false;
+    }
   }
   else
   {
-    HANDLE hFile=CreateFile(Name,GENERIC_WRITE,0,NULL,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,NULL);
+    HANDLE hFile=CreateFile(LinkName.c_str(),GENERIC_WRITE,0,NULL,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,NULL);
     if (hFile == INVALID_HANDLE_VALUE)
+    {
+      ErrHandler.CreateErrorMsg(LinkName);
       return false;
+    }
     CloseHandle(hFile);
   }
 
@@ -98,11 +129,11 @@ bool CreateReparsePoint(CommandData *Cmd,const wchar *Name,FileHeader *hd)
 
     rdb->MountPointReparseBuffer.SubstituteNameOffset=0;
     rdb->MountPointReparseBuffer.SubstituteNameLength=USHORT(SubstLength*sizeof(WCHAR));
-    wcscpy(rdb->MountPointReparseBuffer.PathBuffer,SubstName);
+    wcscpy(rdb->MountPointReparseBuffer.PathBuffer,SubstName.data());
 
     rdb->MountPointReparseBuffer.PrintNameOffset=USHORT((SubstLength+1)*sizeof(WCHAR));
     rdb->MountPointReparseBuffer.PrintNameLength=USHORT(PrintLength*sizeof(WCHAR));
-    wcscpy(rdb->MountPointReparseBuffer.PathBuffer+SubstLength+1,PrintName);
+    wcscpy(rdb->MountPointReparseBuffer.PathBuffer+SubstLength+1,PrintName.data());
   }
   else
     if (hd->RedirType==FSREDIR_WINSYMLINK || hd->RedirType==FSREDIR_UNIXSYMLINK)
@@ -119,39 +150,46 @@ bool CreateReparsePoint(CommandData *Cmd,const wchar *Name,FileHeader *hd)
 
       rdb->SymbolicLinkReparseBuffer.SubstituteNameOffset=0;
       rdb->SymbolicLinkReparseBuffer.SubstituteNameLength=USHORT(SubstLength*sizeof(WCHAR));
-      wcscpy(rdb->SymbolicLinkReparseBuffer.PathBuffer,SubstName);
+      wcscpy(rdb->SymbolicLinkReparseBuffer.PathBuffer,SubstName.data());
 
       rdb->SymbolicLinkReparseBuffer.PrintNameOffset=USHORT((SubstLength+1)*sizeof(WCHAR));
       rdb->SymbolicLinkReparseBuffer.PrintNameLength=USHORT(PrintLength*sizeof(WCHAR));
-      wcscpy(rdb->SymbolicLinkReparseBuffer.PathBuffer+SubstLength+1,PrintName);
+      wcscpy(rdb->SymbolicLinkReparseBuffer.PathBuffer+SubstLength+1,PrintName.data());
 
       rdb->SymbolicLinkReparseBuffer.Flags=AbsPath ? 0:SYMLINK_FLAG_RELATIVE;
     }
     else
       return false;
 
-  HANDLE hFile=CreateFile(Name,GENERIC_READ|GENERIC_WRITE,0,NULL,
-               OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT|
+  HANDLE hFile=CreateFile(LinkName.c_str(),GENERIC_READ|GENERIC_WRITE,0,NULL,
+               OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT| 
                FILE_FLAG_BACKUP_SEMANTICS,NULL);
   if (hFile==INVALID_HANDLE_VALUE)
+  {
+    ErrHandler.CreateErrorMsg(LinkName);
+    ErrHandler.SetErrorCode(RARX_CREATE);
     return false;
+  }
 
   DWORD Returned;
-  if (!DeviceIoControl(hFile,FSCTL_SET_REPARSE_POINT,rdb,
+  if (!DeviceIoControl(hFile,FSCTL_SET_REPARSE_POINT,rdb, 
       FIELD_OFFSET(REPARSE_DATA_BUFFER,GenericReparseBuffer)+
       rdb->ReparseDataLength,NULL,0,&Returned,NULL))
-  {
+  { 
     CloseHandle(hFile);
-    uiMsg(UIERROR_SLINKCREATE,UINULL,Name);
-    if (GetLastError()==ERROR_PRIVILEGE_NOT_HELD)
+    uiMsg(UIERROR_SLINKCREATE,L"",LinkName);
+
+    DWORD LastError=GetLastError();
+    if ((LastError==ERROR_ACCESS_DENIED || LastError==ERROR_PRIVILEGE_NOT_HELD) &&
+        !IsUserAdmin())
       uiMsg(UIERROR_NEEDADMIN);
     ErrHandler.SysErrMsg();
     ErrHandler.SetErrorCode(RARX_CREATE);
 
     if (hd->Dir)
-      RemoveDirectory(Name);
+      DelDir(LinkName);
     else
-      DeleteFile(Name);
+      DelFile(LinkName);
     return false;
   }
   File LinkFile;
@@ -161,7 +199,9 @@ bool CreateReparsePoint(CommandData *Cmd,const wchar *Name,FileHeader *hd)
     Cmd->xctime==EXTTIME_NONE ? NULL:&hd->ctime,
     Cmd->xatime==EXTTIME_NONE ? NULL:&hd->atime);
   LinkFile.Close();
-  if (!Cmd->IgnoreGeneralAttr)
-    SetFileAttr(Name,hd->FileAttr);
+
+  // Do not try to set other OS attributes.
+  if (!Cmd->IgnoreGeneralAttr && hd->IsSameOS())
+    SetFileAttr(LinkName,hd->FileAttr);
   return true;
 }

@@ -1,22 +1,22 @@
 #include "rar.hpp"
 
-#if !defined(GUI) && !defined(RARDLL)
+#if !defined(RARDLL)
 int main(int argc, char *argv[])
 {
 
-//#ifdef _UNIX
-//  setlocale(LC_ALL,"");
-//#endif
+#ifdef _UNIX
+  setlocale(LC_ALL,"");
+#endif
 
   InitConsole();
   ErrHandler.SetSignalHandlers(true);
 
 #ifdef SFX_MODULE
-  wchar ModuleName[NM];
+  std::wstring ModuleName;
 #ifdef _WIN_ALL
-  GetModuleFileName(NULL,ModuleName,ASIZE(ModuleName));
+  ModuleName=GetModuleFileStr();
 #else
-  CharToWide(argv[0],ModuleName,ASIZE(ModuleName));
+  CharToWide(argv[0],ModuleName);
 #endif
 #endif
 
@@ -26,17 +26,19 @@ int main(int argc, char *argv[])
 
 #endif
 
-#if defined(_WIN_ALL) && !defined(SFX_MODULE) && !defined(SHELL_EXT)
-  // Must be initialized, normal initialization can be skipped in case of exception.
-  bool ShutdownOnClose=false;
+#if defined(_WIN_ALL) && !defined(SFX_MODULE)
+  // Must be initialized, normal initialization can be skipped in case of
+  // exception.
+  POWER_MODE ShutdownOnClose=POWERMODE_KEEP;
 #endif
 
-  try
+  try 
   {
-
-    CommandData *Cmd=new CommandData;
+  
+    // Use std::unique_ptr to free Cmd in case of exception.
+    std::unique_ptr<CommandData> Cmd(new CommandData);
 #ifdef SFX_MODULE
-    wcscpy(Cmd->Command,L"X");
+    Cmd->Command=L"X";
     char *Switch=argc>1 ? argv[1]:NULL;
     if (Switch!=NULL && Cmd->IsSwitch(Switch[0]))
     {
@@ -45,7 +47,10 @@ int main(int argc, char *argv[])
       {
         case 'T':
         case 'V':
-          Cmd->Command[0]=UpperCmd;
+          // Also copy 't' and 'a' modifiers for -v[t,a], if present.
+          Cmd->Command.clear();
+          for (char *c=Switch+1;*c!=0;c++)
+            Cmd->Command+=etoupper(*c);
           break;
         case '?':
           Cmd->OutHelp(RARX_SUCCESS);
@@ -54,7 +59,7 @@ int main(int argc, char *argv[])
     }
     Cmd->AddArcName(ModuleName);
     Cmd->ParseDone();
-    Cmd->AbsoluteLinks=true; // If users runs SFX, he trusts an archive source.
+    Cmd->AbsoluteLinks=true; // If users run SFX, they trust an archive source.
 #else // !SFX_MODULE
     Cmd->ParseCommandLine(true,argc,argv);
     if (!Cmd->ConfigDisabled)
@@ -65,18 +70,18 @@ int main(int argc, char *argv[])
     Cmd->ParseCommandLine(false,argc,argv);
 #endif
 
-#if defined(_WIN_ALL) && !defined(SFX_MODULE) && !defined(SHELL_EXT)
+#if defined(_WIN_ALL) && !defined(SFX_MODULE)
     ShutdownOnClose=Cmd->Shutdown;
+    if (ShutdownOnClose!=POWERMODE_KEEP)
+      ShutdownCheckAnother(true);
 #endif
 
     uiInit(Cmd->Sound);
-    InitConsoleOptions(Cmd->MsgStream,Cmd->RedirectCharset);
     InitLogOptions(Cmd->LogName,Cmd->ErrlogCharset);
     ErrHandler.SetSilent(Cmd->AllYes || Cmd->MsgStream==MSG_NULL);
 
     Cmd->OutTitle();
     Cmd->ProcessCommand();
-    delete Cmd;
   }
   catch (RAR_EXIT ErrCode)
   {
@@ -87,16 +92,25 @@ int main(int argc, char *argv[])
     ErrHandler.MemoryErrorMsg();
     ErrHandler.SetErrorCode(RARX_MEMORY);
   }
+  catch (std::length_error&)
+  {
+    ErrHandler.MemoryErrorMsg();
+    ErrHandler.SetErrorCode(RARX_MEMORY);
+  }
   catch (...)
   {
     ErrHandler.SetErrorCode(RARX_FATAL);
   }
 
-#if defined(_WIN_ALL) && !defined(SFX_MODULE) && !defined(SHELL_EXT)
-  if (ShutdownOnClose && ErrHandler.IsShutdownEnabled())
-    Shutdown();
+#if defined(_WIN_ALL) && !defined(SFX_MODULE)
+  if (ShutdownOnClose!=POWERMODE_KEEP && ErrHandler.IsShutdownEnabled() &&
+      !ShutdownCheckAnother(false))
+    Shutdown(ShutdownOnClose);
 #endif
   ErrHandler.MainExit=true;
+  CloseLogOptions();
   return ErrHandler.GetErrorCode();
 }
 #endif
+
+

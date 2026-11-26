@@ -4,11 +4,10 @@
 #ifndef RAR_SMP
 const uint MaxPoolThreads=1; // For single threaded version.
 #else
-#if defined(_ANDROID)
-const uint MaxPoolThreads=16;
-#else
-const uint MaxPoolThreads=32;
-#endif
+// We need to use the processor groups API to increase it beyond 64.
+// Also be sure to check and adjust if needed per thread and total block size
+// when compressing if going above 64.
+const uint MaxPoolThreads=64;
 
 
 #ifdef _UNIX
@@ -66,7 +65,7 @@ class ThreadPool
   	uint QueueBottom;
 
     bool Closing; // Set true to quit all threads.
-
+  	
 #ifdef _WIN_ALL
   	// Semaphore counting number of tasks stored in queue.
   	HANDLE QueuedTasksCnt;
@@ -75,15 +74,15 @@ class ThreadPool
     HANDLE NoneActive;
 
 #elif defined(_UNIX)
-//  // Semaphores seem to be slower than conditional variables in pthreads,
-//  // so we use the conditional variable to count tasks stored in queue.
-//  uint QueuedTasksCnt;
-//  pthread_cond_t QueuedTasksCntCond;
-//  pthread_mutex_t QueuedTasksCntMutex;
-//
-//  bool AnyActive; // Active tasks present flag.
-//  pthread_cond_t AnyActiveCond;
-//  pthread_mutex_t AnyActiveMutex;
+    // Semaphores seem to be slower than conditional variables in pthreads,
+    // so we use the conditional variable to count tasks stored in queue.
+    uint QueuedTasksCnt;
+    pthread_cond_t QueuedTasksCntCond;
+    pthread_mutex_t QueuedTasksCntMutex;
+
+    bool AnyActive; // Active tasks present flag.
+    pthread_cond_t AnyActiveCond;
+    pthread_mutex_t AnyActiveMutex;
 #endif
 
     // Pool critical section. We use the single section for all branches
@@ -101,9 +100,6 @@ class ThreadPool
     static void SetPriority(int Priority) {ThreadPriority=Priority;}
 #endif
 };
-
-ThreadPool* CreateThreadPool();
-void DestroyThreadPool(ThreadPool *Pool);
 
 #endif // RAR_SMP
 

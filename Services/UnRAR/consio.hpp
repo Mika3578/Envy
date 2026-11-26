@@ -2,25 +2,28 @@
 #define _RAR_CONSIO_
 
 void InitConsole();
-void InitConsoleOptions(MESSAGE_TYPE MsgStream,RAR_CHARSET RedirectCharset);
-void OutComment(const wchar *Comment,size_t Size);
+void SetConsoleMsgStream(MESSAGE_TYPE MsgStream);
+void SetConsoleRedirectCharset(RAR_CHARSET RedirectCharset);
+void ProhibitConsoleInput();
+void OutComment(const std::wstring &Comment);
+bool IsConsoleOutputPresent();
 
 #ifndef SILENT
-bool GetConsolePassword(UIPASSWORD_TYPE Type,const wchar *FileName,SecPassword *Password);
+bool GetConsolePassword(UIPASSWORD_TYPE Type,const std::wstring &FileName,SecPassword *Password);
 #endif
 
 #ifdef SILENT
   inline void mprintf(const wchar *fmt,...) {}
   inline void eprintf(const wchar *fmt,...) {}
   inline void Alarm() {}
-  inline int Ask(const wchar *AskStr) {return 0;}
-  inline bool getwstr(wchar *str,size_t n) {return false;}
+  inline int Ask(const std::vector<std::wstring> &Items) {return 0;}
+  inline void getwstr(std::wstring &str) {}
 #else
   void mprintf(const wchar *fmt,...);
   void eprintf(const wchar *fmt,...);
   void Alarm();
-  int Ask(const wchar *AskStr);
-  bool getwstr(wchar *str,size_t n);
+  int Ask(const std::vector<std::wstring> &Items);
+  void getwstr(std::wstring &str);
 #endif
 
 #endif

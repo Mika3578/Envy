@@ -14,6 +14,7 @@ void RSCoder::Init(int ParSize)
 // Initialize logarithms and exponents Galois field tables.
 void RSCoder::gfInit()
 {
+  gfLog[0]=0; // Just in case, likely excessive, because log(0) is undefined.
   for (int I=0,J=1;I<MAXPAR;I++)
   {
     gfLog[J]=I;
@@ -27,7 +28,7 @@ void RSCoder::gfInit()
 }
 
 
-// Multiplication over Galois field.
+// Multiplication over Galois field. 
 inline int RSCoder::gfMult(int a,int b)
 {
   return(a==0 || b == 0 ? 0:gfExp[gfLog[a]+gfLog[b]]);
@@ -149,7 +150,7 @@ bool RSCoder::Decode(byte *Data,int DataSize,int *EraLoc,int EraSize)
     for (int I=0;I<ErrCount;I++)
     {
       int Loc=ErrorLocs[I],DLoc=MAXPAR-Loc,N=0;
-      for (int J=0;J<ParSize;J++)
+      for (int J=0;J<ParSize;J++) 
         N^=gfMult(EEPol[J],gfExp[DLoc*J%MAXPAR]);
       int DataPos=DataSize-Loc-1;
       // Perform bounds check and correct the data error.

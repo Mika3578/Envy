@@ -6,23 +6,20 @@
 #define  SIZEOF_MAINHEAD3       13 // Size of RAR 4.x main archive header.
 #define  SIZEOF_FILEHEAD14      21 // Size of RAR 1.4 file header.
 #define  SIZEOF_FILEHEAD3       32 // Size of RAR 3.0 file header.
-#define  SIZEOF_SHORTBLOCKHEAD   7
+#define  SIZEOF_SHORTBLOCKHEAD   7 // Smallest RAR 4.x block size.
 #define  SIZEOF_LONGBLOCKHEAD   11
 #define  SIZEOF_SUBBLOCKHEAD    14
 #define  SIZEOF_COMMHEAD        13
 #define  SIZEOF_PROTECTHEAD     26
-#define  SIZEOF_AVHEAD          14
-#define  SIZEOF_SIGNHEAD        15
-#define  SIZEOF_UOHEAD          18
-#define  SIZEOF_MACHEAD         22
-#define  SIZEOF_EAHEAD          24
-#define  SIZEOF_BEEAHEAD        24
 #define  SIZEOF_STREAMHEAD      26
 
-#define  VER_PACK               29
-#define  VER_PACK5              50 // It is stored as 0, but we subtract 50 when saving an archive.
-#define  VER_UNPACK             29
-#define  VER_UNPACK5            50 // It is stored as 0, but we add 50 when reading an archive.
+#define  VER_PACK               29U
+#define  VER_PACK5              50U // It is stored as 0, but we subtract 50 when saving an archive.
+#define  VER_PACK7              70U // It is stored as 1, but we subtract 70 when saving an archive.
+#define  VER_UNPACK             29U
+#define  VER_UNPACK5            50U // It is stored as 0, but we add 50 when reading an archive.
+#define  VER_UNPACK7            70U // It is stored as 1, but we add 50 when reading an archive.
+#define  VER_UNKNOWN          9999U // Just some large value.
 
 #define  MHD_VOLUME         0x0001U
 
@@ -76,7 +73,8 @@
 #define  EARC_VOLNUMBER     0x0008U // Store a number of current volume.
 
 enum HEADER_TYPE {
-  // RAR 5.0 header types.
+  // RAR 5.0 header types. HEAD_UNKNOWN must be maximum value in enum,
+  // because we reject anything larger than it.
   HEAD_MARK=0x00, HEAD_MAIN=0x01, HEAD_FILE=0x02, HEAD_SERVICE=0x03,
   HEAD_CRYPT=0x04, HEAD_ENDARC=0x05, HEAD_UNKNOWN=0xff,
 
@@ -86,6 +84,8 @@ enum HEADER_TYPE {
   HEAD3_SERVICE=0x7a,HEAD3_ENDARC=0x7b
 };
 
+
+// RAR 2.9 and earlier service haeders, mostly outdated and not supported.
 enum { EA_HEAD=0x100,UO_HEAD=0x101,MAC_HEAD=0x102,BEEA_HEAD=0x103,
        NTACL_HEAD=0x104,STREAM_HEAD=0x105 };
 
@@ -107,9 +107,11 @@ enum HOST_SYSTEM_TYPE {
 
 
 // We also use these values in extra field, so do not modify them.
+// FSREDIR_UNKNOWN must be maximum value in enum, because we reject
+// anything larger than it.
 enum FILE_SYSTEM_REDIRECT {
   FSREDIR_NONE=0, FSREDIR_UNIXSYMLINK, FSREDIR_WINSYMLINK, FSREDIR_JUNCTION,
-  FSREDIR_HARDLINK, FSREDIR_FILECOPY
+  FSREDIR_HARDLINK, FSREDIR_FILECOPY, FSREDIR_UNKNOWN
 };
 
 
@@ -150,6 +152,14 @@ struct BaseBlock
   {
     SkipIfUnknown=false;
   }
+
+  // We use it to assign this block data to inherited blocks.
+  // Such function seems to be cleaner than '(BaseBlock&)' cast or adding
+  // 'using BaseBlock::operator=;' to every inherited header.
+  void SetBaseBlock(BaseBlock &Src)
+  {
+    *this=Src;
+  }
 };
 
 
@@ -164,12 +174,16 @@ struct MainHeader:BaseBlock
   ushort HighPosAV;
   uint PosAV;
   bool CommentInHeader;
-  bool PackComment;    // For RAR 1.4 archive format only.
+  bool PackComment;     // For RAR 1.4 archive format only.
   bool Locator;
-  uint64 QOpenOffset;  // Offset of quick list record.
-  uint64 QOpenMaxSize; // Maximum size of QOpen offset in locator extra field.
-  uint64 RROffset;     // Offset of recovery record.
-  uint64 RRMaxSize;    // Maximum size of RR offset in locator extra field.
+  uint64 QOpenOffset;   // Offset of quick list record.
+  uint64 QOpenMaxSize;  // Maximum size of QOpen offset in locator extra field.
+  uint64 RROffset;      // Offset of recovery record.
+  uint64 RRMaxSize;     // Maximum size of RR offset in locator extra field.
+  size_t MetaNameMaxSize; // Maximum size of archive name in metadata extra field.
+  std::wstring OrigName;  // Original archive name.
+  RarTime OrigTime;       // Original archive time.
+
   void Reset();
 };
 
@@ -177,23 +191,29 @@ struct MainHeader:BaseBlock
 struct FileHeader:BlockHeader
 {
   byte HostOS;
-  byte UnpVer;
+  uint UnpVer; // It is 1 byte in RAR29 and bit field in RAR5.
   byte Method;
   union {
     uint FileAttr;
     uint SubFlags;
   };
-  wchar FileName[NM];
+  std::wstring FileName;
 
-  Array<byte> SubData;
+  std::vector<byte> SubData;
 
   RarTime mtime;
   RarTime ctime;
   RarTime atime;
 
+  // It is debatable if we shall convert file sizes to unsigned.
+  // While it is more natural for file sizes, some of our file APIs like
+  // File::Tell() and File::FileLength() return signed values, so we would
+  // need to cast. Some well known style guidelines recommend to use signed
+  // for everything but bit fields. Also some modern languages do not have
+  // unsigned type, so potential porting unsigned would be more difficult.
   int64 PackSize;
   int64 UnpSize;
-  int64 MaxSize; // Reserve size bytes for vint of this size.
+  int64 MaxSize; // Reserve packed and unpacked size bytes for vint of this size.
 
   HashValue FileHash;
 
@@ -225,27 +245,27 @@ struct FileHeader:BlockHeader
   bool Dir;
   bool CommentInHeader; // RAR 2.0 file comment.
   bool Version;   // name.ext;ver file name containing the version number.
-  size_t WinSize;
+  uint64 WinSize;
   bool Inherited; // New file inherits a subblock when updating a host file (for subblocks only).
 
   // 'true' if file sizes use 8 bytes instead of 4. Not used in RAR 5.0.
   bool LargeFile;
-
+  
   // 'true' for HEAD_SERVICE block, which is a child of preceding file block.
-  // RAR 4.x uses 'solid' flag to indicate child subheader blocks in archives.
+  // RAR 4.x uses 'solid' flag to indicate children subheader blocks in archives.
   bool SubBlock;
 
   HOST_SYSTEM_TYPE HSType;
 
   FILE_SYSTEM_REDIRECT RedirType;
-  wchar RedirName[NM];
+  std::wstring RedirName;
   bool DirTarget;
 
   bool UnixOwnerSet,UnixOwnerNumeric,UnixGroupNumeric;
   char UnixOwnerName[256],UnixGroupName[256];
 #ifdef _UNIX
-//  uid_t UnixOwnerID;
-//  gid_t UnixGroupID;
+  uid_t UnixOwnerID;
+  gid_t UnixGroupID;
 #else // Need these Unix fields in Windows too for 'list' command.
   uint UnixOwnerID;
   uint UnixGroupID;
@@ -255,10 +275,21 @@ struct FileHeader:BlockHeader
 
   bool CmpName(const wchar *Name)
   {
-    return(wcscmp(FileName,Name)==0);
+    return FileName==Name;
   }
 
-  FileHeader& operator = (FileHeader &hd);
+  bool IsSameOS() // Return true if archived OS matches current.
+  {
+  #ifdef _WIN_ALL
+    return HSType==HSYS_WINDOWS;
+  #elif defined(_UNIX)
+    return HSType==HSYS_UNIX;
+  #else
+    return false;
+  #endif
+  }
+
+//  FileHeader& operator = (FileHeader &hd);
 };
 
 
@@ -266,13 +297,17 @@ struct EndArcHeader:BaseBlock
 {
   // Optional CRC32 of entire archive up to start of EndArcHeader block.
   // Present in RAR 4.x archives if EARC_DATACRC flag is set.
-  uint ArcDataCRC;
-
+  uint ArcDataCRC;  
+  
   uint VolNumber; // Optional number of current volume.
 
   // 7 additional zero bytes can be stored here if EARC_REVSPACE is set.
 
-  bool NextVolume; // Not last volume.
+  // Not last volume. Useful if last file in a volume fits into volume
+  // completely and doesn't have "split after" flag. So we use NextVolume
+  // to know that we need to continue to next volume.
+  bool NextVolume;
+
   bool DataCRC;
   bool RevSpace;
   bool StoreVolNumber;
@@ -323,33 +358,6 @@ struct ProtectHeader:BlockHeader
 };
 
 
-struct AVHeader:BaseBlock
-{
-  byte UnpVer;
-  byte Method;
-  byte AVVer;
-  uint AVInfoCRC;
-};
-
-
-struct SignHeader:BaseBlock
-{
-  uint CreationTime;
-  ushort ArcNameSize;
-  ushort UserNameSize;
-};
-
-
-struct UnixOwnersHeader:SubBlockHeader
-{
-  ushort OwnerNameSize;
-  ushort GroupNameSize;
-/* dummy */
-  char OwnerName[256];
-  char GroupName[256];
-};
-
-
 struct EAHeader:SubBlockHeader
 {
   uint UnpSize;
@@ -366,14 +374,7 @@ struct StreamHeader:SubBlockHeader
   byte Method;
   uint StreamCRC;
   ushort StreamNameSize;
-  char StreamName[260];
-};
-
-
-struct MacFInfoHeader:SubBlockHeader
-{
-  uint fileType;
-  uint fileCreator;
+  std::string StreamName;
 };
 
 

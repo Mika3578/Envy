@@ -1,5 +1,3 @@
-#include "rar.hpp"
-
 // Buffer size for all volumes involved.
 static const size_t TotalBufferSize=0x4000000;
 
@@ -25,12 +23,6 @@ class RSEncode // Encode or decode data area, one object per one thread.
 
 
 #ifdef RAR_SMP
-THREAD_PROC(RSEncodeThread)
-{
-  RSEncode *rs=(RSEncode *)Data;
-  rs->EncodeBuf();
-}
-
 THREAD_PROC(RSDecodeThread)
 {
   RSEncode *rs=(RSEncode *)Data;
@@ -38,13 +30,22 @@ THREAD_PROC(RSDecodeThread)
 }
 #endif
 
-RecVolumes3::RecVolumes3()
+RecVolumes3::RecVolumes3(CommandData *Cmd,bool TestOnly)
 {
-  Buf.Alloc(TotalBufferSize);
   memset(SrcFile,0,sizeof(SrcFile));
+  if (TestOnly)
+  {
 #ifdef RAR_SMP
-  RSThreadPool=CreateThreadPool();
+    RSThreadPool=NULL;
 #endif
+  }
+  else
+  {
+    Buf.resize(TotalBufferSize);
+#ifdef RAR_SMP
+    RSThreadPool=new ThreadPool(Cmd->Threads);
+#endif
+  }
 }
 
 
@@ -53,48 +54,44 @@ RecVolumes3::~RecVolumes3()
   for (size_t I=0;I<ASIZE(SrcFile);I++)
     delete SrcFile[I];
 #ifdef RAR_SMP
-  DestroyThreadPool(RSThreadPool);
+  delete RSThreadPool;
 #endif
 }
 
 
-void RSEncode::EncodeBuf()
+
+
+// Check for names like arc5_3_1.rev created by RAR 3.0.
+static bool IsNewStyleRev(const std::wstring &Name)
 {
-  for (int BufPos=BufStart;BufPos<BufEnd;BufPos++)
-  {
-    byte Data[256],Code[256];
-    for (int I=0;I<FileNumber;I++)
-      Data[I]=Buf[I*RecBufferSize+BufPos];
-    RSC.Encode(Data,FileNumber,Code);
-    for (int I=0;I<RecVolNumber;I++)
-      OutBuf[I*RecBufferSize+BufPos]=Code[I];
-  }
+  size_t ExtPos=GetExtPos(Name);
+  if (ExtPos==std::wstring::npos || ExtPos==0)
+    return true;
+  int DigitGroup=0;
+  for (ExtPos--;ExtPos>0;ExtPos--)
+    if (!IsDigit(Name[ExtPos]))
+      if (Name[ExtPos]=='_' && IsDigit(Name[ExtPos-1]))
+        DigitGroup++;
+      else
+        break;
+  return DigitGroup<2;
 }
 
 
-bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
+bool RecVolumes3::Restore(CommandData *Cmd,const std::wstring &Name,bool FromExtract)
 {
-  wchar ArcName[NM];
-  wcsncpyz(ArcName,Name,ASIZE(ArcName));
-  wchar *Ext=GetExt(ArcName);
-  bool NewStyle=false;
-  bool RevName=Ext!=NULL && wcsicomp(Ext,L".rev")==0;
+  std::wstring ArcName=Name;
+  bool NewStyle=false; // New style .rev volumes are supported since RAR 3.10.
+  bool RevName=CmpExt(ArcName,L"rev");
   if (RevName)
   {
-    for (int DigitGroup=0;Ext>ArcName && DigitGroup<3;Ext--)
-      if (!IsDigit(*Ext))
-        if (IsDigit(*(Ext-1)) && (*Ext=='_' || DigitGroup<2))
-          DigitGroup++;
-        else
-          if (DigitGroup<2)
-          {
-            NewStyle=true;
-            break;
-          }
-    while (IsDigit(*Ext) && Ext>ArcName+1)
-      Ext--;
-    wcscpy(Ext,L"*.*");
-
+    NewStyle=IsNewStyleRev(ArcName);
+  
+    size_t ExtPos=GetExtPos(ArcName);
+    while (ExtPos>1 && (IsDigit(ArcName[ExtPos-1]) || ArcName[ExtPos-1]=='_'))
+      ExtPos--;
+    ArcName.replace(ExtPos,std::wstring::npos,L"*.*");
+    
     FindFile Find;
     Find.SetMask(ArcName);
     FindData fd;
@@ -103,7 +100,7 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       Archive Arc(Cmd);
       if (Arc.WOpen(fd.Name) && Arc.IsArchive(true))
       {
-        wcsncpyz(ArcName,fd.Name,ASIZE(ArcName));
+        ArcName=fd.Name;
         break;
       }
     }
@@ -120,11 +117,13 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
   bool NewNumbering=Arc.NewNumbering;
   Arc.Close();
 
-  wchar *VolNumStart=VolNameToFirstName(ArcName,ArcName,ASIZE(ArcName),NewNumbering);
-  wchar RecVolMask[NM];
-  wcsncpyz(RecVolMask,ArcName,ASIZE(RecVolMask));
-  size_t BaseNamePartLength=VolNumStart-ArcName;
-  wcsncpyz(RecVolMask+BaseNamePartLength,L"*.rev",ASIZE(RecVolMask)-BaseNamePartLength);
+  size_t VolNumStart=VolNameToFirstName(ArcName,ArcName,NewNumbering);
+  std::wstring RecVolMask=ArcName;
+  RecVolMask.replace(VolNumStart,std::wstring::npos,L"*.rev");
+  size_t BaseNamePartLength=VolNumStart;
+
+  if (BaseNamePartLength==0)
+    return false;
 
   int64 RecFileSize=0;
 
@@ -137,25 +136,25 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
   Find.SetMask(RecVolMask);
   FindData RecData;
   int FileNumber=0,RecVolNumber=0,FoundRecVolumes=0,MissingVolumes=0;
-  wchar PrevName[NM];
+  std::wstring PrevName;
   while (Find.Next(&RecData))
   {
-    wchar *CurName=RecData.Name;
+    std::wstring CurName=RecData.Name;
     int P[3];
     if (!RevName && !NewStyle)
     {
       NewStyle=true;
 
-      wchar *Dot=GetExt(CurName);
-      if (Dot!=NULL)
+      size_t DotPos=GetExtPos(CurName);
+      if (DotPos!=std::wstring::npos)
       {
-        int LineCount=0;
-        Dot--;
-        while (Dot>CurName && *Dot!='.')
+        uint LineCount=0;
+        DotPos--;
+        while (DotPos>0 && CurName[DotPos]!='.')
         {
-          if (*Dot=='_')
+          if (CurName[DotPos]=='_')
             LineCount++;
-          Dot--;
+          DotPos--;
         }
         if (LineCount==2)
           NewStyle=false;
@@ -168,13 +167,20 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
         uiMsg(UIMSG_RECVOLCALCCHECKSUM);
         CalcCRCMessageDone=true;
       }
-
+      
       uiMsg(UIMSG_STRING,CurName);
 
       File CurFile;
       CurFile.TOpen(CurName);
       CurFile.Seek(0,SEEK_END);
       int64 Length=CurFile.Tell();
+
+      if (Length<7) // Too small to be valid, skip to avoid seek error below.
+      {
+        uiMsg(UIERROR_NOTVOLUME,CurName);
+        continue;
+      }
+
       CurFile.Seek(Length-7,SEEK_SET);
       for (int I=0;I<3;I++)
         P[2-I]=CurFile.GetByte()+1;
@@ -191,24 +197,24 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
     }
     else
     {
-      wchar *Dot=GetExt(CurName);
-      if (Dot==NULL)
+      size_t DotPos=GetExtPos(CurName);
+      if (DotPos==std::wstring::npos)
         continue;
       bool WrongParam=false;
       for (size_t I=0;I<ASIZE(P);I++)
       {
         do
         {
-          Dot--;
-        } while (IsDigit(*Dot) && Dot>=CurName+BaseNamePartLength);
-        P[I]=atoiw(Dot+1);
+          DotPos--;
+        } while (IsDigit(CurName[DotPos]) && DotPos>=BaseNamePartLength);
+        P[I]=atoiw(&CurName[DotPos+1]);
         if (P[I]==0 || P[I]>255)
           WrongParam=true;
       }
       if (WrongParam)
         continue;
     }
-    if (P[1]+P[2]>255)
+    if (P[0]<=0 || P[1]<=0 || P[2]<=0 || P[1]+P[2]>255 || P[0]+P[2]-1>255)
       continue;
     if (RecVolNumber!=0 && RecVolNumber!=P[1] || FileNumber!=0 && FileNumber!=P[2])
     {
@@ -217,25 +223,42 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
     }
     RecVolNumber=P[1];
     FileNumber=P[2];
-    wcscpy(PrevName,CurName);
+    PrevName=CurName;
     File *NewFile=new File;
     NewFile->TOpen(CurName);
-    SrcFile[FileNumber+P[0]-1]=NewFile;
+
+    // This check is redundant taking into account P[I]>255 and P[0]+P[2]-1>255
+    // checks above. Still we keep it here for better clarity and security.
+    int SrcPos=FileNumber+P[0]-1;
+    if (SrcPos<0 || SrcPos>=ASIZE(SrcFile))
+    {
+      delete NewFile;
+      continue;
+    }
+
+    // Such volume number was already used. Skip to avoid memory leak.
+    // Alternatively we could 'delete SrcFile[SrcPos]' and overwrite.
+    if (SrcFile[SrcPos]!=nullptr)
+    {
+      delete NewFile;
+      continue;
+    }
+
+    SrcFile[SrcPos]=NewFile;
+
     FoundRecVolumes++;
 
     if (RecFileSize==0)
       RecFileSize=NewFile->FileLength();
   }
-  if (!Silent || FoundRecVolumes!=0)
+  if (!FromExtract || FoundRecVolumes!=0)
     uiMsg(UIMSG_RECVOLFOUND,FoundRecVolumes);
   if (FoundRecVolumes==0)
-    return(false);
+    return false;
 
-  bool WriteFlags[256];
-  memset(WriteFlags,0,sizeof(WriteFlags));
+  bool WriteFlags[256]{};
 
-  wchar LastVolName[NM];
-  *LastVolName=0;
+  std::wstring LastVolName;
 
   for (int CurArcNum=0;CurArcNum<FileNumber;CurArcNum++)
   {
@@ -271,9 +294,7 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       if (!ValidVolume)
       {
         NewFile->Close();
-        wchar NewName[NM];
-        wcscpy(NewName,ArcName);
-        wcscat(NewName,L".bad");
+        std::wstring NewName=ArcName+L".bad";
 
         uiMsg(UIMSG_BADARCHIVE,ArcName);
         uiMsg(UIMSG_RENAMING,ArcName,NewName);
@@ -284,18 +305,21 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
     if (!ValidVolume)
     {
       // It is important to return 'false' instead of aborting here,
-      // so if we are called from extraction, we will be able to continue extracting.
-      // It may happen if .rar and .rev are on read-only disks like CDs.
+      // so if we are called from extraction, we will be able to continue
+      // extracting. It may happen if .rar and .rev are on read-only disks
+      // like CDs.
       if (!NewFile->Create(ArcName,FMF_WRITE|FMF_SHAREREAD))
       {
         // We need to display the title of operation before the error message,
-        // to make clear for user that create error is related to recovery volumes.
-        // This is why we cannot use WCreate call here.
-        // Title must be before create error, not after that.
+        // to make clear for user that create error is related to recovery 
+        // volumes. This is why we cannot use WCreate call here. Title must be
+        // before create error, not after that.
 
         uiMsg(UIERROR_RECVOLFOUND,FoundRecVolumes); // Intentionally not displayed in console mode.
         uiMsg(UIERROR_RECONSTRUCTING);
         ErrHandler.CreateErrorMsg(ArcName);
+
+        delete NewFile;
         return false;
       }
 
@@ -303,13 +327,13 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       MissingVolumes++;
 
       if (CurArcNum==FileNumber-1)
-        wcscpy(LastVolName,ArcName);
+        LastVolName=ArcName;
 
       uiMsg(UIMSG_MISSINGVOL,ArcName);
       uiMsg(UIEVENT_NEWARCHIVE,ArcName);
     }
     SrcFile[CurArcNum]=(File*)NewFile;
-    NextVolumeName(ArcName,ASIZE(ArcName),!NewNumbering);
+    NextVolumeName(ArcName,!NewNumbering);
   }
 
   uiMsg(UIMSG_RECVOLMISSING,MissingVolumes);
@@ -337,20 +361,17 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       Erasures[EraSize++]=I;
 
   int64 ProcessedSize=0;
-#ifndef GUI
   int LastPercent=-1;
   mprintf(L"     ");
-#endif
   // Size of per file buffer.
   size_t RecBufferSize=TotalBufferSize/TotalFiles;
 
 #ifdef RAR_SMP
   uint ThreadNumber=Cmd->Threads;
-  RSEncode rse[MaxPoolThreads];
 #else
   uint ThreadNumber=1;
-  RSEncode rse[1];
 #endif
+  RSEncode *rse=new RSEncode[ThreadNumber];
   for (uint I=0;I<ThreadNumber;I++)
     rse[I].Init(RecVolNumber);
 
@@ -384,7 +405,7 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
     int BlockSize=MaxRead/ThreadNumber;
     if (BlockSize<0x100)
       BlockSize=MaxRead;
-
+    
     for (uint CurThread=0;BlockStart<MaxRead;CurThread++)
     {
       // Last thread processes all left data including increasement
@@ -416,11 +437,13 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
 #ifdef RAR_SMP
     RSThreadPool->WaitDone();
 #endif // RAR_SMP
-
+    
     for (int I=0;I<FileNumber;I++)
       if (WriteFlags[I])
         SrcFile[I]->Write(&Buf[I*RecBufferSize],MaxRead);
   }
+  delete[] rse;
+
   for (int I=0;I<RecVolNumber+FileNumber;I++)
     if (SrcFile[I]!=NULL)
     {
@@ -435,7 +458,7 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       CurFile->Close();
       SrcFile[I]=NULL;
     }
-  if (*LastVolName!=0)
+  if (!LastVolName.empty())
   {
     // Truncate the last volume to its real size.
     Archive Arc(Cmd);
@@ -455,10 +478,10 @@ bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       }
     }
   }
-#if !defined(GUI) && !defined(SILENT)
+#if !defined(SILENT)
   if (!Cmd->DisablePercentage)
     mprintf(L"\b\b\b\b100%%");
-  if (!Silent && !Cmd->DisableDone)
+  if (!FromExtract && !Cmd->DisableDone)
     mprintf(St(MDone));
 #endif
   return true;
@@ -475,5 +498,51 @@ void RSEncode::DecodeBuf()
     RSC.Decode(Data,FileNumber,Erasures,EraSize);
     for (int I=0;I<EraSize;I++)
       Buf[Erasures[I]*RecBufferSize+BufPos]=Data[Erasures[I]];
+  }
+}
+
+
+void RecVolumes3::Test(CommandData *Cmd,const std::wstring &Name)
+{
+  if (!IsNewStyleRev(Name)) // RAR 3.0 name#_#_#.rev do not include CRC32.
+  {
+    ErrHandler.UnknownMethodMsg(Name,Name);
+    return;
+  }
+
+  std::wstring VolName=Name;
+
+  while (FileExist(VolName))
+  {
+    File CurFile;
+    if (!CurFile.Open(VolName))
+    {
+      ErrHandler.OpenErrorMsg(VolName); // It also sets RARX_OPEN.
+      continue;
+    }
+    if (!uiStartFileExtract(VolName,false,true,false))
+      return;
+    mprintf(St(MExtrTestFile),VolName.c_str());
+    mprintf(L"     ");
+    CurFile.Seek(0,SEEK_END);
+    int64 Length=CurFile.Tell();
+    CurFile.Seek(Length-4,SEEK_SET);
+    uint FileCRC=0;
+    for (int I=0;I<4;I++)
+      FileCRC|=CurFile.GetByte()<<(I*8);
+
+    uint CalcCRC;
+    CalcFileSum(&CurFile,&CalcCRC,NULL,1,Length-4,Cmd->DisablePercentage ? 0 : CALCFSUM_SHOWPROGRESS);
+    if (FileCRC==CalcCRC)
+    {
+      mprintf(L"\b\b\b\b\b %s ",St(MOk));
+    }
+    else
+    {
+      uiMsg(UIERROR_CHECKSUM,VolName,VolName);
+      ErrHandler.SetErrorCode(RARX_CRC);
+    }
+
+    NextVolumeName(VolName,false);
   }
 }

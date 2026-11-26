@@ -2,7 +2,7 @@
 
 RawRead::RawRead()
 {
-  RawRead::SrcFile=NULL;
+  RawRead::SrcFile=nullptr;
   Reset();
 }
 
@@ -16,48 +16,46 @@ RawRead::RawRead(File *SrcFile)
 
 void RawRead::Reset()
 {
-  Data.SoftReset();
+  Data.clear();
   ReadPos=0;
   DataSize=0;
-#ifndef SHELL_EXT
-//Crypt=NULL;
-#endif
+  Crypt=NULL;
 }
 
 
 size_t RawRead::Read(size_t Size)
 {
   size_t ReadSize=0;
-//#if !defined(SHELL_EXT) && !defined(RAR_NOCRYPT)
-//if (Crypt!=NULL)
-//{
-//  // Full size of buffer with already read data including data read
-//  // for encryption block alignment.
-//  size_t FullSize=Data.Size();
-//
-//  // Data read for alignment and not processed yet.
-//  size_t DataLeft=FullSize-DataSize;
-//
-//  if (Size>DataLeft) // Need to read more than we already have.
-//  {
-//    size_t SizeToRead=Size-DataLeft;
-//    size_t AlignedReadSize=SizeToRead+((~SizeToRead+1) & CRYPT_BLOCK_MASK);
-//    Data.Add(AlignedReadSize);
-//    ReadSize=SrcFile->Read(&Data[FullSize],AlignedReadSize);
-//    Crypt->DecryptBlock(&Data[FullSize],AlignedReadSize);
-//    DataSize+=ReadSize==0 ? 0:Size;
-//  }
-//  else // Use buffered data, no real read.
-//  {
-//    ReadSize=Size;
-//    DataSize+=Size;
-//  }
-//}
-//else
-//#endif
+#if !defined(RAR_NOCRYPT)
+  if (Crypt!=NULL)
+  {
+    // Full size of buffer with already read data including data read 
+    // for encryption block alignment.
+    size_t FullSize=Data.size();
+
+    // Data read for alignment and not processed yet.
+    size_t DataLeft=FullSize-DataSize;
+
+    if (Size>DataLeft) // Need to read more than we already have.
+    {
+      size_t SizeToRead=Size-DataLeft;
+      size_t AlignedReadSize=SizeToRead+((~SizeToRead+1) & CRYPT_BLOCK_MASK);
+      Data.resize(FullSize+AlignedReadSize);
+      ReadSize=SrcFile->Read(&Data[FullSize],AlignedReadSize);
+      Crypt->DecryptBlock(&Data[FullSize],AlignedReadSize);
+      DataSize+=ReadSize==0 ? 0:Size;
+    }
+    else // Use buffered data, no real read.
+    {
+      ReadSize=Size;
+      DataSize+=Size;
+    }
+  }
+  else
+#endif
     if (Size!=0)
     {
-      Data.Add(Size);
+      Data.resize(Data.size()+Size);
       ReadSize=SrcFile->Read(&Data[DataSize],Size);
       DataSize+=ReadSize;
     }
@@ -69,10 +67,21 @@ void RawRead::Read(byte *SrcData,size_t Size)
 {
   if (Size!=0)
   {
-    Data.Add(Size);
+    Data.resize(Data.size()+Size);
     memcpy(&Data[DataSize],SrcData,Size);
     DataSize+=Size;
   }
+}
+
+
+// Move unread data to beginning of buffer and adjust buffer size.
+void RawRead::Compact()
+{
+  if (ReadPos<DataSize) // We would access beyond the vector end otherwise.
+    memmove(&Data[0],&Data[ReadPos],DataSize-ReadPos);
+  DataSize-=ReadPos;
+  ReadPos=0;
+  Data.resize(DataSize);
 }
 
 
@@ -98,8 +107,7 @@ uint RawRead::Get4()
 {
   if (ReadPos+3<DataSize)
   {
-    uint Result=Data[ReadPos]+(Data[ReadPos+1]<<8)+(Data[ReadPos+2]<<16)+
-                (Data[ReadPos+3]<<24);
+    uint Result=RawGet4(&Data[ReadPos]);
     ReadPos+=4;
     return Result;
   }
@@ -117,7 +125,9 @@ uint64 RawRead::Get8()
 uint64 RawRead::GetV()
 {
   uint64 Result=0;
-  for (uint Shift=0;ReadPos<DataSize;Shift+=7)
+  // Need to check Shift<64, because for shift greater than or equal to
+  // the width of the promoted left operand, the behavior is undefined.
+  for (uint Shift=0;ReadPos<DataSize && Shift<64;Shift+=7)
   {
     byte CurByte=Data[ReadPos++];
     Result+=uint64(CurByte & 0x7f)<<Shift;
@@ -181,11 +191,11 @@ uint RawRead::GetCRC50() // RAR 5.0 block CRC.
 
 
 // Read vint from arbitrary byte array.
-uint64 RawGetV(const byte *Data,uint &ReadPos,uint DataSize,bool &Overflow)
+uint64 RawGetV(const byte *Data,uint &ReadPos,uint EndPos,bool &Overflow)
 {
   Overflow=false;
   uint64 Result=0;
-  for (uint Shift=0;ReadPos<DataSize;Shift+=7)
+  for (uint Shift=0;ReadPos<EndPos;Shift+=7)
   {
     byte CurByte=Data[ReadPos++];
     Result+=uint64(CurByte & 0x7f)<<Shift;

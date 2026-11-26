@@ -1,8 +1,9 @@
-/******************************************************************************
- *  This file is part of PPMd project                                         *
- *  Written and distributed to public domain by Dmitry Shkarin 1997,1999-2000 *
- *  Contents: memory allocation routines                                      *
- ******************************************************************************/
+/****************************************************************************
+ *  This file is part of PPMd project                                       *
+ *  Written and distributed to public domain by Dmitry Shkarin 1997,        *
+ *  1999-2000                                                               *
+ *  Contents: memory allocation routines                                    *
+ ****************************************************************************/
 
 static const uint UNIT_SIZE=Max(sizeof(RARPPM_CONTEXT),sizeof(RARPPM_MEM_BLK));
 static const uint FIXED_UNIT_SIZE=12;
@@ -19,14 +20,14 @@ void SubAllocator::Clean()
 }
 
 
-inline void SubAllocator::InsertNode(void* p,int indx)
+inline void SubAllocator::InsertNode(void* p,int indx) 
 {
   ((RAR_NODE*) p)->next=FreeList[indx].next;
   FreeList[indx].next=(RAR_NODE*) p;
 }
 
 
-inline void* SubAllocator::RemoveNode(int indx)
+inline void* SubAllocator::RemoveNode(int indx) 
 {
   RAR_NODE* RetVal=FreeList[indx].next;
   FreeList[indx].next=RetVal->next;
@@ -34,8 +35,8 @@ inline void* SubAllocator::RemoveNode(int indx)
 }
 
 
-inline uint SubAllocator::U2B(int NU)
-{
+inline uint SubAllocator::U2B(int NU) 
+{ 
   // We calculate the size of units in bytes based on real UNIT_SIZE.
   // In original implementation it was 8*NU+4*NU.
   return UNIT_SIZE*NU;
@@ -55,7 +56,7 @@ inline void SubAllocator::SplitBlock(void* pv,int OldIndx,int NewIndx)
 {
   int i, UDiff=Indx2Units[OldIndx]-Indx2Units[NewIndx];
   byte* p=((byte*) pv)+U2B(Indx2Units[NewIndx]);
-  if (Indx2Units[i=Units2Indx[UDiff-1]] != UDiff)
+  if (Indx2Units[i=Units2Indx[UDiff-1]] != UDiff) 
   {
     InsertNode(p,--i);
     p += U2B(i=Indx2Units[i]);
@@ -65,11 +66,9 @@ inline void SubAllocator::SplitBlock(void* pv,int OldIndx,int NewIndx)
 }
 
 
-
-
 void SubAllocator::StopSubAllocator()
 {
-  if ( SubAllocatorSize )
+  if ( SubAllocatorSize ) 
   {
     SubAllocatorSize=0;
     free(HeapStart);
@@ -81,7 +80,7 @@ bool SubAllocator::StartSubAllocator(int SASize)
 {
   uint t=SASize << 20;
   if (SubAllocatorSize == t)
-    return TRUE;
+    return true;
   StopSubAllocator();
 
   // Original algorithm expects FIXED_UNIT_SIZE, but actual structure size
@@ -92,7 +91,7 @@ bool SubAllocator::StartSubAllocator(int SASize)
   if ((HeapStart=(byte *)malloc(AllocSize)) == NULL)
   {
     ErrHandler.MemoryError();
-    return FALSE;
+    return false;
   }
 
   // HeapEnd did not present in original algorithm. We added it to control
@@ -100,7 +99,7 @@ bool SubAllocator::StartSubAllocator(int SASize)
   HeapEnd=HeapStart+AllocSize-UNIT_SIZE;
 
   SubAllocatorSize=t;
-  return TRUE;
+  return true;
 }
 
 
@@ -132,7 +131,7 @@ void SubAllocator::InitSubAllocator()
   // Real size of this area. We correct it according to UNIT_SIZE vs
   // FIXED_UNIT_SIZE difference. Also we add one more UNIT_SIZE
   // to compensate a possible reminder from Size1/FIXED_UNIT_SIZE,
-  // which would be lost otherwise. We add UNIT_SIZE instead of
+  // which would be lost otherwise. We add UNIT_SIZE instead of 
   // this Size1%FIXED_UNIT_SIZE reminder, because it allows to align
   // UnitsStart easily and adding more than reminder is ok for algorithm.
   uint RealSize1=Size1/FIXED_UNIT_SIZE*UNIT_SIZE+UNIT_SIZE;
@@ -150,11 +149,11 @@ void SubAllocator::InitSubAllocator()
   FakeUnitsStart=HeapStart+Size1;
 
   HiUnit=LoUnit+RealSize2;
-  for (i=0,k=1;i < N1    ;i++,k += 1)
+  for (i=0,k=1;i < N1     ;i++,k += 1)
     Indx2Units[i]=k;
-  for (k++;i < N1+N2     ;i++,k += 2)
+  for (k++;i < N1+N2      ;i++,k += 2)
     Indx2Units[i]=k;
-  for (k++;i < N1+N2+N3  ;i++,k += 3)
+  for (k++;i < N1+N2+N3   ;i++,k += 3)
     Indx2Units[i]=k;
   for (k++;i < N1+N2+N3+N4;i++,k += 4)
     Indx2Units[i]=k;
@@ -216,13 +215,13 @@ void* SubAllocator::AllocUnitsRare(int indx)
       GlueCount--;
       i=U2B(Indx2Units[indx]);
       int j=FIXED_UNIT_SIZE*Indx2Units[indx];
-      if (FakeUnitsStart-pText > j)
+      if (FakeUnitsStart - pText > j)
       {
-        FakeUnitsStart-=j;
+        FakeUnitsStart -= j;
         UnitsStart -= i;
-        return(UnitsStart);
+        return UnitsStart;
       }
-      return(NULL);
+      return NULL;
     }
   } while ( !FreeList[i].next );
   void* RetVal=RemoveNode(i);
@@ -261,7 +260,7 @@ void* SubAllocator::ExpandUnits(void* OldPtr,int OldNU)
   if (i0 == i1)
     return OldPtr;
   void* ptr=AllocUnits(OldNU+1);
-  if ( ptr )
+  if ( ptr ) 
   {
     memcpy(ptr,OldPtr,U2B(OldNU));
     InsertNode(OldPtr,i0);
@@ -281,8 +280,8 @@ void* SubAllocator::ShrinkUnits(void* OldPtr,int OldNU,int NewNU)
     memcpy(ptr,OldPtr,U2B(NewNU));
     InsertNode(OldPtr,i0);
     return ptr;
-  }
-  else
+  } 
+  else 
   {
     SplitBlock(OldPtr,i0,i1);
     return OldPtr;

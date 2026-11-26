@@ -57,11 +57,34 @@ void MarkOfTheWeb::ReadZoneIdStream(const std::wstring &FileName,bool AllFields)
 int MarkOfTheWeb::ParseZoneIdStream(std::string &Stream)
 {
   if (!starts_with(Stream,"[ZoneTransfer]"))
-    return -1; // Not a valid Mark of the Web. Prefer the archive MOTW if any.
+    return -1; // Not a valid Mark of the Web. Prefer the archive MOTW, if any.
 
-  std::string::size_type ZoneId=Stream.find("ZoneId=",0);
+  std::string::size_type ZoneId=std::string::npos; // Found "ZoneId=" position.
+  bool LineStart=true; // Only spaces and tabs are present since line start.
+  for (size_t I=0;I<Stream.size();I++)
+  {
+    if (LineStart && Stream.compare(I,7,"ZoneId=")==0)
+    {
+      if (ZoneId!=std::string::npos) // Second "ZoneId=" found.
+        return -1; // Not a valid Mark of the Web.
+
+      ZoneId=I; // Store "ZoneId=" position and continue search for possible second instance.
+      continue;
+    }
+    if (Stream[I]=='\r' || Stream[I]=='\n')
+      LineStart=true; // New line started.
+    else
+      if (Stream[I]!=' ' && Stream[I]!='\t')
+        LineStart=false; // Non-space character found after line start.
+  }
+
+  // No "ZoneId=" found or its parameter is invalid.
   if (ZoneId==std::string::npos || !IsDigit(Stream[ZoneId+7]))
     return -1; // Not a valid Mark of the Web.
+  char E=Stream[ZoneId+8];
+  if (E!=0 && E!=' ' && E!='\t' && E!='\r' && E!='\n')
+    return -1; // Not a valid Mark of the Web.
+
   int ZoneIdValue=atoi(&Stream[ZoneId+7]);
   if (ZoneIdValue<0 || ZoneIdValue>4)
     return -1; // Not a valid Mark of the Web.
@@ -92,7 +115,7 @@ void MarkOfTheWeb::CreateZoneIdStream(const std::wstring &Name,StringList &MotwL
     // this loop spent 85ms with this optimization and wcsicomp optimized
     // for English strings, 415ms with this optimization only, 475ms with
     // wcsicomp optimized only and 795ms without both optimizations.
-    bool FastCmp=CurMask[0]=='*' && CurMask[1]=='.' && wcspbrk(CurMask+2,L"*?")==NULL;
+    bool FastCmp=CurMask[0]=='*' && CurMask[1]=='.' && wcspbrk(CurMask+2,L"*?.")==NULL;
     if (FastCmp && wcsicomp(Ext,CurMask+2)==0 || !FastCmp && CmpName(CurMask,Name,MATCH_NAMES))
     {
       Matched=true;
@@ -103,14 +126,19 @@ void MarkOfTheWeb::CreateZoneIdStream(const std::wstring &Name,StringList &MotwL
   if (!Matched)
     return;
 
-  std::wstring StreamName=Name+MOTW_STREAM_NAME;
-
+  // Convert single character names like 'f' from f:stream to .\f:stream to
+  // resolve the ambiguity with drive letters.
+  std::wstring StreamName=Name.size() == 1 ? L".\\"+Name:Name;
+  StreamName += MOTW_STREAM_NAME;
+  
   File StreamFile;
   if (StreamFile.Create(StreamName)) // Can fail on FAT.
   {
+    // 2026.10.08: Obsolete, exceptions enabled.
     // We got a report that write to stream failed on Synology 2411+ NAS drive.
     // So we handle it silently instead of aborting.
-    StreamFile.SetExceptions(false);
+//    StreamFile.SetExceptions(false);
+
     if (StreamFile.Write(&ZoneIdStream[0],ZoneIdStream.size()))
       StreamFile.Close();
   }
@@ -126,7 +154,13 @@ bool MarkOfTheWeb::IsNameConflicting(const std::wstring &StreamName)
 
 
 // Return true and prepare the file stream to write if its ZoneId is stricter
-// than archive ZoneId. If it is missing, less or equally strict, return false.
+// than archive ZoneId. If it is missing, broken, less or equally strict,
+// return false and prefer an archive MOTW. This function modifies
+// the file stream if AllFields==false, but it is invoked only if user
+// requested to propagate the archive MOTW. In this case it seems to be
+// reasonable to adjust extracting MOTW file stream according to archive
+// MOTW propagation settings. If we ever decide to change it, we can replace
+// '&FileStream' to 'FileStream' in function parameter.
 bool MarkOfTheWeb::IsFileStreamMoreSecure(std::string &FileStream)
 {
   int StreamZone=ParseZoneIdStream(FileStream);
