@@ -25,7 +25,13 @@ Requires `clang-format-18` and `clang-format-diff-18` (installed by
 `.cursor/environment.json`). Differential: only changed hunks are checked, so
 legacy off-diff lines never fail the run.
 
-### Repository self-tests (the same suite CI's `Lint build files` job runs)
+### Repository self-tests (a Linux-runnable subset of CI's `Lint build files` job)
+
+The `Lint build files` job additionally runs inline checks an agent can also
+replicate by hand (every `.vcxproj` uses toolset `v145`, `Envy.sln` is
+`Format Version 12.00`, no `_ATL_XP_TARGETING` in first-party project files)
+plus BugSplat SDK/runtime and compile-commands/portable-runner self-tests; the
+script-based commands below are the subset agents normally need.
 
 ```bash
 bash .github/scripts/classify-changes.selftest.sh
@@ -46,8 +52,10 @@ npm ci --prefix Remote/tests --no-audit --no-fund
 npm test --prefix Remote/tests
 ```
 
-Requires **Node ≥ 24.9** (CI pins `node-version: "24"` in
-`.github/workflows/code-quality.yml`). On cloud VMs the `node` first on
+Requires **Node 24** (CI pins `node-version: "24"` in
+`.github/workflows/code-quality.yml`). Both commands below run under whatever
+`node` is first on `PATH`, so the Node 24 `PATH` fix shown after them applies
+to `npm ci` as well. On cloud VMs the `node` first on
 `PATH` can be a v22 shim provided by the exec daemon, and a glob in a `PATH`
 assignment is not expanded by the shell; Jest 30 then fails with
 `Must use import to load ES Module: .../@exodus/bytes/encoding-lite.js`. Put
