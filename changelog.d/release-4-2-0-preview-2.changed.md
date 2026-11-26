@@ -1,0 +1,1 @@
+**4.2.0 Preview 2 version metadata** - Bump the product version to `4.2.0-preview.2` (`version.json` full/display version, Windows `FILEVERSION`/`PRODUCTVERSION`/strings `4.2.0.2`) and point the README and release runbook at the `v4.2.0-preview.2` target so the next dry-run and tag package Preview 2.
