@@ -1,12 +1,27 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-22
+- **Last Updated:** 2026-11-26
+
+- **Changelog Entry:** 2026-10-26 — MetaFetch residual after #393: align `ReceiveMetadataInput` / MetaFetch `dtsHeaders` with the THEX 16 KiB header-phase + body-only XML cap pattern so incomplete headers no longer use a combined body+slack hard cap. Centralize `XML_PEER_HTTP_HEADER_PHASE_CAP`, charge cumulative status/header bytes, and add the scripted-socket MetaFetch receive harness before the EnvyTests build; wire format unchanged. Draft; native MSVC/Windows build and runtime validation remain pending.
+
+- **ED2K program, first evidence-integrity slice:** #375 / #410 / #160 — make all four known false-PASS paths fail closed: parse the separate MuleInfo client/protocol bytes and every declared tag; reconstruct directional TCP payloads from bounded raw sequence numbers while rejecting gaps/conflicting retransmissions; finalize capture before other owned clients; require successful independent extraction before capture usability can pass. Make the Darwin selector test patch both OS selectors and replace the POSIX shebang version stand-in with a mocked argv/process result suitable for Windows. Pinned eMule Community/aMule sources establish the MuleInfo layout. No production packet, queue, platform or advertised capability changes. The deterministic Linux suite covers the fixes, but #410 still requires its requested Windows run and #160 still requires live peer evidence; neither is inferred from this slice. #332 and #495 reliability precede #344 slot scaling, and #343/#344 optimizations require before/after benchmarks (#111 / open PR #368). Existing MuleInfo identity work (#509) and Kad work (#462/#502/#511) remain separate, unmerged work at this baseline. See `tools/interop/README.md` for exact references and parser/capture scope. Native Windows builds and independent live transfers have not been run in this Linux environment.
+
+- **Changelog Entry:** 2026-10-20 - #178: record the 64-bit-only platform policy as D-024 (phased Stage A/B/C; supersedes D-014); D-019/D-020 marked for Stage C removal of Crashpad; portability plan section 5, roadmap, status and crash-reporting aligned. Policy and documentation only: Win32 builds, CI, packaging and Crashpad are unchanged until #454 / #455. Windows 10 1809 stays the minimum runtime. Recommendation: close PR #468 as superseded and fold #466 into #455.
 
 - **Private torrent discovery (#317):** Suppress outbound DHT lookup and announce for known private torrents on start and update. On import, keep a rejected single tracker inactive for display instead of substituting the public default. Torrent loading no longer dumps metainfo into the debug log. Stored tracker provenance, peer admission, tracker switching, and the remaining BEP 27 requirements stay open under #317.
 
 - **Changelog Entry:** 2026-10-19 — #452/#493: harden shared-folder scans for long local, mapped and UNC paths, preserve indexed entries when enumeration fails, skip directory reparse points and report Windows scan errors. Root cause of the "0 files after restart" report: `CLibrary::Load()` started a lazy-loading thread and then the maintenance thread, and `CThreadImpl::BeginThread()` ignored the second start while the first was alive, so a library with files never scanned again. One worker now finishes deferred loading and keeps scanning; scan requests carry a generation the progress dialog follows, and a waiter joins an unstarted request so `Library.Update( true )` plus the dialog's request trigger one full pass, not two. Measured follow-ups (hash-queue O(N²) enqueue and fixed sleeps, lock hold time during enumeration) are tracked under #384; maintainer live test on local, mapped and UNC/NAS shares is still required.
 
+- **Changelog Entry:** 2026-10-12 — #470: make schema icon fallback order
+  explicit (`.Skin`, optional `.Alt`, descriptor default, `.Safe`), repair the
+  missing Collection icon reference, and force generic file-icon indices for
+  malformed or partial resources. Added descriptor-resource regression coverage
+  and maintainer UI validation steps; no schema URI or download-group behavior
+  changes. Build output now carries a `Schemas.manifest` so stale staged files
+  are removed and the executable's `Schemas/` is trusted only when complete.
+
 - **Changelog Entry:** 2026-10-20 — #452 follow-up (real-test report): shared roots are scanned one at a time without holding the library lock across the whole tree (`SelectRootsToScan` + `ThreadScanRoot` + `ApplyListing`), and `CMainWnd::OnClose()` stops the scanner and hasher before teardown, so closing Envy during a large scan or hash no longer waits on the whole tree. Adding a parent folder moves its already shared subfolders below it with their files, hashes and explicit share choice (`AdoptNestedRoots`/`Adopt`); a subfolder that cannot be moved stays a root, and folder totals follow every applied listing. Entry points that add library folders take the library lock against the worker. Maintainer manual checks so far (restart with an existing library, adding a parent of an existing share, closing while hashing) behaved as expected; closing during a large scan, hash preservation on large trees and mapped/UNC/NAS shares are still to be verified before merge.
+
 - **Changelog Entry:** 2026-10-11 - #405: constrain package destinations with strict manifest/ZIP path checks, bounded construction, pinned non-reparse ancestors and complete-file staged replacement. Production-backed EnvyTests cover package types, malformed input, overwrite policy and alias escapes; the focused project supports AddressSanitizer. Essential #406 ownership and manifest-buffer fixes are included; package-wide expansion/time budgets remain open. Validation commands and limitations: `10_dev/unpacker-validation.md`.
 
 - **Governance observation:** 2026-10-11 - The live Protect develop ruleset (16457466) reports `required_approving_review_count: 0`, differing from AGENTS.md and the documented one-review policy. This security patch does not change governance or rely on that reduction; maintainer review, Draft promotion and manual squash merge remain required.
@@ -391,7 +406,7 @@ Incremental extraction only. No full rewrite. No Qt (or other GUI toolkit) intro
 
 ### P1 — Cross-platform foundations (docs + sequencing)
 
-Formalize platforms (Windows x64 primary; Win32 legacy Stage A; Linux/macOS **planned**), CMake portable-slice priority (D-015), and future CI order: Windows x64 → portable tests → Linux x86_64 → macOS ARM64. Do not add required non-Windows CI until portable code exists. Do not remove Win32 without Stage B/C evidence (D-014).
+Formalize platforms (Windows x64 primary; Win32 legacy Stage A; Linux/macOS **planned**), CMake portable-slice priority (D-015), and future CI order: Windows x64 → portable tests → Linux x86_64 → macOS ARM64. Do not add required non-Windows CI until portable code exists. Do not remove Win32 without Stage B/C evidence (D-024).
 
 ### P1 — Skin engine HiDPI / modern display (after P0)
 
@@ -449,7 +464,7 @@ Do not reuse [#102](https://github.com/Mika3578/Envy/issues/102) (CI runner late
 - [ ] Introduce portable platform abstractions (sockets/DNS/FS/threads/RNG) behind EnvyCore — no mass `#ifdef` rewrite
 - [ ] Version plugin-facing APIs and compatibility policy (5d)
 - [ ] Create automated dependency/SBOM release artifact (3d)
-- [ ] Evaluate Win32 Stage B/C only after multi-compiler 64-bit + non-Windows test evidence (D-014)
+- [ ] Execute Win32 retirement per D-024: Stage B #454 (stop Win32 releases), Stage C #455 (remove Win32 build/CI and Crashpad); no dependency on the Linux/macOS ports
 
 ## ED2K / eMule SecureIdent roadmap
 
@@ -575,7 +590,7 @@ eMule/aMule interop. No Kad code changes in the SecureIdent safe-disable work.
 3. Which dependency update cadence (monthly/quarterly) is realistic for maintainers?
 4. ~~Should remote API documentation be strict contract-first or implementation-first?~~ **Resolved 2026-09-19:** OpenAPI describes **implemented** routes plus explicitly `planned` ones (`x-envy-status`). No fictional served surface. See `docs/api/openapi.yaml`.
 5. ~~REST versus JSON-RPC for a future Envy daemon API?~~ **Resolved 2026-09-19 (D-017/D-018):** native **REST** `/api/v1` (OpenAPI). qBittorrent-shaped REST subset for *arr. Transmission JSON-RPC is not the first adapter. aria2 JSON-RPC is a reference only.
-6. When is Win32 Stage B (drop from user releases) justified relative to Preview/stable channels?
+6. Which Preview/stable release carries the Win32 Stage B cut-over (#454), and which prior release is documented as the 32-bit fallback?
 
 - **2026-10-01 review finalization:** Explicit disposition of complete Copilot
   overviews is mandatory, including Previously missed and Suppressed findings.

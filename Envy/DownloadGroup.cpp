@@ -208,6 +208,8 @@ void CDownloadGroup::RemoveFilter(const CString& strFilter)
 //////////////////////////////////////////////////////////////////////
 // CDownloadGroup schema
 
+/// Set the schema URI and refresh its title/icon, optionally removing the old schema's automatic filters.
+/// Use the generic file icon when the schema has no usable 16px index.
 void CDownloadGroup::SetSchema(LPCTSTR pszURI, BOOL bRemoveOldFilters)
 {
 	if ( m_sSchemaURI != pszURI )
@@ -236,7 +238,7 @@ void CDownloadGroup::SetSchema(LPCTSTR pszURI, BOOL bRemoveOldFilters)
 
 	if ( CSchemaPtr pSchema = SchemaCache.Get( m_sSchemaURI ) )
 	{
-		m_nImage = pSchema->m_nIcon16;
+		m_nImage = pSchema->m_nIcon16 >= 0 ? pSchema->m_nIcon16 : SHI_FILE;
 
 		if ( ! m_sName.GetLength() || m_sName == L"DEFAULT" )	// Initial translation, avoid forced rename later
 		{

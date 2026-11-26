@@ -126,6 +126,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test_bt_discovery_policy.cpp">
+    <ClCompile Include="test_schema_icon_resources.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test_albumfolder_mountcollection_smoke.cpp">
