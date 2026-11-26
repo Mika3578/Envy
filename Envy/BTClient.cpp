@@ -1336,10 +1336,10 @@ void CBTClient::SendExtendedHandshake()
 		{
 			if ( CBENode* pM = pRoot->Add( BT_DICT_EXT_MSG ) )						// "m"
 			{
-			// BEP 27: private torrents use no peer-discovery extensions, so
-			// their extended handshake must not advertise any of them.
-			if ( m_pDownload->IsTorrent() &&
-				 BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
+				// BEP 27: private torrents use no peer-discovery extensions, so
+				// their extended handshake must not advertise any of them.
+				if ( m_pDownload->IsTorrent() &&
+					 BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
 				{
 					pM->Add( BT_DICT_UT_METADATA )->SetInt( BT_EXTENSION_UT_METADATA );		// "ut_metadata"
 					if ( m_pDownload->m_pTorrent.GetInfoSize() )
@@ -1606,7 +1606,8 @@ BOOL CBTClient::OnUtPex(CBTPacket* pPacket)
 {
 	// BEP 27: incoming PEX must not add sources to a private torrent, even
 	// when a peer sends it without being advertised to.
-	if ( ! BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
+	if ( ! m_pDownload ||
+		 ! BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
 		return TRUE;
 
 	const CBENode* pRoot = pPacket->m_pNode.get();
@@ -1687,7 +1688,8 @@ BOOL CBTClient::OnLtTex(CBTPacket* pPacket)
 {
 	// BEP 27/BEP 28: incoming tracker exchange must not add trackers to a
 	// private torrent, even when a peer sends it without being advertised to.
-	if ( ! BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
+	if ( ! m_pDownload ||
+		 ! BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
 		return TRUE;
 
 	const CBENode* pRoot = pPacket->m_pNode.get();

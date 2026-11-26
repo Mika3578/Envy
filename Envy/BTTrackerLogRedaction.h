@@ -1,7 +1,7 @@
 //
 // BTTrackerLogRedaction.h
 //
-// Pure tracker-URL log-redaction helper (no network / MFC).
+// Pure tracker-URL log-redaction helper (no network / MFC / Win32).
 // Shared by the BitTorrent tracker request path and EnvyTests.
 //
 // BEP 27 (https://www.bittorrent.org/beps/bep_0027.html) private-tracker
@@ -13,7 +13,6 @@
 
 #pragma once
 
-#include <windows.h>
 #include <cstddef>
 
 // Length of a tracker URL with any query component removed, for logging.
