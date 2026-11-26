@@ -116,6 +116,12 @@
     <ClCompile Include="test_kad_hello.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_kad_opcodes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test_kad_publish_wire_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_crash_report_policy_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

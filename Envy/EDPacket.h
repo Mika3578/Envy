@@ -317,39 +317,8 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define ED2K_C2C_UDP_DIRECTCALLBACKREQ	0x95	// <TCPPort 2><Userhash 16><ConnectionOptions 1>
 #define ED2K_C2C_UDP_PORTTEST			0xFE	// Connection Test
 
-// Kad2 (Kademlia2) opcodes for eMule-compatible DHT
-#define KADEMLIA2_BOOTSTRAP_REQ		0x01	// <NodeID 16><TagList>
-#define KADEMLIA2_BOOTSTRAP_RES		0x09	// <NodeID 16><TagList>[<NodeID 16><IP 4><UDPPort 2><TCPPort 2><TagList>]*
-#define KADEMLIA2_HELLO_REQ			0x11	// <NodeID 16><TagList>
-#define KADEMLIA2_HELLO_RES			0x19	// <NodeID 16><TagList>
-#define KADEMLIA2_REQ				0x21	// <NodeID 16><Type 1><TagList>
-#define KADEMLIA_FIND_NODE            0x0B    // eMule FIND_NODE search type
-#define KADEMLIA2_RES				0x29	// <NodeID 16><Type 1><TagList>[<NodeID 16><IP 4><UDPPort 2><TCPPort 2><TagList>]*
-#define KADEMLIA2_SEARCH_KEY_REQ	0x33	// <FileHash 16><StartPos 8><TagList>
-#define KADEMLIA2_SEARCH_SOURCE_REQ 0x34    // <FileHash 16><StartPosition 2 LE><FileSize 8 LE>
-#define KADEMLIA2_SEARCH_NOTES_REQ	0x35	// <FileHash 16><StartPos 8><TagList>
-#define KADEMLIA2_SEARCH_RES		0x3B	// <FileHash 16><ResultCount 1>[<Result>]*<TagList>
-#define KADEMLIA2_PUBLISH_KEY_REQ	0x41	// <FileHash 16><KadID 16><TagList>
-#define KADEMLIA2_PUBLISH_SOURCE_REQ	0x42	// <FileHash 16><KadID 16><TagList>
-#define KADEMLIA2_PUBLISH_NOTES_REQ	0x43	// <FileHash 16><KadID 16><TagList>
-#define KADEMLIA2_PUBLISH_RES		0x49	// <FileHash 16><Load 1><TagList>
-#define KADEMLIA2_FIREWALLED_REQ 0x50       // <TCPPort 2>  (Kad1 opcode, still used by Kad2)
-#define KADEMLIA_FIREWALLED2_REQ 0x53       // <TCPPort 2><UserHash 16><ConnectOptions 1> Kad version > 6
-#define KADEMLIA2_FIREWALLED_RES 0x58       // <IPv4 4> observed address of the requester
-#define KADEMLIA2_FIREWALLED_ACK_RES 0x59   // empty; Kad < 7 UDP ACK (Kad >= 7 uses ED2K_C2C_KAD_FWTCPCHECK_ACK)
-#define KADEMLIA2_PING				0x60	// <TagList>
-#define KADEMLIA2_PONG				0x61	// <TagList>
-
-// Missing opcodes found in eMule reference implementation
-#define KADEMLIA_FIND_VALUE			0x02	// Search for values/files in DHT
-#define KADEMLIA2_HELLO_REQ_ACK		0x12	// Hello request acknowledgment
-#define KADEMLIA2_HELLO_RES_ACK		0x1A	// Hello response acknowledgment
-#define KADEMLIA2_REQ_ACK			0x22	// Request acknowledgment
-#define KADEMLIA2_RES_ACK			0x2A	// Response acknowledgment
-#define KADEMLIA2_SEARCH_KEY_REQ_ACK	0x34	// Search key request acknowledgment
-#define KADEMLIA2_SEARCH_RES_ACK	0x3C	// Search result acknowledgment
-#define KADEMLIA2_PUBLISH_KEY_REQ_ACK	0x42	// Publish key request acknowledgment
-#define KADEMLIA2_PUBLISH_RES_ACK	0x4A	// Publish result acknowledgment
+// Kad2 (Kademlia2) UDP opcodes and their dispatch policy
+#include "KadOpcodes.h"
 
 // Note: MultiPacket Ext2 and HashSetRequest2 opcodes are already defined above
 

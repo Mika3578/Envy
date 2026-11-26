@@ -174,12 +174,6 @@ public:
 	// Search for file sources in DHT (FileSize required on SEARCH_SOURCE_REQ).
 	void SearchSource(const KadId& fileHash, QWORD nFileSize);
 
-	// Publish a keyword entry to DHT
-	void PublishKeyword(const KadId& keywordHash, const KadStoredEntry& entry);
-
-	// Publish a source entry to DHT
-	void PublishSource(const KadId& fileHash, const KadStoredEntry& entry);
-
 	// Get total stored DHT entries
 	size_t GetStoredEntryCount() const;
 
@@ -207,21 +201,15 @@ private:
 	void OnSearchKeyRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	void OnSearchSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	void OnSearchResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
-	void OnPublishKeyRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
-	void OnPublishSourceRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
-	void OnPublishResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 
 	// Send search/publish packets to a contact
 	void SendSearchKeyRequest(const KadContact& contact, const KadId& targetId);
 	void SendSearchSourceRequest(const KadContact& contact, const KadId& targetId, QWORD nFileSize);
-	void SendPublishKeyRequest(const KadContact& contact, const KadId& targetId, const KadStoredEntry& entry);
-	void SendPublishSourceRequest(const KadContact& contact, const KadId& targetId, const KadStoredEntry& entry);
 
 	// Store management
 	bool StoreEntry(const KadIdKey& key, const KadStoredEntry& entry);
 	void CleanupExpiredEntries();
 	void WriteEntryTags(CEDPacket* pPacket, const KadStoredEntry& entry);
-	bool ReadEntryTags(CEDPacket* pPacket, KadStoredEntry& entry);
 
 	// Utility methods
 	bool SendPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
