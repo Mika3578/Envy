@@ -2932,99 +2932,99 @@ void CMainWnd::OnHelpVersionCheck()
 
 void CMainWnd::OnHelpHomepage()
 {
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpWeb1()
 {
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpWeb2()
 {
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpWeb3()
 {
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpWeb4()
 {
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpWebLove()
 {
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpWebBitprints()
 {
 	// The Bitprints service ended with the getenvy.com domain.
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpWebSkins()
 {
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpStartpage()
 {
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpConnectiontest()
 {
 	// No hosted connection test remains. Point at the project page.
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpFaq()
 {
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpGuide()
 {
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpForums()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"/discussions",
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open",
+	             CString(WEB_SITE) + L"/discussions",
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpForumsLocal()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"/discussions",
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open",
+	             CString(WEB_SITE) + L"/discussions",
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpUpdate()
 {
-//	VersionChecker.ForceCheck();	// OnHelpVersionCheck
+	//	VersionChecker.ForceCheck();	// OnHelpVersionCheck
 
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"/releases",
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open",
+	             CString(WEB_SITE) + L"/releases",
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpRouter()
@@ -3036,9 +3036,9 @@ void CMainWnd::OnHelpRouter()
 
 void CMainWnd::OnHelpSecurity()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"/security",
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open",
+	             CString(WEB_SITE) + L"/security",
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 //void CMainWnd::OnHelpScheduler()
@@ -3050,15 +3050,15 @@ void CMainWnd::OnHelpSecurity()
 
 void CMainWnd::OnHelpCodec()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"/discussions",
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open",
+	             CString(WEB_SITE) + L"/discussions",
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpDonate()
 {
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWnd::OnHelpWarnings()

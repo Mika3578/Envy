@@ -148,14 +148,14 @@ BOOL CVersionChecker::ExecuteRequest()
 	// URL: https://raw.githubusercontent.com/Mika3578/Envy/develop/release
 	// Response: Version=1.0&Name=Envy.1.0.exe&Size=10009496&Date=20161230&SHA1=ZAEGMBJ6CS2NZM2I7ZZ3HLNLORBCXBUB&Tiger=IUOKZDQZPLTFU4R7YJJNMVVROW7XOMUR4OJH2AA&Info=First+public+release+1.0
 
-//	const CString strURL = Settings.VersionCheck.UpdateCheckURL
-//		  L"?Version=" + theApp.m_sVersion
-//#ifdef WIN64
-//		+ L"&Bits=64"
-//#else
-//		+ L"&Bits=32"
-//#endif
-//		+ L"&Language=" + Settings.General.Language.Left(2);
+	//	const CString strURL = Settings.VersionCheck.UpdateCheckURL
+	//		  L"?Version=" + theApp.m_sVersion
+	//#ifdef WIN64
+	//		+ L"&Bits=64"
+	//#else
+	//		+ L"&Bits=32"
+	//#endif
+	//		+ L"&Language=" + Settings.General.Language.Left(2);
 
 	BOOL bSuccess = FALSE;
 	theApp.Message( MSG_DEBUG | MSG_FACILITY_OUTGOING, L"[VersionChecker] Request: %s", UPDATE_URL );
@@ -167,7 +167,7 @@ BOOL CVersionChecker::ExecuteRequest()
 			bSuccess = TRUE;
 	}
 
-	if ( ! bSuccess )
+	if (!bSuccess)
 		return FALSE;
 
 	const CBuffer* pBuffer = m_pRequest.GetResponseBuffer();

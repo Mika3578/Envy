@@ -127,10 +127,10 @@ void CAboutDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	m_wndWeb.GetWindowRect( &rc );
 	ScreenToClient( &rc );
 
-	if ( rc.PtInRect( point ) )
+	if (rc.PtInRect(point))
 	{
-		ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-			NULL, NULL, SW_SHOWNORMAL );
+		ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+		             NULL, NULL, SW_SHOWNORMAL);
 	}
 }
 

@@ -206,8 +206,8 @@ void CPluginsSettingsPage::OnPluginsSetup()
 
 void CPluginsSettingsPage::OnPluginsWeb()
 {
-	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CPluginsSettingsPage::OnOK()

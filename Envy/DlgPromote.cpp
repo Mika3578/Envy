@@ -98,9 +98,9 @@ void CPromoteDlg::OnLButtonUp(UINT nFlags, CPoint point)
 
 	CRect rc;
 	m_wndWeb.GetWindowRect( &rc );
-	ScreenToClient( &rc );
+	ScreenToClient(&rc);
 
-	if ( rc.PtInRect( point ) )
-		ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
-			NULL, NULL, SW_SHOWNORMAL );
+	if (rc.PtInRect(point))
+		ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+		             NULL, NULL, SW_SHOWNORMAL);
 }

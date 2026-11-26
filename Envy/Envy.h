@@ -501,15 +501,15 @@ const LPCTSTR RT_GZIP = L"GZIP";
 
 
 // Locations
-#define REGISTRY_KEY			L"Software\\Envy\\Envy"
+#define REGISTRY_KEY L"Software\\Envy\\Envy"
 // Product website and version-check URLs. Not P2P bootstrap catalogues
 // (those live in Data/DefaultServices.dat and Data/DefaultServers.dat).
 // The getenvy.com domain lapsed and now redirects to a for-sale page, so
 // every shipped link targets the project repository instead. UPDATE_URL
 // must stay a project-controlled manifest of "Version=...&Name=..." pairs
 // until the version checker is modernized around GitHub releases.
-#define WEB_SITE				L"https://github.com/Mika3578/Envy"
-#define UPDATE_URL				L"https://raw.githubusercontent.com/Mika3578/Envy/develop/release"
+#define WEB_SITE L"https://github.com/Mika3578/Envy"
+#define UPDATE_URL L"https://raw.githubusercontent.com/Mika3578/Envy/develop/release"
 
 
 // Saved-State Serialization:	(Set Smart Version and _SER_VERSIONs)

@@ -253,19 +253,19 @@ void CSettings::Load()
 	Add( L"Library", L"WatchFoldersTimeout", &Library.WatchFoldersTimeout, 10, 1, 1, 60, L" s" );
 	Add( L"Library", L"SmartSeriesDetection", &Library.SmartSeriesDetection, true );
 
-	Add( L"WebServices", L"BitprintsAgent", &WebServices.BitprintsAgent, L"." );
-	Add( L"WebServices", L"BitprintsOkay", &WebServices.BitprintsOkay, false, true );
+	Add(L"WebServices", L"BitprintsAgent", &WebServices.BitprintsAgent, L".");
+	Add(L"WebServices", L"BitprintsOkay", &WebServices.BitprintsOkay, false, true);
 	// The bitprints.getenvy.com service lapsed with the getenvy.com domain.
 	// Lookups stay user-configurable but ship disabled (empty URL): the
 	// default template leaked SHA1/Tiger/ED2K hashes, file size, name and
 	// agent to whoever held the domain. See SmartUpgrade for legacy resets.
-	Add( L"WebServices", L"BitprintsWebSubmit", &WebServices.BitprintsWebSubmit, L"" );
-	Add( L"WebServices", L"BitprintsWebView", &WebServices.BitprintsWebView, L"" );
-	Add( L"WebServices", L"BitprintsXML", &WebServices.BitprintsXML, L"" );
-//	Add( L"WebServices", L"ShareMonkeyCid", &WebServices.ShareMonkeyCid );
-//	Add( L"WebServices", L"ShareMonkeyOkay", &WebServices.ShareMonkeyOkay, false, true );
-//	Add( L"WebServices", L"ShareMonkeySaveThumbnail", &WebServices.ShareMonkeySaveThumbnail, false, true );
-//	Add( L"WebServices", L"ShareMonkeyBaseURL", &WebServices.ShareMonkeyBaseURL, L"http://tools.sharemonkey.com/xml/" );	// Obsolete: Does not exist
+	Add(L"WebServices", L"BitprintsWebSubmit", &WebServices.BitprintsWebSubmit, L"");
+	Add(L"WebServices", L"BitprintsWebView", &WebServices.BitprintsWebView, L"");
+	Add(L"WebServices", L"BitprintsXML", &WebServices.BitprintsXML, L"");
+	//	Add( L"WebServices", L"ShareMonkeyCid", &WebServices.ShareMonkeyCid );
+	//	Add( L"WebServices", L"ShareMonkeyOkay", &WebServices.ShareMonkeyOkay, false, true );
+	//	Add( L"WebServices", L"ShareMonkeySaveThumbnail", &WebServices.ShareMonkeySaveThumbnail, false, true );
+	//	Add( L"WebServices", L"ShareMonkeyBaseURL", &WebServices.ShareMonkeyBaseURL, L"http://tools.sharemonkey.com/xml/" );	// Obsolete: Does not exist
 
 	Add( L"Search", L"AdultFilter", &Search.AdultFilter, false );
 	Add( L"Search", L"AutoPreview", &Search.AutoPreview, true );
@@ -930,23 +930,23 @@ void CSettings::SmartUpgrade()
 	// The getenvy.com domain lapsed; drop the shipped Bitprints lookups from
 	// upgraded profiles. Matching the defunct host (not an exact default)
 	// also clears custom URLs still aimed at it; other custom URLs stay.
-	CString sOldBitprintsHost( L"bitprints." );
+	CString sOldBitprintsHost(L"bitprints.");
 	sOldBitprintsHost += L"getenvy.com";
-	if ( WebServices.BitprintsWebSubmit.Find( sOldBitprintsHost ) >= 0 )
+	if (WebServices.BitprintsWebSubmit.Find(sOldBitprintsHost) >= 0)
 		WebServices.BitprintsWebSubmit.Empty();
-	if ( WebServices.BitprintsWebView.Find( sOldBitprintsHost ) >= 0 )
+	if (WebServices.BitprintsWebView.Find(sOldBitprintsHost) >= 0)
 		WebServices.BitprintsWebView.Empty();
-	if ( WebServices.BitprintsXML.Find( sOldBitprintsHost ) >= 0 )
+	if (WebServices.BitprintsXML.Find(sOldBitprintsHost) >= 0)
 		WebServices.BitprintsXML.Empty();
 
 	// Set next update check
-//	if ( General.SmartVersion < INTERNAL_VERSION )
-//	{
-//		// Don't check for a week if we've just upgraded
-//		CTimeSpan tPeriod( 7, 0, 0, 0 );
-//		CTime tNextCheck = CTime::GetCurrentTime() + tPeriod;
-//		VersionCheck.NextCheck = (DWORD)tNextCheck.GetTime();
-//	}
+	//	if ( General.SmartVersion < INTERNAL_VERSION )
+	//	{
+	//		// Don't check for a week if we've just upgraded
+	//		CTimeSpan tPeriod( 7, 0, 0, 0 );
+	//		CTime tNextCheck = CTime::GetCurrentTime() + tPeriod;
+	//		VersionCheck.NextCheck = (DWORD)tNextCheck.GetTime();
+	//	}
 
 	// Add OGG handling if needed
 //	if ( Live.FirstRun && ! IsIn( MediaPlayer.FileTypes, L"ogg" ) )

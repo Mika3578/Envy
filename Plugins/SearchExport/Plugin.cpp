@@ -292,15 +292,15 @@ HRESULT CPlugin::Export(IGenericView* pGenericView, LONG nCount)
 
 	// Create index file
 	CString sHTML =
-		L"<html>\r\n"
-		L"<head>\r\n"
-		L"\t<link rel=\"stylesheet\" media=\"all\" type=\"text/css\" href=\"SearchExport.css\">\r\n"
-		L"</head>\r\n"
-		L"<body>\r\n"
-		L"\t<div class=\"pg\">\r\n"
-		L"\t\t<a href=\"https://github.com/Mika3578/Envy/\"><div class=\"hd\"></div></a>\r\n";
+	    L"<html>\r\n"
+	    L"<head>\r\n"
+	    L"\t<link rel=\"stylesheet\" media=\"all\" type=\"text/css\" href=\"SearchExport.css\">\r\n"
+	    L"</head>\r\n"
+	    L"<body>\r\n"
+	    L"\t<div class=\"pg\">\r\n"
+	    L"\t\t<a href=\"https://github.com/Mika3578/Envy/\"><div class=\"hd\"></div></a>\r\n";
 
-	CAtlMap< CComBSTR, bool > oSHA1Map, oTigerMap, oED2KMap, oMD5Map;
+	CAtlMap<CComBSTR, bool> oSHA1Map, oTigerMap, oED2KMap, oMD5Map;
 	int n = 1;
 	for ( LONG i = 0; i < nCount; ++i )
 	{
