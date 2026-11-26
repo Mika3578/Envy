@@ -50,7 +50,7 @@ BEGIN
 			VALUE "FileDescription", "Envy SkinBuilder"
 			VALUE "InternalName", "SkinBuilder"
 			VALUE "OriginalFilename", "SkinBuilder.exe"
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016"
 		END
 	END

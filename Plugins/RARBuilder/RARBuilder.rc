@@ -48,7 +48,7 @@ BEGIN
 			VALUE "OriginalFilename", "RARBuilder.dll"
 			VALUE "FileDescription", "RAR Builder"
 			VALUE "Comments", "Extract metadata from .RAR archives."
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016"
 		END
 	END

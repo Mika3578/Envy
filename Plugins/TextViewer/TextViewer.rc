@@ -74,7 +74,7 @@ BEGIN
 			VALUE "OriginalFilename", "TextViewer.dll"
 			VALUE "FileDescription", "Envy Text Viewer Plugin"
 			VALUE "Comments", "Internal Text Viewing Support."
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016"
 		END
 	END

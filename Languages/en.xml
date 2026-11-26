@@ -2552,7 +2552,7 @@
 	<tip id="ID_HELP_WEB_4" text="Visit this website"/>
 	<tip id="ID_HELP_WEB_SKINS" text="Visit the Envy Skins Site"/>
 	<tip id="ID_HELP_WEB_BITPRINTS" text="Visit the Bitprints info site"/>
-	<tip id="ID_HELP_WEB_LOVE" text="Visit the Envy Love page, show some love when you shop"/>
+	<tip id="ID_HELP_WEB_LOVE" text="Open the Envy project page on GitHub"/>
 	<tip id="ID_HELP_DONATE" text="If you want, you can donate to our legal fund and show your appreciation."/>
 	<tip id="ID_HITMONITOR_CLEAR" text="Clear the hit monitor buffer."/>
 	<tip id="ID_HITMONITOR_PAUSE" text="Pause hit monitoring."/>

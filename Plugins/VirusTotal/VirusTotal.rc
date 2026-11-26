@@ -49,7 +49,7 @@ BEGIN
             VALUE "OriginalFilename", "VirusTotal.dll"
             VALUE "FileDescription", "VirusTotal plugin for Envy"
             VALUE "Comments", "VirusTotal.com file hash check against known viruses."
-            VALUE "CompanyName", "GetEnvy.com"
+            VALUE "CompanyName", "Envy"
             VALUE "LegalCopyright", "© Envy 2016, Nikolay Raspopov 2009"
         END
     END

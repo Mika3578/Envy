@@ -85,7 +85,7 @@ BEGIN
 			VALUE "OriginalFilename", "GFLLibraryBuilder.dll"
 			VALUE "FileDescription", "GFL Library Builder Plugin"
 			VALUE "Comments", "Extract matadata from images."
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016"
 		END
 	END

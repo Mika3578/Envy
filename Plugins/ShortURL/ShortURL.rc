@@ -49,7 +49,7 @@ BEGIN
 			VALUE "OriginalFilename", "ShortURL.dll"
 			VALUE "FileDescription", "URL Shortener Plugin"
 			VALUE "Comments", "Shorten magnet link using online service."
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016"
 		END
 	END

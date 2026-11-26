@@ -49,7 +49,7 @@ BEGIN
 			VALUE "OriginalFilename", "WebHook.dll"
 			VALUE "FileDescription", "Envy Web Hook"
 			VALUE "Comments", "Envy Download Manager"
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016"
 		END
 	END
