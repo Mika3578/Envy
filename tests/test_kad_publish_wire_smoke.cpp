@@ -125,6 +125,22 @@ static bool test_publish_key_two_entries()
 	return entries[0].tags.sawSourceType && entries[1].tags.sawSourceType;
 }
 
+static bool test_publish_key_rejects_trailing_garbage()
+{
+	BYTE keyword[KAD_ID_SIZE];
+	FillId(keyword, 0x66);
+
+	std::vector<BYTE> body;
+	KadAppendIdBytes(body, keyword);
+	KadAppendWordLE(body, 1);
+	KadAppendId(body, 0x77);
+	KadAppendPublishSourceOutboundTags(body, KAD_SOURCE_TYPE_HIGHID, 4662, 4672);
+	body.push_back(0xFF);
+
+	WORD count = 0;
+	return !KadParsePublishKeyReqBody(body.data(), body.size(), nullptr, count, nullptr);
+}
+
 static bool test_publish_key_count_bounds()
 {
 	BYTE keyword[KAD_ID_SIZE];
@@ -143,5 +159,6 @@ void register_kad_publish_wire_smoke_tests(TestSuite& suite)
 	suite.add_test("publish_source_rejects_legacy_slice", test_publish_source_rejects_legacy_entry_slice);
 	suite.add_test("publish_source_missing_sourcetype", test_publish_source_missing_sourcetype);
 	suite.add_test("publish_key_two_entries", test_publish_key_two_entries);
+	suite.add_test("publish_key_rejects_trailing_garbage", test_publish_key_rejects_trailing_garbage);
 	suite.add_test("publish_key_count_bounds", test_publish_key_count_bounds);
 }
