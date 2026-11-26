@@ -52,10 +52,14 @@ flags never skip those Ready/live-test jobs.
 
 BLOCK (native GitHub review rules on Protect develop):
 
-- **Live Protect develop (verified 2026-10-18):** **0** required approving
-  reviews; the committed desired state is 1, pending #438/#93. The maintainer's
-  manual squash merge is the human gate. Never manufacture approval with
-  Actions/self-approval.
+- **Live Protect develop (re-verified 2026-11-26):** ≥ **1** approving GitHub
+  review from a reviewer other than the PR author
+  (`required_approving_review_count: 1`, raised from 0). The single required
+  non-author approval may come from **Sourcery** (`sourcery-ai[bot]`, free
+  for OSS), **GitHub Copilot Code Review** when repository Copilot settings
+  allow Copilot approvals to count and every changed file matches the
+  repository path allowlist, or an **independent human**. Never manufacture
+  approval with Actions/self-approval.
 - Dismiss stale reviews on new commits (**on**)
 - Require approval of the most recent reviewable push (**off** — intentional)
 - Resolve all review conversations / threads
@@ -89,18 +93,28 @@ exact non-overlap boundary.
 | Tool | Role | Repository control |
 | --- | --- | --- |
 | CodeRabbit | Default primary reviewer, on request (`@coderabbitai review`) | `.coderabbit.yaml`: `auto_review.enabled: false` |
-| GitHub Copilot Code Review | Optional second reviewer; often out of quota | Ruleset: `review_on_push` and draft review **off** |
-| Amazon Q, Sourcery, Gemini | Optional second reviewer (`/q review`, `@sourcery-ai review`, `/gemini review`) | External app settings only |
+| Sourcery (`sourcery-ai[bot]`) | Counted approver on ordinary paths: real `APPROVED` review; auto-reviews pushes, withdraws the approval after five automatic reviews until `@sourcery-ai review` | Free for OSS — already installed |
+| GitHub Copilot Code Review | Counted approver when auto-approval/counting are enabled and the path allowlist covers the whole diff | Ruleset: `review_on_push` and draft review **off** |
+| Gemini | Optional second reviewer (`/gemini review`, if the app is installed) | External app settings only |
 | cubic, Cursor Bugbot | Not requested routinely | External app settings only |
 | reviewdog + clang-tidy | Advisory line annotations | Workflows |
 
 Request policy: `.agents/skills/envy-review-requests/SKILL.md` (one primary
 reviewer per HEAD, a second only for a named risk, never automatic per push).
 
+**Sourcery request discipline** (maintainer decision 2026-11-26): Sourcery
+reviews pushes automatically and its real `APPROVED` review counts toward the
+single required non-author approval on ordinary paths. After five automatic
+reviews it withdraws the approval until re-requested with
+`@sourcery-ai review` on the current head — re-request instead of assuming
+the approval persists across pushes (dismiss-stale also applies). Governance
+paths still need an independent human approval regardless of Sourcery.
+
 **Maintainer action outside git:** apps that still review automatically on
-open or on every push (observed on recent PRs: Amazon Q, Sourcery, cubic) must
-be switched to manual or on-request mode in their own dashboards; repository
-files cannot do it. Keep auto-fix/auto-commit features off for every app.
+open or on every push (observed on recent PRs: cubic) must be switched to
+manual or on-request mode in their own dashboards; repository files cannot do
+it. Amazon Q Developer is being uninstalled (AWS support for its GitHub App
+ends 2027-01-30). Keep auto-fix/auto-commit features off for every app.
 
 High-risk paths (extra bar before merge): G1/G2, ED2K/Kad, BitTorrent, NMDC/ADC,
 Network/NAT, packet parsing, crypto, threading/locking, serialization, Remote.
@@ -167,8 +181,9 @@ comparison notes.
    Copilot reads `.github/copilot-instructions.md` and
    `.agents/skills/envy-code-review/SKILL.md` from the **PR head** branch;
    those files allow **`APPROVED`** only outside governance paths and when
-   nothing blocks. While the live ruleset requires zero approvals, a Copilot
-   approval gates nothing.
+   nothing blocks. A Copilot `APPROVED` counts toward the single required
+   approval when the toggles are on and the allowlist covers the diff;
+   otherwise it gates nothing.
 
    **Verify approval counts before merge:**
 
@@ -186,13 +201,14 @@ comparison notes.
    **Org/enterprise:** If counting stays off, check organization Copilot policy
    (“Count Copilot approvals toward merge requirements”) is not **Disabled
    everywhere** for this repository.
-4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Use **manual squash merge** (curated squash body; live `squash_merge_commit_message: BLANK`), update-branch, strict required checks, and, once the pending desired state is live (#438/#93), **≥1 GitHub `APPROVED` review** on `Protect develop` (the live ruleset currently requires none). Do **not** enable squash auto-merge when a curated squash body is required (`AGENTS.md` *Authorship, privacy and notices*).
-5. **Protect develop (live, re-verified 2026-10-18)** — Source of truth is
+4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Use **manual squash merge** (curated squash body; live `squash_merge_commit_message: BLANK`), update-branch, strict required checks, and **≥1 GitHub `APPROVED` review** on `Protect develop` (live: 1, verified 2026-11-26). Do **not** enable squash auto-merge when a curated squash body is required (`AGENTS.md` *Authorship, privacy and notices*).
+5. **Protect develop (live, re-verified 2026-11-26)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing
    docs):
-   - Required approvals: **0** live (verified 2026-10-18); the committed
-     desired state is **1** (#438/#93). Governance changes still need the
-     maintainer's explicit review as project policy.
+   - Required approvals: **1** live (verified 2026-11-26; raised from **0**).
+     Counted approvers: Sourcery, Copilot (when the path allowlist covers
+     the diff), or an independent human — the maintainer's independent
+     approval for privileged governance paths.
    - Dismiss stale pull request approvals when new commits are pushed: **on**
    - Require approval of the most recent reviewable push: **off**
    - Require conversation resolution before merging: **on**

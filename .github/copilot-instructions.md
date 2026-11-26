@@ -1,8 +1,9 @@
 # GitHub Copilot instructions for Envy
 
-Root `AGENTS.md` is the canonical rule set; Copilot agents read it. Copilot
-code review reads only the first 4,000 characters of this file, so the review
-essentials below are self-contained. Full reviewer procedure:
+Root `AGENTS.md` is the canonical rule set; Copilot agents read it. Keep
+this file short and self-contained: every instruction file competes for the
+model's attention, and short, specific instructions are followed more
+reliably. Full reviewer procedure:
 `.agents/skills/envy-code-review/SKILL.md`.
 
 ## Reviewing

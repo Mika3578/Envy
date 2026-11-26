@@ -127,8 +127,9 @@ the GitHub tools, not `gh pr view/checks`. Routes: PR `pulls/<N>`; checks
    at each event or check-in. At most 2 fix cycles per invocation.
 10. Verdict: print one table (head SHA; each of the 8 required checks on that
     SHA; open threads; `mergeable_state`; commands run and results; review
-    requirement: the live ruleset requires 0 approvals while the committed
-    target is 1, report it) and a separate list of maintainer-only items
+    requirement: the live ruleset requires 1 non-author approval — Sourcery,
+    counted Copilot, or human (verified 2026-11-26) — report which one is
+    present) and a separate list of maintainer-only items
     (Windows runtime evidence, `stage:live-test`, Ready, approval, squash
     merge). Last line exactly `Technically ready for human validation` or
     `Blocked: <precise reason>`. Any row not verified on the current SHA means

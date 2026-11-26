@@ -1,6 +1,6 @@
 ---
 name: envy-review-requests
-description: Decide whether and whom to ask for an AI code review on an Envy PR, and treat review threads. Use before requesting CodeRabbit, Copilot, Amazon Q, Sourcery, Gemini or another review bot, and when answering or resolving review comments.
+description: Decide whether and whom to ask for an AI code review on an Envy PR, and treat review threads. Use before requesting CodeRabbit, Copilot, Sourcery, Gemini or another review bot, and when answering or resolving review comments.
 ---
 
 # Envy review requests and thread treatment
@@ -18,7 +18,7 @@ the whole review.
 | --- | --- | --- |
 | Light | typo, comment, formatting, generated or mechanical edits, docs without policy change | deterministic CI only, no AI review |
 | Ordinary | local behaviour inside an existing contract, tests, CI, policy docs | one independent reviewer: CodeRabbit (`@coderabbitai review` + `Head: <sha>`), once per head, only after the cheap checks are green |
-| High risk | protocol, parser, packet, crypto, auth, threading, memory lifetime, Remote, installer, governance paths | CodeRabbit first; after its threads are treated, at most ONE complementary review that names the risk the first did not cover (Copilot, Amazon Q, Sourcery, Gemini or a fresh-context agent review) |
+| High risk | protocol, parser, packet, crypto, auth, threading, memory lifetime, Remote, installer, governance paths | CodeRabbit first; after its threads are treated, at most ONE complementary review that names the risk the first did not cover (Copilot, Sourcery, Gemini or a fresh-context agent review) |
 
 Never two bots on the same head at the same time. Never a bot on an unchanged
 head. Only CodeRabbit is asked for an Ordinary change; if CodeRabbit is
@@ -32,8 +32,9 @@ substantially.
 
 ## When to ask
 
-- Draft is fine: ask after a coherent batch, with cheap deterministic checks
-  green, when you expect no further pushes for a while.
+- Never request a review while the PR is a draft. Ask on a mergeable head
+  after a coherent batch, with cheap deterministic checks green, when you
+  expect no further pushes for a while.
 - Not between partial fix batches, and not to discover threads you have not
   read yet.
 - After a new head, re-ask only when the new commits change behaviour
@@ -45,9 +46,16 @@ substantially.
 Default primary: **CodeRabbit** (`@coderabbitai review`), configured in
 `.coderabbit.yaml` with automatic reviews off. Complementary reviewer (High
 risk, or CodeRabbit unavailable), one of: GitHub Copilot (reviewer request;
-optional, often out of quota), Amazon Q (`/q review`), Sourcery
-(`@sourcery-ai review`), Gemini (`/gemini review`, only if the app is
-installed). Treat quota and availability estimates as hints, not facts.
+optional, often out of quota), Sourcery (`@sourcery-ai review`), Gemini
+(`/gemini review`, only if the app is installed). Treat quota and
+availability estimates as hints, not facts.
+
+Counting: the live ruleset requires one non-author `APPROVED` review
+(verified 2026-11-26). On ordinary paths a real Sourcery `APPROVED` — it
+auto-reviews pushes and withdraws the approval after five automatic reviews
+until re-requested with `@sourcery-ai review` — or a counted Copilot
+`APPROVED` satisfies it. Governance paths always need the maintainer's
+independent approval instead.
 
 ## Idempotency and waiting
 

@@ -17,7 +17,9 @@ mark nits as optional. Do not repeat findings already answered on the PR.
   `.github/copilot-instructions.md`, `.github/workflows/**`,
   `.github/scripts/**`, `.github/rulesets/**`, `.github/settings.yml`. Instructions and this skill are
   read from the PR head, so a bot approving a change to them would authorize
-  its own rules. Leave `COMMENTED` or `CHANGES_REQUESTED`; a human approves.
+  its own rules. Leave `COMMENTED` or `CHANGES_REQUESTED`; the maintainer
+  approves — a Sourcery approval must not be the sole counted approval
+  there either.
 - **Low risk:** other `docs/**`, `Languages/**`, `CHANGELOG.md`,
   `.github/ISSUE_TEMPLATE/**`.
 - **High risk (default):** everything else, notably `Envy/**`, `HashLib/**`,
@@ -50,6 +52,9 @@ mark nits as optional. Do not repeat findings already answered on the PR.
   threads; evidence present; Squash Commit Summary matches the final head. An approval is not proof of correctness; CI stays independent.
 - Otherwise `COMMENTED`.
 
-The live ruleset currently requires zero approvals, so an `APPROVED` from a
-bot does not by itself permit a merge; the maintainer still merges. AI
-summaries and approval "assessments" are not approvals.
+The live ruleset requires **1** approving review from a non-author
+(verified 2026-11-26): on ordinary paths a real Sourcery `APPROVED`, a
+counted Copilot `APPROVED`, or an independent human satisfies it. Governance
+paths always need the maintainer. The maintainer still performs the squash
+merge; CI stays independent. AI summaries and approval "assessments" are not
+approvals.

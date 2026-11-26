@@ -89,10 +89,14 @@ so neither a skipped job nor a Draft green context is build evidence. Path or
 phase classifier failure/cancellation cannot become successful build evidence.
 
 CodeRabbit / reviewdog / Bugbot are **advisory** and must not be the sole
-merge blocker. Live Protect develop (verified 2026-10-18) requires **zero**
-approving reviews; `.github/rulesets/protect-develop.desired.json` targets one,
-pending the maintainer decision in #438/#93. A Copilot or bot `APPROVED` review
-therefore gates nothing today, and an assessment is never an approval. See
+merge blocker. Live Protect develop (re-verified 2026-11-26) requires **1**
+APPROVED review from a non-author reviewer
+(`required_approving_review_count: 1`, raised from 0). That approval may come
+from Sourcery (`sourcery-ai[bot]`, free for OSS), from GitHub Copilot Code
+Review only when approval/counting are enabled in the Copilot repository UI
+and any path allowlist matches every changed file, or from an independent
+human; GitHub must record an actual `APPROVED` review. An assessment is never
+an approval. See
 [KNOWN_INCONSISTENCIES](../00_index/KNOWN_INCONSISTENCIES.md) and
 [CI_AUDIT_2026-09](CI_AUDIT_2026-09.md). Dismiss stale on push remains on,
 `require_last_push_approval` off, conversations resolved, and force pushes
@@ -239,7 +243,11 @@ and again before push; if another writer pushed, stop and reconcile. Batch
 valid findings, run targeted tests, commit with the configured human GitHub
 noreply identity, push once, and treat each thread (fix + reply, or justified
 reply) before resolving it. Request reviews only as envy-review-requests
-allows. Escalate per AGENTS.md *Autonomy* when progress stops; do not write
+allows. Push at most three automatic correction batches while the PR is a
+draft and two after it is Ready; stop with needs-human when a finding recurs
+twice, correctness is uncertain, signing or permissions fail, equivalent CI
+failures persist after two attempts, or subjective governance changes are
+needed. Escalate per AGENTS.md *Autonomy* when progress stops; do not write
 after escalating.
 
 When the PR is Draft and the head is clean, comment once: "Draft
@@ -363,12 +371,13 @@ disable approval/competing writer automations; inspect GitHub Copilot approval
 and counting UI settings and path allowlists. Do not change Protect develop
 from repository YAML. Removing PR Gate, required signatures, duplicate status
 checks, or Copilot review-on-push requires a separately reviewed GitHub
-ruleset operation. The live ruleset requires no approval today; if the count
-returns to one, Copilot may satisfy it only on PRs whose changed paths all
-match the repository Copilot path allowlist (ordinary application/docs trees —
-not privileged governance paths). Independently of the count, pull requests
+ruleset operation. The required non-author approval may come from Sourcery
+(`sourcery-ai[bot]`), from Copilot only on PRs whose changed paths all match
+the repository Copilot path allowlist (ordinary application/docs trees —
+not privileged governance paths), or from an independent human. Pull requests
 that edit `AGENTS.md`, agent instruction files, workflows, settings, rulesets,
-or gate scripts require the maintainer's explicit human review; see
+or gate scripts require the maintainer's explicit human `APPROVED` — no bot
+may be the sole counted approval there; see
 `.agents/skills/envy-code-review/SKILL.md` and `docs/10_dev/devsecops-envy.md`.
 
 Dogfood on the Draft implementation PR:

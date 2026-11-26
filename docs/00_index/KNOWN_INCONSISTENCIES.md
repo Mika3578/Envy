@@ -7,18 +7,29 @@
   (`stdcpp20` then trailing `stdcpp17`). Canonical wording:
   `docs/10_dev/standards.md`. Do not remove those overrides in a docs PR.
 
-- **Protect develop approval count (verified 2026-10-18):** the live ruleset
-  (16457466, last changed 2026-10-03) requires **0** approving reviews, while
-  `.github/rulesets/protect-develop.desired.json` keeps the target of **1**
-  (it was live from 2026-09-20 until that change). Copilot `review_on_push`
-  and draft review stay **off**; Code Quality severity **All**; eight required
-  checks match the desired file. Decision tracked in #438/#93; repository docs
-  describe the live state and never claim an approval is enforced. If the
-  count returns to 1, Copilot may count only with a non-blank path allowlist
-  that excludes governance paths (`docs/10_dev/devsecops-envy.md`).
-  `gh api repos/Mika3578/Envy/rulesets/16457466 | python3
-  .github/scripts/check-agent-config.py --live-ruleset -` detects drift between
-  `AGENTS.md` and the live count.
+- **Protect develop ruleset (re-verified 2026-11-26):** the live ruleset
+  (16457466) requires **1** approving review
+  (`required_approving_review_count: 1`, raised from **0**, which the
+  2026-10-18 check had recorded). Copilot `review_on_push` and draft review
+  stay **off**; Code Quality severity **All**; eight required checks match
+  the desired file. Maintainer decision 2026-11-26: the single required
+  non-author approval may come from Sourcery (`sourcery-ai[bot]`, free for
+  OSS), from a counted GitHub Copilot Code Review approval when every
+  changed file matches the repository Copilot path allowlist, or from an
+  independent human; privileged governance paths still require an
+  independent human approval and must not rely on a bot alone. Sourcery
+  withdraws its approval after five automatic reviews until re-requested
+  with `@sourcery-ai review`. Amazon Q Developer is being uninstalled (AWS
+  support for its GitHub App ends 2027-01-30) and is no longer listed as an
+  active reviewer. Repository Copilot UI toggles that still need manual
+  verification are **Allow Copilot to approve pull requests**, **Allow
+  Copilot approvals to count toward merge requirements**, review effort
+  **Balanced**, and a **non-blank** path allowlist that excludes privileged
+  governance paths — see `docs/10_dev/devsecops-envy.md`; do not leave the
+  allowlist blank, that would let Copilot count on self-modifying governance
+  PRs. `gh api repos/Mika3578/Envy/rulesets/16457466 | python3
+  .github/scripts/check-agent-config.py --live-ruleset -` detects drift
+  between `AGENTS.md` and the live count.
 
 - **ED2K/Kad scope:** `ED2K_KAD_GAP_ANALYSIS` is a historical snapshot (routing-table items annotated 2026-09-19 after `KadRoutingTable.h`). `kad2-compatibility-report` covers opcode/format matching plus local routing maintenance. Neither is live interop. Canonical high-level status is `docs/10_dev/status.md`. The gap-analysis `FIREWALLED_REQ`/`RES` TagList/TargetID framing is outdated; eMule/aMule use exact 2-byte port / 4-byte IPv4 (`docs/30_protocols/kad/kad2-compatibility-report.md`).
 

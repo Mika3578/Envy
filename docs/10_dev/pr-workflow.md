@@ -23,10 +23,13 @@ requires reassessment of runtime evidence.
 Live Protect develop requires: a pull request, resolved conversations,
 strictly current required checks, linear squash-only history, CodeQL/Gitleaks
 code-scanning thresholds, GitHub Code Quality at severity All, and no bypass
-actors. It requires **zero** approving reviews (verified 2026-10-18); the
-committed desired state is one, pending the maintainer decision in #438/#93.
-Until then, the maintainer's manual merge is the human gate, and governance
-changes still need the maintainer's explicit review of the final diff.
+actors. It requires **1** approving review from a reviewer other than the
+author (verified 2026-11-26; raised from 0). That approval may come from
+Sourcery (`sourcery-ai[bot]`), from Copilot when repository settings permit
+approval/counting and the path allowlist covers the entire diff, or from an
+independent human. A COMMENTED review, quota error, summary heading or CLEAN
+outcome is not an approval. Governance/workflow/ruleset changes require the
+maintainer's explicit human review of the final diff.
 
 ## Required checks and reviews
 
@@ -36,8 +39,8 @@ and SonarCloud Code Analysis. Code scanning and GitHub Code Quality are
 additional native rules, not replacements for those contexts.
 
 AI reviews are advisory and on request only (one primary reviewer per HEAD, a
-second only for a named risk). A COMMENTED review, quota error, silence or
-summary is never an approval.
+second only for a named risk); never request one while the PR is a draft. A
+COMMENTED review, quota error, silence or summary is never an approval.
 
 ## Correction ownership and trust
 

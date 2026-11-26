@@ -24,14 +24,20 @@ AGENTS_MAX_BYTES = 16 * 1024
 AGENTS_MAX_LINES = 200
 CLAUDE_MAX_LINES = 30
 ADAPTER_MAX_LINES = 20
-# Copilot code review ignores instruction text past 4,000 characters.
+# GitHub removed Copilot code review's 4,000-character read limit in June
+# 2026; the cap stays as brevity policy — every instruction file competes for
+# the model's attention, and short, focused files are followed more reliably.
 COPILOT_MAX_CHARS = 4000
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SKILL_DESCRIPTION_MAX = 1024
 
 ADAPTERS = (".clinerules", ".windsurfrules", ".continue/rules/envy.md")
 SKILLS_DIR = ".agents/skills"
-RETIRED_SKILL_DIRS = (".github/skills", ".claude/skills", ".cursor/skills", ".codex/skills")
+RETIRED_SKILL_DIRS = (".github/skills", ".cursor/skills", ".codex/skills")
+# Claude Code discovers project skills only in `.claude/skills/`; that
+# directory holds thin pointer stubs at the canonical `.agents/skills/` skills.
+CLAUDE_STUB_DIR = ".claude/skills"
+CLAUDE_STUB_MAX_BYTES = 1200
 CURSOR_RULES_DIR = ".cursor/rules"
 READ_ONLY_PREFIXES = (
     "Services/",
@@ -41,19 +47,6 @@ READ_ONLY_PREFIXES = (
     "Plugins/PluginWizard/",
 )
 SKIP_DIRS = {".git", "vcpkg", "vcpkg_installed", "node_modules", "Builds", ".vs"}
-
-# Rules removed on purpose; reintroducing them in instruction files would
-# bring back artificial stops. Historical docs may still quote them.
-RETIRED_RULES = (
-    (re.compile(r"must not request (?:any )?(?:Copilot|review)[^.]*Draft", re.I),
-     "blanket ban on Draft review requests (see envy-review-requests)"),
-    (re.compile(r"do not request any review product while the PR is Draft", re.I),
-     "blanket ban on Draft review requests (see envy-review-requests)"),
-    (re.compile(r"at most (?:three|two|\d) automatic correction batches", re.I),
-     "fixed correction-batch budget (escalate on lack of progress instead)"),
-    (re.compile(r"Surface the problem and wait for guidance", re.I),
-     "stop-and-wait escalation (record the blocker and continue)"),
-)
 
 PATH_TOKEN_RE = re.compile(r"`([^`\s]+)`")
 PATH_SUFFIXES = (".md", ".mdc", ".py", ".sh", ".yml", ".yaml", ".json", ".ps1", ".sln")
@@ -139,7 +132,7 @@ def check_sizes(root: Path) -> list[str]:
             errors.append(f"{rel} exceeds {ADAPTER_MAX_LINES} lines; keep it a thin adapter")
     copilot = read(root, ".github/copilot-instructions.md")
     if len(copilot) > COPILOT_MAX_CHARS:
-        errors.append(f".github/copilot-instructions.md is {len(copilot)} chars; Copilot code review reads {COPILOT_MAX_CHARS}")
+        errors.append(f".github/copilot-instructions.md is {len(copilot)} chars; keep it under {COPILOT_MAX_CHARS} (short instruction files are policy)")
     if (root / ".cursorrules").exists():
         errors.append(".cursorrules is legacy; use AGENTS.md and .cursor/rules/*.mdc")
     return errors
@@ -234,13 +227,29 @@ def check_paths(root: Path, docs: list[str]) -> list[str]:
     return errors
 
 
-def check_retired_rules(root: Path, docs: list[str]) -> list[str]:
+def check_claude_stubs(root: Path) -> list[str]:
     errors = []
-    for rel in docs:
-        text = " ".join(read(root, rel).split())
-        for regex, why in RETIRED_RULES:
-            if regex.search(text):
-                errors.append(f"{rel}: reintroduces a retired rule: {why}")
+    stub_dir = root / CLAUDE_STUB_DIR
+    canonical = {p.parent.name for p in (root / SKILLS_DIR).glob("*/SKILL.md")}
+    for stub in sorted(stub_dir.glob("*/SKILL.md")):
+        rel = stub.relative_to(root).as_posix()
+        text = stub.read_text(encoding="utf-8")
+        meta = frontmatter(text)
+        if meta is None:
+            errors.append(f"{rel}: missing or unterminated YAML frontmatter")
+            continue
+        name = meta.get("name", "")
+        if name != stub.parent.name or not SKILL_NAME_RE.match(name):
+            errors.append(f"{rel}: name '{name}' must equal the directory name in kebab-case")
+        if name not in canonical:
+            errors.append(f"{rel}: stub '{name}' has no canonical skill in {SKILLS_DIR}/")
+        elif f"{SKILLS_DIR}/{name}/SKILL.md" not in text:
+            errors.append(f"{rel}: stub must reference {SKILLS_DIR}/{name}/SKILL.md")
+        if len(text) > CLAUDE_STUB_MAX_BYTES:
+            errors.append(f"{rel}: stub exceeds {CLAUDE_STUB_MAX_BYTES} bytes; it must only point at the canonical skill")
+    for child in sorted(stub_dir.glob("*")):
+        if child.is_dir() and not (child / "SKILL.md").is_file():
+            errors.append(f"{child.relative_to(root).as_posix()}: stub directory without SKILL.md")
     return errors
 
 
@@ -305,7 +314,7 @@ def run(root: Path, live: dict | None = None) -> list[str]:
     errors += check_skills(root)
     errors += check_cursor_rules(root, repo_files(root))
     errors += check_paths(root, docs)
-    errors += check_retired_rules(root, docs)
+    errors += check_claude_stubs(root)
     errors += check_duplication(root, docs)
     errors += check_ruleset(root, live)
     return errors

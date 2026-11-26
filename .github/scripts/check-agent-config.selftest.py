@@ -25,6 +25,7 @@ COPIED = [
     ".github/copilot-instructions.md",
     ".github/rulesets/protect-develop.desired.json",
     ".agents",
+    ".claude",
     ".cursor/rules",
 ]
 
@@ -98,7 +99,7 @@ class Mutations(unittest.TestCase):
     def test_copilot_review_budget(self):
         with (self.tmp / ".github/copilot-instructions.md").open("a", encoding="utf-8") as fh:
             fh.write("x" * 4000)
-        self.assertIn("Copilot code review reads 4000", self.errors())
+        self.assertIn("keep it under 4000", self.errors())
 
     def test_aider_preloads_only_agents(self):
         self.edit(".aider.conf.yml", "  - AGENTS.md\n", "  - AGENTS.md\n  - docs/DEVELOPMENT_PLAN.md\n")
@@ -147,10 +148,17 @@ class Mutations(unittest.TestCase):
             fh.write("\nSee `docs/10_dev/does-not-exist.md`.\n")
         self.assertIn("'docs/10_dev/does-not-exist.md' does not exist", self.errors())
 
-    def test_retired_draft_review_ban(self):
-        with (self.tmp / ".github/copilot-instructions.md").open("a", encoding="utf-8") as fh:
-            fh.write("\nAgents must not request any review product while the PR is a Draft.\n")
-        self.assertIn("retired rule", self.errors())
+    def test_claude_stub_must_point_at_canonical(self):
+        self.edit(".claude/skills/envy-pr-workflow/SKILL.md",
+                  "`.agents/skills/envy-pr-workflow/SKILL.md`",
+                  "`.agents/skills/envy-pr-workflow.md`")
+        self.assertIn("stub must reference .agents/skills/envy-pr-workflow/SKILL.md", self.errors())
+
+    def test_claude_stub_without_canonical_skill(self):
+        stub = self.tmp / ".claude/skills/envy-extra/SKILL.md"
+        stub.parent.mkdir(parents=True)
+        stub.write_text("---\nname: envy-extra\ndescription: Extra.\n---\nRead `.agents/skills/envy-extra/SKILL.md`.\n", encoding="utf-8")
+        self.assertIn("has no canonical skill", self.errors())
 
     def test_duplicated_core_rules(self):
         core = (self.tmp / "AGENTS.md").read_text(encoding="utf-8")

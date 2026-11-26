@@ -149,13 +149,17 @@ hold. They are enforced by the live GitHub ruleset unless marked as project
 policy:
 
 1. The PR is **not a draft**.
-2. **Approving reviews:** the live ruleset requires **zero** (verified
-   2026-10-18); the committed desired state is one, pending the maintainer
-   decision in #438/#93. The maintainer's manual squash merge is the human
-   gate. *Project policy, not enforced by the ruleset:* privileged governance
-   changes need the maintainer's explicit review. AI reviews (CodeRabbit, Copilot, others) are advisory and requested
-   on demand (`.agents/skills/envy-review-requests/SKILL.md`); an approval
-   assessment or bot comment is never an approval.
+2. **Approving reviews:** the live ruleset requires **1** `APPROVED` review
+   from a reviewer other than the PR author (verified 2026-11-26). That
+   single approval may come from **Sourcery** (`sourcery-ai[bot]`, free for
+   OSS), from a **counted GitHub Copilot Code Review `APPROVED`** when every
+   changed file matches the repository Copilot path allowlist, or from an
+   **independent human**. *Project policy, not enforced by the ruleset:*
+   privileged governance changes need the maintainer's explicit review — no
+   bot (Copilot or Sourcery) may be the sole counted approval there. AI
+   reviews are advisory and requested on demand
+   (`.agents/skills/envy-review-requests/SKILL.md`); an approval assessment
+   or bot comment is never an approval.
 3. Stale approvals are **dismissed on new pushes**.
 4. **All review conversations / threads are resolved**.
 5. There is no outstanding **CHANGES_REQUESTED** review.
@@ -178,7 +182,8 @@ enabled for other branches; Protect develop still forces squash-only.
 - [ ] No new compiler warnings (use the CI build log).
 - [ ] CodeQL passes without new HIGH/CRITICAL findings.
 - [ ] At least one GitHub **APPROVED** review from a reviewer other than the
-      PR author (Copilot may count when enabled); all review threads resolved.
+      PR author (Sourcery, counted Copilot when enabled, or an independent
+      human); all review threads resolved.
 - [ ] If you touched anything in `Services/` or `Plugins/`, ping a
       CODEOWNER for review.
 - [ ] If you bumped a vcpkg dependency, note the version delta in the
