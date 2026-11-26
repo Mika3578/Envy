@@ -901,9 +901,7 @@ void CQuerySearch::ReadGGEP(CG1Packet* pPacket)
 		Hashes::BtHash		oBTH;
 		Hashes::Md5Hash		oMD5;
 
-		CGGEPItem* pItemPos = pGGEP.GetFirst();
-		const DWORD nGgepItems = pGGEP.GetCount();
-		GGEP_TRAVERSE_ITEMS(nItemIndex, nGgepItems, pItemPos)
+		GgepForEachItemBounded(pGGEP, [&](CGGEPItem* pItemPos)
 		{
 			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) )
 			{
@@ -1017,7 +1015,7 @@ void CQuerySearch::ReadGGEP(CG1Packet* pPacket)
 			}
 			else
 				theApp.Message( MSG_DEBUG | MSG_FACILITY_SEARCH, L"[G1] Got query packet with unknown GGEP \"%s\" (%d bytes)", pItemPos->m_sID, pItemPos->m_nLength );
-		}
+		});
 
 		if ( oSHA1  && ! m_oSHA1 )  m_oSHA1  = oSHA1;
 		if ( oTiger && ! m_oTiger ) m_oTiger = oTiger;

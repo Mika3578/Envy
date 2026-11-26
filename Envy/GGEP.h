@@ -116,3 +116,18 @@ protected:
 
 friend class CGGEPBlock;
 };
+
+#include "PacketLengthValidate.h"
+
+template<typename Fn>
+inline void GgepForEachItemBounded(const CGGEPBlock& block, Fn&& fn)
+{
+	CGGEPItem* pItemPos = block.GetFirst();
+	const DWORD nGgepItems = block.GetCount();
+	for (DWORD nItemIndex = 0;
+	     pItemPos && GgepTraverseIndexInRange(nItemIndex, nGgepItems);
+	     nItemIndex++, pItemPos = pItemPos->m_pNext)
+	{
+		fn(pItemPos);
+	}
+}

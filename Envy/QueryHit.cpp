@@ -1187,9 +1187,7 @@ void CQueryHit::ReadGGEP(CG1Packet* pPacket)
 		Hashes::BtHash		oBTH;
 		Hashes::Md5Hash		oMD5;
 
-		CGGEPItem* pItemPos = pGGEP.GetFirst();
-		const DWORD nGgepItems = pGGEP.GetCount();
-		GGEP_TRAVERSE_ITEMS(nItemIndex, nGgepItems, pItemPos)
+		GgepForEachItemBounded(pGGEP, [&](CGGEPItem* pItemPos)
 		{
 			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) )
 			{
@@ -1291,7 +1289,7 @@ void CQueryHit::ReadGGEP(CG1Packet* pPacket)
 		//		 validAndUnequal( oED2K, m_oED2K ) ||
 		//		 validAndUnequal( oBTH, m_oBTH ) )
 		//		m_bBogus = TRUE;	// Hash mess (Obsolete check?)
-		}
+		});
 
 		if ( oSHA1  && ! m_oSHA1 )  m_oSHA1  = oSHA1;
 		if ( oTiger && ! m_oTiger ) m_oTiger = oTiger;
