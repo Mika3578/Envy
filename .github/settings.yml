@@ -39,11 +39,17 @@ repository:
   enable_automated_security_fixes: true
   enable_vulnerability_alerts: true
 
-# Labels for issues and pull requests
+# Labels for issues and pull requests.
+# Mirrors the live repository label inventory (verified 2026-11-26 via the
+# Labels API) so a Probot Settings apply is a no-op instead of introducing
+# labels automation does not use. Automation consumers:
+# - .github/labeler.yml applies the file/area labels below.
+# - .github/scripts/pr-phase.py and .github/workflows/build.yml read
+#   stage:live-test to switch Draft PRs onto full Windows validation.
 labels:
   # Type labels
   - name: "bug"
-    color: "d73a4a"
+    color: "e91424"
     description: "Something isn't working"
 
   - name: "enhancement"
@@ -54,128 +60,6 @@ labels:
     color: "0075ca"
     description: "Improvements or additions to documentation"
 
-  - name: "refactor"
-    color: "fbca04"
-    description: "Code refactoring"
-
-  - name: "performance"
-    color: "00ff00"
-    description: "Performance improvements"
-
-  - name: "security"
-    color: "ee0701"
-    description: "Security vulnerability or concern"
-
-  - name: "dependencies"
-    color: "0366d6"
-    description: "Pull requests that update a dependency file"
-
-  - name: "vcpkg"
-    color: "0366d6"
-    description: "vcpkg dependency updates"
-
-  - name: "npm"
-    color: "0366d6"
-    description: "npm dependency updates"
-
-  # Status labels
-  - name: "needs-triage"
-    color: "fef2c0"
-    description: "Needs initial assessment"
-
-  - name: "work-in-progress"
-    color: "ffcc00"
-    description: "Work in progress"
-
-  - name: "blocked"
-    color: "b60205"
-    description: "Blocked by another issue or PR"
-
-  - name: "ready-for-review"
-    color: "0e8a16"
-    description: "Ready for code review"
-
-  - name: "stale"
-    color: "eeeeee"
-    description: "Inactive issue or PR"
-
-  # Priority labels
-  - name: "priority: critical"
-    color: "d93f0b"
-    description: "Critical priority"
-
-  - name: "priority: high"
-    color: "ff9900"
-    description: "High priority"
-
-  - name: "priority: medium"
-    color: "fbca04"
-    description: "Medium priority"
-
-  - name: "priority: low"
-    color: "c5def5"
-    description: "Low priority"
-
-  # Difficulty labels
-  - name: "good-first-issue"
-    color: "7057ff"
-    description: "Good for newcomers"
-
-  - name: "help-wanted"
-    color: "008672"
-    description: "Extra attention is needed"
-
-  # Area labels
-  - name: "area: build"
-    color: "c2e0c6"
-    description: "Build system and compilation"
-
-  - name: "area: ci/cd"
-    color: "c2e0c6"
-    description: "Continuous integration and deployment"
-
-  - name: "area: network"
-    color: "c2e0c6"
-    description: "Network protocols and connectivity"
-
-  - name: "area: ui"
-    color: "c2e0c6"
-    description: "User interface"
-
-  - name: "area: download"
-    color: "c2e0c6"
-    description: "Download management"
-
-  - name: "area: upload"
-    color: "c2e0c6"
-    description: "Upload management"
-
-  - name: "area: library"
-    color: "c2e0c6"
-    description: "File library system"
-
-  - name: "area: search"
-    color: "c2e0c6"
-    description: "Search functionality"
-
-  - name: "area: plugins"
-    color: "c2e0c6"
-    description: "Plugin system"
-
-  # Platform labels
-  - name: "platform: windows"
-    color: "0075ca"
-    description: "Windows platform specific"
-
-  - name: "platform: x64"
-    color: "0075ca"
-    description: "64-bit specific"
-
-  - name: "platform: x86"
-    color: "0075ca"
-    description: "32-bit specific"
-
-  # Misc labels
   - name: "question"
     color: "d876e3"
     description: "Further information is requested"
@@ -192,13 +76,123 @@ labels:
     color: "ffffff"
     description: "This will not be worked on"
 
-  - name: "github-actions"
-    color: "000000"
-    description: "GitHub Actions related"
+  - name: "stale"
+    color: "ededed"
+    description: "Inactive issue or PR"
 
-  - name: "breaking-change"
-    color: "d93f0b"
-    description: "Introduces a breaking change"
+  - name: "triage"
+    color: "ededed"
+    description: "Needs initial assessment"
+
+  # Priority labels (live scheme)
+  - name: "priority: P0"
+    color: "B60205"
+    description: "Blocks Preview 1, security, or crash"
+
+  - name: "priority: P1"
+    color: "D93F0B"
+    description: "Important soon after Preview 1"
+
+  - name: "priority: P2"
+    color: "1D76DB"
+    description: "Later / nice-to-have"
+
+  # PR lifecycle (maintainer-applied)
+  - name: "stage:live-test"
+    color: "97F826"
+    description: "Request full Windows validation in Build (maintainer-only; see AGENTS.md PR workflow)"
+
+  # File/area labels (applied by .github/labeler.yml)
+  - name: "area: build"
+    color: "ededed"
+    description: "Build system and compilation"
+
+  - name: "area: ci/cd"
+    color: "ededed"
+    description: "Continuous integration and deployment"
+
+  - name: "build"
+    color: "ededed"
+    description: "Build files and solution changes"
+
+  - name: "ci"
+    color: "7205d9"
+    description: "Continuous integration"
+
+  - name: "core"
+    color: "ededed"
+    description: "Main application (Envy/)"
+
+  - name: "bittorrent"
+    color: "ededed"
+    description: "BitTorrent sources (Envy/BT*, TorrentEnvy, LibUTP)"
+
+  - name: "plugins"
+    color: "ededed"
+    description: "Plugins/"
+
+  - name: "installer"
+    color: "ededed"
+    description: "Installer/"
+
+  - name: "translations"
+    color: "ededed"
+    description: "Languages/"
+
+  - name: "skins"
+    color: "ededed"
+    description: "Skins/ and SkinBuilder/"
+
+  - name: "third-party"
+    color: "ededed"
+    description: "Vendored Services/ trees"
+
+  # Dependency automation labels
+  - name: "dependencies"
+    color: "56e4a5"
+    description: "Pull requests that update dependencies"
+
+  - name: "vcpkg"
+    color: "7ff188"
+    description: "vcpkg dependency/baseline updates"
+
+  - name: "npm"
+    color: "5319E7"
+    description: "Pull requests that update npm dependencies"
+
+  - name: "github-actions"
+    color: "0E8A16"
+    description: "Pull requests that update GitHub Actions"
+
+  - name: "javascript"
+    color: "168700"
+    description: "Pull requests that update javascript code"
+
+  - name: "major"
+    color: "B60205"
+    description: "Major dependency bump"
+
+  - name: "renovate"
+    color: "0E8A16"
+    description: "Renovate dependency updates"
+
+  # Contribution labels
+  - name: "good first issue"
+    color: "7057ff"
+    description: "Good for newcomers"
+
+  - name: "help wanted"
+    color: "008672"
+    description: "Extra attention is needed"
+
+  # Automation/bot labels
+  - name: "Amazon Q development agent"
+    color: "008dff"
+    description: "Generate new features or iterate code based on issue descriptions and comments."
+
+  - name: "codex"
+    color: "ededed"
+    description: "Applied by automation"
 
 # Milestones
 milestones:
@@ -240,7 +234,6 @@ branches:
           - "Build Win32 Release"
           - "Lint build files"
           - "Vcpkg manifest sanity"
-          - "Dependency review"
           - "Format Check"
           - "secret-scan"
           - "Analyze (c-cpp)"
