@@ -74,15 +74,16 @@ inline void KadBuildPublishSourceReqBody(
 //   <SourceID 16><IP uint32 LE><UDP uint16 LE><TCP uint16 LE><TagCount 1>...
 inline bool KadBodyLooksLikeLegacyEnvyEntrySlice(const BYTE* pData, size_t nLen)
 {
-	if (!pData || nLen < KAD_ID_SIZE + 4 + 2 + 2 + 1)
+	// pData starts after the 16-byte file hash, so the legacy TagCount sits
+	// at offset 24, past the SourceID and the eight fixed-width endpoint
+	// bytes. A standard eMule body keeps its tag list there (first compact
+	// tag type >= 0x80), while a legacy Envy entry carries a small raw tag
+	// count at that position.
+	if (!pData || nLen < 25)
 		return false;
-	// After a leading 16-byte ID, the next eight bytes are fixed-width endpoint
-	// fields in the old private layout — not a valid ED2K tag-list opener.
-	const size_t nOff = 0;
-	const BYTE bTagOrCount = pData[nOff + 8];
+	const BYTE bTagOrCount = pData[24];
 	if (bTagOrCount == 0)
 		return false;
-	// Standard TagCount with compact UINT8 sourcetype tag begins 0x89, not raw IP.
 	return bTagOrCount < 0x80;
 }
 

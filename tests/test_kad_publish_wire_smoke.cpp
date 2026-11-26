@@ -153,6 +153,31 @@ static bool test_publish_key_count_bounds()
 	return !KadParsePublishKeyReqBody(body.data(), body.size(), nullptr, count, nullptr);
 }
 
+static bool test_publish_key_max_entries_accepted()
+{
+	BYTE keyword[KAD_ID_SIZE];
+	FillId(keyword, 0x88);
+
+	std::vector<BYTE> body;
+	KadAppendIdBytes(body, keyword);
+	KadAppendWordLE(body, KAD_PUBLISH_KEY_MAX_ENTRIES);
+
+	for (int i = 0; i < KAD_PUBLISH_KEY_MAX_ENTRIES; ++i)
+	{
+		KadAppendId(body, static_cast<BYTE>(i));
+		KadAppendPublishSourceOutboundTags(body, KAD_SOURCE_TYPE_HIGHID, 4662, 4672);
+	}
+
+	WORD count = 0;
+	std::vector<KadPublishKeyEntry> entries;
+	if (!KadParsePublishKeyReqBody(body.data(), body.size(), nullptr, count, &entries))
+		return false;
+	return count == KAD_PUBLISH_KEY_MAX_ENTRIES
+		&& entries.size() == KAD_PUBLISH_KEY_MAX_ENTRIES
+		&& entries[0].tags.sawSourceType
+		&& entries[KAD_PUBLISH_KEY_MAX_ENTRIES - 1].tags.sawSourceType;
+}
+
 void register_kad_publish_wire_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("publish_source_golden_roundtrip", test_publish_source_golden_roundtrip);
@@ -161,4 +186,5 @@ void register_kad_publish_wire_smoke_tests(TestSuite& suite)
 	suite.add_test("publish_key_two_entries", test_publish_key_two_entries);
 	suite.add_test("publish_key_rejects_trailing_garbage", test_publish_key_rejects_trailing_garbage);
 	suite.add_test("publish_key_count_bounds", test_publish_key_count_bounds);
+	suite.add_test("publish_key_max_entries_accepted", test_publish_key_max_entries_accepted);
 }
