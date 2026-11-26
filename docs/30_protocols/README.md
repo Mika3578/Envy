@@ -1,7 +1,7 @@
 # Protocol documentation
 
 Status: active
-Last updated: 2026-10-07
+Last updated: 2026-11-26
 Scope: Index of Envy protocol docs and external references.
 Source of truth: specifications first; Envy code second; reference clients third. See `REFERENCE_IMPLEMENTATIONS.md`.
 
@@ -13,7 +13,7 @@ Envy is a multi-network client. Protocol work on ED2K/Kad does not replace BitTo
 | Ecosystem audit | [P2P_ECOSYSTEM_AUDIT_2026-10.md](P2P_ECOSYSTEM_AUDIT_2026-10.md) | Evidence tables (releases / functional commits / PRs; not `pushed_at` alone) | Supersedes the unpublished September 2026 draft from historical #387 |
 | Bootstrap catalogues | [bootstrap-sources.md](bootstrap-sources.md) | Shipped `DefaultServices.dat` / `DefaultServers.dat` vs learned HostCache/Discovery | Not a completeness claim for Kad or ADC |
 | ED2K | [ed2k/](ed2k/README.md) | eDonkey/eMule notes, aMule wiki, ED2K URI | eMule Community (P0), aMule (P0) |
-| Kad | [kad/](kad/README.md), [kad-interop.md](kad/kad-interop.md) | Kademlia paper; Kad2 via aMule and eMule-family sources | Prefer amule-org, emulebb, eMuleAI over irwir/eMule (unmaintained). Ember/eSE are not Kad2 |
+| Kad | [kad/](kad/README.md), [kad-interop.md](kad/kad-interop.md) | Kademlia paper; Kad2 via eMule Community and aMule | eMule Community (irwir/eMule) is the P0 normative wire reference; aMule (`amule-org`) is the P0 interoperability reference. Ember/eSE are not Kad2 |
 | BitTorrent | [bittorrent/](bittorrent/README.md) | [BEPs](https://www.bittorrent.org/beps/bep_0000.html) | aria2-next, libtorrent-family (`Examples/References/` optional) |
 | G1 / G2 | Shareaza-lineage code under `Envy/G1*`, `Envy/G2*` | Gnutella 0.6 draft; G2/Shareaza notes | Preserve Envy/Shareaza behaviour |
 | Direct Connect | `Envy/DC*` | [NMDC](https://nmdc.sourceforge.net/NMDC.html), [ADC](https://adc.sourceforge.io/ADC.html), [ADC-EXT](https://adc.sourceforge.io/ADC-EXT.html) | Preserve NMDC. Hub user list + remote `files.xml.bz2` browse is wired (`CHostBrowser` `PROTOCOL_DC`); FileListing folders feed the Browse Host tree before hit ownership transfer. Live hub interop unverified. ADC/ADCS hub protocol is **not implemented** (separate future layer). NMDC `ADCGet`/`ADCSND` ≠ ADC hubs. |

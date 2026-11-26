@@ -163,7 +163,11 @@ matches these layouts; it is corroboration, not a second specification.
 Each tag is:
 
 ```text
-<Type 1><NameLength 2><Name bytes>[cut at first NUL]<Value>
+<Type 1><NameLength 2><Name bytes (exactly `NameLength`)><Value>
+
+`NameLength` is authoritative: `CFileDataIO::ReadTag` consumes exactly that
+many bytes for the name and never stops at a NUL, so NUL bytes inside a name
+are data, not a delimiter. Value framing follows the tag type.
 ```
 
 `CFileDataIO::ReadTag` in amule-org `a965e8d`
