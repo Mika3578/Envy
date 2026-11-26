@@ -6,7 +6,7 @@
 | [build](../10_dev/build.md) | Build steps, troubleshooting |
 | [guide](../10_dev/guide.md) | Dev workflow, setup |
 | [standards](../10_dev/standards.md) | Code standards |
-| [contributing](../10_dev/contributing.md) | How to contribute |
+| [contributing](../../.github/CONTRIBUTING.md) | How to contribute |
 | [status](../10_dev/status.md) | Current implementation state (canonical matrix) |
 | [architecture](../20_arch/architecture.md) | System design |
 | [PORTABILITY_PLAN](../20_arch/PORTABILITY_PLAN.md) | Cross-platform foundations (planned OS targets; EnvyCore / platform / UI) |
