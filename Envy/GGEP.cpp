@@ -77,6 +77,12 @@ CGGEPItem* CGGEPBlock::Add(LPCTSTR pszID)
 	if ( pItem == NULL )
 		return NULL;
 
+	if ( m_nItemCount >= GGEP_ITEM_COUNT_MAX )
+	{
+		delete pItem;
+		return NULL;
+	}
+
 	if ( ! m_pFirst ) m_pFirst = pItem;
 	if ( m_pLast ) m_pLast->m_pNext = pItem;
 	m_pLast = pItem;
@@ -133,6 +139,9 @@ BOOL CGGEPBlock::ReadInternal()
 
 		CGGEPItem* pItem = ReadItem( nFlags );
 		if ( ! pItem )
+			return FALSE;
+
+		if ( m_nItemCount >= GGEP_ITEM_COUNT_MAX )
 			return FALSE;
 
 		if ( ! m_pFirst ) m_pFirst = pItem;

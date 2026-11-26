@@ -67,7 +67,7 @@ public:
 protected:
 	CGGEPItem*	m_pFirst;
 	CGGEPItem*	m_pLast;
-	BYTE		m_nItemCount;
+	DWORD		m_nItemCount;
 	const BYTE*	m_pInput;		// Current read position
 	DWORD		m_nInput;		// Remaining size available for reading
 
@@ -115,11 +115,12 @@ protected:
 	BOOL		Inflate();
 
 friend class CGGEPBlock;
+friend class CGGEPBoundedIterator;
 };
 
 #include "PacketLengthValidate.h"
 
-// Bounded walk over a GGEP linked item list (#2538).
+// Bounded walk over a GGEP linked item list.
 class CGGEPBoundedIterator
 {
 public:

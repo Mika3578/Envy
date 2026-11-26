@@ -651,15 +651,88 @@ static bool test_ggep_traverse_index_bound()
 		return false;
 	if ( GgepTraverseIndexInRange( 2, 2 ) != FALSE )
 		return false;
-	// BYTE loop index wraps before a DWORD claimed count > 255.
-	BYTE nByteIndex = 0;
-	for ( DWORD i = 0; i <= GGEP_ITEM_COUNT_MAX; ++i )
+	return true;
+}
+
+static bool smoke_read_text_file( const char* const* paths, size_t nPaths, std::string& content )
+{
+	content.clear();
+	std::ifstream in;
+	for ( size_t i = 0; i < nPaths; ++i )
 	{
-		if ( GgepTraverseIndexInRange( nByteIndex, GGEP_ITEM_COUNT_MAX + 1 ) )
-			return false;
-		++nByteIndex;
+		in.open( paths[ i ], std::ios::in | std::ios::binary );
+		if ( in )
+			break;
 	}
-	return nByteIndex == 0;
+	if ( !in )
+		return false;
+
+	content.assign( ( std::istreambuf_iterator<char>( in ) ),
+		std::istreambuf_iterator<char>() );
+	return true;
+}
+
+static bool test_ggep_item_count_dword_storage()
+{
+	const std::array<const char*, 4> ggepPaths = {
+		"../Envy/GGEP.h",
+		"../../Envy/GGEP.h",
+		"Envy/GGEP.h",
+		"../../../Envy/GGEP.h"
+	};
+	const std::array<const char*, 4> ggepCppPaths = {
+		"../Envy/GGEP.cpp",
+		"../../Envy/GGEP.cpp",
+		"Envy/GGEP.cpp",
+		"../../../Envy/GGEP.cpp"
+	};
+
+	std::string header;
+	std::string impl;
+	if ( !smoke_read_text_file( ggepPaths.data(), ggepPaths.size(), header )
+		|| !smoke_read_text_file( ggepCppPaths.data(), ggepCppPaths.size(), impl ) )
+		return false;
+
+	return header.find( "DWORD\t\tm_nItemCount" ) != std::string::npos
+		&& impl.find( "m_nItemCount >= GGEP_ITEM_COUNT_MAX" ) != std::string::npos;
+}
+
+static bool test_ggep_readggep_bounded_iterator_callsite()
+{
+	const std::array<const char*, 4> candidates = {
+		"../Envy/QuerySearch.cpp",
+		"../../Envy/QuerySearch.cpp",
+		"Envy/QuerySearch.cpp",
+		"../../../Envy/QuerySearch.cpp"
+	};
+	const std::array<const char*, 4> hitCandidates = {
+		"../Envy/QueryHit.cpp",
+		"../../Envy/QueryHit.cpp",
+		"Envy/QueryHit.cpp",
+		"../../../Envy/QueryHit.cpp"
+	};
+
+	std::string search;
+	std::string hit;
+	if ( !smoke_read_text_file( candidates.data(), candidates.size(), search )
+		|| !smoke_read_text_file( hitCandidates.data(), hitCandidates.size(), hit ) )
+		return false;
+
+	auto fn_body = []( const std::string& content, const char* szFn )
+	{
+		const size_t nFn = content.find( szFn );
+		if ( nFn == std::string::npos )
+			return std::string();
+		const size_t nNext = content.find( "\nvoid ", nFn + 1 );
+		return content.substr( nFn,
+			( nNext == std::string::npos ? content.size() : nNext ) - nFn );
+	};
+
+	const std::string searchGgep = fn_body( search, "CQuerySearch::ReadGGEP(" );
+	const std::string hitGgep = fn_body( hit, "CQueryHit::ReadGGEP(" );
+
+	return searchGgep.find( "CGGEPBoundedIterator" ) != std::string::npos
+		&& hitGgep.find( "CGGEPBoundedIterator" ) != std::string::npos;
 }
 
 static bool test_ed2k_compressedpart_inflate_ok()
@@ -858,6 +931,8 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test("cbuffer_inflate_stream_output_ok", test_cbuffer_inflate_stream_output_ok);
 	suite.add_test( "ggep_inflate_output_ok", test_ggep_inflate_output_ok );
 	suite.add_test( "ggep_traverse_index_bound", test_ggep_traverse_index_bound );
+	suite.add_test( "ggep_item_count_dword_storage", test_ggep_item_count_dword_storage );
+	suite.add_test( "ggep_readggep_bounded_iterator_callsite", test_ggep_readggep_bounded_iterator_callsite );
 	suite.add_test( "ed2k_compressedpart_inflate_ok", test_ed2k_compressedpart_inflate_ok );
 	suite.add_test( "ed2k_compressedpart_accept_before_submit", test_ed2k_compressedpart_accept_before_submit );
 	suite.add_test("g1_wrapped_payload_ok", test_g1_wrapped_payload_ok);
