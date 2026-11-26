@@ -2,7 +2,7 @@
 // test_kad_udp_firewall_tester_smoke.cpp
 //
 // Deterministic tests for the Kad2 UDP firewall tester (#515).
-// Pure helpers only — no CKademlia, no live network, no Sleep().
+// Pure helpers only - no CKademlia, no live network, no Sleep().
 // Wire oracle: eMule Community opcodes.h / KademliaUDPListener.cpp /
 // UDPFirewallTester.cpp / BaseClient.cpp (see KadUdpFirewallTester.h).
 //

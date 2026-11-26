@@ -26,6 +26,7 @@
 #include "KadSearchResDelivery.h"
 #include "KadFirewallCheck.h"
 #include "KadUdpFirewallTester.h"
+#include "KadBuddy.h"
 #include "KadHello.h"
 
 // Kad2 protocol constants
@@ -186,6 +187,29 @@ public:
 	// already-requested IPs.
 	DWORD UdpFirewallCheckRound() const { return m_udpFirewall.Round(); }
 
+	// Kad buddy / callback (#516). The four On* handlers run on the datagram
+	// path with the Kad lock held; the bonded-client plumbing is called from
+	// the client (Transfers) side and locks internally.
+	void OnFindBuddyRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	void OnFindBuddyResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	void OnCallbackRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	void OnBuddyClientConnected(DWORD ipHost);
+	void OnBuddyClientDisconnected(DWORD ipHost);
+	bool IsIncomingBuddyEndpoint(DWORD ipHost);
+	bool IsBondedBuddyEndpoint(DWORD ipHost);
+
+	// One pending buddy contact for the client layer to dial (handoff keeps
+	// the Kad → client dependency out of Kademlia.h).
+	bool TakePendingBuddyContact(KadBuddyRecord& out);
+
+	// One queued OP_CALLBACK relay for a bonded firewalled client.
+	struct KadCallbackRelayItem
+	{
+		DWORD buddyIpHost = 0;
+		BYTE body[KAD_CALLBACK_RELAY_SIZE] = {};
+	};
+	bool TakePendingCallbackRelay(KadCallbackRelayItem& out);
+
 	// Search for keyword results in DHT
 	void SearchKeyword(const KadId& keywordHash);
 
@@ -296,6 +320,14 @@ private:
 	KadUdpFirewallTester m_udpFirewall;
 	void SendFirewallUdpProbe(DWORD ipHost, WORD port, BYTE errorCode);
 	bool RoutingZoneHasIp(DWORD ipHost);
+	// Kad buddy / callback (#516); framing + session live in KadBuddy.h.
+	KadBuddySession m_buddy;
+	void SendFindBuddyResponse(const SOCKADDR_IN* pHost, const BYTE* pBuddyId16);
+	void SendFindBuddyRequest(const KadContact& contact);
+	void MaybeStartBuddySearch();
+	KadBuddyRecord m_pendingBuddyConnect;
+	bool m_hasPendingBuddyConnect;
+	std::vector<KadCallbackRelayItem> m_pendingCallbackRelays;
 	KadInboundLimiter m_inboundLimiter;
 	// Aggregate HELLO diagnostics (counts only), logged once a minute by LogHelloStatus().
 	uint32_t m_helloReqSent = 0, m_helloSendFailed = 0;

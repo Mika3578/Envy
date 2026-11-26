@@ -51,6 +51,7 @@ void register_kad_search_res_delivery_smoke_tests(TestSuite& suite);
 void register_kad_search_source_request_smoke_tests(TestSuite& suite);
 void register_kad_firewall_check_smoke_tests(TestSuite& suite);
 void register_kad_udp_firewall_tester_smoke_tests(TestSuite& suite);
+void register_kad_buddy_smoke_tests(TestSuite& suite);
 void register_kad_bootstrap_cold_start_smoke_tests(TestSuite& suite);
 void register_kad_routing_table_tests(TestSuite& suite);
 void register_kad_hello_tests(TestSuite& suite);
@@ -105,6 +106,7 @@ int main(int argc, char** argv)
 	register_kad_search_source_request_smoke_tests(suite);
 	register_kad_firewall_check_smoke_tests(suite);
 	register_kad_udp_firewall_tester_smoke_tests(suite);
+	register_kad_buddy_smoke_tests(suite);
 	register_kad_bootstrap_cold_start_smoke_tests(suite);
 	register_kad_routing_table_tests(suite);
 	register_kad_hello_tests(suite);

@@ -461,6 +461,9 @@ CEDClient::CEDClient()
     , m_nObservedPublicIp(0)
     , m_bUdpFwCheckRequested(FALSE)
     , m_nUdpFwCheckRound(0)
+    , m_bKadBuddyRequested(FALSE)
+    , m_bKadBuddyIncoming(FALSE)
+    , m_tLastBuddyPingPong(0)
 
     , m_nDirsWaiting(0ul)
 {
@@ -761,6 +764,13 @@ void CEDClient::Close(UINT nError)
 	if (m_bUdpFwCheckRequested)
 		Kademlia.OnUdpFirewallCheckClientClosed(ntohl(m_pHost.sin_addr.s_addr));
 
+	// #516: a bonded buddy that drops loses the bond (eMule buddy state
+	// clears on disconnect); unknown IPs are ignored inside the session.
+	if (m_bKadBuddyRequested || m_bKadBuddyIncoming)
+		Kademlia.OnBuddyClientDisconnected(ntohl(m_pHost.sin_addr.s_addr));
+	m_bKadBuddyRequested = FALSE;
+	m_bKadBuddyIncoming = FALSE;
+
 	if ( ( m_pDownloadTransfer ) && ( m_pDownloadTransfer->m_nState == dtsDownloading ) )
 	{
 		theApp.Message( MSG_ERROR, L"Warning: CEDClient::Close() called for downloading client %s", (LPCTSTR)m_sAddress );
@@ -912,6 +922,18 @@ void CEDClient::OnRunEx(DWORD tNow)
 				return;
 		}
 
+		// #516: a buddy candidate answered our FINDBUDDY_RES; dial it out
+		// (eMule KS_QUEUED_BUDDY -> connect). The request flag stays set so
+		// OnLoggedIn can establish the bond; a failed dial waits for the
+		// next buddy-search round.
+		if (m_bKadBuddyRequested)
+		{
+			if (Connect())
+				return;
+
+			m_bKadBuddyRequested = FALSE;
+		}
+
 		// A chat request was sent
 		if ( m_bOpenChat )
 		{
@@ -956,6 +978,11 @@ void CEDClient::OnRunEx(DWORD tNow)
 				Kademlia.CancelUdpFirewallCheckProbe(nIpHost);
 			}
 		}
+	}
+	// #516: bonded outgoing buddy keepalive (eMule SendBuddyPingPong, 10 min).
+	else if (IsOnline() && m_bKadBuddyRequested && KadBuddyPingDue(m_tLastBuddyPingPong, tNow))
+	{
+		SendBuddyPing();
 	}
 }
 
@@ -1105,6 +1132,19 @@ BOOL CEDClient::OnLoggedIn()
 	    !m_oPublicIpQuery.bConsumed)
 	{
 		SendPublicIpRequest();
+	}
+
+	// #516: recognise the Kad buddy bond at login. Outgoing: this client was
+	// dialed because it answered our FINDBUDDY_REQ. Incoming: this client
+	// connected because we answered its FINDBUDDY_REQ.
+	if (m_bKadBuddyRequested)
+	{
+		Kademlia.OnBuddyClientConnected(ntohl(m_pHost.sin_addr.s_addr));
+	}
+	else if (Kademlia.IsIncomingBuddyEndpoint(ntohl(m_pHost.sin_addr.s_addr)))
+	{
+		m_bKadBuddyIncoming = TRUE;
+		Kademlia.OnBuddyClientConnected(ntohl(m_pHost.sin_addr.s_addr));
 	}
 
 	return TRUE;
@@ -1364,6 +1404,20 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 		case ED2K_C2C_FWCHECKUDPREQ:
 			Kademlia.OnFirewallCheckUdpRequest(pPacket->GetCurrent(), pPacket->GetRemaining(), &m_pHost,
 			                                   m_pDownloadTransfer != NULL || m_pUploadTransfer != NULL || m_bOpenChat != FALSE);
+			return TRUE;
+
+		// #516: Kad buddy keepalive. Both are empty C2C packets; only the
+		// bonded peer is accepted (eMule OP_BUDDYPING/OP_BUDDYPONG).
+		case ED2K_C2C_BUDDYPING:
+			if (pPacket->GetRemaining() != 0 || !Kademlia.IsBondedBuddyEndpoint(ntohl(m_pHost.sin_addr.s_addr)) || !KadBuddyInboundPingAllowed(m_tLastBuddyPingPong, GetTickCount()))
+				return TRUE;
+			SendBuddyPong();
+			m_tLastBuddyPingPong = GetTickCount();
+			return TRUE;
+		case ED2K_C2C_BUDDYPONG:
+			if (pPacket->GetRemaining() != 0 || !Kademlia.IsBondedBuddyEndpoint(ntohl(m_pHost.sin_addr.s_addr)))
+				return TRUE;
+			m_tLastBuddyPingPong = GetTickCount();
 			return TRUE;
 		}
 	}
@@ -3581,6 +3635,38 @@ BOOL CEDClient::OnC2cCallback(CEDPacket* pPacket)
 		                          (LPCTSTR)m_sAddress));
 	}
 	return TRUE;
+}
+
+// #516: relay a UDP CALLBACK_REQ through the bonded buddy's TCP connection.
+// The body layout is validated again on the receiving side (OP_CALLBACK).
+BOOL CEDClient::SendKadCallbackRelay(const BYTE* pBody38)
+{
+	if (pBody38 == NULL)
+		return FALSE;
+	CEDPacket* pPacket = CEDPacket::New(ED2K_C2C_CALLBACK, ED2K_PROTOCOL_EMULE);
+	if (pPacket == NULL)
+		return FALSE;
+	pPacket->Write(pBody38, KAD_CALLBACK_RELAY_SIZE);
+	Send(pPacket);
+	return TRUE;
+}
+
+// #516: eMule OP_BUDDYPING / OP_BUDDYPONG are empty C2C packets.
+void CEDClient::SendBuddyPing()
+{
+	CEDPacket* pPacket = CEDPacket::New(ED2K_C2C_BUDDYPING, ED2K_PROTOCOL_EMULE);
+	if (pPacket == NULL)
+		return;
+	Send(pPacket);
+	m_tLastBuddyPingPong = GetTickCount();
+}
+
+void CEDClient::SendBuddyPong()
+{
+	CEDPacket* pPacket = CEDPacket::New(ED2K_C2C_BUDDYPONG, ED2K_PROTOCOL_EMULE);
+	if (pPacket == NULL)
+		return;
+	Send(pPacket);
 }
 
 BOOL CEDClient::OnReaskCallbackTcp(CEDPacket* pPacket)

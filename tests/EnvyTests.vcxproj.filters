@@ -113,6 +113,9 @@
     <ClCompile Include="test_kad_udp_firewall_tester_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_kad_buddy_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_kad_routing_table.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
