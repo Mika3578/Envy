@@ -68,7 +68,7 @@ protected:
 	};
 	ChunkState		m_ChunkState;
 	QWORD			m_nChunkLength;
-	DWORD			m_nPeerHttpHeaderBytes;
+	DWORD m_nPeerHttpHeaderBytes;
 
 public:
 	virtual BOOL	Initiate();

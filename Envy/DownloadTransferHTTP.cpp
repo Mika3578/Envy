@@ -765,7 +765,7 @@ void CDownloadTransferHTTP::ChargePeerHttpHeaderLine(const CString& strLine)
 }
 
 void CDownloadTransferHTTP::ChargePeerHttpHeaderField(const CString& strHeader,
-                                                     const CString& strValue)
+                                                      const CString& strValue)
 {
 	ChargePeerHttpHeaderLine(strHeader + L":" + strValue);
 }
