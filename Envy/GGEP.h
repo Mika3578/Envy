@@ -119,15 +119,29 @@ friend class CGGEPBlock;
 
 #include "PacketLengthValidate.h"
 
-template<typename Fn>
-inline void GgepForEachItemBounded(const CGGEPBlock& block, Fn&& fn)
+// Bounded walk over a GGEP linked item list (#2538).
+class CGGEPBoundedIterator
 {
-	CGGEPItem* pItemPos = block.GetFirst();
-	const DWORD nGgepItems = block.GetCount();
-	for (DWORD nItemIndex = 0;
-	     pItemPos && GgepTraverseIndexInRange(nItemIndex, nGgepItems);
-	     nItemIndex++, pItemPos = pItemPos->m_pNext)
+public:
+	explicit CGGEPBoundedIterator(const CGGEPBlock& block)
+		: m_pItem(block.GetFirst())
+		, m_nClaimed(block.GetCount())
+		, m_nIndex(0)
 	{
-		fn(pItemPos);
 	}
-}
+
+	BOOL Next(CGGEPItem*& pItem)
+	{
+		if (!m_pItem || !GgepTraverseIndexInRange(m_nIndex, m_nClaimed))
+			return FALSE;
+		pItem = m_pItem;
+		m_pItem = m_pItem->m_pNext;
+		++m_nIndex;
+		return TRUE;
+	}
+
+private:
+	CGGEPItem*	m_pItem;
+	DWORD		m_nClaimed;
+	DWORD		m_nIndex;
+};
