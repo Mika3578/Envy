@@ -120,7 +120,13 @@ BOOL CUploadTransferED2K::Request(const Hashes::Ed2kHash& oED2K)
 		}
 	}
 
-	if ( UploadQueues.GetPosition( this, FALSE ) < 0 && ! UploadQueues.Enqueue( this ) )
+	// A transient lock timeout must not enqueue a client that may already be
+	// queued: Enqueue dequeues first and would reset its position. Skip the
+	// re-add on contention; the ranking loop below keeps the client alive
+	// and a genuinely unqueued client is dropped by the next ranking pass.
+	QueuePositionState nQueueState = qpsNoQueue;
+	const int nQueuePosition = UploadQueues.GetPosition(this, FALSE, &nQueueState);
+	if (nQueuePosition < 0 && nQueueState != qpsTransientBusy && !UploadQueues.Enqueue(this))
 	{
 		theApp.Message( MSG_ERROR, IDS_UPLOAD_BUSY_QUEUE, (LPCTSTR)m_sName, (LPCTSTR)m_sAddress, L"ED2K" );
 
@@ -284,7 +290,16 @@ void CUploadTransferED2K::OnQueueKick()
 
 	if ( m_nState == upsRequest || m_nState == upsUploading )
 	{
-		if ( UploadQueues.GetPosition( this, TRUE ) == 0 ) return;
+		QueuePositionState nState = qpsNoQueue;
+		int nPosition = UploadQueues.GetPosition(this, TRUE, &nState);
+
+		if (nState == qpsShutdown) return;
+		// The kick itself is authoritative: the queue has already removed
+		// the transfer. Only skip when the lookup proves the transfer was
+		// re-activated (position 0). Acting on the kick under lock
+		// contention beats leaving the client occupying an upload slot
+		// with nothing re-running the lookup.
+		if (nPosition == 0) return;
 
 		if ( m_pBaseFile != NULL && m_pClient->IsOnline() )
 			Send( CEDPacket::New( ED2K_C2C_FINISHUPLOAD ) );
@@ -454,7 +469,21 @@ BOOL CUploadTransferED2K::ServeRequests()
 				pQueue->Enqueue( this, TRUE, FALSE );
 			}
 
-			int nQpos = UploadQueues.GetPosition( this, TRUE );
+			QueuePositionState nQState = qpsNoQueue;
+			int nQpos = UploadQueues.GetPosition(this, TRUE, &nQState);
+			if (nQState == qpsTransientBusy || nQState == qpsShutdown)
+			{
+				// Contention reading back the rotated position. The upload
+				// was already re-queued above; hand it to the queued ranking
+				// loop instead of serving another request while queued (a
+				// queued transfer must not bypass queue scheduling). During
+				// shutdown the ranking loop is inert but keeps the state
+				// consistent for teardown.
+				m_tRequest = GetTickCount();
+				m_nState = upsQueued;
+				m_nRanking = -1;
+				return TRUE;
+			}
 			if ( nQpos != 0 )
 			{
 				if ( m_pBaseFile != NULL && m_pClient->IsOnline() )
@@ -802,11 +831,30 @@ BOOL CUploadTransferED2K::CheckFinishedRequest()
 
 BOOL CUploadTransferED2K::CheckRanking()
 {
-	int nPosition = UploadQueues.GetPosition( this, TRUE );
+	QueuePositionState nState = qpsNoQueue;
+	int nPosition = UploadQueues.GetPosition(this, TRUE, &nState);
+
+	if (nState == qpsTransientBusy)
+	{
+		// Lock contention this pass. Enter the queued ranking loop with a
+		// fresh throttle so the next pass retries: callers arriving from
+		// upsReady (Request) or upsConnecting (OnConnected) would otherwise
+		// sit in a state nothing re-runs until a timeout closes them.
+		m_nState = upsQueued;
+		m_nRanking = -1;
+		m_tRankingCheck = GetTickCount();
+		return TRUE;
+	}
+
+	if (nState == qpsShutdown)
+	{
+		// Teardown owns the transfer; neither a drop nor a rank packet.
+		return TRUE;
+	}
 
 	if ( nPosition < 0 )
 	{
-		// Invalid queue position, or queue deleted. Drop client and exit.
+		// Queue deleted, or the upload is no longer tracked. Drop client and exit.
 		Cleanup();
 		Close( IDS_UPLOAD_DROPPED );
 		return FALSE;

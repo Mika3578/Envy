@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "ResultFilters.h"
+#include "SearchFilterMask.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -264,18 +265,19 @@ BOOL CResultFilters::Save()
 
 CFilterOptions::CFilterOptions()
 {
-	// Mask 0x280 = 01010000000  (Reverse Order)
-	m_bRegExp			= ( Settings.Search.FilterMask & ( 1 << 0 ) ) > 0;	// 0
-	m_bFilterPush		= ( Settings.Search.FilterMask & ( 1 << 1 ) ) > 0;	// 0
-	m_bFilterUnstable	= ( Settings.Search.FilterMask & ( 1 << 2 ) ) > 0;	// 0
-	m_bFilterBusy		= ( Settings.Search.FilterMask & ( 1 << 3 ) ) > 0;	// 0
-	m_bFilterReject		= ( Settings.Search.FilterMask & ( 1 << 4 ) ) > 0;	// 0
-	m_bFilterLocal		= ( Settings.Search.FilterMask & ( 1 << 5 ) ) > 0;	// 0
-	m_bFilterBogus		= ( Settings.Search.FilterMask & ( 1 << 6 ) ) > 0;	// 0
-	m_bFilterDRM		= ( Settings.Search.FilterMask & ( 1 << 7 ) ) > 0;	// 1
-	m_bFilterRestricted	= ( Settings.Search.FilterMask & ( 1 << 8 ) ) > 0;	// 0
-	m_bFilterSuspicious	= ( Settings.Search.FilterMask & ( 1 << 9 ) ) > 0;	// 1
-	m_bFilterAdult		= ( Settings.Search.FilterMask & ( 1 << 10 ) ) > 0;	// 0
+	// The persisted contract is CMatchList::Filter()'s mapping (bit 4 =
+	// Local, bit 5 = Reject); see SearchFilterMask.h (#432).
+	m_bRegExp = (Settings.Search.FilterMask & SEARCH_FILTER_REGEXP) > 0;
+	m_bFilterPush = (Settings.Search.FilterMask & SEARCH_FILTER_PUSH) > 0;
+	m_bFilterUnstable = (Settings.Search.FilterMask & SEARCH_FILTER_UNSTABLE) > 0;
+	m_bFilterBusy = (Settings.Search.FilterMask & SEARCH_FILTER_BUSY) > 0;
+	m_bFilterLocal = (Settings.Search.FilterMask & SEARCH_FILTER_LOCAL) > 0;
+	m_bFilterReject = (Settings.Search.FilterMask & SEARCH_FILTER_REJECT) > 0;
+	m_bFilterBogus = (Settings.Search.FilterMask & SEARCH_FILTER_BOGUS) > 0;
+	m_bFilterDRM = (Settings.Search.FilterMask & SEARCH_FILTER_DRM) > 0;
+	m_bFilterRestricted = (Settings.Search.FilterMask & SEARCH_FILTER_RESTRICTED) > 0;
+	m_bFilterSuspicious = (Settings.Search.FilterMask & SEARCH_FILTER_SUSPICIOUS) > 0;
+	m_bFilterAdult = (Settings.Search.FilterMask & SEARCH_FILTER_ADULT) > 0;
 	//m_nFilterMinSize	= ( Settings.Search.FilterMask & ( 1 << 10 ) ) > 0;	// 1;
 	//m_nFilterMaxSize	= ( Settings.Search.FilterMask & ( 1 << 11 ) ) > 0;	// 0;
 	//m_nFilterSources	= ( Settings.Search.FilterMask & ( 1 << 12 ) ) > 0;	// 1;

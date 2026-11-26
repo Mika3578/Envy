@@ -62,6 +62,15 @@
     <ClCompile Include="test_ed2k_lock_order_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_upload_queue_lock_order_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test_search_filter_mask_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test_magnet_builder_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_envy_thread_policy_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -128,6 +137,9 @@
     <ClCompile Include="test_schema_icon_resources.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_gzip_resources_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_albumfolder_mountcollection_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -147,6 +159,30 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\Unpacker\PackagePath.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\ioapi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\unzip.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\zutil.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\adler32.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\crc32.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\inftrees.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\inffast.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\inflate.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

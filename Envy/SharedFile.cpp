@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "SharedFile.h"
+#include "MagnetBuilder.h"
 #include "SharedFolder.h"
 #include "Library.h"
 #include "LibraryBuilder.h"
@@ -1267,31 +1268,22 @@ BOOL CLibraryFile::PrepareDoc(LPCTSTR pszTemplate, CArray< CString >& oDocs) con
 
 	if ( m_oSHA1 )
 	{
-		strMagnet = L"xt=urn:sha1:" + m_oSHA1.toString();
-
 		ReplaceNoCase( strDoc, L"$meta:sha1$", m_oSHA1.toString() );
 		ReplaceNoCase( strDoc, L"$meta:gnutella$", L"gnutella://urn:sha1:" + m_oSHA1.toString() + L'/' + strNameURI + L'/' );
 	}
 
 	if ( m_oTiger )
 	{
-		strMagnet = L"xt=urn:tree:tiger/:" + m_oTiger.toString();
-
 		ReplaceNoCase( strDoc, L"$meta:tiger$", m_oTiger.toString() );
 	}
 
 	if ( m_oSHA1 && m_oTiger )
 	{
-		strMagnet = L"xt=urn:bitprint:" + m_oSHA1.toString() + L'.' + m_oTiger.toString();
-
 		ReplaceNoCase( strDoc, L"$meta:bitprint$", m_oSHA1.toString() + L'.' + m_oTiger.toString() );
 	}
 
 	if ( m_oED2K )
 	{
-		if ( ! strMagnet.IsEmpty() ) strMagnet += L"&amp;";
-		strMagnet += L"xt=urn:ed2khash:" + m_oED2K.toString();
-
 		ReplaceNoCase( strDoc, L"$meta:ed2khash$", m_oED2K.toString() );
 		if ( ! strSize.IsEmpty() )
 			ReplaceNoCase( strDoc, L"$meta:ed2k$", L"ed2k://|file|" + strNameURI + L'|' + strSize + L'|' + m_oED2K.toString() + L"|/" );
@@ -1299,22 +1291,23 @@ BOOL CLibraryFile::PrepareDoc(LPCTSTR pszTemplate, CArray< CString >& oDocs) con
 
 	if ( m_oMD5 )
 	{
-		if ( ! strMagnet.IsEmpty() ) strMagnet += L"&amp;";
-		strMagnet += L"xt=urn:md5:" + m_oMD5.toString();
-
 		ReplaceNoCase( strDoc, L"$meta:md5$", m_oMD5.toString() );
 	}
 
 	if ( m_oBTH )
 	{
-		if ( ! strMagnet.IsEmpty() ) strMagnet += L"&amp;";
-		strMagnet += L"xt=urn:btih:" + m_oMD5.toString();
-
 		ReplaceNoCase( strDoc, L"$meta:btih$", m_oBTH.toString() );
 	}
 
-	if ( ! strMagnet.IsEmpty() ) strMagnet += L"&amp;xl=" + strSize;
-	strMagnet = L"magnet:?" + strMagnet + L"&amp;dn=" + strNameURI;
+	strMagnet = BuildMagnetQuery(
+	                (LPCTSTR)strNameURI, (LPCTSTR)strSize,
+	                m_oSHA1 ? (LPCTSTR)m_oSHA1.toString() : NULL,
+	                m_oTiger ? (LPCTSTR)m_oTiger.toString() : NULL,
+	                m_oED2K ? (LPCTSTR)m_oED2K.toString() : NULL,
+	                m_oMD5 ? (LPCTSTR)m_oMD5.toString() : NULL,
+	                m_oBTH ? (LPCTSTR)m_oBTH.toString() : NULL)
+	                .c_str();
+
 	ReplaceNoCase( strDoc, L"$meta:magnet$", strMagnet );
 
 	ReplaceNoCase( strDoc, L"$meta:name$", strFileName );

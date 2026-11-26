@@ -180,19 +180,19 @@
     <ClCompile Include="test_library_scan_state_smoke.cpp" />
     <ClCompile Include="test_unpacker.cpp">
       <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NOCRYPT;ZLIB_DLL;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\Unpacker\Extract.c">
       <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NOCRYPT;ZLIB_DLL;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\Unpacker\Utils.c">
       <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NOCRYPT;ZLIB_DLL;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\Unpacker\PackagePath.c">
       <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NOCRYPT;ZLIB_DLL;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="test_hashlib.cpp" />
     <ClCompile Include="test_protocol_parser_smoke.cpp" />
@@ -213,6 +213,9 @@
     <ClCompile Include="test_dc_nmdc_text_smoke.cpp" />
     <ClCompile Include="test_dc_maxedout_queue_smoke.cpp" />
     <ClCompile Include="test_ed2k_lock_order_smoke.cpp" />
+    <ClCompile Include="test_upload_queue_lock_order_smoke.cpp" />
+    <ClCompile Include="test_search_filter_mask_smoke.cpp" />
+    <ClCompile Include="test_magnet_builder_smoke.cpp" />
     <ClCompile Include="test_envy_thread_policy_smoke.cpp" />
     <ClCompile Include="test_remote_password_policy_smoke.cpp" />
     <ClCompile Include="test_remote_html_escape_smoke.cpp" />
@@ -238,6 +241,46 @@
     <ClCompile Include="test_albumfolder_mountcollection_smoke.cpp" />
     <ClCompile Include="test_btinfo_piece_hash_smoke.cpp" />
     <ClCompile Include="test_schema_icon_resources.cpp" />
+    <ClCompile Include="test_gzip_resources_smoke.cpp">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <!-- The vendored zlib core is linked statically into the test binary:
+         zlibwapi.dll is built with the assembler inflate fast path, whose
+         hardcoded inflate_state offsets predate zlib 1.3 and crash any
+         inflate call on Win32 (#478 validation). -->
+    <ClCompile Include="..\Services\zlib\ioapi.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\unzip.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\zutil.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\adler32.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\crc32.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\inftrees.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\inffast.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\inflate.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />
@@ -252,15 +295,12 @@
     <Error Condition="'$(VSInstallDir)'==''" Text="VSInstallDir is not set; run from a Visual Studio Developer prompt or set VSInstallDir so VsDevCmd.bat can be located." />
     <Exec WorkingDirectory="$(ProjectDir).." Command="call &quot;$(VSInstallDir)Common7\Tools\VsDevCmd.bat&quot; -no_logo -host_arch=x64 -arch=$(MetaFetchArch) &amp;&amp; set &quot;ENVY_METAFETCH_CONFIGURATION=$(Configuration)&quot; &amp;&amp; python &quot;$(ProjectDir)run_metafetch_receive_tests.py&quot;" />
   </Target>
-  <Target Name="CopyUnpackerTestRuntime" AfterTargets="Build">
-    <Copy SourceFiles="$(ProjectDir)..\Services\zlib\$(Configuration) $(Platform)\zlibwapi.dll" DestinationFolder="$(OutDir)" />
-  </Target>
-  <ItemGroup>
-    <ProjectReference Include="..\Services\zlib\zlibwapi.vcxproj">
-      <Project>{39f34f2c-d42a-41d2-a0bc-54d7972e2bc5}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-  </ItemGroup>
+  <!-- The vendored zlib core is compiled into this project as static C
+       translation units (no ZLIB_DLL/ZLIB_WINAPI), so no zlib or minizip
+       symbol resolves through zlibwapi.dll and the import library must not
+       be linked: on x64 its undecorated stubs collide with the local
+       objects (LNK2005), and its Win32 assembler inflate fast path crashes
+       on any inflate call. -->
   <!-- HashLib dependency -->
   <ItemGroup>
     <ProjectReference Include="..\HashLib\HashLib.vcxproj">

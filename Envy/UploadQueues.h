@@ -23,6 +23,18 @@ class CUploadTransfer;
 class CLibraryFile;
 class CDownload;
 
+// Explicit states for CUploadQueues::GetPosition(). Transient lock contention
+// is reported separately from a dead queue so ranking callers can retry on
+// their next periodic pass instead of dropping a legitimate upload client.
+// Callers that do not need the distinction keep the historical int result:
+// a non-negative queue position, or -1 for any failure state.
+enum QueuePositionState
+{
+	qpsReady,         // Queue position is valid
+	qpsTransientBusy, // A bounded lock wait timed out; retry later
+	qpsNoQueue,       // No valid queue tracks this upload
+	qpsShutdown       // Envy is closing; teardown owns the transfer
+};
 
 class CUploadQueues
 {
@@ -38,7 +50,7 @@ public:
 	BOOL	Enqueue(CUploadTransfer* pUpload, BOOL bForce = FALSE);
 	BOOL	Dequeue(CUploadTransfer* pUpload);
 	BOOL	StealPosition(CUploadTransfer* pTarget, CUploadTransfer* pSource);
-	int		GetPosition(CUploadTransfer* pUpload, BOOL bStart);
+	int GetPosition(CUploadTransfer* pUpload, BOOL bStart, QueuePositionState* pState = NULL);
 
 	void			Delete(CUploadQueue* pQueue);
 	BOOL			Reorder(CUploadQueue* pQueue, CUploadQueue* pBefore);
@@ -99,6 +111,10 @@ protected:
 	CList< CUploadQueue* >	m_pList;
 	BOOL					m_bDonkeyLimited;
 
+	volatile LONG m_nContentionEvents;  // Deferred position lookups (Interlocked)
+	volatile LONG m_tLastContentionLog; // GetTickCount of last contention log (Interlocked)
+
+	void LogContention(CUploadTransfer* pUpload);
 	void	Serialize(CArchive& ar);
 };
 
