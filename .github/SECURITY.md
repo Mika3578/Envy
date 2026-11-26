@@ -40,8 +40,11 @@ This repository ships with the following automated defenses:
 - **Dependency review** on pull requests
   (`.github/workflows/dependency-review.yml`).
 - **Secret scanning** is enabled at the repository level.
-- MSVC builds enable `/sdl`, `/GS`, `/guard:cf`, and Spectre-mitigated
-  runtime libraries in Release configurations.
+- First-party Release configurations (Envy, HashLib, TorrentEnvy, Unpacker;
+  x64 and Win32) compile with `/sdl`, `/GUARD:CF`, and Spectre-mitigated
+  runtime libraries (`/Qspectre`); `/GS` remains at its MSVC default
+  (enabled). Debug configurations and vendored third-party projects are
+  unchanged.
 
 ## Scope
 
