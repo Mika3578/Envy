@@ -67,7 +67,7 @@ public:
 protected:
 	CGGEPItem*	m_pFirst;
 	CGGEPItem*	m_pLast;
-	DWORD		m_nItemCount;
+	DWORD m_nItemCount;
 	const BYTE*	m_pInput;		// Current read position
 	DWORD		m_nInput;		// Remaining size available for reading
 
