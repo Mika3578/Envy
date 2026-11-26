@@ -25,8 +25,10 @@ constexpr DWORD XML_PEER_HTTP_HEADER_PHASE_CAP = 16u * 1024u;
 
 inline bool PeerHttpHeaderPhaseExceeded(DWORD nParsedHeaderBytes, DWORD nBuffered) noexcept
 {
-	return nParsedHeaderBytes >= XML_PEER_HTTP_HEADER_PHASE_CAP ||
-	       nParsedHeaderBytes + nBuffered >= XML_PEER_HTTP_HEADER_PHASE_CAP;
+	if (nParsedHeaderBytes >= XML_PEER_HTTP_HEADER_PHASE_CAP)
+		return true;
+	const DWORD nRemaining = XML_PEER_HTTP_HEADER_PHASE_CAP - nParsedHeaderBytes;
+	return nBuffered >= nRemaining;
 }
 
 // Production admission gate for CXMLElement::FromPeerBytes (and EnvyTests).

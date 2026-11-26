@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Run the production MetaFetch receive state machine over a scripted socket.
+// Standalone harness: no MFC precompiled header (see AGENTS.md portable tests).
 //
 // ReadInput, ReceiveMetadataInput and ReadMetadata are extracted unchanged.
 // Socket reads, response-line/header parsing and the metadata branches of
@@ -138,11 +139,32 @@ public:
 	unsigned m_nRejects = 0, m_nCompletes = 0, m_nFragments = 0, m_nReadInputs = 0;
 	bool m_bValid = true;
 
+	static bool ParseHeaderUnsigned(const std::string& sValue, ULONGLONG& nValue)
+	{
+		size_t start = 0;
+		while (start < sValue.size() && (sValue[start] == ' ' || sValue[start] == '\t'))
+			++start;
+		const std::wstring w(sValue.begin() + static_cast<std::ptrdiff_t>(start), sValue.end());
+		return ParsePeerUnsignedDecimal(w.c_str(), nValue);
+	}
+
 	void ChargeHeaderLine(const std::string& sLine)
 	{
 		if (sLine.empty())
 			return;
-		m_nPeerHttpHeaderBytes += static_cast<DWORD>(sLine.size()) + 2u;
+		const auto colon = sLine.find(':');
+		if (colon != std::string::npos && colon > 0)
+		{
+			std::string value = sLine.substr(colon + 1);
+			while (!value.empty() && (value[0] == ' ' || value[0] == '\t'))
+				value.erase(value.begin());
+			const DWORD nBytes = static_cast<DWORD>(colon + 1 + value.size() + 2u);
+			m_nPeerHttpHeaderBytes += nBytes;
+		}
+		else
+		{
+			m_nPeerHttpHeaderBytes += static_cast<DWORD>(sLine.size()) + 2u;
+		}
 	}
 
 	bool PeerHttpHeaderPhaseTooLarge() const
@@ -238,7 +260,15 @@ public:
 			if (sLine.empty()) return OnHeadersComplete();
 			ChargeHeaderLine(sLine);
 			if (sLine.compare(0, sizeof(szLength) - 1, szLength) == 0)
-				m_nContentLength = std::strtoull(sLine.c_str() + sizeof(szLength) - 1, nullptr, 10);
+			{
+				ULONGLONG nLength = 0;
+				if (!ParseHeaderUnsigned(sLine.c_str() + sizeof(szLength) - 1, nLength))
+				{
+					Close(TRI_FALSE);
+					return FALSE;
+				}
+				m_nContentLength = nLength;
+			}
 		}
 		return TRUE;
 	}
@@ -472,11 +502,22 @@ void TestBodyCap()
 // Many short complete header lines must not evade the aggregate header cap.
 void TestManySmallHeaderLinesExceedCap()
 {
-	std::string wire = "HTTP/1.1 200 OK\r\n";
-	const std::string line = "X-H: 0\r\n";
-	while (wire.size() + line.size() < XML_PEER_HTTP_HEADER_PHASE_CAP)
-		wire += line;
-	wire += line;
+	const std::string status = "HTTP/1.1 200 OK";
+	const std::string line = "X-H: 0";
+	size_t nLines = 0;
+	for (;;)
+	{
+		CDownloadTransferHTTP acc;
+		acc.ChargeHeaderLine(status);
+		for (size_t i = 0; i < nLines; ++i)
+			acc.ChargeHeaderLine(line);
+		if (acc.m_nPeerHttpHeaderBytes >= XML_PEER_HTTP_HEADER_PHASE_CAP)
+			break;
+		++nLines;
+	}
+	std::string wire = status + "\r\n";
+	for (size_t i = 0; i <= nLines; ++i)
+		wire += line + "\r\n";
 	CDownloadTransferHTTP t;
 	t.Deliver(wire);
 	CHECK(!t.Pump());
