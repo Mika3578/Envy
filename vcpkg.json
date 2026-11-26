@@ -6,7 +6,7 @@
   "homepage": "https://github.com/mika3578/envy",
   "license": "AGPL-3.0-or-later",
   "supports": "windows & (x86 | x64 | arm64)",
-  "builtin-baseline": "9e593bb18ea69cc5095e012465dcd675a822ed0d",
+  "builtin-baseline": "9eec002df1cd109f8f104cd966a763daf9751489",
   "dependencies": [
     "zlib",
     "bzip2",
