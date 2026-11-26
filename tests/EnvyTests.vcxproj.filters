@@ -62,6 +62,7 @@
     <ClCompile Include="test_ed2k_lock_order_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_dc_hub_uri_smoke.cpp">
     <ClCompile Include="test_envy_thread_policy_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

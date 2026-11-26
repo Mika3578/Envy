@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "HostCache.h"
+#include "DcHubUri.h"
 #include "DiscoveryServices.h"
 #include "Buffer.h"
 #include "PacketLengthValidate.h"
@@ -99,6 +100,7 @@ BOOL CHostCache::Load()
 					Clear();
 
 					Serialize( ar );
+					MigrateDcHubUris();
 					ar.Close();
 				}
 
@@ -568,6 +570,72 @@ int CHostCacheList::RemoveNodesDatContacts()
 	return nRemoved;
 }
 
+//////////////////////////////////////////////////////////////////////
+// Migrate legacy Direct Connect scheme URIs
+//
+// Older importers stored unsupported scheme URIs (nmdcs://, adc://, ...)
+// unresolved, and the connection path cut them at the first colon, feeding
+// the resolver the literal scheme token as a hostname in a retry loop.
+// Scheme-bearing supported forms are normalized to the bare authority;
+// never-connectable schemes are dropped.
+
+int CHostCacheList::MigrateDcHubUris()
+{
+	CQuickLock oLock(m_pSection);
+
+	int nRemoved = 0;
+	for (CHostCacheMapItr i = m_Hosts.begin(); i != m_Hosts.end();)
+	{
+		CHostCacheHostPtr pHost = (*i).second;
+		if (pHost->m_pAddress.s_addr != INADDR_ANY)
+		{
+			++i; // Resolved IP entries carry no scheme
+			continue;
+		}
+
+		std::wstring strHostPort;
+		switch (DcClassifyHubUri(pHost->m_sAddress, &strHostPort))
+		{
+		case DcHubUriStatus::NmdcDchub:
+		case DcHubUriStatus::NmdcAlias:
+			pHost->m_sAddress = strHostPort.c_str();
+			m_nCookie++;
+			++i;
+			break;
+
+		case DcHubUriStatus::PlainHost:
+			++i; // Nothing to migrate
+			break;
+
+		case DcHubUriStatus::Malformed:
+		{
+			// A bare scheme token (nmdcs, adc, ...) must not survive as a
+			// hostname; other malformed forms keep their possibly valid data.
+			const CString strHost = pHost->m_sAddress.SpanExcluding(L":");
+			if (DcHubUriIsSchemeToken((LPCTSTR)strHost))
+			{
+				i = Remove(pHost);
+				++nRemoved;
+			}
+			else
+				++i;
+			break;
+		}
+
+		case DcHubUriStatus::NmdcSecure:
+		case DcHubUriStatus::Adc:
+		case DcHubUriStatus::Adcs:
+		case DcHubUriStatus::Unsupported:
+		default:
+			i = Remove(pHost);
+			++nRemoved;
+			break;
+		}
+	}
+
+	return nRemoved;
+}
+
 CHostCacheMapItr CHostCacheList::Remove(const IN_ADDR* pAddress)
 {
 	CQuickLock oLock( m_pSection );
@@ -962,12 +1030,27 @@ int CHostCache::ImportHubList(CFile* pFile)
 		if ( pHub->IsNamed( L"Hub" ) )
 		{
 			CString strAddress = pHub->GetAttributeValue( L"Address" );
-			if ( _tcsnicmp( strAddress, L"dchub://", 8 ) == 0 )
-				strAddress = strAddress.Mid( 8 );
-			else if ( _tcsnicmp( strAddress, L"adc://", 6 ) == 0 )
-				continue;	// Skip ADC-hubs
-			else if ( _tcsnicmp( strAddress, L"adcs://", 7 ) == 0 )
-				continue;	// Skip ADCS-hubs
+
+			// Classify every row by scheme before host extraction; unsupported
+			// schemes (notably nmdcs:// without any TLS transport) are skipped
+			// without DNS attempts or plaintext fallback.
+			std::wstring strHostPort;
+			switch (DcClassifyHubUri((LPCTSTR)strAddress, &strHostPort))
+			{
+			case DcHubUriStatus::PlainHost:
+			case DcHubUriStatus::NmdcDchub:
+			case DcHubUriStatus::NmdcAlias:
+				strAddress = strHostPort.c_str();
+				break;
+
+			case DcHubUriStatus::NmdcSecure:
+			case DcHubUriStatus::Adc:
+			case DcHubUriStatus::Adcs:
+			case DcHubUriStatus::Unsupported:
+			case DcHubUriStatus::Malformed:
+			default:
+				continue; // Not an NMDC hub Envy can connect to
+			}
 
 			const int nUsers	= _tstoi( pHub->GetAttributeValue( L"Users" ) );
 			const int nMaxusers	= _tstoi( pHub->GetAttributeValue( L"Maxusers" ) );

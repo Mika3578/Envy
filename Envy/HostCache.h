@@ -194,6 +194,7 @@ public:
 	CHostCacheMapItr	Remove(CHostCacheHostPtr pHost);
 	CHostCacheMapItr	Remove(const IN_ADDR* pAddress);
 	int RemoveNodesDatContacts(); // Drop hosts that carry a Kad ID; returns the count
+	int MigrateDcHubUris();       // Normalize supported DC scheme URIs, drop never-connectable ones
 	void				OnResolve(LPCTSTR szAddress, const IN_ADDR* pAddress, WORD nPort);
 	void				OnFailure(LPCTSTR szAddress, bool bRemove = true);
 	void				OnFailure(const IN_ADDR* pAddress, WORD nPort, bool bRemove = true);
