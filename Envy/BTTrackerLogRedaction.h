@@ -21,16 +21,16 @@
 // Path-embedded credentials cannot be detected generically.
 inline size_t BtTrackerLogLength(const wchar_t* pszTracker)
 {
-	if ( pszTracker == NULL )
+	if (pszTracker == NULL)
 		return 0;
 
 	size_t nLength = 0;
-	while ( pszTracker[ nLength ] != 0 )
+	while (pszTracker[nLength] != 0)
 		++nLength;
 
-	for ( size_t i = 0; i < nLength; ++i )
+	for (size_t i = 0; i < nLength; ++i)
 	{
-		if ( pszTracker[ i ] == L'?' )
+		if (pszTracker[i] == L'?')
 			return i;
 	}
 

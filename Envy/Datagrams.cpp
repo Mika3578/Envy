@@ -962,8 +962,8 @@ BOOL CDatagrams::OnDatagram(const SOCKADDR_IN* pHost, const BYTE* pBuffer, DWORD
 							// BEP 27/BEP 14: local discovery must not feed
 							// peers to a private torrent. Later infohash
 							// headers in the same announce still apply.
-							if ( BtAllowsPublicDiscovery( pDownload->m_pTorrent.m_bPrivate != FALSE ) )
-								pDownload->AddSourceBT( Hashes::BtGuid(), &pHost->sin_addr, nPort );
+							if (BtAllowsPublicDiscovery(pDownload->m_pTorrent.m_bPrivate != FALSE))
+								pDownload->AddSourceBT(Hashes::BtGuid(), &pHost->sin_addr, nPort);
 						}
 					}
 				}

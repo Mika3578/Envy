@@ -95,7 +95,7 @@ public:
 
 	// BEP 27: TRUE when the torrent's info dict carries the private flag.
 	// Overridden by CDownloadWithTorrent; non-torrent downloads are public.
-	virtual BOOL	IsPrivateTorrent() const;
+	virtual BOOL IsPrivateTorrent() const;
 
 	virtual BOOL	OnQueryHits(const CQueryHit* pHits);
 	virtual void	Serialize(CArchive& ar, int nVersion);	// DOWNLOAD_SER_VERSION

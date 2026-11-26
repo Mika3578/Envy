@@ -363,7 +363,7 @@ BOOL CDownloadWithSources::AddSourceHit(const CQueryHit* pHit, BOOL bForce)
 {
 	// BEP 27: a private torrent accepts peers only from its own tracker, and
 	// search hits from other networks are not tracker-provided sources.
-	if ( IsPrivateTorrent() )
+	if (IsPrivateTorrent())
 		return FALSE;
 
 	CQuickLock oLock( Transfers.m_pSection );
@@ -394,7 +394,7 @@ BOOL CDownloadWithSources::AddSourceHit(const CMatchFile* pMatchFile, BOOL bForc
 {
 	// BEP 27: a private torrent accepts peers only from its own tracker, and
 	// search hits from other networks are not tracker-provided sources.
-	if ( IsPrivateTorrent() )
+	if (IsPrivateTorrent())
 		return FALSE;
 
 	CQuickLock oLock( Transfers.m_pSection );

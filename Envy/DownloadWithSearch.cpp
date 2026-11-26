@@ -157,7 +157,7 @@ BOOL CDownloadWithSearch::CanSearch() const
 	// BEP 27: a private torrent must not be searched for on other networks -
 	// the query leaks interest in its hashes and hits would inject
 	// non-tracker sources into it.
-	if ( ! BtAllowsPublicDiscovery( m_pTorrent.m_bPrivate != FALSE ) )
+	if (!BtAllowsPublicDiscovery(m_pTorrent.m_bPrivate != FALSE))
 		return FALSE;
 
 	if ( Settings.Gnutella1.Enabled && m_oSHA1 )

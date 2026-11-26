@@ -1173,9 +1173,9 @@ void CBTClient::SendBeHandshake()
 
 	// BEP 27: private torrents use no peer discovery, so they must not
 	// advertise the Envy/Shareaza source-exchange capability either.
-	if ( m_pDownload &&
-		 BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
-		pRoot->Add( BT_DICT_SRC_EXCHANGE )->SetInt( BT_HANDSHAKE_SOURCE );			// "source-exchange"
+	if (m_pDownload &&
+	    BtAllowsPublicDiscovery(m_pDownload->m_pTorrent.m_bPrivate != FALSE))
+		pRoot->Add(BT_DICT_SRC_EXCHANGE)->SetInt(BT_HANDSHAKE_SOURCE); // "source-exchange"
 
 	pRoot->Add( BT_DICT_USER_AGENT )->SetString( Settings.SmartAgent() );			// "user-agent"
 
@@ -1243,8 +1243,8 @@ void CBTClient::SendSourceRequest()
 {
 	// BEP 27: private torrent peers come only from its own tracker, so never
 	// ask connected peers for more sources.
-	if ( ! m_pDownload ||
-		 ! BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
+	if (!m_pDownload ||
+	    !BtAllowsPublicDiscovery(m_pDownload->m_pTorrent.m_bPrivate != FALSE))
 		return;
 
 	if ( m_nSrcExchangeID && m_pDownloadTransfer )
@@ -1255,8 +1255,8 @@ BOOL CBTClient::OnSourceRequest(CBTPacket* /*pPacket*/)
 {
 	//if ( m_bClosing ) return TRUE;
 
-	if ( ! m_pDownload ||
-		 ! BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
+	if (!m_pDownload ||
+	    !BtAllowsPublicDiscovery(m_pDownload->m_pTorrent.m_bPrivate != FALSE))
 		return TRUE;
 
 	CBTPacket* pResponse = CBTPacket::New( BT_PACKET_SOURCE_RESPONSE );
@@ -1338,8 +1338,8 @@ void CBTClient::SendExtendedHandshake()
 			{
 				// BEP 27: private torrents use no peer-discovery extensions, so
 				// their extended handshake must not advertise any of them.
-				if ( m_pDownload->IsTorrent() &&
-					 BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
+				if (m_pDownload->IsTorrent() &&
+				    BtAllowsPublicDiscovery(m_pDownload->m_pTorrent.m_bPrivate != FALSE))
 				{
 					pM->Add( BT_DICT_UT_METADATA )->SetInt( BT_EXTENSION_UT_METADATA );		// "ut_metadata"
 					if ( m_pDownload->m_pTorrent.GetInfoSize() )
@@ -1348,7 +1348,7 @@ void CBTClient::SendExtendedHandshake()
 					pM->Add( BT_DICT_LT_TEX )->SetInt( BT_EXTENSION_LT_TEX );		// "lt_tex"
 					pRoot->Add( BT_DICT_TRACKERS )->SetString( m_pDownload->m_pTorrent.GetTrackerHash() );
 
-					pM->Add( BT_DICT_UT_PEX )->SetInt( BT_EXTENSION_UT_PEX );			// "ut_pex"
+					pM->Add(BT_DICT_UT_PEX)->SetInt(BT_EXTENSION_UT_PEX); // "ut_pex"
 				}
 
 				pRoot->Add( BT_DICT_PORT )->SetInt( Network.GetPort() );			// "p"
@@ -1547,8 +1547,8 @@ BOOL CBTClient::OnMetadataRequest(CBTPacket* pPacket)
 
 void CBTClient::SendUtPex(DWORD tConnectedAfter)
 {
-	if ( m_nUtPexID == 0 ||
-		 ! BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
+	if (m_nUtPexID == 0 ||
+	    !BtAllowsPublicDiscovery(m_pDownload->m_pTorrent.m_bPrivate != FALSE))
 		return;
 
 	CBuffer pAddedBuffer;
@@ -1606,8 +1606,8 @@ BOOL CBTClient::OnUtPex(CBTPacket* pPacket)
 {
 	// BEP 27: incoming PEX must not add sources to a private torrent, even
 	// when a peer sends it without being advertised to.
-	if ( ! m_pDownload ||
-		 ! BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
+	if (!m_pDownload ||
+	    !BtAllowsPublicDiscovery(m_pDownload->m_pTorrent.m_bPrivate != FALSE))
 		return TRUE;
 
 	const CBENode* pRoot = pPacket->m_pNode.get();
@@ -1665,7 +1665,7 @@ void CBTClient::SendLtTex()
 		return;		// Unsupported
 
 	// Don't send private tracker URLs
-	if ( ! BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
+	if (!BtAllowsPublicDiscovery(m_pDownload->m_pTorrent.m_bPrivate != FALSE))
 		return;
 
 	const int nCount = m_pDownload->m_pTorrent.GetTrackerCount();
@@ -1688,8 +1688,8 @@ BOOL CBTClient::OnLtTex(CBTPacket* pPacket)
 {
 	// BEP 27/BEP 28: incoming tracker exchange must not add trackers to a
 	// private torrent, even when a peer sends it without being advertised to.
-	if ( ! m_pDownload ||
-		 ! BtAllowsPublicDiscovery( m_pDownload->m_pTorrent.m_bPrivate != FALSE ) )
+	if (!m_pDownload ||
+	    !BtAllowsPublicDiscovery(m_pDownload->m_pTorrent.m_bPrivate != FALSE))
 		return TRUE;
 
 	const CBENode* pRoot = pPacket->m_pNode.get();

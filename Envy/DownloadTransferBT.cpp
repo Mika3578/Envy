@@ -641,7 +641,7 @@ BOOL CDownloadTransferBT::OnSourceResponse(CBTPacket* pPacket)
 {
 	// BEP 27: private torrent peers come only from its own tracker, so
 	// peer-supplied source exchange results must be ignored.
-	if ( m_pDownload->IsPrivateTorrent() )
+	if (m_pDownload->IsPrivateTorrent())
 		return TRUE;
 
 	// pRoot is owned by pPacket->m_pNode - never delete it here.
