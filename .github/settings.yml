@@ -194,11 +194,9 @@ labels:
     color: "ededed"
     description: "Applied by automation"
 
-# Milestones
-milestones:
-  - title: "v1.0 Modernization"
-    description: "Complete modernization of codebase with C++20 and modern practices"
-    state: open
+# Milestones are managed directly on GitHub (the live milestone tracks the
+# current preview line); declaring one here would make a Probot apply create
+# a stale milestone.
 
 # Classic branch-protection template (Probot Settings).
 # Live enforcement is the repository ruleset **Protect develop**.
