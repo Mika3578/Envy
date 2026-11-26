@@ -1337,6 +1337,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="EDSourcePacketValidate.h" />
     <ClInclude Include="PacketLengthValidate.h" />
     <ClInclude Include="KadSearchResDelivery.h" />
+    <ClInclude Include="KadPublishWire.h" />
     <ClInclude Include="KadFirewallCheck.h" />
     <ClInclude Include="KadHello.h" />
     <ClInclude Include="KadRoutingTable.h" />
