@@ -6,11 +6,7 @@
 // separately by the ET_COMPATIBLECLIENT tag or modern Hello.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
-//
-// Envy is free software. You may redistribute and/or modify it
-// under the terms of the GNU Affero General Public License
-// as published by the Free Software Foundation (fsf.org);
-// version 3 or later at your option. (AGPLv3)
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //
 
 #pragma once

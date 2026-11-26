@@ -437,6 +437,7 @@ static const BYTE kGoldenLegacyMuleInfoPrefix[] = { 0x50, 0x01 };
 static bool test_muleinfo_legacy_prefix_golden()
 {
 	BYTE actual[sizeof( kGoldenLegacyMuleInfoPrefix )] = {};
+	// Same pack path as CEDClient::SendEmuleInfo (PackEd2kLegacyMuleInfoPrefix).
 	PackEd2kLegacyMuleInfoPrefix( actual );
 	return bytes_equal(
 	    kGoldenLegacyMuleInfoPrefix, sizeof( kGoldenLegacyMuleInfoPrefix ),
