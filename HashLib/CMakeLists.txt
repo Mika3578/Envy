@@ -96,7 +96,6 @@ if(WIN32)
     )
 
     if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-        target_compile_definitions(HashLib PRIVATE _ATL_XP_TARGETING)
         target_link_options(HashLib PRIVATE /SAFESEH:NO)
     endif()
 endif()

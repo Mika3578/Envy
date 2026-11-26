@@ -80,13 +80,13 @@ jobs:
         shell: bash
         run: |
           # PluginWizard templates are intentionally left untouched.
-          bad=$(grep -lr "_ATL_XP_TARGETING" --include="*.vcxproj" --exclude-dir=PluginWizard . || true)
+          bad=$(grep -lr "_ATL_XP_TARGETING" --include="*.vcxproj" --include="CMakeLists.txt" --include="*.cmake" --exclude-dir=PluginWizard . || true)
           if [ -n "$bad" ]; then
             echo "::error::_ATL_XP_TARGETING preprocessor macro must be removed from:"
             echo "$bad"
             exit 1
           fi
-          echo "_ATL_XP_TARGETING absent from first-party vcxproj files."
+          echo "_ATL_XP_TARGETING absent from first-party project and CMake files."
 
       - name: Classify-changes self-test
         shell: bash
