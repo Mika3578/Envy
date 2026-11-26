@@ -80,7 +80,7 @@ jobs:
         shell: bash
         run: |
           # PluginWizard templates are intentionally left untouched.
-          bad=$(grep -Erl "_ATL_XP_TARGETING|XPSUPPORT|v141_xp" --include="*.vcxproj" --include="CMakeLists.txt" --include="*.cmake" --exclude-dir=PluginWizard . || true)
+          bad=$(grep -Erl "_ATL_XP_TARGETING|XPSUPPORT|v141_xp" --include="*.vcxproj" --include="*.props" --include="CMakeLists.txt" --include="*.cmake" --include="CMakePresets.json" --exclude-dir=PluginWizard . || true)
           if [ -n "$bad" ]; then
             echo "::error::_ATL_XP_TARGETING, XPSUPPORT and v141_xp are banned (no-XP policy); found in:"
             echo "$bad"
