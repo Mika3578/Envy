@@ -126,7 +126,7 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 ### BitTorrent
 
 - v1: DHT, magnet, PEX, LTEP, web seeds, trackers, MSE/PE (`Envy/BTCrypto.*`) are present per `docs/10_dev/roadmap.md` / CHANGELOG. DHT catalogue routers live in `DefaultServers.dat`; `CDHT::Connect` sends BEP 5 `find_node` to HostCache BitTorrent hosts when no node IDs are cached; known node IDs persist in `HostCache.dat`.
-- Private torrents (BEP 27): info-dict `private=1` gates all out-of-band peer discovery through `Envy/BTDiscoveryPolicy.h` (DHT, PEX both directions, LTEP tracker exchange, Envy source exchange, LSD, cross-network search hits) and forbids default-tracker fallback; details in `docs/30_protocols/bittorrent/README.md`.
+- Private torrents (BEP 27): info-dict `private=1` gates new out-of-band peer discovery through `Envy/BTDiscoveryPolicy.h` (PEX both directions, LTEP tracker exchange, Envy source exchange, LSD, cross-network search hits; DHT search/announce and default-tracker fallback land with draft PR #525); an already-running DHT peer-values search may deliver results until it ends; details in `docs/30_protocols/bittorrent/README.md`.
 - v2 / BEP 52: HashLib SHA-256 exists; `CBTInfo::IsBitTorrentV2()` currently returns false and `m_oBTHv2` remains commented (`Envy/BTInfo.h`). Magnet `btmh:` parsing is not a complete v2 download path (`docs/30_protocols/bittorrent/BITTORRENT_V2_PLAN.md`).
 - uTP: `Services/LibUTP` is vendored; Envy code does not call it. Status: **not implemented**.
 - Do not sacrifice BitTorrent work to make Envy an eMule-only client.

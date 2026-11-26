@@ -21,6 +21,7 @@
 #include "Envy.h"
 #include "BTPacket.h"
 #include "PacketLengthValidate.h"
+#include "BTDiscoveryPolicy.h"
 
 #include "BENode.h"
 #include "BTClient.h"
@@ -423,30 +424,7 @@ void CDHT::OnEvent(void* /*closure*/, int evt, const unsigned char* info_hash, c
 		break;
 
 	case DHT_EVENT_VALUES:
-		{
-			CSingleLock oLock( &Transfers.m_pSection, FALSE );
-			if ( oLock.Lock( 250 ) )
-			{
-				Hashes::BtHash oHash;
-				CopyMemory( &oHash[ 0 ], info_hash, Hashes::BtHash::byteCount );
-				oHash.validate();
-
-				if ( CDownload* pDownload = Downloads.FindByBTH( oHash ) )
-				{
-				//	ATLTRACE( "DHT> %s %s\n", (LPCSTR)CT2CA( pDownload->m_oBTH.toString() ), (LPCSTR)CT2CA( pDownload->m_sName ) );
-
-					size_t nCount = data_len / 6;
-					//int nMax = Settings.Downloads.SourcesWanted;
-					for ( size_t i = 0; i < nCount; ++i )
-					{
-						const char* p = &((const char*)data)[ i * 6 ];
-						pDownload->AddSourceBT( Hashes::BtGuid(), (IN_ADDR*)p, ntohs( *(WORD*)(p + 4) ) );
-					//	if ( nMax-- < 0 && pDownload->GetEffectiveSourceCount() > Settings.Downloads.SourcesWanted )
-					//		break;
-					}
-				}
-			}
-		}
+		OnDhtValues(info_hash, data, data_len);
 		break;
 
 	//case DHT_EVENT_VALUES6:
@@ -454,6 +432,40 @@ void CDHT::OnEvent(void* /*closure*/, int evt, const unsigned char* info_hash, c
 	//case DHT_EVENT_SEARCH_DONE6:
 	//default:
 	//	break;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+// CDHT peer values
+
+// Ingest the peers a DHT search returned for one infohash.
+void CDHT::OnDhtValues(const unsigned char* info_hash, const void* data, size_t data_len)
+{
+	CSingleLock oLock(&Transfers.m_pSection, FALSE);
+	if (!oLock.Lock(250))
+		return;
+
+	Hashes::BtHash oHash;
+	CopyMemory(&oHash[0], info_hash, Hashes::BtHash::byteCount);
+	oHash.validate();
+
+	CDownload* pDownload = Downloads.FindByBTH(oHash);
+	if (pDownload == nullptr)
+		return;
+
+	// BEP 27: DHT results must never populate a private torrent's source
+	// set, even for a search that started before the flag was known.
+	if (!BtAllowsPublicDiscovery(pDownload->m_pTorrent.m_bPrivate != FALSE))
+		return;
+
+	size_t nCount = data_len / 6;
+	//int nMax = Settings.Downloads.SourcesWanted;
+	for (size_t i = 0; i < nCount; ++i)
+	{
+		const char* p = &((const char*)data)[i * 6];
+		pDownload->AddSourceBT(Hashes::BtGuid(), (IN_ADDR*)p, ntohs(*(WORD*)(p + 4)));
+		//	if ( nMax-- < 0 && pDownload->GetEffectiveSourceCount() > Settings.Downloads.SourcesWanted )
+		//		break;
 	}
 }
 

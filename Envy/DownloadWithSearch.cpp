@@ -179,6 +179,11 @@ void CDownloadWithSearch::MaybeSearchKadSources()
 {
 	if (IsMoving() || IsCompleted())
 		return;
+	// BEP 27: a private torrent must not be searched for on other networks;
+	// a Kad source query leaks interest in its hash and the returned
+	// sources would not be tracker-provided.
+	if (!BtAllowsPublicDiscovery(m_pTorrent.m_bPrivate != FALSE))
+		return;
 	if (!Settings.eDonkey.Enabled)
 		return;
 

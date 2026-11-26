@@ -341,6 +341,12 @@ BOOL CDownloadWithTorrent::SetTorrent(const CBTInfo* pTorrent /*NULL*/)
 	// Captured before the new torrent is applied (BEP 27 private transition)
 	BOOL bWasPrivate = FALSE;
 
+	// The candidate is validated before m_pTorrent changes, so a rejected
+	// torrent (size or trusted-hash conflict) leaves the previous torrent,
+	// its private flag and its sources in force.
+	CBTInfo oCandidate;
+	const CBTInfo* pCandidate = &m_pTorrent;
+
 	if ( IsMoving() || IsCompleted() )
 		return FALSE;
 
@@ -350,31 +356,57 @@ BOOL CDownloadWithTorrent::SetTorrent(const CBTInfo* pTorrent /*NULL*/)
 			return FALSE;
 
 		bWasPrivate = m_pTorrent.m_bPrivate;
-		m_pTorrent = *pTorrent;
+		oCandidate = *pTorrent;
+		pCandidate = &oCandidate;
 	}
 
 	// Check conflicts first
 
-	if ( m_nSize != SIZE_UNKNOWN &&			// Single file download
-		 m_pTorrent.IsAvailableInfo() &&
-		 m_pTorrent.m_nSize != m_nSize ||
-		 m_pTorrent.m_nSize == SIZE_UNKNOWN )
+	if (m_nSize != SIZE_UNKNOWN && // Single file download
+	        pCandidate->IsAvailableInfo() &&
+	        pCandidate->m_nSize != m_nSize ||
+	    pCandidate->m_nSize == SIZE_UNKNOWN)
 		return FALSE;
 
-	if ( m_bBTHTrusted && validAndUnequal( m_oBTH, m_pTorrent.m_oBTH ) )
+	if (m_bBTHTrusted && validAndUnequal(m_oBTH, pCandidate->m_oBTH))
 		return FALSE;
 
-	if ( m_bTigerTrusted && validAndUnequal( m_oTiger, m_pTorrent.m_oTiger ) )
+	if (m_bTigerTrusted && validAndUnequal(m_oTiger, pCandidate->m_oTiger))
 		return FALSE;
 
-	if ( m_bSHA1Trusted && validAndUnequal( m_oSHA1, m_pTorrent.m_oSHA1 ) )
+	if (m_bSHA1Trusted && validAndUnequal(m_oSHA1, pCandidate->m_oSHA1))
 		return FALSE;
 
-	if ( m_bED2KTrusted && validAndUnequal( m_oED2K, m_pTorrent.m_oED2K ) )
+	if (m_bED2KTrusted && validAndUnequal(m_oED2K, pCandidate->m_oED2K))
 		return FALSE;
 
-	if ( m_bMD5Trusted && validAndUnequal( m_oMD5, m_pTorrent.m_oMD5 ) )
+	if (m_bMD5Trusted && validAndUnequal(m_oMD5, pCandidate->m_oMD5))
 		return FALSE;
+
+	if (pTorrent)
+		m_pTorrent = oCandidate;
+
+	// BEP 27: when metadata reveals a private flag on an existing download
+	// (e.g. a completed magnet), every peer found before the flag was known
+	// must not carry into the private swarm - tracker results, discovery
+	// sources and cross-network hits alike. Torrent-file URL sources are
+	// added again below from the applied torrent.
+	if (bWasPrivate == FALSE && m_pTorrent.m_bPrivate != FALSE)
+	{
+		theApp.Message(MSG_DEBUG, L"[BT] Dropping pre-discovery peers for private torrent");
+
+		// A tracker request already in flight predates the flag; dropping
+		// the pending state stops OnTrackerEvent from re-adding its reply
+		// sources, and RunTorrent announces fresh to the private tracker.
+		m_bTorrentRequested = m_bTorrentStarted = FALSE;
+
+		for (POSITION posSource = GetIterator(); posSource;)
+		{
+			CDownloadSource* pSource = GetNext(posSource);
+
+			pSource->Remove();
+		}
+	}
 
 	// Update
 
@@ -447,22 +479,6 @@ BOOL CDownloadWithTorrent::SetTorrent(const CBTInfo* pTorrent /*NULL*/)
 		for (POSITION pos = m_pTorrent.m_oNodes.GetHeadPosition(); pos;)
 		{
 			HostCache.BitTorrent.Add(m_pTorrent.m_oNodes.GetNext(pos));
-		}
-	}
-
-	// BEP 27: when metadata reveals a private flag on an existing download
-	// (e.g. a completed magnet), peers found before the flag was known must
-	// not carry into the private swarm.
-	if (bWasPrivate == FALSE && m_pTorrent.m_bPrivate != FALSE)
-	{
-		theApp.Message(MSG_DEBUG, L"[BT] Dropping pre-discovery peers for private torrent");
-
-		for (POSITION posSource = GetIterator(); posSource;)
-		{
-			CDownloadSource* pSource = GetNext(posSource);
-
-			if (pSource->m_nProtocol == PROTOCOL_BT)
-				pSource->Remove();
 		}
 	}
 
