@@ -25,6 +25,7 @@
 #include "QuerySearch.h"
 #include "Kademlia.h"
 #include "KadSearchSourceRequest.h"
+#include "BTDiscoveryPolicy.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -151,6 +152,12 @@ void CDownloadWithSearch::StartAutomaticSearch()
 BOOL CDownloadWithSearch::CanSearch() const
 {
 	if ( IsMoving() || IsCompleted() )
+		return FALSE;
+
+	// BEP 27: a private torrent must not be searched for on other networks -
+	// the query leaks interest in its hashes and hits would inject
+	// non-tracker sources into it.
+	if ( ! BtAllowsPublicDiscovery( m_pTorrent.m_bPrivate != FALSE ) )
 		return FALSE;
 
 	if ( Settings.Gnutella1.Enabled && m_oSHA1 )

@@ -93,6 +93,10 @@ public:
 	void			RemoveSource(CDownloadSource* pSource, BOOL bBan);
 					// Remove source from list, add it to failed sources if bBan == TRUE, and destroy source itself
 
+	// BEP 27: TRUE when the torrent's info dict carries the private flag.
+	// Overridden by CDownloadWithTorrent; non-torrent downloads are public.
+	virtual BOOL	IsPrivateTorrent() const;
+
 	virtual BOOL	OnQueryHits(const CQueryHit* pHits);
 	virtual void	Serialize(CArchive& ar, int nVersion);	// DOWNLOAD_SER_VERSION
 	int				GetSourceColor();

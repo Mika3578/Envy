@@ -35,10 +35,12 @@
 #include "Network.h"
 #include "HostCache.h"
 #include "Buffer.h"
+#include "BTDiscoveryPolicy.h"
 #include "BTPacket.h"
 #include "BTClient.h"
 #include "BTClients.h"
 #include "BTTrackerRequest.h"
+#include "BTTrackerLogRedaction.h"
 #include "Library.h"
 #include "LibraryMaps.h"
 #include "LibraryFolders.h"
@@ -98,6 +100,12 @@ bool CDownloadWithTorrent::IsSeeding() const
 bool CDownloadWithTorrent::IsTorrent() const
 {
 	return m_pTorrent.IsAvailable();
+}
+
+// BEP 27: the torrent's info-dict private flag governs peer discovery.
+BOOL CDownloadWithTorrent::IsPrivateTorrent() const
+{
+	return m_pTorrent.m_bPrivate != FALSE;
 }
 
 bool CDownloadWithTorrent::IsSingleFileTorrent() const
@@ -330,6 +338,9 @@ BOOL CDownloadWithTorrent::SetTorrent(const CBTInfo* pTorrent /*NULL*/)
 {
 	ASSUME_LOCK( Transfers.m_pSection );
 
+	// Captured before the new torrent is applied (BEP 27 private transition)
+	BOOL bWasPrivate = FALSE;
+
 	if ( IsMoving() || IsCompleted() )
 		return FALSE;
 
@@ -338,6 +349,7 @@ BOOL CDownloadWithTorrent::SetTorrent(const CBTInfo* pTorrent /*NULL*/)
 		if ( ! pTorrent->IsAvailable() )
 			return FALSE;
 
+		bWasPrivate = m_pTorrent.m_bPrivate;
 		m_pTorrent = *pTorrent;
 	}
 
@@ -428,10 +440,30 @@ BOOL CDownloadWithTorrent::SetTorrent(const CBTInfo* pTorrent /*NULL*/)
 		AddSourceURLs( m_pTorrent.m_sURLs.GetNext( pos ) );
 	}
 
-	// Add DHT nodes to host cache
-	for ( POSITION pos = m_pTorrent.m_oNodes.GetHeadPosition(); pos; )
+	// Add DHT nodes to host cache. BEP 27: skip for private torrents -
+	// their node list must not drive DHT activity.
+	if ( BtAllowsPublicDiscovery( m_pTorrent.m_bPrivate != FALSE ) )
 	{
-		HostCache.BitTorrent.Add( m_pTorrent.m_oNodes.GetNext( pos ) );
+		for ( POSITION pos = m_pTorrent.m_oNodes.GetHeadPosition(); pos; )
+		{
+			HostCache.BitTorrent.Add( m_pTorrent.m_oNodes.GetNext( pos ) );
+		}
+	}
+
+	// BEP 27: when metadata reveals a private flag on an existing download
+	// (e.g. a completed magnet), peers found before the flag was known must
+	// not carry into the private swarm.
+	if ( bWasPrivate == FALSE && m_pTorrent.m_bPrivate != FALSE )
+	{
+		theApp.Message( MSG_DEBUG, L"[BT] Dropping pre-discovery peers for private torrent" );
+
+		for ( POSITION posSource = GetIterator(); posSource; )
+		{
+			CDownloadSource* pSource = GetNext( posSource );
+
+			if ( pSource->m_nProtocol == PROTOCOL_BT )
+				pSource->Remove();
+		}
 	}
 
 	SetModified();
@@ -691,7 +723,10 @@ void CDownloadWithTorrent::OnTrackerEvent(bool bSuccess, LPCTSTR pszReason, LPCT
 		// Lock on this tracker if we were searching for one
 		if ( m_pTorrent.GetTrackerMode() == CBTInfo::tMultiFinding )
 		{
-			theApp.Message( MSG_DEBUG, L"[BT] Locked onto tracker %s", m_pTorrent.GetTrackerAddress() );
+			// Log without the announce query string (private tracker passkeys)
+			const CString strTracker = m_pTorrent.GetTrackerAddress();
+			theApp.Message( MSG_DEBUG, L"[BT] Locked onto tracker %s",
+				( LPCTSTR )strTracker.Left( (int)BtTrackerLogLength( strTracker ) ) );
 			m_pTorrent.SetTrackerMode( CBTInfo::tMultiFound );
 		}
 	}
@@ -710,7 +745,24 @@ void CDownloadWithTorrent::OnTrackerEvent(bool bSuccess, LPCTSTR pszReason, LPCT
 		if ( m_pTorrent.IsMultiTracker() )
 		{
 			// Try the next one
+			const CString strFailedTracker = m_pTorrent.GetTrackerAddress();
 			m_pTorrent.SetTrackerNext( tNow );
+
+			// BEP 27: when a private torrent moves to its next tracker, the
+			// old tracker's peer set must not bridge into the new one.
+			if ( ! BtAllowsPublicDiscovery( m_pTorrent.m_bPrivate != FALSE ) &&
+				 m_pTorrent.GetTrackerAddress() != strFailedTracker )
+			{
+				theApp.Message( MSG_DEBUG, L"[BT] Dropping peers from switched private tracker" );
+
+				for ( POSITION posSource = GetIterator(); posSource; )
+				{
+					CDownloadSource* pSource = GetNext( posSource );
+
+					if ( pSource->m_nProtocol == PROTOCOL_BT )
+						pSource->Remove();
+				}
+			}
 
 			// Set retry time
 			m_tTorrentTracker = m_pTorrent.GetTrackerNextTry();

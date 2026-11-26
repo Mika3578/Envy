@@ -216,6 +216,16 @@ BOOL CDownloadWithSources::CheckSource(CDownloadSource* pCheck) const
 }
 
 //////////////////////////////////////////////////////////////////////
+// CDownloadWithSources private torrent policy
+
+// Non-torrent downloads have no private flag. CDownloadWithTorrent overrides
+// this with the torrent's info-dict private flag (BEP 27).
+BOOL CDownloadWithSources::IsPrivateTorrent() const
+{
+	return FALSE;
+}
+
+//////////////////////////////////////////////////////////////////////
 // CDownloadWithSources clear
 
 void CDownloadWithSources::ClearSources()
@@ -351,6 +361,11 @@ BOOL CDownloadWithSources::AddSource(const CEnvyFile* pHit, BOOL bForce)
 
 BOOL CDownloadWithSources::AddSourceHit(const CQueryHit* pHit, BOOL bForce)
 {
+	// BEP 27: a private torrent accepts peers only from its own tracker, and
+	// search hits from other networks are not tracker-provided sources.
+	if ( IsPrivateTorrent() )
+		return FALSE;
+
 	CQuickLock oLock( Transfers.m_pSection );
 
 	if ( ! AddSource( pHit, bForce ) )
@@ -377,6 +392,11 @@ BOOL CDownloadWithSources::AddSourceHit(const CQueryHit* pHit, BOOL bForce)
 
 BOOL CDownloadWithSources::AddSourceHit(const CMatchFile* pMatchFile, BOOL bForce)
 {
+	// BEP 27: a private torrent accepts peers only from its own tracker, and
+	// search hits from other networks are not tracker-provided sources.
+	if ( IsPrivateTorrent() )
+		return FALSE;
+
 	CQuickLock oLock( Transfers.m_pSection );
 
 	BOOL bRet = AddSource( pMatchFile, bForce );

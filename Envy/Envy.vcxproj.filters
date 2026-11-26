@@ -1646,10 +1646,16 @@
     <ClInclude Include="BTInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BTDiscoveryPolicy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="BTPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="BTTrackerRequest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BTTrackerLogRedaction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Buffer.h">
