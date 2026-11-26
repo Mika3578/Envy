@@ -1627,9 +1627,10 @@ void CEDClient::SendEmuleInfo(BYTE nType)
 {
 	CEDPacket* pPacket = CEDPacket::New( nType, ED2K_PROTOCOL_EMULE );
 
-	const Ed2kMuleInfoWirePrefix oPrefix = Ed2kLegacyMuleInfoWirePrefix();
-	pPacket->WriteByte(oPrefix.legacyVersion);
-	pPacket->WriteByte(oPrefix.protocolVersion);
+	BYTE aLegacyPrefix[2];
+	PackEd2kLegacyMuleInfoPrefix(aLegacyPrefix);
+	pPacket->WriteByte(aLegacyPrefix[0]);
+	pPacket->WriteByte(aLegacyPrefix[1]);
 
 	// Write number of tags
 	pPacket->WriteLongLE( Settings.eDonkey.ExtendedRequest ? 7 : 6 );

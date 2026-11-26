@@ -431,13 +431,16 @@ static bool test_reference_golden_amule_capture_slot_empty()
 // ED2K_C2C_EMULEINFO and ED2K_C2C_EMULEINFOANSWER. Full CEDPacket body
 // goldens need a portable packer seam (Hello-style) and stay out of this
 // MFC-free suite; live captures remain owned by #160.
+// Hand-authored expected bytes (eMule/aMule short version + protocol on wire).
+static const BYTE kGoldenLegacyMuleInfoPrefix[] = { 0x50, 0x01 };
+
 static bool test_muleinfo_legacy_prefix_golden()
 {
-	constexpr Ed2kMuleInfoWirePrefix prefix = Ed2kLegacyMuleInfoWirePrefix();
-	static_assert( sizeof( prefix ) == 2, "Legacy MuleInfo prefix must be two octets" );
-	const BYTE actual[] = { prefix.legacyVersion, prefix.protocolVersion };
-	const BYTE expected[] = { 0x50, 0x01 };
-	return bytes_equal( expected, sizeof( expected ), actual, sizeof( actual ) );
+	BYTE actual[sizeof( kGoldenLegacyMuleInfoPrefix )] = {};
+	PackEd2kLegacyMuleInfoPrefix( actual );
+	return bytes_equal(
+	    kGoldenLegacyMuleInfoPrefix, sizeof( kGoldenLegacyMuleInfoPrefix ),
+	    actual, sizeof( actual ) );
 }
 
 void register_ed2k_hello_golden_tests(TestSuite& suite)
