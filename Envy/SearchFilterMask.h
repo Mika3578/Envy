@@ -8,6 +8,7 @@
 // positions do not follow Shareaza's ordering (which Envy already
 // renumbered); they follow the values existing users have persisted.
 //
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
 
