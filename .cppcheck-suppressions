@@ -10,6 +10,10 @@ windowsGlobal:*
 missingIncludeSystem:*.h
 unusedFunction:*
 
+# MFC/OLE macros (END_INTERFACE_PART, ...) are unavailable to cppcheck's
+# preprocessor without the MFC headers; configure-id noise, not findings.
+unknownMacro:*
+
 # Legacy code patterns to be modernized
 unusedPrivateFunction:*
 unusedStructMember:*

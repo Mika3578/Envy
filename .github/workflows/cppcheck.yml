@@ -1,0 +1,123 @@
+name: Cppcheck (advisory)
+
+# Advisory cppcheck over the changed first-party C/C++ files. Never a
+# required merge check: the job uploads a report and writes a summary but
+# does not fail on findings, does not annotate the PR, and does not gate
+# anything in the Protect develop ruleset. The broad legacy suppressions in
+# .cppcheck-suppressions stay; this job only makes them actually exercised
+# somewhere (previously cppcheck was installed in .cursor/environment.json
+# but nothing ever ran it).
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "Envy/**.cpp"
+      - "Envy/**.h"
+      - "TorrentEnvy/**.cpp"
+      - "TorrentEnvy/**.h"
+      - "HashLib/**.cpp"
+      - "HashLib/**.h"
+      - ".cppcheck-suppressions"
+      - ".github/workflows/cppcheck.yml"
+  push:
+    branches: [develop]
+    paths:
+      - "Envy/**.cpp"
+      - "Envy/**.h"
+      - "TorrentEnvy/**.cpp"
+      - "TorrentEnvy/**.h"
+      - "HashLib/**.cpp"
+      - "HashLib/**.h"
+      - ".cppcheck-suppressions"
+      - ".github/workflows/cppcheck.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cppcheck-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  cppcheck:
+    name: Cppcheck report
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install cppcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cppcheck
+          cppcheck --version | tee cppcheck-version.txt
+
+      - name: Run cppcheck on changed first-party files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="${{ github.event.before }}"
+            git rev-parse --verify "${base}^{commit}" >/dev/null 2>&1 || base="$(git rev-parse HEAD~10)"
+          fi
+          head="$(git rev-parse HEAD)"
+          mapfile -t files < <(git diff --name-only "$base...$head" -- '*.cpp' '*.h' '*.cxx' '*.hpp' \
+            | grep -E '^(Envy|TorrentEnvy|HashLib)/' \
+            | grep -vE '^(Services|Plugins/PluginWizard|Plugins/RatDVDPlugin|Plugins/SWFPlugin)/' \
+            || true)
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "No first-party C/C++ files changed." | tee cppcheck-summary.txt
+            exit 0
+          fi
+          # Bounded run: the advisory job must stay cheap on wide PRs.
+          cap=60
+          if [[ ${#files[@]} -gt $cap ]]; then
+            echo "PR touches ${#files[@]} files; analyzing the first $cap (see .cppcheck-suppressions history for scope)." \
+              | tee cppcheck-summary.txt
+            files=("${files[@]:0:$cap}")
+          else
+            echo "Analyzing ${#files[@]} changed first-party file(s)." | tee cppcheck-summary.txt
+          fi
+          : > cppcheck-report.txt
+          for f in "${files[@]}"; do
+            [[ -f "$f" ]] || continue
+            # -D_MSC_VER satisfies the toolset version guard in Envy/StdAfx.h;
+            # legacy suppressions cover MFC/Windows-header noise.
+            cppcheck --std=c++17 --platform=win64 \
+              -D_MSC_VER=1950 -DUNICODE -D_UNICODE -DWIN32 -D_WINDOWS \
+              --enable=warning,performance,portability \
+              --inline-suppr --suppressions-list=.cppcheck-suppressions \
+              --quiet "$f" >> cppcheck-report.txt 2>&1 || true
+          done
+          {
+            echo "## Cppcheck (advisory)"
+            echo ""
+            echo "Files analyzed: ${#files[@]}"
+            echo ""
+            echo '```'
+            # Findings are whatever survived the suppression list.
+            if [[ -s cppcheck-report.txt ]]; then
+              sed -n '1,100p' cppcheck-report.txt
+            else
+              echo "No findings after suppressions."
+            fi
+            echo '```'
+            echo ""
+            echo "Advisory only: this job never fails the build and is not a required check."
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: cppcheck-report
+          path: |
+            cppcheck-report.txt
+            cppcheck-summary.txt
+          if-no-files-found: ignore
