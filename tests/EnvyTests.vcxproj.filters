@@ -131,6 +131,9 @@
     <ClCompile Include="test_albumfolder_mountcollection_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_bt_tracker_log_redaction_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_remote_access_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

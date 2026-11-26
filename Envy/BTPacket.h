@@ -237,6 +237,7 @@ protected:
 	bool m_bConnected;
 
 	static void OnEvent(void* closure, int evt, const unsigned char* info_hash, const void* data, size_t data_len);
+	static void OnDhtValues(const unsigned char* info_hash, const void* data, size_t data_len); // Ingest peers for one infohash
 };
 
 extern CDHT DHT;

@@ -37,6 +37,7 @@
 #include "Download.h"
 #include "Downloads.h"
 #include "Transfers.h"
+#include "BTDiscoveryPolicy.h"
 #include "Statistics.h"
 #include "Security.h"
 #include "EDClients.h"
@@ -957,7 +958,13 @@ BOOL CDatagrams::OnDatagram(const SOCKADDR_IN* pHost, const BYTE* pBuffer, DWORD
 					if ( oLock.Lock( 250 ) )
 					{
 						if ( CDownload* pDownload = Downloads.FindByBTH( oHash ) )
-							pDownload->AddSourceBT( Hashes::BtGuid(), &pHost->sin_addr, nPort );
+						{
+							// BEP 27/BEP 14: local discovery must not feed
+							// peers to a private torrent. Later infohash
+							// headers in the same announce still apply.
+							if (BtAllowsPublicDiscovery(pDownload->m_pTorrent.m_bPrivate != FALSE))
+								pDownload->AddSourceBT(Hashes::BtGuid(), &pHost->sin_addr, nPort);
+						}
 					}
 				}
 			}

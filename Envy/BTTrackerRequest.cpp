@@ -26,6 +26,7 @@
 
 #include "BENode.h"
 #include "BTPacket.h"
+#include "BTTrackerLogRedaction.h"
 #include "Network.h"
 #include "Transfers.h"
 #include "Datagrams.h"
@@ -474,8 +475,10 @@ void CBTTrackerRequest::OnRun()
 	// Check if the request return needs to be parsed
 	if ( m_sURL.GetLength() < 14 )		// Need to verify m_sURL: Prior crash in CHttpRequest::OnRun()
 	{
-	//	ProcessUDP();	// No URL assume UDP?
-		theApp.Message( MSG_DEBUG, L"[BT] BitTorrent %s for \"%s\" is not supported: %s", szEventInfo[ m_nEvent ], (LPCTSTR)m_sName, (LPCTSTR)m_sAddress );
+		//	ProcessUDP();	// No URL assume UDP?
+		// Log without the announce query string (private tracker passkeys)
+		const CString strLogAddress(m_sAddress, (int)BtTrackerLogLength(m_sAddress));
+		theApp.Message(MSG_DEBUG, L"[BT] BitTorrent %s for \"%s\" is not supported: %s", szEventInfo[m_nEvent], (LPCTSTR)m_sName, (LPCTSTR)strLogAddress);
 #ifdef _DEBUG	// Assert Workaround
 		if ( m_dwRef == 1 ) m_dwRef = 0;
 #endif
@@ -489,7 +492,9 @@ void CBTTrackerRequest::OnRun()
 	// BTE_TRACKER_STOPPED
 	// BTE_TRACKER_SCRAPE
 
-	theApp.Message( MSG_DEBUG | MSG_FACILITY_OUTGOING, L"[BT] Sending BitTorrent %s for \"%s\": %s", szEventInfo[ m_nEvent ], (LPCTSTR)m_sName, (LPCTSTR)m_sAddress );
+	// Log without the announce query string (private tracker passkeys)
+	const CString strLogAddress(m_sAddress, (int)BtTrackerLogLength(m_sAddress));
+	theApp.Message(MSG_DEBUG | MSG_FACILITY_OUTGOING, L"[BT] Sending BitTorrent %s for \"%s\": %s", szEventInfo[m_nEvent], (LPCTSTR)m_sName, (LPCTSTR)strLogAddress);
 
 	if ( m_bHTTP )
 		ProcessHTTP();
@@ -501,7 +506,9 @@ void CBTTrackerRequest::OnRun()
 
 void CBTTrackerRequest::OnTrackerEvent(bool bSuccess, LPCTSTR pszReason, LPCTSTR pszTip)
 {
-	theApp.Message( ( bSuccess ? MSG_INFO : MSG_ERROR ), L"%s \"%s\": %s", pszReason, (LPCTSTR)m_sName, (LPCTSTR)m_sAddress );
+	// Log without the announce query string (private tracker passkeys)
+	const CString strLogAddress(m_sAddress, (int)BtTrackerLogLength(m_sAddress));
+	theApp.Message((bSuccess ? MSG_INFO : MSG_ERROR), L"%s \"%s\": %s", pszReason, (LPCTSTR)m_sName, (LPCTSTR)strLogAddress);
 
 	if ( ! m_pOnTrackerEvent )
 		return;

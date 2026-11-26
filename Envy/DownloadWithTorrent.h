@@ -63,6 +63,7 @@ public:
 	float			GetRatio() const;
 	bool			IsSeeding() const;
 	bool			IsTorrent() const;
+	virtual BOOL IsPrivateTorrent() const override; // BEP 27: torrent's info-dict private flag
 	bool			IsSingleFileTorrent() const;
 	bool			IsMultiFileTorrent() const;
 	BOOL			UploadExists(in_addr* pIP) const;
