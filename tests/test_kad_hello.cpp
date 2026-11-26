@@ -342,6 +342,18 @@ bool test_write_failure_leaves_buffer_untouched()
 			return false;
 	return true;
 }
+
+// CKademlia::WriteHelloBody uses KadWriteHello with KADEMLIA_VERSION (8) and tag count 0,
+// so Envy never sets TAG_KADMISCOPTIONS bit 2 and does not solicit HELLO_RES_ACK (0x22).
+bool test_outbound_hello_does_not_request_res_ack()
+{
+	uint8_t body[KadHelloFixedBytes];
+	const size_t len = KadWriteHello(body, sizeof(body), kId, 0x1236, 8);
+	if (len != KadHelloFixedBytes || body[19] != 0)
+		return false;
+	KadHello parsed{};
+	return KadParseHello(body, len, parsed) && parsed.version == 8 && !parsed.RequestsAck() && parsed.miscOptions == 0;
+}
 } // namespace
 
 void register_kad_hello_tests(TestSuite& suite)
@@ -365,4 +377,5 @@ void register_kad_hello_tests(TestSuite& suite)
 	suite.add_test("kad_inbound_limiter_clock_regression", test_limiter_clock_regression_and_boundaries);
 	suite.add_test("kad_bodyless_request_gate", test_bodyless_request_gate);
 	suite.add_test("kad_hello_write_failure_untouched", test_write_failure_leaves_buffer_untouched);
+	suite.add_test("kad_hello_outbound_no_res_ack", test_outbound_hello_does_not_request_res_ack);
 }
