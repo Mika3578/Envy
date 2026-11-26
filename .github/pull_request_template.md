@@ -46,4 +46,4 @@ Issue reference: `Fixes #...` / `Closes #...` / `Related to #...` / `None`
 - [ ] No personal emails; no forged bot identities; avoid AI promo signatures (`AGENTS.md` *Authorship, privacy and notices*)
 - [ ] Tests added/updated where practical
 - [ ] Documentation updated when behavior or policy changed
-- [ ] Changelog updated for user-visible changes
+- [ ] Changelog fragment added under `changelog.d/` for user-visible changes (or justified none)

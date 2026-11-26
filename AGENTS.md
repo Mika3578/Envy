@@ -147,7 +147,9 @@ resolve treated threads; request reviews per `envy-review-requests`.
   encoding checks, targeted tests); CI runs the Windows builds. Report what
   ran and what did not; never present untested work as tested.
 - Bug fixes get a regression test where practical; parsers always do.
-- Keep docs truthful in the same PR; `CHANGELOG.md` for user-visible changes;
+- Keep docs truthful in the same PR. User-visible changes add a
+  `changelog.d/<id>.<category>.md` fragment (do not edit `CHANGELOG.md`
+  directly; `compile-changelog.py` inserts fragments at release).
   `docs/DEVELOPMENT_PLAN.md` only for strategic scope or blockers.
 - Do not silently remove tests, fixtures, workflows or compatibility paths.
 
