@@ -348,10 +348,19 @@ BOOL CUploadTransferDC::CheckRanking()
 
 	m_tRankingCheck = GetTickCount();
 
-	int nPosition = UploadQueues.GetPosition( this, TRUE );
+	QueuePositionState nState = qpsNoQueue;
+	int nPosition = UploadQueues.GetPosition(this, TRUE, &nState);
+
+	if (nState == qpsTransientBusy)
+	{
+		// Lock contention this pass. The client stays queued and the next
+		// ranking pass retries; a busy lock is not a dead queue.
+		return TRUE;
+	}
+
 	if ( nPosition < 0 )
 	{
-		// Invalid queue position, or queue deleted
+		// Queue deleted, or the upload is no longer tracked
 		Close( IDS_UPLOAD_DROPPED );
 		return FALSE;
 	}

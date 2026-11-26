@@ -40,9 +40,11 @@ CUploadQueues UploadQueues;
 // CUploadQueues construction
 
 CUploadQueues::CUploadQueues()
-	: m_pTorrentQueue	( new CUploadQueue() )
-	, m_pHistoryQueue	( new CUploadQueue() )
-	, m_bDonkeyLimited	( FALSE )
+    : m_pTorrentQueue(new CUploadQueue())
+    , m_pHistoryQueue(new CUploadQueue())
+    , m_nContentionEvents(0)
+    , m_tLastContentionLog(-1)
+    , m_bDonkeyLimited(FALSE)
 {
 	m_pHistoryQueue->m_bExpanded = FALSE;
 }
@@ -100,26 +102,77 @@ BOOL CUploadQueues::Dequeue(CUploadTransfer* pUpload)
 //////////////////////////////////////////////////////////////////////
 // CUploadQueues position lookup and optional start
 
-int CUploadQueues::GetPosition(CUploadTransfer* pUpload, BOOL bStart)
+// Bounded lock waits for position lookups. Callers that hit the timeout
+// defer to their next periodic ranking pass instead of dropping the client.
+static const DWORD UPLOAD_QUEUE_NETWORK_LOCK_WAIT = 500; // ms
+static const DWORD UPLOAD_QUEUE_LOCK_WAIT = 250;         // ms
+
+// Contention logs repeat at most once per interval; the event counter keeps
+// the suppressed volume visible in the next logged message.
+static const DWORD UPLOAD_QUEUE_CONTENTION_LOG_INTERVAL = 30000; // ms
+
+void CUploadQueues::LogContention(CUploadTransfer* pUpload)
+{
+	const ULONG nEvents = (ULONG)InterlockedIncrement(&m_nContentionEvents);
+	const DWORD tNow = GetTickCount();
+	const LONG tLast = m_tLastContentionLog;
+
+	if (tNow - (DWORD)tLast < UPLOAD_QUEUE_CONTENTION_LOG_INTERVAL) return;
+
+	// Best-effort single winner: a lost update only delays the next message.
+	if (InterlockedCompareExchange(&m_tLastContentionLog, (LONG)tNow, tLast) == tLast)
+	{
+		theApp.Message(MSG_ERROR, L"Upload queue position contention for %s: %lu lookups deferred.",
+		               (LPCTSTR)pUpload->m_sAddress, nEvents);
+	}
+}
+
+int CUploadQueues::GetPosition(CUploadTransfer* pUpload, BOOL bStart, QueuePositionState* pState)
 {
 	ASSERT( pUpload != NULL );
 
-	CSingleLock oLock1( &Network.m_pSection );
-	if ( oLock1.Lock( 500 ) )
-	{
-		CSingleLock oLock2( &m_pSection );
-		if ( oLock2.Lock( 250 ) )
-		{
-			if ( Check( pUpload->m_pQueue ) )
-				return pUpload->m_pQueue->GetPosition( pUpload, bStart );
+	QueuePositionState nLocalState = qpsNoQueue;
+	QueuePositionState& nResult = pState != NULL ? *pState : nLocalState;
 
-			pUpload->m_pQueue = NULL;
+	if (theApp.m_bClosing)
+	{
+		// Teardown owns the transfer; do not contest locks on the way out.
+		nResult = qpsShutdown;
+		DEBUG_ONLY(theApp.Message(MSG_DEBUG, L"Upload queue position lookup skipped during shutdown for %s.",
+		                          (LPCTSTR)pUpload->m_sAddress));
+		return -1;
+	}
+
+	CSingleLock oLock1( &Network.m_pSection );
+	if (!oLock1.Lock(UPLOAD_QUEUE_NETWORK_LOCK_WAIT))
+	{
+		nResult = qpsTransientBusy;
+		LogContention(pUpload);
+		return -1;
+	}
+
+	CSingleLock oLock2(&m_pSection);
+	if (!oLock2.Lock(UPLOAD_QUEUE_LOCK_WAIT))
+	{
+		nResult = qpsTransientBusy;
+		LogContention(pUpload);
+		return -1;
+	}
+
+	if (Check(pUpload->m_pQueue))
+	{
+		int nPosition = pUpload->m_pQueue->GetPosition(pUpload, bStart);
+		if (nPosition >= 0)
+		{
+			nResult = qpsReady;
+			return nPosition;
 		}
 	}
 
-	theApp.Message( MSG_ERROR, L"Rejecting Upload connection to %s, network core overloaded.", (LPCTSTR)pUpload->m_sAddress );
-
-	// Upload has no valid queue, or network core overloaded, or shutdown
+	// The upload has no valid queue: it was deleted or is no longer tracked.
+	pUpload->m_pQueue = NULL;
+	nResult = qpsNoQueue;
+	theApp.Message(MSG_ERROR, L"Rejecting Upload connection to %s, no valid upload queue.", (LPCTSTR)pUpload->m_sAddress);
 	return -1;
 }
 

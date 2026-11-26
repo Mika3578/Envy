@@ -284,7 +284,10 @@ void CUploadTransferED2K::OnQueueKick()
 
 	if ( m_nState == upsRequest || m_nState == upsUploading )
 	{
-		if ( UploadQueues.GetPosition( this, TRUE ) == 0 ) return;
+		QueuePositionState nState = qpsNoQueue;
+		int nPosition = UploadQueues.GetPosition(this, TRUE, &nState);
+
+		if (nPosition == 0 || nState == qpsTransientBusy) return;
 
 		if ( m_pBaseFile != NULL && m_pClient->IsOnline() )
 			Send( CEDPacket::New( ED2K_C2C_FINISHUPLOAD ) );
@@ -454,7 +457,15 @@ BOOL CUploadTransferED2K::ServeRequests()
 				pQueue->Enqueue( this, TRUE, FALSE );
 			}
 
-			int nQpos = UploadQueues.GetPosition( this, TRUE );
+			QueuePositionState nQState = qpsNoQueue;
+			int nQpos = UploadQueues.GetPosition(this, TRUE, &nQState);
+			if (nQState == qpsTransientBusy)
+			{
+				// Contention reading back the rotated position. The upload was
+				// already re-queued above; the next ranking pass reports the
+				// real position to the peer without a premature FINISHUPLOAD.
+				return TRUE;
+			}
 			if ( nQpos != 0 )
 			{
 				if ( m_pBaseFile != NULL && m_pClient->IsOnline() )
@@ -802,11 +813,19 @@ BOOL CUploadTransferED2K::CheckFinishedRequest()
 
 BOOL CUploadTransferED2K::CheckRanking()
 {
-	int nPosition = UploadQueues.GetPosition( this, TRUE );
+	QueuePositionState nState = qpsNoQueue;
+	int nPosition = UploadQueues.GetPosition(this, TRUE, &nState);
+
+	if (nState == qpsTransientBusy)
+	{
+		// Lock contention this pass. The client stays queued and the next
+		// ranking pass retries; a busy lock is not a dead queue.
+		return TRUE;
+	}
 
 	if ( nPosition < 0 )
 	{
-		// Invalid queue position, or queue deleted. Drop client and exit.
+		// Queue deleted, or the upload is no longer tracked. Drop client and exit.
 		Cleanup();
 		Close( IDS_UPLOAD_DROPPED );
 		return FALSE;
