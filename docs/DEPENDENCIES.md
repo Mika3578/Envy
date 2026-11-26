@@ -34,3 +34,4 @@
 - Add exact version identifiers and upstream source links.
 - Add update cadence and validation checklist per dependency.
 - When non-Windows CI starts, extend `vcpkg.json` `supports` only for packages actually built off Windows (separate PR).
+- Keep `vcpkg.json` `version-string` in sync with `version.json` at each version bump (`scripts/auto-version.ps1` does not own it; the manifest version is informational for the vcpkg registry and is not read by the build).
