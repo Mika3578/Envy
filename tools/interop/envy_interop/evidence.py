@@ -34,6 +34,7 @@ from .constants import (
     ED2K_PROTOCOL_EMULE,
     ED2K_PROTOCOL_KAD,
     ED2K_PROTOCOL_KAD_PACKED,
+    ED2K_PROTOCOL_PACKED,
     KAD_OP_FIND_NODE,
     KAD_OP_FIND_NODE_RES,
     KAD_OP_FIREWALLED_ACK_RES,
@@ -107,30 +108,77 @@ def find_tshark() -> Optional[str]:
     return shutil.which("tshark")
 
 
-def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
+def _framing_failure(blob: bytes, offset: int, label: str, reason: str) -> FrameHit:
+    """Terminal marker for a sequential stream that stops being parseable."""
+    return FrameHit(
+        protocol=blob[offset] if offset < len(blob) else -1,
+        opcode=blob[offset + 5] if offset + 5 < len(blob) else -1,
+        offset=offset,
+        length=len(blob) - offset,
+        label=label,
+        details={"parse_error": reason},
+    )
+
+
+def extract_ed2k_frames(
+    blob: bytes,
+    *,
+    max_frames: int = 64,
+    sequential: bool = False,
+) -> List[FrameHit]:
     """Scan a blob for ED2K TCP frames: <proto:1><size:4 LE><opcode:1><body>.
 
     Fail closed: truncated size fields are skipped; no speculative repair.
     Does not recognize Kad UDP (0xE4); use ``extract_kad_udp_frames``.
+
+    ``sequential`` is for one reassembled TCP direction: frames must follow
+    each other from offset 0. Packed (0xD4) frames are skipped by their size
+    without inflation. The first unknown header or truncated frame ends the
+    scan with a parse-error marker; bytes after it, including the bodies of
+    packed or truncated frames, are never searched for embedded frames.
     """
     hits: List[FrameHit] = []
     i = 0
     n = len(blob)
-    while i + 6 <= n and len(hits) < max_frames:
+    while i < n and len(hits) < max_frames:
+        if i + 6 > n:
+            if sequential:
+                hits.append(_framing_failure(blob, i, "truncated_frame",
+                                             f"frame header truncated ({n - i} < 6)"))
+            break
         proto = blob[i]
-        if proto not in (ED2K_PROTOCOL_EDONKEY, ED2K_PROTOCOL_EMULE):
-            i += 1
-            continue
         size = struct.unpack_from("<I", blob, i + 1)[0]
-        if size < 1 or size > 2 * 1024 * 1024:
+        known = proto in (ED2K_PROTOCOL_EDONKEY, ED2K_PROTOCOL_EMULE)
+        if sequential and proto == ED2K_PROTOCOL_PACKED:
+            known = True
+        if not known or size < 1 or size > 2 * 1024 * 1024:
+            if sequential:
+                hits.append(_framing_failure(
+                    blob, i, "framing_error",
+                    f"invalid frame header (protocol 0x{proto:02x}, size {size})"))
+                break
             i += 1
             continue
         frame_end = i + 5 + size
         if frame_end > n:
+            if sequential:
+                hits.append(_framing_failure(
+                    blob, i, "truncated_frame",
+                    f"frame truncated ({n - i} of {frame_end - i} bytes)"))
+                break
             # Plausible proto+size can appear in unrelated bytes; keep scanning.
             i += 1
             continue
         opcode = blob[i + 5]
+        if proto == ED2K_PROTOCOL_PACKED:
+            hits.append(FrameHit(
+                protocol=proto, opcode=opcode, offset=i, length=frame_end - i,
+                label=f"op_{proto:02x}_{opcode:02x}",
+                details={"body_len": size - 1,
+                         "parse_error": "packed frame is not inflated"},
+            ))
+            i = frame_end
+            continue
         body = blob[i + 6 : frame_end]
         label = TCP_OPCODE_LABELS.get((proto, opcode), f"op_{proto:02x}_{opcode:02x}")
         details: Dict[str, Any] = {"body_len": len(body)}
@@ -198,6 +246,11 @@ def extract_ed2k_frames(blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
             )
         )
         i = frame_end
+    if sequential and i < n and len(hits) >= max_frames:
+        hits.append(_framing_failure(
+            blob, i, "framing_error",
+            f"frame budget ({max_frames}) exhausted with {n - i} unconsumed bytes",
+        ))
     return hits
 
 
@@ -281,11 +334,16 @@ def extract_kad_udp_frames(
     Packed protocol 0xE5 is skipped (fail closed — no inflate).
 
     When ``single_datagram`` is True (per-packet ``from-pcap-udp-*.bin``), the
-    entire blob after the first header is one body — never split on embedded
-    ``E4 <opcode>`` sequences inside the payload.
+    Kad header must start the datagram and the entire blob after it is one
+    body — never split on, or searched for, embedded ``E4 <opcode>`` bytes.
     """
     hits: List[FrameHit] = []
     n = len(blob)
+    if single_datagram and (n < 2 or blob[0] != ED2K_PROTOCOL_KAD
+                            or blob[1] not in KAD_OPCODE_LABELS):
+        # The header of a captured datagram is at offset 0. Packed (0xE5),
+        # obfuscated or other datagrams are never searched for E4 <opcode>.
+        return hits
     i = 0
     while i + 2 <= n and len(hits) < max_frames:
         proto = blob[i]
@@ -524,43 +582,49 @@ def _is_pcap_tcp_evidence_name(name: str) -> bool:
     return name.startswith("from-pcap-tcp-") and name.endswith(".bin")
 
 
-def _tcp_flow_key(name: str) -> Optional[str]:
-    """Return reassembly key from a transport-tagged TCP evidence filename.
-
-    Supported shapes:
-    - ``from-pcap-tcp-<stream>-<src>-<dst>-<seq>.bin`` → ``<stream>-<src>-<dst>``
-      (one TCP direction; never join both directions of a stream)
-    - ``from-pcap-tcp-<stream>-<seq>.bin`` → ``<stream>`` (legacy tests / dumps)
-    """
-    if not _is_pcap_tcp_evidence_name(name):
-        return None
-    parts = name[len("from-pcap-tcp-") : -len(".bin")].split("-")
-    if len(parts) == 4:
-        return f"{parts[0]}-{parts[1]}-{parts[2]}"
-    if len(parts) == 2:
-        return parts[0]
-    return None
-
-
 def tcp_reassembly_blobs(paths: Sequence[Path]) -> List[bytes]:
-    """Concatenate TCP segment payloads per unidirectional flow; never UDP.
+    """Read complete extracted TCP streams without joining legacy segment dumps.
 
-    Operator dumps without the ``from-pcap-tcp-`` prefix are not joined — only
-    scanned per-file — so Kad UDP bytes cannot forge ED2K frames across files.
+    Old filenames contain capture ordinals, not TCP sequence numbers. Joining
+    them could fabricate a frame across a gap or conflicting retransmission.
+    New extracts are reassembled and validated before being written to disk.
     """
-    by_flow: Dict[str, List[Tuple[str, bytes]]] = {}
-    for path in paths:
-        if not path or not path.is_file():
-            continue
-        flow = _tcp_flow_key(path.name)
-        if flow is None:
-            continue
-        by_flow.setdefault(flow, []).append((path.name, load_bytes(path)))
-    blobs: List[bytes] = []
-    for flow in sorted(by_flow):
-        ordered = sorted(by_flow[flow], key=lambda item: item[0])
-        blobs.append(b"".join(chunk for _, chunk in ordered))
-    return blobs
+    return [load_bytes(path) for path in dict.fromkeys(paths)
+            if path and path.is_file() and _is_pcap_tcp_evidence_name(path.name)]
+
+
+def reassemble_tcp_segments(segments: Sequence[Tuple[int, bytes]]) -> bytes:
+    """Validate one direction, deduplicate retransmits and reject gaps/conflicts.
+
+    RFC 9293 sequence arithmetic is modulo 2**32. The inspected window is
+    limited to 8 MiB, well below the ambiguous half of sequence space.
+    """
+    limit = 8 * 1024 * 1024
+    if not segments:
+        return b""
+    if len(segments) > 65536 or sum(len(data) for _, data in segments) > limit:
+        raise EvidenceError("TCP evidence exceeds bounded reassembly window")
+    anchor = segments[0][0]
+    ordered = []
+    for seq, data in segments:
+        if not 0 <= seq < 2**32 or not data:
+            raise EvidenceError("invalid TCP sequence or empty segment")
+        offset = ((seq - anchor + 2**31) % 2**32) - 2**31
+        ordered.append((offset, data))
+    ordered.sort(key=lambda item: item[0])
+    start = ordered[0][0]
+    result = bytearray()
+    for offset, data in ordered:
+        relative = offset - start
+        if relative + len(data) > limit:
+            raise EvidenceError("TCP sequence span exceeds bounded window")
+        if relative > len(result):
+            raise EvidenceError("TCP evidence contains a sequence gap")
+        overlap = min(len(data), len(result) - relative)
+        if result[relative:relative + overlap] != data[:overlap]:
+            raise EvidenceError("TCP evidence contains conflicting retransmissions")
+        result.extend(data[overlap:])
+    return bytes(result)
 
 
 def _is_pcap_udp_evidence_name(name: str) -> bool:
@@ -570,12 +634,13 @@ def _is_pcap_udp_evidence_name(name: str) -> bool:
 def extract_frames_for_path(path: Path, blob: bytes, *, max_frames: int = 64) -> List[FrameHit]:
     """Dispatch extractors from transport tag when present.
 
-    ``from-pcap-tcp-*`` → ED2K TCP only; ``from-pcap-udp-*`` → one Kad datagram;
+    ``from-pcap-tcp-*`` → sequential ED2K TCP only; ``from-pcap-udp-*`` → one
+    Kad datagram anchored at offset 0;
     untagged operator dumps keep the combined scanner.
     """
     name = path.name
     if _is_pcap_tcp_evidence_name(name):
-        return extract_ed2k_frames(blob, max_frames=max_frames)
+        return extract_ed2k_frames(blob, max_frames=max_frames, sequential=True)
     if _is_pcap_udp_evidence_name(name):
         return extract_kad_udp_frames(blob, max_frames=max_frames, single_datagram=True)
     return extract_frames(blob, max_frames=max_frames)
@@ -584,23 +649,21 @@ def extract_frames_for_path(path: Path, blob: bytes, *, max_frames: int = 64) ->
 def collect_hits_from_paths(paths: Sequence[Path]) -> List[FrameHit]:
     """Aggregate frames across evidence files without flattening UDP datagrams.
 
-    Transport-tagged files use the matching extractor only. TCP segment
-    reassembly joins only ``from-pcap-tcp-<stream>-<src>-<dst>-*`` (or legacy
-    ``from-pcap-tcp-<stream>-*``) within one unidirectional flow.
+    Transport-tagged files use the matching extractor only. Extracted TCP
+    streams have already passed sequence validation. Legacy files are never
+    concatenated because their filenames do not establish TCP sequence order.
     """
     hits: List[FrameHit] = []
-    for path in paths:
+    for path in dict.fromkeys(paths):
         if not path or not path.is_file():
             continue
         hits.extend(extract_frames_for_path(path, load_bytes(path)))
-    for blob in tcp_reassembly_blobs(paths):
-        hits.extend(extract_ed2k_frames(blob))
     return hits
 
 
 @dataclass(frozen=True)
 class PcapPayloadExtract:
-    """Transport-separated tshark payloads (one list entry per field line)."""
+    """Validated directional TCP streams and independent UDP datagrams."""
 
     tcp_by_stream: Dict[str, List[bytes]]
     udp: List[bytes]
@@ -648,33 +711,77 @@ def extract_from_pcap_via_tshark(
             raise EvidenceError(f"tshark exit {proc.returncode}: {proc.stderr.strip()[:200]}")
         return proc.stdout
 
-    # Key: "<stream>-<srcport>-<dstport>" → unidirectional TCP flow payloads.
-    tcp_by_stream: Dict[str, List[bytes]] = {}
-    for line in _run(("tcp.stream", "tcp.srcport", "tcp.dstport", "tcp.payload")).splitlines():
+    segments: Dict[str, List[Tuple[int, bytes]]] = {}
+    directions: Dict[str, Dict[Tuple[str, str], int]] = {}
+    fields = ("tcp.stream", "tcp.srcport", "tcp.dstport", "tcp.seq_raw",
+              "tcp.len", "tcp.flags.syn", "ip.src", "ipv6.src", "tcp.payload")
+    for line in _run(fields).splitlines():
         parts = line.split("\t")
-        if len(parts) < 4:
-            continue
-        stream = (parts[0] or "0").strip()
-        src = (parts[1] or "0").strip()
-        dst = (parts[2] or "0").strip()
-        hex_str = parts[3].strip().replace(":", "")
-        if not hex_str:
-            continue
-        flow = f"{stream}-{src}-{dst}"
+        if len(parts) != len(fields):
+            raise EvidenceError("tshark TCP row is missing sequence metadata")
+        stream, src, dst, seq_text, size_text, syn, ipv4, ipv6, payload = parts
+        if not (stream.strip() and src.strip() and dst.strip()
+                and seq_text.strip() and size_text.strip()):
+            continue  # UDP packets appear as empty-column rows in the TCP export.
         try:
-            tcp_by_stream.setdefault(flow, []).append(bytes.fromhex(hex_str))
+            stream_id, src_port, dst_port, seq, size = map(
+                int, (stream, src, dst, seq_text, size_text)
+            )
         except ValueError as exc:
-            raise EvidenceError("tshark produced malformed TCP hex payload") from exc
+            raise EvidenceError("tshark produced invalid TCP fields") from exc
+        hex_payload = payload.strip()
+        if size > 0 and not hex_payload:
+            raise EvidenceError("truncated or missing TCP evidence payload")
+        if not hex_payload:
+            continue  # ACK-only TCP packets and non-TCP rows carry no payload.
+        try:
+            data = bytes.fromhex(hex_payload.replace(":", ""))
+        except ValueError as exc:
+            raise EvidenceError("tshark produced invalid TCP payload hex") from exc
+        if (stream_id < 0 or not 0 < src_port <= 65535 or not 0 < dst_port <= 65535
+                or not 0 <= seq < 2**32 or size != len(data) or syn not in ("0", "1")
+                or bool(ipv4) == bool(ipv6)):
+            raise EvidenceError("incomplete or ambiguous TCP evidence metadata")
+        # Endpoint addresses distinguish equal-port directions, but are never
+        # exported into evidence filenames or summary metadata.
+        endpoints = directions.setdefault(str(stream_id), {})
+        endpoint = (ipv4 or ipv6, str(src_port))
+        direction = endpoints.setdefault(endpoint, len(endpoints))
+        if direction > 1:
+            raise EvidenceError("more than two endpoints in one TCP stream")
+        flow = f"{stream_id}-{direction}"
+        segments.setdefault(flow, []).append(((seq + int(syn)) % 2**32, data))
+    tcp_by_stream = {flow: [reassemble_tcp_segments(chunks)]
+                     for flow, chunks in segments.items()}
 
     udp: List[bytes] = []
-    for line in _run(("udp.payload",)).splitlines():
-        hex_str = line.strip().replace(":", "")
-        if not hex_str:
-            continue
+    for line in _run(("udp.length", "udp.payload")).splitlines():
+        parts = line.rstrip("\r\n").split("\t")
+        if len(parts) != 2:
+            continue  # TCP rows carry no UDP fields.
+        length_text = parts[0].strip()
+        hex_payload = parts[1].strip()
+        if not length_text:
+            continue  # TCP rows carry no UDP fields.
         try:
-            udp.append(bytes.fromhex(hex_str))
+            length = int(length_text)
         except ValueError as exc:
-            raise EvidenceError("tshark produced malformed UDP hex payload") from exc
+            raise EvidenceError("tshark produced malformed UDP fields") from exc
+        if length < 8:
+            raise EvidenceError("tshark produced invalid UDP length")
+        if length > 8 and not hex_payload:
+            raise EvidenceError("truncated or missing UDP evidence payload")
+        if not hex_payload:
+            continue  # Empty datagrams prove nothing.
+        try:
+            data = bytes.fromhex(hex_payload.replace(":", ""))
+        except ValueError as exc:
+            raise EvidenceError("tshark produced malformed UDP fields") from exc
+        if length != len(data) + 8:
+            # Snap-length truncation or a dissector mismatch: never parse a
+            # partial datagram as if it were complete.
+            raise EvidenceError("truncated or inconsistent UDP evidence payload")
+        udp.append(data)
 
     return PcapPayloadExtract(tcp_by_stream=tcp_by_stream, udp=udp)
 
