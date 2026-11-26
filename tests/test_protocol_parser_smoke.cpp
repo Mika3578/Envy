@@ -647,7 +647,7 @@ static bool test_ggep_traverse_index_bound()
 	BYTE nByteIndex = 0;
 	for ( DWORD i = 0; i <= GGEP_ITEM_COUNT_MAX; ++i )
 	{
-		if ( ! GgepTraverseIndexInRange( nByteIndex, GGEP_ITEM_COUNT_MAX + 1 ) )
+		if ( GgepTraverseIndexInRange( nByteIndex, GGEP_ITEM_COUNT_MAX + 1 ) )
 			return false;
 		++nByteIndex;
 	}
