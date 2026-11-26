@@ -14,10 +14,19 @@ on:
     paths:
       - "Envy/**.cpp"
       - "Envy/**.h"
+      - "Envy/**.hpp"
+      - "Envy/**.cxx"
+      - "Envy/**.c"
       - "TorrentEnvy/**.cpp"
       - "TorrentEnvy/**.h"
+      - "TorrentEnvy/**.hpp"
+      - "TorrentEnvy/**.cxx"
+      - "TorrentEnvy/**.c"
       - "HashLib/**.cpp"
       - "HashLib/**.h"
+      - "HashLib/**.hpp"
+      - "HashLib/**.cxx"
+      - "HashLib/**.c"
       - ".cppcheck-suppressions"
       - ".github/workflows/cppcheck.yml"
   push:
@@ -25,10 +34,19 @@ on:
     paths:
       - "Envy/**.cpp"
       - "Envy/**.h"
+      - "Envy/**.hpp"
+      - "Envy/**.cxx"
+      - "Envy/**.c"
       - "TorrentEnvy/**.cpp"
       - "TorrentEnvy/**.h"
+      - "TorrentEnvy/**.hpp"
+      - "TorrentEnvy/**.cxx"
+      - "TorrentEnvy/**.c"
       - "HashLib/**.cpp"
       - "HashLib/**.h"
+      - "HashLib/**.hpp"
+      - "HashLib/**.cxx"
+      - "HashLib/**.c"
       - ".cppcheck-suppressions"
       - ".github/workflows/cppcheck.yml"
   workflow_dispatch:
@@ -64,21 +82,45 @@ jobs:
             base="${{ github.event.pull_request.base.sha }}"
           else
             base="${{ github.event.before }}"
-            git rev-parse --verify "${base}^{commit}" >/dev/null 2>&1 || base="$(git rev-parse HEAD~10)"
+            # The pre-push SHA can be unavailable (forced push, new branch).
+            # Widen the fallback window instead of silently truncating the
+            # diff; a bounded advisory scan still beats missing coverage.
+            git rev-parse --verify "${base}^{commit}" >/dev/null 2>&1 || base="$(git rev-parse HEAD~50)"
           fi
           head="$(git rev-parse HEAD)"
-          mapfile -t files < <(git diff --name-only "$base...$head" -- '*.cpp' '*.h' '*.cxx' '*.hpp' \
+          mapfile -t files < <(git diff --name-only "$base...$head" -- '*.cpp' '*.h' '*.hpp' '*.cxx' '*.c' \
             | grep -E '^(Envy|TorrentEnvy|HashLib)/' \
             | grep -vE '^(Services|Plugins/PluginWizard|Plugins/RatDVDPlugin|Plugins/SWFPlugin)/' \
             || true)
+          # Deleted paths must not consume the bounded-run cap: filter them
+          # out first so live files are never displaced by tombstones.
+          live=()
+          for f in "${files[@]}"; do
+            [[ -f "$f" ]] && live+=("$f")
+          done
+          files=("${live[@]}")
           if [[ ${#files[@]} -eq 0 ]]; then
-            echo "No first-party C/C++ files changed." | tee cppcheck-summary.txt
-            exit 0
+            if git diff --name-only "$base...$head" -- .cppcheck-suppressions | grep -q .; then
+              # Suppression-only change: still exercise the list so invalid
+              # or overly broad entries surface in the report.
+              echo "No first-party C/C++ files changed; exercising .cppcheck-suppressions on a representative file." | tee cppcheck-summary.txt
+              files=(Envy/RC4.cpp)
+            else
+              echo "No first-party C/C++ files changed." | tee cppcheck-summary.txt
+              {
+                echo "## Cppcheck (advisory)"
+                echo ""
+                echo "No first-party C/C++ files changed."
+                echo ""
+                echo "Advisory only: this job never fails the build and is not a required check."
+              } >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+              exit 0
+            fi
           fi
           # Bounded run: the advisory job must stay cheap on wide PRs.
           cap=60
           if [[ ${#files[@]} -gt $cap ]]; then
-            echo "PR touches ${#files[@]} files; analyzing the first $cap (see .cppcheck-suppressions history for scope)." \
+            echo "PR touches ${#files[@]} live first-party files; analyzing the first $cap (see .cppcheck-suppressions history for scope)." \
               | tee cppcheck-summary.txt
             files=("${files[@]:0:$cap}")
           else
@@ -95,10 +137,11 @@ jobs:
               --inline-suppr --suppressions-list=.cppcheck-suppressions \
               --quiet "$f" >> cppcheck-report.txt 2>&1 || true
           done
+          analyzed=${#files[@]}
           {
             echo "## Cppcheck (advisory)"
             echo ""
-            echo "Files analyzed: ${#files[@]}"
+            echo "Files analyzed: $analyzed"
             echo ""
             echo '```'
             # Findings are whatever survived the suppression list.

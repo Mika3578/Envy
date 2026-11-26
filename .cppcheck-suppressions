@@ -10,9 +10,27 @@ windowsGlobal:*
 missingIncludeSystem:*.h
 unusedFunction:*
 
-# MFC/OLE macros (END_INTERFACE_PART, ...) are unavailable to cppcheck's
-# preprocessor without the MFC headers; configure-id noise, not findings.
-unknownMacro:*
+# MFC/OLE declaration macros are unavailable to cppcheck's preprocessor
+# without the MFC headers; configure-id noise, not findings. Keep this list
+# narrow: a genuinely unknown macro outside MFC/OLE usage must stay visible
+# so a file cppcheck could not parse is never reported as clean.
+unknownMacro:DECLARE_MESSAGE_MAP
+unknownMacro:BEGIN_MESSAGE_MAP
+unknownMacro:END_MESSAGE_MAP
+unknownMacro:DECLARE_DYNAMIC
+unknownMacro:IMPLEMENT_DYNAMIC
+unknownMacro:DECLARE_DYNCREATE
+unknownMacro:IMPLEMENT_DYNCREATE
+unknownMacro:DECLARE_INTERFACE_MAP
+unknownMacro:BEGIN_INTERFACE_PART
+unknownMacro:END_INTERFACE_PART
+unknownMacro:ON_EVENT
+unknownMacro:ON_MESSAGE
+unknownMacro:ON_REGISTERED_MESSAGE
+unknownMacro:ON_COMMAND
+unknownMacro:ON_UPDATE_COMMAND_UI
+unknownMacro:DEBUG_NEW
+unknownMacro:afx_msg
 
 # Legacy code patterns to be modernized
 unusedPrivateFunction:*
