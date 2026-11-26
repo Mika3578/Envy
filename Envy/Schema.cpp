@@ -23,6 +23,7 @@
 #include "SchemaMember.h"
 #include "SchemaChild.h"
 #include "ShellIcons.h"
+#include "SchemaIconPolicy.h"
 #include "CoolInterface.h"
 #include "XML.h"
 
@@ -36,13 +37,14 @@ static char THIS_FILE[] = __FILE__;
 //////////////////////////////////////////////////////////////////////
 // CSchema construction
 
+/// Initialize a file schema with generic file icons for every supported size.
 CSchema::CSchema()
-	: m_nType		( typeFile )
-	, m_nAvailability ( saDefault )
-	, m_bPrivate	( FALSE )
-	, m_nIcon16 	( -1 )
-	, m_nIcon32 	( -1 )
-	, m_nIcon48 	( -1 )
+    : m_nType(typeFile)
+    , m_nAvailability(saDefault)
+    , m_bPrivate(FALSE)
+    , m_nIcon16(SHI_FILE)
+    , m_nIcon32(SHI_FILE)
+    , m_nIcon48(SHI_FILE)
 {
 	m_pTypeFilters.InitHashTable( 127 );
 }
@@ -179,6 +181,8 @@ void CSchema::Clear()
 //////////////////////////////////////////////////////////////////////
 // CSchema Load
 
+/// Load schema metadata and try skin, optional alternate, default, then safe icons.
+/// Return FALSE if the schema cannot load; missing icons retain generic or previously loaded entries.
 BOOL CSchema::Load(LPCTSTR pszFile)
 {
 	CString strFile( pszFile );
@@ -193,13 +197,16 @@ BOOL CSchema::Load(LPCTSTR pszFile)
 
 	CString strRoot = m_sIcon.Left( m_sIcon.GetLength() - 4 );
 
-	LoadIcon( strRoot + L".Skin.ico" ) ||		// Allow Custom
-#ifdef XPSUPPORT
-		theApp.m_nWinVer < WIN_VISTA ? LoadIcon( strRoot + L".Safe.ico" ) : FALSE ||	// Legacy XP
-#endif
-		Settings.Skin.AltIcons ? LoadIcon( strRoot + L".Alt.ico" ) : FALSE ||	// Prior Style (theApp.m_nWinVer < WIN_10)
-		LoadIcon() ||							// As Defined (m_sIcon)
-		LoadIcon( strRoot + L".Safe.ico" );		// Fallback
+	LoadSchemaIconFallback(Settings.Skin.AltIcons != FALSE, [&](SchemaIconCandidate candidate) -> bool
+	                       {
+		switch (candidate)
+		{
+		case SchemaIconCandidate::Skin: return LoadIcon(strRoot + L".Skin.ico") != FALSE;
+		case SchemaIconCandidate::Alternate: return LoadIcon(strRoot + L".Alt.ico") != FALSE;
+		case SchemaIconCandidate::Default: return LoadIcon() != FALSE;
+		case SchemaIconCandidate::Safe: return LoadIcon(strRoot + L".Safe.ico") != FALSE;
+		}
+		return false; });
 
 	// LoadIcon() causes bad registry reads (?)
 	// CCoolInterface::IsNewWindows() caused several reapeat ones (?)
@@ -630,6 +637,8 @@ void CSchema::LoadDescriptorView(const CXMLElement* pElement)
 //////////////////////////////////////////////////////////////////////
 // CSchema load icon
 
+/// Load one candidate (m_sIcon when sPath is empty), retaining prior indices on insertion failure.
+/// Return TRUE only if a 16px frame was inserted; missing sizes keep their prior or generic entry.
 BOOL CSchema::LoadIcon(CString sPath /*Empty*/)
 {
 	HICON hIcon16 = NULL, hIcon32 = NULL, hIcon48 = NULL;
@@ -638,26 +647,14 @@ BOOL CSchema::LoadIcon(CString sPath /*Empty*/)
 
 	::LoadIcon( sPath, &hIcon16, &hIcon32, &hIcon48 );
 
-	if ( hIcon16 )
-	{
-		if ( Settings.General.LanguageRTL ) hIcon16 = CreateMirroredIcon( hIcon16 );
-		m_nIcon16 = ShellIcons.Add( hIcon16, 16 );
-		DestroyIcon( hIcon16 );
-	}
-	if ( hIcon32 )
-	{
-		if ( Settings.General.LanguageRTL ) hIcon32 = CreateMirroredIcon( hIcon32 );
-		m_nIcon32 = ShellIcons.Add( hIcon32, 32 );
-		DestroyIcon( hIcon32 );
-	}
-	if ( hIcon48 )
-	{
-		if ( Settings.General.LanguageRTL ) hIcon48 = CreateMirroredIcon( hIcon48 );
-		m_nIcon48 = ShellIcons.Add( hIcon48, 48 );
-		DestroyIcon( hIcon48 );
-	}
-
-	return hIcon16 || hIcon32 || hIcon48;
+	return LoadSchemaIconFrames(m_nIcon16, m_nIcon32, m_nIcon48, SHI_FILE, [&](int nSize)
+	                            {
+		HICON hIcon = nSize == 16 ? hIcon16 : (nSize == 32 ? hIcon32 : hIcon48);
+		if (!hIcon) return -1;
+		if (Settings.General.LanguageRTL) hIcon = CreateMirroredIcon(hIcon);
+		const int nIcon = ShellIcons.Add(hIcon, nSize);
+		DestroyIcon(hIcon);
+		return nIcon; });
 }
 
 //////////////////////////////////////////////////////////////////////
