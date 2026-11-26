@@ -214,6 +214,7 @@
       <PreprocessorDefinitions>NDEBUG;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
       <AdditionalDependencies>version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>version.dll;winspool.drv;advapi32.dll;shell32.dll;shlwapi.dll;ole32.dll;oleaut32.dll;oleacc.dll</DelayLoadDLLs>
       <!--<DelayLoadDLLs>version.dll;msimg32.dll;comdlg32.dll;comctl32.dll;winspool.drv;advapi32.dll;shell32.dll;shlwapi.dll;ole32.dll;oleaut32.dll;oleacc.dll;oledlg.dll;ws2_32.dll;gdiplus.dll;imm32.dll;winmm.dll</DelayLoadDLLs>-->
@@ -269,6 +270,7 @@
       <PreprocessorDefinitions>NDEBUG;WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
       <AdditionalDependencies>version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>version.dll;winspool.drv;advapi32.dll;shell32.dll;shlwapi.dll;ole32.dll;oleaut32.dll;oleacc.dll</DelayLoadDLLs>
       <!--<DelayLoadDLLs>version.dll;msimg32.dll;comdlg32.dll;comctl32.dll;winspool.drv;advapi32.dll;shell32.dll;shlwapi.dll;ole32.dll;oleaut32.dll;oleacc.dll;oledlg.dll;ws2_32.dll;gdiplus.dll;imm32.dll;winmm.dll</DelayLoadDLLs>-->
