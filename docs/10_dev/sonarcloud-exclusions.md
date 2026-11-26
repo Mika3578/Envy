@@ -6,7 +6,7 @@ for SonarCloud Automatic Analysis.
 ## Why exclude
 
 Envy vendors large third-party trees under `Services/` and some `Plugins/`
-paths (see `AGENTS.md` §2 rule 4). Those trees dominate duplicated-line and
+paths (see `AGENTS.md` *Code invariants*). Those trees dominate duplicated-line and
 issue volume on the New Code period when the leak baseline is broad
 (`previous_version`), which made `SonarCloud Code Analysis` fail on `develop`
 (#234) even when first-party PR gates were green.

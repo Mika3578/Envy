@@ -1035,7 +1035,7 @@ def main() -> int:
     if fails:
         print(
             f"Authorship hygiene check failed ({len(fails)} FAIL, {len(warns)} WARN). "
-            "See AGENTS.md hard rule 16.",
+            "See AGENTS.md (Authorship, privacy and notices).",
             file=sys.stderr,
         )
         return 1

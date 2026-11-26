@@ -1,42 +1,38 @@
 # AI coding guide
 
 Status: active
-Last updated: 2026-09-20
+Last updated: 2026-10-18
 Scope: Entry point for AI-assisted development on Envy.
 Source of truth: `AGENTS.md`, live GitHub state, and the canonical docs linked below.
 
 ## Canonical rules
 
-Root [`AGENTS.md`](../../AGENTS.md) is the single source of truth for
-repository-wide AI and contributor workflow rules. It defines the mandatory
-preflight, branch/PR policy, toolchain, quality gates, protocol evidence,
-documentation sync, and merge requirements.
+Root [`AGENTS.md`](../../AGENTS.md) is the single, compact source of truth
+for repository-wide rules (about 160 lines, always loaded). Procedures are
+skills in `.agents/skills/<name>/SKILL.md`, loaded only when a task needs
+them. When policy changes, update `AGENTS.md` or the owning skill first.
 
-Do not copy those rules into tool-specific guides. When policy changes, update
-`AGENTS.md` first.
+## Tool adapters and loading
 
-## Tool adapters
+| Tool | Always loaded | On demand |
+| --- | --- | --- |
+| Claude Code | `CLAUDE.md` (imports `AGENTS.md`) | skills read via the `AGENTS.md` table; `.cursor/rules` pointers |
+| Codex | `AGENTS.md` (32 KiB read limit) | `.agents/skills/` |
+| Cursor | `AGENTS.md` | `.cursor/rules/*.mdc` by glob; `.agents/skills/` |
+| GitHub Copilot | agents: `AGENTS.md`; code review: `.github/copilot-instructions.md` (first 4,000 chars) | `.agents/skills/` |
+| Aider | `AGENTS.md` via `.aider.conf.yml` | - |
+| Cline / Windsurf / Continue | pointer files | - |
 
-- Cursor automatically reads `AGENTS.md`; `.cursor/rules/*.mdc` contains
-  conditional file-scoped guidance only.
-- GitHub Copilot: `.github/copilot-instructions.md` is a thin adapter.
-- Claude Code: `CLAUDE.md` is a thin adapter.
-- Cline/Windsurf/Continue adapters point back to `AGENTS.md`.
-- Aider explicitly loads `AGENTS.md` from `.aider.conf.yml`.
-
-The legacy root `.cursorrules` and the duplicate
-`.github/agents/my-agent.md` are intentionally removed.
+`.github/scripts/check-agent-config.py` (run in *Lint build files*) keeps
+these files small, consistent and pointing at existing paths. The legacy root
+`.cursorrules` and `.github/agents/my-agent.md` stay removed.
 
 ## Working sequence
 
-Before editing, use the preflight in `AGENTS.md`: inspect current `develop`,
-open PRs/issues, recent commits, CI/rulesets, relevant code/tests, and primary
-protocol/spec sources. Classify overlapping work before starting anything new.
-
-Prefer the smallest compatible change with explicit validation. Network/file
-input is untrusted. Protocol changes require evidence appropriate to their
-risk: regression tests, boundary/malformed cases, primary-spec comparison, and
-reference-client comparison where relevant.
+Check open PRs and issues touching the same area, make the smallest
+compatible change, and validate it with the cheapest relevant checks.
+Network/file input is untrusted; protocol changes follow
+`.agents/skills/envy-protocol-change/SKILL.md`.
 
 ## Canonical context
 

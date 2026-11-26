@@ -1,20 +1,22 @@
 # CodeRabbit configuration for Mika3578/Envy
 # Install the CodeRabbit GitHub App on this public repo for free OSS reviews.
 # Reviews are ADVISORY only — they must never be the sole merge blocker.
+# Automatic reviews are off: agents and the maintainer request one review per
+# HEAD with `@coderabbitai review` (.agents/skills/envy-review-requests).
 # Merge authority remains: MSVC builds, EnvyTests, Format, CodeQL, secret
 # scanning, and Sonar (per the develop ruleset).
 
 language: en-US
 
 reviews:
-  profile: assertive
+  profile: chill
   request_changes_workflow: false
   high_level_summary: true
   poem: false
   review_status: true
   collapse_walkthrough: true
   auto_review:
-    enabled: true
+    enabled: false
     drafts: false
     base_branches:
       - develop

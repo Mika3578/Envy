@@ -32,7 +32,7 @@ PRs do not need a live ENVY run.
 
 ## Squash Commit Summary
 Paste this into the GitHub squash **Extended description** at merge
-(`AGENTS.md` rule 16). Keep it short; do not copy the full PR body.
+(`AGENTS.md` *Authorship, privacy and notices*). Keep it short; do not copy the full PR body.
 
 Issue reference: `Fixes #...` / `Closes #...` / `Related to #...` / `None`
 
@@ -43,7 +43,7 @@ Issue reference: `Fixes #...` / `Closes #...` / `Related to #...` / `None`
 
 ## Checklist
 - [ ] Changes are scoped and reviewable
-- [ ] No personal emails; no forged bot identities; avoid AI promo signatures (`AGENTS.md` rule 16)
+- [ ] No personal emails; no forged bot identities; avoid AI promo signatures (`AGENTS.md` *Authorship, privacy and notices*)
 - [ ] Tests added/updated where practical
 - [ ] Documentation updated when behavior or policy changed
 - [ ] Changelog updated for user-visible changes

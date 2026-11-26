@@ -33,7 +33,7 @@ repository:
   # Live GitHub squash defaults (verify in Settings → General → Pull Requests):
   #   squash_merge_commit_title: PR_TITLE
   #   squash_merge_commit_message: BLANK  (no auto PR-body dump; maintainer
-  #   still supplies a concise squash body at merge — see AGENTS.md rule 16)
+  #   still supplies a concise squash body at merge — see AGENTS.md "Authorship, privacy and notices")
   allow_rebase_merge: true
   delete_branch_on_merge: true
   enable_automated_security_fixes: true

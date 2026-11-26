@@ -37,7 +37,7 @@ cd Envy
 
 ### 4. Create a work branch
 ```bash
-# Functional type/short-kebab-summary names only (see AGENTS.md hard rule 11)
+# Functional type/short-kebab-summary names only (see AGENTS.md "Branches, commits and PRs")
 git checkout -b feat/short-kebab-summary
 
 # Bug fixes, docs, CI, etc.

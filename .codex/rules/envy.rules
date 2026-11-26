@@ -1,0 +1,44 @@
+# Mirrors the technical limits in AGENTS.md (Autonomy). Keep in sync.
+# Prefix rules cannot match a flag placed after the remote: best-effort only.
+prefix_rule(
+    pattern = ["gh", "pr", ["merge", "ready"]],
+    decision = "forbidden",
+    justification = "Only the maintainer marks Ready and squash-merges into develop.",
+    match = ["gh pr merge 1 --squash", "gh pr ready 1"],
+    not_match = ["gh pr view 1"],
+)
+prefix_rule(
+    pattern = ["git", "push", ["--force", "-f", "--force-with-lease"]],
+    decision = "forbidden",
+    justification = "No force-push; push fast-forward only.",
+    match = ["git push --force origin main"],
+    not_match = ["git push origin feature"],
+)
+prefix_rule(
+    pattern = ["git", "push", ["--no-verify", "-n"]],
+    decision = "forbidden",
+    justification = "Never bypass hooks.",
+    match = ["git push --no-verify origin feature"],
+    not_match = ["git push origin feature"],
+)
+prefix_rule(
+    pattern = ["git", "commit", ["--no-verify", "-n"]],
+    decision = "forbidden",
+    justification = "Never bypass hooks.",
+    match = ["git commit --no-verify -m x"],
+    not_match = ["git commit -m x"],
+)
+prefix_rule(
+    pattern = ["git", "push", ["-u", "--set-upstream", "--force-with-lease", "--force", "-f"], "upstream"],
+    decision = "forbidden",
+    justification = "Never write to the upstream repository.",
+    match = ["git push -u upstream develop"],
+    not_match = ["git push -u origin develop"],
+)
+prefix_rule(
+    pattern = ["git", "push", "upstream"],
+    decision = "forbidden",
+    justification = "Never write to the upstream repository.",
+    match = ["git push upstream develop"],
+    not_match = ["git push origin develop"],
+)
