@@ -475,11 +475,15 @@ BOOL CUploadTransferED2K::ServeRequests()
 			if (nQState == qpsTransientBusy || nQState == qpsShutdown)
 			{
 				// Contention reading back the rotated position. The upload
-				// was already re-queued above; hand it to the queued ranking
-				// loop instead of serving another request while queued (a
-				// queued transfer must not bypass queue scheduling). During
-				// shutdown the ranking loop is inert but keeps the state
-				// consistent for teardown.
+				// was already re-queued above; tell the peer the upload
+				// ended (same guard as the sibling path) and hand the
+				// transfer to the queued ranking loop instead of serving
+				// another request while queued. During shutdown the
+				// ranking loop is inert but keeps the state consistent
+				// for teardown.
+				if (m_pBaseFile != NULL && m_pClient->IsOnline())
+					Send(CEDPacket::New(ED2K_C2C_FINISHUPLOAD));
+
 				m_tRequest = GetTickCount();
 				m_nState = upsQueued;
 				m_nRanking = -1;
