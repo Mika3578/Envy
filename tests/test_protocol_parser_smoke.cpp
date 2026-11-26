@@ -643,6 +643,14 @@ static bool test_ggep_traverse_index_bound()
 		return false;
 	if ( GgepTraverseIndexInRange( 0, GGEP_ITEM_COUNT_MAX + 1 ) != FALSE )
 		return false;
+	if ( GgepTraverseIndexInRange( 254, GGEP_ITEM_COUNT_MAX ) != TRUE )
+		return false;
+	if ( GgepTraverseIndexInRange( 255, GGEP_ITEM_COUNT_MAX ) != FALSE )
+		return false;
+	if ( GgepTraverseIndexInRange( 1, 2 ) != TRUE )
+		return false;
+	if ( GgepTraverseIndexInRange( 2, 2 ) != FALSE )
+		return false;
 	// BYTE loop index wraps before a DWORD claimed count > 255.
 	BYTE nByteIndex = 0;
 	for ( DWORD i = 0; i <= GGEP_ITEM_COUNT_MAX; ++i )
