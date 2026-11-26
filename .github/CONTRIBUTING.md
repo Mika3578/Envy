@@ -148,15 +148,19 @@ hold (enforced by the live GitHub ruleset, not by CI alone):
 
 1. The PR is **not a draft**.
 2. **At least one** GitHub review with state **APPROVED** from a reviewer other
-   than the PR author. In this solo-maintainer repository, GitHub Copilot Code
-   Review may satisfy this requirement only when repository settings allow
-   Copilot to approve **and** count toward merge requirements, the path
+   than the PR author. In this solo-maintainer repository, that single
+   required non-author approval may come from **(a) a Sourcery `APPROVED`
+   review** (`sourcery-ai[bot]`; it auto-reviews pushes and withdraws its
+   approval after five automatic reviews until re-requested with
+   `@sourcery-ai review`), **(b) a GitHub Copilot Code Review `APPROVED`
+   review counted by GitHub** — only when repository settings allow Copilot
+   to approve **and** count toward merge requirements and the path
    allowlist matches every changed file (privileged governance paths must
-   stay outside that allowlist), and GitHub records an actual `APPROVED`
-   review. Pull requests that change privileged governance paths require an
-   independent human approval — Copilot must not be the sole counted
+   stay outside that allowlist), or **(c) an independent human**. Pull
+   requests that change privileged governance paths require an independent
+   human approval — no bot (Copilot or Sourcery) may be the sole counted
    reviewer (see `.github/skills/code-review/SKILL.md`). CodeRabbit/advisory
-   comments and Copilot's approval assessment alone do not satisfy the gate.
+   comments and approval assessments alone do not satisfy the gate.
    Request Copilot Code Review when the PR is **mergeable**; when Copilot
    finds no blocking issues on that head **and** no privileged governance
    path changed, it must submit **`APPROVED`**.
@@ -185,7 +189,8 @@ enabled for other branches; Protect develop still forces squash-only.
 - [ ] No new compiler warnings (use the CI build log).
 - [ ] CodeQL passes without new HIGH/CRITICAL findings.
 - [ ] At least one GitHub **APPROVED** review from a reviewer other than the
-      PR author (Copilot may count when enabled); all review threads resolved.
+      PR author (Sourcery, counted Copilot when enabled, or an independent
+      human); all review threads resolved.
 - [ ] If you touched anything in `Services/` or `Plugins/`, ping a
       CODEOWNER for review.
 - [ ] If you bumped a vcpkg dependency, note the version delta in the

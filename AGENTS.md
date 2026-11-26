@@ -113,18 +113,24 @@ Branch model:
     GitHub will merge only when the live **Protect develop** ruleset is
     satisfied, including:
     - at least one GitHub review with state **APPROVED** from a reviewer
-      other than the PR author (Protect develop live requirement). In this
-      solo-maintainer repository, **GitHub Copilot Code Review may satisfy
-      that approval** only when repository Copilot settings allow Copilot to
-      approve **and** count toward merge requirements, the path allowlist
-      matches every changed file (privileged governance paths must stay
-      outside that allowlist — see below), and GitHub records an actual
-      `APPROVED` review. An approval *assessment* or an AI comment
-      (CodeRabbit, Amazon Q, Sourcery, Copilot summary, etc.) is not an
-      approval. A Copilot `APPROVED` review is not proof of correctness;
-      required CI and security checks stay independent. Never manufacture
-      approval with GitHub Actions or a self-approval workflow. Copilot
-      cloud-agent PRs still need a non-Copilot reviewer;
+      other than the PR author (Protect develop live requirement,
+      `required_approving_review_count: 1`, re-verified 2026-11-26). In
+      this solo-maintainer repository the single required non-author
+      approval may come from **(a) a Sourcery `APPROVED` review**
+      (`sourcery-ai[bot]`, free for OSS), **(b) a GitHub Copilot Code
+      Review `APPROVED` review counted by GitHub** — only when repository
+      Copilot settings allow Copilot to approve **and** count toward merge
+      requirements and every changed file matches the repository path
+      allowlist (privileged governance paths must stay outside that
+      allowlist — see below), or **(c) an independent human**. An approval
+      *assessment* or an AI comment (CodeRabbit, Copilot summary, etc.) is
+      not an approval. A Copilot `APPROVED` review is not proof of
+      correctness; required CI and security checks stay independent. Never
+      manufacture approval with GitHub Actions or a self-approval workflow.
+      Copilot cloud-agent PRs still need a non-Copilot reviewer. Sourcery
+      auto-reviews pushes and withdraws its approval after five automatic
+      reviews until re-requested with `@sourcery-ai review`; re-request it
+      on the current head when its approval was withdrawn or dismissed;
     - Request **GitHub Copilot Code Review** only when the pull request is
       **mergeable** toward `develop` (not a draft — assistants and correction
       agents must not request Copilot or any other review product in Draft;
@@ -146,7 +152,8 @@ Branch model:
       the privileged-path rule);
     - stale approvals are dismissed when new commits are pushed
       (`require_last_push_approval` remains **off** so a valid non-author
-      approval, including Copilot when enabled, can satisfy the count);
+      approval, including Sourcery or Copilot when enabled, can satisfy
+      the count);
     - if the live ruleset differs from documentation, treat the live ruleset
       as the enforceable state, record the mismatch, and update docs — do not
       claim a setting is enforced until the ruleset confirms it;
@@ -177,14 +184,14 @@ Branch model:
     `.github/settings.yml`, `.github/workflows/**`, `.github/rulesets/**`,
     and gate scripts under `.github/scripts/` that define merge/review
     policy) are high-risk: do not reduce required approvals, required
-    checks, or self-approval bans through those edits. Copilot must **not**
-    be the sole counted approval on a pull request that changes any of
-    those paths — Copilot reads instructions and the review skill from the
-    PR head, so a blank path allowlist would let a governance PR rewrite
-    the rules used to judge its own `APPROVED`. Keep those paths outside
-    the repository Copilot path allowlist (see
+    checks, or self-approval bans through those edits. No bot (Copilot or
+    Sourcery) may be the sole counted approval on a pull request that
+    changes any of those paths — Copilot reads instructions and the review
+    skill from the PR head, so a blank path allowlist would let a
+    governance PR rewrite the rules used to judge its own `APPROVED`. Keep
+    those paths outside the repository Copilot path allowlist (see
     `docs/10_dev/devsecops-envy.md`), and require an independent human
-    (non-Copilot) `APPROVED` for them. `.github/skills/code-review/SKILL.md`
+    (non-bot) `APPROVED` for them. `.github/skills/code-review/SKILL.md`
     must not submit `APPROVED` when privileged governance paths change.
     Weakening governance remains `CHANGES_REQUESTED`; tightening or
     clarifying is OK. Squash merge stays **manual** with a curated body
@@ -244,7 +251,7 @@ Branch model:
       advertising signatures to commits or contributor-authored PR text
       (CI warns; privacy/forgery remains FAIL).
     - GitHub bot comments, reviews, and auto-generated summary blocks
-      (CodeRabbit, Cubic, Amazon Q, Sonar, Copilot summaries, and similar)
+      (CodeRabbit, Cubic, Sonar, Copilot summaries, and similar)
       are allowed on the PR conversation. The authorship scanner may ignore
       recognized bot summary delimiters for editorial checks only; privacy
       scans still use the full contributor PR body. It enforces policy on
@@ -449,7 +456,8 @@ requesting GitHub Copilot Code Review or expecting merge:
    the head being reviewed, or justification posted). Do not resolve
    without a reply; do not request Copilot while untreated threads remain.
 
-Advisory bot comments (CodeRabbit, Sourcery, etc.) follow the same treatment
+Advisory bot comments (CodeRabbit, Sourcery/Copilot comment reviews, etc.)
+follow the same treatment
 rule when they left an unresolved thread. Do not spend Copilot review rounds
 to discover outstanding human or bot threads — clear them first, then request
 **one** Copilot review on the stable head.
@@ -464,7 +472,11 @@ required checks green, mergeable toward `develop`, every thread treated and
 resolved, no mid-batch re-request. Correction agents must not request any
 review product while the PR is Draft and must not approve or merge.
 Privileged governance paths need an independent human `APPROVED` (`AGENTS.md`
-rule 12; skill Risk class).
+rule 12; skill Risk class). Sourcery reviews pushes automatically and can
+supply the counted approval on ordinary paths; after five automatic reviews
+it withdraws its approval until re-requested with `@sourcery-ai review` on
+the current head. A Sourcery or Copilot approval must never be the sole
+counted approval on a privileged governance PR (rule 12).
 
 ### Mandatory preflight before editing
 
@@ -646,7 +658,7 @@ acceptable engineering quality:
 - **GitHub Copilot Code Review** model choice is controlled by GitHub; still
   follow mergeable-request and **`APPROVED`-when-clean** policy to avoid extra
   review rounds. **Do not request any review product while the PR is Draft.**
-  Do not treat advisory bots (CodeRabbit, Sourcery, etc.) as
+  Do not treat advisory bots (CodeRabbit, etc.) as
   substitutes for required gates.
 - Escalate to a more capable model only when a cheaper approach has failed with
   new information, or when the maintainer explicitly approves the upgrade.

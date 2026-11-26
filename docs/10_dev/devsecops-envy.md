@@ -1,6 +1,6 @@
 # Envy DevSecOps map (cost-minimal, Windows-first)
 
-**Last Updated:** 2026-10-03
+**Last Updated:** 2026-11-26
 **Repo:** [Mika3578/Envy](https://github.com/Mika3578/Envy) (not upstream GetEnvy/Envy)
 **Full measured CI audit:** [CI_AUDIT_2026-09.md](CI_AUDIT_2026-09.md)
 
@@ -14,7 +14,8 @@ Cursor Agent → PR → CodeRabbit (advisory)
                   → reviewdog/clang-tidy (advisory)
                   → MSVC + EnvyTests + Format
                   → CodeQL + Sonar + gitleaks
-                  → independent APPROVED review + resolved threads
+                  → non-author APPROVED review (Sourcery, counted Copilot, or human)
+                    + resolved threads
                   → maintainer manual squash (curated body; auto-merge off)
                   → develop
 ```
@@ -52,11 +53,14 @@ flags never skip those Ready/live-test jobs.
 
 BLOCK (native GitHub review rules on Protect develop):
 
-- **Live Protect develop (re-verified 2026-09-20):** ≥ **1** approving GitHub
-  review from a reviewer other than the PR author. GitHub Copilot Code Review
-  may satisfy the approval only when repository Copilot settings allow Copilot
-  approvals to count and GitHub records an actual `APPROVED` review. Never
-  manufacture approval with Actions/self-approval.
+- **Live Protect develop (re-verified 2026-11-26):** ≥ **1** approving GitHub
+  review from a reviewer other than the PR author
+  (`required_approving_review_count: 1`, raised from 0). The single required
+  non-author approval may come from
+  **Sourcery** (`sourcery-ai[bot]`, free for OSS), **GitHub Copilot Code
+  Review** when repository Copilot settings allow Copilot approvals to count
+  and every changed file matches the repository path allowlist, or an
+  **independent human**. Never manufacture approval with Actions/self-approval.
 - Dismiss stale reviews on new commits (**on**)
 - Require approval of the most recent reviewable push (**off** — intentional)
 - Resolve all review conversations / threads
@@ -89,7 +93,8 @@ exact non-overlap boundary.
 
 | Tool | Role | Cost posture |
 | --- | --- | --- |
-| GitHub Copilot Code Review | Required approval reviewer when auto-approval/counting are enabled | Balanced review effort recommended |
+| Sourcery (`sourcery-ai[bot]`) | Counted approver on ordinary paths: real `APPROVED` review; auto-reviews pushes, withdraws the approval after five automatic reviews until `@sourcery-ai review` | Free for OSS — already installed |
+| GitHub Copilot Code Review | Counted approver when auto-approval/counting are enabled and the path allowlist covers the whole diff | Balanced review effort recommended |
 | CodeRabbit | Advisory automatic/manual review | Free for public OSS — install GitHub App |
 | reviewdog + clang-tidy | Advisory line annotations on PR diffs | Free Actions minutes |
 | Qodo / PR-Agent | Manual on high-risk PRs only | Optional |
@@ -107,6 +112,14 @@ exact non-overlap boundary.
   request per stable head — not per thread, not during Draft correction batches.
 - OSS pattern: PR readiness checklist before any sponsored review (CI green,
   mergeable, test plan) — e.g. community `copilot-instructions.md` checklists.
+
+**Sourcery request discipline** (maintainer decision 2026-11-26): Sourcery
+reviews pushes automatically and its real `APPROVED` review counts toward the
+single required non-author approval on ordinary paths. After five automatic
+reviews it withdraws the approval until re-requested with
+`@sourcery-ai review` on the current head — re-request instead of assuming
+the approval persists across pushes (dismiss-stale also applies). Governance
+paths still need an independent human approval regardless of Sourcery.
 
 High-risk paths (extra bar before merge): G1/G2, ED2K/Kad, BitTorrent, NMDC/ADC,
 Network/NAT, packet parsing, crypto, threading/locking, serialization, Remote.
@@ -191,13 +204,14 @@ comparison notes.
    (“Count Copilot approvals toward merge requirements”) is not **Disabled
    everywhere** for this repository.
 4. **Merge Queue** — **Optional** on personal accounts. Do not treat Merge Queue as required for an operational workflow. Use **manual squash merge** (curated squash body; live `squash_merge_commit_message: BLANK`), update-branch, strict required checks, and **≥1 GitHub `APPROVED` review** on `Protect develop`. Do **not** enable squash auto-merge when a curated squash body is required (`AGENTS.md` rule 16).
-5. **Protect develop (live, re-verified 2026-09-20)** — Source of truth is
+5. **Protect develop (live, re-verified 2026-11-26)** — Source of truth is
    **Settings → Rules → Protect develop** (re-check via API before changing
    docs):
-   - Required approvals: **0** live (verified 2026-10-07); repository policy
-     still requires **1** independent approval, with human approval for
-     privileged governance paths. This mismatch needs maintainer review;
-     no ruleset is changed by this PR.
+   - Required approvals: **1** live (verified 2026-11-26; raised from **0**,
+     which the 2026-10-07 check had recorded). This now matches the
+     repository policy of one non-author approval; counted approvers are
+     Sourcery, Copilot (when the path allowlist covers the diff), or an
+     independent human — human approval for privileged governance paths.
    - Dismiss stale pull request approvals when new commits are pushed: **on**
    - Require approval of the most recent reviewable push: **off**
    - Require conversation resolution before merging: **on**

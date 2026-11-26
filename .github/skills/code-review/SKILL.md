@@ -57,7 +57,7 @@ pre-request checklist is satisfied.
 `.cursor/**`, `.continue/**`, `.clinerules`, `.windsurfrules`,
 `.cursorrules`, `Languages/**`, `CHANGELOG.md`, `MODERNIZATION.md`.
 
-**Privileged governance (never Copilot-only approval):** `AGENTS.md`,
+**Privileged governance (never bot-only approval):** `AGENTS.md`,
 `.github/copilot-instructions.md`, `.github/skills/**`,
 `.github/settings.yml`, `.github/workflows/**`, `.github/rulesets/**`,
 and `.github/scripts/` files that classify changes, audit rulesets, or
@@ -65,8 +65,10 @@ otherwise define merge/review/CI gate policy. Copilot loads instructions
 and this skill from the **PR head**; an `APPROVED` from Copilot on a PR
 that edits those files is a self-authorization loop. When **any** such
 path changes: do **not** submit `APPROVED` — use `COMMENTED` or
-`CHANGES_REQUESTED` and require an independent human (non-Copilot)
-approval. Repository Copilot path allowlists must exclude these paths
+`CHANGES_REQUESTED` and require an independent human (non-bot) approval,
+including when Sourcery already approved (a Sourcery approval must not
+be the sole counted approval on a governance PR). Repository Copilot path
+allowlists must exclude these paths
 (`docs/10_dev/devsecops-envy.md`).
 
 **Default — high-risk code/infra:** every other path, including
@@ -115,8 +117,12 @@ and request a human; do not `APPROVED`.
 - Low-risk PRs: docs match the live Protect develop ruleset.
 - High-risk PRs: the matching evidence class above is present, and no
   blocking defect exists.
-- Do not treat CodeRabbit, Amazon Q, Sourcery, or an approval *assessment*
-  as an approval. A Copilot `APPROVED` review is not proof of correctness;
+- Do not treat CodeRabbit comments or an approval *assessment* as an
+  approval. Sourcery's (`sourcery-ai[bot]`) real `APPROVED` review is a
+  counted approval under Protect develop (it auto-reviews pushes and
+  withdraws the approval after five automatic reviews until re-requested
+  with `@sourcery-ai review`); a Sourcery comment is not an approval. A
+  Copilot `APPROVED` review is not proof of correctness;
   required CI and security checks stay independent.
 
 ## Submit `CHANGES_REQUESTED` when
@@ -130,5 +136,6 @@ and request a human; do not `APPROVED`.
   lacks targeted CI/security validation.
 - Privileged governance change weakens merge gates or self-approval bans.
 - Any privileged governance path is in the diff and the only proposed
-  counted approval would be Copilot (leave `COMMENTED`; human required).
+  counted approval would be a bot — Copilot or Sourcery — (leave
+  `COMMENTED`; human required).
 - Branch naming uses a tool/agent prefix (`cursor/`, `claude/`, …).
