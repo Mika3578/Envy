@@ -133,28 +133,29 @@ private:
 	BOOL		OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept = NULL);
 //	void		PurgePreviews();	// Use public PurgeFiles()
 
-// Verification events deferred when the Transfers lock was too busy (#494).
-// Keyed by library path so no CLibraryFile pointer outlives its owner.
+	// Verification events deferred when the Transfers lock was too busy.
+	// Keyed by library path so no CLibraryFile pointer outlives its owner.
 	struct DeferredVerify
 	{
-		CString		sPath;
-		TRISTATE	bVerified;
+		CString sPath;
+		TRISTATE bVerified;
 	};
 
 	static const size_t DeferredVerifyQueueMax = 64;
 
-	void	DeferVerifyEvent(const CLibraryFile* pFile, TRISTATE bVerified);
-	void	ReplayDeferredVerifies();
+	void DeferVerifyEvent(const CLibraryFile* pFile, TRISTATE bVerified);
+	void CancelDeferredVerify(LPCTSTR pszPath);
+	void ReplayDeferredVerifies();
 
-	CList< DeferredVerify >	m_pDeferredVerifies;
-	volatile LONG			m_nDeferredVerifies;	// Total deferred (Interlocked)
-	volatile LONG			m_tLastDeferredLog;		// GetTickCount of last deferred log (Interlocked)
+	CList<DeferredVerify> m_pDeferredVerifies;
+	volatile LONG m_nDeferredVerifies = 0; // Deferral and eviction events (Interlocked)
+	volatile LONG m_tLastDeferredLog = -1; // GetTickCount of last deferred log (Interlocked)
 
-// Legacy Shareaza multifile torrents:
-//	void		LoadFromCompoundFiles();
-//	BOOL		LoadFromCompoundFile(LPCTSTR pszFile);
-//	BOOL		LoadFromTimePair();
-//	void		SerializeCompound(CArchive& ar);
+	// Legacy Shareaza multifile torrents:
+	//	void		LoadFromCompoundFiles();
+	//	BOOL		LoadFromCompoundFile(LPCTSTR pszFile);
+	//	BOOL		LoadFromTimePair();
+	//	void		SerializeCompound(CArchive& ar);
 
 	CDownloads(const CDownloads&);
 	CDownloads& operator=(const CDownloads&);

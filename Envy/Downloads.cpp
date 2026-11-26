@@ -68,8 +68,6 @@ CDownloads::CDownloads()
 	, m_bPreloadCompleted	( false )
 	, m_nPreloadTotal		( 0 )
 	, m_nPreloadCurrent		( 0 )
-	, m_nDeferredVerifies	( 0 )
-	, m_tLastDeferredLog	( -1 )
 {
 }
 
@@ -949,7 +947,7 @@ BOOL CDownloads::IsSpaceAvailable(QWORD nVolume, int nPath)
 void CDownloads::OnRun()
 {
 	// Replay verification events deferred by earlier Transfers-lock contention
-	// before anything else takes locks in a different order (#494).
+	// before anything else takes locks in a different order.
 	ReplayDeferredVerifies();
 
 	// Background preloading mode - runs in separate thread started by PreLoadAsync()
@@ -1249,59 +1247,83 @@ void CDownloads::OnVerify(const CLibraryFile* pFile, TRISTATE bVerified)
 	// Caller holds Library.m_pSection (CLibraryFile::OnVerifyDownload), so
 	// pFile stays valid here; only the Transfers lock can be too busy.
 	CSingleLock pLock( &Transfers.m_pSection );
-	if ( SafeLock( pLock ) )
+	if (SafeLock(pLock))
 	{
-		for ( POSITION pos = GetIterator(); pos; )
+		// A pending deferred event for this path is older than the result
+		// being applied now; drop it so replay cannot overwrite the fresh
+		// state with a stale outcome.
+		CancelDeferredVerify(pFile->GetPath());
+
+		for (POSITION pos = GetIterator(); pos;)
 		{
-			if ( GetNext( pos )->OnVerify( pFile, bVerified ) ) break;
+			if (GetNext(pos)->OnVerify(pFile, bVerified)) break;
 		}
 		return;
 	}
 
 	// A verification event must not vanish: queue it by library path and
-	// replay it on the next transfers tick (#494).
-	DeferVerifyEvent( pFile, bVerified );
+	// replay it on the next transfers tick.
+	DeferVerifyEvent(pFile, bVerified);
 }
 
 void CDownloads::DeferVerifyEvent(const CLibraryFile* pFile, TRISTATE bVerified)
 {
-	ASSERT( pFile != NULL );
+	ASSERT(pFile != NULL);
 
 	DeferredVerify ev;
 	ev.sPath = pFile->GetPath();
 	ev.bVerified = bVerified;
 
-	// Freshest result wins: replace a pending event for the same path
-	// instead of growing the queue.
-	for ( POSITION pos = m_pDeferredVerifies.GetHeadPosition(); pos; )
+	// Every deferral counts, same-path refreshes included, so the throttled
+	// diagnostic reflects the real contention volume.
+	const ULONG nEvents = (ULONG)InterlockedIncrement(&m_nDeferredVerifies);
+	const DWORD tNow = GetTickCount();
+	const LONG tLast = m_tLastDeferredLog;
+
+	if (tNow - (DWORD)tLast >= 30000 && InterlockedCompareExchange(&m_tLastDeferredLog, (LONG)tNow, tLast) == tLast)
 	{
-		DeferredVerify& rOld = m_pDeferredVerifies.GetNext( pos );
-		if ( rOld.sPath == ev.sPath )
+		// Best-effort single winner: a lost update only delays the next message.
+		theApp.Message(MSG_ERROR, L"Download verification deferred or evicted, Transfers lock busy (%lu events).", nEvents);
+	}
+
+	// Freshest result wins: replace a pending event for the same path
+	// instead of growing the queue. A result applied while the lock is
+	// free removes the pending entry (CancelDeferredVerify), so replay
+	// cannot overwrite fresher state with a stale outcome.
+	for (POSITION pos = m_pDeferredVerifies.GetHeadPosition(); pos;)
+	{
+		DeferredVerify& rOld = m_pDeferredVerifies.GetNext(pos);
+		if (rOld.sPath == ev.sPath)
 		{
 			rOld.bVerified = bVerified;
 			return;
 		}
 	}
 
-	while ( (size_t)m_pDeferredVerifies.GetCount() >= DeferredVerifyQueueMax )
+	while ((size_t)m_pDeferredVerifies.GetCount() >= DeferredVerifyQueueMax)
 	{
 		// Bounded queue: dropping the oldest event is counted so the
 		// throttled diagnostic reports the loss instead of hiding it.
 		m_pDeferredVerifies.RemoveHead();
-		InterlockedIncrement( &m_nDeferredVerifies );
+		InterlockedIncrement(&m_nDeferredVerifies);
 	}
 
-	m_pDeferredVerifies.AddTail( ev );
+	m_pDeferredVerifies.AddTail(ev);
+}
 
-	const ULONG nEvents = (ULONG)InterlockedExchangeAdd( &m_nDeferredVerifies, 0 );
-	const DWORD tNow = GetTickCount();
-	const LONG tLast = m_tLastDeferredLog;
+// Drop pending deferred events for one path. The caller holds
+// Library.m_pSection, which guards the deferred queue.
+void CDownloads::CancelDeferredVerify(LPCTSTR pszPath)
+{
+	ASSERT(pszPath != NULL);
 
-	if ( tNow - (DWORD)tLast < 30000 ) return;
-
-	// Best-effort single winner: a lost update only delays the next message.
-	if ( InterlockedCompareExchange( &m_tLastDeferredLog, (LONG)tNow, tLast ) == tLast )
-		theApp.Message( MSG_ERROR, L"Download verification deferred or evicted, Transfers lock busy (%lu events).", nEvents );
+	for (POSITION pos = m_pDeferredVerifies.GetHeadPosition(); pos;)
+	{
+		POSITION posOld = pos;
+		DeferredVerify& rOld = m_pDeferredVerifies.GetNext(pos);
+		if (rOld.sPath == pszPath)
+			m_pDeferredVerifies.RemoveAt(posOld);
+	}
 }
 
 void CDownloads::ReplayDeferredVerifies()
@@ -1313,25 +1335,25 @@ void CDownloads::ReplayDeferredVerifies()
 	// conflicting order makes one side back off within 250 ms and retry on
 	// a later tick instead of deadlocking. All queue access happens under
 	// the Library section, which also guards the deferral site.
-	CSingleLock pLibraryLock( &Library.m_pSection );
-	if ( ! pLibraryLock.Lock( 250 ) ) return;
+	CSingleLock pLibraryLock(&Library.m_pSection);
+	if (!pLibraryLock.Lock(250)) return;
 
-	if ( m_pDeferredVerifies.IsEmpty() ) return;
+	if (m_pDeferredVerifies.IsEmpty()) return;
 
-	CSingleLock pLock( &Transfers.m_pSection );
-	if ( ! pLock.Lock( 250 ) ) return;
+	CSingleLock pLock(&Transfers.m_pSection);
+	if (!pLock.Lock(250)) return;
 
-	while ( ! m_pDeferredVerifies.IsEmpty() )
+	while (!m_pDeferredVerifies.IsEmpty())
 	{
 		const DeferredVerify ev = m_pDeferredVerifies.RemoveHead();
 
 		// A deleted library file makes the event moot; drop it rather than
 		// fabricate state.
-		if ( CLibraryFile* pFile = LibraryMaps.LookupFileByPath( ev.sPath ) )
+		if (CLibraryFile* pFile = LibraryMaps.LookupFileByPath(ev.sPath))
 		{
-			for ( POSITION pos = GetIterator(); pos; )
+			for (POSITION pos = GetIterator(); pos;)
 			{
-				if ( GetNext( pos )->OnVerify( pFile, ev.bVerified ) ) break;
+				if (GetNext(pos)->OnVerify(pFile, ev.bVerified)) break;
 			}
 		}
 	}
