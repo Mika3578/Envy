@@ -17,6 +17,17 @@ constexpr DWORD XML_PEER_PARSE_NODES_MAX = 4096u;
 // receive buffer (XML budget + tree slack) before allocation/buffering.
 constexpr DWORD XML_PEER_THEX_TREE_SLACK = 16u * 1024u * 1024u;
 constexpr DWORD XML_PEER_THEX_BODY_CAP = XML_PEER_PARSE_CHARS_MAX + XML_PEER_THEX_TREE_SLACK;
+// Status plus header bytes while dtsRequesting/dtsHeaders are incomplete.
+// Matches CConnection's 16 KiB socket recv quantum; not a user setting.
+// Shareaza-lineage clients bound line length (HTTP_HEADER_MAX_LINE) but do not
+// cap aggregate header bytes separately; THEX/MetaFetch bodies use XML_PEER_* .
+constexpr DWORD XML_PEER_HTTP_HEADER_PHASE_CAP = 16u * 1024u;
+
+inline bool PeerHttpHeaderPhaseExceeded(DWORD nParsedHeaderBytes, DWORD nBuffered) noexcept
+{
+	return nParsedHeaderBytes >= XML_PEER_HTTP_HEADER_PHASE_CAP ||
+	       nParsedHeaderBytes + nBuffered >= XML_PEER_HTTP_HEADER_PHASE_CAP;
+}
 
 // Production admission gate for CXMLElement::FromPeerBytes (and EnvyTests).
 inline bool AdmitPeerXmlBytes(DWORD nByte) noexcept

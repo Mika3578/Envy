@@ -68,9 +68,13 @@ a prefetched body that fills the 16 KiB header-phase read exactly, a header
 line that fits the 16 KiB cap with its CRLF versus one byte more, unterminated
 response and header lines, the inclusive `XML_PEER_PARSE_CHARS_MAX` body limit
 with `Content-Length` and close-delimited bodies (one byte over fails closed),
-and a stalled body that neither spins nor completes after a drop. Outside
-Windows the same source builds with `CXX` (default `c++`) against the type
-shim in `tests/shim`:
+and a stalled body that neither spins nor completes after a drop. The
+`XML_PEER_HTTP_HEADER_PHASE_CAP` (16 KiB, matching the socket recv quantum)
+limits aggregate status/header bytes while headers are incomplete; it is not a
+user setting and is below the per-line `HTTP_HEADER_MAX_LINE` ceiling because
+legitimate MetaFetch/THEX control responses use short headers and XML or DIME
+payloads live in the body. Outside Windows the same source builds with `CXX`
+(default `c++`) against the type shim in `tests/shim`:
 
 ```bash
 python3 tests/run_metafetch_receive_tests.py

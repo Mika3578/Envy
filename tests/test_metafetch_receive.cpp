@@ -46,7 +46,6 @@ enum
 };
 #define ASSUME_LOCK(section) ((void)0)
 
-constexpr DWORD HEADER_CAP = 16u * 1024u;
 constexpr DWORD BODY_CAP = XML_PEER_PARSE_CHARS_MAX;
 
 class CString
@@ -135,9 +134,21 @@ public:
 
 	std::string m_sWire; // bytes the peer has sent and the socket has not yet delivered
 	size_t m_nWirePos = 0;
-	DWORD m_nMaxInput = 0, m_nMaxHeaderPhaseInput = 0;
+	DWORD m_nMaxInput = 0, m_nMaxHeaderPhaseInput = 0, m_nPeerHttpHeaderBytes = 0;
 	unsigned m_nRejects = 0, m_nCompletes = 0, m_nFragments = 0, m_nReadInputs = 0;
 	bool m_bValid = true;
+
+	void ChargeHeaderLine(const std::string& sLine)
+	{
+		if (sLine.empty())
+			return;
+		m_nPeerHttpHeaderBytes += static_cast<DWORD>(sLine.size()) + 2u;
+	}
+
+	bool PeerHttpHeaderPhaseTooLarge() const
+	{
+		return PeerHttpHeaderPhaseExceeded(m_nPeerHttpHeaderBytes, GetInputLength());
+	}
 
 	BOOL ReadInput();
 	BOOL ReceiveMetadataInput();
@@ -198,6 +209,7 @@ public:
 	{
 		std::string sLine;
 		if (!ReadLine(sLine) || sLine.empty()) return TRUE;
+		ChargeHeaderLine(sLine);
 		if (sLine.compare(0, 9, "HTTP/1.1 ") == 0)
 			m_bKeepAlive = TRUE;
 		else if (sLine.compare(0, 9, "HTTP/1.0 ") == 0)
@@ -224,6 +236,7 @@ public:
 		while (ReadLine(sLine))
 		{
 			if (sLine.empty()) return OnHeadersComplete();
+			ChargeHeaderLine(sLine);
 			if (sLine.compare(0, sizeof(szLength) - 1, szLength) == 0)
 				m_nContentLength = std::strtoull(sLine.c_str() + sizeof(szLength) - 1, nullptr, 10);
 		}
@@ -328,7 +341,8 @@ void ExpectMerged(const CDownloadTransferHTTP& t, size_t nBody)
 {
 	CHECK(t.m_nRejects == 0);
 	CHECK(t.m_oDownload.m_nMerges == 1 && t.m_oDownload.m_nChars == nBody);
-	CHECK(t.m_nMaxHeaderPhaseInput <= HEADER_CAP && t.m_nMaxInput <= BODY_CAP + 1u);
+	CHECK(t.m_nMaxHeaderPhaseInput <= XML_PEER_HTTP_HEADER_PHASE_CAP
+		           && t.m_nMaxInput <= BODY_CAP + 1u);
 	CHECK(t.m_nOtherPaths == 0);
 }
 
@@ -372,12 +386,13 @@ void TestByteByByte()
 // reads exactly 16 KiB, which must not be misread as oversized headers.
 void TestHeadersWithPrefetchedBody()
 {
-	for (size_t nBody : { size_t(HEADER_CAP), size_t(64u * 1024u), size_t(BODY_CAP) })
+	for (size_t nBody : { size_t(XML_PEER_HTTP_HEADER_PHASE_CAP), size_t(64u * 1024u),
+	                      size_t(BODY_CAP) })
 	{
 		CDownloadTransferHTTP t;
 		t.Deliver(Response(nBody));
 		CHECK(t.Pump());
-		CHECK(t.m_nMaxHeaderPhaseInput == HEADER_CAP);
+		CHECK(t.m_nMaxHeaderPhaseInput == XML_PEER_HTTP_HEADER_PHASE_CAP);
 		ExpectMerged(t, nBody);
 	}
 }
@@ -388,30 +403,34 @@ void TestHeadersWithPrefetchedBody()
 void TestIncompleteHeaderLineBoundary()
 {
 	const std::string status = "HTTP/1.1 200 OK\r\n";
+	const size_t kStatusBytes = status.size();
 	const std::string name = "X-Pad: ";
-	const std::string rest = Response(500).substr(status.size());
+	const std::string contentLengthLine = "Content-Length: 500\r\n";
+	const std::string tail = contentLengthLine + "\r\n" + Body(500);
+	const size_t kTailHeaderBytes = contentLengthLine.size() + 2u;
+	const size_t nMaxPad = XML_PEER_HTTP_HEADER_PHASE_CAP - kStatusBytes - name.size() - 2u -
+	                       kTailHeaderBytes - 1u;
 	{
 		CDownloadTransferHTTP t;
-		t.Deliver(status + name + std::string(HEADER_CAP - name.size() - 2u, 'p'));
-		CHECK(t.Pump() && t.m_nRejects == 0 && t.GetInputLength() == HEADER_CAP - 2u);
-		t.Deliver("\r\n" + rest);
+		t.Deliver(status + name + std::string(nMaxPad, 'p'));
+		CHECK(t.Pump() && t.m_nRejects == 0 && t.GetInputLength() == name.size() + nMaxPad);
+		t.Deliver("\r\n" + tail);
 		CHECK(t.Pump());
 		ExpectMerged(t, 500);
 	}
 	{
 		CDownloadTransferHTTP t;
-		t.Deliver(status + name + std::string(HEADER_CAP - name.size() - 1u, 'p'));
-		CHECK(t.Pump() && t.m_nRejects == 0);
-		t.Deliver("\r\n" + rest);
+		const size_t nOverPad = XML_PEER_HTTP_HEADER_PHASE_CAP - kStatusBytes - name.size();
+		t.Deliver(status + name + std::string(nOverPad, 'p') + "\r\n");
 		CHECK(!t.Pump());
 		CHECK(t.m_nRejects == 1 && t.m_oDownload.m_nMerges == 0);
-		CHECK(t.m_nMaxInput == HEADER_CAP);
+		CHECK(t.m_nMaxInput <= XML_PEER_HTTP_HEADER_PHASE_CAP);
 	}
 	{
 		CDownloadTransferHTTP t;
 		t.Deliver(status + name + std::string(256u * 1024u, 'p'));
 		CHECK(!t.Pump());
-		CHECK(t.m_nRejects == 1 && t.m_nMaxInput <= HEADER_CAP);
+		CHECK(t.m_nRejects == 1 && t.m_nMaxInput <= XML_PEER_HTTP_HEADER_PHASE_CAP);
 	}
 }
 
@@ -420,7 +439,7 @@ void TestIncompleteResponseLine()
 	CDownloadTransferHTTP t;
 	t.Deliver(std::string(64u * 1024u, 'H'));
 	CHECK(!t.Pump());
-	CHECK(t.m_nRejects == 1 && t.m_nMaxInput <= HEADER_CAP);
+	CHECK(t.m_nRejects == 1 && t.m_nMaxInput <= XML_PEER_HTTP_HEADER_PHASE_CAP);
 }
 
 // The XML body limit is independent from the header cap and inclusive.
@@ -450,6 +469,20 @@ void TestBodyCap()
 }
 
 // A stalled body neither spins nor completes; a drop then fails it closed.
+// Many short complete header lines must not evade the aggregate header cap.
+void TestManySmallHeaderLinesExceedCap()
+{
+	std::string wire = "HTTP/1.1 200 OK\r\n";
+	const std::string line = "X-H: 0\r\n";
+	while (wire.size() + line.size() < XML_PEER_HTTP_HEADER_PHASE_CAP)
+		wire += line;
+	wire += line;
+	CDownloadTransferHTTP t;
+	t.Deliver(wire);
+	CHECK(!t.Pump());
+	CHECK(t.m_nRejects == 1 && t.m_oDownload.m_nMerges == 0);
+}
+
 void TestStalledBodyAndDrop()
 {
 	const std::string wire = Response(1000);
@@ -471,6 +504,7 @@ int main()
 	TestHeadersWithPrefetchedBody();
 	TestIncompleteHeaderLineBoundary();
 	TestIncompleteResponseLine();
+	TestManySmallHeaderLinesExceedCap();
 	TestBodyCap();
 	TestStalledBodyAndDrop();
 	if (g_nFailures)

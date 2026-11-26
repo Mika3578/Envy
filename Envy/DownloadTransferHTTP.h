@@ -68,6 +68,7 @@ protected:
 	};
 	ChunkState		m_ChunkState;
 	QWORD			m_nChunkLength;
+	DWORD			m_nPeerHttpHeaderBytes;
 
 public:
 	virtual BOOL	Initiate();
@@ -95,4 +96,8 @@ protected:
 	virtual void	OnDropped();
 	virtual BOOL	OnHeaderLine(CString& strHeader, CString& strValue);
 	virtual BOOL	OnHeadersComplete();
+
+	void ChargePeerHttpHeaderLine(const CString& strLine);
+	void ChargePeerHttpHeaderField(const CString& strHeader, const CString& strValue);
+	bool PeerHttpHeaderPhaseTooLarge() const noexcept;
 };
