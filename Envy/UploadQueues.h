@@ -108,11 +108,11 @@ public:
 	}
 
 protected:
-	CList< CUploadQueue* >	m_pList;
-	BOOL					m_bDonkeyLimited;
-
 	volatile LONG m_nContentionEvents;  // Deferred position lookups (Interlocked)
 	volatile LONG m_tLastContentionLog; // GetTickCount of last contention log (Interlocked)
+
+	CList< CUploadQueue* >	m_pList;
+	BOOL					m_bDonkeyLimited;
 
 	void LogContention(CUploadTransfer* pUpload);
 	void	Serialize(CArchive& ar);
