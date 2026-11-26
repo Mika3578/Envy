@@ -217,6 +217,20 @@ runs:
         }
         pwsh scripts/installer/verify-setup-appcopyright.ps1 -SetupExePath $setups[0].FullName
 
+    - name: Stage setup installer (Release)
+      if: ${{ inputs.configuration == 'Release' }}
+      shell: pwsh
+      run: |
+        # Mirror the release workflow's artifact contract: portable/ and setup/
+        # at the artifact root, so consumers handle both the same way.
+        $setups = @(Get-ChildItem -Path Builds -Filter *.exe -File -ErrorAction SilentlyContinue)
+        if ($setups.Count -ne 1) {
+          throw "Expected exactly one setup executable in Builds/, found $($setups.Count)."
+        }
+        New-Item -ItemType Directory -Force -Path artifacts/setup | Out-Null
+        Copy-Item $setups[0].FullName -Destination artifacts/setup -Force
+        Write-Host "Staged setup: $($setups[0].FullName)"
+
     - name: Run EnvyTests
       if: ${{ inputs.run-tests == 'true' }}
       shell: cmd
@@ -327,28 +341,22 @@ runs:
           runtime_sha256 = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
           setup_sha256 = (Get-FileHash -LiteralPath $setups[0].FullName -Algorithm SHA256).Hash
           runtime_test = 'NOT PERFORMED; maintainer checkpoint required'
-        } | ConvertTo-Json | Set-Content -LiteralPath artifact-provenance.json -Encoding utf8
+        } | ConvertTo-Json | Set-Content -LiteralPath artifacts/artifact-provenance.json -Encoding utf8
 
+    # Artifact layout matches the release workflow's packaging contract
+    # (portable/, setup/, artifact-provenance.json at the artifact root), so a
+    # downloaded envy-<platform>-Release artifact is the directly runnable
+    # runtime tree from stage-portable.ps1 instead of a flat mix of build
+    # outputs whose Envy.exe lacks its first-party DLLs.
     - name: Upload binaries
       if: ${{ success() && inputs.upload-binaries == 'true' && inputs.configuration == 'Release' }}
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
       with:
         name: envy-${{ inputs.platform }}-${{ inputs.configuration }}
         path: |
-          artifact-provenance.json
+          artifacts/artifact-provenance.json
           artifacts/portable/**
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.exe
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/Envy.pdb
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatMonitor.exe
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatWer.dll
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/BugSplatRc.dll
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_handler.exe
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/crashpad_wer.dll
-          Envy/${{ inputs.configuration }} ${{ inputs.platform }}/*.dll
-          Envy/**/Release/*.exe
-          Envy/**/Release/*.dll
-          Plugins/**/Release/*.dll
-          Builds/**
+          artifacts/setup/**
         if-no-files-found: error
         retention-days: ${{ github.event_name == 'pull_request' && 7 || 14 }}
 

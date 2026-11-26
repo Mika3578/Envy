@@ -346,6 +346,12 @@ if (-not (Get-ChildItem (Join-Path $dest 'Data') -File -ErrorAction SilentlyCont
 	Write-Fail 'Portable stage Data\ is empty'
 }
 
+# Fail the stage when any packaged image imports a runtime DLL the tree does
+# not ship: staged artifacts must start Envy.exe on a clean machine, and a
+# missing first-party DLL (e.g. HashLib.dll) otherwise surfaces only after
+# upload, on the tester's machine.
+& (Join-Path $PSScriptRoot 'verify-runtime-dependencies.ps1') -TreeDir $dest
+
 $fileCount = (Get-ChildItem -LiteralPath $dest -Recurse -File | Measure-Object).Count
 Write-Host "stage-portable: PASS ($fileCount files under $dest)"
 exit 0
