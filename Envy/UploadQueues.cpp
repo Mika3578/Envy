@@ -144,37 +144,52 @@ int CUploadQueues::GetPosition(CUploadTransfer* pUpload, BOOL bStart, QueuePosit
 		return -1;
 	}
 
-	CSingleLock oLock1( &Network.m_pSection );
-	if (!oLock1.Lock(UPLOAD_QUEUE_NETWORK_LOCK_WAIT))
-	{
-		nResult = qpsTransientBusy;
-		LogContention(pUpload);
-		return -1;
-	}
+	int nPosition = -1;
+	bool bBusy = false;
 
-	CSingleLock oLock2(&m_pSection);
-	if (!oLock2.Lock(UPLOAD_QUEUE_LOCK_WAIT))
 	{
-		nResult = qpsTransientBusy;
-		LogContention(pUpload);
-		return -1;
-	}
-
-	if (Check(pUpload->m_pQueue))
-	{
-		int nPosition = pUpload->m_pQueue->GetPosition(pUpload, bStart);
-		if (nPosition >= 0)
+		CSingleLock oLock1(&Network.m_pSection);
+		CSingleLock oLock2(&m_pSection);
+		if (oLock1.Lock(UPLOAD_QUEUE_NETWORK_LOCK_WAIT) &&
+		    oLock2.Lock(UPLOAD_QUEUE_LOCK_WAIT))
 		{
-			nResult = qpsReady;
-			return nPosition;
+			if (Check(pUpload->m_pQueue))
+			{
+				nPosition = pUpload->m_pQueue->GetPosition(pUpload, bStart);
+				if (nPosition >= 0)
+					nResult = qpsReady;
+				else
+				{
+					// The upload is no longer tracked by its queue.
+					pUpload->m_pQueue = NULL;
+					nResult = qpsNoQueue;
+				}
+			}
+			else
+			{
+				// The upload has no valid queue: it was deleted or is no
+				// longer tracked.
+				pUpload->m_pQueue = NULL;
+				nResult = qpsNoQueue;
+			}
 		}
+		else
+			bBusy = true;
+	}
+	// Both lock scopes have ended, so diagnostics never extend or block the
+	// bounded critical sections.
+
+	if (bBusy)
+	{
+		nResult = qpsTransientBusy;
+		LogContention(pUpload);
+		return -1;
 	}
 
-	// The upload has no valid queue: it was deleted or is no longer tracked.
-	pUpload->m_pQueue = NULL;
-	nResult = qpsNoQueue;
-	theApp.Message(MSG_ERROR, L"Rejecting Upload connection to %s, no valid upload queue.", (LPCTSTR)pUpload->m_sAddress);
-	return -1;
+	if (nResult == qpsNoQueue)
+		theApp.Message(MSG_ERROR, L"Rejecting Upload connection to %s, no valid upload queue.", (LPCTSTR)pUpload->m_sAddress);
+
+	return nResult == qpsReady ? nPosition : -1;
 }
 
 //////////////////////////////////////////////////////////////////////
