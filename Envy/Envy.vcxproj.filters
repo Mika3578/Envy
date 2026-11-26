@@ -2081,6 +2081,9 @@
     <ClInclude Include="Ed2kLockOrder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="KadPublishWire.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="EnvyThreadPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
