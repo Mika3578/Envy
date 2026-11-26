@@ -20,41 +20,41 @@
 // HTML/XML documents. Each exact topic is built from its own hash, never a
 // different hash's bytes (BEP 9: xt=urn:btih carries the v1 info-hash).
 inline std::wstring BuildMagnetQuery(
-	const wchar_t* pszNameURI, const wchar_t* pszSize,
-	const wchar_t* pszSHA1, const wchar_t* pszTiger,
-	const wchar_t* pszED2K, const wchar_t* pszMD5, const wchar_t* pszBTH)
+    const wchar_t* pszNameURI, const wchar_t* pszSize,
+    const wchar_t* pszSHA1, const wchar_t* pszTiger,
+    const wchar_t* pszED2K, const wchar_t* pszMD5, const wchar_t* pszBTH)
 {
 	std::wstring strMagnet;
 
-	if ( pszSHA1 && *pszSHA1 )
-		strMagnet = std::wstring( L"xt=urn:sha1:" ) + pszSHA1;
+	if (pszSHA1 && *pszSHA1)
+		strMagnet = std::wstring(L"xt=urn:sha1:") + pszSHA1;
 
-	if ( pszTiger && *pszTiger )
-		strMagnet = std::wstring( L"xt=urn:tree:tiger/:" ) + pszTiger;
+	if (pszTiger && *pszTiger)
+		strMagnet = std::wstring(L"xt=urn:tree:tiger/:") + pszTiger;
 
-	if ( pszSHA1 && *pszSHA1 && pszTiger && *pszTiger )
-		strMagnet = std::wstring( L"xt=urn:bitprint:" ) + pszSHA1 + L'.' + pszTiger;
+	if (pszSHA1 && *pszSHA1 && pszTiger && *pszTiger)
+		strMagnet = std::wstring(L"xt=urn:bitprint:") + pszSHA1 + L'.' + pszTiger;
 
-	if ( pszED2K && *pszED2K )
+	if (pszED2K && *pszED2K)
 	{
-		if ( ! strMagnet.empty() ) strMagnet += L"&amp;";
-		strMagnet += std::wstring( L"xt=urn:ed2khash:" ) + pszED2K;
+		if (!strMagnet.empty()) strMagnet += L"&amp;";
+		strMagnet += std::wstring(L"xt=urn:ed2khash:") + pszED2K;
 	}
 
-	if ( pszMD5 && *pszMD5 )
+	if (pszMD5 && *pszMD5)
 	{
-		if ( ! strMagnet.empty() ) strMagnet += L"&amp;";
-		strMagnet += std::wstring( L"xt=urn:md5:" ) + pszMD5;
+		if (!strMagnet.empty()) strMagnet += L"&amp;";
+		strMagnet += std::wstring(L"xt=urn:md5:") + pszMD5;
 	}
 
-	if ( pszBTH && *pszBTH )
+	if (pszBTH && *pszBTH)
 	{
-		if ( ! strMagnet.empty() ) strMagnet += L"&amp;";
-		strMagnet += std::wstring( L"xt=urn:btih:" ) + pszBTH;
+		if (!strMagnet.empty()) strMagnet += L"&amp;";
+		strMagnet += std::wstring(L"xt=urn:btih:") + pszBTH;
 	}
 
-	if ( ! strMagnet.empty() )
-		strMagnet += std::wstring( L"&amp;xl=" ) + ( pszSize ? pszSize : L"" );
+	if (!strMagnet.empty())
+		strMagnet += std::wstring(L"&amp;xl=") + (pszSize ? pszSize : L"");
 
-	return std::wstring( L"magnet:?" ) + strMagnet + L"&amp;dn=" + ( pszNameURI ? pszNameURI : L"" );
+	return std::wstring(L"magnet:?") + strMagnet + L"&amp;dn=" + (pszNameURI ? pszNameURI : L"");
 }

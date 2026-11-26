@@ -1300,12 +1300,13 @@ BOOL CLibraryFile::PrepareDoc(LPCTSTR pszTemplate, CArray< CString >& oDocs) con
 	}
 
 	strMagnet = BuildMagnetQuery(
-		(LPCTSTR)strNameURI, (LPCTSTR)strSize,
-		m_oSHA1 ? (LPCTSTR)m_oSHA1.toString() : NULL,
-		m_oTiger ? (LPCTSTR)m_oTiger.toString() : NULL,
-		m_oED2K ? (LPCTSTR)m_oED2K.toString() : NULL,
-		m_oMD5 ? (LPCTSTR)m_oMD5.toString() : NULL,
-		m_oBTH ? (LPCTSTR)m_oBTH.toString() : NULL ).c_str();
+	                (LPCTSTR)strNameURI, (LPCTSTR)strSize,
+	                m_oSHA1 ? (LPCTSTR)m_oSHA1.toString() : NULL,
+	                m_oTiger ? (LPCTSTR)m_oTiger.toString() : NULL,
+	                m_oED2K ? (LPCTSTR)m_oED2K.toString() : NULL,
+	                m_oMD5 ? (LPCTSTR)m_oMD5.toString() : NULL,
+	                m_oBTH ? (LPCTSTR)m_oBTH.toString() : NULL)
+	                .c_str();
 
 	ReplaceNoCase( strDoc, L"$meta:magnet$", strMagnet );
 
