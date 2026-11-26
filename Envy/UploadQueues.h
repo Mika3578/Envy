@@ -47,9 +47,6 @@ public:
 	CUploadQueue*		m_pTorrentQueue;
 	CUploadQueue*		m_pHistoryQueue;
 
-	volatile LONG m_nContentionEvents;  // Deferred position lookups (Interlocked)
-	volatile LONG m_tLastContentionLog; // GetTickCount of last contention log (Interlocked)
-
 	BOOL	Enqueue(CUploadTransfer* pUpload, BOOL bForce = FALSE);
 	BOOL	Dequeue(CUploadTransfer* pUpload);
 	BOOL	StealPosition(CUploadTransfer* pTarget, CUploadTransfer* pSource);
@@ -113,6 +110,9 @@ public:
 protected:
 	CList< CUploadQueue* >	m_pList;
 	BOOL					m_bDonkeyLimited;
+
+	volatile LONG m_nContentionEvents;  // Deferred position lookups (Interlocked)
+	volatile LONG m_tLastContentionLog; // GetTickCount of last contention log (Interlocked)
 
 	void LogContention(CUploadTransfer* pUpload);
 	void	Serialize(CArchive& ar);
