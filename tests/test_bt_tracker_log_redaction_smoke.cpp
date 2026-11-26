@@ -29,8 +29,8 @@ static bool test_log_length_keeps_queryless_url()
 static bool test_log_length_strips_at_first_query()
 {
 	// Everything from the first '?' onward is dropped, not just one parameter.
-	return BtTrackerLogLength( L"http://t/announce?passkey=a&info_hash=b" )
-		== wcslen( L"http://t/announce" );
+	return BtTrackerLogLength( L"udp://t/announce?passkey=a&info_hash=b" )
+		== wcslen( L"udp://t/announce" );
 }
 
 static bool test_log_length_query_only_empty()
@@ -52,8 +52,8 @@ static bool test_log_length_null_and_empty_safe()
 static bool test_log_length_query_before_path()
 {
 	// Malformed shape: '?' ahead of the path still removes the credential.
-	return BtTrackerLogLength( L"http://t?passkey=secret/announce" )
-		== wcslen( L"http://t" );
+	return BtTrackerLogLength( L"udp://t?passkey=secret/announce" )
+		== wcslen( L"udp://t" );
 }
 
 void register_bt_tracker_log_redaction_smoke_tests(TestSuite& suite)
