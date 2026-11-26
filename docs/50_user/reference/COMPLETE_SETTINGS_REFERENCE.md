@@ -291,9 +291,9 @@ Live Uploads/Downloads limit mapping: [transfer-settings.md](../transfer-setting
 | Category | Setting | Default | Description |
 |----------|---------|---------|-------------|
 | **WebServices** | BitprintsAgent | Bitprints Agent | User agent for Bitprints service |
-| | BitprintsWebView | Bitprints View | Bitprints web view URL |
-| | BitprintsWebSubmit | Bitprints Submit | Bitprints submission URL |
-| | BitprintsXML | Bitprints XML | Bitprints XML API URL |
+| | BitprintsWebView | (empty) | Bitprints web view URL; disabled by default since the bitprints.getenvy.com service ended with the getenvy.com domain |
+| | BitprintsWebSubmit | (empty) | Bitprints submission URL; disabled by default since the bitprints.getenvy.com service ended with the getenvy.com domain |
+| | BitprintsXML | (empty) | Bitprints XML API URL; disabled by default since the bitprints.getenvy.com service ended with the getenvy.com domain |
 | | BitprintsOkay | Bitprints Enabled | Enable Bitprints integration |
 
 ---

@@ -4,7 +4,7 @@
 <manifest	name="Template for Video"
 			author="Envy"
 			version="1.0"
-			link="http://getenvy.com"
+			link="https://github.com/Mika3578/Envy"
 			description="A template for video collections. With metadata for each file."
 			icon="Video.ico"
 />

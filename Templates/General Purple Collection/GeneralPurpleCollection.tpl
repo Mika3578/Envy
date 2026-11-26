@@ -114,7 +114,7 @@ function onMouseOut(el)
 <body text="white" bgColor="#300000" leftMargin="0" topMargin="0">
 	<table width="100%" cellpadding="0" cellspacing="0" height="56" background="Title.png">
 		<tr>
-			<td width="78"><a href="http://getenvy.com/download"><img src="Icon.png" border="0" alt="Download Envy"></a></td>
+			<td width="78"><a href="https://github.com/Mika3578/Envy/releases"><img src="Icon.png" border="0" alt="Download Envy"></a></td>
 			<td align="center" valign="top" style="padding: 3px"><b>$1$</b></td>
 		</tr>
 	</table>

@@ -3,8 +3,7 @@
 <manifest	name="CSV Collection"
 			author="Envy"
 			version="1.0"
-			link="http://getenvy.com/"
-			email="contact@getenvy.com"
+			link="https://github.com/Mika3578/Envy"
 			description="Simple .csv spreadsheet"
 			filename="Files.csv"
 />

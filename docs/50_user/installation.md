@@ -45,8 +45,7 @@ For testing new features:
 
 **⚠️ Warning**: Only download from official sources to avoid malware.
 
-- **SourceForge**: https://sourceforge.net/projects/getenvy/
-- **Official Website**: https://getenvy.com (if available)
+- **GitHub Releases**: https://github.com/Mika3578/Envy/releases
 
 ## 🚀 Installation Process
 

@@ -330,7 +330,7 @@ See [Crash reports](crash-reports.md).
 
 **Enjoy using Envy!** 🎉
 
-For the latest information, visit the [project website](https://getenvy.com) or check the [GitHub repository](../../).
+For the latest information, check the [GitHub repository](../../).
 
 ---
 

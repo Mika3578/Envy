@@ -134,9 +134,9 @@ AppPublisher={#publisher}
 AppCopyright={#copyright}
 
 ; Links to website for software panel
-AppPublisherURL=http://getenvy.com
-AppSupportURL=http://support.getenvy.com
-AppUpdatesURL=http://download.getenvy.com
+AppPublisherURL=https://github.com/Mika3578/Envy
+AppSupportURL=https://github.com/Mika3578/Envy/issues
+AppUpdatesURL=https://github.com/Mika3578/Envy/releases
 
 #if signpass != "XXXXXX"
 ; Dual-signing /as parameter requires a recent signtool.exe and a SHA256 (SHA-2) certificate
@@ -147,7 +147,7 @@ SignTool=signtoolparams sign /f cert.pfx /p "{#signpass}" /as /fd sha256 /td sha
 
 [Messages]
 ; Overwrite standard ISL entries  (Do not use localized messages)
-BeveledLabel=GetEnvy.com
+BeveledLabel=Envy
 SetupAppTitle=Setup - {#internal_name}
 
 
@@ -173,7 +173,7 @@ Name: "deleteoldsetup"; Description: "{cm:tasks_deleteoldsetup}"; Check: WasInst
 ; Envy Start Menu Shortcuts
 Name: "{group}\{#internal_name}"; Filename: "{app}\Envy.exe"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"; AppUserModelID: "Envy"
 Name: "{group}\TorrentEnvy"; Filename: "{app}\TorrentEnvy.exe"; WorkingDir: "{app}"; Comment: "Envy Torrent File Creator"
-Name: "{group}\Love GetEnvy.com"; Filename: "http://getenvy.com/love"; IconFilename: "{app}\Schemas\Love.ico"; Comment: "GetEnvy.com Show Some Love"
+Name: "{group}\Envy on GitHub"; Filename: "https://github.com/Mika3578/Envy"; IconFilename: "{app}\Schemas\Love.ico"; Comment: "Envy project on GitHub"
 Name: "{group}\GUI Modes\{#internal_name} ({cm:icons_basicmode})"; Filename: "{app}\Envy.exe"; Parameters: "-basic"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"; AppUserModelID: "Envy"
 Name: "{group}\GUI Modes\{#internal_name} ({cm:icons_tabbedmode})"; Filename: "{app}\Envy.exe"; Parameters: "-tabbed"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"; AppUserModelID: "Envy"
 Name: "{group}\GUI Modes\{#internal_name} ({cm:icons_windowedmode})"; Filename: "{app}\Envy.exe"; Parameters: "-windowed"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"; AppUserModelID: "Envy"
@@ -181,7 +181,7 @@ Name: "{group}\GUI Modes\{#internal_name} ({cm:icons_launchtray})"; Filename: "{
 ;Name: "{group}\GUI Modes\{#internal_name} ({cm:icons_noskin})"; Filename: "{app}\Envy.exe"; Parameters: "-noskin"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"; AppUserModelID: "Envy"
 Name: "{commondesktop}\{#internal_name}"; Filename: "{app}\Envy.exe"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"; Tasks: desktopicon; Check: not FileExists(ExpandConstant('{commondesktop}\{#internal_name}.lnk')); AppUserModelID: "Envy"
 Name: "{commondesktop}\TorrentEnvy"; Filename: "{app}\TorrentEnvy.exe"; WorkingDir: "{app}"; Comment: "Envy Drag'n'Drop Torrent Creator"; Tasks: desktopicontorrents; Check: not FileExists(ExpandConstant('{commondesktop}\TorrentEnvy.lnk')); AppUserModelID: "TorrentEnvy"
-Name: "{commondesktop}\Love GetEnvy.com"; Filename: "http://getenvy.com/love"; IconFilename: "{app}\Schemas\Love.ico"; Tasks: desktopicongetenvy; Check: not FileExists(ExpandConstant('{commondesktop}\Love GetEnvy.com.url'))
+Name: "{commondesktop}\Envy on GitHub"; Filename: "https://github.com/Mika3578/Envy"; IconFilename: "{app}\Schemas\Love.ico"; Tasks: desktopicongetenvy; Check: not FileExists(ExpandConstant('{commondesktop}\Envy on GitHub.url'))
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#internal_name}"; Filename: "{app}\Envy.exe"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"; Tasks: quicklaunch
 
 #if alpha == "True"
@@ -748,7 +748,8 @@ Type: files; Name: "{userdesktop}\Envy.lnk"; Tasks: not desktopicon
 Type: files; Name: "{commondesktop}\Envy.lnk"; Tasks: not desktopicon
 Type: files; Name: "{userdesktop}\TorrentEnvy.lnk"; Tasks: not desktopicontorrents
 Type: files; Name: "{commondesktop}\TorrentEnvy.lnk"; Tasks: not desktopicontorrents
-Type: files; Name: "{commondesktop}\Love GetEnvy.com.url"; Tasks: not desktopicongetenvy
+Type: files; Name: "{commondesktop}\Envy on GitHub.url"; Tasks: not desktopicongetenvy
+Type: files; Name: "{commondesktop}\Love GetEnvy.com.url"; Check: WasInstalled
 ;Type: filesandordirs; Name: "{userprograms}\Envy"; Check: InnoSetupUsed
 ;Type: filesandordirs; Name: "{commonprograms}\Envy"; Check: InnoSetupUsed
 Type: files; Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\Envy.lnk"; Tasks: not quicklaunch
