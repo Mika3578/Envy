@@ -17,7 +17,7 @@ distributed under those terms.
    - Components "MFC for v145", "ATL for v145", "C++ Spectre-mitigated libs (v145)"
    - "C++ CMake tools for Windows"
    - "Windows 10/11 SDK (latest)"
-2. Clone, bootstrap vcpkg **and restore the root manifest** (Crashpad):
+2. Clone, bootstrap vcpkg **and restore the root manifest**:
    ```
    git clone https://github.com/mika3578/envy.git
    cd envy
@@ -25,11 +25,8 @@ distributed under those terms.
    .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
    .\scripts\bootstrap-vcpkg.cmd
    ```
-   `bootstrap-vcpkg.cmd` is the local equivalent of CI’s
-   `vcpkg install --triplet=…` step (default `x64-windows-static`). For Win32
-   use `-Triplet x86-windows-static`; for both platforms / `build_all.ps1` use
-   `-All`. Visual Studio does **not** restore `vcpkg_installed\` before
-   `PreBuildEvent`. See `docs/10_dev/build.md`.
+   `-Triplet x86-windows-static` targets Win32; `-All` covers both
+   platforms. See `docs/10_dev/build.md` for details and troubleshooting.
 3. Open `Visual Studio\Envy.sln` and build (Ctrl+Shift+B).
 
 If you migrated from VS 2017/2019: run `Visual Studio\SetVS2026.bat` once
@@ -47,51 +44,26 @@ to retarget every project to v145.
 
 ## Git workflow (linear history)
 
-`develop` keeps a **linear history** with no merge commits. Keep local pulls
-fast-forward-only and rebase feature branches before opening or updating PRs.
+`develop` keeps a **linear history**: squash merge is the only merge method
+onto `develop` (Protect develop ruleset), merge commits and force pushes are
+blocked, and the squash title defaults to the PR title with a blank auto-fill
+body — the concise technical squash body is prepared in the PR's **Squash
+Commit Summary** section (see `.github/pull_request_template.md` and the
+`.agents/skills/envy-pr-workflow/SKILL.md` procedure). Rebase merge stays
+enabled globally for other branches.
 
-### Repository merge settings (GitHub)
-
-- Merge commits: **disabled**
-- Squash merge: **enabled** (required path onto `develop`)
-- Squash merge title default: **PR title** (live GitHub:
-  `squash_merge_commit_title: PR_TITLE`)
-- Squash merge message default: **blank auto-fill** (live GitHub:
-  `squash_merge_commit_message: BLANK`) — prevents GitHub from dumping the
-  full PR body or all branch commits into `develop`. **Policy still requires**
-  a concise technical squash body at merge time; copy it from the **Squash
-  Commit Summary** section of your PR (see `.github/pull_request_template.md`).
-  Canonical procedure: `.agents/skills/envy-pr-workflow/SKILL.md`
-  (*Squash Commit Summary*).
-- Rebase merge: **enabled globally**, but **prohibited** when merging into
-  `develop` by the Protect develop ruleset (squash-only)
-- Require linear history on `develop`: **enabled** via the active `Protect develop` ruleset
-- Force pushes and branch deletions on `develop`: **blocked**
-
-### Local settings
-
-Configure fast-forward-only pulls so a plain `git pull` never creates merge
-commits:
+Configure fast-forward-only pulls and sync with:
 
 ```bash
 git config pull.ff only
-```
-
-This configures fast-forward-only pulls for this local clone. To apply
-it globally across all your repositories instead, run
-`git config --global pull.ff only`.
-
-### Sync `develop` locally
-
-```bash
 git fetch origin
 git checkout develop
 git pull --ff-only origin develop
 ```
 
-If `git pull --ff-only` fails, your local `develop` has diverged. Reset it
-to the remote (**ensure your working tree is clean first — `git reset --hard`
-discards all uncommitted changes**; stash or commit any work in progress):
+If `git pull --ff-only` fails, your local `develop` has diverged: with a
+**clean working tree** (`git reset --hard` discards uncommitted changes),
+reset it to the remote:
 
 ```bash
 git fetch origin
@@ -126,9 +98,6 @@ comments and auto-generated PR summaries on GitHub are fine.
 ./scripts/configure-git-noreply.sh
 git config user.useConfigOnly true
 ```
-
-Review lifecycle / final Copilot orchestration is tracked separately (for
-example PR #349), not in authorship hygiene PRs.
 
 ### Feature branch workflow (before opening or updating a PR)
 
