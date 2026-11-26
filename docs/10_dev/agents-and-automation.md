@@ -90,10 +90,13 @@ phase classifier failure/cancellation cannot become successful build evidence.
 
 CodeRabbit / reviewdog / Bugbot are **advisory** and must not be the sole
 merge blocker. Live native review policy on Protect develop (re-verified
-2026-09-20) is **≥1 APPROVED** review from a non-author reviewer. In this
-solo-maintainer repo, GitHub Copilot Code Review may satisfy it only when
-approval/counting are enabled in the Copilot repository UI, any path
-allowlist matches every changed file, and GitHub records an actual
+2026-11-26) is **≥1 APPROVED** review from a non-author reviewer
+(`required_approving_review_count: 1`). In this
+solo-maintainer repo, that approval may come from Sourcery
+(`sourcery-ai[bot]`, free for OSS), from GitHub Copilot Code Review only when
+approval/counting are enabled in the Copilot repository UI and any path
+allowlist matches every changed file, or from an independent human; GitHub
+must record an actual
 `APPROVED` review. An assessment is not an approval. See
 [KNOWN_INCONSISTENCIES](../00_index/KNOWN_INCONSISTENCIES.md) and
 [CI_AUDIT_2026-09](CI_AUDIT_2026-09.md). Dismiss stale on push remains on,
@@ -405,11 +408,14 @@ disable approval/competing writer automations; inspect GitHub Copilot approval
 and counting UI settings and path allowlists. Do not change Protect develop
 from repository YAML. Removing PR Gate, required signatures, duplicate status
 checks, or Copilot review-on-push requires a separately reviewed GitHub
-ruleset operation. Copilot may satisfy the required non-author approval only
-on PRs whose changed paths all match the repository Copilot path allowlist
-(ordinary application/docs trees — not privileged governance paths). Pull
+ruleset operation. The required non-author approval may come from Sourcery
+(`sourcery-ai[bot]`), from Copilot only on PRs whose changed paths all match
+the repository Copilot path allowlist
+(ordinary application/docs trees — not privileged governance paths), or from
+an independent human. Pull
 requests that edit `AGENTS.md`, `.github/skills/**`, workflows, settings,
-rulesets, or gate scripts require an independent human `APPROVED`; see
+rulesets, or gate scripts require an independent human `APPROVED` — no bot
+may be the sole counted approval there; see
 `.github/skills/code-review/SKILL.md` and `docs/10_dev/devsecops-envy.md`.
 
 Dogfood on the Draft implementation PR:

@@ -33,11 +33,13 @@ After every push, use `gh pr checks NUMBER --repo Mika3578/Envy --required
 fixing. Run applicable Remote JS, dependency, parser and workflow regressions
 even when they are not named required contexts.
 
-Copilot may satisfy the approval count only when repository settings permit
-approval/counting, the path policy covers the entire diff, and GitHub records
-APPROVED. A COMMENTED review, quota error, summary heading or CLEAN outcome is
+The approval count may be satisfied by Sourcery (`sourcery-ai[bot]`), by
+Copilot when repository settings permit approval/counting, the path policy
+covers the entire diff, and GitHub records APPROVED, or by an independent
+human. A COMMENTED review, quota error, summary heading or CLEAN outcome is
 not an approval. Governance/workflow/ruleset changes require explicit human
-review; use a non-author human reviewer when Copilot is unavailable or ineligible.
+review; use a non-author human reviewer when no eligible bot is available or
+the diff touches privileged governance paths.
 Read every finding, including resolved threads and overview text, at current HEAD.
 
 ## Correction ownership and trust
