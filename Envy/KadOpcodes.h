@@ -19,10 +19,10 @@
 #define KADEMLIA2_BOOTSTRAP_RES 0x09     // <NodeID 16><TagList>[<NodeID 16><IP 4><UDPPort 2><TCPPort 2><TagList>]*
 #define KADEMLIA2_HELLO_REQ 0x11         // <NodeID 16><TCPPort 2><Version 1><TagList>
 #define KADEMLIA2_HELLO_RES 0x19         // <NodeID 16><TCPPort 2><Version 1><TagList>
-#define KADEMLIA2_REQ 0x21               // <NodeID 16><Type 1><TagList>
+#define KADEMLIA2_REQ 0x21               // <Type 1><TargetID 16><ReceiverID 16>
 #define KADEMLIA2_HELLO_RES_ACK 0x22     // <NodeID 16><TagList>; not implemented
 #define KADEMLIA_FIND_NODE 0x0B          // eMule FIND_NODE search type
-#define KADEMLIA2_RES 0x29               // <NodeID 16><Type 1><TagList>[<NodeID 16><IP 4><UDPPort 2><TCPPort 2><TagList>]*
+#define KADEMLIA2_RES 0x29               // <TargetID 16><Count 1>[<contacts>...]
 #define KADEMLIA2_SEARCH_KEY_REQ 0x33    // <FileHash 16><StartPos 8><TagList>
 #define KADEMLIA2_SEARCH_SOURCE_REQ 0x34 // <FileHash 16><StartPosition 2 LE><FileSize 8 LE>
 #define KADEMLIA2_SEARCH_NOTES_REQ 0x35  // <FileHash 16><StartPos 8><TagList>
