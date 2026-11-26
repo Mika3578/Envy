@@ -92,14 +92,14 @@ function Get-PeImportedDllNames([byte[]]$Bytes)
 	if ($magic -eq 0x20B)
 	{
 		$dataDirs = $optional + 112
-		$dirCount = [BitConverter]::ToInt64($Bytes, $optional + 108)
+		$dirCount = [BitConverter]::ToUInt32($Bytes, $optional + 108)
 		$imageBase = [BitConverter]::ToInt64($Bytes, $optional + 24)
 	}
 	elseif ($magic -eq 0x10B)
 	{
 		$dataDirs = $optional + 96
 		$dirCount = [BitConverter]::ToUInt32($Bytes, $optional + 92)
-		$imageBase = [BitConverter]::ToInt64($Bytes, $optional + 28)
+		$imageBase = [BitConverter]::ToUInt32($Bytes, $optional + 28)
 	}
 	else
 	{

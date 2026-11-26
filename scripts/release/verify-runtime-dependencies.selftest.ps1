@@ -67,8 +67,12 @@ function Find-AsciiString([byte[]]$Bytes, [string]$Needle)
 
 # Build a minimal image whose only dependency is one delay-load DLL name. The
 # RVA form (grAttrs bit 0 set) is emitted as PE32+; the legacy preferred-base
-# VA form only fits the 32-bit ImgDelayDescr fields of a PE32 image.
-function New-SyntheticDelayImportPe([string]$Path, [string]$DelayDllName, [switch]$NameIsVa)
+# VA form only fits the 32-bit ImgDelayDescr fields of a PE32 image, which is
+# written with a non-zero SectionAlignment so a wrong ImageBase read width
+# cannot pass by accident. $NumberOfRvaAndSizes controls the data-directory
+# count the parser must honor: a delay directory beyond that count must be
+# ignored even though its bytes are present in the file.
+function New-SyntheticDelayImportPe([string]$Path, [string]$DelayDllName, [switch]$NameIsVa, [uint32]$NumberOfRvaAndSizes = 16)
 {
 	if ($DelayDllName.Length -gt 200)
 	{
@@ -91,7 +95,8 @@ function New-SyntheticDelayImportPe([string]$Path, [string]$DelayDllName, [switc
 		$bytes[$optional] = 0x0B
 		$bytes[$optional + 1] = 0x01
 		[BitConverter]::GetBytes([uint32]0x10000000).CopyTo($bytes, $optional + 28)
-		[BitConverter]::GetBytes([uint32]16).CopyTo($bytes, $optional + 92)
+		[BitConverter]::GetBytes([uint32]0x1000).CopyTo($bytes, $optional + 32)
+		[BitConverter]::GetBytes($NumberOfRvaAndSizes).CopyTo($bytes, $optional + 92)
 		$dataDirs = $optional + 96
 		$sectionTable = $optional + 224
 		$attributes = [uint32]0x0
@@ -104,12 +109,15 @@ function New-SyntheticDelayImportPe([string]$Path, [string]$DelayDllName, [switc
 		[BitConverter]::GetBytes([uint16]240).CopyTo($bytes, $coff + 16)
 		$bytes[$optional] = 0x0B
 		$bytes[$optional + 1] = 0x02
-		[BitConverter]::GetBytes([int64]16).CopyTo($bytes, $optional + 108)
+		[BitConverter]::GetBytes($NumberOfRvaAndSizes).CopyTo($bytes, $optional + 108)
 		$dataDirs = $optional + 112
 		$sectionTable = $optional + 240
 		$attributes = [uint32]0x1
 		$nameRva = [uint32]0x1040
 	}
+	# Non-zero export-directory RVA: the parser must not read directory 0, and
+	# a too-wide NumberOfRvaAndSizes read would absorb it.
+	[BitConverter]::GetBytes([uint32]0x1234).CopyTo($bytes, $dataDirs)
 	[BitConverter]::GetBytes([uint32]0x1000).CopyTo($bytes, $dataDirs + 13 * 8)
 	[BitConverter]::GetBytes([uint32]0x40).CopyTo($bytes, $dataDirs + 13 * 8 + 4)
 	$section = $sectionTable
@@ -173,23 +181,35 @@ try
 	'not a PE' | Set-Content -LiteralPath (Join-Path $tree 'broken.dll') -NoNewline
 	Assert-Fail $tree 'non-PE image' 'not a readable PE image'
 
-	# 6. Delay-load imports are honored: missing delay DLL fails...
+	# 6. Delay-load imports are honored: missing delay DLL fails (PE32+ RVA form).
 	$tree = Copy-Tree 'delay-missing'
 	New-SyntheticDelayImportPe (Join-Path $tree 'delayhost.exe') 'DELAYX.dll'
 	Assert-Fail $tree 'missing delay-load DLL' 'DELAYX\.dll'
 
-	# 7. ...and shipped delay DLLs pass, for both RVA and VA name forms.
+	# 7. Shipped delay DLLs pass (PE32+ RVA name form).
 	$tree = Copy-Tree 'delay-rva'
 	New-SyntheticDelayImportPe (Join-Path $tree 'delayhost.exe') 'DELAYX.dll'
 	Copy-Item -LiteralPath $samplePe -Destination (Join-Path $tree 'DELAYX.dll')
 	Assert-Pass $tree 'delay-load DLL present (RVA form)'
+
+	# 8. A PE32 image with a real SectionAlignment must rebase legacy VA names
+	# correctly: a missing delay DLL fails, a shipped one passes.
+	$tree = Copy-Tree 'delay-va-missing'
+	New-SyntheticDelayImportPe (Join-Path $tree 'delayhost.exe') 'DELAYY.dll' -NameIsVa
+	Assert-Fail $tree 'missing delay-load DLL (VA form)' 'DELAYY\.dll'
 
 	$tree = Copy-Tree 'delay-va'
 	New-SyntheticDelayImportPe (Join-Path $tree 'delayhost.exe') 'DELAYY.dll' -NameIsVa
 	Copy-Item -LiteralPath $samplePe -Destination (Join-Path $tree 'DELAYY.dll')
 	Assert-Pass $tree 'delay-load DLL present (VA form)'
 
-	# 8. A missing tree directory fails instead of passing silently.
+	# 9. A delay directory beyond NumberOfRvaAndSizes is ignored even when its
+	# bytes are present in the file, so the declared directory count is honored.
+	$tree = Copy-Tree 'delay-beyond-count'
+	New-SyntheticDelayImportPe (Join-Path $tree 'delayhost.exe') 'DELAYZ.dll' -NumberOfRvaAndSizes 2
+	Assert-Pass $tree 'delay directory beyond the declared count is ignored'
+
+	# 10. A missing tree directory fails instead of passing silently.
 	Assert-Fail (Join-Path $tmpRoot 'does-not-exist') 'missing tree directory' 'Runtime tree not found'
 }
 finally
