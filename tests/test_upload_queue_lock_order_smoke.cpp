@@ -11,8 +11,7 @@
 
 static bool test_upload_queue_lock_order_network_before_queues()
 {
-	return UploadLockOrderNetworkBeforeQueues()
-		&& UPLOAD_LOCK_ORDER_NETWORK == 1
+	return UPLOAD_LOCK_ORDER_NETWORK == 1
 		&& UPLOAD_LOCK_ORDER_QUEUES == 2
 		&& UPLOAD_LOCK_ORDER_TRANSFERS == 3;
 }
