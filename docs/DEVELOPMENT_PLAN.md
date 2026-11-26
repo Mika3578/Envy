@@ -1,6 +1,8 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-24
+- **Last Updated:** 2026-11-26
+
+- **Changelog Entry:** 2026-10-26 — MetaFetch residual after #393: align `ReceiveMetadataInput` / MetaFetch `dtsHeaders` with the THEX 16 KiB header-phase + body-only XML cap pattern so incomplete headers no longer use a combined body+slack hard cap. Centralize `XML_PEER_HTTP_HEADER_PHASE_CAP`, charge cumulative status/header bytes, and add the scripted-socket MetaFetch receive harness before the EnvyTests build; wire format unchanged. Draft; native MSVC/Windows build and runtime validation remain pending.
 
 - **ED2K program, first evidence-integrity slice:** #375 / #410 / #160 — make all four known false-PASS paths fail closed: parse the separate MuleInfo client/protocol bytes and every declared tag; reconstruct directional TCP payloads from bounded raw sequence numbers while rejecting gaps/conflicting retransmissions; finalize capture before other owned clients; require successful independent extraction before capture usability can pass. Make the Darwin selector test patch both OS selectors and replace the POSIX shebang version stand-in with a mocked argv/process result suitable for Windows. Pinned eMule Community/aMule sources establish the MuleInfo layout. No production packet, queue, platform or advertised capability changes. The deterministic Linux suite covers the fixes, but #410 still requires its requested Windows run and #160 still requires live peer evidence; neither is inferred from this slice. #332 and #495 reliability precede #344 slot scaling, and #343/#344 optimizations require before/after benchmarks (#111 / open PR #368). Existing MuleInfo identity work (#509) and Kad work (#462/#502/#511) remain separate, unmerged work at this baseline. See `tools/interop/README.md` for exact references and parser/capture scope. Native Windows builds and independent live transfers have not been run in this Linux environment.
 
