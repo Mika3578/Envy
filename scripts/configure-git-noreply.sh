@@ -17,7 +17,11 @@ userid=""
 if command -v gh >/dev/null 2>&1; then
 	login="$(gh api user --jq .login 2>/dev/null || true)"
 	userid="$(gh api user --jq .id 2>/dev/null || true)"
-	if [[ -z "$login" || -z "$userid" ]]; then
+	# gh failure output (JSON error bodies, "null") lands on stdout, so a
+	# non-empty value is not proof of a usable identity. Only a login and id
+	# in their canonical formats count; anything else falls through to the
+	# interactive prompt below.
+	if [[ ! "$login" =~ ^[A-Za-z0-9-]+$ || ! "$userid" =~ ^[0-9]+$ ]]; then
 		login=""
 		userid=""
 	fi
