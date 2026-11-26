@@ -1824,12 +1824,18 @@ void CKademlia::SendFirewalledRequest(const KadContact& contact)
 	peer.verified = contact.verified != FALSE;
 	peer.lastSeen = static_cast<DWORD>(contact.lastSeen);
 
-	if (!m_firewall.BeginOutboundCheck(peer, GetTickCount()))
-		return;
-
 	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_FIREWALLED_REQ, ED2K_PROTOCOL_KAD);
 	if (!pPacket)
 		return;
+
+	// The packet is allocated before the outbound check commits a slot, so an
+	// allocation failure cannot strand a check slot until its TTL expires.
+	if (!m_firewall.BeginOutboundCheck(peer, GetTickCount()))
+	{
+		pPacket->Release();
+		return;
+	}
+
 	pPacket->WriteShortLE(m_firewall.OurTcpPort());
 	AddOutstandingRequest(KAD_REQUEST_FIREWALL_CHECK, addr);
 	SendPacket(&addr, pPacket);
