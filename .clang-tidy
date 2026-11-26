@@ -16,8 +16,9 @@ WarningsAsErrors: ''
 
 HeaderFilterRegex: '.*'
 
-# Checks remain disabled by default for the legacy MFC tree. Keep the
-# individual options below ready for gradual, separately validated enablement.
+# The starter set above is enabled advisory (WarningsAsErrors stays empty);
+# the individual options below are kept ready for gradual, separately
+# validated enablement.
 
 # Format style
 FormatStyle: file
