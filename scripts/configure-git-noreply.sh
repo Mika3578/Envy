@@ -14,6 +14,11 @@ fi
 login=""
 userid=""
 
+# GitHub logins: alphanumerics and single interior hyphens, at most 39 chars.
+login_is_valid() {
+	[[ ${#1} -le 39 && "$1" =~ ^[A-Za-z0-9]+(-[A-Za-z0-9]+)*$ ]]
+}
+
 if command -v gh >/dev/null 2>&1; then
 	login="$(gh api user --jq .login 2>/dev/null || true)"
 	userid="$(gh api user --jq .id 2>/dev/null || true)"
@@ -21,7 +26,7 @@ if command -v gh >/dev/null 2>&1; then
 	# non-empty value is not proof of a usable identity. Only a login and id
 	# in their canonical formats count; anything else falls through to the
 	# interactive prompt below.
-	if [[ ! "$login" =~ ^[A-Za-z0-9-]+$ || ! "$userid" =~ ^[0-9]+$ ]]; then
+	if ! login_is_valid "$login" || [[ ! "$userid" =~ ^[0-9]+$ ]]; then
 		login=""
 		userid=""
 	fi
@@ -36,7 +41,7 @@ if [[ -z "$userid" ]]; then
 	read -r userid
 fi
 
-if [[ ! "$login" =~ ^[A-Za-z0-9-]+$ ]]; then
+if ! login_is_valid "$login"; then
 	echo "Refusing invalid GitHub login." >&2
 	exit 1
 fi
