@@ -126,7 +126,8 @@ BOOL CUploadTransferED2K::Request(const Hashes::Ed2kHash& oED2K)
 	// and a genuinely unqueued client is dropped by the next ranking pass.
 	QueuePositionState nQueueState = qpsNoQueue;
 	const int nQueuePosition = UploadQueues.GetPosition(this, FALSE, &nQueueState);
-	if (nQueuePosition < 0 && nQueueState != qpsTransientBusy && !UploadQueues.Enqueue(this))
+	if (nQueuePosition < 0 && nQueueState != qpsTransientBusy &&
+	    nQueueState != qpsShutdown && !UploadQueues.Enqueue(this))
 	{
 		theApp.Message( MSG_ERROR, IDS_UPLOAD_BUSY_QUEUE, (LPCTSTR)m_sName, (LPCTSTR)m_sAddress, L"ED2K" );
 

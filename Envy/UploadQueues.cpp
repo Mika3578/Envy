@@ -123,7 +123,7 @@ void CUploadQueues::LogContention(CUploadTransfer* pUpload)
 	// Best-effort single winner: a lost update only delays the next message.
 	if (InterlockedCompareExchange(&m_tLastContentionLog, (LONG)tNow, tLast) == tLast)
 	{
-		theApp.Message(MSG_ERROR, L"Upload queue position contention for %s: %lu lookups deferred.",
+		theApp.Message(MSG_ERROR, L"Upload queue position contention for %s: %lu lookups deferred since startup.",
 		               (LPCTSTR)pUpload->m_sAddress, nEvents);
 	}
 }
