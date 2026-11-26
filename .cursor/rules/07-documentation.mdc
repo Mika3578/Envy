@@ -8,7 +8,7 @@ alwaysApply: false
 
 - One canonical doc per topic; search `docs/` and extend an existing doc
   before creating one. New primary entry points go in
-  `docs/00_index/CURSOR_INDEX.md` and `docs/00_index/README.md`.
+  `docs/00_index/README.md`.
 - Layout: `docs/00_index/` index and decisions, `docs/10_dev/` build and
   workflow, `docs/20_arch/` architecture, `docs/30_protocols/<proto>/`
   protocol notes, `docs/40_quality/` security/testing, `docs/50_user/` user

@@ -150,7 +150,7 @@ topic and do not claim support without code/tests/runtime evidence.
 ## Related
 
 - [AGENTS.md](../../AGENTS.md)
-- [Contributing](contributing.md)
+- [Contributing](../../.github/CONTRIBUTING.md)
 - [Status](status.md)
 - [Architecture](../20_arch/architecture.md)
-- [Cursor index](../00_index/CURSOR_INDEX.md)
+- [Documentation index](../00_index/README.md)
