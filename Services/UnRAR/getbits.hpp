@@ -20,7 +20,7 @@ class BitInput
     {
       InAddr=InBit=0;
     }
-
+    
     // Move forward by 'Bits' bits.
     void addbits(uint Bits)
     {
@@ -33,34 +33,47 @@ class BitInput
     // Bit at (InAddr,InBit) has the highest position in returning data.
     uint getbits()
     {
+#if defined(LITTLE_ENDIAN) && defined(ALLOW_MISALIGNED)
+      uint32 BitField=RawGetBE4(InBuf+InAddr);
+      BitField >>= (16-InBit);
+#else
       uint BitField=(uint)InBuf[InAddr] << 16;
       BitField|=(uint)InBuf[InAddr+1] << 8;
       BitField|=(uint)InBuf[InAddr+2];
       BitField >>= (8-InBit);
-      return(BitField & 0xffff);
+#endif
+      return BitField & 0xffff;
     }
+
 
     // Return 32 bits from current position in the buffer.
     // Bit at (InAddr,InBit) has the highest position in returning data.
     uint getbits32()
     {
-      uint BitField=(uint)InBuf[InAddr] << 24;
-      BitField|=(uint)InBuf[InAddr+1] << 16;
-      BitField|=(uint)InBuf[InAddr+2] << 8;
-      BitField|=(uint)InBuf[InAddr+3];
+      uint BitField=RawGetBE4(InBuf+InAddr);
       BitField <<= InBit;
       BitField|=(uint)InBuf[InAddr+4] >> (8-InBit);
-      return(BitField & 0xffffffff);
+      return BitField & 0xffffffff;
     }
 
+    // Return 64 bits from current position in the buffer.
+    // Bit at (InAddr,InBit) has the highest position in returning data.
+    uint64 getbits64()
+    {
+      uint64 BitField=RawGetBE8(InBuf+InAddr);
+      BitField <<= InBit;
+      BitField|=(uint)InBuf[InAddr+8] >> (8-InBit);
+      return BitField;
+    }
+    
     void faddbits(uint Bits);
     uint fgetbits();
-
+    
     // Check if buffer has enough space for IncPtr bytes. Returns 'true'
     // if buffer will be overflown.
-    bool Overflow(uint IncPtr)
+    bool Overflow(uint IncPtr) 
     {
-      return(InAddr+IncPtr>=MAX_SIZE);
+      return InAddr+IncPtr>=MAX_SIZE;
     }
 
     void SetExternalBuffer(byte *Buf);

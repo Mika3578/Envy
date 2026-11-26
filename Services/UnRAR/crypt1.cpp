@@ -1,8 +1,3 @@
-extern uint CRCTab[256];
-
-#define  rol(x,n,xsize)  (((x)<<(n)) | ((x)>>(xsize-(n))))
-#define  ror(x,n,xsize)  (((x)>>(n)) | ((x)<<(xsize-(n))))
-
 void CryptData::SetKey13(const char *Password)
 {
   Key13[0]=Key13[1]=Key13[2]=0;
@@ -12,7 +7,7 @@ void CryptData::SetKey13(const char *Password)
     Key13[0]+=P;
     Key13[1]^=P;
     Key13[2]+=P;
-    Key13[2]=(byte)rol(Key13[2],1,8);
+    Key13[2]=(byte)rotls(Key13[2],1,8);
   }
 }
 
@@ -28,19 +23,8 @@ void CryptData::SetKey15(const char *Password)
   {
     byte P=Password[I];
     Key15[2]^=P^CRCTab[P];
-    Key15[3]+=P+(CRCTab[P]>>16);
+    Key15[3]+=ushort(P+(CRCTab[P]>>16));
   }
-}
-
-
-void CryptData::SetAV15Encryption()
-{
-  InitCRC32(CRCTab);
-  Method=CRYPT_RAR15;
-  Key15[0]=0x4765;
-  Key15[1]=0x9021;
-  Key15[2]=0x7382;
-  Key15[3]=0x5215;
 }
 
 
@@ -71,10 +55,10 @@ void CryptData::Crypt15(byte *Data,size_t Count)
   {
     Key15[0]+=0x1234;
     Key15[1]^=CRCTab[(Key15[0] & 0x1fe)>>1];
-    Key15[2]-=CRCTab[(Key15[0] & 0x1fe)>>1]>>16;
+    Key15[2]-=ushort(CRCTab[(Key15[0] & 0x1fe)>>1]>>16);
     Key15[0]^=Key15[2];
-    Key15[3]=ror(Key15[3]&0xffff,1,16)^Key15[1];
-    Key15[3]=ror(Key15[3]&0xffff,1,16);
+    Key15[3]=rotrs(Key15[3]&0xffff,1,16)^Key15[1];
+    Key15[3]=rotrs(Key15[3]&0xffff,1,16);
     Key15[0]^=Key15[3];
     *Data^=(byte)(Key15[0]>>8);
     Data++;

@@ -1,6 +1,7 @@
 /****************************************************************************
  *  This file is part of PPMd project                                       *
- *  Written and distributed to public domain by Dmitry Shkarin 1997,1999-2000                                                               *
+ *  Written and distributed to public domain by Dmitry Shkarin 1997,        *
+ *  1999-2000                                                               *
  *  Contents: interface to memory allocation routines                       *
  ****************************************************************************/
 #if !defined(_SUBALLOC_H_)
@@ -16,16 +17,16 @@
 #pragma pack(1)
 #endif
 
-struct RARPPM_MEM_BLK
+struct RARPPM_MEM_BLK 
 {
   ushort Stamp, NU;
   RARPPM_MEM_BLK* next, * prev;
-  void insertAt(RARPPM_MEM_BLK* p)
+  void insertAt(RARPPM_MEM_BLK* p) 
   {
     next=(prev=p)->next;
     p->next=next->prev=this;
   }
-  void remove()
+  void remove() 
   {
     prev->next=next;
     next->prev=prev;
@@ -56,7 +57,6 @@ class SubAllocator
     inline void* RemoveNode(int indx);
     inline uint U2B(int NU);
     inline void SplitBlock(void* pv,int OldIndx,int NewIndx);
-    uint GetUsedMemory();
     inline void GlueFreeBlocks();
     void* AllocUnitsRare(int indx);
     inline RARPPM_MEM_BLK* MBPtr(RARPPM_MEM_BLK *BasePtr,int Items);
@@ -77,7 +77,7 @@ class SubAllocator
     inline void* ExpandUnits(void* ptr,int OldNU);
     inline void* ShrinkUnits(void* ptr,int OldNU,int NewNU);
     inline void  FreeUnits(void* ptr,int OldNU);
-    long GetAllocatedMemory() {return(SubAllocatorSize);};
+    long GetAllocatedMemory() {return(SubAllocatorSize);}
 
     byte *pText, *UnitsStart,*HeapEnd,*FakeUnitsStart;
 };

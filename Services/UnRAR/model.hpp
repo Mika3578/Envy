@@ -25,7 +25,7 @@ struct RARPPM_SEE2_CONTEXT : RARPPM_DEF
   }
   uint getMean()
   {
-    uint RetVal=GET_SHORT16(Summ) >> Shift;
+    short RetVal=GET_SHORT16(Summ) >> Shift;
     Summ -= RetVal;
     return RetVal+(RetVal == 0);
   }
@@ -60,7 +60,7 @@ struct RARPPM_CONTEXT : RARPPM_DEF
       ushort SummFreq;
       RARPPM_STATE RARPPM_PACK_ATTR * Stats;
     };
-
+    
     union
     {
       FreqData U;
@@ -93,9 +93,9 @@ class ModelPPM : RARPPM_DEF
 {
   private:
     friend struct RARPPM_CONTEXT;
-
+    
     RARPPM_SEE2_CONTEXT SEE2Cont[25][16], DummySEE2Cont;
-
+    
     struct RARPPM_CONTEXT *MinContext, *MedContext, *MaxContext;
     RARPPM_STATE* FoundState;      // found next state transition
     int NumMasked, InitEsc, OrderFall, MaxOrder, RunLength, InitRL;

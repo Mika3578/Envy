@@ -1,19 +1,17 @@
 #include "rar.hpp"
 
-#ifndef SHELL_EXT
 #include "arccmt.cpp"
-#endif
 
 
-Archive::Archive(RAROptions *InitCmd)
+Archive::Archive(CommandData *InitCmd)
 {
   Cmd=NULL; // Just in case we'll have an exception in 'new' below.
 
   DummyCmd=(InitCmd==NULL);
-  Cmd=DummyCmd ? (new RAROptions):InitCmd;
+  Cmd=DummyCmd ? (new CommandData):InitCmd;
 
   OpenShared=Cmd->OpenShared;
-  Format=RARFMT15;
+  Format=RARFMT_NONE;
   Solid=false;
   Volume=false;
   MainComment=false;
@@ -28,27 +26,31 @@ Archive::Archive(RAROptions *InitCmd)
   FailedHeaderDecryption=false;
   BrokenHeader=false;
   LastReadBlock=0;
+  CurHeaderType=HEAD_UNKNOWN;
 
   CurBlockPos=0;
   NextBlockPos=0;
 
-  RecoverySize=-1;
   RecoveryPercent=-1;
 
-  memset(&MainHead,0,sizeof(MainHead));
-  memset(&CryptHead,0,sizeof(CryptHead));
-  memset(&EndArcHead,0,sizeof(EndArcHead));
+  MainHead.Reset();
+  CryptHead={};
+  EndArcHead.Reset();
 
   VolNumber=0;
   VolWrite=0;
   AddingFilesSize=0;
   AddingHeadersSize=0;
-  *FirstVolumeName=0;
 
   Splitting=false;
   NewArchive=false;
 
   SilentOpen=false;
+
+#ifdef USE_QOPEN
+  ProhibitQOpen=false;
+#endif
+
 }
 
 
@@ -59,22 +61,21 @@ Archive::~Archive()
 }
 
 
-#ifndef SHELL_EXT
 void Archive::CheckArc(bool EnableBroken)
 {
   if (!IsArchive(EnableBroken))
   {
-    // If FailedHeaderDecryption is set, we already reported that archive password is incorrect.
+    // If FailedHeaderDecryption is set, we already reported that archive
+    // password is incorrect.
     if (!FailedHeaderDecryption)
       uiMsg(UIERROR_BADARCHIVE,FileName);
-    ErrHandler.Exit(RARX_FATAL);
+    ErrHandler.Exit(RARX_BADARC);
   }
 }
-#endif
 
 
-#if !defined(SHELL_EXT) && !defined(SFX_MODULE)
-void Archive::CheckOpen(const wchar *Name)
+#if !defined(SFX_MODULE)
+void Archive::CheckOpen(const std::wstring &Name)
 {
   TOpen(Name);
   CheckArc(false);
@@ -82,7 +83,7 @@ void Archive::CheckOpen(const wchar *Name)
 #endif
 
 
-bool Archive::WCheckOpen(const wchar *Name)
+bool Archive::WCheckOpen(const std::wstring &Name)
 {
   if (!WOpen(Name))
     return false;
@@ -110,12 +111,16 @@ RARFORMAT Archive::IsSignature(const byte *D,size_t Size)
         // We check the last signature byte, so we can return a sensible
         // warning in case we'll want to change the archive format
         // sometimes in the future.
+#ifndef SFX_MODULE
         if (D[6]==0)
           Type=RARFMT15;
-        else if (D[6]==1)
-          Type=RARFMT50;
-        else if (D[6]==2)
-          Type=RARFMT_FUTURE;
+        else
+#endif
+          if (D[6]==1)
+            Type=RARFMT50;
+          else
+            if (D[6]>1 && D[6]<5)
+              Type=RARFMT_FUTURE;
       }
   return Type;
 }
@@ -125,7 +130,7 @@ bool Archive::IsArchive(bool EnableBroken)
 {
   Encrypted=false;
   BrokenHeader=false; // Might be left from previous volume.
-
+  
 #ifndef SFX_MODULE
   if (IsDevice())
   {
@@ -136,7 +141,7 @@ bool Archive::IsArchive(bool EnableBroken)
   if (Read(MarkHead.Mark,SIZEOF_MARKHEAD3)!=SIZEOF_MARKHEAD3)
     return false;
   SFXSize=0;
-
+  
   RARFORMAT Type;
   if ((Type=IsSignature(MarkHead.Mark,SIZEOF_MARKHEAD3))!=RARFMT_NONE)
   {
@@ -146,27 +151,45 @@ bool Archive::IsArchive(bool EnableBroken)
   }
   else
   {
-    Array<char> Buffer(MAXSFXSIZE);
-    long CurPos=(long)Tell();
-    int ReadSize=Read(&Buffer[0],Buffer.Size()-16);
-    for (int I=0;I<ReadSize;I++)
-      if (Buffer[I]==0x52 && (Type=IsSignature((byte *)&Buffer[I],ReadSize-I))!=RARFMT_NONE)
-      {
-        Format=Type;
-        if (Format==RARFMT14 && I>0 && CurPos<28 && ReadSize>31)
+    const size_t BufSize=0x40000,Overlap=16;
+    std::vector<byte> Buffer(Max(BufSize,Overlap+1));
+    uint64 BufPos=0; // Start position in archive for current buffer.
+
+    while (true)
+    {
+      Seek(BufPos,SEEK_SET);
+      size_t SizeToRead=(size_t)Min(Buffer.size(),MAXSFXSIZE-BufPos);
+      int ReadSize=Read(Buffer.data(),SizeToRead);
+
+      for (int I=0;I<ReadSize;I++)
+        if (Buffer[I]==0x52 && (Type=IsSignature(&Buffer[I],ReadSize-I))!=RARFMT_NONE)
         {
-          char *D=&Buffer[28-CurPos];
-          if (D[0]!=0x52 || D[1]!=0x53 || D[2]!=0x46 || D[3]!=0x58)
+          Format=Type;
+
+          // There was 'RSFX' signature at position 28 in RAR 1.4 SFX.
+          // Since RAR 1.4 signature is just 4 bytes, it is better to check
+          // this additional signature to reduce false detections.
+          if (Format==RARFMT14 && BufPos==0 && ReadSize>31 &&
+              (Buffer[28]!=0x52 || Buffer[29]!=0x53 || Buffer[30]!=0x46 || Buffer[31]!=0x58))
             continue;
+
+          SFXSize=(size_t)(BufPos+I);
+          break;
         }
-        SFXSize=CurPos+I;
-        Seek(SFXSize,SEEK_SET);
-        if (Format==RARFMT15 || Format==RARFMT50)
-          Read(MarkHead.Mark,SIZEOF_MARKHEAD3);
+
+      // If read size is less than full buffer size, it was the last buffer.
+      if (SFXSize>0 || ReadSize!=Buffer.size())
         break;
-      }
+
+      // Overlap buffers to detect a signature split between them.
+      BufPos+=ReadSize-Overlap;
+    }
     if (SFXSize==0)
       return false;
+ 
+    Seek(SFXSize,SEEK_SET);
+    if (Format==RARFMT15 || Format==RARFMT50)
+      Read(MarkHead.Mark,SIZEOF_MARKHEAD3);
   }
   if (Format==RARFMT_FUTURE)
   {
@@ -175,8 +198,7 @@ bool Archive::IsArchive(bool EnableBroken)
   }
   if (Format==RARFMT50) // RAR 5.0 signature is by one byte longer.
   {
-    Read(MarkHead.Mark+SIZEOF_MARKHEAD3,1);
-    if (MarkHead.Mark[SIZEOF_MARKHEAD3]!=0)
+    if (Read(MarkHead.Mark+SIZEOF_MARKHEAD3,1)!=1 || MarkHead.Mark[SIZEOF_MARKHEAD3]!=0)
       return false;
     MarkHead.HeadSize=SIZEOF_MARKHEAD5;
   }
@@ -192,27 +214,31 @@ bool Archive::IsArchive(bool EnableBroken)
     SilentOpen=true;
 #endif
 
+  bool HeadersLeft; // Any headers left to read.
+  bool StartFound=false; // Main or encryption headers found.
   // Skip the archive encryption header if any and read the main header.
-  while (ReadHeader()!=0)
+  while ((HeadersLeft=(ReadHeader()!=0))==true) // Additional parentheses to silence Clang.
   {
-    HEADER_TYPE Type=GetHeaderType();
-    // In RAR 5.0 we need to quit after reading HEAD_CRYPT
-    // if we wish to avoid the password prompt.
-    if (Type==HEAD_MAIN || SilentOpen && Type==HEAD_CRYPT)
-      break;
     SeekToNext();
+
+    HEADER_TYPE Type=GetHeaderType();
+    // In RAR 5.0 we need to quit after reading HEAD_CRYPT if we wish to
+    // avoid the password prompt.
+    StartFound=Type==HEAD_MAIN || SilentOpen && Type==HEAD_CRYPT;
+    if (StartFound)
+      break;
   }
 
-  // This check allows to make RS based recovery even if password is incorrect.
-  // But we should not do it for EnableBroken or we'll get 'not RAR archive'
+  
+  // We should not do it for EnableBroken or we'll get 'not RAR archive'
   // messages when extracting encrypted archives with wrong password.
   if (FailedHeaderDecryption && !EnableBroken)
     return false;
 
-  SeekToNext();
-  if (BrokenHeader) // Main archive header is corrupt.
+  if (BrokenHeader || !StartFound) // Main archive header is corrupt or missing.
   {
-    uiMsg(UIERROR_MHEADERBROKEN,FileName);
+    if (!FailedHeaderDecryption) // If not reported a wrong password already.
+      uiMsg(UIERROR_MHEADERBROKEN,FileName);
     if (!EnableBroken)
       return false;
   }
@@ -226,9 +252,9 @@ bool Archive::IsArchive(bool EnableBroken)
   // first file header to set "comment" flag when reading service header.
   // Unless we are in silent mode, we need to know about presence of comment
   // immediately after IsArchive call.
-  if (!SilentOpen || !Encrypted)
+  if (HeadersLeft && (!SilentOpen || !Encrypted) && IsSeekable())
   {
-    SaveFilePos SavePos(*this);
+    int64 SavePos=Tell();
     int64 SaveCurBlockPos=CurBlockPos,SaveNextBlockPos=NextBlockPos;
     HEADER_TYPE SaveCurHeaderType=CurHeaderType;
 
@@ -237,30 +263,34 @@ bool Archive::IsArchive(bool EnableBroken)
       HEADER_TYPE HeaderType=GetHeaderType();
       if (HeaderType==HEAD_SERVICE)
       {
-        // If we have a split service headers, it surely indicates non-first volume.
-        // But not split service header does not guarantee the first volume,
-        // because we can have split file after non-split archive comment.
-        // So we do not quit from loop here.
+        // If we have a split service headers, it surely indicates non-first
+        // volume. But not split service header does not guarantee the first
+        // volume, because we can have split file after non-split archive
+        // comment. So we do not quit from loop here.
         FirstVolume=Volume && !SubHead.SplitBefore;
       }
-      else if (HeaderType==HEAD_FILE)
-      {
-        FirstVolume=Volume && !FileHead.SplitBefore;
-        break;
-      }
-      else if (HeaderType==HEAD_ENDARC) // Might happen if archive contains only a split service header.
-        break;
+      else
+        if (HeaderType==HEAD_FILE)
+        {
+          FirstVolume=Volume && !FileHead.SplitBefore;
+          break;
+        }
+        else
+          if (HeaderType==HEAD_ENDARC) // Might happen if archive contains only a split service header.
+            break;
       SeekToNext();
     }
     CurBlockPos=SaveCurBlockPos;
     NextBlockPos=SaveNextBlockPos;
     CurHeaderType=SaveCurHeaderType;
+    Seek(SavePos,SEEK_SET);
   }
   if (!Volume || FirstVolume)
-    wcscpy(FirstVolumeName,FileName);
+    FirstVolumeName=FileName;
 
   return true;
 }
+
 
 
 
@@ -268,6 +298,7 @@ void Archive::SeekToNext()
 {
   Seek(NextBlockPos,SEEK_SET);
 }
+
 
 
 
@@ -291,7 +322,7 @@ uint Archive::FullHeaderSize(size_t Size)
 
 
 #ifdef USE_QOPEN
-bool Archive::Open(const wchar *Name,uint Mode)
+bool Archive::Open(const std::wstring &Name,uint Mode)
 {
   // Important if we reuse Archive object and it has virtual QOpen
   // file position not matching real. For example, for 'l -v volname'.
@@ -325,3 +356,24 @@ int64 Archive::Tell()
   return File::Tell();
 }
 #endif
+
+
+// Return 0 if dictionary size is invalid. If size is RAR7 only, return
+// the adjusted nearest bottom value. Return header flags in Flags.
+uint64 Archive::GetWinSize(uint64 Size,uint &Flags)
+{
+  Flags=0;
+  // Allow 128 KB - 1 TB range.
+  if (Size<0x20000 || Size>0x10000000000ULL)
+    return 0;
+  uint64 Pow2=0x20000; // Power of 2 dictionary size.
+  for (;2*Pow2<=Size;Pow2*=2)
+    Flags+=FCI_DICT_BIT0;
+  if (Size==Pow2)
+    return Size;  // If 'Size' is the power of 2, return it as is.
+
+  // Get the number of Pow2/32 to add to Pow2 for nearest value not exceeding 'Size'.
+  uint64 Fraction=(Size-Pow2)/(Pow2/32);
+  Flags+=(uint)Fraction*FCI_DICT_FRACT0;
+  return Pow2+Fraction*(Pow2/32);
+}

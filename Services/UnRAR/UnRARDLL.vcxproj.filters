@@ -81,7 +81,13 @@
     <ClCompile Include="isnt.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="largepage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="match.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="motw.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="options.cpp">
@@ -106,9 +112,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="rdwrfn.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="recvol.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="rijndael.cpp">
@@ -168,9 +171,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="archive.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="array.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="blake2s.hpp">
@@ -290,9 +290,6 @@
     <ClInclude Include="rs16.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="savepos.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="scantree.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -326,9 +323,6 @@
     <ClInclude Include="ui.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ulinks.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="unicode.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -339,9 +333,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="volume.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="crcypt.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="hash.hpp">

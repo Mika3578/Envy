@@ -35,11 +35,7 @@ void ExtractUnixOwner30(Archive &Arc,const wchar *FileName)
   std::string NameA;
   WideToChar(FileName,NameA);
 
-#if defined(SAVE_LINKS) && !defined(_APPLE)
   if (lchown(NameA.c_str(),OwnerID,GroupID)!=0)
-#else
-  if (chown(NameA.c_str(),OwnerID,GroupID)!=0)
-#endif
   {
     uiMsg(UIERROR_UOWNERSET,Arc.FileName,FileName);
     ErrHandler.SetErrorCode(RARX_CREATE);
@@ -88,11 +84,7 @@ void SetUnixOwner(Archive &Arc,const std::wstring &FileName)
   std::string NameA;
   WideToChar(FileName,NameA);
 
-#if defined(SAVE_LINKS) && !defined(_APPLE)
   if (lchown(NameA.c_str(),hd.UnixOwnerID,hd.UnixGroupID)!=0)
-#else
-  if (chown(NameA.c_str(),hd.UnixOwnerID,hd.UnixGroupID)!=0)
-#endif
   {
     uiMsg(UIERROR_UOWNERSET,Arc.FileName,FileName);
     ErrHandler.SetErrorCode(RARX_CREATE);

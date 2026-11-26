@@ -78,12 +78,19 @@ bool LargePageAlloc::AssignPrivilege()
   if (GetTokenInformation(hToken,TokenUser,TokenInfo,BufSize,&BufSize)==0)
   {
     CloseHandle(hToken);
+    free(TokenInfo);
     return false;
   }
 
   // Get SID string for the current user.
   LPWSTR ApiSidStr;
-  ConvertSidToStringSid(TokenInfo->User.Sid, &ApiSidStr);
+  if (ConvertSidToStringSid(TokenInfo->User.Sid, &ApiSidStr)==0)
+  {
+    CloseHandle(hToken);
+    free(TokenInfo);
+    return false;
+  }
+  free(TokenInfo);
 
   // Convert SID to C++ string and release API based buffer.
   std::wstring SidStr=ApiSidStr;
@@ -132,7 +139,11 @@ bool LargePageAlloc::AssignPrivilegeBySid(const std::wstring &Sid)
     return false;
 
   PSID UserSid;
-  ConvertStringSidToSid(Sid.c_str(),&UserSid);
+  if (ConvertStringSidToSid(Sid.c_str(),&UserSid)==0)
+  {
+    LsaClose(PolicyHandle);
+    return false;
+  }
 
   LSA_UNICODE_STRING LsaString;
   LsaString.Buffer=(PWSTR)SE_LOCK_MEMORY_NAME;
@@ -146,7 +157,7 @@ bool LargePageAlloc::AssignPrivilegeBySid(const std::wstring &Sid)
   LsaClose(PolicyHandle);
 
   mprintf(St(MPrivilegeAssigned));
-  if (Ask(St(MYesNo)) == 1)
+  if (Ask({St(MReqYes),St(MReqNo)}) == 1)
     Shutdown(POWERMODE_RESTART);
 
   return Success;
@@ -160,7 +171,7 @@ bool LargePageAlloc::AssignConfirmation()
 {
 #ifdef ALLOW_LARGE_PAGES
   mprintf(St(MLockInMemoryNeeded));
-  return Ask(St(MYesNo)) == 1;
+  return Ask({St(MReqYes),St(MReqNo)}) == 1;
 #else
   return false;
 #endif

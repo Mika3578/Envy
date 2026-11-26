@@ -1,21 +1,21 @@
 #include "rar.hpp"
 #define MBFUNCTIONS
 
-//#if defined(_UNIX) && defined(MBFUNCTIONS)
-//
-//static bool WideToCharMap(const wchar *Src,char *Dest,size_t DestSize,bool &Success);
-//static void CharToWideMap(const char *Src,wchar *Dest,size_t DestSize,bool &Success);
-//
-//// In Unix we map high ASCII characters which cannot be converted to Unicode
-//// to 0xE000 - 0xE0FF private use Unicode area.
-//static const uint MapAreaStart=0xE000;
-//
-//// Mapped string marker. Initially we used 0xFFFF for this purpose,
-//// but it causes MSVC2008 swprintf to fail (it treats 0xFFFF as error marker).
-//// While we could workaround it, it is safer to use another character.
-//static const uint MappedStringMark=0xFFFE;
-//
-//#endif
+#if defined(_UNIX) && defined(MBFUNCTIONS)
+
+static bool WideToCharMap(const wchar *Src,char *Dest,size_t DestSize,bool &Success);
+static void CharToWideMap(const char *Src,wchar *Dest,size_t DestSize,bool &Success);
+
+// In Unix we map high ASCII characters which cannot be converted to Unicode
+// to 0xE000 - 0xE0FF private use Unicode area.
+static const uint MapAreaStart=0xE000;
+
+// Mapped string marker. Initially we used 0xFFFF for this purpose,
+// but it causes MSVC2008 swprintf to fail (it treats 0xFFFF as error marker).
+// While we could workaround it, it is safer to use another character.
+static const uint MappedStringMark=0xFFFE;
+
+#endif
 
 bool WideToChar(const wchar *Src,char *Dest,size_t DestSize)
 {
@@ -27,7 +27,7 @@ bool WideToChar(const wchar *Src,char *Dest,size_t DestSize)
     RetCode=false;
 
 // wcstombs is broken in Android NDK r9.
-#elif defined(_APPLE) || defined(_ANDROID)
+#elif defined(_APPLE)
   WideToUtf(Src,Dest,DestSize);
 
 #elif defined(MBFUNCTIONS)
@@ -36,7 +36,25 @@ bool WideToChar(const wchar *Src,char *Dest,size_t DestSize)
     mbstate_t ps; // Use thread safe external state based functions.
     memset (&ps, 0, sizeof(ps));
     const wchar *SrcParam=Src; // wcsrtombs can change the pointer.
+
+    // Some implementations of wcsrtombs can cause memory analyzing tools
+    // like valgrind to report uninitialized data access. It happens because
+    // internally these implementations call SSE4 based wcslen function,
+    // which reads 16 bytes at once including those beyond of trailing 0.
     size_t ResultingSize=wcsrtombs(Dest,&SrcParam,DestSize,&ps);
+
+    if (ResultingSize==(size_t)-1 && errno==EILSEQ)
+    {
+      // Aborted on inconvertible character not zero terminating the result.
+      // EILSEQ helps to distinguish it from small output buffer abort.
+      // We want to convert as much as we can, so we clean the output buffer
+      // and repeat conversion.
+      memset (&ps, 0, sizeof(ps));
+      SrcParam=Src; // wcsrtombs can change the pointer.
+      memset(Dest,0,DestSize);
+      ResultingSize=wcsrtombs(Dest,&SrcParam,DestSize,&ps);
+    }
+
     if (ResultingSize==(size_t)-1)
       RetCode=false;
     if (ResultingSize==0 && *Src!=0)
@@ -74,7 +92,7 @@ bool CharToWide(const char *Src,wchar *Dest,size_t DestSize)
     RetCode=false;
 
 // mbstowcs is broken in Android NDK r9.
-#elif defined(_APPLE) || defined(_ANDROID)
+#elif defined(_APPLE)
   UtfToWide(Src,Dest,DestSize);
 
 #elif defined(MBFUNCTIONS)
@@ -110,106 +128,132 @@ bool CharToWide(const char *Src,wchar *Dest,size_t DestSize)
 }
 
 
-//#if defined(_UNIX) && defined(MBFUNCTIONS) && !defined(_ANDROID)
-//// Convert and restore mapped inconvertible Unicode characters.
-//// We use it for extended ASCII names in Unix.
-//bool WideToCharMap(const wchar *Src,char *Dest,size_t DestSize,bool &Success)
-//{
-//  // String with inconvertible characters mapped to private use Unicode area
-//  // must have the mark code somewhere.
-//  if (wcschr(Src,(wchar)MappedStringMark)==NULL)
-//    return false;
-//
-//  Success=true;
-//  uint SrcPos=0,DestPos=0;
-//  while (DestPos<DestSize-MB_CUR_MAX)
-//  {
-//    if (Src[SrcPos]==0)
-//    {
-//      Dest[DestPos]=0;
-//      break;
-//    }
-//    if (uint(Src[SrcPos])==MappedStringMark)
-//    {
-//      SrcPos++;
-//      continue;
-//    }
-//    // For security reasons do not retore low ASCII codes, so mapping cannot
-//    // be used to hide control codes like path separators.
-//    if (uint(Src[SrcPos])>=MapAreaStart+0x80 && uint(Src[SrcPos])<MapAreaStart+0x100)
-//      Dest[DestPos++]=char(uint(Src[SrcPos++])-MapAreaStart);
-//    else
-//    {
-//      mbstate_t ps;
-//      memset(&ps,0,sizeof(ps));
-//      if (wcrtomb(Dest+DestPos,Src[SrcPos],&ps)==-1)
-//        Success=false;
-//      SrcPos++;
-//      memset(&ps,0,sizeof(ps));
-//      int Length=mbrlen(Dest+DestPos,MB_CUR_MAX,&ps);
-//      DestPos+=Max(Length,1);
-//    }
-//  }
-//  return true;
-//}
-//#endif
-
-
-//#if defined(_UNIX) && defined(MBFUNCTIONS) && !defined(_ANDROID)
-//// Convert and map inconvertible Unicode characters.
-//// We use it for extended ASCII names in Unix.
-//void CharToWideMap(const char *Src,wchar *Dest,size_t DestSize,bool &Success)
-//{
-//  // Map inconvertible characters to private use Unicode area 0xE000.
-//  // Mark such string by placing special non-character code before
-//  // first inconvertible character.
-//  Success=false;
-//  bool MarkAdded=false;
-//  uint SrcPos=0,DestPos=0;
-//  while (DestPos<DestSize)
-//  {
-//    if (Src[SrcPos]==0)
-//    {
-//      Dest[DestPos]=0;
-//      Success=true;
-//      break;
-//    }
-//    mbstate_t ps;
-//    memset(&ps,0,sizeof(ps));
-//    if (mbrtowc(Dest+DestPos,Src+SrcPos,MB_CUR_MAX,&ps)==-1)
-//    {
-//      // For security reasons we do not want to map low ASCII characters,
-//      // so we do not have additional .. and path separator codes.
-//      if (byte(Src[SrcPos])>=0x80)
-//      {
-//        if (!MarkAdded)
-//        {
-//          Dest[DestPos++]=MappedStringMark;
-//          MarkAdded=true;
-//          if (DestPos>=DestSize)
-//            break;
-//        }
-//        Dest[DestPos++]=byte(Src[SrcPos++])+MapAreaStart;
-//      }
-//      else
-//        break;
-//    }
-//    else
-//    {
-//      memset(&ps,0,sizeof(ps));
-//      int Length=mbrlen(Src+SrcPos,MB_CUR_MAX,&ps);
-//      SrcPos+=Max(Length,1);
-//      DestPos++;
-//    }
-//  }
-//}
-//#endif
-
-
-// SrcSize is in wide characters, not in bytes.
-byte* WideToRaw(const wchar *Src,byte *Dest,size_t SrcSize)
+bool WideToChar(const std::wstring &Src,std::string &Dest)
 {
-  for (size_t I=0;I<SrcSize;I++,Src++)
+  // We need more than 1 char per wchar_t for DBCS and up to 4 for UTF-8.
+  std::vector<char> DestA(4*Src.size()+1); // "+1" for terminating zero.
+  bool Result=WideToChar(Src.c_str(),DestA.data(),DestA.size());
+  Dest=DestA.data();
+  return Result;
+}
+
+
+bool CharToWide(const std::string &Src,std::wstring &Dest)
+{
+  // 2 wchar_t per char in case char is converted to UTF-16 surrogate pair.
+  std::vector<wchar> DestW(2*Src.size()+1); // "+1" for terminating zero.
+  bool Result=CharToWide(Src.c_str(),DestW.data(),DestW.size());
+  Dest=DestW.data();
+  return Result;
+}
+
+
+#if defined(_UNIX) && defined(MBFUNCTIONS)
+// Convert and restore mapped inconvertible Unicode characters. 
+// We use it for extended ASCII names in Unix.
+bool WideToCharMap(const wchar *Src,char *Dest,size_t DestSize,bool &Success)
+{
+  // String with inconvertible characters mapped to private use Unicode area
+  // must have the mark code somewhere.
+  if (wcschr(Src,(wchar)MappedStringMark)==NULL)
+    return false;
+
+  // Seems to be that wcrtomb in some memory analyzing libraries
+  // can produce uninitilized output while reporting success on garbage input.
+  // So we clean the destination to calm analyzers.
+  memset(Dest,0,DestSize);
+  
+  Success=true;
+  uint SrcPos=0,DestPos=0;
+  while (Src[SrcPos]!=0 && DestPos<DestSize-MB_CUR_MAX)
+  {
+    if (uint(Src[SrcPos])==MappedStringMark)
+    {
+      SrcPos++;
+      continue;
+    }
+    // For security reasons do not restore low ASCII codes, so mapping cannot
+    // be used to hide control codes like path separators.
+    if (uint(Src[SrcPos])>=MapAreaStart+0x80 && uint(Src[SrcPos])<MapAreaStart+0x100)
+      Dest[DestPos++]=char(uint(Src[SrcPos++])-MapAreaStart);
+    else
+    {
+      mbstate_t ps;
+      memset(&ps,0,sizeof(ps));
+      if (wcrtomb(Dest+DestPos,Src[SrcPos],&ps)==(size_t)-1)
+      {
+        Dest[DestPos]='_';
+        Success=false;
+      }
+      SrcPos++;
+      memset(&ps,0,sizeof(ps));
+      int Length=mbrlen(Dest+DestPos,MB_CUR_MAX,&ps);
+      DestPos+=Max(Length,1);
+    }
+  }
+  Dest[Min(DestPos,DestSize-1)]=0;
+  return true;
+}
+#endif
+
+
+#if defined(_UNIX) && defined(MBFUNCTIONS)
+// Convert and map inconvertible Unicode characters.
+// We use it for extended ASCII names in Unix.
+void CharToWideMap(const char *Src,wchar *Dest,size_t DestSize,bool &Success)
+{
+  // Map inconvertible characters to private use Unicode area 0xE000.
+  // Mark such string by placing special non-character code before
+  // first inconvertible character.
+  Success=false;
+  bool MarkAdded=false;
+  uint SrcPos=0,DestPos=0;
+  while (DestPos<DestSize)
+  {
+    if (Src[SrcPos]==0)
+    {
+      Success=true;
+      break;
+    }
+    mbstate_t ps;
+    memset(&ps,0,sizeof(ps));
+    size_t res=mbrtowc(Dest+DestPos,Src+SrcPos,MB_CUR_MAX,&ps);
+    if (res==(size_t)-1 || res==(size_t)-2)
+    {
+      // For security reasons we do not want to map low ASCII characters,
+      // so we do not have additional .. and path separator codes.
+      if (byte(Src[SrcPos])>=0x80)
+      {
+        if (!MarkAdded)
+        {
+          Dest[DestPos++]=MappedStringMark;
+          MarkAdded=true;
+          if (DestPos>=DestSize)
+            break;
+        }
+        Dest[DestPos++]=byte(Src[SrcPos++])+MapAreaStart;
+      }
+      else
+        break;
+    }
+    else
+    {
+      memset(&ps,0,sizeof(ps));
+      int Length=mbrlen(Src+SrcPos,MB_CUR_MAX,&ps);
+      SrcPos+=Max(Length,1);
+      DestPos++;
+    }
+  }
+  Dest[Min(DestPos,DestSize-1)]=0;
+}
+#endif
+
+
+// SrcSize is source data size in wide characters, not in bytes.
+// DestSize is the maximum allowed destination size.
+byte* WideToRaw(const wchar *Src,size_t SrcSize,byte *Dest,size_t DestSize)
+{
+  for (size_t I=0;I<SrcSize && I*2+1<DestSize;I++,Src++)
   {
     Dest[I*2]=(byte)*Src;
     Dest[I*2+1]=(byte)(*Src>>8);
@@ -220,11 +264,42 @@ byte* WideToRaw(const wchar *Src,byte *Dest,size_t SrcSize)
 }
 
 
+// Store UTF-16 raw byte stream.
+void WideToRaw(const std::wstring &Src,std::vector<byte> &Dest)
+{
+  for (wchar C : Src)
+  {
+    Dest.push_back((byte)C);
+    Dest.push_back((byte)(C>>8));
+  }
+  // In STL version of this function we do not add the trailing zero.
+  // Otherwise we would need to remove it when restoring std::wstring
+  // from raw data.
+
+  // Dest.push_back(0); // 2 bytes of trailing UTF-16 zero.
+  // Dest.push_back(0);
+}
+
+
 wchar* RawToWide(const byte *Src,wchar *Dest,size_t DestSize)
 {
   for (size_t I=0;I<DestSize;I++)
     if ((Dest[I]=Src[I*2]+(Src[I*2+1]<<8))==0)
       break;
+  return Dest;
+}
+
+
+std::wstring RawToWide(const std::vector<byte> &Src)
+{
+  std::wstring Dest;
+  for (size_t I=0;I+1<Src.size();I+=2)
+  {
+    wchar c=Src[I]+(Src[I+1]<<8);
+    Dest.push_back(c);
+    if (c==0)
+      break;
+  }
   return Dest;
 }
 
@@ -271,6 +346,46 @@ void WideToUtf(const wchar *Src,char *Dest,size_t DestSize)
 }
 
 
+void WideToUtf(const std::wstring &Src,std::string &Dest)
+{
+  for (size_t I=0;I<Src.size() && Src[I]!=0;)
+  {
+    uint c=Src[I++];
+    if (c<0x80)
+      Dest.push_back(c);
+    else
+      if (c<0x800)
+      {
+        Dest.push_back(0xc0|(c>>6));
+        Dest.push_back(0x80|(c&0x3f));
+      }
+      else
+      {
+        if (c>=0xd800 && c<=0xdbff && I<Src.size() && Src[I]>=0xdc00 && Src[I]<=0xdfff) // Surrogate pair.
+        {
+          c=((c-0xd800)<<10)+(Src[I]-0xdc00)+0x10000;
+          I++;
+        }
+        if (c<0x10000)
+        {
+          Dest.push_back(0xe0|(c>>12));
+          Dest.push_back(0x80|((c>>6)&0x3f));
+          Dest.push_back(0x80|(c&0x3f));
+        }
+        else
+          if (c < 0x200000)
+          {
+            Dest.push_back(0xf0|(c>>18));
+            Dest.push_back(0x80|((c>>12)&0x3f));
+            Dest.push_back(0x80|((c>>6)&0x3f));
+            Dest.push_back(0x80|(c&0x3f));
+          }
+      }
+  }
+}
+
+
+
 size_t WideToUtfSize(const wchar *Src)
 {
   size_t Size=0;
@@ -281,7 +396,7 @@ size_t WideToUtfSize(const wchar *Src)
       if (*Src<0x800)
         Size+=2;
       else
-        if (*Src<0x10000)
+        if ((uint)*Src<0x10000) //(uint) to avoid Clang/win "always true" warning for 16-bit wchar_t.
         {
           if (Src[0]>=0xd800 && Src[0]<=0xdbff && Src[1]>=0xdc00 && Src[1]<=0xdfff)
           {
@@ -292,13 +407,12 @@ size_t WideToUtfSize(const wchar *Src)
             Size+=3;
         }
         else
-          if (*Src<0x200000)
+          if ((uint)*Src<0x200000) //(uint) to avoid Clang/win "always true" warning for 16-bit wchar_t.
             Size+=4;
   return Size+1; // Include terminating zero.
 }
 
 
-// Dest can be NULL if we only need to check validity of Src.
 bool UtfToWide(const char *Src,wchar *Dest,size_t DestSize)
 {
   bool Success=true;
@@ -347,38 +461,235 @@ bool UtfToWide(const char *Src,wchar *Dest,size_t DestSize)
             Success=false;
             break;
           }
-    if (Dest!=NULL && --dsize<0)
+    if (--dsize<0)
       break;
     if (d>0xffff)
     {
-      if (Dest!=NULL && --dsize<0)
+      if (--dsize<0)
         break;
       if (d>0x10ffff) // UTF-8 must end at 0x10ffff according to RFC 3629.
       {
         Success=false;
         continue;
       }
-      if (Dest!=NULL)
-        if (sizeof(*Dest)==2) // Use the surrogate pair for 2 byte Unicode.
-        {
-          *(Dest++)=((d-0x10000)>>10)+0xd800;
-          *(Dest++)=(d&0x3ff)+0xdc00;
-        }
-        else
-          *(Dest++)=d;
+      if (sizeof(*Dest)==2) // Use the surrogate pair.
+      {
+        *(Dest++)=((d-0x10000)>>10)+0xd800;
+        *(Dest++)=(d&0x3ff)+0xdc00;
+      }
+      else
+        *(Dest++)=d;
     }
     else
-      if (Dest!=NULL)
-        *(Dest++)=d;
+      *(Dest++)=d;
   }
-  if (Dest!=NULL)
-    *Dest=0;
+  *Dest=0;
   return Success;
+}
+
+
+bool UtfToWide(const char *Src,std::wstring &Dest)
+{
+  bool Success=true;
+  Dest.clear();
+  while (*Src!=0)
+  {
+    uint c=byte(*(Src++)),d;
+    if (c<0x80)
+      d=c;
+    else
+      if ((c>>5)==6)
+      {
+        if ((*Src&0xc0)!=0x80)
+        {
+          Success=false;
+          break;
+        }
+        d=((c&0x1f)<<6)|(*Src&0x3f);
+        Src++;
+      }
+      else
+        if ((c>>4)==14)
+        {
+          if ((Src[0]&0xc0)!=0x80 || (Src[1]&0xc0)!=0x80)
+          {
+            Success=false;
+            break;
+          }
+          d=((c&0xf)<<12)|((Src[0]&0x3f)<<6)|(Src[1]&0x3f);
+          Src+=2;
+        }
+        else
+          if ((c>>3)==30)
+          {
+            if ((Src[0]&0xc0)!=0x80 || (Src[1]&0xc0)!=0x80 || (Src[2]&0xc0)!=0x80)
+            {
+              Success=false;
+              break;
+            }
+            d=((c&7)<<18)|((Src[0]&0x3f)<<12)|((Src[1]&0x3f)<<6)|(Src[2]&0x3f);
+            Src+=3;
+          }
+          else
+          {
+            Success=false;
+            break;
+          }
+    if (d>0xffff)
+    {
+      if (d>0x10ffff) // UTF-8 must end at 0x10ffff according to RFC 3629.
+      {
+        Success=false;
+        continue;
+      }
+      if (sizeof(wchar_t)==2) // Use the surrogate pair.
+      {
+        Dest.push_back( ((d-0x10000)>>10)+0xd800 );
+        Dest.push_back( (d&0x3ff)+0xdc00 );
+      }
+      else
+        Dest.push_back( d );
+    }
+    else
+      Dest.push_back( d );
+  }
+  return Success;
+}
+
+
+/*
+bool UtfToWide(const std::vector<char> &Src,std::wstring &Dest)
+{
+  bool Success=true;
+  Dest.clear();
+  for (size_t I=0;I<Src.size() && Src[I]!=0;) // We expect it to always stop at 0.
+  {
+    uint c=byte(Src[I++]),d;
+    if (c<0x80)
+      d=c;
+    else
+      if ((c>>5)==6)
+      {
+        if (Src.size()-I<1 || (Src[I]&0xc0)!=0x80)
+        {
+          Success=false;
+          break;
+        }
+        d=((c&0x1f)<<6)|(Src[I]&0x3f);
+        I++;
+      }
+      else
+        if ((c>>4)==14)
+        {
+          if (Src.size()-I<2 || (Src[I]&0xc0)!=0x80 || (Src[I+1]&0xc0)!=0x80)
+          {
+            Success=false;
+            break;
+          }
+          d=((c&0xf)<<12)|((Src[I]&0x3f)<<6)|(Src[I+1]&0x3f);
+          I+=2;
+        }
+        else
+          if ((c>>3)==30)
+          {
+            if (Src.size()-I<3 || (Src[I]&0xc0)!=0x80 || (Src[I+1]&0xc0)!=0x80 || (Src[I+2]&0xc0)!=0x80)
+            {
+              Success=false;
+              break;
+            }
+            d=((c&7)<<18)|((Src[I]&0x3f)<<12)|((Src[I+1]&0x3f)<<6)|(Src[I+2]&0x3f);
+            I+=3;
+          }
+          else
+          {
+            Success=false;
+            break;
+          }
+    if (d>0xffff)
+    {
+      if (d>0x10ffff) // UTF-8 must end at 0x10ffff according to RFC 3629.
+      {
+        Success=false;
+        continue;
+      }
+      if (sizeof(Dest[0])==2) // Use the surrogate pair.
+      {
+        Dest.push_back( ((d-0x10000)>>10)+0xd800 );
+        Dest.push_back( (d&0x3ff)+0xdc00 );
+      }
+      else
+        Dest.push_back( d );
+    }
+    else
+      Dest.push_back( d );
+  }
+  return Success;
+}
+*/
+
+
+// For zero terminated strings.
+bool IsTextUtf8(const byte *Src)
+{
+  return IsTextUtf8(Src,strlen((const char *)Src));
+}
+
+
+// Source data can be both with and without UTF-8 BOM.
+bool IsTextUtf8(const byte *Src,size_t SrcSize)
+{
+  while (SrcSize-- > 0)
+  {
+    byte C=*(Src++);
+    int HighOne=0; // Number of leftmost '1' bits.
+    for (byte Mask=0x80;Mask!=0 && (C & Mask)!=0;Mask>>=1)
+      HighOne++;
+    if (HighOne==1 || HighOne>6)
+      return false;
+    while (--HighOne > 0)
+      if (SrcSize-- <= 0 || (*(Src++) & 0xc0)!=0x80)
+        return false;
+  }
+  return true;
 }
 
 
 int wcsicomp(const wchar *s1,const wchar *s2)
 {
+  // If strings are English or numeric, perform the fast comparison.
+  // It improves speed in cases like comparing against a lot of MOTW masks.
+  bool FastMode=true;
+  while (true)
+  {
+    // English uppercase, English lowercase and digit flags.
+    bool u1=*s1>='A' && *s1<='Z', l1=*s1>='a' && *s1<='z', d1=*s1>='0' && *s1<='9';
+    bool u2=*s2>='A' && *s2<='Z', l2=*s2>='a' && *s2<='z', d2=*s2>='0' && *s2<='9';
+
+    // Fast comparison is impossible if both characters are not alphanumeric or 0.
+    if (!u1 && !l1 && !d1 && *s1!=0 && !u2 && !l2 && !d2 && *s2!=0)
+    {
+      FastMode=false;
+      break;
+    }
+    // Convert lowercase to uppercase, keep numeric and not alphanumeric as is.
+    wchar c1 = l1 ? *s1-'a'+'A' : *s1;
+    wchar c2 = l2 ? *s2-'a'+'A' : *s2;
+
+    // If characters mistmatch, to return a proper value we must compare
+    // already converted, case insensitive characters instead of original ones.
+    // So we place a.txt before B.txt and can perform the correct case
+    // insensitive binary search in different string lists.
+    if (c1 != c2)
+      return c1 < c2 ? -1 : 1;
+
+    if (*s1==0)
+      break;
+    s1++;
+    s2++;
+  }
+  if (FastMode)
+    return 0;
+
 #ifdef _WIN_ALL
   return CompareStringW(LOCALE_USER_DEFAULT,NORM_IGNORECASE|SORT_STRINGSORT,s1,-1,s2,-1)-2;
 #else
@@ -386,6 +697,11 @@ int wcsicomp(const wchar *s1,const wchar *s2)
   {
     wchar u1 = towupper(*s1);
     wchar u2 = towupper(*s2);
+
+    // If characters mistmatch, to return a proper value we must compare
+    // already converted, case insensitive characters instead of original ones.
+    // So we place a.txt before B.txt and can perform the correct case
+    // insensitive binary search in different string lists.
     if (u1 != u2)
       return u1 < u2 ? -1 : 1;
     if (*s1==0)
@@ -404,8 +720,10 @@ int wcsnicomp(const wchar *s1,const wchar *s2,size_t n)
   // If we specify 'n' exceeding the actual string length, CompareString goes
   // beyond the trailing zero and compares garbage. So we need to limit 'n'
   // to real string length.
-  size_t l1=Min(wcslen(s1)+1,n);
-  size_t l2=Min(wcslen(s2)+1,n);
+  size_t sl1=wcslen(s1); // Pre-compute to not call wcslen() in Min() twice.
+  size_t l1=Min(sl1+1,n);
+  size_t sl2=wcslen(s2); // Pre-compute to not call wcslen() in Min() twice.
+  size_t l2=Min(sl2+1,n);
   return CompareStringW(LOCALE_USER_DEFAULT,NORM_IGNORECASE|SORT_STRINGSORT,s1,(int)l1,s2,(int)l2)-2;
 #else
   if (n==0)
@@ -426,6 +744,7 @@ int wcsnicomp(const wchar *s1,const wchar *s2,size_t n)
 }
 
 
+// Case insensitive wcsstr().
 const wchar_t* wcscasestr(const wchar_t *str, const wchar_t *search)
 {
   for (size_t i=0;str[i]!=0;i++)
@@ -436,14 +755,38 @@ const wchar_t* wcscasestr(const wchar_t *str, const wchar_t *search)
       if (tolowerw(str[i+j])!=tolowerw(search[j]))
         break;
     }
-  return NULL;
+  return nullptr;
 }
 
 
-#ifndef SFX_MODULE
+// Case insensitive std::wstring substring search.
+std::wstring::size_type wcscasestr(const std::wstring &str, const std::wstring &search)
+{
+  const wchar *Found=wcscasestr(str.c_str(),search.c_str());
+  return Found==nullptr ? std::wstring::npos : Found-str.c_str();
+}
+
+
 wchar* wcslower(wchar *s)
 {
+  // If string doesn't contain non-English or uppercase English characters,
+  // we can return immediately and avoid costly system calls.
+  bool AlreadyLower=true;
+  for (wchar *c=s;*c!=0;c++)
+  {
+    uint u=(uint)*c;
+    if (u>=128 || (u>='A' && u<='Z'))
+    {
+      AlreadyLower=false;
+      break;
+    }
+  }
+  if (AlreadyLower)
+    return s;
+
 #ifdef _WIN_ALL
+  // _wcslwr requires setlocale and we do not want to depend on setlocale
+  // in Windows. Also CharLower involves less overhead.
   CharLower(s);
 #else
   for (wchar *c=s;*c!=0;c++)
@@ -451,13 +794,19 @@ wchar* wcslower(wchar *s)
 #endif
   return s;
 }
-#endif
 
 
-#ifndef SFX_MODULE
+void wcslower(std::wstring &s)
+{
+  wcslower(&s[0]);
+}
+
+
 wchar* wcsupper(wchar *s)
 {
 #ifdef _WIN_ALL
+  // _wcsupr requires setlocale and we do not want to depend on setlocale
+  // in Windows. Also CharUpper involves less overhead.
   CharUpper(s);
 #else
   for (wchar *c=s;*c!=0;c++)
@@ -465,16 +814,24 @@ wchar* wcsupper(wchar *s)
 #endif
   return s;
 }
-#endif
+
+
+void wcsupper(std::wstring &s)
+{
+  wcsupper(&s[0]);
+}
+
+
 
 
 int toupperw(int ch)
 {
-#ifdef _WIN_ALL
+#if defined(_WIN_ALL)
   // CharUpper is more reliable than towupper in Windows, which seems to be
   // C locale dependent even in Unicode version. For example, towupper failed
-  // to convert lowercase Russian characters.
-  return (int)CharUpper((wchar *)ch);
+  // to convert lowercase Russian characters. Use 0xffff mask to prevent crash
+  // if value larger than 0xffff is passed to this function.
+  return (int)(INT_PTR)CharUpper((wchar *)(INT_PTR)(ch&0xffff));
 #else
   return towupper(ch);
 #endif
@@ -483,37 +840,43 @@ int toupperw(int ch)
 
 int tolowerw(int ch)
 {
-#ifdef _WIN_ALL
+#if defined(_WIN_ALL)
   // CharLower is more reliable than towlower in Windows.
-  // See comment for towupper above.
-  return (int)CharLower((wchar *)ch);
+  // See comment for towupper above. Use 0xffff mask to prevent crash
+  // if value larger than 0xffff is passed to this function.
+  return (int)(INT_PTR)CharLower((wchar *)(INT_PTR)(ch&0xffff));
 #else
   return towlower(ch);
 #endif
 }
 
 
-int atoiw(const wchar *s)
+int atoiw(const std::wstring &s)
 {
   return (int)atoilw(s);
 }
 
 
-int64 atoilw(const wchar *s)
+int64 atoilw(const std::wstring &s)
 {
-  int sign=1;
-  if (*s=='-')
+  bool sign=false;
+  size_t Pos=0;
+  if (s[Pos]=='-') // We do use signed integers here, for example, in GUI SFX.
   {
-    s++;
-    sign=-1;
+    Pos++;
+    sign=true;
   }
-  int64 n=0;
-  while (*s>='0' && *s<='9')
+  // Use unsigned type here, since long string can overflow the variable
+  // and signed integer overflow is undefined behavior in C++.
+  uint64 n=0;
+  while (s[Pos]>='0' && s[Pos]<='9')
   {
-    n=n*10+(*s-'0');
-    s++;
+    n=n*10+(s[Pos]-'0');
+    Pos++;
   }
-  return sign*n;
+  // Check int64(n)>=0 to avoid the signed overflow with undefined behavior
+  // when negating 0x8000000000000000.
+  return sign && int64(n)>=0 ? -int64(n) : int64(n);
 }
 
 
@@ -543,57 +906,6 @@ char* SupportDBCS::charnext(const char *s)
   // to break string processing loops.
   return (char *)(IsLeadByte[(byte)*s] && s[1]!=0 ? s+2:s+1);
 }
-
-
-size_t SupportDBCS::strlend(const char *s)
-{
-  size_t Length=0;
-  while (*s!=0)
-  {
-    if (IsLeadByte[(byte)*s])
-      s+=2;
-    else
-      s++;
-    Length++;
-  }
-  return(Length);
-}
-
-
-char* SupportDBCS::strchrd(const char *s, int c)
-{
-  while (*s!=0)
-    if (IsLeadByte[(byte)*s])
-      s+=2;
-    else
-      if (*s==c)
-        return((char *)s);
-      else
-        s++;
-  return(NULL);
-}
-
-
-void SupportDBCS::copychrd(char *dest,const char *src)
-{
-  dest[0]=src[0];
-  if (IsLeadByte[(byte)src[0]])
-    dest[1]=src[1];
-}
-
-
-char* SupportDBCS::strrchrd(const char *s, int c)
-{
-  const char *found=NULL;
-  while (*s!=0)
-    if (IsLeadByte[(byte)*s])
-      s+=2;
-    else
-    {
-      if (*s==c)
-        found=s;
-      s++;
-    }
-  return((char *)found);
-}
 #endif
+
+

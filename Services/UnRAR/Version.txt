@@ -1,6 +1,10 @@
-UnRAR 5.3.8	Nov.2015
+UnRAR 7.3.2	Oct.2026
 
-NoCrypt-only DLL source from
-www.rarlab.com/rar_add.htm
+DLL source (RAR_NOCRYPT build) from
+https://www.rarlab.com/rar/unrarsrc-7.3.2.tar.gz
+Internal version.hpp reports 7.30 beta 2, dated 2026-10-27.
 
-DLL currently used by the RARBuilder plugin (optional update).
+Built by UnRARDLL.vcxproj; currently consumed by the RARBuilder plugin,
+which still ships 5.70-era prebuilt Unrar.dll/Unrar64.dll binaries and
+links the stable RAROpenArchiveEx/RARCloseArchive/RARReadHeaderEx/
+RARProcessFileW API that 7.3.2 keeps unchanged.

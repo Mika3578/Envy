@@ -8,23 +8,24 @@ class RecVolumes3
 {
   private:
     File *SrcFile[256];
-    Array<byte> Buf;
+    std::vector<byte> Buf;
 
 #ifdef RAR_SMP
     ThreadPool *RSThreadPool;
 #endif
   public:
-    RecVolumes3();
+    RecVolumes3(CommandData *Cmd,bool TestOnly);
     ~RecVolumes3();
-    void Make(RAROptions *Cmd,wchar *ArcName);
-    bool Restore(RAROptions *Cmd,const wchar *Name,bool Silent);
+    void Make(CommandData *Cmd,std::wstring ArcName);
+    bool Restore(CommandData *Cmd,const std::wstring &Name,bool Silent);
+    void Test(CommandData *Cmd,const std::wstring &Name);
 };
 
 
 struct RecVolItem
 {
   File *f;
-  wchar Name[NM];
+  std::wstring Name;
   uint CRC;
   uint64 FileSize;
   bool New;   // Newly created RAR volume.
@@ -47,11 +48,10 @@ struct RecRSThreadData
 class RecVolumes5
 {
   private:
-    void ProcessRS(RAROptions *Cmd,uint DataNum,const byte *Data,uint MaxRead,bool Encode);
-    void ProcessRS(RAROptions *Cmd,uint MaxRead,bool Encode);
+    bool ProcessRS(CommandData *Cmd,uint DataNum,const byte *Data,uint MaxRead,bool Encode);
     uint ReadHeader(File *RecFile,bool FirstRev);
 
-    Array<RecVolItem> RecItems;
+    std::vector<RecVolItem> RecItems;
 
     byte *RealReadBuffer; // Real pointer returned by 'new'.
     byte *ReadBuffer;     // Pointer aligned for SSE instructions.
@@ -70,15 +70,24 @@ class RecVolumes5
 #ifdef RAR_SMP
     ThreadPool *RecThreadPool;
 #endif
-    RecRSThreadData ThreadData[MaxPoolThreads]; // Store thread parameters.
+    uint MaxUserThreads; // Maximum number of threads defined by user.
+    RecRSThreadData *ThreadData; // Array to store thread parameters.
+
+    // If we create multiple coders with same parameters for multithreaded
+    // processing, it is faster and takes less memory to share a single
+    // RSCoder16 internal matrix. Especially noticeable when recoving
+    // a lot of RAR volumes using REV volumes.
+    uint *SharedMX = nullptr;
   public: // 'public' only because called from thread functions.
     void ProcessAreaRS(RecRSThreadData *td);
   public:
-    RecVolumes5();
+    RecVolumes5(CommandData *Cmd,bool TestOnly);
     ~RecVolumes5();
-    bool Restore(RAROptions *Cmd,const wchar *Name,bool Silent);
+    bool Restore(CommandData *Cmd,const std::wstring &Name,bool Silent);
+    void Test(CommandData *Cmd,const std::wstring &Name);
 };
 
-bool RecVolumesRestore(RAROptions *Cmd,const wchar *Name,bool Silent);
+bool RecVolumesRestore(CommandData *Cmd,const std::wstring &Name,bool FromExtract);
+void RecVolumesTest(CommandData *Cmd,Archive *Arc,const std::wstring &Name);
 
 #endif

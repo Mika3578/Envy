@@ -1,6 +1,7 @@
 void CommandData::OutTitle()
 {
-  if (BareOutput || DisableCopyright)
+  // If -idc is present in configuration, -iver shall override it.
+  if (BareOutput || DisableCopyright && !PrintVersion)
     return;
 #ifdef SFX_MODULE
   mprintf(St(MCopyrightS));
@@ -11,26 +12,19 @@ void CommandData::OutTitle()
     return;
   TitleShown=true;
 
-  wchar Version[80];
+  std::wstring Version=wstrprintf(L"%d.%02d",RARVER_MAJOR,RARVER_MINOR);
   if (RARVER_BETA!=0)
-    swprintf(Version,ASIZE(Version),L"%d.%02d %ls %d",RARVER_MAJOR,RARVER_MINOR,St(MBeta),RARVER_BETA);
-  else
-    swprintf(Version,ASIZE(Version),L"%d.%02d",RARVER_MAJOR,RARVER_MINOR);
-#if defined(_WIN_32) || defined(_WIN_64)
-  wcsncatz(Version,L" ",ASIZE(Version));
+    Version+=wstrprintf(L" %ls %u",St(MBeta),RARVER_BETA);
+#ifdef _WIN_ARSTR
+  Version+=L" " _WIN_ARSTR; // Combine strings in preprocessor.
 #endif
-#ifdef _WIN_32
-  wcsncatz(Version,St(Mx86),ASIZE(Version));
-#endif
-#ifdef _WIN_64
-  wcsncatz(Version,St(Mx64),ASIZE(Version));
-#endif
+
   if (PrintVersion)
   {
-    mprintf(L"%s",Version);
+    mprintf(L"%s\n",Version.c_str());
     exit(0);
   }
-  mprintf(St(MUCopyright),Version,RARVER_YEAR);
+  mprintf(St(MUCopyright),Version.c_str(),RARVER_YEAR);
 #endif
 #endif
 }
@@ -48,6 +42,7 @@ inline bool CmpMSGID(MSGID i1,MSGID i2)
 #endif
 }
 
+
 void CommandData::OutHelp(RAR_EXIT ExitCode)
 {
 #if !defined(SILENT)
@@ -61,14 +56,14 @@ void CommandData::OutHelp(RAR_EXIT ExitCode)
     MUNRARTitle1,MRARTitle2,MCHelpCmd,MCHelpCmdE,MCHelpCmdL,
     MCHelpCmdP,MCHelpCmdT,MCHelpCmdV,MCHelpCmdX,MCHelpSw,MCHelpSwm,
     MCHelpSwAT,MCHelpSwAC,MCHelpSwAD,MCHelpSwAG,MCHelpSwAI,MCHelpSwAP,
-    MCHelpSwCm,MCHelpSwCFGm,MCHelpSwCL,MCHelpSwCU,MCHelpSwDH,MCHelpSwEP,
-    MCHelpSwEP3,MCHelpSwEP4,MCHelpSwF,MCHelpSwIDP,MCHelpSwIERR,
-    MCHelpSwINUL,MCHelpSwIOFF,MCHelpSwKB,MCHelpSwME,MCHelpSwMLP,
+    MCHelpSwCm,MCHelpSwCFGm,MCHelpSwCL,MCHelpSwCU,MCHelpSwDA,MCHelpSwDH,
+    MCHelpSwEP,MCHelpSwEP3,MCHelpSwEP4,MCHelpSwF,MCHelpSwIDP,MCHelpSwIERR,
+    MCHelpSwINUL,MCHelpSwIOFF,MCHelpSwKB,MCHelpSwLim,MCHelpSwME,MCHelpSwMLP,
     MCHelpSwN,MCHelpSwNa,MCHelpSwNal,MCHelpSwO,MCHelpSwOC,MCHelpSwOL,
     MCHelpSwOM,MCHelpSwOP,MCHelpSwOR,MCHelpSwOW,MCHelpSwP,MCHelpSwR,
-    MCHelpSwRI,MCHelpSwSC,MCHelpSwSI,MCHelpSwSL,MCHelpSwTA,
-    MCHelpSwTB,MCHelpSwTN,MCHelpSwTO,MCHelpSwTS,MCHelpSwU,MCHelpSwVUnr,
-    MCHelpSwVER,MCHelpSwVP,MCHelpSwX,MCHelpSwXa,MCHelpSwXal,MCHelpSwY
+    MCHelpSwRI,MCHelpSwSC,MCHelpSwSI,MCHelpSwSL,MCHelpSwTA,MCHelpSwTB,
+    MCHelpSwTN,MCHelpSwTO,MCHelpSwTS,MCHelpSwU,MCHelpSwVUnr,MCHelpSwVER,
+    MCHelpSwVP,MCHelpSwX,MCHelpSwXa,MCHelpSwXal,MCHelpSwY
 #endif
   };
 
@@ -105,10 +100,6 @@ void CommandData::OutHelp(RAR_EXIT ExitCode)
     if (CmpMSGID(Help[I],MCHelpSwAC))
       continue;
 #endif
-#ifndef SAVE_LINKS
-    if (CmpMSGID(Help[I],MCHelpSwOL))
-      continue;
-#endif
 #ifndef RAR_SMP
     if (CmpMSGID(Help[I],MCHelpSwMT))
       continue;
@@ -120,3 +111,4 @@ void CommandData::OutHelp(RAR_EXIT ExitCode)
   ErrHandler.Exit(ExitCode);
 #endif
 }
+

@@ -251,7 +251,9 @@
     <ClCompile Include="hash.cpp" />
     <ClCompile Include="headers.cpp" />
     <ClCompile Include="isnt.cpp" />
+    <ClCompile Include="largepage.cpp" />
     <ClCompile Include="match.cpp" />
+    <ClCompile Include="motw.cpp" />
     <ClCompile Include="options.cpp" />
     <ClCompile Include="pathfn.cpp" />
     <ClCompile Include="qopen.cpp" />
@@ -265,7 +267,6 @@
     <ClCompile Include="rarvm.cpp" />
     <ClCompile Include="rawread.cpp" />
     <ClCompile Include="rdwrfn.cpp" />
-    <ClCompile Include="recvol.cpp" />
     <ClCompile Include="rijndael.cpp" />
     <ClCompile Include="rs.cpp" />
     <ClCompile Include="rs16.cpp" />
@@ -287,14 +288,12 @@
   <ItemGroup>
     <ClInclude Include="rar.hpp" />
     <ClInclude Include="archive.hpp" />
-    <ClInclude Include="array.hpp" />
     <ClInclude Include="blake2s.hpp" />
     <ClInclude Include="cmddata.hpp" />
     <ClInclude Include="coder.hpp" />
     <ClInclude Include="compress.hpp" />
     <ClInclude Include="consio.hpp" />
     <ClInclude Include="crc.hpp" />
-    <ClInclude Include="crcypt.hpp" />
     <ClInclude Include="dll.hpp" />
     <ClInclude Include="encname.hpp" />
     <ClInclude Include="errhnd.hpp" />
@@ -329,7 +328,6 @@
     <ClInclude Include="rijndael.hpp" />
     <ClInclude Include="rs.hpp" />
     <ClInclude Include="rs16.hpp" />
-    <ClInclude Include="savepos.hpp" />
     <ClInclude Include="scantree.hpp" />
     <ClInclude Include="sha1.hpp" />
     <ClInclude Include="sha256.hpp" />
@@ -341,7 +339,6 @@
     <ClInclude Include="threadpool.hpp" />
     <ClInclude Include="timefn.hpp" />
     <ClInclude Include="ui.hpp" />
-    <ClInclude Include="ulinks.hpp" />
     <ClInclude Include="unicode.hpp" />
     <ClInclude Include="unpack.hpp" />
     <ClInclude Include="version.hpp" />
