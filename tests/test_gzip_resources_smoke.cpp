@@ -73,6 +73,12 @@ static void normalize_newlines(std::string& data)
 	data.resize(out);
 }
 
+/// Compare a little-endian 32-bit field with a value.
+static bool little_endian_dword_matches(const unsigned char* field, unsigned long value)
+{
+	return field[0] == (value & 0xFFUL) && field[1] == ((value >> 8) & 0xFFUL) && field[2] == ((value >> 16) & 0xFFUL) && field[3] == ((value >> 24) & 0xFFUL);
+}
+
 /// Inflate one gzip member and require exact equality with the tracked source.
 static bool gzip_resource_matches_source(const wchar_t* name)
 {
@@ -87,22 +93,33 @@ static bool gzip_resource_matches_source(const wchar_t* name)
 		return false;
 
 	// The -n flag writes this header prefix (magic, deflate, no optional
-	// fields, zero MTIME, default XFL) so repeated builds stay byte-identical.
-	// The OS byte differs between compressor builds and is deliberately not
-	// pinned.
+	// fields, zero MTIME, default XFL) so repeated builds stay
+	// byte-identical. The OS byte differs between compressor builds and is
+	// deliberately not pinned. With FLG clear the deflate payload starts
+	// right after the fixed 10-byte header.
 	static const unsigned char header[9] = { 0x1F, 0x8B, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 	if (gzData.size() < 18 || std::memcmp(gzData.data(), header, sizeof(header)) != 0)
 		return false;
 
+	// Inflate the raw deflate payload (windowBits -MAX_WBITS) instead of
+	// zlib's gzip mode: the bundled zlibwapi.dll is built with the
+	// assembler inflate fast path (ASMINF), which crashes inside gzip-mode
+	// inflate on Windows, while the raw path is what the Unpacker's zip
+	// reader exercises. The wrapper is checked explicitly here: with FLG
+	// clear the payload starts right after the fixed 10-byte header, and
+	// the trailer carries the CRC32 and the stored length.
+	const Bytef* payload = reinterpret_cast<const Bytef*>(gzData.data()) + 10;
+	const uInt payloadSize = static_cast<uInt>(gzData.size() - 18);
+
 	z_stream stream = {};
-	if (inflateInit2(&stream, 15 + 16) != Z_OK)
+	if (inflateInit2(&stream, -MAX_WBITS) != Z_OK)
 		return false;
 
 	std::string html;
 	char chunk[16384];
 	bool ok = false;
-	stream.next_in = reinterpret_cast<Bytef*>(gzData.data());
-	stream.avail_in = static_cast<uInt>(gzData.size());
+	stream.next_in = const_cast<Bytef*>(payload);
+	stream.avail_in = payloadSize;
 	for (;;)
 	{
 		stream.next_out = reinterpret_cast<Bytef*>(chunk);
@@ -111,20 +128,30 @@ static bool gzip_resource_matches_source(const wchar_t* name)
 		html.append(chunk, sizeof(chunk) - stream.avail_out);
 		if (result == Z_STREAM_END)
 		{
-			// zlib verifies the CRC32 and ISIZE trailer on the way to
-			// Z_STREAM_END, so reaching it proves stream integrity. The
-			// payload was compressed from a Windows CRLF working tree while
-			// checkouts differ, so both sides normalize to LF first.
-			normalize_newlines(html);
-			normalize_newlines(rawHtml);
-			ok = (html == rawHtml);
+			ok = true;
 			break;
 		}
 		if (result != Z_OK || stream.avail_out != 0)
 			break;
 	}
 	inflateEnd(&stream);
-	return ok;
+	if (!ok)
+		return false;
+
+	// Trailer: CRC32 of the stored payload bytes and the payload length.
+	const unsigned char* trailer = reinterpret_cast<const unsigned char*>(gzData.data()) + gzData.size() - 8;
+	const uLong crc = crc32(crc32(0L, Z_NULL, 0), reinterpret_cast<const Bytef*>(html.data()),
+	                        static_cast<uInt>(html.size()));
+	if (!little_endian_dword_matches(trailer, crc))
+		return false;
+	if (!little_endian_dword_matches(trailer + 4, static_cast<unsigned long>(html.size())))
+		return false;
+
+	// The payload was compressed from a Windows CRLF working tree while
+	// checkouts differ, so both sides normalize to LF before comparing.
+	normalize_newlines(html);
+	normalize_newlines(rawHtml);
+	return html == rawHtml;
 }
 
 /// Register gzip resource integrity regressions for the staged build outputs.
