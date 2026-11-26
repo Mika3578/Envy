@@ -4,11 +4,11 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "test": "jest --runInBand"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand"
   },
   "devDependencies": {
     "dompurify": "^3.4.17",
     "jest": "^30.5.2",
-    "jsdom": "^26.1.0"
+    "jsdom": "^31.0.1"
   }
 }

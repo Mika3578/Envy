@@ -1,7 +1,7 @@
 # Envy Development Roadmap
 
 Status: active
-Last updated: 2026-10-07
+Last updated: 2026-10-20
 Scope: Technical itemization of Envy modernization. Strategic sequence is `docs/DEVELOPMENT_PLAN.md`.
 Source of truth: `docs/10_dev/status.md` for current vs planned; `docs/30_protocols/REFERENCE_IMPLEMENTATIONS.md` for external projects.
 Portability foundations: `docs/20_arch/PORTABILITY_PLAN.md` (Linux/macOS = **planned**, not supported).
@@ -22,7 +22,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 - **G2 / G1 / NMDC:** implemented and in scope to preserve. NMDC hub chat now wires user-list merge (`$NickList` + `$MyINFO`) to remote `files.xml.bz2` browse via `CHostBrowser`; FileListing directories fill the existing Browse Host tree; live hub interop unverified. **ADC/ADCS hub protocol is not implemented** (NMDC-side `ADCGet`/`ADCSND` ≠ ADC hubs). Feature depth vs latest ADC-EXT / gtk-gnutella unverified.
 - **G2 / G1 / NMDC:** implemented and in scope to preserve. NMDC hub chat now wires user-list merge (`$NickList` + `$MyINFO`) to remote `files.xml.bz2` browse via `CHostBrowser`; live hub interop unverified. **ADC/ADCS hub protocol is not implemented** (NMDC-side `ADCGet`/`ADCSND` ≠ ADC hubs). Feature depth vs latest ADC-EXT / gtk-gnutella unverified.
 - **Build System:** Visual Studio solution builds (MSVC toolset `v145`), CMake partial (HashLib + selected tests). Full-app CMake low priority; portable-slice CMake is the multiplatform foundation (`PORTABILITY_PLAN.md`, D-015).
-- **Platforms:** Windows x64 **supported** (primary); Win32 **legacy** (still CI/release for Stage A); Linux/macOS **planned** (not supported).
+- **Platforms:** Windows x64 **supported** (primary); Win32 **legacy, scheduled for retirement** (still CI/release in Stage A; 64-bit-only policy, D-024); Linux/macOS **planned** (not supported).
 - **UI Framework:** MFC/Unicode complete on Windows; MFC is frontend, not future EnvyCore. Progressive desktop modernization is **planned** (#295; `docs/20_arch/UI_MODERNIZATION.md`) — adaptive Network lists first; no Qt/WinUI rewrite.
 - **G2 / G1 / NMDC:** implemented and in scope to preserve. **ADC/ADCS hub protocol is not implemented** (NMDC-side `ADCGet`/`ADCSND` ≠ ADC hubs). Feature depth vs latest ADC-EXT / gtk-gnutella unverified.
 - **BitTorrent v1:** Solid (DHT, ut_metadata, ut_pex, lt_tex, web seeds, trackers)
@@ -218,7 +218,7 @@ Incremental only. References: eMule Qt, aMule, aria2-next, Rucio. No rewrite. Po
 | **CMake for full MFC app** | Extend CMake to main app, services, plugins | Low |
 | **Linux x86_64 CI bootstrap** | After portable tests exist; advisory until green | P1/P2 |
 | **macOS ARM64 CI bootstrap** | After Linux path proves useful; advisory until green | P1/P2 |
-| **Win32 Stage B/C** | Evaluate release/CI removal only with evidence (D-014) | Later |
+| **Win32 Stage B/C** | Stop Win32 releases (#454), then remove Win32 build/CI and Crashpad (#455); phased per D-024 | P2 |
 | **C++20 adoption** | Concepts, ranges, coroutines where beneficial | Low |
 | **Protocol virtual dispatch** | Replace `switch(PROTOCOL_*) + downcast` with virtual methods on transfer/neighbour classes. Keep `/GR-`; do not enable global RTTI. The two C++ `dynamic_cast` ED2K defects (`EDPacket::WriteFile`, `CUploadQueue::StartImpl`) are already replaced with construction-proven `static_cast`. | Low |
 | **Smart pointer migration** | Replace raw `new`/`delete` with `unique_ptr`/`shared_ptr` | Low |
