@@ -284,6 +284,81 @@ static bool test_parse_header_too_short()
 	return !KadParseSearchResBody(tiny, sizeof(tiny), nullptr, nullptr, count, nullptr);
 }
 
+// Trailing bytes after the declared entry count are a malformed or smuggled
+// frame: the parser must fail closed instead of accepting the prefix (#373).
+static bool test_parse_trailing_bytes_rejected()
+{
+	std::vector<BYTE> entries;
+	KadAppendHighIdSourceEntry(entries, 0xCD, 0x01020304, 4662);
+
+	auto body = BuildSearchRes(0xAA, 1, entries);
+	WORD count = 0;
+	std::vector<KadSourceCandidate> out;
+	if (!KadParseSearchResBody(body.data(), body.size(), nullptr, nullptr, count, &out))
+		return false;
+
+	// One trailing byte after the well-formed entry must reject the body.
+	body.push_back(0x00);
+	return !KadParseSearchResBody(body.data(), body.size(), nullptr, nullptr, count, &out);
+}
+
+// Registration must survive GetTickCount() wrap: elapsed subtraction, not an
+// absolute deadline comparison (#373).
+static bool test_outstanding_expiry_wrap_safe()
+{
+	KadOutstandingSearchMap map;
+	BYTE target[KAD_ID_SIZE];
+	memset(target, 0x42, KAD_ID_SIZE);
+
+	const DWORD t0 = 0xFFFFFFF0u; // 16 ticks before wrap
+	if (!map.Register(KadSearchKind::Source, target, t0))
+		return false;
+
+	KadOutstandingSearch ctx;
+	bool expired = true;
+	if (!map.Lookup(target, 30, ctx, expired)) // well past the wrap
+		return false;
+	if (expired)
+		return false;
+
+	expired = false;
+	if (!map.Lookup(target, 30 + KAD_SEARCH_CONTEXT_LIFETIME_MS, ctx, expired))
+		return false;
+	if (!expired)
+		return false;
+
+	map.Expire(30 + KAD_SEARCH_CONTEXT_LIFETIME_MS);
+	return map.Size() == 0;
+}
+
+// Re-registering the same target refreshes the context so a long-running
+// search keeps receiving results instead of expiring from its first send.
+static bool test_outstanding_register_refresh_extends()
+{
+	KadOutstandingSearchMap map;
+	BYTE target[KAD_ID_SIZE];
+	memset(target, 0x42, KAD_ID_SIZE);
+
+	const DWORD t0 = 1000;
+	if (!map.Register(KadSearchKind::Source, target, t0))
+		return false;
+
+	KadOutstandingSearch ctx;
+	bool expired = true;
+	if (!map.Lookup(target, t0 + KAD_SEARCH_CONTEXT_LIFETIME_MS, ctx, expired))
+		return false;
+	if (!expired)
+		return false;
+
+	if (!map.Register(KadSearchKind::Source, target, t0 + KAD_SEARCH_CONTEXT_LIFETIME_MS))
+		return false;
+
+	expired = true;
+	if (!map.Lookup(target, t0 + KAD_SEARCH_CONTEXT_LIFETIME_MS + 1000, ctx, expired))
+		return false;
+	return !expired;
+}
+
 static bool test_outstanding_register_lookup_expire()
 {
 	KadOutstandingSearchMap map;
@@ -390,7 +465,10 @@ void register_kad_search_res_delivery_smoke_tests(TestSuite& suite)
 	suite.add_test("kad_parse_unknown_optional_tag_ok", test_parse_unknown_optional_tag_ok);
 	suite.add_test("kad_parse_missing_mandatory_endpoint", test_parse_missing_mandatory_endpoint);
 	suite.add_test("kad_parse_header_too_short", test_parse_header_too_short);
+	suite.add_test("kad_parse_trailing_bytes_rejected", test_parse_trailing_bytes_rejected);
 	suite.add_test("kad_outstanding_register_lookup_expire", test_outstanding_register_lookup_expire);
+	suite.add_test("kad_outstanding_expiry_wrap_safe", test_outstanding_expiry_wrap_safe);
+	suite.add_test("kad_outstanding_register_refresh_extends", test_outstanding_register_refresh_extends);
 	suite.add_test("kad_outstanding_keyword_vs_source", test_outstanding_keyword_vs_source);
 	suite.add_test("kad_outstanding_map_bounded", test_outstanding_map_bounded);
 	suite.add_test("kad_outstanding_unknown_target", test_outstanding_unknown_target);
