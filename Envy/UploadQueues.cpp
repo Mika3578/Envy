@@ -35,6 +35,16 @@ static char THIS_FILE[] = __FILE__;
 
 CUploadQueues UploadQueues;
 
+// Bounded lock waits for position lookups. Callers that hit the timeout
+// defer to their next periodic ranking pass instead of dropping the client.
+static const DWORD UPLOAD_QUEUE_NETWORK_LOCK_WAIT = 500; // ms
+static const DWORD UPLOAD_QUEUE_LOCK_WAIT = 250;         // ms
+
+// Contention logs repeat at most once per interval; the event counter keeps
+// the suppressed volume visible in the next logged message. The sentinel
+// makes the first contention event log immediately instead of half a
+// minute into uptime.
+static const DWORD UPLOAD_QUEUE_CONTENTION_LOG_INTERVAL = 30000; // ms
 
 //////////////////////////////////////////////////////////////////////
 // CUploadQueues construction
@@ -43,7 +53,7 @@ CUploadQueues::CUploadQueues()
     : m_pTorrentQueue(new CUploadQueue())
     , m_pHistoryQueue(new CUploadQueue())
     , m_nContentionEvents(0)
-    , m_tLastContentionLog(-1)
+    , m_tLastContentionLog(-(LONG)UPLOAD_QUEUE_CONTENTION_LOG_INTERVAL)
     , m_bDonkeyLimited(FALSE)
 {
 	m_pHistoryQueue->m_bExpanded = FALSE;
@@ -101,15 +111,6 @@ BOOL CUploadQueues::Dequeue(CUploadTransfer* pUpload)
 
 //////////////////////////////////////////////////////////////////////
 // CUploadQueues position lookup and optional start
-
-// Bounded lock waits for position lookups. Callers that hit the timeout
-// defer to their next periodic ranking pass instead of dropping the client.
-static const DWORD UPLOAD_QUEUE_NETWORK_LOCK_WAIT = 500; // ms
-static const DWORD UPLOAD_QUEUE_LOCK_WAIT = 250;         // ms
-
-// Contention logs repeat at most once per interval; the event counter keeps
-// the suppressed volume visible in the next logged message.
-static const DWORD UPLOAD_QUEUE_CONTENTION_LOG_INTERVAL = 30000; // ms
 
 void CUploadQueues::LogContention(CUploadTransfer* pUpload)
 {
