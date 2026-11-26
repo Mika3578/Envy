@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Capture finalization and sequence-aware evidence regression coverage."""
 
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -21,6 +20,7 @@ from envy_interop.evidence import (
 from envy_interop.golden import load_bytes
 from envy_interop.runner import _convert_owned_pcap, _finalize_pcap_lifecycle, run_harness
 from envy_interop.scenarios import SCENARIOS, handle_optional_pcap
+from tests.harness_mocks import mock_tshark_extraction
 
 
 class TcpSequenceTests(unittest.TestCase):
@@ -60,10 +60,7 @@ class TcpSequenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             pcap = Path(tmp) / "synthetic.pcap"
             pcap.write_bytes(b"mock reader input")
-            outputs = [subprocess.CompletedProcess([], 0, stdout=rows, stderr=""),
-                       subprocess.CompletedProcess([], 0, stdout=udp, stderr="")]
-            with patch("envy_interop.evidence.find_tshark", return_value="tshark"), \
-                    patch("envy_interop.evidence.subprocess.run", side_effect=outputs) as run:
+            with mock_tshark_extraction(rows, udp) as run:
                 result = extract_from_pcap_via_tshark(pcap, ports=[4662])
                 self.assertIn("tcp.seq_raw", run.call_args_list[0].args[0])
                 self.assertFalse(run.call_args_list[0].kwargs["shell"])

@@ -25,6 +25,12 @@ from envy_interop.isolation import (
 from envy_interop.process import ProcessError, ProcessManager, python_exit_argv, python_sleeper_argv
 from envy_interop.sanitizer import sanitize_text
 
+from tests.harness_mocks import (
+    capture_platform,
+    mock_executable_version_probe,
+    version_completed_process,
+)
+
 
 class ConfigTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -292,12 +298,7 @@ class CaptureToolTests(unittest.TestCase):
         old = os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)
         self.addCleanup(lambda: (os.environ.__setitem__("ENVY_INTEROP_PCAP_IFACE", old) if old is not None else os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)))
         os.environ.pop("ENVY_INTEROP_PCAP_IFACE", None)
-        # Patch both selectors without changing pathlib's host implementation.
-        from unittest.mock import patch
-        from types import SimpleNamespace
-
-        with patch.object(capture_mod, "os", SimpleNamespace(name="posix", environ=os.environ)), \
-                patch("sys.platform", "darwin"):
+        with capture_platform("posix", platform="darwin"):
             self.assertEqual(capture_mod._loopback_iface(), "lo0")
 
     def test_tcpdump_includes_kad_udp_in_bpf(self) -> None:
@@ -513,19 +514,16 @@ class VersionAndExitTests(unittest.TestCase):
             self.assertNotIn("path with spaces", dumped)
 
     def test_amule_version_flag_standin(self) -> None:
-        from unittest.mock import patch
-        import subprocess
         from envy_interop.versions import describe_executable
 
         with tempfile.TemporaryDirectory() as tmp:
             exe = Path(tmp) / "amuled"
             exe.write_bytes(b"synthetic binary identity")
-            result = subprocess.CompletedProcess(
-                [str(exe), "--version"], 0, stdout=b"aMule 3.1.0\n", stderr=b""
-            )
-            with patch("envy_interop.versions.subprocess.run", return_value=result) as launch:
+            argv = [str(exe), "--version"]
+            result = version_completed_process(argv, b"aMule 3.1.0\n")
+            with mock_executable_version_probe(result) as launch:
                 info = describe_executable(exe, allow_version_flag=True)
-            self.assertEqual(launch.call_args.args[0], [str(exe), "--version"])
+            self.assertEqual(launch.call_args.args[0], argv)
             self.assertFalse(launch.call_args.kwargs["shell"])
             self.assertEqual(info["probe"], "--version")
             self.assertIn("aMule 3.1.0", info["version_text"])
