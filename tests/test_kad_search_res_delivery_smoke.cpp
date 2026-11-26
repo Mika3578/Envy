@@ -285,7 +285,7 @@ static bool test_parse_header_too_short()
 }
 
 // Trailing bytes after the declared entry count are a malformed or smuggled
-// frame: the parser must fail closed instead of accepting the prefix (#373).
+// frame: the parser must fail closed instead of accepting the prefix.
 static bool test_parse_trailing_bytes_rejected()
 {
 	std::vector<BYTE> entries;
@@ -303,7 +303,7 @@ static bool test_parse_trailing_bytes_rejected()
 }
 
 // Registration must survive GetTickCount() wrap: elapsed subtraction, not an
-// absolute deadline comparison (#373).
+// absolute deadline comparison.
 static bool test_outstanding_expiry_wrap_safe()
 {
 	KadOutstandingSearchMap map;
@@ -316,6 +316,10 @@ static bool test_outstanding_expiry_wrap_safe()
 
 	KadOutstandingSearch ctx;
 	bool expired = true;
+	if (!map.Lookup(target, t0 + 1, ctx, expired)) // still before the wrap
+		return false;
+	if (expired)
+		return false;
 	if (!map.Lookup(target, 30, ctx, expired)) // well past the wrap
 		return false;
 	if (expired)
