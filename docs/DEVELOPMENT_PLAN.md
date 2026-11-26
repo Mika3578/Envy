@@ -1,6 +1,8 @@
 # DEVELOPMENT PLAN (LIVING)
 
-- **Last Updated:** 2026-10-23
+- **Last Updated:** 2026-11-09
+
+- **Changelog Entry:** 2026-10-12 — #471: make schema extension filters typed and case-insensitive, ignore malformed empty/trailing-dot inputs, select one deterministic automatic group, and keep protocol classification separate from file-type and user-defined groups. Existing group memberships and `DownloadGroups.dat` version 1 remain authoritative; focused native smoke coverage added. Deferred group icons/colors/tags/rules/previews/reset UX is recorded in the local idea inbox.
 
 - **Changelog Entry:** 2026-10-20 - #178: record the 64-bit-only platform policy as D-024 (phased Stage A/B/C; supersedes D-014); D-019/D-020 marked for Stage C removal of Crashpad; portability plan section 5, roadmap, status and crash-reporting aligned. Policy and documentation only: Win32 builds, CI, packaging and Crashpad are unchanged until #454 / #455. Windows 10 1809 stays the minimum runtime. Recommendation: close PR #468 as superseded and fold #466 into #455.
 

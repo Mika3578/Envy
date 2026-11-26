@@ -21,6 +21,7 @@
 #include "Envy.h"
 #include "SchemaCache.h"
 #include "Schema.h"
+#include "DownloadGroupClassification.h"
 #include "XML.h"
 #include "Zlib.h"
 
@@ -31,6 +32,11 @@ static char THIS_FILE[] = __FILE__;
 #endif	// Debug
 
 CSchemaCache SchemaCache;
+
+static int SchemaExtensionPriority(CSchemaPtr pSchema)
+{
+	return pSchema ? DownloadGroupAutomaticPriority(std::wstring_view(pSchema->GetURI().GetString())) : 1000;
+}
 
 
 //////////////////////////////////////////////////////////////////////
@@ -91,8 +97,17 @@ int CSchemaCache::Load()
 				BOOL bResult;
 				CString strType;
 				pSchema->GetNextFilter( pos, strType, bResult );
-				if ( bResult )
-					m_pTypeFilters.SetAt( strType, pSchema );
+				if (bResult && strType.GetLength() > 1 && strType.GetAt(0) == L'.')
+				{
+					strType = strType.Mid(1);
+
+					CSchemaPtr pExisting;
+					if (!m_pTypeFilters.Lookup(strType, pExisting) ||
+					    SchemaExtensionPriority(pSchema) < SchemaExtensionPriority(pExisting) ||
+					    (SchemaExtensionPriority(pSchema) == SchemaExtensionPriority(pExisting) &&
+					     pSchema->GetURI().CompareNoCase(pExisting->GetURI()) < 0))
+						m_pTypeFilters.SetAt(strType, pSchema);
+				}
 			}
 
 			++nCount;
@@ -179,22 +194,23 @@ CString CSchemaCache::GetFilter(LPCTSTR pszURI) const
 {
 	if ( CSchemaPtr pSchema = Get( pszURI ) )
 	{
+		CString strURI(pszURI);
 		LPCTSTR pszURIType;
-		if ( pszURI == CSchema::uriAllFiles )
+		if (strURI.CompareNoCase(CSchema::uriAllFiles) == 0)
 			pszURIType = NULL;
-		else if ( pszURI == CSchema::uriArchiveFolder )
+		else if (strURI.CompareNoCase(CSchema::uriArchiveFolder) == 0)
 			pszURIType = CSchema::uriArchive;
-		else if ( pszURI == CSchema::uriApplicationFolder )
+		else if (strURI.CompareNoCase(CSchema::uriApplicationFolder) == 0)
 			pszURIType = CSchema::uriApplication;
-		else if ( pszURI == CSchema::uriAudioFolder )
+		else if (strURI.CompareNoCase(CSchema::uriAudioFolder) == 0)
 			pszURIType = CSchema::uriAudio;
-		else if ( pszURI == CSchema::uriVideoFolder )
+		else if (strURI.CompareNoCase(CSchema::uriVideoFolder) == 0)
 			pszURIType = CSchema::uriVideo;
-		else if ( pszURI == CSchema::uriImageFolder )
+		else if (strURI.CompareNoCase(CSchema::uriImageFolder) == 0)
 			pszURIType = CSchema::uriImage;
-		else if ( pszURI == CSchema::uriDocumentFolder )
+		else if (strURI.CompareNoCase(CSchema::uriDocumentFolder) == 0)
 			pszURIType = CSchema::uriDocument;
-		else if ( pszURI == CSchema::uriBitTorrentFolder )
+		else if (strURI.CompareNoCase(CSchema::uriBitTorrentFolder) == 0)
 			pszURIType = CSchema::uriBitTorrent;
 		else
 		{
@@ -210,8 +226,9 @@ CString CSchemaCache::GetFilter(LPCTSTR pszURI) const
 				BOOL bResult;
 				CString strType;
 				pSchemaType->GetNextFilter( pos, strType, bResult );
-				if ( bResult )
+				if (bResult && strType.GetLength() > 1 && strType.GetAt(0) == L'.')
 				{
+					strType = strType.Mid(1);
 					if ( strTypes.IsEmpty() )
 						strTypes += L"|*." + strType;
 					else

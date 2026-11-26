@@ -60,12 +60,14 @@ BOOL CSchema::FilterType(LPCTSTR pszFile) const
 	if ( m_pTypeFilters.IsEmpty() )
 		return FALSE;
 
-	LPCTSTR pszExt = PathFindExtension( pszFile );
-	if ( ! *pszExt )
+	LPCTSTR pszName = PathFindFileName(pszFile);
+	LPCTSTR pszExt = PathFindExtension(pszName);
+	if (!*pszExt || pszExt[1] == L'\0' || pszExt == pszName)
 		return FALSE;
 
 	BOOL bValue;
-	return m_pTypeFilters.Lookup( pszExt + 1, bValue ) ? bValue : FALSE;
+	CString strExt(pszExt);
+	return m_pTypeFilters.Lookup(strExt, bValue) ? bValue : FALSE;
 }
 
 CString CSchema::GetFilterSet() const
@@ -78,6 +80,9 @@ CString CSchema::GetFilterSet() const
 		m_pTypeFilters.GetNextAssoc( pos, strType, bResult );
 		if ( bResult )
 		{
+			if (strType.GetLength() && strType.GetAt(0) == L'.')
+				strType = strType.Mid(1);
+
 			strFilters += strType;
 			strFilters += L'|';
 		}
@@ -554,9 +559,20 @@ void CSchema::LoadDescriptorTypeFilter(const CXMLElement* pElement)
 
 		if ( pType->GetName().CompareNoCase( L"type" ) == 0 )
 		{
-			CString strType = pType->GetAttributeValue( L"extension", L"" );
+			CString strType;
+			if (pType->GetAttribute(L"extension"))
+			{
+				strType = pType->GetAttributeValue(L"extension", L"");
+				strType.Trim();
+				if (!strType.IsEmpty())
+					strType.Insert(0, L'.');
+			}
 			if ( strType.IsEmpty() )
-				strType = pType->GetAttributeValue( L"keyword", L"" );
+			{
+				strType = pType->GetAttributeValue(L"keyword", L"").Trim();
+				if (strType.IsEmpty())
+					continue;
+			}
 
 			m_pTypeFilters.SetAt( strType, TRUE );
 		}

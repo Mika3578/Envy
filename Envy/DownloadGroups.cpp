@@ -21,6 +21,7 @@
 #include "Envy.h"
 #include "DownloadGroups.h"
 #include "DownloadGroup.h"
+#include "DownloadGroupClassification.h"
 #include "Downloads.h"
 #include "Download.h"
 #include "Schema.h"
@@ -173,6 +174,20 @@ void CDownloadGroups::MoveRight(CDownloadGroup* pGroup)
 //////////////////////////////////////////////////////////////////////
 // CDownloadGroups link a download to the appropriate groups
 
+static BOOL IsPreferredAutomaticGroup(const CDownloadGroup* pCandidate, const CDownloadGroup* pCurrent)
+{
+	if (!pCurrent)
+		return TRUE;
+
+	return DownloadGroupAutomaticPrecedes(
+	           std::wstring_view(pCandidate->m_sSchemaURI.GetString()),
+	           std::wstring_view(pCandidate->m_sFolder.GetString()),
+	           std::wstring_view(pCurrent->m_sSchemaURI.GetString()),
+	           std::wstring_view(pCurrent->m_sFolder.GetString()))
+	           ? TRUE
+	           : FALSE;
+}
+
 void CDownloadGroups::Link(CDownload* pDownload)
 {
 	ASSUME_LOCK( Transfers.m_pSection );
@@ -180,11 +195,34 @@ void CDownloadGroups::Link(CDownload* pDownload)
 
 	GetSuperGroup()->Add( pDownload );
 
+	// Existing membership is authoritative.  This protects manual assignments
+	// and prevents a metadata/name refresh from moving an active download.
+	for (POSITION pos = GetIterator(); pos;)
+	{
+		CDownloadGroup* pGroup = GetNext(pos);
+		if (pGroup != m_pSuper && pGroup->Contains(pDownload))
+			return;
+	}
+
+	CDownloadGroup* pAutomatic = NULL;
 	for ( POSITION pos = GetIterator(); pos; )
 	{
 		CDownloadGroup* pGroup = GetNext( pos );
-		pGroup->Link( pDownload );
+		if (pGroup == m_pSuper)
+			continue;
+
+		if (!pGroup->IsAutomatic())
+		{
+			// User-defined filter groups remain independently selectable.
+			if (pGroup->Matches(pDownload))
+				pGroup->Add(pDownload);
+		}
+		else if (pGroup->Matches(pDownload) && IsPreferredAutomaticGroup(pGroup, pAutomatic))
+			pAutomatic = pGroup;
 	}
+
+	if (pAutomatic)
+		pAutomatic->Add(pDownload);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -268,15 +306,16 @@ CString CDownloadGroups::GetCompletedPath(CDownload* pDownload) const
 
 	CQuickLock pLock( m_pSection );
 
+	// Persisted list order selects the completion folder when several groups match.
 	for ( POSITION pos = GetIterator(); pos; )
 	{
 		const CDownloadGroup* pGroup = GetNext( pos );
 
-		if ( pGroup != m_pSuper && pGroup->Contains( pDownload ) )
+		if (pGroup != m_pSuper && pGroup->Contains(pDownload))
 		{
-			if ( ! pGroup->m_sFolder.IsEmpty() )
+			if (!pGroup->m_sFolder.IsEmpty())
 			{
-				if ( pGroup->m_sFolder.Find( L":\\" ) == 1 )
+				if (pGroup->m_sFolder.Find(L":\\") == 1)
 					return pGroup->m_sFolder;
 
 				return Settings.Downloads.CompletePath + L"\\" + pGroup->m_sFolder;
