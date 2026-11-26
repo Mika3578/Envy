@@ -22,6 +22,14 @@ static bool test_xml_peer_defaults()
 	       XML_PEER_THEX_BODY_CAP == XML_PEER_PARSE_CHARS_MAX + XML_PEER_THEX_TREE_SLACK;
 }
 
+static bool test_peer_http_header_phase_cap()
+{
+	return XML_PEER_HTTP_HEADER_PHASE_CAP == 16u * 1024u &&
+	       !PeerHttpHeaderPhaseExceeded(0, XML_PEER_HTTP_HEADER_PHASE_CAP - 1) &&
+	       PeerHttpHeaderPhaseExceeded(0, XML_PEER_HTTP_HEADER_PHASE_CAP) &&
+	       PeerHttpHeaderPhaseExceeded(XML_PEER_HTTP_HEADER_PHASE_CAP - 1, 1);
+}
+
 static bool test_xml_budget_chars_cap()
 {
 	XmlParseBudget oBudget = XmlParseBudget::PeerDefaults();
@@ -439,6 +447,7 @@ void register_xml_peer_parse_smoke_tests(TestSuite& suite)
 	suite.add_test("http_drain_stops_without_progress", test_http_drain_stops_without_progress);
 	suite.add_test("http_drain_stops_after_close", test_http_drain_stops_after_close);
 	suite.add_test("http_drain_stops_on_growing_queue", test_http_drain_stops_on_growing_queue);
+	suite.add_test("peer_http_header_phase_cap", test_peer_http_header_phase_cap);
 	suite.add_test("xml_peer_defaults", test_xml_peer_defaults);
 	suite.add_test("xml_budget_chars_cap", test_xml_budget_chars_cap);
 	suite.add_test("xml_budget_depth_cap", test_xml_budget_depth_cap);

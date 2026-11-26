@@ -118,6 +118,17 @@ inline BOOL GgepItemHasTypeByte(const BYTE* pBuffer, DWORD nLength)
 // Aligns with Settings.Gnutella.MaximumPacket upper bound (256 KB).
 constexpr DWORD GGEP_INFLATE_MAX = 256u * 1024u;
 
+// Structural cap for GGEP item count (parsed count is DWORD; reject above this).
+// Traversal uses a DWORD index so a narrow loop counter cannot wrap past the bound.
+constexpr DWORD GGEP_ITEM_COUNT_MAX = 255u;
+
+inline BOOL GgepTraverseIndexInRange(DWORD nIndex, DWORD nClaimedCount)
+{
+	if (nClaimedCount > GGEP_ITEM_COUNT_MAX)
+		return FALSE;
+	return nIndex < nClaimedCount;
+}
+
 inline BOOL GgepInflateOutputOk(DWORD nOutput)
 {
 	return nOutput > 0 && nOutput <= GGEP_INFLATE_MAX;
