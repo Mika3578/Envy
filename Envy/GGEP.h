@@ -124,9 +124,9 @@ class CGGEPBoundedIterator
 {
 public:
 	explicit CGGEPBoundedIterator(const CGGEPBlock& block)
-		: m_pItem(block.GetFirst())
-		, m_nClaimed(block.GetCount())
-		, m_nIndex(0)
+	    : m_pItem(block.GetFirst())
+	    , m_nClaimed(block.GetCount())
+	    , m_nIndex(0)
 	{
 	}
 
@@ -141,7 +141,7 @@ public:
 	}
 
 private:
-	CGGEPItem*	m_pItem;
-	DWORD		m_nClaimed;
-	DWORD		m_nIndex;
+	CGGEPItem* m_pItem;
+	DWORD m_nClaimed;
+	DWORD m_nIndex;
 };
