@@ -1355,6 +1355,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="Ed2kLockOrder.h" />
     <ClInclude Include="UploadQueueLockOrder.h" />
     <ClInclude Include="SearchFilterMask.h" />
+    <ClInclude Include="MagnetBuilder.h" />
     <ClInclude Include="EnvyThreadPolicy.h" />
     <ClInclude Include="RemotePasswordPolicy.h" />
     <ClInclude Include="RemoteHtmlEscape.h" />

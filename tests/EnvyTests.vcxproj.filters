@@ -68,6 +68,9 @@
     <ClCompile Include="test_search_filter_mask_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_magnet_builder_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_envy_thread_policy_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
