@@ -78,7 +78,7 @@ inline bool KadBodyLooksLikeLegacyEnvyEntrySlice(const BYTE* pData, size_t nLen)
 		return false;
 	// After a leading 16-byte ID, the next eight bytes are fixed-width endpoint
 	// fields in the old private layout — not a valid ED2K tag-list opener.
-	const size_t nOff = KAD_ID_SIZE;
+	const size_t nOff = 0;
 	const BYTE bTagOrCount = pData[nOff + 8];
 	if (bTagOrCount == 0)
 		return false;
@@ -173,5 +173,5 @@ inline bool KadParsePublishKeyReqBody(
 		if (pEntriesOut)
 			pEntriesOut->push_back(entry);
 	}
-	return true;
+	return cur.Remaining() == 0;
 }

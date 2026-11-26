@@ -73,7 +73,7 @@ static bool test_publish_source_rejects_legacy_entry_slice()
 	body.push_back(0x04);
 	body.push_back(0x03);
 	body.push_back(0x02);
-	body.push_back(0x01);
+	body.push_back(0x80);
 	body.push_back(0x40);
 	body.push_back(0x12); // udp 4672
 	body.push_back(0x36);
