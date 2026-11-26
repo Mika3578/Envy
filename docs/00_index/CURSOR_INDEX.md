@@ -19,7 +19,7 @@
 
 ## Protocols
 - **ED2K:** [README](../30_protocols/ed2k/README.md) · [gap analysis](../30_protocols/ed2k/ED2K_KAD_GAP_ANALYSIS.md) · [search fixes](../30_protocols/ed2k/ED2K_SEARCH_FIXES.md) · [LowID callback baseline](../30_protocols/ed2k/ED2K_LOWID_CALLBACK_BASELINE.md) · [live interop harness](../../tools/interop/README.md) (#160, opt-in)
-- **Kad:** [kad2-compatibility-report](../30_protocols/kad/kad2-compatibility-report.md) (opcode match ≠ live interop)
+- **Kad:** [kad2-compatibility-report](../30_protocols/kad/kad2-compatibility-report.md) (opcode match ≠ live interop); [kad-interop](../30_protocols/kad/kad-interop.md) (publish opcodes and client survey, 2026-11-26)
 - **BitTorrent:** [README](../30_protocols/bittorrent/README.md)
 - **Bootstrap catalogues:** [bootstrap-sources](../30_protocols/bootstrap-sources.md) (shipped GWC/UHC/`server.met`/hublist/DHT routers ≠ HostCache)
 
