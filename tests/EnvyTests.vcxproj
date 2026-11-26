@@ -180,7 +180,7 @@
     <ClCompile Include="test_library_scan_state_smoke.cpp" />
     <ClCompile Include="test_unpacker.cpp">
       <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NOCRYPT;ZLIB_DLL;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\Unpacker\Extract.c">
       <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
