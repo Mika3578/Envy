@@ -62,10 +62,14 @@ enum class KadTcpFirewallState : BYTE
 	Firewalled = 3
 };
 
-// Distinct from TCP. This slice never promotes UDP to Open/Firewalled.
+// Distinct from TCP; owned by the UDP firewall tester (#515,
+// KadUdpFirewallTester.h). TCP Open never implies UDP Open and vice versa.
 enum class KadUdpFirewallState : BYTE
 {
-	Unknown = 0
+	Unknown = 0,
+	Testing = 1,
+	Open = 2,
+	Firewalled = 3
 };
 
 enum class KadFwParseStatus : BYTE

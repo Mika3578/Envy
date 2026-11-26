@@ -113,6 +113,10 @@ public:
 	Ed2kC2cCallbackConsumeGuard m_oC2cCallbackGuard;
 	DWORD m_nObservedPublicIp; // last accepted PUBLICIP_ANSWER (0 = none); not a global identity claim alone
 
+	// #515: this idle client already fired our Kad UDP firewall-check request
+	// (one 0xA7 per client per tester round).
+	BOOL m_bUdpFwCheckRequested;
+
 	BOOL		m_bOpenChat;
 	BOOL		m_bCommentSent;
 

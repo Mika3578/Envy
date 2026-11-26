@@ -459,6 +459,7 @@ CEDClient::CEDClient()
     , m_bOpenChat(FALSE)
     , m_bCommentSent(FALSE)
     , m_nObservedPublicIp(0)
+    , m_bUdpFwCheckRequested(FALSE)
 
     , m_nDirsWaiting(0ul)
 {
@@ -753,6 +754,12 @@ void CEDClient::Close(UINT nError)
 	m_oC2cCallbackGuard.OnDisconnect();
 	m_nObservedPublicIp = 0;
 
+	// #515: a probe-request client that drops after the request was sent
+	// counts as a failed UDP firewall test (eMule CUpDownClient::Disconnected
+	// with KS_FWCHECK_UDP). Unknown IPs are ignored inside the tester.
+	if (m_bUdpFwCheckRequested)
+		Kademlia.OnUdpFirewallCheckClientClosed(ntohl(m_pHost.sin_addr.s_addr));
+
 	if ( ( m_pDownloadTransfer ) && ( m_pDownloadTransfer->m_nState == dtsDownloading ) )
 	{
 		theApp.Message( MSG_ERROR, L"Warning: CEDClient::Close() called for downloading client %s", (LPCTSTR)m_sAddress );
@@ -914,6 +921,37 @@ void CEDClient::OnRunEx(DWORD tNow)
 
 		// This client has no valid connections and should be removed.
 		Remove();
+	}
+	// #515: an idle connected Kad >= 6 client may fire our UDP firewall-check
+	// probe (eMule drives the same request over a dedicated KS_FWCHECK_UDP
+	// client; Envy reuses an existing idle session and never dials for it).
+	else if (IsOnline() && !m_bUdpFwCheckRequested && m_nEmKadVersion >= KAD_UDPFW_MIN_VERSION && m_nUDP != 0)
+	{
+		const DWORD nIpHost = ntohl(m_pHost.sin_addr.s_addr);
+		const DWORD nPublicIpHost = ntohl(Network.m_pHost.sin_addr.S_un.S_addr);
+		if (KadUdpFwCandidateEligible((BYTE)m_nEmKadVersion, m_nUDP, nIpHost, nPublicIpHost,
+		                              Kademlia.HasKadContactIp(nIpHost), false) &&
+		    Kademlia.WantsUdpFirewallCheckProbe() && Kademlia.BeginUdpFirewallCheckProbe(nIpHost, m_nUDP, tNow))
+		{
+			CEDPacket* pPacket = CEDPacket::New(ED2K_C2C_FWCHECKUDPREQ, ED2K_PROTOCOL_EMULE);
+			if (pPacket != NULL)
+			{
+				BYTE pBody[KAD_UDPFW_REQ_MIN_SIZE] = {};
+				// No UDP verify keys yet (#513 phase D): zero key, and the
+				// external Kad port is unknown until a lookup exists.
+				KadBuildUdpFwCheckRequest(pBody, (WORD)Settings.Connection.InPort, 0, 0);
+				pPacket->Write(pBody, KAD_UDPFW_REQ_MIN_SIZE);
+
+				m_bUdpFwCheckRequested = TRUE;
+				Send(pPacket);
+				theApp.Message(MSG_DEBUG, L"[ED2K] Kad UDP firewall-check request sent to %s",
+				               (LPCTSTR)m_sAddress);
+			}
+			else
+			{
+				Kademlia.CancelUdpFirewallCheckProbe(nIpHost);
+			}
+		}
 	}
 }
 
@@ -1315,6 +1353,13 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 			if (pPacket->GetRemaining() != 0)
 				return TRUE;
 			Kademlia.OnTcpFirewallCheckAck(&m_pHost);
+			return TRUE;
+
+		// #515: a Kad-open node answers OP_FWCHECKUDPREQ by sending UDP
+		// KADEMLIA2_FIREWALLUDP probes to the requester's intern/extern port.
+		case ED2K_C2C_FWCHECKUDPREQ:
+			Kademlia.OnFirewallCheckUdpRequest(pPacket->GetCurrent(), pPacket->GetRemaining(), &m_pHost,
+			                                   m_pDownloadTransfer != NULL || m_pUploadTransfer != NULL || m_bOpenChat != FALSE);
 			return TRUE;
 		}
 	}

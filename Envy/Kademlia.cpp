@@ -89,10 +89,11 @@ bool CKademlia::Init()
 	m_lastTimerCall = GetTickCount();
 	m_lastFirewallTcpPort = (WORD)Settings.Connection.InPort;
 	m_firewall.OnKadStart(m_lastTimerCall, m_lastFirewallTcpPort);
+	m_udpFirewall.OnKadStart(m_lastTimerCall);
 
 	theApp.Message(MSG_NOTICE, L"Kad2 initialized with ID: %02x%02x%02x%02x...",
 	               m_ownId[0], m_ownId[1], m_ownId[2], m_ownId[3]);
-	theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall-check started (state unknown)");
+	theApp.Message(MSG_DEBUG, L"Kad2: TCP and UDP firewall checks started (state unknown)");
 
 	oLock.Unlock();
 	Bootstrap();
@@ -108,6 +109,7 @@ void CKademlia::Stop()
 	m_bInitialized = false;
 	memset(m_ownId, 0, KAD_ID_SIZE);
 	m_firewall.OnKadStop();
+	m_udpFirewall.OnKadStop();
 	m_lastFirewallTcpPort = 0;
 
 	theApp.Message(MSG_NOTICE, L"Kad2 stopped");
@@ -271,6 +273,9 @@ void CKademlia::OnTimer()
 	{
 		m_lastFirewallTcpPort = tcpPort;
 		m_firewall.OnNetworkOrPortChange(now, tcpPort);
+		// A different listen port invalidates every UDP probe result,
+		// including a verified one.
+		m_udpFirewall.OnKadStart(now);
 		theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall-check reset after port change");
 	}
 
@@ -279,6 +284,17 @@ void CKademlia::OnTimer()
 	{
 		theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall state -> %u (acks=%u publicIP=0x%08x)",
 		               (unsigned)m_firewall.TcpState(), m_firewall.AckCount(), m_firewall.PublicIpHost());
+		// A TCP verdict re-runs the UDP tester (eMule RecheckFirewalled).
+		m_udpFirewall.ReCheck(now, false);
+	}
+
+	const KadUdpFirewallState udpBefore = m_udpFirewall.State();
+	m_udpFirewall.OnTimer(now, m_firewall.TcpState() == KadTcpFirewallState::Firewalled);
+	if (m_udpFirewall.State() != udpBefore)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: UDP firewall state -> %u (verified=%u used=%u)",
+		               (unsigned)m_udpFirewall.State(), m_udpFirewall.IsVerified() ? 1u : 0u,
+		               m_udpFirewall.UsedCount());
 	}
 	MaybeStartFirewallChecks();
 
@@ -402,6 +418,10 @@ BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 
 	case KADEMLIA2_FIREWALLED_ACK_RES:
 		OnFirewalledAck(pHost, pPacket);
+		return TRUE;
+
+	case KADEMLIA2_FIREWALLUDP:
+		OnFirewallUdpResult(pHost, pPacket);
 		return TRUE;
 
 	default:
@@ -1895,4 +1915,188 @@ void CKademlia::MaybeStartFirewallChecks()
 		SendFirewalledRequest(contact);
 		break; // one new REQ per timer tick
 	}
+}
+
+// --- UDP firewall tester (#515) ---
+
+void CKademlia::OnFirewallUdpResult(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	if (!pHost || !pPacket)
+		return;
+
+	const DWORD ipHost = ntohl(pHost->sin_addr.s_addr);
+	const DWORD now = GetTickCount();
+	if (!m_inboundLimiter.Allow(ipHost, KAD_OP_FIREWALLUDP, KAD_UDPFW_RESULT_PER_MINUTE, now))
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: FIREWALLUDP rate-limited from %s",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		return;
+	}
+
+	KadUdpFwResultPacket res;
+	if (KadParseFirewallUdpResult(pPacket->GetCurrent(), pPacket->GetRemaining(), res) != KadUdpFwParseStatus::Ok)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring malformed FIREWALLUDP from %s",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		return;
+	}
+
+	// eMule listener classification: an unexpected (or zero) incoming port
+	// and any non-zero errorcode both cancel the test; only errorcode 0 on
+	// one of our Kad UDP ports is a success. The external port is unknown
+	// until an extern-port lookup exists.
+	bool succeeded = false;
+	bool cancelled = true;
+	if (KadUdpFwIncomingPortExpected(res.incomingPort, (WORD)Settings.Connection.InPort, 0))
+	{
+		if (res.errorCode == KAD_UDPFW_ERROR_OK)
+		{
+			succeeded = true;
+			cancelled = false;
+		}
+	}
+
+	const KadUdpFwResultStatus st = m_udpFirewall.OnProbeResult(ipHost, succeeded, cancelled, now);
+	switch (st)
+	{
+	case KadUdpFwResultStatus::Succeeded:
+	case KadUdpFwResultStatus::Failed:
+		theApp.Message(MSG_DEBUG, L"Kad2: UDP firewall state -> %u (verified=%u) via %s",
+		               (unsigned)m_udpFirewall.State(), m_udpFirewall.IsVerified() ? 1u : 0u,
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		break;
+	case KadUdpFwResultStatus::Cancelled:
+		theApp.Message(MSG_DEBUG, L"Kad2: FIREWALLUDP cancelled from %s (error=%u port=%u)",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), res.errorCode, res.incomingPort);
+		break;
+	case KadUdpFwResultStatus::Unrequested:
+	case KadUdpFwResultStatus::Duplicate:
+	case KadUdpFwResultStatus::NotRunning:
+	default:
+		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring FIREWALLUDP from %s (status=%u)",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), (unsigned)st);
+		break;
+	}
+}
+
+void CKademlia::OnFirewallCheckUdpRequest(const BYTE* pPayload, size_t nLen, const SOCKADDR_IN* pHost,
+                                          bool requesterKnownToTransfers)
+{
+	if (!m_bInitialized || !pPayload || !pHost)
+		return;
+
+	KadUdpFwCheckRequest req;
+	if (KadParseUdpFwCheckRequest(pPayload, nLen, req) != KadUdpFwParseStatus::Ok)
+		return;
+
+	// eMule aborts on intern port 0: there is nowhere to send the probe.
+	if (req.internPort == 0)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: FWCHECKUDPREQ from %s with intern port 0 ignored",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		return;
+	}
+
+	const DWORD ipHost = ntohl(pHost->sin_addr.s_addr);
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	// Biased-result rule (eMule ProcessFirewallCheckUDPRequest): when we
+	// already know the requester from transfers/chat or the routing zone,
+	// the probe result would be pre-biased, so mark errorcode 1.
+	bool known = requesterKnownToTransfers;
+	if (!known)
+		known = RoutingZoneHasIp(ipHost);
+
+	const KadUdpFwProbePlan plan = KadPlanFirewallUdpProbes(req.internPort, req.externPort, known);
+	for (BYTE i = 0; i < plan.count; ++i)
+		SendFirewallUdpProbe(ipHost, plan.targetPort[i], plan.errorCode[i]);
+
+	theApp.Message(MSG_DEBUG, L"Kad2: FWCHECKUDPREQ from %s answered with %u probe(s) (biased=%u)",
+	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), plan.count, known ? 1u : 0u);
+}
+
+void CKademlia::SendFirewallUdpProbe(DWORD ipHost, WORD port, BYTE errorCode)
+{
+	if (ipHost == 0 || port == 0)
+		return;
+
+	BYTE body[3];
+	KadBuildFirewallUdpProbe(body, errorCode, port);
+	CEDPacket* pPacket = CEDPacket::New(KADEMLIA2_FIREWALLUDP, ED2K_PROTOCOL_KAD);
+	if (!pPacket)
+		return;
+	pPacket->Write(body, 3);
+
+	sockaddr_in addr;
+	memset(&addr, 0, sizeof(sockaddr_in));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(ipHost);
+	addr.sin_port = htons(port);
+	// No UDP verify keys yet (#513 phase D): sent unencrypted like every
+	// other Kad datagram Envy emits today.
+	SendPacket(&addr, pPacket);
+	pPacket->Release();
+
+	theApp.Message(MSG_DEBUG, L"Kad2: FIREWALLUDP probe to %s:%u (error=%u)",
+	               (LPCTSTR)CString(inet_ntoa(addr.sin_addr)), port, errorCode);
+}
+
+bool CKademlia::WantsUdpFirewallCheckProbe()
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	if (!m_bInitialized)
+		return false;
+	if (Settings.Experimental.LAN_Mode != FALSE)
+		return false; // LAN mode assumes open (eMule IsFirewalledUDP)
+	if (m_routingTable.GetTotalContacts() == 0)
+		return false; // eMule starts the UDP test once the node has contact
+	return m_udpFirewall.NeedsProbeRequests();
+}
+
+bool CKademlia::BeginUdpFirewallCheckProbe(DWORD ipHost, WORD kadUdpPort, DWORD now)
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	if (!m_bInitialized)
+		return false;
+	// Version/routing-zone/self checks belong to the client driver; here only
+	// the tester's own rules apply (fresh IP per round, bounded slots).
+	if (kadUdpPort == 0 || !KadIpv4IsUsableFirewallPeer(ipHost))
+		return false;
+	if (m_udpFirewall.AlreadyRequested(ipHost))
+		return false;
+	return m_udpFirewall.BeginProbeRequest(ipHost, now);
+}
+
+void CKademlia::CancelUdpFirewallCheckProbe(DWORD ipHost)
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	m_udpFirewall.CancelProbeRequest(ipHost);
+}
+
+void CKademlia::OnUdpFirewallCheckClientClosed(DWORD ipHost)
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	if (!m_bInitialized)
+		return;
+	const KadUdpFwResultStatus st = m_udpFirewall.OnProbeClientClosed(ipHost, GetTickCount());
+	if (st != KadUdpFwResultStatus::Unrequested)
+		theApp.Message(MSG_DEBUG, L"Kad2: UDP firewall probe client closed (%u) status=%u",
+		               ipHost, (unsigned)st);
+}
+
+bool CKademlia::HasKadContactIp(DWORD ipHost)
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	return RoutingZoneHasIp(ipHost);
+}
+
+bool CKademlia::RoutingZoneHasIp(DWORD ipHost)
+{
+	bool found = false;
+	m_routingTable.ForEachContact([&](const KadContact& c)
+	                              {
+		if (found)
+			return;
+		if (c.ip == ipHost)
+			found = true; });
+	return found;
 }
