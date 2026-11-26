@@ -100,7 +100,7 @@ BOOL CHostCache::Load()
 					Clear();
 
 					Serialize( ar );
-					MigrateDcHubUris();
+					DC.MigrateDcHubUris();
 					ar.Close();
 				}
 

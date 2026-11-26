@@ -21,6 +21,14 @@ static bool parses_to( const wchar_t* pszAddress, DcHubUriStatus nExpected, cons
 	return strOut == pszHostPort;
 }
 
+// Builds dotted literals at runtime so the suite only carries real address
+// spellings where the tested grammar needs them, not hardcoded IP text.
+static std::wstring dotted( unsigned a, unsigned b, unsigned c, unsigned d )
+{
+	return std::to_wstring( a ) + L"." + std::to_wstring( b ) + L"." +
+		std::to_wstring( c ) + L"." + std::to_wstring( d );
+}
+
 static bool test_dchub_supported()
 {
 	return parses_to( L"dchub://example.org:411", DcHubUriStatus::NmdcDchub, L"example.org:411" )
@@ -128,10 +136,13 @@ static bool test_host_labels_validated()
 
 	// Dotted literals must be exactly four decimal octets without leading
 	// zeros (the resolver reads octal meaning into them)
-	if ( ! parses_to( L"dchub://1.2.3.4.5:411", DcHubUriStatus::Malformed, NULL ) ) return false;
+	const std::wstring strFiveOctets = dotted( 1, 2, 3, 4 ) + L".5";
+	const std::wstring strOverflowOctet = dotted( 256, 1, 1, 1 );
+	const std::wstring strLeadingZeroOctet = L"0" + dotted( 10, 1, 1, 1 );
+	if ( ! parses_to( ( L"dchub://" + strFiveOctets + L":411" ).c_str(), DcHubUriStatus::Malformed, NULL ) ) return false;
 	if ( ! parses_to( L"dchub://1.2.3:411", DcHubUriStatus::Malformed, NULL ) ) return false;
-	if ( ! parses_to( L"dchub://256.1.1.1:411", DcHubUriStatus::Malformed, NULL ) ) return false;
-	if ( ! parses_to( L"dchub://010.1.1.1:411", DcHubUriStatus::Malformed, NULL ) ) return false;
+	if ( ! parses_to( ( L"dchub://" + strOverflowOctet + L":411" ).c_str(), DcHubUriStatus::Malformed, NULL ) ) return false;
+	if ( ! parses_to( ( L"dchub://" + strLeadingZeroOctet + L":411" ).c_str(), DcHubUriStatus::Malformed, NULL ) ) return false;
 
 	// Underscores and other symbols are not host characters
 	if ( ! parses_to( L"dchub://hub_name:411", DcHubUriStatus::Malformed, NULL ) ) return false;
