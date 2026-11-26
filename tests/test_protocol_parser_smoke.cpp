@@ -635,6 +635,25 @@ static bool test_ggep_inflate_output_ok()
 		&& GgepInflateOutputOk( GGEP_INFLATE_MAX + 1 ) == FALSE;
 }
 
+static bool test_ggep_traverse_index_bound()
+{
+	if ( GgepTraverseIndexInRange( 0, GGEP_ITEM_COUNT_MAX ) != TRUE )
+		return false;
+	if ( GgepTraverseIndexInRange( GGEP_ITEM_COUNT_MAX, GGEP_ITEM_COUNT_MAX ) != FALSE )
+		return false;
+	if ( GgepTraverseIndexInRange( 0, GGEP_ITEM_COUNT_MAX + 1 ) != FALSE )
+		return false;
+	// BYTE loop index wraps before a DWORD claimed count > 255.
+	BYTE nByteIndex = 0;
+	for ( DWORD i = 0; i <= GGEP_ITEM_COUNT_MAX; ++i )
+	{
+		if ( ! GgepTraverseIndexInRange( nByteIndex, GGEP_ITEM_COUNT_MAX + 1 ) )
+			return false;
+		++nByteIndex;
+	}
+	return nByteIndex == 0;
+}
+
 static bool test_ed2k_compressedpart_inflate_ok()
 {
 	const std::uint64_t nPart = ED2K_COMPRESSEDPART_INFLATE_MAX;
@@ -830,6 +849,7 @@ void register_protocol_parser_smoke_tests(TestSuite& suite)
 	suite.add_test( "cbuffer_inflate_output_ok", test_cbuffer_inflate_output_ok );
 	suite.add_test("cbuffer_inflate_stream_output_ok", test_cbuffer_inflate_stream_output_ok);
 	suite.add_test( "ggep_inflate_output_ok", test_ggep_inflate_output_ok );
+	suite.add_test( "ggep_traverse_index_bound", test_ggep_traverse_index_bound );
 	suite.add_test( "ed2k_compressedpart_inflate_ok", test_ed2k_compressedpart_inflate_ok );
 	suite.add_test( "ed2k_compressedpart_accept_before_submit", test_ed2k_compressedpart_accept_before_submit );
 	suite.add_test("g1_wrapped_payload_ok", test_g1_wrapped_payload_ok);
