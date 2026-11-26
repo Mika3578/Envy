@@ -1,7 +1,16 @@
 # Clang-Tidy configuration for Envy project
 # Static analysis for C++ code quality and security
 
-Checks: '-*'
+# Advisory starter set on top of the legacy MFC tree:
+# clang-analyzer-* covers the core static analyzer; the named checks are
+# high-precision, low-noise bug/memory/performance rules that also work on
+# translation units parsed without a full compile database. Parse failures
+# (expected without compile_commands.json on MFC sources) surface as
+# clang-diagnostic-error and are filtered out of PR annotations by the
+# clang-tidy workflows, not disabled here.
+# Extend one check at a time; validate each addition on a real build before
+# making it blocking (AGENTS.md: quality gates are policy, not obstacles).
+Checks: '-*,clang-analyzer-*,bugprone-use-after-move,bugprone-narrowing-conversions,bugprone-sizeof-expression,bugprone-suspicious-memset-usage,misc-unused-using-decls,misc-unused-parameters,modernize-use-override,modernize-use-nullptr,performance-for-range-copy,performance-unnecessary-copy-initialization'
 
 WarningsAsErrors: ''
 
