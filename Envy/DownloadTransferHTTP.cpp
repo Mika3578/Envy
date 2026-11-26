@@ -825,7 +825,7 @@ BOOL CDownloadTransferHTTP::ReadResponseLine()
 		m_pSource->m_nFailures = 0;
 		m_pSource->m_nBusyCount = 0;
 	}
-	else if ( strCode == L"503" )
+	else if ( strCode == L"503" && ! m_bTigerFetch )
 	{
 		// 503 response without an X-Available-Ranges header means the complete file is available
 		if ( _tcsistr( strMessage, L"range" ) != NULL )
@@ -1395,7 +1395,13 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			theApp.Message(MSG_INFO, L"THEX request refused by %s; continuing with the file transfer.",
 			               (LPCTSTR)m_sAddress);
 			m_bTigerFault = FALSE;
-			if (m_nContentLength == SIZE_UNKNOWN)
+			// Only a small, finite, non-chunked body is safely drainable; a
+			// huge or unbounded declaration would stall dtsFlushing until
+			// timeout, and chunked framing can leave bytes queued. Drop the
+			// connection instead but keep the source: the file request
+			// continues on a fresh connection.
+			if (m_bChunked || m_nContentLength == SIZE_UNKNOWN ||
+			    m_nContentLength > (QWORD)XML_PEER_THEX_BODY_CAP)
 			{
 				Close(TRI_TRUE);
 				return FALSE;
