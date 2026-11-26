@@ -92,6 +92,16 @@ class TcpSequenceTests(unittest.TestCase):
         with self.assertRaises(EvidenceError):
             self.extract(self.row(1, b"ab"), "12\t\n")
 
+    def test_tcp_export_skips_empty_udp_rows(self):
+        udp_row = "\t" * 8
+        result = self.extract(self.row(1, b"ab") + "\n" + udp_row, "10\te4:60\n")
+        self.assertEqual(list(result.tcp_by_stream.values())[0][0], b"ab")
+        self.assertEqual(result.udp, [b"\xe4\x60"])
+
+    def test_extraction_rejects_subheader_udp_length(self):
+        with self.assertRaises(EvidenceError):
+            self.extract(self.row(1, b"ab"), "7\t\n")
+
     def test_extraction_rejects_missing_metadata_truncation_and_conflict(self):
         for rows in (
             "0\t4662\t4663\tab",  # Old extractor output had no sequence fields.

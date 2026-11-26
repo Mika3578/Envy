@@ -720,6 +720,9 @@ def extract_from_pcap_via_tshark(
         if len(parts) != len(fields):
             raise EvidenceError("tshark TCP row is missing sequence metadata")
         stream, src, dst, seq_text, size_text, syn, ipv4, ipv6, payload = parts
+        if not (stream.strip() and src.strip() and dst.strip()
+                and seq_text.strip() and size_text.strip()):
+            continue  # UDP packets appear as empty-column rows in the TCP export.
         try:
             stream_id, src_port, dst_port, seq, size = map(
                 int, (stream, src, dst, seq_text, size_text)
@@ -764,6 +767,8 @@ def extract_from_pcap_via_tshark(
             length = int(length_text)
         except ValueError as exc:
             raise EvidenceError("tshark produced malformed UDP fields") from exc
+        if length < 8:
+            raise EvidenceError("tshark produced invalid UDP length")
         if length > 8 and not hex_payload:
             raise EvidenceError("truncated or missing UDP evidence payload")
         if not hex_payload:
