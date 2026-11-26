@@ -60,4 +60,16 @@ void register_download_group_classification_smoke_tests(TestSuite& suite)
 			DownloadGroupAutomaticPriority( std::wstring(L"http") + L"://other.example/Archive.xsd" ) >= 1000 &&
 			DownloadGroupAutomaticPriority( std::wstring(L"http") + L"://schemas.getenvy.com/folder/Archive.xsd" ) >= 1000;
 	});
+
+	suite.add_test("download groups: retain manual placement on automatic tabs", [] {
+		return DownloadGroupRetainManualAutomaticPlacement( true, false ) &&
+			! DownloadGroupRetainManualAutomaticPlacement( true, true ) &&
+			! DownloadGroupRetainManualAutomaticPlacement( false, false );
+	});
+
+	suite.add_test("download groups: completion folder follows list order", [] {
+		return DownloadGroupFirstListedCompletionFolder( { L"Video", L"Audio" } ) == L"Video" &&
+			DownloadGroupFirstListedCompletionFolder( { L"", L"Audio", L"Archives" } ) == L"Audio" &&
+			DownloadGroupFirstListedCompletionFolder( { L"", L"" } ).empty();
+	});
 }

@@ -178,26 +178,10 @@ int CDownloadGroup::LinkAll()
 
 	ASSUME_LOCK( Transfers.m_pSection );
 
-	if (IsAutomatic())
-	{
-		for (POSITION pos = Downloads.GetIterator(); pos;)
-		{
-			CDownload* pDownload = Downloads.GetNext(pos);
-			for (POSITION posGroup = DownloadGroups.GetIterator(); posGroup;)
-			{
-				CDownloadGroup* pGroup = DownloadGroups.GetNext(posGroup);
-				if (pGroup != DownloadGroups.GetSuperGroup() && pGroup->IsAutomatic())
-					pGroup->Remove(pDownload);
-			}
-			DownloadGroups.Link(pDownload);
-			nCount += Contains(pDownload);
-		}
-	}
-	else
-	{
-		for (POSITION pos = Downloads.GetIterator(); pos;)
-			nCount += Link(Downloads.GetNext(pos));
-	}
+	// Relink only this group's membership.  Clearing other automatic groups here
+	// dropped drag/drop assignments to built-in tabs when another group changed.
+	for (POSITION pos = Downloads.GetIterator(); pos;)
+		nCount += Link(Downloads.GetNext(pos));
 
 	return nCount;
 }

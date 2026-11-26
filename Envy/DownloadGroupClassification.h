@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include <initializer_list>
 #include <string>
 #include <string_view>
 
@@ -115,4 +116,23 @@ inline bool DownloadGroupAutomaticPrecedes(std::wstring_view strCandidateURI,
 		return strCandidateLower < strCurrentLower;
 
 	return DownloadGroupLowerAscii(strCandidateFolder) < DownloadGroupLowerAscii(strCurrentFolder);
+}
+
+// A download placed on an automatic tab without matching its filters was moved
+// manually and must survive another group's Clear/LinkAll cycle.
+inline bool DownloadGroupRetainManualAutomaticPlacement(bool bIsMember, bool bMatchesFilters)
+{
+	return bIsMember && !bMatchesFilters;
+}
+
+// Multi-group membership keeps the first non-empty folder in persisted list order.
+inline std::wstring_view DownloadGroupFirstListedCompletionFolder(
+    std::initializer_list<std::wstring_view> foldersInListOrder)
+{
+	for (const std::wstring_view strFolder : foldersInListOrder)
+	{
+		if (!strFolder.empty())
+			return strFolder;
+	}
+	return std::wstring_view();
 }

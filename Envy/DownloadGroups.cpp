@@ -305,45 +305,22 @@ CString CDownloadGroups::GetCompletedPath(CDownload* pDownload) const
 		Settings.Downloads.CompletePath = Settings.General.Path + L"\\Downloads";
 
 	CQuickLock pLock( m_pSection );
-	const CDownloadGroup* pBest = NULL;
 
+	// Persisted list order selects the completion folder when several groups match.
 	for ( POSITION pos = GetIterator(); pos; )
 	{
 		const CDownloadGroup* pGroup = GetNext( pos );
-		if (pGroup == m_pSuper || pGroup->m_sFolder.IsEmpty() || !pGroup->Contains(pDownload))
-			continue;
 
-		if (!pBest)
+		if (pGroup != m_pSuper && pGroup->Contains(pDownload))
 		{
-			pBest = pGroup;
-			continue;
+			if (!pGroup->m_sFolder.IsEmpty())
+			{
+				if (pGroup->m_sFolder.Find(L":\\") == 1)
+					return pGroup->m_sFolder;
+
+				return Settings.Downloads.CompletePath + L"\\" + pGroup->m_sFolder;
+			}
 		}
-
-		const BOOL bGroupManual = !pGroup->IsAutomatic();
-		const BOOL bBestManual = !pBest->IsAutomatic();
-		if (bGroupManual != bBestManual)
-		{
-			if (bGroupManual)
-				pBest = pGroup;
-			continue;
-		}
-
-		if (bGroupManual)
-		{
-			const int nName = pGroup->m_sName.CompareNoCase(pBest->m_sName);
-			if (nName < 0 || (nName == 0 && pGroup->m_sFolder.CompareNoCase(pBest->m_sFolder) < 0))
-				pBest = pGroup;
-		}
-		else if (IsPreferredAutomaticGroup(pGroup, pBest))
-			pBest = pGroup;
-	}
-
-	if (pBest)
-	{
-		if (pBest->m_sFolder.Find(L":\\") == 1)
-			return pBest->m_sFolder;
-
-		return Settings.Downloads.CompletePath + L"\\" + pBest->m_sFolder;
 	}
 
 	return Settings.Downloads.CompletePath;
