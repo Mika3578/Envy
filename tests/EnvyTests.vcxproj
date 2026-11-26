@@ -277,6 +277,7 @@
        regressions while the build reports success. -->
   <Target Name="RunBufferGrowthRegressions" BeforeTargets="ClCompile">
     <Error Condition="'$(BufferGrowthArch)'==''" Text="Buffer growth regressions require Win32 or x64." />
+    <Error Condition="'$(VSInstallDir)'==''" Text="VSInstallDir is not set; run from a Visual Studio Developer prompt or set VSInstallDir so VsDevCmd.bat can be located." />
     <Exec WorkingDirectory="$(ProjectDir).." Command="call &quot;$(VSInstallDir)Common7\Tools\VsDevCmd.bat&quot; -no_logo -arch=$(BufferGrowthArch) &amp;&amp; set &quot;ENVY_BUFFER_GROWTH_CONFIGURATION=$(Configuration)&quot; &amp;&amp; python &quot;$(ProjectDir)run_buffer_growth_tests.py&quot;" />
   </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
