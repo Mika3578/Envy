@@ -56,6 +56,30 @@ execute the complete G1/G2 dispatchers or HTTP header parser.
 The ten THEX cases bring this native suite to 18 tests. Python 3 must be on
 PATH for the source-extraction build step.
 
+The MetaFetch receive regressions run before EnvyTests compiles (a failure
+fails that build). `tests/run_metafetch_receive_tests.py` extracts unchanged
+`ReadInput`, `ReceiveMetadataInput` and `ReadMetadata` bodies from
+`DownloadTransferHTTP.cpp` and drives them with the production
+`ReadHttpInputUntilBlocked` helper over a scripted socket, at `/Od` and `/O2`.
+Socket reads, response-line/header parsing and the metadata branches of
+`OnHeadersComplete`/`OnDropped` are modelled. The cases cover every two-read
+split and byte-by-byte delivery of a valid response, short headers followed by
+a prefetched body that fills the 16 KiB header-phase read exactly, a header
+line that fits the 16 KiB cap with its CRLF versus one byte more, unterminated
+response and header lines, the inclusive `XML_PEER_PARSE_CHARS_MAX` body limit
+with `Content-Length` and close-delimited bodies (one byte over fails closed),
+and a stalled body that neither spins nor completes after a drop. The
+`XML_PEER_HTTP_HEADER_PHASE_CAP` (16 KiB, matching the socket recv quantum)
+limits aggregate status/header bytes while headers are incomplete; it is not a
+user setting and is below the per-line `HTTP_HEADER_MAX_LINE` ceiling because
+legitimate MetaFetch/THEX control responses use short headers and XML or DIME
+payloads live in the body. Outside Windows the same source builds with `CXX`
+(default `c++`) against the type shim in `tests/shim`:
+
+```bash
+python3 tests/run_metafetch_receive_tests.py
+```
+
 ## Loopback fixture checks (not application tests)
 
 The fixture listens only on `127.0.0.1`. Envy rejects loopback download sources:
