@@ -195,7 +195,18 @@ function Get-PeImportedDllNames([byte[]]$Bytes)
 			{
 				throw 'static import directory out of bounds'
 			}
-			if ([BitConverter]::ToUInt32($Bytes, $entry) -eq 0 -and [BitConverter]::ToUInt32($Bytes, $entry + 12) -eq 0)
+			# The terminator is a fully zeroed IMAGE_IMPORT_DESCRIPTOR; every
+			# DWORD must be zero so a partially written entry cannot pass.
+			$allZero = $true
+			for ($d = 0; $d -lt 5; $d++)
+			{
+				if ([BitConverter]::ToUInt32($Bytes, $entry + 4 * $d) -ne 0)
+				{
+					$allZero = $false
+					break
+				}
+			}
+			if ($allZero)
 			{
 				$terminated = $true
 				break
@@ -229,7 +240,18 @@ function Get-PeImportedDllNames([byte[]]$Bytes)
 			}
 			$attributes = [BitConverter]::ToUInt32($Bytes, $entry)
 			$nameField = [BitConverter]::ToUInt32($Bytes, $entry + 4)
-			if ($attributes -eq 0 -and $nameField -eq 0)
+			# The terminator is a fully zeroed ImgDelayDescr; every DWORD in
+			# the descriptor must be zero, not just the first two fields.
+			$allZero = $true
+			for ($d = 0; $d -lt 8; $d++)
+			{
+				if ([BitConverter]::ToUInt32($Bytes, $entry + 4 * $d) -ne 0)
+				{
+					$allZero = $false
+					break
+				}
+			}
+			if ($allZero)
 			{
 				$terminated = $true
 				break
