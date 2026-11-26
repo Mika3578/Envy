@@ -40,11 +40,15 @@ Coverage checks:
 
 `EnvyTests.vcxproj` runs the same suite before C++ compilation, using the
 project platform to initialize the Native Tools environment. A failing harness
-command fails the project build, so both required Release platform checks
-enforce this coverage when they execute the real builds (non-draft PRs or
-Draft PRs labelled `stage:live-test`). A Draft deferral is not test evidence.
-The suite intentionally runs on every MSBuild invocation that reaches C++
-compilation, including incremental builds. Architecture and configuration
+command fails the project build. Both required Release platform checks enforce
+this coverage once they execute the real builds: non-draft PRs and Draft PRs
+labelled `stage:live-test`; draft PRs without that label defer the Windows
+builds entirely, and a Draft deferral is not test evidence. MSBuild skips the
+suite only when no harness input changed since the last fully passing run (the
+runner and extractor scripts, the harness source, and the four production
+sources the extractor reads); the runner retires its pass marker before any
+work, so a failed or interrupted run is repeated on the next build instead of
+being masked by stale executables. Architecture and configuration
 isolate generated files for concurrent Debug/Release builds. Python 3 and the
 selected Visual Studio toolset must be available when building EnvyTests.
 

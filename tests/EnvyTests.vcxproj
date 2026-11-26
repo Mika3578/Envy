@@ -258,13 +258,19 @@
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
-  <Target Name="RunBufferGrowthRegressions" BeforeTargets="ClCompile">
-    <PropertyGroup>
-      <BufferGrowthArch Condition="'$(Platform)'=='Win32'">x86</BufferGrowthArch>
-      <BufferGrowthArch Condition="'$(Platform)'=='x64'">x64</BufferGrowthArch>
-    </PropertyGroup>
+  <PropertyGroup>
+    <BufferGrowthArch Condition="'$(Platform)'=='Win32'">x86</BufferGrowthArch>
+    <BufferGrowthArch Condition="'$(Platform)'=='x64'">x64</BufferGrowthArch>
+    <BufferGrowthOutputDir>$(ProjectDir)..\.local\buffer-growth\$(BufferGrowthArch)\$(Configuration)</BufferGrowthOutputDir>
+  </PropertyGroup>
+  <!-- Inputs cover everything the runner reads or compiles, so MSBuild can
+       skip the suite only when no harness or extracted production source
+       changed since the last successful run. -->
+  <Target Name="RunBufferGrowthRegressions" BeforeTargets="ClCompile"
+          Inputs="$(ProjectDir)run_buffer_growth_tests.py;$(ProjectDir)extract_buffer_growth_methods.py;$(ProjectDir)extract_thex_test_methods.py;$(ProjectDir)test_buffer_growth.cpp;$(ProjectDir)..\Envy\HashDatabase.cpp;$(ProjectDir)..\Envy\HubHorizon.cpp;$(ProjectDir)..\Envy\CtrlSearchDetailPanel.cpp;$(ProjectDir)..\Envy\CtrlBrowseTree.cpp"
+          Outputs="$(BufferGrowthOutputDir)\buffer_growth_methods.inc;$(BufferGrowthOutputDir)\null-Od.exe;$(BufferGrowthOutputDir)\null-O2.exe;$(BufferGrowthOutputDir)\throw-Od.exe;$(BufferGrowthOutputDir)\throw-O2.exe;$(BufferGrowthOutputDir)\regressions.passed">
     <Error Condition="'$(BufferGrowthArch)'==''" Text="Buffer growth regressions require Win32 or x64." />
-    <Exec WorkingDirectory="$(ProjectDir).." Command="call &quot;$(VSInstallDir)Common7\Tools\VsDevCmd.bat&quot; -no_logo -host_arch=x64 -arch=$(BufferGrowthArch) &amp;&amp; set &quot;ENVY_BUFFER_GROWTH_CONFIGURATION=$(Configuration)&quot; &amp;&amp; python &quot;$(ProjectDir)run_buffer_growth_tests.py&quot;" />
+    <Exec WorkingDirectory="$(ProjectDir).." Command="call &quot;$(VSInstallDir)Common7\Tools\VsDevCmd.bat&quot; -no_logo -arch=$(BufferGrowthArch) &amp;&amp; set &quot;ENVY_BUFFER_GROWTH_CONFIGURATION=$(Configuration)&quot; &amp;&amp; python &quot;$(ProjectDir)run_buffer_growth_tests.py&quot;" />
   </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

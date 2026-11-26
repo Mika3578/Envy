@@ -14,6 +14,10 @@ def main():
               / os.environ.get("VSCMD_ARG_TGT_ARCH", "native")
               / os.environ.get("ENVY_BUFFER_GROWTH_CONFIGURATION", "standalone"))
     output.mkdir(parents=True, exist_ok=True)
+    # MSBuild lists this marker as a target output, so retire it before any
+    # work: a failed or interrupted run leaves it absent and forces the next
+    # build to rerun instead of trusting stale executables.
+    (output / "regressions.passed").unlink(missing_ok=True)
     subprocess.run(
         [sys.executable, str(root / "tests/extract_buffer_growth_methods.py"),
          "--output", str(output / "buffer_growth_methods.inc")], check=True,
@@ -31,6 +35,9 @@ def main():
                 command.append("/DTEST_THROW_ALLOCATION")
             subprocess.run(command, cwd=root, check=True)
             subprocess.run([str(target) + ".exe"], cwd=root, check=True)
+
+    (output / "regressions.passed").write_text(
+        "buffer growth regressions passed\n", encoding="ascii")
 
 
 if __name__ == "__main__":
