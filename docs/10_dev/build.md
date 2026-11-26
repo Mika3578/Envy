@@ -120,6 +120,17 @@ or `scripts\bootstrap-vcpkg.cmd -CloneVcpkg -Triplet x86-windows-static`.
 | **x64** | 64-bit | ✅ Primary | Better performance, larger files |
 | **Win32** | 32-bit | ⚠️ Legacy | Limited to 2GB address space |
 
+### Advisory cppcheck workflow (`.github/workflows/cppcheck.yml`)
+
+Runs cppcheck over the changed first-party C/C++ files (`Envy/`,
+`TorrentEnvy/`, `HashLib/`; `.cpp`/`.h`/`.hpp`/`.cxx`/`.c`) on pull requests
+touching those paths and on pushes to `develop`. It is **advisory only**: it
+never fails the build, does not annotate the pull request, and is not part of
+the `Protect develop` ruleset. The raw report and a short summary are
+published as the `cppcheck-report` workflow artifact and in the job's step
+summary; suppression-list-only changes exercise `.cppcheck-suppressions` on a
+representative file so invalid or overly broad entries still surface.
+
 ## 🔧 Secondary Build: CMake (Limited)
 
 ### Current Status
