@@ -199,7 +199,7 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 	m_bWantBackwards	= FALSE;
 	m_bRecvBackwards	= FALSE;
 	m_bTigerFetch		= FALSE;
-	m_bTigerFault		= FALSE;
+	m_bTigerFault = FALSE;
 	m_sTigerUUID.Empty();
 	m_bTigerAbandon = FALSE;
 	m_bTigerDescriptor = FALSE;
@@ -850,16 +850,16 @@ BOOL CDownloadTransferHTTP::ReadResponseLine()
 		m_bRedirect = TRUE;
 		SetState( dtsHeaders );
 	}
-	else if ( m_bTigerFetch &&
-	          ( strCode == L"400" || strCode == L"403" || strCode == L"404" ||
-	            strCode == L"410" || strCode == L"501" || strCode == L"503" ) )
+	else if (m_bTigerFetch &&
+	         (strCode == L"400" || strCode == L"403" || strCode == L"404" ||
+	          strCode == L"410" || strCode == L"501" || strCode == L"503"))
 	{
 		// An optional THEX endpoint refused or does not support the request.
 		// This is a metadata-only failure: it must not fail the source or the
 		// file transfer. m_bTigerIgnore keeps THEX off for this source, the
 		// small error body is drained, and the file request continues.
 		m_bTigerFault = TRUE;
-		SetState( dtsHeaders );
+		SetState(dtsHeaders);
 	}
 	else
 	{

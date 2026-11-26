@@ -36,7 +36,7 @@ protected:
 	BOOL			m_bKeepAlive;
 	BOOL			m_bTigerFetch;
 	BOOL			m_bTigerIgnore;
-	BOOL			m_bTigerFault;
+	BOOL m_bTigerFault;
 	BOOL m_bTigerAbandon; // Abandoning the rest of a THEX response
 	BOOL m_bTigerDescriptor;
 	BOOL m_bTigerTreeSeen;
