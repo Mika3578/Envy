@@ -335,6 +335,50 @@ static bool test_outstanding_expiry_wrap_safe()
 	return map.Size() == 0;
 }
 
+// Eviction must also survive the wrap: when the map is full, the entry with
+// the largest elapsed registration age is evicted. A pre-wrap entry whose
+// wrapped absolute deadline looks far in the future is still the oldest by
+// elapsed time and must be the one evicted, not a fresh post-wrap entrant.
+static bool test_outstanding_eviction_wrap_safe()
+{
+	KadOutstandingSearchMap map;
+
+	// Registered past one lifetime before the wrap: elapsed subtraction sees
+	// this entry as the oldest, while its wrapped absolute deadline would
+	// look far in the future.
+	BYTE staleTarget[KAD_ID_SIZE];
+	memset(staleTarget, 0x11, KAD_ID_SIZE);
+	const DWORD tStale = 0u - (KAD_SEARCH_CONTEXT_LIFETIME_MS + 5000u);
+	if (!map.Register(KadSearchKind::Source, staleTarget, tStale))
+		return false;
+
+	for (size_t i = 1; i < KAD_OUTSTANDING_SEARCH_MAX; ++i)
+	{
+		BYTE target[KAD_ID_SIZE];
+		memset(target, 0x20, KAD_ID_SIZE);
+		target[KAD_ID_SIZE - 1] = static_cast<BYTE>(i);
+		if (!map.Register(KadSearchKind::Source, target, 1))
+			return false;
+	}
+	if (map.Size() != KAD_OUTSTANDING_SEARCH_MAX)
+		return false;
+
+	BYTE freshTarget[KAD_ID_SIZE];
+	memset(freshTarget, 0x33, KAD_ID_SIZE);
+	if (!map.Register(KadSearchKind::Source, freshTarget, 10))
+		return false;
+	if (map.Size() != KAD_OUTSTANDING_SEARCH_MAX)
+		return false;
+
+	KadOutstandingSearch ctx;
+	bool expired = false;
+	if (map.Lookup(staleTarget, 10, ctx, expired))
+		return false;
+	if (!map.Lookup(freshTarget, 10, ctx, expired))
+		return false;
+	return !expired;
+}
+
 // Re-registering the same target refreshes the context so a long-running
 // search keeps receiving results instead of expiring from its first send.
 static bool test_outstanding_register_refresh_extends()
@@ -472,6 +516,7 @@ void register_kad_search_res_delivery_smoke_tests(TestSuite& suite)
 	suite.add_test("kad_parse_trailing_bytes_rejected", test_parse_trailing_bytes_rejected);
 	suite.add_test("kad_outstanding_register_lookup_expire", test_outstanding_register_lookup_expire);
 	suite.add_test("kad_outstanding_expiry_wrap_safe", test_outstanding_expiry_wrap_safe);
+	suite.add_test("kad_outstanding_eviction_wrap_safe", test_outstanding_eviction_wrap_safe);
 	suite.add_test("kad_outstanding_register_refresh_extends", test_outstanding_register_refresh_extends);
 	suite.add_test("kad_outstanding_keyword_vs_source", test_outstanding_keyword_vs_source);
 	suite.add_test("kad_outstanding_map_bounded", test_outstanding_map_bounded);

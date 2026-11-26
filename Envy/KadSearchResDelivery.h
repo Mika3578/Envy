@@ -607,7 +607,7 @@ inline bool KadParseSearchResBody(
 	}
 
 	// Fail closed when the declared entry count does not consume the whole
-	// body: trailing bytes mean a malformed or smuggled frame (#373).
+	// body: trailing bytes mean a malformed or smuggled frame.
 	return cur.Remaining() == 0;
 }
 
