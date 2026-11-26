@@ -1,0 +1,28 @@
+<Project>
+  <!--
+      Central fallback defaults for every MSBuild project under the
+      repository root (vcxproj included).
+
+      Directory.Build.props is imported before a project file's own
+      PropertyGroups, so any value a project sets explicitly always wins.
+      Both entries below are therefore defaults for projects that omit
+      them, not overrides:
+
+      - PlatformToolset v145 is the only supported toolset (Visual Studio
+        2026, MSVC 14.50; AGENTS.md toolchain policy). MSVC's own
+        DefaultPlatformToolset for VS 2026 equals v145, so this matches
+        the toolchain default as well as every existing project file.
+      - WindowsTargetPlatformVersion "10.0" means "latest installed
+        Windows 10/11 SDK", which is what all current projects pin.
+
+      Deliberately NOT centralized here: LanguageStandard (per-config
+      C++17/C++20 transition is owned by the C++20 override-removal
+      change), ConformanceMode, SDLCheck, warning level - these differ
+      between first-party, vendored, and template projects and should
+      move here only per project family after a real build validates it.
+  -->
+  <PropertyGroup>
+    <PlatformToolset Condition="'$(PlatformToolset)' == ''">v145</PlatformToolset>
+    <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == ''">10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+</Project>
