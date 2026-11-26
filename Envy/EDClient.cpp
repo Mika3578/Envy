@@ -2022,7 +2022,7 @@ void CEDClient::DetermineUserAgent()
 // CEDClient FILE REQUEST handler
 
 // File requests deferred because the Library section was too busy to check.
-// Silence is safer than a false FILENOTFOUND; the peer re-asks (#495).
+// Silence is safer than a false FILENOTFOUND; the peer re-asks.
 static volatile LONG s_nLibraryBusyFileRequests = 0;
 static volatile LONG s_tLastLibraryBusyLog = -1;
 

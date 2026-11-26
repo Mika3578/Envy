@@ -1,7 +1,7 @@
 //
 // test_ed2k_file_request_outcome_smoke.cpp
 //
-// Regression tests for the ED2K FILEREQUEST reply decision (#495).
+// Regression tests for the ED2K FILEREQUEST reply decision.
 //
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
@@ -24,7 +24,7 @@ static bool test_outcome_download_answers()
 }
 
 // Transient lock contention must defer, never produce a negative reply:
-// this is the false-FILENOTFOUND regression from #495.
+// this is the false-FILENOTFOUND regression the decision prevents.
 static bool test_outcome_busy_defers_not_found()
 {
 	return Ed2kResolveFileRequestOutcome( false, false, false ) == Ed2kFileRequestOutcome::DeferredBusy;
