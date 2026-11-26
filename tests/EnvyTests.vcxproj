@@ -184,15 +184,15 @@
     </ClCompile>
     <ClCompile Include="..\Unpacker\Extract.c">
       <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NOCRYPT;ZLIB_DLL;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\Unpacker\Utils.c">
       <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NOCRYPT;ZLIB_DLL;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\Unpacker\PackagePath.c">
       <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NOCRYPT;ZLIB_DLL;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="test_hashlib.cpp" />
     <ClCompile Include="test_protocol_parser_smoke.cpp" />
@@ -243,7 +243,43 @@
     <ClCompile Include="test_schema_icon_resources.cpp" />
     <ClCompile Include="test_gzip_resources_smoke.cpp">
       <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NOCRYPT;ZLIB_DLL;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <!-- The vendored zlib core is linked statically into the test binary:
+         zlibwapi.dll is built with the assembler inflate fast path, whose
+         hardcoded inflate_state offsets predate zlib 1.3 and crash any
+         inflate call on Win32 (#478 validation). -->
+    <ClCompile Include="..\Services\zlib\ioapi.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\unzip.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\zutil.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\adler32.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\crc32.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\inftrees.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\inffast.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\Services\zlib\inflate.c">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
