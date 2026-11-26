@@ -131,8 +131,8 @@ inline BOOL GgepTraverseIndexInRange(DWORD nIndex, DWORD nClaimedCount)
 }
 
 // Shared bounded walk for GGEP linked item lists (#2538).
-#define GGEP_TRAVERSE_ITEMS(nItemIndex, nGgepItems, pItemPos) \
-	for (DWORD nItemIndex = 0; \
+#define GGEP_TRAVERSE_ITEMS(nItemIndex, nGgepItems, pItemPos)                \
+	for (DWORD nItemIndex = 0;                                               \
 	     (pItemPos) && GgepTraverseIndexInRange((nItemIndex), (nGgepItems)); \
 	     (nItemIndex)++, (pItemPos) = (pItemPos)->m_pNext)
 
