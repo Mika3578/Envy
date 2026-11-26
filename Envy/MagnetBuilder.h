@@ -3,6 +3,7 @@
 //
 // Magnet URI body composition for collection and export templates (#313).
 //
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // This file is part of Envy (getenvy.com) (C) 2016-2026
 //
 
