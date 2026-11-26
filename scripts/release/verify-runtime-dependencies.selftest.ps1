@@ -65,21 +65,34 @@ function Find-AsciiString([byte[]]$Bytes, [string]$Needle)
 	return $text.IndexOf($Needle, [System.StringComparison]::Ordinal)
 }
 
-# Build a minimal image whose only dependency is one delay-load DLL name. The
+# Build a minimal image whose only dependency is one import DLL name. The
 # RVA form (grAttrs bit 0 set) is emitted as PE32+; the legacy preferred-base
 # VA form only fits the 32-bit ImgDelayDescr fields of a PE32 image, which is
 # written with a non-zero SectionAlignment so a wrong ImageBase read width
 # cannot pass by accident. $NumberOfRvaAndSizes controls the data-directory
 # count the parser must honor: a delay directory beyond that count must be
-# ignored even though its bytes are present in the file.
-function New-SyntheticDelayImportPe([string]$Path, [string]$DelayDllName, [switch]$NameIsVa, [uint32]$NumberOfRvaAndSizes = 16, [switch]$BadImportDirRva, [switch]$BadDelayNameRva, [switch]$NameUnterminated, [switch]$DelayDescriptorPartiallyZeroed, [switch]$ImportDirUnterminated)
+# ignored even though its bytes are present in the file. The switches add
+# static-import tables and malformed shapes the parser must reject.
+function New-SyntheticDelayImportPe([string]$Path, [string]$DelayDllName, [switch]$NameIsVa, [uint32]$NumberOfRvaAndSizes = 16, [switch]$BadImportDirRva, [switch]$BadDelayNameRva, [switch]$StaticImport, [switch]$NoDelay, [switch]$EmptyName, [switch]$UnterminatedName, [switch]$UnterminatedDir, [switch]$PartialStaticDescriptor, [switch]$PartialDelayDescriptor)
 {
 	if ($DelayDllName.Length -gt 200)
 	{
 		throw 'test delay DLL name too long'
 	}
-	$fileSize = if ($ImportDirUnterminated) { 0x15000 } else { 0x400 }
-	$bytes = New-Object 'byte[]' $fileSize
+	if ($NameIsVa -and ($StaticImport -or $NoDelay -or $EmptyName -or $UnterminatedName -or $UnterminatedDir -or $PartialStaticDescriptor -or $PartialDelayDescriptor))
+	{
+		throw 'the static/malformed fixtures are only defined for the PE32+ RVA form'
+	}
+	$size = 0x400
+	if ($UnterminatedName)
+	{
+		$size = 0x800
+	}
+	if ($UnterminatedDir)
+	{
+		$size = 0x14500
+	}
+	$bytes = New-Object 'byte[]' $size
 	$bytes[0] = 0x4D
 	$bytes[1] = 0x5A
 	[BitConverter]::GetBytes([int32]0x80).CopyTo($bytes, 0x3C)
@@ -125,46 +138,92 @@ function New-SyntheticDelayImportPe([string]$Path, [string]$DelayDllName, [switc
 		# reject the image instead of treating it as having no imports.
 		[BitConverter]::GetBytes([uint32]0x900000).CopyTo($bytes, $dataDirs + 1 * 8)
 	}
-	[BitConverter]::GetBytes([uint32]0x1000).CopyTo($bytes, $dataDirs + 13 * 8)
-	[BitConverter]::GetBytes([uint32]0x40).CopyTo($bytes, $dataDirs + 13 * 8 + 4)
+	if ($StaticImport)
+	{
+		$staticDirRva = [uint32]0x1100
+		if ($UnterminatedDir)
+		{
+			# 4096 descriptors follow at RVA 0x1200, none all-zero.
+			$staticDirRva = [uint32]0x1200
+		}
+		[BitConverter]::GetBytes($staticDirRva).CopyTo($bytes, $dataDirs + 1 * 8)
+		[BitConverter]::GetBytes([uint32]0x30).CopyTo($bytes, $dataDirs + 1 * 8 + 4)
+	}
+	if (-not $NoDelay)
+	{
+		[BitConverter]::GetBytes([uint32]0x1000).CopyTo($bytes, $dataDirs + 13 * 8)
+		[BitConverter]::GetBytes([uint32]0x40).CopyTo($bytes, $dataDirs + 13 * 8 + 4)
+	}
 	$section = $sectionTable
 	[BitConverter]::GetBytes([uint32]0x1000).CopyTo($bytes, $section + 8)
 	[BitConverter]::GetBytes([uint32]0x1000).CopyTo($bytes, $section + 12)
-	$sectionSize = if ($ImportDirUnterminated) { [uint32]0x15000 } else { [uint32]0x200 }
-	[BitConverter]::GetBytes($sectionSize).CopyTo($bytes, $section + 16)
-	[BitConverter]::GetBytes($sectionSize).CopyTo($bytes, $section + 20)
+	[BitConverter]::GetBytes([uint32]($size - 0x200)).CopyTo($bytes, $section + 16)
+	[BitConverter]::GetBytes([uint32]0x200).CopyTo($bytes, $section + 20)
 	$data = 0x200
-	[BitConverter]::GetBytes($attributes).CopyTo($bytes, $data)
-	$delayNameRva = if ($BadDelayNameRva) { [uint32]0x900000 } else { $nameRva }
-	[BitConverter]::GetBytes($delayNameRva).CopyTo($bytes, $data + 4)
-	if ($DelayDescriptorPartiallyZeroed)
+	if ($StaticImport)
 	{
-		# grAttrs and the name field are zero but a later field is not: the
-		# parser must not treat this as the terminator descriptor.
-		[BitConverter]::GetBytes([uint32]0x1234).CopyTo($bytes, $data + 8)
-	}
-	$nameBytes = [System.Text.Encoding]::ASCII.GetBytes($DelayDllName + [char]0)
-	$nameBytes.CopyTo($bytes, $data + 0x40)
-	if ($NameUnterminated)
-	{
-		# Fill from the name to EOF with non-NUL bytes so the name scan hits
-		# the end of the image before any terminator.
-		for ($i = $data + 0x40; $i -lt $fileSize; $i++)
+		if ($UnterminatedDir)
 		{
-			$bytes[$i] = 0x41
+			for ($i = 0; $i -lt 4096; $i++)
+			{
+				$descriptor = 0x400 + 20 * $i
+				[BitConverter]::GetBytes([uint32]0x1060).CopyTo($bytes, $descriptor + 12)
+			}
 		}
-	}
-	if ($ImportDirUnterminated)
-	{
-		# Static import directory with 4096 non-zero, valid descriptors and
-		# no terminator: the parser must fail closed instead of guessing.
-		[BitConverter]::GetBytes([uint32]0x1000).CopyTo($bytes, $dataDirs + 1 * 8)
-		for ($i = 0; $i -lt 4096; $i++)
+		else
 		{
-			$entry = $data + 20 * $i
-			[BitConverter]::GetBytes([uint32]1).CopyTo($bytes, $entry)
-			[BitConverter]::GetBytes($nameRva).CopyTo($bytes, $entry + 12)
+			# RVA 0x1100 maps to file offset 0x300 (0x200 + 0x100).
+			$staticEntry = 0x300
+			$staticNameRva = [uint32]0x1060
+			if ($EmptyName)
+			{
+				# Points at the zeroed delay-descriptor terminator area: a
+				# resolvable RVA whose first byte is already the NUL.
+				$staticNameRva = [uint32]0x1020
+			}
+			if ($UnterminatedName)
+			{
+				$staticNameRva = [uint32]0x1200
+			}
+			if ($PartialStaticDescriptor)
+			{
+				# Only FirstThunk is nonzero: not an all-zero terminator, but
+				# the name field is zero and must fail the read.
+				[BitConverter]::GetBytes([uint32]0x1180).CopyTo($bytes, $staticEntry + 16)
+			}
+			else
+			{
+				[BitConverter]::GetBytes([uint32]0x1180).CopyTo($bytes, $staticEntry)
+				[BitConverter]::GetBytes($staticNameRva).CopyTo($bytes, $staticEntry + 12)
+				[BitConverter]::GetBytes([uint32]0x1180).CopyTo($bytes, $staticEntry + 16)
+			}
 		}
+		[System.Text.Encoding]::ASCII.GetBytes('STATICX.dll' + [char]0).CopyTo($bytes, 0x260)
+	}
+	if ($UnterminatedName)
+	{
+		# 513 non-NUL bytes: longer than the name scan bound.
+		$fill = [System.Text.Encoding]::ASCII.GetBytes('A' * 513)
+		$fill.CopyTo($bytes, 0x400)
+	}
+	if (-not $NoDelay)
+	{
+		$delayNameRva = if ($BadDelayNameRva) { [uint32]0x900000 } else { $nameRva }
+		if ($PartialDelayDescriptor)
+		{
+			# Descriptor 1 is partially zeroed (module-handle field nonzero);
+			# descriptor 2 is the real one and must still be reached.
+			[BitConverter]::GetBytes([uint32]0x1).CopyTo($bytes, $data + 8)
+			[BitConverter]::GetBytes($attributes).CopyTo($bytes, $data + 32)
+			[BitConverter]::GetBytes($delayNameRva).CopyTo($bytes, $data + 36)
+		}
+		else
+		{
+			[BitConverter]::GetBytes($attributes).CopyTo($bytes, $data)
+			[BitConverter]::GetBytes($delayNameRva).CopyTo($bytes, $data + 4)
+		}
+		$nameBytes = [System.Text.Encoding]::ASCII.GetBytes($DelayDllName + [char]0)
+		$nameBytes.CopyTo($bytes, $data + 0x40)
 	}
 	[System.IO.File]::WriteAllBytes($Path, $bytes)
 }
@@ -255,28 +314,42 @@ try
 	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYX.dll' -BadDelayNameRva
 	Assert-Fail $tree 'unmappable delay-load name' 'does not map into any image section'
 
-	# 11. Empty, unterminated, and partially-zeroed import metadata fail
-	# closed; these cases previously had no coverage.
-	$tree = Copy-Tree 'empty-delay-name'
-	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') ''
-	Assert-Fail $tree 'empty delay-load name' 'is empty'
+	# 11. A well-formed static import table is walked end to end: a missing
+	# DLL fails, a shipped one passes.
+	$tree = Copy-Tree 'static-missing'
+	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYX.dll' -StaticImport -NoDelay
+	Assert-Fail $tree 'missing static import' 'STATICX\.dll'
 
-	$tree = Copy-Tree 'unterminated-delay-name'
-	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYU.dll' -NameUnterminated
-	Assert-Fail $tree 'unterminated delay-load name' 'not NUL-terminated within 512 bytes'
+	$tree = Copy-Tree 'static-present'
+	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYX.dll' -StaticImport -NoDelay
+	Copy-Item -LiteralPath $samplePe -Destination (Join-Path $tree 'STATICX.dll')
+	Assert-Pass $tree 'static import resolved'
 
-	$tree = Copy-Tree 'partially-zeroed-delay-descriptor'
-	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYX.dll' -DelayDescriptorPartiallyZeroed
-	# grAttrs and the name field are zero but a later field is set: the old
-	# two-field check treated this as the terminator and passed silently;
-	# the full-descriptor check processes it and requires DELAYX.dll.
-	Assert-Fail $tree 'partially zeroed delay descriptor' 'DELAYX\.dll'
+	# 12. Empty, unterminated, and unterminated-directory import tables fail
+	# closed instead of scanning as empty.
+	$tree = Copy-Tree 'empty-name'
+	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYX.dll' -StaticImport -NoDelay -EmptyName
+	Assert-Fail $tree 'empty import name' 'is empty'
 
-	$tree = Copy-Tree 'unterminated-import-dir'
-	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYX.dll' -ImportDirUnterminated
-	Assert-Fail $tree 'unterminated import directory' 'not terminated within 4096 descriptors'
+	$tree = Copy-Tree 'unterminated-name'
+	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYX.dll' -StaticImport -NoDelay -UnterminatedName
+	Assert-Fail $tree 'unterminated import name' 'not NUL-terminated'
 
-	# 12. A missing tree directory fails instead of passing silently.
+	$tree = Copy-Tree 'unterminated-dir'
+	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYX.dll' -StaticImport -NoDelay -UnterminatedDir
+	Assert-Fail $tree 'unterminated import directory' 'not terminated within 4096'
+
+	# 13. A partially zeroed descriptor must not end a walk early: the parser
+	# rejects the image instead of silently dropping later descriptors.
+	$tree = Copy-Tree 'partial-static'
+	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYX.dll' -StaticImport -NoDelay -PartialStaticDescriptor
+	Assert-Fail $tree 'partially zeroed static descriptor' 'does not map into any image section'
+
+	$tree = Copy-Tree 'partial-delay'
+	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYX.dll' -PartialDelayDescriptor
+	Assert-Fail $tree 'partially zeroed delay descriptor' 'does not map into any image section'
+
+	# 14. A missing tree directory fails instead of passing silently.
 	Assert-Fail (Join-Path $tmpRoot 'does-not-exist') 'missing tree directory' 'Runtime tree not found'
 }
 finally
