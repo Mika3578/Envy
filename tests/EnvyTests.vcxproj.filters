@@ -137,6 +137,9 @@
     <ClCompile Include="test_schema_icon_resources.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_gzip_resources_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_albumfolder_mountcollection_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

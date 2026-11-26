@@ -241,6 +241,10 @@
     <ClCompile Include="test_albumfolder_mountcollection_smoke.cpp" />
     <ClCompile Include="test_btinfo_piece_hash_smoke.cpp" />
     <ClCompile Include="test_schema_icon_resources.cpp" />
+    <ClCompile Include="test_gzip_resources_smoke.cpp">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Services\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NOCRYPT;ZLIB_DLL;ZLIB_WINAPI;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test_framework.h" />
