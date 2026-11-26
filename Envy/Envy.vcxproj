@@ -1067,17 +1067,21 @@ $(EnvyCrashPostBuildCmd)</Command>
     <None Include="Revision.js" />
     <None Include="XML.inl" />
     <CustomBuild Include="Res\About.htm">
-      <!-- -n: omit original name/mtime so repeated builds produce identical .gz bytes -->
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
+      <!-- -n: omit original name/mtime so repeated builds produce identical .gz bytes.
+           Stage into a temporary file and replace the tracked output only after the
+           compressor exits successfully and the staged file passes "gzip -t" integrity
+           checks: a failed launch or truncated write must not destroy the tracked
+           resource (#478). -->
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; "%(RootDir)%(Directory)gzip.exe" -t "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; move /y "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" "%(RootDir)%(Directory)%(Filename)%(Extension).gz"
 	  </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; "%(RootDir)%(Directory)gzip.exe" -t "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; move /y "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" "%(RootDir)%(Directory)%(Filename)%(Extension).gz"
 	  </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; "%(RootDir)%(Directory)gzip.exe" -t "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; move /y "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" "%(RootDir)%(Directory)%(Filename)%(Extension).gz"
 	  </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; "%(RootDir)%(Directory)gzip.exe" -t "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; move /y "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" "%(RootDir)%(Directory)%(Filename)%(Extension).gz"
 	  </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
     </CustomBuild>
@@ -1089,17 +1093,21 @@ $(EnvyCrashPostBuildCmd)</Command>
     <None Include="Res\BoxMark.bmp" />
     <None Include="Res\Browse.ico" />
     <CustomBuild Include="Res\Browser.htm">
-      <!-- -n: omit original name/mtime so repeated builds produce identical .gz bytes -->
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
+      <!-- -n: omit original name/mtime so repeated builds produce identical .gz bytes.
+           Stage into a temporary file and replace the tracked output only after the
+           compressor exits successfully and the staged file passes "gzip -t" integrity
+           checks: a failed launch or truncated write must not destroy the tracked
+           resource (#478). -->
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; "%(RootDir)%(Directory)gzip.exe" -t "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; move /y "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" "%(RootDir)%(Directory)%(Filename)%(Extension).gz"
 	  </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; "%(RootDir)%(Directory)gzip.exe" -t "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; move /y "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" "%(RootDir)%(Directory)%(Filename)%(Extension).gz"
 	  </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; "%(RootDir)%(Directory)gzip.exe" -t "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; move /y "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" "%(RootDir)%(Directory)%(Filename)%(Extension).gz"
 	  </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz"
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"%(RootDir)%(Directory)gzip.exe" -n -c "%(RootDir)%(Directory)%(Filename)%(Extension)" &gt;"%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; "%(RootDir)%(Directory)gzip.exe" -t "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" &amp;&amp; move /y "%(RootDir)%(Directory)%(Filename)%(Extension).gz.tmp" "%(RootDir)%(Directory)%(Filename)%(Extension).gz"
 	  </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(RootDir)%(Directory)%(Filename)%(Extension).gz;%(Outputs)</Outputs>
     </CustomBuild>
