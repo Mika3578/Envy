@@ -1189,9 +1189,7 @@ void CQueryHit::ReadGGEP(CG1Packet* pPacket)
 
 		CGGEPItem* pItemPos = pGGEP.GetFirst();
 		const DWORD nGgepItems = pGGEP.GetCount();
-		for (DWORD nItemIndex = 0;
-		     pItemPos && GgepTraverseIndexInRange(nItemIndex, nGgepItems);
-		     nItemIndex++, pItemPos = pItemPos->m_pNext)
+		GGEP_TRAVERSE_ITEMS(nItemIndex, nGgepItems, pItemPos)
 		{
 			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) )
 			{
