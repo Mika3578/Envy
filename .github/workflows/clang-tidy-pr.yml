@@ -70,11 +70,20 @@ jobs:
             clang-tidy --quiet "$f" -- -std=c++20 -DWIN32 -D_WINDOWS -D_UNICODE -DUNICODE \
               >> clang-tidy.out 2>&1 || true
           done
-          if [[ ! -s clang-tidy.out ]]; then
-            echo "No clang-tidy diagnostics."
+          # Without compile_commands.json most MFC translation units fail to
+          # parse; those surface as [clang-diagnostic-error] lines plus
+          # summary and snippet context, not check findings. Keep only
+          # well-formed diagnostic lines and drop parse errors (the
+          # .clang-tidy note documents this); genuine findings still flow to
+          # reviewdog, which annotates only added lines.
+          grep -E ':[0-9]+:[0-9]+: (warning|error): ' clang-tidy.out \
+            | grep -vF '[clang-diagnostic-error]' \
+            > clang-tidy.checks.out || true
+          if [[ ! -s clang-tidy.checks.out ]]; then
+            echo "No clang-tidy check findings."
             exit 0
           fi
           # Advisory only: never fail the job on findings.
           reviewdog -f=clang-tidy -name=clang-tidy -reporter=github-pr-review \
-            -filter-mode=added -level=warning -fail-on-error=false < clang-tidy.out \
+            -filter-mode=added -level=warning -fail-on-error=false < clang-tidy.checks.out \
             || true
