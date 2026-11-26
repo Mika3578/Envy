@@ -1,7 +1,7 @@
 //
 // Ed2kFileRequestOutcome.h
 //
-// Decision policy for ED2K FILEREQUEST replies (#495).
+// Decision policy for ED2K FILEREQUEST replies.
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // This file is part of Envy (getenvy.com) (C) 2016-2026

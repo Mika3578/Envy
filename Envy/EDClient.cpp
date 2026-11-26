@@ -2091,7 +2091,10 @@ BOOL CEDClient::OnFileRequest(CEDPacket* pPacket)
 		pLock.Unlock();
 	}
 
-	CDownload* pDownload = Downloads.FindByED2K( m_oUpED2K, TRUE );
+	// Skip the download scan when a shared, uploadable file already won:
+	// the outcome is decided and the extra Transfers traversal is pure
+	// overhead on the hot path.
+	CDownload* pDownload = bSharedAvailable ? NULL : Downloads.FindByED2K( m_oUpED2K, TRUE );
 
 	switch ( Ed2kResolveFileRequestOutcome( bLibraryLocked, bSharedAvailable, pDownload != NULL ) )
 	{
