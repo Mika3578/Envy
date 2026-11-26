@@ -31,8 +31,6 @@ These short files under `docs/` preserve old links; prefer the numbered targets:
 | [`docs/KAD2_COMPATIBILITY_REPORT.md`](../KAD2_COMPATIBILITY_REPORT.md) | [`30_protocols/kad/kad2-compatibility-report.md`](../30_protocols/kad/kad2-compatibility-report.md) |
 | [`docs/CONTRIBUTING.md`](../CONTRIBUTING.md) | [`.github/CONTRIBUTING.md`](../../.github/CONTRIBUTING.md) |
 
-GitHub-side pointers (not live status): `.github/ROADMAP.md`, `.github/UPGRADE_SUMMARY.md`, `.github/MODERN_CPP_GUIDE.md` → see `docs/10_dev/` and `docs/10_dev/archive/`.
-
 ## Historical archives
 
 | Archive | Notes |
