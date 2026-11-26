@@ -2081,6 +2081,9 @@
     <ClInclude Include="UploadQueueLockOrder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SearchFilterMask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="EnvyThreadPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>

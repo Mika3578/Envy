@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "MatchObjects.h"
+#include "SearchFilterMask.h"
 #include "QuerySearch.h"
 #include "QueryHit.h"
 #include "Library.h"
@@ -100,17 +101,17 @@ CMatchList::CMatchList(CBaseMatchWnd* pParent)
 	}
 	else
 	{
-		m_bRegExp			= ( Settings.Search.FilterMask & ( 1 << 0 ) ) > 0;	// 0;
-		m_bFilterPush		= ( Settings.Search.FilterMask & ( 1 << 1 ) ) > 0;	// 0;
-		m_bFilterUnstable	= ( Settings.Search.FilterMask & ( 1 << 2 ) ) > 0;	// 0;
-		m_bFilterBusy		= ( Settings.Search.FilterMask & ( 1 << 3 ) ) > 0;	// 0;
-		m_bFilterLocal		= ( Settings.Search.FilterMask & ( 1 << 4 ) ) > 0;	// 0;
-		m_bFilterReject		= ( Settings.Search.FilterMask & ( 1 << 5 ) ) > 0 || bBrowsing;	// 0;
-		m_bFilterBogus		= ( Settings.Search.FilterMask & ( 1 << 6 ) ) > 0;	// 0;
-		m_bFilterDRM		= ( Settings.Search.FilterMask & ( 1 << 7 ) ) > 0;	// 1;
-		m_bFilterRestricted	= ( Settings.Search.FilterMask & ( 1 << 8 ) ) > 0;	// 0;
-		m_bFilterSuspicious	= ( Settings.Search.FilterMask & ( 1 << 9 ) ) > 0;	// 1;
-		m_bFilterAdult		= ( Settings.Search.FilterMask & ( 1 << 10 ) ) > 0;	// 0;
+		m_bRegExp			= ( Settings.Search.FilterMask & SEARCH_FILTER_REGEXP ) > 0;
+		m_bFilterPush		= ( Settings.Search.FilterMask & SEARCH_FILTER_PUSH ) > 0;
+		m_bFilterUnstable	= ( Settings.Search.FilterMask & SEARCH_FILTER_UNSTABLE ) > 0;
+		m_bFilterBusy		= ( Settings.Search.FilterMask & SEARCH_FILTER_BUSY ) > 0;
+		m_bFilterLocal		= ( Settings.Search.FilterMask & SEARCH_FILTER_LOCAL ) > 0;
+		m_bFilterReject		= ( Settings.Search.FilterMask & SEARCH_FILTER_REJECT ) > 0 || bBrowsing;
+		m_bFilterBogus		= ( Settings.Search.FilterMask & SEARCH_FILTER_BOGUS ) > 0;
+		m_bFilterDRM		= ( Settings.Search.FilterMask & SEARCH_FILTER_DRM ) > 0;
+		m_bFilterRestricted	= ( Settings.Search.FilterMask & SEARCH_FILTER_RESTRICTED ) > 0;
+		m_bFilterSuspicious	= ( Settings.Search.FilterMask & SEARCH_FILTER_SUSPICIOUS ) > 0;
+		m_bFilterAdult		= ( Settings.Search.FilterMask & SEARCH_FILTER_ADULT ) > 0;
 		m_nFilterMinSize	= 1;
 		m_nFilterMaxSize	= 0;
 		m_nFilterSources	= 1;
@@ -780,17 +781,17 @@ void CMatchList::Filter()
 
 	Settings.Search.FilterMask = 0;
 
-	if ( m_bRegExp )			Settings.Search.FilterMask |= ( 1 << 0 );	// 0;
-	if ( m_bFilterPush )		Settings.Search.FilterMask |= ( 1 << 1 );	// 0;
-	if ( m_bFilterUnstable )	Settings.Search.FilterMask |= ( 1 << 2 );	// 0;
-	if ( m_bFilterBusy )		Settings.Search.FilterMask |= ( 1 << 3 );	// 0;
-	if ( m_bFilterLocal )		Settings.Search.FilterMask |= ( 1 << 4 );	// 0;
-	if ( m_bFilterReject )		Settings.Search.FilterMask |= ( 1 << 5 );	// 0;
-	if ( m_bFilterBogus )		Settings.Search.FilterMask |= ( 1 << 6 );	// 0;
-	if ( m_bFilterDRM )			Settings.Search.FilterMask |= ( 1 << 7 );	// 1;
-	if ( m_bFilterRestricted )	Settings.Search.FilterMask |= ( 1 << 8 );	// 0;
-	if ( m_bFilterSuspicious )	Settings.Search.FilterMask |= ( 1 << 9 );	// 1;
-	if ( m_bFilterAdult )		Settings.Search.FilterMask |= ( 1 << 10 );	// 0;
+	if ( m_bRegExp )			Settings.Search.FilterMask |= SEARCH_FILTER_REGEXP;
+	if ( m_bFilterPush )		Settings.Search.FilterMask |= SEARCH_FILTER_PUSH;
+	if ( m_bFilterUnstable )	Settings.Search.FilterMask |= SEARCH_FILTER_UNSTABLE;
+	if ( m_bFilterBusy )		Settings.Search.FilterMask |= SEARCH_FILTER_BUSY;
+	if ( m_bFilterLocal )		Settings.Search.FilterMask |= SEARCH_FILTER_LOCAL;
+	if ( m_bFilterReject )		Settings.Search.FilterMask |= SEARCH_FILTER_REJECT;
+	if ( m_bFilterBogus )		Settings.Search.FilterMask |= SEARCH_FILTER_BOGUS;
+	if ( m_bFilterDRM )			Settings.Search.FilterMask |= SEARCH_FILTER_DRM;
+	if ( m_bFilterRestricted )	Settings.Search.FilterMask |= SEARCH_FILTER_RESTRICTED;
+	if ( m_bFilterSuspicious )	Settings.Search.FilterMask |= SEARCH_FILTER_SUSPICIOUS;
+	if ( m_bFilterAdult )		Settings.Search.FilterMask |= SEARCH_FILTER_ADULT;
 //	if ( m_nFilterSources > 0 )	Settings.Search.FilterMask |= ( 1 << 12 );	// 1;
 //	if ( m_nFilterMinSize > 0 )	Settings.Search.FilterMask |= ( 1 << 10 );	// 1;
 //	if ( m_nFilterMaxSize > m_nFilterMinSize )	Settings.Search.FilterMask |= ( 1 << 11 );	// 0;

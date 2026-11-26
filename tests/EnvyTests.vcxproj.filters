@@ -65,6 +65,9 @@
     <ClCompile Include="test_upload_queue_lock_order_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test_search_filter_mask_smoke.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="test_envy_thread_policy_smoke.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
