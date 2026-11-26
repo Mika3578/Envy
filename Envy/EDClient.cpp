@@ -22,6 +22,7 @@
 #include "EDClient.h"
 #include "EDClients.h"
 #include "EDPacket.h"
+#include "Ed2kFileRequestOutcome.h"
 #include "Kademlia.h"
 #include "EDSourcePacketValidate.h"
 #include "PacketLengthValidate.h"
@@ -2020,6 +2021,25 @@ void CEDClient::DetermineUserAgent()
 //////////////////////////////////////////////////////////////////////
 // CEDClient FILE REQUEST handler
 
+// File requests deferred because the Library section was too busy to check.
+// Silence is safer than a false FILENOTFOUND; the peer re-asks.
+static volatile LONG s_nLibraryBusyFileRequests = 0;
+static volatile LONG s_tLastLibraryBusyLog = -1;
+
+static void NoteLibraryBusyFileRequest(LPCTSTR pszAddress)
+{
+	const ULONG nEvents = (ULONG)InterlockedIncrement(&s_nLibraryBusyFileRequests);
+	const DWORD tNow = GetTickCount();
+	const LONG tLast = s_tLastLibraryBusyLog;
+
+	if (tNow - (DWORD)tLast < 30000) return;
+
+	// Best-effort single winner: a lost update only delays the next message.
+	if (InterlockedCompareExchange(&s_tLastLibraryBusyLog, (LONG)tNow, tLast) == tLast)
+		theApp.Message(MSG_ERROR, L"ED2K file request from %s deferred, library busy (%lu total).",
+		               pszAddress, nEvents);
+}
+
 BOOL CEDClient::OnFileRequest(CEDPacket* pPacket)
 {
 	if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount )
@@ -2051,32 +2071,53 @@ BOOL CEDClient::OnFileRequest(CEDPacket* pPacket)
 	}
 
 	CSingleLock pLock( &Library.m_pSection );
-	if ( SafeLock( pLock ) )
+	const bool bLibraryLocked = SafeLock(pLock) != FALSE;
+	bool bSharedAvailable = false;
+	int nRating = 0;
+	CString strComments;
+
+	if (bLibraryLocked)
 	{
-		CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( m_oUpED2K, TRUE, TRUE );
-		if ( ( pFile ) && ( UploadQueues.CanUpload( PROTOCOL_ED2K, pFile, TRUE ) ) )
+		if (CLibraryFile* pFile = LibraryMaps.LookupFileByED2K(m_oUpED2K, TRUE, TRUE))
 		{
-			// Create the reply packet
-			pReply->WriteEDString( pFile->m_sName, m_bEmUnicode );
-			// Get the comments/rating data
-			int nRating = pFile->m_nRating;
-			CString strComments = pFile->m_sComments;
-			pLock.Unlock();
-
-			// Send reply and comments/rating (if required)
-			Send( pReply );
-			SendCommentsPacket( nRating, strComments );
-
-			return TRUE;
+			bSharedAvailable = UploadQueues.CanUpload(PROTOCOL_ED2K, pFile, TRUE) != FALSE;
+			if (bSharedAvailable)
+			{
+				pReply->WriteEDString(pFile->m_sName, m_bEmUnicode);
+				nRating = pFile->m_nRating;
+				strComments = pFile->m_sComments;
+			}
 		}
 		pLock.Unlock();
 	}
 
-	if ( CDownload* pDownload = Downloads.FindByED2K( m_oUpED2K, TRUE ) )
+	// Skip the download scan when a shared, uploadable file already won:
+	// the outcome is decided and the extra Transfers traversal is pure
+	// overhead on the hot path.
+	CDownload* pDownload = bSharedAvailable ? NULL : Downloads.FindByED2K(m_oUpED2K, TRUE);
+
+	switch (Ed2kResolveFileRequestOutcome(bLibraryLocked, bSharedAvailable, pDownload != NULL))
 	{
+	case Ed2kFileRequestOutcome::AnswerShared:
+		Send(pReply);
+		SendCommentsPacket(nRating, strComments);
+		return TRUE;
+
+	case Ed2kFileRequestOutcome::AnswerDownload:
 		pReply->WriteEDString( pDownload->m_sName, m_bEmUnicode );
 		Send( pReply );
 		return TRUE;
+
+	case Ed2kFileRequestOutcome::DeferredBusy:
+		// Send() releases the reply on the answer paths; the deferred path
+		// sends nothing, so release the pooled packet here.
+		pReply->Release();
+		NoteLibraryBusyFileRequest(m_sAddress);
+		return TRUE;
+
+	case Ed2kFileRequestOutcome::NotFound:
+	default:
+		break;
 	}
 
 	pReply->m_nType = ED2K_C2C_FILENOTFOUND;
