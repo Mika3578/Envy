@@ -4,7 +4,7 @@
 <!-- Envy Arabic Language Skin File -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="Awadh A Al-Ghaamdi"
 	updatedby="الأستاذ عوض الغامدي"
 	description="Envy Default Arabic Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="awadh_al_ghaamdi@hotmail.com"
 	version="1.0"
 	type="Language"
@@ -2171,7 +2171,7 @@
 		<text>أكثر برامج إنشاء تورينت يجب أن تسمح لك بتصليح هذا الترورينت ، بحيث
 			تضمن عمله بشكل صحيح في كل تطبيقات بيتورينت</text>
 		<newline gap="8" />
-		<link target="http://getenvy.com/help/?torrentencoding">انقر هنا لتعليمات إضافية</link>
+		<link target="https://github.com/Mika3578/Envy">انقر هنا لتعليمات إضافية</link>
 		<text>، أو لتحميل برنامج لتصليح التورينت</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2658,7 +2658,7 @@
 	<string id="20064" text="Good" />
 	<string id="20065" text="Very Good" />
 	<string id="20066" text="Excellent" />
-	<string id="20080" text="هذا هي نسخة مبدئية من Envy ، و قد أنتهت فترة الإختبار لها . الرجاء حمل الإطلاق الرسمي الكامل من http://getenvy.com/." />
+	<string id="20080" text="هذا هي نسخة مبدئية من Envy ، و قد أنتهت فترة الإختبار لها . الرجاء حمل الإطلاق الرسمي الكامل من https://github.com/Mika3578/Envy/releases" />
 	<string id="20081" text="&amp;إغلاق" />
 	<string id="20082" text="إنتهاء, اضغط إغلاق" />
 	<string id="20083" text="Requesting..." />
@@ -3835,7 +3835,7 @@
 		<control />
 		<control text="إلغاء الأمر" />
 		<control />
-		<control text="bitprints.getenvy.com" />
+		<control text="https://github.com/Mika3578/Envy/releases" />
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Smart Download Preview...">
 		<control />
@@ -3849,9 +3849,9 @@
 		<control text="Did you know Envy is a 100% free product?" />
 		<control text="Envy does NOT contain ANY &quot;spyware&quot;, &quot;adware&quot; or other bundled software. It does NOT display any advertisements or &quot;popups&quot;, ever.{n}{n}If you ever see advertising or &quot;popups&quot; while using Envy, be assured that they are NOT coming from this program." />
 		<control text="Unfortunately a lot of other software does come with undesirable adware or spyware, so if you see something suspicious you may wish to check your PC with an advertising or spyware removal program." />
-		<control text="You should not have had to pay any money to obtain Envy. Envy can be freely downloaded by anyone from http://getenvy.com. If you paid someone money for Envy, you should demand a full refund immediately." />
+		<control text="You should not have had to pay any money to obtain Envy. Envy can be freely downloaded by anyone from https://github.com/Mika3578/Envy/releases If you paid someone money for Envy, you should demand a full refund immediately." />
 		<control text="Envy respects its users." />
-		<control text="http://getenvy.com" />
+		<control text="https://github.com/Mika3578/Envy" />
 		<control text="إغلاق" />
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Spread the Word">
@@ -3860,7 +3860,7 @@
 		<control text="Unfortunately, a lot of file sharers don't know what they're missing." />
 		<control text="If you know someone who would like Envy, whether they're a new user or someone still putting up with an inferior product, why not let them know there is a better alternative?" />
 		<control text="Chances are they'll be grateful you told them." />
-		<control text="http://getenvy.com" />
+		<control text="https://github.com/Mika3578/Envy" />
 		<control text="حسنا" />
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Existing File">

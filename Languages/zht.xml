@@ -4,7 +4,7 @@
 <!-- Envy Default Chinese (Traditional) Skin File -->
 
 <!-- Translation based on default en.xml r30 --> <!-- (Shareaza 2.2.2.12) -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="James Bond"
 	updatedby="James Bond"
 	description="Envy Default Chinese (Traditional) Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="Contact(at)GetEnvy.com"
 	version="1.0"
 	type="Language"
@@ -2125,7 +2125,7 @@
 		<newline gap="8"/>
 		<text>大部分的 torrent 製作程式允許您修復這個 torrent, 讓它能夠正確地在所有的 BT 程式運作。</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">點選這裡取得更多說明</link>
+		<link target="https://github.com/Mika3578/Envy">點選這裡取得更多說明</link>
 		<text>, 或是下載軟體修復 torrent。</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2577,7 +2577,7 @@
 	<string id="20064" text="不錯(3)"/>
 	<string id="20065" text="很好(4)"/>
 	<string id="20066" text="極佳(5)"/>
-	<string id="20080" text="這是一個 Envy 的測試版。 測試期已經結束。 請從 http://getenvy.com 下載完整的官方版本。"/>
+	<string id="20080" text="這是一個 Envy 的測試版。 測試期已經結束。 請從 https://github.com/Mika3578/Envy/releases 下載完整的官方版本。"/>
 	<string id="20081" text="關閉"/>
 	<string id="20082" text="完成, 請點選 關閉"/>
 	<string id="20083" text="要求…"/>
@@ -4180,7 +4180,7 @@
 		<control/>
 		<control text="取消"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="智慧型下載預覽…">
 		<control/>
@@ -4194,9 +4194,9 @@
 		<control text="您知道 Envy 是完全免費的產品嗎?"/>
 		<control text="Envy 沒有包含任何間碟軟體、廣告軟體、或是其他包裝軟體。 它永遠都不會有任何的廣告或是彈出視窗。{n}{n}如果你在使用 Envy 時看到了任何廣告或是彈出視窗，可以保證來源絕對不是這個程式。"/>
 		<control text="不幸地, 很多軟體包含討人厭的廣告軟體或是間諜軟體; 因此, 如果您查覺任何可疑的活動, 您可能想要使用反廣告/反間諜軟體。"/>
-		<control text="您不應該付錢取得 Envy。 任何人都可以從 http://getenvy.com 免費下載。 如果您付費取得Envy, 請立刻要求全額退費。"/>
+		<control text="您不應該付錢取得 Envy。 任何人都可以從 https://github.com/Mika3578/Envy/releases 免費下載。 如果您付費取得Envy, 請立刻要求全額退費。"/>
 		<control text="Envy 尊重它的使用者。"/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="關閉"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="散佈消息">
@@ -4205,7 +4205,7 @@
 		<control text="天不從人願, 眾多檔案分享者不知道他們遺漏了什麼好東西。"/>
 		<control text="如果你知道某個人可能愛上 Envy, 不論是新手或是某個仍舊為了不良的軟體苦惱, 為什麼不讓他們知道有更好的替代品呢?"/>
 		<control text="他們可能感激你幫了他們一個大忙。"/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="確定"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="現存的檔案">

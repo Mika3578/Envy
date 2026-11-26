@@ -4,7 +4,7 @@
 <!-- Envy Default Serbian Skin File -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="Biza"
 	updatedby="Woodstoock, Душан Мишић"
 	description="Envy Default Serbian Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email=""
 	version="1.0"
 	type="Language"
@@ -2090,7 +2090,7 @@
 		<text>Most torrent creation programs should allow you to repair this torrent, which
 		will ensure it works properly in all BitTorrent applications.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.comhelp/?torrentencoding">Click here for additional help</link>
+		<link target="https://github.com/Mika3578/Envy">Click here for additional help</link>
 		<text>, or to download software to repair the torrent.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2532,7 +2532,7 @@
 	<string id="20064" text="Dobro"/>
 	<string id="20065" text="Vrlo Dobro"/>
 	<string id="20066" text="Odlično"/>
-	<string id="20080" text="Ovo je test verzija Envy, i period beta testiranja je završio. Molimo vas da skinete celo, službeno izdanje sa http://getenvy.com/."/>
+	<string id="20080" text="Ovo je test verzija Envy, i period beta testiranja je završio. Molimo vas da skinete celo, službeno izdanje sa https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="&amp;Zatvori"/>
 	<string id="20082" text="Gotovo, klikni na zatvori"/>
 	<string id="20083" text="Čekam Odobrenje..."/>
@@ -4006,7 +4006,7 @@
 		<control/>
 		<control text="Odustani"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Pametni pregled skinutog...">
 		<control/>
@@ -4020,9 +4020,9 @@
 		<control text="Jeste li znali da je Envy 100% besplatni proizvod?"/>
 		<control text="Envy NE SADRŽI &quot;spyware&quot;, &quot;adware&quot; ili ostali loši software. NE prikazuje nikakve reklame ili &quot;popupove&quot;, nikada.{n}{n}Ako ikada vidite reklamu ili &quot;popup&quot; dok koristite Envy, možete biti uvereni da ju NE PRIKAZUJE ovaj program."/>
 		<control text="Na žalost dosta ostalog softwarea stvarno dolazi sa neželjenim adware ili spyware delovima, ako vidite nešto sumljivo obavezno proverite vaš PC sa advertising ili spyware removal programom."/>
-		<control text="Niko Vam nebi smeo naplatiti za Envy. Envy možete besplatno skinuti sa http://getenvy.com/. Ako ste nekome platili Envy, trebali bi ste odmah tražiti potpuni povrat novca."/>
+		<control text="Niko Vam nebi smeo naplatiti za Envy. Envy možete besplatno skinuti sa https://github.com/Mika3578/Envy/releases Ako ste nekome platili Envy, trebali bi ste odmah tražiti potpuni povrat novca."/>
 		<control text="Envy Poštuje Svoje Korisnike."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Zatvori"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Razglasi">
@@ -4031,7 +4031,7 @@
 		<control text="Nažalost, puno ljudi nezna šta propušta koristeći zastarele programe."/>
 		<control text="Ako znate nekoga za koga mislite da bi mu Envy dobro došla, bilo da je novi u deljenju, ili već koristi neki od lošijih proizvoda, zašto ga nebi upoznali sa Envy i pokazali da ima boljih alternativa?"/>
 		<control text="Verovatno če vam biti zahvalni što ste im pokazali pravi put."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Postojeća Datoteka">

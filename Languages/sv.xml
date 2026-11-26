@@ -4,7 +4,7 @@
 <!-- Envy Default Swedish Skin File -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="Marcus Ehrenlans"
 	updatedby="DanielB"
 	description="Envy Default Swedish Skin File…"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="swey1(at)hotmail.com"
 	version="1.0"
 	type="Language"
@@ -2163,7 +2163,7 @@
 		<text>De flesta program för skapande av torrent bör tillåta en reparation av torrenten, vilket
 		säkrar korrekt funktion i alla BitTorrent applikationer.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Klicka här för mer hjälp</link>
+		<link target="https://github.com/Mika3578/Envy">Klicka här för mer hjälp</link>
 		<text>eller för att ladda ner mjukvara som kan reparera torrentfilen.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2649,13 +2649,13 @@
 	<string id="20064" text="Bra"/>
 	<string id="20065" text="Mycket bra"/>
 	<string id="20066" text="Utmärkt"/>
-	<string id="20080" text="Detta är en förhandsversion av Envy och förhandstestningen har avslutats. Ladda ned en fullständig officiell version från getenvy.com."/>
+	<string id="20080" text="Detta är en förhandsversion av Envy och förhandstestningen har avslutats. Ladda ned en fullständig officiell version från GitHub."/>
 	<string id="20081" text="&amp;Stäng"/>
 	<string id="20082" text="Avslutad, klicka Stäng"/>
 	<string id="20083" text="Efterfrågar…"/>
 	<string id="20084" text="Framgång."/>
 	<string id="20086" text="Filen &quot;%s&quot; har inte blivit granskad ännu. Vänta tills filen har blivit granskad och försök sedan igen."/>
-	<string id="20088" text="Detta val använder tjänster tillhandahållna av bitprints.getenvy.com för igenkänning och utdelning av information om valda filer.\n\nEnvy kommer att överföra SHA1-granskningskoden för de valda filerna för att begära information från Bitprintsdatabasen. Om du är rädd om din integritet kan du välja att läsa integritetspolicyn för bitprints.getenvy.com.\n\nVill du fortsätta?"/>
+	<string id="20088" text="Detta val använder tjänster tillhandahållna av Bitprints för igenkänning och utdelning av information om valda filer.\n\nEnvy kommer att överföra SHA1-granskningskoden för de valda filerna för att begära information från Bitprintsdatabasen. Om du är rädd om din integritet kan du välja att läsa integritetspolicyn för Bitprints.\n\nVill du fortsätta?"/>
 	<string id="20100" text="Stänger listningsanslutning till %s."/>
 	<string id="20101" text="Listningsvärd %s svarade med ett okänt svar och kanske inte stödjer fillistning."/>
 	<string id="20102" text="Kan inte ansluta till värden för att visa användarens filer."/>
@@ -4304,7 +4304,7 @@
 		<control/>
 		<control text="Avbryt"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Smart förhandsvisning">
 		<control/>
@@ -4318,9 +4318,9 @@
 		<control text="Visste du att Envy är en 100% fri produkt?"/>
 		<control text="Envy innehåller INTE NÅGOT &quot;spionprogram&quot;, &quot;reklamprogram&quot; eller andra medskickade program. Det visar INGEN reklam eller &quot;popupfönster&quot; någonsin.{n}{n}Om du någonsin ser reklam eller &quot;popupfönster&quot; när du använder Envy kan du vara säker på att det INTE kommer från detta program."/>
 		<control text="Tyvärr innehåller många andra program oönskvärda reklamprogram eller spionprogram. Så om du ser något misstänkt kan du kontrollera din PC med ett program som tar bort dessa program."/>
-		<control text="Du ska inte ha betalat något för att komma över Envy. Envy kan laddas ned fritt av alla från getenvy.com. Om du har betalat pengar för detta program ska du kräva tillbaka dem med en gång."/>
+		<control text="Du ska inte ha betalat något för att komma över Envy. Envy kan laddas ned fritt av alla från GitHub. Om du har betalat pengar för detta program ska du kräva tillbaka dem med en gång."/>
 		<control text="Envy respekterar sina användare."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Stäng"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Sprid orden">
@@ -4329,7 +4329,7 @@
 		<control text="Tyvärr vet många personer inte vad de missar."/>
 		<control text="Om du känner till någon som skulle gilla Envy, oavsett om de är nya användare eller använder ett sämre program, varför inte låta dem veta att det finns ett bättre alternativ?"/>
 		<control text="Chansen är stor att de kommer att bli tacksamma för att du räddat dem."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Eisterande fil">

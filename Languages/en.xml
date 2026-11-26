@@ -4,7 +4,7 @@
 <!-- Envy Default English Skin File -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="Envy Development Team"
 	updatedby="SkinVista"
 	description="Envy Default English Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="Contact(at)GetEnvy.com"
 	version="1.0"
 	type="Language"
@@ -628,12 +628,12 @@
 				<item id="ID_HELP_VERSION_CHECK" text="Check for _Updates"/>
 				<separator/>
 				<menu text="_Websites">
-					<item id="ID_HELP_WEB_LOVE" text="GetEnvy Show Some _Love"/>
+					<item id="ID_HELP_WEB_LOVE" text="Show Some _Love"/>
 					<item id="ID_HELP_TEST" text="_Connection Test"/>
 					<!--item id="ID_HELP_WEB_SKINS" text="Envy Skin Site"-->
 					<!--item id="ID_HELP_WEB_3" text="Slyck.com"-->
 				</menu>
-				<item id="ID_HELP_HOMEPAGE" text="_GetEnvy.com"/>
+				<item id="ID_HELP_HOMEPAGE" text="_Envy on GitHub"/>
 				<separator/>
 				<item id="ID_HELP_ABOUT" text="_About Envy..."/>
 			</menu>
@@ -743,7 +743,7 @@
 				<item id="ID_HELP_FORUMS_LOCAL" text="Local _Language Forum"/> <!--Your Language-->
 				<!--item id="ID_HELP_UPDATE" text="Latest news"-->
 				<!--item id="ID_HELP_WEB_SKINS" text="GetEnvy S_kin Site"-->
-				<!--item id="ID_HELP_WEB_LOVE" text="GetEnvy _Love"-->
+				<!--item id="ID_HELP_WEB_LOVE" text="_Love"-->
 				<!--item id="ID_HELP_WEB_1" text="Shareaza.sf.net"-->
 				<item id="ID_HELP_TEST" text="_Connection Test"/>
 			</menu>
@@ -915,7 +915,7 @@
 				<separator/>
 				<item id="ID_HELP_FORUMS" text="Envy _Forums"/>
 				<item id="ID_HELP_FORUMS_LOCAL" text="_Local Language Forum"/> <!--Your Language-->
-				<item id="ID_HELP_WEB_LOVE" text="GetEnvy _Love"/>
+				<item id="ID_HELP_WEB_LOVE" text="_Love"/>
 				<item id="ID_HELP_WEB_SKINS" text="Envy _Skin Site"/>
 				<!--item id="ID_HELP_WEB_1" text="Shareaza.sf.net"-->
 				<!--item id="ID_HELP_UPDATE" text="Latest _News"-->
@@ -2383,7 +2383,7 @@
 		file types cannot be used alone, and any punctuation is ignored.</text>
 		<newline gap="8"/>
 		<text>Most clients on the network will skip a non-specific request that could generate
-		too many results, like just a file type. See the GetEnvy.com web site for help.</text>
+		too many results, like just a file type. See the project pages on GitHub for help.</text>
 	</document>
 	<!--
 	<document name="SearchHelp.BadSearch1">
@@ -2875,13 +2875,13 @@
 	<string id="20064" text="Good"/>
 	<string id="20065" text="Very Good"/>
 	<string id="20066" text="Excellent"/>
-	<string id="20080" text="This is a pre-release version of Envy, and the beta testing period has ended. Please download the full, official release from http://getenvy.com."/>
+	<string id="20080" text="This is a pre-release version of Envy, and the beta testing period has ended. Please download the full, official release from https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="&amp;Close"/>
 	<string id="20082" text="Finished, click Close"/>
 	<string id="20083" text="Requesting..."/>
 	<string id="20084" text="Success."/>
 	<string id="20086" text="The file &quot;%s&quot; has not yet been hashed. Please wait for the file to be hashed, and then try again."/>
-	<string id="20088" text="This option uses services provided by bitprints.getenvy.com for recognising and sharing information about selected files.\n\nEnvy will transmit the SHA1 hash code for the selected files in order to query the Bitprints database. If you are concerned about privacy, you may wish to consult the bitprints.getenvy.com privacy policy.\n\nWould you like to proceed?"/>
+	<string id="20088" text="This option uses services provided by Bitprints for recognising and sharing information about selected files.\n\nEnvy will transmit the SHA1 hash code for the selected files in order to query the Bitprints database. If you are concerned about privacy, you may wish to consult the Bitprints privacy policy.\n\nWould you like to proceed?"/>
 	<string id="20100" text="Closing browse user connection to %s."/>
 	<string id="20101" text="Browse host %s responded with an unrecognised response, and may not support user/host browsing."/>
 	<string id="20102" text="Unable to connect to host to browse user."/>
@@ -3339,7 +3339,7 @@
 	<string id="20596" text="Never"/>
 	<string id="20597" text="Session"/>
 	<string id="20598" text="Are you sure you wish to delete selected security rules?"/>
-	<string id="20599" text="Last number is 254,252,248,240,224,192,128, or 0. Others must be 255.\n\n(For Netmasked IP ranges.)\n\nSee getenvy.com/wiki for help."/>
+	<string id="20599" text="Last number is 254,252,248,240,224,192,128, or 0. Others must be 255.\n\n(For Netmasked IP ranges.)\n\nSee the project pages on GitHub for help."/>
 	<string id="20600" text="Bandwidth: Full"/>
 	<string id="20601" text="Bandwidth: Limited"/>
 	<string id="20602" text="Bandwidth: Stop"/>
@@ -4227,7 +4227,7 @@
 		<control text="Public:"/>
 		<control/>
 		<control text="_Social / Instant Messaging:"/>
-		<control text="GetEnvy.com:"/>
+		<control text="Envy:"/>
 		<control/>
 		<control text="Facebook:"/>
 		<control/>
@@ -4591,7 +4591,7 @@
 		<control/>
 		<control text="Cancel"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Smart Download Preview...">
 		<control/>
@@ -4605,9 +4605,9 @@
 		<control text="Did you know Envy is 100% free software?"/>
 		<control text="Envy does not contain any spyware, adware or bundled software;{n}it does not display any advertisements, popups, or other bad behavior.{n}{n}If you ever see such activity be assured that it is not coming from a genuine version of this program."/>
 		<control text="Envy is proud to be Free and Open-Source Software. A non-profit team of passionate volunteers shares this product with all the freedoms of GPL and Creative Commons Licenses, in the hope that it might be useful."/>
-		<control text="You must not have paid any money to obtain this program. Envy can be freely downloaded from GetEnvy.com, if you've paid anyone for this demand a full refund immediately."/>
+		<control text="You must not have paid any money to obtain this program. Envy can be freely downloaded from the Envy GitHub project, if you've paid anyone for this demand a full refund immediately."/>
 		<control text="Envy respects and appreciates its users."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Close"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Spread the Word">
@@ -4616,7 +4616,7 @@
 		<control text="Unfortunately, a lot of potential filesharers don't know what they're missing."/>
 		<control text="If you know someone who might like Envy, whether a new user or still using older software, let them know there is a better alternative. And Thanks."/>
 		<control text="(This is the last welcome message you will see.)"/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Existing File">
@@ -4851,7 +4851,7 @@
 		<control text="&#169; Envy Development Team, 2016-"/>
 		<control text="Envy™ is free software; you can redistribute and/or modify it{n}under terms of the GNU Affero General Public License as published{n}by the Free Software Foundation, version 3 or later. (AGPL v3)"/>
 		<control text="Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 </dialogs>

@@ -4,7 +4,7 @@
 <!-- Envy Default Italian Skin File -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="Salvatore Scirè, Francesco Gabrielli"
 	updatedby="ale5000"
 	description="Envy Default Italian Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email=""
 	version="1.0"
 	type="Language"
@@ -2226,7 +2226,7 @@
 		<text>Molti programmi di creazione dovrebbero permettere di riparare questo torrent,
 		assicurando che esso funzioni correttamente in tutte le applicazioni BitTorrent.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Clicca qui per ulteriore aiuto</link>
+		<link target="https://github.com/Mika3578/Envy">Clicca qui per ulteriore aiuto</link>
 		<text>, o per scaricare programmi per riparare il torrent.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2720,13 +2720,13 @@
 	<string id="20064" text="Buono"/>
 	<string id="20065" text="Molto buono"/>
 	<string id="20066" text="Eccellente"/>
-	<string id="20080" text="Questa è una versione pre-release di Envy e il periodo di beta testing è terminato. Scarica la versione completa e ufficiale da http://getenvy.com/."/>
+	<string id="20080" text="Questa è una versione pre-release di Envy e il periodo di beta testing è terminato. Scarica la versione completa e ufficiale da https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="&amp;Chiudi"/>
 	<string id="20082" text="Finito, clicca Chiudi"/>
 	<string id="20083" text="Richiesta in corso..."/>
 	<string id="20084" text="Successo."/>
 	<string id="20086" text="Il file &quot;%s&quot; non ha subito il processo di hash. Attendi che il file abbia subito il processo di hash, poi prova ancora."/>
-	<string id="20088" text="Questa opzione utilizza i servizi di bitprints.getenvy.com per il riconoscimento e la condivisione delle informazioni sui file selezionati.\n\nEnvy trasmetterà il codice hash SHA1 per i file selezionati per poter effettuare richieste al database di Bitprints. Se non conosci le condizioni sulla privacy, consultale su bitprints.getenvy.com.\n\nDesideri continuare?"/>
+	<string id="20088" text="Questa opzione utilizza i servizi di Bitprints per il riconoscimento e la condivisione delle informazioni sui file selezionati.\n\nEnvy trasmetterà il codice hash SHA1 per i file selezionati per poter effettuare richieste al database di Bitprints. Se non conosci le condizioni sulla privacy, consultale su Bitprints.\n\nDesideri continuare?"/>
 	<string id="20100" text="Chiusura della connessione per l'esame dell'host %s."/>
 	<string id="20101" text="L'esame dell'host %s ha replicato con una risposta non riconoscibile, potrebbe non supportare l'esplorazione dell'utente/host."/>
 	<string id="20102" text="Impossibile connettersi all'host per esaminare i file."/>
@@ -4390,7 +4390,7 @@
 		<control/>
 		<control text="Annulla"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Anteprima download...">
 		<control/>
@@ -4404,9 +4404,9 @@
 		<control text="Sai che Envy è un prodotto gratuito al 100%?"/>
 		<control text="Envy NON contiene nessun &quot;spyware&quot;, &quot;adware&quot; o altro software aggiuntivo. NON mostra mai messaggi pubblicitari o &quot;popup&quot;.{n}{n}Se dovessi vedere messaggi pubblicitari o &quot;popup&quot; mentre usi Envy, sicuramente NON provengono da questo programma."/>
 		<control text="Sfortunatamente molti software contengono adware o spyware, di modo che l'utente diventa sospettoso e desidera verificare se il suo PC contiene software aggiuntivi con un programma di rimozione."/>
-		<control text="Non dovete pagare nulla per scaricare Envy. Envy può essere scaricato da http://getenvy.com/. Se pagate a qualcuno per Envy, potete richiedere un pieno rimborso di quanto pagato."/>
+		<control text="Non dovete pagare nulla per scaricare Envy. Envy può essere scaricato da https://github.com/Mika3578/Envy/releases Se pagate a qualcuno per Envy, potete richiedere un pieno rimborso di quanto pagato."/>
 		<control text="Envy rispetta i suoi utenti."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Chiudi"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Diffondilo nel mondo">
@@ -4415,7 +4415,7 @@
 		<control text="Sfortunatamente molti utenti non lo conoscono."/>
 		<control text="Se conosci qualcuno a cui piace o un utente che utilizza un programma di qualità inferiore, perchè non dargli un'alternativa?"/>
 		<control text="Ti ringrazierà del consiglio"/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Download di un file esistente">

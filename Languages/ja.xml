@@ -4,7 +4,7 @@
 <!-- Envy Default Japanese Skin File -->
 
 <!-- Translation based on default en.xml r30 --> <!-- (Shareaza 2.2.0.2) -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -2105,7 +2105,7 @@
 		<text>全てのBitTorrentアプリケーションで適切に動作するのを確実にするには、
 		Torrent生成アプリケーションでこのTorrentを修復するべきです。</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">ここで追加のヘルプを参照</link>
+		<link target="https://github.com/Mika3578/Envy">ここで追加のヘルプを参照</link>
 		<text>するか、Torrentを修復するソフトウェアをダウンロードして下さい。</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2580,13 +2580,13 @@
 	<string id="20064" text="良い"/>
 	<string id="20065" text="とても良い"/>
 	<string id="20066" text="素薔薇しい"/>
-	<string id="20080" text="これはEnvyのプレリリースバージョンで、ベータテスト期間は終了しています。http://getenvy.com/からオフィシャルリリースをダウンロードして下さい"/>
+	<string id="20080" text="これはEnvyのプレリリースバージョンで、ベータテスト期間は終了しています。https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="閉じる(&amp;C)"/>
 	<string id="20082" text="完了しました。閉じるをクリックして下さい"/>
 	<string id="20083" text="要求中..."/>
 	<string id="20084" text="成功."/>
 	<string id="20086" text="ファイル &quot;%s&quot; はまだハッシュされていません。 ファイルがハッシュされるまで待ってから再試行して下さい"/>
-	<string id="20088" text="このオプション選択されたファイルに関する識別・共有情報が提供されるbitprints.getenvy.comのサービスを使用します\n\nEnvyは選択したファイルのためにBitprintsデータベースにSHA1ハッシュコードを送信して問い合わせます。 プライバシーが心配ならbitprints.getenvy.comプライバシーポリシーを参照できます\n\n続けて宜しいですか?"/>
+	<string id="20088" text="このオプション選択されたファイルに関する識別・共有情報が提供されるBitprintsのサービスを使用します\n\nEnvyは選択したファイルのためにBitprintsデータベースにSHA1ハッシュコードを送信して問い合わせます。 プライバシーが心配ならBitprintsプライバシーポリシーを参照できます\n\n続けて宜しいですか?"/>
 	<string id="20100" text="%s へのユーザ参照接続を閉じています"/>
 	<string id="20101" text="参照ホスト %s は認識できない応答を返しました。ユーザ/ホスト参照をサポートしていない可能性があります"/>
 	<string id="20102" text="ユーザーを参照するホストと接続できません"/>
@@ -4179,7 +4179,7 @@
 		<control/>
 		<control text="キャンセル"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="ダウンロードプレビュー...">
 		<control/>
@@ -4193,9 +4193,9 @@
 		<control text="Envyが100%フリーな製品であることを知っていますか?"/>
 		<control text="Envyはどのような種類の &quot;スパイウェア&quot;や&quot;アドウェア&quot; も含んでいませんし、 どんな広告・ &quot;ポップアップ&quot; も表示されません。{n}{n}もしEnvyを使用中に広告や&quot;ポップアップ&quot;が表示されたとしても、 それはこのプログラムが原因ではありませんので安心して下さい。"/>
 		<control text="残念ながら他の多くのソフトウェアは望まれていないアドウェアやスパイウェアを含んでいることがあります。 もし疑わしいものを発見したら、スパイウェア削除プログラムであなたのマシンをチェックした方が良いでしょう"/>
-		<control text="Envyを取得するには一銭もかかりません。 Envyは誰でもhttp://getenvy.com/からダウンロードすることができます。 もしあなたがEnvyの為に誰かにお金を支払っていたら、今すぐ全額払い戻しを請求して下さい。"/>
+		<control text="Envyを取得するには一銭もかかりません。 Envyは誰でもhttps://github.com/Mika3578/Envy/releases もしあなたがEnvyの為に誰かにお金を支払っていたら、今すぐ全額払い戻しを請求して下さい。"/>
 		<control text="Envyはそのユーザを尊敬しています."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="閉じる"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="言葉を世界へ">
@@ -4204,7 +4204,7 @@
 		<control text="残念ながら、多くのファイル共有者はEnvyの存在を知りません."/>
 		<control text="Envyの新しいユーザーになってくれるかどうかに関係なく、 出来の悪いファイル共有ソフトを使用していている人でEnvyを気に入ってくれそうな人がいれば、 Envyの存在を教えてあげてくれませんか?"/>
 		<control text="きっとその人はあなたに感謝することになるでしょう."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="既存ファイル">

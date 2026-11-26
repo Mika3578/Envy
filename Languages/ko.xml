@@ -4,7 +4,7 @@
 <!-- Envy Korean Language Skin File -->
 
 <!-- Translation based on default en.xml r30 --> <!--Machine Translated!-->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -16,7 +16,7 @@
 	name="한국어"
 	author="GetEnvy.com"
 	description="Envy Korean Language Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="Contact(at)GetEnvy.com"
 	version="1.0"
 	type="Language"
@@ -1939,7 +1939,7 @@
 		file types cannot be used alone, and any punctuation is ignored.</text>
 		<newline gap="8"/>
 		<text>Most clients on the network will skip a non-specific request that could generate
-		too many results, like just a file type. See the GetEnvy.com web site for help.</text>
+		too many results, like just a file type. See the project pages on GitHub for help.</text>
 	</document>
 	<!-- Missing documents -->
 </documents>
@@ -2015,7 +2015,7 @@
 	<string id="20064" text="안녕"/>
 	<string id="20065" text="아주 좋은"/>
 	<string id="20066" text="아주좋음"/>
-	<string id="20080" text="This is a pre-release version of Envy, and the beta testing period has ended. Please download the full, official release from http://getenvy.com."/>
+	<string id="20080" text="This is a pre-release version of Envy, and the beta testing period has ended. Please download the full, official release from https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="닫기"/>
 	<!-- Missing Browse Strings -->
 	<!-- Missing BitTorrent Strings -->
@@ -3077,7 +3077,7 @@
 		<control/>
 		<control text="취소"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Smart Download Preview...">
 		<control/>
@@ -3093,7 +3093,7 @@
 		<control text="Envy is proud to be Free and Open-Source Software. A non-profit team of passionate volunteers shares this product with all the freedoms of GPL and Creative Commons Licenses, in the hope that it might be useful."/>
 		<control text="You must not have paid any money to obtain this program. Envy can be freely downloaded from GetEnvy.com, if you've paid anyone for this demand a full refund immediately."/>
 		<control text="Envy respects and appreciates its users."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="닫기"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Spread the Word">
@@ -3102,7 +3102,7 @@
 		<control text="Unfortunately, a lot of potential filesharers don't know what they're missing."/>
 		<control text="If you know someone who might like Envy, whether a new user or still using older software, let them know there is a better alternative. And Thanks."/>
 		<control text="{This is the last welcome message you will see.}"/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Existing File">

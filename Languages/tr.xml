@@ -4,7 +4,7 @@
 <!-- Envy Default Turkish Skin File -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="F. Doğru, F.A. Saraçoğulları"
 	updatedby="Melih Tarı, zigotozor"
 	description="Envy Default Turkish Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="Contact(at)GetEnvy.com"
 	version="1.0"
 	type="Language"
@@ -2177,7 +2177,7 @@
 		<text>
 		Gelişmiş torrent oluşturma programları, torrentın tüm BitTorrent uygulamalarında düzgün çalışmasını garantileyecek hale getirmek için size izin vermelidir.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Ek yardım için burayı tıklayınız</link>
+		<link target="https://github.com/Mika3578/Envy">Ek yardım için burayı tıklayınız</link>
 		<text>, ya da torrent onarım yazılımını indiriniz.</text>
 </document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2660,7 +2660,7 @@
 	<string id="20083" text="İsteniyor..."/>
 	<string id="20084" text="Başarılı."/>
 	<string id="20086" text="&quot;%s&quot; dosyası henüz taranmadı. Lütfen dosyanın taranması için bekleyin ve sonra tekrar deneyin."/>
-	<string id="20088" text="Bu seçeneklerle seçilen dosyada onaylanan ve paylaşılan bilgi için bitprints.getenvy.com tarafından sağlanan servisler kullanılır.\n\nEnvy Bitprints veritabanı sorgu düzeninde seçilen dosyalar için SHA1 hash kod gönderecek. Eğer gizlilikle ilgileniyorsan bitprints.getenvy.com gizlilik politikasını danışmak isteyebilirsin.\n\nİlerlemek istiyor musun?"/>
+	<string id="20088" text="Bu seçeneklerle seçilen dosyada onaylanan ve paylaşılan bilgi için Bitprints tarafından sağlanan servisler kullanılır.\n\nEnvy Bitprints veritabanı sorgu düzeninde seçilen dosyalar için SHA1 hash kod gönderecek. Eğer gizlilikle ilgileniyorsan Bitprints gizlilik politikasını danışmak isteyebilirsin.\n\nİlerlemek istiyor musun?"/>
 	<string id="20100" text="%s'ye gözatan kullanıcı bağlantısı kapatılıyor."/>
 	<string id="20101" text="%s gözatan hostu anlaşılamayan bir yanıt verdi, kullanıcı ya da host taramalarını desteklemiyor olabilir."/>
 	<string id="20102" text="Kullanıcı hosta bağlantı yapamaz."/>
@@ -4320,7 +4320,7 @@
 		<control/>
 		<control text="İptal"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Akıllı İndirim Önizleme...">
 		<control/>
@@ -4336,7 +4336,7 @@
 		<control text="Maalesef diğer yazılımlar adware ya da casus kötücül yazılımları ile birlikte gelebilir, bu yüzden eğer şüpheli birşey görürseniz, spyware kaldırma ya da bildiri programı ile PC'nizin kontrol edilmesini isteyebilirsiniz."/>
 		<control text="Envy'yı elde etmek için hiç para ödemeye gerek yoktur. Envy http://Envy.sourceforge.net/ adresinden serbestçe indirilebilir. Eğer Envy için herhangi bir ücret ödediyseniz, acilen paranızı geri isteyin."/>
 		<control text="Envy kullanıcılarına saygı duyar."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Kapat"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Kelimeyi Yaymak">
@@ -4345,7 +4345,7 @@
 		<control text="Maalesef, bazı dosya paylaşanlar ne kaybettiklerini bilmiyorlar."/>
 		<control text="Envy'yı beğenmeleri muhtemel tanıdıklarınız varsa, ister yeni kullanıcılar olsunlar, ister harhangi bir alt ürüne katlanıyor olsunlar, onlara daha iyi bir seceneğin olduğunu tanıtmaya ne dersiniz??"/>
 		<control text="Yardımınız onları mutlu edecektir."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Tamam"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Mevcut Dosya">

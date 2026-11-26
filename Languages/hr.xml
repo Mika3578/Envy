@@ -4,7 +4,7 @@
 <!-- Envy Default Croatian Skin File -->
 
 <!-- Translation based on default en.xml r30 --> <!-- (Shareaza 2.2.0.2) -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="Biza"
 	updatedby="Biza"
 	description="Envy Default Croatian Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email=""
 	version="1.0"
 	type="Language"
@@ -2062,7 +2062,7 @@
 		<text>Most torrent creation programs should allow you to repair this torrent, which
 		will ensure it works properly in all BitTorrent applications.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Click here for additional help</link>
+		<link target="https://github.com/Mika3578/Envy">Click here for additional help</link>
 		<text>, or to download software to repair the torrent.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2392,13 +2392,13 @@
 	<string id="20064" text="Dobro"/>
 	<string id="20065" text="Vrlo Dobro"/>
 	<string id="20066" text="Odlično"/>
-	<string id="20080" text="Ovo je testna verzija Envy, i period beta testiranja je završio. Molimo vas da skinete cijelo, službeno izdanje sa http://getenvy.com/."/>
+	<string id="20080" text="Ovo je testna verzija Envy, i period beta testiranja je završio. Molimo vas da skinete cijelo, službeno izdanje sa https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="&amp;Zatvori"/>
 	<string id="20082" text="Gotovo, klikni na zatvori"/>
 	<string id="20083" text="Čekam Odobrenje..."/>
 	<string id="20084" text="Uspjeh."/>
 	<string id="20086" text="The file &quot;%s&quot; has not yet been hashed. Please wait for the file to be hashed, and then try again."/>
-	<string id="20088" text="This option uses services provided by bitprints.getenvy.com for recognising and sharing information about selected files.\n\nEnvy will transmit the SHA1 hash code for the selected file(s) in order to query the Bitprints database. If you are concerned about privacy, you may wish to consult the bitprints.getenvy.com privacy policy.\n\nWould you like to proceed?"/>
+	<string id="20088" text="This option uses services provided by Bitprints for recognising and sharing information about selected files.\n\nEnvy will transmit the SHA1 hash code for the selected file(s) in order to query the Bitprints database. If you are concerned about privacy, you may wish to consult the Bitprints privacy policy.\n\nWould you like to proceed?"/>
 	<string id="20100" text="Zatvaram pregled korisnika %s."/>
 	<string id="20101" text="Browse host %s responded with an unrecognised response, and may not support user/host browsing."/>
 	<string id="20102" text="Ne mogu se spojiti na korisnika da vidite što ima."/>
@@ -3862,7 +3862,7 @@
 		<control/>
 		<control text="Odustani"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Pametni pregled skinutog...">
 		<control/>
@@ -3876,9 +3876,9 @@
 		<control text="Jeste li znali da je Envy 100% besplatni proizvod?"/>
 		<control text="Envy NE SADRŽI &quot;spyware&quot;, &quot;adware&quot; ili ostali loši software. NE prikazuje nikakve reklame ili &quot;popupove&quot;, nikada.{n}{n}Ako ikada vidite reklamu ili &quot;popup&quot; dok koristite Envy, možete biti uvjereni da ju NE PRIKAZUJE ovaj program."/>
 		<control text="Na žalost dosta ostalog softwarea uistinu dolazi sa neželjenim adware ili spyware djelovima, ako vidite nešto sumljivo obavezno provjerite vaš PC sa advertising ili spyware removal programom."/>
-		<control text="Nitko vam nebi smio naplatiti za Envy.Envy možete besplatno skinuti sa http://getenvy.com/.Ako ste nekome platili Envy, trebali bi ste odmah tražiti potpuni povrat novca."/>
+		<control text="Nitko vam nebi smio naplatiti za Envy.Envy možete besplatno skinuti sa https://github.com/Mika3578/Envy/releases ste nekome platili Envy, trebali bi ste odmah tražiti potpuni povrat novca."/>
 		<control text="Envy Poštuje Svoje Korisnike."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Zatvori"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Razglasi">
@@ -3887,7 +3887,7 @@
 		<control text="Nažalost, puno ljudi nezna što propušta koristeći zastarijele programe."/>
 		<control text="Ako znate nekoga za koga mislite da bi mu Envy dobro došla, bilo da je novi u djeljenju, ili već koristi neki od lošijih proizvoda, zašto ga nebi upoznali sa Envy i pokazali da ima boljih alternativa?"/>
 		<control text="Vjerovatno če vam biti zahvalni što ste im pokazali pravi put."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Postojeća Datoteka">

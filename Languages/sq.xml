@@ -4,7 +4,7 @@
 <!-- Envy Default Albanian Skin File -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="Besmir Godole"
 	updatedby="Besmir Godole"
 	description="Envy Default Albanian Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="bgodole(at)gmail.com"
 	version="1.0"
 	type="Language"
@@ -2242,7 +2242,7 @@
 		<text>Shumica e programeve për krijimin e torrenteve ju lejojnë ta riparoni këtë torrent, i cili
 		do të sigurojë që të punojë siç duhet në gjithë aplikimet BitTorrent.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Klikoni për ndihmë shtesë</link>
+		<link target="https://github.com/Mika3578/Envy">Klikoni për ndihmë shtesë</link>
 		<text>, ose për të shkarkuar softuerë për riparimin e torrenteve.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -4096,7 +4096,7 @@
 		<control/>
 		<control text="Anulo"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Parashikim i Shkarkimit Inteligjent...">
 		<control/>
@@ -4110,9 +4110,9 @@
 		<control text="A e dinit që Envy është një produkt 100% falas?"/>
 		<control text="Envy NUK përmban ASNJË &quot;spiunues&quot;, &quot;reklamues&quot; apo ndonjë softuer tjetër të paketuar. Reklamat ose &quot;kërcyeset&quot; NUK shfaqen kurrë.{n}{n}Nëse gjatë përdorimit vëreni ndonjë reklamë ose &quot;kërcyese&quot;, të jeni të sigurt se ato NUK janë të programit."/>
 		<control text="Për fat të keq, shumë nga softueret e tjera bartin reklamuesa apo spiunuesa të padëshirueshëm, ndaj nëse keni dyshime verifikoni PC-në tuaj me një program që heq reklamuesat e spiunuesat."/>
-		<control text="Për Envy-n nuk duhet të paguani! Envy mund të shkarkohet lirisht nga kushdo në http://getenvy.com/. Nëse keni paguar për të, duhet të kërkoni menjëherë një kthim të plotë parash."/>
+		<control text="Për Envy-n nuk duhet të paguani! Envy mund të shkarkohet lirisht nga kushdo në https://github.com/Mika3578/Envy/releases Nëse keni paguar për të, duhet të kërkoni menjëherë një kthim të plotë parash."/>
 		<control text="Envy i respekton përdoruesit."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Mbylle"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Ngrini Zërin">

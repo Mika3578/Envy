@@ -5,7 +5,7 @@
 <!-- Weergawe: 27 Oktober 2005 vir Shareaza 2.2.0.2 -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -18,7 +18,7 @@
 	author="Johann van der Walt (Thesage)"
 	updatedby="Thesage, omega09"
 	description="Envy Default Afrikaans Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="jvdwalt(at)tuks.co.za"
 	version="1.0"
 	type="Language"
@@ -2174,7 +2174,7 @@
 		<text>Meeste programme wat torrents skep sal jou toelaat om hierdie torrent te
 		herstel, wat sal verseker dat dit reg werk in alle BitTorrent programme.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Kliek hier vir addisionele hulp</link>
+		<link target="https://github.com/Mika3578/Envy">Kliek hier vir addisionele hulp</link>
 		<text>, of om sagteware af te laai om die torrent mee reg te maak.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2656,13 +2656,13 @@
 	<string id="20064" text="Goed"/>
 	<string id="20065" text="Baie Goed"/>
 	<string id="20066" text="Uitstekend"/>
-	<string id="20080" text="Hierdie is 'n voorvrysteluitgawe van Envy en die beta toetsingsperiode het ge-ëindig. Laai asseblief die volle, offisiële weergawe af vanaf http://getenvy.com."/>
+	<string id="20080" text="Hierdie is 'n voorvrysteluitgawe van Envy en die beta toetsingsperiode het ge-ëindig. Laai asseblief die volle, offisiële weergawe af vanaf https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="&amp;Maak Toe"/>
 	<string id="20082" text="Voltooi, kliek Maak Toe"/>
 	<string id="20083" text="Stuur versoek..."/>
 	<string id="20084" text="Sukses."/>
 	<string id="20086" text="Die lêer &quot;%s&quot; is nog nie geprosesseer nie. Wag asseblief vir die lêer om geprosesseer te word en probeer weer."/>
-	<string id="20088" text="Hierdie opsie gebruik dienste verskaf deur bitprints.getenvy.com vir herkenning en deel van inligting oor sekere lêers.\n\nEnvy sal die SHA1 hash-kode vir die geselekteerde lêer(s) stuur sodat die Bitprints databasis geraadpleeg kan word. As jy bekommerd is oor privaatheid, kan jy gerus die bitprints.getenvy.com privaatheidsbeleid lees.\n\nWil jy voortgaan?"/>
+	<string id="20088" text="Hierdie opsie gebruik dienste verskaf deur Bitprints vir herkenning en deel van inligting oor sekere lêers.\n\nEnvy sal die SHA1 hash-kode vir die geselekteerde lêer(s) stuur sodat die Bitprints databasis geraadpleeg kan word. As jy bekommerd is oor privaatheid, kan jy gerus die Bitprints privaatheidsbeleid lees.\n\nWil jy voortgaan?"/>
 	<string id="20100" text="Lees-gebruiker konneksie aan %s word gesluit."/>
 	<string id="20101" text="Gasheer %s het gereageer met 'n onherkenbare antwoord en mag dalk nie die funksie ondersteun nie."/>
 	<string id="20102" text="Kon nie aan die gasheer konnekteer om deur sy inligting te blaai nie."/>
@@ -4265,7 +4265,7 @@
 		<control/>
 		<control text="Kanselleer"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Slim Aflaai Voorskou...">
 		<control/>
@@ -4279,9 +4279,9 @@
 		<control text="Het jy geweet Envy is 'n 100% gratis program?"/>
 		<control text="Envy bevat GEEN &quot;spioenware&quot;, &quot;advertensieware&quot; of enige ander ongewenste sagteware nie. Dit vertoon ook GEEN advertensies of &quot;opspringboodskappe&quot; ooit nie.{n}{n}As jy ooit advertensies of &quot;opspringboodskappe&quot; sien terwyl jy Envy gebruik, wees gerus dat hulle NIE van hierdie program afkomstig is nie."/>
 		<control text="Ongelukkig kom 'n groot aantal ander sagteware met spioen- of advertensieware uit, so as jy iets verdags sien, word jy aangeraai om jou rekenaar met 'n spioen- of advertensieware verwyderaarsprogram te laat deursoek."/>
-		<control text="Jy moes nie enige geld betaal het vir Envy nie. Envy kan gratis afgelaai word deur enige iemand vanaf http://getenvy.com/. As jy iemand geld betaal het vir Envy, moet jy 'n volle terugbetaling onmiddellik eis."/>
+		<control text="Jy moes nie enige geld betaal het vir Envy nie. Envy kan gratis afgelaai word deur enige iemand vanaf https://github.com/Mika3578/Envy/releases As jy iemand geld betaal het vir Envy, moet jy 'n volle terugbetaling onmiddellik eis."/>
 		<control text="Envy respekteer sy gebruikers."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Maak toe"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Versprei die Nuus">
@@ -4290,7 +4290,7 @@
 		<control text="Ongelukkig weet 'n groot aantal lêerdelers nie wat hulle mis nie."/>
 		<control text="As jy van iemand weet wat van Envy sal hou, of hulle 'n nuwe gebruiker is, of iemand wat steeds probeer uithou met 'n ondergeskikte program, hoekom hulle nie laat weet dat daar 'n beter alternatief is nie?"/>
 		<control text="Die kanse is goed dat hulle dankbaar sal wees dat jy hulle gered het."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Aflaai van bestaande lêer">

@@ -4,7 +4,7 @@
 <!-- Envy Default Norwegian Skin File -->
 
 <!-- Translation based on default en.xml r30 --> <!-- (Shareaza 2.2.0.2) -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="Tom Seland"
 	updatedby="Tom Seland"
 	description="Envy Default Norwegian Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="Contact(at)GetEnvy.com"
 	version="1.0"
 	type="Language"
@@ -1973,7 +1973,7 @@
 		<text>De fleste programmer for å lage torrenter vil la deg reparere denne torrenten, noe som vil
 		sørge for at den fungerer korrekt i alle BitTorrent-programmer.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Klikk her for mer hjelp</link>
+		<link target="https://github.com/Mika3578/Envy">Klikk her for mer hjelp</link>
 		<text>, eller for å laste ned programvare for å reparere torrenten.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2444,13 +2444,13 @@
 	<string id="20064" text="God"/>
 	<string id="20065" text="Veldig god"/>
 	<string id="20066" text="Utmerket"/>
-	<string id="20080" text="Dette er en test-versjon av Envy, beta test perioden er over. Vennligst last ned den offisielle fullversjonen fra http://getenvy.com/."/>
+	<string id="20080" text="Dette er en test-versjon av Envy, beta test perioden er over. Vennligst last ned den offisielle fullversjonen fra https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="&amp;Lukk"/>
 	<string id="20082" text="Ferdig, Klikk Lukk"/>
 	<string id="20083" text="spør..."/>
 	<string id="20084" text="Suksess."/>
 	<string id="20086" text="Filen &quot;%s&quot; er ikke hashet. Vennligst vent til filen er hashet og prøv på nytt."/>
-	<string id="20088" text="Dette valget bruker bitprints.getenvy.com for å finne informasjon om valgte filer.\n\nEnvy sender SHA1 hash koden til den valgte filen for å søke i Bitprints databasen. Hvis du er redd for å dele slik informasjon, kan du lese bitprints.getenvy.com's retningslinjer for personopplysninger.\n\nVil du fortsette?"/>
+	<string id="20088" text="Dette valget bruker Bitprints for å finne informasjon om valgte filer.\n\nEnvy sender SHA1 hash koden til den valgte filen for å søke i Bitprints databasen. Hvis du er redd for å dele slik informasjon, kan du lese Bitprints's retningslinjer for personopplysninger.\n\nVil du fortsette?"/>
 	<string id="20100" text="Lukker kobling til bruker %s."/>
 	<string id="20101" text="Utforsk vert %s svarte med ukjent respons, det kan være at utforskning ikke støttes."/>
 	<string id="20102" text="Klarte ikke å koble til vert for å utforske bruker."/>
@@ -4024,7 +4024,7 @@
 		<control/>
 		<control text="Avbryt"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Smart forhåndsvisning...">
 		<control/>
@@ -4038,9 +4038,9 @@
 		<control text="Visste du at Envy er et 100% gratis produkt?"/>
 		<control text="Envy inneholder IKKE &quot;spyware&quot;, &quot;adware&quot; eller annet software. Det viser ingen reklamer eller &quot;popups&quot;,.{n}{n}Hvis du ser reklame eller &quot;popups&quot; når du bruker Envy, ær sikker det kommer IKKE fra Envy."/>
 		<control text="Uheldigvis kommer mye programvare med uønsket adware eller spyware, så hvis du ser noe suspekt kan det være lurt å sjekke pc-en med et reklame eller spyware fjerningsprogram."/>
-		<control text="Du skal ikke betale penger for Envy. Envy kan lastes ned helt gratis på http://getenvy.com/. Hvis du har betalt noen for Envy, skal du kreve pengene tilbake øyeblikkelig."/>
+		<control text="Du skal ikke betale penger for Envy. Envy kan lastes ned helt gratis på https://github.com/Mika3578/Envy/releases Hvis du har betalt noen for Envy, skal du kreve pengene tilbake øyeblikkelig."/>
 		<control text="Envy respekterer sine brukere."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Lukk"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Spre ryktet">
@@ -4049,7 +4049,7 @@
 		<control text="Uheldigvis vet ikke alle fildelere hva de går glipp av."/>
 		<control text="Hvis du kjenner noen som vil like Envy, selv om de er nye brukere, eller fortsatt bruker et annet middelmådig program, la dem få vite at det finns noe mye bedre."/>
 		<control text="De blir sikkert veldig takknemlige for at du reddet dem."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Laste ned fil på nytt">

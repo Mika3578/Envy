@@ -4,7 +4,7 @@
 <!-- Envy Default Chinese (Simplified) Skin File -->
 
 <!-- Translation based on default en.xml r30 --> <!-- (Shareaza r6092) -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -2159,7 +2159,7 @@
 		<text>大多数 Torrent 制作程序允许您修复此 Torrent，以便保证其在所有的
 		BitTorrent 客户端中正常工作。</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">单击这里以获得额外的帮助</link>
+		<link target="https://github.com/Mika3578/Envy">单击这里以获得额外的帮助</link>
 		<text>&#160;或下载软件修复此 Torrent 文件。</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2621,13 +2621,13 @@
 	<string id="20064" text="较好"/>
 	<string id="20065" text="很好"/>
 	<string id="20066" text="极棒"/>
-	<string id="20080" text="这是 Envy 的内部测试版本， beta 测试期已经结束。请下载 http://getenvy.com 完整的官方版本。"/>
+	<string id="20080" text="这是 Envy 的内部测试版本， beta 测试期已经结束。请下载 https://github.com/Mika3578/Envy/releases 完整的官方版本。"/>
 	<string id="20081" text="关闭"/>
 	<string id="20082" text="已完成，单击关闭"/>
 	<string id="20083" text="请求中..."/>
 	<string id="20084" text="成功"/>
 	<string id="20086" text="文件 &quot;%s&quot; 未被 Hash。请等待文件被 Hash，稍后再试。"/>
-	<string id="20088" text="识别和共享选定文件的功能由 bitprints.getenvy.com 提供。\n\n为了到 Bitprints 数据库进行查询，Envy 自动转换成 SHA1 Hash。如果涉及隐私，您可能需要查看 bitprints.getenvy.com 的隐私申明。\n\n您确定继续吗？"/>
+	<string id="20088" text="识别和共享选定文件的功能由 Bitprints 提供。\n\n为了到 Bitprints 数据库进行查询，Envy 自动转换成 SHA1 Hash。如果涉及隐私，您可能需要查看 Bitprints 的隐私申明。\n\n您确定继续吗？"/>
 	<string id="20100" text="关闭连接到 %s 的浏览用户。"/>
 	<string id="20101" text="浏览主机 %s 回应以无法辨识的应答，并且可能不支持 用户/主机 浏览。"/>
 	<string id="20102" text="未能连接到主机以浏览用户。"/>
@@ -4235,7 +4235,7 @@
 		<control/>
 		<control text="取消"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="智能下载预览...">
 		<control/>
@@ -4249,9 +4249,9 @@
 		<control text="您知道 Envy 是 100% 免费的软件吗？"/>
 		<control text="Envy 不包含任何 &quot;间谍软件&quot;，&quot;广告软件&quot;，或者其他任何绑定的软件。它也不会显示任何广告或者 &quot;弹出窗口&quot;，{n}{n}如果使用 Envy 时，您看到任何&quot;弹出窗口&quot;，请确定它们不是来自此程序。"/>
 		<control text="不幸的是多数同类软件都隐藏着广告软件或间谍软件，如果您对看到的现象产生怀疑，您可以使用特定的软件检查并且移除广告和间谍软件。"/>
-		<control text="您不必为获取 Envy 而付费。Envy 可以从 http://getenvy.com/ 免费下载。如果您付钱给 Envy 的某人，您可以要求马上取回。"/>
+		<control text="您不必为获取 Envy 而付费。Envy 可以从 https://github.com/Mika3578/Envy/releases 免费下载。如果您付钱给 Envy 的某人，您可以要求马上取回。"/>
 		<control text="Envy 以用户至上！"/>
-		<control text="http://getenvy.com/"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="关闭"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="宣传">
@@ -4260,7 +4260,7 @@
 		<control text="遗憾的是，多数文件共享用户还不知道他们错过了什么！"/>
 		<control text="如果您知道有人打算使用 Envy ，无论他们是新用户还是使用其他比较差的软件的用户，为什么不让他们知道这里有更好的选择呢？"/>
 		<control text="机会来自于您的把握！"/>
-		<control text="http://getenvy.com/"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="确定"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="文件已存在">
