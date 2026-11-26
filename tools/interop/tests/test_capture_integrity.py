@@ -83,6 +83,15 @@ class TcpSequenceTests(unittest.TestCase):
             with self.subTest(udp=udp), self.assertRaises(EvidenceError):
                 self.extract(self.row(1, b"ab"), udp)
 
+    def test_extraction_rejects_declared_tcp_payload_without_hex(self):
+        rows = "0\t4662\t4663\t1\t4\t0\t192.0.2.1\t\t"
+        with self.assertRaises(EvidenceError):
+            self.extract(rows)
+
+    def test_extraction_rejects_declared_udp_payload_without_hex(self):
+        with self.assertRaises(EvidenceError):
+            self.extract(self.row(1, b"ab"), "12\t\n")
+
     def test_extraction_rejects_missing_metadata_truncation_and_conflict(self):
         for rows in (
             "0\t4662\t4663\tab",  # Old extractor output had no sequence fields.

@@ -246,6 +246,11 @@ def extract_ed2k_frames(
             )
         )
         i = frame_end
+    if sequential and i < n and len(hits) >= max_frames:
+        hits.append(_framing_failure(
+            blob, i, "framing_error",
+            f"frame budget ({max_frames}) exhausted with {n - i} unconsumed bytes",
+        ))
     return hits
 
 
@@ -712,8 +717,6 @@ def extract_from_pcap_via_tshark(
               "tcp.len", "tcp.flags.syn", "ip.src", "ipv6.src", "tcp.payload")
     for line in _run(fields).splitlines():
         parts = line.split("\t")
-        if not parts[-1].strip():
-            continue  # ACK-only TCP packets and non-TCP rows carry no payload.
         if len(parts) != len(fields):
             raise EvidenceError("tshark TCP row is missing sequence metadata")
         stream, src, dst, seq_text, size_text, syn, ipv4, ipv6, payload = parts
@@ -721,9 +724,17 @@ def extract_from_pcap_via_tshark(
             stream_id, src_port, dst_port, seq, size = map(
                 int, (stream, src, dst, seq_text, size_text)
             )
-            data = bytes.fromhex(payload.replace(":", ""))
         except ValueError as exc:
             raise EvidenceError("tshark produced invalid TCP fields") from exc
+        hex_payload = payload.strip()
+        if size > 0 and not hex_payload:
+            raise EvidenceError("truncated or missing TCP evidence payload")
+        if not hex_payload:
+            continue  # ACK-only TCP packets and non-TCP rows carry no payload.
+        try:
+            data = bytes.fromhex(hex_payload.replace(":", ""))
+        except ValueError as exc:
+            raise EvidenceError("tshark produced invalid TCP payload hex") from exc
         if (stream_id < 0 or not 0 < src_port <= 65535 or not 0 < dst_port <= 65535
                 or not 0 <= seq < 2**32 or size != len(data) or syn not in ("0", "1")
                 or bool(ipv4) == bool(ipv6)):
@@ -743,11 +754,22 @@ def extract_from_pcap_via_tshark(
     udp: List[bytes] = []
     for line in _run(("udp.length", "udp.payload")).splitlines():
         parts = line.rstrip("\r\n").split("\t")
-        if len(parts) != 2 or not parts[1].strip():
-            continue  # TCP rows carry no UDP fields; empty datagrams prove nothing.
+        if len(parts) != 2:
+            continue  # TCP rows carry no UDP fields.
+        length_text = parts[0].strip()
+        hex_payload = parts[1].strip()
+        if not length_text:
+            continue  # TCP rows carry no UDP fields.
         try:
-            length = int(parts[0])
-            data = bytes.fromhex(parts[1].strip().replace(":", ""))
+            length = int(length_text)
+        except ValueError as exc:
+            raise EvidenceError("tshark produced malformed UDP fields") from exc
+        if length > 8 and not hex_payload:
+            raise EvidenceError("truncated or missing UDP evidence payload")
+        if not hex_payload:
+            continue  # Empty datagrams prove nothing.
+        try:
+            data = bytes.fromhex(hex_payload.replace(":", ""))
         except ValueError as exc:
             raise EvidenceError("tshark produced malformed UDP fields") from exc
         if length != len(data) + 8:

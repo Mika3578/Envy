@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Windows-portable mock helpers for the interop harness unit tests.
 
 Patches module-level platform selectors (``os.name``, ``sys.platform``) and
@@ -15,6 +16,10 @@ from typing import Iterator, List, Optional, Sequence, Union
 from unittest.mock import MagicMock, patch
 
 BytesOrStr = Union[bytes, str]
+
+
+def _record_killpg(pid: int, sig: int) -> None:
+    del pid, sig  # Tests must not signal real process groups on the host.
 
 
 @contextlib.contextmanager
@@ -46,7 +51,7 @@ def process_platform(os_name: str, *, environ: Optional[dict] = None) -> Iterato
     fake_os = SimpleNamespace(
         name=os_name,
         environ=env,
-        killpg=getattr(real_os, "killpg", None),
+        killpg=_record_killpg,
     )
     with patch.object(process_mod, "os", fake_os):
         yield

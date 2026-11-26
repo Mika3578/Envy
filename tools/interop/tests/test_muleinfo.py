@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """MuleInfo evidence framing, independently of production protocol code."""
 
 from __future__ import annotations

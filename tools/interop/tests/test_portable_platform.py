@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Regression coverage for Windows-portable harness mocks (#375 / #410)."""
 
 from __future__ import annotations
@@ -54,6 +55,8 @@ class ProcessLaunchPlatformTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            dumpcap = root / "dumpcap.exe"
+            dumpcap.write_bytes(b"mock")
             with process_platform("nt"), patch(
                 "envy_interop.process.subprocess.Popen",
                 return_value=mock_spawned_process(),
@@ -61,7 +64,7 @@ class ProcessLaunchPlatformTests(unittest.TestCase):
                 mgr = ProcessManager()
                 owned = mgr.launch(
                     "pcap",
-                    ["dumpcap.exe", "-i", "lo"],
+                    [str(dumpcap), "-i", "lo"],
                     cwd=root,
                     stdout_path=root / "out.bin",
                     stderr_path=root / "err.bin",

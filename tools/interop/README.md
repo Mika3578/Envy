@@ -190,7 +190,8 @@ datagram whose captured length differs from its UDP length fails closed.
 Evidence parsing is anchored. A TCP stream is read frame by frame from its
 first byte: packed (`0xD4`) frames are skipped by their size without
 inflation and never count as evidence, and the first unknown header or
-truncated frame ends the stream with a parse error. A UDP file is one
+truncated frame ends the stream with a parse error. Streams that exhaust the
+64-frame budget with trailing bytes also fail closed. A UDP file is one
 datagram whose Kad header must start it; packed (`0xE5`) or obfuscated
 datagrams yield no frames. Bytes inside a frame or datagram are therefore
 never searched for embedded frames, so file data, compressed payloads and
@@ -204,8 +205,9 @@ continuity. Raw pcaps stay gitignored. Missing tools produce SKIP and never
 trigger installation. The `optional_pcap` scenario passes only after the owned
 process has stopped and independent `tshark` extraction has produced non-empty,
 usable evidence. A non-empty file alone and an unknown usability state cannot
-pass. Capture finalization runs before the other owned processes are stopped so
-their final packets can be flushed.
+pass. Capture finalization stops the owned dumpcap/tshark writer and flushes
+packets already buffered in the pcap before client teardown begins; packets
+emitted after capture stop are intentionally outside this evidence window.
 
 `--packet-evidence` accepts a hex/binary dump of ED2K **TCP** frames
 (`0xE3`/`0xC5` sized headers) and Kad2 **UDP** datagrams (`0xE4` + opcode,
