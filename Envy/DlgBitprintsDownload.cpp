@@ -183,7 +183,7 @@ void CBitprintsDownloadDlg::OnLButtonDown(UINT /*nFlags*/, CPoint point)
 	if ( rc.PtInRect( point ) )
 	{
 		ShellExecute( GetSafeHwnd(), L"open",
-			L"http://bitprints.getenvy.com/?ref=Envy",
+			CString( WEB_SITE ),
 			NULL, NULL, SW_SHOWNORMAL );
 	}
 }

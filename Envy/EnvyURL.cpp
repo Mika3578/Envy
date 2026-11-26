@@ -473,7 +473,7 @@ BOOL CEnvyURL::ParseFTP(LPCTSTR pszURL, BOOL bResolve)
 	else
 	{
 		m_sLogin = L"anonymous";
-		m_sPassword = L"guest@getenvy.com";
+		m_sPassword = L"guest@";
 	}
 
 	if ( m_sAddress.IsEmpty() || m_sLogin.IsEmpty() )

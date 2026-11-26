@@ -610,11 +610,11 @@
 				<menu text="_Websites">
 					<!--item id="ID_HELP_WEB_3" text="Slyck.com"-->
 					<!--item id="ID_HELP_WEB_1" text="ZeroPaid.com"-->
-					<item id="ID_HELP_WEB_LOVE" text="GetEnvy _Love"/>
-					<item id="ID_HELP_WEB_SKINS" text="GetEnvy _Skin Site"/>
+					<item id="ID_HELP_WEB_LOVE" text="_Love"/>
+					<item id="ID_HELP_WEB_SKINS" text="_Skin Site"/>
 					<item id="ID_HELP_TEST" text="_Connection Test"/>
 				</menu>
-				<item id="ID_HELP_HOMEPAGE" text="_GetEnvy.com"/>
+				<item id="ID_HELP_HOMEPAGE" text="_Envy on GitHub"/>
 				<separator/>
 				<item id="ID_HELP_ABOUT" text="_About Envy..."/>
 			</menu>
@@ -723,8 +723,8 @@
 				<separator/>
 				<item id="ID_HELP_FORUMS" text="Envy _Forums"/>
 				<!--item id="ID_HELP_FORUMS_LOCAL" text="English _Local Forum"-->
-				<item id="ID_HELP_WEB_LOVE" text="GetEnvy _Love"/>
-				<item id="ID_HELP_WEB_SKINS" text="GetEnvy _Skin Site"/>
+				<item id="ID_HELP_WEB_LOVE" text="_Love"/>
+				<item id="ID_HELP_WEB_SKINS" text="_Skin Site"/>
 				<item id="ID_HELP_UPDATE" text="Latest Ne_ws"/>
 				<!--item id="ID_HELP_DONATE" text="_Donate to Envy"-->
 				<!--item id="ID_HELP_WEB_1" text="Zeropaid.com"-->
@@ -899,8 +899,8 @@
 				<separator/>
 				<item id="ID_HELP_FORUMS" text="Envy _Forums"/>
 				<!--item id="ID_HELP_FORUMS_LOCAL" text="_English Local Forum"-->
-				<item id="ID_HELP_WEB_LOVE" text="GetEnvy _Love"/>
-				<item id="ID_HELP_WEB_SKINS" text="GetEnvy _Skin Site"/>
+				<item id="ID_HELP_WEB_LOVE" text="_Love"/>
+				<item id="ID_HELP_WEB_SKINS" text="_Skin Site"/>
 				<!--item id="ID_HELP_WEB_1" text="Zeropaid.com"-->
 				<!--item id="ID_HELP_UPDATE" text="Latest _News"-->
 				<!--item id="ID_HELP_DONATE" text="_Donate to Envy"-->
@@ -2357,7 +2357,7 @@
 		file types cannot be used alone, and any punctuation is ignored.</text>
 		<newline gap="8"/>
 		<text>Most clients on the network will skip a non-specific request that could generate
-		too many results, like just a file type. See the GetEnvy.com web site for help.</text>
+		too many results, like just a file type. See the project pages on GitHub for help.</text>
 	</document>
 	<document name="SearchHelp.AdultSearch">
 		<text format="b">This search cannot be started</text>

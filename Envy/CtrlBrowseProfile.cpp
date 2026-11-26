@@ -250,7 +250,7 @@ void CBrowseProfileCtrl::UpdateDocumentLeft(CHostBrowser* pBrowser, CGProfile* p
 	{
 		bContact = TRUE;
 		m_pdContactGetEnvy->SetText( str );
-		m_pdContactGetEnvy->m_sLink = L"http://getenvy.com/users/" + str;	// ToDo: Update user profile link
+		m_pdContactGetEnvy->m_sLink = CString( WEB_SITE );	// ToDo: Update user profile link
 	}
 
 	str = pProfile->GetContact( L"Facebook" );

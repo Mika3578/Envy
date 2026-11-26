@@ -401,9 +401,9 @@ BOOL CEnvyApp::InitInstance()
 			L"\n\nNOT FOR GENERAL USE, it is intended for pre-release testing in\n"
 			L"controlled environments.  It may stop running or display debug info.\n\n"
 			L"If you wish to simply use this software, download the current\n"
-			L"stable release from GetEnvy.com.  If you continue past this point,\n"
-			L"you could possibly experience system instability or lose files.\n"
-			L"Please be aware of recent development before using.\n\n"
+			L"stable release from the Envy GitHub releases page.  If you continue\n"
+			L"past this point, you could possibly experience system instability or\n"
+			L"lose files.  Please be aware of recent development before using.\n\n"
 			L"Do you wish to continue?", MB_ICONEXCLAMATION|MB_YESNO|MB_SETFOREGROUND, 0, NULL, 30 ) == IDNO )
 				return FALSE;
 	}

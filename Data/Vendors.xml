@@ -3,7 +3,7 @@
 
 	<vendor code="ENVY">
 		<title>Envy</title>
-		<link>http://getenvy.com</link>
+		<link>https://github.com/Mika3578/Envy</link>
 		<capability name="htmlHostBrowse"/>
 		<capability name="chatFlag"/>
 		<capability name="extended"/>

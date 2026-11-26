@@ -53,7 +53,7 @@ CTorrentEnvyApp::CTorrentEnvyApp()
 void CTorrentEnvyApp::OnHelp()
 {
 //	CWinApp::OnHelp();
-	ShellExecute( NULL, NULL, L"http://getenvy.com/wiki/TorrentEnvy/",
+	ShellExecute( NULL, NULL, L"https://github.com/Mika3578/Envy",
 	//	+ static_cast< CWizardPage* >( m_pSheet->GetActivePage() )->GetWindowText(),
 		NULL, NULL, SW_SHOWNORMAL );
 }

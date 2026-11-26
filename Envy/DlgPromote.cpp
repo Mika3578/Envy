@@ -101,7 +101,6 @@ void CPromoteDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	ScreenToClient( &rc );
 
 	if ( rc.PtInRect( point ) )
-		ShellExecute( GetSafeHwnd(), L"open",
-			CString( WEB_SITE ) + L"?Version=" + theApp.m_sVersion,
+		ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 			NULL, NULL, SW_SHOWNORMAL );
 }

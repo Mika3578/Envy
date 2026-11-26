@@ -271,7 +271,7 @@ BOOL CWizardSheet::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 void CWizardSheet::OnLButtonUp(UINT /*nFlags*/, CPoint point)
 {
 	if ( point.y < m_nBannerHeight )
-		ShellExecute( NULL, NULL, L"http://getenvy.com/wiki/TorrentEnvy/", NULL, NULL, SW_SHOWNORMAL );
+		ShellExecute( NULL, NULL, L"https://github.com/Mika3578/Envy", NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CWizardSheet::OnNcLButtonUp(UINT nHitTest, CPoint /*point*/)

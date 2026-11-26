@@ -99,7 +99,7 @@ BEGIN
     IDS_COMMAND_TIP     "Shorten magnet link using online service."
     IDS_URL_REPORT      "Short URL: "
     IDS_KEY             "Software\\Envy\\Envy\\Plugins\\ShortURL"
-    IDS_TEST            "http://getenvy.com/"
+    IDS_TEST            "https://github.com/Mika3578/Envy/"
     IDS_HINT            "http://<Insert URL Here>"
 END
 

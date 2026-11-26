@@ -2932,109 +2932,89 @@ void CMainWnd::OnHelpVersionCheck()
 
 void CMainWnd::OnHelpHomepage()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"?Version=" + theApp.m_sVersion,
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpWeb1()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"external/?link1",
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpWeb2()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"external/?link2",
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpWeb3()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"external/?link3",
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpWeb4()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"external/?link4",
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpWebLove()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"love",
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpWebBitprints()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"bitprints",
+	// The Bitprints service ended with the getenvy.com domain.
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpWebSkins()
 {
-	CString strWebSite( WEB_SITE );
-
-	if ( Settings.General.LanguageDefault )
-		strWebSite = strWebSite + L"skins";	// Forwards to forums/skins
-	else
-		strWebSite = strWebSite + Settings.General.Language.Left(2) + L"/forums/skins";
-
-	ShellExecute( GetSafeHwnd(), L"open", strWebSite,
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpStartpage()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"start",
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpConnectiontest()
 {
-	CString strTestUrl;
-	strTestUrl.Format( L"%stestenvy/?port=%u&lang=%s&Version=%s",
-		WEB_SITE, Settings.Connection.InPort,
-		(LPCTSTR)Settings.General.Language.Left(2), (LPCTSTR)theApp.m_sVersion );
-
-	ShellExecute( GetSafeHwnd(), L"open", strTestUrl,
+	// No hosted connection test remains. Point at the project page.
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpFaq()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"wiki/faq",
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpGuide()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"wiki/userguide",
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpForums()
 {
 	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"forums",
+		CString( WEB_SITE ) + L"/discussions",
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpForumsLocal()
 {
 	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"forums/local/" + Settings.General.Language.Left(2),
+		CString( WEB_SITE ) + L"/discussions",
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
@@ -3042,15 +3022,8 @@ void CMainWnd::OnHelpUpdate()
 {
 //	VersionChecker.ForceCheck();	// OnHelpVersionCheck
 
-	const CString strUpdateSite( UPDATE_URL );
 	ShellExecute( GetSafeHwnd(), L"open",
-		strUpdateSite + L"?Version=" + theApp.m_sVersion
-#ifdef WIN64
-		+ L"?Platform=x64"
-#else
-		+ L"?Platform=Win32"
-#endif
-		+ L"&Language=" + Settings.General.Language.Left(2),
+		CString( WEB_SITE ) + L"/releases",
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
@@ -3064,7 +3037,7 @@ void CMainWnd::OnHelpRouter()
 void CMainWnd::OnHelpSecurity()
 {
 	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"wiki/userguide/security",
+		CString( WEB_SITE ) + L"/security",
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
@@ -3078,14 +3051,13 @@ void CMainWnd::OnHelpSecurity()
 void CMainWnd::OnHelpCodec()
 {
 	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"wiki/userguide/codecs",
+		CString( WEB_SITE ) + L"/discussions",
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
 void CMainWnd::OnHelpDonate()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"donations",
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 

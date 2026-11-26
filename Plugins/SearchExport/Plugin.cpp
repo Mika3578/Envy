@@ -298,7 +298,7 @@ HRESULT CPlugin::Export(IGenericView* pGenericView, LONG nCount)
 		L"</head>\r\n"
 		L"<body>\r\n"
 		L"\t<div class=\"pg\">\r\n"
-		L"\t\t<a href=\"http://getenvy.com/\"><div class=\"hd\"></div></a>\r\n";
+		L"\t\t<a href=\"https://github.com/Mika3578/Envy/\"><div class=\"hd\"></div></a>\r\n";
 
 	CAtlMap< CComBSTR, bool > oSHA1Map, oTigerMap, oED2KMap, oMD5Map;
 	int n = 1;

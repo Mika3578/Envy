@@ -255,9 +255,13 @@ void CSettings::Load()
 
 	Add( L"WebServices", L"BitprintsAgent", &WebServices.BitprintsAgent, L"." );
 	Add( L"WebServices", L"BitprintsOkay", &WebServices.BitprintsOkay, false, true );
-	Add( L"WebServices", L"BitprintsWebSubmit", &WebServices.BitprintsWebSubmit, L"http://bitprints.getenvy.com/lookup/(SHA1).(TTH)?fl=(SIZE)&ff=(FIRST20)&fn=(NAME)&tag.ed2k.ed2khash=(ED2K)&(INFO)&a=(AGENT)&v=Q0.5&ref=envy" );
-	Add( L"WebServices", L"BitprintsWebView", &WebServices.BitprintsWebView, L"http://bitprints.getenvy.com/lookup/(URN)?v=detail&ref=envy" );
-	Add( L"WebServices", L"BitprintsXML", &WebServices.BitprintsXML, L"http://bitprints.getenvy.com/rdf/(SHA1)" );
+	// The bitprints.getenvy.com service lapsed with the getenvy.com domain.
+	// Lookups stay user-configurable but ship disabled (empty URL): the
+	// default template leaked SHA1/Tiger/ED2K hashes, file size, name and
+	// agent to whoever held the domain. See SmartUpgrade for legacy resets.
+	Add( L"WebServices", L"BitprintsWebSubmit", &WebServices.BitprintsWebSubmit, L"" );
+	Add( L"WebServices", L"BitprintsWebView", &WebServices.BitprintsWebView, L"" );
+	Add( L"WebServices", L"BitprintsXML", &WebServices.BitprintsXML, L"" );
 //	Add( L"WebServices", L"ShareMonkeyCid", &WebServices.ShareMonkeyCid );
 //	Add( L"WebServices", L"ShareMonkeyOkay", &WebServices.ShareMonkeyOkay, false, true );
 //	Add( L"WebServices", L"ShareMonkeySaveThumbnail", &WebServices.ShareMonkeySaveThumbnail, false, true );
@@ -922,6 +926,18 @@ void CSettings::SmartUpgrade()
 	sOldHubList += L"dchublist.com/hublist.xml.bz2";
 	if (DC.HubListURL.CompareNoCase(sOldHubList) == 0)
 		DC.HubListURL = L"https://dchublist.org/hublist.xml.bz2";
+
+	// The getenvy.com domain lapsed; drop the shipped Bitprints lookups from
+	// upgraded profiles. Matching the defunct host (not an exact default)
+	// also clears custom URLs still aimed at it; other custom URLs stay.
+	CString sOldBitprintsHost( L"bitprints." );
+	sOldBitprintsHost += L"getenvy.com";
+	if ( WebServices.BitprintsWebSubmit.Find( sOldBitprintsHost ) >= 0 )
+		WebServices.BitprintsWebSubmit.Empty();
+	if ( WebServices.BitprintsWebView.Find( sOldBitprintsHost ) >= 0 )
+		WebServices.BitprintsWebView.Empty();
+	if ( WebServices.BitprintsXML.Find( sOldBitprintsHost ) >= 0 )
+		WebServices.BitprintsXML.Empty();
 
 	// Set next update check
 //	if ( General.SmartVersion < INTERNAL_VERSION )

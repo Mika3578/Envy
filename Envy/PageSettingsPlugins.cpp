@@ -206,8 +206,7 @@ void CPluginsSettingsPage::OnPluginsSetup()
 
 void CPluginsSettingsPage::OnPluginsWeb()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"?id=addon&Version=" + theApp.m_sVersion,
+	ShellExecute( GetSafeHwnd(), L"open", WEB_SITE,
 		NULL, NULL, SW_SHOWNORMAL );
 }
 
