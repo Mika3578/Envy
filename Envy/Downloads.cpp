@@ -1284,11 +1284,16 @@ void CDownloads::DeferVerifyEvent(const CLibraryFile* pFile, TRISTATE bVerified)
 	}
 
 	while ( (size_t)m_pDeferredVerifies.GetCount() >= DeferredVerifyQueueMax )
+	{
+		// Bounded queue: dropping the oldest event is counted so the
+		// throttled diagnostic reports the loss instead of hiding it.
 		m_pDeferredVerifies.RemoveHead();
+		InterlockedIncrement( &m_nDeferredVerifies );
+	}
 
 	m_pDeferredVerifies.AddTail( ev );
 
-	const ULONG nEvents = (ULONG)InterlockedIncrement( &m_nDeferredVerifies );
+	const ULONG nEvents = (ULONG)InterlockedExchangeAdd( &m_nDeferredVerifies, 0 );
 	const DWORD tNow = GetTickCount();
 	const LONG tLast = m_tLastDeferredLog;
 
@@ -1296,21 +1301,25 @@ void CDownloads::DeferVerifyEvent(const CLibraryFile* pFile, TRISTATE bVerified)
 
 	// Best-effort single winner: a lost update only delays the next message.
 	if ( InterlockedCompareExchange( &m_tLastDeferredLog, (LONG)tNow, tLast ) == tLast )
-		theApp.Message( MSG_ERROR, L"Download verification deferred, Transfers lock busy (%lu total).", nEvents );
+		theApp.Message( MSG_ERROR, L"Download verification deferred or evicted, Transfers lock busy (%lu events).", nEvents );
 }
 
 void CDownloads::ReplayDeferredVerifies()
 {
-	if ( m_pDeferredVerifies.IsEmpty() ) return;
-
 	// Library before Transfers, matching the forward path that produced the
 	// event (CLibraryFile::OnVerifyDownload holds Library, then OnVerify
-	// takes Transfers). Bounded waits only: a busy lock retries next tick.
+	// takes Transfers). Some UI and completion paths take the two sections
+	// in the opposite order, so both waits here are strictly bounded: a
+	// conflicting order makes one side back off within 250 ms and retry on
+	// a later tick instead of deadlocking. All queue access happens under
+	// the Library section, which also guards the deferral site.
 	CSingleLock pLibraryLock( &Library.m_pSection );
-	if ( ! SafeLock( pLibraryLock ) ) return;
+	if ( ! pLibraryLock.Lock( 250 ) ) return;
+
+	if ( m_pDeferredVerifies.IsEmpty() ) return;
 
 	CSingleLock pLock( &Transfers.m_pSection );
-	if ( ! SafeLock( pLock ) ) return;
+	if ( ! pLock.Lock( 250 ) ) return;
 
 	while ( ! m_pDeferredVerifies.IsEmpty() )
 	{
