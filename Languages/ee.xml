@@ -4,7 +4,7 @@
 <!-- Envy Default Estonian Skin File -->
 
 <!-- Translation based on default en.xml r30 --> <!-- (Shareaza 2.2.2.9) -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -23,7 +23,7 @@
 	author="Janza"
 	updatedby="Felix Kütt"
 	description="Envy Default Estonian Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="janekk32(at)solo.delfi.ee"
 	version="1.0"
 	type="Language"
@@ -2083,7 +2083,7 @@
 		<text>Enamus torrentitegemise programme peaksid olema suutelised seda torrentit
 		parandama, et kõik BitTorrenti programmid oleksid suutelised seda lugema.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Kliki lisaabi saamiseks siia</link>
+		<link target="https://github.com/Mika3578/Envy">Kliki lisaabi saamiseks siia</link>
 		<text>, või tõmba torrenti parandamiseks vastav tarkvara.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2544,13 +2544,13 @@
 	<string id="20064" text="Hea"/>
 	<string id="20065" text="Väga Hea"/>
 	<string id="20066" text="Suurepärane"/>
-	<string id="20080" text="See on Envy eelversioon ja beta testid on lõppenud. Tõmba täis-, ametlik versioon http://getenvy.com/."/>
+	<string id="20080" text="See on Envy eelversioon ja beta testid on lõppenud. Tõmba täis-, ametlik versioon https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="&amp;Sule"/>
 	<string id="20082" text="Lõpetatud, kliki Sule"/>
 	<string id="20083" text="Saadan päringu..."/>
 	<string id="20084" text="Õnnestus"/>
 	<string id="20086" text="Fail &quot;%s&quot; on alles segamini. Palun oota kuni fail koos on ja proovi siis uuesti."/>
-	<string id="20088" text="See võimalus kasutab teenuseid, mida pakub bitprints.getenvy.com failide tuvastamise ja jagamiste kohta.\n\nEnvy võtab SHA1 koodi, valitud failide kohta Bitprints andmebaasist. Kui oled mures oma turvalisuse pärast, siis võid tutvuda bitprints.getenvy.com privaatsus poliitikaga.\n\nKas tahad jätkata?"/>
+	<string id="20088" text="See võimalus kasutab teenuseid, mida pakub Bitprints failide tuvastamise ja jagamiste kohta.\n\nEnvy võtab SHA1 koodi, valitud failide kohta Bitprints andmebaasist. Kui oled mures oma turvalisuse pärast, siis võid tutvuda Bitprints privaatsus poliitikaga.\n\nKas tahad jätkata?"/>
 	<string id="20100" text="Sulen %s failide vaatamiseks ühenduse."/>
 	<string id="20101" text="Sirvitud kasutaja %s andis tundmatu vastuse ja ei pruugi sirvimist toetada."/>
 	<string id="20102" text="Ei suuda luua serveriga ühendust, et kasutajat kuvada."/>
@@ -4134,7 +4134,7 @@
 		<control/>
 		<control text="Tühista"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Tark Eelvaade...">
 		<control/>
@@ -4148,9 +4148,9 @@
 		<control text="Kas teadsid, et Envy on 100% vabavara?"/>
 		<control text="Envy ei sisalda &quot;spyware&quot;, &quot;adware&quot; ega mõnda muud lisaprogramme. Ta kuva mingeid reklaame ega &quot;hüpikaknaid&quot;, mitte kunagi.{n}{n}Kui peaksid reklaami nägema &quot;hüpikaknaid&quot; kasutades Envyt, võid kindel olla, et need ei tule sellest programmist."/>
 		<control text="Kahjuks paljud teised programmid tulevad koos adware'i või spyware'iga, nii et kui näed midagi kahtlast siis peaksid oma arvutit kontrollima spyware eemaldus programmiga (nt.ad-aware)."/>
-		<control text="Sa ei pea maksma raha Envy omandamise eest. Envy on vabalt saadaval kodulehel http://getenvy.com/. Kui sa oled oma programmi eest maksnud siis peaksid koheselt raha tagasi nõudma."/>
+		<control text="Sa ei pea maksma raha Envy omandamise eest. Envy on vabalt saadaval kodulehel https://github.com/Mika3578/Envy/releases Kui sa oled oma programmi eest maksnud siis peaksid koheselt raha tagasi nõudma."/>
 		<control text="Envy austab oma kasutajaid."/>
-		<control text="http://getenvy.com/"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Sule"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Levita">
@@ -4159,7 +4159,7 @@
 		<control text="Kahjuks paljud jagajad ei tea millest nad ilma jäävad."/>
 		<control text="Kui sa tead kedagi kellele Envy võiks meeldida, siis anna talle sellest teada."/>
 		<control text="Tõenäoliselt on nad sulle tänulikud."/>
-		<control text="http://getenvy.com/"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Olemasolev Fail">

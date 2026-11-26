@@ -3,8 +3,7 @@
 <manifest	name="Plain Text Collection"
 			author="Envy"
 			version="1.0"
-			link="http://getenvy.com/"
-			email="contact@getenvy.com"
+			link="https://github.com/Mika3578/Envy"
 			description="Simple plain-text list"
 			filename="Files.txt"
 />

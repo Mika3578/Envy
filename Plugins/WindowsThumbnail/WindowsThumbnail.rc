@@ -50,7 +50,7 @@ BEGIN
 			VALUE "OriginalFilename", "WindowsThumbnail.exe"
 			VALUE "FileDescription", "Envy Thumbnail Plugin"
 			VALUE "Comments", "Use available Windows thumbnails in Envy."
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Nikolay Raspopov 2009, Envy 2016"
 		END
 	END

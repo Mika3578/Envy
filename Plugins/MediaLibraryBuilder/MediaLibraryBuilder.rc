@@ -74,7 +74,7 @@ BEGIN
 			VALUE "OriginalFilename", "MediaLibraryBuilder.dll"
 			VALUE "FileDescription", "Media Library Builder Plugin"
 			VALUE "Comments", "Extract metadata from video files."
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016"
 		END
 	END

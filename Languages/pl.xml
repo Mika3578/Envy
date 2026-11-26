@@ -4,7 +4,7 @@
 <!-- Envy Default Polish Skin File -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -2147,7 +2147,7 @@
 		<text>Większość programów do tworzenia torrentów powinna pozwolić ci naprawić ten problem,
 		co sprawi, że będzie można pobierać ten torrent poprawnie w prawie wszystkich programach.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Kliknij tutaj po dodatkową pomoc</link>
+		<link target="https://github.com/Mika3578/Envy">Kliknij tutaj po dodatkową pomoc</link>
 		<text>, lub aby pobrać program do naprawy torrentów.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2645,7 +2645,7 @@
 	<string id="20064" text="Dobry"/>
 	<string id="20065" text="Bardzo dobry"/>
 	<string id="20066" text="Wyśmienity"/>
-	<string id="20080" text="To jest wersja pre-release (beta) Envy, a okres beta testowania dobiegł końca. Proszę ściągnąć pełną, bezpłatną, nie wymagającą żadnej rejestracji, oficjalną wersję ze strony http://getenvy.com."/>
+	<string id="20080" text="To jest wersja pre-release (beta) Envy, a okres beta testowania dobiegł końca. Proszę ściągnąć pełną, bezpłatną, nie wymagającą żadnej rejestracji, oficjalną wersję ze strony https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="&amp;Zamknij"/>
 	<string id="20082" text="Zakończono, kliknij Zamknij"/>
 	<string id="20083" text="Żądanie..."/>
@@ -4071,7 +4071,7 @@
 		<control/>
 		<control text="Anuluj"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Inteligentny Podgląd Pobierania...">
 		<control/>
@@ -4085,9 +4085,9 @@
 		<control text="Czy wiesz, że Envy jest w 100% DARMOWTM produktem?"/>
 		<control text="Envy NIE zawiera ŻADNEGO &quot;spyware'u&quot;, &quot;adware'u&quot; ani innego wmuszanego software'u. Envy NIE wyświetla ŻADNYCH reklam ani &quot;wyskakujących okieniek popup'ów&quot;, nigdy.{n}{n}Jeśli kiedykolwiek widziałeś reklamę lub &quot;wyskakujace okienka - popupy&quot; podczas używania Envyy, bądź pewien, że one NIE pochodzą z tego programu tj. Envyy."/>
 		<control text="Niestety wiele innych programów przychodzi z nieporządanym adwarem or spywarem, zatem jeśli widzisz coś podejrzanego you may wish to sprawdzić swój komputer oprogramowaniem likwidującym reklamy i szpiegów."/>
-		<control text="Nie wolno zmuszać Cię do płacenia jakichkolwiek pieniędzy za otrzymanie Envyy. Kazdy zawsze może darmowowo pobrać Envy ze strony http://getenvy.com. Jeśli zapłaciłeś komuś pieniądze za Envy, powinieneś żądać natychmiastowego zwrotu tych nienależnych temu komuś pieniędzy, aż do skutku."/>
+		<control text="Nie wolno zmuszać Cię do płacenia jakichkolwiek pieniędzy za otrzymanie Envyy. Kazdy zawsze może darmowowo pobrać Envy ze strony https://github.com/Mika3578/Envy/releases Jeśli zapłaciłeś komuś pieniądze za Envy, powinieneś żądać natychmiastowego zwrotu tych nienależnych temu komuś pieniędzy, aż do skutku."/>
 		<control text="Envy szanuje swoich użytkowników."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Zamknij"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Spread the Word">
@@ -4096,7 +4096,7 @@
 		<control text="Niestety, wielu wymieniających pliki nie wie co traci."/>
 		<control text="Jeśli znasz kogoś kto chciałby Envy, whether they're a new user or someone still putting up with an inferior product, dlaczego by nie powiadomić ich, że jest lepsza alternatywa?"/>
 		<control text="Są szanse, że będą Ci wdzięczni za poratowanie."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Plik istnieje">

@@ -84,7 +84,7 @@ BEGIN
 			VALUE "OriginalFilename", "GFLImageServices.dll"
 			VALUE "FileDescription", "GFL Image Service Plugin"
 			VALUE "Comments", "Extract previews from image files."
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016"
 		END
 	END

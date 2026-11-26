@@ -180,10 +180,10 @@ void CBitprintsDownloadDlg::OnLButtonDown(UINT /*nFlags*/, CPoint point)
 	m_wndWeb.GetWindowRect( &rc );
 	ScreenToClient( &rc );
 
-	if ( rc.PtInRect( point ) )
+	if (rc.PtInRect(point))
 	{
-		ShellExecute( GetSafeHwnd(), L"open",
-			L"http://bitprints.getenvy.com/?ref=Envy",
-			NULL, NULL, SW_SHOWNORMAL );
+		ShellExecute(GetSafeHwnd(), L"open",
+		             CString(WEB_SITE),
+		             NULL, NULL, SW_SHOWNORMAL);
 	}
 }

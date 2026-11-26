@@ -50,7 +50,7 @@ BEGIN
 			VALUE "OriginalFilename", "MediaPlayer.dll"
 			VALUE "FileDescription", "Envy Media Services Plugin"
 			VALUE "Comments", "Default internal Mediaplayer for Audio/Video files."
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016"
 		END
 	END

@@ -6,7 +6,7 @@
  author="Envy"
  icon="EnvyDark.ico"
  description="Envy's Windows 10 Dark Mode Theme"
- link="http://getenvy.com"
+ link="https://github.com/Mika3578/Envy"
  email="Contact(at)getenvy.com"
  license="Persistent Public Domain (PPD)"
  dependencies="Windows10.DarkFrames.xml"

@@ -49,7 +49,7 @@ BEGIN
 			VALUE "OriginalFilename", "Envy.exe"
 			VALUE "FileDescription", "Envy Filesharing"
 			VALUE "Comments", "Envy Filesharing"
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "� Envy Development Team 2016-2020"
 		END
 	END
@@ -292,7 +292,7 @@ BEGIN
 	LTEXT			"� Envy Development Team, 2016-",IDC_COPYRIGHT,20,42,200,12			// Substitute Manifest LegalCopyright
 	LTEXT			"Envy� is free software;  you can redistribute and/or modify it \nunder terms of the GNU Affero General Public License as published\nby the Free Software Foundation, version 3 or later.  (AGPL v3)",IDC_STATIC,20,56,236,24
 	LTEXT			"Portions copyright Shareaza 2002-2008 and PeerProject 2008-2016.",IDC_STATIC,20,86,262,12
-	LTEXT			"http://getenvy.com",IDC_WEB,20,112,90,10
+	LTEXT			"https://github.com/Mika3578/Envy",IDC_WEB,20,112,90,10
 	DEFPUSHBUTTON	"OK",IDOK,240,108,55,16
 END
 
@@ -1161,7 +1161,7 @@ BEGIN
 	CONTROL			"Progress1",IDC_PROGRESS,"msctls_progress32",WS_BORDER,40,25,210,10
 	PUSHBUTTON		"Cancel",IDCANCEL,200,105,50,14
 	CONTROL			"List1",IDC_FILES,"SysListView32",LVS_REPORT|LVS_SHAREIMAGELISTS|LVS_NOCOLUMNHEADER|WS_BORDER|WS_TABSTOP,40,40,210,60
-	LTEXT			"bitprints.getenvy.com",IDC_WEB,10,110,50,10
+	LTEXT			"https://github.com/Mika3578/Envy",IDC_WEB,10,110,50,10
 END
 
 IDD_FILE_COPY DIALOG 0, 0, 216, 190
@@ -1526,7 +1526,7 @@ BEGIN
 //	ICON			IDI_MAIL,IDC_STATIC_1,62,23,16,16,SS_REALSIZEIMAGE	// Icons handled OnPaint
 	EDITTEXT		IDC_PROFILE_EMAIL,76,22,192,12,ES_AUTOHSCROLL
 	GROUPBOX		"&Social / Instant Messaging:",IDC_STATIC,5,50,270,105,WS_GROUP
-	RTEXT			"GetEnvy.com:",IDC_STATIC,10,70,50,12,SS_CENTERIMAGE
+	RTEXT			"Envy:",IDC_STATIC,10,70,50,12,SS_CENTERIMAGE
 //	ICON			IDI_FAVICON,IDC_STATIC_2,62,71,16,16,SS_REALSIZEIMAGE
 	EDITTEXT		IDC_PROFILE_GETENVY,76,70,68,12,ES_AUTOHSCROLL
 	RTEXT			"Facebook:",IDC_STATIC,10,90,50,12,SS_CENTERIMAGE
@@ -1647,9 +1647,9 @@ BEGIN
 	LTEXT			"Did you know Envy is 100% free software?",IDC_TITLE,15,4,265,19,SS_CENTERIMAGE
 	LTEXT			"Envy does not contain any spyware, adware or bundled software; \nit does not display any advertisements, popups, or other bad behavior.\n\nIf you ever see such activity be assured that it is not coming from a genuine version of this program.",IDC_STATIC,15,26,265,50
 	LTEXT			"Envy is proud to be Free and Open-Source Software.  A non-profit team of passionate volunteers shares this product with all the freedoms of GPL and Creative Commons Licenses, in the hope that it might be useful.",IDC_STATIC,15,77,265,33
-	LTEXT			"You must not have paid any money to obtain this program.  Envy can be freely downloaded from GetEnvy.com, if you've paid anyone for this demand a full refund immediately.",IDC_STATIC,15,113,265,35
+	LTEXT			"You must not have paid any money to obtain this program.  Envy can be freely downloaded from the Envy GitHub project, if you've paid anyone for this demand a full refund immediately.",IDC_STATIC,15,113,265,35
 	LTEXT			"Envy respects and appreciates its users.",IDC_RESPECT,15,148,232,13
-	LTEXT			"http://getenvy.com",IDC_WEB,15,165,125,10
+	LTEXT			"https://github.com/Mika3578/Envy",IDC_WEB,15,165,125,10
 	DEFPUSHBUTTON	"OK",IDOK,242,160,44,14
 END
 
@@ -1663,7 +1663,7 @@ BEGIN
 	LTEXT			"However, a lot of potential filesharers don't know what they're missing.",IDC_STATIC,15,60,260,20
 	LTEXT			"If you know someone who might like Envy, whether a new user or still using older software, let them know there is a better alternative. \nAnd Thanks.",IDC_STATIC,15,75,260,30
 	LTEXT			"This is the last welcome message you will see.",IDC_STATIC,15,115,260,10
-	LTEXT			"http://getenvy.com",IDC_WEB,15,135,125,10
+	LTEXT			"https://github.com/Mika3578/Envy",IDC_WEB,15,135,125,10
 	DEFPUSHBUTTON	"OK",IDOK,242,135,44,14
 END
 
@@ -3413,7 +3413,7 @@ BEGIN
 	ID_HELP_WEB_4				"Visit this website"
 	ID_HELP_WEB_SKINS			"Visit the Envy Skins Site"
 	ID_HELP_WEB_BITPRINTS		"Visit the Bitprints info site"
-	ID_HELP_WEB_LOVE			"Visit the GetEnvy Love page, show us some love when you shop."
+	ID_HELP_WEB_LOVE			"Open the Envy project page on GitHub."
 	ID_HELP_STARTPAGE			"Visit the Envy Start Page portal"
 END
 
@@ -3812,8 +3812,8 @@ BEGIN
 	IDS_BITPRINTS_REQUESTING	"Requesting..."
 	IDS_BITPRINTS_SUCCESS		"Success."
 	IDS_BITPRINTS_NOT_HASHED	"The file ""%s"" has not yet been hashed.  Please wait for the file to be hashed, and then try again."
-	IDS_BITPRINTS_MESSAGE		"This option uses services provided by bitprints.getenvy.com for recognizing and sharing information about selected files.\n\nEnvy will send the SHA1 hash code for selected files in order to query the Bitprints database.  If you are concerned, you may wish to consult the bitprints.getenvy.com privacy policy.\n\nWould you like to proceed?"
-	IDS_BETA_EXPIRED			"This is a pre-release version of Envy, and the beta testing period has ended.  Please download the full, official release from http://getenvy.com/."
+	IDS_BITPRINTS_MESSAGE		"This option uses a user-configured external metadata service for recognizing and sharing information about selected files.\n\nEnvy will send the SHA1 hash code for selected files to that service.  No service is configured by default.  Review the service's privacy policy before proceeding.\n\nWould you like to proceed?"
+	IDS_BETA_EXPIRED			"This is a pre-release version of Envy, and the beta testing period has ended.  Please download the full, official release from https://github.com/Mika3578/Envy/releases."
 END
 
 STRINGTABLE
@@ -4425,7 +4425,7 @@ BEGIN
 	IDS_SECURITY_NOEXPIRE		"Never"
 	IDS_SECURITY_SESSION		"Session"
 	IDS_SECURITY_REMOVE_CONFIRM	"Are you sure you wish to delete selected security rules?"
-	IDS_SECURITY_TIP_NETMASK	"Last number is 254,252,248,240,224,192,128, or 0.  Others must be 255.\n\n(For Netmasked IP ranges.)\n\nSee getenvy.com/wiki for help."
+	IDS_SECURITY_TIP_NETMASK	"Last number is 254,252,248,240,224,192,128, or 0.  Others must be 255.\n\n(For Netmasked IP ranges.)\n\nSee the Envy project pages on GitHub for help."
 	IDS_SECURITY_ADDED          "Added a security rule to block %s."
 	IDS_SECURITY_EXISTS         "The address %s is already blocked by your security rules."
 	IDS_SECURITY_BANNED_USERAGENT "Client %s has prohibited user agent ""%s"", banning."

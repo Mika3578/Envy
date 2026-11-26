@@ -48,7 +48,7 @@ BEGIN
 			VALUE "OriginalFilename", "SkinScan.dll"
 			VALUE "FileDescription", "Envy Skin Metadata Extractor"
 			VALUE "Comments", "Extract metadata from Envy skin packages. (.envy files)"
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016"
 		END
 	END

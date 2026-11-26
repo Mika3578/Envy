@@ -4,7 +4,7 @@
 <!-- Envy Default Catalan Skin File -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -2155,7 +2155,7 @@
 		encara baixar-se correctament, tot i que alguns arxius poden tenir noms incorrectes.</text>
 		<newline gap="8"/>
 		<text>Quasi tots els programes de creació del torrent han de deixar-te reparar aquest torrent i
-		assegurar que funcionarà en més aplicacions torrent. <link target="http://getenvy.com/help/?torrentencoding">Fes clic aquí per a obtenir ajuda addicional</link>
+		assegurar que funcionarà en més aplicacions torrent. <link target="https://github.com/Mika3578/Envy">Fes clic aquí per a obtenir ajuda addicional</link>
 		</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2630,13 +2630,13 @@
 	<string id="20064" text="Bo"/>
 	<string id="20065" text="Molt bo"/>
 	<string id="20066" text="Excel·lent"/>
-	<string id="20080" text="Aquesta és una versió pre-llançament de Envy, i el període de proves (Beta) s'ha acabat. Si us plau, descarrega la versió completa de http://getenvy.com/."/>
+	<string id="20080" text="Aquesta és una versió pre-llançament de Envy, i el període de proves (Beta) s'ha acabat. Si us plau, descarrega la versió completa de https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="&amp;Tancar"/>
 	<string id="20082" text="Acabat, fes clic a tancar"/>
 	<string id="20083" text="Demanat..."/>
 	<string id="20084" text="Procesat"/>
 	<string id="20086" text="l'arxiu %s no ha estat escanejat. Per favor, espera a que sigui escanejat i intenta-ho més tard."/>
-	<string id="20088" text="Aquesta opció utilitza un servei ofrerit per Bitprints, per a adquirir metainformació de l'arxiu.\n\nEnvy enviarà una petita informació sobre la marca digital 'bitprint' de l'arxiu per a que Bitprints el pugui reconèixer. Si tens algun dubte sobre la privacitat d'aquest servei, visita bitprints.getenvy.com per a més informació.\n\nVols continuar?"/>
+	<string id="20088" text="Aquesta opció utilitza un servei ofrerit per Bitprints, per a adquirir metainformació de l'arxiu.\n\nEnvy enviarà una petita informació sobre la marca digital 'bitprint' de l'arxiu per a que Bitprints el pugui reconèixer. Si tens algun dubte sobre la privacitat d'aquest servei, visita Bitprints per a més informació.\n\nVols continuar?"/>
 	<string id="20100" text="Tancant exploració de l'usuari %s."/>
 	<string id="20101" text="L'exploració de l'usuari %s ha respost incorrectament, pots no soportar-ho."/>
 	<string id="20102" text="Ha estat impossible establir la connexió."/>
@@ -4245,7 +4245,7 @@
 		<control/>
 		<control text="Cancel·la"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Vista prèvia intel·ligent...">
 		<control/>
@@ -4259,9 +4259,9 @@
 		<control text="Envy és 100% gratuït."/>
 		<control text="No conté cap programari espia (&quot;spyware&quot;, &quot;adware&quot;) ni qualsevol altre tipus de programes. Envy no té ni propaganda, ni &quot;finestres emergents&quot;, mai.{n}{n}Si apareix alguna cosa, estigues segur que no és causa de Envy."/>
 		<control text="Per desgràcia, hi ha programes que instal·len programes espia o virus. Si us plau, comprova-ho amb programes especialitzats i neteja el teu ordinador."/>
-		<control text="No has de pagar per a obtindre Envy. Envy es pot distribueix lliurement, i descarregar de http://getenvy.com/. Si has pagat per ell, demana que et tornin els diners."/>
+		<control text="No has de pagar per a obtindre Envy. Envy es pot distribueix lliurement, i descarregar de https://github.com/Mika3578/Envy/releases Si has pagat per ell, demana que et tornin els diners."/>
 		<control text="Envy respecta els seus usuaris."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Tanca"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Ajuda'ns a fer difusió">
@@ -4270,7 +4270,7 @@
 		<control text="Desafortunadament, hi ha molts usuaris que no el coneixen encara."/>
 		<control text="Si coneixes a algú que li pugui agradar Envy, fes-ho saber: en lloc d'utilitzar altres programes inferiors en qualitat que utilitze Envy..."/>
 		<control text="Chances are they'll be grateful you told them."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Tanca"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="L'arxiu ja existeix">

@@ -4,7 +4,7 @@
 <manifest	name="Audio Collection"
 			author="Envy"
 			version="1.0"
-			link="http://getenvy.com/"
+			link="https://github.com/Mika3578/Envy"
 			description="Audio collection export template."
 			icon="audio.ico"
 />

@@ -353,8 +353,8 @@ LRESULT CConfigDlg::OnEnChangeCommand(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /
 
 LRESULT CConfigDlg::OnBnClickedWeb(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& bHandled)
 {
-	ShellExecute( GetActiveWindow(), L"open",
-		L"http://getenvy.com/wiki/plugins", NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetActiveWindow(), L"open",
+	             L"https://github.com/Mika3578/Envy", NULL, NULL, SW_SHOWNORMAL);
 
 	bHandled = TRUE;
 	return 0;

@@ -103,10 +103,9 @@ void CWarningsDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	m_wndWeb.GetWindowRect( &rc );
 	ScreenToClient( &rc );
 
-	if ( rc.PtInRect( point ) )
+	if (rc.PtInRect(point))
 	{
-		ShellExecute( GetSafeHwnd(), L"open",
-			CString( WEB_SITE ) + L"?Version=" + theApp.m_sVersion,
-			NULL, NULL, SW_SHOWNORMAL );
+		ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+		             NULL, NULL, SW_SHOWNORMAL);
 	}
 }

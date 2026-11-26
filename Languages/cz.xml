@@ -4,7 +4,7 @@
 <!-- Envy Default Czech Skin File -->
 
 <!-- Translation based on default en.xml r30 --> <!-- (Shareaza 2.2.5.7) -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="Prometheus"
 	updatedby="Odin"
 	description="Envy Default Czech Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="odinuv(at)users.sourceforge.net"
 	version="1.0"
 	type="Language"
@@ -2137,7 +2137,7 @@
 		<text>Většina torrentů vytvořených programy by vám měla dovolit opravit tento torrent, takže
 		po opravě bude řádně pracovat ve všech aplikacích BitTorrent.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Klikněte sem pro další pomoc</link>
+		<link target="https://github.com/Mika3578/Envy">Klikněte sem pro další pomoc</link>
 		<text>, nebo si stáhněte software pro opravení torrentu.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2613,13 +2613,13 @@
 	<string id="20064" text="Dobrá"/>
 	<string id="20065" text="Velmi dobrá"/>
 	<string id="20066" text="Vynikající"/>
-	<string id="20080" text="Toto je předběžně uvolněná verze Envy, beta testovací doba skončila. Prosím stáhněte si plnou oficiální verzi z http://getenvy.com/."/>
+	<string id="20080" text="Toto je předběžně uvolněná verze Envy, beta testovací doba skončila. Prosím stáhněte si plnou oficiální verzi z https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="&amp;Zavřít"/>
 	<string id="20082" text="Po dokončení klikněte na Zavřít"/>
 	<string id="20083" text="Žádám..."/>
 	<string id="20084" text="Úspěšně"/>
 	<string id="20086" text="Soubor &quot;%s&quot; ještě nemá hash. Prosím čekejte než bude pro soubor vypočítán hash, a potom to zkuste znovu."/>
-	<string id="20088" text="Tuto možnost využívá služba poskytovaná bitprints.getenvy.com která zjišťuje a sdílí informace o vybraných souborech.\n\nEnvy bude přenášet SHA1 hash pro označený soubor(y) v rámci dotazu poslaného databázi Bitprints. Pokud máte obavy o soukromí přečtěte si prohlášení bitprints.getenvy.com o ochraně osobních údajů.\n\nChcete pokračovat?"/>
+	<string id="20088" text="Tuto možnost využívá služba poskytovaná Bitprints která zjišťuje a sdílí informace o vybraných souborech.\n\nEnvy bude přenášet SHA1 hash pro označený soubor(y) v rámci dotazu poslaného databázi Bitprints. Pokud máte obavy o soukromí přečtěte si prohlášení Bitprints o ochraně osobních údajů.\n\nChcete pokračovat?"/>
 	<string id="20100" text="Ukončuji připojení prohlížení uživatele %s."/>
 	<string id="20101" text="Prohlížeč hosta %s odpověděl zamítavou odezvou, neumožňuje podporu prohledávání uživatele/hosta."/>
 	<string id="20102" text="Nelze se připojit k uživateli a prohlížet profil nebo soubory."/>
@@ -4224,7 +4224,7 @@
 		<control/>
 		<control text="Zrušit"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Inteligentní náhled stahování...">
 		<control/>
@@ -4238,9 +4238,9 @@
 		<control text="Víte, že je Envy 100% free?"/>
 		<control text="Envy neobsahuje žádné &quot;spyware&quot;, &quot;adware&quot; nebo další podobný software. Nezobrazuje jakékoli reklamy nebo &quot;popups&quot;, (vyskakovací okna).{n}{n}Jestliže někdy uvidíte reklamu nebo &quot;popups&quot; při používání Envy, určitě nepocházejí z našeho programu."/>
 		<control text="Bohužel hodně jiných programů obtěžuje s nežádoucí reklamou nebo spayware, takže pokud uvidíte něco podezřelého, zkontrolujte váš PC programem Ad-aware nebo podobným programem na odstranění těchto špiónů."/>
-		<control text="Pro získání Envy nemusíte platit žádné peníze. Envy může být volně stažena z http://getenvy.com/. Jestliže jste někomu zaplatili za Envy, měli by jste požadovat okamžitě vrácení peněz."/>
+		<control text="Pro získání Envy nemusíte platit žádné peníze. Envy může být volně stažena z https://github.com/Mika3578/Envy/releases Jestliže jste někomu zaplatili za Envy, měli by jste požadovat okamžitě vrácení peněz."/>
 		<control text="Envy respektuje své uživatele."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Zavřít"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Spread the Word">
@@ -4249,7 +4249,7 @@
 		<control text="Bohužel, mnoho uživatelů neví o co přichází."/>
 		<control text="Víte o někom, kdo by mohl mít zájem používat Envy? Nezáleží jestli je to nový uživatel nebo někdo, kdo již používá nějaký jiný program pro sdílení. Nechte jej nechat vyzkoušet Envy, ať pozná co je lepší?"/>
 		<control text="Budou vám vděční, že jste jim ukázali něco nového."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Soubor již existuje">

@@ -48,7 +48,7 @@ BEGIN
 			VALUE "OriginalFilename", "ZIPBuilder.dll"
 			VALUE "FileDescription", "ZIP Builder"
 			VALUE "Comments", "Extract metadata from .ZIP archives."
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016"
 		END
 	END

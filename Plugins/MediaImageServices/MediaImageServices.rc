@@ -85,7 +85,7 @@ BEGIN
 			VALUE "OriginalFilename", "MediaImageServices.dll"
 			VALUE "FileDescription", "Media Image Services Plugin"
 			VALUE "Comments", "Extract previews from video files."
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016"
 		END
 	END

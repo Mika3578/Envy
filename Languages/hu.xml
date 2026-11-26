@@ -4,7 +4,7 @@
 <!-- Envy Default Hungarian Skin File -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -2165,7 +2165,7 @@
 		<text>A legtöbb torrentkészítő program ki tudja javítani ezt a hibát, így bármelyik BitTorrent programmal működni fog.
 		Ha segítség kell, látogassa meg a Envy fórumait.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Kattintson ide, ha további segítségre van szüksége</link>
+		<link target="https://github.com/Mika3578/Envy">Kattintson ide, ha további segítségre van szüksége</link>
 		<text>vagy töltse le innen a megfelelő szoftvert.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2652,7 +2652,7 @@
 	<string id="20083" text="Kérés..."/>
 	<string id="20084" text="Siker."/>
 	<string id="20086" text="A(z) &quot;%s&quot; még nem volt hashelve. Várja meg a hashelést és próbálja újra."/>
-	<string id="20088" text="Ez az opció a bitprints.getenvy.com fájlinformációs szolgáltatásait használja.\n\nA Envy a fájl SHA1 hash kódját elküldi a Bitprints adatbázisába. Ha nem bízik meg a Bitprintsben, akkor olvassa el a bitprints.getenvy.com adatvédelmi nyilatkozatát.\n\nTovább akar menni?"/>
+	<string id="20088" text="Ez az opció a Bitprints fájlinformációs szolgáltatásait használja.\n\nA Envy a fájl SHA1 hash kódját elküldi a Bitprints adatbázisába. Ha nem bízik meg a Bitprintsben, akkor olvassa el a Bitprints adatvédelmi nyilatkozatát.\n\nTovább akar menni?"/>
 	<string id="20100" text="Fájllista kapcsolat bezárása %s."/>
 	<string id="20101" text="%s egy ismeretlen válasszal válaszolt és nem támogatja a fájllista letöltését."/>
 	<string id="20102" text="Nem lehetett kapcsolatot létesíteni a fájllista letöltéséhez."/>
@@ -4303,7 +4303,7 @@
 		<control/>
 		<control text="Mégse"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Előnézet...">
 		<control/>
@@ -4317,9 +4317,9 @@
 		<control text="Tudta, hogy a Envy egy teljesen ingyenes termék?"/>
 		<control text="A Envy SEMMILYEN &quot;kémprogramot&quot;, &quot;reklámot&quot; és hasonló programot NEM tartalmaz. SEMMILYEN &quot;felugró ablak&quot; NEM található benne.{n}{n}Ha mégis megjelenne ilyesmi, akkor az nem a Envyól származik."/>
 		<control text="Ellenben más programok tartalmazhatnak reklámot és/vagy kémprogramot. Ha ilyenekkel találkozik, futtasson le egy reklám- és kémprogram írtó programot."/>
-		<control text="Soha nem kell pénzt kiadnia a Envy. Innen letöltető ingyen: http://getenvy.com. Ha valahol fizetett érte, akkor biztosan átvágták és kérje vissza a pénzét."/>
+		<control text="Soha nem kell pénzt kiadnia a Envy. Innen letöltető ingyen: https://github.com/Mika3578/Envy/releases Ha valahol fizetett érte, akkor biztosan átvágták és kérje vissza a pénzét."/>
 		<control text="A Envy tiszteli a felhasználóit."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Bezárás"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Terjesztés">
@@ -4328,7 +4328,7 @@
 		<control text="Sajnos sokan nem tudják, hogy miből maradnak ki."/>
 		<control text="Ezért, ha ismer valakit, akinek pont egy ilyen programra lenne szüksége, nyugodtan ajánlja neki a Envy."/>
 		<control text="Nem fog köszönet nélkül maradni."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Létező fájl letöltése">

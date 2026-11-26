@@ -50,7 +50,7 @@ BEGIN
 			VALUE "OriginalFilename", "Unpacker.exe"
 			VALUE "FileDescription", "Envy Package Installer"
 			VALUE "Comments", "Envy Package Installer"
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016-2020"
 		END
 	END

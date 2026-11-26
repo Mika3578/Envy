@@ -98,7 +98,7 @@
 <table width="100%" border="0" cellspacing="0" cellpadding="0">
 	<tbody>
 		<tr>
-			<td style="background-image: url('Images/bg.png');" align="left" valign="top"><a href="http://getenvy.com/?id=download"><img src="images/Top.png" width="601" height="50" border="0" alt="Envy P2P"/></a></td>
+			<td style="background-image: url('Images/bg.png');" align="left" valign="top"><a href="https://github.com/Mika3578/Envy/releases"><img src="images/Top.png" width="601" height="50" border="0" alt="Envy P2P"/></a></td>
 			<td style="background: url('Images/TopRepeat.png') repeat-x;" width="100%">&nbsp;</td>
 		</tr>
 		<tr>

@@ -51,7 +51,7 @@ BEGIN
 			VALUE "OriginalFilename", "HashLib.dll"
 			VALUE "FileDescription", "HashLib DLL"
 			VALUE "Comments", "SHA1, MD5, MD4, TigerTree classes"
-			VALUE "CompanyName", "GetEnvy.com"
+			VALUE "CompanyName", "Envy"
 			VALUE "LegalCopyright", "© Envy Development Team 2016-2020"
 		END
 	END

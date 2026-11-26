@@ -544,9 +544,8 @@ void CSkinsSettingsPage::OnSkinsBrowse()
 
 void CSkinsSettingsPage::OnSkinsWeb()
 {
-	ShellExecute( GetSafeHwnd(), L"open",
-		CString( WEB_SITE ) + L"Skins?Version=" + theApp.m_sVersion,
-		NULL, NULL, SW_SHOWNORMAL );
+	ShellExecute(GetSafeHwnd(), L"open", WEB_SITE,
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CSkinsSettingsPage::OnOK()

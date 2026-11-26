@@ -4,7 +4,7 @@
 <!-- Envy Default Greek Skin File -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="erimitis"
 	updatedby="erimitis, Maria Tatsiou"
 	description="Envy Default Greek Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="erimitis(at)users.sourceforge.net"
 	version="1.0"
 	type="Language"
@@ -2226,7 +2226,7 @@
 		<text>Τα περισσότερα προγράμματα για δημιουργία torrent σας επιτρέπουν να διορθώσετε αυτό το torrent, ώστε
 		να εγγυηθούν ότι θα δουλέψει κατάλληλα σε όλες τις εφαρμογές BitTorrent.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Κλικ εδώ για επιπλέον βοήθεια</link>
+		<link target="https://github.com/Mika3578/Envy">Κλικ εδώ για επιπλέον βοήθεια</link>
 		<text>ή για να λάβεται λογισμικό για να επιδιορθώσετε το torrent.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2715,13 +2715,13 @@
 	<string id="20064" text="Καλό"/>
 	<string id="20065" text="Πολύ Καλό"/>
 	<string id="20066" text="Έξοχο"/>
-	<string id="20080" text="Αυτή είναι μία έκδοση προδημοσίευσης του Envy και η περίοδος δοκιμών έληξε. Παρακαλώ λέβετ την πλήρη επίσημη έκδοση από το http://getenvy.com/."/>
+	<string id="20080" text="Αυτή είναι μία έκδοση προδημοσίευσης του Envy και η περίοδος δοκιμών έληξε. Παρακαλώ λέβετ την πλήρη επίσημη έκδοση από το https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="Κλείσιμο"/>
 	<string id="20082" text="Ολοκληρώθηκε, κλικ στο Κλείσιμο"/>
 	<string id="20083" text="Αίτηση..."/>
 	<string id="20084" text="Επιτυχία."/>
 	<string id="20086" text="Το αρχείο &quot;%s&quot; ακόμη δεν έχει σαρωθεί. Παρακαλώ περιμένετε να τελειώσει και ξαναπροσπαθείστε."/>
-	<string id="20088" text="Αυτή η επιλογή χρησιμοποιεί υπηρεσίες παρεχόμενες από το bitprints.getenvy.com προς αναγνώριση και κοινοποίηση πληροφοριών για τα επιλεγμένα αρχεία.nnΤο Envy θα αποστείλει το SHA1 hash code για τα επιλεγμένα αρχεία, προκειμένου να ρωτήσει τη βάση δεδομένων του Bitprints. Αν ανησυχείται για την ιδιωτικότητά σας, συμβουλευτείτε την πολιτική ιδιωτικότητας του bitprints.getenvy.com.nnΘέλετε να συνεχίσετε;"/>
+	<string id="20088" text="Αυτή η επιλογή χρησιμοποιεί υπηρεσίες παρεχόμενες από το Bitprints προς αναγνώριση και κοινοποίηση πληροφοριών για τα επιλεγμένα αρχεία.nnΤο Envy θα αποστείλει το SHA1 hash code για τα επιλεγμένα αρχεία, προκειμένου να ρωτήσει τη βάση δεδομένων του Bitprints. Αν ανησυχείται για την ιδιωτικότητά σας, συμβουλευτείτε την πολιτική ιδιωτικότητας του Bitprints.nnΘέλετε να συνεχίσετε;"/>
 	<string id="20100" text="Κλείσιμο σύνδεσης περιήγησης χρήστη με %s."/>
 	<string id="20101" text="Μη αναγνωρίσιμη απάντηση του host %s, ίσως δεν υποστηρίζει περιήγηση χρήστη."/>
 	<string id="20102" text="Αδυναμία σύνδεσης στον host για περιήγηση."/>
@@ -4372,7 +4372,7 @@
 		<control/>
 		<control text="Άκυρο"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Έξυπνη Προεπισκόπηση Λήψης...">
 		<control/>
@@ -4388,7 +4388,7 @@
 		<control text="Δυστυχώς, πολλά άλλα προγράμματα συνοδεύονται από ανεπιθύμητα adware ή spyware, έτσι, αν δείτε κάτι ύποπτο, ελέγξτε τον υπολογιστή σας με ένα πρόγραμμα αφαίρεσης κακόβουλου λογισμικού."/>
 		<control text="Δεν πρέπει να έχετε πληρώσει χρήματα για να αποκτήσετε το Envy, αφού μπορεί να ληφθεί ελεύθερα από οποιονδήποτε από τον ιστοχώρο http://Envy.sourceforge.net/. Αν πληρώσατε χρήματα για το Envy, θα πρέπει να ζητήσετε άμεση και πλήρη επιστροφή χρημάτων."/>
 		<control text="Το Envy σέβεται τους χρήστες του."/>
-		<control text="http://getenvy.com/"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Κλείσιμο"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Διαδόστε το">
@@ -4397,7 +4397,7 @@
 		<control text="Δυστυχώς, πολλοί χρήστες δεν ξέρουν τι χάνουν."/>
 		<control text="Αν ξέρετε κάποιον που θα του άρεσε το Envy, είτε είναι νέος χρήστης, είτε κάποιος που ακόμα παιδεύεται με ένα κατώτερο προϊόν, γιατί να μην τον ενημερώσετε ότι υπάρχει μια καλύτερη εναλλακτική;"/>
 		<control text="Πιθανόν να σας ευγνωμονεί που τον σώσατε."/>
-		<control text="http://getenvy.com/"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Προϋπάρχοντα Αρχεία">

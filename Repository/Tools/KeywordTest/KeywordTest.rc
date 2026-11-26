@@ -46,7 +46,7 @@ BEGIN
     BEGIN
         BLOCK "000004b0"
         BEGIN
-            VALUE "CompanyName", "GetEnvy.com"
+            VALUE "CompanyName", "Envy"
             VALUE "FileDescription", "Envy Keyword Test"
             VALUE "FileVersion", "1.0.0.0"
             VALUE "InternalName", "KeywordTest.exe"

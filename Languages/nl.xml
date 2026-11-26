@@ -4,7 +4,7 @@
 <!-- Envy Default Dutch Skin File -->
 
 <!-- Translation based on default en.xml r30 -->
-<!-- github.com/GetEnvy/Envy/blob/master/Languages/en.xml -->
+<!-- github.com/Mika3578/Envy/blob/develop/Languages/en.xml -->
 
 <!-- This skin template represents current Envy defaults. -->
 <!-- Use this file as a basis for creating new languages. -->
@@ -17,7 +17,7 @@
 	author="Jan-Willem Koornwinder (Thurstydog)"
 	updatedby="ceceboy, Neglacio, RoestVrijStaal, Han"
 	description="Envy Default Dutch Skin File"
-	link="http://getenvy.com"
+	link="https://github.com/Mika3578/Envy"
 	email="Neglacio@live.nl"
 	version="1.0"
 	type="Language"
@@ -2240,7 +2240,7 @@
 		<text>De meeste programma's die torrents maken kunnen dit bestand herstellen, zodat je
 		zeker bent dat het werkt in alle BitTorrent programma's.</text>
 		<newline gap="8"/>
-		<link target="http://getenvy.com/help/?torrentencoding">Klik hier voor extra hulp</link>
+		<link target="https://github.com/Mika3578/Envy">Klik hier voor extra hulp</link>
 		<text>, of om software te downloaden om de torrent te herstellen.</text>
 	</document>
 	<document name="GeneralHelp.DonkeyServerList">
@@ -2725,13 +2725,13 @@
 	<string id="20064" text="Goed"/>
 	<string id="20065" text="Erg goed"/>
 	<string id="20066" text="Perfect"/>
-	<string id="20080" text="Dit is een voor-distributie versie van Envy en de beta periode is afgelopen. Download alsjeblieft de volledige, officiële distributie vanaf http://getenvy.com/."/>
+	<string id="20080" text="Dit is een voor-distributie versie van Envy en de beta periode is afgelopen. Download alsjeblieft de volledige, officiële distributie vanaf https://github.com/Mika3578/Envy/releases"/>
 	<string id="20081" text="&amp;Sluiten"/>
 	<string id="20082" text="Klaar, klik op sluiten"/>
 	<string id="20083" text="Wordt aangevraagd..."/>
 	<string id="20084" text="Gelukt."/>
 	<string id="20086" text="Het bestand &quot;%s&quot; is nog niet gehasht. Wacht alsjeblieft even totdat het bestand gehasht is en probeer het dan nog een keer."/>
-	<string id="20088" text="Deze optie gebruikt diensten die zijn verstrekt door bitprints.getenvy.com voor het herkennen en delen van informatie over de geselecteerde bestanden.\n\nEnvy geeft de SHA1 hash-code door voor de geselecteerde bestand(en) om de Bitprints gegevensbank op te vragen. Als je je zorgen maakt over privacy, kun je de privacypolis van bitprints.getenvy.com raadplegen.\n\nWil je verdergaan?"/>
+	<string id="20088" text="Deze optie gebruikt diensten die zijn verstrekt door Bitprints voor het herkennen en delen van informatie over de geselecteerde bestanden.\n\nEnvy geeft de SHA1 hash-code door voor de geselecteerde bestand(en) om de Bitprints gegevensbank op te vragen. Als je je zorgen maakt over privacy, kun je de privacypolis van Bitprints raadplegen.\n\nWil je verdergaan?"/>
 	<string id="20100" text="De verbinding met %s voor het bekijken van de gebruiker is gesloten."/>
 	<string id="20101" text="&quot;Bekijken&quot; gastheer %s heeft geantwoord met een niet herkend antwoord en ondersteunt misschien niet het bekijken van gebruiker/bron."/>
 	<string id="20102" text="Niet mogelijk om te verbinden met gastheer voor het bekijken van de gebruiker."/>
@@ -4402,7 +4402,7 @@
 		<control/>
 		<control text="Annuleren"/>
 		<control/>
-		<control text="bitprints.getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy/releases"/>
 	</dialog>
 	<dialog name="CFilePreviewDlg" cookie="StStStmsStBu" caption="Downloadvoorvertoning">
 		<control/>
@@ -4416,9 +4416,9 @@
 		<control text="Wist je al dat Envy een 100% gratis product is?"/>
 		<control text="Envy bevat GEEN ENKELE &quot;spyware&quot;, &quot;adware&quot; of andere verpakte/verborgen software. Het laat GEEN advertenties of &quot;popups&quot; zien, niets daarvan.{n}{n}Als je ooit een advertentie of &quot;popup&quot; krijgt tijdens het gebruiken van Envy, kun je er gegarandeerd vanuit gaan dat ze NIET afkomstig zijn van dit programma."/>
 		<control text="Helaas komt een heleboel andere software met ongewenste adware of spyware, dus als je iets verdachts ziet doe je er goed aan om je PC na te kijken met een programma dat reclame of spyware verwijdert."/>
-		<control text="Als het goed is heb je niets hoeven te betalen voor Envy. Het kan door iedereen gratis worden gedownload vanaf http://getenvy.com/. Als je toch iemand hebt moeten betalen voor Envy, moet je meteen een volledige terugbetaling eisen."/>
+		<control text="Als het goed is heb je niets hoeven te betalen voor Envy. Het kan door iedereen gratis worden gedownload vanaf https://github.com/Mika3578/Envy/releases Als je toch iemand hebt moeten betalen voor Envy, moet je meteen een volledige terugbetaling eisen."/>
 		<control text="Envy respecteert zijn gebruikers."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="Sluiten"/>
 	</dialog>
 	<dialog name="CPromoteDlg" cookie="StStStStStStBu" caption="Verspreid het nieuws">
@@ -4427,7 +4427,7 @@
 		<control text="Helaas weten een heleboel mensen niet wat ze missen."/>
 		<control text="Misschien ken jij nog wel een paar mensen die geïnteresseerd zouden kunnen zijn in Envy, of ze nu nieuwe gebruikers zijn, of het nog steeds proberen met andere minderwaardige producten. Waarom vertel je ze niet dat er een beter alternatief bestaat?"/>
 		<control text="De kans is groot dat ze je dankbaar zullen zijn dat je ze hebt gered."/>
-		<control text="http://getenvy.com"/>
+		<control text="https://github.com/Mika3578/Envy"/>
 		<control text="OK"/>
 	</dialog>
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBuStSt" caption="Bestaand bestand downloaden">

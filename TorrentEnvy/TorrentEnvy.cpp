@@ -52,10 +52,10 @@ CTorrentEnvyApp::CTorrentEnvyApp()
 
 void CTorrentEnvyApp::OnHelp()
 {
-//	CWinApp::OnHelp();
-	ShellExecute( NULL, NULL, L"http://getenvy.com/wiki/TorrentEnvy/",
-	//	+ static_cast< CWizardPage* >( m_pSheet->GetActivePage() )->GetWindowText(),
-		NULL, NULL, SW_SHOWNORMAL );
+	//	CWinApp::OnHelp();
+	ShellExecute(NULL, NULL, L"https://github.com/Mika3578/Envy",
+	             //	+ static_cast< CWizardPage* >( m_pSheet->GetActivePage() )->GetWindowText(),
+	             NULL, NULL, SW_SHOWNORMAL);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -76,7 +76,7 @@ BOOL CTorrentEnvyApp::InitInstance()
 		 ! m_sCommandLineTracker.IsEmpty() )
 	{
 		if ( m_sCommandLineComment.IsEmpty() )
-			m_sCommandLineComment = L"http://getenvy.com/";
+			m_sCommandLineComment = L"https://github.com/Mika3578/Envy";
 	}
 	else
 	{
