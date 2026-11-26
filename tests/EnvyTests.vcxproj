@@ -295,15 +295,12 @@
     <Error Condition="'$(VSInstallDir)'==''" Text="VSInstallDir is not set; run from a Visual Studio Developer prompt or set VSInstallDir so VsDevCmd.bat can be located." />
     <Exec WorkingDirectory="$(ProjectDir).." Command="call &quot;$(VSInstallDir)Common7\Tools\VsDevCmd.bat&quot; -no_logo -host_arch=x64 -arch=$(MetaFetchArch) &amp;&amp; set &quot;ENVY_METAFETCH_CONFIGURATION=$(Configuration)&quot; &amp;&amp; python &quot;$(ProjectDir)run_metafetch_receive_tests.py&quot;" />
   </Target>
-  <Target Name="CopyUnpackerTestRuntime" AfterTargets="Build">
-    <Copy SourceFiles="$(ProjectDir)..\Services\zlib\$(Configuration) $(Platform)\zlibwapi.dll" DestinationFolder="$(OutDir)" />
-  </Target>
-  <ItemGroup>
-    <ProjectReference Include="..\Services\zlib\zlibwapi.vcxproj">
-      <Project>{39f34f2c-d42a-41d2-a0bc-54d7972e2bc5}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-  </ItemGroup>
+  <!-- The vendored zlib core is compiled into this project as static C
+       translation units (no ZLIB_DLL/ZLIB_WINAPI), so no zlib or minizip
+       symbol resolves through zlibwapi.dll and the import library must not
+       be linked: on x64 its undecorated stubs collide with the local
+       objects (LNK2005), and its Win32 assembler inflate fast path crashes
+       on any inflate call. -->
   <!-- HashLib dependency -->
   <ItemGroup>
     <ProjectReference Include="..\HashLib\HashLib.vcxproj">
