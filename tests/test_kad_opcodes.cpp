@@ -55,7 +55,7 @@ const std::set<unsigned> kDispatched = { 0x01, 0x09, 0x11, 0x19, 0x21, 0x29, 0x3
 	                                     0x3B, 0x50, 0x53, 0x58, 0x59, 0x60, 0x61 };
 // Standard opcodes dropped before any handler: PUBLISH is not implemented and
 // Envy holds no UDP keys to answer or verify a HELLO_RES_ACK.
-const std::set<unsigned> kUnsupported = { 0x22, 0x43, 0x44, 0x45, 0x4B, 0x4C };
+const std::set<unsigned> kUnsupported = { 0x22, 0x35, 0x43, 0x44, 0x45, 0x4B, 0x4C };
 
 KadUdpOpcodeDisposition Of(unsigned opcode)
 {
@@ -118,7 +118,7 @@ bool test_kad_opcode_retired_and_old_values_stay_unknown()
 		0x12, 0x1A, 0x2A, 0x3C, // old Envy ACK aliases without a reference opcode
 		0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x31, 0x32, 0x38, 0x39, 0x3A, 0x40,
 		0x48, 0x51, 0x52, 0x5A, // Kad1 / retired reference opcodes
-		0x35, 0x62,             // standard, without a handler in Envy
+		0x62,                     // standard opcode without a handler in Envy
 	};
 	return std::all_of(std::begin(retired), std::end(retired),
 	                   [](unsigned opcode)

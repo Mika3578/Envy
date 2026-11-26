@@ -76,6 +76,7 @@ constexpr KadUdpOpcodeDisposition KadUdpOpcodeDispositionOf(std::uint8_t nOpcode
 	case KADEMLIA2_FIREWALLED_ACK_RES:
 		return KadUdpOpcodeDisposition::Dispatched;
 	case KADEMLIA2_HELLO_RES_ACK:
+	case KADEMLIA2_SEARCH_NOTES_REQ:
 	case KADEMLIA2_PUBLISH_KEY_REQ:
 	case KADEMLIA2_PUBLISH_SOURCE_REQ:
 	case KADEMLIA2_PUBLISH_NOTES_REQ:
