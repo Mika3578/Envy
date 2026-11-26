@@ -76,17 +76,17 @@ jobs:
             exit 1
           fi
 
-      - name: Verify no _ATL_XP_TARGETING remains
+      - name: Verify no XP-targeting macros remain
         shell: bash
         run: |
           # PluginWizard templates are intentionally left untouched.
-          bad=$(grep -lr "_ATL_XP_TARGETING" --include="*.vcxproj" --include="CMakeLists.txt" --include="*.cmake" --exclude-dir=PluginWizard . || true)
+          bad=$(grep -Erl "_ATL_XP_TARGETING|XPSUPPORT|v141_xp" --include="*.vcxproj" --include="CMakeLists.txt" --include="*.cmake" --exclude-dir=PluginWizard . || true)
           if [ -n "$bad" ]; then
-            echo "::error::_ATL_XP_TARGETING preprocessor macro must be removed from:"
+            echo "::error::_ATL_XP_TARGETING, XPSUPPORT and v141_xp are banned (no-XP policy); found in:"
             echo "$bad"
             exit 1
           fi
-          echo "_ATL_XP_TARGETING absent from first-party project and CMake files."
+          echo "No XP-targeting macros in first-party project and CMake files."
 
       - name: Classify-changes self-test
         shell: bash
