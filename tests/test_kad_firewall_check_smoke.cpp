@@ -191,6 +191,20 @@ static bool test_test_starts_and_context()
 	return fw.TcpState() == KadTcpFirewallState::Testing && fw.OutstandingCount() == 1 && fw.HasOutboundCheck(kPeerA, kUdp);
 }
 
+// A duplicate Begin for a peer that already has an outstanding check must be
+// refused without consuming a second slot (#374).
+static bool test_duplicate_begin_keeps_single_slot()
+{
+	KadFirewallCheck fw;
+	fw.OnKadStart(1, kTcp);
+	if (!fw.BeginOutboundCheck(make_peer(kPeerA, kUdp), 10))
+		return false;
+	if (fw.BeginOutboundCheck(make_peer(kPeerA, kUdp), 11))
+		return false;
+	return fw.OutstandingCount() == 1;
+}
+
+
 static BYTE* write_res(BYTE* buf, DWORD ip)
 {
 	KadWriteU32LE(buf, ip);
@@ -552,6 +566,7 @@ void register_kad_firewall_check_smoke_tests(TestSuite& suite)
 	suite.add_test("kad_fw2_min_19", test_fw2_min_19);
 	suite.add_test("kad_fw_initial_unknown", test_initial_unknown);
 	suite.add_test("kad_fw_test_starts_context", test_test_starts_and_context);
+	suite.add_test("kad_fw_duplicate_begin_keeps_single_slot", test_duplicate_begin_keeps_single_slot);
 	suite.add_test("kad_fw_valid_matching_res", test_valid_matching_res);
 	suite.add_test("kad_fw_unsolicited_res", test_unsolicited_res_ignored);
 	suite.add_test("kad_fw_stale_res", test_stale_res_ignored);
