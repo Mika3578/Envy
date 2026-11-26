@@ -180,6 +180,11 @@ public:
 	void CancelUdpFirewallCheckProbe(DWORD ipHost);
 	void OnUdpFirewallCheckClientClosed(DWORD ipHost);
 	bool HasKadContactIp(DWORD ipHost);
+	// Advisory round id of the UDP firewall tester (bumped on kad start,
+	// recheck, and port change). Lock-free read is intentional: a caller
+	// acting one tick late just re-asks the tester, which no-ops for
+	// already-requested IPs.
+	DWORD UdpFirewallCheckRound() const { return m_udpFirewall.Round(); }
 
 	// Search for keyword results in DHT
 	void SearchKeyword(const KadId& keywordHash);

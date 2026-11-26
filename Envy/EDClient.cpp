@@ -460,6 +460,7 @@ CEDClient::CEDClient()
     , m_bCommentSent(FALSE)
     , m_nObservedPublicIp(0)
     , m_bUdpFwCheckRequested(FALSE)
+    , m_nUdpFwCheckRound(0)
 
     , m_nDirsWaiting(0ul)
 {
@@ -925,7 +926,9 @@ void CEDClient::OnRunEx(DWORD tNow)
 	// #515: an idle connected Kad >= 6 client may fire our UDP firewall-check
 	// probe (eMule drives the same request over a dedicated KS_FWCHECK_UDP
 	// client; Envy reuses an existing idle session and never dials for it).
-	else if (IsOnline() && !m_bUdpFwCheckRequested && m_nEmKadVersion >= KAD_UDPFW_MIN_VERSION && m_nUDP != 0)
+	// The request latch is scoped to the tester round it fired in, so a
+	// fresh recheck round can ask this client again.
+	else if (IsOnline() && (!m_bUdpFwCheckRequested || m_nUdpFwCheckRound != Kademlia.UdpFirewallCheckRound()) && m_nEmKadVersion >= KAD_UDPFW_MIN_VERSION && m_nUDP != 0)
 	{
 		const DWORD nIpHost = ntohl(m_pHost.sin_addr.s_addr);
 		const DWORD nPublicIpHost = ntohl(Network.m_pHost.sin_addr.S_un.S_addr);
@@ -943,6 +946,7 @@ void CEDClient::OnRunEx(DWORD tNow)
 				pPacket->Write(pBody, KAD_UDPFW_REQ_MIN_SIZE);
 
 				m_bUdpFwCheckRequested = TRUE;
+				m_nUdpFwCheckRound = Kademlia.UdpFirewallCheckRound();
 				Send(pPacket);
 				theApp.Message(MSG_DEBUG, L"[ED2K] Kad UDP firewall-check request sent to %s",
 				               (LPCTSTR)m_sAddress);

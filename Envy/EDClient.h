@@ -114,8 +114,10 @@ public:
 	DWORD m_nObservedPublicIp; // last accepted PUBLICIP_ANSWER (0 = none); not a global identity claim alone
 
 	// #515: this idle client already fired our Kad UDP firewall-check request
-	// (one 0xA7 per client per tester round).
+	// (one 0xA7 per client per tester round; m_nUdpFwCheckRound scopes the
+	// latch to that round so a fresh recheck can ask again).
 	BOOL m_bUdpFwCheckRequested;
+	DWORD m_nUdpFwCheckRound;
 
 	BOOL		m_bOpenChat;
 	BOOL		m_bCommentSent;

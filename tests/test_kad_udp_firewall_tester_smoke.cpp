@@ -265,7 +265,9 @@ static bool test_udpfw_timeout_needs_tcp_firewalled()
 	if (t.IsFirewalledUdp(false) || t.IsFirewalledUdp(true))
 		return false; // TCP open: no firewalled verdict from the timeout
 	t.OnTimer(1001 + KAD_UDPFW_TEST_TIMEOUT_MS + 2, true);
-	return t.IsFirewalledUdp(true) && t.IsFirewalledUdp(false) && !t.IsVerified() && t.State() == KadUdpFirewallState::Testing;
+	// The timeout verdict is published as Firewalled (eMule's IsFirewalledUDP
+	// reports firewalled from that moment) while verification stays false.
+	return t.IsFirewalledUdp(true) && t.IsFirewalledUdp(false) && !t.IsVerified() && t.State() == KadUdpFirewallState::Firewalled;
 }
 
 static bool test_udpfw_timeout_cleared_by_verdict()
@@ -296,14 +298,35 @@ static bool test_udpfw_last_state_during_retest()
 	return t.IsFirewalledUdp(true) && !t.IsFirewalledUdp(false);
 }
 
-static bool test_udpfw_recheck_keeps_used_clients()
+static bool test_udpfw_recheck_invalidates_outstanding_probes()
 {
 	KadUdpFirewallTester t = make_running(1000);
 	t.OnProbeResult(kPeerA, false, false, 1100);
 	t.OnProbeResult(kPeerB, false, false, 1200);
 	t.OnTimer(1200 + KAD_UDPFW_RECHECK_MS + 1, true);
-	// eMule keeps the used list across rounds: previously asked IPs stay out.
-	return t.AlreadyRequested(kPeerA) && t.AlreadyRequested(kPeerB) && t.UsedCount() == 2;
+	// A fresh round invalidates the previous round's outstanding probes so
+	// their late results or disconnects can neither vote nor finish it.
+	if (t.UsedCount() != 0)
+		return false;
+	if (!t.NeedsProbeRequests() || t.RunningCount() != 0)
+		return false;
+	if (t.OnProbeResult(kPeerA, true, false, 1300) != KadUdpFwResultStatus::Unrequested)
+		return false;
+	// The verified flag survives a recheck (eMule keeps m_bIsFWVerifiedUDP);
+	// only Reset (kad stop / port change) drops it.
+	return t.IsVerified() && t.State() == KadUdpFirewallState::Testing;
+}
+
+static bool test_udpfw_round_bumps_on_fresh_rounds()
+{
+	KadUdpFirewallTester t;
+	const DWORD start = t.Round();
+	t.ReCheck(1000, false);
+	if (t.Round() == start)
+		return false;
+	const DWORD afterRecheck = t.Round();
+	t.OnKadStart(2000); // Reset() path (kad stop/start, port change)
+	return t.Round() != afterRecheck && !t.IsVerified() && t.UsedCount() == 0;
 }
 
 static bool test_udpfw_used_history_bounded_and_rotates()
@@ -380,7 +403,8 @@ void register_kad_udp_firewall_tester_smoke_tests(TestSuite& suite)
 	suite.add_test("kad_udpfw_timeout_tcp_gate", test_udpfw_timeout_needs_tcp_firewalled);
 	suite.add_test("kad_udpfw_timeout_cleared", test_udpfw_timeout_cleared_by_verdict);
 	suite.add_test("kad_udpfw_last_state_retest", test_udpfw_last_state_during_retest);
-	suite.add_test("kad_udpfw_recheck_keeps_used", test_udpfw_recheck_keeps_used_clients);
+	suite.add_test("kad_udpfw_recheck_invalidates", test_udpfw_recheck_invalidates_outstanding_probes);
+	suite.add_test("kad_udpfw_round_bumps", test_udpfw_round_bumps_on_fresh_rounds);
 	suite.add_test("kad_udpfw_used_bounded", test_udpfw_used_history_bounded_and_rotates);
 	suite.add_test("kad_udpfw_stop_resets", test_udpfw_stop_resets_everything);
 	suite.add_test("kad_udpfw_tcp_independent", test_udpfw_tcp_state_independent);

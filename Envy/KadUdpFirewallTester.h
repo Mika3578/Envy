@@ -51,8 +51,8 @@
 
 // KADEMLIA2_FIREWALLUDP (eMule opcodes.h:618).
 constexpr BYTE KAD_OP_FIREWALLUDP = 0x62;
-// OP_FWCHECKUDPREQ (eMule opcodes.h:282) — ED2K C2C TCP (ED2K_PROTOCOL_EMULE).
-constexpr BYTE KAD_C2C_OP_FWCHECKUDPREQ = 0xA7;
+// OP_FWCHECKUDPREQ (0xA7) rides ED2K C2C TCP; the handler and sender use
+// ED2K_C2C_FWCHECKUDPREQ from Envy/EDPacket.h.
 
 constexpr size_t KAD_UDPFW_RESULT_MIN_SIZE = 3; // <errorcode 1><incomingPort 2>
 constexpr size_t KAD_UDPFW_REQ_MIN_SIZE = 8;    // <internPort 2><externPort 2><senderKey 4>
@@ -248,6 +248,7 @@ public:
 		m_running = 0;
 		m_finished = 0;
 		ClearUsed();
+		++m_round;
 	}
 
 	void OnKadStart(DWORD now)
@@ -263,9 +264,11 @@ public:
 
 	// eMule ReCheckFirewallUDP(bSetUnverified): counters reset, the last
 	// confirmed state is captured for IsFirewalledUdp(true), and the verified
-	// flag is kept or dropped per argument. The used-client list survives a
-	// recheck (eMule keeps it through rounds). The state flips to Testing so
-	// a fresh round is never confused with a verdict.
+	// flag is kept or dropped per argument (eMule keeps m_bIsFWVerifiedUDP
+	// across rechecks; only Reset drops it). Envy deviation from eMule's
+	// kept used-client list: the list is cleared so probes outstanding from
+	// the previous round can neither vote (late results) nor finish (late
+	// client disconnects) the fresh round.
 	void ReCheck(DWORD now, bool setUnverified)
 	{
 		m_running = 0;
@@ -276,6 +279,16 @@ public:
 		m_verified = (m_verified && !setUnverified);
 		m_lastRecheck = now;
 		m_state = KadUdpFirewallState::Testing;
+		ClearUsed();
+		++m_round;
+	}
+
+	// Advisory round id: bumped whenever a fresh round begins (kad start,
+	// recheck, port change). Lock-free readers may act one tick late; the
+	// tester no-ops for already-requested IPs either way.
+	DWORD Round() const
+	{
+		return m_round;
 	}
 
 	bool IsRunning() const
@@ -428,8 +441,11 @@ public:
 	}
 
 	// eMule's IsFirewalledUDP timeout: a running test that exceeds MIN2MS(6)
-	// while we are TCP-firewalled counts as firewalled (unverified). A
-	// confirmed firewalled state re-tests on the recheck cadence.
+	// while we are TCP-firewalled counts as firewalled (unverified). The
+	// verdict is published into the state (eMule's IsFirewalledUDP reports
+	// firewalled from that moment); a later real probe result still
+	// overrides it. A confirmed firewalled state re-tests on the recheck
+	// cadence.
 	void OnTimer(DWORD now, bool tcpFirewalled)
 	{
 		if (m_timedOut && !IsRunning())
@@ -437,6 +453,7 @@ public:
 		if (!m_timedOut && IsRunning() && !IsFirewalled() && tcpFirewalled && m_testStart != 0 && !m_verified && KadTickElapsed(now, m_testStart, KAD_UDPFW_TEST_TIMEOUT_MS))
 		{
 			m_timedOut = true;
+			m_state = KadUdpFirewallState::Firewalled;
 		}
 		if (!IsRunning() && IsFirewalled() && m_lastRecheck != 0 && KadTickElapsed(now, m_lastRecheck, KAD_UDPFW_RECHECK_MS))
 		{
@@ -475,6 +492,7 @@ private:
 	bool m_lastState;
 	DWORD m_testStart;
 	DWORD m_lastRecheck;
+	DWORD m_round = 0; // defined before Reset(); Reset()/ReCheck() bump it
 	size_t m_running;
 	size_t m_finished;
 
