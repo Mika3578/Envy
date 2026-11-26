@@ -1,7 +1,7 @@
 # Envy implementation status
 
 Status: active
-Last updated: 2026-09-20
+Last updated: 2026-10-20
 Scope: Evidence-based protocol and architecture status for Envy on `develop`.
 Source of truth: Envy source under `Envy/`, tests under `tests/`, and the documents linked below. External projects are references only.
 
@@ -29,8 +29,8 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 | Function | Envy current | Reference | Target |
 | --- | --- | --- | --- |
 | Windows x64 product | implemented (primary) | — | preserve |
-| Windows Win32/x86 product | implemented (legacy Stage A) | — | deprecate later (D-014) |
-| Local crash reports | implemented (#90 / #354) | x64: BugSplat SDK v8.0.0; Win32: Crashpad (upload off) | hybrid; optional BugSplat backend when configured |
+| Windows Win32/x86 product | implemented (legacy Stage A, scheduled for retirement) | — | Stage B #454, Stage C #455 (D-024) |
+| Local crash reports | implemented (#90 / #354) | x64: BugSplat SDK v8.0.0; Win32: Crashpad (upload off) | Stage A/B hybrid; after Stage C (#455): native BugSplat on x64 only |
 | Linux x86_64 product | planned | aMule | planned → supported only with CI evidence |
 | macOS ARM64 product | planned | aMule | planned → supported only with CI evidence |
 | EnvyCore portable boundary | not implemented | eMule Qt, aria2-next | planned (#161) |
@@ -56,6 +56,8 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
 
 ### ED2K
 
+- Legacy MuleInfo: `CEDClient::SendEmuleInfo` uses a fixed historical `0x50` short-version byte and protocol byte `0x01` independently of Envy's compatible-client ID in `ET_COMPATIBLECLIENT`/modern Hello (`Ed2kMuleInfoWire.h`). This is a semantic separation only; emitted bytes remain unchanged. Live eMule/aMule fallback interoperability still requires #160.
+
 - Handshake, transfer, Source Exchange v1/v2, large-file I64 packets, and many eMule opcodes are present in `Envy/EDClient.cpp` / `Envy/EDPacket.h`.
 - Source Exchange remains **IPv4-only on-wire** (`docs/30_protocols/ed2k/SOURCE_EXCHANGE_INTEROP_NOTES.md`).
 - Capability advertisement rule: Envy must advertise an eMule capability only when it is implemented and tested (`docs/DEVELOPMENT_PLAN.md`). Helpers live in `Envy/Ed2kHelloCapabilities.h` / `Envy/SecureIdentPolicy.h`.
@@ -74,7 +76,7 @@ Avoid “complete” / “fully compatible” unless live interop evidence exist
   - **Routing-table maintenance (focused slice):** `Envy/KadRoutingTable.h` replaces the fixed 128-bucket array with an aMule/eMule-style XOR zone tree (`CanSplit`: level < 127 and size == K and (`prefixInteger` < KK or level < KBASE); K=10). Zone identity is a 128-bit XOR `zonePrefix` (not a uint32 `zoneIndex`) so depth ≥ 32 never shifts a 32-bit index. Unsplittable full leaves use LRU + a 1-slot replacement cache (verified healthy contacts are not evicted by unverified candidates; stale/dead incumbents can be replaced). `CKademlia::OnTimer` runs bounded small-timer pings and at most one stale-zone FIND_NODE refresh per cycle (first big timer ~10s after a zone is observed, then 1h interval, 10s global gap). Valid outstanding FIND_NODE_RES (full contact-list size + matching TargetID) / PONG from a known endpoint calls `ObserveAliveByEndpoint` (liveness, not `verified`). Unsolicited HELLO_RES is ignored; `verified` is set only after an outstanding HELLO_REQ. Subnet caps: 2 contacts per IPv4 `/24` per leaf, 10 globally, 1 Kad ID per IP (LAN excepted when `allowLan`). nodes.dat bits are not live-verified. FindContact returns a copy. Tests: `tests/test_kad_routing_table.cpp`.
   - **App-trigger source search:** ED2K downloads call `CKademlia::SearchSource` from `FindMoreSources` / automatic starve paths when `EnableKad` is on (`DownloadWithSearch::MaybeSearchKadSources`). Outbound `KADEMLIA2_SEARCH_SOURCE_REQ` includes little-endian FileSize. Helpers + EnvyTests: `Envy/KadSearchSourceRequest.h`, `tests/test_kad_search_source_request_smoke.cpp`.
   - **Still open:** `StoreEntry` is a no-op stub; outbound `SearchKeyword` / `Publish*` / `SendHelloRequest` have no app callers; Envy's outbound answers to others' SEARCH_*_REQ still use the simplified `WriteEntryTags` store framing (not eMule TagList) — documented disagreement; HELLO uses hard-coded ports in places; `EnableKadHello` / `KadFindValue` settings are **not read** by `Kademlia.cpp`.
-  - Cold-start: `HostCache::Load` calls `CheckMinimumServers(PROTOCOL_KAD)` if the Kad list is empty. When the Kad cache is empty, Envy imports a local `nodes.dat` from `Settings.General.DataPath` (and, if present, a fresh eMule/aMule `config\nodes.dat`), then falls back to validated HTTPS `K` rows in `DefaultServices.dat` if no usable contacts remain. `CHostCache::ImportNodes` parses legacy v0 plus new-format **v1 / v2 / v3** via `Envy/KadNodesDat.h` (v3 edition 1 is bootstrap-only: XOR-closest 50 contacts, not the whole 500-1000 pool). UDP-key and `verified` bytes are consumed and discarded — runtime UDP-key protocol is **not implemented**. `CKademlia::Bootstrap()` still reads `HostCache.Kademlia` (up to 5 BOOTSTRAP_REQ, 30 s throttle) and does **not** dump bootstrap candidates into routing leaves. If the cache is still empty it logs that no bootstrap contacts were found. Kad2 remains partial and unverified live interop.
+  - Cold-start: `HostCache::Load` calls `CheckMinimumServers(PROTOCOL_KAD)` if the Kad list is empty. When the Kad cache is empty, Envy imports a local `nodes.dat` from `Settings.General.DataPath` (and, if present, a fresh eMule/aMule `config\nodes.dat`), then falls back to validated HTTPS `K` rows in `DefaultServices.dat` if no usable contacts remain. `CHostCache::ImportNodes` parses legacy v0 plus new-format **v1 / v2 / v3** via `Envy/KadNodesDat.h` (v3 edition 1 is bootstrap-only: XOR-closest 50 contacts, not the whole 500-1000 pool). UDP-key and `verified` bytes are consumed and discarded — runtime UDP-key protocol is **not implemented**. Loading a `HostCache.dat` archive older than version 3 drops its nodes.dat-imported Kad entries once (earlier builds stored their IPv4 bytes reversed), so the import above runs again. `CKademlia::Bootstrap()` still reads `HostCache.Kademlia` (up to 5 BOOTSTRAP_REQ, 30 s throttle) and does **not** dump bootstrap candidates into routing leaves. If the cache is still empty it logs that no bootstrap contacts were found. Kad2 remains partial and unverified live interop.
 - **Absent:** UDP firewall tester (`FWCHECKUDPREQ` / `KADEMLIA2_FIREWALLUDP`), Buddy, Kad callback, UDP keys, notes search/publish. Routing split/LRU/refresh and eclipse `/24` limits are implemented locally (not live-verified).
 - **Kad TCP firewall-detection + routing-table maintenance baselines implemented; UDP firewall verification, Buddy and callback remain incomplete.** Do not say Kad firewall or routing support is complete.
 - ED2K Hello Kad version nibble is advertised as **0** (`CEDClient::SendHello`) even when Kad is enabled — honest until Buddy/UDP firewall and live interop are verified.
@@ -108,8 +110,8 @@ Older documents that say SecureIdent is “active” or “complete” are **wro
 ### Platforms / portability
 
 - **Supported:** Windows x64 (primary shipping target).
-- **Legacy:** Windows Win32/x86 — still built and tested (D-014 Stage A); not a removal candidate yet.
-- **Planned:** Linux x86_64, macOS ARM64 (then optional ARM64 variants). Non-targets: Linux x86-32, macOS 32-bit.
+- **Legacy:** Windows Win32/x86 — still built, tested and shipped (D-024 Stage A); scheduled for phased retirement (Stage B #454, Stage C #455); no 32-bit target is accepted for new work.
+- **Planned:** Linux x86_64, macOS ARM64; Linux ARM64 and Windows ARM64 feasibility (#456); macOS x86_64 optional. Non-targets: Linux x86-32, macOS 32-bit, iOS.
 - vcpkg manifest currently `supports` Windows only; non-Windows dependency strategy follows portable-slice work.
 - Authoritative full app build remains `Visual Studio/Envy.sln`; CMake portable slice is the multiplatform foundation (D-015).
 

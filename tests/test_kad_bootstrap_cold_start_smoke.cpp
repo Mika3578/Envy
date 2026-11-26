@@ -43,10 +43,11 @@ void PushU16LE(std::vector<uint8_t>& o, uint16_t v)
 
 void PushIp(std::vector<uint8_t>& o, uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 {
-	o.push_back(a);
-	o.push_back(b);
-	o.push_back(c);
+	// The file carries the host-order uint32 little-endian: octets reversed.
 	o.push_back(d);
+	o.push_back(c);
+	o.push_back(b);
+	o.push_back(a);
 }
 
 std::vector<uint8_t> MakeGoldenV1OneContact()

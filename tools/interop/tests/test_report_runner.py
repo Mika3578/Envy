@@ -132,11 +132,12 @@ class HelloGoldenTests(unittest.TestCase):
             parse_hello_tcp(bytes.fromhex("e301000000014c"))
 
     def test_muleinfo_minimal_frame(self) -> None:
-        frame = bytes.fromhex("c506000000010100000000")
+        frame = bytes.fromhex("c50700000001500100000000")
         info = parse_emule_info_tcp(frame)
         self.assertEqual(info["protocol"], 0xC5)
         self.assertEqual(info["opcode"], 0x01)
         self.assertEqual(info["emule_protocol_version"], 1)
+        self.assertEqual(info["emule_client_version"], 0x50)
 
     def test_muleinfo_rejects_hello_protocol(self) -> None:
         hello = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
@@ -196,7 +197,7 @@ class EvidenceExtractorTests(unittest.TestCase):
 
         # Fake truncated C5 frame (size claims more bytes than remain), then a real muleinfo.
         truncated = bytes([0xC5]) + struct.pack("<I", 1000) + bytes([0x01])
-        mule_body = b"\x01\x00\x00\x00\x00"
+        mule_body = b"\x50\x01\x00\x00\x00\x00"
         mule = bytes([0xC5]) + struct.pack("<I", 1 + len(mule_body)) + bytes([0x01]) + mule_body
         hits = extract_ed2k_frames(truncated + mule)
         self.assertTrue(any(h.label == "muleinfo" for h in hits))
@@ -263,6 +264,42 @@ class EvidenceExtractorTests(unittest.TestCase):
         dumped = str(hits[0].details)
         self.assertNotIn("167772170", dumped)  # would be LE int of 10.0.0.1
 
+    def test_kad_hello_and_bodyless_ping_layout(self) -> None:
+        # eMule SendMyDetails: <ID 16><TCP 2><Version 1><TagCount 1><Tag>*
+        body = (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([0x0A, 1]) + bytes([0x08, 1, 0, 0xFC, 0x40, 0x12])
+        hits = extract_kad_udp_frames(bytes([0xE4, 0x11]) + body, single_datagram=True)
+        self.assertEqual(hits[0].label, "kad_hello_req")
+        self.assertNotIn("parse_error", hits[0].details)
+        self.assertEqual(hits[0].details.get("kad_version"), 10)
+        self.assertEqual(hits[0].details.get("tag_count"), 1)
+        # Previous Envy body (no tag count, 19 bytes) and version 0 are flagged.
+        # Previous Envy body: ID, TCP, version, UDP port (2 bytes), no tag count; the low UDP
+        # byte lands where the tag count is read and the list cannot be delimited.
+        old = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8]) + struct.pack("<H", 4672)
+        self.assertTrue(extract_kad_udp_frames(old, single_datagram=True)[0].details.get("parse_error"))
+        zero = bytes([0xE4, 0x19]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([0, 0])
+        self.assertTrue(extract_kad_udp_frames(zero, single_datagram=True)[0].details.get("parse_error"))
+        # A tag count that overruns the body, and an unknown tag type, are parse errors.
+        over = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8, 2, 0x08, 1, 0, 0xFC, 0x40, 0x12])
+        self.assertTrue(extract_kad_udp_frames(over, single_datagram=True)[0].details.get("parse_error"))
+        unknown = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8, 1, 0x7E, 1, 0, 0x01, 0])
+        self.assertTrue(extract_kad_udp_frames(unknown, single_datagram=True)[0].details.get("parse_error"))
+        # A BLOB tag is delimited and accepted.
+        blob = bytes([0xE4, 0x11]) + (b"\x11" * 16) + struct.pack("<H", 4662) + bytes([8, 1, 0x07, 1, 0, 0x41, 2, 0, 0, 0, 9, 9])
+        self.assertNotIn("parse_error", extract_kad_udp_frames(blob, single_datagram=True)[0].details)
+        # An ID that happens to contain E4 11 stays inside its HELLO frame in a multi-frame blob.
+        tricky_id = b"\x01" * 6 + bytes([0xE4, 0x11]) + b"\x02" * 8
+        two = bytes([0xE4, 0x11]) + tricky_id + struct.pack("<H", 4662) + bytes([8, 0]) + bytes([0xE4, 0x60])
+        frames = extract_kad_udp_frames(two)
+        self.assertEqual([h.label for h in frames], ["kad_hello_req", "kad_ping"])
+        self.assertNotIn("parse_error", frames[0].details)
+        # A two-byte PING is valid; a PONG needs the observed port.
+        ping = extract_kad_udp_frames(bytes([0xE4, 0x60]), single_datagram=True)
+        self.assertEqual(ping[0].label, "kad_ping")
+        self.assertNotIn("parse_error", ping[0].details)
+        pong = extract_kad_udp_frames(bytes([0xE4, 0x61, 0x40]), single_datagram=True)
+        self.assertTrue(pong[0].details.get("parse_error"))
+
     def test_kad_udp_search_res_opcode_3b(self) -> None:
         # Production inbound / eMule: <SenderID 16><TargetID 16><Count 2 LE>
         body = (b"\x11" * 16) + (b"\x22" * 16) + struct.pack("<H", 0)
@@ -322,10 +359,10 @@ class EvidenceExtractorTests(unittest.TestCase):
     def test_kad_hello_ping_find_node_opcodes(self) -> None:
         # Production HELLO is 0x11/0x19 — Bootstrap 0x01/0x09 must not match.
         # Request and response keep distinct labels.
-        hello_req = bytes([0xE4, 0x11]) + (b"\x01" * 16) + bytes([0])  # NodeID + empty TagList
-        hello_res = bytes([0xE4, 0x19]) + (b"\x02" * 16) + bytes([0])
+        hello_req = bytes([0xE4, 0x11]) + (b"\x01" * 16) + struct.pack("<H", 4662) + bytes([8, 0])  # NodeID + empty TagList
+        hello_res = bytes([0xE4, 0x19]) + (b"\x02" * 16) + struct.pack("<H", 4662) + bytes([8, 0])
         ping = bytes([0xE4, 0x60, 0x00])  # tag count
-        pong = bytes([0xE4, 0x61, 0x00])
+        pong = bytes([0xE4, 0x61, 0x40, 0x12])  # observed UDP port
         find = bytes([0xE4, 0x21]) + (b"\x03" * 16) + bytes([0x02, 0x00])
         find_res = bytes([0xE4, 0x29]) + (b"\x03" * 16) + bytes([0x02, 0x00])
         bootstrap = bytes([0xE4, 0x01]) + (b"\x04" * 16)
@@ -362,7 +399,7 @@ class EvidenceExtractorTests(unittest.TestCase):
 
     def test_kad_hit_inside_tcp_frame_excluded(self) -> None:
         # Craft an ED2K TCP frame whose body contains E4 11 … bytes.
-        kad_like = bytes([0xE4, 0x11]) + (b"\xaa" * 16) + bytes([0])
+        kad_like = bytes([0xE4, 0x11]) + (b"\xaa" * 16) + struct.pack("<H", 4662) + bytes([8, 0])
         body = b"noise" + kad_like + b"tail"
         tcp = bytes([0xE3]) + struct.pack("<I", 1 + len(body)) + bytes([0x01]) + body
         hits = extract_frames(tcp)
@@ -378,7 +415,7 @@ class EvidenceExtractorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "alice-home-secret.bin"
             # Minimal valid Kad HELLO so ingest succeeds.
-            src.write_bytes(bytes([0xE4, 0x11]) + (b"\x01" * 16) + bytes([0]))
+            src.write_bytes(bytes([0xE4, 0x11]) + (b"\x01" * 16) + struct.pack("<H", 4662) + bytes([8, 0]))
             dest = Path(tmp) / "out"
             summary = ingest_packet_dump(src, dest, required_labels=["kad_hello_req"])
             self.assertEqual(summary["source_name"], "packet-evidence.bin")
@@ -391,10 +428,10 @@ class EvidenceExtractorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "a.bin").write_bytes(
-                bytes([0xE4, 0x11]) + (b"\x01" * 16) + bytes([0])
+                bytes([0xE4, 0x11]) + (b"\x01" * 16) + struct.pack("<H", 4662) + bytes([8, 0])
             )
             (root / "b.bin").write_bytes(
-                bytes([0xE4, 0x19]) + (b"\x02" * 16) + bytes([0])
+                bytes([0xE4, 0x19]) + (b"\x02" * 16) + struct.pack("<H", 4662) + bytes([8, 0])
             )
             hits = collect_hits_from_paths([root / "a.bin", root / "b.bin"])
             ok, reason, matched = require_any_label_group(
@@ -420,8 +457,8 @@ class EvidenceExtractorTests(unittest.TestCase):
         self.assertTrue(ok)
         self.assertEqual(matched, ("sourceex2_req", "sourceex2_ans"))
 
-    def test_tcp_segment_reassembly_across_files(self) -> None:
-        """ED2K frame split across two TCP payload files still matches."""
+    def test_legacy_tcp_segments_without_sequences_are_not_joined(self) -> None:
+        """Legacy capture ordinals cannot prove TCP sequence continuity."""
         hello_path = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
         frame = bytes.fromhex(
             json.loads(hello_path.read_text(encoding="utf-8"))["tcp_frame_hex"]
@@ -433,7 +470,7 @@ class EvidenceExtractorTests(unittest.TestCase):
             (root / "from-pcap-tcp-0000-0000.bin").write_bytes(frame[:mid])
             (root / "from-pcap-tcp-0000-0001.bin").write_bytes(frame[mid:])
             (root / "from-pcap-udp-0000.bin").write_bytes(
-                bytes([0xE4, 0x11]) + (b"\xaa" * 16) + bytes([0])
+                bytes([0xE4, 0x11]) + (b"\xaa" * 16) + struct.pack("<H", 4662) + bytes([8, 0])
             )
             per = extract_frames((root / "from-pcap-tcp-0000-0000.bin").read_bytes())
             self.assertFalse(any(h.label == "hello" for h in per))
@@ -444,10 +481,10 @@ class EvidenceExtractorTests(unittest.TestCase):
                     root / "from-pcap-udp-0000.bin",
                 ]
             )
-            self.assertTrue(any(h.label == "hello" for h in hits))
+            self.assertFalse(any(h.label == "hello" for h in hits))
             self.assertTrue(any(h.label == "kad_hello_req" for h in hits))
 
-    def test_tcp_reassembly_keeps_directions_separate(self) -> None:
+    def test_legacy_direction_names_do_not_prove_sequence_continuity(self) -> None:
         """Opposite TCP directions in one stream must not be concatenated."""
         hello_path = REPO / "tools/interop/fixtures/golden/envy-self-hello.json"
         frame = bytes.fromhex(
@@ -467,7 +504,7 @@ class EvidenceExtractorTests(unittest.TestCase):
                     root / "from-pcap-tcp-0000-4663-4662-0000.bin",
                 ]
             )
-            self.assertTrue(any(h.label == "hello" for h in hits))
+            self.assertFalse(any(h.label == "hello" for h in hits))
 
     def test_udp_not_joined_into_tcp_reassembly(self) -> None:
         """Kad UDP chunks must never be concatenated into ED2K TCP reassembly."""
@@ -619,7 +656,7 @@ class RunnerDryRunTests(unittest.TestCase):
         hello_frame = bytes.fromhex(json.loads(hello_path.read_text(encoding="utf-8"))["tcp_frame_hex"])
         answer_path = REPO / "tools/interop/fixtures/golden/envy-self-helloanswer.json"
         answer_frame = bytes.fromhex(json.loads(answer_path.read_text(encoding="utf-8"))["tcp_frame_hex"])
-        mule_body = b"\x01\x00\x00\x00\x00"
+        mule_body = b"\x50\x01\x00\x00\x00\x00"
         mule_frame = bytes([0xC5]) + struct.pack("<I", 1 + len(mule_body)) + bytes([0x01]) + mule_body
         # Leading noise + concatenated frames (HelloAnswer first, then Hello, then MuleInfo).
         blob = b"\x00NOISE\xff" + answer_frame + hello_frame + mule_frame
@@ -640,6 +677,38 @@ class RunnerDryRunTests(unittest.TestCase):
             self.assertEqual(by_id["hello"]["result"], "PASS", by_id["hello"].get("reason"))
             self.assertEqual(by_id["hello_answer"]["result"], "PASS", by_id["hello_answer"].get("reason"))
             self.assertEqual(by_id["muleinfo"]["result"], "PASS", by_id["muleinfo"].get("reason"))
+
+    def test_capture_scenarios_preserve_transport_boundaries(self) -> None:
+        golden_dir = REPO / "tools/interop/fixtures/golden"
+        frames = [
+            bytes.fromhex(json.loads((golden_dir / name).read_text(encoding="utf-8"))["tcp_frame_hex"])
+            for name in ("envy-self-hello.json", "envy-self-helloanswer.json")
+        ]
+        frames.append(bytes.fromhex("c50700000001500100000000"))
+        payload = b"".join(frames)
+        packed = b"\xd4" + (len(payload) + 1).to_bytes(4, "little") + b"\x01" + payload
+        scenarios = ["hello", "hello_answer", "muleinfo", "capability_negotiation"]
+        for filename, capture, expected in (
+            ("from-pcap-tcp-0-0.bin", payload, "PASS"),
+            ("from-pcap-tcp-0-0.bin", packed, "SKIP"),
+            ("from-pcap-tcp-0-0.bin", b"noise" + payload, "SKIP"),
+            ("from-pcap-udp-0.bin", payload, "SKIP"),
+        ):
+            with self.subTest(filename=filename, first_byte=capture[0]), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                evidence = root / filename
+                evidence.write_bytes(capture)
+                cfg = HarnessConfig(
+                    repo_root=REPO,
+                    artifact_dir=root / "artifacts",
+                    work_dir=root / "work",
+                    dry_run=True,
+                    live=False,
+                    packet_evidence=evidence,
+                    scenarios=scenarios,
+                )
+                results = {item["id"]: item["result"] for item in run_harness(cfg)["scenarios"]}
+                self.assertEqual(results, dict.fromkeys(scenarios, expected))
 
     def test_expand_aliases(self) -> None:
         self.assertIn("compressed_transfer_envy_to_ref", expand_selection(["current"]))

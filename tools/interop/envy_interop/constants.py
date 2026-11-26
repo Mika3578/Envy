@@ -77,6 +77,7 @@ class EvidenceClass(str, Enum):
 
 ED2K_PROTOCOL_EDONKEY = 0xE3
 ED2K_PROTOCOL_EMULE = 0xC5
+ED2K_PROTOCOL_PACKED = 0xD4  # OP_PACKEDPROT (zlib body, not inflated here)
 ED2K_PROTOCOL_KAD = 0xE4  # OP_KADEMLIAHEADER (UDP 2-byte header)
 ED2K_PROTOCOL_KAD_PACKED = 0xE5  # OP_KADEMLIAPACKEDPROT (not inflated here)
 
