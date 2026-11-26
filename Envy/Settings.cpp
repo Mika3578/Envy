@@ -25,6 +25,73 @@
 #include "Ed2kKadSettingsPolicy.h"
 #include "DcHublistSources.h"
 #include "TransferSettingsLimits.h"
+#include "StoragePaths.h"
+
+#include "StorageProbe.h"
+
+static bool EnsureStorageDirectory(const CString& strPath, bool* pbReparsePoint)
+{
+	DWORD nError = ERROR_SUCCESS;
+	DWORD nAttributes = INVALID_FILE_ATTRIBUTES;
+	switch (ProbeStorageDirectory(std::wstring((LPCTSTR)strPath), &nError, &nAttributes))
+	{
+	case StorageProbeResult::Ready:
+		break;
+	case StorageProbeResult::CreateFailed:
+		theApp.Message(MSG_ERROR, L"Failed to prepare a writable Envy storage directory (Windows error %u)", nError);
+		return false;
+	case StorageProbeResult::NotDirectory:
+		theApp.Message(MSG_ERROR, L"An Envy storage path is unavailable or is not a directory");
+		return false;
+	case StorageProbeResult::NotWritable:
+		theApp.Message(MSG_ERROR, L"An Envy storage directory is not writable (Windows error %u)", nError);
+		return false;
+	}
+
+	if (pbReparsePoint && StoragePathIsReparsePoint(nAttributes))
+		*pbReparsePoint = true;
+
+	return true;
+}
+
+static bool HasStorageEntriesOrUnverifiable(const CString& strPath)
+{
+	if (strPath.IsEmpty())
+		return false;
+
+	const DWORD nAttributes = GetFileAttributes(strPath);
+	if (nAttributes == INVALID_FILE_ATTRIBUTES)
+	{
+		const DWORD nError = GetLastError();
+		return nError != ERROR_FILE_NOT_FOUND && nError != ERROR_PATH_NOT_FOUND;
+	}
+	if (!(nAttributes & FILE_ATTRIBUTE_DIRECTORY))
+		return true;
+
+	CString strSearchPath = strPath;
+	if (strSearchPath.Right(1) != L"\\" && strSearchPath.Right(1) != L"/")
+		strSearchPath += L'\\';
+	strSearchPath += L"*";
+
+	WIN32_FIND_DATA findData = {};
+	HANDLE hFind = FindFirstFile(strSearchPath, &findData);
+	if (hFind == INVALID_HANDLE_VALUE)
+		return true;
+
+	bool bHasEntries = false;
+	do
+	{
+		if (_tcscmp(findData.cFileName, L".") && _tcscmp(findData.cFileName, L".."))
+		{
+			bHasEntries = true;
+			break;
+		}
+	} while (FindNextFile(hFind, &findData));
+	const DWORD nError = GetLastError();
+
+	FindClose(hFind);
+	return bHasEntries || nError != ERROR_NO_MORE_FILES;
+}
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -730,39 +797,49 @@ void CSettings::Load()
 			FreeLibrary( hMSI );
 	}
 
+	// A machine-wide install can be launched by a user who has no per-user Path value yet.
+	const CString strBinaryDirectory = theApp.m_strBinaryPath.Left(theApp.m_strBinaryPath.ReverseFind(L'\\'));
+	const CString strMachineInstallPath = CRegistry::GetString(NULL, NULL, NULL, L"Software\\Envy", TRUE);
+	const bool bUserInstallMatches = !General.Path.IsEmpty() && _tcsicmp(General.Path, strBinaryDirectory) == 0;
+	const bool bMachineInstallMatches = !strMachineInstallPath.IsEmpty() && _tcsicmp(strMachineInstallPath, strBinaryDirectory) == 0;
+	const bool bPortableMode = IsPortableStorageMode(bUserInstallMatches, bMachineInstallMatches);
+
 	// Set default program and user paths
 	if ( General.Path.IsEmpty() || ! PathFileExists( General.Path ) )
-		General.Path = theApp.m_strBinaryPath.Left( theApp.m_strBinaryPath.ReverseFind( L'\\' ) );
+		General.Path = strBinaryDirectory;
 
-	if ( General.MultiUser )
-	{
-		if ( General.UserPath.IsEmpty() )
-			General.UserPath = theApp.GetAppDataFolder() + L"\\Envy";
-		if ( Downloads.IncompletePath.IsEmpty() )
-			Downloads.IncompletePath = theApp.GetLocalAppDataFolder() + L"\\Envy\\Incomplete";
-		if ( Downloads.CompletePath.IsEmpty() )
-			Downloads.CompletePath = theApp.GetDownloadsFolder();
-	}
-	else
-	{
-		if ( General.UserPath.IsEmpty() )
-			General.UserPath = General.Path;
-		if ( Downloads.IncompletePath.IsEmpty() )
-			Downloads.IncompletePath = General.Path + L"\\Incomplete";
-		if ( Downloads.CompletePath.IsEmpty() )
-			Downloads.CompletePath = theApp.GetDownloadsFolder();	//General.Path + L"\\Downloads";
-	}
+	const CString strCompleteDownloadRoot = Downloads.CompletePath.IsEmpty() ? theApp.GetDownloadsFolder() : Downloads.CompletePath;
+	const CString strLegacyIncompletePath = General.Path + L"\\Incomplete";
+	const CString strLegacyCollectionPath = (General.UserPath.IsEmpty() ? General.Path : General.UserPath) + L"\\Collections";
+	const StoragePathDefaults pathDefaults = bPortableMode ? BuildPortableStoragePathDefaults(std::wstring((LPCTSTR)General.Path), std::wstring((LPCTSTR)strCompleteDownloadRoot)) : BuildStoragePathDefaults(std::wstring((LPCTSTR)theApp.GetAppDataFolder()), std::wstring((LPCTSTR)theApp.GetLocalAppDataFolder()), std::wstring((LPCTSTR)strCompleteDownloadRoot));
 
-	if ( General.DataPath.IsEmpty() )
+	General.UserPath = ResolveStoragePath(
+	                       std::wstring((LPCTSTR)General.UserPath), pathDefaults.userData)
+	                       .c_str();
+	Downloads.IncompletePath = ResolveStoragePath(
+	                               std::wstring((LPCTSTR)Downloads.IncompletePath), pathDefaults.incomplete,
+	                               HasStorageEntriesOrUnverifiable(strLegacyIncompletePath) ? std::wstring((LPCTSTR)strLegacyIncompletePath) : std::wstring())
+	                               .c_str();
+	Downloads.CompletePath = ResolveStoragePath(
+	                             std::wstring((LPCTSTR)Downloads.CompletePath), pathDefaults.complete)
+	                             .c_str();
+
+	if (General.DataPath.IsEmpty())
 		General.DataPath = General.UserPath + L"\\Data\\";
 
-	if ( Downloads.CollectionPath.IsEmpty() )
-		Downloads.CollectionPath = General.UserPath + L"\\Collections";
-	if ( Downloads.TorrentPath.IsEmpty() )
-		Downloads.TorrentPath = Downloads.CompletePath + L"\\Torrents";
+	m_sDefaultDataPath = (JoinStoragePath(pathDefaults.userData, L"Data") + L"\\").c_str();
+	m_sDefaultIncompletePath = pathDefaults.incomplete.c_str();
 
-	if ( ! StartsWith( BitTorrent.DefaultTracker, _P( L"http://" ) ) &&
-		 ! StartsWith( BitTorrent.DefaultTracker, _P( L"udp://" ) ) )
+	Downloads.CollectionPath = ResolveStoragePath(
+	                               std::wstring((LPCTSTR)Downloads.CollectionPath), pathDefaults.collections,
+	                               HasStorageEntriesOrUnverifiable(strLegacyCollectionPath) ? std::wstring((LPCTSTR)strLegacyCollectionPath) : std::wstring())
+	                               .c_str();
+	Downloads.TorrentPath = ResolveStoragePath(
+	                            std::wstring((LPCTSTR)Downloads.TorrentPath), pathDefaults.torrents)
+	                            .c_str();
+
+	if (!StartsWith(BitTorrent.DefaultTracker, _P(L"http://")) &&
+	    !StartsWith(BitTorrent.DefaultTracker, _P(L"udp://")))
 		SetDefault( &BitTorrent.DefaultTracker );
 
 	Live.FirstRun = General.FirstRun;
@@ -773,13 +850,28 @@ void CSettings::Load()
 	//if ( General.Running )
 	// ToDo: Detect Envy restarted after a crash ?
 
-	// Make sure some needed paths exist
-	CreateDirectory( General.Path + L"\\Data" );
-	CreateDirectory( General.DataPath.Left( General.DataPath.GetLength() - 1 ) );		// General.UserPath + L"\\Data"
-	CreateDirectory( Downloads.IncompletePath );
-	CreateDirectory( Downloads.CompletePath );
-	CreateDirectory( Downloads.TorrentPath );
-	CreateDirectory( Downloads.CollectionPath );
+	// Create mutable directories recursively; the packaged install Data folder is read-only.
+	const CString strStoragePaths[] = {
+		General.DataPath,
+		Downloads.IncompletePath,
+		Downloads.CompletePath,
+		Downloads.TorrentPath,
+		Downloads.CollectionPath
+	};
+	int nStorageFailures = 0;
+	int nStorageReparsePoints = 0;
+	for (int i = 0; i < _countof(strStoragePaths); ++i)
+	{
+		bool bReparsePoint = false;
+		if (!EnsureStorageDirectory(strStoragePaths[i], &bReparsePoint))
+			++nStorageFailures;
+		if (bReparsePoint)
+			++nStorageReparsePoints;
+	}
+	if (nStorageFailures)
+		theApp.Message(MSG_ERROR, L"%d Envy storage directory/directories could not be prepared; check permissions and configured locations", nStorageFailures);
+	if (nStorageReparsePoints)
+		theApp.Message(MSG_WARNING, L"An Envy storage directory uses a symbolic link, junction, or other reparse point; verify its target is intentional");
 
 	// Set interface
 	Interface.LowResMode = GetSystemMetrics( SM_CYSCREEN ) < 640;
@@ -1246,6 +1338,34 @@ void CSettings::SetStartup(BOOL bStartup)
 	}
 
 	RegCloseKey( hKey );
+}
+
+// Resume state, the download list and partial files live here; starting without
+// them would look healthy while silently losing state on the next save.
+bool CSettings::GetUnavailableEssentialStorage(CString& strPath, CString& strDefault) const
+{
+	const CString* pPaths[][2] = {
+		{ &General.DataPath, &m_sDefaultDataPath },
+		{ &Downloads.IncompletePath, &m_sDefaultIncompletePath }
+	};
+	for (int i = 0; i < _countof(pPaths); ++i)
+	{
+		if (ProbeStorageDirectory(std::wstring((LPCTSTR)*pPaths[i][0])) != StorageProbeResult::Ready)
+		{
+			strPath = *pPaths[i][0];
+			strDefault = *pPaths[i][1];
+			return true;
+		}
+	}
+	return false;
+}
+
+void CSettings::ResetEssentialStoragePath(const CString& strPath)
+{
+	if (StoragePathsEqual(std::wstring((LPCTSTR)strPath), std::wstring((LPCTSTR)General.DataPath)))
+		General.DataPath = m_sDefaultDataPath;
+	else if (StoragePathsEqual(std::wstring((LPCTSTR)strPath), std::wstring((LPCTSTR)Downloads.IncompletePath)))
+		Downloads.IncompletePath = m_sDefaultIncompletePath;
 }
 
 void CSettings::ClearSearches()

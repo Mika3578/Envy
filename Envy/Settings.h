@@ -40,7 +40,7 @@ public:
 	struct sGeneral
 	{
 		CString		Path;					// Installation path for Envy
-		CString		UserPath;				// Path for user data. (May be the same as above for single user installs)
+		CString UserPath;                   // Path for user data (defaults to the per-user roaming profile)
 		CString		DataPath;				// Full path for user data. (Same as above plus \Data\)
 		CString		AntiVirus;				// Anti-virus path or CLSID
 		bool		MultiUser;				// Multiuser installation
@@ -950,8 +950,15 @@ public:
 
 	void	ClearSearches();	// Delete search history
 
+	// Essential mutable paths (data, incomplete) must be writable before startup continues.
+	bool GetUnavailableEssentialStorage(CString& strPath, CString& strDefault) const;
+	void ResetEssentialStoragePath(const CString& strPath);
+
 protected:
 	void	SmartUpgrade();
+
+	CString m_sDefaultDataPath;
+	CString m_sDefaultIncompletePath;
 
 	inline void Add(const LPCTSTR szSection, const LPCTSTR szName, bool* const pBool, const bool bDefault, const bool bHidden = false) noexcept
 	{

@@ -260,7 +260,14 @@ void CDownloadTask::RunAllocate()
 
 void CDownloadTask::RunCopy()
 {
-	m_nFileError = m_pDownload->MoveFile( m_sDestination, CopyProgressRoutine, this );
+	if (m_sDestination.IsEmpty())
+	{
+		m_nFileError = ERROR_PATH_NOT_FOUND;
+		m_pDownload->SetFileError(GetFileError(), L"");
+		return;
+	}
+
+	m_nFileError = m_pDownload->MoveFile(m_sDestination, CopyProgressRoutine, this);
 
 	m_bSuccess = ( m_nFileError == ERROR_SUCCESS );
 
