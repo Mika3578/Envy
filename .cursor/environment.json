@@ -1,5 +1,5 @@
 {
   "name": "Envy (Linux dev checks)",
   "user": "ubuntu",
-  "install": "sudo apt-get update && sudo apt-get install -y clang-format-18 clang-tidy cppcheck && npm --prefix Remote/tests ci --no-audit --no-fund"
+  "install": "sudo apt-get update && sudo apt-get install -y clang-format-18 clang-tidy cppcheck && { bash -lc 'source ~/.nvm/nvm.sh && nvm install 24 && nvm alias default 24' || true; } && NODE24=\"$(ls -d \"$HOME\"/.nvm/versions/node/v24.*/bin 2>/dev/null | sort -V | tail -n1)\" && { [ -n \"$NODE24\" ] && export PATH=\"$NODE24:$PATH\" || true; } && node -v && npm --prefix Remote/tests ci --no-audit --no-fund"
 }
