@@ -201,54 +201,62 @@ def parse_emule_info_tcp(packet: bytes) -> Dict[str, object]:
     Used when an operator supplies a capture. A missing MuleInfo capture is SKIP,
     never a synthetic PASS.
     """
-    if len(packet) < 7:
+    if len(packet) < 6:
         raise HelloParseError("MuleInfo shorter than TCP header")
     if packet[0] != ED2K_PROTOCOL_EMULE:
         raise HelloParseError("MuleInfo protocol byte is not 0xC5")
     length = _u32(packet, 1)
-    if length < 2 or len(packet) < 5 + length:
-        raise HelloParseError("MuleInfo length prefix does not fit")
+    if length < 7 or len(packet) != 5 + length:
+        raise HelloParseError("MuleInfo length prefix does not fit exactly")
     opcode = packet[5]
     if opcode not in (0x01, 0x02):
         raise HelloParseError("opcode is neither MuleInfo (0x01) nor MuleInfoAnswer (0x02)")
-    body = packet[6 : 5 + length]
-    if not body:
-        raise HelloParseError("MuleInfo body empty")
-    emule_proto = body[0]
+    body = packet[6:]
+    # Both reference clients write version, protocol, then a uint32 tag count.
+    client_version, emule_proto = body[:2]
+    if emule_proto != 1:
+        raise HelloParseError("unsupported MuleInfo protocol version")
+    n_tags = _u32(body, 2)
+    if n_tags > 64:
+        raise HelloParseError("MuleInfo tag count exceeds evidence parser limit")
+    offset = 6
     tags: Dict[int, object] = {}
-    if len(body) >= 5:
-        n_tags = _u32(body, 1)
-        offset = 5
-        for _ in range(min(n_tags, 64)):
+    tag_keys = set()
+    for _ in range(n_tags):
+        if offset + 4 > len(body):
+            raise HelloParseError("truncated MuleInfo tag header")
+        tag_type = body[offset]
+        key_len = _u16(body, offset + 1)
+        offset += 3
+        if key_len != 1:
+            raise HelloParseError("only classic 1-byte MuleInfo tag keys are supported")
+        key = body[offset]
+        offset += 1
+        tag_keys.add(key)
+        if tag_type == ED2K_TAG_INT:
             if offset + 4 > len(body):
-                break
-            tag_type = body[offset]
-            key_len = _u16(body, offset + 1)
-            offset += 3
-            if key_len != 1 or offset + 1 > len(body):
-                break
-            key = body[offset]
-            offset += 1
-            if tag_type == ED2K_TAG_INT:
-                if offset + 4 > len(body):
-                    break
-                tags[key] = _u32(body, offset)
-                offset += 4
-            elif tag_type == ED2K_TAG_STRING:
-                if offset + 2 > len(body):
-                    break
-                str_len = _u16(body, offset)
-                offset += 2
-                if offset + str_len > len(body):
-                    break
-                offset += str_len
-            else:
-                break
+                raise HelloParseError("truncated MuleInfo integer tag")
+            tags[key] = _u32(body, offset)
+            offset += 4
+        elif tag_type == ED2K_TAG_STRING:
+            if offset + 2 > len(body):
+                raise HelloParseError("truncated MuleInfo string tag length")
+            str_len = _u16(body, offset)
+            offset += 2
+            if offset + str_len > len(body):
+                raise HelloParseError("truncated MuleInfo string tag payload")
+            # Inspect framing without exporting potentially private string values.
+            offset += str_len
+        else:
+            raise HelloParseError("unsupported MuleInfo classic-tag type")
+    if offset != len(body):
+        raise HelloParseError("unconsumed bytes after MuleInfo tags")
     return {
         "protocol": ED2K_PROTOCOL_EMULE,
         "opcode": opcode,
+        "emule_client_version": client_version,
         "emule_protocol_version": emule_proto,
-        "tag_keys": sorted(tags.keys()),
+        "tag_keys": sorted(tag_keys),
         "tags": tags,
     }
 
