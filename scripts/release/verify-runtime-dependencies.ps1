@@ -149,7 +149,7 @@ function Get-PeImportedDllNames([byte[]]$Bytes)
 		$offset = Convert-RvaToOffset $Rva
 		if ($null -eq $offset)
 		{
-			return $null
+			throw ("import name RVA 0x{0:X} does not map into any image section" -f $Rva)
 		}
 		$end = $offset
 		while ($end -lt $Bytes.Length -and $Bytes[$end] -ne 0 -and ($end - $offset) -lt 512)
@@ -158,7 +158,11 @@ function Get-PeImportedDllNames([byte[]]$Bytes)
 		}
 		if ($end -ge $Bytes.Length -or ($end - $offset) -ge 512)
 		{
-			return $null
+			throw ("import name at RVA 0x{0:X} is not NUL-terminated within 512 bytes" -f $Rva)
+		}
+		if ($end -eq $offset)
+		{
+			throw ("import name at RVA 0x{0:X} is empty" -f $Rva)
 		}
 		return [System.Text.Encoding]::ASCII.GetString($Bytes, $offset, $end - $offset)
 	}
@@ -179,7 +183,12 @@ function Get-PeImportedDllNames([byte[]]$Bytes)
 	if ($importRva -ne 0)
 	{
 		$offset = Convert-RvaToOffset $importRva
-		for ($i = 0; $null -ne $offset -and $i -lt 4096; $i++)
+		if ($null -eq $offset)
+		{
+			throw ("import directory RVA 0x{0:X} does not map into any image section" -f $importRva)
+		}
+		$terminated = $false
+		for ($i = 0; $i -lt 4096; $i++)
 		{
 			$entry = $offset + 20 * $i
 			if ($entry + 20 -gt $Bytes.Length)
@@ -188,13 +197,14 @@ function Get-PeImportedDllNames([byte[]]$Bytes)
 			}
 			if ([BitConverter]::ToUInt32($Bytes, $entry) -eq 0 -and [BitConverter]::ToUInt32($Bytes, $entry + 12) -eq 0)
 			{
+				$terminated = $true
 				break
 			}
-			$name = Read-ImportNameRva ([BitConverter]::ToUInt32($Bytes, $entry + 12))
-			if ($name)
-			{
-				$names += $name
-			}
+			$names += Read-ImportNameRva ([BitConverter]::ToUInt32($Bytes, $entry + 12))
+		}
+		if (-not $terminated)
+		{
+			throw 'static import directory is not terminated within 4096 descriptors'
 		}
 	}
 
@@ -205,7 +215,12 @@ function Get-PeImportedDllNames([byte[]]$Bytes)
 	if ($delayRva -ne 0)
 	{
 		$offset = Convert-RvaToOffset $delayRva
-		for ($i = 0; $null -ne $offset -and $i -lt 4096; $i++)
+		if ($null -eq $offset)
+		{
+			throw ("delay import directory RVA 0x{0:X} does not map into any image section" -f $delayRva)
+		}
+		$terminated = $false
+		for ($i = 0; $i -lt 4096; $i++)
 		{
 			$entry = $offset + 32 * $i
 			if ($entry + 32 -gt $Bytes.Length)
@@ -216,14 +231,15 @@ function Get-PeImportedDllNames([byte[]]$Bytes)
 			$nameField = [BitConverter]::ToUInt32($Bytes, $entry + 4)
 			if ($attributes -eq 0 -and $nameField -eq 0)
 			{
+				$terminated = $true
 				break
 			}
 			$nameRva = if ($attributes -band 0x1) { [int64]$nameField } else { [int64]$nameField - $imageBase }
-			$name = Read-ImportNameRva $nameRva
-			if ($name)
-			{
-				$names += $name
-			}
+			$names += Read-ImportNameRva $nameRva
+		}
+		if (-not $terminated)
+		{
+			throw 'delay import directory is not terminated within 4096 descriptors'
 		}
 	}
 

@@ -72,7 +72,7 @@ function Find-AsciiString([byte[]]$Bytes, [string]$Needle)
 # cannot pass by accident. $NumberOfRvaAndSizes controls the data-directory
 # count the parser must honor: a delay directory beyond that count must be
 # ignored even though its bytes are present in the file.
-function New-SyntheticDelayImportPe([string]$Path, [string]$DelayDllName, [switch]$NameIsVa, [uint32]$NumberOfRvaAndSizes = 16)
+function New-SyntheticDelayImportPe([string]$Path, [string]$DelayDllName, [switch]$NameIsVa, [uint32]$NumberOfRvaAndSizes = 16, [switch]$BadImportDirRva, [switch]$BadDelayNameRva)
 {
 	if ($DelayDllName.Length -gt 200)
 	{
@@ -118,6 +118,12 @@ function New-SyntheticDelayImportPe([string]$Path, [string]$DelayDllName, [switc
 	# Non-zero export-directory RVA: the parser must not read directory 0, and
 	# a too-wide NumberOfRvaAndSizes read would absorb it.
 	[BitConverter]::GetBytes([uint32]0x1234).CopyTo($bytes, $dataDirs)
+	if ($BadImportDirRva)
+	{
+		# Import directory that claims an RVA no section maps; the parser must
+		# reject the image instead of treating it as having no imports.
+		[BitConverter]::GetBytes([uint32]0x900000).CopyTo($bytes, $dataDirs + 1 * 8)
+	}
 	[BitConverter]::GetBytes([uint32]0x1000).CopyTo($bytes, $dataDirs + 13 * 8)
 	[BitConverter]::GetBytes([uint32]0x40).CopyTo($bytes, $dataDirs + 13 * 8 + 4)
 	$section = $sectionTable
@@ -127,7 +133,8 @@ function New-SyntheticDelayImportPe([string]$Path, [string]$DelayDllName, [switc
 	[BitConverter]::GetBytes([uint32]0x200).CopyTo($bytes, $section + 20)
 	$data = 0x200
 	[BitConverter]::GetBytes($attributes).CopyTo($bytes, $data)
-	[BitConverter]::GetBytes($nameRva).CopyTo($bytes, $data + 4)
+	$delayNameRva = if ($BadDelayNameRva) { [uint32]0x900000 } else { $nameRva }
+	[BitConverter]::GetBytes($delayNameRva).CopyTo($bytes, $data + 4)
 	$nameBytes = [System.Text.Encoding]::ASCII.GetBytes($DelayDllName + [char]0)
 	$nameBytes.CopyTo($bytes, $data + 0x40)
 	[System.IO.File]::WriteAllBytes($Path, $bytes)
@@ -209,7 +216,17 @@ try
 	New-SyntheticDelayImportPe (Join-Path $tree 'delayhost.exe') 'DELAYZ.dll' -NumberOfRvaAndSizes 2
 	Assert-Pass $tree 'delay directory beyond the declared count is ignored'
 
-	# 10. A missing tree directory fails instead of passing silently.
+	# 10. Malformed import metadata fails closed instead of counting as an
+	# empty dependency set.
+	$tree = Copy-Tree 'bad-import-dir'
+	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYX.dll' -BadImportDirRva
+	Assert-Fail $tree 'unmappable import directory' 'does not map into any image section'
+
+	$tree = Copy-Tree 'bad-delay-name'
+	New-SyntheticDelayImportPe (Join-Path $tree 'host.exe') 'DELAYX.dll' -BadDelayNameRva
+	Assert-Fail $tree 'unmappable delay-load name' 'does not map into any image section'
+
+	# 11. A missing tree directory fails instead of passing silently.
 	Assert-Fail (Join-Path $tmpRoot 'does-not-exist') 'missing tree directory' 'Runtime tree not found'
 }
 finally
