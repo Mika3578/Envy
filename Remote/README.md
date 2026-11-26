@@ -44,7 +44,7 @@ Remote/
 ├── home-modern.html         # Modernized home page
 ├── login-modern.html        # Enhanced login page
 ├── downloads-modern.html    # Advanced downloads management
-├── README-modern.md         # This documentation
+├── README.md                # This documentation
 ├── [original files...]      # Legacy files for reference
 ```
 
