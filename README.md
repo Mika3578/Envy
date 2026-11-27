@@ -3,7 +3,7 @@
 [![Build](https://github.com/Mika3578/Envy/actions/workflows/build.yml/badge.svg)](https://github.com/Mika3578/Envy/actions/workflows/build.yml)
 [![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
 
-Envy is a free, open-source, Windows-native **multi-network peer-to-peer client**: BitTorrent (DHT, uTP, magnet links), Gnutella, Gnutella2, eDonkey2000/Kad, and Direct Connect in one application, with library management and multi-network search. It is licensed under the [GNU AGPL-3.0-or-later](LICENSE). The repository is a monorepo containing the main desktop client, plugins, vendored native dependencies, installer tooling, and a growing test suite.
+Envy is a free, open-source, Windows-native **multi-network peer-to-peer client**: BitTorrent (DHT, magnet links), Gnutella, Gnutella2, eDonkey2000/Kad, and Direct Connect in one application, with library management and multi-network search. It is licensed under the [GNU AGPL-3.0-or-later](LICENSE). The repository is a monorepo containing the main desktop client, plugins, vendored native dependencies, installer tooling, and a growing test suite.
 
 **Supported product OS today:** Windows (x64 primary; Win32 legacy). **Linux and macOS are planned, not supported** — see `docs/20_arch/PORTABILITY_PLAN.md`.
 
