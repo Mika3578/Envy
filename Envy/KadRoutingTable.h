@@ -608,6 +608,24 @@ public:
 
 	size_t GetContactCount() const { return GetTotalContacts(); }
 
+	// True when any contact already uses this IPv4 (any UDP port). Used for
+	// the UDP firewall tester's fresh-IP rule (eMule CUDPFirewallTester::
+	// QueryNextClient skips IPs the routing zone already knows, because a
+	// prior UDP exchange biases the probe result).
+	bool HasContactWithIp(uint32_t ip) const
+	{
+		bool found = false;
+		ForEachContact([&](const KadContact& c)
+		               {
+			if (found)
+				return;
+			if (c.ip == ip)
+				found = true;
+		});
+		return found;
+	}
+
+
 	void GetContactsForBootstrap(std::vector<KadContact>& results, int maxCount = 20) const
 	{
 		results.clear();

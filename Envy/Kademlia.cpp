@@ -2091,12 +2091,5 @@ bool CKademlia::HasKadContactIp(DWORD ipHost)
 
 bool CKademlia::RoutingZoneHasIp(DWORD ipHost)
 {
-	bool found = false;
-	m_routingTable.ForEachContact([&](const KadContact& c)
-	                              {
-		if (found)
-			return;
-		if (c.ip == ipHost)
-			found = true; });
-	return found;
+	return m_routingTable.HasContactWithIp(ipHost);
 }
