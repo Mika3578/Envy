@@ -20,6 +20,7 @@
 #include "Settings.h"
 #include "Envy.h"
 #include "MatchObjects.h"
+#include "SearchFilterMask.h"
 #include "QuerySearch.h"
 #include "QueryHit.h"
 #include "Library.h"
@@ -100,17 +101,18 @@ CMatchList::CMatchList(CBaseMatchWnd* pParent)
 	}
 	else
 	{
-		m_bRegExp			= ( Settings.Search.FilterMask & ( 1 << 0 ) ) > 0;	// 0;
-		m_bFilterPush		= ( Settings.Search.FilterMask & ( 1 << 1 ) ) > 0;	// 0;
-		m_bFilterUnstable	= ( Settings.Search.FilterMask & ( 1 << 2 ) ) > 0;	// 0;
-		m_bFilterBusy		= ( Settings.Search.FilterMask & ( 1 << 3 ) ) > 0;	// 0;
-		m_bFilterLocal		= ( Settings.Search.FilterMask & ( 1 << 4 ) ) > 0;	// 0;
-		m_bFilterReject		= ( Settings.Search.FilterMask & ( 1 << 5 ) ) > 0 || bBrowsing;	// 0;
-		m_bFilterBogus		= ( Settings.Search.FilterMask & ( 1 << 6 ) ) > 0;	// 0;
-		m_bFilterDRM		= ( Settings.Search.FilterMask & ( 1 << 7 ) ) > 0;	// 1;
-		m_bFilterRestricted	= ( Settings.Search.FilterMask & ( 1 << 8 ) ) > 0;	// 0;
-		m_bFilterSuspicious	= ( Settings.Search.FilterMask & ( 1 << 9 ) ) > 0;	// 1;
-		m_bFilterAdult		= ( Settings.Search.FilterMask & ( 1 << 10 ) ) > 0;	// 0;
+		const SearchFilterState oState = DecodeSearchFilterMask(Settings.Search.FilterMask);
+		m_bRegExp = oState.bRegExp;
+		m_bFilterPush = oState.bFilterPush;
+		m_bFilterUnstable = oState.bFilterUnstable;
+		m_bFilterBusy = oState.bFilterBusy;
+		m_bFilterLocal = oState.bFilterLocal;
+		m_bFilterReject = oState.bFilterReject || bBrowsing;
+		m_bFilterBogus = oState.bFilterBogus;
+		m_bFilterDRM = oState.bFilterDRM;
+		m_bFilterRestricted = oState.bFilterRestricted;
+		m_bFilterSuspicious = oState.bFilterSuspicious;
+		m_bFilterAdult = oState.bFilterAdult;
 		m_nFilterMinSize	= 1;
 		m_nFilterMaxSize	= 0;
 		m_nFilterSources	= 1;
@@ -778,22 +780,22 @@ void CMatchList::Filter()
 {
 	CSingleLock pLock( &m_pSection, TRUE );
 
-	Settings.Search.FilterMask = 0;
-
-	if ( m_bRegExp )			Settings.Search.FilterMask |= ( 1 << 0 );	// 0;
-	if ( m_bFilterPush )		Settings.Search.FilterMask |= ( 1 << 1 );	// 0;
-	if ( m_bFilterUnstable )	Settings.Search.FilterMask |= ( 1 << 2 );	// 0;
-	if ( m_bFilterBusy )		Settings.Search.FilterMask |= ( 1 << 3 );	// 0;
-	if ( m_bFilterLocal )		Settings.Search.FilterMask |= ( 1 << 4 );	// 0;
-	if ( m_bFilterReject )		Settings.Search.FilterMask |= ( 1 << 5 );	// 0;
-	if ( m_bFilterBogus )		Settings.Search.FilterMask |= ( 1 << 6 );	// 0;
-	if ( m_bFilterDRM )			Settings.Search.FilterMask |= ( 1 << 7 );	// 1;
-	if ( m_bFilterRestricted )	Settings.Search.FilterMask |= ( 1 << 8 );	// 0;
-	if ( m_bFilterSuspicious )	Settings.Search.FilterMask |= ( 1 << 9 );	// 1;
-	if ( m_bFilterAdult )		Settings.Search.FilterMask |= ( 1 << 10 );	// 0;
-//	if ( m_nFilterSources > 0 )	Settings.Search.FilterMask |= ( 1 << 12 );	// 1;
-//	if ( m_nFilterMinSize > 0 )	Settings.Search.FilterMask |= ( 1 << 10 );	// 1;
-//	if ( m_nFilterMaxSize > m_nFilterMinSize )	Settings.Search.FilterMask |= ( 1 << 11 );	// 0;
+	SearchFilterState oState;
+	oState.bRegExp = m_bRegExp;
+	oState.bFilterPush = m_bFilterPush;
+	oState.bFilterUnstable = m_bFilterUnstable;
+	oState.bFilterBusy = m_bFilterBusy;
+	oState.bFilterLocal = m_bFilterLocal;
+	oState.bFilterReject = m_bFilterReject;
+	oState.bFilterBogus = m_bFilterBogus;
+	oState.bFilterDRM = m_bFilterDRM;
+	oState.bFilterRestricted = m_bFilterRestricted;
+	oState.bFilterSuspicious = m_bFilterSuspicious;
+	oState.bFilterAdult = m_bFilterAdult;
+	Settings.Search.FilterMask = EncodeSearchFilterMask(oState);
+	//	if ( m_nFilterSources > 0 )	Settings.Search.FilterMask |= ( 1 << 12 );	// 1;
+	//	if ( m_nFilterMinSize > 0 )	Settings.Search.FilterMask |= ( 1 << 10 );	// 1;
+	//	if ( m_nFilterMaxSize > m_nFilterMinSize )	Settings.Search.FilterMask |= ( 1 << 11 );	// 0;
 
 	delete [] m_pszFilter;
 	m_pszFilter = NULL;
