@@ -12,34 +12,34 @@ Current repository includes workflows for:
 - CodeQL security scanning
 - Release packaging (per-platform setup + ZIP + checksums)
 
-## Preview 1 packaging (current)
+## Preview 2 packaging (current)
 
-Target tag: `v4.2.0-preview.1`
+Target tag: `v4.2.0-preview.2`
 
 Published assets (draft + prerelease when the tag contains `preview` / `beta` / `rc` / `alpha`):
 
 | Asset | Role |
 | --- | --- |
-| `Envy-4.2.0-preview.1-x64-setup.exe` | Recommended installer |
-| `Envy-4.2.0-preview.1-win32-setup.exe` | 32-bit compatibility installer |
-| `Envy-4.2.0-preview.1-x64.zip` | Portable package (full runtime tree) |
-| `Envy-4.2.0-preview.1-win32.zip` | Portable package (full runtime tree) |
+| `Envy-4.2.0-preview.2-x64-setup.exe` | Recommended installer |
+| `Envy-4.2.0-preview.2-win32-setup.exe` | 32-bit compatibility installer |
+| `Envy-4.2.0-preview.2-x64.zip` | Portable package (full runtime tree) |
+| `Envy-4.2.0-preview.2-win32.zip` | Portable package (full runtime tree) |
 | `SHA256SUMS.txt` | Checksums for all of the above |
 
 Notes:
-- Matrix builds x64 and Win32 independently; Preview 1 ships **two** setups (unified universal installer is deferred).
-- Inno writes each platform setup to repo-root `Builds/` (e.g. `Envy.4.2.0.1.64.Preview.exe` / `Envy.4.2.0.1.32.Preview.exe`); `release.yml` stages exactly one `.exe` from that directory per matrix job, then renames for GitHub Release assets.
+- Matrix builds x64 and Win32 independently; Preview 2 ships **two** setups (unified universal installer is deferred).
+- Inno writes each platform setup to repo-root `Builds/` (e.g. `Envy.4.2.0.2.64.Preview.exe` / `Envy.4.2.0.2.32.Preview.exe`); `release.yml` stages exactly one `.exe` from that directory per matrix job, then renames for GitHub Release assets.
 - Inno channel is driven by MSBuild `/p:InstallerAlpha=…` (from the tag: `Preview` / `True` / `False`).
-- Authenticode signing is **not** configured for Preview 1; SmartScreen may warn.
+- Authenticode signing is **not** configured for Preview 2; SmartScreen may warn.
 - Releases are created as **draft** so assets can be verified before publish.
 - The automatic pipeline **never** publishes (`draft` stays `true`); a human publishes after smoke tests.
 - `workflow_dispatch` dry-runs packaging into an Actions artifact; only a real `v*` tag push creates/updates the GitHub draft Release (unless `repair_release_id` is set — see below).
 
 ## Release Process (Current)
-1. On the packaging branch (or `develop` after merge), run **workflow_dispatch** with `version=v4.2.0-preview.1` and leave `repair_release_id` empty. That path builds, packages, verifies checksums/ZIPs, and uploads Actions artifact `release-v4.2.0-preview.1` only — **no GitHub Release and no tag**.
+1. On the packaging branch (or `develop` after merge), run **workflow_dispatch** with `version=v4.2.0-preview.2` and leave `repair_release_id` empty. That path builds, packages, verifies checksums/ZIPs, and uploads Actions artifact `release-v4.2.0-preview.2` only — **no GitHub Release and no tag**.
 2. Download that artifact; confirm the five expected files; smoke-test install / launch / uninstall (x64 and Win32).
 3. Land packaging/version changes on `develop`.
-4. Tag the exact `develop` commit (`v4.2.0-preview.1`). Do not move/retag an existing release tag.
+4. Tag the exact `develop` commit (`v4.2.0-preview.2`). Do not move/retag an existing release tag.
 5. The same `release.yml` on tag push creates or **reuses** the **draft** GitHub prerelease, then uploads the five assets **sequentially by `release_id`** (scripts under `scripts/release/`). Reruns are idempotent: matching assets are kept; mismatched assets are replaced; the job fails if the final remote set is incomplete.
 6. Complete release notes (limitations + unsigned warning) and publish the prerelease manually in the GitHub UI.
 
