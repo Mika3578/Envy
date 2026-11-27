@@ -1998,6 +1998,11 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="KadHello.h">
+    <ClInclude Include="KadBootstrapRotation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KadOutstandingRequest.h">
+    <ClInclude Include="KademliaBootstrap.inl">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="KadRoutingTable.h">
