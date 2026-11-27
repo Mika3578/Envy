@@ -6,5 +6,7 @@ import sys
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
-if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
+_TESTS = Path(__file__).resolve().parent
+for entry in (_ROOT, _TESTS):
+    if str(entry) not in sys.path:
+        sys.path.insert(0, str(entry))

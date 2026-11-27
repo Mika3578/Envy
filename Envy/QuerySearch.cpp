@@ -901,9 +901,8 @@ void CQuerySearch::ReadGGEP(CG1Packet* pPacket)
 		Hashes::BtHash		oBTH;
 		Hashes::Md5Hash		oMD5;
 
-		CGGEPItem* pItemPos = pGGEP.GetFirst();
-		for ( BYTE nItemCount = 0; pItemPos && nItemCount < pGGEP.GetCount();
-			nItemCount++, pItemPos = pItemPos->m_pNext )
+		CGGEPItem* pItemPos = nullptr;
+		for (CGGEPBoundedIterator oSearchGgep(pGGEP); oSearchGgep.Next(pItemPos);)
 		{
 			if ( pItemPos->IsNamed( GGEP_HEADER_HASH ) )
 			{

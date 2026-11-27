@@ -5,23 +5,24 @@ This guide covers installing and setting up Envy on your Windows system.
 ## 📋 System Requirements
 
 ### Minimum Requirements
-- **Operating System**: Windows 7 SP1 or later
+- **Operating System**: Windows 10 version 1809 (build 17763) or later
 - **Processor**: 1 GHz or faster
 - **Memory**: 512 MB RAM
 - **Storage**: 100 MB available space
 - **Display**: 1024x768 resolution
 
 ### Recommended Requirements
-- **Operating System**: Windows 10 or later
+- **Operating System**: Windows 10 or Windows 11, 64-bit (x64)
 - **Processor**: 2 GHz dual-core or better
 - **Memory**: 2 GB RAM or more
 - **Storage**: 500 MB available space
 - **Display**: 1920x1080 resolution or higher
 
 ### Supported Platforms
-- **Windows 10** (32-bit and 64-bit)
-- **Windows 11** (32-bit and 64-bit)
-- **Windows Server** (2016, 2019, 2022)
+- **Windows 10 / Windows 11 x64**: primary supported product platform
+- **Windows 10 / Windows 11 x86 (Win32)**: legacy Stage A only — still built and shipped until Stage B stops publishing packages (D-024); scheduled for retirement
+- **Windows Server** (2019, 2022) on x64 when the host meets Windows 10 1809+ API level
+- **Not supported**: Windows XP / Vista / 7 / 8 / 8.1 (already dropped; installer `MinVersion=10.0.17763`)
 
 ## 📥 Downloading Envy
 
@@ -284,8 +285,8 @@ To keep your settings and library:
 
 - **Installation logs**: Check %TEMP% for setup logs
 - **System requirements**: Verify your system meets minimum specs
-- **Compatibility mode**: Try running in Windows 7 compatibility mode
 - **Clean boot**: Test with minimal startup programs
+- **Architecture**: Prefer the x64 build on 64-bit Windows; Win32 packages are legacy Stage A only (D-024)
 
 ### Advanced Troubleshooting
 
@@ -330,4 +331,4 @@ Envy is now ready to use. Continue with the [User Guide](guide.md) to learn how 
 
 ---
 
-**Last Updated:** January 15, 2026
+**Last Updated:** October 20, 2026

@@ -1,13 +1,14 @@
 # Kad Documentation
 
 Status: active
-Last updated: 2026-10-24
+Last updated: 2026-11-26
 Scope: Envy Kad2 notes. Opcode matching is not live interop. Kad6/Ember overlays are not Kad2.
 
-**Specification first:** [Kademlia paper](https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf). **Interop second:** eMule Community and aMule Kad2 sources. Ember and eMule eSE extensions are experimental and must stay distinct from Kad2. See [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md).
+**Specification first:** [Kademlia paper](https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf). **Interop second:** maintained aMule and eMule-family Kad2 sources ([amule-org/amule](https://github.com/amule-org/amule), [emulebb/emulebb](https://github.com/emulebb/emulebb), [eMuleAI/eMuleAI](https://github.com/eMuleAI/eMuleAI)). [irwir/eMule](https://github.com/irwir/eMule) still has the standard opcode values but is not a maintained tree (single commit, 2016-04-10). Ember and eMule eSE extensions are experimental and must stay distinct from Kad2. See [REFERENCE_IMPLEMENTATIONS.md](../REFERENCE_IMPLEMENTATIONS.md) and the 2026-11-26 survey in [kad-interop.md](kad-interop.md).
 
 ## Start here
 - [Kad2 compatibility report](kad2-compatibility-report.md) (wire/opcode match only)
+- [Kad2 publish interop notes](kad-interop.md) (PUBLISH opcodes, client survey 2026-11-26, layouts for #427 / #428)
 
 ## Initial exchange wire layout and inbound limits
 
