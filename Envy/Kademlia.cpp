@@ -63,7 +63,6 @@ CKademlia::CKademlia()
     , m_lastRateLimitCleanup(0)
     , m_lastStoreCleanup(0)
     , m_lastFirewallTcpPort(0)
-    , m_hasPendingBuddyConnect(false)
 {
 	memset(m_ownId, 0, KAD_ID_SIZE);
 }

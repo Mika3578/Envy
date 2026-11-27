@@ -330,7 +330,7 @@ private:
 	void SendFindBuddyRequest(const KadContact& contact);
 	void MaybeStartBuddySearch();
 	KadBuddyRecord m_pendingBuddyConnect;
-	bool m_hasPendingBuddyConnect;
+	bool m_hasPendingBuddyConnect = false;
 	std::vector<KadCallbackRelayItem> m_pendingCallbackRelays;
 	KadInboundLimiter m_inboundLimiter;
 	// Aggregate HELLO diagnostics (counts only), logged once a minute by LogHelloStatus().
