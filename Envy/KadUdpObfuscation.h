@@ -17,8 +17,9 @@
 //   <RC4(padding padLen)><RC4(receiverVerifyKey 4)><RC4(senderVerifyKey 4)>
 //   <RC4(clear ED2K/Kad datagram)>
 //
-// The magic value 0x395F2EC1 and both verify keys travel byte-swapped, i.e.
-// big-endian on the wire (the sender encrypts ENDIAN_SWAP_32 values). Padding
+// The magic value 0x395F2EC1 and both verify keys travel little-endian: eMule
+// encrypts the native uint32 and aMule's ENDIAN_SWAP_32 only swaps on
+// big-endian hosts, so the decrypted magic bytes are C1 2E 5F 39. Padding
 // is 0 for UDP today, but any length that fits is accepted, as in the
 // references. The marker only hints which key to try first and is explicitly
 // not to be trusted, so the NodeID key and, when one is known, the
@@ -39,9 +40,8 @@
 #include <cstdint>
 #include <cstring>
 
-// The value an obfuscated packet carries after the first keystream block;
-// aMule encrypts ENDIAN_SWAP_32(MAGICVALUE_UDP_SYNC_CLIENT), so the wire bytes
-// are the big-endian encoding.
+// The value an obfuscated packet carries after the random key part, encrypted
+// as a little-endian uint32 (decrypted bytes C1 2E 5F 39).
 constexpr uint32_t KadUdpObfuscationMagic = 0x395F2EC1u;
 
 // Marker + random key part + encrypted magic + encrypted padLen.
@@ -80,11 +80,11 @@ inline bool KadUdpIsClearProtocolByte(uint8_t byte)
 namespace KadUdpObfuscationDetail
 {
 
-// Big-endian uint32 read; the magic and both verify keys are sent byte-swapped.
-inline uint32_t ReadBigEndian(const uint8_t* p)
+// Little-endian uint32 read; the magic and both verify keys use x86 byte order.
+inline uint32_t ReadLittleEndian(const uint8_t* p)
 {
-	return (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) |
-	       (static_cast<uint32_t>(p[2]) << 8) | static_cast<uint32_t>(p[3]);
+	return static_cast<uint32_t>(p[0]) | (static_cast<uint32_t>(p[1]) << 8) |
+	       (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24);
 }
 
 enum KeyAttempt
@@ -117,7 +117,7 @@ inline KeyAttempt TryKey(const uint8_t* keySeed, size_t keySeedLen, const uint8_
 	uint8_t magic[4];
 	memcpy(magic, in + 3, sizeof(magic));
 	rc4.Process(magic, sizeof(magic));
-	if (ReadBigEndian(magic) != KadUdpObfuscationMagic)
+	if (ReadLittleEndian(magic) != KadUdpObfuscationMagic)
 		return KeyNoMagic;
 
 	uint8_t padByte = in[7];
@@ -152,9 +152,9 @@ inline KeyAttempt TryKey(const uint8_t* keySeed, size_t keySeedLen, const uint8_
 	outLen = plainLen;
 
 	if (receiverVerifyKeyOut)
-		*receiverVerifyKeyOut = ReadBigEndian(keys);
+		*receiverVerifyKeyOut = ReadLittleEndian(keys);
 	if (senderVerifyKeyOut)
-		*senderVerifyKeyOut = ReadBigEndian(keys + 4);
+		*senderVerifyKeyOut = ReadLittleEndian(keys + 4);
 	return KeyDecrypted;
 }
 
