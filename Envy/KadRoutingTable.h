@@ -620,8 +620,7 @@ public:
 			if (found)
 				return;
 			if (c.ip == ip)
-				found = true;
-		});
+				found = true; });
 		return found;
 	}
 
