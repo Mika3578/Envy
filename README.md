@@ -1,6 +1,9 @@
 # Envy
 
-Envy is a Windows-native, MFC-based **multi-network** peer-to-peer client (BitTorrent, Gnutella, Gnutella2, ED2K, Kad, Direct Connect, Remote/Web, plus library and multi-network search). The repository is a monorepo containing the main desktop client, plugins, vendored native dependencies, installer tooling, and a growing test suite.
+[![Build](https://github.com/Mika3578/Envy/actions/workflows/build.yml/badge.svg)](https://github.com/Mika3578/Envy/actions/workflows/build.yml)
+[![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
+
+Envy is a free, open-source, Windows-native **multi-network peer-to-peer client**: BitTorrent (DHT, magnet links), Gnutella, Gnutella2, eDonkey2000/Kad, and Direct Connect in one application, with library management and multi-network search. It is licensed under the [GNU AGPL-3.0-or-later](LICENSE). The repository is a monorepo containing the main desktop client, plugins, vendored native dependencies, installer tooling, and a growing test suite.
 
 **Supported product OS today:** Windows (x64 primary; Win32 legacy). **Linux and macOS are planned, not supported** — see `docs/20_arch/PORTABILITY_PLAN.md`.
 
@@ -24,7 +27,7 @@ This is **preview** software. Some P2P protocol functionality is still under dev
 
 ### Prerequisites
 - Windows 10/11 development environment
-- Visual Studio with C++ + MFC/ATL workloads
+- Visual Studio 2026 with the "Desktop development with C++" workload, including MFC and ATL components
 - MSVC platform toolset `v145` (as referenced by project files)
 - vcpkg (root `vcpkg.json` / Crashpad). Restore with `scripts/bootstrap-vcpkg.cmd` before the first Visual Studio build — see `docs/10_dev/build.md`
 - Optional: CMake 3.20+ (currently partial build support)
@@ -42,6 +45,18 @@ cmake --build build
 ctest --test-dir build
 ```
 > Note: current top-level CMake is intentionally incomplete and mainly covers `HashLib` + selected tests.
+
+## How to contribute
+Contributions of code, translations, skins, and docs are welcome. Start here:
+
+1. Read the contributor guide: [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) (setup, PR workflow, review gates).
+2. Pick a starter task from the [good first issue](https://github.com/Mika3578/Envy/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) list, or browse [help wanted](https://github.com/Mika3578/Envy/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22).
+3. For larger changes, check `docs/DEVELOPMENT_PLAN.md` and open an issue to discuss the approach first.
+
+## Community
+- Questions and ideas: [GitHub Discussions](https://github.com/Mika3578/Envy/discussions)
+- Bugs and feature requests: [GitHub Issues](https://github.com/Mika3578/Envy/issues)
+- Security reports: follow `.github/SECURITY.md`; please do not open a public issue for a vulnerability.
 
 ## Repository Layout
 - `Envy/` – primary desktop application (UI + protocols + library)
@@ -81,3 +96,6 @@ ctest --test-dir build
 - Mature C++ codebase with active modernization effort.
 - Visual Studio solution is the source of truth for full builds.
 - CI workflows exist for build, quality checks, and CodeQL scanning.
+
+## License
+Envy is licensed under the **GNU Affero General Public License v3.0 or later** — see [`LICENSE`](LICENSE). Some bundled visual resources and third-party components carry additional terms; see [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) and `docs/DEPENDENCIES.md`.
