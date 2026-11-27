@@ -241,8 +241,11 @@ the table.
    with bounded pending IPs/items/bytes; keep it only if the claimed
    address answers. Drop unkeyed publishes that carry no sender key.
 8. **No storer role without UDP keys, obfuscation, and a UDP firewall
-   tester.** Envy has none of these today. Until they exist, leaving
-   PUBLISH dropped unparsed (#526) is the safe default.
+   tester.** Envy has none of these today. Inbound deobfuscation of
+   encrypted Kad2 replies now exists (#431, `Envy/KadUdpObfuscation.h`),
+   but outgoing Kad encryption, the UDP verify keys (`KadUDPKeys.h`) and
+   the firewall tester do not. Until they exist, leaving PUBLISH dropped
+   unparsed (#526) is the safe default.
 
 ## Open questions
 
