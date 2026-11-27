@@ -62,8 +62,8 @@ Never delete, recreate, or move the tag to repair assets.
 Notes:
 - `workflow_dispatch` without `repair_release_id` is intentionally a dry-run. Do **not** treat it as a publish path.
 - Draft upload no longer uses `softprops/action-gh-release` (parallel uploads raced on freshly created drafts). Publication uses `scripts/release/publish-draft-release.ps1` with `gh api` against the concrete `release_id`.
-- Pre-upload gates: `verify-version.ps1` (tag / `version.json` / `Envy.rc` / built `Envy.exe`) and `verify-artifacts.ps1` (five assets, SHA256, ZIP extract with runtime tree `Data`/`Skins`/`Schemas`/`Plugins`/…, no `.pdb`/Debug paths).
-- Portable ZIPs are staged by `scripts/release/stage-portable.ps1` to mirror `Installer/Scripts/Main.iss` (binaries at root, plugins under `Plugins\`, shared resources under `Data\`/`Skins\`/`Schemas\`/`Templates\`/`Remote\`). Flattened EXE/DLL-only ZIPs are rejected.
+- Pre-upload gates: `verify-version.ps1` (tag / `version.json` / `Envy.rc` / built `Envy.exe`) and `verify-artifacts.ps1` (five assets, SHA256, ZIP extract with runtime tree `Data`/`Skins`/`Schemas`/`Plugins`/…, no `.pdb`/Debug paths, required root runtime files per platform, and PE import resolution via `verify-runtime-dependencies.ps1`).
+- Portable ZIPs are staged by `scripts/release/stage-portable.ps1` to mirror `Installer/Scripts/Main.iss` (binaries at root, plugins under `Plugins\`, shared resources under `Data\`/`Skins\`/`Schemas`/`Templates\`/`Remote\`). Flattened EXE/DLL-only ZIPs are rejected, and staging fails closed when any packaged image imports a non-system runtime DLL the tree does not ship.
 
 ## Rollback Procedure (Recommended baseline)
 1. Identify bad release tag/build.

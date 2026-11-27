@@ -116,6 +116,10 @@ jobs:
         shell: pwsh
         run: pwsh scripts/copy-bugsplat-vc-runtime.selftest.ps1
 
+      - name: Runtime dependency verification self-test
+        shell: pwsh
+        run: pwsh scripts/release/verify-runtime-dependencies.selftest.ps1
+
       - name: Installer Main.iss UTF-8 copyright guard
         shell: bash
         run: |

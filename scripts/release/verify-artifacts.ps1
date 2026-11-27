@@ -5,8 +5,10 @@
 
 .DESCRIPTION
   Checks expected names, non-zero sizes, SHA256SUMS.txt contents against the
-  four binaries, ZIP extractability, absence of .pdb/Debug payloads, and
-  presence of Envy.exe inside each portable ZIP.
+  four binaries, ZIP extractability, absence of .pdb/Debug payloads, presence
+  of Envy.exe inside each portable ZIP, the required root runtime files per
+  platform, and that every packaged PE import resolves inside the tree
+  (verify-runtime-dependencies.ps1).
 #>
 [CmdletBinding()]
 param(
@@ -200,6 +202,59 @@ try
 		{
 			Write-Fail "ZIP $zipName contains Debug-path files."
 		}
+
+		$platform = if ($zipName -match '-x64\.zip$') { 'x64' }
+		elseif ($zipName -match '-win32\.zip$') { 'Win32' }
+		else { $null }
+		if (-not $platform)
+		{
+			Write-Fail "ZIP name does not identify a platform: $zipName"
+		}
+
+		# Deterministic runtime bundle: the root must carry the first-party
+		# service DLLs and the platform crash-reporting runtime, not just
+		# Envy.exe. OrdinalIgnoreCase because packaging extracts on Linux.
+		$rootNames = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+		Get-ChildItem -LiteralPath $extractDir -File | ForEach-Object { $rootNames.Add($_.Name) | Out-Null }
+		$requiredRootFiles = @(
+			'TorrentEnvy.exe',
+			'Unpacker.exe',
+			'zlibwapi.dll',
+			'Bzlib.dll',
+			'HashLib.dll',
+			'SQLite.dll',
+			'MiniUPnPc.dll',
+			'GeoIP.dll',
+			'LibGFL340.dll'
+		)
+		if ($platform -eq 'x64')
+		{
+			# BugSplatMonitor.exe is a /MD PE: without its CRT companions the
+			# crash reporter cannot start on a clean machine.
+			$requiredRootFiles += @(
+				'BugSplatMonitor.exe',
+				'BugSplatWer.dll',
+				'BugSplatRc.dll',
+				'vcruntime140.dll',
+				'vcruntime140_1.dll',
+				'msvcp140.dll',
+				'msvcp140_1.dll',
+				'msvcp140_2.dll'
+			)
+		}
+		else
+		{
+			$requiredRootFiles += 'crashpad_handler.exe'
+		}
+		$absent = @($requiredRootFiles | Where-Object { -not $rootNames.Contains($_) })
+		if ($absent.Count -gt 0)
+		{
+			Write-Fail ("ZIP {0} missing required runtime files: {1}" -f $zipName, ($absent -join ', '))
+		}
+
+		# Every packaged image's imports must resolve inside the tree, not on
+		# the tester's machine.
+		& (Join-Path $PSScriptRoot 'verify-runtime-dependencies.ps1') -TreeDir $extractDir
 
 		Write-Host "  zip OK $zipName (runtime tree present, no pdb/Debug)"
 	}
