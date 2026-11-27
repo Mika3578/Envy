@@ -825,7 +825,7 @@ BOOL CDownloadTransferHTTP::ReadResponseLine()
 		m_pSource->m_nFailures = 0;
 		m_pSource->m_nBusyCount = 0;
 	}
-	else if ( strCode == L"503" && !m_bTigerFetch )
+	else if (strCode == L"503" && !m_bTigerFetch)
 	{
 		// 503 response without an X-Available-Ranges header means the complete file is available
 		if ( _tcsistr( strMessage, L"range" ) != NULL )
