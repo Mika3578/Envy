@@ -809,6 +809,8 @@ void CKademlia::MarkContactVerified(const KadId& id)
 }
 
 // One bounded line a minute with HELLO counters since start; no endpoints, IDs or payloads.
+// deobf counts every inbound Kad UDP datagram that was deobfuscated and re-dispatched,
+// whatever opcode it carried.
 void CKademlia::LogHelloStatus()
 {
 	const DWORD now = GetTickCount();
@@ -816,10 +818,10 @@ void CKademlia::LogHelloStatus()
 		return;
 	m_lastHelloStatusLog = now ? now : 1;
 	theApp.Message(MSG_DEBUG,
-	               L"Kad2 hello: req_sent=%u send_failed=%u res_received=%u res_verified=%u res_refused=%u res_unsolicited=%u res_malformed=%u req_received=%u req_rate_limited=%u req_malformed=%u",
+	               L"Kad2 hello: req_sent=%u send_failed=%u res_received=%u res_verified=%u res_refused=%u res_unsolicited=%u res_malformed=%u req_received=%u req_rate_limited=%u req_malformed=%u deobf=%u",
 	               m_helloReqSent, m_helloSendFailed, m_helloResReceived, m_helloResVerified,
 	               m_helloResRefused, m_helloResUnsolicited, m_helloResMalformed,
-	               m_helloReqReceived, m_helloReqLimited, m_helloReqMalformed);
+	               m_helloReqReceived, m_helloReqLimited, m_helloReqMalformed, m_udpDeobfuscated);
 }
 
 void CKademlia::LogKadStatus()

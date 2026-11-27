@@ -425,7 +425,6 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClCompile Include="CrashReporter.cpp" />
     <ClCompile Include="CrawlSession.cpp" />
     <ClCompile Include="CryptoProvider.cpp" />
-    <ClCompile Include="RC4.cpp" />
     <ClCompile Include="Datagram.cpp" />
     <ClCompile Include="DatagramPart.cpp" />
     <ClCompile Include="Datagrams.cpp" />
@@ -1345,6 +1344,7 @@ $(EnvyCrashPostBuildCmd)</Command>
     <ClInclude Include="KadSearchResDelivery.h" />
     <ClInclude Include="KadFirewallCheck.h" />
     <ClInclude Include="KadHello.h" />
+    <ClInclude Include="KadUdpObfuscation.h" />
     <ClInclude Include="KadRoutingTable.h" />
     <ClInclude Include="DcPacketLengthValidate.h" />
     <ClInclude Include="DcNickList.h" />

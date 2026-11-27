@@ -2000,6 +2000,9 @@
     <ClInclude Include="KadHello.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="KadUdpObfuscation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="KadRoutingTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>

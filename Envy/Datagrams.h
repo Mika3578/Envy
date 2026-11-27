@@ -108,6 +108,11 @@ private:
 	// CDatagrams processes one packet at once only. Maximum UDP size 64KB + 1. Zero terminated.
 	BYTE	m_pReadBuffer[ 65537 ];
 
+	// Plaintext scratch for deobfuscated Kad datagrams (KadUdpDeobfuscate). Same
+	// one-packet-at-a-time discipline as m_pReadBuffer; a plaintext can never
+	// exceed the datagram it was decrypted from.
+	BYTE m_pKadPlain[65537];
+
 public:
 	BOOL	Listen();
 	void	Disconnect();
@@ -144,6 +149,7 @@ protected:
 	void	ManagePartials();
 
 	BOOL	OnDatagram(const SOCKADDR_IN* pHost, const BYTE* pBuffer, DWORD nLength);
+	BOOL OnEd2kKad(const SOCKADDR_IN* pHost, const BYTE* pBuffer, DWORD nLength);
 	BOOL	OnReceiveSGP(const SOCKADDR_IN* pHost, const SGP_HEADER* pHeader, DWORD nLength);
 	BOOL	OnAcknowledgeSGP(const SOCKADDR_IN* pHost, const SGP_HEADER* pHeader, DWORD nLength);
 };

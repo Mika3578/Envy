@@ -192,6 +192,14 @@ public:
 		return true;
 	}
 
+	// Aggregate count of inbound Kad UDP datagrams that were deobfuscated and
+	// re-dispatched (KadUdpDeobfuscate); reported by LogHelloStatus().
+	void CountUdpDeobfuscated()
+	{
+		CSingleLock oLock(&m_pKadSection, TRUE);
+		++m_udpDeobfuscated;
+	}
+
 private:
 	// Packet handlers
 	void OnBootstrapRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
@@ -279,6 +287,8 @@ private:
 	uint32_t m_helloResReceived = 0, m_helloResVerified = 0, m_helloResRefused = 0;
 	uint32_t m_helloResUnsolicited = 0, m_helloResMalformed = 0;
 	uint32_t m_helloReqReceived = 0, m_helloReqLimited = 0, m_helloReqMalformed = 0;
+	// Kad UDP datagrams recovered by deobfuscation (any opcode), not HELLO-specific.
+	uint32_t m_udpDeobfuscated = 0;
 	DWORD m_lastHelloStatusLog = 0;
 	void LogHelloStatus();
 	WORD m_lastFirewallTcpPort;
