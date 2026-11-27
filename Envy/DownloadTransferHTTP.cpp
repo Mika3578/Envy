@@ -57,6 +57,7 @@ CDownloadTransferHTTP::CDownloadTransferHTTP(CDownloadSource* pSource)
     , m_bKeepAlive(FALSE)
     , m_bTigerFetch(FALSE)
     , m_bTigerIgnore(FALSE)
+    , m_bTigerFault(FALSE)
     , m_bTigerAbandon(FALSE)
     , m_bTigerDescriptor(FALSE)
     , m_bTigerTreeSeen(FALSE)
@@ -198,6 +199,7 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 	m_bWantBackwards	= FALSE;
 	m_bRecvBackwards	= FALSE;
 	m_bTigerFetch		= FALSE;
+	m_bTigerFault = FALSE;
 	m_sTigerUUID.Empty();
 	m_bTigerAbandon = FALSE;
 	m_bTigerDescriptor = FALSE;
@@ -229,15 +231,12 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 
 	if ( m_pDownload->NeedTigerTree() )
 	{
-		if ( m_sTigerTree.IsEmpty() && m_pDownload->m_oTiger && Settings.Downloads.VerifyTiger && ! m_bTigerIgnore )
-		{
-			// Converting urn containing tiger tree root to
-			// "/gnutella/thex/v1?urn:tree:tiger/:{TIGER_ROOT}&depth={TIGER_HEIGHT}&ed2k={0/1}"
-			// in case if "X-Thex-URI" and "X-TigerTree-Path" headers will be absent or it is a "GIV" (push) connection
-			m_sTigerTree.Format( L"/gnutella/thex/v1?%s&depth=%u&ed2k=%d", (LPCTSTR)m_pDownload->m_oTiger.toUrn(),
-				Settings.Library.TigerHeight, ( Settings.Downloads.VerifyED2K ? 1 : 0 ) );
-		}
-
+		// Only a peer-advertised THEX endpoint (X-Thex-URI /
+		// X-TigerTree-Path) is fetched. Synthesizing the legacy
+		// /gnutella/thex/v1 path from the Tiger root alone hits servers
+		// that dispatch /gnutella/* to other handlers and gets the only
+		// source failed on a metadata-only 400; integrity then relies on
+		// the other available hashes.
 		if ( ! m_sTigerTree.IsEmpty() )
 		{
 			theApp.Message( MSG_INFO,IDS_DOWNLOAD_TIGER_REQUEST, (LPCTSTR)m_pDownload->GetDisplayName(),(LPCTSTR)m_sAddress );
@@ -826,7 +825,7 @@ BOOL CDownloadTransferHTTP::ReadResponseLine()
 		m_pSource->m_nFailures = 0;
 		m_pSource->m_nBusyCount = 0;
 	}
-	else if ( strCode == L"503" )
+	else if (strCode == L"503" && !m_bTigerFetch)
 	{
 		// 503 response without an X-Available-Ranges header means the complete file is available
 		if ( _tcsistr( strMessage, L"range" ) != NULL )
@@ -850,6 +849,17 @@ BOOL CDownloadTransferHTTP::ReadResponseLine()
 	{
 		m_bRedirect = TRUE;
 		SetState( dtsHeaders );
+	}
+	else if (m_bTigerFetch &&
+	         (strCode == L"400" || strCode == L"403" || strCode == L"404" ||
+	          strCode == L"410" || strCode == L"501" || strCode == L"503"))
+	{
+		// An optional THEX endpoint refused or does not support the request.
+		// This is a metadata-only failure: it must not fail the source or the
+		// file transfer. m_bTigerIgnore keeps THEX off for this source, the
+		// small error body is drained, and the file request continues.
+		m_bTigerFault = TRUE;
+		SetState(dtsHeaders);
 	}
 	else
 	{
@@ -1375,6 +1385,32 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 	}
 	else if ( m_bTigerFetch )
 	{
+		if (m_bTigerFault)
+		{
+			// The optional THEX endpoint refused the request (400/403/404/
+			// 410/501/503). Drain the small error body and continue with the
+			// ordinary file transfer on the same connection; m_bTigerIgnore
+			// keeps THEX off for this source. Without a usable length there
+			// is nothing to drain: drop the connection but keep the source.
+			theApp.Message(MSG_INFO, L"THEX request refused by %s; continuing with the file transfer.",
+			               (LPCTSTR)m_sAddress);
+			m_bTigerFault = FALSE;
+			// Only a small, finite, non-chunked body is safely drainable; a
+			// huge or unbounded declaration would stall dtsFlushing until
+			// timeout, and chunked framing can leave bytes queued. Drop the
+			// connection instead but keep the source: the file request
+			// continues on a fresh connection.
+			if (m_bChunked || m_nContentLength == SIZE_UNKNOWN ||
+			    m_nContentLength > (QWORD)XML_PEER_THEX_BODY_CAP)
+			{
+				Close(TRI_TRUE);
+				return FALSE;
+			}
+			m_nOffset = SIZE_UNKNOWN;
+			SetState(dtsFlushing);
+			m_tContent = m_mInput.tLast = GetTickCount();
+			return ReadFlush();
+		}
 		if (m_bChunked)
 		{
 			theApp.Message(MSG_DEBUG, L"Rejected chunked THEX response");
