@@ -104,6 +104,22 @@ static bool test_require_clamped_without_support()
 		&& Ed2kFeatureVersions2RequiresCrypt(nOpt2) == FALSE;
 }
 
+// CT_EMULE_UDPPORTS layout: Kad port in the high word, ED2K UDP in the low.
+static bool test_udpports_kad_high_word()
+{
+	const DWORD n = Ed2kPackUdpPorts( 4672, 4665 );
+	return n == 0x12391240u
+		&& Ed2kUdpPortsKadPort( n ) == 4665
+		&& Ed2kUdpPortsUdpPort( n ) == 4672;
+}
+
+// Kad off keeps the legacy tag value (golden Hello vector: 4662, Kad 0).
+static bool test_udpports_kad_off_is_legacy()
+{
+	const DWORD n = Ed2kPackUdpPorts( 4662, 0 );
+	return n == 4662u && Ed2kUdpPortsKadPort( n ) == 0;
+}
+
 void register_ed2k_hello_capabilities_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("aich_not_advertised_until_c2c", test_aich_not_advertised_until_c2c);
@@ -114,4 +130,6 @@ void register_ed2k_hello_capabilities_smoke_tests(TestSuite& suite)
 	suite.add_test("pack_opt2_honest_defaults", test_pack_opt2_honest_defaults);
 	suite.add_test("pack_opt2_ext_multipacket_bit_position", test_pack_opt2_ext_multipacket_bit_position);
 	suite.add_test("require_clamped_without_support", test_require_clamped_without_support);
+	suite.add_test("udpports_kad_high_word", test_udpports_kad_high_word);
+	suite.add_test("udpports_kad_off_is_legacy", test_udpports_kad_off_is_legacy);
 }

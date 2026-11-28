@@ -1504,8 +1504,11 @@ void CEDClient::SendHello(BYTE nType)
 	// 2 - ED2K version
 	CEDTag( ED2K_CT_VERSION, ED2K_VERSION ).Write( pPacket );
 
-	// 3 - UDP Port
-	CEDTag( ED2K_CT_UDPPORTS, htons( Network.m_pHost.sin_port ) ).Write( pPacket );
+	// 3 - UDP ports: Kad shares the ED2K UDP socket, so the Kad port (high
+	// word) is the same port while Kad runs and 0 otherwise.
+	const WORD nUdpPort = ntohs(Network.m_pHost.sin_port);
+	const WORD nKadPort = Kademlia.IsInitialized() ? nUdpPort : 0;
+	CEDTag(ED2K_CT_UDPPORTS, Ed2kPackUdpPorts(nUdpPort, nKadPort)).Write(pPacket);
 
 	// 4 - Feature Versions 1 (advertise only implemented capabilities — #87)
 	BYTE nExtendedRequests = (BYTE)min ( Settings.eDonkey.ExtendedRequest, (DWORD)ED2K_VERSION_EXTENDEDREQUEST );
