@@ -83,9 +83,16 @@ constexpr DWORD KAD_BUDDY_PING_INTERVAL_MS = 10 * 60 * 1000;
 constexpr DWORD KAD_BUDDY_PING_INBOUND_GAP_MS = 3 * 60 * 1000;
 // eMule ClientList.cpp: buddy search re-armed at most every MIN2S(20).
 constexpr DWORD KAD_BUDDY_SEARCH_RETRY_MS = 20 * 60 * 1000;
-// FINDBUDDY_REQ recipients per round (bounded subset of eMule's
-// SEARCHFINDBUDDY_TOTAL = 10 answers; eMule sends to every answering contact).
-constexpr size_t KAD_BUDDY_REQ_CONTACTS_PER_ROUND = 4;
+// FINDBUDDY_REQ recipients per round: eMule's SEARCHFINDBUDDY_TOTAL = 10
+// (Search.cpp sends one request to each answering contact until it has asked
+// that many). Only open, UDP-verified nodes without a buddy answer, so a
+// round of four random contacts mostly asks nobody who can say yes.
+constexpr size_t KAD_BUDDY_REQ_CONTACTS_PER_ROUND = 10;
+// Recently asked contacts are skipped so each round reaches new peers instead
+// of repeating the same newest-seen few; the ring wraps when the pool is spent.
+constexpr size_t KAD_BUDDY_TRIED_MAX = 64;
+// Routing-table contacts considered for one round.
+constexpr int KAD_BUDDY_POOL_MAX = 128;
 // Envy retains a queued OP_CALLBACK relay briefly so a buddy that is still
 // connecting (it dialed out seconds after our FINDBUDDY_RES) can still
 // receive it; eMule relays immediately and drops when the buddy socket is
@@ -293,6 +300,7 @@ public:
 		m_buddyConnected = false;
 		m_searchArmedAt = 0;
 		ClearTrack();
+		ClearTried();
 	}
 
 	// ---- Open-node side: answer FINDBUDDY_REQ ----
@@ -341,6 +349,36 @@ public:
 	void NoteBuddySearchRound(DWORD now)
 	{
 		m_searchArmedAt = now;
+	}
+
+	// Pick up to outMax recipients for one FINDBUDDY_REQ round: verified,
+	// usable contacts, newest first, that earlier rounds did not already ask.
+	// The picks are remembered. When every candidate was asked before, the
+	// memory is cleared and the pool starts over, so a long run keeps cycling
+	// through the table instead of going quiet.
+	size_t SelectBuddyPeers(const KadFwPeerCandidate* in, size_t inCount, KadFwPeerCandidate* out, size_t outMax)
+	{
+		if (in == nullptr || out == nullptr || outMax == 0 || inCount == 0)
+			return 0;
+		size_t nOut = PickUntried(in, inCount, out, outMax);
+		if (nOut == 0)
+		{
+			ClearTried();
+			nOut = PickUntried(in, inCount, out, outMax);
+		}
+		for (size_t i = 0; i < nOut; ++i)
+			MarkTried(out[i].ipHost);
+		return nOut;
+	}
+
+	bool WasTried(DWORD ipHost) const
+	{
+		for (size_t i = 0; i < KAD_BUDDY_TRIED_MAX; ++i)
+		{
+			if (m_tried[i] == ipHost && ipHost != 0)
+				return true;
+		}
+		return false;
 	}
 
 	// eMule PacketTracking::AddTrackedOutPacket (FINDBUDDY_REQ is tracked;
@@ -477,6 +515,56 @@ private:
 	KadBuddyRecord m_buddy;
 	bool m_buddyConnected;
 	DWORD m_searchArmedAt;
+	DWORD m_tried[KAD_BUDDY_TRIED_MAX];
+	size_t m_triedNext;
+
+	void ClearTried()
+	{
+		for (size_t i = 0; i < KAD_BUDDY_TRIED_MAX; ++i)
+			m_tried[i] = 0;
+		m_triedNext = 0;
+	}
+
+	void MarkTried(DWORD ipHost)
+	{
+		if (ipHost == 0 || WasTried(ipHost))
+			return;
+		m_tried[m_triedNext] = ipHost;
+		m_triedNext = (m_triedNext + 1) % KAD_BUDDY_TRIED_MAX;
+	}
+
+	size_t PickUntried(const KadFwPeerCandidate* in, size_t inCount, KadFwPeerCandidate* out, size_t outMax) const
+	{
+		size_t nOut = 0;
+		for (size_t pass = 0; pass < inCount && nOut < outMax; ++pass)
+		{
+			size_t best = inCount;
+			for (size_t i = 0; i < inCount; ++i)
+			{
+				if (!in[i].verified || in[i].udpPort == 0 || !KadIpv4IsUsableFirewallPeer(in[i].ipHost))
+					continue;
+				if (WasTried(in[i].ipHost))
+					continue;
+				bool dup = false;
+				for (size_t j = 0; j < nOut; ++j)
+				{
+					if (out[j].ipHost == in[i].ipHost)
+					{
+						dup = true;
+						break;
+					}
+				}
+				if (dup)
+					continue;
+				if (best == inCount || in[i].lastSeen > in[best].lastSeen)
+					best = i;
+			}
+			if (best == inCount)
+				break;
+			out[nOut++] = in[best];
+		}
+		return nOut;
+	}
 
 	void ClearTrack()
 	{

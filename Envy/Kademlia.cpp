@@ -2271,13 +2271,35 @@ void CKademlia::MaybeStartBuddySearch()
 	if (!m_buddy.WantsBuddySearch(now, tcpFirewalled, udpFirewalled))
 		return;
 
+	// The whole routing table is the pool (about 60 verified contacts in the live runs). Contacts that
+	// still owe us a TCP firewall-check answer are left out: eMule refuses a buddy request from an IP it
+	// is connecting back to, and the same few newest contacts must not be asked every round.
+	std::vector<KadContact> contacts;
+	m_routingTable.GetContactsForBootstrap(contacts, KAD_BUDDY_POOL_MAX);
+	std::vector<KadFwPeerCandidate> pool;
+	pool.reserve(contacts.size());
+	for (const auto& contact : contacts)
+	{
+		if (m_firewall.HasOutboundCheck(contact.ip, contact.udpPort))
+			continue;
+		KadFwPeerCandidate cand;
+		cand.ipHost = contact.ip;
+		cand.udpPort = contact.udpPort;
+		cand.tcpPort = contact.tcpPort;
+		cand.version = contact.version;
+		cand.verified = contact.verified != FALSE;
+		cand.lastSeen = static_cast<DWORD>(contact.lastSeen);
+		pool.push_back(cand);
+	}
+
 	KadFwPeerCandidate chosen[KAD_BUDDY_REQ_CONTACTS_PER_ROUND];
-	size_t nChosen = 0;
-	CollectFirewallCheckCandidates(chosen, KAD_BUDDY_REQ_CONTACTS_PER_ROUND, nChosen);
+	const size_t nChosen = m_buddy.SelectBuddyPeers(pool.data(), pool.size(), chosen, KAD_BUDDY_REQ_CONTACTS_PER_ROUND);
 	if (nChosen == 0)
 		return;
 
 	m_buddy.NoteBuddySearchRound(now);
+	theApp.Message(MSG_DEBUG, L"Kad2: FINDBUDDY round: asking %u of %u routing contacts",
+	               (unsigned)nChosen, (unsigned)pool.size());
 	for (size_t i = 0; i < nChosen; ++i)
 	{
 		if (!m_buddy.BeginFindBuddyRequest(chosen[i].ipHost, now))

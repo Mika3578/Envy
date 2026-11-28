@@ -491,6 +491,93 @@ static bool test_reset_clears_everything()
 	return !s.HasConnectedBuddy() && !s.HasBuddyRecord() && s.TrackCount() == 0;
 }
 
+// ---- Candidate rotation (round 3: the same four newest contacts were asked every round) ----
+
+static KadFwPeerCandidate buddy_peer(DWORD ip, DWORD lastSeen, bool verified = true, WORD udp = kUdp)
+{
+	KadFwPeerCandidate c;
+	c.ipHost = ip;
+	c.udpPort = udp;
+	c.tcpPort = kTcp;
+	c.version = 8;
+	c.verified = verified;
+	c.lastSeen = lastSeen;
+	return c;
+}
+
+static bool test_select_rotates_and_orders_newest_first()
+{
+	KadBuddySession s;
+	KadFwPeerCandidate pool[25];
+	for (DWORD i = 0; i < 25; ++i)
+		pool[i] = buddy_peer(0x0A000000u + 0x01010100u + i, 1000 + i); // distinct public-looking hosts
+	KadFwPeerCandidate r1[KAD_BUDDY_REQ_CONTACTS_PER_ROUND], r2[KAD_BUDDY_REQ_CONTACTS_PER_ROUND], r3[KAD_BUDDY_REQ_CONTACTS_PER_ROUND];
+	const size_t n1 = s.SelectBuddyPeers(pool, 25, r1, KAD_BUDDY_REQ_CONTACTS_PER_ROUND);
+	const size_t n2 = s.SelectBuddyPeers(pool, 25, r2, KAD_BUDDY_REQ_CONTACTS_PER_ROUND);
+	const size_t n3 = s.SelectBuddyPeers(pool, 25, r3, KAD_BUDDY_REQ_CONTACTS_PER_ROUND);
+	if (n1 != 10 || n2 != 10 || n3 != 5)
+		return false;
+	// Newest first inside a round, and no peer is repeated in later rounds.
+	if (r1[0].lastSeen != 1024 || r1[9].lastSeen != 1015 || r2[0].lastSeen != 1014 || r3[4].lastSeen != 1000)
+		return false;
+	for (size_t i = 0; i < n2; ++i)
+		for (size_t j = 0; j < n1; ++j)
+			if (r2[i].ipHost == r1[j].ipHost)
+				return false;
+	return true;
+}
+
+static bool test_select_wraps_when_pool_is_spent()
+{
+	KadBuddySession s;
+	KadFwPeerCandidate pool[4];
+	for (DWORD i = 0; i < 4; ++i)
+		pool[i] = buddy_peer(0x08080800u + i + 1, 10 + i);
+	KadFwPeerCandidate out[KAD_BUDDY_REQ_CONTACTS_PER_ROUND];
+	if (s.SelectBuddyPeers(pool, 4, out, KAD_BUDDY_REQ_CONTACTS_PER_ROUND) != 4)
+		return false;
+	// Everyone was asked: the memory resets and the same peers are asked again instead of going quiet.
+	return s.SelectBuddyPeers(pool, 4, out, KAD_BUDDY_REQ_CONTACTS_PER_ROUND) == 4 && out[0].lastSeen == 13;
+}
+
+static bool test_select_skips_unusable_and_empty()
+{
+	KadBuddySession s;
+	KadFwPeerCandidate pool[5] = {
+		buddy_peer(kPeerA, 5, false),   // unverified
+		buddy_peer(kPeerB, 6, true, 0), // no UDP port
+		buddy_peer(0x7F000001u, 7),     // loopback
+		buddy_peer(0, 8),               // unspecified
+		buddy_peer(0x08080404u, 9),     // the only usable contact
+	};
+	KadFwPeerCandidate out[KAD_BUDDY_REQ_CONTACTS_PER_ROUND];
+	if (s.SelectBuddyPeers(pool, 5, out, KAD_BUDDY_REQ_CONTACTS_PER_ROUND) != 1 || out[0].ipHost != 0x08080404u)
+		return false;
+	return s.SelectBuddyPeers(nullptr, 5, out, 10) == 0 && s.SelectBuddyPeers(pool, 0, out, 10) == 0 && s.SelectBuddyPeers(pool, 5, nullptr, 10) == 0 && s.SelectBuddyPeers(pool, 5, out, 0) == 0;
+}
+
+static bool test_select_memory_bounded_and_reset()
+{
+	KadBuddySession s;
+	KadFwPeerCandidate pool[KAD_BUDDY_TRIED_MAX + 20];
+	for (DWORD i = 0; i < KAD_BUDDY_TRIED_MAX + 20; ++i)
+		pool[i] = buddy_peer(0x08000000u + 0x00010100u * (i + 1) + i, i);
+	KadFwPeerCandidate out[KAD_BUDDY_REQ_CONTACTS_PER_ROUND];
+	for (int round = 0; round < 12; ++round)
+		if (s.SelectBuddyPeers(pool, KAD_BUDDY_TRIED_MAX + 20, out, KAD_BUDDY_REQ_CONTACTS_PER_ROUND) == 0)
+			return false; // never starves, however many rounds run
+	const DWORD last = out[0].ipHost;
+	if (!s.WasTried(last))
+		return false;
+	s.Reset();
+	return !s.WasTried(last);
+}
+
+static bool test_round_size_matches_emule_total()
+{
+	return KAD_BUDDY_REQ_CONTACTS_PER_ROUND == 10 && KAD_BUDDY_REQ_CONTACTS_PER_ROUND <= KAD_BUDDY_TRACK_MAX;
+}
+
 static bool test_buddy_status_values_distinct()
 {
 	return KadBuddyAcceptStatus::Accept != KadBuddyAcceptStatus::Firewalled && KadBuddyCandidateStatus::Accepted != KadBuddyCandidateStatus::Unrequested && KadBuddyCandidateStatus::Unrequested != KadBuddyCandidateStatus::Stale && KadBuddyCandidateStatus::Stale != KadBuddyCandidateStatus::EchoMismatch && KadBuddyRelayStatus::Relay != KadBuddyRelayStatus::NoBuddy && KadBuddyRelayStatus::NoBuddy != KadBuddyRelayStatus::InvalidSource;
@@ -528,5 +615,10 @@ void register_kad_buddy_smoke_tests(TestSuite& suite)
 	suite.add_test("kad_buddy_relay_connected", test_relay_through_connected_buddy);
 	suite.add_test("kad_buddy_track_bounded", test_track_bounded);
 	suite.add_test("kad_buddy_reset", test_reset_clears_everything);
+	suite.add_test("kad_buddy_select_rotates", test_select_rotates_and_orders_newest_first);
+	suite.add_test("kad_buddy_select_wraps", test_select_wraps_when_pool_is_spent);
+	suite.add_test("kad_buddy_select_skips_unusable", test_select_skips_unusable_and_empty);
+	suite.add_test("kad_buddy_select_bounded_reset", test_select_memory_bounded_and_reset);
+	suite.add_test("kad_buddy_round_size", test_round_size_matches_emule_total);
 	suite.add_test("kad_buddy_status_distinct", test_buddy_status_values_distinct);
 }
