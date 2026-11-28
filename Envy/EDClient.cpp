@@ -1655,6 +1655,12 @@ BOOL CEDClient::OnHello(CEDPacket* pPacket)
 	// Get client name/version
 	DetermineUserAgent();
 
+	// Round-3 live tests showed incoming eMule connect-backs that never finished the handshake;
+	// record what the peer's Hello said so the Kad version it will act on is visible.
+	theApp.Message(MSG_DEBUG, L"ED2K: %s from %s (emule=%d kad=%u)",
+	               pPacket->m_nType == ED2K_C2C_HELLO ? L"Hello" : L"Hello answer",
+	               (LPCTSTR)m_sAddress, m_bEmule ? 1 : 0, (unsigned)m_nEmKadVersion);
+
 	// If this was a hello
 	if ( pPacket->m_nType == ED2K_C2C_HELLO )
 	{
