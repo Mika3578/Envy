@@ -117,6 +117,25 @@ inline DWORD Ed2kPackFeatureVersions2(
 			 ( (DWORD)( nKadVersion & 0x0F ) ) );
 }
 
+// Pack CT_EMULE_UDPPORTS (eMule BaseClient SendHelloTypePacket): high word is
+// the Kad UDP port, low word the ED2K client UDP port. eMule peers read the
+// high word as our Kad port and send KADEMLIA_FIREWALLED_ACK_RES there after
+// a TCP firewall-check connect; 0 means "Kad not running" and drops the ACK.
+inline DWORD Ed2kPackUdpPorts(WORD nUdpPort, WORD nKadPort)
+{
+	return ((DWORD)nKadPort << 16) | (DWORD)nUdpPort;
+}
+
+inline WORD Ed2kUdpPortsKadPort(DWORD nUdpPorts)
+{
+	return (WORD)(nUdpPorts >> 16);
+}
+
+inline WORD Ed2kUdpPortsUdpPort(DWORD nUdpPorts)
+{
+	return (WORD)(nUdpPorts & 0xFFFF);
+}
+
 // Extractors for tests / debug.
 inline BYTE Ed2kFeatureVersions1Aich(DWORD nOpt1)
 {

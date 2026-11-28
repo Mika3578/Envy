@@ -52,6 +52,11 @@ constexpr DWORD KAD_FW_INBOUND_COOLDOWN_MS = 60000;
 constexpr DWORD KAD_FW_RECHECK_MS = 10 * 60 * 1000;
 constexpr DWORD KAD_FW_ACKS_FOR_OPEN = 2;
 constexpr DWORD KAD_FW_IP_AGREE_FOR_PUBLIC = 2;
+// eMule CPrefs::GetRecheckIP: a check round ends after KADEMLIAFIREWALLCHECKS
+// (4) FIREWALLED_RES answers. Silent helpers are bounded by a request cap so
+// a round always finishes and Testing can settle on Firewalled.
+constexpr DWORD KAD_FW_RES_PER_ROUND = 4;
+constexpr DWORD KAD_FW_MAX_REQ_PER_ROUND = 16;
 constexpr BYTE KAD_FW_FIREWALLED2_MIN_VERSION = 7;
 
 enum class KadTcpFirewallState : BYTE
@@ -62,10 +67,14 @@ enum class KadTcpFirewallState : BYTE
 	Firewalled = 3
 };
 
-// Distinct from TCP. This slice never promotes UDP to Open/Firewalled.
+// Distinct from TCP; owned by the UDP firewall tester (#515,
+// KadUdpFirewallTester.h). TCP Open never implies UDP Open and vice versa.
 enum class KadUdpFirewallState : BYTE
 {
-	Unknown = 0
+	Unknown = 0,
+	Testing = 1,
+	Open = 2,
+	Firewalled = 3
 };
 
 enum class KadFwParseStatus : BYTE
@@ -366,6 +375,8 @@ public:
 		m_publicIpHost = 0;
 		m_publicIpLast = 0;
 		m_ackCount = 0;
+		m_roundReqCount = 0;
+		m_roundResCount = 0;
 		m_lastRoundFinishedAt = now;
 		m_ourTcpPort = 0;
 		m_loggedOpen = false;
@@ -396,6 +407,8 @@ public:
 	KadUdpFirewallState UdpState() const { return m_udpState; }
 	DWORD PublicIpHost() const { return m_publicIpHost; }
 	DWORD AckCount() const { return m_ackCount; }
+	DWORD RoundRequestCount() const { return m_roundReqCount; }
+	DWORD RoundResponseCount() const { return m_roundResCount; }
 	size_t OutstandingCount() const { return CountChecks(); }
 	size_t InboundProbeCount() const { return CountProbes(); }
 	size_t RateEntryCount() const { return CountRate(); }
@@ -499,6 +512,8 @@ public:
 		ExpireChecks(now);
 		if (CountChecks() >= KAD_FW_MAX_OUTSTANDING_CHECKS)
 			return false;
+		if (m_tcpState == KadTcpFirewallState::Testing && RoundComplete())
+			return false;
 
 		KadFwCheckContext* slot = FreeCheckSlot();
 		if (slot == nullptr)
@@ -520,7 +535,10 @@ public:
 		if (m_tcpState == KadTcpFirewallState::Unknown || m_tcpState == KadTcpFirewallState::Firewalled)
 		{
 			m_tcpState = KadTcpFirewallState::Testing;
+			m_roundReqCount = 0;
+			m_roundResCount = 0;
 		}
+		++m_roundReqCount;
 		return true;
 	}
 
@@ -552,6 +570,7 @@ public:
 			return KadFwResStatus::Duplicate;
 
 		ctx->resConsumed = true;
+		++m_roundResCount;
 		NoteIpObservation(fromIpHost, parsed.observedIpHost);
 		return KadFwResStatus::Accepted;
 	}
@@ -626,6 +645,8 @@ public:
 			return false;
 		if (m_tcpState == KadTcpFirewallState::Firewalled)
 			return true;
+		if (m_tcpState == KadTcpFirewallState::Testing && RoundComplete())
+			return false; // round done; wait for outstanding checks to drain
 		if (m_tcpState == KadTcpFirewallState::Unknown || m_tcpState == KadTcpFirewallState::Testing)
 			return true;
 		return false;
@@ -642,11 +663,18 @@ public:
 	}
 
 private:
+	bool RoundComplete() const
+	{
+		return m_roundResCount >= KAD_FW_RES_PER_ROUND || m_roundReqCount >= KAD_FW_MAX_REQ_PER_ROUND;
+	}
+
 	KadTcpFirewallState m_tcpState;
 	KadUdpFirewallState m_udpState;
 	DWORD m_publicIpHost;
 	DWORD m_publicIpLast;
 	DWORD m_ackCount;
+	DWORD m_roundReqCount;
+	DWORD m_roundResCount;
 	DWORD m_lastRoundFinishedAt;
 	WORD m_ourTcpPort;
 	bool m_loggedOpen;

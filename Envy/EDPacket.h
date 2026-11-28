@@ -339,6 +339,7 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define KADEMLIA2_FIREWALLED_ACK_RES 0x59   // empty; Kad < 7 UDP ACK (Kad >= 7 uses ED2K_C2C_KAD_FWTCPCHECK_ACK)
 #define KADEMLIA2_PING				0x60	// <TagList>
 #define KADEMLIA2_PONG				0x61	// <TagList>
+#define KADEMLIA2_FIREWALLUDP 0x62          // <errorcode 1><UDPPort_Used 2> UDP firewall-check result (eMule opcodes.h)
 
 // Missing opcodes found in eMule reference implementation
 #define KADEMLIA_FIND_VALUE			0x02	// Search for values/files in DHT

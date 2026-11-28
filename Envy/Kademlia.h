@@ -25,6 +25,7 @@
 #include "KadRoutingTable.h"
 #include "KadSearchResDelivery.h"
 #include "KadFirewallCheck.h"
+#include "KadUdpFirewallTester.h"
 #include "KadHello.h"
 
 // Kad2 protocol constants
@@ -165,8 +166,25 @@ public:
 	void OnTcpFirewallCheckAck(const SOCKADDR_IN* pHost);
 
 	KadTcpFirewallState GetTcpFirewallState() const { return m_firewall.TcpState(); }
-	KadUdpFirewallState GetUdpFirewallState() const { return m_firewall.UdpState(); }
+	KadUdpFirewallState GetUdpFirewallState() const { return m_udpFirewall.State(); }
 	DWORD GetObservedPublicIp() const { return m_firewall.PublicIpHost(); }
+
+	// UDP firewall tester (#515). Result handling runs on the datagram path
+	// with the Kad lock already held; probe-request plumbing is called from
+	// the client (Transfers) side and locks internally.
+	void OnFirewallUdpResult(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
+	void OnFirewallCheckUdpRequest(const BYTE* pPayload, size_t nLen, const SOCKADDR_IN* pHost,
+	                               bool requesterKnownToTransfers);
+	bool WantsUdpFirewallCheckProbe();
+	bool BeginUdpFirewallCheckProbe(DWORD ipHost, WORD kadUdpPort, DWORD now);
+	void CancelUdpFirewallCheckProbe(DWORD ipHost);
+	void OnUdpFirewallCheckClientClosed(DWORD ipHost);
+	bool HasKadContactIp(DWORD ipHost);
+	// Advisory round id of the UDP firewall tester (bumped on kad start,
+	// recheck, and port change). Lock-free read is intentional: a caller
+	// acting one tick late just re-asks the tester, which no-ops for
+	// already-requested IPs.
+	DWORD UdpFirewallCheckRound() const { return m_udpFirewall.Round(); }
 
 	// Search for keyword results in DHT
 	void SearchKeyword(const KadId& keywordHash);
@@ -264,7 +282,7 @@ private:
 	// Outstanding searches: target hash + kind + expiry; no CDownload*.
 	KadOutstandingSearchMap m_outstandingSearches;
 
-	// TCP firewall-detection baseline (UDP tester / Buddy / callback deferred).
+	// TCP firewall-detection baseline (Buddy / callback deferred, #516).
 	void OnFirewalledRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket, bool firewalled2);
 	void OnFirewalledResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
 	void OnFirewalledAck(const SOCKADDR_IN* pHost, CEDPacket* pPacket);
@@ -273,6 +291,11 @@ private:
 	void MaybeStartFirewallChecks();
 	void CollectFirewallCheckCandidates(KadFwPeerCandidate* out, size_t outMax, size_t& outCount) const;
 	KadFirewallCheck m_firewall;
+	// UDP firewall tester (#515); state machine + framing live in
+	// KadUdpFirewallTester.h, probes ride the Kad UDP socket.
+	KadUdpFirewallTester m_udpFirewall;
+	void SendFirewallUdpProbe(DWORD ipHost, WORD port, BYTE errorCode);
+	bool RoutingZoneHasIp(DWORD ipHost);
 	KadInboundLimiter m_inboundLimiter;
 	// Aggregate HELLO diagnostics (counts only), logged once a minute by LogHelloStatus().
 	uint32_t m_helloReqSent = 0, m_helloSendFailed = 0;

@@ -91,7 +91,7 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 | **PUBLICIP_REQ / PUBLICIP_ANSWER** (0x97/0x98) | **Partial (phase 1):** inbound REQ answered with peer IPv4; outbound REQ when public IP unknown; ANSWER state-gated. Live interop via #160 | Low |
 | **CALLBACK / REASKCALLBACKTCP** (0x99/0x9A) | **Partial (phase 1):** C2C CALLBACK (38-byte Buddy layout) when Kad ID matches; REASKCALLBACKTCP deferred (needs Buddy). Classic server push already existed | P0 baseline |
 | **BUDDYPING / BUDDYPONG** (0x9F/0xA0) | Buddy system for low-ID clients | P0 Kad/ED2K |
-| **FWCHECKUDPREQ** (0xA7) | Firewall check for Kad integration | P0 Kad |
+| **FWCHECKUDPREQ** (0xA7) | **Implemented locally (#515):** inbound 0xA7 answered with `KADEMLIA2_FIREWALLUDP` probes; outbound 0xA7 over idle connected clients; eMule tester state machine. Not live-verified (#160) | P0 Kad |
 
 ---
 
@@ -119,11 +119,11 @@ Priorities here must match DEVELOPMENT_PLAN: **P0 ED2K/Kad interop → P0/P1 RSA
 | ~~App-trigger source search~~ | Call `SearchSource` from ED2K download source acquisition when Kad is enabled (FileSize on REQ) | Done (partial) |
 | **Align outbound SEARCH_RES/store tags** | Envy `WriteEntryTags` vs eMule AnswerID+TagList when answering peers | P1 |
 | ~~Bucket splitting / LRU / refresh / eclipse `/24`~~ | Zone tree + LRU + bounded replacement + stale-zone FIND_NODE + `/24` caps (`KadRoutingTable.h`, EnvyTests) | Done (local; live #160) |
-| ~~FIREWALLED_REQ/RES~~ | TCP firewall-detection baseline (exact 2/4-byte framing, bounded checks, public-IP consensus). UDP tester / Buddy deferred. | Done (partial) |
+| ~~FIREWALLED_REQ/RES~~ | TCP firewall-detection baseline (exact 2/4-byte framing, bounded checks, public-IP consensus). UDP tester implemented separately (#515, see FWCHECKUDPREQ row) | Done (partial) |
 | **FINDBUDDY_REQ/RES** | Buddy system for NAT traversal | P0 |
 | **CALLBACK_REQ/RES** | Kad callback mechanism | P0 |
 | **UDP hole punching** | NAT traversal for firewalled nodes (historical Kad2; not Ember/eSE overlays) | P0 |
-| ~~Firewall self-check~~ | TCP Unknown/Testing/Open/Firewalled via ACK consensus; UDP state remains Unknown | Done (partial) |
+| ~~Firewall self-check~~ | TCP Unknown/Testing/Open/Firewalled via ACK consensus; UDP state via the #515 tester (Unknown/Testing/Open/Firewalled, not live-verified) | Done (partial) |
 | **Wire EnableKadHello / KadFindValue** | Settings exist but are not read by `Kademlia.cpp` | Medium |
 | ~~**Kad remote nodes.dat download**~~ | Validated HTTPS discovery type + bounded request/response + atomic replace with `.lkg`. Local ImportNodes v1/v2/v3 is done. Coordinate with #86/#160. Do not advertise Kad complete. | Done (cold-start slice; live interop remains P1) |
 | **Kad6** | Experimental IPv6 overlay (eMule eSE). Distinct from Kad2. | P3 |
