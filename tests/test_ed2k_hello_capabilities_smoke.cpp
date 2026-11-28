@@ -120,6 +120,17 @@ static bool test_udpports_kad_off_is_legacy()
 	return n == 4662u && Ed2kUdpPortsKadPort( n ) == 0;
 }
 
+// Kad nibble: our version while Kad runs (eMule buddy ping/pong needs != 0),
+// 0 when Kad is off so the golden Kad-off Hello stays unchanged.
+static bool test_kad_nibble_follows_kad_state()
+{
+	const DWORD nBase = Ed2kPackFeatureVersions2(TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, 0);
+	const DWORD nOn = nBase | Ed2kHelloKadVersionNibble(true, 8);
+	const DWORD nOff = nBase | Ed2kHelloKadVersionNibble(false, 8);
+	return (nOn & 0x0F) == 8 && nOff == nBase && (nOn & ~0x0Fu) == nBase
+	       && Ed2kHelloKadVersionNibble(true, 0x18) == 8;
+}
+
 void register_ed2k_hello_capabilities_smoke_tests(TestSuite& suite)
 {
 	suite.add_test("aich_not_advertised_until_c2c", test_aich_not_advertised_until_c2c);
@@ -132,4 +143,5 @@ void register_ed2k_hello_capabilities_smoke_tests(TestSuite& suite)
 	suite.add_test("require_clamped_without_support", test_require_clamped_without_support);
 	suite.add_test("udpports_kad_high_word", test_udpports_kad_high_word);
 	suite.add_test("udpports_kad_off_is_legacy", test_udpports_kad_off_is_legacy);
+	suite.add_test("kad_nibble_follows_kad_state", test_kad_nibble_follows_kad_state);
 }

@@ -119,6 +119,13 @@ public:
 	BOOL m_bUdpFwCheckRequested;
 	DWORD m_nUdpFwCheckRound;
 
+	// #516: Kad buddy roles. m_bKadBuddyRequested = we dialed out so this
+	// open client becomes our buddy (we are firewalled). m_bKadBuddyIncoming
+	// = a firewalled client connected to us after we answered FINDBUDDY_REQ.
+	BOOL m_bKadBuddyRequested;
+	BOOL m_bKadBuddyIncoming;
+	DWORD m_tLastBuddyPingPong;
+
 	BOOL		m_bOpenChat;
 	BOOL		m_bCommentSent;
 
@@ -131,6 +138,9 @@ public:
 	void	CopyCapabilities(CEDClient* pClient);
 	void	Send(CPacket* pPacket, BOOL bRelease = TRUE);
 	void	OnRunEx(DWORD tNow);
+	BOOL SendKadCallbackRelay(const BYTE* pBody38);
+	void SendBuddyPing();
+	void SendBuddyPong();
 
 	BOOL	AttachDownload(CDownloadTransferED2K* pDownload);
 	void	OnDownloadClose();

@@ -608,7 +608,7 @@ def handle_capability_honesty(ctx: RunContext, spec: ScenarioSpec) -> ScenarioRe
     if ENVY_ADVERTISED["ext_multipacket"] != 0:
         return _fail(spec, "Ext Multipacket advertise bit changed", **observations)
     if ENVY_ADVERTISED["kad"] != 0:
-        return _fail(spec, "Kad nibble changed; Hello must stay 0 until Buddy/UDP firewall + live interop", **observations)
+        return _fail(spec, "Kad nibble changed in the Kad-off golden Hello (must be 0)", **observations)
     if ENVY_ADVERTISED["compression"] != 1:
         return _fail(spec, "compression advertise nibble drifted from develop (expected 1)", **observations)
     if not ENVY_IMPLEMENTED["compression_send"]:

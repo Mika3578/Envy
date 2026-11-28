@@ -340,6 +340,9 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define KADEMLIA2_PING				0x60	// <TagList>
 #define KADEMLIA2_PONG				0x61	// <TagList>
 #define KADEMLIA2_FIREWALLUDP 0x62          // <errorcode 1><UDPPort_Used 2> UDP firewall-check result (eMule opcodes.h)
+#define KADEMLIA_FINDBUDDY_REQ 0x51         // <BuddyID 16><ClientHash 16><TCPPort 2> firewalled node seeks a buddy
+#define KADEMLIA_CALLBACK_REQ 0x52          // <KadCheck 16><FileHash 16><TCPPort 2> callback via the target's buddy
+#define KADEMLIA_FINDBUDDY_RES 0x5A         // <BuddyID 16><ClientHash 16><TCPPort 2>[<ConnectOptions 1>]
 
 // Missing opcodes found in eMule reference implementation
 #define KADEMLIA_FIND_VALUE			0x02	// Search for values/files in DHT

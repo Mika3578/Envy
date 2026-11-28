@@ -374,7 +374,7 @@ public:
 
 	// The probe request could not be sent (client never connected, helper
 	// became busy, send failure): release the slot so another client can be
-	// asked. eMule counts this as cancelled — no finished result.
+	// asked. eMule counts this as cancelled - no finished result.
 	void CancelProbeRequest(DWORD ipHost)
 	{
 		KadUdpFwUsedClient* slot = FindUsed(ipHost);
@@ -434,7 +434,7 @@ public:
 	}
 
 	// eMule Disconnected() with KS_FWCHECK_UDP: the probe-request connection
-	// dropped after the request was sent — a valid failed test.
+	// dropped after the request was sent - a valid failed test.
 	KadUdpFwResultStatus OnProbeClientClosed(DWORD ipHost, DWORD now)
 	{
 		return OnProbeResult(ipHost, false, false, now);

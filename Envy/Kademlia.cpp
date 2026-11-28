@@ -29,6 +29,8 @@
 #include "KadFirewallCheck.h"
 #include "KadSearchSourceRequest.h"
 #include "Security.h"
+#include "Network.h"
+#include "Ed2kHelloWire.h"
 #include <array>
 #include <algorithm>
 #include <vector>
@@ -110,6 +112,10 @@ void CKademlia::Stop()
 	memset(m_ownId, 0, KAD_ID_SIZE);
 	m_firewall.OnKadStop();
 	m_udpFirewall.OnKadStop();
+	m_buddy.Reset();
+	m_hasPendingBuddyConnect = false;
+	m_pendingBuddyConnect = KadBuddyRecord{};
+	m_pendingCallbackRelays.clear();
 	m_lastFirewallTcpPort = 0;
 
 	theApp.Message(MSG_NOTICE, L"Kad2 stopped");
@@ -297,6 +303,7 @@ void CKademlia::OnTimer()
 		               m_udpFirewall.UsedCount());
 	}
 	MaybeStartFirewallChecks();
+	MaybeStartBuddySearch();
 
 	LogHelloStatus();
 	LogKadStatus();
@@ -422,6 +429,18 @@ BOOL CKademlia::OnPacket(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 
 	case KADEMLIA2_FIREWALLUDP:
 		OnFirewallUdpResult(pHost, pPacket);
+		return TRUE;
+
+	case KADEMLIA_FINDBUDDY_REQ:
+		OnFindBuddyRequest(pHost, pPacket);
+		return TRUE;
+
+	case KADEMLIA_FINDBUDDY_RES:
+		OnFindBuddyResponse(pHost, pPacket);
+		return TRUE;
+
+	case KADEMLIA_CALLBACK_REQ:
+		OnCallbackRequest(pHost, pPacket);
 		return TRUE;
 
 	default:
@@ -2100,4 +2119,289 @@ bool CKademlia::HasKadContactIp(DWORD ipHost)
 bool CKademlia::RoutingZoneHasIp(DWORD ipHost)
 {
 	return m_routingTable.HasContactWithIp(ipHost);
+}
+
+// --- Kad buddy / callback (#516) ---
+
+void CKademlia::OnFindBuddyRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	if (!pHost || !pPacket)
+		return;
+
+	const DWORD ipHost = ntohl(pHost->sin_addr.s_addr);
+	const WORD udpPort = ntohs(pHost->sin_port);
+	const DWORD now = GetTickCount();
+	// eMule InTrackListIsAllowedPacket: FINDBUDDY_REQ 2/min per IP.
+	if (!m_inboundLimiter.Allow(ipHost, KAD_OP_FINDBUDDY_REQ, KAD_BUDDY_FINDBUDDY_PER_MINUTE, now))
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: FINDBUDDY_REQ rate-limited from %s",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		return;
+	}
+
+	KadFindBuddyReq req;
+	if (KadParseFindBuddyReq(pPacket->GetCurrent(), pPacket->GetRemaining(), req) != KadBuddyParseStatus::Ok)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring malformed FINDBUDDY_REQ from %s",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		return;
+	}
+
+	// eMule guards: refuse when TCP-firewalled, UDP-firewalled, or the UDP
+	// tester is not verified; refuse when the single buddy slot is taken.
+	const bool tcpFirewalled = m_firewall.TcpState() == KadTcpFirewallState::Firewalled;
+	const bool udpBlocked = m_udpFirewall.IsFirewalledUdp(true) || !m_udpFirewall.IsVerified();
+	const DWORD ourPublicIpHost = ntohl(Network.m_pHost.sin_addr.S_un.S_addr);
+	const KadBuddyAcceptStatus st = m_buddy.AcceptFindBuddyRequest(
+	    ipHost, udpPort, req, tcpFirewalled, udpBlocked, ourPublicIpHost);
+	if (st != KadBuddyAcceptStatus::Accept)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: FINDBUDDY_REQ refused from %s (status=%u)",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), (unsigned)st);
+		return;
+	}
+
+	SendFindBuddyResponse(pHost, req.buddyId);
+	theApp.Message(MSG_DEBUG, L"Kad2: FINDBUDDY_RES to %s (incoming buddy candidate, tcpPort=%u)",
+	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), req.tcpPort);
+}
+
+void CKademlia::SendFindBuddyResponse(const SOCKADDR_IN* pHost, const BYTE* pBuddyId16)
+{
+	// <BuddyID 16 (echo)><ClientHash 16><TCPPort 2><ConnectOptions 1>.
+	// The ClientHash is the same canonical wire user hash SendHello emits
+	// (eMule cross-checks the connecting buddy's HELLO against the hash
+	// advertised here); ConnectOptions stays 0 while obfuscation and the
+	// direct-UDP-callback bit are honestly unimplemented (#121, #513).
+	BYTE clientHash[KAD_ID_SIZE];
+	memcpy(clientHash, m_ownId, KAD_ID_SIZE);
+	Ed2kHelloApplyGuidMutation(clientHash);
+	BYTE body[KAD_BUDDY_RES_WITH_OPTIONS];
+	KadBuildFindBuddyRes(body, pBuddyId16, clientHash, (WORD)Settings.Connection.InPort, 0);
+	CEDPacket* pPacket = CEDPacket::New(KADEMLIA_FINDBUDDY_RES, ED2K_PROTOCOL_KAD);
+	if (!pPacket)
+		return;
+	pPacket->Write(body, KAD_BUDDY_RES_WITH_OPTIONS);
+	SendPacket(pHost, pPacket);
+	pPacket->Release();
+}
+
+void CKademlia::OnFindBuddyResponse(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	if (!pHost || !pPacket)
+		return;
+
+	const DWORD ipHost = ntohl(pHost->sin_addr.s_addr);
+	const DWORD now = GetTickCount();
+	KadFindBuddyRes res;
+	if (KadParseFindBuddyRes(pPacket->GetCurrent(), pPacket->GetRemaining(), res) != KadBuddyParseStatus::Ok)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring malformed FINDBUDDY_RES from %s",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		return;
+	}
+
+	const KadBuddyCandidateStatus st = m_buddy.OnFindBuddyResponse(ipHost, res, m_ownId, now);
+	switch (st)
+	{
+	case KadBuddyCandidateStatus::Accepted:
+		m_pendingBuddyConnect = m_buddy.Buddy();
+		m_hasPendingBuddyConnect = true;
+		theApp.Message(MSG_DEBUG, L"Kad2: FINDBUDDY_RES accepted from %s (tcpPort=%u) - buddy connect queued",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), res.tcpPort);
+		break;
+	default:
+		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring FINDBUDDY_RES from %s (status=%u)",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), (unsigned)st);
+		break;
+	}
+}
+
+void CKademlia::OnCallbackRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
+{
+	if (!pHost || !pPacket)
+		return;
+
+	const DWORD ipHost = ntohl(pHost->sin_addr.s_addr);
+	const DWORD now = GetTickCount();
+	// eMule InTrackListIsAllowedPacket: CALLBACK_REQ 1/min per IP.
+	if (!m_inboundLimiter.Allow(ipHost, KAD_OP_CALLBACK_REQ, KAD_BUDDY_CALLBACK_PER_MINUTE, now))
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: CALLBACK_REQ rate-limited from %s",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		return;
+	}
+
+	KadCallbackReq req;
+	if (KadParseCallbackReq(pPacket->GetCurrent(), pPacket->GetRemaining(), req) != KadBuddyParseStatus::Ok)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring malformed CALLBACK_REQ from %s",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+		return;
+	}
+
+	KadCallbackRelayItem item;
+	item.buddyIpHost = m_buddy.Buddy().ipHost;
+	item.queuedAt = now;
+	const KadBuddyRelayStatus st = m_buddy.OnCallbackRequest(ipHost, req, item.body);
+	if (st != KadBuddyRelayStatus::Relay)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: CALLBACK_REQ from %s not relayed (status=%u)",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), (unsigned)st);
+		return;
+	}
+
+	// Bounded relay queue; the client layer delivers it over the bonded
+	// buddy's TCP connection (eMule pBuddy->socket).
+	if (m_pendingCallbackRelays.size() >= KAD_BUDDY_TRACK_MAX)
+		m_pendingCallbackRelays.erase(m_pendingCallbackRelays.begin());
+	m_pendingCallbackRelays.push_back(item);
+	theApp.Message(MSG_DEBUG, L"Kad2: CALLBACK_REQ from %s queued for buddy relay",
+	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)));
+}
+
+void CKademlia::MaybeStartBuddySearch()
+{
+	// eMule ClientList.cpp: a buddy is sought when BOTH firewall tests report
+	// firewalled, no buddy is bonded, and at least 20 minutes passed since
+	// the last round. Contacts come from the verified routing pool.
+	const DWORD now = GetTickCount();
+	const bool tcpFirewalled = m_firewall.TcpState() == KadTcpFirewallState::Firewalled;
+	const bool udpFirewalled = m_udpFirewall.IsFirewalledUdp(true);
+	if (!m_buddy.WantsBuddySearch(now, tcpFirewalled, udpFirewalled))
+		return;
+
+	// The whole routing table is the pool (about 60 verified contacts in the live runs). Contacts that
+	// still owe us a TCP firewall-check answer are left out: eMule refuses a buddy request from an IP it
+	// is connecting back to, and the same few newest contacts must not be asked every round.
+	std::vector<KadContact> contacts;
+	m_routingTable.GetContactsForBootstrap(contacts, KAD_BUDDY_POOL_MAX);
+	std::vector<KadFwPeerCandidate> pool;
+	pool.reserve(contacts.size());
+	for (const auto& contact : contacts)
+	{
+		if (m_firewall.HasOutboundCheck(contact.ip, contact.udpPort))
+			continue;
+		KadFwPeerCandidate cand;
+		cand.ipHost = contact.ip;
+		cand.udpPort = contact.udpPort;
+		cand.tcpPort = contact.tcpPort;
+		cand.version = contact.version;
+		cand.verified = contact.verified != FALSE;
+		cand.lastSeen = static_cast<DWORD>(contact.lastSeen);
+		pool.push_back(cand);
+	}
+
+	KadFwPeerCandidate chosen[KAD_BUDDY_REQ_CONTACTS_PER_ROUND];
+	const size_t nChosen = m_buddy.SelectBuddyPeers(pool.data(), pool.size(), chosen, KAD_BUDDY_REQ_CONTACTS_PER_ROUND);
+	if (nChosen == 0)
+		return;
+
+	m_buddy.NoteBuddySearchRound(now);
+	theApp.Message(MSG_DEBUG, L"Kad2: FINDBUDDY round: asking %u of %u routing contacts",
+	               (unsigned)nChosen, (unsigned)pool.size());
+	for (size_t i = 0; i < nChosen; ++i)
+	{
+		if (!m_buddy.BeginFindBuddyRequest(chosen[i].ipHost, now))
+			continue;
+		KadContact contact;
+		contact.ip = chosen[i].ipHost;
+		contact.udpPort = chosen[i].udpPort;
+		contact.tcpPort = chosen[i].tcpPort;
+		contact.version = chosen[i].version;
+		contact.verified = chosen[i].verified ? TRUE : FALSE;
+		contact.lastSeen = chosen[i].lastSeen;
+		SendFindBuddyRequest(contact);
+	}
+}
+
+void CKademlia::SendFindBuddyRequest(const KadContact& contact)
+{
+	if (!m_bInitialized)
+		return;
+
+	sockaddr_in addr;
+	KadContactGetSockAddr(contact, addr);
+
+	// <BuddyID 16 = own KadID XOR 0xFF..FF><ClientHash 16><TCPPort 2>
+	// (eMule Search.cpp FINDBUDDY + ClientList.cpp lookup target). The
+	// ClientHash is the canonical wire user hash SendHello emits, so the
+	// responding buddy's HELLO matches what we advertised.
+	BYTE body[KAD_BUDDY_REQ_MIN_SIZE];
+	BYTE buddyId[KAD_ID_SIZE];
+	KadKadIdToBuddyId(m_ownId, buddyId);
+	BYTE clientHash[KAD_ID_SIZE];
+	memcpy(clientHash, m_ownId, KAD_ID_SIZE);
+	Ed2kHelloApplyGuidMutation(clientHash);
+	KadBuildFindBuddyReq(body, buddyId, clientHash, (WORD)Settings.Connection.InPort);
+
+	CEDPacket* pPacket = CEDPacket::New(KADEMLIA_FINDBUDDY_REQ, ED2K_PROTOCOL_KAD);
+	if (!pPacket)
+		return;
+	pPacket->Write(body, KAD_BUDDY_REQ_MIN_SIZE);
+	SendPacket(&addr, pPacket);
+	pPacket->Release();
+
+	theApp.Message(MSG_DEBUG, L"Kad2: FINDBUDDY_REQ to %s:%u (tcpPort=%u)",
+	               (LPCTSTR)CString(inet_ntoa(addr.sin_addr)), ntohs(addr.sin_port),
+	               (WORD)Settings.Connection.InPort);
+}
+
+void CKademlia::OnBuddyClientConnected(DWORD ipHost)
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	const DWORD now = GetTickCount();
+	const bool hadBuddy = m_buddy.HasConnectedBuddy();
+	m_buddy.OnBuddyConnected(ipHost, now);
+	if (!hadBuddy && m_buddy.HasConnectedBuddy())
+		theApp.Message(MSG_DEBUG, L"Kad2: Buddy bond established with %u", ipHost);
+}
+
+void CKademlia::OnBuddyClientDisconnected(DWORD ipHost)
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	if (!m_buddy.HasBuddyRecord() || m_buddy.Buddy().ipHost != ipHost)
+		return;
+	m_buddy.OnBuddyDisconnected();
+	theApp.Message(MSG_DEBUG, L"Kad2: Buddy bond lost (%u)", ipHost);
+}
+
+bool CKademlia::IsIncomingBuddyEndpoint(DWORD ipHost)
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	return m_buddy.HasBuddyRecord() && m_buddy.Buddy().ipHost == ipHost && !m_buddy.HasConnectedBuddy();
+}
+
+bool CKademlia::IsBondedBuddyEndpoint(DWORD ipHost)
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	return m_buddy.HasConnectedBuddy() && m_buddy.Buddy().ipHost == ipHost;
+}
+
+bool CKademlia::TakePendingBuddyContact(KadBuddyRecord& out)
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	if (!m_hasPendingBuddyConnect)
+		return false;
+	out = m_pendingBuddyConnect;
+	m_hasPendingBuddyConnect = false;
+	m_pendingBuddyConnect = KadBuddyRecord{};
+	return true;
+}
+
+bool CKademlia::PeekPendingCallbackRelay(KadCallbackRelayItem& out, bool& expired, DWORD now)
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	if (m_pendingCallbackRelays.empty())
+		return false;
+	out = m_pendingCallbackRelays.front();
+	expired = KadTickElapsed(now, out.queuedAt, KAD_BUDDY_RELAY_RETAIN_MS);
+	return true;
+}
+
+void CKademlia::PopPendingCallbackRelay()
+{
+	CSingleLock oLock(&m_pKadSection, TRUE);
+	if (!m_pendingCallbackRelays.empty())
+		m_pendingCallbackRelays.erase(m_pendingCallbackRelays.begin());
 }

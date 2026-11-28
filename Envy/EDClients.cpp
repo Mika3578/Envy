@@ -28,6 +28,7 @@
 #include "Network.h"
 #include "Security.h"
 #include "Datagrams.h"
+#include "Kademlia.h"
 #include "Downloads.h"
 #include "QueryHit.h"
 #include "SearchManager.h"
@@ -365,6 +366,45 @@ void CEDClients::OnRun()
 		CEDClient* pNext = pClient->m_pEdNext;
 		pClient->OnRunEx( tNow );
 		pClient = pNext;
+	}
+
+	// #516: dial a pending Kad buddy contact (CKademlia hands it over after
+	// a FINDBUDDY_RES so the Kad layer never reaches into the client pool).
+	KadBuddyRecord oBuddyContact;
+	if (Kademlia.TakePendingBuddyContact(oBuddyContact) && oBuddyContact.tcpPort != 0)
+	{
+		const DWORD nBuddyId = htonl(oBuddyContact.ipHost);
+		if (CEDClient* pBuddy = Connect(nBuddyId, oBuddyContact.tcpPort, NULL, 0, Hashes::Guid()))
+		{
+			pBuddy->m_bKadBuddyRequested = TRUE;
+			// An already-logged-in candidate bonds right here; otherwise
+			// OnRunEx dials and OnLoggedIn bonds.
+			if (pBuddy->IsOnline())
+				Kademlia.OnBuddyClientConnected(oBuddyContact.ipHost);
+			theApp.Message(MSG_DEBUG, L"[ED2K] Kad buddy connect queued for %s:%u",
+			               (LPCTSTR)pBuddy->m_sAddress, oBuddyContact.tcpPort);
+		}
+	}
+
+	// #516: deliver queued OP_CALLBACK relays over bonded buddy connections.
+	// A relay whose bonded client is not online yet is retained (bounded
+	// window) instead of dropped; only delivery or expiry consumes it.
+	CKademlia::KadCallbackRelayItem oRelay;
+	bool oRelayExpired = false;
+	while (Kademlia.PeekPendingCallbackRelay(oRelay, oRelayExpired, tNow))
+	{
+		if (oRelayExpired)
+		{
+			Kademlia.PopPendingCallbackRelay();
+			continue;
+		}
+		IN_ADDR pBuddyAddr = {};
+		pBuddyAddr.S_un.S_addr = htonl(oRelay.buddyIpHost);
+		CEDClient* pBuddy = GetByIP(&pBuddyAddr);
+		if (pBuddy == NULL || !pBuddy->IsOnline() || !pBuddy->m_bKadBuddyIncoming)
+			break; // retain until the bonded client is online or the item expires
+		Kademlia.PopPendingCallbackRelay();
+		pBuddy->SendKadCallbackRelay(oRelay.body);
 	}
 
 	m_tLastRun = tNow;
