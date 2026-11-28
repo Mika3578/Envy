@@ -258,6 +258,99 @@ static bool test_timeout_goes_firewalled()
 	return fw.TcpState() == KadTcpFirewallState::Firewalled && fw.OutstandingCount() == 0 && fw.TcpState() != KadTcpFirewallState::Open;
 }
 
+// A round ends after four FIREWALLED_RES answers (eMule KADEMLIAFIREWALLCHECKS):
+// even when an earlier check has expired and a slot is free again, no further
+// REQ is sent, and once the outstanding checks drain without two ACKs the
+// state settles on Firewalled instead of staying in Testing forever.
+static bool test_round_ends_after_four_res()
+{
+	KadFirewallCheck fw;
+	fw.OnKadStart(1, kTcp);
+	BYTE buf[4];
+	write_res(buf, kObs1);
+	DWORD now = 10;
+	for (DWORD i = 0; i < KAD_FW_RES_PER_ROUND; ++i)
+	{
+		now = 10 + i * 60000;
+		fw.OnTimer(now);
+		const DWORD ip = 0x08080801u + i;
+		if (!fw.BeginOutboundCheck(make_peer(ip, kUdp), now))
+			return false;
+		if (fw.OnFirewalledRes(ip, kUdp, buf, 4, now + 1) != KadFwResStatus::Accepted)
+			return false;
+	}
+	fw.OnTimer(now + 1);
+	if (fw.OutstandingCount() >= KAD_FW_MAX_OUTSTANDING_CHECKS)
+		return false; // the first check expired, so a slot is free
+	if (fw.RoundResponseCount() != KAD_FW_RES_PER_ROUND || fw.WantsNewOutboundCheck(now + 1))
+		return false;
+	if (fw.BeginOutboundCheck(make_peer(kPeerC, kUdp), now + 1))
+		return false;
+	if (fw.TcpState() != KadTcpFirewallState::Testing)
+		return false;
+	fw.OnTimer(now + KAD_FW_CHECK_TTL_MS + 1);
+	return fw.TcpState() == KadTcpFirewallState::Firewalled && fw.OutstandingCount() == 0;
+}
+
+// Staggered silent helpers keep one check outstanding at every tick; the
+// per-round request cap still ends the round so Testing cannot last forever.
+static bool test_round_request_cap_silent_helpers()
+{
+	KadFirewallCheck fw;
+	fw.OnKadStart(1, kTcp);
+	DWORD now = 10;
+	for (DWORD i = 0; i < KAD_FW_MAX_REQ_PER_ROUND; ++i)
+	{
+		now = 10 + i * 60000;
+		fw.OnTimer(now);
+		if (fw.TcpState() == KadTcpFirewallState::Firewalled)
+			return false; // must not settle while checks are still outstanding
+		if (!fw.WantsNewOutboundCheck(now) || !fw.BeginOutboundCheck(make_peer(0x08080801u + i, kUdp), now))
+			return false;
+	}
+	if (fw.RoundRequestCount() != KAD_FW_MAX_REQ_PER_ROUND || fw.WantsNewOutboundCheck(now + 1))
+		return false;
+	if (fw.BeginOutboundCheck(make_peer(kPeerC, kUdp), now + 1))
+		return false;
+	fw.OnTimer(now + KAD_FW_CHECK_TTL_MS + 1);
+	return fw.TcpState() == KadTcpFirewallState::Firewalled && fw.OutstandingCount() == 0;
+}
+
+// Two ACKs inside a capped round still open TCP.
+static bool test_round_two_acks_open()
+{
+	KadFirewallCheck fw;
+	fw.OnKadStart(1, kTcp);
+	BYTE buf[4];
+	write_res(buf, kObs1);
+	for (DWORD i = 0; i < KAD_FW_RES_PER_ROUND; ++i)
+	{
+		const DWORD ip = 0x08080801u + i;
+		fw.BeginOutboundCheck(make_peer(ip, kUdp), 10 + i);
+		fw.OnFirewalledRes(ip, kUdp, buf, 4, 20 + i);
+	}
+	fw.OnTcpFirewallCheckAck(0x08080801u, 30);
+	fw.OnFirewalledAck(0x08080802u, kUdp, 0, 31);
+	fw.OnTimer(13 + KAD_FW_CHECK_TTL_MS + 1);
+	return fw.TcpState() == KadTcpFirewallState::Open && fw.AckCount() == 2;
+}
+
+// The recheck after a Firewalled verdict starts a fresh round.
+static bool test_round_recheck_resets_counters()
+{
+	KadFirewallCheck fw;
+	fw.OnKadStart(1, kTcp);
+	fw.BeginOutboundCheck(make_peer(kPeerA, kUdp), 10);
+	const DWORD tDone = 10 + KAD_FW_CHECK_TTL_MS;
+	fw.OnTimer(tDone);
+	if (fw.TcpState() != KadTcpFirewallState::Firewalled)
+		return false;
+	const DWORD tRecheck = tDone + KAD_FW_RECHECK_MS + 1;
+	if (!fw.WantsNewOutboundCheck(tRecheck) || !fw.BeginOutboundCheck(make_peer(kPeerB, kUdp), tRecheck))
+		return false;
+	return fw.TcpState() == KadTcpFirewallState::Testing && fw.RoundRequestCount() == 1 && fw.RoundResponseCount() == 0;
+}
+
 static bool test_reset_unknown()
 {
 	KadFirewallCheck fw;
@@ -558,6 +651,10 @@ void register_kad_firewall_check_smoke_tests(TestSuite& suite)
 	suite.add_test("kad_fw_duplicate_res", test_duplicate_res_ignored);
 	suite.add_test("kad_fw_wrong_peer_res", test_wrong_peer_res_ignored);
 	suite.add_test("kad_fw_timeout_firewalled", test_timeout_goes_firewalled);
+	suite.add_test("kad_fw_round_ends_after_four_res", test_round_ends_after_four_res);
+	suite.add_test("kad_fw_round_request_cap", test_round_request_cap_silent_helpers);
+	suite.add_test("kad_fw_round_two_acks_open", test_round_two_acks_open);
+	suite.add_test("kad_fw_round_recheck_resets", test_round_recheck_resets_counters);
 	suite.add_test("kad_fw_reset", test_reset_unknown);
 	suite.add_test("kad_fw_two_acks_open", test_two_acks_open);
 	suite.add_test("kad_fw_unsolicited_ack", test_unsolicited_ack_ignored);
