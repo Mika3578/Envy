@@ -306,28 +306,29 @@ bool test_limiter_clock_regression_and_boundaries()
 
 bool test_bodyless_request_gate()
 {
-	const uint8_t bootstrap[] = { 0xE4, 0x01 }, ping[] = { 0xE4, 0x60 };
-	if (!KadIsBodylessRequest(bootstrap, 2) || !KadIsBodylessRequest(ping, 2))
+	const uint8_t bootstrap[] = { 0xE4, 0x01 }, ping[] = { 0xE4, 0x60 }, fwAck[] = { 0xE4, 0x59 };
+	if (!KadIsBodylessRequest(bootstrap, 2) || !KadIsBodylessRequest(ping, 2) || !KadIsBodylessRequest(fwAck, 2))
 		return false;
 	// Any other Kad opcode, including ones that reach a larger reply or the ED2K server-result path.
 	for (unsigned op = 0; op < 256; ++op)
 	{
 		const uint8_t d[] = { 0xE4, static_cast<uint8_t>(op) };
-		if (KadIsBodylessRequest(d, 2) != (op == 0x01 || op == 0x60))
+		if (KadIsBodylessRequest(d, 2) != (op == 0x01 || op == 0x60 || op == 0x59))
 			return false;
 	}
 	// Every other protocol byte (eDonkey, eMule, packed Kad, RevConnect, Gnutella...) at two bytes.
 	for (unsigned proto = 0; proto < 256; ++proto)
-		for (unsigned op : { 0x01u, 0x60u, 0x99u, 0x9Bu })
+		for (unsigned op : { 0x01u, 0x60u, 0x59u, 0x99u, 0x9Bu })
 		{
 			const uint8_t d[] = { static_cast<uint8_t>(proto), static_cast<uint8_t>(op) };
 			if (proto != 0xE4 && KadIsBodylessRequest(d, 2))
 				return false;
 		}
 	// Only exactly two bytes; null and other lengths are refused.
-	const uint8_t longer[] = { 0xE4, 0x01, 0x00 };
+	const uint8_t longer[] = { 0xE4, 0x01, 0x00 }, longerAck[] = { 0xE4, 0x59, 0x00 };
 	return !KadIsBodylessRequest(bootstrap, 1) && !KadIsBodylessRequest(bootstrap, 0) &&
-	       !KadIsBodylessRequest(longer, 3) && !KadIsBodylessRequest(nullptr, 2);
+	       !KadIsBodylessRequest(longer, 3) && !KadIsBodylessRequest(longerAck, 3) &&
+	       !KadIsBodylessRequest(fwAck, 1) && !KadIsBodylessRequest(nullptr, 2);
 }
 
 bool test_write_failure_leaves_buffer_untouched()
