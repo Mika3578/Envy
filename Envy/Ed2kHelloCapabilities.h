@@ -136,6 +136,14 @@ inline WORD Ed2kUdpPortsUdpPort(DWORD nUdpPorts)
 	return (WORD)(nUdpPorts & 0xFFFF);
 }
 
+// Kad version nibble of MiscOptions2 (bits 0-3). eMule ignores OP_BUDDYPING
+// and OP_BUDDYPONG from a peer whose Hello reports Kad version 0, so the
+// nibble carries our Kad version while Kad runs and 0 when it does not.
+inline BYTE Ed2kHelloKadVersionNibble(bool bKadRunning, BYTE nKadVersion)
+{
+	return bKadRunning ? (BYTE)(nKadVersion & 0x0F) : (BYTE)0;
+}
+
 // Extractors for tests / debug.
 inline BYTE Ed2kFeatureVersions1Aich(DWORD nOpt1)
 {

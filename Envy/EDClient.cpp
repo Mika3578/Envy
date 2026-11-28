@@ -1536,6 +1536,7 @@ void CEDClient::SendHello(BYTE nType)
 		Ed2kExtMultipacketAdvertised(),			// Ext Multipacket (no 0x92/0xA4 handlers)
 		Settings.eDonkey.LargeFileSupport ? TRUE : FALSE,
 		0 );									// Kad version nibble (EnableKad binding separate)
+	nOpt2 |= Ed2kHelloKadVersionNibble(Kademlia.IsInitialized(), KADEMLIA_VERSION);
 	CEDTag( ED2K_CT_MOREFEATUREVERSIONS, nOpt2 ).Write( pPacket );
 
 	// 6 - Software Version

@@ -152,7 +152,7 @@ ENVY_ADVERTISED = {
     "cryptlayer_requires": 0,
     "ext_multipacket": 0,
     "large_files": 1,
-    "kad": 0,  # Hello Kad nibble stays 0 until Buddy/UDP firewall + live interop
+    "kad": 0,  # Kad-off golden Hello; SendHello reports KADEMLIA_VERSION (8) while Kad runs
 }
 
 # Implemented behavior on current develop — independent of advertisement.
