@@ -41,16 +41,21 @@ constexpr size_t KadHelloFixedBytes = 16 + 2 + 1 + 1;
 constexpr uint8_t KadHelloTagSourceUdpPort = 0xFC;
 constexpr uint8_t KadHelloTagMiscOptions = 0xF2;
 
-// Kad2 requests that are exactly the two header bytes (protocol, opcode) and draw a reply.
-// Both are rate limited on receipt; no other opcode and no other ED2K UDP protocol may use a
-// two-byte datagram, so a forged source cannot turn one into a reflected reply.
-constexpr uint8_t KadProtocolByte = 0xE4;   // ED2K_PROTOCOL_KAD
-constexpr uint8_t KadOpBootstrapReq = 0x01; // KADEMLIA2_BOOTSTRAP_REQ
-constexpr uint8_t KadOpPing = 0x60;         // KADEMLIA2_PING
+// Kad2 datagrams that are exactly the two header bytes (protocol, opcode). Two are requests that draw a
+// reply; both are rate limited on receipt. The third, KADEMLIA_FIREWALLED_ACK_RES, is what eMule and
+// aMule send over UDP once they connected back to our TCP port for a firewall check and our Hello
+// reports a Kad version below 7. It draws no reply and is only counted against a firewall check we
+// started. No other opcode and no other ED2K UDP protocol may use a two-byte datagram, so a forged
+// source cannot turn one into a reflected reply.
+constexpr uint8_t KadProtocolByte = 0xE4;       // ED2K_PROTOCOL_KAD
+constexpr uint8_t KadOpBootstrapReq = 0x01;     // KADEMLIA2_BOOTSTRAP_REQ
+constexpr uint8_t KadOpPing = 0x60;             // KADEMLIA2_PING
+constexpr uint8_t KadOpFirewalledAckRes = 0x59; // KADEMLIA2_FIREWALLED_ACK_RES
 
 inline bool KadIsBodylessRequest(const uint8_t* p, size_t n)
 {
-	return p != nullptr && n == 2 && p[0] == KadProtocolByte && (p[1] == KadOpBootstrapReq || p[1] == KadOpPing);
+	return p != nullptr && n == 2 && p[0] == KadProtocolByte &&
+	       (p[1] == KadOpBootstrapReq || p[1] == KadOpPing || p[1] == KadOpFirewalledAckRes);
 }
 
 // Writes a HELLO body without tags. Returns the byte count, or 0 if cap is too small.

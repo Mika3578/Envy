@@ -1761,14 +1761,18 @@ void CKademlia::OnTcpFirewallCheckAck(const SOCKADDR_IN* pHost)
 
 	const DWORD ipHost = ntohl(pHost->sin_addr.s_addr);
 	const KadFwAckStatus st = m_firewall.OnTcpFirewallCheckAck(ipHost, GetTickCount());
-	if (st == KadFwAckStatus::Accepted)
+	if (st != KadFwAckStatus::Accepted)
 	{
-		theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall ACK (0xA8) from %s (acks=%u state=%u)",
-		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)),
-		               m_firewall.AckCount(), (unsigned)m_firewall.TcpState());
-		if (m_firewall.ShouldLogOpenTransition())
-			theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall state Open");
+		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring TCP firewall ACK (0xA8) from %s (status=%u)",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), (unsigned)st);
+		return;
 	}
+
+	theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall ACK (0xA8) from %s (acks=%u state=%u)",
+	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)),
+	               m_firewall.AckCount(), (unsigned)m_firewall.TcpState());
+	if (m_firewall.ShouldLogOpenTransition())
+		theApp.Message(MSG_DEBUG, L"Kad2: TCP firewall state Open");
 }
 
 void CKademlia::OnFirewalledRequest(const SOCKADDR_IN* pHost, CEDPacket* pPacket, bool firewalled2)
@@ -1828,7 +1832,11 @@ void CKademlia::OnFirewalledAck(const SOCKADDR_IN* pHost, CEDPacket* pPacket)
 	const KadFwAckStatus st = m_firewall.OnFirewalledAck(
 	    ipHost, udpPort, pPacket->GetRemaining(), GetTickCount());
 	if (st != KadFwAckStatus::Accepted)
+	{
+		theApp.Message(MSG_DEBUG, L"Kad2: Ignoring FIREWALLED_ACK from %s:%u (status=%u)",
+		               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)), (unsigned)udpPort, (unsigned)st);
 		return;
+	}
 
 	theApp.Message(MSG_DEBUG, L"Kad2: FIREWALLED_ACK from %s (acks=%u state=%u)",
 	               (LPCTSTR)CString(inet_ntoa(pHost->sin_addr)),

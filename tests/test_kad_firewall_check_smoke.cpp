@@ -9,6 +9,7 @@
 
 #include "test_framework.h"
 #include "../Envy/KadFirewallCheck.h"
+#include "../Envy/KadHello.h"
 
 #include <cstring>
 
@@ -396,6 +397,27 @@ static bool test_duplicate_ack_ignored()
 	return fw.OnFirewalledAck(kPeerA, kUdp, 0, 21) == KadFwAckStatus::Duplicate && fw.AckCount() == 1;
 }
 
+// A2 live round 3: seven eMule peers connected back to our TCP port and each sent the two-byte UDP
+// datagram E4 59 (KADEMLIA_FIREWALLED_ACK_RES); the UDP dispatcher dropped every one as an unknown packet.
+// The datagram gate must admit it and two such ACKs from asked peers must open TCP.
+static bool test_two_byte_udp_ack_datagram_opens()
+{
+	const uint8_t dg[] = { 0xE4, 0x59 };
+	if (!KadIsBodylessRequest(dg, sizeof(dg)))
+		return false;
+	KadFirewallCheck fw;
+	fw.OnKadStart(1, kTcp);
+	fw.BeginOutboundCheck(make_peer(kPeerA, kUdp), 10);
+	fw.BeginOutboundCheck(make_peer(kPeerB, kUdp), 11);
+	// The datagram body is empty: the handler sees GetRemaining() == 0.
+	if (fw.OnFirewalledAck(kPeerA, kUdp, 0, 20) != KadFwAckStatus::Accepted)
+		return false;
+	if (fw.OnFirewalledAck(kPeerB, kUdp, 0, 21) != KadFwAckStatus::Accepted)
+		return false;
+	// A peer we never asked, or an ACK from the wrong UDP port, never counts.
+	return fw.TcpState() == KadTcpFirewallState::Open && fw.OnFirewalledAck(kPeerC, kUdp, 0, 22) == KadFwAckStatus::Unsolicited;
+}
+
 static bool test_tcp_ack_0xa8()
 {
 	KadFirewallCheck fw;
@@ -659,6 +681,7 @@ void register_kad_firewall_check_smoke_tests(TestSuite& suite)
 	suite.add_test("kad_fw_two_acks_open", test_two_acks_open);
 	suite.add_test("kad_fw_unsolicited_ack", test_unsolicited_ack_ignored);
 	suite.add_test("kad_fw_duplicate_ack", test_duplicate_ack_ignored);
+	suite.add_test("kad_fw_udp_ack_two_byte_datagram", test_two_byte_udp_ack_datagram_opens);
 	suite.add_test("kad_fw_tcp_ack_0xa8", test_tcp_ack_0xa8);
 	suite.add_test("kad_fw_bounded_simultaneous", test_bounded_simultaneous);
 	suite.add_test("kad_fw_one_observation_insufficient", test_one_observation_not_authoritative);
